@@ -491,7 +491,7 @@ class Token:
 
     def IsTopLevelBeg(self):
         return self.kind is TK.BEG and self.tag in ("rec", "enum", "fun", "type", "import",
-                                                    "global", "macro", "static_assert")
+                                                    "global", "global!", "macro", "static_assert")
 
 
 class TS:
@@ -661,21 +661,9 @@ def TokensAnnotationsPost(ts: TS, node):
             ts.EmitComment("  -- " + val)
 
 
-def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
-    if node.name == "->":
-        assert len(node.args) == 2
-        TokensBinaryInfix(ts, "->", node.args[0], node.args[1], node)
-        return
-    is_block_like = node.name in ["for", "while", "tryset", "trylet"]
-    if is_block_like:
-        beg_block = ts.EmitBeg(node.name)
-    else:
-        if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-            beg_stmt = ts.EmitBegAnon()
-        ts.EmitAttr(node.name)
-        beg_paren = ts.EmitBegParen("(")
+def TokensMacroInvokeArgs(ts: TS, args):
     sep = False
-    for a in node.args:
+    for a in args:
         if sep:
             if not isinstance(a, cwast.EphemeralList) or not a.colon:
                 ts.EmitSep(",")
@@ -702,6 +690,35 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
             EmitTokens(ts, a)
         else:
             EmitTokens(ts, a)
+
+def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
+    if node.name == "->":
+        assert len(node.args) == 2
+        TokensBinaryInfix(ts, "->", node.args[0], node.args[1], node)
+        return
+    is_block_like = node.name in ["for", "while", "tryset", "trylet"]
+    if is_block_like:
+        beg_block = ts.EmitBeg(node.name)
+    else:
+        if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
+            beg_stmt = ts.EmitBegAnon()
+        ts.EmitAttr(node.name)
+        beg_paren = ts.EmitBegParen("(")
+
+    args = node.args
+    if node.name == "for" or node.name == "tryset":
+         ts.EmitAttr(args[0].name)
+         args = args[1:]
+         ts.EmitBinOp("=")
+    elif node.name == "trylet":
+        ts.EmitAttr(args[0].name)
+        EmitTokens(ts, args[1])
+        args = args[2:]
+        ts.EmitBinOp("=")
+
+    TokensMacroInvokeArgs(ts, args)
+
+
     if is_block_like:
         ts.EmitEnd(beg_block)
     else:
@@ -834,7 +851,8 @@ def WithMut(name: str, mutable: bool) -> str:
 def TokensDefGlobal(ts: TS, node: cwast.DefGlobal):
     beg = ts.EmitBeg(WithMut("global", node.mut))
     ts.EmitAttr(node.name)
-    EmitTokens(ts, node.type_or_auto)
+    if not isinstance(node.type_or_auto, cwast.TypeAuto):
+        EmitTokens(ts, node.type_or_auto)
     if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
         ts.EmitBinOp("=")
         EmitTokens(ts, node.initial_or_undef_or_auto)
@@ -970,6 +988,7 @@ def TokensMacroId(ts: TS, node: cwast.MacroId):
         ts.EmitEnd(beg)
     else:
         ts.EmitAttr(node.name)
+
 
 def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
     EmitTokens(ts, node.container)

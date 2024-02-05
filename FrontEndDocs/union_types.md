@@ -11,9 +11,9 @@ Unions must have at least two members.
 Example:
 
 ```
-(type Union1 (union @untagged [ s32 void (ptr @mut s32) ]))
+(type Union1 (union @untagged [ s32 void (ptr! s32) ]))
 ```
-This represents a union of 3 members: s32, void and (ptr @mut s32).
+This represents a union of 3 members: s32, void and (ptr! s32).
 Note that void is valid member for unions.
 
 
@@ -38,7 +38,7 @@ Example:
 (type Union2 (union [ void t2 t3 ]))
 
 @doc "nullable pointers can be modelled like so"
-(type Union3 (union [ void (ptr @mut u8) ]))
+(type Union3 (union [ void (ptr! u8) ]))
 ```
 
 Union types are order independent:
@@ -110,10 +110,10 @@ Assuming
 ```
 (type Union1 (union [ s16 void u32 ]))
 
-(let @mut u  Union1 ...)
-(let @mut v  Union1 ...)
+(let! u  Union1 ...)
+(let! v  Union1 ...)
 
-(let @mut x  u32 ...)
+(let! x  u32 ...)
 
 ```
 
@@ -149,7 +149,7 @@ Examples
 ```
 (type Union1 (union [ s16 void u32 ]))
 
-(let @mut u  Union1 ...)
+(let! u  Union1 ...)
 
 .. (is u s16) ..
 .. (is u (union  [ s16 void ])) ..

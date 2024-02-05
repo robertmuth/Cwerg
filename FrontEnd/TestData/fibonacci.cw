@@ -1,4 +1,4 @@
-@doc "fizzbuzz"
+@doc "fibonacci"
 (module main [] :
 (import test)
 
