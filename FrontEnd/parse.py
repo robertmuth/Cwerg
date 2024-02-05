@@ -158,8 +158,8 @@ _SHORT_HAND_NODES = {
     "true": cwast.ValTrue,
     "false": cwast.ValFalse,
     # see cwast.OPTIONAL_FIELDS
-    "break": lambda args: cwast.StmtBreak(target="", **args),
-    "continue": lambda args: cwast.StmtContinue(target="", **args),
+    "break": lambda **args: cwast.StmtBreak(target="", **args),
+    "continue": lambda **args: cwast.StmtContinue(target="", **args),
 }
 
 # add basic type names
@@ -343,7 +343,7 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
         assert None
 
 
-def ReadMacroInvocation(tag: str, stream: ReadTokens):
+def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: Dict[str, Any]):
     """The leading '(' and `tag` have already been consumed"""
     parent_cls = cwast.MacroInvoke
     srcloc = stream.srcloc()
@@ -351,28 +351,28 @@ def ReadMacroInvocation(tag: str, stream: ReadTokens):
     args: List[Any] = []
     while True:
         token = next(stream)
-        attr = {}
-        token = ReadAttrs(token, {}, stream)
         if token == ")":
             return cwast.MacroInvoke(tag, args, x_srcloc=srcloc, **attr)
-        elif token == "(":
-            args.append(ReadSExpr(stream, parent_cls, attr))
+        sub_attr: Dict[str, Any] = {}
+        token = ReadAttrs(token, sub_attr, stream)
+        if token == "(":
+            args.append(ReadSExpr(stream, parent_cls, sub_attr))
         elif token == "[":
-            assert not attr
+            assert not sub_attr
             args.append(cwast.EphemeralList(ReadNodeList(
                 stream, parent_cls), colon=False, x_srcloc=srcloc))
         elif token == ":":
-            assert not attr
+            assert not sub_attr
             args.append(cwast.EphemeralList(ReadNodeColonList(
                 stream, parent_cls), colon=True, x_srcloc=srcloc))
         else:
-            out = ExpandShortHand(token, stream.srcloc(), attr)
+            out = ExpandShortHand(token, stream.srcloc(), sub_attr)
             assert out is not None, f"while processing {tag} unexpected macro arg: {token}"
             args.append(out)
     return args
 
 
-def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[Tuple[str, cwast.NFD]], attr, stream: ReadTokens):
+def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[Tuple[str, cwast.NFD]], attr: Dict[str, Any], stream: ReadTokens):
     """Read the remaining componts of an SExpr (after the tag and attr).
 
     Can handle optional bools at the beginning and an optional 'tail'
@@ -428,7 +428,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: Dict[str, Any]) -> Any:
         if not cls:
             if tag in cwast.BUILT_IN_MACROS or tag.endswith(cwast.MACRO_SUFFIX):
                 # unknown node name - assume it is a macro
-                return ReadMacroInvocation(tag, stream)
+                return ReadMacroInvocation(tag, stream, attr)
             else:
                 return ReadRestAndMakeNode(cwast.ExprCall, [cwast.Id(tag, x_srcloc=stream.srcloc())],
                                            cwast.ExprCall.FIELDS[1:], attr, stream)

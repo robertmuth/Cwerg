@@ -747,7 +747,8 @@ def TokensStmtSet(ts: TS, kind, lhs, rhs):
 def TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
     beg = ts.EmitBeg(kind)
     ts.EmitAttr(name)
-    EmitTokens(ts, type_or_auto)
+    if not isinstance(type_or_auto, cwast.TypeAuto):
+        EmitTokens(ts, type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
         ts.EmitBinOp("=")
         EmitTokens(ts, init_or_auto)

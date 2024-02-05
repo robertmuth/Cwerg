@@ -1,6 +1,6 @@
-@doc "sieve"
+@doc "prime number sieve"
 
-(module main [] :
+(module sieve [] :
 (import test)
 
 (global SIZE uint 1000000)
@@ -9,22 +9,23 @@
 (global EXPECTED uint 148932)
 
 
-@doc "index i reprents number 3 + 2 * i"
-(global! is_prime (array SIZE u8) (array_val SIZE u8 [ 0 ]))
+@doc """The array is initialized to all true because the explicit
+value for the first element is replicated for the
+subsequent unspecified ones.
 
+index i reprents number 3 + 2 * i"""
+(global! is_prime auto (array_val SIZE bool [ true ]))
 
+@doc "the actual sieve function"
 (fun sieve [] uint :
-    @doc "initially every number is assumed prime"
-    (for i 0 SIZE 1 :
-        (= (at is_prime i) 1))
-    @doc "run the sieve"
+
     (let! count uint 0)
     (for i 0 SIZE 1 :
-        (if (!= (at is_prime i) 0) :
-            (= count (+ count 1))
+        (if (at is_prime i) :
+            (+= count 1)
             (let p uint (+ 3 (+ i i)))
             (for k (+ i p) SIZE p :
-                (= (at is_prime k) 0))
+                (= (at is_prime k) false))
             :))
     (return count))
 

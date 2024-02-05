@@ -305,7 +305,8 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Type
                 op1, op2 = op2, op1
             print(
                 f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_false}  # {cond}")
-    elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt, cwast.ExprField)):
+    elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt, cwast.ExprField,
+                           cwast.ExprIndex, cwast.ExprDeref)):
         op = EmitIRExpr(cond, tc, id_gen)
         if invert:
             print(f"{TAB}beq {op} 0 {label_false}")
