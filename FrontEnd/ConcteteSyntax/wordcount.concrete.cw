@@ -23,13 +23,13 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
     let! buf array(1024, u8) = undef
     while true:
         -- if FileRead returns an uint, assign it to n else return it
-        trylet n, uint, os::FileRead(fd, buf), err:
+        trylet n uint = os::FileRead(fd, buf), err:
             return err
         if n == 0:
             break
         set stats.num_chars += n
         -- index variable has the same type as n.
-        for i, 0, n, 1:
+        for i = 0, n, 1:
             let c = buf[i]
             cond:
                 case c == '\n':
@@ -45,7 +45,7 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
 
 -- cdecl attribute disables name mangling
 @cdecl fun main(argc s32, argv ptr(ptr(u8))) s32:
-    trylet stats, TextStats, WordCount(os::Stdin), err:
+    trylet stats TextStats = WordCount(os::Stdin), err:
         return 1
     -- print# is a stmt macro for printing arbitrary values.
     -- It is possible to define formatters for custom types.

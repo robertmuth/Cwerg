@@ -1054,7 +1054,7 @@ _CONCRETE_SYNTAX = {
     cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
     cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", n.expr),
     cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field, n),
-    cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "^", n.expr),
+    cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "*", n.expr),
     cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithMut("&", n.mut), n.expr_lhs),
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
