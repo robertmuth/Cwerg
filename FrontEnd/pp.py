@@ -174,10 +174,31 @@ def RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: str):
     line.append(")")
 
 
+def RenderLomgAttr(node):
+    pass
+
+
+def RenderShortAttr(node):
+    out = []
+    for field, nfd in node.ATTRS:
+        if field == "doc":
+            # handled above
+            continue
+        val = getattr(node, field)
+        if not val:
+            continue
+        if isinstance(val, bool):
+            out.append(f"@{field} ")
+        else:
+            assert isinstance(val, str)
+            out.append(f"@{field} {val} ")
+    return out
+
+
 def RenderRecursivelyToIR(node, out, indent: str):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
         out.append([""])
-    line = out[-1]
+    line: List[str] = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
         line.append(abbrev)
@@ -196,14 +217,7 @@ def RenderRecursivelyToIR(node, out, indent: str):
         line = out[-1]
 
     line.append("(")
-
-    for field, nfd in node.ATTRS:
-        if field == "doc":
-            # handled above
-            continue
-        val = getattr(node, field)
-        if val:
-            line.append("@" + field + " ")
+    line += RenderShortAttr(node)
 
     line.append(node_name)
 
@@ -691,6 +705,7 @@ def TokensMacroInvokeArgs(ts: TS, args):
         else:
             EmitTokens(ts, a)
 
+
 def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     if node.name == "->":
         assert len(node.args) == 2
@@ -707,9 +722,9 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
 
     args = node.args
     if node.name == "for" or node.name == "tryset":
-         ts.EmitAttr(args[0].name)
-         args = args[1:]
-         ts.EmitBinOp("=")
+        ts.EmitAttr(args[0].name)
+        args = args[1:]
+        ts.EmitBinOp("=")
     elif node.name == "trylet":
         ts.EmitAttr(args[0].name)
         EmitTokens(ts, args[1])
@@ -717,7 +732,6 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         ts.EmitBinOp("=")
 
     TokensMacroInvokeArgs(ts, args)
-
 
     if is_block_like:
         ts.EmitEnd(beg_block)
@@ -813,6 +827,12 @@ def TokensValRec(ts: TS, node: cwast.ValRec):
     ts.EmitEnd(beg)
 
 
+def TokensIndexVal(ts: TS, node: cwast.IndexVal):
+    EmitTokens(ts, node.value_or_undef)
+    if not isinstance(node.init_index, cwast.ValAuto):
+        EmitTokens(ts, node.init_index)
+
+
 def TokensValArray(ts: TS, node: cwast.ValArray):
     TokensFunctional(ts, "array", [node.expr_size, node.type])
     beg = ts.EmitBegParen("[")
@@ -824,9 +844,7 @@ def TokensValArray(ts: TS, node: cwast.ValArray):
             ts.EmitSep(",")
         sep = True
         start = ts.Pos()
-        EmitTokens(ts, e.value_or_undef)
-        if not isinstance(e.init_index, cwast.ValAuto):
-            EmitTokens(ts, e.init_index)
+        EmitTokens(ts, e)
         sizes.append(ts.Pos() - start)
     if len(sizes) > 5 and max(sizes) < MAX_LINE_LEN:
         beg.long_array_val = True
@@ -1092,6 +1110,7 @@ _CONCRETE_SYNTAX = {
     cwast.DefMacro: TokensDefMacro,
     cwast.EnumVal:  TokensEnumVal,
     cwast.RecField:  TokensRecField,
+    cwast.IndexVal:  TokensIndexVal,
 }
 
 
