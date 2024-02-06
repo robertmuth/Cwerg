@@ -9,7 +9,7 @@ not thread-safe"""
     (field offset uint)
     @doc """contains the next up to 8 bits from the stream
 the exact number is bits_count"""
-    (field bits_cache u32)
+    (field bits_cache u8)
     (field bits_count u8)
     @doc "end-of-stream flag - once set it will not be cleared"
     (field eos bool))
@@ -23,7 +23,7 @@ may set eos
                             (param bits_requested u8)] u32 :
    (let! new_bits u32)
    (let! bits_count u8 (-> bs bits_count))
-   (let! bits_cache u32 (-> bs bits_cache))
+   (let! bits_cache u32 (as (-> bs bits_cache) u32))
 
    @doc """when the while loop exits and bits_count > 32, new_bits contains
    (bits_count - 32) bits we still need to put into the cache"""
@@ -56,7 +56,7 @@ may set eos
 
    (-= bits_count bits_requested)
    (= (-> bs bits_count) bits_count)
-   (= (-> bs bits_cache) bits_cache)
+   (= (-> bs bits_cache) (as bits_cache u8))
 
    (return out)
 )

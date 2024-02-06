@@ -14,19 +14,19 @@
 
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 32]) 0xffffffff_u32)
     (test::AssertEq# (. bs bits_count) 2_u8)
-    (test::AssertEq# (. bs bits_cache) 3_u32)
+    (test::AssertEq# (. bs bits_cache) 3_u8)
     (test::AssertEq# (. bs offset) 5_uint)
     (test::AssertFalse# (. bs eos))
 
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 31]) 0x7fffffff_u32)
     (test::AssertEq# (. bs bits_count) 3_u8)
-    (test::AssertEq# (. bs bits_cache) 7_u32)
+    (test::AssertEq# (. bs bits_cache) 7_u8)
     (test::AssertEq# (. bs offset) 9_uint)
     (test::AssertFalse# (. bs eos))
 
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 30]) 0x3fffffff_u32)
     (test::AssertEq# (. bs bits_count) 5_u8)
-    (test::AssertEq# (. bs bits_cache) 0x1f_u32)
+    (test::AssertEq# (. bs bits_cache) 0x1f_u8)
     (test::AssertEq# (. bs offset) 13_uint)
     (test::AssertFalse# (. bs eos))
 
