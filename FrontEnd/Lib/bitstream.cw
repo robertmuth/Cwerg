@@ -7,24 +7,27 @@ not thread-safe"""
 @pub (defrec Stream32 :
     (field buf (slice u8))
     (field offset uint)
+    @doc """contains the next up to 8 bits from the stream
+the exact number is bits_count"""
     (field bits_cache u32)
     (field bits_count u8)
+    @doc "end-of-stream flag - once set it will not be cleared"
     (field eos bool))
 
 
-@doc """ n must be from [0, 32]
+@doc """n must be from [0, 32]
 may set eos
 """
 
 @pub (fun Stream32GetBits [(param bs (ptr! Stream32))
-                            (param n u8)] u32 :
+                            (param bits_requested u8)] u32 :
    (let! new_bits u32)
    (let! bits_count u8 (-> bs bits_count))
    (let! bits_cache u32 (-> bs bits_cache))
 
    @doc """when the while loop exits and bits_count > 32, new_bits contains
    (bits_count - 32) bits we still need to put into the cache"""
-   (while (< bits_count n) :
+   (while (< bits_count bits_requested) :
       (if (== (-> bs offset) (len (-> bs buf))) :
         (= (-> bs eos) true)
         (return 0)
@@ -36,28 +39,31 @@ may set eos
    )
 
     (let! out u32)
-    (if (< n 32) :
-       (= out (and bits_cache (- (<< 1_u32 (as n u32)) 1)))
-       (>>= bits_cache (as n u32))
+    (if (< bits_requested 32) :
+       (= out (and bits_cache (- (<< 1_u32 (as bits_requested u32)) 1)))
+       (>>= bits_cache (as bits_requested u32))
     :
+      @doc "bits_requested == 32"
       (= out bits_cache)
       (= bits_cache 0)
     )
 
     (if (>= bits_count 32) :
        (>>= new_bits (- 40_u32 (as bits_count u32)))
-       (<<= new_bits (- 32_u32 (as n u32)))
+       (<<= new_bits (- 32_u32 (as bits_requested u32)))
        (or= bits_cache new_bits)
    :)
 
-   (-= bits_count n)
+   (-= bits_count bits_requested)
    (= (-> bs bits_count) bits_count)
    (= (-> bs bits_cache) bits_cache)
 
    (return out)
 )
 
+@doc "Resume bit retrieval at the next byte boundary"
 @pub (fun Stream32SkipToNextByte [(param bs (ptr! Stream32))] void :
+   @doc "If there are any bits in the cache throw them away"
    (= (-> bs bits_count) 0)
 )
 

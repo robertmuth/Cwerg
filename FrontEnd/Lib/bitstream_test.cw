@@ -6,8 +6,7 @@
 
 (global DataFF auto (array_val 1024 u8 [ 0xff ]))
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-
+(fun test1 [] void :
     (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val DataFF)]))
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 1]) 1_u32)
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 2]) 3_u32)
@@ -37,7 +36,33 @@
     (test::AssertEq# (bitstream::Stream32BytesLeft [(& bs)]) 11_uint)
 
     (test::AssertFalse# (. bs eos))
+)
 
+(global Data123 auto (array_val 1024 u8 [
+    0x12 0x34 0x56 0x78 0x12 0x34 0x56 0x78
+    0x12 0x34 0x56 0x78 0x12 0x34 0x56 0x78
+    0x12 0x34 0x56 0x78 0x12 0x34 0x56 0x78
+    0x12 0x34 0x56 0x78 0x12 0x34 0x56 0x78
+    0x12 0x34 0x56 0x78 0x12 0x34 0x56 0x78
+    0x12 0x34 0x56 0x78 0x12 0x34 0x56 0x78
+    0x12 0x34 0x56 0x78 0x12 0x34 0x56 0x78
+    0x12 0x34 0x56 0x78 0x12 0x34 0x56 0x78
+    ]))
+
+
+(fun test2 [] void :
+    (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val Data123)]))
+    (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 4]) 2_u32)
+    (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 32])
+      0x27856341_u32)
+
+)
+
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+
+
+    (shed (test1 []))
+    (shed (test2 []))
 
     @doc "test end"
     (test::Success#)
