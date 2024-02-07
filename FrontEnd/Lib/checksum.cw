@@ -48,8 +48,8 @@
         (+= a (as (at buf i) u32))
         (+= b a)
     )
-    (mod= a Adler32Mod)
-    (mod= b Adler32Mod)
+    (%= a Adler32Mod)
+    (%= b Adler32Mod)
     (return (or a (<< b 16)))
 )
 

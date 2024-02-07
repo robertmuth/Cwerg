@@ -71,7 +71,7 @@
     "f")
 
 
-@doc "FG"
+@doc "Foreground Color"
 @pub (global FG_COLOR_BLACK auto "\x1b[38;2;0;0;0m")
 
 
@@ -109,7 +109,7 @@
     "m")
 
 
-@doc "BG"
+@doc "Background Color"
 @pub (global BG_COLOR_BLACK auto "\x1b[48;2;0;0;0m")
 
 
