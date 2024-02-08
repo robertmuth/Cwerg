@@ -20,7 +20,7 @@
 (global SIN6 r64 0x1.5d93a5acfd57cp-33)
 
 
-@doc "|x + y | <= pi / 4"
+@doc "| x + y | <= pi / 4"
 @pub (fun sin_restricted [
         (param x r64)
         (param y r64)
@@ -61,7 +61,7 @@
 (global COS6 r64 0x1.8fae9be8838d4p-37)
 
 
-@doc "|x + y | <= pi / 4"
+@doc "| x + y | <= pi / 4"
 @pub (fun cos_restricted [(param x r64) (param y r64)] r64 :
     (let x2 auto (* x x))
     (let x4 auto (* x2 x2))
@@ -75,4 +75,3 @@
     (let r2 auto (- (* x2 r) (* x y)))
     (return (+ w (+ w2 r2))))
 )
-

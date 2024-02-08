@@ -50,7 +50,7 @@
     (expr :
         @doc "unsigned to str with given base"
         ($let! $v auto $val)
-        ($let! $tmp auto (array_val $max_width u8))
+        ($let! $tmp auto (array_val 1024 u8))
         ($let! $pos uint $max_width)
         ($let $out_eval auto $out)
         (block _ :
@@ -157,11 +157,14 @@
             (front v)
             n])))
 
-
+@pub (@wrapped type uint_hex uint)
 @pub (@wrapped type u64_hex u64)
 @pub (@wrapped type u32_hex u32)
 @pub (@wrapped type u16_hex u16)
 @pub (@wrapped type u8_hex u8)
+
+(fun uint_to_hex_str [(param v uint) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 16 (* (sizeof uint) 8) out)))
 
 (fun u64_to_hex_str [(param v u64) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 64_uint out)))
@@ -174,6 +177,12 @@
 
 (fun u8_to_hex_str [(param v u8) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
+
+@polymorphic (fun SysRender [
+        (param v uint_hex)
+        (param out (slice! u8))
+        (param options (ptr! SysFormatOptions))] uint :
+    (return (uint_to_hex_str [(unwrap v) out])))
 
 @polymorphic (fun SysRender [
         (param v u64_hex)
@@ -329,6 +338,14 @@
     :
     (for i 0 (len out) 1 :   (= (at out i) '.'))
     (return 0))
+)
+@polymorphic (fun SysRender [
+        (param v (ptr void))
+        (param out (slice! u8))
+        (param options (ptr! SysFormatOptions))] uint :
+    (let h auto (bitcast v uint))
+    (return (@polymorphic SysRender [h out options]))
+
 )
 
 @pub (macro print# STMT_LIST [
