@@ -377,7 +377,7 @@ def PrettyPrintHTML(mod: cwast.DefMod, tc):  # -> List[Tuple[int, str]]:
 
 
 ############################################################
-#
+# CONCRETE SYNTAX
 ############################################################
 _OPS_PRECENDENCE = {
     # "->": 10,
@@ -390,6 +390,10 @@ _OPS_PRECENDENCE = {
 
     cwast.ExprIs: 50,
 }
+
+_ANNOTATION_PREFIX = "@"
+_DEREFERENCE_OP = "^"
+_ADDRESS_OF_OP = "&"
 
 _OPS_PRECENDENCE_EXPR2 = {
     cwast.BINARY_EXPR_KIND.SHL: 20,
@@ -648,7 +652,7 @@ def TokensAnnotationsPre(ts: TS, node):
                     ts.EmitComment("-- " + line)
 
             else:
-                ts.EmitAnnotationLong("@" + field + "=" + val)
+                ts.EmitAnnotationLong(_ANNOTATION_PREFIX + field + "=" + val)
 
     # next handle non-docs
     for field, nfd in node.ATTRS:
@@ -658,7 +662,7 @@ def TokensAnnotationsPre(ts: TS, node):
 
         val = getattr(node, field)
         if val:
-            ts.EmitAnnotationShort("@" + field)
+            ts.EmitAnnotationShort(_ANNOTATION_PREFIX + field)
 
 
 def TokensAnnotationsPost(ts: TS, node):
@@ -1070,10 +1074,10 @@ _CONCRETE_SYNTAX = {
     cwast.ExprIndex: TokensExprIndex,
     cwast.ValSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
     cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
-    cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", n.expr),
+    cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", [n.expr]),
     cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field, n),
-    cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "*", n.expr),
-    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithMut("&", n.mut), n.expr_lhs),
+    cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "^", n.expr),
+    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithMut(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,
