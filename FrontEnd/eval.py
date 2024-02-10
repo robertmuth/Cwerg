@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 import enum
 
 from FrontEnd import cwast
@@ -110,7 +110,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
 #     return eval.IsGlobalConst(node)
 
 
-def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
+def _IdNodeFromDef(def_node: Union[cwast.DefVar, cwast.DefGlobal], x_srcloc) -> cwast.Id:
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id(def_node.name, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
                     x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
@@ -134,31 +134,30 @@ class GlobalConstantPool:
         self._bytes_map: Dict[bytes, cwast.DefGlobal] = {}
         self._all_globals: List[cwast.DefGlobal] = []
 
+    def _add_def_global(self, node) -> cwast.DefGlobal:
+        def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
+                                   cwast.TypeAuto(
+            x_srcloc=node.x_srcloc, x_type=node.x_type), node,
+            pub=True,
+            x_srcloc=node.x_srcloc)
+        self._all_globals.append(def_node)
+        return def_node
+
     def _maybe_replace(self, node, parent, _field) -> Optional[Any]:
         if isinstance(parent, cwast.DefGlobal):
             return None
         elif (isinstance(node, cwast.ValArray) and ValueConstKind(node) is not
               CONSTANT_KIND.NOT and not isinstance(parent, cwast.DefVar)):
+            def_node = self._add_def_global(node)
             # TODO: maybe update str_map for the CONSTANT_KIND.PURE case
-            def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
-                                       cwast.TypeAuto(
-                x_srcloc=node.x_srcloc, x_type=node.x_type), node,
-                pub=True,
-                x_srcloc=node.x_srcloc)
-            self._all_globals.append(def_node)
             return _IdNodeFromDef(def_node, node.x_srcloc)
         elif isinstance(node, cwast.ValString):
             assert isinstance(
                 node.x_value, bytes), f"expected str got {node.x_value}"
             def_node = self._bytes_map.get(node.x_value)
             if not def_node:
-                def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
-                                           cwast.TypeAuto(
-                                               x_srcloc=node.x_srcloc, x_type=node.x_type), node,
-                                           pub=True,
-                                           x_srcloc=node.x_srcloc)
+                def_node = self._add_def_global(node)
                 self._bytes_map[node.x_value] = def_node
-                self._all_globals.append(def_node)
             return _IdNodeFromDef(def_node, node.x_srcloc)
 
         return None
@@ -244,8 +243,8 @@ _BASE_TYPE_TO_DEFAULT = {
 }
 
 
-def _EvalValRec(def_rec: cwast.DefRec, inits: List, srcloc) -> Optional[Dict]:
-    rec: Dict[str, Any] = {}
+def _EvalValRec(def_rec: cwast.CanonType, inits: List, srcloc) -> Optional[Dict]:
+    rec: dict[str, Any] = {}
     for field, init in symbolize.IterateValRec(inits, def_rec):
         assert isinstance(field, cwast.RecField)
         # print ("    ", field)

@@ -86,11 +86,11 @@ STMT_LIST_INDENT = 4
 EXPR_LIST_INDENT = 8
 
 
-def GetColonIndent(field: str):
+def GetColonIndent(field: str) -> int:
     return 0 if field == "body_mod" else STMT_LIST_INDENT
 
 
-def GetExprIndent(field: str):
+def GetExprIndent(_) -> int:
     return EXPR_LIST_INDENT
 
 
@@ -102,7 +102,7 @@ def GetDoc(node):
     return None
 
 
-def RenderColonList(val: List, field: str, out, indent: str):
+def RenderColonList(val: List, field: str, out, indent: int):
 
     extra_indent = GetColonIndent(field)
     line = out[-1]
@@ -134,7 +134,7 @@ def ListIsCompact(val: List):
     return True
 
 
-def RenderList(val: List, field: str, out, indent: str):
+def RenderList(val: List, field: str, out, indent: int):
     extra_indent = GetExprIndent(field)
     line = out[-1]
     if not val:
@@ -157,7 +157,7 @@ def RenderList(val: List, field: str, out, indent: str):
         out[-1].append("]")
 
 
-def RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: str):
+def RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: int):
     line = out[-1]
     line.append("(" + node.name)
     for a in node.args:
@@ -195,7 +195,7 @@ def RenderShortAttr(node):
     return out
 
 
-def RenderRecursivelyToIR(node, out, indent: str):
+def RenderRecursivelyToIR(node, out, indent: int):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
         out.append([""])
     line: List[str] = out[-1]
@@ -253,7 +253,7 @@ def RenderRecursivelyToIR(node, out, indent: str):
         out.append([""])
 
 
-def PrettyPrint(mod: cwast.DefMod) -> List[Tuple[int, str]]:
+def PrettyPrint(mod: cwast.DefMod):
     out = [[""]]
     RenderRecursivelyToIR(mod, out, 0)
     for a in out:
@@ -296,7 +296,7 @@ def DecorateNode(node_name, node):
     return out
 
 
-def RenderRecursivelyHTML(node, tc, out, indent: str):
+def RenderRecursivelyHTML(node, tc, out, indent: int):
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
@@ -331,8 +331,6 @@ def RenderRecursivelyHTML(node, tc, out, indent: str):
         elif field_kind is cwast.NFK.STR:
             line.append(
                 " " + str(val.replace("<", "&lt;").replace(">", "&gt;")))
-        elif field_kind is cwast.NFK.INT:
-            line.append(" " + str(val))
         elif field_kind is cwast.NFK.KIND:
             line.append(" " + val.name)
         elif field_kind is cwast.NFK.NODE:

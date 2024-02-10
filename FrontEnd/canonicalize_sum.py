@@ -267,7 +267,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
         else:
             sl = node.x_srcloc
             expr = cwast.ExprStmt([], x_srcloc=sl, x_type=node.x_type)
-            assert isinstance(node.expr, cwast.Id)
+            assert isinstance(node.expr, cwast.Id), f"NYI: {node.expr}"
             cond = cwast.ExprIs(_CloneId(node.expr), cwast.TypeAuto(
                 x_srcloc=sl, x_type=node.x_type), x_srcloc=sl)
             if node.x_type.is_union():

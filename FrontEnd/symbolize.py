@@ -437,6 +437,7 @@ def IterateValRec(inits_field: List[cwast.RecField], def_rec: cwast.CanonType):
     inits: Dict[cwast.RecField,
                 cwast.FieldVal] = {i.x_field: i for i in inits_field}
     used = 0
+    assert isinstance(def_rec.ast_node, cwast.DefRec)
     for f in def_rec.ast_node.fields:
         assert isinstance(f, cwast.RecField)
         i = inits.get(f)
