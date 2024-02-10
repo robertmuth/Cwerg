@@ -140,19 +140,31 @@ def is_proper_lhs(node) -> bool:
             return s.mut
         return False
     elif isinstance(node, cwast.ExprDeref):
+        # this assert is necessary to satisfy the mypy type checker
+        assert not isinstance(
+            node.expr, (cwast.MacroInvoke, cwast.ExprStringify))
         return node.expr.x_type.is_mutable()
         # isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
     elif isinstance(node, cwast.ExprField):
         return is_proper_lhs(node.container)
     elif isinstance(node, cwast.ExprIndex):
+        # this assert is necessary to satisfy the mypy type checker
+        assert not isinstance(
+            node.container,  (cwast.MacroInvoke, cwast.ExprStringify))
         container_ct: cwast.CanonType = node.container.x_type
         if container_ct.is_slice():
             return container_ct.mut
         else:
             assert container_ct.is_array()
             return is_proper_lhs(node.container)
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow)) and node.expr.x_type.is_untagged_union():
-        return is_proper_lhs(node.expr)
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow)):
+        # this assert is necessary to satisfy the mypy type checker
+        assert not isinstance(
+            node.expr,  (cwast.MacroInvoke, cwast.ExprStringify))
+        if node.expr.x_type.is_untagged_union():
+            return is_proper_lhs(node.expr)
+        else:
+            return False
     else:
         return False
 
@@ -308,11 +320,11 @@ class TypeCorpus:
     def get_address_size(self):
         return self._target_arch_config.data_addr_bitwidth // 8
 
-    def _get_register_type_for_sum_type(self, tc: cwast.CanonType):
+    def _get_register_type_for_sum_type(self, tc: cwast.CanonType) -> Optional[List[str]]:
         assert tc.node is cwast.TypeUnion
         num_void = 0
         scalars: List[cwast.CanonType] = []
-        largest_by_kind = {}
+        largest_by_kind: dict[str, int] = {}
         largest = 0
         for t in tc.union_member_types():
             if t.is_wrapped():
@@ -346,7 +358,8 @@ class TypeCorpus:
         elif tc.node is cwast.TypeSlice:
             return [self.get_data_address_reg_type(), self.get_uint_reg_type()]
         elif tc.node is cwast.DefRec:
-            fields = [f for f in tc.ast_node.fields]
+            assert isinstance(tc.ast_node, cwast.DefRec)
+            fields = tc.ast_node.fields
             if len(fields) == 1:
                 return self.get_register_type(fields[0].type.x_type)
             elif len(fields) == 2:
@@ -462,7 +475,7 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.TypeArray, name, dim=dim,
                                             children=[ct], original_type=original_type))
 
-    def lookup_rec_field(self, tc: cwast.CanonType, field_name) -> cwast.RecField:
+    def lookup_rec_field(self, tc: cwast.CanonType, field_name) -> Optional[cwast.RecField]:
         """Oddball since the node returned is NOT inside corpus
 
         See implementation of insert_rec_type
@@ -497,9 +510,9 @@ class TypeCorpus:
             else:
                 pp.add(c)
         sorted_children = sorted(pp, key=lambda x: x.name)
-        pp = [x.name for x in sorted_children]
+        sorted_names = [x.name for x in sorted_children]
         extra = "_untagged" if untagged else ""
-        name = f"sum{extra}<{','.join(pp)}>"
+        name = f"sum{extra}<{','.join(sorted_names)}>"
         return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=sorted_children, untagged=untagged))
 
     def insert_fun_type(self, params: List[cwast.CanonType],

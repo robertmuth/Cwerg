@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 
 """AST Nodes and SExpr reader/writer for the Cwerg frontend"""
+from __future__ import annotations
 
 import sys
 import dataclasses
 import logging
 import enum
 
-from typing import List, Dict, Set, Optional, Union, Any
+from typing import List, Dict, Set, Optional, Union, Any, TypeAlias
 
 logger = logging.getLogger(__name__)
 
@@ -371,13 +372,14 @@ def NfdNodeList(name, doc, node_type, role):
 
 
 def _ExtractTypes(t):
+    """Extract the actual type"""
     if isinstance(t, str):
         return t
     # we cannot test isinstance(t, Union) because Union is a special form
     return tuple([x.__forward_arg__ for x in t.__args__])
 
 
-NODES_PARAMS_T = "FunParam"
+NODES_PARAMS_T: TypeAlias = "FunParam"
 NODES_PARAMS = _ExtractTypes(NODES_PARAMS_T)
 
 
@@ -386,10 +388,10 @@ NODES_BODY_MOD_T = Union["DefFun", "DefRec", "DefEnum", "DefVar", "DefMacro", "D
 NODES_BODY_MOD = _ExtractTypes(NODES_BODY_MOD_T)
 
 
-NODES_PARAMS_MOD_T = "ModParam"
+NODES_PARAMS_MOD_T: TypeAlias = "ModParam"
 NODES_PARAMS_MOD = _ExtractTypes(NODES_PARAMS_MOD_T)
 
-NODES_PARAMS_MACRO_T = "MacroParam"
+NODES_PARAMS_MACRO_T: TypeAlias = "MacroParam"
 NODES_PARAMS_MACRO = _ExtractTypes(NODES_PARAMS_MACRO_T)
 
 NODES_BODY_T = Union["StmtDefer", "StmtIf", "StmtBreak", "StmtContinue", "StmtReturn", "StmtExpr",
@@ -410,19 +412,19 @@ NODES_TYPES_OR_AUTO_T = Union["TypeBase", "TypeSlice", "TypeArray", "TypePtr", "
                               "TypeUnion", "TypeOf", "TypeUnionDelta", "TypeAuto"]
 NODES_TYPES_OR_AUTO = _ExtractTypes(NODES_TYPES_OR_AUTO_T)
 
-NODES_ITEMS_T = "EnumVal"
+NODES_ITEMS_T: TypeAlias = "EnumVal"
 NODES_ITEMS = _ExtractTypes(NODES_ITEMS_T)
 
-NODES_INITS_ARRAY_T = "IndexVal"
+NODES_INITS_ARRAY_T: TypeAlias = "IndexVal"
 NODES_INITS_ARRAY = _ExtractTypes(NODES_INITS_ARRAY_T)
 
-NODES_INITS_REC_T = "FieldVal"
+NODES_INITS_REC_T: TypeAlias = "FieldVal"
 NODES_INITS_REC = _ExtractTypes(NODES_INITS_REC_T)
 
-NODES_FIELDS_T = "RecField"
+NODES_FIELDS_T: TypeAlias = "RecField"
 NODES_FIELDS = _ExtractTypes(NODES_FIELDS_T)
 
-NODES_CASES_T = "Case"
+NODES_CASES_T: TypeAlias = "Case"
 NODES_CASES = _ExtractTypes(NODES_CASES_T)
 
 NODES_EXPR_T = Union["ValFalse", "ValTrue", "ValNum",
@@ -440,6 +442,10 @@ NODES_EXPR_T = Union["ValFalse", "ValTrue", "ValNum",
                      "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow",
                      "ExprWiden", "ExprBitCast"]
 NODES_EXPR = _ExtractTypes(NODES_EXPR_T)
+
+NODES_EXPR_WITH_AUTO_T = Union["ValAuto", NODES_EXPR_T]
+NODES_EXPR_WITH_AUTO = _ExtractTypes(NODES_EXPR_WITH_AUTO_T)
+
 
 NODES_EXPR_OR_UNDEF = NODES_EXPR + ("ValUndef",)
 
@@ -638,7 +644,7 @@ _OPTIONAL_FIELDS = {
 
 
 def GetOptional(field: str, srcloc):
-    e = _OPTIONAL_FIELDS.get(field)
+    e: Union[None, str] = _OPTIONAL_FIELDS.get(field)
     if e is None:
         return e
 
@@ -740,9 +746,9 @@ def _CheckNodeFieldOrder(cls):
     regulars = 0
     flags = 0
     xs = 0
-    for field, type in cls.__annotations__.items():
+    for field, node_type in cls.__annotations__.items():
         if field.startswith("x_"):
-            assert field in X_FIELDS, f"unexpected x-field: {field} in node {type}"
+            assert field in X_FIELDS, f"unexpected x-field: {field} in node {node_type}"
             if field != "x_srcloc":
                 flag_kind = X_FIELDS[field]
                 assert flag_kind in cls.FLAGS, f"{cls}: {field} missing flag {flag_kind}"
@@ -810,7 +816,7 @@ class CanonType:
     #
     alignment: int = -1
     size: int = -1
-    register_types: List[Any] = dataclasses.field(default_factory=list)
+    register_types: Optional[List[Any]] = None
     typeid: int = -1
     # we may rewrite slices and unions into structs
     # this provides a way to access the original type (mostly its typeid)
@@ -1409,8 +1415,8 @@ class IndexVal:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    value_or_undef: "NODES_EXPR_T"
-    init_index: "NODES_EXPR_T"  # compile time constant
+    value_or_undef: NODES_EXPR_T
+    init_index: NODES_EXPR_WITH_AUTO_T  # compile time constant
     #
     doc: str = ""
     eoldoc: str = ""
@@ -1462,7 +1468,7 @@ class ValArray:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr_size: Union["NODES_EXPR_T", ValAuto]
+    expr_size: Union[NODES_EXPR_T, ValAuto]
     type: NODES_TYPES_T
     inits_array: List[NODES_INITS_ARRAY_T]
     #

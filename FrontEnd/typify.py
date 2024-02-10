@@ -420,7 +420,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(node.expr, tc, target_type, ctx)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.Expr2):
-        ct: cwast.CanonType = _TypifyNodeRecursively(
+        ct = _TypifyNodeRecursively(
             node.expr1, tc, target_type, ctx)
         if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE and ct.is_number():
             ct2 = _TypifyNodeRecursively(node.expr2, tc, ct, ctx)
