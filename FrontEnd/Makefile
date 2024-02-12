@@ -10,7 +10,6 @@ TESTS = macros.cw \
         sexpr.cw \
         cast.cw \
         comment.cw \
-        linked_list.cw \
         binary_tree.cw \
         sizeof.cw
 
@@ -97,6 +96,7 @@ tests_lib_a64: \
     $(DIR)/sha3_test.lib.a64.exe
 
 tests_emit_x64: \
+    $(DIR)/linked_list.run.x64.exe \
     $(DIR)/hello_world.run.x64.exe \
     $(DIR)/fizzbuzz.run.x64.exe \
     $(DIR)/sieve.run.x64.exe \
@@ -106,6 +106,7 @@ tests_emit_x64: \
     $(DIR)/wordcount.x64.test
 
 tests_emit_a64: \
+    $(DIR)/linked_list.run.a64.exe \
     $(DIR)/hello_world.run.a64.exe \
     $(DIR)/fizzbuzz.run.a64.exe \
     $(DIR)/sieve.run.a64.exe \
