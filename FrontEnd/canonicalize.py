@@ -1,6 +1,7 @@
 """Canonicalize Misc
 
 """
+from typing import Any
 
 
 from FrontEnd import identifier
@@ -128,17 +129,25 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
 ############################################################
 #
 ############################################################
+def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], id_gen: identifier.IdGen, is_lhs: bool):
+    """Ensures that the node has one of the following shapes:
+    1) Id
+    2) (^ Id)
+    3) (. Id field_name)
+    4) (. (^ Id) field_name)
+    5) (. (. (...)))  where the innermost expression s 3) or 4)
 
+    This is advantageous because we can now clone this node without having to worry about
+    changing the semantics of the program.
 
-def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
+    Note:
 
-    rhs = cwast.Expr2(cwast.COMPOUND_KIND_TO_EXPR_KIND[assignment_kind],
-                      cwast.CloneNodeRecursively(lhs, {}, {}),
-                      expr, x_srcloc=x_srcloc, x_type=lhs.x_type)
-    return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)
+    * we do not have to deal with ExprIndex because that has been eliminated by
+    FunReplaceExprIndex() and now looks like (^ expr)
 
+    * this may create additional statements which will be added to stmts.
+    """
 
-def _FixUpLhs(lhs, stmts, id_gen):
     if isinstance(lhs, cwast.Id):
         return lhs
     elif isinstance(lhs, cwast.ExprDeref):
@@ -152,11 +161,79 @@ def _FixUpLhs(lhs, stmts, id_gen):
         lhs.expr = _IdNodeFromDef(def_node, lhs.x_srcloc)
         return lhs
     elif isinstance(lhs, cwast.ExprField):
-        lhs.container = _FixUpLhs(lhs.container, stmts, id_gen)
+        lhs.container = MakeNodeCopyableWithoutRiskOfSideEffects(
+            lhs.container, stmts, id_gen, is_lhs)
         return lhs
     else:
         # note we do not need to deal with  cwast.ExprIndex because that has been lowered
-        assert False
+        # much earlier to a cwast.ExprDeref
+        if is_lhs:
+            assert False
+        def_node = cwast.DefVar(id_gen.NewName("assign"),
+                                cwast.TypeAuto(x_srcloc=lhs.x_srcloc,
+                                               x_type=lhs.x_type),
+                                lhs, x_srcloc=lhs.x_srcloc)
+        stmts.append(def_node)
+        return _IdNodeFromDef(def_node, lhs.x_srcloc)
+
+
+def IsNodeCopyableWithoutRiskOfSideEffects(node) -> bool:
+    if isinstance(node, cwast.Id):
+        return True
+    elif isinstance(node, cwast.ExprDeref):
+        return isinstance(node.expr, cwast.Id)
+    elif isinstance(node, cwast.ExprField):
+        c = node.container
+        while True:
+            if isinstance(c, cwast.ExprField):
+                c = c.container
+            elif isinstance(c, cwast.Id):
+                return True
+            else:
+                return isinstance(c, cwast.ExprDeref) and isinstance(c.expr, cwast.Id)
+    else:
+        return False
+
+
+def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
+        fun: cwast.DefFun, id_gen: identifier.IdGen):
+    def replacer(node, _parent, _field):
+        if isinstance(node, cwast.ExprDeref):
+            if isinstance(node.expr, cwast.Id):
+                return None
+            def_node = cwast.DefVar(id_gen.NewName("assign"),
+                                    cwast.TypeAuto(x_srcloc=node.x_srcloc,
+                                                   x_type=node.expr.x_type),
+                                    node.expr, x_srcloc=node.x_srcloc)
+            node.expr = _IdNodeFromDef(def_node, node.x_srcloc)
+            return cwast.EphemeralList([def_node, node])
+        elif isinstance(node, cwast.ExprField):
+            c = node.container
+            if isinstance(c, cwast.Id):
+                return None
+            elif isinstance(c, cwast.ExprField):
+                # post order traversal
+                return None
+            elif isinstance(c, cwast.ExprDeref):
+                # we have a post-order traversal so the deref shouls have been handles already
+                return None
+            else:
+                # handle this like we did for ExprDeref
+                assert False
+        else:
+            assert not isinstance(node, cwast.ExprIndex)
+            return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.EliminateEphemeralsRecursively(fun)
+
+
+def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
+
+    rhs = cwast.Expr2(cwast.COMPOUND_KIND_TO_EXPR_KIND[assignment_kind],
+                      cwast.CloneNodeRecursively(lhs, {}, {}),
+                      expr, x_srcloc=x_srcloc, x_type=lhs.x_type)
+    return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)
 
 
 # Note, the desugaring of CompoundAssignment is made more complicated because we do not want
@@ -180,7 +257,10 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun, id_gen: identifier.IdG
     def replacer(node, _parent, _field):
         if isinstance(node, cwast.StmtCompoundAssignment):
             stmts = []
-            new_lhs = _FixUpLhs(node.lhs, stmts, id_gen)
+            new_lhs = MakeNodeCopyableWithoutRiskOfSideEffects(
+                node.lhs, stmts, id_gen, True)
+            assert IsNodeCopyableWithoutRiskOfSideEffects(
+                new_lhs), f"{new_lhs}"
             assignment = _AssigmemtNode(node.assignment_kind, new_lhs,
                                         node.expr_rhs, node.x_srcloc)
             if not stmts:

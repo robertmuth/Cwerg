@@ -435,6 +435,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         print(
             f"{TAB}bitcast {res}:{node.type.x_type.get_single_register_type()} = {expr}")
         return res
+    elif isinstance(node, cwast.ExprUnsafeCast):
+        return  EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
         if ct_dst.is_void_or_wrapped_void():
             return None
@@ -993,8 +995,9 @@ def main():
 
             if not isinstance(fun, cwast.DefFun):
                 continue
+            id_gen = GetIdGen(fun)
             # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
-            canonicalize_sum.SimplifyTaggedExprNarrow(fun, tc)
+            canonicalize_sum.SimplifyTaggedExprNarrow(fun, tc, id_gen)
             canonicalize.FunReplaceExprIs(fun, tc)
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)

@@ -15,6 +15,8 @@ from FrontEnd import cwast
 from FrontEnd import type_corpus
 from FrontEnd import typify
 from FrontEnd import symbolize
+from FrontEnd import canonicalize
+from FrontEnd import identifier
 
 ############################################################
 # Convert Tagged Sum to equvalent struct
@@ -227,7 +229,7 @@ def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus
                                         x_type=untagged_ct)
 
 
-def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
     """Simplifies ExprNarrow for tagged unions `u`
 
     (narrowto @unchecked u t)
@@ -254,7 +256,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
 
     """
     def replacer(node, _parent, _field):
-        nonlocal tc
+        nonlocal tc, id_gen
         if not isinstance(node, cwast.ExprNarrow):
             return None
         if not node.expr.x_type.is_tagged_union():
@@ -266,18 +268,20 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
 
         else:
             sl = node.x_srcloc
-            expr = cwast.ExprStmt([], x_srcloc=sl, x_type=node.x_type)
-            assert isinstance(node.expr, cwast.Id), f"NYI: {node.expr}"
-            cond = cwast.ExprIs(_CloneId(node.expr), cwast.TypeAuto(
+            body  = []
+            expr = cwast.ExprStmt(body, x_srcloc=sl, x_type=node.x_type)
+            node.expr = canonicalize.MakeNodeCopyableWithoutRiskOfSideEffects(node.expr, body, id_gen, False)
+            assert canonicalize.IsNodeCopyableWithoutRiskOfSideEffects(node.expr)
+            #assert isinstance(node.expr, cwast.Id), f"NYI: {node.expr}"
+            cond = cwast.ExprIs(cwast.CloneNodeRecursively(node.expr, {}, {}), cwast.TypeAuto(
                 x_srcloc=sl, x_type=node.x_type), x_srcloc=sl)
             if node.x_type.is_union():
                 node.unchecked = True
             else:
                 _ConvertTaggedNarrowToUntaggedNarrow(node, tc)
-            ret = cwast.StmtReturn(node, x_srcloc=sl, x_target=expr)
-            check = cwast.StmtIf(cond, [],
-                                 [(cwast.StmtTrap(x_srcloc=sl))], x_srcloc=sl)
-            expr.body = [check, ret]
+            body.append(cwast.StmtIf(cond, [],
+                                 [(cwast.StmtTrap(x_srcloc=sl))], x_srcloc=sl))
+            body.append(cwast.StmtReturn(node, x_srcloc=sl, x_target=expr))
             return expr
         return None
 
