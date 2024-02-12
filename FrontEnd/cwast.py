@@ -799,6 +799,8 @@ def NodeCommon(cls):
 # Typing
 ############################################################
 
+def align(x, a):
+    return (x + a - 1) // a * a
 
 @dataclasses.dataclass()
 class CanonType:
@@ -813,7 +815,7 @@ class CanonType:
     children: List["CanonType"] = dataclasses.field(default_factory=list)
     #
     ast_node: Optional[Union["DefRec", "DefEnum"]] = None
-    #
+    # will be filled in by type_corpus.
     alignment: int = -1
     size: int = -1
     register_types: Optional[List[Any]] = None
@@ -927,6 +929,10 @@ class CanonType:
             return self.children[0]
         else:
             assert False, f"unexpected type: {self.name}"
+
+    def aligned_size(self) -> int:
+        # somtimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding
+        return align(self.size, self.alignment)
 
     def array_dim(self):
         assert self.is_array()
@@ -3005,7 +3011,7 @@ def EliminateEphemeralsRecursively(node):
             child = getattr(node, f)
             if isinstance(child, EphemeralList):
                 new_child = _MaybeFlattenEphemeralList([child])
-                assert len(new_child) == 1
+                assert len(new_child) == 1, f"{f} {node.__class__} {len(new_child)}"
                 setattr(node, f, new_child[0])
             EliminateEphemeralsRecursively(child)
         elif nfd.kind is NFK.LIST:

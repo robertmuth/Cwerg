@@ -422,8 +422,9 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         ct: cwast.CanonType = node.expr1.x_type
         if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
             assert ct.is_pointer()
+            #print ("@@@@@ ", ct,  ct.underlying_pointer_type().size)
             offset = OffsetScaleToOffset(
-                node.expr2, ct.underlying_pointer_type().size, tc, id_gen)
+                node.expr2, ct.underlying_pointer_type().aligned_size(), tc, id_gen)
             kind = tc.get_data_address_reg_type()
             print(f"{TAB}lea {res}:{kind} = {base} {offset}")
         else:
@@ -436,7 +437,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             f"{TAB}bitcast {res}:{node.type.x_type.get_single_register_type()} = {expr}")
         return res
     elif isinstance(node, cwast.ExprUnsafeCast):
-        return  EmitIRExpr(node.expr, tc, id_gen)
+        return EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
         if ct_dst.is_void_or_wrapped_void():
             return None
@@ -761,6 +762,7 @@ def _EmitMem(data, comment) -> int:
         assert False
     return len(data)
 
+
 _BYTE_ZERO = b"\0"
 _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"   # intentioanlly not zero?
@@ -1035,7 +1037,6 @@ def main():
 
     eliminated_nodes.add(cwast.Expr3)
     mod_gen.body_mod += constant_pool.GetDefGlobals()
-
 
     slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
         mod_topo_order, tc)

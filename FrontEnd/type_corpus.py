@@ -414,11 +414,7 @@ class TypeCorpus:
             len_field_size = self._target_arch_config.uint_bitwidth // 8
             return ptr_field_size + len_field_size, ptr_field_size
         elif tc.node is cwast.TypeArray:
-            alignment = tc.children[0].alignment
-            size = tc.children[0].size
-            # somtimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding
-            size = align(size, alignment)
-            return size * tc.dim, alignment
+            return tc.children[0].aligned_size() * tc.dim, tc.children[0].alignment
         elif tc.node is cwast.TypeUnion:
             return _get_size_and_offset_for_sum_type(
                 tc, self._target_arch_config.typeid_bitwidth // 8,
