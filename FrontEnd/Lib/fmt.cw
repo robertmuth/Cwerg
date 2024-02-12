@@ -343,7 +343,7 @@
         (param v (ptr void))
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (let h auto (bitcast v uint))
+    (let h auto (wrap (bitcast v uint) uint_hex))
     (return (@polymorphic SysRender [h out options]))
 
 )
