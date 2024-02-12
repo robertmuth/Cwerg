@@ -287,7 +287,7 @@ def DecorateNode(node_name, node):
         out += ["<span class=value title='",
                 str(node.x_value), "'>", CircledLetterEntity("V"), "</span>"]
     if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
-        out += [CircledLetterEntity("F")]
+        out += ["<span class=value title='", str(node.x_field.x_offset), "'>",CircledLetterEntity("F"), "</span>"]
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
         out += [CircledLetterEntity("C")]
     if problems:
