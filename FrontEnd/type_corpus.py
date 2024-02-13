@@ -396,10 +396,13 @@ class TypeCorpus:
             alignment = max(alignment, field_ct.alignment)
         return size, alignment
 
-    def finalize_rec_type(self, tc: cwast.CanonType):
-        tc.size, tc.alignment = self._get_size_and_alignment_and_set_offsets_for_rec_type(
-            tc)
-        tc.register_types = self.get_register_type(tc)
+    def finalize_rec_type(self, ct: cwast.CanonType):
+        if not ct.original_type:
+            ct.typeid = self._typeid_curr
+            self._typeid_curr += 1
+        size, alignment = self._get_size_and_alignment_and_set_offsets_for_rec_type(
+            ct)
+        ct.finalize(size, alignment, self.get_register_type(ct))
 
     def _get_size_and_alignment(self, tc: cwast.CanonType):
         if tc.node is cwast.TypeBase:
@@ -432,19 +435,21 @@ class TypeCorpus:
             assert False, f"unknown type {tc}"
 
     def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
+        """The only type not finalized here are Recs"""
         if ct.name in self.corpus:
             return self.corpus[ct.name]
-        if not ct.original_type:
-            ct.typeid = self._typeid_curr
-            self._typeid_curr += 1
+
         # print(f">>>>>>>> ",  ct.name,  ct.typeid, ct.original_type)
         self.corpus[ct.name] = ct
         self.topo_order.append(ct)
         assert STRINGIFIEDTYPE_RE.fullmatch(
             ct.name), f"bad type name [{ct.name}]"
         if finalize:
-            ct.size, ct.alignment = self._get_size_and_alignment(ct)
-            ct.register_types = self.get_register_type(ct)
+            if not ct.original_type:
+                ct.typeid = self._typeid_curr
+                self._typeid_curr += 1
+            size, alignment = self._get_size_and_alignment(ct)
+            ct.finalize(size, alignment, self.get_register_type(ct))
         return ct
 
     def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:

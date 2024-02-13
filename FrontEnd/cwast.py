@@ -815,14 +815,14 @@ class CanonType:
     children: List["CanonType"] = dataclasses.field(default_factory=list)
     #
     ast_node: Optional[Union["DefRec", "DefEnum"]] = None
-    # will be filled in by type_corpus.
+    # we may rewrite slices and unions into structs
+    # this provides a way to access the original type (mostly its typeid)
+    original_type: Optional["CanonType"] = None
+    # The next 4 fields are filled during finalization
     alignment: int = -1
     size: int = -1
     register_types: Optional[List[Any]] = None
     typeid: int = -1
-    # we may rewrite slices and unions into structs
-    # this provides a way to access the original type (mostly its typeid)
-    original_type: Optional["CanonType"] = None
 
     def __hash__(self):
         return hash(self.name)
@@ -959,6 +959,12 @@ class CanonType:
             return self.typeid
         else:
             return self.original_type.get_original_typeid()
+
+    def finalize(self, size: int, alignment: int, register_types):
+        #self.typeid = typeid
+        self.size = size
+        self.alignment = alignment
+        self.register_types = register_types
 
     def __str__(self):
         return self.name
