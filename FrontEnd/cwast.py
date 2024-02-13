@@ -799,8 +799,19 @@ def NodeCommon(cls):
 # Typing
 ############################################################
 
+
+@enum.unique
+class UnionKind(enum.Enum):
+    """Union Kind"""
+    INVALID = 0
+    NORMAL = enum.auto()
+    TAG_ONLY = enum.auto()
+    POINTER = enum.auto()
+
+
 def align(x, a):
     return (x + a - 1) // a * a
+
 
 @dataclasses.dataclass()
 class CanonType:
@@ -818,11 +829,12 @@ class CanonType:
     # we may rewrite slices and unions into structs
     # this provides a way to access the original type (mostly its typeid)
     original_type: Optional["CanonType"] = None
-    # The next 4 fields are filled during finalization
+    # The fields below are filled during finalization
     alignment: int = -1
     size: int = -1
     register_types: Optional[List[Any]] = None
     typeid: int = -1
+    union_kind: UnionKind = UnionKind.INVALID
 
     def __hash__(self):
         return hash(self.name)
@@ -960,11 +972,30 @@ class CanonType:
         else:
             return self.original_type.get_original_typeid()
 
+    def _set_union_kind(self):
+        seen_pointer = False
+        for t in self.union_member_types():
+            if t.is_wrapped():
+                t = t.children[0]
+            if t.is_void():
+                continue
+            elif t.is_pointer():
+                if seen_pointer:
+                    return UnionKind.NORMAL
+                seen_pointer = True
+            else:
+                return UnionKind.NORMAL
+        if seen_pointer:
+            return UnionKind.POINTER
+        return UnionKind.TAG_ONLY
+
     def finalize(self, size: int, alignment: int, register_types):
-        #self.typeid = typeid
+        # self.typeid = typeid
         self.size = size
         self.alignment = alignment
         self.register_types = register_types
+        if self.is_tagged_union():
+            self._set_union_kind()
 
     def __str__(self):
         return self.name
@@ -3017,7 +3048,8 @@ def EliminateEphemeralsRecursively(node):
             child = getattr(node, f)
             if isinstance(child, EphemeralList):
                 new_child = _MaybeFlattenEphemeralList([child])
-                assert len(new_child) == 1, f"{f} {node.__class__} {len(new_child)}"
+                assert len(
+                    new_child) == 1, f"{f} {node.__class__} {len(new_child)}"
                 setattr(node, f, new_child[0])
             EliminateEphemeralsRecursively(child)
         elif nfd.kind is NFK.LIST:

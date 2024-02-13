@@ -212,14 +212,14 @@ _BASE_TYPE_MAP: Dict[cwast.BASE_TYPE_KIND, List[str]] = {
 }
 
 
-def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, tag_size, ptr_size):
-    assert tc.node is cwast.TypeUnion
+def _get_size_and_offset_for_sum_type(ct: cwast.CanonType, tag_size, ptr_size):
+    assert ct.node is cwast.TypeUnion
     num_void = 0
     num_pointer = 0
     num_other = 0
     max_size = 0
     max_alignment = 1
-    for t in tc.union_member_types():
+    for t in ct.union_member_types():
         if t.is_wrapped():
             t = t.children[0]
         if t.is_void():
@@ -232,7 +232,7 @@ def _get_size_and_offset_for_sum_type(tc: cwast.CanonType, tag_size, ptr_size):
             num_other += 1
             max_size = max(max_size, t.size)
             max_alignment = max(max_alignment, t.alignment)
-    if tc.untagged:
+    if ct.untagged:
         return max_size, max_alignment
     if num_other == 0 and num_pointer == 1:
         # special hack for pointer + error-code
@@ -320,13 +320,13 @@ class TypeCorpus:
     def get_address_size(self):
         return self._target_arch_config.data_addr_bitwidth // 8
 
-    def _get_register_type_for_sum_type(self, tc: cwast.CanonType) -> Optional[List[str]]:
-        assert tc.node is cwast.TypeUnion
+    def _get_register_type_for_sum_type(self, ct: cwast.CanonType) -> Optional[List[str]]:
+        assert ct.node is cwast.TypeUnion
         num_void = 0
         scalars: List[cwast.CanonType] = []
         largest_by_kind: dict[str, int] = {}
         largest = 0
-        for t in tc.union_member_types():
+        for t in ct.union_member_types():
             if t.is_wrapped():
                 t = t.children[0]
             if t.is_void():
@@ -347,46 +347,46 @@ class TypeCorpus:
         k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
         return [f"U{largest}", f"U{self._target_arch_config.typeid_bitwidth}"]
 
-    def get_register_type(self, tc: cwast.CanonType) -> Optional[List[str]]:
+    def _get_register_type(self, ct: cwast.CanonType) -> Optional[List[str]]:
         """As long as a type can fit into no more than two regs it will have
         register representation which is also how it will be past in function calls.
         """
-        if tc.node is cwast.TypeBase:
-            return _BASE_TYPE_MAP.get(tc.base_type_kind)
-        elif tc.node is cwast.TypePtr:
+        if ct.node is cwast.TypeBase:
+            return _BASE_TYPE_MAP.get(ct.base_type_kind)
+        elif ct.node is cwast.TypePtr:
             return [self.get_data_address_reg_type()]
-        elif tc.node is cwast.TypeSlice:
+        elif ct.node is cwast.TypeSlice:
             return [self.get_data_address_reg_type(), self.get_uint_reg_type()]
-        elif tc.node is cwast.DefRec:
-            assert isinstance(tc.ast_node, cwast.DefRec)
-            fields = tc.ast_node.fields
+        elif ct.node is cwast.DefRec:
+            assert isinstance(ct.ast_node, cwast.DefRec)
+            fields = ct.ast_node.fields
             if len(fields) == 1:
-                return self.get_register_type(fields[0].type.x_type)
+                return self._get_register_type(fields[0].type.x_type)
             elif len(fields) == 2:
-                a = self.get_register_type(fields[0].type.x_type)
-                b = self.get_register_type(fields[1].type.x_type)
+                a = self._get_register_type(fields[0].type.x_type)
+                b = self._get_register_type(fields[1].type.x_type)
                 if a is not None and b is not None and len(a) + len(b) <= 2:
                     return a + b
             return None
-        elif tc.node is cwast.TypeArray:
+        elif ct.node is cwast.TypeArray:
             return None
-        elif tc.node is cwast.DefEnum:
-            return _BASE_TYPE_MAP[tc.base_type_kind]
-        elif tc.node is cwast.TypeUnion:
-            return self._get_register_type_for_sum_type(tc)
-        elif tc.node is cwast.DefType:
-            return self.get_register_type(tc.children[0])
-        elif tc.node is cwast.TypeFun:
+        elif ct.node is cwast.DefEnum:
+            return _BASE_TYPE_MAP[ct.base_type_kind]
+        elif ct.node is cwast.TypeUnion:
+            return self._get_register_type_for_sum_type(ct)
+        elif ct.node is cwast.DefType:
+            return self._get_register_type(ct.children[0])
+        elif ct.node is cwast.TypeFun:
             return [f"C{self._target_arch_config.data_addr_bitwidth}"]
         else:
-            assert False, f"unknown type {tc.name}"
+            assert False, f"unknown type {ct.name}"
             return None
 
-    def _get_size_and_alignment_and_set_offsets_for_rec_type(self, tc: cwast.CanonType):
+    def _get_size_and_alignment_and_set_offsets_for_rec_type(self, ct: cwast.CanonType):
         size = 0
         alignment = 1
-        assert isinstance(tc.ast_node, cwast.DefRec)
-        def_rec: cwast.DefRec = tc.ast_node
+        assert isinstance(ct.ast_node, cwast.DefRec)
+        def_rec: cwast.DefRec = ct.ast_node
         for rf in def_rec.fields:
             assert isinstance(rf, cwast.RecField)
             field_ct: cwast.CanonType = rf.type.x_type
@@ -402,37 +402,37 @@ class TypeCorpus:
             self._typeid_curr += 1
         size, alignment = self._get_size_and_alignment_and_set_offsets_for_rec_type(
             ct)
-        ct.finalize(size, alignment, self.get_register_type(ct))
+        ct.finalize(size, alignment, self._get_register_type(ct))
 
-    def _get_size_and_alignment(self, tc: cwast.CanonType):
-        if tc.node is cwast.TypeBase:
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.base_type_kind]
+    def _get_size_and_alignment(self, ct: cwast.CanonType):
+        if ct.node is cwast.TypeBase:
+            size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
             return size, size
-        elif tc.node is cwast.TypePtr:
+        elif ct.node is cwast.TypePtr:
             size = self._target_arch_config.code_addr_bitwidth // 8
             return size, size
-        elif tc.node is cwast.TypeSlice:
+        elif ct.node is cwast.TypeSlice:
             # slice is converted to (pointer, length) tuple
             ptr_field_size = self._target_arch_config.data_addr_bitwidth // 8
             len_field_size = self._target_arch_config.uint_bitwidth // 8
             return ptr_field_size + len_field_size, ptr_field_size
-        elif tc.node is cwast.TypeArray:
-            return tc.children[0].aligned_size() * tc.dim, tc.children[0].alignment
-        elif tc.node is cwast.TypeUnion:
+        elif ct.node is cwast.TypeArray:
+            return ct.children[0].aligned_size() * ct.dim, ct.children[0].alignment
+        elif ct.node is cwast.TypeUnion:
             return _get_size_and_offset_for_sum_type(
-                tc, self._target_arch_config.typeid_bitwidth // 8,
+                ct, self._target_arch_config.typeid_bitwidth // 8,
                 self._target_arch_config.data_addr_bitwidth // 8)
-        elif tc.node is cwast.DefEnum:
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[tc.base_type_kind]
+        elif ct.node is cwast.DefEnum:
+            size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
             return size, size
-        elif tc.node is cwast.TypeFun:
+        elif ct.node is cwast.TypeFun:
             size = self._target_arch_config.code_addr_bitwidth // 8
             return size, size
-        elif tc.node is cwast.DefType:
-            return self._get_size_and_alignment(tc.children[0])
+        elif ct.node is cwast.DefType:
+            return self._get_size_and_alignment(ct.children[0])
         else:
             # Note, DefRec is not handled here
-            assert False, f"unknown type {tc}"
+            assert False, f"unknown type {ct}"
 
     def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
         """The only type not finalized here are Recs"""
@@ -449,7 +449,7 @@ class TypeCorpus:
                 ct.typeid = self._typeid_curr
                 self._typeid_curr += 1
             size, alignment = self._get_size_and_alignment(ct)
-            ct.finalize(size, alignment, self.get_register_type(ct))
+            ct.finalize(size, alignment, self._get_register_type(ct))
         return ct
 
     def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
@@ -476,14 +476,14 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.TypeArray, name, dim=dim,
                                             children=[ct], original_type=original_type))
 
-    def lookup_rec_field(self, tc: cwast.CanonType, field_name) -> Optional[cwast.RecField]:
+    def lookup_rec_field(self, ct: cwast.CanonType, field_name) -> Optional[cwast.RecField]:
         """Oddball since the node returned is NOT inside corpus
 
         See implementation of insert_rec_type
         """
-        assert tc.node is cwast.DefRec
-        assert isinstance(tc.ast_node, cwast.DefRec)
-        for x in tc.ast_node.fields:
+        assert ct.node is cwast.DefRec
+        assert isinstance(ct.ast_node, cwast.DefRec)
+        for x in ct.ast_node.fields:
             if isinstance(x, cwast.RecField) and x.name == field_name:
                 return x
         return None
@@ -524,13 +524,14 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.TypeFun, name, children=params + [result],
                                             original_type=original_type))
 
-    def insert_wrapped_type(self, tc: cwast.CanonType) -> cwast.CanonType:
+    def insert_wrapped_type(self, ct: cwast.CanonType) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
+        assert not ct.is_wrapped()
         uid = self._wrapped_curr
         self._wrapped_curr += 1
-        name = f"wrapped<{uid},{tc.name}>"
+        name = f"wrapped<{uid},{ct.name}>"
         assert name not in self.corpus
-        return self._insert(cwast.CanonType(cwast.DefType, name, children=[tc]))
+        return self._insert(cwast.CanonType(cwast.DefType, name, children=[ct]))
 
     def insert_sum_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
         assert all.node is cwast.TypeUnion, f"expect sum type: {all.name}"
