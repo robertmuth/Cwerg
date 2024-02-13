@@ -22,7 +22,6 @@
     (let! sum u32 0)
     (let! node MaybeNode root)
     (while true :
-       (fmt::print# sum "\n")
         (trylet x (ptr! LinkedListNode) node _ : (break))
         (+= sum (-> x payload))
         (= node (-> x next)))
@@ -30,13 +29,14 @@
 
 
 
-(global N u32 10)
+(global N u32 100)
 
 (@mut global NodePool auto (array_val N LinkedListNode))
 
+@doc "(* N 16) with union optimization"
 (static_assert (==
     (as (sizeof (typeof NodePool)) u32)
-    (* N 16)))
+    (* N 24)))
 
 (fun DumpNode [(param i u32)] void :
      (fmt::print# i " " (. (at NodePool i) payload) " " (uniontypetag (. (at NodePool i) next)))
@@ -48,8 +48,6 @@
                     (ptr void))
         "\n")
      )
-
-
 )
 
 
@@ -62,17 +60,13 @@
           (= (. (at NodePool i) next) None)
         : (= (. (at NodePool i) next) (&! (at NodePool (+ i 1)))  )
         )
-        (shed (DumpNode [i]))
     )
 
-     (for i 0 N 1 :
-        (shed (DumpNode [i]))
-     )
     @doc """
-
-    (fmt::print# (SumPayload [(front! NodePool)]))
-    (test::AssertEq# (SumPayload [(front! NodePool)]) 499500_u32)
+    (for i 0 N 1 :
+       (shed (DumpNode [i])))
     """
+    (test::AssertEq# (SumPayload [(front! NodePool)]) 4950_u32)
     (test::Success#)
     (return 0)
 )

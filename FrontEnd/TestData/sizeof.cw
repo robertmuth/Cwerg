@@ -94,8 +94,8 @@
 
 @pub (type sum4 (union [ptr1 w3]))
 
-
-(static_assert (== (sizeof sum4) 8))
+@doc "8 with union optimization"
+(static_assert (== (sizeof sum4) 16))
 
 
 @pub (type sum5 (union [
@@ -103,8 +103,8 @@
         w2
         w3]))
 
-
-(static_assert (== (sizeof sum5) 8))
+@doc "8 with union optimization"
+(static_assert (== (sizeof sum5) 16))
 
 
 @pub (type sum6 (union [

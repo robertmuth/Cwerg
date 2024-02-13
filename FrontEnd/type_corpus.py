@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 STRINGIFIEDTYPE_RE = re.compile(r"[a-zA-Z][_A-Za-z_0-9$,<>/]+")
 
 
+ENABLE_UNION_OPTIMIZATIONS = False
+
+
 def align(x, a):
     return (x + a - 1) // a * a
 
@@ -234,7 +237,7 @@ def _get_size_and_offset_for_sum_type(ct: cwast.CanonType, tag_size, ptr_size):
             max_alignment = max(max_alignment, t.alignment)
     if ct.untagged:
         return max_size, max_alignment
-    if num_other == 0 and num_pointer == 1:
+    if ENABLE_UNION_OPTIMIZATIONS and num_other == 0 and num_pointer == 1:
         # special hack for pointer + error-code
         return ptr_size, ptr_size
     # the tag is the first component of the tagged union in memory
@@ -341,7 +344,7 @@ class TypeCorpus:
             largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
             largest = max(largest, size)
         # special hack for pointer + error-code
-        if len(scalars) == 1 and scalars[0].is_pointer():
+        if ENABLE_UNION_OPTIMIZATIONS and len(scalars) == 1 and scalars[0].is_pointer():
             return scalars[0].register_types
 
         k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
