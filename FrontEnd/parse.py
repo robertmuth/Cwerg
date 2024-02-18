@@ -311,7 +311,7 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
             return nfd.enum_kind[token]
         except KeyError:
             cwast.CompilerError(
-                stream.srcloc(), f"Cannot convert {token} for {field}")
+                stream.srcloc(), f"Cannot convert {token} for {field} in {parent_cls}")
     elif nfd.kind is cwast.NFK.NODE:
         attr: Dict[str, Any] = {}
         token = ReadAttrs(token, attr, stream)

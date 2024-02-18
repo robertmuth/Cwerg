@@ -276,9 +276,8 @@ UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
 class MOD_PARAM_KIND(enum.Enum):
     """Module Parameter Kind"""
     INVALID = 0
-    CONST = 1
-    MOD = 2
-    TYPE = 3
+    CONST_EXPR = 1
+    TYPE = 2
 
 
 @enum.unique
@@ -438,7 +437,7 @@ NODES_EXPR_T = Union["ValFalse", "ValTrue", "ValNum",
                      "ExprLen", "ExprFront",
                      "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
                      "ExprStringify",
-                     "ExprUnionTag", "ExprUnionUntagged",
+                     "ExprUnionTag", "ExprUnionUntagged", "ExprUnsafeCast",
                      "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow",
                      "ExprWiden", "ExprBitCast"]
 NODES_EXPR = _ExtractTypes(NODES_EXPR_T)
@@ -518,7 +517,7 @@ ALL_FIELDS = [
             f"one of: [{_EnumValues(BASE_TYPE_KIND)}](#base-type-kind)",
             BASE_TYPE_KIND),
     NfdKind("mod_param_kind",
-            f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#modparam-kind)",
+            f"one of: [{_EnumValues(MOD_PARAM_KIND)}](#modparam-kind)",
             MOD_PARAM_KIND),
     NfdKind("assignment_kind",
             f"one of: [{_EnumValues(ASSIGNMENT_KIND)}](#stmtcompoundassignment-kind)",
@@ -541,7 +540,7 @@ ALL_FIELDS = [
     NfdNodeList("params_macro", "macro parameters", NODES_PARAMS_MACRO,
                 MACRO_PARAM_KIND.INVALID),
     NfdNodeList("args", "function call arguments",
-                None, MACRO_PARAM_KIND.EXPR),
+                NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNodeList("items", "enum items and/or comments", NODES_ITEMS,
                 MACRO_PARAM_KIND.INVALID),
     NfdNodeList("fields", "record fields and/or comments", NODES_FIELDS,
@@ -569,24 +568,24 @@ ALL_FIELDS = [
     NfdNodeList("body_for", "statement list for macro_loop", NODES_BODY,
                 MACRO_PARAM_KIND.STMT_LIST),
     NfdNodeList("body_macro",
-                "new scope: macro statments/expression", None,
+                "new scope: macro statments/expression", (),
                 MACRO_PARAM_KIND.STMT_LIST),
     NfdNodeList("cases", "list of case statements", NODES_CASES,
                 MACRO_PARAM_KIND.STMT_LIST),
 
     #
     NfdNode("init_index",
-            "initializer index or empty (empty mean next index)", None, MACRO_PARAM_KIND.EXPR),
+            "initializer index or empty (empty mean next index)", NODES_EXPR_WITH_AUTO, MACRO_PARAM_KIND.EXPR),
     NfdNode("type", "type expression", NODES_TYPES, MACRO_PARAM_KIND.TYPE),
     NfdNode("subtrahend", "type expression",
             NODES_TYPES, MACRO_PARAM_KIND.TYPE),
     NfdNode("type_or_auto", "type expression",
             NODES_TYPES_OR_AUTO, MACRO_PARAM_KIND.TYPE),
-    NfdNode("result", "return type", None, MACRO_PARAM_KIND.TYPE),
+    NfdNode("result", "return type", NODES_TYPES, MACRO_PARAM_KIND.TYPE),
     NfdNode("size", "compile-time constant size",
             NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNode("expr_size", "expression determining the size or auto",
-            None, MACRO_PARAM_KIND.EXPR),
+            NODES_EXPR_WITH_AUTO, MACRO_PARAM_KIND.EXPR),
     NfdNode("expr_index",
             "expression determining the index to be accessed", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNode("expr", "expression", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
@@ -607,13 +606,13 @@ ALL_FIELDS = [
     NfdNode("expr_ret", "result expression (ValVoid means no result)",
             NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNode("pointer", "pointer component of slice",
-            None, MACRO_PARAM_KIND.EXPR),
-    NfdNode("container", "array and slice", None, MACRO_PARAM_KIND.EXPR),
+            NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNode("container", "array and slice", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNode("callee", "expression evaluating to the function to be called",
-            None, MACRO_PARAM_KIND.EXPR),
+            NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNode("value", "", NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNode("value_or_auto", "enum constant or auto",
-            None, MACRO_PARAM_KIND.EXPR),
+            NODES_EXPR_WITH_AUTO, MACRO_PARAM_KIND.EXPR),
     NfdNode("value_or_undef", "", NODES_EXPR_OR_UNDEF, MACRO_PARAM_KIND.EXPR),
     NfdNode("lhs", "l-value expression", NODES_LHS, MACRO_PARAM_KIND.EXPR),
     NfdNode("expr_lhs", "l-value expression",
@@ -1511,7 +1510,7 @@ class ValArray:
     GROUP = GROUP.Value
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
     #
-    expr_size: Union[NODES_EXPR_T, ValAuto]
+    expr_size: NODES_EXPR_WITH_AUTO_T
     type: NODES_TYPES_T
     inits_array: List[NODES_INITS_ARRAY_T]
     #
@@ -2659,7 +2658,7 @@ class DefFun:
 @dataclasses.dataclass()
 class ModParam:
     """Module Parameters"""
-    ALIAS = None
+    ALIAS = "modparam"
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE
     #
@@ -3155,13 +3154,37 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
     VisitAstRecursively(node, visitor)
 
 
+def _IsPermittedNode(node, permitted, parent, toplevel_node, module_node, allow_type_auto: bool) -> bool:
+    if node.__class__.__name__ in permitted:
+        return True
+    if isinstance(node, TypeAuto):
+        return allow_type_auto
+    if isinstance(parent, (MacroInvoke, EphemeralList)):
+        return True  # refine
+    if isinstance(toplevel_node, DefMacro):
+        return True  # refine
+    return False
+
+
 def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False):
-    # this forces a pre-order traversal
+    """
+    This check is run at various stages of compilation.
+
+    `disallowed_nodes` contains a set of nodes that must not appear.
+
+    `pre_symbolize` indicates that the check is running before symbolization so
+    that the field `x_modname` is not yet set.
+
+
+    """
+    # this only works with pre-order traversal
     toplevel_node = None
+    module_node = node if isinstance(node, DefMod) else None
 
     def visitor(node, parent, field):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
+        nonlocal module_node
         nonlocal pre_symbolize
         # print (f"@@@@ field={field}: {node.__class__.__name__}")
 
@@ -3209,12 +3232,11 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
                 assert node.x_modname, f"missing x_modname {node}"
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
-            permitted = nfd.node_type
-            if permitted and not isinstance(toplevel_node, DefMacro):
-                if node.__class__.__name__ not in permitted:
-                    if not (allow_type_auto and isinstance(node, TypeAuto)):
-                        CompilerError(
-                            node.x_srcloc, f"unexpected node for field={field}: {node.__class__.__name__}")
+            if not _IsPermittedNode(node, nfd.node_type, parent, toplevel_node,
+                                    module_node,
+                                    allow_type_auto):
+                CompilerError(
+                    node.x_srcloc, f"unexpected node for field={field}: {node.__class__.__name__}")
 
     VisitAstRecursivelyWithParent(node, visitor, None)
 

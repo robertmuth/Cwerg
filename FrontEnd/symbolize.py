@@ -19,6 +19,7 @@ SYMTAB_MAP = Dict[cwast.DefMod, "SymTab"]
 
 
 def AnnotateNodeSymbol(id_node, def_node):
+    """Sets the x_symol field to a node like DefGlobal, DefVar, DefFun, DefRec, etc ."""
     logger.info("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
     assert cwast.NF.SYMBOL_ANNOTATED in id_node.FLAGS
     assert (cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS or
@@ -389,7 +390,7 @@ def _SetTargetFieldRecursively(node):
 def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
     """
     * extract global symbols
-    * resolve global symbols
+    * resolve global symbols (= setting x_symbol)
     * expand macros recursively (macros are global symbols)
     * reolve symbols within functions
 
@@ -397,7 +398,6 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
     symtab_map: SYMTAB_MAP = {}
     for mod in mod_topo_order:
         symtab_map[mod] = _ExtractSymTabPopulatedWithGlobals(mod)
-        # TODO: total hack - add attribute builtin instead
         if mod.builtin:
             assert None not in symtab_map
             symtab_map[None] = symtab_map[mod]

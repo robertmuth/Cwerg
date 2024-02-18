@@ -124,7 +124,7 @@ class ModPoolBase:
             else:
                 assert False
             taken_names.add(def_mod.x_modname)
-            cwast.CheckAST(def_mod, set())
+            cwast.CheckAST(def_mod, disallowed_nodes=set())
 
     def ReadAndFinalizedMods(self):
         while True:
