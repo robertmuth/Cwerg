@@ -82,8 +82,11 @@ class NF(enum.Flag):
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
-    # node reference the imported module or the qualifier  (x_module)
+    # reference to the import node resolving the qualifier  (x_import)
+    IMPORT_ANNOTATED = enum.auto()
+    # node reference to the imported module (x_module)
     MODULE_ANNOTATED = enum.auto()
+
     MODNAME_ANNOTATED = enum.auto()
     ROLE_ANNOTATED = enum.auto()
 
@@ -689,10 +692,12 @@ X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
     # set by mod_pool.py
     # containing module links for symbol resolution
-    # import -> imported module
     # id -> referenced module
     # fun -> module of archetype (only use for polymorphic function)
     # macro_invoke ->  referenced module
+    "x_import": NF.IMPORT_ANNOTATED,
+    # set by mod_pool.py
+    # import -> imported module
     "x_module": NF.MODULE_ANNOTATED,
     # set by mod_pool.py
     # uniquified module name
@@ -1040,6 +1045,32 @@ class EphemeralList:
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
+
+############################################################
+#
+############################################################
+@NodeCommon
+@dataclasses.dataclass()
+class Import:
+    """Import another Module from `path` as `name`"""
+    ALIAS = "import"
+    GROUP = GROUP.Statement
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE | NF.MODULE_ANNOTATED
+    #
+    name: str
+    alias: str
+    args_mod: List[NODES_EXPR_T]
+    #
+    doc: str = ""
+    #
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
+    x_module: Optional[Any] = None
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}"
+
+
+INVALID_IMPORT = Import("$$INVALID", "", [])
 ############################################################
 # Identifier
 ############################################################
@@ -1056,7 +1087,7 @@ class Id:
     """
     ALIAS = "id"
     GROUP = GROUP.Misc
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.MODULE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
     name: str          # id or mod::id or enum::id or mod::enum::id
     #
@@ -1066,7 +1097,7 @@ class Id:
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
     x_symbol: Optional[Any] = None
-    x_module: Optional[Any] = None
+    x_import: Import = INVALID_IMPORT  # which import the id is qualified with
 
     def __str__(self):
         return f"{_NAME(self)} {self.name}"
@@ -2638,7 +2669,7 @@ class DefFun:
     """
     ALIAS = "fun"
     GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.MODULE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.IMPORT_ANNOTATED
     #
     name: str
     params: List[NODES_PARAMS_T]
@@ -2655,7 +2686,7 @@ class DefFun:
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
-    x_module: Optional["DefMod"] = None  # only use for polymorphic function
+    x_import: Import = INVALID_IMPORT  # only used for polymorphic function
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params)
@@ -2707,27 +2738,6 @@ class DefMod:
     def __str__(self):
         params = ', '.join(str(p) for p in self.params_mod)
         return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class Import:
-    """Import another Module from `path` as `name`"""
-    ALIAS = "import"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE | NF.MODULE_ANNOTATED
-    #
-    name: str
-    alias: str
-    args_mod: List[NODES_EXPR]
-    #
-    doc: str = ""
-    #
-    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_module: Optional[Any] = None
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}"
 
 
 ############################################################
@@ -2856,7 +2866,7 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS = "macro_invoke"
     GROUP = GROUP.Macro
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.MODULE_ANNOTATED | NF.ROLE_ANNOTATED
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED | NF.ROLE_ANNOTATED
     #
     name: str
     args: List[NODES_EXPR_T]
@@ -2864,7 +2874,7 @@ class MacroInvoke:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_module: Optional[Any] = None
+    x_import: Import = INVALID_IMPORT
     x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
     def __str__(self):
@@ -3229,14 +3239,17 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 assert i.startswith("$")
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
-            # when we synthesize Ids later we do not bother with x_module anymore
+            # when we synthesize Ids later we do not bother with x_import anymore
             if not pre_symbolize:
                 assert node.x_symbol is not None or isinstance(
-                    node.x_module, DefMod)
+                    node.x_import, Import), f"{node} without x_import"
             assert not node.name.startswith("$")
         elif isinstance(node, MacroId):
             assert node.name.startswith("$")
-        elif isinstance(node, (MacroInvoke, DefFun, Import)):
+        elif isinstance(node, MacroInvoke):
+            if not pre_symbolize:
+                assert isinstance(node.x_import, Import)
+        elif isinstance(node, Import):
             if not pre_symbolize:
                 assert isinstance(node.x_module, DefMod)
         elif isinstance(node, DefMod):

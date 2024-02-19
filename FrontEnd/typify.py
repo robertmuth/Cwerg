@@ -137,7 +137,7 @@ class _PolyMap:
 
     def Register(self, fun: cwast.DefFun):
         ct: cwast.CanonType = fun.x_type
-        mod = fun.x_module
+        mod = fun.x_import.x_module
         name = cwast.GetSymbolName(fun.name)
         first_param_type = ct.children[0].name
         logger.info("Register polymorphic fun %s::%s: %s",
@@ -149,7 +149,8 @@ class _PolyMap:
         fun_name = cwast.GetSymbolName(callee.name)
         type_name = first_param_type.name
         logger.info("Resolving polymorphic fun %s: %s", fun_name, type_name)
-        out = self._map.get((callee.x_module, fun_name, type_name))
+        callee_mod: cwast.DefMod = callee.x_import.x_module
+        out = self._map.get((callee_mod, fun_name, type_name))
         if out:
             return out
         # TODO: why do we need this - seems unsafe:
@@ -158,7 +159,7 @@ class _PolyMap:
                 False, first_param_type.underlying_array_type())
             type_name = slice_type.name
 
-            out = self._map.get((callee.x_module, fun_name, type_name))
+            out = self._map.get((callee_mod, fun_name, type_name))
             if out:
                 return out
         cwast.CompilerError(
@@ -488,7 +489,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             assert ct_callee.is_fun(), f"{ct}"
             params_ct = ct_callee.parameter_types()
             if len(params_ct) != len(node.args):
-                cwast.CompilerError(node.x_srcloc, f"parameter size mismatch in call to {callee} - macro issues?")
+                cwast.CompilerError(
+                    node.x_srcloc, f"parameter size mismatch in call to {callee} - macro issues?")
             # we already process the first arg
             for p, a in zip(params_ct[1:], node.args[1:]):
                 _TypifyNodeRecursively(a, tc, p, ctx)

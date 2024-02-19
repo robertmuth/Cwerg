@@ -21,10 +21,11 @@ def _DecorateIdsWithQualifer(mod: cwast.DefMod):
     We do this even for unqualified names. This is important for macros whose
     syntax tree might get copied into a different from where it originated.
     """
-    imports: Dict[str, cwast.DefMod] = {}
+    imports: Dict[str, cwast.Import] = {}
+    dummy_import = cwast.Import("$self", "", [], x_module=mod)
 
     def visitor(node, _):
-        nonlocal imports, mod
+        nonlocal imports, dummy_import
         if isinstance(node, cwast.Import):
             name = node.name
             # TODO: strip off path component if present
@@ -32,17 +33,18 @@ def _DecorateIdsWithQualifer(mod: cwast.DefMod):
                 name = node.alias
             if name in imports:
                 cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
-            imports[name] = node.x_module
-        if isinstance(node, (cwast.Id, cwast.MacroInvoke, cwast.DefFun)):
+            imports[name] = node
+        if isinstance(node, (cwast.Id, cwast.DefFun, cwast.MacroInvoke)):
             q = cwast.GetQualifierIfPresent(node.name)
             if q:
+                # only polymorphic functions may have qualifiers
                 if isinstance(node, cwast.DefFun):
                     assert node.polymorphic
                 if q not in imports:
                     cwast.CompilerError(node.x_srcloc, f"unkown module {q}")
-                node.x_module = imports[q]
+                node.x_import = imports[q]
             else:
-                node.x_module = mod
+                node.x_import = dummy_import
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
 
