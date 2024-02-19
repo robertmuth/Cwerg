@@ -541,6 +541,8 @@ ALL_FIELDS = [
                 MACRO_PARAM_KIND.INVALID),
     NfdNodeList("args", "function call arguments",
                 NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+    NfdNodeList("args_mod", "module arguments",
+                NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNodeList("items", "enum items and/or comments", NODES_ITEMS,
                 MACRO_PARAM_KIND.INVALID),
     NfdNodeList("fields", "record fields and/or comments", NODES_FIELDS,
@@ -639,6 +641,7 @@ _OPTIONAL_FIELDS = {
     "init_field": "",
     "inits_array": "@EmptyList",
     "expr_bound_or_undef": "@ValUndef",
+    "args_mod": "@EmptyList",
 }
 
 
@@ -2711,6 +2714,7 @@ class Import:
     #
     name: str
     alias: str
+    args_mod: List[NODES_EXPR]
     #
     doc: str = ""
     #
@@ -3154,11 +3158,15 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
     VisitAstRecursively(node, visitor)
 
 
-def _IsPermittedNode(node, permitted, parent, toplevel_node, module_node, allow_type_auto: bool) -> bool:
+def _IsPermittedNode(node, permitted, parent, toplevel_node, node_mod: DefMod,
+                     allow_type_auto: bool) -> bool:
     if node.__class__.__name__ in permitted:
         return True
     if isinstance(node, TypeAuto):
         return allow_type_auto
+    if isinstance(node, MacroId):
+        return isinstance(toplevel_node, DefMacro) or node_mod.params_mod
+
     if isinstance(parent, (MacroInvoke, EphemeralList)):
         return True  # refine
     if isinstance(toplevel_node, DefMacro):
@@ -3166,7 +3174,7 @@ def _IsPermittedNode(node, permitted, parent, toplevel_node, module_node, allow_
     return False
 
 
-def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False):
+def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symbolize=False):
     """
     This check is run at various stages of compilation.
 
@@ -3179,12 +3187,11 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
     """
     # this only works with pre-order traversal
     toplevel_node = None
-    module_node = node if isinstance(node, DefMod) else None
 
     def visitor(node, parent, field):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
-        nonlocal module_node
+        nonlocal node_mod
         nonlocal pre_symbolize
         # print (f"@@@@ field={field}: {node.__class__.__name__}")
 
@@ -3233,12 +3240,12 @@ def CheckAST(node, disallowed_nodes, allow_type_auto=False, pre_symbolize=False)
         if field is not None:
             nfd = ALL_FIELDS_MAP[field]
             if not _IsPermittedNode(node, nfd.node_type, parent, toplevel_node,
-                                    module_node,
+                                    node_mod,
                                     allow_type_auto):
                 CompilerError(
                     node.x_srcloc, f"unexpected node for field={field}: {node.__class__.__name__}")
 
-    VisitAstRecursivelyWithParent(node, visitor, None)
+    VisitAstRecursivelyWithParent(node_mod, visitor, None)
 
 
 ##########################################################################################
