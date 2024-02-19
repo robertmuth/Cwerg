@@ -2630,6 +2630,11 @@ class DefFun:
     `init` and `fini` indicate module initializer/finalizers
 
     `extern` indicates a prototype and hence the function body must be empty.
+
+    `cdecl` disables name mangling
+
+    `polymorphic` indicates a polymorhic function. The `name` must be qualified with
+                 the module containing the seed polymorphic definition.
     """
     ALIAS = "fun"
     GROUP = GROUP.Statement
