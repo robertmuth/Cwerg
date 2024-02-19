@@ -15,40 +15,6 @@ ModHandle = pathlib.PurePath
 logger = logging.getLogger(__name__)
 
 
-def _DecorateIdsWithQualifer(mod: cwast.DefMod):
-    """Record the original module
-
-    We do this even for unqualified names. This is important for macros whose
-    syntax tree might get copied into a different from where it originated.
-    """
-    imports: Dict[str, cwast.Import] = {}
-    dummy_import = cwast.Import("$self", "", [], x_module=mod)
-
-    def visitor(node, _):
-        nonlocal imports, dummy_import
-        if isinstance(node, cwast.Import):
-            name = node.name
-            # TODO: strip off path component if present
-            if node.alias:
-                name = node.alias
-            if name in imports:
-                cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
-            imports[name] = node
-        if isinstance(node, (cwast.Id, cwast.DefFun, cwast.MacroInvoke)):
-            q = cwast.GetQualifierIfPresent(node.name)
-            if q:
-                # only polymorphic functions may have qualifiers
-                if isinstance(node, cwast.DefFun):
-                    assert node.polymorphic
-                if q not in imports:
-                    cwast.CompilerError(node.x_srcloc, f"unkown module {q}")
-                node.x_import = imports[q]
-            else:
-                node.x_import = dummy_import
-
-    cwast.VisitAstRecursivelyPost(mod, visitor)
-
-
 def ModulesInTopologicalOrder(mods: Sequence[cwast.DefMod]) -> List[cwast.DefMod]:
     """The order is also deterministic
 
@@ -183,7 +149,6 @@ class ModPoolBase:
                     assert isinstance(node.x_module, ModHandle)
                     node.x_module = self._all_mods[node.x_module]
                     assert isinstance(node.x_module, cwast.DefMod)
-            _DecorateIdsWithQualifer(def_mod)
             if def_mod.name not in taken_names:
                 def_mod.x_modname = def_mod.name
             else:
@@ -208,6 +173,11 @@ class ModPoolBase:
             self._FinishMod(handle, def_mod)
         self._Finalize()
 
+    def ReadModulesRecursively(self, seed_modules: List[str]):
+        for m in seed_modules:
+            self.InsertSeedMod(m)
+        self.ReadAndFinalizedMods()
+
     def ModulesInTopologicalOrder(self) -> List[cwast.DefMod]:
         return ModulesInTopologicalOrder(self._all_mods.values())
 
@@ -219,6 +189,7 @@ class ModPool(ModPoolBase):
         asts = parse.ReadModsFromStream(open(fn, encoding="utf8"), fn)
         assert len(asts) == 1, f"multiple modules in {fn}"
         assert isinstance(asts[0], cwast.DefMod)
+        cwast.AnnotateImportsForQualifers(asts[0])
         return asts[0]
 
 

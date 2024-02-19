@@ -27,7 +27,7 @@ BUILT_IN_MACROS = set([
 ])
 
 
-def GetQualifierIfPresent(name: str) -> Optional[str]:
+def _GetQualifierIfPresent(name: str) -> Optional[str]:
     tokens = name.split(_ID_PATH_SEPARATOR)
     if len(tokens) == 2:
         return tokens[0]
@@ -3104,7 +3104,7 @@ def CloneNodeRecursively(node, var_map, block_map):
 ############################################################
 # Helpers
 ############################################################
-def AnnotateRole(node, parent=None, field=""):
+def AnnotateRoleForMacroInvoke(node, parent=None, field=""):
     """Some nodes can play multiple role. Determine which one.
 
     This is useful if we do not have symbol information (x_symbol)
@@ -3130,6 +3130,41 @@ def AnnotateRole(node, parent=None, field=""):
                 node.x_role = MACRO_PARAM_KIND.EXPR
 
     VisitAstRecursivelyWithParent(node, visitor, parent, field)
+
+
+def AnnotateImportsForQualifers(mod: DefMod):
+    """Set the x_import field.
+
+    We do this even for unqualified names using a `dummy_import`.
+    This is important for macros whose
+    syntax tree might get copied into a different from where it originated.
+    """
+    imports: Dict[str, Import] = {}
+    dummy_import = Import("$self", "", [], x_module=mod)
+
+    def visitor(node, _):
+        nonlocal imports, dummy_import
+        if isinstance(node, Import):
+            name = node.name
+            # TODO: strip off path component if present
+            if node.alias:
+                name = node.alias
+            if name in imports:
+                CompilerError(node.x_srcloc, f"duplicate import {name}")
+            imports[name] = node
+        if isinstance(node, (Id, DefFun, MacroInvoke)):
+            q = _GetQualifierIfPresent(node.name)
+            if q:
+                # only polymorphic functions may have qualifiers
+                if isinstance(node, DefFun):
+                    assert node.polymorphic
+                if q not in imports:
+                    CompilerError(node.x_srcloc, f"unkown module {q}")
+                node.x_import = imports[q]
+            else:
+                node.x_import = dummy_import
+
+    VisitAstRecursivelyPost(mod, visitor)
 
 
 def StripFromListRecursively(node, cls):

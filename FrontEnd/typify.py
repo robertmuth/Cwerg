@@ -1196,9 +1196,8 @@ def main(argv):
 
     cwd = os.getcwd()
     mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-    mp.InsertSeedMod("builtin")
-    mp.InsertSeedMod(str(pathlib.Path(argv[0][:-3]).resolve()))
-    mp.ReadAndFinalizedMods()
+    mp.ReadModulesRecursively(["builtin",
+                               str(pathlib.Path(argv[0][:-3]).resolve())])
     mod_topo_order = mp.ModulesInTopologicalOrder()
 
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)

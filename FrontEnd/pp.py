@@ -287,7 +287,8 @@ def DecorateNode(node_name, node):
         out += ["<span class=value title='",
                 str(node.x_value), "'>", CircledLetterEntity("V"), "</span>"]
     if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
-        out += ["<span class=value title='", str(node.x_field.x_offset), "'>",CircledLetterEntity("F"), "</span>"]
+        out += ["<span class=value title='",
+                str(node.x_field.x_offset), "'>", CircledLetterEntity("F"), "</span>"]
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
         out += [CircledLetterEntity("C")]
     if problems:
@@ -1327,9 +1328,8 @@ def main():
     elif args.mode == 'annotate':
         cwd = os.getcwd()
         mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-        mp.InsertSeedMod("builtin")
-        mp.InsertSeedMod(str(pathlib.Path(args.files[0][:-3]).resolve()))
-        mp.ReadAndFinalizedMods()
+        mp.ReadModulesRecursively(["builtin",
+                                   str(pathlib.Path(args.files[0][:-3]).resolve())])
 
         mod_topo_order = mp.ModulesInTopologicalOrder()
         symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
@@ -1347,7 +1347,7 @@ def main():
             assert len(mods) == 1
             for m in mods:
                 assert isinstance(m, cwast.DefMod)
-                cwast.AnnotateRole(m)
+                cwast.AnnotateRoleForMacroInvoke(m)
                 AddMissingParens(m)
                 cwast.CheckAST(m, set(), pre_symbolize=True)
             # we first produce an output token stream from the AST

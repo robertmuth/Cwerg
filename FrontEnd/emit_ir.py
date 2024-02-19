@@ -422,7 +422,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         ct: cwast.CanonType = node.expr1.x_type
         if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
             assert ct.is_pointer()
-            #print ("@@@@@ ", ct,  ct.underlying_pointer_type().size)
+            # print ("@@@@@ ", ct,  ct.underlying_pointer_type().size)
             offset = OffsetScaleToOffset(
                 node.expr2, ct.underlying_pointer_type().aligned_size(), tc, id_gen)
             kind = tc.get_data_address_reg_type()
@@ -913,11 +913,10 @@ def main():
     logger.info("Start Parsing")
     cwd = os.getcwd()
     mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-    mp.InsertSeedMod("builtin")
     assert len(args.files) == 1
     assert args.files[0].endswith(".cw")
-    mp.InsertSeedMod(str(pathlib.Path(args.files[0][:-3]).resolve()))
-    mp.ReadAndFinalizedMods()
+    mp.ReadModulesRecursively(["builtin",
+                               str(pathlib.Path(args.files[0][:-3]).resolve())])
 
     mod_topo_order = mp.ModulesInTopologicalOrder()
 
