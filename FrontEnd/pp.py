@@ -180,7 +180,7 @@ def RenderLomgAttr(node):
 
 def RenderShortAttr(node):
     out = []
-    for field, nfd in node.ATTRS:
+    for field, _ in node.ATTRS:
         if field == "doc":
             # handled above
             continue
@@ -665,7 +665,7 @@ def TokensAnnotationsPre(ts: TS, node):
 
 
 def TokensAnnotationsPost(ts: TS, node):
-    for field, nfd in node.ATTRS:
+    for field, _ in node.ATTRS:
         # these attributes will be rendered directly
         if field != "eoldoc":
             continue
@@ -725,10 +725,12 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
 
     args = node.args
     if node.name == "for" or node.name == "tryset":
+        assert isinstance(args[0], cwast.Id)
         ts.EmitAttr(args[0].name)
         args = args[1:]
         ts.EmitBinOp("=")
     elif node.name == "trylet":
+        assert isinstance(args[0], cwast.Id)
         ts.EmitAttr(args[0].name)
         EmitTokens(ts, args[1])
         args = args[2:]

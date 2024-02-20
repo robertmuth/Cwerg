@@ -406,7 +406,7 @@ def _EvalAuto(node: cwast.ValAuto) -> bool:
         return False
 
 
-def _EvalNode(node: cwast.ALL_NODES) -> bool:
+def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     """Returns True if node could be evaluated."""
 
     if isinstance(node, cwast.Id):

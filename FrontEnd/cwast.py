@@ -8,7 +8,7 @@ import dataclasses
 import logging
 import enum
 
-from typing import List, Dict, Set, Optional, Union, Any, TypeAlias
+from typing import Dict, Set, Optional, Union, Any, TypeAlias, NoReturn
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +99,9 @@ class NF(enum.Flag):
     TO_BE_EXPANDED = enum.auto()
     # all non-core nodes will be stripped or converted to core nodes before code-gen
     NON_CORE = enum.auto()
+
+
+NF_EXPR = NF.VALUE_ANNOTATED | NF.TYPE_ANNOTATED
 
 
 @enum.unique
@@ -397,7 +400,7 @@ NODES_PARAMS_MACRO_T: TypeAlias = "MacroParam"
 NODES_PARAMS_MACRO = _ExtractTypes(NODES_PARAMS_MACRO_T)
 
 NODES_BODY_T = Union["StmtDefer", "StmtIf", "StmtBreak", "StmtContinue", "StmtReturn", "StmtExpr",
-                     "StmtCompoundAssignment", "StmtBlock", "StmtCond", "DefVar", "MacroInvoke",
+                     "StmtCompoundAssignment", "StmtBlock", "StmtCond", "DefVar",
                      "StmtAssignment", "StmtTrap"]
 NODES_BODY = _ExtractTypes(NODES_BODY_T)
 
@@ -432,8 +435,6 @@ NODES_CASES = _ExtractTypes(NODES_CASES_T)
 NODES_EXPR_T = Union["ValFalse", "ValTrue", "ValNum",
                      "ValVoid", "ValArray", "ValString", "ValRec", "ValSlice",
                      #
-                     "MacroInvoke",
-                     #
                      "Id", "ExprAddrOf", "ExprDeref", "ExprIndex",
                      "ExprField", "ExprCall", "ExprParen",
                      "Expr1", "Expr2", "Expr3", "ExprPointer",
@@ -461,7 +462,7 @@ NODES_COND_T = Union["ValFalse", "ValTrue",
                      "ExprStmt", "ExprIs", "ExprNarrow"]
 NODES_COND = _ExtractTypes(NODES_COND_T)
 
-NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "MacroInvoke"]
+NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField"]
 NODES_LHS = _ExtractTypes(NODES_LHS_T)
 
 
@@ -830,7 +831,7 @@ class CanonType:
     dim: int = -1
     untagged: bool = False
     base_type_kind: BASE_TYPE_KIND = BASE_TYPE_KIND.INVALID
-    children: List["CanonType"] = dataclasses.field(default_factory=list)
+    children: list["CanonType"] = dataclasses.field(default_factory=list)
     #
     ast_node: Optional[Union["DefRec", "DefEnum"]] = None
     # we may rewrite slices and unions into structs
@@ -839,7 +840,7 @@ class CanonType:
     # The fields below are filled during finalization
     alignment: int = -1
     size: int = -1
-    register_types: Optional[List[Any]] = None
+    register_types: Optional[list[Any]] = None
     typeid: int = -1
     union_kind: UnionKind = UnionKind.INVALID
 
@@ -880,7 +881,7 @@ class CanonType:
     def is_rec(self) -> bool:
         return self.node is DefRec
 
-    def parameter_types(self) -> List["CanonType"]:
+    def parameter_types(self) -> list["CanonType"]:
         assert self.is_fun()
         return self.children[:-1]
 
@@ -912,7 +913,7 @@ class CanonType:
     def is_tagged_union(self) -> bool:
         return self.node is TypeUnion and not self.untagged
 
-    def union_member_types(self) -> List["CanonType"]:
+    def union_member_types(self) -> list["CanonType"]:
         assert self.is_union()
         return self.children
 
@@ -1039,7 +1040,7 @@ class EphemeralList:
     GROUP = GROUP.Macro
     FLAGS = NF.NON_CORE
     #
-    args: List[NODES_EXPR_T]
+    args: list[NODES_EXPR_T]
     #
     colon: bool = False  # colon style list
     #
@@ -1059,7 +1060,7 @@ class Import:
     #
     name: str
     alias: str
-    args_mod: List[NODES_EXPR_T]
+    args_mod: list[NODES_EXPR_T]
     #
     doc: str = ""
     #
@@ -1071,6 +1072,54 @@ class Import:
 
 
 INVALID_IMPORT = Import("$$INVALID", "", [])
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class RecField:  #
+    """Record field
+
+    All fields must be explicitly initialized. Use `ValUndef` in performance
+    sensitive situations.
+    """
+    ALIAS = "field"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    #
+    name: str
+    type: NODES_TYPES_T
+    #
+    doc: str = ""
+    eoldoc: str = ""
+    #
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
+    x_type: CanonType = NO_TYPE
+    x_offset: int = -1
+
+    def __str__(self):
+        return f"{_NAME(self)} {self.name}: {self.type}"
+
+
+@NodeCommon
+@dataclasses.dataclass()
+class DefRec:
+    """Record definition"""
+    ALIAS = "defrec"
+    GROUP = GROUP.Type
+    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    #
+    name: str
+    fields: list[NODES_FIELDS_T]
+    #
+    pub:  bool = False
+    doc: str = ""
+    #
+    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
+    x_type: CanonType = NO_TYPE
+
+    def __str__(self):
+        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
+
 ############################################################
 # Identifier
 ############################################################
@@ -1087,7 +1136,7 @@ class Id:
     """
     ALIAS = "id"
     GROUP = GROUP.Misc
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
+    FLAGS = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
     name: str          # id or mod::id or enum::id or mod::enum::id
     #
@@ -1289,7 +1338,7 @@ class TypeFun:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
-    params: List[NODES_PARAMS_T]
+    params: list[NODES_PARAMS_T]
     result: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
@@ -1312,7 +1361,7 @@ class TypeUnion:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
-    types: List[NODES_TYPES_T]
+    types: list[NODES_TYPES_T]
     #
     untagged: bool = False
     #
@@ -1374,7 +1423,7 @@ class ValAuto:
     """
     ALIAS = "auto_val"
     GROUP = GROUP.Value
-    FLAGS = NF.VALUE_ANNOTATED | NF.TYPE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1390,7 +1439,7 @@ class ValTrue:
     """Bool constant `true`"""
     ALIAS = "true"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1406,7 +1455,7 @@ class ValFalse:
     """Bool constant `false`"""
     ALIAS = "false"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
@@ -1426,7 +1475,7 @@ class ValNum:
     """
     ALIAS = "num"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     number: str   # maybe a (unicode) character as well
     #
@@ -1467,7 +1516,7 @@ class ValVoid:
      """
     ALIAS = "void_val"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     eoldoc: str = ""
     #
@@ -1489,7 +1538,7 @@ class IndexVal:
     """
     ALIAS = "index_val"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     value_or_undef: NODES_EXPR_T
     init_index: NODES_EXPR_WITH_AUTO_T  # compile time constant
@@ -1515,7 +1564,7 @@ class FieldVal:
     """
     ALIAS = "field_val"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED
+    FLAGS = NF_EXPR | NF.FIELD_ANNOTATED
     #
     value_or_undef: "NODES_EXPR_T"
     init_field: str
@@ -1542,11 +1591,11 @@ class ValArray:
     """
     ALIAS = "array_val"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr_size: NODES_EXPR_WITH_AUTO_T
     type: NODES_TYPES_T
-    inits_array: List[NODES_INITS_ARRAY_T]
+    inits_array: list[NODES_INITS_ARRAY_T]
     #
     doc: str = ""
     #
@@ -1567,7 +1616,7 @@ class ValSlice:
     """
     ALIAS = "slice_val"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     pointer: "NODES_EXPR_T"
     expr_size: "NODES_EXPR_T"
@@ -1589,7 +1638,7 @@ class ValString:
     """
     ALIAS = None
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     string: str
     #
@@ -1617,10 +1666,10 @@ class ValRec:
     """
     ALIAS = "rec_val"
     GROUP = GROUP.Value
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     type: NODES_TYPES_T
-    inits_field: List[NODES_INITS_REC_T]
+    inits_field: list[NODES_INITS_REC_T]
     #
     doc: str = ""
     eoldoc: str = ""
@@ -1646,7 +1695,7 @@ class ExprDeref:
     """Dereference a pointer represented by `expr`"""
     ALIAS = "^"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.MAY_BE_LHS
+    FLAGS = NF_EXPR | NF.MAY_BE_LHS
     #
     expr: NODES_EXPR_T  # must be of type AddrOf
     #
@@ -1668,7 +1717,7 @@ class ExprAddrOf:
     """
     ALIAS = "&"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr_lhs: NODES_EXPR_T
     #
@@ -1689,10 +1738,10 @@ class ExprCall:
     """
     ALIAS = "call"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     callee: NODES_EXPR_T
-    args: List[NODES_EXPR_T]
+    args: list[NODES_EXPR_T]
     #
     polymorphic: bool = False
     #
@@ -1711,7 +1760,7 @@ class ExprParen:
     """
     ALIAS = "paren"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #
@@ -1730,7 +1779,7 @@ class ExprField:
     """
     ALIAS = "."
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED | NF.MAY_BE_LHS
+    FLAGS = NF_EXPR | NF.FIELD_ANNOTATED | NF.MAY_BE_LHS
     #
     container: NODES_EXPR_T  # must be of type rec
     field: str
@@ -1750,7 +1799,7 @@ class Expr1:
     """Unary expression."""
     ALIAS = None
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     unary_expr_kind: UNARY_EXPR_KIND
     expr: NODES_EXPR_T
@@ -1769,7 +1818,7 @@ class ExprPointer:
     """Pointer arithmetic expression - optionally bound checked.."""
     ALIAS = None
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     pointer_expr_kind: POINTER_EXPR_KIND
     expr1: NODES_EXPR_T
@@ -1790,7 +1839,7 @@ class Expr2:
     """Binary expression."""
     ALIAS = None
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     binary_expr_kind: BINARY_EXPR_KIND
     expr1: NODES_EXPR_T
@@ -1813,7 +1862,7 @@ class Expr3:
     """
     ALIAS = "?"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     cond: NODES_EXPR_T  # must be of type  bool
     expr_t: NODES_EXPR_T
@@ -1836,7 +1885,7 @@ class ExprIndex:
     """
     ALIAS = "at"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.MAY_BE_LHS | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.MAY_BE_LHS | NF.NON_CORE
     #
     container: NODES_EXPR_T  # must be of type slice or array
     expr_index: NODES_EXPR_T  # must be of int type
@@ -1860,7 +1909,7 @@ class ExprLen:
     """
     ALIAS = "len"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     container: NODES_EXPR_T   # must be of type slice or array
     #
@@ -1882,7 +1931,7 @@ class ExprFront:
     """
     ALIAS = "front"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     container: NODES_EXPR_T   # must be of type slice or array
     #
@@ -1909,7 +1958,7 @@ class ExprIs:
     """
     ALIAS = "is"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -1929,7 +1978,7 @@ class ExprWrap:
     """
     ALIAS = "wrap"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -1949,7 +1998,7 @@ class ExprUnwrap:
     """
     ALIAS = "unwrap"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr: NODES_EXPR_T
     #
@@ -1972,7 +2021,7 @@ class ExprAs:
     """
     ALIAS = "as"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -1994,7 +2043,7 @@ class ExprNarrow:
     """
     ALIAS = "narrowto"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2018,7 +2067,7 @@ class ExprWiden:
     """
     ALIAS = "widento"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2042,13 +2091,14 @@ class ExprUnsafeCast:
     """
     ALIAS = "cast"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
+    x_value: Optional[Any] = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.type}"
@@ -2069,7 +2119,7 @@ class ExprBitCast:
     """
     ALIAS = "bitcast"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2090,7 +2140,7 @@ class ExprTypeId:
     Result has type is `typeid`"""
     ALIAS = "typeid"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     type: NODES_TYPES_T
     #
@@ -2110,7 +2160,7 @@ class ExprUnionTag:
     result has type is `typeid`"""
     ALIAS = "uniontypetag"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #
@@ -2130,7 +2180,7 @@ class ExprUnionUntagged:
     Result has type untagged union"""
     ALIAS = "unionuntagged"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #
@@ -2150,7 +2200,7 @@ class ExprSizeof:
     Result has type is `uint`"""
     ALIAS = "sizeof"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     type: NODES_TYPES_T
     #
@@ -2170,7 +2220,7 @@ class ExprOffsetof:
     Result has type `uint`"""
     ALIAS = "offsetof"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.FIELD_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.FIELD_ANNOTATED | NF.NON_CORE
     #
     type: NODES_TYPES_T  # must be rec
     field: str
@@ -2193,9 +2243,9 @@ class ExprStmt:
     """
     ALIAS = "expr"
     GROUP = GROUP.Expression
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED
+    FLAGS = NF_EXPR
     #
-    body: List[NODES_BODY_T]  # new scope
+    body: list[NODES_BODY_T]  # new scope
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -2220,7 +2270,7 @@ class StmtBlock:
     FLAGS = NF(0)
     #
     label: str
-    body: List[NODES_BODY_T]  # new scope
+    body: list[NODES_BODY_T]  # new scope
     #
     doc: str = ""
     #
@@ -2242,7 +2292,7 @@ class StmtDefer:
     GROUP = GROUP.Statement
     FLAGS = NF.NON_CORE
     #
-    body:  List[NODES_BODY_T]  # new scope, must NOT contain RETURN
+    body:  list[NODES_BODY_T]  # new scope, must NOT contain RETURN
     #
     doc: str = ""
     #
@@ -2261,8 +2311,8 @@ class StmtIf:
     FLAGS = NF(0)
     #
     cond: NODES_EXPR_T        # must be of type bool
-    body_t: List[NODES_BODY_T]  # new scope
-    body_f: List[NODES_BODY_T]  # new scope
+    body_t: list[NODES_BODY_T]  # new scope
+    body_f: list[NODES_BODY_T]  # new scope
     #
     doc: str = ""
     #
@@ -2281,7 +2331,7 @@ class Case:
     FLAGS = NF.NON_CORE
     #
     cond: NODES_EXPR_T        # must be of type bool
-    body: List[NODES_BODY_T]  # new scope
+    body: list[NODES_BODY_T]  # new scope
     #
     doc: str = ""
     #
@@ -2299,7 +2349,7 @@ class StmtCond:
     GROUP = GROUP.Statement
     FLAGS = NF.NON_CORE
     #
-    cases: List[NODES_CASES_T]
+    cases: list[NODES_CASES_T]
     #
     doc: str = ""
     #
@@ -2478,51 +2528,7 @@ class StmtAssignment:
 ############################################################
 # Definitions
 ############################################################
-@NodeCommon
-@dataclasses.dataclass()
-class RecField:  #
-    """Record field
 
-    All fields must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
-    """
-    ALIAS = "field"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
-    #
-    name: str
-    type: NODES_TYPES_T
-    #
-    doc: str = ""
-    eoldoc: str = ""
-    #
-    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: CanonType = NO_TYPE
-    x_offset: int = -1
-
-    def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.type}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class DefRec:
-    """Record definition"""
-    ALIAS = "defrec"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
-    #
-    name: str
-    fields: List[NODES_FIELDS_T]
-    #
-    pub:  bool = False
-    doc: str = ""
-    #
-    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: CanonType = NO_TYPE
-
-    def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
 
 
 @NodeCommon
@@ -2533,7 +2539,7 @@ class EnumVal:
      `value: ValAuto` means previous value + 1"""
     ALIAS = "entry"
     GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.VALUE_ANNOTATED
+    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.GLOBAL_SYM_DEF
     #
     name: str
     value_or_auto: Union["ValNum", ValAuto]
@@ -2558,7 +2564,7 @@ class DefEnum:
     #
     name: str
     base_type_kind: BASE_TYPE_KIND   # must be integer
-    items: List[NODES_ITEMS_T]
+    items: list[NODES_ITEMS_T]
     #
     pub:  bool = False
     doc: str = ""
@@ -2672,9 +2678,9 @@ class DefFun:
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.IMPORT_ANNOTATED
     #
     name: str
-    params: List[NODES_PARAMS_T]
+    params: list[NODES_PARAMS_T]
     result: NODES_TYPES_T
-    body: List[NODES_BODY_T]  # new scope
+    body: list[NODES_BODY_T]  # new scope
     #
     polymorphic: bool = False
     init: bool = False
@@ -2726,8 +2732,8 @@ class DefMod:
     FLAGS = NF.GLOBAL_SYM_DEF | NF.MODNAME_ANNOTATED
     #
     name: str
-    params_mod: List[NODES_PARAMS_MOD_T]
-    body_mod: List[NODES_BODY_MOD_T]
+    params_mod: list[NODES_PARAMS_MOD_T]
+    body_mod: list[NODES_BODY_MOD_T]
     #
     doc: str = ""
     builtin: bool = False
@@ -2749,7 +2755,7 @@ class ExprSrcLoc:
     """Source Location encoded as u32"""
     ALIAS = "src_loc"
     GROUP = GROUP.Expression
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF_EXPR
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
@@ -2763,9 +2769,12 @@ class ExprStringify:
     """
     ALIAS = "stringify"
     GROUP = GROUP.Expression
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE
+    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF_EXPR
     #
     expr:  NODES_EXPR_T
+    # the next two are not really used since node gets replaced with string
+    x_type: CanonType = NO_TYPE
+    x_value: Optional[Any] = None
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
@@ -2786,6 +2795,7 @@ class MacroId:
     FLAGS = NF.NON_CORE | NF.ROLE_ANNOTATED
     #
     name: str
+
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
@@ -2834,7 +2844,7 @@ class MacroFor:
     #
     name: str
     name_list: str
-    body_for: List[Any]
+    body_for: list[Any]
     #
     doc: str = ""
     #
@@ -2869,7 +2879,7 @@ class MacroInvoke:
     FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED | NF.ROLE_ANNOTATED
     #
     name: str
-    args: List[NODES_EXPR_T]
+    args: list[NODES_EXPR_T]
     #
     doc: str = ""
     #
@@ -2899,9 +2909,9 @@ class DefMacro:
     #
     name: str
     macro_result_kind: MACRO_PARAM_KIND
-    params_macro: List[NODES_PARAMS_MACRO_T]
-    gen_ids: List[str]
-    body_macro: List[Any]  # new scope
+    params_macro: list[NODES_PARAMS_MACRO_T]
+    gen_ids: list[str]
+    body_macro: list[Any]  # new scope
     #
     pub: bool = False
     doc: str = ""
@@ -2990,7 +3000,7 @@ def VisitAstRecursivelyPost(node, visitor, field=None):
     visitor(node, field)
 
 
-def VisitAstRecursivelyWithAllParents(node, parents: List[Any], visitor):
+def VisitAstRecursivelyWithAllParents(node, parents: list[Any], visitor):
     if visitor(node, parents):
         return
     parents.append(node)
@@ -3043,7 +3053,7 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
                     children[n] = new_child
 
 
-def _MaybeFlattenEphemeralList(nodes: List[Any]):
+def _MaybeFlattenEphemeralList(nodes: list[Any]):
     has_ephemeral = False
     for n in nodes:
         if isinstance(n, EphemeralList):
@@ -3190,7 +3200,7 @@ ASSERT_AFTER_ERROR = True
 # https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks
 
 
-def CompilerError(srcloc, msg, kind='syntax'):
+def CompilerError(srcloc, msg, kind='syntax') -> NoReturn:
     global ASSERT_AFTER_ERROR
     print(f"{srcloc}: error {kind}: {msg}", file=sys.stdout)
     if ASSERT_AFTER_ERROR:
@@ -3211,6 +3221,9 @@ def _CheckMacroRecursively(node, seen_names: Set[str]):
 def _IsPermittedNode(node, permitted, parent, toplevel_node, node_mod: DefMod,
                      allow_type_auto: bool) -> bool:
     if node.__class__.__name__ in permitted:
+        return True
+    if isinstance(node, MacroInvoke):
+        # this could be made stricter, i.e. only for exprs and stmts
         return True
     if isinstance(node, TypeAuto):
         return allow_type_auto

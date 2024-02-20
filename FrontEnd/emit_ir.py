@@ -105,7 +105,7 @@ def RenderList(items):
 
 def _EmitFunctionHeader(fun: cwast.DefFun):
     ct = fun.x_type
-    ins = []
+    ins: list[Any] = []
     for p in ct.parameter_types():
         #
         ins += p.register_types
@@ -734,11 +734,13 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
             EmitIRConditional(node.cond, False, label_join, tc, id_gen)
             print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
-        if node.lhs.x_type.fits_in_register() and _AssignmentLhsIsInReg(node.lhs):
+        lhs = node.lhs
+        if lhs.x_type.fits_in_register() and _AssignmentLhsIsInReg(lhs):
+            assert isinstance(node.lhs, cwast.Id)
             out = EmitIRExpr(node.expr_rhs, tc, id_gen)
-            print(f"{TAB}mov {node.lhs.x_symbol.name} = {out}  # {node}")
+            print(f"{TAB}mov {lhs.x_symbol.name} = {out}  # {node}")
         else:
-            lhs = _GetLValueAddressAsBaseOffset(node.lhs, tc, id_gen)
+            lhs = _GetLValueAddressAsBaseOffset(lhs, tc, id_gen)
             assert node.expr_rhs.x_type.size > 0
             EmitIRExprToMemory(node.expr_rhs, lhs, tc, id_gen)
     elif isinstance(node, cwast.StmtTrap):
