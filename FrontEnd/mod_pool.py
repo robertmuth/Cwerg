@@ -15,43 +15,54 @@ ModHandle = pathlib.PurePath
 logger = logging.getLogger(__name__)
 
 
-def ModulesInTopologicalOrder(mods: Sequence[cwast.DefMod]) -> List[cwast.DefMod]:
+class ModInfo:
+    def __init__(self, mod: cwast.DefMod):
+        self.mod = mod
+        self.imports = [
+            node for node in mod.body_mod if isinstance(node, cwast.Import)]
+
+
+def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> List[cwast.DefMod]:
     """The order is also deterministic
 
     This means modules cannot have circular dependencies except for module arguments
     to parameterized modules which are ignored in the topo order.
     """
-
     deps_in: Dict[cwast.DefMod, List[cwast.DefMod]
                   ] = collections.defaultdict(list)
     deps_out: Dict[cwast.DefMod, List[cwast.DefMod]
                    ] = collections.defaultdict(list)
-    # candidates have no incoming deps
+
+    # populate deps_in/deps_out
+    for mi in mod_infos:
+        mod = mi.mod
+        assert isinstance(mod, cwast.DefMod)
+        for node in mi.imports:
+            importee = node.x_module
+            assert isinstance(importee, cwast.DefMod)
+
+            logger.info(
+                "found mod deps [%s] imported by [%s]", importee, mod)
+            deps_in[mod].append(importee)
+            deps_out[importee].append(mod)
+
+    # start with candidates with no incoming deps
     candidates: List[cwast.DefMod] = []
-    for def_mod in mods:
-        for node in def_mod.body_mod:
-            if isinstance(node, cwast.Import):
-                importee = node.x_module
-                assert isinstance(importee, cwast.DefMod)
+    for mi in mod_infos:
+        mod = mi.mod
+        if not deps_in[mod]:
+            logger.info("found leaf mod [%s]", mod)
+            heapq.heappush(candidates, mod)
 
-                logger.info(
-                    "found mod deps [%s] imported by [%s]", importee, def_mod)
-                assert isinstance(
-                    node.x_module, cwast.DefMod), "was Finalize() run?"
-                deps_in[def_mod].append(importee)
-                deps_out[importee].append(def_mod)
-
-    for def_mod in mods:
-        if not deps_in[def_mod]:
-            logger.info("found leaf mod [%s]", def_mod)
-            heapq.heappush(candidates, def_mod)
+    # topological order
     out: List[cwast.DefMod] = []
-    while len(out) != len(mods):
+    while len(out) != len(mod_infos):
         assert candidates
         x = heapq.heappop(candidates)
         assert isinstance(x, cwast.DefMod)
         logger.info("picking next mod: %s", x)
         out.append(x)
+
         for importer in deps_out[x]:
             deps_in[importer].remove(x)
             if not deps_in[importer]:
@@ -79,17 +90,26 @@ class ModPoolBase:
         # This serves as a TODO list for modules
         self._started: Set[ModHandle] = set()
         # all modules keyed by ModHandle
-        self._all_mods: Dict[ModHandle, cwast.DefMod] = {}
-        self._unresolved_paramterized_imports: dict[cwast.DefMod,
-                                                    List[cwast.Import]] = collections.defaultdict(list)
+        self._all_mods: Dict[ModHandle, ModInfo] = {}
+        self._active: list[ModHandle] = []
+        self._taken_names: set[str] = set()
 
     def __str__(self):
         return f"root={self._root}"
 
+    def _AddModeInfo(self, uid, mod_info: ModInfo):
+        self._all_mods[uid] = mod_info
+        name = mod_info.mod.name
+        assert name not in self._taken_names
+        self._taken_names.add(name)
+        mod_info.mod.x_modname = name
+        if mod_info.imports:
+            self._active.append(uid)
+
     def _IsKnownModule(self, uid: ModHandle) -> bool:
         return uid in self._all_mods or uid in self._started
 
-    def ReadMod(self, _handle: ModHandle) -> cwast.DefMod:
+    def _ReadMod(self, _handle: ModHandle) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
 
     def _ModUniqueId(self, curr: Optional[ModHandle], pathname: str) -> ModHandle:
@@ -110,73 +130,24 @@ class ModPoolBase:
         else:
             return (self._root / pathname).resolve()
 
-    def _FindOrInsertModForImport(self, curr: ModHandle, import_node: cwast.Import) -> ModHandle:
-        uid = self._ModUniqueId(curr, import_node.name)
-        if not self._IsKnownModule(uid):
-            logger.info("Insert Mod %s", uid)
-            self._started.add(uid)
-        return uid
-
-    def InsertSeedMod(self, pathname: str) -> ModHandle:
-        assert not pathname.startswith(".")
-        uid = self._ModUniqueId(None, pathname)
-        assert not self._IsKnownModule(uid)
-        self._started.add(uid)
-        logger.info("Insert RootMod %s", uid)
-        return uid
-
-    def _FinishMod(self, uid: ModHandle, def_mod: cwast.DefMod):
-        assert isinstance(
-            def_mod, cwast.DefMod), f"expect mod but got {def_mod} {type(def_mod)}"
-        logger.info("FinalizeMod %s", uid)
-        assert uid in self._started
-        self._started.discard(uid)
-        assert uid not in self._all_mods
-        self._all_mods[uid] = def_mod
-
-    def _GetNextUnfinalized(self) -> Optional[ModHandle]:
-        if not self._started:
-            return None
-        return next(iter(self._started))
-
-    def _Finalize(self):
-        taken_names: Set[str] = set()
-        assert not self._started
-        for def_mod in self._all_mods.values():
-            assert isinstance(def_mod, cwast.DefMod)
-            for node in def_mod.body_mod:
-                if isinstance(node, cwast.Import):
-                    assert isinstance(node.x_module, ModHandle)
-                    node.x_module = self._all_mods[node.x_module]
-                    assert isinstance(node.x_module, cwast.DefMod)
-            if def_mod.name not in taken_names:
-                def_mod.x_modname = def_mod.name
-            else:
-                assert False
-            taken_names.add(def_mod.x_modname)
-            cwast.CheckAST(def_mod, disallowed_nodes=set())
-
-    def ReadAndFinalizedMods(self):
-        while True:
-            handle = self._GetNextUnfinalized()
-            if handle is None:
-                break
-            logger.info("Processing %s", handle)
-            def_mod: cwast.DefMod = self.ReadMod(handle)
-            for i in def_mod.body_mod:
-                if isinstance(i, cwast.Import):
-                    if i.args_mod:
-                        # parameterized import
-                        assert False
-                    else:
-                        i.x_module = self._FindOrInsertModForImport(handle, i)
-            self._FinishMod(handle, def_mod)
-        self._Finalize()
-
     def ReadModulesRecursively(self, seed_modules: List[str]):
-        for m in seed_modules:
-            self.InsertSeedMod(m)
-        self.ReadAndFinalizedMods()
+        for pathname in seed_modules:
+            assert not pathname.startswith(".")
+            uid = self._ModUniqueId(None, pathname)
+            assert not self._IsKnownModule(uid)
+            mod_info = ModInfo(self._ReadMod(uid))
+            self._AddModeInfo(uid, mod_info)
+
+        while self._active:
+            uid = self._active.pop(0)
+            mod_info = self._all_mods[uid]
+            for import_node in mod_info.imports:
+                uid = self._ModUniqueId(uid, import_node.name)
+                mod_info = self._all_mods.get(uid)
+                if not mod_info:
+                    mod_info = ModInfo(self._ReadMod(uid))
+                    self._AddModeInfo(uid, mod_info)
+                import_node.x_module = mod_info.mod
 
     def ModulesInTopologicalOrder(self) -> List[cwast.DefMod]:
         return ModulesInTopologicalOrder(self._all_mods.values())
@@ -184,7 +155,7 @@ class ModPoolBase:
 
 class ModPool(ModPoolBase):
 
-    def ReadMod(self, handle: ModHandle) -> cwast.DefMod:
+    def _ReadMod(self, handle: ModHandle) -> cwast.DefMod:
         fn = str(handle) + ".cw"
         asts = parse.ReadModsFromStream(open(fn, encoding="utf8"), fn)
         assert len(asts) == 1, f"multiple modules in {fn}"
@@ -211,7 +182,7 @@ _test_mods_local = {
 
 class ModPoolForTest(ModPoolBase):
 
-    def ReadMod(self, handle: ModHandle) -> cwast.DefMod:
+    def _ReadMod(self, handle: ModHandle) -> cwast.DefMod:
         name = handle.name
         dir = handle.parent.name
         return _test_mods_std[name] if dir == "Lib" else _test_mods_local[name]
@@ -222,9 +193,9 @@ def tests(cwd: str):
     pool = ModPoolForTest(pathlib.Path(cwd) / "Lib")
     logger.info("Pool %s", pool)
 
-    pool.InsertSeedMod("builtin")
-    pool.InsertSeedMod(str(pathlib.Path("./main").resolve()))
-    pool.ReadAndFinalizedMods()
+    pool._InsertSeedMod("builtin")
+    pool._InsertSeedMod(str(pathlib.Path("./main").resolve()))
+    pool._ReadAndFinalizedMods()
     print([m.name for m in pool.ModulesInTopologicalOrder()])
     print("OK")
 
