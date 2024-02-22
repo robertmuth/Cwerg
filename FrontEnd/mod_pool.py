@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class ModInfo:
-    def __init__(self, mod: cwast.DefMod):
+    def __init__(self, uid: ModHandle, mod: cwast.DefMod):
+        self.uid = uid
         self.mod = mod
         self.imports = [
             node for node in mod.body_mod if isinstance(node, cwast.Import)]
@@ -84,30 +85,23 @@ class ModPoolBase:
 
     def __init__(self, root: pathlib.Path):
         self._root: pathlib.Path = root
-        # _started is used to prevent import cycles
-        # all modules to be processed start here and upon parsing will
-        # be "promoted" to  all_modes.
-        # This serves as a TODO list for modules
-        self._started: Set[ModHandle] = set()
         # all modules keyed by ModHandle
         self._all_mods: Dict[ModHandle, ModInfo] = {}
-        self._active: list[ModHandle] = []
         self._taken_names: set[str] = set()
 
     def __str__(self):
         return f"root={self._root}"
 
     def _AddModeInfo(self, uid, mod_info: ModInfo):
+        logging.info("Adding new mod: %s", mod_info)
         self._all_mods[uid] = mod_info
         name = mod_info.mod.name
         assert name not in self._taken_names
         self._taken_names.add(name)
         mod_info.mod.x_modname = name
-        if mod_info.imports:
-            self._active.append(uid)
 
     def _IsKnownModule(self, uid: ModHandle) -> bool:
-        return uid in self._all_mods or uid in self._started
+        return uid in self._all_mods
 
     def _ReadMod(self, _handle: ModHandle) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
@@ -131,23 +125,41 @@ class ModPoolBase:
             return (self._root / pathname).resolve()
 
     def ReadModulesRecursively(self, seed_modules: List[str]):
+        active: list[ModHandle] = []
+
         for pathname in seed_modules:
             assert not pathname.startswith(".")
             uid = self._ModUniqueId(None, pathname)
             assert not self._IsKnownModule(uid)
-            mod_info = ModInfo(self._ReadMod(uid))
+            mod_info = ModInfo(uid, self._ReadMod(uid))
             self._AddModeInfo(uid, mod_info)
+            active.append(uid)
 
-        while self._active:
-            uid = self._active.pop(0)
-            mod_info = self._all_mods[uid]
-            for import_node in mod_info.imports:
-                uid = self._ModUniqueId(uid, import_node.name)
-                mod_info = self._all_mods.get(uid)
-                if not mod_info:
-                    mod_info = ModInfo(self._ReadMod(uid))
-                    self._AddModeInfo(uid, mod_info)
-                import_node.x_module = mod_info.mod
+        # fix point computation for resolving imports
+        while active:
+            new_active: list[ModHandle] = []
+            seen_change = False
+            for uid in active:
+                mod_info = self._all_mods[uid]
+                num_unresolved = 0
+                for import_node in mod_info.imports:
+                    if import_node.args_mod:
+                        assert False
+                        num_unresolved += 1
+                    else:
+                        import_uid = self._ModUniqueId(uid, import_node.name)
+                        mod_info = self._all_mods.get(import_uid)
+                        if not mod_info:
+                            mod_info = ModInfo(import_uid, self._ReadMod(import_uid))
+                            self._AddModeInfo(import_uid, mod_info)
+                            new_active.append(import_uid)
+                            seen_change = True
+                        import_node.x_module = mod_info.mod
+                if num_unresolved:
+                    new_active.append(uid)
+            if not seen_change and new_active:
+                assert False, "module import does not terminate"
+            active = new_active
 
     def ModulesInTopologicalOrder(self) -> List[cwast.DefMod]:
         return ModulesInTopologicalOrder(self._all_mods.values())
