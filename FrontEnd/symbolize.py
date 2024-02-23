@@ -473,10 +473,21 @@ def IterateValArray(val_array: cwast.ValArray, width):
         curr_val += 1
 
 
+_NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.TypeUnion,
+                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSlice,
+                                  cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
+
+
+def IsNormalizeModParam(node):
+    if isinstance(node, _NORMALIZED_NODES_FOR_MOD_ARGS):
+        return True
+    elif isinstance(node, cwast.DefType) and node.wrapped:
+        return True
+    else:
+        return False
+
 def NormalizeModParam(node):
-    if isinstance(node,  (cwast.DefFun, cwast.DefRec, cwast.TypeUnion,
-                          cwast.TypeBase, cwast.TypePtr, cwast.TypeSlice,
-                          cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
+    if IsNormalizeModParam(node):
         return node
     elif isinstance(node, cwast.DefType) and not node.wrapped:
         return NormalizeModParam(node.type)
@@ -486,7 +497,8 @@ def NormalizeModParam(node):
         else:
             return None
     else:
-        assert False
+        assert False, f"NYI: {node}"
+
 
 def AreEqualNormalizedModParam(a, b) -> bool:
     if a is None or b is None:
@@ -495,7 +507,6 @@ def AreEqualNormalizedModParam(a, b) -> bool:
         return False
     if a is b:
         return True
-
 
     return False
 

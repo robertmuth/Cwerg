@@ -90,8 +90,6 @@ class NF(enum.Flag):
     MODULE_ANNOTATED = enum.auto()
     # only used for pretty printing
     ROLE_ANNOTATED = enum.auto()
-    # used until generic modules have been instantiated
-    NORMALIZED_ANNOTATED = enum.auto()
     # reference to the import node resolving the qualifier  (x_import)
     IMPORT_ANNOTATED = enum.auto()
 
@@ -722,7 +720,6 @@ X_FIELDS = {
     # set by AnnotateRole() in this file
     # used by pretty printing where we do not have sym info
     "x_role":   NF.ROLE_ANNOTATED,
-    "x_normalized":   NF.NORMALIZED_ANNOTATED,
     # set by mod_pool.py
     # containing module links for symbol resolution
     # id -> referenced module
@@ -732,7 +729,7 @@ X_FIELDS = {
 }
 
 
-def _NAME(node):
+def NODE_NAME(node):
     if node.ALIAS is not None:
         return "[" + node.ALIAS + "]"
     return "[" + node.__class__.__name__ + "]"
@@ -1079,7 +1076,7 @@ class Import:
     x_module: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}"
+        return f"{NODE_NAME(self)} {self.name}"
 
 
 INVALID_IMPORT = Import("$$INVALID", "", [])
@@ -1108,7 +1105,7 @@ class RecField:  #
     x_offset: int = -1
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.type}"
+        return f"{NODE_NAME(self)} {self.name}: {self.type}"
 
 
 @NodeCommon
@@ -1129,7 +1126,7 @@ class DefRec:
     x_type: CanonType = NO_TYPE
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name}"
 
 ############################################################
 # Identifier
@@ -1160,7 +1157,7 @@ class Id:
     x_import: Import = INVALID_IMPORT  # which import the id is qualified with
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}"
+        return f"{NODE_NAME(self)} {self.name}"
 
 
 @NodeCommon
@@ -1180,7 +1177,7 @@ class TypeAuto:
     x_type: CanonType = NO_TYPE
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 ############################################################
@@ -1206,7 +1203,7 @@ class FunParam:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.type}"
+        return f"{NODE_NAME(self)} {self.name}: {self.type}"
 
 
 BASE_TYPE_KIND_UINT = set([
@@ -1271,7 +1268,7 @@ class TypeBase:
     x_type: CanonType = NO_TYPE
 
     def __str__(self):
-        return f"{_NAME(self)} {self.base_type_kind.name}"
+        return f"{NODE_NAME(self)} {self.base_type_kind.name}"
 
 
 @NodeCommon
@@ -1291,7 +1288,7 @@ class TypePtr:
     x_type: CanonType = NO_TYPE
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.type}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.type}"
 
 
 @NodeCommon
@@ -1315,7 +1312,7 @@ class TypeSlice:
 
     def __str__(self):
         mod = "-MUT" if self.mut else ""
-        return f"{_NAME(self)}{mod}({self.type})"
+        return f"{NODE_NAME(self)}{mod}({self.type})"
 
 
 @NodeCommon
@@ -1335,7 +1332,7 @@ class TypeArray:
     x_type: CanonType = NO_TYPE
 
     def __str__(self):
-        return f"{_NAME(self)} ({self.type}) {self.size}"
+        return f"{NODE_NAME(self)} ({self.type}) {self.size}"
 
 
 @NodeCommon
@@ -1357,7 +1354,7 @@ class TypeFun:
 
     def __str__(self):
         t = [str(t) for t in self.params]
-        return f"{_NAME(self)} {' '.join(t)} -> {self.result}"
+        return f"{NODE_NAME(self)} {' '.join(t)} -> {self.result}"
 
 
 @NodeCommon
@@ -1382,7 +1379,7 @@ class TypeUnion:
     def __str__(self):
         t = [str(t) for t in self.types]
         extra = "-untagged" if self.untagged else ""
-        return f"{_NAME(self)}{extra} {' '.join(t)}"
+        return f"{NODE_NAME(self)}{extra} {' '.join(t)}"
 
 
 @NodeCommon
@@ -1401,7 +1398,7 @@ class TypeUnionDelta:
     x_type: CanonType = NO_TYPE
 
     def __str__(self):
-        return f"{_NAME(self)}{self.type} - {self.subtrahend}"
+        return f"{NODE_NAME(self)}{self.type} - {self.subtrahend}"
 
 
 @NodeCommon
@@ -1419,7 +1416,7 @@ class TypeOf:
     x_type: CanonType = NO_TYPE
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 ############################################################
 # Val Nodes
 ############################################################
@@ -1441,7 +1438,7 @@ class ValAuto:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 @NodeCommon
@@ -1457,7 +1454,7 @@ class ValTrue:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 @NodeCommon
@@ -1473,7 +1470,7 @@ class ValFalse:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 @NodeCommon
@@ -1497,7 +1494,7 @@ class ValNum:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.number}"
+        return f"{NODE_NAME(self)} {self.number}"
 
 
 @NodeCommon
@@ -1515,7 +1512,7 @@ class ValUndef:
     x_value: Optional[Any] = None    # this is always a ValUndef() object
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 @NodeCommon
@@ -1536,7 +1533,7 @@ class ValVoid:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 @NodeCommon
@@ -1562,7 +1559,7 @@ class IndexVal:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} [{self.init_index}] = {self.value_or_undef}"
+        return f"{NODE_NAME(self)} [{self.init_index}] = {self.value_or_undef}"
 
 
 @NodeCommon
@@ -1588,7 +1585,7 @@ class FieldVal:
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.init_field}"
+        return f"{NODE_NAME(self)} {self.init_field}"
 
 
 @NodeCommon
@@ -1615,7 +1612,7 @@ class ValArray:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} type={self.type} size={self.expr_size}"
+        return f"{NODE_NAME(self)} type={self.type} size={self.expr_size}"
 
 
 @NodeCommon
@@ -1637,7 +1634,7 @@ class ValSlice:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.pointer} {self.expr_size}"
+        return f"{NODE_NAME(self)} {self.pointer} {self.expr_size}"
 
 
 @NodeCommon
@@ -1665,7 +1662,7 @@ class ValString:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.string}"
+        return f"{NODE_NAME(self)} {self.string}"
 
 
 @NodeCommon
@@ -1692,7 +1689,7 @@ class ValRec:
 
     def __str__(self):
         t = [str(i) for i in self.inits_field]
-        return f"{_NAME(self)} [{self.type}] {' '.join(t)}"
+        return f"{NODE_NAME(self)} [{self.type}] {' '.join(t)}"
 
 
 ############################################################
@@ -1715,7 +1712,7 @@ class ExprDeref:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr}"
+        return f"{NODE_NAME(self)} {self.expr}"
 
 
 @NodeCommon
@@ -1739,7 +1736,7 @@ class ExprAddrOf:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.expr_lhs}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.expr_lhs}"
 
 
 @NodeCommon
@@ -1761,7 +1758,7 @@ class ExprCall:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.callee}"
+        return f"{NODE_NAME(self)} {self.callee}"
 
 
 @NodeCommon
@@ -1780,7 +1777,7 @@ class ExprParen:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr}"
+        return f"{NODE_NAME(self)} {self.expr}"
 
 
 @NodeCommon
@@ -1801,7 +1798,7 @@ class ExprField:
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.container} . {self.field}"
+        return f"{NODE_NAME(self)} {self.container} . {self.field}"
 
 
 @NodeCommon
@@ -1820,7 +1817,7 @@ class Expr1:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.unary_expr_kind} {self.expr}"
+        return f"{NODE_NAME(self)} {self.unary_expr_kind} {self.expr}"
 
 
 @NodeCommon
@@ -1979,7 +1976,7 @@ class ExprIs:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr} {self.type}"
+        return f"{NODE_NAME(self)} {self.expr} {self.type}"
 
 
 @NodeCommon
@@ -2112,7 +2109,7 @@ class ExprUnsafeCast:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.type}"
+        return f"{NODE_NAME(self)} {self.type}"
 
 
 @NodeCommon
@@ -2140,7 +2137,7 @@ class ExprBitCast:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.type}"
+        return f"{NODE_NAME(self)} {self.type}"
 
 
 @NodeCommon
@@ -2160,7 +2157,7 @@ class ExprTypeId:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.type}"
+        return f"{NODE_NAME(self)} {self.type}"
 
 
 @NodeCommon
@@ -2180,7 +2177,7 @@ class ExprUnionTag:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr}"
+        return f"{NODE_NAME(self)} {self.expr}"
 
 
 @NodeCommon
@@ -2200,7 +2197,7 @@ class ExprUnionUntagged:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr}"
+        return f"{NODE_NAME(self)} {self.expr}"
 
 
 @NodeCommon
@@ -2220,7 +2217,7 @@ class ExprSizeof:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.type}"
+        return f"{NODE_NAME(self)} {self.type}"
 
 
 @NodeCommon
@@ -2242,7 +2239,7 @@ class ExprOffsetof:
     x_field: Optional["RecField"] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.type} {self.field}"
+        return f"{NODE_NAME(self)} {self.type} {self.field}"
 
 
 @NodeCommon
@@ -2263,7 +2260,7 @@ class ExprStmt:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 ############################################################
@@ -2288,7 +2285,7 @@ class StmtBlock:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.label}"
+        return f"{NODE_NAME(self)} {self.label}"
 
 
 @NodeCommon
@@ -2310,7 +2307,7 @@ class StmtDefer:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 @NodeCommon
@@ -2330,7 +2327,7 @@ class StmtIf:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.cond}"
+        return f"{NODE_NAME(self)} {self.cond}"
 
 
 @NodeCommon
@@ -2349,7 +2346,7 @@ class Case:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.cond}"
+        return f"{NODE_NAME(self)} {self.cond}"
 
 
 @NodeCommon
@@ -2367,7 +2364,7 @@ class StmtCond:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 @NodeCommon
@@ -2388,7 +2385,7 @@ class StmtBreak:
     x_target: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.target}"
+        return f"{NODE_NAME(self)} {self.target}"
 
 
 @NodeCommon
@@ -2409,7 +2406,7 @@ class StmtContinue:
     x_target: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.target}"
+        return f"{NODE_NAME(self)} {self.target}"
 
 
 @NodeCommon
@@ -2433,7 +2430,7 @@ class StmtReturn:
     x_target: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr_ret}"
+        return f"{NODE_NAME(self)} {self.expr_ret}"
 
 
 @NodeCommon
@@ -2454,7 +2451,7 @@ class StmtExpr:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.expr}"
+        return f"{NODE_NAME(self)} {self.expr}"
 
 
 @NodeCommon
@@ -2473,7 +2470,7 @@ class StmtStaticAssert:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.cond}"
+        return f"{NODE_NAME(self)} {self.cond}"
 
 
 @NodeCommon
@@ -2489,7 +2486,7 @@ class StmtTrap:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)}"
+        return f"{NODE_NAME(self)}"
 
 
 @NodeCommon
@@ -2513,7 +2510,7 @@ class StmtCompoundAssignment:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr_rhs}"
+        return f"{NODE_NAME(self)} [{self.assignment_kind.name}] {self.lhs} = {self.expr_rhs}"
 
 
 @NodeCommon
@@ -2533,7 +2530,7 @@ class StmtAssignment:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.lhs} = {self.expr_rhs}"
+        return f"{NODE_NAME(self)} {self.lhs} = {self.expr_rhs}"
 
 
 ############################################################
@@ -2562,7 +2559,7 @@ class EnumVal:
     x_value: Optional[Any] = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}: {self.value_or_auto}"
+        return f"{NODE_NAME(self)} {self.name}: {self.value_or_auto}"
 
 
 @NodeCommon
@@ -2585,7 +2582,7 @@ class DefEnum:
     x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name}"
 
 
 @NodeCommon
@@ -2611,7 +2608,7 @@ class DefType:
     x_type: CanonType = NO_TYPE
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} = {self.type}"
 
 
 @NodeCommon
@@ -2639,7 +2636,7 @@ class DefVar:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
 
 
 @NodeCommon
@@ -2667,7 +2664,7 @@ class DefGlobal:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
 
 
 @NodeCommon
@@ -2707,7 +2704,7 @@ class DefFun:
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params)
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]->{self.result}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} [{params}]->{self.result}"
 
 
 @NodeCommon
@@ -2724,10 +2721,9 @@ class ModParam:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_normalized = None
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
+        return f"{NODE_NAME(self)} {self.name} {self.mod_param_kind.name}"
 
 
 @NodeCommon
@@ -2755,7 +2751,7 @@ class DefMod:
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params_mod)
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
 
 
 ############################################################
@@ -2813,7 +2809,7 @@ class MacroId:
     x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}"
+        return f"{NODE_NAME(self)} {self.name}"
 
 
 @NodeCommon
@@ -2839,7 +2835,7 @@ class MacroVar:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef_or_auto}"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef_or_auto}"
 
 
 @NodeCommon
@@ -2879,7 +2875,7 @@ class MacroParam:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name} {self.macro_param_kind.name}"
+        return f"{NODE_NAME(self)} {self.name} {self.macro_param_kind.name}"
 
 
 @NodeCommon
@@ -2900,7 +2896,7 @@ class MacroInvoke:
     x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}"
+        return f"{NODE_NAME(self)} {self.name}"
 
 
 @NodeCommon
@@ -2931,7 +2927,7 @@ class DefMacro:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
     def __str__(self):
-        return f"{_NAME(self)} {self.name}"
+        return f"{NODE_NAME(self)} {self.name}"
 
 
 BINOP_BOOL = {

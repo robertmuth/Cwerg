@@ -19,7 +19,7 @@ _test_mods_local = {
     "math":  cwast.DefMod("math", [], [cwast.Import("std", "", [])]),
     "main": cwast.DefMod("main", [], [cwast.Import("std", "", []),
                                       cwast.Import("math", "", []),
-                                      #cwast.Import("./math", "", []),
+                                      # cwast.Import("./math", "", []),
                                       cwast.Import("./helper", "", [])])
 }
 
