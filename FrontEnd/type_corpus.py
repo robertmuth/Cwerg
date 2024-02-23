@@ -3,7 +3,7 @@ import logging
 import re
 import dataclasses
 
-from typing import List, Dict, Optional
+from typing import Optional
 
 from FrontEnd import cwast
 
@@ -191,7 +191,7 @@ def is_mutable_array_or_slice(node) -> bool:
         assert False
 
 
-_BASE_TYPE_MAP: Dict[cwast.BASE_TYPE_KIND, List[str]] = {
+_BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, list[str]] = {
     cwast.BASE_TYPE_KIND.SINT: ["S64"],
     cwast.BASE_TYPE_KIND.S8: ["S8"],
     cwast.BASE_TYPE_KIND.S16: ["S16"],
@@ -273,11 +273,11 @@ class TypeCorpus:
     def __init__(self, target_arch_config: TargetArchConfig):
         self._target_arch_config: TargetArchConfig = target_arch_config
         self._wrapped_curr = 1
-        self._base_type_map: Dict[cwast.BASE_TYPE_KIND, cwast.CanonType] = {}
+        self._base_type_map: dict[cwast.BASE_TYPE_KIND, cwast.CanonType] = {}
         self._typeid_curr = 0
         # maps to ast
-        self.topo_order: List[cwast.CanonType] = []
-        self.corpus: Dict[str, cwast.CanonType] = {}  # name to canonical type
+        self.topo_order: list[cwast.CanonType] = []
+        self.corpus: dict[str, cwast.CanonType] = {}  # name to canonical type
 
         # VOID should get typeid zero
         self._insert_base_type(cwast.BASE_TYPE_KIND.VOID)
@@ -323,10 +323,10 @@ class TypeCorpus:
     def get_address_size(self):
         return self._target_arch_config.data_addr_bitwidth // 8
 
-    def _get_register_type_for_sum_type(self, ct: cwast.CanonType) -> Optional[List[str]]:
+    def _get_register_type_for_sum_type(self, ct: cwast.CanonType) -> Optional[list[str]]:
         assert ct.node is cwast.TypeUnion
         num_void = 0
-        scalars: List[cwast.CanonType] = []
+        scalars: list[cwast.CanonType] = []
         largest_by_kind: dict[str, int] = {}
         largest = 0
         for t in ct.union_member_types():
@@ -350,7 +350,7 @@ class TypeCorpus:
         k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
         return [f"U{largest}", f"U{self._target_arch_config.typeid_bitwidth}"]
 
-    def _get_register_type(self, ct: cwast.CanonType) -> Optional[List[str]]:
+    def _get_register_type(self, ct: cwast.CanonType) -> Optional[list[str]]:
         """As long as a type can fit into no more than two regs it will have
         register representation which is also how it will be past in function calls.
         """
@@ -504,7 +504,7 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.DefEnum, name,
                                             base_type_kind=ast_node.base_type_kind, ast_node=ast_node))
 
-    def insert_union_type(self, components: List[cwast.CanonType], untagged: bool) -> cwast.CanonType:
+    def insert_union_type(self, components: list[cwast.CanonType], untagged: bool) -> cwast.CanonType:
         assert len(components) > 1
         pp = set()
         for c in components:
@@ -519,7 +519,7 @@ class TypeCorpus:
         name = f"sum{extra}<{','.join(sorted_names)}>"
         return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=sorted_children, untagged=untagged))
 
-    def insert_fun_type(self, params: List[cwast.CanonType],
+    def insert_fun_type(self, params: list[cwast.CanonType],
                         result: cwast.CanonType, original_type=None) -> cwast.CanonType:
         x = [p.name for p in params]
         x.append(result.name)

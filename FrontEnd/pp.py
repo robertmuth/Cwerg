@@ -11,7 +11,7 @@ import os
 import pathlib
 import dataclasses
 
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from FrontEnd import cwast
 from FrontEnd import parse
@@ -102,7 +102,7 @@ def GetDoc(node):
     return None
 
 
-def RenderColonList(val: List, field: str, out, indent: int):
+def RenderColonList(val: list, field: str, out, indent: int):
 
     extra_indent = GetColonIndent(field)
     line = out[-1]
@@ -122,7 +122,7 @@ def RenderColonList(val: List, field: str, out, indent: int):
                 out.append([" " * indent])
 
 
-def ListIsCompact(val: List):
+def ListIsCompact(val: list):
     for v in val:
         if GetDoc(v):
             return False
@@ -134,7 +134,7 @@ def ListIsCompact(val: List):
     return True
 
 
-def RenderList(val: List, field: str, out, indent: int):
+def RenderList(val: list, field: str, out, indent: int):
     extra_indent = GetExprIndent(field)
     line = out[-1]
     if not val:
@@ -198,7 +198,7 @@ def RenderShortAttr(node):
 def RenderRecursivelyToIR(node, out, indent: int):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
         out.append([""])
-    line: List[str] = out[-1]
+    line: list[str] = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
         line.append(abbrev)
@@ -360,7 +360,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: int):
         out.append(["<p></p>"])
 
 
-def PrettyPrintHTML(mod: cwast.DefMod, tc):  # -> List[Tuple[int, str]]:
+def PrettyPrintHTML(mod: cwast.DefMod, tc):  # -> list[Tuple[int, str]]:
     out = [[
         """<html>
            <style>
@@ -514,7 +514,7 @@ class Token:
 class TS:
 
     def __init__(self):
-        self._tokens: List[Token] = []
+        self._tokens: list[Token] = []
         self._count = 0
 
     def Pos(self) -> int:
@@ -598,7 +598,7 @@ def TokensParenList(ts: TS, lst, is_grouping: bool):
     ts.EmitEnd(beg)
 
 
-def TokensFunctional(ts: TS, name, nodes: List):
+def TokensFunctional(ts: TS, name, nodes: list):
     if isinstance(name, str):
         ts.EmitUnOp(name)
     else:

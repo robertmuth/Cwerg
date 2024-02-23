@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import List, Dict, Tuple, Any
+from typing import Tuple, Any
 
 
 from FrontEnd import cwast
@@ -132,7 +132,7 @@ class _PolyMap:
     """Polymorphism map"""
 
     def __init__(self, tc: type_corpus.TypeCorpus):
-        self._map: Dict[Tuple[cwast.DefMod, str, str], cwast.DefFun] = {}
+        self._map: dict[Tuple[cwast.DefMod, str, str], cwast.DefFun] = {}
         self._type_corpus = tc
 
     def Register(self, fun: cwast.DefFun):
@@ -359,7 +359,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValRec):
         ct = _TypifyNodeRecursively(node.type, tc, target_type, ctx)
         assert ct.is_rec()
-        all_fields: List[cwast.RecField] = [f for f in ct.ast_node.fields]
+        all_fields: list[cwast.RecField] = [f for f in ct.ast_node.fields]
         for val in node.inits_field:
             assert isinstance(val, cwast.FieldVal)
             if val.init_field:
@@ -1154,7 +1154,7 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
     cwast.VisitAstRecursivelyPost(node, visitor)
 
 
-def DecorateASTWithTypes(mod_topo_order: List[cwast.DefMod],
+def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                          tc: type_corpus.TypeCorpus):
     """This checks types and maps them to a canonical node
 

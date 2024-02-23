@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import List, Dict, Optional, Any
+from typing import Optional, Any
 
 from FrontEnd import pp
 from FrontEnd import macros
@@ -15,7 +15,7 @@ from FrontEnd import cwast
 logger = logging.getLogger(__name__)
 
 
-SYMTAB_MAP = Dict[cwast.DefMod, "SymTab"]
+SYMTAB_MAP = dict[cwast.DefMod, "SymTab"]
 
 
 def AnnotateNodeSymbol(id_node, def_node):
@@ -39,17 +39,17 @@ class SymTab:
     """Symbol Table For Global Symbols"""
 
     def __init__(self):
-        self._type_syms: Dict[str, cwast.DefType] = {}
+        self._type_syms: dict[str, cwast.DefType] = {}
 
-        self._rec_syms: Dict[str, cwast.DefRec] = {}
-        self._enum_syms: Dict[str, cwast.DefEnum] = {}
+        self._rec_syms: dict[str, cwast.DefRec] = {}
+        self._enum_syms: dict[str, cwast.DefEnum] = {}
 
-        self._fun_syms: Dict[str, cwast.DefFun] = {}
-        self._macro_syms: Dict[str, cwast.DefMacro] = {}
+        self._fun_syms: dict[str, cwast.DefFun] = {}
+        self._macro_syms: dict[str, cwast.DefMacro] = {}
 
-        self._var_syms: Dict[str, cwast.DefGlobal] = {}
-        self._mod_syms: Dict[str, cwast.DefMod] = {}
-        self._all_syms: Dict[str, Any] = {}
+        self._var_syms: dict[str, cwast.DefGlobal] = {}
+        self._mod_syms: dict[str, cwast.DefMod] = {}
+        self._all_syms: dict[str, Any] = {}
 
     def AddSymWithDupCheck(self, name, node):
         prev = self._all_syms.get(name)
@@ -249,7 +249,7 @@ def FindAndExpandMacrosRecursively(node, symtab_map: SYMTAB_MAP, nesting, ctx: m
 
 
 def ResolveSymbolsInsideFunctionsRecursively(
-        node, symtab: SymTab, symtab_map: SYMTAB_MAP, scopes: List[Dict]):
+        node, symtab: SymTab, symtab_map: SYMTAB_MAP, scopes: list[dict]):
 
     def record_local_sym(node):
         name = node.name
@@ -387,7 +387,7 @@ def _SetTargetFieldRecursively(node):
     cwast.VisitAstRecursivelyWithAllParents(node, [], visitor)
 
 
-def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
+def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
     """
     * extract global symbols
     * resolve global symbols (= setting x_symbol)
@@ -424,7 +424,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node)
-                scopes: List[Dict] = []
+                scopes: list[dict] = []
                 ResolveSymbolsInsideFunctionsRecursively(
                     node, symtab, symtab_map, scopes)
                 assert not scopes
@@ -433,8 +433,8 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: List[cwast.DefMod]):
         VerifyASTSymbolsRecursively(mod)
 
 
-def IterateValRec(inits_field: List[cwast.RecField], def_rec: cwast.CanonType):
-    inits: Dict[cwast.RecField,
+def IterateValRec(inits_field: list[cwast.RecField], def_rec: cwast.CanonType):
+    inits: dict[cwast.RecField,
                 cwast.FieldVal] = {i.x_field: i for i in inits_field}
     used = 0
     assert isinstance(def_rec.ast_node, cwast.DefRec)
@@ -491,7 +491,7 @@ def NormalizeModParam(node):
 def AreEqualNormalizedModParam(a, b) -> bool:
     if a is None or b is None:
         return False
-    if type(a) != type(b):
+    if a is not type(b):
         return False
     if a is b:
         return True
