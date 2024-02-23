@@ -9,7 +9,7 @@ Protocol:
 """
 
 
-from typing import Optional, Dict
+from typing import Optional
 
 from FrontEnd import cwast
 from FrontEnd import type_corpus
@@ -27,7 +27,7 @@ SUM_FIELD_TAG = "tag"
 SUM_FIELD_UNION = "union"
 
 # TypeSum -> DefRec
-SUM_TO_STRUCT_MAP = Dict[cwast.CanonType, cwast.CanonType]
+SUM_TO_STRUCT_MAP = dict[cwast.CanonType, cwast.CanonType]
 
 
 def _MakeSumReplacementStruct(sum_type: cwast.CanonType,

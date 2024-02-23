@@ -16,7 +16,7 @@ Effects of this step:
 
 """
 
-from typing import Dict, Optional, Any, List
+from typing import Optional, Any
 
 from FrontEnd import identifier
 from FrontEnd import cwast
@@ -29,13 +29,13 @@ from FrontEnd import typify
 ############################################################
 
 
-def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> Dict[Any, Any]:
+def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> dict[Any, Any]:
     out = {}
     for fun_sig in list(tc.corpus.values()):
         if not fun_sig.is_fun():
             continue
         change = False
-        params: List[cwast.CanonType] = fun_sig.parameter_types()
+        params: list[cwast.CanonType] = fun_sig.parameter_types()
         for n, p in enumerate(params):
             if not p.fits_in_register():
                 params[n] = tc.insert_ptr_type(False, p)
@@ -140,7 +140,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             old_sig: cwast.CanonType = call.callee.x_type
             new_sig: cwast.CanonType = fun_sigs_with_large_args[old_sig]
             typify.UpdateNodeType(call.callee, new_sig)
-            expr_body: List[Any] = []
+            expr_body: list[Any] = []
             expr = cwast.ExprStmt(
                 expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
             # note: new_sig might be longer if the result type was changed

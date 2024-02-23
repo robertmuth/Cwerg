@@ -8,7 +8,7 @@
 import re
 import logging
 
-from typing import List, Any, Dict, Tuple, Union
+from typing import Any, Tuple, Union
 
 from FrontEnd import cwast
 
@@ -52,7 +52,7 @@ _RE_TOKEN_ID = re.compile(
 _RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
 
 
-def ReadAttrs(t: str, attr: Dict[str, Any], stream):
+def ReadAttrs(t: str, attr: dict[str, Any], stream):
     """attr is indended to be used for node creation as a  **attr parameter."""
     while t.startswith("@"):
         tag = t[1:]
@@ -71,7 +71,7 @@ class ReadTokens:
         self._fp = fp
         self.line_no = 0
         self._filename = filename
-        self._tokens: List[str] = []
+        self._tokens: list[str] = []
 
     def __iter__(self):
         return self
@@ -181,7 +181,7 @@ def IsWellFormedStringLiteral(t: str):
         return False
 
 
-def ExpandShortHand(t: str, srcloc, attr: Dict[str, Any]) -> Any:
+def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
     x = _SHORT_HAND_NODES.get(t)
     if x is not None:
@@ -226,9 +226,9 @@ def ExpandShortHand(t: str, srcloc, attr: Dict[str, Any]) -> Any:
         cwast.CompilerError(srcloc, f"unexpected token {repr(t)}")
 
 
-def ReadNodeList(stream: ReadTokens, parent_cls) -> List[Any]:
+def ReadNodeList(stream: ReadTokens, parent_cls) -> list[Any]:
     out = []
-    attr: Dict[str, Any] = {}
+    attr: dict[str, Any] = {}
     while True:
         token = ReadAttrs(next(stream), attr, stream)
         if token == "]":
@@ -253,7 +253,7 @@ def ReadNodeList(stream: ReadTokens, parent_cls) -> List[Any]:
 
 def ReadNodeColonList(stream: ReadTokens, parent_cls):
     out = []
-    attr: Dict[str, Any] = {}
+    attr: dict[str, Any] = {}
     while True:
         token = ReadAttrs(next(stream), attr, stream)
         if token == ")" or token == ":" or token == "[":
@@ -275,7 +275,7 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
     return out
 
 
-def ReadStrList(stream: ReadTokens) -> List[str]:
+def ReadStrList(stream: ReadTokens) -> list[str]:
     out = []
     while True:
         token = next(stream)
@@ -286,7 +286,7 @@ def ReadStrList(stream: ReadTokens) -> List[str]:
     return out
 
 
-def ReadStrColonList(stream: ReadTokens) -> List[str]:
+def ReadStrColonList(stream: ReadTokens) -> list[str]:
     out = []
     while True:
         token = next(stream)
@@ -313,7 +313,7 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
             cwast.CompilerError(
                 stream.srcloc(), f"Cannot convert {token} for {field} in {parent_cls}")
     elif nfd.kind is cwast.NFK.NODE:
-        attr: Dict[str, Any] = {}
+        attr: dict[str, Any] = {}
         token = ReadAttrs(token, attr, stream)
         if token == "(":
             return ReadSExpr(stream, parent_cls, attr)
@@ -343,17 +343,17 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
         assert None
 
 
-def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: Dict[str, Any]):
+def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: dict[str, Any]):
     """The leading '(' and `tag` have already been consumed"""
     parent_cls = cwast.MacroInvoke
     srcloc = stream.srcloc()
     logger.info("Readdng MACRO INVOCATION %s at %s", tag, srcloc)
-    args: List[Any] = []
+    args: list[Any] = []
     while True:
         token = next(stream)
         if token == ")":
             return cwast.MacroInvoke(tag, args, x_srcloc=srcloc, **attr)
-        sub_attr: Dict[str, Any] = {}
+        sub_attr: dict[str, Any] = {}
         token = ReadAttrs(token, sub_attr, stream)
         if token == "(":
             args.append(ReadSExpr(stream, parent_cls, sub_attr))
@@ -372,7 +372,7 @@ def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: Dict[str, Any]):
     return args
 
 
-def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[Tuple[str, cwast.NFD]], attr: Dict[str, Any], stream: ReadTokens):
+def ReadRestAndMakeNode(cls, pieces: list[Any], fields: list[Tuple[str, cwast.NFD]], attr: dict[str, Any], stream: ReadTokens):
     """Read the remaining componts of an SExpr (after the tag and attr).
 
     Can handle optional bools at the beginning and an optional 'tail'
@@ -404,7 +404,7 @@ def ReadRestAndMakeNode(cls, pieces: List[Any], fields: List[Tuple[str, cwast.NF
     return cls(*pieces, x_srcloc=srcloc, **attr)
 
 
-def ReadSExpr(stream: ReadTokens, parent_cls, attr: Dict[str, Any]) -> Any:
+def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
     """The leading '(' has already been consumed"""
     tag = ReadAttrs(next(stream), attr, stream)
     if len(tag) > 1 and tag.endswith("!"):
@@ -446,7 +446,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: Dict[str, Any]) -> Any:
         return ReadRestAndMakeNode(cls, [], cls.FIELDS, attr, stream)
 
 
-def ReadModsFromStream(fp, fn="stdin") -> List[cwast.DefMod]:
+def ReadModsFromStream(fp, fn="stdin") -> list[cwast.DefMod]:
     asts = []
     stream = ReadTokens(fp, fn)
     failure = False

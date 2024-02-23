@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import List, Dict, Optional, Any, Union
+from typing import Optional, Any, Union
 import enum
 
 from FrontEnd import cwast
@@ -131,8 +131,8 @@ class GlobalConstantPool:
 
     def __init__(self, id_gen_global: identifier.IdGen):
         self._id_gen_global = id_gen_global
-        self._bytes_map: Dict[bytes, cwast.DefGlobal] = {}
-        self._all_globals: List[cwast.DefGlobal] = []
+        self._bytes_map: dict[bytes, cwast.DefGlobal] = {}
+        self._all_globals: list[cwast.DefGlobal] = []
 
     def _add_def_global(self, node) -> cwast.DefGlobal:
         def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
@@ -243,7 +243,7 @@ _BASE_TYPE_TO_DEFAULT = {
 }
 
 
-def _EvalValRec(def_rec: cwast.CanonType, inits: List, srcloc) -> Optional[Dict]:
+def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]:
     rec: dict[str, Any] = {}
     for field, init in symbolize.IterateValRec(inits, def_rec):
         assert isinstance(field, cwast.RecField)
@@ -676,7 +676,7 @@ def VerifyASTEvalsRecursively(node):
     cwast.VisitAstRecursivelyWithParent(node, visitor, None, None)
 
 
-def DecorateASTWithPartialEvaluation(mod_topo_order: List[cwast.DefMod]):
+def DecorateASTWithPartialEvaluation(mod_topo_order: list[cwast.DefMod]):
     """Fills in the x_value field"""
     iteration = 0
     seen_change = True

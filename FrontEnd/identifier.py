@@ -1,5 +1,4 @@
 """Id Generator"""
-from typing import Dict
 
 
 class IdGenIR:
@@ -13,7 +12,7 @@ class IdGenIR:
 
     def __init__(self, handle: str = ""):
         self.handle = handle
-        self._names: Dict[str, int] = {}
+        self._names: dict[str, int] = {}
 
     def NewName(self, prefix: str) -> str:
         assert "." not in prefix, f"{prefix}"
@@ -34,7 +33,7 @@ class IdGen:
 
     def __init__(self, handle=""):
         self.handle = handle
-        self._names: Dict[str, int] = {}
+        self._names: dict[str, int] = {}
 
     def NewName(self, prefix: str) -> str:
         assert "%" not in prefix

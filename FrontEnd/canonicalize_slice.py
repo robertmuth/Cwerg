@@ -3,7 +3,7 @@
 """
 
 
-from typing import Optional, Dict
+from typing import Optional
 
 from FrontEnd import cwast
 from FrontEnd import type_corpus
@@ -20,7 +20,7 @@ SLICE_FIELD_POINTER = "pointer"
 SLICE_FIELD_LENGTH = "length"
 
 
-SLICE_TO_STRUCT_MAP = Dict[cwast.CanonType, cwast.CanonType]
+SLICE_TO_STRUCT_MAP = dict[cwast.CanonType, cwast.CanonType]
 
 
 def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,

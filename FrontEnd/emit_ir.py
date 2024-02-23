@@ -10,7 +10,7 @@ import struct
 import pathlib
 import os
 
-from typing import Union, Any, Optional, List, Dict
+from typing import Union, Any, Optional
 
 from Util.parse import BytesToEscapedString
 
@@ -885,7 +885,7 @@ def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
             EmitIRStmt(c, None, tc, id_gen)
 
 
-def SanityCheckMods(phase_name: str, emit_ir: str, mods: List[cwast.DefMod], tc,
+def SanityCheckMods(phase_name: str, emit_ir: str, mods: list[cwast.DefMod], tc,
                     verifier: typify.TypeVerifier,
                     eliminated_node_types, allow_type_auto=True):
     logger.info(phase_name)
@@ -975,7 +975,7 @@ def main():
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED, x_modname="$generated")
     id_gen_global = identifier.IdGen("$GLOBAL")
-    id_gens: Dict[cwast.DefFun,  identifier.IdGen] = {}
+    id_gens: dict[cwast.DefFun,  identifier.IdGen] = {}
 
     def GetIdGen(fun):
         assert isinstance(fun, cwast.DefFun)

@@ -7,7 +7,7 @@
 import dataclasses
 import logging
 
-from typing import Dict, Any, Tuple, List
+from typing import Any, Tuple
 
 from FrontEnd import cwast
 
@@ -21,7 +21,7 @@ class MacroContext:
     def __init__(self, no: int):
         self._no: int = no
         # these need to become lists
-        self.macro_parameter: Dict[str, Tuple[cwast.MacroParam, Any]] = {}
+        self.macro_parameter: dict[str, Tuple[cwast.MacroParam, Any]] = {}
         self.srcloc = None
 
     def PushScope(self, srcloc):
@@ -111,7 +111,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
 
 
 def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
-    params: List[cwast.MacroParam] = macro.params_macro
+    params: list[cwast.MacroParam] = macro.params_macro
     args = invoke.args
     if params and params[-1].macro_param_kind is cwast.MACRO_PARAM_KIND.EXPR_LIST_REST:
         rest = cwast.EphemeralList(args[len(params)-1:], colon=False)
