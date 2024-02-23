@@ -8,7 +8,7 @@ import dataclasses
 import logging
 import enum
 
-from typing import Dict, Set, Optional, Union, Any, TypeAlias, NoReturn
+from typing import Optional, Union, Any, TypeAlias, NoReturn
 
 logger = logging.getLogger(__name__)
 
@@ -77,19 +77,26 @@ class BASE_TYPE_KIND(enum.Enum):
 class NF(enum.Flag):
     """Node Flags"""
     NONE = 0
-    MAY_BE_LHS = enum.auto()
+
     TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
-    # reference to the import node resolving the qualifier  (x_import)
-    IMPORT_ANNOTATED = enum.auto()
+    # possibly uniquified name of module, use during code-gen
+    MODNAME_ANNOTATED = enum.auto()
+
+    # Temporary annotations
     # node reference to the imported module (x_module)
     MODULE_ANNOTATED = enum.auto()
-
-    MODNAME_ANNOTATED = enum.auto()
+    # only used for pretty printing
     ROLE_ANNOTATED = enum.auto()
+    # used until generic modules have been instantiated
+    NORMALIZED_ANNOTATED = enum.auto()
+    # reference to the import node resolving the qualifier  (x_import)
+    IMPORT_ANNOTATED = enum.auto()
 
+    # Node families
+    MAY_BE_LHS = enum.auto()
     TYPE_CORPUS = enum.auto()
     CONTROL_FLOW = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
@@ -629,7 +636,7 @@ ALL_FIELDS = [
 
 NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 
-ALL_FIELDS_MAP: Dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
+ALL_FIELDS_MAP: dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
 
 # Optional fields must come last in a dataclass
@@ -691,12 +698,7 @@ def IsFieldWithDefaultValue(field, val):
 
 X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
-    # set by mod_pool.py
-    # containing module links for symbol resolution
-    # id -> referenced module
-    # fun -> module of archetype (only use for polymorphic function)
-    # macro_invoke ->  referenced module
-    "x_import": NF.IMPORT_ANNOTATED,
+
     # set by mod_pool.py
     # import -> imported module
     "x_module": NF.MODULE_ANNOTATED,
@@ -715,9 +717,18 @@ X_FIELDS = {
     "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
     # set by eval.py
     "x_value": NF.VALUE_ANNOTATED,
+
+    # TEMPORARY
     # set by AnnotateRole() in this file
     # used by pretty printing where we do not have sym info
     "x_role":   NF.ROLE_ANNOTATED,
+    "x_normalized":   NF.NORMALIZED_ANNOTATED,
+    # set by mod_pool.py
+    # containing module links for symbol resolution
+    # id -> referenced module
+    # fun -> module of archetype (only use for polymorphic function)
+    # macro_invoke ->  referenced module
+    "x_import": NF.IMPORT_ANNOTATED,
 }
 
 
@@ -1034,7 +1045,7 @@ SRCLOC_GENERATED = SrcLoc("@generated@", 0)
 class EphemeralList:
     """Only exist temporarily after a replacement strep
 
-    will removed (flattened) in the next cleanup step
+    will removed (flattened) in the next cleanup list
     """
     ALIAS = None
     GROUP = GROUP.Macro
@@ -1220,7 +1231,7 @@ BASE_TYPE_KIND_REAL = set([
 ])
 
 
-BASE_TYPE_KIND_TO_SIZE: Dict[BASE_TYPE_KIND, int] = {
+BASE_TYPE_KIND_TO_SIZE: dict[BASE_TYPE_KIND, int] = {
     BASE_TYPE_KIND.U8: 1,
     BASE_TYPE_KIND.U16: 2,
     BASE_TYPE_KIND.U32: 4,
@@ -2713,6 +2724,7 @@ class ModParam:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
+    x_normalized = None
 
     def __str__(self):
         return f"{_NAME(self)} {self.name} {self.mod_param_kind.name}"
@@ -3149,7 +3161,7 @@ def AnnotateImportsForQualifers(mod: DefMod):
     This is important for macros whose
     syntax tree might get copied into a different from where it originated.
     """
-    imports: Dict[str, Import] = {}
+    imports: dict[str, Import] = {}
     dummy_import = Import("$self", "", [], x_module=mod)
 
     def visitor(node, _):
@@ -3209,7 +3221,7 @@ def CompilerError(srcloc, msg, kind='syntax') -> NoReturn:
     exit(1)
 
 
-def _CheckMacroRecursively(node, seen_names: Set[str]):
+def _CheckMacroRecursively(node, seen_names: set[str]):
     def visitor(node, _):
         if isinstance(node, (MacroParam, MacroFor)):
             assert node.name.startswith("$")

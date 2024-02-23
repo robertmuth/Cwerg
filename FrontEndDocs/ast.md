@@ -86,7 +86,7 @@ code generation.
 [MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
 [MacroParam&nbsp;(mparam)](#macroparam-mparam) &ensp;
 [MacroVar&nbsp;($let)](#macrovar-let) &ensp;
-[ModParam](#modparam) &ensp;
+[ModParam&nbsp;(modparam)](#modparam-modparam) &ensp;
 [StmtCompoundAssignment](#stmtcompoundassignment) &ensp;
 [StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
 [StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
@@ -121,6 +121,9 @@ Refers to a type, variable, constant, function, module by name.
 Fields:
 * name [STR]: name of the object
 
+Flags:
+* eoldoc: line end comment
+
 
 ## Type Node Details
 
@@ -136,7 +139,7 @@ Fields:
 
 Flags:
 * pub: has public visibility
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### DefRec (defrec)
@@ -150,7 +153,7 @@ Fields:
 
 Flags:
 * pub: has public visibility
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### EnumVal (entry)
@@ -163,7 +166,7 @@ Fields:
 * value_or_auto [NODE] (default ValAuto): enum constant or auto
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### FunParam (param)
@@ -178,7 +181,7 @@ Fields:
 Flags:
 * arg_ref: in parameter was converted for by-val to pointer
 * res_ref: in parameter was converted for by-val to pointer
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### RecField (field)
@@ -193,7 +196,8 @@ Fields:
 * type [NODE]: type expression
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
+* eoldoc: line end comment
 
 
 ### TypeArray (array)
@@ -214,6 +218,9 @@ Placeholder for an unspecified (auto derived) type
 
 Fields:
 
+Flags:
+* eoldoc: line end comment
+
 
 ### TypeBase
 Base type
@@ -223,6 +230,9 @@ Base type
 
 Fields:
 * base_type_kind [KIND]: one of: [SINT, S8, S16, S32, S64, UINT, U8, U16, U32, U64, R32, R64, VOID, NORET, BOOL, TYPEID](#base-type-kind)
+
+Flags:
+* eoldoc: line end comment
 
 
 ### TypeFun (sig)
@@ -302,7 +312,7 @@ Fields:
 * body [LIST]: new scope: statement list and/or comments
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### DefFun (fun)
@@ -311,6 +321,11 @@ Function definition
     `init` and `fini` indicate module initializer/finalizers
 
     `extern` indicates a prototype and hence the function body must be empty.
+
+    `cdecl` disables name mangling
+
+    `polymorphic` indicates a polymorhic function. The `name` must be qualified with
+                 the module containing the seed polymorphic definition.
     
 
 Allowed at top level only
@@ -328,7 +343,7 @@ Flags:
 * pub: has public visibility
 * extern: is external function (empty body)
 * cdecl: use c-linkage (no module prefix)
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### DefGlobal (global)
@@ -350,7 +365,7 @@ Flags:
 * mut: is mutable
 * ref: address may be taken
 * cdecl: use c-linkage (no module prefix)
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### DefMacro (macro)
@@ -375,7 +390,7 @@ Fields:
 
 Flags:
 * pub: has public visibility
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### DefMod (module)
@@ -392,7 +407,7 @@ Fields:
 * body_mod [LIST]: toplevel module definitions and/or comments
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 * builtin: module is the builtin module
 
 
@@ -412,7 +427,7 @@ Fields:
 Flags:
 * pub: has public visibility
 * wrapped: is wrapped type (forces type equivalence by name)
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### DefVar (let)
@@ -432,7 +447,7 @@ Fields:
 Flags:
 * mut: is mutable
 * ref: address may be taken
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### Import (import)
@@ -441,20 +456,21 @@ Import another Module from `path` as `name`
 Fields:
 * name [STR]: name of the object
 * alias [STR] (default ""): name of imported module to be used instead of given name
+* args_mod [LIST] (default list): module arguments
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
-### ModParam
+### ModParam (modparam)
 Module Parameters
 
 Fields:
 * name [STR]: name of the object
-* mod_param_kind [KIND]: one of: [ID, STMT_LIST, EXPR_LIST, EXPR, STMT, FIELD, TYPE, EXPR_LIST_REST](#modparam-kind)
+* mod_param_kind [KIND]: one of: [CONST_EXPR, TYPE](#modparam-kind)
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtAssignment (=)
@@ -465,7 +481,8 @@ Fields:
 * expr_rhs [NODE]: rhs of assignment
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
+* eoldoc: line end comment
 
 
 ### StmtBlock (block)
@@ -479,7 +496,7 @@ Fields:
 * body [LIST]: new scope: statement list and/or comments
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtBreak (break)
@@ -491,7 +508,7 @@ Fields:
 * target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtCompoundAssignment
@@ -501,12 +518,13 @@ Compound assignment statement
     
 
 Fields:
-* assignment_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, AND, OR, XOR, SHR, SHL](#stmtcompoundassignment-kind)
+* assignment_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, AND, OR, XOR, SHR, SHL, ROTR, ROTL](#stmtcompoundassignment-kind)
 * lhs [NODE]: l-value expression
 * expr_rhs [NODE]: rhs of assignment
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
+* eoldoc: line end comment
 
 
 ### StmtCond (cond)
@@ -516,7 +534,7 @@ Fields:
 * cases [LIST]: list of case statements
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtContinue (continue)
@@ -528,7 +546,7 @@ Fields:
 * target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtDefer (defer)
@@ -542,7 +560,7 @@ Fields:
 * body [LIST]: new scope: statement list and/or comments
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtExpr (shed)
@@ -555,7 +573,7 @@ Fields:
 * expr [NODE]: expression
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtIf (if)
@@ -567,7 +585,7 @@ Fields:
 * body_f [LIST]: new scope: statement list and/or comments for false branch
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtReturn (return)
@@ -581,7 +599,8 @@ Fields:
 * expr_ret [NODE] (default ValVoid): result expression (ValVoid means no result)
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
+* eoldoc: line end comment
 
 
 ### StmtStaticAssert (static_assert)
@@ -594,7 +613,7 @@ Fields:
 * message [STR] (default ""): message for assert failures
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### StmtTrap (trap)
@@ -603,7 +622,7 @@ Trap statement
 Fields:
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ## Value Node Details
@@ -620,7 +639,7 @@ Fields:
 * init_field [STR] (default ""): initializer field or empty (empty means next field)
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### IndexVal (index_val)
@@ -635,7 +654,8 @@ Fields:
 * init_index [NODE] (default ValAuto): initializer index or empty (empty mean next index)
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
+* eoldoc: line end comment
 
 
 ### ValArray (array_val)
@@ -652,7 +672,7 @@ Fields:
 * inits_array [LIST] (default list): array initializers and/or comments
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### ValAuto (auto_val)
@@ -680,6 +700,9 @@ Numeric constant (signed int, unsigned int, real
 Fields:
 * number [STR]: a number
 
+Flags:
+* eoldoc: line end comment
+
 
 ### ValRec (rec_val)
 A record literal
@@ -692,7 +715,8 @@ Fields:
 * inits_field [LIST]: record initializers and/or comments
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
+* eoldoc: line end comment
 
 
 ### ValSlice (slice_val)
@@ -714,10 +738,11 @@ An array value encoded as a string
 
 Fields:
 * string [STR]: string literal
+* strkind [INTERNAL_STR]: raw: ignore escape sequences in string, hex:
+* triplequoted [INTERNAL_BOOL]: string is using 3 double quotes
 
 Flags:
-* strkind: raw: ignore escape sequences in string, hex:
-* triplequoted: string is using 3 double quotes
+* eoldoc: line end comment
 
 
 ### ValTrue (true)
@@ -732,6 +757,9 @@ Special constant to indiciate *no default value*
 
 Fields:
 
+Flags:
+* eoldoc: line end comment
+
 
 ### ValVoid (void_val)
 Only value inhabiting the `TypeVoid` type
@@ -740,6 +768,9 @@ Only value inhabiting the `TypeVoid` type
      
 
 Fields:
+
+Flags:
+* eoldoc: line end comment
 
 
 ## Expression Node Details
@@ -759,6 +790,9 @@ Fields:
 * binary_expr_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, AND, OR, XOR, EQ, NE, LT, LE, GT, GE, ANDSC, ORSC, SHR, SHL, ROTR, ROTL, PDELTA](#expr2-kind)
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: right operand expression
+
+Flags:
+* eoldoc: line end comment
 
 
 ### Expr3 (?)
@@ -1042,7 +1076,7 @@ Fields:
 ### EphemeralList
 Only exist temporarily after a replacement strep
 
-    will removed (flattened) in the next cleanup step
+    will removed (flattened) in the next cleanup list
     
 
 Fields:
@@ -1065,7 +1099,7 @@ Fields:
 * body_for [LIST]: statement list for macro_loop
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### MacroId (macro_id)
@@ -1086,7 +1120,7 @@ Fields:
 * args [LIST]: function call arguments
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### MacroParam (mparam)
@@ -1097,7 +1131,7 @@ Fields:
 * macro_param_kind [KIND]: one of: [ID, STMT_LIST, EXPR_LIST, EXPR, STMT, FIELD, TYPE, EXPR_LIST_REST](#MacroParam-kind)
 
 Flags:
-* doc: comment
+* doc: possibly multi-line comment
 
 
 ### MacroVar ($let)
@@ -1115,7 +1149,7 @@ Fields:
 Flags:
 * mut: is mutable
 * ref: address may be taken
-* doc: comment
+* doc: possibly multi-line comment
 
 ## Enum Details
 
@@ -1134,7 +1168,7 @@ Flags:
 |SUB       |-|
 |DIV       |/|
 |MUL       |*|
-|MOD       |mod|
+|MOD       |%|
 |MIN       |min|
 |MAX       |max|
 |AND       |and|
@@ -1169,12 +1203,16 @@ Flags:
 |SUB       |-=|
 |DIV       |/=|
 |MUL       |*=|
-|MOD       |mod=|
+|MOD       |%=|
+|MIN       |min=|
+|MAX       |max=|
 |AND       |and=|
 |OR        |or=|
 |XOR       |xor=|
 |SHR       |>>=|
 |SHL       |<<=|
+|ROTR      |>>>=|
+|ROTL      |<<<=|
 
 ### Base Type Kind
 
@@ -1201,8 +1239,7 @@ Flags:
 
 |Kind|
 |----|
-|CONST     |
-|MOD       |
+|CONST_EXPR|
 |TYPE      |
 
 ### MacroParam Kind
