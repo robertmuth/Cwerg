@@ -36,50 +36,61 @@ def _resolve_enum_item(node: cwast.DefEnum, entry_name) -> cwast.EnumVal:
 
 
 class SymTab:
-    """Symbol Table For Global Symbols"""
+    """Symbol Table For Global and Local Symbols
+
+
+    """
 
     def __init__(self):
-        self._type_syms: dict[str, cwast.DefType] = {}
+        self._imports: dict[str, cwast.DefMod] = {}
+        self._syms: dict[str, Any] = {}
 
-        self._rec_syms: dict[str, cwast.DefRec] = {}
-        self._enum_syms: dict[str, cwast.DefEnum] = {}
-
-        self._fun_syms: dict[str, cwast.DefFun] = {}
-        self._macro_syms: dict[str, cwast.DefMacro] = {}
-
-        self._var_syms: dict[str, cwast.DefGlobal] = {}
-        self._mod_syms: dict[str, cwast.DefMod] = {}
-        self._all_syms: dict[str, Any] = {}
-
-    def AddSymWithDupCheck(self, name, node):
-        prev = self._all_syms.get(name)
+    def AddLocalSym(self, name, node):
+        assert isinstance(node, (cwast.DefVar, cwast.FunParam)), f"{node}"
+        prev = self._syms.get(name)
         if prev is not None:
             cwast.CompilerError(node.x_srcloc,
                                 f"Duplicate symbol name for {node} previously defined by {prev}")
-        self._all_syms[name] = node
+        self._syms[name] = node
+
+    def AddTopLevelSym(self, node):
+        logger.info("recording global symbol: %s", node)
+        name = node.name
+        if isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.DefGlobal,
+                             cwast.DefRec, cwast.DefEnum, cwast.DefType)):
+            if name in self._syms:
+                cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
+            self._syms[name] = node
+
+        elif isinstance(node, cwast.Import):
+            name = node.alias if node.alias else node.name
+            assert name not in self._imports
+            assert isinstance(node.x_module, cwast.DefMod)
+            self._imports[name] = node.x_module
+        else:
+            cwast.CompilerError(
+                node.x_srcloc, f"Unexpected toplevel node {node}")
 
     def DelSym(self, name):
-        assert name in self._all_syms
-        del self._all_syms[name]
+        assert name in self._syms
+        del self._syms[name]
 
     def resolve_sym_here(self, name, must_be_public, srcloc):
-        for syms in (self._type_syms, self._fun_syms,
-                     self._rec_syms, self._enum_syms, self._var_syms, self._macro_syms):
-            s = syms.get(name)
-            if s:
-                if must_be_public and not s.pub:
+        s = self._syms.get(name)
+        if s:
+            if must_be_public and not s.pub:
 
-                    cwast.CompilerError(srcloc, f"{name} must be public")
-                return s
+                cwast.CompilerError(srcloc, f"{name} must be public")
+            return s
 
         return None
 
-    def resolve_sym(self, ident: cwast.Id, builtin_syms: Optional["SymTab"], must_be_public) -> Optional[Any]:
+    def resolve_sym(self, ident: cwast.Id, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         name = cwast.GetSymbolName(ident.name)
         if ":" in name:
             enum_name, entry_name = name.split(":")
-            s = self._enum_syms.get(enum_name)
+            s = self._syms.get(enum_name)
             if s:
                 assert isinstance(s, cwast.DefEnum)
                 if must_be_public:
@@ -89,57 +100,24 @@ class SymTab:
                 ident.x_srcloc, f"could not resolve enum base-name [{enum_name}]")
 
         out = self.resolve_sym_here(name, must_be_public, ident.x_srcloc)
-        if not out and builtin_syms:
+        if not out:
             out = builtin_syms.resolve_sym_here(
                 name, must_be_public, ident.x_srcloc)
         return out
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke,
-                      builtin_syms: Optional["SymTab"], _must_be_public) -> Optional[Any]:
+                      builtin_syms: "SymTab", _must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
 
         name = cwast.GetSymbolName(macro_invoke.name)
         # TODO: pub check?
-        out = self._macro_syms.get(name)
-        if not out and builtin_syms:
-            out = builtin_syms._macro_syms.get(name)
+        out = self._syms.get(name)
+        if not out:
+            out = builtin_syms._syms.get(name)
         return out
 
-    def add_top_level_sym(self, node):
-        logger.info("recording global symbol: %s", node)
-        name = node.name
-        if isinstance(node, cwast.DefFun):
-            if name in self._fun_syms:
-                cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
-            self._fun_syms[name] = node
-        elif isinstance(node, cwast.DefMacro):
-            if name in self._macro_syms:
-                cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
-            self._macro_syms[name] = node
-        elif isinstance(node, cwast.DefGlobal):
-            if name in self._var_syms:
-                cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
-            self._var_syms[name] = node
-        elif isinstance(node, cwast.DefRec):
-            assert name not in self._rec_syms
-            self._rec_syms[name] = node
-        elif isinstance(node, cwast.DefEnum):
-            assert name not in self._enum_syms
-            self._enum_syms[name] = node
-        elif isinstance(node, cwast.DefType):
-            if name in self._type_syms:
-                cwast.CompilerError(
-                    node.x_srcloc, f"duplicate toplevel symbol {name}")
-            self._type_syms[name] = node
-        elif isinstance(node, cwast.Import):
-            name = node.alias if node.alias else node.name
-            assert name not in self._mod_syms
-            assert isinstance(node.x_module, cwast.DefMod)
-            self._mod_syms[name] = node.x_module
-        else:
-            cwast.CompilerError(
-                node.x_srcloc, f"Unexpected toplevel node {node}")
-        self.AddSymWithDupCheck(name, node)
+
+_EMPTY_SYMTAB = SymTab()
 
 
 def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes):
@@ -155,7 +133,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes)
     return symtab.resolve_sym(node, builtin_syms, is_qualified)
 
 
-def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
+def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
     symtab = SymTab()
     assert isinstance(mod, cwast.DefMod), mod
     logger.info("Processing %s", mod.x_modname)
@@ -168,7 +146,7 @@ def _ExtractSymTabPopulatedWithGlobals(mod) -> SymTab:
             # types so we skip them here
             continue
         else:
-            symtab.add_top_level_sym(node)
+            symtab.AddTopLevelSym(node)
     return symtab
 
 
@@ -258,7 +236,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
             cwast.CompilerError(node.x_srcloc,
                                 f"redefinition of symbol: {name}")
         scopes[-1][name] = node
-        symtab.AddSymWithDupCheck(name, node)
+        symtab.AddLocalSym(name, node)
 
     if isinstance(node, cwast.DefVar):
         record_local_sym(node)
@@ -279,6 +257,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
             ResolveSymbolsInsideFunctionsRecursively(
                 getattr(node, c), symtab, symtab_map, scopes)
         elif nfd.kind is cwast.NFK.LIST:
+            # blocks introduce new scopes
             if c in cwast.NEW_SCOPE_FIELDS:
                 logger.info("push scope for %s: %s", node, c)
                 scopes.append({})
@@ -398,9 +377,12 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
     symtab_map: SYMTAB_MAP = {}
     for mod in mod_topo_order:
         symtab_map[mod] = _ExtractSymTabPopulatedWithGlobals(mod)
+
         if mod.builtin:
             assert None not in symtab_map
             symtab_map[None] = symtab_map[mod]
+    if None not in symtab_map:
+        symtab_map[None] = _EMPTY_SYMTAB
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
@@ -474,7 +456,7 @@ def IterateValArray(val_array: cwast.ValArray, width):
 
 
 _NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.TypeUnion,
-                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSlice,
+                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSlice, cwast.DefEnum,
                                   cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
 
 
@@ -485,6 +467,7 @@ def IsNormalizeModParam(node):
         return True
     else:
         return False
+
 
 def NormalizeModParam(node):
     if IsNormalizeModParam(node):
