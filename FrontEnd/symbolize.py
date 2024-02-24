@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 SYMTAB_MAP = dict[cwast.DefMod, "SymTab"]
 
+_BUILT_IN_PLACE_HOLDER = None
 
 def AnnotateNodeSymbol(id_node, def_node):
     """Sets the x_symol field to a node like DefGlobal, DefVar, DefFun, DefRec, etc ."""
@@ -55,21 +56,20 @@ class SymTab:
 
     def AddTopLevelSym(self, node):
         logger.info("recording global symbol: %s", node)
-        name = node.name
-        if isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.DefGlobal,
-                             cwast.DefRec, cwast.DefEnum, cwast.DefType)):
-            if name in self._syms:
-                cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
-            self._syms[name] = node
-
-        elif isinstance(node, cwast.Import):
-            name = node.alias if node.alias else node.name
-            assert name not in self._imports
-            assert isinstance(node.x_module, cwast.DefMod)
-            self._imports[name] = node.x_module
-        else:
+        if not isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.DefGlobal,
+                                 cwast.DefRec, cwast.DefEnum, cwast.DefType)):
             cwast.CompilerError(
                 node.x_srcloc, f"Unexpected toplevel node {node}")
+        name = node.name
+        if name in self._syms:
+            cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
+        self._syms[name] = node
+
+    def AddImport(self, node: cwast.Import):
+        name = node.alias if node.alias else node.name
+        assert name not in self._imports
+        assert isinstance(node.x_module, cwast.DefMod)
+        self._imports[name] = node.x_module
 
     def DelSym(self, name):
         assert name in self._syms
@@ -129,7 +129,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes)
             if def_node is not None:
                 return def_node
     symtab = symtab_map[node.x_import.x_module]
-    builtin_syms = symtab_map.get(None)
+    builtin_syms = symtab_map.get(_BUILT_IN_PLACE_HOLDER)
     return symtab.resolve_sym(node, builtin_syms, is_qualified)
 
 
@@ -145,13 +145,16 @@ def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
             # symbol resolution for these can only be handled when we have
             # types so we skip them here
             continue
+        elif isinstance(node, cwast.Import):
+            if node.x_module:
+                symtab.AddImport(node)
         else:
             symtab.AddTopLevelSym(node)
     return symtab
 
 
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, symtab_map: SYMTAB_MAP):
-    builtin_syms = symtab_map.get(None)
+    builtin_syms = symtab_map.get(_BUILT_IN_PLACE_HOLDER)
 
     def visitor(node, _):
         nonlocal builtin_syms
@@ -182,7 +185,7 @@ def ExpandMacroOrMacroLike(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.Ma
 
     assert isinstance(node, cwast.MacroInvoke)
     symtab = symtab_map[node.x_import.x_module]
-    builtin_syms = symtab_map.get(None)
+    builtin_syms = symtab_map.get(_BUILT_IN_PLACE_HOLDER)
     macro = symtab.resolve_macro(
         node,  builtin_syms,  cwast.IsQualifiedName(node.name))
     if macro is None:
@@ -380,9 +383,9 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
 
         if mod.builtin:
             assert None not in symtab_map
-            symtab_map[None] = symtab_map[mod]
+            symtab_map[_BUILT_IN_PLACE_HOLDER] = symtab_map[mod]
     if None not in symtab_map:
-        symtab_map[None] = _EMPTY_SYMTAB
+        symtab_map[_BUILT_IN_PLACE_HOLDER] = _EMPTY_SYMTAB
 
     for mod in mod_topo_order:
         for node in mod.body_mod:

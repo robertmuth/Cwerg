@@ -92,6 +92,7 @@ class NF(enum.Flag):
     ROLE_ANNOTATED = enum.auto()
     # reference to the import node resolving the qualifier  (x_import)
     IMPORT_ANNOTATED = enum.auto()
+    SYMTAB = enum.auto()
 
     # Node families
     MAY_BE_LHS = enum.auto()
@@ -726,6 +727,7 @@ X_FIELDS = {
     # fun -> module of archetype (only use for polymorphic function)
     # macro_invoke ->  referenced module
     "x_import": NF.IMPORT_ANNOTATED,
+    "x_symtab": NF.SYMTAB,
 }
 
 
@@ -2538,7 +2540,6 @@ class StmtAssignment:
 ############################################################
 
 
-
 @NodeCommon
 @dataclasses.dataclass()
 class EnumVal:
@@ -2737,7 +2738,7 @@ class DefMod:
     """
     ALIAS = "module"
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.MODNAME_ANNOTATED
+    FLAGS = NF.GLOBAL_SYM_DEF | NF.MODNAME_ANNOTATED | NF.SYMTAB
     #
     name: str
     params_mod: list[NODES_PARAMS_MOD_T]
@@ -2747,7 +2748,8 @@ class DefMod:
     builtin: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_modname: str = ""
+    x_modname: str = ""  # unique name for code gen
+    x_symtab: Any = None
 
     def __str__(self):
         params = ', '.join(str(p) for p in self.params_mod)
