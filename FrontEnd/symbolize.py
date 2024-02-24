@@ -15,9 +15,8 @@ from FrontEnd import cwast
 logger = logging.getLogger(__name__)
 
 
-SYMTAB_MAP = dict[cwast.DefMod, "SymTab"]
-
 _BUILT_IN_PLACE_HOLDER = None
+
 
 def AnnotateNodeSymbol(id_node, def_node):
     """Sets the x_symol field to a node like DefGlobal, DefVar, DefFun, DefRec, etc ."""
@@ -117,10 +116,9 @@ class SymTab:
         return out
 
 
-_EMPTY_SYMTAB = SymTab()
 
 
-def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes):
+def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes):
     name = cwast.GetSymbolName(node.name)
     is_qualified = cwast.IsQualifiedName(node.name)
     if not is_qualified:
@@ -128,8 +126,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab_map: SYMTAB_MAP, scopes)
             def_node = s.get(name)
             if def_node is not None:
                 return def_node
-    symtab = symtab_map[node.x_import.x_module]
-    builtin_syms = symtab_map.get(_BUILT_IN_PLACE_HOLDER)
+    symtab = node.x_import.x_module.x_symtab
     return symtab.resolve_sym(node, builtin_syms, is_qualified)
 
 
@@ -153,13 +150,12 @@ def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
     return symtab
 
 
-def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, symtab_map: SYMTAB_MAP):
-    builtin_syms = symtab_map.get(_BUILT_IN_PLACE_HOLDER)
+def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab):
 
     def visitor(node, _):
         nonlocal builtin_syms
         if isinstance(node, cwast.Id):
-            symtab = symtab_map[node.x_import.x_module]
+            symtab = node.x_import.x_module.x_symtab
             def_node = symtab.resolve_sym(
                 node, builtin_syms, cwast.IsQualifiedName(node.name))
             if def_node is None:
@@ -173,7 +169,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, symtab_map: SYMTAB
 MAX_MACRO_NESTING = 4
 
 
-def ExpandMacroOrMacroLike(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.MacroContext):
+def ExpandMacroOrMacroLike(node,  builtin_syms: SymTab, nesting, ctx: macros.MacroContext):
     assert nesting < MAX_MACRO_NESTING
     assert cwast.NF.TO_BE_EXPANDED in node.FLAGS
     if isinstance(node, cwast.ExprSrcLoc):
@@ -184,8 +180,7 @@ def ExpandMacroOrMacroLike(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.Ma
         return cwast.ValString(f'"{node.expr}"', strkind="raw", x_srcloc=node.x_srcloc)
 
     assert isinstance(node, cwast.MacroInvoke)
-    symtab = symtab_map[node.x_import.x_module]
-    builtin_syms = symtab_map.get(_BUILT_IN_PLACE_HOLDER)
+    symtab = node.x_import.x_module.x_symtab
     macro = symtab.resolve_macro(
         node,  builtin_syms,  cwast.IsQualifiedName(node.name))
     if macro is None:
@@ -193,34 +188,35 @@ def ExpandMacroOrMacroLike(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.Ma
             node.x_srcloc, f"invocation of unknown macro `{node.name}`")
     exp = macros.ExpandMacro(node, macro, ctx)
     assert not isinstance(exp, list)
-    FindAndExpandMacrosRecursively(exp, symtab_map, nesting + 1, ctx)
+    FindAndExpandMacrosRecursively(exp, builtin_syms, nesting + 1, ctx)
     if cwast.NF.TO_BE_EXPANDED in exp.FLAGS:
-        return ExpandMacroOrMacroLike(exp, symtab_map, nesting + 1, ctx)
+        return ExpandMacroOrMacroLike(exp, builtin_syms, nesting + 1, ctx)
     # pp.PrettyPrint(exp)
     return exp
 
 
-def FindAndExpandMacrosRecursively(node, symtab_map: SYMTAB_MAP, nesting, ctx: macros.MacroContext):
+def FindAndExpandMacrosRecursively(node, builtin_syms, nesting, ctx: macros.MacroContext):
     # TODO: support macro-invocatios which produce new macro-invocations
     for c, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
-            FindAndExpandMacrosRecursively(child, symtab_map, nesting, ctx)
+            FindAndExpandMacrosRecursively(child, builtin_syms, nesting, ctx)
             if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
                 new_child = ExpandMacroOrMacroLike(
-                    child, symtab_map, nesting, ctx)
+                    child, builtin_syms, nesting, ctx)
                 assert not isinstance(new_child, cwast.EphemeralList)
                 setattr(node, c, new_child)
         elif nfd.kind is cwast.NFK.LIST:
             children = getattr(node, c)
             new_children = []
             for child in children:
-                FindAndExpandMacrosRecursively(child, symtab_map, nesting, ctx)
+                FindAndExpandMacrosRecursively(
+                    child, builtin_syms, nesting, ctx)
                 if cwast.NF.TO_BE_EXPANDED not in child.FLAGS:
                     new_children.append(child)
                 else:
                     exp = ExpandMacroOrMacroLike(
-                        child, symtab_map, nesting, ctx)
+                        child, builtin_syms, nesting, ctx)
                     if isinstance(exp, cwast.EphemeralList):
                         for a in exp.args:
                             new_children.append(a)
@@ -230,7 +226,7 @@ def FindAndExpandMacrosRecursively(node, symtab_map: SYMTAB_MAP, nesting, ctx: m
 
 
 def ResolveSymbolsInsideFunctionsRecursively(
-        node, symtab: SymTab, symtab_map: SYMTAB_MAP, scopes: list[dict]):
+        node, symtab: SymTab, builtin_syms: SymTab, scopes: list[dict]):
 
     def record_local_sym(node):
         name = node.name
@@ -244,7 +240,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
     if isinstance(node, cwast.DefVar):
         record_local_sym(node)
     elif isinstance(node, cwast.Id):
-        def_node = _ResolveSymbolInsideFunction(node, symtab_map, scopes)
+        def_node = _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
         if def_node is None:
             cwast.CompilerError(
                 node.x_srcloc, f"cannot resolve symbol for {node}")
@@ -258,7 +254,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
             continue
         if nfd.kind is cwast.NFK.NODE:
             ResolveSymbolsInsideFunctionsRecursively(
-                getattr(node, c), symtab, symtab_map, scopes)
+                getattr(node, c), symtab, builtin_syms, scopes)
         elif nfd.kind is cwast.NFK.LIST:
             # blocks introduce new scopes
             if c in cwast.NEW_SCOPE_FIELDS:
@@ -270,7 +266,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
                             record_local_sym(p)
             for cc in getattr(node, c):
                 ResolveSymbolsInsideFunctionsRecursively(
-                    cc, symtab, symtab_map, scopes)
+                    cc, symtab, builtin_syms, scopes)
             if c in cwast.NEW_SCOPE_FIELDS:
                 logger.info("pop scope for if block: %s", c)
                 for name in scopes[-1].keys():
@@ -377,41 +373,41 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
     * reolve symbols within functions
 
     """
-    symtab_map: SYMTAB_MAP = {}
-    for mod in mod_topo_order:
-        symtab_map[mod] = _ExtractSymTabPopulatedWithGlobals(mod)
+    builtin_syms = None
 
+    for mod in mod_topo_order:
+        mod.x_symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         if mod.builtin:
-            assert None not in symtab_map
-            symtab_map[_BUILT_IN_PLACE_HOLDER] = symtab_map[mod]
-    if None not in symtab_map:
-        symtab_map[_BUILT_IN_PLACE_HOLDER] = _EMPTY_SYMTAB
+            assert builtin_syms is None
+            builtin_syms = mod.x_symtab
+    if builtin_syms is None:
+        builtin_syms =  SymTab()
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
                 logger.info("Resolving global object: %s", node)
                 _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    node, symtab_map)
+                    node, builtin_syms)
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node)
                 ctx = macros.MacroContext(1)
-                FindAndExpandMacrosRecursively(node, symtab_map, 0, ctx)
+                FindAndExpandMacrosRecursively(node, builtin_syms, 0, ctx)
 
     for mod in mod_topo_order:
         # we wait until macro expansion with this
         _SetTargetFieldRecursively(mod)
 
-        symtab = symtab_map[mod]
+        symtab = mod.x_symtab
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node)
                 scopes: list[dict] = []
                 ResolveSymbolsInsideFunctionsRecursively(
-                    node, symtab, symtab_map, scopes)
+                    node, symtab, builtin_syms, scopes)
                 assert not scopes
 
     for mod in mod_topo_order:
