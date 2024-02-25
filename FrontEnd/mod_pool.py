@@ -158,11 +158,17 @@ class ModPoolBase:
             self._AddModInfo(uid)
             active.append(uid)
 
+        buitin_syms = symbolize.GetSymTabForBuiltInOrEmpty(
+            [m.mod for m in self._all_mods.values()])
+
         # fix point computation for resolving imports
         while active:
             new_active: list[ModHandle] = []
             seen_change = False
             for uid in active:
+                symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+                    [m.mod for m in self._all_mods.values()], buitin_syms, False)
+
                 mod_info = self._all_mods[uid]
                 logger.info("start resolving imports for %s", mod_info)
                 num_unresolved = 0

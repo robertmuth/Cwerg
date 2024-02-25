@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import Optional, Any
+from typing import Optional, Any, Sequence
 
 from FrontEnd import pp
 from FrontEnd import macros
@@ -156,6 +156,11 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
         nonlocal builtin_syms
         if isinstance(node, cwast.Id):
             if node.x_symbol:
+                return
+            if not node.x_import.x_module:
+                if must_resolve_all:
+                    cwast.CompilerError(
+                        node.x_srcloc, f"import of {node.name} not resolved")
                 return
             symtab = node.x_import.x_module.x_symtab
             def_node = symtab.resolve_sym(
@@ -378,7 +383,7 @@ def GetSymTabForBuiltInOrEmpty(mod_topo_order: list[cwast.DefMod]) -> SymTab:
     return builtin_syms if builtin_syms else SymTab()
 
 
-def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: list[cwast.DefMod],
+def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[cwast.DefMod],
                                                        builtin_syms: SymTab,
                                                        must_resolve_all):
     for mod in mod_topo_order:
