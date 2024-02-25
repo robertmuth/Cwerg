@@ -129,14 +129,14 @@ class ModPoolBase:
         # all modules keyed by ModHandle
         self._all_mods: dict[ModId, ModInfo] = {}
         self._taken_names: set[str] = set()
-        self._raw_generic: dict[ModId, ModInfo] = {}
+        self._raw_generic: dict[pathlib.PurePath, ModInfo] = {}
 
     def __str__(self):
         return f"root={self._root}"
 
     def _AddModInfoSimple(self, uid: ModId) -> ModInfo:
         assert isinstance(uid, Tuple), uid
-        mod_info = ModInfo(uid, self._ReadMod(uid))
+        mod_info = ModInfo(uid, self._ReadMod(uid[0]))
         logger.info("Adding new mod: %s", mod_info)
         self._all_mods[uid] = mod_info
         name = mod_info.mod.name
@@ -148,36 +148,34 @@ class ModPoolBase:
     def _FindModInfo(self, uid) -> Optional[ModInfo]:
         return self._all_mods.get(uid)
 
-    def _ReadMod(self, _handle: ModId) -> cwast.DefMod:
+    def _ReadMod(self, _handle: pathlib.PurePath) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
 
     def AllModInfos(self) -> Sequence[ModInfo]:
         return self._all_mods.values()
 
     def ReadModulesRecursively(self, seed_modules: list[str]):
-        active: list[ModId] = []
+        active: list[ModInfo] = []
 
         for pathname in seed_modules:
             assert not pathname.startswith(".")
             uid = (_ModUniquePathName(self._root, None, pathname),)
             assert self._FindModInfo(uid) is None
-            self._AddModInfoSimple(uid)
-            active.append(uid)
+            mod_info = self._AddModInfoSimple(uid)
+            active.append(mod_info)
 
         buitin_syms = symbolize.GetSymTabForBuiltInOrEmpty(
             [m.mod for m in self.AllModInfos()])
 
         # fix point computation for resolving imports
         while active:
-            new_active: list[ModId] = []
+            new_active: list[ModInfo] = []
             seen_change = False
-            for uid in active:
-                # this probably needs to be a fix point computation as well
-                symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    [m.mod for m in self.AllModInfos()], buitin_syms, False)
-
-                mod_info = self._FindModInfo(uid)
-                assert isinstance(mod_info, ModInfo)
+            # this probably needs to be a fix point computation as well
+            symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+                [m.mod for m in self.AllModInfos()], buitin_syms, False)
+            for mod_info in active:
+                assert isinstance(mod_info, ModInfo), mod_info
                 logger.info("start resolving imports for %s", mod_info)
                 num_unresolved = 0
                 for import_node, normalized_args in mod_info.imports:
@@ -191,23 +189,35 @@ class ModPoolBase:
                         logger.info(
                             "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
                         if done:
-                            assert False
-                        num_unresolved += 1
+                            mid = (_ModUniquePathName(
+                                self._root, mod_info.uid[0], import_node.name),
+                                *normalized_args)
+                            path = mid[0]
+                            generic_mod = self._raw_generic.get(path)
+                            if not generic_mod:
+                                logger.info("reading raw generic from: %s", path)
+                                generic_mod = self._ReadMod(path)
+                                self._raw_generic[path] = generic_mod
+                            assert False, f"{mid}"
+                            assert False, f"{mid[0]} {mid[1]} {mid[2]}"
+
+                        else:
+                            num_unresolved += 1
                     else:
-                        import_uid = (_ModUniquePathName(
-                            self._root, uid[0], import_node.name),)
-                        import_mod_info = self._FindModInfo(import_uid)
+                        mid = (_ModUniquePathName(
+                            self._root, mod_info.uid[0], import_node.name),)
+                        import_mod_info = self._FindModInfo(mid)
                         if not import_mod_info:
                             import_mod_info = self._AddModInfoSimple(
-                                import_uid)
-                            new_active.append(import_uid)
+                                mid)
+                            new_active.append(import_mod_info)
                             seen_change = True
                         logger.info(
                             f"in {mod_info.mod.name} resolving inport of {import_mod_info.mod.name}")
                         import_node.x_module = import_mod_info.mod
                         mod_info.mod.x_symtab.AddImport(import_node)
                 if num_unresolved:
-                    new_active.append(uid)
+                    new_active.append(mod_info)
                 logger.info("finish resolving imports for %s - unresolved: %d",
                             mod_info, num_unresolved)
 
@@ -221,8 +231,8 @@ class ModPoolBase:
 
 class ModPool(ModPoolBase):
 
-    def _ReadMod(self, handle: ModId) -> cwast.DefMod:
-        fn = str(handle[0]) + ".cw"
+    def _ReadMod(self, handle: pathlib.PurePath) -> cwast.DefMod:
+        fn = str(handle) + ".cw"
         asts = parse.ReadModsFromStream(open(fn, encoding="utf8"), fn)
         assert len(asts) == 1, f"multiple modules in {fn}"
         mod = asts[0]
