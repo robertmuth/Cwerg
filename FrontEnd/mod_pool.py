@@ -9,15 +9,15 @@ from FrontEnd import cwast
 from FrontEnd import parse
 from FrontEnd import symbolize
 
-from typing import Optional, Sequence, Any
+from typing import Optional, Sequence, Tuple
 
-ModHandle = pathlib.PurePath
+ModId = Tuple[pathlib.PurePath, ...]
 
 logger = logging.getLogger(__name__)
 
 
 class ModInfo:
-    def __init__(self, uid: ModHandle, mod: cwast.DefMod):
+    def __init__(self, uid: ModId, mod: cwast.DefMod):
         self.uid = uid
         self.mod = mod
         # the second component holds the normalized args
@@ -95,6 +95,25 @@ def _TryToNormalizeModArgs(args, normalized) -> bool:
     return count == len(args)
 
 
+def _ModUniquePathName(root: pathlib.PurePath, curr: Optional[pathlib.PurePath], pathname: str) -> pathlib.PurePath:
+    """
+    Provide a unique id for a module.
+
+    Currently thid is essentially the absolute pathanme.
+    `curr` is the handle of the curr module will be used relative paths.
+
+    Other options (not yet explored): use checksums
+    """
+    if pathname.startswith("/"):
+        return pathlib.Path(pathname).resolve()
+    elif pathname.startswith("."):
+        # drop the libname from curr
+        pc = pathlib.Path(curr).parent
+        return (pc / pathname).resolve()
+    else:
+        return (root / pathname).resolve()
+
+
 class ModPoolBase:
     """
     Will set the following fields:
@@ -108,13 +127,15 @@ class ModPoolBase:
         logger.info("Init ModPool with: %s", root)
         self._root: pathlib.Path = root
         # all modules keyed by ModHandle
-        self._all_mods: dict[ModHandle, ModInfo] = {}
+        self._all_mods: dict[ModId, ModInfo] = {}
         self._taken_names: set[str] = set()
+        self._raw_generic: dict[ModId, ModInfo] = {}
 
     def __str__(self):
         return f"root={self._root}"
 
-    def _AddModInfo(self, uid) -> ModInfo:
+    def _AddModInfoSimple(self, uid: ModId) -> ModInfo:
+        assert isinstance(uid, Tuple), uid
         mod_info = ModInfo(uid, self._ReadMod(uid))
         logger.info("Adding new mod: %s", mod_info)
         self._all_mods[uid] = mod_info
@@ -127,38 +148,20 @@ class ModPoolBase:
     def _FindModInfo(self, uid) -> Optional[ModInfo]:
         return self._all_mods.get(uid)
 
-    def _ReadMod(self, _handle: ModHandle) -> cwast.DefMod:
+    def _ReadMod(self, _handle: ModId) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
 
     def AllModInfos(self) -> Sequence[ModInfo]:
         return self._all_mods.values()
 
-    def _ModUniqueId(self, curr: Optional[ModHandle], pathname: str) -> ModHandle:
-        """
-        Provide a unique id for a module.
-
-        Currently thid is essentially the absolute pathanme.
-        `curr` is the handle of the curr module will be used relative paths.
-
-        Other options (not yet explored): use checksums
-        """
-        if pathname.startswith("/"):
-            return pathlib.Path(pathname).resolve()
-        elif pathname.startswith("."):
-            # drop the libname from curr
-            pc = pathlib.Path(curr).parent
-            return (pc / pathname).resolve()
-        else:
-            return (self._root / pathname).resolve()
-
     def ReadModulesRecursively(self, seed_modules: list[str]):
-        active: list[ModHandle] = []
+        active: list[ModId] = []
 
         for pathname in seed_modules:
             assert not pathname.startswith(".")
-            uid = self._ModUniqueId(None, pathname)
+            uid = (_ModUniquePathName(self._root, None, pathname),)
             assert self._FindModInfo(uid) is None
-            self._AddModInfo(uid)
+            self._AddModInfoSimple(uid)
             active.append(uid)
 
         buitin_syms = symbolize.GetSymTabForBuiltInOrEmpty(
@@ -166,7 +169,7 @@ class ModPoolBase:
 
         # fix point computation for resolving imports
         while active:
-            new_active: list[ModHandle] = []
+            new_active: list[ModId] = []
             seen_change = False
             for uid in active:
                 # this probably needs to be a fix point computation as well
@@ -191,10 +194,12 @@ class ModPoolBase:
                             assert False
                         num_unresolved += 1
                     else:
-                        import_uid = self._ModUniqueId(uid, import_node.name)
+                        import_uid = (_ModUniquePathName(
+                            self._root, uid[0], import_node.name),)
                         import_mod_info = self._FindModInfo(import_uid)
                         if not import_mod_info:
-                            import_mod_info = self._AddModInfo(import_uid)
+                            import_mod_info = self._AddModInfoSimple(
+                                import_uid)
                             new_active.append(import_uid)
                             seen_change = True
                         logger.info(
@@ -216,8 +221,8 @@ class ModPoolBase:
 
 class ModPool(ModPoolBase):
 
-    def _ReadMod(self, handle: ModHandle) -> cwast.DefMod:
-        fn = str(handle) + ".cw"
+    def _ReadMod(self, handle: ModId) -> cwast.DefMod:
+        fn = str(handle[0]) + ".cw"
         asts = parse.ReadModsFromStream(open(fn, encoding="utf8"), fn)
         assert len(asts) == 1, f"multiple modules in {fn}"
         mod = asts[0]

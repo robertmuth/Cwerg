@@ -5,6 +5,7 @@ import logging
 
 from FrontEnd import cwast
 from FrontEnd import mod_pool
+from FrontEnd import symbolize
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,14 @@ _test_mods_local = {
 
 class ModPoolForTest(mod_pool.ModPoolBase):
 
-    def _ReadMod(self, handle: mod_pool.ModHandle) -> cwast.DefMod:
+    def _ReadMod(self, mid: mod_pool.ModId) -> cwast.DefMod:
+        handle = mid[0]
         name = handle.name
         dir = handle.parent.name
-        return _test_mods_std[name] if dir == "Lib" else _test_mods_local[name]
-
+        mod = _test_mods_std[name] if dir == "Lib" else _test_mods_local[name]
+        cwast.AnnotateImportsForQualifers(mod)
+        mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
+        return mod
 
 def tests(cwd: str):
 
