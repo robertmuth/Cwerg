@@ -66,7 +66,8 @@ class SymTab:
 
     def AddImport(self, node: cwast.Import):
         name = node.alias if node.alias else node.name
-        assert name not in self._imports
+        if name in self._imports:
+            cwast.CompilerError(node.x_srcloc, f"dup import {name}")
         assert isinstance(node.x_module, cwast.DefMod)
         self._imports[name] = node.x_module
 
@@ -116,8 +117,6 @@ class SymTab:
         return out
 
 
-
-
 def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes):
     name = cwast.GetSymbolName(node.name)
     is_qualified = cwast.IsQualifiedName(node.name)
@@ -130,7 +129,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes):
     return symtab.resolve_sym(node, builtin_syms, is_qualified)
 
 
-def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
+def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
     symtab = SymTab()
     assert isinstance(mod, cwast.DefMod), mod
     logger.info("Processing %s", mod.x_modname)
@@ -143,8 +142,8 @@ def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
             # types so we skip them here
             continue
         elif isinstance(node, cwast.Import):
-            if node.x_module:
-                symtab.AddImport(node)
+            # these will be processed during the recursive module reading
+            continue
         else:
             symtab.AddTopLevelSym(node)
     return symtab
@@ -367,21 +366,21 @@ def _SetTargetFieldRecursively(node):
 
 def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
     """
-    * extract global symbols
-    * resolve global symbols (= setting x_symbol)
-    * expand macros recursively (macros are global symbols)
-    * reolve symbols within functions
+    At this point every DefMod has a symtable populated with the global symbols
+    and the Imports. All Imports have a valid x_module field.
+    Ids that are not inside DefFuns have their x_symbol fields set.
 
+    * expand macros recursively (macros are global symbols)
+    * reolve symbols within functions (= setting x_symbol)
     """
     builtin_syms = None
 
     for mod in mod_topo_order:
-        mod.x_symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         if mod.builtin:
             assert builtin_syms is None
             builtin_syms = mod.x_symtab
     if builtin_syms is None:
-        builtin_syms =  SymTab()
+        builtin_syms = SymTab()
 
     for mod in mod_topo_order:
         for node in mod.body_mod:

@@ -114,13 +114,15 @@ class ModPoolBase:
     def __str__(self):
         return f"root={self._root}"
 
-    def _AddModeInfo(self, uid, mod_info: ModInfo):
+    def _AddModInfo(self, uid) -> ModInfo:
+        mod_info = ModInfo(uid, self._ReadMod(uid))
         logger.info("Adding new mod: %s", mod_info)
         self._all_mods[uid] = mod_info
         name = mod_info.mod.name
         assert name not in self._taken_names
         self._taken_names.add(name)
         mod_info.mod.x_modname = name
+        return mod_info
 
     def _IsKnownModule(self, uid: ModHandle) -> bool:
         return uid in self._all_mods
@@ -153,8 +155,7 @@ class ModPoolBase:
             assert not pathname.startswith(".")
             uid = self._ModUniqueId(None, pathname)
             assert not self._IsKnownModule(uid)
-            mod_info = ModInfo(uid, self._ReadMod(uid))
-            self._AddModeInfo(uid, mod_info)
+            self._AddModInfo(uid)
             active.append(uid)
 
         # fix point computation for resolving imports
@@ -169,9 +170,10 @@ class ModPoolBase:
                     if import_node.x_module:
                         continue
                     if import_node.args_mod:
-                        done = _TryToNormalizeModArgs(import_node.args_mod, normalized_args)
+                        done = _TryToNormalizeModArgs(
+                            import_node.args_mod, normalized_args)
                         args_strs = [f"{_FormatModArg(a)}->{_FormatModArg(n)}"
-                                        for a, n in zip(import_node.args_mod, normalized_args)]
+                                     for a, n in zip(import_node.args_mod, normalized_args)]
                         logger.info(
                             "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
                         if done:
@@ -179,14 +181,15 @@ class ModPoolBase:
                         num_unresolved += 1
                     else:
                         import_uid = self._ModUniqueId(uid, import_node.name)
-                        mod_info = self._all_mods.get(import_uid)
-                        if not mod_info:
-                            mod_info = ModInfo(
-                                import_uid, self._ReadMod(import_uid))
-                            self._AddModeInfo(import_uid, mod_info)
+                        import_mod_info = self._all_mods.get(import_uid)
+                        if not import_mod_info:
+                            import_mod_info = self._AddModInfo(import_uid)
                             new_active.append(import_uid)
                             seen_change = True
-                        import_node.x_module = mod_info.mod
+                        logger.info(
+                            f"in {mod_info.mod.name} resolving inport of {import_mod_info.mod.name}")
+                        import_node.x_module = import_mod_info.mod
+                        mod_info.mod.x_symtab.AddImport(import_node)
                 if num_unresolved:
                     new_active.append(uid)
                 logger.info("finish resolving imports for %s - unresolved: %d",
@@ -206,8 +209,10 @@ class ModPool(ModPoolBase):
         fn = str(handle) + ".cw"
         asts = parse.ReadModsFromStream(open(fn, encoding="utf8"), fn)
         assert len(asts) == 1, f"multiple modules in {fn}"
-        assert isinstance(asts[0], cwast.DefMod)
-        cwast.AnnotateImportsForQualifers(asts[0])
+        mod = asts[0]
+        assert isinstance(mod, cwast.DefMod)
+        cwast.AnnotateImportsForQualifers(mod)
+        mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return asts[0]
 
 
