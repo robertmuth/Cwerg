@@ -124,11 +124,14 @@ class ModPoolBase:
         mod_info.mod.x_modname = name
         return mod_info
 
-    def _IsKnownModule(self, uid: ModHandle) -> bool:
-        return uid in self._all_mods
+    def _FindModInfo(self, uid) -> Optional[ModInfo]:
+        return self._all_mods.get(uid)
 
     def _ReadMod(self, _handle: ModHandle) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
+
+    def AllModInfos(self) -> Sequence[ModInfo]:
+        return self._all_mods.values()
 
     def _ModUniqueId(self, curr: Optional[ModHandle], pathname: str) -> ModHandle:
         """
@@ -154,22 +157,24 @@ class ModPoolBase:
         for pathname in seed_modules:
             assert not pathname.startswith(".")
             uid = self._ModUniqueId(None, pathname)
-            assert not self._IsKnownModule(uid)
+            assert self._FindModInfo(uid) is None
             self._AddModInfo(uid)
             active.append(uid)
 
         buitin_syms = symbolize.GetSymTabForBuiltInOrEmpty(
-            [m.mod for m in self._all_mods.values()])
+            [m.mod for m in self.AllModInfos()])
 
         # fix point computation for resolving imports
         while active:
             new_active: list[ModHandle] = []
             seen_change = False
             for uid in active:
+                # this probably needs to be a fix point computation as well
                 symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    [m.mod for m in self._all_mods.values()], buitin_syms, False)
+                    [m.mod for m in self.AllModInfos()], buitin_syms, False)
 
-                mod_info = self._all_mods[uid]
+                mod_info = self._FindModInfo(uid)
+                assert isinstance(mod_info, ModInfo)
                 logger.info("start resolving imports for %s", mod_info)
                 num_unresolved = 0
                 for import_node, normalized_args in mod_info.imports:
@@ -187,7 +192,7 @@ class ModPoolBase:
                         num_unresolved += 1
                     else:
                         import_uid = self._ModUniqueId(uid, import_node.name)
-                        import_mod_info = self._all_mods.get(import_uid)
+                        import_mod_info = self._FindModInfo(import_uid)
                         if not import_mod_info:
                             import_mod_info = self._AddModInfo(import_uid)
                             new_active.append(import_uid)
@@ -206,7 +211,7 @@ class ModPoolBase:
             active = new_active
 
     def ModulesInTopologicalOrder(self) -> list[cwast.DefMod]:
-        return ModulesInTopologicalOrder(self._all_mods.values())
+        return ModulesInTopologicalOrder(self.AllModInfos())
 
 
 class ModPool(ModPoolBase):
