@@ -149,18 +149,23 @@ def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
     return symtab
 
 
-def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab):
+def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
+                                                        must_resolve_all: bool):
 
     def visitor(node, _):
         nonlocal builtin_syms
         if isinstance(node, cwast.Id):
+            if node.x_symbol:
+                return
             symtab = node.x_import.x_module.x_symtab
             def_node = symtab.resolve_sym(
                 node, builtin_syms, cwast.IsQualifiedName(node.name))
-            if def_node is None:
-                cwast.CompilerError(
-                    node.x_srcloc, f"cannot resolve symbol {node.name}")
-            AnnotateNodeSymbol(node, def_node)
+            if def_node:
+                AnnotateNodeSymbol(node, def_node)
+            else:
+                if must_resolve_all:
+                    cwast.CompilerError(
+                        node.x_srcloc, f"cannot resolve symbol {node.name}")
 
     cwast.VisitAstRecursivelyPost(node, visitor)
 
@@ -364,6 +369,26 @@ def _SetTargetFieldRecursively(node):
     cwast.VisitAstRecursivelyWithAllParents(node, [], visitor)
 
 
+def GetSymTabForBuiltInOrEmpty(mod_topo_order: list[cwast.DefMod]) -> SymTab:
+    builtin_syms = None
+    for mod in mod_topo_order:
+        if mod.builtin:
+            assert builtin_syms is None
+            builtin_syms = mod.x_symtab
+    return builtin_syms if builtin_syms else SymTab()
+
+
+def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: list[cwast.DefMod],
+                                                       builtin_syms: SymTab,
+                                                       must_resolve_all):
+    for mod in mod_topo_order:
+        for node in mod.body_mod:
+            if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
+                logger.info("Resolving global object: %s", node)
+                _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+                    node, builtin_syms, must_resolve_all)
+
+
 def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
     """
     At this point every DefMod has a symtable populated with the global symbols
@@ -373,21 +398,14 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
     * expand macros recursively (macros are global symbols)
     * reolve symbols within functions (= setting x_symbol)
     """
-    builtin_syms = None
-
-    for mod in mod_topo_order:
-        if mod.builtin:
-            assert builtin_syms is None
-            builtin_syms = mod.x_symtab
-    if builtin_syms is None:
-        builtin_syms = SymTab()
+    builtin_syms = GetSymTabForBuiltInOrEmpty(mod_topo_order)
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
                 logger.info("Resolving global object: %s", node)
                 _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    node, builtin_syms)
+                    node, builtin_syms, True)
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
