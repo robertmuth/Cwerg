@@ -3301,7 +3301,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             if not pre_symbolize:
                 assert node.x_symbol is not None or isinstance(
                     node.x_import, Import), f"{node} without x_import"
-            assert not node.name.startswith("$")
+            assert not node.name.startswith("$"), f"{node}"
         elif isinstance(node, MacroId):
             assert node.name.startswith("$")
         elif isinstance(node, MacroInvoke):

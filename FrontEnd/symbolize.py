@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import Optional, Any, Sequence
+from typing import Optional, Any, Sequence, Union
 
 from FrontEnd import pp
 from FrontEnd import macros
@@ -79,7 +79,6 @@ class SymTab:
         s = self._syms.get(name)
         if s:
             if must_be_public and not s.pub:
-
                 cwast.CompilerError(srcloc, f"{name} must be public")
             return s
 
@@ -117,16 +116,25 @@ class SymTab:
         return out
 
 
-def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes):
+def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -> Any:
+    if node.x_symbol:
+        # this happens for module parameter
+        return
+
     name = cwast.GetSymbolName(node.name)
     is_qualified = cwast.IsQualifiedName(node.name)
     if not is_qualified:
         for s in reversed(scopes):
             def_node = s.get(name)
             if def_node is not None:
-                return def_node
-    symtab = node.x_import.x_module.x_symtab
-    return symtab.resolve_sym(node, builtin_syms, is_qualified)
+                AnnotateNodeSymbol(node, def_node)
+                return
+    symtab: SymTab = node.x_import.x_module.x_symtab
+    def_node = symtab.resolve_sym(node, builtin_syms, is_qualified)
+    if def_node is None:
+        cwast.CompilerError(
+            node.x_srcloc, f"cannot resolve symbol for {node}")
+    AnnotateNodeSymbol(node, def_node)
 
 
 def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
@@ -178,7 +186,8 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
 MAX_MACRO_NESTING = 4
 
 
-def ExpandMacroOrMacroLike(node,  builtin_syms: SymTab, nesting, ctx: macros.MacroContext):
+def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cwast.MacroInvoke],
+                           builtin_syms: SymTab, nesting, ctx: macros.MacroContext):
     assert nesting < MAX_MACRO_NESTING
     assert cwast.NF.TO_BE_EXPANDED in node.FLAGS
     if isinstance(node, cwast.ExprSrcLoc):
@@ -249,11 +258,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
     if isinstance(node, cwast.DefVar):
         record_local_sym(node)
     elif isinstance(node, cwast.Id):
-        def_node = _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
-        if def_node is None:
-            cwast.CompilerError(
-                node.x_srcloc, f"cannot resolve symbol for {node}")
-        AnnotateNodeSymbol(node, def_node)
+        _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
         return
 
     # recurse using a little bit of introspection
@@ -321,7 +326,7 @@ def VerifyASTSymbolsRecursively(node):
             return
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
-            assert node.x_symbol is not None, f"unresolved symbol {node}"
+            assert node.x_symbol is not None, f"unresolved symbol {node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
             assert not node.name.startswith("$"), f"{node.name}"
@@ -476,8 +481,10 @@ def IterateValArray(val_array: cwast.ValArray, width):
         curr_val += 1
 
 
+# for now no DefEnum
 _NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.TypeUnion,
-                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSlice, cwast.DefEnum,
+                                  cwast.DefType,
+                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSlice,
                                   cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
 
 
@@ -514,6 +521,39 @@ def AreEqualNormalizedModParam(a, b) -> bool:
 
     return False
 
+
+def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
+    assert len(mod.params_mod) == len(args)
+    translation: dict[str, Any] = {}
+    for p, a in zip(mod.params_mod, args):
+        sl = p.x_srcloc
+        if isinstance(a, cwast.DefFun):
+            assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
+            translation[p.name] = cwast.Id(
+                "GENERIC::" + a.name, x_symbol=a, x_srcloc=p.x_srcloc)
+        elif isinstance(a, (cwast.DefRec, cwast.DefType)):
+            translation[p.name] = cwast.Id(
+                "GENERIC::" + a.name, x_symbol=a, x_srcloc=p.x_srcloc)
+        elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
+            translation[p.name] = a
+        else:
+            assert cwast.NF.TYPE_CORPUS in a.FLAGS
+            translation[p.name] = a
+
+    mod.params_mod.clear()
+
+    def replacer(node, _parent, _field):
+        nonlocal translation
+        if not isinstance(node, cwast.MacroId):
+            return None
+        name = node.name
+        assert name.startswith("$"), f" non macro name: {node}"
+        t = translation[name]
+
+        return cwast.CloneNodeRecursively(t, {}, {})
+
+    cwast.MaybeReplaceAstRecursivelyPost(mod, replacer)
+    return mod
 ############################################################
 #
 ############################################################

@@ -129,21 +129,40 @@ class ModPoolBase:
         # all modules keyed by ModHandle
         self._all_mods: dict[ModId, ModInfo] = {}
         self._taken_names: set[str] = set()
-        self._raw_generic: dict[pathlib.PurePath, ModInfo] = {}
+        self._raw_generic: dict[pathlib.PurePath, cwast.DefMod] = {}
 
     def __str__(self):
         return f"root={self._root}"
 
-    def _AddModInfoSimple(self, uid: ModId) -> ModInfo:
-        assert isinstance(uid, Tuple), uid
-        mod_info = ModInfo(uid, self._ReadMod(uid[0]))
+    def _AddModInfoCommon(self, mid, mod: cwast.DefMod) -> ModInfo:
+        mod_info = ModInfo(mid, mod)
         logger.info("Adding new mod: %s", mod_info)
-        self._all_mods[uid] = mod_info
+        self._all_mods[mid] = mod_info
         name = mod_info.mod.name
         assert name not in self._taken_names
         self._taken_names.add(name)
         mod_info.mod.x_modname = name
         return mod_info
+
+    def _AddModInfoSimple(self, uid: ModId) -> ModInfo:
+        assert isinstance(uid, Tuple), uid
+        mod = self._ReadMod(uid[0])
+        cwast.AnnotateImportsForQualifers(mod)
+        mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
+        return self._AddModInfoCommon(uid, mod)
+
+    def _AddModInfoForGeneric(self, mid: ModId) -> ModInfo:
+        path = mid[0]
+        args = list(mid)[1:]
+        generic_mod = self._raw_generic.get(path)
+        if not generic_mod:
+            logger.info("reading raw generic from: %s", path)
+            generic_mod = self._ReadMod(path)
+            self._raw_generic[path] = generic_mod
+        mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
+        cwast.AnnotateImportsForQualifers(mod)
+        mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
+        return self._AddModInfoCommon(mid, symbolize.SpecializeGenericModule(mod, args))
 
     def _FindModInfo(self, uid) -> Optional[ModInfo]:
         return self._all_mods.get(uid)
@@ -192,15 +211,11 @@ class ModPoolBase:
                             mid = (_ModUniquePathName(
                                 self._root, mod_info.uid[0], import_node.name),
                                 *normalized_args)
-                            path = mid[0]
-                            generic_mod = self._raw_generic.get(path)
-                            if not generic_mod:
-                                logger.info("reading raw generic from: %s", path)
-                                generic_mod = self._ReadMod(path)
-                                self._raw_generic[path] = generic_mod
-                            assert False, f"{mid}"
-                            assert False, f"{mid[0]} {mid[1]} {mid[2]}"
-
+                            import_mod_info = self._AddModInfoForGeneric(mid)
+                            seen_change = True
+                            import_node.x_module = import_mod_info.mod
+                            import_node.args_mod.clear()
+                            mod_info.mod.x_symtab.AddImport(import_node)
                         else:
                             num_unresolved += 1
                     else:
@@ -237,9 +252,7 @@ class ModPool(ModPoolBase):
         assert len(asts) == 1, f"multiple modules in {fn}"
         mod = asts[0]
         assert isinstance(mod, cwast.DefMod)
-        cwast.AnnotateImportsForQualifers(mod)
-        mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
-        return asts[0]
+        return mod
 
 
 if __name__ == "__main__":
