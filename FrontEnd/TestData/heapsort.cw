@@ -14,9 +14,11 @@
 
 (global ERROR auto "ERROR\n")
 
+(fun cmp_lt [(param a (ptr r64)) (param b (ptr r64))] bool :
+    (return (< (^ a) (^ b)))
+)
 
 (fun heap_sort [(param n uint) (param data (ptr! r64))] void :
-    (@ref let! buf (array 32 u8) undef)
     (let! ir auto n)
     (let! l auto (+ (>> n 1) 1))
     (let! rdata r64 undef)
@@ -35,7 +37,10 @@
         (let! i auto l)
         (let! j auto (<< l 1))
         (while (<= j ir) :
-            (if (&& (< j ir) (< (^ (pinc data j)) (^ (pinc data (+ j 1))))) :
+            (if (&&
+                 (< j ir)
+                 (call cmp_lt [(pinc data j)
+                               (pinc data (+ j 1))])) :
                 (+= j 1)
                 :)
             (if (< rdata (^ (pinc data j))) :
