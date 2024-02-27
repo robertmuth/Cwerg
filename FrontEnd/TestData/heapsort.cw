@@ -6,7 +6,7 @@
 (global SIZE uint 20)
 
 
-(global! Data auto (array_val (+ SIZE 1) r64))
+(global! Data auto (array_val SIZE r64))
 
 
 (global NEWLINE auto "\n")
@@ -18,7 +18,9 @@
     (return (< (^ a) (^ b)))
 )
 
-(fun heap_sort [(param n uint) (param data (ptr! r64))] void :
+(fun heap_sort [(param sdata (slice! r64))] void :
+    (let data (ptr! r64) (front! sdata))
+    (let n auto (len sdata))
     (let! ir auto n)
     (let! l auto (+ (>> n 1) 1))
     (let! rdata r64 undef)
@@ -68,7 +70,7 @@
     (shed (dump_array [SIZE (& (at Data 1))]))
     (fmt::print# NEWLINE)
     (fmt::print# SIZE NEWLINE)
-    (shed (heap_sort [SIZE (&! (at Data 0))]))
+    (shed (heap_sort [Data]))
     (fmt::print# NEWLINE)
     (shed (dump_array [SIZE (& (at Data 1))]))
     (fmt::print# NEWLINE)
