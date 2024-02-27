@@ -40,11 +40,11 @@
         (let! j auto (<< l 1))
         (while (<= j ir) :
             (if (&&
-                 (< j ir)
-                 (call cmp_lt [(pinc data j)
+                (< j ir)
+                (call cmp_lt [(pinc data j)
                                (pinc data (+ j 1))])) :
                 (+= j 1)
-                :)
+            :)
             (if (< rdata (^ (pinc data j))) :
                 (= (^ (pinc data i)) (^ (pinc data j)))
                 (= i j)
