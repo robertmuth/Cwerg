@@ -18,6 +18,9 @@ $keq:
   @doc "the key equality checker: ptr($ktype) X ptr($ktype) -> bool
   (modparam $keq CONST_EXPR)] :
 
+(import fmt)
+
+
 (global FreeEntry u8 0x00)
 (global DeletedEntry u8 0x01)
 (global UsedEntryMark u8 0x80)
@@ -48,19 +51,26 @@ The Hashtable contains pointers to 3 arrays of size `size`:
     (param key (ptr $ktype))] (union [void (ptr! $vtype)]) :
   (let h u32 (call $khash [key]))
   (let filter u8 (or (as h u8) UsedEntryMark))
+  (fmt::print# "Lookup key: " (^ key)  " hash: " h " filter " filter "\n")
 
   (let meta auto (-> ht meta))
   (let keys auto (-> ht keys))
+  (let vals auto (-> ht vals))
   (let size auto (-> ht size))
+
   (let! i auto (% h size))
 
   (while true :
+    (fmt::print# "Scanning: " (^ (pinc keys i)) " index: " i " val: "  (^ (pinc vals i))  "\n")
+
     (let m auto (^ (pinc meta i)))
     (if (== m FreeEntry) :
+        (fmt::print# "Not Found\n")
         (return void_val)
     :)
     (if (&& (== m filter) (call $keq [key (pinc keys i)])) :
-        (return (pinc (pinc (-> ht vals) i) i))
+        (fmt::print# "Found point: " i "\n")
+        (return (pinc vals i))
     :)
     (+= i 1)
     (if (>= i size) : (-= i size) :)
@@ -73,7 +83,7 @@ The Hashtable contains pointers to 3 arrays of size `size`:
     (param val (ptr $vtype))] bool :
   (let h u32 (call $khash [key]))
   (let filter u8 (or (as h u8) UsedEntryMark))
-
+  (fmt::print# "Insert key: " (^ key) " hash: " h " filter " filter " val: "  (^ val) "\n")
   (let meta auto (-> ht meta))
   (let keys auto (-> ht keys))
   (let size auto (-> ht size))
@@ -87,11 +97,15 @@ The Hashtable contains pointers to 3 arrays of size `size`:
          (if (! seen_deleted) :
             (= first_deleted i)
          :)
-         (= (^ (pinc (-> ht vals) first_deleted)) (^ val) )
+         (fmt::print# "Insert point: " first_deleted "\n")
+         (= (^ (pinc meta first_deleted)) filter)
+         (= (^ (pinc keys first_deleted)) (^ key))
+         (= (^ (pinc (-> ht vals) first_deleted)) (^ val))
          (+= (-> ht used) 1)
          (return true)
     :)
     (if (&& (== m filter) (call $keq [key (pinc keys i)])) :
+       (fmt::print# "Update point: " i "\n")
         (= (^ (pinc (-> ht vals) i)) (^ val) )
         (return false)
     :)
@@ -129,5 +143,28 @@ The Hashtable contains pointers to 3 arrays of size `size`:
     (if (>= i size) : (-= i size) :)
   )
 )
+
+@pub (fun DebugDump [(param ht (ptr HashTab32))] void :
+  (let meta auto (-> ht meta))
+  (let keys auto (-> ht keys))
+  (let vals auto (-> ht vals))
+  (for i 0 (-> ht size) 1 :
+      (fmt::print# i " ")
+      (let m auto (^ (pinc meta i)))
+      (cond :
+        (case (== m DeletedEntry) :
+          (fmt::print# "DELETED")
+        )
+        (case (== m FreeEntry) :
+          (fmt::print# "FREE")
+        )
+        (case true :
+          (fmt::print# m " " (^ (pinc keys i)) " " (^ (pinc vals i)))
+        )
+      )
+      (fmt::print# "\n")
+  )
+)
+
 
 )
