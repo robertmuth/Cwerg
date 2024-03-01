@@ -525,7 +525,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
     assert init_node.x_type.size > 0, f"{init_node}"
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
                               cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
-                              cwast.Expr2, cwast.ExprPointer, cwast.ExprBitCast,
+                              cwast.Expr1, cwast.Expr2,
+                              cwast.ExprPointer, cwast.ExprBitCast,
                               cwast.ExprFront, cwast.ExprBitCast)):
         reg = EmitIRExpr(init_node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
