@@ -96,6 +96,7 @@ tests_lib_a64: \
     $(DIR)/sha3_test.lib.a64.exe
 
 tests_emit_x64: \
+    $(DIR)/hash_test.run.x64.exe \
     $(DIR)/sort.run.x64.exe \
     $(DIR)/linked_list.run.x64.exe \
     $(DIR)/hello_world.run.x64.exe \
@@ -107,6 +108,7 @@ tests_emit_x64: \
     $(DIR)/wordcount.x64.test
 
 tests_emit_a64: \
+    $(DIR)/hash_test.run.x64.exe \
     $(DIR)/sort.run.a64.exe \
     $(DIR)/linked_list.run.a64.exe \
     $(DIR)/hello_world.run.a64.exe \
