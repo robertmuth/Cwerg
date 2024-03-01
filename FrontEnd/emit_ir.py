@@ -399,6 +399,13 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             print(
                 f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
             return res
+        elif isinstance(def_node, cwast.FunParam):
+            return node.x_symbol.name
+        elif _IsDefVarOnStack(def_node):
+            res = id_gen.NewName("stkread")
+            print(
+                f"{TAB}ld.stk {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
+            return res
         else:
             return node.x_symbol.name
     elif isinstance(node, cwast.ExprAddrOf):
