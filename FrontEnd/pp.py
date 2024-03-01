@@ -14,11 +14,7 @@ import dataclasses
 from typing import Optional
 
 from FrontEnd import cwast
-from FrontEnd import parse
-from FrontEnd import symbolize
-from FrontEnd import typify
-from FrontEnd import type_corpus
-from FrontEnd import eval
+
 from FrontEnd import mod_pool
 
 logger = logging.getLogger(__name__)
@@ -297,7 +293,7 @@ def DecorateNode(node_name, node):
     return out
 
 
-def RenderRecursivelyHTML(node, tc, out, indent: int):
+def RenderRecursivelyHTML(node, out, indent: int):
     line = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
@@ -336,7 +332,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: int):
             line.append(" " + val.name)
         elif field_kind is cwast.NFK.NODE:
             line.append(" ")
-            RenderRecursivelyHTML(val, tc, out, indent)
+            RenderRecursivelyHTML(val, out, indent)
         elif field_kind is cwast.NFK.LIST:
             extra_indent = GetColonIndent(field)
             if not val:
@@ -345,7 +341,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: int):
                 line.append(" [")
                 for cc in val:
                     out.append(RenderIndent(indent + extra_indent))
-                    RenderRecursivelyHTML(cc, tc, out, indent + extra_indent)
+                    RenderRecursivelyHTML(cc, out, indent + extra_indent)
                 if field == "body_mod":
                     out.append(RenderIndent(indent))
                 out[-1].append("]")
@@ -360,7 +356,7 @@ def RenderRecursivelyHTML(node, tc, out, indent: int):
         out.append(["<p></p>"])
 
 
-def PrettyPrintHTML(mod: cwast.DefMod, tc):  # -> list[Tuple[int, str]]:
+def PrettyPrintHTML(mod: cwast.DefMod):  # -> list[Tuple[int, str]]:
     out = [[
         """<html>
            <style>
@@ -368,7 +364,7 @@ def PrettyPrintHTML(mod: cwast.DefMod, tc):  # -> list[Tuple[int, str]]:
            span.name { font-weight: bold; }
            </style>"""]
     ]
-    RenderRecursivelyHTML(mod, tc, out, 0)
+    RenderRecursivelyHTML(mod, out, 0)
     out += [["</html>"]]
     for a in out:
         print("".join(a))
@@ -1309,61 +1305,67 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
 ############################################################
 #
 ############################################################
-def main():
-    parser = argparse.ArgumentParser(description='pretty_printer')
-    parser.add_argument(
-        '-mode', type=str, help='mode. one of: reformat, annotate, concrete', default="reformat")
-    parser.add_argument('files', metavar='F', type=str, nargs='+',
-                        help='an input source file')
-    args = parser.parse_args()
-
-    logging.basicConfig(level=logging.WARN)
-    logger.setLevel(logging.INFO)
-    assert len(args.files) == 1
-    assert args.files[0].endswith(".cw")
-
-    if args.mode == 'reformat':
-        with open(args.files[0], encoding="utf8") as f:
-            mods = parse.ReadModsFromStream(f)
-            assert len(mods) == 1
-            PrettyPrint(mods[0])
-    elif args.mode == 'annotate':
-        cwd = os.getcwd()
-        mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-        mp.ReadModulesRecursively(["builtin",
-                                   str(pathlib.Path(args.files[0][:-3]).resolve())])
-
-        mod_topo_order = mp.ModulesInTopologicalOrder()
-        symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
-        for mod in mod_topo_order:
-            cwast.StripFromListRecursively(mod, cwast.DefMacro)
-        tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
-        typify.DecorateASTWithTypes(mod_topo_order, tc)
-        eval.DecorateASTWithPartialEvaluation(mod_topo_order)
-
-        for mod in mod_topo_order:
-            PrettyPrintHTML(mod, tc)
-    elif args.mode == 'concrete':
-        with open(args.files[0], encoding="utf8") as f:
-            mods = parse.ReadModsFromStream(f)
-            assert len(mods) == 1
-            for m in mods:
-                assert isinstance(m, cwast.DefMod)
-                cwast.AnnotateRoleForMacroInvoke(m)
-                AddMissingParens(m)
-                cwast.CheckAST(m, set(), pre_symbolize=True)
-            # we first produce an output token stream from the AST
-            ts = TS()
-            EmitTokens(ts, mods[0])
-            tokens = list(ts._tokens)
-            # print(tokens)
-            # reverse once because popping of the end of a list is more efficient
-            tokens.reverse()
-            # and now format the stream
-            FormatTokenStream(tokens, Stack(), Sink())
-    else:
-        assert False, f"unknown mode {args.mode}"
-
-
 if __name__ == "__main__":
+    from FrontEnd import type_corpus
+    from FrontEnd import parse
+    from FrontEnd import symbolize
+    from FrontEnd import typify
+    from FrontEnd import eval
+
+    def main():
+        parser = argparse.ArgumentParser(description='pretty_printer')
+        parser.add_argument(
+            '-mode', type=str, help='mode. one of: reformat, annotate, concrete', default="reformat")
+        parser.add_argument('files', metavar='F', type=str, nargs='+',
+                            help='an input source file')
+        args = parser.parse_args()
+
+        logging.basicConfig(level=logging.WARN)
+        logger.setLevel(logging.INFO)
+        assert len(args.files) == 1
+        assert args.files[0].endswith(".cw")
+
+        if args.mode == 'reformat':
+            with open(args.files[0], encoding="utf8") as f:
+                mods = parse.ReadModsFromStream(f)
+                assert len(mods) == 1
+                PrettyPrint(mods[0])
+        elif args.mode == 'annotate':
+            cwd = os.getcwd()
+            mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
+            mp.ReadModulesRecursively(["builtin",
+                                    str(pathlib.Path(args.files[0][:-3]).resolve())])
+
+            mod_topo_order = mp.ModulesInTopologicalOrder()
+            symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
+            for mod in mod_topo_order:
+                cwast.StripFromListRecursively(mod, cwast.DefMacro)
+            tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
+            typify.DecorateASTWithTypes(mod_topo_order, tc)
+            eval.DecorateASTWithPartialEvaluation(mod_topo_order)
+
+            for mod in mod_topo_order:
+                PrettyPrintHTML(mod, tc)
+        elif args.mode == 'concrete':
+            with open(args.files[0], encoding="utf8") as f:
+                mods = parse.ReadModsFromStream(f)
+                assert len(mods) == 1
+                for m in mods:
+                    assert isinstance(m, cwast.DefMod)
+                    cwast.AnnotateRoleForMacroInvoke(m)
+                    AddMissingParens(m)
+                    cwast.CheckAST(m, set(), pre_symbolize=True)
+                # we first produce an output token stream from the AST
+                ts = TS()
+                EmitTokens(ts, mods[0])
+                tokens = list(ts._tokens)
+                # print(tokens)
+                # reverse once because popping of the end of a list is more efficient
+                tokens.reverse()
+                # and now format the stream
+                FormatTokenStream(tokens, Stack(), Sink())
+        else:
+            assert False, f"unknown mode {args.mode}"
+
+
     main()
