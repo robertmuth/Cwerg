@@ -45,7 +45,7 @@ def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod
         assert isinstance(mod, cwast.DefMod)
         for node, _ in mi.imports:
             importee = node.x_module
-            assert isinstance(importee, cwast.DefMod)
+            assert isinstance(importee, cwast.DefMod), node
 
             logger.info(
                 "found mod deps [%s] imported by [%s]", importee, mod)
@@ -145,6 +145,7 @@ class ModPoolBase:
         return mod_info
 
     def _AddModInfoSimple(self, uid: ModId) -> ModInfo:
+        """Register regular module"""
         assert isinstance(uid, Tuple), uid
         mod = self._ReadMod(uid[0])
         cwast.AnnotateImportsForQualifers(mod)
@@ -152,6 +153,7 @@ class ModPoolBase:
         return self._AddModInfoCommon(uid, mod)
 
     def _AddModInfoForGeneric(self, mid: ModId) -> ModInfo:
+        """Specialize Generic Mod and register it"""
         path = mid[0]
         args = list(mid)[1:]
         generic_mod = self._raw_generic.get(path)
@@ -212,10 +214,11 @@ class ModPoolBase:
                                 self._root, mod_info.uid[0], import_node.name),
                                 *normalized_args)
                             import_mod_info = self._AddModInfoForGeneric(mid)
-                            seen_change = True
                             import_node.x_module = import_mod_info.mod
                             import_node.args_mod.clear()
                             mod_info.mod.x_symtab.AddImport(import_node)
+                            new_active.append(import_mod_info)
+                            seen_change = True
                         else:
                             num_unresolved += 1
                     else:
