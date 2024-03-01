@@ -8,21 +8,37 @@ $vtype:
 $khash:
 $keq:
 """
-(module heapsort [(modparam $ktype TYPE)
-                  (modparam $vtype TYPE)
-                  (modparam $khash CONST_EXPR)
-                  (modparam $keq CONST_EXPR)] :
+(module hashtab32 [
+  @doc "the key type"
+  (modparam $ktype TYPE)
+  @doc "the value type"
+  (modparam $vtype TYPE)
+  @doc "the hash function: ptr($ktype) -> u32
+  (modparam $khash CONST_EXPR)
+  @doc "the key equality checker: ptr($ktype) X ptr($ktype) -> bool
+  (modparam $keq CONST_EXPR)] :
 
 (global FreeEntry u8 0x00)
 (global DeletedEntry u8 0x01)
 (global UsedEntryMark u8 0x80)
 
+@doc """
+The Hashtable contains pointers to 3 arrays of size `size`:
+* meta: u8 entries with the following meaning:
+  - FreeEntry (0):              entry is unused
+  - DeletedEntry (1):           tombstone for deleted FreeEntry
+  - Highbit (UsedEntryMark) set: entry is used and low 7 bit of
+                                key hash matches
+* keys: the keys
+* vals: the value
+
+"""
 @pub (defrec HashTab32 :
-	(field meta (ptr! u8))
+  (field meta (ptr! u8))
 	(field keys	(ptr! $ktype))
 	(field vals	(ptr! $vtype))
-    (field size u32)
-    (field used u32)
+  (field size u32)
+  (field used u32)
 )
 
 (global NotFound u32 0xffffffff)
@@ -31,7 +47,7 @@ $keq:
     (param ht (ptr HashTab32))
     (param key (ptr $ktype))] (union [void (ptr! $vtype)]) :
   (let h u32 (call $khash [key]))
-  (let filter u8 (as (and h 0x7f) u8))
+  (let filter u8 (or (as h u8) UsedEntryMark))
 
   (let meta auto (-> ht meta))
   (let keys auto (-> ht keys))
@@ -56,7 +72,7 @@ $keq:
     (param key (ptr $ktype))
     (param val (ptr $vtype))] bool :
   (let h u32 (call $khash [key]))
-  (let filter u8 (as (and h 0x7f) u8))
+  (let filter u8 (or (as h u8) UsedEntryMark))
 
   (let meta auto (-> ht meta))
   (let keys auto (-> ht keys))
@@ -92,7 +108,7 @@ $keq:
     (param ht (ptr! HashTab32))
     (param key (ptr $ktype))] bool :
   (let h u32 (call $khash [key]))
-  (let filter u8 (as (and h 0x7f) u8))
+  (let filter u8 (or (as h u8) UsedEntryMark))
 
   (let meta auto (-> ht meta))
   (let keys auto (-> ht keys))
