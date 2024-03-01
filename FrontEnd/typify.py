@@ -705,7 +705,7 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
         else:
             assert False
     else:
-        assert op1_type.is_base_type()
+        assert op1_type.is_base_type(), f"{node}"
         _CheckTypeSame(node, op1_type, result_type)
         _CheckTypeSame(node, op2_type, result_type)
 

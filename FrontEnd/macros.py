@@ -120,7 +120,6 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         cwast.CompilerError(invoke.x_srcloc, f"parameter mismatch in: {invoke}: "
                             f"actual {len(args)} expected: {len(params)}")
     logger.info("Expanding Macro Invocation: %s", invoke)
-    logger.info("Macro: %s", macro)
     # pp.PrettyPrint(invoke)
     # pp.PrettyPrint(macro)
     ctx.PushScope(invoke.x_srcloc)
@@ -151,7 +150,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
             gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, x_srcloc=macro.x_srcloc)))
     out = []
     for node in macro.body_macro:
-        logger.info("Expand macro body node: %s", node)
+        logger.debug("Expand macro body node: %s", node)
         # pp.PrettyPrint(node)
         exp = ExpandMacroRecursively(node, ctx)
         # pp.PrettyPrint(exp)
