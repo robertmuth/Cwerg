@@ -1,12 +1,10 @@
 @doc """hashtab32
 
-32 refers to width of the integer returned by the hash function.
+32 refers to the width of the integer returned by the hash function.
 This also limits the max table size to (2^32 - 1).
 
-$ktype:
-$vtype:
-$khash:
-$keq:
+The approach used is linear probing with separate arrays afor keys and values
+(and meta data) to improve reference locality. 
 """
 (module hashtab32 [
   @doc "the key type"
