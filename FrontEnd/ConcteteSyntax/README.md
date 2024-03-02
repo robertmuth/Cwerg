@@ -3,7 +3,7 @@
 Cwerg's syntax is inspired by Python. Indentation levels are significant.
 
 Cwerg is statically type with limited type inference at the statement level.
-In declarations and defintions the type immediately follows the identifier as in golang.
+In declarations and defintions the type immediately follows the identifier as in go-lang.
 
 Semantically, Cwerg is closer to C but with many foot guns removed and features added.
 The guiding principle is to make things that are unsafe, hard to reason about,
@@ -16,7 +16,7 @@ In a somewhat random order the changes are:
 All variables, pointer expression and pointer types are readonly by default.
 (For pointers that means the data pointed to cannot be modified via the pointer.)
 
-Appending a `!` will result in the resulting read/writ flavor:
+Appending a `!` will result in the corresponding writable flavor:
 
 | Readonly  |  Read/Write | Description |
 | --------- | --------- | -------- |
@@ -141,7 +141,7 @@ This will also apply to record fields.
 
 ### modules/namespaces
 
-Everything lives in a module. Modules may NOT be nested. And import chains may not have cycles.
+Everything lives in a module. Modules may NOT be nested. Import chains may not have cycles.
 
 ### arrays and slices
 
