@@ -1,5 +1,7 @@
 # Cwerg
 
+## The best C-like language that can be implemented in 10kLOC
+
 ![Status](../../workflows/cwerg-tests/badge.svg)
 
 Cwerg aims to be a complete "from-scratch" compiler for a C-like language.
