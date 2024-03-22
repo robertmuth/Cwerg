@@ -58,13 +58,13 @@ Statements and expressions are strictly separated.
 set x += foo()  -- assignment expresssion
 
 bar() -- compiler error function calls are expressions and cannot be used as statement
-drop bar() -- OK, drop ignores result of expression which makes into a statement.
+drop bar() -- OK, drop ignores result of expression which makes it into a statement.
 ```
 
 `--` and `++` are not part of the language as they blur the distinction between expressions
 and statements.
 
-### optionally named blocks with opitonally named continue and break
+### optionally named blocks with optionally named continue and break
 
 ```
 block outer:
@@ -134,7 +134,7 @@ All variables/constants are zero initialized by default.
 This can be prevented with the `undef` initializer.
 
 
-### global definintions (variable, functions, types, macros, ..,) are private by default
+### global defininitions (variable, functions, types, macros, ..,) are private by default
 
 An explicit `@pub` annotation is required to make symbols visible for export.
 This will also apply to record fields.
@@ -145,7 +145,7 @@ Everything lives in a module. Modules may NOT be nested. Import chains may not h
 
 ### arrays and slices
 
-The dimenson of an arrayt is part of the type:
+The dimenson of an array is part of the type:
 
 `array(100, u8)` is incompatible with `array(99, u8)`
 
