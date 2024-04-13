@@ -52,7 +52,7 @@
 
 
 (macro product# STMT_LIST [(mparam $result ID) (mparam $factors STMT_LIST)] [] :
-    ($for $x $factors :
+    (mfor $x $factors :
         (= $result (* $result $x))))
 
 

@@ -71,7 +71,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 )
 
 (macro XOR_1# STMT_LIST  [(mparam $x EXPR) (mparam $indices EXPR_LIST) (mparam $v EXPR)] [] :
-     ($for $i $indices : (xor= (at (^ $x) $i) $v))
+     (mfor $i $indices : (xor= (at (^ $x) $i) $v))
 )
 
 (macro UPDATE# STMT_LIST [(mparam $a EXPR) (mparam $b EXPR) (mparam $x EXPR) (mparam $i EXPR) (mparam $bitpos EXPR)] [] :

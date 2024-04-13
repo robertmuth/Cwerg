@@ -49,10 +49,10 @@
         (mparam $out EXPR)] [$v $out_eval $tmp $pos] :
     (expr :
         @doc "unsigned to str with given base"
-        ($let! $v auto $val)
-        ($let! $tmp auto (array_val 1024 u8))
-        ($let! $pos uint $max_width)
-        ($let $out_eval auto $out)
+        (mlet! $v auto $val)
+        (mlet! $tmp auto (array_val 1024 u8))
+        (mlet! $pos uint $max_width)
+        (mlet $out_eval auto $out)
         (block _ :
             (-= $pos 1)
             (let c auto (% $v $base))
@@ -351,10 +351,10 @@
 @pub (macro print# STMT_LIST [
         @doc "list of items to be printed"
         (mparam $parts EXPR_LIST_REST)] [$buffer $curr $options] :
-    ($let! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
-    ($let! $curr uint 0)
-    (@ref $let! $options auto (rec_val SysFormatOptions []))
-    ($for $i $parts :
+    (mlet! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
+    (mlet! $curr uint 0)
+    (@ref mlet! $options auto (rec_val SysFormatOptions []))
+    (mfor $i $parts :
         (+= $curr (@polymorphic SysRender [
                 $i
                 (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr))
@@ -364,10 +364,10 @@
 @doc "same as above but takes an EXPR_LIST - should only be used by other macros"
 @pub (macro print_list# STMT_LIST [
         (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
-    ($let! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
-    ($let! $curr uint 0)
-    (@ref $let! $options auto (rec_val SysFormatOptions []))
-    ($for $i $parts :
+    (mlet! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
+    (mlet! $curr uint 0)
+    (@ref mlet! $options auto (rec_val SysFormatOptions []))
+    (mfor $i $parts :
         (+= $curr (@polymorphic SysRender [
                 $i
                 (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr))

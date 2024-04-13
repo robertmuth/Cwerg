@@ -2822,7 +2822,7 @@ class MacroVar:
     `name` must start with a `$`.
 
     """
-    ALIAS = "$let"
+    ALIAS = "mlet"
     GROUP = GROUP.Macro
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
@@ -2848,7 +2848,7 @@ class MacroFor:
     loops over the macro parameter `name_list` which must be a list and
     binds each list element to `name` while expanding the AST nodes in `body_for`.
     """
-    ALIAS = "$for"
+    ALIAS = "mfor"
     GROUP = GROUP.Macro
     FLAGS = NF.MACRO_BODY_ONLY | NF.NON_CORE
     #

@@ -482,7 +482,7 @@ BEG_TOKENS = set([
     "break", "continue", "fun", "cond", "type", "if", "type",
     "shed", "discard", "rec", "case", "let", "let!", "set", "for", "macro",
     "while", "tryset", "trylet", "trap", "return", "NONE", "static_assert",
-    "$let", "$let!", "$for", "$for!", "swap",
+    "mlet", "$let!", "mfor", "$for!", "swap",
 ])
 
 INDENT = 1
@@ -788,7 +788,7 @@ def TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
 
 
 def TokensMacroFor(ts: TS, node: cwast.MacroFor):
-    beg_for = ts.EmitBeg("$for")
+    beg_for = ts.EmitBeg("mfor")
     ts.EmitAttr(node.name)
     ts.EmitAttr(node.name_list)
     beg_colon = ts.EmitBegColon()
@@ -1029,7 +1029,7 @@ _CONCRETE_SYNTAX = {
     #
     cwast.MacroId: TokensMacroId,
     cwast.MacroInvoke: TokensMacroInvoke,
-    cwast.MacroVar: lambda ts, n: TokensStmtLet(ts, WithMut("$let", n.mut), n.name, n.type_or_auto, n.initial_or_undef_or_auto),
+    cwast.MacroVar: lambda ts, n: TokensStmtLet(ts, WithMut("mlet", n.mut), n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.MacroFor: TokensMacroFor,
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),

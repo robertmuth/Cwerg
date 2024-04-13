@@ -13,7 +13,7 @@
 
 (macro xdump_slice# STMT_LIST [
    (mparam $prefix EXPR) (mparam $slice EXPR)] [$s_eval $i] :
-   ($let $s_eval auto $slice)
+   (mlet $s_eval auto $slice)
    (for $i 0 (len $s_eval) 1 :
        (fmt::print# $prefix $i " -> " (at $s_eval $i) "\n"))
 )

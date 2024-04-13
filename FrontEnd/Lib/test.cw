@@ -10,7 +10,7 @@ the footprint/dependencies small.
 
 
 (macro SysPrint# STMT_LIST [(mparam $msg EXPR)] [$msg_eval] :
-    ($let $msg_eval (slice u8) $msg)
+    (mlet $msg_eval (slice u8) $msg)
     (shed (os::write [(unwrap os::Stdout) (front $msg_eval) (len $msg_eval)])
     ))
 
@@ -22,8 +22,8 @@ the footprint/dependencies small.
 
 Both must have derivable types as we use `auto`"""
 @pub (macro AssertEq# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
-    ($let $e_val auto $e_expr)
-    ($let $a_val auto $a_expr)
+    (mlet $e_val auto $e_expr)
+    (mlet $a_val auto $a_expr)
     (if (!= $e_val $a_val) :
         (SysPrint# "AssertEq failed: ")
         (SysPrint# (stringify $e_expr))
@@ -47,8 +47,8 @@ Both must have derivable types as we use `auto`"""
 @doc "The two arguments must type derivable"
 @pub (macro AssertSliceEq# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)]
         [$e_val $a_val $i] :
-    ($let $e_val auto $e_expr)
-    ($let $a_val auto $a_expr)
+    (mlet $e_val auto $e_expr)
+    (mlet $a_val auto $a_expr)
     (AssertEq# (len $e_val) (len $a_val))
     (for $i 0 (len $a_val) 1 :
         (AssertEq# (^ (pinc (front $e_val) $i)) (^ (pinc (front $a_val) $i)))))
@@ -59,8 +59,8 @@ Both must have derivable types as we use `auto`"""
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
         (mparam $epsilon EXPR)] [$e_val $a_val] :
-    ($let $e_val auto $e_expr)
-    ($let $a_val auto $a_expr)
+    (mlet $e_val auto $e_expr)
+    (mlet $a_val auto $a_expr)
     (if (|| (< $e_val (- $a_val $epsilon)) (> $e_val (+ $a_val $epsilon))) :
         (SysPrint# "AssertApproxEq failed: ")
         (SysPrint# (stringify $e_expr))
@@ -76,8 +76,8 @@ Both must have derivable types as we use `auto`"""
         (mparam $e_expr EXPR)
         (mparam $a_expr EXPR)
         (mparam $epsilon EXPR)] [$e_val $a_val $i] :
-    ($let $e_val auto $e_expr)
-    ($let $a_val auto $a_expr)
+    (mlet $e_val auto $e_expr)
+    (mlet $a_val auto $a_expr)
     (AssertEq# (len $e_val) (len $a_val))
     (for $i 0 (len $a_val) 1 :
         (AssertApproxEq# (^ (pinc (front $e_val) $i)) (^ (pinc (front $a_val) $i))))

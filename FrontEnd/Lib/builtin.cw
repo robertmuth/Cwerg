@@ -19,14 +19,14 @@ The type of the loop variable is determined by $end"""
         (mparam $end EXPR)
         (mparam $step EXPR)
         (mparam $body STMT_LIST)] [$end_eval $step_eval $it] :
-    ($let $end_eval (typeof $end) $end)
-    ($let $step_eval (typeof $end) $step)
-    ($let! $it (typeof $end) $start)
+    (mlet $end_eval (typeof $end) $end)
+    (mlet $step_eval (typeof $end) $step)
+    (mlet! $it (typeof $end) $start)
     (block _ :
         (if (>= $it $end_eval) :
             (break)
             :)
-        ($let $index auto $it)
+        (mlet $index auto $it)
         (= $it (+ $it $step_eval))
         $body
         (continue)))
@@ -38,32 +38,32 @@ The type of the loop variable is determined by $end"""
         (mparam $expr EXPR)
         (mparam $catch_name ID)
         (mparam $catch_body STMT_LIST)] [$eval] :
-    ($let $eval auto $expr)
+    (mlet $eval auto $expr)
     (if (is $eval $type) :
         :
-        ($let $catch_name auto
+        (mlet $catch_name auto
             (@unchecked narrowto $eval (uniondelta (typeof $eval) $type)))
         $catch_body
         (trap))
-    ($let $name $type (narrowto $eval $type)))
+    (mlet $name $type (narrowto $eval $type)))
 
 @pub (macro tryset STMT_LIST [
         (mparam $name ID)
         (mparam $expr EXPR)
         (mparam $catch_name ID)
         (mparam $catch_body STMT_LIST)] [$eval] :
-    ($let $eval auto $expr)
+    (mlet $eval auto $expr)
     (if (is $eval (typeof $name)) :
         :
-        ($let $catch_name auto
+        (mlet $catch_name auto
             (@unchecked narrowto $eval (uniondelta (typeof $eval) (typeof $type))))
         $catch_body
         (trap))
-    ($let $name $type (narrowto $eval $type)))
+    (mlet $name $type (narrowto $eval $type)))
 
 
 (macro swap# STMT_LIST [(mparam $a EXPR) (mparam $b EXPR)] [$t] :
-    ($let $t auto $a)
+    (mlet $t auto $a)
     (= $a $b)
     (= $b $t))
 
