@@ -481,7 +481,7 @@ BEG_TOKENS = set([
     "module", "global", "global!", "enum", "import", "defer", "block", "expr",
     "break", "continue", "fun", "cond", "type", "if", "type",
     "shed", "discard", "rec", "case", "let", "let!", "set", "for", "macro",
-    "while", "try", "trylet", "trap", "return", "NONE", "static_assert",
+    "while", "tryset", "trylet", "trap", "return", "NONE", "static_assert",
     "$let", "$let!", "$for", "$for!", "swap",
 ])
 
@@ -1061,7 +1061,7 @@ _CONCRETE_SYNTAX = {
     cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, "offsetof", [n.type, n.field]),
     cwast.ExprLen: lambda ts, n: TokensFunctional(ts, "len", [n.container]),
     cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
-    cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
+    cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "typeid", [n.type]),
     cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, "narrowto", [n.expr, n.type]),
     cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_INV[n.unary_expr_kind], n.expr),
     cwast.ExprPointer: lambda ts, n: TokensFunctional(
