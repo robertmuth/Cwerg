@@ -6,7 +6,7 @@ import collections
 import heapq
 
 from FrontEnd import cwast
-from FrontEnd import parse
+from FrontEnd import parse_sexpr
 from FrontEnd import symbolize
 
 from typing import Optional, Sequence, Tuple
@@ -251,7 +251,7 @@ class ModPool(ModPoolBase):
 
     def _ReadMod(self, handle: pathlib.PurePath) -> cwast.DefMod:
         fn = str(handle) + ".cw"
-        asts = parse.ReadModsFromStream(open(fn, encoding="utf8"), fn)
+        asts = parse_sexpr.ReadModsFromStream(open(fn, encoding="utf8"), fn)
         assert len(asts) == 1, f"multiple modules in {fn}"
         mod = asts[0]
         assert isinstance(mod, cwast.DefMod)

@@ -5,10 +5,7 @@
 """
 
 import logging
-import argparse
 import enum
-import os
-import pathlib
 import dataclasses
 
 from typing import Optional
@@ -1306,8 +1303,12 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
 #
 ############################################################
 if __name__ == "__main__":
+    import os
+    import argparse
+    import pathlib
+
     from FrontEnd import type_corpus
-    from FrontEnd import parse
+    from FrontEnd import parse_sexpr
     from FrontEnd import symbolize
     from FrontEnd import typify
     from FrontEnd import eval
@@ -1327,14 +1328,14 @@ if __name__ == "__main__":
 
         if args.mode == 'reformat':
             with open(args.files[0], encoding="utf8") as f:
-                mods = parse.ReadModsFromStream(f)
+                mods = parse_sexpr.ReadModsFromStream(f)
                 assert len(mods) == 1
                 PrettyPrint(mods[0])
         elif args.mode == 'annotate':
             cwd = os.getcwd()
             mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
             mp.ReadModulesRecursively(["builtin",
-                                    str(pathlib.Path(args.files[0][:-3]).resolve())])
+                                       str(pathlib.Path(args.files[0][:-3]).resolve())])
 
             mod_topo_order = mp.ModulesInTopologicalOrder()
             symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
@@ -1348,7 +1349,7 @@ if __name__ == "__main__":
                 PrettyPrintHTML(mod, tc)
         elif args.mode == 'concrete':
             with open(args.files[0], encoding="utf8") as f:
-                mods = parse.ReadModsFromStream(f)
+                mods = parse_sexpr.ReadModsFromStream(f)
                 assert len(mods) == 1
                 for m in mods:
                     assert isinstance(m, cwast.DefMod)
@@ -1366,6 +1367,5 @@ if __name__ == "__main__":
                 FormatTokenStream(tokens, Stack(), Sink())
         else:
             assert False, f"unknown mode {args.mode}"
-
 
     main()
