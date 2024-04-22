@@ -2165,7 +2165,7 @@ class ExprTypeId:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprUnionTag:
-    """Typetage of tagged union type
+    """Typetag of tagged union type
 
     result has type is `typeid`"""
     ALIAS = "uniontypetag"
