@@ -3,12 +3,37 @@
 import re
 
 import logging
+import enum
+import dataclasses
+import collections
 
-from typing import Any, Tuple, Union
+from typing import Any, Tuple, Union, List, Optional
 
 from FrontEnd import cwast
 
 logger = logging.getLogger(__name__)
+
+
+@enum.unique
+class TK_KIND(enum.Enum):
+    INVALID = 0
+    KW = enum.auto()
+    ANNOTATION = enum.auto()
+    COMMENT = enum.auto()
+    OP = enum.auto()
+    COMMA = enum.auto()
+    COLON = enum.auto()
+    EOL = enum.auto()
+    WS = enum.auto()
+    ID = enum.auto()
+    NUM = enum.auto()
+    CHAR = enum.auto()
+    STR = enum.auto()
+    BR = enum.auto()  # brace/bracket
+    SPECIAL_ASSIGN = enum.auto()
+    SPECIAL_MUT = enum.auto()
+    SPECIAL_EOF = enum.auto()
+
 
 _KEYWORDS_SIMPLE = [
     "auto",    # type/val
@@ -40,7 +65,7 @@ _KEYWORDS_SIMPLE = [
     "for",
     "if",
     "else",
-    "set"
+    "set",
     "tryset",
     #
     "pinc",
@@ -100,11 +125,11 @@ _KEYWORDS_WITH_EXCL_SUFFIX = [
 
 KEYWORDS = {}
 for k in _KEYWORDS_SIMPLE:
-    KEYWORDS[k] = "KW"
+    KEYWORDS[k] = TK_KIND.KW
 for k in _KEYWORDS_WITH_EXCL_SUFFIX:
-    KEYWORDS[k] = "!"
+    KEYWORDS[k] = TK_KIND.SPECIAL_MUT
 for k in _KEYWORDS_OPERATOR_EQ_SUFFIX:
-    KEYWORDS[k] = "OP"
+    KEYWORDS[k] = TK_KIND.OP
 
 # Note, order is important: e.g. >> must come before >
 _OPERATORS_SIMPLE = [
@@ -137,20 +162,34 @@ _OPERATORS_WITH_EQ_SUFFIX = [
     "%"
 ]
 
+
+_ASSIGNMENT_OPS = set([
+    "=",
+    ">>>=",
+    "<<<=",
+    ">>=",
+    "<<=",
+    "+=",
+    "-=",
+    "/=",
+    "*=",
+    "%="
+])
+
 OPERATORS = {}
 for o in _OPERATORS_SIMPLE:
-    OPERATORS[o] = "OP"
+    OPERATORS[o] = TK_KIND.OP
 for o in _OPERATORS_WITH_EQ_SUFFIX:
-    OPERATORS[o] = "="
+    OPERATORS[o] = TK_KIND.SPECIAL_ASSIGN
 for o in _KEYWORDS_OPERATOR_EQ_SUFFIX:
-    OPERATORS[o] = "="
+    OPERATORS[o] = TK_KIND.SPECIAL_ASSIGN
 for o in _OPERATORS_WITH_EXCL_SUFFIX:
-    OPERATORS[o] = "!"
+    OPERATORS[o] = TK_KIND.SPECIAL_MUT
 
 ANNOTATION_RE = r"@[a-zA-Z]+"
 ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9]|::)*#?"
 NUM_RE = r"[0-9](?:[_0-9a-f.xp])*(?:sint|uint|[sru][0-9]+)?"
-COMMENT_RE = "--.*"
+COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
 #
@@ -163,18 +202,19 @@ _operators = ([re.escape(x) for x in _OPERATORS_SIMPLE] +
               [re.escape(x) for x in _OPERATORS_WITH_EXCL_SUFFIX])
 
 _token_spec = [
-    ("AN", ANNOTATION_RE),
-    ("CL", ":"),           # colon
-    ("CM", ","),           # comma
-    ("BR", "[{}\[\]()]"),  # bracket
-    ("REM", COMMENT_RE),  # remark
-    ("ID", ID_RE),
-    ("NUM", NUM_RE),
-    ("EOL", "\n"),
-    ("SPC", "[ \t]+"),
-    ("STR", "(?:" + _R_STR_START_RE + "|" + _STR_START_RE + ")" + _STR_END_RE),
-    ("OP", "|".join(_operators)),
-    ("CHR", CHAR_RE),
+    (TK_KIND.ANNOTATION.name, ANNOTATION_RE),
+    (TK_KIND.COLON.name, ":"),           # colon
+    (TK_KIND.COMMA.name, ","),           # comma
+    (TK_KIND.BR.name, "[{}\[\]()]"),  # bracket
+    (TK_KIND.COMMENT.name, COMMENT_RE),  # remark
+    (TK_KIND.ID.name, ID_RE),
+    (TK_KIND.NUM.name, NUM_RE),
+    (TK_KIND.EOL.name, "\n"),
+    (TK_KIND.WS.name, "[ \t]+"),
+    (TK_KIND.STR.name, "(?:" + _R_STR_START_RE + \
+     "|" + _STR_START_RE + ")" + _STR_END_RE),
+    (TK_KIND.OP.name, "|".join(_operators)),
+    (TK_KIND.CHAR.name, CHAR_RE),
 ]
 
 
@@ -192,57 +232,368 @@ assert TOKEN_RE.fullmatch("aa")
 # print(TOKEN_RE.findall("zzzzz+aa*7u8 <<<<"))
 
 
-class Input:
+@dataclasses.dataclass()
+class TK:
+    kind: TK_KIND
+    srcloc: cwast.SrcLoc
+    text: str
+    column: int
+    comments: list = dataclasses.field(default_factory=list)
+    annotations: list = dataclasses.field(default_factory=list)
+
+    def __repr__(self):
+        return f"{self.srcloc}:{self.column} {self.text} [{self.kind.name}]"
+
+
+class LexerRaw:
     """ """
 
-    def __init__(self, fp):
+    def __init__(self, filename, fp):
+        self._fileamame: str = filename
         self._fp = fp
         self._line_no = 0
         self._col_no = 0
         self._current_line = ""
 
-    def next_token(self):
+    def _fill_line(self):
+        while True:
+            self._line_no += 1
+            line = self._fp.readline()
+            # an empty line means EOF
+            # skip lines with just newline
+            if not line or line != "\n":
+                return line
+
+    def next_token(self) -> TK:
         if not self._current_line:
             self._col_no = 0
-            self._line_no += 1
-            self._current_line = self._fp.readline()
+            self._current_line = self._fill_line()
         if not self._current_line:
-            return ("EOF", 0, "")
+            return TK(TK_KIND.SPECIAL_EOF, cwast.SRCLOC_UNKNOWN, "", 0)
         m = TOKEN_RE.match(self._current_line)
         if not m:
             cwast.CompilerError("", f"bad line: [{self._current_line}]")
-        kind = m.lastgroup
+        kind = TK_KIND[m.lastgroup]
         token = m.group(0)
         col = self._col_no
-        if kind == "ID":
-            kind = KEYWORDS.get(token, "ID")
-        if kind == "!":
-            kind = "KW"
+        if kind == TK_KIND.ID:
+            kind = KEYWORDS.get(token, TK_KIND.ID)
+        if kind == TK_KIND.SPECIAL_MUT:
+            kind = TK_KIND.KW
             if self._current_line.startswith("!", len(token)):
                 token = token + "!"
-        elif kind == "OP":
+        elif kind == TK_KIND.OP:
             k = OPERATORS[token]
-            if k == "=":
+            if k == TK_KIND.SPECIAL_ASSIGN:
                 if self._current_line.startswith("=", len(token)):
                     token = token + "="
-            elif k == "!":
+            elif k == TK_KIND.SPECIAL_MUT:
                 if self._current_line.startswith("!", len(token)):
                     token = token + "!"
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]
-        return kind, col, token
+        return TK(kind, cwast.SrcLoc(self._fileamame, self._line_no), token,  col)
 
 
-def ParseModule(inp: Input) -> Any:
-    while True:
-        k, no, s = inp.next_token()
-        if k == "EOL":
-            print("---")
-        elif k == "SPC":
-            continue
+class Lexer:
+
+    def __init__(self, lexer: LexerRaw):
+        self._lexer = lexer
+        self._peek_cache_small: Optional[TK] = None
+        self._peek_cache: Optional[TK] = None
+
+    def next_skip_space(self) -> TK:
+        if self._peek_cache_small:
+            tk = self._peek_cache_small
+            self._peek_cache_small = None
         else:
-            print(k, no, s)
-        if k == "EOF":
+            tk = self._lexer.next_token()
+        while tk.kind in (TK_KIND.WS, TK_KIND.EOL):
+            tk = self._lexer.next_token()
+        return tk
+
+    def next(self) -> TK:
+        if self._peek_cache:
+            out = self._peek_cache
+            self._peek_cache = None
+            return out
+        tk: TK = self.next_skip_space()
+        comments = []
+        while tk.kind is TK_KIND.COMMENT:
+            comments.append(tk)
+            tk = self.next_skip_space()
+        annotations = []
+        while tk.kind is TK_KIND.ANNOTATION:
+            annotations.append(tk)
+            tk = self.next_skip_space()
+        out: TK = tk
+        out.comments = comments
+        out.annotations = annotations
+        tk = self.next_skip_space()
+        if tk.kind is TK_KIND.COMMENT and tk.srcloc.lineno == out.srcloc.lineno:
+            out.comments.append(tk)
+        else:
+            self._peek_cache_small = tk
+        print(out)
+        for a in annotations:
+            if a.srcloc.lineno == out.srcloc.lineno:
+                out.column = a.column
+                break
+        return out
+
+    def peek(self) -> TK:
+        if not self._peek_cache:
+            self._peek_cache = self.next()
+        return self._peek_cache
+
+
+def _ParseOptionalCommentsAttributes(inp: Lexer) -> Tuple[List[str], List[str]]:
+    comments = []
+    while inp.peek().kind == TK_KIND.COMMENT:
+        comments.append(inp.next())
+    annotations = []
+    while inp.peek().kind == TK_KIND.ANNOTATION:
+        annotations.append(inp.next())
+    return comments, annotations
+
+
+def _ExpectToken(inp: Lexer, kind: TK_KIND, text=None) -> TK:
+    tk = inp.next()
+    if tk.kind != kind or text is not None and tk.text != text:
+        cwast.CompilerError(
+            tk.srcloc, f"Expected {kind}, got {tk.kind} [{tk.text}]")
+    return tk
+
+
+_FUN_LIKE = {
+    "pinc": "EE",
+    "pdec": "EE",
+    "offsetof": "TF",
+    "slice": "EE",
+    "as": "ET",
+    "wrap": "ET",
+    "narrowto": "ET",
+    "widdento": "ET",
+    "cast": "ET",
+    "bitcast": "ET",
+}
+
+_OPERATOR_LIKE = {
+    "unwrap": "E",
+    "uniontypetag": "E",
+    "unionuntagged": "E",
+    "sizeof": "T",
+}
+
+PAREN_VALUE = {
+    "{": 1,
+    "}": -1,
+    "(": 100,
+    ")": -100,
+    "[": 10000,
+    "]": -10000,
+}
+
+
+def _ParseExpr(inp: Lexer):
+    nesting = 0
+    tk = inp.next()
+    while True:
+        p = inp.peek()
+        pv = PAREN_VALUE.get(p.text, 0)
+        if nesting == 0:
+            if p.kind in (TK_KIND.COMMA, TK_KIND.COLON, TK_KIND.SPECIAL_EOF):
+                break
+            if p.srcloc.lineno != tk.srcloc.lineno:
+                break
+            if p.text in _ASSIGNMENT_OPS:
+                break
+            if pv < 0:
+                break
+        nesting += pv
+        tk = inp.next()
+
+    return
+
+    if tk.kind in (TK_KIND.ID, TK_KIND.NUM):
+        pass
+    elif tk.kind is TK_KIND.KW:
+        args = _FUN_LIKE.get(tk.text)
+        if not args:
+            assert False
+        first = True
+        for a in args:
+            if first:
+                _ExpectToken(inp, TK_KIND.BR, "(")
+                first = False
+            else:
+                _ExpectToken(inp, TK_KIND.COMMA)
+            _ParseExpr(inp)
+        _ExpectToken(inp, TK_KIND.BR, ")"),
+    elif tk.kind is TK_KIND.BR and tk.text == '(':
+        _ParseExpr(inp)
+        _ExpectToken(inp, TK_KIND.BR, ")"),
+    else:
+        assert False, f"{tk}"
+
+    tk = inp.peek()
+
+
+def _ParseTypeExpr(inp: Lexer):
+    tk = inp.next()
+    nesting = 0
+    while True:
+        p = inp.peek()
+        pv = PAREN_VALUE.get(p.text, 0)
+        if nesting == 0:
+            if p.kind in (TK_KIND.COMMA, TK_KIND.COLON, TK_KIND.SPECIAL_EOF):
+                break
+            if p.text in _ASSIGNMENT_OPS:
+                break
+            if p.srcloc.lineno != tk.srcloc.lineno:
+                break
+            if p.text in _ASSIGNMENT_OPS:
+                break
+            if pv < 0:
+                break
+        nesting += pv
+        tk = inp.next()
+    return
+    tk = inp.next()
+    if tk.kind is TK_KIND.OP:
+        if tk.text == "^":
+            _ParseTypeExpr(inp)
+        else:
+            assert False, f"{tk}"
+    elif tk.kind is TK_KIND.KW:
+        pass
+    elif tk.kind is TK_KIND.ID:
+        pass
+    else:
+        assert False, f"{tk}"
+
+
+def _ParseFormalParams(inp: Lexer):
+    _ExpectToken(inp, TK_KIND.BR, "(")
+    tk = inp.next()
+    while tk.text != ")":
+        _ParseTypeExpr(inp)
+        tk = inp.next()
+        if tk.kind is TK_KIND.COMMA:
+            tk = inp.next()
+
+
+def _ParseArguments(inp: Lexer):
+    while True:
+        tk = inp.next()
+        if tk.text == ")":
+            break
+        assert tk.text in ("(", ",")
+        _ParseExpr(inp)
+
+
+def _ParseStatementMacro(kw: TK, inp: Lexer):
+    assert kw.text.endswith("#")
+    if inp.peek().text == "(":
+        _ParseArguments(inp)
+    else:
+        assert False
+
+
+def _ParseStatement(kw: TK, inp: Lexer):
+    if kw.kind is TK_KIND.ID:
+        return _ParseStatementMacro(kw, inp)
+    assert kw.kind is TK_KIND.KW, f"{kw}"
+    tokens = [kw]
+    print(f"-- {kw.column}: {tokens}")
+    if kw.text in ("let", "let!"):
+        tokens.append(_ExpectToken(inp, TK_KIND.ID))
+        _ParseTypeExpr(inp)
+        tk = inp.peek()
+        if tk.text in ("=", "+=", "-=", "*="):
+            tokens.append(inp.next())
+            _ParseExpr(inp)
+    elif kw.text == "while":
+        tokens.append(_ParseExpr(inp))
+        _ParseStatementList(inp)
+    elif kw.text == "set":
+        _ParseExpr(inp)
+        assert inp.peek().text in _ASSIGNMENT_OPS
+
+        _ExpectToken(inp, TK_KIND.OP)
+        _ParseExpr(inp)
+    elif kw.text == "return":
+        _ParseExpr(inp)
+    elif kw.text == "for":
+        _ExpectToken(inp, TK_KIND.ID)
+        _ExpectToken(inp, TK_KIND.OP, text="=")
+        _ParseExpr(inp)
+        _ExpectToken(inp, TK_KIND.COMMA)
+        _ParseExpr(inp)
+        _ExpectToken(inp, TK_KIND.COMMA)
+        _ParseExpr(inp)
+        _ParseStatementList(inp)
+
+    else:
+        assert False, f"{kw}"
+
+    print(f"-- {kw.column}: {tokens}")
+
+
+def _ParseStatementList(inp: Lexer):
+    _ExpectToken(inp, TK_KIND.COLON)
+    indent = inp.peek().column
+    while True:
+        tk = inp.peek()
+        if tk.column < indent:
+            break
+        _ParseStatement(inp.next(), inp)
+
+
+def _ParseFun(kw, inp: Lexer):
+    tokens = [kw,  _ExpectToken(inp, TK_KIND.ID)]
+    _ParseFormalParams(inp)
+    _ParseTypeExpr(inp)
+    _ParseStatementList(inp)
+
+
+def _ParseTopLevel(kw: TK, inp: Lexer):
+    if kw.text == "import":
+        tokens = [
+            kw,
+            _ExpectToken(inp, TK_KIND.ID),
+        ]
+        print(f"-- {kw.column}: {tokens}")
+    elif kw.text == "fun":
+        _ParseFun(kw, inp)
+    else:
+        assert False, kw
+
+
+def _ParseModule(inp: Lexer):
+    # comments, annotations = _ParseOptionalCommentsAttributes(inp)
+    # print(comments, annotations)
+    tokens = [
+        _ExpectToken(inp, TK_KIND.KW, "module"),
+        _ExpectToken(inp, TK_KIND.ID),
+        _ExpectToken(inp, TK_KIND.COLON),
+    ]
+    while True:
+        kw = inp.next()
+        if kw.kind is TK_KIND.SPECIAL_EOF:
+            break
+        _ParseTopLevel(kw, inp)
+
+
+def ParseFile(inp: Lexer) -> Any:
+    _ParseModule(inp)
+    while True:
+        tk = inp.next()
+        if tk.kind == TK_KIND.EOL:
+            print("---")
+        else:
+            print(tk)
+        if tk.kind == TK_KIND.SPECIAL_EOF:
             break
 
 
@@ -252,4 +603,4 @@ def ParseModule(inp: Input) -> Any:
 if __name__ == "__main__":
     import sys
 
-    ParseModule(Input(sys.stdin))
+    ParseFile(Lexer(LexerRaw("stdin", sys.stdin)))
