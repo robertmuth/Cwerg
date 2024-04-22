@@ -62,6 +62,7 @@ _KEYWORDS_SIMPLE = [
     "block",
     "if",
     "while",
+    "sig",
     "for",
     "if",
     "else",
@@ -484,11 +485,15 @@ def _ParseFormalParams(inp: Lexer):
 
 
 def _ParseArguments(inp: Lexer):
+
     while True:
         tk = inp.next()
+        if tk.text == "(":
+            if inp.peek().text == ")":
+                tk = inp.next()
         if tk.text == ")":
             break
-        assert tk.text in ("(", ",")
+        assert tk.text in ("(", ","), f"P{tk}"
         _ParseExpr(inp)
 
 
@@ -498,6 +503,12 @@ def _ParseStatementMacro(kw: TK, inp: Lexer):
         _ParseArguments(inp)
     else:
         assert False
+
+
+def _MaybeLabel(tk: TK, inp: Lexer):
+    p = inp.peek()
+    if p.kind is TK_KIND.ID and p.srcloc.lineno == tk.srcloc.lineno:
+        tk = inp.next()
 
 
 def _ParseStatement(kw: TK, inp: Lexer):
@@ -516,10 +527,22 @@ def _ParseStatement(kw: TK, inp: Lexer):
     elif kw.text == "while":
         tokens.append(_ParseExpr(inp))
         _ParseStatementList(inp)
+    elif kw.text == "if":
+        tokens.append(_ParseExpr(inp))
+        _ParseStatementList(inp)
+    elif kw.text == "else":
+        _ParseStatementList(inp)
+    elif kw.text in ("trylet", "trylet!"):
+        tokens.append(_ExpectToken(inp, TK_KIND.ID))
+        _ParseTypeExpr(inp)
+        _ExpectToken(inp, TK_KIND.OP, text="=")
+        _ParseExpr(inp)
+        _ExpectToken(inp, TK_KIND.COMMA)
+        _ExpectToken(inp, TK_KIND.ID)
+        _ParseStatementList(inp)
     elif kw.text == "set":
         _ParseExpr(inp)
         assert inp.peek().text in _ASSIGNMENT_OPS
-
         _ExpectToken(inp, TK_KIND.OP)
         _ParseExpr(inp)
     elif kw.text == "return":
@@ -533,7 +556,13 @@ def _ParseStatement(kw: TK, inp: Lexer):
         _ExpectToken(inp, TK_KIND.COMMA)
         _ParseExpr(inp)
         _ParseStatementList(inp)
-
+    elif kw.text in ("break", "contimue"):
+        _MaybeLabel(kw, inp)
+    elif kw.text == "block":
+        _MaybeLabel(kw, inp)
+        _ParseStatementList(inp)
+    elif kw.text == "cond":
+        _ParseCondList(inp)
     else:
         assert False, f"{kw}"
 
@@ -550,6 +579,29 @@ def _ParseStatementList(inp: Lexer):
         _ParseStatement(inp.next(), inp)
 
 
+def _ParseCondList(inp: Lexer):
+    _ExpectToken(inp, TK_KIND.COLON)
+    indent = inp.peek().column
+    while True:
+        tk = inp.peek()
+        if tk.column < indent:
+            break
+        _ExpectToken(inp, TK_KIND.KW, text="case")
+        _ParseExpr(inp)
+        _ParseStatementList(inp)
+
+
+def _ParseFieldList(inp: Lexer):
+    _ExpectToken(inp, TK_KIND.COLON)
+    indent = inp.peek().column
+    while True:
+        tk = inp.peek()
+        if tk.column < indent:
+            break
+        _ExpectToken(inp, TK_KIND.ID)
+        _ParseTypeExpr(inp)
+
+
 def _ParseFun(kw, inp: Lexer):
     tokens = [kw,  _ExpectToken(inp, TK_KIND.ID)]
     _ParseFormalParams(inp)
@@ -558,14 +610,22 @@ def _ParseFun(kw, inp: Lexer):
 
 
 def _ParseTopLevel(kw: TK, inp: Lexer):
+    tokens: List[TK] = [kw]
     if kw.text == "import":
-        tokens = [
-            kw,
-            _ExpectToken(inp, TK_KIND.ID),
-        ]
+        tokens.append(_ExpectToken(inp, TK_KIND.ID))
         print(f"-- {kw.column}: {tokens}")
     elif kw.text == "fun":
         _ParseFun(kw, inp)
+    elif kw.text == "rec":
+        _ExpectToken(inp, TK_KIND.ID)
+        _ParseFieldList(inp)
+    elif kw.text in ("global", "global!"):
+        tokens.append(_ExpectToken(inp, TK_KIND.ID))
+        _ParseTypeExpr(inp)
+        tk = inp.peek()
+        if tk.text in ("="):
+            tokens.append(inp.next())
+            _ParseExpr(inp)
     else:
         assert False, kw
 
