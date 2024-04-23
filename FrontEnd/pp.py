@@ -459,7 +459,9 @@ class TK(enum.Enum):
     BINOP = 5  # binary operator
     BINOP_NO_SPACE = 6  # binary operator
 
-    UNOP = 7  # unary operator - not space afterwards
+    UNOP_PREFIX = 7  # unary operator - not space afterwards
+    UNOP_SUFFIX = 17  # unary operator - not space before
+
     END = 8
     BEG = 9
     ELSE = 10
@@ -525,8 +527,8 @@ class TS:
             beg.length = self._count - beg.start
         return tk
 
-    def EmitUnOp(self, a: str):
-        return self.EmitToken(TK.UNOP, a)
+    def EmitUnOp(self, a: str, suffix=False):
+        return self.EmitToken(TK.UNOP_SUFFIX if suffix else TK.UNOP_PREFIX, a)
 
     def EmitBinOpNoSpace(self, a: str):
         return self.EmitToken(TK.BINOP_NO_SPACE, a)
@@ -617,6 +619,11 @@ def TokensUnaryPrefix(ts: TS, name: str, node):
     EmitTokens(ts, node)
 
 
+def TokensUnarySuffix(ts: TS, name: str, node):
+    EmitTokens(ts, node)
+    ts.EmitUnOp(name, suffix=True)
+
+
 def EmitExpr3(ts: TS, node: cwast.Expr3):
     EmitTokens(ts, node.cond)
     ts.EmitAttr("??")
@@ -705,7 +712,7 @@ def TokensMacroInvokeArgs(ts: TS, args):
 def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     if node.name == "->":
         assert len(node.args) == 2
-        TokensBinaryInfix(ts, "->", node.args[0], node.args[1], node)
+        TokensBinaryInfix(ts, "^.", node.args[0], node.args[1], node)
         return
     is_block_like = node.name in ["for", "while", "tryset", "trylet"]
     if is_block_like:
@@ -812,6 +819,7 @@ def ConcreteIf(ts: TS, node: cwast.StmtIf):
 
 
 def TokensValRec(ts: TS, node: cwast.ValRec):
+    ts.EmitAttr("rec")
     EmitTokens(ts, node.type)
     beg = ts.EmitBegParen("[")
     sep = False
@@ -830,9 +838,16 @@ def TokensIndexVal(ts: TS, node: cwast.IndexVal):
     if not isinstance(node.init_index, cwast.ValAuto):
         EmitTokens(ts, node.init_index)
 
+def TokensVecType(ts: TS, size, type):
+    beg = ts.EmitBegParen("[")
+    EmitTokens(ts, size)
+    ts.EmitEnd(beg)
+    EmitTokens(ts, type)
 
-def TokensValArray(ts: TS, node: cwast.ValArray):
-    TokensFunctional(ts, "array", [node.expr_size, node.type])
+
+def TokensValVec(ts: TS, node: cwast.ValArray):
+    ts.EmitAttr("vec")
+    TokensVecType(ts, node.expr_size, node.type)
     beg = ts.EmitBegParen("[")
     sizes = []
     sep = False
@@ -1031,11 +1046,11 @@ _CONCRETE_SYNTAX = {
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(n.base_type_kind.name.lower()),
-    cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, WithMut("slice", n.mut), [n.type]),
+    cwast.TypeSlice: lambda ts, n: TokensUnaryPrefix(ts, WithMut("[]", n.mut), n.type),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, "typeof", [n.expr]),
     cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, "union", n.types),
-    cwast.TypePtr: lambda ts, n: TokensFunctional(ts, WithMut("ptr", n.mut), [n.type]),
-    cwast.TypeArray: lambda ts, n: TokensFunctional(ts, "array", [n.size, n.type]),
+    cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithMut("^", n.mut), n.type),
+    cwast.TypeArray: lambda ts, n: TokensVecType(ts, n.size, n.type),
     cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, "uniondelta", [n.type, n.subtrahend]),
     cwast.TypeFun:  TokensTypeFun,
     #
@@ -1047,7 +1062,7 @@ _CONCRETE_SYNTAX = {
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.ValString: lambda ts, n: ts.EmitAttr(f'{n.strkind}"{n.string}"'),
     cwast.ValRec: TokensValRec,
-    cwast.ValArray: TokensValArray,
+    cwast.ValArray: TokensValVec,
 
     #
     cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut("front", n.mut), [n.container]),
@@ -1070,7 +1085,7 @@ _CONCRETE_SYNTAX = {
     cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
     cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", [n.expr]),
     cwast.ExprField: lambda ts, n: TokensBinaryInfix(ts, ".", n.container, n.field, n),
-    cwast.ExprDeref: lambda ts, n: TokensUnaryPrefix(ts, "^", n.expr),
+    cwast.ExprDeref: lambda ts, n: TokensUnarySuffix(ts, "^", n.expr),
     cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithMut(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
@@ -1201,7 +1216,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         kind = tk.kind
         tag = tk.tag
         if want_space:
-            if kind in (TK.BEG, TK.BEG_ANON, TK.UNOP, TK.ANNOTATION_SHORT, TK.BINOP, TK.ATTR, TK.BEG_EXPR_PAREN):
+            if kind in (TK.BEG, TK.BEG_ANON, TK.UNOP_PREFIX, TK.ANNOTATION_SHORT, TK.BINOP, TK.ATTR, TK.BEG_EXPR_PAREN):
                 # assert False, f"{tk}"
                 sink.emit_space()
         want_space = False
@@ -1283,12 +1298,14 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         elif kind is TK.BINOP:
             sink.emit_token(tag)
             want_space = True
-        elif kind is TK.UNOP:
+        elif kind is TK.UNOP_PREFIX:
             sink.emit_token(tag)
         elif kind is TK.ANNOTATION_LONG:
             sink.maybe_newline()
             sink.emit_token(tag)
             sink.newline()
+        elif kind is TK.UNOP_SUFFIX:
+            sink.emit_token(tag)
         elif kind is TK.ANNOTATION_SHORT:
             sink.emit_token(tag)
             want_space = True
