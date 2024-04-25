@@ -73,6 +73,20 @@ class BASE_TYPE_KIND(enum.Enum):
     TYPEID = 43
 
 
+def KeywordToBaseTypeKind(s: str) -> BASE_TYPE_KIND:
+    ss = s.lower()
+    if ss != s:
+        return BASE_TYPE_KIND.INVALID
+    s = s.upper()
+    try:
+        return BASE_TYPE_KIND[s]
+    except KeyError:
+        return BASE_TYPE_KIND.INVALID
+
+def BaseTypeKindToKeyword(kind: BASE_TYPE_KIND) -> str:
+    return kind.name.lower()
+
+
 @enum.unique
 class NF(enum.Flag):
     """Node Flags"""

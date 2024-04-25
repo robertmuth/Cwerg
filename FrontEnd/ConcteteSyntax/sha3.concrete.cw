@@ -39,7 +39,7 @@ global BlockSize224 uint = 144
     tail[BlockSize224 / 8] u64
 
 -- only valid len for data are 9, 13, 17, 18
-fun AddBlockAlignedLE(state ^!StateKeccak, data []u64) void:
+fun AddBlockAlignedLE(state ^!StateKeccak, data slice(u64)) void:
     for i = 0, 9_uint, 1:
         set state ^. x[i] xor= data[i]
     if len(data) == 9:
@@ -55,13 +55,13 @@ fun AddBlockAlignedLE(state ^!StateKeccak, data []u64) void:
     for i = 17, 18_uint, 1:
         set state ^. x[i] xor= data[i]
 
-global rconst = vec[24] u64[
+global rconst =[24] u64{
     0x0000000000000001, 0x0000000000008082, 0x800000000000808a, 0x8000000080008000, 
     0x000000000000808b, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009, 
     0x000000000000008a, 0x0000000000000088, 0x0000000080008009, 0x000000008000000a, 
     0x000000008000808b, 0x800000000000008b, 0x8000000000008089, 0x8000000000008003, 
     0x8000000000008002, 0x8000000000000080, 0x000000000000800a, 0x800000008000000a, 
-    0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008]
+    0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008}
 
 macro XOR_5_EXPR# EXPR($x EXPR, $p1 EXPR, $p2 EXPR, $p3 EXPR, $p4 EXPR, $p5 EXPR)[
 ]:
@@ -76,7 +76,7 @@ macro UPDATE# STMT_LIST($a EXPR, $b EXPR, $x EXPR, $i EXPR, $bitpos EXPR)[]:
     set $x^[$i] = $a << $bitpos or $a >> (64 - $bitpos)
     set $a = $b
 
-fun dumpA(tag []u8, x ^[25] u64) void:
+fun dumpA(tag slice(u8), x ^[25] u64) void:
     fmt::print#(tag, "\n")
     for i = 0, 5_uint, 1:
         for j = 0, 5_uint, 1:
@@ -150,7 +150,7 @@ fun KeccakF(x ^![25] u64) void:
         -- iota
         set x^[0] xor= rconst[round]
 
-@pub fun KeccakAdd(state ^!StateKeccak, tail []!u64, data []u8) void:
+@pub fun KeccakAdd(state ^!StateKeccak, tail slice!(u64), data slice(u8)) void:
     -- (fmt::print# "KeccakAdd: " (-> state msglen) " "  data "\n")
     let tail_u8 = as(front!(tail), ^!u8)
     let block_size uint = len(tail) * 8
@@ -179,7 +179,7 @@ fun KeccakF(x ^![25] u64) void:
         set offset += 1
     set state ^. msglen += len(data)
 
-@pub fun KeccakFinalize(state ^!StateKeccak, tail []!u64, padding u8) void:
+@pub fun KeccakFinalize(state ^!StateKeccak, tail slice!(u64), padding u8) void:
     let tail_u8 = as(front!(tail), ^!u8)
     let block_size = len(tail) * 8
     let padding_start uint = state ^. msglen % block_size
@@ -191,15 +191,15 @@ fun KeccakF(x ^![25] u64) void:
     shed KeccakF(&!state ^. x)
 
 -- returns 512 bit cryptographic hash of data
-@pub fun Keccak512(data []u8)[64] u8:
-    @ref let! state = rec StateKeccak512[]
+@pub fun Keccak512(data slice(u8))[64] u8:
+    @ref let! state = StateKeccak512{}
     shed KeccakAdd(&!state.base, state.tail, data)
     shed KeccakFinalize(&!state.base, state.tail, KeccakPadding)
     return as(&state.base.x, ^[64] u8)^
 
 -- returns 512 bit cryptographic hash of data
-@pub fun Sha3512(data []u8)[64] u8:
-    @ref let! state = rec StateKeccak512[]
+@pub fun Sha3512(data slice(u8))[64] u8:
+    @ref let! state = StateKeccak512{}
     shed KeccakAdd(&!state.base, state.tail, data)
     shed KeccakFinalize(&!state.base, state.tail, Sha3Padding)
     return as(&state.base.x, ^[64] u8)^

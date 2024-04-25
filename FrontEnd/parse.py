@@ -1,11 +1,21 @@
 #!/usr/bin/python3
+"""
+The Parser is recursice descent (RD) combined with Pratt Parsing for
+Expressions.
+
+References:
+
+https://martin.janiczek.cz/2023/07/03/demystifying-pratt-parsers.html
+https://github.com/feroldi/pratt-parser-in-python
+
+"""
+
 
 import re
 
 import logging
 import enum
 import dataclasses
-import collections
 
 from typing import Any, Tuple, Union, List, Optional
 
@@ -140,6 +150,7 @@ _OPERATORS_SIMPLE = [
     "^",
     ".",
     "&-&",
+    "!",
 ]
 
 
@@ -303,7 +314,7 @@ class Lexer:
         self._peek_cache_small: Optional[TK] = None
         self._peek_cache: Optional[TK] = None
 
-    def next_skip_space(self) -> TK:
+    def _next_skip_space(self) -> TK:
         if self._peek_cache_small:
             tk = self._peek_cache_small
             self._peek_cache_small = None
@@ -318,19 +329,19 @@ class Lexer:
             out = self._peek_cache
             self._peek_cache = None
             return out
-        tk: TK = self.next_skip_space()
+        tk: TK = self._next_skip_space()
         comments = []
         while tk.kind is TK_KIND.COMMENT:
             comments.append(tk)
-            tk = self.next_skip_space()
+            tk = self._next_skip_space()
         annotations = []
         while tk.kind is TK_KIND.ANNOTATION:
             annotations.append(tk)
-            tk = self.next_skip_space()
+            tk = self._next_skip_space()
         out: TK = tk
         out.comments = comments
         out.annotations = annotations
-        tk = self.next_skip_space()
+        tk = self._next_skip_space()
         if tk.kind is TK_KIND.COMMENT and tk.srcloc.lineno == out.srcloc.lineno:
             out.comments.append(tk)
         else:
@@ -346,16 +357,6 @@ class Lexer:
         if not self._peek_cache:
             self._peek_cache = self.next()
         return self._peek_cache
-
-
-def _ParseOptionalCommentsAttributes(inp: Lexer) -> Tuple[List[str], List[str]]:
-    comments = []
-    while inp.peek().kind == TK_KIND.COMMENT:
-        comments.append(inp.next())
-    annotations = []
-    while inp.peek().kind == TK_KIND.ANNOTATION:
-        annotations.append(inp.next())
-    return comments, annotations
 
 
 def _ExpectToken(inp: Lexer, kind: TK_KIND, text=None) -> TK:
@@ -442,36 +443,37 @@ def _ParseExpr(inp: Lexer):
 
 def _ParseTypeExpr(inp: Lexer):
     tk = inp.next()
-    nesting = 0
-    while True:
-        p = inp.peek()
-        pv = PAREN_VALUE.get(p.text, 0)
-        if nesting == 0:
-            if p.kind in (TK_KIND.COMMA, TK_KIND.COLON, TK_KIND.SPECIAL_EOF):
-                break
-            if p.text in _ASSIGNMENT_OPS:
-                break
-            if p.srcloc.lineno != tk.srcloc.lineno:
-                break
-            if p.text in _ASSIGNMENT_OPS:
-                break
-            if pv < 0:
-                break
-        nesting += pv
-        tk = inp.next()
-    return
-    tk = inp.next()
-    if tk.kind is TK_KIND.OP:
-        if tk.text == "^":
-            _ParseTypeExpr(inp)
-        else:
-            assert False, f"{tk}"
+    if tk.kind is TK_KIND.ID:
+        return cwast.Id(tk.text)
     elif tk.kind is TK_KIND.KW:
-        pass
-    elif tk.kind is TK_KIND.ID:
-        pass
+
+        if tk.text == "auto":
+            return cwast.TypeAuto()
+        kind = cwast.KeywordToBaseTypeKind(tk.text)
+        assert kind is not cwast.BASE_TYPE_KIND.INVALID
+        return cwast.TypeBase(kind)
+    elif tk.text == '[':
+        if inp.peek().text == "]":
+            _ExpectToken(inp, TK_KIND.BR, "]")
+            type = _ParseTypeExpr(inp)
+            return cwast.TypeSlice(type, False)
+        elif inp.peek().text == "!":
+            _ExpectToken(inp, TK_KIND.OP, "!")
+            _ExpectToken(inp, TK_KIND.BR, "]")
+            type = _ParseTypeExpr(inp)
+            return cwast.TypeSlice(type, True)
+        else:
+            dim = _ParseTypeExpr(inp)
+            _ExpectToken(inp, TK_KIND.BR, "]")
+            type = _ParseTypeExpr(inp)
+            return cwast.TypeArray(dim, type)
+    elif tk.text == "sig":
+        assert False
+    elif tk.text == "^":
+        rest = _ParseTypeExpr(inp)
+        return cwast.TypePtr(rest)
     else:
-        assert False, f"{tk}"
+        assert False
 
 
 def _ParseFormalParams(inp: Lexer):
@@ -609,52 +611,55 @@ def _ParseFun(kw, inp: Lexer):
     _ParseStatementList(inp)
 
 
-def _ParseTopLevel(kw: TK, inp: Lexer):
-    tokens: List[TK] = [kw]
+def _ParseTopLevel(inp: Lexer):
+    kw = inp.next()
     if kw.text == "import":
-        tokens.append(_ExpectToken(inp, TK_KIND.ID))
-        print(f"-- {kw.column}: {tokens}")
+        name = _ExpectToken(inp, TK_KIND.ID)
+        out = cwast.Import(name.text, "", [])
+        return out
     elif kw.text == "fun":
-        _ParseFun(kw, inp)
+        return _ParseFun(kw, inp)
     elif kw.text == "rec":
-        _ExpectToken(inp, TK_KIND.ID)
-        _ParseFieldList(inp)
+        name = _ExpectToken(inp, TK_KIND.ID)
+        fields = _ParseFieldList(inp)
+        out = cwast.DefRec(name.text, fields)
+        return out
     elif kw.text in ("global", "global!"):
-        tokens.append(_ExpectToken(inp, TK_KIND.ID))
-        _ParseTypeExpr(inp)
-        tk = inp.peek()
-        if tk.text in ("="):
-            tokens.append(inp.next())
-            _ParseExpr(inp)
+        name = _ExpectToken(inp, TK_KIND.ID)
+        if inp.peek().text == "=":
+            _ExpectToken(inp, TK_KIND.OP, "=")
+            type = _ParseTypeExpr(inp)
+        else:
+            type = cwast.TypeAuto()
+        if inp.peek().text == "=":
+            _ExpectToken(inp, TK_KIND.OP, "=")
+            init = _ParseExpr(inp)
+        else:
+            init = cwast.ValAuto()
+        return cwast.DefGlobal(name.text, type, init)
     else:
-        assert False, kw
+        assert False, f"topelevel {kw}"
 
 
 def _ParseModule(inp: Lexer):
     # comments, annotations = _ParseOptionalCommentsAttributes(inp)
     # print(comments, annotations)
-    tokens = [
-        _ExpectToken(inp, TK_KIND.KW, "module"),
-        _ExpectToken(inp, TK_KIND.ID),
-        _ExpectToken(inp, TK_KIND.COLON),
-    ]
+    kw = _ExpectToken(inp, TK_KIND.KW, "module")
+    name = _ExpectToken(inp, TK_KIND.ID)
+    _ExpectToken(inp, TK_KIND.COLON)
+    out = cwast.DefMod(name.text, [], [])
+
     while True:
-        kw = inp.next()
-        if kw.kind is TK_KIND.SPECIAL_EOF:
+        if inp.peek().kind is TK_KIND.SPECIAL_EOF:
             break
-        _ParseTopLevel(kw, inp)
+        toplevel = _ParseTopLevel(inp)
+        print("TOPLEVEL: ", toplevel)
+        out.body_mod.append(toplevel)
+    return out
 
 
 def ParseFile(inp: Lexer) -> Any:
-    _ParseModule(inp)
-    while True:
-        tk = inp.next()
-        if tk.kind == TK_KIND.EOL:
-            print("---")
-        else:
-            print(tk)
-        if tk.kind == TK_KIND.SPECIAL_EOF:
-            break
+    mod = _ParseModule(inp)
 
 
 ############################################################

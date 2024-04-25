@@ -12,7 +12,7 @@ global EXPECTED uint = 148932
 -- subsequent unspecified ones.
 -- 
 -- index i reprents number 3 + 2 * i
-global! is_prime = array(SIZE, bool)[true]
+global! is_prime =[SIZE] bool{true}
 
 -- the actual sieve function
 fun sieve() uint:
@@ -25,7 +25,7 @@ fun sieve() uint:
                 set is_prime[k] = false
     return count
 
-@cdecl fun main(argc s32, argv ptr(ptr(u8))) s32:
+@cdecl fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(sieve(), EXPECTED)
     test::Success#()
     return 0

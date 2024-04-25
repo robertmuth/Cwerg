@@ -17,10 +17,10 @@ rec TextStats:
 -- Returns either a TextStat or an Error
 fun WordCount(fd os::FD) union(TextStats, os::Error):
     -- note limited type inference in next to stmts
-    let! stats = TextStats[]
+    let! stats = TextStats{}
     let! in_word = false
     -- do not initialize buf with zeros
-    let! buf array(1024, u8) = undef
+    let! buf[1024] u8 = undef
     while true:
         -- if FileRead returns an uint, assign it to n else return it
         trylet n uint = os::FileRead(fd, buf), err:
@@ -44,7 +44,7 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
     return stats
 
 -- cdecl attribute disables name mangling
-@cdecl fun main(argc s32, argv ptr(ptr(u8))) s32:
+@cdecl fun main(argc s32, argv ^^u8) s32:
     trylet stats TextStats = WordCount(os::Stdin), err:
         return 1
     -- print# is a stmt macro for printing arbitrary values.

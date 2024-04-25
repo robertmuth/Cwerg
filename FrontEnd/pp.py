@@ -506,6 +506,13 @@ class Token:
                                                     "global", "global!", "macro", "static_assert")
 
 
+_MATCHING_CLOSING_BRACE = {
+    "(": ")",
+    "[": "]",
+    "{": "}",
+}
+
+
 class TS:
 
     def __init__(self):
@@ -575,7 +582,7 @@ class TS:
 
     def EmitEnd(self, beg: Token):
         if beg.kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN):
-            return self.EmitToken(TK.END, tag=")" if beg.tag == "(" else "]", beg=beg)
+            return self.EmitToken(TK.END, _MATCHING_CLOSING_BRACE[beg.tag], beg=beg)
         return self.EmitToken(TK.END, beg=beg)
 
     def EmitBegColon(self):
@@ -819,9 +826,8 @@ def ConcreteIf(ts: TS, node: cwast.StmtIf):
 
 
 def TokensValRec(ts: TS, node: cwast.ValRec):
-    ts.EmitAttr("rec")
     EmitTokens(ts, node.type)
-    beg = ts.EmitBegParen("[")
+    beg = ts.EmitBegParen("{")
     sep = False
     for e in node.inits_field:
         if sep:
@@ -838,6 +844,7 @@ def TokensIndexVal(ts: TS, node: cwast.IndexVal):
     if not isinstance(node.init_index, cwast.ValAuto):
         EmitTokens(ts, node.init_index)
 
+
 def TokensVecType(ts: TS, size, type):
     beg = ts.EmitBegParen("[")
     EmitTokens(ts, size)
@@ -846,9 +853,8 @@ def TokensVecType(ts: TS, size, type):
 
 
 def TokensValVec(ts: TS, node: cwast.ValArray):
-    ts.EmitAttr("vec")
     TokensVecType(ts, node.expr_size, node.type)
-    beg = ts.EmitBegParen("[")
+    beg = ts.EmitBegParen("{")
     sizes = []
     sep = False
     for e in node.inits_array:
@@ -1045,8 +1051,8 @@ _CONCRETE_SYNTAX = {
     cwast.MacroFor: TokensMacroFor,
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
-    cwast.TypeBase: lambda ts, n: ts.EmitAttr(n.base_type_kind.name.lower()),
-    cwast.TypeSlice: lambda ts, n: TokensUnaryPrefix(ts, WithMut("[]", n.mut), n.type),
+    cwast.TypeBase: lambda ts, n: ts.EmitAttr(cwast.BaseTypeKindToKeyword(n.base_type_kind)),
+    cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, WithMut("slice", n.mut), [n.type]),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, "typeof", [n.expr]),
     cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, "union", n.types),
     cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithMut("^", n.mut), n.type),
