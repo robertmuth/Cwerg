@@ -20,6 +20,7 @@ import dataclasses
 from typing import Any, Tuple, Union, List, Optional
 
 from FrontEnd import cwast
+from FrontEnd import pp
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,6 @@ class TK_KIND(enum.Enum):
 
 _KEYWORDS_SIMPLE = [
     "auto",    # type/val
-    "bool",
     "slice",
     "typeof",
     "union",
@@ -63,29 +63,10 @@ _KEYWORDS_SIMPLE = [
     "uniondelta",
     "true",
     "false",
-    "void",
-    "noreturn",
     "front",
     "uniontag",
     "is",
-    "expr",
-    "continue",
-    "break",
-    "trap",
-    "return",
-    "shed",
-    "defer",
-    "case",
-    "cond",
-    "block",
-    "if",
-    "while",
     "sig",
-    "for",
-    "if",
-    "else",
-    "set",
-    "tryset",
     #
     "pinc",
     "pdec",
@@ -98,24 +79,11 @@ _KEYWORDS_SIMPLE = [
     #
     "offsetof",
     "sizeof",
-    "typeid",
     "len",
-    #
-    "sint",
-    "uint",
-    "s8",
-    "s16",
-    "s32",
-    "s64",
-    "u8",
-    "u16",
-    "u32",
-    "u64"
-    "r32",
-    "r64",
     #
     "macro",
     "stringfy",
+    "mfor",
     #
     "module",
     "enum",
@@ -126,18 +94,15 @@ _KEYWORDS_SIMPLE = [
 ]
 
 
-_KEYWORDS_WITH_EXCL_SUFFIX = [
-    "trylet",
-    "mlet",
-    "mfor",
-    "let",
-    "global",
-]
-
 KEYWORDS = {}
 for k in _KEYWORDS_SIMPLE:
     KEYWORDS[k] = TK_KIND.KW
-for k in _KEYWORDS_WITH_EXCL_SUFFIX:
+for k in pp.KEYWORDS:
+    KEYWORDS[k] = TK_KIND.KW
+for k in cwast.BASE_TYPE_KIND:
+    if k is not cwast.BASE_TYPE_KIND.INVALID:
+        KEYWORDS[k.name.lower()] = TK_KIND.KW
+for k in pp.KEYWORDS_WITH_EXCL_SUFFIX:
     KEYWORDS[k] = TK_KIND.SPECIAL_MUT
 
 

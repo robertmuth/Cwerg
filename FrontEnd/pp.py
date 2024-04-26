@@ -476,13 +476,18 @@ class TK(enum.Enum):
     COMMENT = 14
 
 
-BEG_TOKENS = set([
-    "module", "global", "global!", "enum", "import", "defer", "block", "expr",
+KEYWORDS = [
+    "module", "enum", "import", "defer", "block", "expr",
     "break", "continue", "fun", "cond", "type", "if", "type",
-    "shed", "discard", "rec", "case", "let", "let!", "set", "for", "macro",
-    "while", "tryset", "trylet", "trap", "return", "NONE", "static_assert",
-    "mlet", "$let!", "mfor", "$for!", "swap",
-])
+    "shed", "discard", "rec", "case", "set", "for", "macro",
+    "while", "tryset", "trap", "return", "static_assert",
+    "mfor", "swap",
+]
+
+KEYWORDS_WITH_EXCL_SUFFIX = ["trylet", "mlet", "let", "global"]
+
+BEG_TOKENS = set(KEYWORDS + KEYWORDS_WITH_EXCL_SUFFIX + [
+    k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
 
 INDENT = 1
 MAX_LINE_LEN = 80
@@ -514,7 +519,7 @@ _MATCHING_CLOSING_BRACE = {
 
 
 class TS:
-
+    """TokenStream"""
     def __init__(self):
         self._tokens: list[Token] = []
         self._count = 0
