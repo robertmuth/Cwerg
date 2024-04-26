@@ -161,6 +161,7 @@ _OPERATORS_SIMPLE = [
 
 _OPERATORS_WITH_EXCL_SUFFIX = [
     "&",
+    "^",
 ]
 
 _OPERATORS_WITH_EQ_SUFFIX = [
@@ -343,7 +344,7 @@ class Lexer:
             out.comments.append(tk)
         else:
             self._peek_cache_small = tk
-        print(out)
+        # print(out)
         for a in annotations:
             if a.srcloc.lineno == out.srcloc.lineno:
                 out.column = a.column
@@ -368,14 +369,6 @@ class Lexer:
             cwast.CompilerError(
                 tk.srcloc, f"Expected {kind}, got {tk.kind} [{tk.text}]")
         return self.next()
-
-
-def _ExpectToken(inp: Lexer, kind: TK_KIND, text=None) -> TK:
-    tk = inp.next()
-    if tk.kind != kind or text is not None and tk.text != text:
-        cwast.CompilerError(
-            tk.srcloc, f"Expected {kind}, got {tk.kind} [{tk.text}]")
-    return tk
 
 
 _OPERATOR_LIKE = {
@@ -434,6 +427,7 @@ def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
 
 
 _FUN_LIKE = {
+    "len": (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "EE"),
     "pdec": (cwast.ExprPointer, "EE"),
     "offsetof": (cwast.ExprOffsetof, "TF"),
@@ -473,10 +467,16 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
         return ctor(*params)
 
     else:
-        assert False
+        assert False, f"{tk}"
+
 
 def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
     return cwast.ValString(tk.text)
+
+
+def _PParseChar(_inp: Lexer, tk: TK, _precedence) -> Any:
+    return cwast.ValNum(tk.text)
+
 
 _PREFIX_EXPR_PARSERS = {
     TK_KIND.KW: (10, _PParseKeywordConstants),
@@ -484,6 +484,8 @@ _PREFIX_EXPR_PARSERS = {
     TK_KIND.NUM: (10, _PParseNum),
     TK_KIND.SQUARE_OPEN: (10, _PParseArrayType),
     TK_KIND.STR: (10, _PParseStr),
+    TK_KIND.CHAR: (10, _PParseChar),
+
 }
 
 
@@ -495,11 +497,12 @@ def _PParserInfixOp(inp: Lexer, lhs, tk: TK, precedence) -> Any:
 def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
     assert tk.kind is TK_KIND.PAREN_OPEN
     args = []
-    if not inp.match(TK_KIND.PAREN_CLOSED):
+    first = True
+    while not inp.match(TK_KIND.PAREN_CLOSED):
+        if not first:
+            inp.match_or_die(TK_KIND.COMMA)
+        first = False
         args.append(_ParseExpr(inp))
-        while inp.match(TK_KIND.COMMA):
-            args.append(_ParseExpr(inp))
-        inp.match_or_die(TK_KIND.PAREN_CLOSED)
     return cwast.ExprCall(callee, args)
 
 
@@ -538,6 +541,11 @@ def _PParseDeref(_inp: Lexer, pointer, _tk: TK, _precedence) -> Any:
     return cwast.ExprDeref(pointer)
 
 
+def _PParseFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
+    field = inp.match_or_die(TK_KIND.ID)
+    return cwast.ExprField(rec, field.text)
+
+
 _INFIX_EXPR_PARSERS = {
     "<": (10, _PParserInfixOp),
     "<=": (10, _PParserInfixOp),
@@ -552,12 +560,16 @@ _INFIX_EXPR_PARSERS = {
     "/": (10, _PParserInfixOp),
     "*": (10, _PParserInfixOp),
     #
+    "||": (10, _PParserInfixOp),
+    "&&": (10, _PParserInfixOp),
+    #
     "&-&": (10, _PParserInfixOp),
     #
     "(": (10, _PParseFunctionCall),
     "{": (10, _PParseInitializer),
     "[":  (10, _PParseIndex),
     "^": (10, _PParseDeref),
+    ".": (10, _PParseFieldAccess)
 
 }
 
@@ -567,32 +579,40 @@ def _ParseTypeExpr(inp: Lexer):
     if tk.kind is TK_KIND.ID:
         return cwast.Id(tk.text)
     elif tk.kind is TK_KIND.KW:
-
         if tk.text == "auto":
             return cwast.TypeAuto()
+        elif tk.text in ("slice", "slice!"):
+            inp.match_or_die(TK_KIND.PAREN_OPEN)
+            type = _ParseTypeExpr(inp)
+            inp.match_or_die(TK_KIND.PAREN_CLOSED)
+            return cwast.TypeSlice(type, mut=tk.text.endswith("!"))
+        elif tk.text == "union":
+            inp.match_or_die(TK_KIND.PAREN_OPEN)
+            members = []
+            first = True
+            while not inp.match(TK_KIND.PAREN_CLOSED):
+                if not first:
+                    inp.match_or_die(TK_KIND.COMMA)
+                first = False
+                members.append(_ParseTypeExpr(inp))
+            return cwast.TypeUnion(members)
         kind = cwast.KeywordToBaseTypeKind(tk.text)
-        assert kind is not cwast.BASE_TYPE_KIND.INVALID
+        assert kind is not cwast.BASE_TYPE_KIND.INVALID, f"{tk}"
         return cwast.TypeBase(kind)
     elif tk.text == '[':
-        if inp.peek().text == "]":
-            _ExpectToken(inp, TK_KIND.SQUARE_CLOSED)
-            type = _ParseTypeExpr(inp)
-            return cwast.TypeSlice(type, False)
-        elif inp.peek().text == "!":
-            _ExpectToken(inp, TK_KIND.OP, "!")
-            _ExpectToken(inp, TK_KIND.SQUARE_CLOSED)
-            type = _ParseTypeExpr(inp)
-            return cwast.TypeSlice(type, True)
-        else:
-            dim = _ParseTypeExpr(inp)
-            _ExpectToken(inp, TK_KIND.SQUARE_CLOSED)
-            type = _ParseTypeExpr(inp)
-            return cwast.TypeArray(dim, type)
+        dim = _ParseExpr(inp)
+        inp.match_or_die(TK_KIND.SQUARE_CLOSED)
+        type = _ParseTypeExpr(inp)
+        return cwast.TypeArray(dim, type)
     elif tk.text == "sig":
         assert False
+
     elif tk.text == "^":
         rest = _ParseTypeExpr(inp)
         return cwast.TypePtr(rest)
+    elif tk.text == "^!":
+        rest = _ParseTypeExpr(inp)
+        return cwast.TypePtr(rest, mut=True)
     else:
         assert False, f"unexpected token {tk}"
 
@@ -600,25 +620,25 @@ def _ParseTypeExpr(inp: Lexer):
 def _ParseFormalParams(inp: Lexer):
     out = []
     inp.match_or_die(TK_KIND.PAREN_OPEN)
-    if not inp.match(TK_KIND.PAREN_CLOSED):
+    first = True
+    while not inp.match(TK_KIND.PAREN_CLOSED):
+        if not first:
+            inp.match_or_die(TK_KIND.COMMA)
+        first = False
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
         out.append(cwast.FunParam(name.text, type))
-        while inp.match(TK_KIND.COMMA):
-            name = inp.match_or_die(TK_KIND.ID)
-            type = _ParseTypeExpr(inp)
-            out.append(cwast.FunParam(name.text, type))
-        inp.match_or_die(TK_KIND.PAREN_CLOSED)
     return out
 
 
 def _ParseMacroCall(inp: Lexer) -> Any:
     args = []
-    if not inp.match(TK_KIND.PAREN_CLOSED):
+    first = True
+    while not inp.match(TK_KIND.PAREN_CLOSED):
+        if not first:
+            inp.match_or_die(TK_KIND.COMMA)
+        first = False
         args.append(_ParseExpr(inp))
-        while inp.match(TK_KIND.COMMA):
-            args.append(_ParseExpr(inp))
-        inp.match_or_die(TK_KIND.PAREN_CLOSED)
     return args
 
 
@@ -677,13 +697,6 @@ def _ParseStatement(inp: Lexer):
         return cwast.StmtIf(cond, stmts_t, stmts_f)
     elif kw.text in ("trylet", "trylet!"):
         assert False
-        tokens.append(_ExpectToken(inp, TK_KIND.ID))
-        _ParseTypeExpr(inp)
-        _ExpectToken(inp, TK_KIND.OP, text="=")
-        _ParseExpr(inp)
-        _ExpectToken(inp, TK_KIND.COMMA)
-        _ExpectToken(inp, TK_KIND.ID)
-        _ParseStatementList(inp)
     elif kw.text == "set":
         lhs = _ParseExpr(inp)
         kind = inp.match_or_die(TK_KIND.OP)
@@ -694,7 +707,10 @@ def _ParseStatement(inp: Lexer):
             op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
             return cwast.StmtCompoundAssignment(op, lhs, rhs)
     elif kw.text == "return":
-        val = _ParseExpr(inp)
+        if inp.peek().srcloc.lineno == kw.srcloc.lineno:
+            val = _ParseExpr(inp)
+        else:
+            val = cwast.ValVoid()
         return cwast.StmtReturn(val)
     elif kw.text == "for":
         name = inp.match_or_die(TK_KIND.ID)
@@ -738,26 +754,32 @@ def _ParseStatementList(inp: Lexer):
 
 
 def _ParseCondList(inp: Lexer):
-    _ExpectToken(inp, TK_KIND.COLON)
+    inp.match_or_die(TK_KIND.COLON)
     indent = inp.peek().column
+    cases = []
     while True:
         tk = inp.peek()
         if tk.column < indent:
             break
-        _ExpectToken(inp, TK_KIND.KW, text="case")
-        _ParseExpr(inp)
-        _ParseStatementList(inp)
+        inp.match_or_die(TK_KIND.KW, "case")
+        cond = _ParseExpr(inp)
+        stmts = _ParseStatementList(inp)
+        cases.append(cwast.Case(cond, stmts))
+    return cwast.StmtCond(cases)
 
 
 def _ParseFieldList(inp: Lexer):
-    _ExpectToken(inp, TK_KIND.COLON)
+    inp.match_or_die(TK_KIND.COLON)
     indent = inp.peek().column
+    out = []
     while True:
         tk = inp.peek()
         if tk.column < indent:
             break
-        _ExpectToken(inp, TK_KIND.ID)
-        _ParseTypeExpr(inp)
+        name = inp.match_or_die(TK_KIND.ID)
+        type = _ParseTypeExpr(inp)
+        out.append(cwast.RecField(name.text, type))
+    return out
 
 
 def _ParseFun(kw, inp: Lexer):
@@ -771,16 +793,15 @@ def _ParseFun(kw, inp: Lexer):
 def _ParseTopLevel(inp: Lexer):
     kw = inp.next()
     if kw.text == "import":
-        name = _ExpectToken(inp, TK_KIND.ID)
+        name = inp.match_or_die(TK_KIND.ID)
         out = cwast.Import(name.text, "", [])
         return out
     elif kw.text == "fun":
         return _ParseFun(kw, inp)
     elif kw.text == "rec":
-        name = _ExpectToken(inp, TK_KIND.ID)
+        name = inp.match_or_die(TK_KIND.ID)
         fields = _ParseFieldList(inp)
-        out = cwast.DefRec(name.text, fields)
-        return out
+        return cwast.DefRec(name.text, fields)
     elif kw.text in ("global", "global!"):
         name = inp.match_or_die(TK_KIND.ID)
         if inp.match(TK_KIND.OP, "="):
@@ -800,9 +821,9 @@ def _ParseTopLevel(inp: Lexer):
 def _ParseModule(inp: Lexer):
     # comments, annotations = _ParseOptionalCommentsAttributes(inp)
     # print(comments, annotations)
-    kw = _ExpectToken(inp, TK_KIND.KW, "module")
-    name = _ExpectToken(inp, TK_KIND.ID)
-    _ExpectToken(inp, TK_KIND.COLON)
+    kw = inp.match_or_die(TK_KIND.KW, "module")
+    name = inp.match_or_die(TK_KIND.ID)
+    kw = inp.match_or_die(TK_KIND.COLON)
     out = cwast.DefMod(name.text, [], [])
 
     while True:

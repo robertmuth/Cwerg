@@ -6,7 +6,7 @@ import fmt
 fun strlen(s ^u8) uint:
     let! i uint = 0
     -- pinc is adds an integer to a pointer it also has an options bound
-    while pinc(s, i)^!= 0:
+    while pinc(s, i)^ != 0:
         set i += 1
     return i
 
