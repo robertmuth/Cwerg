@@ -180,19 +180,6 @@ _OPERATORS_WITH_EQ_SUFFIX = [
 ]
 
 
-_ASSIGNMENT_OPS = set([
-    "=",
-    ">>>=",
-    "<<<=",
-    ">>=",
-    "<<=",
-    "+=",
-    "-=",
-    "/=",
-    "*=",
-    "%="
-])
-
 OPERATORS = {}
 for o in _OPERATORS_SIMPLE:
     OPERATORS[o] = TK_KIND.OP
@@ -391,19 +378,6 @@ def _ExpectToken(inp: Lexer, kind: TK_KIND, text=None) -> TK:
     return tk
 
 
-_FUN_LIKE = {
-    "pinc": "EE",
-    "pdec": "EE",
-    "offsetof": "TF",
-    "slice": "EE",
-    "as": "ET",
-    "wrap": "ET",
-    "narrowto": "ET",
-    "widdento": "ET",
-    "cast": "ET",
-    "bitcast": "ET",
-}
-
 _OPERATOR_LIKE = {
     "unwrap": "E",
     "uniontypetag": "E",
@@ -459,10 +433,57 @@ def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
     return cwast.TypeArray(dim, type)
 
 
+_FUN_LIKE = {
+    "pinc": (cwast.ExprPointer, "EE"),
+    "pdec": (cwast.ExprPointer, "EE"),
+    "offsetof": (cwast.ExprOffsetof, "TF"),
+    "slice": (cwast.ValSlice, "EE"),
+    "as": (cwast.ExprAs, "ET"),
+    "wrap": (cwast.ExprWrap, "ET"),
+    "narrowto": (cwast.ExprNarrow, "ET"),
+    "widdento": (cwast.ExprWiden, "ET"),
+    "bitcast": (cwast.ExprBitCast, "ET"),
+}
+
+
+def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
+    if tk.text == "true":
+        return cwast.ValTrue()
+    elif tk.text == "false":
+        return cwast.ValFalse()
+    elif tk.text in _FUN_LIKE:
+        ctor, args = _FUN_LIKE[tk.text]
+        inp.match_or_die(TK_KIND.PAREN_OPEN)
+        first = True
+        params = []
+        for a in args:
+            if not first:
+                inp.match_or_die(TK_KIND.COMMA)
+            first = False
+            if a == "E":
+                params.append(_ParseExpr(inp))
+            else:
+                assert a == "T"
+                params.append(_ParseTypeExpr(inp))
+
+        inp.match_or_die(TK_KIND.PAREN_CLOSED)
+        pointer = cwast.POINTER_EXPR_SHORTCUT.get(tk.text)
+        if pointer:
+            params = [pointer] + params + [cwast.ValUndef()]
+        return ctor(*params)
+
+    else:
+        assert False
+
+def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
+    return cwast.ValString(tk.text)
+
 _PREFIX_EXPR_PARSERS = {
+    TK_KIND.KW: (10, _PParseKeywordConstants),
     TK_KIND.ID: (10, _PParseId),
     TK_KIND.NUM: (10, _PParseNum),
     TK_KIND.SQUARE_OPEN: (10, _PParseArrayType),
+    TK_KIND.STR: (10, _PParseStr),
 }
 
 
@@ -490,7 +511,7 @@ def _ParseArrayInit(inp: Lexer) -> Any:
     return cwast.IndexVal(_ParseExpr(inp), index)
 
 
-def _PParseInitializer(inp: Lexer, type, tk: TK, precedence) -> Any:
+def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
     assert tk.kind is TK_KIND.CURLY_OPEN
     if isinstance(type, cwast.Id):
         assert False, "NYI - record initializer"
@@ -506,11 +527,15 @@ def _PParseInitializer(inp: Lexer, type, tk: TK, precedence) -> Any:
         return cwast.ValArray(type.size, type.type, inits)
 
 
-def _PParseIndex(inp: Lexer, array, tk: TK, precedence) -> Any:
+def _PParseIndex(inp: Lexer, array, tk: TK, _precedence) -> Any:
     assert tk.kind is TK_KIND.SQUARE_OPEN
     index = _ParseExpr(inp)
     inp.match_or_die(TK_KIND.SQUARE_CLOSED)
     return cwast.ExprIndex(array, index)
+
+
+def _PParseDeref(_inp: Lexer, pointer, _tk: TK, _precedence) -> Any:
+    return cwast.ExprDeref(pointer)
 
 
 _INFIX_EXPR_PARSERS = {
@@ -532,6 +557,7 @@ _INFIX_EXPR_PARSERS = {
     "(": (10, _PParseFunctionCall),
     "{": (10, _PParseInitializer),
     "[":  (10, _PParseIndex),
+    "^": (10, _PParseDeref),
 
 }
 
@@ -625,7 +651,7 @@ def _ParseStatement(inp: Lexer):
         return _ParseStatementMacro(kw, inp)
     assert kw.kind is TK_KIND.KW, f"{kw}"
     if kw.text in ("let", "let!"):
-        name = inp.match(TK_KIND.ID)
+        name = inp.match_or_die(TK_KIND.ID)
         if inp.match(TK_KIND.OP, "="):
             type = cwast.TypeAuto()
             init = _ParseExpr(inp)
@@ -661,12 +687,12 @@ def _ParseStatement(inp: Lexer):
     elif kw.text == "set":
         lhs = _ParseExpr(inp)
         kind = inp.match_or_die(TK_KIND.OP)
-        assert kind.text in _ASSIGNMENT_OPS
         rhs = _ParseExpr(inp)
         if kind.text == "=":
             return cwast.StmtAssignment(lhs, rhs)
         else:
-            return cwast.StmtCompoundAssignment(lhs, rhs)
+            op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
+            return cwast.StmtCompoundAssignment(op, lhs, rhs)
     elif kw.text == "return":
         val = _ParseExpr(inp)
         return cwast.StmtReturn(val)
