@@ -456,7 +456,8 @@ class TypeCorpus:
         return ct
 
     def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
-        return self._insert(cwast.CanonType(cwast.TypeBase, kind.name.lower(), base_type_kind=kind))
+        return self._insert(cwast.CanonType(
+            cwast.TypeBase, cwast.BaseTypeKindToKeyword(kind), base_type_kind=kind))
 
     def insert_ptr_type(self, mut: bool, ct: cwast.CanonType, original_type=None) -> cwast.CanonType:
         if mut:

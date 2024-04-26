@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def MaybeSimplifyLeafNode(node) -> Optional[str]:
     if isinstance(node, cwast.TypeBase):
-        return node.base_type_kind.name.lower()
+        return cwast.BaseTypeKindToKeyword(node.base_type_kind)
     elif isinstance(node, cwast.ValUndef):
         return "undef"
     elif isinstance(node, cwast.TypeAuto):

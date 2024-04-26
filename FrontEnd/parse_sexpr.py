@@ -119,25 +119,6 @@ class ReadTokens:
         return out
 
 
-_SCALAR_TYPES = [
-    #
-    cwast.BASE_TYPE_KIND.SINT,
-    cwast.BASE_TYPE_KIND.S8,
-    cwast.BASE_TYPE_KIND.S16,
-    cwast.BASE_TYPE_KIND.S32,
-    cwast.BASE_TYPE_KIND.S64,
-    #
-    cwast.BASE_TYPE_KIND.UINT,
-    cwast.BASE_TYPE_KIND.U8,
-    cwast.BASE_TYPE_KIND.U16,
-    cwast.BASE_TYPE_KIND.U32,
-    cwast.BASE_TYPE_KIND.U64,
-    #
-    cwast.BASE_TYPE_KIND.R32,
-    cwast.BASE_TYPE_KIND.R64,
-]
-
-
 def _MakeTypeBaseLambda(kind: cwast.BASE_TYPE_KIND):
     def closure(**extra):
         return cwast.TypeBase(kind, **extra)
@@ -147,10 +128,6 @@ def _MakeTypeBaseLambda(kind: cwast.BASE_TYPE_KIND):
 # maps "atoms" to the nodes they will be expanded to
 _SHORT_HAND_NODES = {
     "auto": cwast.TypeAuto,
-    #
-    "noret": _MakeTypeBaseLambda(cwast.BASE_TYPE_KIND.NORET),
-    "bool": _MakeTypeBaseLambda(cwast.BASE_TYPE_KIND.BOOL),
-    "void": _MakeTypeBaseLambda(cwast.BASE_TYPE_KIND.VOID),
     #
     "auto_val": cwast.ValAuto,
     "void_val": cwast.ValVoid,
@@ -163,9 +140,10 @@ _SHORT_HAND_NODES = {
 }
 
 # add basic type names
-for basic_type in _SCALAR_TYPES:
-    name = basic_type.name.lower()
-    _SHORT_HAND_NODES[name] = _MakeTypeBaseLambda(basic_type)
+for basic_type in cwast.BASE_TYPE_KIND:
+    if basic_type != cwast.BASE_TYPE_KIND.INVALID:
+        name = cwast.BaseTypeKindToKeyword(basic_type)
+        _SHORT_HAND_NODES[name] = _MakeTypeBaseLambda(basic_type)
 
 
 def IsWellFormedStringLiteral(t: str):

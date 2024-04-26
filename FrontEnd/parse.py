@@ -101,7 +101,7 @@ for k in pp.KEYWORDS:
     KEYWORDS[k] = TK_KIND.KW
 for k in cwast.BASE_TYPE_KIND:
     if k is not cwast.BASE_TYPE_KIND.INVALID:
-        KEYWORDS[k.name.lower()] = TK_KIND.KW
+        KEYWORDS[cwast.BaseTypeKindToKeyword(k)] = TK_KIND.KW
 for k in pp.KEYWORDS_WITH_EXCL_SUFFIX:
     KEYWORDS[k] = TK_KIND.SPECIAL_MUT
 
