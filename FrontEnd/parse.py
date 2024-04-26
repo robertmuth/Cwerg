@@ -34,19 +34,21 @@ class TK_KIND(enum.Enum):
     OP2 = enum.auto()
     COMMA = enum.auto()
     COLON = enum.auto()
+    DOT = enum.auto()
     EOL = enum.auto()
     WS = enum.auto()
     ID = enum.auto()
     NUM = enum.auto()
     CHAR = enum.auto()
     STR = enum.auto()
+    ASSIGN = enum.auto()
+    COMPOUND_ASSIGN = enum.auto()
     PAREN_OPEN = enum.auto()
     PAREN_CLOSED = enum.auto()
     SQUARE_OPEN = enum.auto()
     SQUARE_CLOSED = enum.auto()
     CURLY_OPEN = enum.auto()
     CURLY_CLOSED = enum.auto()
-    SPECIAL_ASSIGN = enum.auto()
     SPECIAL_MUT = enum.auto()
     SPECIAL_EOF = enum.auto()
 
@@ -123,14 +125,6 @@ _KEYWORDS_SIMPLE = [
     "static_assert",
 ]
 
-_KEYWORDS_OPERATOR_EQ_SUFFIX = [
-    "min",
-    "max",
-    "and",
-    "or",
-    "xor",
-]
-
 
 _KEYWORDS_WITH_EXCL_SUFFIX = [
     "trylet",
@@ -145,56 +139,16 @@ for k in _KEYWORDS_SIMPLE:
     KEYWORDS[k] = TK_KIND.KW
 for k in _KEYWORDS_WITH_EXCL_SUFFIX:
     KEYWORDS[k] = TK_KIND.SPECIAL_MUT
-for k in _KEYWORDS_OPERATOR_EQ_SUFFIX:
-    KEYWORDS[k] = TK_KIND.OP2
 
-# Note, order is important: e.g. >> must come before >
-_OPERATORS_SIMPLE2 = [
-    "&&",
-    "||",
-    ".",
-    "!=",
-    "&-&",
-]
-
-
-_OPERATORS_WITH_EQ_SUFFIX = [
-    "=",
-    ">>>",
-    "<<<",
-    ">>",
-    "<<",
-    "<",
-    ">",
-    "+",
-    "-",
-    "/",
-    "*",
-    "%"
-]
 
 _OPERATORS_SIMPLE1 = [
     # "-",
+    "^!",
     "^",
+    "&!",
+    "&",
     "!",
 ]
-
-_OPERATORS_WITH_EXCL_SUFFIX = [
-    "&",
-    "^",
-]
-
-OPERATORS = {}
-for o in _OPERATORS_SIMPLE2:
-    OPERATORS[o] = TK_KIND.OP2
-for o in _OPERATORS_WITH_EQ_SUFFIX:
-    OPERATORS[o] = TK_KIND.SPECIAL_ASSIGN
-for o in _KEYWORDS_OPERATOR_EQ_SUFFIX:
-    OPERATORS[o] = TK_KIND.SPECIAL_ASSIGN
-for o in _OPERATORS_SIMPLE1:
-    OPERATORS[o] = TK_KIND.OP1
-for o in _OPERATORS_WITH_EXCL_SUFFIX:
-    OPERATORS[o] = TK_KIND.SPECIAL_MUT
 
 
 ANNOTATION_RE = r"@[a-zA-Z]+"
@@ -208,17 +162,16 @@ _STR_START_RE = r'x?"(?:[^"\\]|[\\].)*'
 _R_STR_START_RE = r'r"(?:[^"])*'
 _STR_END_RE = '(?:"|$)'   # Note, this also covers the unterminated case
 
-_operators2 = ([re.escape(x) for x in _OPERATORS_SIMPLE2] +
-               [re.escape(x) for x in _OPERATORS_WITH_EQ_SUFFIX])
+_operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT]
 
-_operators1 = (
-    [re.escape(x) for x in _OPERATORS_WITH_EXCL_SUFFIX] +
-    [re.escape(x) for x in _OPERATORS_SIMPLE1])
+_operators1 = [re.escape(x) for x in _OPERATORS_SIMPLE1]
+
+_compound_assignment = [re.escape(x) for x in cwast.ASSIGNMENT_SHORTCUT]
 
 _token_spec = [
     (TK_KIND.ANNOTATION.name, ANNOTATION_RE),
-    (TK_KIND.COLON.name, ":"),           # colon
-    (TK_KIND.COMMA.name, ","),           # comma
+    (TK_KIND.COLON.name, ":"),
+    (TK_KIND.COMMA.name, ","),
     (TK_KIND.PAREN_OPEN.name, "[(]"),
     (TK_KIND.PAREN_CLOSED.name, "[)]"),
     (TK_KIND.CURLY_OPEN.name, "[{]"),
@@ -226,15 +179,18 @@ _token_spec = [
     (TK_KIND.SQUARE_OPEN.name, r"\["),
     (TK_KIND.SQUARE_CLOSED.name, r"\]"),
     (TK_KIND.COMMENT.name, COMMENT_RE),  # remark
-    (TK_KIND.ID.name, ID_RE),
     (TK_KIND.NUM.name, NUM_RE),
+    (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
     (TK_KIND.STR.name, "(?:" + _R_STR_START_RE + \
      "|" + _STR_START_RE + ")" + _STR_END_RE),
+    (TK_KIND.CHAR.name, CHAR_RE),
+    (TK_KIND.COMPOUND_ASSIGN.name, "|".join(_compound_assignment)),
     (TK_KIND.OP2.name, "|".join(_operators2)),
     (TK_KIND.OP1.name, "|".join(_operators1)),
-    (TK_KIND.CHAR.name, CHAR_RE),
+    (TK_KIND.ASSIGN.name, "="),
+    (TK_KIND.ID.name, ID_RE),
 ]
 
 
@@ -248,7 +204,7 @@ assert TOKEN_RE.fullmatch("<<")
 assert TOKEN_RE.fullmatch("<<<")
 assert not TOKEN_RE.fullmatch("<<<<")
 assert TOKEN_RE.fullmatch("aa")
-#assert TOKEN_RE.fullmatch("^!")
+# assert TOKEN_RE.fullmatch("^!")
 
 # print(TOKEN_RE.findall("zzzzz+aa*7u8 <<<<"))
 
@@ -299,16 +255,8 @@ class LexerRaw:
         col = self._col_no
         if kind == TK_KIND.ID:
             kind = KEYWORDS.get(token, TK_KIND.ID)
-        if kind == TK_KIND.SPECIAL_MUT:
-            kind = TK_KIND.KW
-            if self._current_line.startswith("!", len(token)):
-                token = token + "!"
-        elif kind in (TK_KIND.OP2, TK_KIND.OP1):
-            k = OPERATORS[token]
-            if k == TK_KIND.SPECIAL_ASSIGN:
-                if self._current_line.startswith("=", len(token)):
-                    token = token + "="
-            elif k == TK_KIND.SPECIAL_MUT:
+            if kind == TK_KIND.SPECIAL_MUT:
+                kind = TK_KIND.KW
                 if self._current_line.startswith("!", len(token)):
                     token = token + "!"
         self._col_no += len(token)
@@ -355,7 +303,7 @@ class Lexer:
             out.comments.append(tk)
         else:
             self._peek_cache_small = tk
-        # print(out)
+        print(out)
         for a in annotations:
             if a.srcloc.lineno == out.srcloc.lineno:
                 out.column = a.column
@@ -536,7 +484,7 @@ def _ParseArrayInit(inp: Lexer) -> Any:
     field = ""
     if inp.peek().text.startswith("."):
         field = inp.next().text
-        inp.match_or_die(TK_KIND.OP2, "=")
+        inp.match_or_die(TK_KIND.ASSIGN)
     val = _ParseExpr(inp)
     return cwast.FieldVal(val, field)
 
@@ -706,12 +654,12 @@ def _ParseStatement(inp: Lexer):
     assert kw.kind is TK_KIND.KW, f"{kw}"
     if kw.text in ("let", "let!"):
         name = inp.match_or_die(TK_KIND.ID)
-        if inp.match(TK_KIND.OP2, "="):
+        if inp.match(TK_KIND.ASSIGN):
             type = cwast.TypeAuto()
             init = _ParseExpr(inp)
         else:
             type = _ParseTypeExpr(inp)
-            if inp.match(TK_KIND.OP2, "="):
+            if inp.match(TK_KIND.ASSIGN):
                 init = _ParseExpr(inp)
             else:
                 init = cwast.ValAuto()
@@ -732,7 +680,7 @@ def _ParseStatement(inp: Lexer):
     elif kw.text in ("trylet", "trylet!"):
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
-        inp.match_or_die(TK_KIND.OP2, "=")
+        inp.match_or_die(TK_KIND.ASSIGN)
         expr = _ParseExpr(inp)
         inp.match_or_die(TK_KIND.COMMA)
         name2 = inp.match_or_die(TK_KIND.ID)
@@ -742,11 +690,12 @@ def _ParseStatement(inp: Lexer):
                                   cwast.EphemeralList(stmts, colon=True)])
     elif kw.text == "set":
         lhs = _ParseExpr(inp)
-        kind = inp.match_or_die(TK_KIND.OP2)
+        kind = inp.next()
         rhs = _ParseExpr(inp)
-        if kind.text == "=":
+        if kind.kind is TK_KIND.ASSIGN:
             return cwast.StmtAssignment(lhs, rhs)
         else:
+            assert kind.kind is TK_KIND.COMPOUND_ASSIGN
             op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
             return cwast.StmtCompoundAssignment(op, lhs, rhs)
     elif kw.text == "return":
@@ -757,7 +706,7 @@ def _ParseStatement(inp: Lexer):
         return cwast.StmtReturn(val)
     elif kw.text == "for":
         name = inp.match_or_die(TK_KIND.ID)
-        inp.match_or_die(TK_KIND.OP2, "=")
+        inp.match_or_die(TK_KIND.ASSIGN)
         start = _ParseExpr(inp)
         inp.match_or_die(TK_KIND.COMMA)
         end = _ParseExpr(inp)
@@ -846,12 +795,12 @@ def _ParseTopLevel(inp: Lexer):
         return cwast.DefRec(name.text, fields)
     elif kw.text in ("global", "global!"):
         name = inp.match_or_die(TK_KIND.ID)
-        if inp.match(TK_KIND.OP2, "="):
+        if inp.match(TK_KIND.ASSIGN):
             type = cwast.TypeAuto()
             init = _ParseExpr(inp)
         else:
             type = _ParseTypeExpr(inp)
-            if inp.match(TK_KIND.OP2, "="):
+            if inp.match(TK_KIND.ASSIGN):
                 init = _ParseExpr(inp)
             else:
                 init = cwast.ValAuto()
