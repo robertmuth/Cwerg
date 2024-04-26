@@ -81,16 +81,7 @@ _KEYWORDS_SIMPLE = [
     "sizeof",
     "len",
     #
-    "macro",
     "stringfy",
-    "mfor",
-    #
-    "module",
-    "enum",
-    "import",
-    "fun",
-    "type",
-    "static_assert",
 ]
 
 
@@ -268,7 +259,7 @@ class Lexer:
             out.comments.append(tk)
         else:
             self._peek_cache_small = tk
-        print(out)
+        # print(out)
         for a in annotations:
             if a.srcloc.lineno == out.srcloc.lineno:
                 out.column = a.column

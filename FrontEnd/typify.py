@@ -12,7 +12,6 @@ from typing import Tuple, Any
 from FrontEnd import cwast
 from FrontEnd import symbolize
 from FrontEnd import type_corpus
-from FrontEnd import pp
 
 
 logger = logging.getLogger(__name__)

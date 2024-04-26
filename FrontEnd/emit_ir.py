@@ -24,7 +24,7 @@ from FrontEnd import cwast
 from FrontEnd import typify
 from FrontEnd import eval
 from FrontEnd import identifier
-from FrontEnd import pp
+from FrontEnd import pp_html
 from FrontEnd import mod_pool
 
 logger = logging.getLogger(__name__)
@@ -899,8 +899,8 @@ def SanityCheckMods(phase_name: str, emit_ir: str, mods: list[cwast.DefMod], tc,
     logger.info(phase_name)
     if emit_ir == phase_name:
         for mod in mods:
-            pp.PrettyPrintHTML(mod, tc)
-            # pp.PrettyPrint(mod)
+            pp_html.PrettyPrintHTML(mod, tc)
+            # pp_sexpr.PrettyPrint(mod)
         exit(0)
 
     for mod in mods:

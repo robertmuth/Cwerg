@@ -8,7 +8,7 @@ import logging
 
 from typing import Optional, Any, Sequence, Union
 
-from FrontEnd import pp
+from FrontEnd import pp_sexpr
 from FrontEnd import macros
 from FrontEnd import cwast
 
@@ -211,7 +211,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, node
     # recurse and resolve any expandables
     FindAndExpandMacrosRecursively(node, builtin_syms, nesting + 1, ctx)
-    # pp.PrettyPrint(exp)
+    # pp_sexpr.PrettyPrint(exp)
     return node
 
 
@@ -576,7 +576,7 @@ def main(argv):
     for ast in mod_topo_order:
         cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
-        pp.PrettyPrint(ast)
+        pp_sexpr.PrettyPrint(ast)
 
 
 if __name__ == "__main__":

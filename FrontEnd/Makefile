@@ -137,8 +137,8 @@ $(DIR)/%.cw.symtab: TestData/%.cw
 
 $(DIR)/%.cw.pp: TestData/%.cw
 	@echo "[prettyprint $@]"
-	./pp.py $< >$@.tmp.cw
-	./pp.py $@.tmp.cw >$@
+	./pp_sexpr.py $< >$@.tmp.cw
+	./pp_sexpr.py $@.tmp.cw >$@
 	diff $@.tmp.cw $@
 
 ## Language Tests
@@ -242,10 +242,10 @@ clean:
 
 reformat:
 	for f in TestData/*.cw ; do \
-		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
+		echo $$f ; ./pp_sexpr.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
 	done
 
 reformat_lib:
 	for f in Lib/*.cw ; do \
-		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
+		echo $$f ; ./pp_sexpr.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
 	done
