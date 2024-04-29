@@ -83,6 +83,7 @@ def KeywordToBaseTypeKind(s: str) -> BASE_TYPE_KIND:
     except KeyError:
         return BASE_TYPE_KIND.INVALID
 
+
 def BaseTypeKindToKeyword(kind: BASE_TYPE_KIND) -> str:
     return kind.name.lower()
 
@@ -172,6 +173,13 @@ class BINARY_EXPR_KIND(enum.Enum):
 
 
 BINARY_EXPR_SHORTCUT = {
+    # Note: order is lexer friendly - longest match first
+    #
+    "<<": BINARY_EXPR_KIND.SHL,
+    ">>": BINARY_EXPR_KIND.SHR,
+    "<<<": BINARY_EXPR_KIND.ROTL,
+    ">>>": BINARY_EXPR_KIND.ROTR,
+    #
     ">=": BINARY_EXPR_KIND.GE,
     ">": BINARY_EXPR_KIND.GT,
     "<=": BINARY_EXPR_KIND.LE,
@@ -189,11 +197,7 @@ BINARY_EXPR_SHORTCUT = {
     #
     "&&": BINARY_EXPR_KIND.ANDSC,
     "||": BINARY_EXPR_KIND.ORSC,
-    #
-    "<<": BINARY_EXPR_KIND.SHL,
-    ">>": BINARY_EXPR_KIND.SHR,
-    "<<<": BINARY_EXPR_KIND.ROTL,
-    ">>>": BINARY_EXPR_KIND.ROTR,
+
     #
     "and": BINARY_EXPR_KIND.AND,
     "or": BINARY_EXPR_KIND.OR,

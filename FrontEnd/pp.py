@@ -128,7 +128,7 @@ KEYWORDS = [
     "mfor", "swap",
 ]
 
-KEYWORDS_WITH_EXCL_SUFFIX = ["trylet", "mlet", "let", "global"]
+KEYWORDS_WITH_EXCL_SUFFIX = ["trylet", "mlet", "slice", "let", "global", "front"]
 
 BEG_TOKENS = set(KEYWORDS + KEYWORDS_WITH_EXCL_SUFFIX + [
     k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
@@ -351,7 +351,7 @@ def TokensMacroInvokeArgs(ts: TS, args):
                 ts.EmitEnd(beg)
             else:
                 sep2 = False
-                beg = ts.EmitBegParen("[")
+                beg = ts.EmitBegParen("{")
                 for e in a.args:
                     if sep2:
                         ts.EmitSep(",")
