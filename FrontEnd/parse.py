@@ -66,7 +66,7 @@ _KEYWORDS_SIMPLE = [
     "front",
     "uniontag",
     "is",
-    "sig",
+    "funtype",
     #
     "pinc",
     "pdec",
@@ -363,6 +363,8 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
         return cwast.ValTrue()
     elif tk.text == "false":
         return cwast.ValFalse()
+    elif tk.text == "void":
+        return cwast.ValVoid()
     elif tk.text in _FUN_LIKE:
         ctor, args = _FUN_LIKE[tk.text]
         inp.match_or_die(TK_KIND.PAREN_OPEN)
@@ -399,7 +401,7 @@ def _PParseChar(_inp: Lexer, tk: TK, _precedence) -> Any:
 def _PParsePrefix(inp: Lexer, tk: TK, precedence) -> Any:
     rhs = _ParseExpr(inp, precedence)
     if tk.text.startswith("&"):
-        return cwast.ExprAddrOf(rhs,mut = tk.text == "&!")
+        return cwast.ExprAddrOf(rhs, mut=tk.text == "&!")
     kind = cwast.UNARY_EXPR_SHORTCUT[tk.text]
     return cwast.Expr1(kind, rhs)
 
@@ -528,7 +530,6 @@ _INFIX_EXPR_PARSERS = {
     "[":  (10, _PParseIndex),
     "^": (10, _PParseDeref),
     ".": (10, _PParseFieldAccess)
-
 }
 
 
@@ -539,6 +540,10 @@ def _ParseTypeExpr(inp: Lexer):
     elif tk.kind is TK_KIND.KW:
         if tk.text == "auto":
             return cwast.TypeAuto()
+        elif tk.text == "funtype":
+            params = _ParseFormalParams(inp)
+            result = _ParseTypeExpr(inp)
+            return cwast.TypeFun(params, result)
         elif tk.text in ("slice", "slice!"):
             inp.match_or_die(TK_KIND.PAREN_OPEN)
             type = _ParseTypeExpr(inp)
@@ -562,9 +567,6 @@ def _ParseTypeExpr(inp: Lexer):
         inp.match_or_die(TK_KIND.SQUARE_CLOSED)
         type = _ParseTypeExpr(inp)
         return cwast.TypeArray(dim, type)
-    elif tk.text == "sig":
-        assert False
-
     elif tk.text == "^":
         rest = _ParseTypeExpr(inp)
         return cwast.TypePtr(rest)
@@ -589,19 +591,20 @@ def _ParseFormalParams(inp: Lexer):
     return out
 
 
-
 def _ParseMacroArg(inp: Lexer) -> Any:
-        if inp.match(TK_KIND.CURLY_OPEN):
-            args = []
-            first = True
-            while not inp.match(TK_KIND.CURLY_CLOSED):
-                if not first:
-                    inp.match_or_die(TK_KIND.COMMA)
-                first = False
-                args.append(_ParseMacroArg(inp))
-            return cwast.EphemeralList(args)
-        else:
-            return _ParseExpr(inp)
+    if inp.match(TK_KIND.CURLY_OPEN):
+        args = []
+        first = True
+        while not inp.match(TK_KIND.CURLY_CLOSED):
+            if not first:
+                inp.match_or_die(TK_KIND.COMMA)
+            first = False
+            args.append(_ParseMacroArg(inp))
+        return cwast.EphemeralList(args)
+    else:
+        return _ParseExpr(inp)
+
+
 def _ParseMacroCall(inp: Lexer) -> Any:
     args = []
     first = True
@@ -853,6 +856,11 @@ def _ParseTopLevel(inp: Lexer):
             body = _ParseStatementList(inp)
         return cwast.DefMacro(name.text, cwast.MACRO_PARAM_KIND[kind.text],
                               params, gen_ids, body)
+    elif kw.text == "type":
+        name = inp.match_or_die(TK_KIND.ID)
+        inp.match_or_die(TK_KIND.ASSIGN)
+        type = _ParseTypeExpr(inp)
+        return cwast.DefType(name.text, type)
     else:
         assert False, f"topelevel {kw}"
 
