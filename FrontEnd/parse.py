@@ -35,6 +35,7 @@ class TK_KIND(enum.Enum):
     OP2 = enum.auto()
     COMMA = enum.auto()
     COLON = enum.auto()
+    QUESTION_MARK = enum.auto()
     DOT = enum.auto()
     EOL = enum.auto()
     WS = enum.auto()
@@ -141,6 +142,7 @@ _token_spec = [
     (TK_KIND.SQUARE_CLOSED.name, r"\]"),
     (TK_KIND.COMMENT.name, COMMENT_RE),  # remark
     (TK_KIND.NUM.name, NUM_RE),
+    (TK_KIND.QUESTION_MARK.name, r"\?"),
     (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
@@ -353,7 +355,7 @@ _FUN_LIKE = {
     "unwrap": (cwast.ExprUnwrap, "E"),
     "narrowto": (cwast.ExprNarrow, "ET"),
     "widdento": (cwast.ExprWiden, "ET"),
-    "bitcast": (cwast.ExprBitCast, "ET"),
+    "asbits": (cwast.ExprBitCast, "ET"),
 }
 
 
@@ -364,6 +366,8 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
         return cwast.ValFalse()
     elif tk.text == "void":
         return cwast.ValVoid()
+    elif tk.text == "auto":
+        return cwast.ValAuto()
     elif tk.text in _FUN_LIKE:
         ctor, args = _FUN_LIKE[tk.text]
         inp.match_or_die(TK_KIND.PAREN_OPEN)
@@ -449,17 +453,19 @@ def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
 
 def _ParseArrayInit(inp: Lexer) -> Any:
     if inp.match(TK_KIND.SQUARE_OPEN):
-        assert False
+        index = _ParseExpr(inp)
+        inp.match_or_die(TK_KIND.SQUARE_CLOSED)
     else:
         index = cwast.ValAuto()
     return cwast.IndexVal(_ParseExpr(inp), index)
 
 
 def _ParseRecInit(inp: Lexer) -> Any:
-    field = ""
-    if inp.peek().text.startswith("."):
+    if inp.match(TK_KIND.SQUARE_OPEN):
         field = inp.next().text
-        inp.match_or_die(TK_KIND.ASSIGN)
+        inp.match_or_die(TK_KIND.SQUARE_CLOSED)
+    else:
+        field = ""
     val = _ParseExpr(inp)
     return cwast.FieldVal(val, field)
 
@@ -503,6 +509,13 @@ def _PParseFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
     return cwast.ExprField(rec, field.text)
 
 
+def _PParseTernary(inp: Lexer, cond, _tk: TK, _precedence) -> Any:
+    expr_t = _ParseExpr(inp)
+    inp.match_or_die(TK_KIND.COLON)
+    expr_f = _ParseExpr(inp)
+    return cwast.Expr3(cond, expr_t, expr_f)
+
+
 _INFIX_EXPR_PARSERS = {
     "<": (10, _PParserInfixOp),
     "<=": (10, _PParserInfixOp),
@@ -538,7 +551,8 @@ _INFIX_EXPR_PARSERS = {
     "{": (10, _PParseInitializer),
     "[":  (10, _PParseIndex),
     "^": (10, _PParseDeref),
-    ".": (10, _PParseFieldAccess)
+    ".": (10, _PParseFieldAccess),
+    "?": (10, _PParseTernary),
 }
 
 
@@ -800,6 +814,20 @@ def _ParseFieldList(inp: Lexer):
         out.append(cwast.RecField(name.text, type))
     return out
 
+def _ParseEnumList(inp: Lexer, outer_indent):
+    inp.match_or_die(TK_KIND.COLON)
+    indent = inp.peek().column
+    if indent <= outer_indent:
+        return []
+    out = []
+    while True:
+        tk = inp.peek()
+        if tk.column < indent:
+            break
+        name = inp.match_or_die(TK_KIND.ID)
+        val = _ParseExpr(inp)
+        out.append(cwast.EnumVal(name.text, val))
+    return out
 
 def _ParseMacroParams(inp: Lexer):
     out = []
@@ -848,8 +876,10 @@ def _ParseTopLevel(inp: Lexer):
     kw = inp.next()
     if kw.text == "import":
         name = inp.match_or_die(TK_KIND.ID)
-        out = cwast.Import(name.text, "", [])
-        return out
+        alias = ""
+        if inp.match(TK_KIND.KW, "as"):
+            alias = inp.next().text
+        return cwast.Import(name.text, alias, [])
     elif kw.text == "fun":
         name = inp.match_or_die(TK_KIND.ID)
         params = _ParseFormalParams(inp)
@@ -888,6 +918,12 @@ def _ParseTopLevel(inp: Lexer):
         inp.match_or_die(TK_KIND.ASSIGN)
         type = _ParseTypeExpr(inp)
         return cwast.DefType(name.text, type)
+    elif kw.text == "enum":
+        name = inp.match_or_die(TK_KIND.ID)
+        base_type = inp.match_or_die(TK_KIND.KW)
+        entries = _ParseEnumList(inp, kw.column)
+        return cwast.DefEnum(name.text, cwast.KeywordToBaseTypeKind(base_type.text),
+                             entries)
     else:
         assert False, f"topelevel {kw}"
 

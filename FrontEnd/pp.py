@@ -128,7 +128,8 @@ KEYWORDS = [
     "mfor", "swap",
 ]
 
-KEYWORDS_WITH_EXCL_SUFFIX = ["trylet", "mlet", "slice", "let", "global", "front"]
+KEYWORDS_WITH_EXCL_SUFFIX = [
+    "trylet", "mlet", "slice", "let", "global", "front"]
 
 BEG_TOKENS = set(KEYWORDS + KEYWORDS_WITH_EXCL_SUFFIX + [
     k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
@@ -164,6 +165,7 @@ _MATCHING_CLOSING_BRACE = {
 
 class TS:
     """TokenStream"""
+
     def __init__(self):
         self._tokens: list[Token] = []
         self._count = 0
@@ -174,8 +176,8 @@ class TS:
     def EmitToken(self, kind: TK, tag="", beg=None):
         if tag == "(" or tag == "[":
             assert kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN)
-        elif tag == ":":
-            assert kind is TK.BEG_COLON
+        #elif tag == ":":
+        #    assert kind is TK.BEG_COLON
         tk = Token(kind, tag=tag, beg=beg, start=self._count)
         self._count += len(tag)
         self._tokens.append(tk)
@@ -282,9 +284,9 @@ def TokensUnarySuffix(ts: TS, name: str, node):
 
 def EmitExpr3(ts: TS, node: cwast.Expr3):
     EmitTokens(ts, node.cond)
-    ts.EmitAttr("??")
+    ts.EmitAttr("?")
     EmitTokens(ts, node.expr_t)
-    ts.EmitAttr("!!")
+    ts.EmitAttr(":")
     EmitTokens(ts, node.expr_f)
 
 
@@ -482,9 +484,12 @@ def TokensValRec(ts: TS, node: cwast.ValRec):
         if sep:
             ts.EmitSep(",")
         sep = True
-        EmitTokens(ts, e.value_or_undef)
         if e.init_field:
+            bb = ts.EmitBegParen("[")
             ts.EmitAttr(e.init_field)
+            ts.EmitEnd(bb)
+        EmitTokens(ts, e.value_or_undef)
+
     ts.EmitEnd(beg)
 
 
@@ -603,7 +608,7 @@ def TokensEnumVal(ts: TS, node: cwast.EnumVal):
 def TokensDefEnum(ts: TS, node: cwast.DefEnum):
     beg_enum = ts.EmitBeg("enum")
     ts.EmitAttr(node.name,)
-    ts.EmitAttr(node.base_type_kind.name)
+    ts.EmitAttr(node.base_type_kind.name.lower())
     beg_colon = ts.EmitBegColon()
     for f in node.items:
         EmitTokens(ts, f)
@@ -996,7 +1001,6 @@ if __name__ == "__main__":
         assert len(args.files) == 1
         assert args.files[0].endswith(".cw")
 
-
         with open(args.files[0], encoding="utf8") as f:
             mods = parse_sexpr.ReadModsFromStream(f)
             assert len(mods) == 1
@@ -1014,6 +1018,5 @@ if __name__ == "__main__":
             tokens.reverse()
             # and now format the stream
             FormatTokenStream(tokens, Stack(), Sink())
-
 
     main()
