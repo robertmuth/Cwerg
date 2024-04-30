@@ -192,6 +192,7 @@ BINARY_EXPR_SHORTCUT = {
     "*": BINARY_EXPR_KIND.MUL,
     "/": BINARY_EXPR_KIND.DIV,
     "%": BINARY_EXPR_KIND.MOD,
+    #
     "max": BINARY_EXPR_KIND.MAX,
     "min": BINARY_EXPR_KIND.MIN,
     #

@@ -13,9 +13,9 @@
 (global! LAST u32 42)
 
 
-@pub (fun get_random [(param max r64)] r64 :
+@pub (fun get_random [(param n r64)] r64 :
     (= LAST (% (+ (* LAST IA) IC) IM))
-    (return (/ (* max (as LAST r64)) (as IM r64))))
+    (return (/ (* n (as LAST r64)) (as IM r64))))
 
 
 @doc "see https://www.pcg-random.org/download.html"
