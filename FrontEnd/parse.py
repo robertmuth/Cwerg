@@ -43,6 +43,9 @@ class TK_KIND(enum.Enum):
     NUM = enum.auto()
     CHAR = enum.auto()
     STR = enum.auto()
+    MSTR = enum.auto()  # multi-line
+    RMSTR = enum.auto()  # multi-line
+    XMSTR = enum.auto()  # multi-line
     ASSIGN = enum.auto()
     COMPOUND_ASSIGN = enum.auto()
     PAREN_OPEN = enum.auto()
@@ -75,7 +78,8 @@ _KEYWORDS_SIMPLE = [
     #
     "as",
     "wrapas",
-    "asbits",
+    "bitsas",
+    "unsafeas",
     "asnarrowed",
     "unwrap",
     #
@@ -113,15 +117,27 @@ _OPERATORS_SIMPLE1 = [
 
 
 ANNOTATION_RE = r"@[a-zA-Z]+"
-ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9]|::)*#?"
+ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?#?"
 NUM_RE = r"[0-9](?:[_0-9a-f.xp])*(?:sint|uint|[sru][0-9]+)?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
-#
+# TODO
 _STR_START_RE = r'x?"(?:[^"\\]|[\\].)*'
 _R_STR_START_RE = r'r"(?:[^"])*'
 _STR_END_RE = '(?:"|$)'   # Note, this also covers the unterminated case
+#
+
+_MULTI_LINE_STR_START = r'"""(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)'
+_R_MULTI_LINE_STR_START = r'r"""(?:["]{0,2}[^"])*(?:["]{3,5}|$)'
+_X_MULTI_LINE_STR_START = r'x"""[a-fA-F0-9\s]*(?:"""|$)'
+
+_RE_MULTI_LINE_STR_END = re.compile(
+    r'^(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)')
+_RE_R_MULTI_LINE_STR_END = re.compile(
+    r'^(?:["]{0,2}[^"])*(?:["]{3,5}|$)')
+_RE_X_MULTI_LINE_STR_END = re.compile(
+    r'^[a-fA-F0-9\s]*(?:"""|$)')
 
 _operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT]
 
@@ -146,6 +162,9 @@ _token_spec = [
     (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
+    (TK_KIND.MSTR.name,  _MULTI_LINE_STR_START),
+    (TK_KIND.RMSTR.name,  _R_MULTI_LINE_STR_START),
+    (TK_KIND.XMSTR.name,  _X_MULTI_LINE_STR_START),
     (TK_KIND.STR.name, "(?:" + _R_STR_START_RE + \
      "|" + _STR_START_RE + ")" + _STR_END_RE),
     (TK_KIND.CHAR.name, CHAR_RE),
@@ -166,6 +185,9 @@ assert TOKEN_RE.fullmatch("<<")
 assert TOKEN_RE.fullmatch("<<<")
 assert not TOKEN_RE.fullmatch("<<<<")
 assert TOKEN_RE.fullmatch("aa")
+assert TOKEN_RE.fullmatch('''"""aa"""''')
+assert TOKEN_RE.fullmatch('''r"""aa"""''')
+assert TOKEN_RE.fullmatch('''x"""aa"""''')
 # assert TOKEN_RE.fullmatch("^!")
 
 # print(TOKEN_RE.findall("zzzzz+aa*7u8 <<<<"))
@@ -195,13 +217,27 @@ class LexerRaw:
         self._current_line = ""
 
     def _fill_line(self):
+        self._line_no += 1
+        line = self._fp.readline()
+        return line
+
+    def get_lines_until_match(self, regex) -> list[str]:
+        """use for multiline strings"""
+        assert not self._current_line
+        out = []
         while True:
-            self._line_no += 1
-            line = self._fp.readline()
-            # an empty line means EOF
-            # skip lines with just newline
-            if not line or line != "\n":
-                return line
+            self._current_line = self._fill_line()
+            if not self._current_line:
+                cwast.CompilerError("", "unterminated string")
+            m = regex.match(self._current_line)
+            if m and m.group(0).endswith('"""'):
+                token = m.group(0)
+                self._col_no += len(token)
+                self._current_line = self._current_line[len(token):]
+                out.append(token)
+                break
+            out.append(self._current_line)
+        return out
 
     def next_token(self) -> TK:
         if not self._current_line:
@@ -227,6 +263,13 @@ class LexerRaw:
         return TK(kind, cwast.SrcLoc(self._fileamame, self._line_no), token,  col)
 
 
+_MSTR_TERMINATION_REGEX = {
+    TK_KIND.MSTR: _RE_MULTI_LINE_STR_END,
+    TK_KIND.RMSTR: _RE_R_MULTI_LINE_STR_END,
+    TK_KIND.XMSTR: _RE_X_MULTI_LINE_STR_END,
+}
+
+
 class Lexer:
 
     def __init__(self, lexer: LexerRaw):
@@ -244,6 +287,7 @@ class Lexer:
             tk = self._lexer.next_token()
         return tk
 
+
     def next(self) -> TK:
         if self._peek_cache:
             out = self._peek_cache
@@ -258,6 +302,12 @@ class Lexer:
         while tk.kind is TK_KIND.ANNOTATION:
             annotations.append(tk)
             tk = self._next_skip_space()
+        if tk.kind in (TK_KIND.MSTR, TK_KIND.RMSTR, TK_KIND.XMSTR):
+            if not tk.text.endswith('"""'):
+                rest = self._lexer.get_lines_until_match(
+                    _MSTR_TERMINATION_REGEX[tk.kind])
+                tk.text += "".join(rest)
+            tk.kind = TK_KIND.STR
         out: TK = tk
         out.comments = comments
         out.annotations = annotations
@@ -350,12 +400,16 @@ _FUN_LIKE = {
     "slice!": (cwast.ValSlice, "EE"),
     "front":  (cwast.ExprFront, "E"),
     "front!":  (cwast.ExprFront, "E"),
+    "unwrap": (cwast.ExprUnwrap, "E"),
+    "sizeof": (cwast.ExprSizeof, "T"),
+    # mixing expression and types
     "as": (cwast.ExprAs, "ET"),
     "wrapas": (cwast.ExprWrap, "ET"),
-    "unwrap": (cwast.ExprUnwrap, "E"),
+    "is": (cwast.ExprIs, "ET"),
     "narrowto": (cwast.ExprNarrow, "ET"),
     "widdento": (cwast.ExprWiden, "ET"),
-    "asbits": (cwast.ExprBitCast, "ET"),
+    "unsafeas": (cwast.ExprBitCast, "ET"),
+    "bitsas": (cwast.ExprBitCast, "ET"),
 }
 
 
@@ -572,6 +626,11 @@ def _ParseTypeExpr(inp: Lexer):
             type = _ParseTypeExpr(inp)
             inp.match_or_die(TK_KIND.PAREN_CLOSED)
             return cwast.TypeSlice(type, mut=tk.text.endswith("!"))
+        elif tk.text == "typeof":
+            inp.match_or_die(TK_KIND.PAREN_OPEN)
+            expr = _ParseExpr(inp)
+            inp.match_or_die(TK_KIND.PAREN_CLOSED)
+            return cwast.TypeOf(expr)
         elif tk.text == "union":
             inp.match_or_die(TK_KIND.PAREN_OPEN)
             members = []
@@ -814,6 +873,7 @@ def _ParseFieldList(inp: Lexer):
         out.append(cwast.RecField(name.text, type))
     return out
 
+
 def _ParseEnumList(inp: Lexer, outer_indent):
     inp.match_or_die(TK_KIND.COLON)
     indent = inp.peek().column
@@ -828,6 +888,7 @@ def _ParseEnumList(inp: Lexer, outer_indent):
         val = _ParseExpr(inp)
         out.append(cwast.EnumVal(name.text, val))
     return out
+
 
 def _ParseMacroParams(inp: Lexer):
     out = []
@@ -924,6 +985,9 @@ def _ParseTopLevel(inp: Lexer):
         entries = _ParseEnumList(inp, kw.column)
         return cwast.DefEnum(name.text, cwast.KeywordToBaseTypeKind(base_type.text),
                              entries)
+    elif kw.text == "static_assert":
+        cond = _ParseExpr(inp)
+        return cwast.StmtStaticAssert(cond, "")
     else:
         assert False, f"topelevel {kw}"
 

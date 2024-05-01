@@ -494,9 +494,12 @@ def TokensValRec(ts: TS, node: cwast.ValRec):
 
 
 def TokensIndexVal(ts: TS, node: cwast.IndexVal):
-    EmitTokens(ts, node.value_or_undef)
     if not isinstance(node.init_index, cwast.ValAuto):
+        bb = ts.EmitBegParen("[")
         EmitTokens(ts, node.init_index)
+        ts.EmitEnd(bb)
+    EmitTokens(ts, node.value_or_undef)
+
 
 
 def TokensVecType(ts: TS, size, type):
@@ -720,7 +723,7 @@ _CONCRETE_SYNTAX = {
     cwast.ValUndef: lambda ts, n: ts.EmitAttr("undef"),
     cwast.ValVoid: lambda ts, n: ts.EmitAttr("void"),
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
-    cwast.ValString: lambda ts, n: ts.EmitAttr(f'{n.strkind}"{n.string}"'),
+    cwast.ValString: lambda ts, n: ts.EmitAttr(f'{n.strkind}"""{n.string}"""'),
     cwast.ValRec: TokensValRec,
     cwast.ValArray: TokensValVec,
 
@@ -728,8 +731,9 @@ _CONCRETE_SYNTAX = {
     cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut("front", n.mut), [n.container]),
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, "uniontag", [n.expr]),
     cwast.ExprAs: lambda ts, n: TokensFunctional(ts, "as", [n.expr, n.type]),
-    cwast.ExprIs: lambda ts, n: TokensBinaryInfix(ts, "is", n.expr, n.type, n),
-    cwast.ExprBitCast: lambda ts, n: TokensFunctional(ts, "asbits", [n.expr, n.type]),
+    cwast.ExprUnsafeCast: lambda ts, n: TokensFunctional(ts, "unsafeas", [n.expr, n.type]),
+    cwast.ExprIs: lambda ts, n: TokensFunctional(ts, "is", [n.expr, n.type]),
+    cwast.ExprBitCast: lambda ts, n: TokensFunctional(ts, "bitsas", [n.expr, n.type]),
     cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, "offsetof", [n.type, n.field]),
     cwast.ExprLen: lambda ts, n: TokensFunctional(ts, "len", [n.container]),
     cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
