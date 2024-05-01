@@ -20,7 +20,7 @@
 
 
 
-(fun TestForMacro! [(param end u32)] u32 :
+(fun TestForMacro [(param end u32)] u32 :
     (let! sum u32 0)
     (for i 0 end 1 :
         (+= sum i))

@@ -485,9 +485,8 @@ def TokensValRec(ts: TS, node: cwast.ValRec):
             ts.EmitSep(",")
         sep = True
         if e.init_field:
-            bb = ts.EmitBegParen("[")
             ts.EmitAttr(e.init_field)
-            ts.EmitEnd(bb)
+            ts.EmitAttr(":")
         EmitTokens(ts, e.value_or_undef)
 
     ts.EmitEnd(beg)
@@ -495,9 +494,8 @@ def TokensValRec(ts: TS, node: cwast.ValRec):
 
 def TokensIndexVal(ts: TS, node: cwast.IndexVal):
     if not isinstance(node.init_index, cwast.ValAuto):
-        bb = ts.EmitBegParen("[")
         EmitTokens(ts, node.init_index)
-        ts.EmitEnd(bb)
+        ts.EmitAttr(":")
     EmitTokens(ts, node.value_or_undef)
 
 
@@ -739,7 +737,7 @@ _CONCRETE_SYNTAX = {
     cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
     cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "typeid", [n.type]),
     cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, "narrowto", [n.expr, n.type]),
-    cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_INV[n.unary_expr_kind], n.expr),
+    cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[n.unary_expr_kind], n.expr),
     cwast.ExprPointer: lambda ts, n: TokensFunctional(
         ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
         [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else

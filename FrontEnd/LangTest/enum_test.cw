@@ -27,15 +27,15 @@
 
 @pub (defrec rec1 :
     @doc "this is a comment with \" with quotes \t "
-    (field s1 s32)
-    (field s2 s32)
-    (field s3 s32)
-    (field s4 bool)
-    (field s5 enum8)
-    (field s6 enum16)
-    (field s7 enum32)
-    (field s8 u64)
-    (field s9 u64))
+    (field f1 s32)
+    (field f2 s32)
+    (field f3 s32)
+    (field f4 bool)
+    (field f5 enum8)
+    (field f6 enum16)
+    (field f7 enum32)
+    (field f8 u64)
+    (field f9 u64))
 
 (global! gr1 rec1 undef)
 
@@ -65,13 +65,13 @@
     (test::AssertEq# v2 enum16:e4)
     (test::AssertEq# v3 enum32:e1)
 
-    (= (. gr1 s5) enum8:e3)
-    (= (. gr1 s6) enum16:e4)
-    (= (. gr1 s7) enum32:e1)
+    (= (. gr1 f5) enum8:e3)
+    (= (. gr1 f6) enum16:e4)
+    (= (. gr1 f7) enum32:e1)
 
-    (test::AssertEq# (. gr1 s5) enum8:e3)
-    (test::AssertEq# (. gr1 s6) enum16:e4)
-    (test::AssertEq# (. gr1 s7) enum32:e1)
+    (test::AssertEq# (. gr1 f5) enum8:e3)
+    (test::AssertEq# (. gr1 f6) enum16:e4)
+    (test::AssertEq# (. gr1 f7) enum32:e1)
 
     @doc "test end"
     (test::Success#)
