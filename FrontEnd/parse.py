@@ -21,6 +21,7 @@ from typing import Any, Tuple, Union, List, Optional
 
 from FrontEnd import cwast
 from FrontEnd import pp
+from FrontEnd import string_re
 
 logger = logging.getLogger(__name__)
 
@@ -124,22 +125,6 @@ NUM_RE = r"[0-9](?:[_0-9a-f.xp])*(?:sint|uint|[sru][0-9]+)?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
-# TODO
-_STR_START_RE = r'x?"(?:[^"\\]|[\\].)*'
-_R_STR_START_RE = r'r"(?:[^"])*'
-_STR_END_RE = '(?:"|$)'   # Note, this also covers the unterminated case
-#
-
-_MULTI_LINE_STR_START = r'"""(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)'
-_R_MULTI_LINE_STR_START = r'r"""(?:["]{0,2}[^"])*(?:["]{3,5}|$)'
-_X_MULTI_LINE_STR_START = r'x"""[a-fA-F0-9\s]*(?:"""|$)'
-
-_RE_MULTI_LINE_STR_END = re.compile(
-    r'^(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)')
-_RE_R_MULTI_LINE_STR_END = re.compile(
-    r'^(?:["]{0,2}[^"])*(?:["]{3,5}|$)')
-_RE_X_MULTI_LINE_STR_END = re.compile(
-    r'^[a-fA-F0-9\s]*(?:"""|$)')
 
 _operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT]
 
@@ -164,11 +149,11 @@ _token_spec = [
     (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
-    (TK_KIND.MSTR.name,  _MULTI_LINE_STR_START),
-    (TK_KIND.RMSTR.name,  _R_MULTI_LINE_STR_START),
-    (TK_KIND.XMSTR.name,  _X_MULTI_LINE_STR_START),
-    (TK_KIND.STR.name, "(?:" + _R_STR_START_RE + \
-     "|" + _STR_START_RE + ")" + _STR_END_RE),
+    (TK_KIND.MSTR.name,  string_re.MULTI_START),
+    (TK_KIND.RMSTR.name, string_re.MULTI_START_R),
+    (TK_KIND.XMSTR.name,  string_re.MULTI_START_X),
+    (TK_KIND.STR.name, "(?:" + string_re.START + \
+     "|" + string_re.R_START + ")" + string_re.END),
     (TK_KIND.CHAR.name, CHAR_RE),
     (TK_KIND.COMPOUND_ASSIGN.name, "|".join(_compound_assignment)),
     (TK_KIND.OP2.name, "|".join(_operators2)),
@@ -266,9 +251,9 @@ class LexerRaw:
 
 
 _MSTR_TERMINATION_REGEX = {
-    TK_KIND.MSTR: _RE_MULTI_LINE_STR_END,
-    TK_KIND.RMSTR: _RE_R_MULTI_LINE_STR_END,
-    TK_KIND.XMSTR: _RE_X_MULTI_LINE_STR_END,
+    TK_KIND.MSTR: re.compile(string_re.MULTI_END),
+    TK_KIND.RMSTR: re.compile(string_re.MULTI_END_R),
+    TK_KIND.XMSTR:  re.compile(string_re.MULTI_END_X),
 }
 
 

@@ -11,6 +11,7 @@ import logging
 from typing import Any, Tuple, Union
 
 from FrontEnd import cwast
+from FrontEnd import string_re
 
 logger = logging.getLogger(__name__)
 ############################################################
@@ -21,28 +22,17 @@ logger = logging.getLogger(__name__)
 # Note: we rely on the matching being done greedily
 # we also allow for non-terminated string for better error handling
 _TOKEN_CHAR = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
-_TOKEN_STR = r'"(?:[^"\\]|[\\].)*(?:"|$)'
-_TOKEN_R_STR = r'r"(?:[^"])*(?:"|$)'
+
 _TOKEN_NAMENUM = r'[^\[\]\(\)\' \r\n\t]+'
 _TOKEN_OP = r'[\[\]\(\)]'
 
-_TOKEN_MULTI_LINE_STR_START = r'"""(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)'
-_TOKEN_R_MULTI_LINE_STR_START = r'r"""(?:["]{0,2}[^"])*(?:["]{3,5}|$)'
-_TOKEN_X_MULTI_LINE_STR_START = r'x"""[a-fA-F0-9\s]*(?:"""|$)'
-
-_RE_MULTI_LINE_STR_END = re.compile(
-    r'^(?:["]{0,2}(?:[^"\\]|[\\].))*(?:["]{3,5}|$)')
-_RE_R_MULTI_LINE_STR_END = re.compile(
-    r'^(?:["]{0,2}[^"])*(?:["]{3,5}|$)')
-_RE_X_MULTI_LINE_STR_END = re.compile(
-    r'^[a-fA-F0-9\s]*(?:"""|$)')
 
 _RE_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
     # order is important: multi-line before regular
-    _TOKEN_MULTI_LINE_STR_START,
-    _TOKEN_R_MULTI_LINE_STR_START,
-    _TOKEN_X_MULTI_LINE_STR_START,
-    _TOKEN_STR, _TOKEN_R_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
+    string_re.MULTI_START,
+    string_re.MULTI_START_R,
+    string_re.MULTI_START_X,
+    string_re.STR, string_re.R_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
 
 # TODO: make this stricter WRT to :: vs :
 _RE_TOKEN_ID = re.compile(
@@ -62,6 +52,13 @@ def ReadAttrs(t: str, attr: dict[str, Any], stream):
         attr[tag] = val
         t = next(stream)
     return t
+
+
+_MULTI_LINE_END_RE = {
+    '"""': re.compile(string_re.MULTI_END),
+    'r"""': re.compile(string_re.MULTI_END_R),
+    'x"""': re.compile(string_re.MULTI_END_X),
+}
 
 
 class ReadTokens:
@@ -92,22 +89,20 @@ class ReadTokens:
         if self._tokens:
             return out
         if not out.endswith('"""'):
-            if out.startswith('"""'):
-                regex = _RE_MULTI_LINE_STR_END
-            elif out.startswith('r"""'):
-                regex = _RE_R_MULTI_LINE_STR_END
-            elif out.startswith('x"""'):
-                regex = _RE_X_MULTI_LINE_STR_END
+            for prefix, regex in _MULTI_LINE_END_RE.items():
+                if out.startswith(prefix):
+                    break
             else:
                 return out
             # hack for multi-line strings
             while True:
                 line = next(self._fp)
+                assert line, "unterminated string"
                 self.line_no += 1
                 m: re.Match = regex.match(line)
                 if not m:
-                    cwast.CompilerError(
-                        self.srcloc(), "cannot parse multiline string constant")
+                    out += line
+                    continue
                 g = m.group()
                 # print("@@ multiline string cont", g)
                 out += g
