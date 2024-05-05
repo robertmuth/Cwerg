@@ -98,7 +98,6 @@ class TK(enum.Enum):
     KW = 2  # intro keyword (line beginning)
 
     SEP = 3  # sequence seperator
-    SEQ = 4  # sequence element
     BINOP = 5  # binary operator
     BINOP_NO_SPACE = 6  # binary operator
 
@@ -171,13 +170,14 @@ class TS:
         self._tokens: list[Token] = []
         self._count = 0
 
-
     def tokens(self):
         return self._tokens
 
-
     def LastTokenIsEOL(self) -> bool:
-        return len(self._tokens) > 0 and self._tokens[-1].kind is TK.EOL
+        if not self._tokens:
+            return False
+        last = self._tokens[-1]
+        return last.kind is TK.EOL or last.kind is TK.END and last.beg.kind is TK.BEG_COLON
 
     def Pos(self) -> int:
         return self._count
@@ -366,10 +366,7 @@ def TokensMacroInvokeArgs(ts: TS, args):
             ts.EmitAttr(a.name)
         elif isinstance(a, cwast.EphemeralList):
             if a.colon:
-                beg = ts.EmitBegColon()
-                for s in a.args:
-                    EmitTokens(ts, s)
-                ts.EmitEnd(beg)
+                EmitTokensCodeBlock(ts, a.args)
             else:
                 sep2 = False
                 beg = ts.EmitBegParen("{")
@@ -399,7 +396,7 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
 
     args = node.args
     if node.name == "for" or node.name == "tryset":
-        assert isinstance(args[0], cwast.Id)
+        assert isinstance(args[0], (cwast.Id, cwast.MacroId)), f"{args[0]}"
         ts.EmitAttr(args[0].name)
         args = args[1:]
         ts.EmitBinOp("=")
@@ -461,7 +458,7 @@ def TokensMacroFor(ts: TS, node: cwast.MacroFor):
     ts.EmitAttr("mfor")
     ts.EmitAttr(node.name)
     ts.EmitAttr(node.name_list)
-    EmitTokensCodeBlock(ts, node.body_fpr)
+    EmitTokensCodeBlock(ts, node.body_for)
 
 
 def ConcreteIf(ts: TS, node: cwast.StmtIf):
@@ -565,8 +562,6 @@ def EmitTokenFunSig(ts: TS, params, result):
     EmitTokens(ts, result)
 
 
-
-
 def EmitTokensCodeBlock(ts: TS, stmts):
     beg = ts.EmitBegColon()
     for child in stmts:
@@ -594,6 +589,16 @@ _INFIX_OPS = set([
 ])
 
 
+def TokensValString(ts: TS, node: cwast.ValString):
+    quotes = '"""' if node.triplequoted else '"'
+    prefix = ""
+    if node.strkind == "raw":
+        prefix = "r"
+    elif node.strkind == "hex":
+        prefix = "x"
+    ts.EmitAttr(f'{prefix}{quotes}{node.string}{quotes}'),
+
+
 _CONCRETE_SYNTAX = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     #
@@ -618,7 +623,7 @@ _CONCRETE_SYNTAX = {
     cwast.ValUndef: lambda ts, n: ts.EmitAttr("undef"),
     cwast.ValVoid: lambda ts, n: ts.EmitAttr("void"),
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
-    cwast.ValString: lambda ts, n: ts.EmitAttr(f'{n.strkind}"""{n.string}"""'),
+    cwast.ValString: TokensValString,
     cwast.ValRec: TokensValRec,
     cwast.ValArray: TokensValVec,
 
@@ -957,13 +962,14 @@ if __name__ == "__main__":
             ts = TS()
             EmitTokensModule(ts, mods[0])
             tokens = list(ts.tokens())
-            indent = 0
-            for tk in tokens:
-                if tk.kind is TK.END and tk.beg.kind is TK.BEG_COLON:
-                    indent -= 2
-                print(" " * indent, tk)
-                if tk.kind is TK.BEG_COLON:
-                    indent += 2
+            if 0:
+                indent = 0
+                for tk in tokens:
+                    if tk.kind is TK.END and tk.beg.kind is TK.BEG_COLON:
+                        indent -= 2
+                    print(" " * indent, tk)
+                    if tk.kind is TK.BEG_COLON:
+                        indent += 2
 
             # reverse once because popping of the end of a list is more efficient
             tokens.reverse()
