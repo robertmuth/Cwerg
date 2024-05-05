@@ -106,10 +106,8 @@ class TK(enum.Enum):
     UNOP_SUFFIX = 8  # unary operator - not space before
 
     END = 9
-    ELSE = 10
     BEG_PAREN = 20
     BEG_COLON = 30
-    BEG_ANON = 40
     BEG_EXPR_PAREN = 50
 
     ANNOTATION_SHORT = 11
@@ -120,13 +118,17 @@ class TK(enum.Enum):
     EOL = 16
 
 
-KEYWORDS = [
-    "module", "enum", "import", "defer", "block", "expr",
-    "break", "continue", "fun", "cond", "type", "if", "type",
-    "shed", "discard", "rec", "case", "set", "for", "macro",
-    "while", "tryset", "trap", "return", "static_assert",
-    "mfor", "swap", "else",
+KEYWORDS_TOPLEVEL = [
+    "enum", "fun", "import", "rec", "static_assert", "type",
 ]
+
+KEYWORDS = [
+    "module", "defer", "block", "expr",
+    "break", "continue",  "cond", "type", "if",
+    "shed", "discard", "case", "set", "for", "macro",
+    "while", "tryset", "trap", "return",
+    "mfor", "swap", "else",
+] + KEYWORDS_TOPLEVEL
 
 KEYWORDS_WITH_EXCL_SUFFIX = [
     "trylet", "mlet", "slice", "let", "global", "front"]
@@ -153,6 +155,7 @@ class Token:
         if self.kind is TK.END:
             tag = self.beg.kind.name
         return f"{self.kind.name} [{tag}]"
+
 
 _MATCHING_CLOSING_BRACE = {
     "(": ")",
@@ -196,6 +199,9 @@ class TS:
 
     def EmitBinOp(self, a: str):
         return self.EmitToken(TK.BINOP, a)
+
+    def EmitKW(self, a: str):
+        return self.EmitToken(TK.KW, a)
 
     def EmitAttr(self, a: str):
         return self.EmitToken(TK.ATTR, a)
@@ -411,6 +417,7 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
 
 
 def TokensSimpleStmt(ts: TS, kind: str, arg):
+    ts.EmitAttr(kind)
     if arg:
         if isinstance(arg, str):
             ts.EmitAttr(arg)
@@ -428,10 +435,7 @@ def TokensStmtBlock(ts: TS, kind, arg, stmts):
             ts.EmitAttr(arg)
         else:
             EmitTokens(ts, arg)
-    beg_colon = ts.EmitBegColon()
-    for s in stmts:
-        EmitTokens(ts, s)
-    ts.EmitEnd(beg_colon)
+    EmitTokensCodeBlock(ts, stmts)
 
 
 def TokensStmtSet(ts: TS, kind, lhs, rhs):
@@ -457,26 +461,17 @@ def TokensMacroFor(ts: TS, node: cwast.MacroFor):
     ts.EmitAttr("mfor")
     ts.EmitAttr(node.name)
     ts.EmitAttr(node.name_list)
-    beg_colon = ts.EmitBegColon()
-    for x in node.body_for:
-        EmitTokens(ts, x)
-    ts.EmitEnd(beg_colon)
+    EmitTokensCodeBlock(ts, node.body_fpr)
 
 
 def ConcreteIf(ts: TS, node: cwast.StmtIf):
     ts.EmitAttr("if")
     EmitTokens(ts, node.cond)
-    beg_colon = ts.EmitBegColon()
-    for c in node.body_t:
-        EmitTokens(ts, c)
-    ts.EmitEnd(beg_colon)
+    EmitTokensCodeBlock(ts, node.body_t)
     #
     if node.body_f:
         ts.EmitAttr("else")
-        beg_colon = ts.EmitBegColon()
-        for c in node.body_f:
-            EmitTokens(ts, c)
-        ts.EmitEnd(beg_colon)
+        EmitTokensCodeBlock(ts, node.body_f)
 
 
 def TokensValRec(ts: TS, node: cwast.ValRec):
@@ -527,46 +522,8 @@ def TokensValVec(ts: TS, node: cwast.ValArray):
     ts.EmitEnd(beg)
 
 
-def TokensDefMod(ts: TS, node: cwast.DefMod):
-    ts.EmitAttr("module")
-    # we do not want the next item to be indented
-    ts.EmitName(node.name)
-    beg_colon = ts.EmitBegColon()
-    for child in node.body_mod:
-        EmitTokens(ts, child)
-    ts.EmitEnd(beg_colon)
-
-
 def WithMut(name: str, mutable: bool) -> str:
     return name + "!" if mutable else name
-
-
-def TokensDefGlobal(ts: TS, node: cwast.DefGlobal):
-    ts.EmitAttr(WithMut("global", node.mut))
-    ts.EmitAttr(node.name)
-    if not isinstance(node.type_or_auto, cwast.TypeAuto):
-        EmitTokens(ts, node.type_or_auto)
-    if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
-        ts.EmitBinOp("=")
-        EmitTokens(ts, node.initial_or_undef_or_auto)
-    ts.EmitStmtEnd()
-
-
-def TokensImport(ts: TS, node: cwast.Import):
-    ts.EmitAttr("import")
-    ts.EmitAttr(node.name)
-    if node.alias:
-        ts.EmitBinOp("as")
-        ts.EmitAttr(node.alias)
-    ts.EmitStmtEnd()
-
-
-def TokensDefType(ts: TS, node: cwast.DefType):
-    ts.EmitAttr("type")
-    ts.EmitAttr(node.name)
-    ts.EmitBinOp("=")
-    EmitTokens(ts, node.type)
-    ts.EmitStmtEnd()
 
 
 def TokensTypeFun(ts: TS, node: cwast.TypeFun):
@@ -584,89 +541,35 @@ def TokensTypeFun(ts: TS, node: cwast.TypeFun):
 
 
 def TokensRecField(ts: TS, node: cwast.RecField):
-    ts.EmitAttr(node.name)
+    ts.EmitName(node.name)
     EmitTokens(ts, node.type)
     ts.EmitStmtEnd()
 
 
-def TokensDefRec(ts: TS, node: cwast.DefRec):
-    ts.EmitAttr("rec")
-    ts.EmitAttr(node.name)
-    beg_colon = ts.EmitBegColon()
-    for f in node.fields:
-        EmitTokens(ts, f)
-    ts.EmitEnd(beg_colon)
-
-
 def TokensEnumVal(ts: TS, node: cwast.EnumVal):
-    ts.EmitAttr(node.name)
+    ts.EmitName(node.name)
     EmitTokens(ts, node.value_or_auto)
     ts.EmitStmtEnd()
 
 
-def TokensDefEnum(ts: TS, node: cwast.DefEnum):
-    ts.EmitAttr("enum")
-    ts.EmitAttr(node.name,)
-    ts.EmitAttr(node.base_type_kind.name.lower())
-    beg_colon = ts.EmitBegColon()
-    for f in node.items:
-        EmitTokens(ts, f)
-    ts.EmitEnd(beg_colon)
-
-
-def TokensStaticAssert(ts: TS, node: cwast.StmtStaticAssert):
-    ts.EmitAttr("static_assert")
-    EmitTokens(ts, node.cond)
-    ts.EmitStmtEnd()
-
-
-def TokensDefFun(ts: TS, node: cwast.DefFun):
-    ts.EmitAttr("fun")
-    ts.EmitName(node.name)
-
+def EmitTokenFunSig(ts: TS, params, result):
     beg_paren = ts.EmitBegParen("(")
     sep = False
-    for p in node.params:
+    for p in params:
         if sep:
             ts.EmitSep(",")
         sep = True
         ts.EmitAttr(p.name)
         EmitTokens(ts, p.type)
     ts.EmitEnd(beg_paren)
-    EmitTokens(ts, node.result)
+    EmitTokens(ts, result)
+
+
+def EmitTokensCodeBlock(ts: TS, stmts):
     beg = ts.EmitBegColon()
-    for child in node.body:
+    for child in stmts:
         EmitTokens(ts, child)
     ts.EmitEnd(beg)
-
-
-def TokensDefMacro(ts: TS, node: cwast.DefMacro):
-    beg_macro = ts.EmitToplevelBeg("macro")
-    ts.EmitAttr(node.name)
-    ts.EmitAttr(node.macro_result_kind.name)
-    beg_paren = ts.EmitBegParen("(")
-    sep = False
-    for p in node.params_macro:
-        if sep:
-            ts.EmitSep(",")
-        sep = True
-        ts.EmitAttr(p.name)
-        ts.EmitAttr(p.macro_param_kind.name)
-    ts.EmitEnd(beg_paren)
-    #
-    beg_paren = ts.EmitBegParen("[")
-    sep = False
-    for gen_id in node.gen_ids:
-        if sep:
-            ts.EmitSep(",")
-        sep = True
-        ts.EmitAttr(gen_id)
-    ts.EmitEnd(beg_paren)
-    beg = ts.EmitBegColon()
-    for x in node.body_macro:
-        EmitTokens(ts, x)
-    ts.EmitEnd(beg)
-    ts.EmitEnd(beg_macro)
 
 
 def TokensMacroId(ts: TS, node: cwast.MacroId):
@@ -687,7 +590,6 @@ def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
 
 
 _INFIX_OPS = set([
-    cwast.ExprIs,
     cwast.ExprIndex,
     cwast.ExprField,
     cwast.Expr2,
@@ -771,15 +673,6 @@ _CONCRETE_SYNTAX = {
     cwast.DefVar: lambda ts, n: TokensStmtLet(ts, WithMut("let", n.mut), n.name, n.type_or_auto, n.initial_or_undef_or_auto),
     cwast.StmtIf: ConcreteIf,
     #
-    cwast.DefMod: TokensDefMod,
-    cwast.DefGlobal: TokensDefGlobal,
-    cwast.Import: TokensImport,
-    cwast.DefType: TokensDefType,
-    cwast.DefFun: TokensDefFun,
-    cwast.DefEnum: TokensDefEnum,
-    cwast.DefRec: TokensDefRec,
-    cwast.StmtStaticAssert: TokensStaticAssert,
-    cwast.DefMacro: TokensDefMacro,
     cwast.EnumVal:  TokensEnumVal,
     cwast.RecField:  TokensRecField,
     cwast.IndexVal:  TokensIndexVal,
@@ -797,6 +690,94 @@ def EmitTokens(ts: TS, node):
     # emit any tail comments
     if node.__class__ not in _INFIX_OPS:
         TokensAnnotationsPost(ts, node)
+
+
+def EmitTokensToplevel(ts: TS, node):
+    # extra newline before every toplevel stanza
+    ts.EmitStmtEnd()
+
+    TokensAnnotationsPre(ts, node)
+    if isinstance(node, cwast.DefGlobal):
+        ts.EmitKW(WithMut("global", node.mut))
+        ts.EmitName(node.name)
+        if not isinstance(node.type_or_auto, cwast.TypeAuto):
+            EmitTokens(ts, node.type_or_auto)
+        if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
+            ts.EmitBinOp("=")
+            EmitTokens(ts, node.initial_or_undef_or_auto)
+        ts.EmitStmtEnd()
+    elif isinstance(node, cwast.Import):
+        ts.EmitKW("import")
+        ts.EmitName(node.name)
+        if node.alias:
+            ts.EmitBinOp("as")
+            ts.EmitAttr(node.alias)
+        ts.EmitStmtEnd()
+    elif isinstance(node, cwast.DefType):
+        ts.EmitKW("type")
+        ts.EmitName(node.name)
+        ts.EmitBinOp("=")
+        EmitTokens(ts, node.type)
+        ts.EmitStmtEnd()
+    elif isinstance(node, cwast.DefRec):
+        ts.EmitKW("rec")
+        ts.EmitName(node.name)
+        beg_colon = ts.EmitBegColon()
+        for f in node.fields:
+            EmitTokens(ts, f)
+        ts.EmitEnd(beg_colon)
+    elif isinstance(node, cwast.StmtStaticAssert):
+        ts.EmitKW("static_assert")
+        EmitTokens(ts, node.cond)
+        ts.EmitStmtEnd()
+    elif isinstance(node, cwast.DefEnum):
+        ts.EmitKW("enum")
+        ts.EmitName(node.name)
+        ts.EmitAttr(node.base_type_kind.name.lower())
+        beg_colon = ts.EmitBegColon()
+        for f in node.items:
+            EmitTokens(ts, f)
+        ts.EmitEnd(beg_colon)
+    elif isinstance(node, cwast.DefFun):
+        ts.EmitKW("fun")
+        ts.EmitName(node.name)
+        EmitTokenFunSig(ts, node.params, node.result)
+        EmitTokensCodeBlock(ts, node.body)
+    elif isinstance(node, cwast.DefMacro):
+        ts.EmitKW("macro")
+        ts.EmitName(node.name)
+        ts.EmitAttr(node.macro_result_kind.name)
+        beg_paren = ts.EmitBegParen("(")
+        sep = False
+        for p in node.params_macro:
+            if sep:
+                ts.EmitSep(",")
+            sep = True
+            ts.EmitAttr(p.name)
+            ts.EmitAttr(p.macro_param_kind.name)
+        ts.EmitEnd(beg_paren)
+        #
+        beg_paren = ts.EmitBegParen("[")
+        sep = False
+        for gen_id in node.gen_ids:
+            if sep:
+                ts.EmitSep(",")
+            sep = True
+            ts.EmitAttr(gen_id)
+        ts.EmitEnd(beg_paren)
+        EmitTokensCodeBlock(ts, node.body_macro)
+    else:
+        assert False
+
+
+def EmitTokensModule(ts: TS, node):
+    ts.EmitKW("module")
+    # we do not want the next item to be indented
+    ts.EmitName(node.name)
+    beg_colon = ts.EmitBegColon()
+    for child in node.body_mod:
+        EmitTokensToplevel(ts, child)
+    ts.EmitEnd(beg_colon)
 
 
 class Stack:
@@ -884,17 +865,13 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 sink.emit_space()
         want_space = True
         #
-        if kind is TK.BEG_ANON:
-            stack.push(tk, 0)
-        elif kind is TK.COMMENT:
+        if kind is TK.COMMENT:
             sink.emit_token(tag)
             newline()
         elif kind is TK.BEG_COLON:
             sink.emit_token(tag)
             newline()
-            if stack.depth() <= 1:
-                newline()
-            indent = stack.push(tk, INDENT if stack.depth() > 1 else 0)
+            indent = stack.push(tk, INDENT if stack.depth() > 0 else 0)
             sink.set_indent(indent)
         elif kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN):
             sink.emit_token(tag)
@@ -907,24 +884,11 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 newline()
             else:
                 stack.push(tk, 0)
-        elif kind is TK.ELSE:
-            # ci = stack.CurrentIndent()
-            # sink.indent(ci)
-            sink.emit_token(tag)
-        elif kind is TK.ATTR:
-            if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
-                newline()
-            sink.emit_token(tag)
-        elif kind is TK.SEP:
-            sink.emit_token(tag)
-            if stack.BreakAfterSep():
-                newline()
+
         elif kind is TK.END:
             beg, _, _ = stack.pop()
             sink.set_indent(stack.CurrentIndent())
-            if beg.kind is TK.BEG_ANON:
-                newline()
-            elif beg.kind is TK.BEG_COLON:
+            if beg.kind is TK.BEG_COLON:
                 pass
             elif beg.kind is TK.BEG_EXPR_PAREN:
                 sink.emit_token(tk.tag)
@@ -935,27 +899,26 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 assert False
         elif kind is TK.EOL:
             newline()
-        elif kind is TK.BINOP_NO_SPACE:
-            sink.emit_token(tag)
-        elif kind is TK.BINOP:
-            sink.emit_token(tag)
-        elif kind is TK.UNOP_PREFIX:
-            sink.emit_token(tag)
         elif kind is TK.ANNOTATION_LONG:
             newline()
             sink.emit_token(tag)
             newline()
-        elif kind is TK.UNOP_SUFFIX:
+        elif kind in (TK.UNOP_SUFFIX, TK.ANNOTATION_SHORT, TK.ITEM, TK.KW, TK.UNOP_PREFIX, TK.BINOP,
+                      TK.BINOP_NO_SPACE):
             sink.emit_token(tag)
-        elif kind is TK.ANNOTATION_SHORT:
+        elif kind is TK.ATTR:
+            if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
+                newline()
             sink.emit_token(tag)
-        elif kind is TK.ITEM:
+        elif kind is TK.SEP:
             sink.emit_token(tag)
+            if stack.BreakAfterSep():
+                newline()
         else:
             assert False, f"{kind}"
         if kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN, TK.UNOP_PREFIX, TK.BINOP_NO_SPACE):
             want_space = False
-        if kind is TK.END  and tk.beg.kind is TK.BEG_COLON:
+        if kind is TK.END and tk.beg.kind is TK.BEG_COLON:
             want_space = False
             if not tokens:
                 return
@@ -969,15 +932,9 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
 #
 ############################################################
 if __name__ == "__main__":
-    import os
     import argparse
-    import pathlib
 
-    from FrontEnd import type_corpus
     from FrontEnd import parse_sexpr
-    from FrontEnd import symbolize
-    from FrontEnd import typify
-    from FrontEnd import eval
 
     def main():
         parser = argparse.ArgumentParser(description='pretty_printer')
@@ -1000,16 +957,15 @@ if __name__ == "__main__":
                 cwast.CheckAST(m, set(), pre_symbolize=True)
             # we first produce an output token stream from the AST
             ts = TS()
-            EmitTokens(ts, mods[0])
+            EmitTokensModule(ts, mods[0])
             tokens = list(ts._tokens)
             indent = 0
             for tk in tokens:
                 if tk.kind is TK.END and tk.beg.kind is TK.BEG_COLON:
                     indent -= 2
-                print(" " *  indent, tk)
+                print(" " * indent, tk)
                 if tk.kind is TK.BEG_COLON:
                     indent += 2
-
 
             # reverse once because popping of the end of a list is more efficient
             tokens.reverse()
