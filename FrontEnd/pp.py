@@ -171,6 +171,14 @@ class TS:
         self._tokens: list[Token] = []
         self._count = 0
 
+
+    def tokens(self):
+        return self._tokens
+
+
+    def LastTokenIsEOL(self) -> bool:
+        return len(self._tokens) > 0 and self._tokens[-1].kind is TK.EOL
+
     def Pos(self) -> int:
         return self._count
 
@@ -384,14 +392,9 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         TokensBinaryInfixNoSpace(
             ts, "^.", node.args[0], node.args[1].name, node)
         return
+    ts.EmitKW(node.name)
     is_block_like = node.name in ["for", "while", "tryset", "trylet"]
-    if is_block_like:
-        ts.EmitAttr(node.name)
-    else:
-        if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-            assert False
-            # beg_stmt = ts.EmitBegAnon()
-        ts.EmitAttr(node.name)
+    if not is_block_like:
         beg_paren = ts.EmitBegParen("(")
 
     args = node.args
@@ -411,9 +414,6 @@ def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
 
     if not is_block_like:
         ts.EmitEnd(beg_paren)
-        if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-            # ts.EmitEnd(beg_stmt)
-            assert False
 
 
 def TokensSimpleStmt(ts: TS, kind: str, arg):
@@ -565,21 +565,19 @@ def EmitTokenFunSig(ts: TS, params, result):
     EmitTokens(ts, result)
 
 
+
+
 def EmitTokensCodeBlock(ts: TS, stmts):
     beg = ts.EmitBegColon()
     for child in stmts:
         EmitTokens(ts, child)
+        if not ts.LastTokenIsEOL():
+            ts.EmitStmtEnd()
     ts.EmitEnd(beg)
 
 
 def TokensMacroId(ts: TS, node: cwast.MacroId):
-    if node.x_role is cwast.MACRO_PARAM_KIND.STMT:
-        beg = ts.EmitBegAnon()
-        assert False
-        # ts.EmitAttr(node.name)
-        ts.EmitEnd(beg)
-    else:
-        ts.EmitAttr(node.name)
+    ts.EmitAttr(node.name)
 
 
 def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
@@ -958,7 +956,7 @@ if __name__ == "__main__":
             # we first produce an output token stream from the AST
             ts = TS()
             EmitTokensModule(ts, mods[0])
-            tokens = list(ts._tokens)
+            tokens = list(ts.tokens())
             indent = 0
             for tk in tokens:
                 if tk.kind is TK.END and tk.beg.kind is TK.BEG_COLON:
