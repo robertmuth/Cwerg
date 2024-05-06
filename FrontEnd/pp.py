@@ -98,14 +98,14 @@ class TK(enum.Enum):
     KW = 2  # intro keyword (line beginning)
 
     SEP = 3  # sequence seperator
-    BINOP = 5  # binary operator
-    BINOP_NO_SPACE = 6  # binary operator
+    BINOP = 4  # binary operator
+    BINOP_NO_SPACE = 5  # binary operator
 
-    UNOP_PREFIX = 7  # unary operator - not space afterwards
-    UNOP_SUFFIX = 8  # unary operator - not space before
+    UNOP_PREFIX = 6  # unary operator - not space afterwards
+    UNOP_SUFFIX = 7  # unary operator - not space before
 
-    END = 9
-    BEG_COLON = 10
+    COLON_BEG = 9
+    COLON_END = 10
 
     ANNOTATION_SHORT = 11
     ANNOTATION_LONG = 12
@@ -113,9 +113,11 @@ class TK(enum.Enum):
     COMMENT = 14
     ITEM = 15
     EOL = 16
-    BEG_PAREN = 20 # white space after
+    BEG_PAREN = 20  # white space after
     BEG_EXPR_PAREN = 21  # white space before and after
     BEG_VEC_TYPE_PAREN = 22  # white space before and after
+    END = 30
+
 
 KEYWORDS_TOPLEVEL = [
     "enum", "fun", "import", "rec", "static_assert", "type",
@@ -177,14 +179,15 @@ class TS:
         if not self._tokens:
             return False
         last = self._tokens[-1]
-        return last.kind is TK.EOL or last.kind is TK.END and last.beg.kind is TK.BEG_COLON
+        return last.kind is TK.EOL or last.kind is TK.END and last.kind is TK.COLON_END
 
     def Pos(self) -> int:
         return self._count
 
     def EmitToken(self, kind: TK, tag="", beg=None):
         if tag == "(" or tag == "[":
-            assert kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN, TK.BEG_VEC_TYPE_PAREN)
+            assert kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN,
+                            TK.BEG_VEC_TYPE_PAREN)
         # elif tag == ":":
         #    assert kind is TK.BEG_COLON
         tk = Token(kind, tag=tag, beg=beg, start=self._count)
@@ -247,12 +250,15 @@ class TS:
         return self.EmitToken(TK.BEG_EXPR_PAREN, a)
 
     def EmitEnd(self, beg: Token):
-        if beg.kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN, TK.BEG_VEC_TYPE_PAREN):
-            return self.EmitToken(TK.END, _MATCHING_CLOSING_BRACE[beg.tag], beg=beg)
-        return self.EmitToken(TK.END, beg=beg)
+        assert beg.kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN,
+                            TK.BEG_VEC_TYPE_PAREN)
+        return self.EmitToken(TK.END, _MATCHING_CLOSING_BRACE[beg.tag], beg=beg)
 
-    def EmitBegColon(self):
-        return self.EmitToken(TK.BEG_COLON, ":")
+    def EmitColonBeg(self):
+        return self.EmitToken(TK.COLON_BEG, ":")
+
+    def EmitColonEnd(self, beg):
+        return self.EmitToken(TK.COLON_END, beg=beg)
 
 
 def TokensParenList(ts: TS, lst):
@@ -566,12 +572,12 @@ def EmitTokenFunSig(ts: TS, params, result):
 
 
 def EmitTokensCodeBlock(ts: TS, stmts):
-    beg = ts.EmitBegColon()
+    beg = ts.EmitColonBeg()
     for child in stmts:
         EmitTokens(ts, child)
         if not ts.LastTokenIsEOL():
             ts.EmitStmtEnd()
-    ts.EmitEnd(beg)
+    ts.EmitColonEnd(beg)
 
 
 def TokensMacroId(ts: TS, node: cwast.MacroId):
@@ -728,10 +734,10 @@ def EmitTokensToplevel(ts: TS, node):
     elif isinstance(node, cwast.DefRec):
         ts.EmitKW("rec")
         ts.EmitName(node.name)
-        beg_colon = ts.EmitBegColon()
+        beg_colon = ts.EmitColonBeg()
         for f in node.fields:
             EmitTokens(ts, f)
-        ts.EmitEnd(beg_colon)
+        ts.EmitColonEnd(beg_colon)
     elif isinstance(node, cwast.StmtStaticAssert):
         ts.EmitKW("static_assert")
         EmitTokens(ts, node.cond)
@@ -740,10 +746,10 @@ def EmitTokensToplevel(ts: TS, node):
         ts.EmitKW("enum")
         ts.EmitName(node.name)
         ts.EmitAttr(node.base_type_kind.name.lower())
-        beg_colon = ts.EmitBegColon()
+        beg_colon = ts.EmitColonBeg()
         for f in node.items:
             EmitTokens(ts, f)
-        ts.EmitEnd(beg_colon)
+        ts.EmitColonEnd(beg_colon)
     elif isinstance(node, cwast.DefFun):
         ts.EmitKW("fun")
         ts.EmitName(node.name)
@@ -780,10 +786,10 @@ def EmitTokensModule(ts: TS, node):
     ts.EmitKW("module")
     # we do not want the next item to be indented
     ts.EmitName(node.name)
-    beg_colon = ts.EmitBegColon()
+    beg_colon = ts.EmitColonBeg()
     for child in node.body_mod:
         EmitTokensToplevel(ts, child)
-    ts.EmitEnd(beg_colon)
+    ts.EmitColonEnd(beg_colon)
 
 
 class Stack:
@@ -867,7 +873,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         # maybe emit space
         if want_space:
             # if the next token is one of these we do not want a space preceeding it
-            if kind not in (TK.END, TK.BEG_PAREN, TK.BEG_COLON,
+            if kind not in (TK.END, TK.BEG_PAREN, TK.COLON_BEG,
                             TK.UNOP_SUFFIX, TK.SEP, TK.BINOP_NO_SPACE):
                 sink.emit_space()
         want_space = True
@@ -875,7 +881,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         if kind is TK.COMMENT:
             sink.emit_token(tag)
             newline()
-        elif kind is TK.BEG_COLON:
+        elif kind is TK.COLON_BEG:
             sink.emit_token(tag)
             newline()
             indent = stack.push(tk, INDENT if stack.depth() > 0 else 0)
@@ -891,17 +897,15 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 newline()
             else:
                 stack.push(tk, 0)
-
+        elif kind is TK.COLON_END:
+            beg, _, _ = stack.pop()
+            sink.set_indent(stack.CurrentIndent())
         elif kind is TK.END:
             beg, _, _ = stack.pop()
             sink.set_indent(stack.CurrentIndent())
-            if beg.kind is TK.BEG_COLON:
-                pass
-            elif beg.kind in (TK.BEG_EXPR_PAREN, TK.BEG_PAREN, TK.BEG_VEC_TYPE_PAREN):
-                assert tag
-                sink.emit_token(tag)
-            else:
-                assert False
+            assert beg.kind in (TK.BEG_EXPR_PAREN, TK.BEG_PAREN, TK.BEG_VEC_TYPE_PAREN)
+            sink.emit_token(tag)
+
         elif kind is TK.EOL:
             newline()
         elif kind is TK.ANNOTATION_LONG:
@@ -921,15 +925,16 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 newline()
         else:
             assert False, f"{kind}"
+        #
         if kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN, TK.BEG_VEC_TYPE_PAREN, TK.UNOP_PREFIX, TK.BINOP_NO_SPACE):
             want_space = False
-        if kind is TK.END:
+        elif kind is TK.END:
             if tk.beg.kind is TK.BEG_VEC_TYPE_PAREN:
                 want_space = False
-            elif tk.beg.kind is TK.BEG_COLON:
-                want_space = False
-                if not tokens:
-                    return
+        elif kind is TK.COLON_END:
+            want_space = False
+            if not tokens:
+                return
 
         assert tokens, f"{tag} {kind}"
         # TODO: this stopped working after comment support was added
@@ -970,10 +975,10 @@ if __name__ == "__main__":
             if 0:
                 indent = 0
                 for tk in tokens:
-                    if tk.kind is TK.END and tk.beg.kind is TK.BEG_COLON:
+                    if tk.kind is TK.END and tk.beg.kind is TK.COLON_BEG:
                         indent -= 2
                     print(" " * indent, tk)
-                    if tk.kind is TK.BEG_COLON:
+                    if tk.kind is TK.COLON_BEG:
                         indent += 2
 
             # reverse once because popping of the end of a list is more efficient
