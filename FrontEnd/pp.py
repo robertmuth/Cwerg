@@ -177,11 +177,11 @@ class TS:
     def tokens(self):
         return self._tokens
 
-    def LastTokenIsEOL(self) -> bool:
+    def LastTokenIsCodeBlock(self) -> bool:
         if not self._tokens:
             return False
         last = self._tokens[-1]
-        return last.kind is TK.STMT_END or last.kind is TK.COLON_END
+        return last.kind is TK.COLON_END
 
     def Pos(self) -> int:
         return self._count
@@ -262,8 +262,8 @@ class TS:
     def EmitColonBeg(self):
         return self.EmitToken(TK.COLON_BEG, ":")
 
-    def EmitColonEnd(self, beg):
-        return self.EmitToken(TK.COLON_END, beg=beg)
+    def EmitColonEnd(self):
+        return self.EmitToken(TK.COLON_END, "")
 
 
 def TokensParenList(ts: TS, lst):
@@ -417,19 +417,13 @@ def TokensValRec(ts: TS, node: cwast.ValRec):
         if sep:
             ts.EmitSep(",")
         sep = True
+        TokensAnnotationsPre(ts, e)
         if e.init_field:
             ts.EmitAttr(e.init_field)
             ts.EmitAttr(":")
         EmitTokens(ts, e.value_or_undef)
 
     ts.EmitEnd(beg)
-
-
-def TokensIndexVal(ts: TS, node: cwast.IndexVal):
-    if not isinstance(node.init_index, cwast.ValAuto):
-        EmitTokens(ts, node.init_index)
-        ts.EmitAttr(":")
-    EmitTokens(ts, node.value_or_undef)
 
 
 def TokensVecType(ts: TS, size, type):
@@ -450,7 +444,11 @@ def TokensValVec(ts: TS, node: cwast.ValArray):
             ts.EmitSep(",")
         sep = True
         start = ts.Pos()
-        EmitTokens(ts, e)
+        TokensAnnotationsPre(ts, e)
+        if not isinstance(e.init_index, cwast.ValAuto):
+            EmitTokens(ts, e.init_index)
+            ts.EmitAttr(":")
+        EmitTokens(ts, e.value_or_undef)
         sizes.append(ts.Pos() - start)
     if len(sizes) > 5 and max(sizes) < MAX_LINE_LEN:
         beg.long_array_val = True
@@ -475,18 +473,6 @@ def TokensTypeFun(ts: TS, node: cwast.TypeFun):
     EmitTokens(ts, node.result)
 
 
-def TokensRecField(ts: TS, node: cwast.RecField):
-    ts.EmitName(node.name)
-    EmitTokens(ts, node.type)
-    ts.EmitStmtEnd()
-
-
-def TokensEnumVal(ts: TS, node: cwast.EnumVal):
-    ts.EmitName(node.name)
-    EmitTokens(ts, node.value_or_auto)
-    ts.EmitStmtEnd()
-
-
 def EmitTokenFunSig(ts: TS, params, result):
     beg_paren = ts.EmitBegParen("(")
     sep = False
@@ -501,12 +487,10 @@ def EmitTokenFunSig(ts: TS, params, result):
 
 
 def EmitTokensCodeBlock(ts: TS, stmts):
-    beg = ts.EmitColonBeg()
+    ts.EmitColonBeg()
     for child in stmts:
         EmitTokensStatement(ts, child)
-        if not ts.LastTokenIsEOL():
-            ts.EmitStmtEnd()
-    ts.EmitColonEnd(beg)
+    ts.EmitColonEnd()
 
 
 def TokensMacroId(ts: TS, node: cwast.MacroId):
@@ -593,10 +577,6 @@ _CONCRETE_SYNTAX = {
     cwast.ExprCall: lambda ts, n: TokensFunctional(ts, n.callee, n.args),
     cwast.ExprStmt: lambda ts, n: _TokensStmtBlock(ts, "expr", "", n.body),
     cwast.ExprParen: lambda ts, n: TokensParenGrouping(ts, n.expr),
-    #
-    cwast.EnumVal:  TokensEnumVal,
-    cwast.RecField:  TokensRecField,
-    cwast.IndexVal:  TokensIndexVal,
 }
 
 
@@ -614,29 +594,30 @@ def EmitTokens(ts: TS, node):
 
 
 def _TokensSimpleStmt(ts: TS, kind: str, arg):
-    ts.EmitAttr(kind)
+    ts.EmitStmtBeg(kind)
     if arg:
         if isinstance(arg, str):
             ts.EmitAttr(arg)
         elif not isinstance(arg, cwast.ValVoid):
             # for return
             EmitTokens(ts, arg)
-
     ts.EmitStmtEnd()
 
 
 def _TokensStmtBlock(ts: TS, kind, arg, stmts):
-    ts.EmitAttr(kind)
+    ts.EmitStmtBeg(kind)
     if arg:
         if type(arg) == str:
             ts.EmitAttr(arg)
         else:
             EmitTokens(ts, arg)
+    ts.EmitStmtEnd()
+    #
     EmitTokensCodeBlock(ts, stmts)
 
 
 def _TokensStmtSet(ts: TS, kind, lhs, rhs):
-    ts.EmitAttr("set")
+    ts.EmitStmtBeg("set")
     EmitTokens(ts, lhs)
     ts.EmitBinOp(kind)
     EmitTokens(ts, rhs)
@@ -644,7 +625,7 @@ def _TokensStmtSet(ts: TS, kind, lhs, rhs):
 
 
 def _TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
-    ts.EmitAttr(kind)
+    ts.EmitStmtBeg(kind)
     ts.EmitAttr(name)
     if not isinstance(type_or_auto, cwast.TypeAuto):
         EmitTokens(ts, type_or_auto)
@@ -715,9 +696,10 @@ def EmitTokensStatement(ts: TS, n):
         if n.body_f:
             _TokensStmtBlock(ts, "else", "", n.body_f)
     elif isinstance(n, cwast.MacroFor):
-        ts.EmitAttr("mfor")
+        ts.EmitStmtBeg("mfor")
         ts.EmitAttr(n.name)
         ts.EmitAttr(n.name_list)
+        ts.EmitStmtEnd()
         # we now the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
         EmitTokensCodeBlock(ts, n.body_for)
@@ -725,6 +707,9 @@ def EmitTokensStatement(ts: TS, n):
         _TokensStmtMacroInvoke(ts, n)
     else:
         assert False, f"unexpected stmt node {n}"
+    #
+    if not ts.LastTokenIsCodeBlock():
+        ts.EmitNewline()
 
 
 def _EmitTokensToplevel(ts: TS, node):
@@ -757,10 +742,16 @@ def _EmitTokensToplevel(ts: TS, node):
     elif isinstance(node, cwast.DefRec):
         ts.EmitStmtBeg("rec")
         ts.EmitName(node.name)
-        beg_colon = ts.EmitColonBeg()
+        ts.EmitStmtEnd()
+        #
+        ts.EmitColonBeg()
         for f in node.fields:
-            EmitTokens(ts, f)
-        ts.EmitColonEnd(beg_colon)
+            TokensAnnotationsPre(ts, f)
+            ts.EmitStmtBeg(f.name)
+            EmitTokens(ts, f.type)
+            ts.EmitStmtEnd()
+            ts.EmitNewline()
+        ts.EmitColonEnd()
     elif isinstance(node, cwast.StmtStaticAssert):
         ts.EmitStmtBeg("static_assert")
         EmitTokens(ts, node.cond)
@@ -769,14 +760,23 @@ def _EmitTokensToplevel(ts: TS, node):
         ts.EmitStmtBeg("enum")
         ts.EmitName(node.name)
         ts.EmitAttr(node.base_type_kind.name.lower())
-        beg_colon = ts.EmitColonBeg()
+        ts.EmitStmtEnd()
+        #
+        ts.EmitColonBeg()
         for f in node.items:
-            EmitTokens(ts, f)
-        ts.EmitColonEnd(beg_colon)
+            TokensAnnotationsPre(ts, f)
+            ts.EmitStmtBeg(f.name)
+            EmitTokens(ts, f.value_or_auto)
+            ts.EmitStmtEnd()
+            ts.EmitNewline()
+
+        ts.EmitColonEnd()
     elif isinstance(node, cwast.DefFun):
         ts.EmitStmtBeg("fun")
         ts.EmitName(node.name)
         EmitTokenFunSig(ts, node.params, node.result)
+        ts.EmitStmtEnd()
+        #
         EmitTokensCodeBlock(ts, node.body)
     elif isinstance(node, cwast.DefMacro):
         ts.EmitStmtBeg("macro")
@@ -800,19 +800,26 @@ def _EmitTokensToplevel(ts: TS, node):
             sep = True
             ts.EmitAttr(gen_id)
         ts.EmitEnd(beg_paren)
+        ts.EmitStmtEnd()
+        #
         EmitTokensCodeBlock(ts, node.body_macro)
     else:
         assert False
+    #
+    if not ts.LastTokenIsCodeBlock():
+        ts.EmitNewline()
 
 
 def EmitTokensModule(ts: TS, node):
     ts.EmitStmtBeg("module")
     # we do not want the next item to be indented
     ts.EmitName(node.name)
-    beg_colon = ts.EmitColonBeg()
+    ts.EmitStmtEnd()
+    #
+    ts.EmitColonBeg()
     for child in node.body_mod:
         _EmitTokensToplevel(ts, child)
-    ts.EmitColonEnd(beg_colon)
+    ts.EmitColonEnd()
 
 
 class Stack:
@@ -897,7 +904,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         # maybe emit space
         if want_space:
             # if the next token is one of these we do not want a space preceeding it
-            if kind not in (TK.PAREN_END, TK.PAREN_BEG, TK.COLON_BEG,
+            if kind not in (TK.STMT_END, TK.PAREN_END, TK.PAREN_BEG, TK.COLON_BEG,
                             TK.UNOP_SUFFIX, TK.SEP, TK.BINOP_NO_SPACE):
                 sink.emit_space()
         want_space = True
@@ -935,7 +942,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         elif kind is TK.NL:
             newline()
         elif kind is TK.STMT_END:
-            newline()
+            pass
         elif kind is TK.ANNOTATION_LONG:
             newline()
             sink.emit_token(tag)
@@ -954,7 +961,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         else:
             assert False, f"{kind}"
         #
-        if kind in (TK.PAREN_BEG, TK.PAREN_BEG_EXPR, TK.PAREN_BEG_VEC_TYPE, TK.UNOP_PREFIX, TK.BINOP_NO_SPACE):
+        if kind in (TK.PAREN_BEG, TK.STMT_END, TK.PAREN_BEG_EXPR, TK.PAREN_BEG_VEC_TYPE, TK.UNOP_PREFIX, TK.BINOP_NO_SPACE):
             want_space = False
         elif kind is TK.PAREN_END:
             if tk.beg.kind is TK.PAREN_BEG_VEC_TYPE:

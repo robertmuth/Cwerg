@@ -42,6 +42,12 @@
           @doc "index_val"
           (index_val 20)
           (index_val 30)]))
+
+    (let! loc22 auto (rec_val type_rec2 [
+        (field_val 9 s2)
+        @doc "field_val comment"
+        (field_val 7)]))
+
     @doc "cond"
     (cond :
         @doc "in block"
