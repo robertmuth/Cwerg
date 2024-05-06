@@ -930,6 +930,13 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 newline()
             else:
                 stack.push(tk, 0)
+        elif kind is TK.STMT_BEG:
+            sink.emit_token(tag)
+            indent = stack.push(tk, 1)
+            sink.set_indent(indent)
+        elif kind is TK.STMT_END:
+            beg, _, _ = stack.pop()
+            sink.set_indent(stack.CurrentIndent())
         elif kind is TK.COLON_END:
             beg, _, _ = stack.pop()
             sink.set_indent(stack.CurrentIndent())
@@ -941,13 +948,11 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             sink.emit_token(tag)
         elif kind is TK.NL:
             newline()
-        elif kind is TK.STMT_END:
-            pass
         elif kind is TK.ANNOTATION_LONG:
             newline()
             sink.emit_token(tag)
             newline()
-        elif kind in (TK.UNOP_SUFFIX, TK.ANNOTATION_SHORT, TK.ITEM, TK.STMT_BEG, TK.UNOP_PREFIX, TK.BINOP,
+        elif kind in (TK.UNOP_SUFFIX, TK.ANNOTATION_SHORT, TK.ITEM, TK.UNOP_PREFIX, TK.BINOP,
                       TK.BINOP_NO_SPACE):
             sink.emit_token(tag)
         elif kind is TK.ATTR:
