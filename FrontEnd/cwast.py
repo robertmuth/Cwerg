@@ -23,7 +23,7 @@ BUILT_IN_MACROS = set([
     "for",
     "trylet",
     "tryset",
-    "->",
+    "^.",
 ])
 
 
@@ -307,7 +307,8 @@ UNARY_EXPR_SHORTCUT_CONCRETE = {
     "-": UNARY_EXPR_KIND.MINUS,
 }
 
-UNARY_EXPR_SHORTCUT_CONCRETE_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT_CONCRETE.items()}
+UNARY_EXPR_SHORTCUT_CONCRETE_INV = {
+    v: k for k, v in UNARY_EXPR_SHORTCUT_CONCRETE.items()}
 
 
 @enum.unique

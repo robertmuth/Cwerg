@@ -49,13 +49,13 @@
 
 
 @pub (fun InitObjectState [(param s (ptr! ObjectState)) (param o (ptr Object))] void :
-    (= (-> s obj) o)
-    (= (-> s attr_lookup) DEF_ATTR_LOOKUP)
-    (= (-> s depth) (-> o def_depth))
-    (= (-> s frame) 0)
-    (= (-> s def_attr) (-> o def_attr))
-    (= (-> s x_speed) (-> o def_x_speed))
-    (= (-> s y_speed) (-> o def_y_speed)))
+    (= (^. s obj) o)
+    (= (^. s attr_lookup) DEF_ATTR_LOOKUP)
+    (= (^. s depth) (^. o def_depth))
+    (= (^. s frame) 0)
+    (= (^. s def_attr) (^. o def_attr))
+    (= (^. s x_speed) (^. o def_x_speed))
+    (= (^. s y_speed) (^. o def_y_speed)))
 
 
 @pub (fun SetBasics [
@@ -63,9 +63,9 @@
         (param start_time r32)
         (param x_pos r32)
         (param y_pos r32)] void :
-    (= (-> s start_time) start_time)
-    (= (-> s x_pos) x_pos)
-    (= (-> s y_pos) y_pos))
+    (= (^. s start_time) start_time)
+    (= (^. s x_pos) x_pos)
+    (= (^. s y_pos) y_pos))
 
 
 (fun tolower [(param c u8)] u8 :
@@ -123,16 +123,16 @@
 
 
 @pub (fun draw [(param window (ptr! Window)) (param s (ptr! ObjectState))] void :
-    (let width auto (-> window width))
-    (let height auto (-> window height))
-    (let obj auto (-> s obj))
-    (let sprite auto (& (at (-> obj sprites) (-> s frame))))
-    (let image_map auto (-> sprite image_map))
-    (let color_map auto (-> sprite color_map))
-    (let def_attr auto (-> s def_attr))
-    (let depth auto (-> s depth))
-    (let! x s32 (as (-> s x_pos) s32))
-    (let! y s32 (as (-> s y_pos) s32))
+    (let width auto (^. window width))
+    (let height auto (^. window height))
+    (let obj auto (^. s obj))
+    (let sprite auto (& (at (^. obj sprites) (^. s frame))))
+    (let image_map auto (^. sprite image_map))
+    (let color_map auto (^. sprite color_map))
+    (let def_attr auto (^. s def_attr))
+    (let depth auto (^. s depth))
+    (let! x s32 (as (^. s x_pos) s32))
+    (let! y s32 (as (^. s y_pos) s32))
     (let! left_side auto true)
     (let! have_color auto true)
     (let! cpos uint 0)
@@ -147,7 +147,7 @@
                     (= have_color false))
                 (case (== cc ' ') :)
                 (case (&& (>= cc '1') (<= cc '9')) :
-                    (= a (at (-> s attr_lookup) (- cc '1'))))
+                    (= a (at (^. s attr_lookup) (- cc '1'))))
                 (case true :
                     (= a cc)))
             :)
@@ -155,7 +155,7 @@
         (let c u8 (at image_map ipos))
         (if (== c '\n') :
             (+= y 1)
-            (= x (as (-> s x_pos) s32))
+            (= x (as (^. s x_pos) s32))
             (= left_side true)
             @doc "the end of the color row should have been reached already"
             (fmt::assert# (! have_color) ["color failure\n"])
@@ -168,12 +168,12 @@
             (= left_side false)
             :)
         (if (&& (&& (< x width) (< y height)) (&& (>= x 0) (>= y 0))) :
-            (= (-> s visible) true)
+            (= (^. s visible) true)
             (let index auto (+ (* y width) x))
-            (if (!= 0_u8 (at (-> window depth_map) index)) :
-                (if (&& (! left_side) (!= c (-> obj transparent_char))) :
-                    (= (at (-> window char_map) index) c)
-                    (= (at (-> window attr_map) index) a)
+            (if (!= 0_u8 (at (^. window depth_map) index)) :
+                (if (&& (! left_side) (!= c (^. obj transparent_char))) :
+                    (= (at (^. window char_map) index) c)
+                    (= (at (^. window attr_map) index) a)
                     :)
                 :)
             :)
@@ -182,16 +182,16 @@
 
 @pub (fun window_draw [(param obj (ptr Window)) (param bg_col u8)] void :
     (fmt::print# (get_bg_color [bg_col]) ansi::CLEAR_ALL)
-    (let w auto (-> obj width))
-    (let h auto (-> obj height))
+    (let w auto (^. obj width))
+    (let h auto (^. obj height))
     @doc "@ is an invalid attrib"
     (let! last_attr u8 '@')
     (for x 0 w 1 :
         (let! last_x auto MAX_DIM)
         (for y 0 h 1 :
             (let index auto (+ (* y w) x))
-            (let c auto (at (-> obj char_map) index))
-            (let a auto (at (-> obj attr_map) index))
+            (let c auto (at (^. obj char_map) index))
+            (let a auto (at (^. obj attr_map) index))
             (if (== c ' ') :
                 (continue)
                 :)
@@ -210,11 +210,11 @@
         (param obj (ptr! Window))
         (param c u8)
         (param a u8)] void :
-    (let size auto (* (-> obj width) (-> obj height)))
+    (let size auto (* (^. obj width) (^. obj height)))
     (for i 0 size 1 :
-        (= (at (-> obj char_map) i) c)
-        (= (at (-> obj attr_map) i) a)
-        (= (at (-> obj depth_map) i) 255)))
+        (= (at (^. obj char_map) i) c)
+        (= (at (^. obj attr_map) i) a)
+        (= (at (^. obj depth_map) i) 255)))
 
 
 )

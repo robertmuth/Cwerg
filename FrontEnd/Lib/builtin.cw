@@ -68,7 +68,7 @@ The type of the loop variable is determined by $end"""
     (= $b $t))
 
 @doc "macro for c-style -> operator"
-@pub (macro -> EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
+@pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))
 
 )

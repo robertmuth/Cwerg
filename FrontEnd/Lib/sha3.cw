@@ -37,16 +37,16 @@ https://emn178.github.io/online-tools/sha3_512.html
 @doc "only valid len for data are 9, 13, 17, 18
 (fun AddBlockAlignedLE [(param state (ptr! StateKeccak)) (param data (slice u64))] void :
     (for i 0 9_uint 1 :
-        (xor= (at (-> state x) i) (at data i)))
+        (xor= (at (^. state x) i) (at data i)))
     (if (== (len data) 9) : (return) :)
     (for i 9 13_uint 1 :
-        (xor= (at (-> state x) i) (at data i)))
+        (xor= (at (^. state x) i) (at data i)))
     (if (== (len data) 13) : (return) :)
     (for i 13 17_uint 1 :
-        (xor= (at (-> state x) i) (at data i)))
+        (xor= (at (^. state x) i) (at data i)))
     (if (== (len data) 17) : (return) :)
     (for i 17 18_uint 1 :
-        (xor= (at (-> state x) i) (at data i)))
+        (xor= (at (^. state x) i) (at data i)))
 )
 
 (global rconst auto (array_val 24 u64 [
@@ -177,10 +177,10 @@ https://emn178.github.io/online-tools/sha3_512.html
 @pub (fun KeccakAdd [(param state (ptr!  StateKeccak))
                      (param tail (slice! u64))
                      (param data (slice u8))] void :
-    @doc """(fmt::print# "KeccakAdd: " (-> state msglen) " "  data "\n")"""
+    @doc """(fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")"""
     (let tail_u8 auto (as (front! tail)  (ptr! u8)))
     (let block_size uint (* (len tail) 8))
-    (let tail_use uint (% (-> state msglen) block_size))
+    (let tail_use uint (% (^. state msglen) block_size))
 
     (let! offset uint 0)
     (if (> tail_use 0) :
@@ -188,7 +188,7 @@ https://emn178.github.io/online-tools/sha3_512.html
             (for i 0 (len data) 1 :
                 (= (^ (pinc tail_u8 (+ tail_use i))) (at data i))
             )
-            (+= (-> state msglen) (len data))
+            (+= (^. state msglen) (len data))
             (return)
        :
             (= offset (- block_size tail_use))
@@ -196,7 +196,7 @@ https://emn178.github.io/online-tools/sha3_512.html
                 (= (^ (pinc tail_u8 (+ tail_use i))) (at data i))
             )
             (shed (AddBlockAlignedLE [state  tail]))
-            (shed (KeccakF [(&! (-> state x))]))
+            (shed (KeccakF [(&! (^. state x))]))
        )
     :)
     (while  (>= (- (len data) offset) block_size) :
@@ -205,7 +205,7 @@ https://emn178.github.io/online-tools/sha3_512.html
             (+= offset 1)
         )
         (shed (AddBlockAlignedLE [state  tail]))
-        (shed (KeccakF [(&! (-> state x))]))
+        (shed (KeccakF [(&! (^. state x))]))
 
     )
     (for i 0 (- (len data) offset) 1 :
@@ -213,7 +213,7 @@ https://emn178.github.io/online-tools/sha3_512.html
         (+= offset 1)
     )
 
-    (+= (-> state msglen) (len data))
+    (+= (^. state msglen) (len data))
 )
 
 @pub (fun KeccakFinalize [(param state (ptr!  StateKeccak))
@@ -222,13 +222,13 @@ https://emn178.github.io/online-tools/sha3_512.html
    (let tail_u8 auto (as (front! tail)  (ptr! u8)))
    (let block_size auto (* (len tail) 8))
 
-   (let padding_start uint (% (-> state msglen) block_size))
+   (let padding_start uint (% (^. state msglen) block_size))
    (for i padding_start block_size 1 :
     (= (^ (pinc tail_u8 i)) 0))
    (or= (^ (pinc tail_u8 padding_start)) padding)
    (or= (^ (pinc tail_u8 (- block_size 1))) 0x80)
    (shed (AddBlockAlignedLE [state  tail]))
-   (shed (KeccakF [(&! (-> state x))]))
+   (shed (KeccakF [(&! (^. state x))]))
 )
 
 @doc "returns 512 bit cryptographic hash of data"

@@ -237,14 +237,14 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
 (fun test_all [] void :
     (for i 0 (len AllTestCases) 1 :
          (let tc (ptr TestCase) (& (at AllTestCases i)))
-         (fmt::print# "TEST - " (-> tc description) "\n")
-         (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val (-> tc input))]))
-         (let res  auto (flate::uncompress [ (&! bs) (-> tc output) ]))
-         (test::AssertEq# (uniontypetag res) (uniontypetag (-> tc expected_result)))
+         (fmt::print# "TEST - " (^. tc description) "\n")
+         (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val (^. tc input))]))
+         (let res  auto (flate::uncompress [ (&! bs) (^. tc output) ]))
+         (test::AssertEq# (uniontypetag res) (uniontypetag (^. tc expected_result)))
          (if (is res uint) :
             (test::AssertSliceEq#
-                (-> tc expected_output)
-                (slice_val (front (-> tc output)) (@unchecked narrowto res uint))
+                (^. tc expected_output)
+                (slice_val (front (^. tc output)) (@unchecked narrowto res uint))
             )
          :)
 

@@ -22,18 +22,18 @@ may set eos
 @pub (fun Stream32GetBits [(param bs (ptr! Stream32))
                             (param bits_requested u8)] u32 :
    (let! new_bits u32)
-   (let! bits_count u8 (-> bs bits_count))
-   (let! bits_cache u32 (as (-> bs bits_cache) u32))
+   (let! bits_count u8 (^. bs bits_count))
+   (let! bits_cache u32 (as (^. bs bits_cache) u32))
 
    @doc """when the while loop exits and bits_count > 32, new_bits contains
    (bits_count - 32) bits we still need to put into the cache"""
    (while (< bits_count bits_requested) :
-      (if (== (-> bs offset) (len (-> bs buf))) :
-        (= (-> bs eos) true)
+      (if (== (^. bs offset) (len (^. bs buf))) :
+        (= (^. bs eos) true)
         (return 0)
       :)
-      (= new_bits  (as (at (-> bs buf) (-> bs offset)) u32))
-      (+= (-> bs offset) 1)
+      (= new_bits  (as (at (^. bs buf) (^. bs offset)) u32))
+      (+= (^. bs offset) 1)
       (or= bits_cache (<< new_bits (as bits_count u32)))
       (+= bits_count 8)
    )
@@ -55,8 +55,8 @@ may set eos
    :)
 
    (-= bits_count bits_requested)
-   (= (-> bs bits_count) bits_count)
-   (= (-> bs bits_cache) (as bits_cache u8))
+   (= (^. bs bits_count) bits_count)
+   (= (^. bs bits_cache) (as bits_cache u8))
 
    (return out)
 )
@@ -64,7 +64,7 @@ may set eos
 @doc "Resume bit retrieval at the next byte boundary"
 @pub (fun Stream32SkipToNextByte [(param bs (ptr! Stream32))] void :
    @doc "If there are any bits in the cache throw them away"
-   (= (-> bs bits_count) 0)
+   (= (^. bs bits_count) 0)
 )
 
 @pub (fun Stream32GetBool [(param bs (ptr! Stream32))] bool :
@@ -74,15 +74,15 @@ may set eos
 @doc "may set eos bit"
 @pub (fun Stream32GetByteSlice [(param bs (ptr! Stream32))
                                 (param n uint)] (slice u8) :
-   (let! l uint (len (-> bs buf)))
-   (let! f auto (front (-> bs buf)))
-   (let offset uint (-> bs offset))
+   (let! l uint (len (^. bs buf)))
+   (let! f auto (front (^. bs buf)))
+   (let offset uint (^. bs offset))
 
    (if (> n (- l  offset)) :
-    (= (-> bs eos) true)
+    (= (^. bs eos) true)
     (return (slice_val f 0))
    :
-    (= (-> bs offset) (+ offset n))
+    (= (^. bs offset) (+ offset n))
     (return (slice_val (pinc f offset) n))
    )
 
@@ -90,15 +90,15 @@ may set eos
 
 @doc "rounds down - bits_cache treated as consumed/empty"
 @pub (fun Stream32BytesLeft [(param bs (ptr Stream32))] uint :
-   (return (- (len (-> bs buf)) (-> bs offset)))
+   (return (- (len (^. bs buf)) (^. bs offset)))
 )
 
 @doc "rounds up - bits_cache treated as consumed/empty"
 @pub (fun Stream32BytesConsumed [(param bs (ptr Stream32))] uint :
-   (return (-> bs offset))
+   (return (^. bs offset))
 )
 
 @pub (fun Stream32Eos [(param bs (ptr Stream32))] bool :
-   (return (-> bs eos))
+   (return (^. bs eos))
 )
 )

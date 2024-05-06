@@ -23,8 +23,8 @@
     (let! node MaybeNode root)
     (while true :
         (trylet x (ptr! LinkedListNode) node _ : (break))
-        (+= sum (-> x payload))
-        (= node (-> x next)))
+        (+= sum (^. x payload))
+        (= node (^. x next)))
     (return sum))
 
 

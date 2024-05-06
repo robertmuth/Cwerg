@@ -151,7 +151,7 @@ fun KeccakF(x ^![25] u64) void:
         set x^[0] xor= rconst[round]
 
 @pub fun KeccakAdd(state ^!StateKeccak, tail slice!(u64), data slice(u8)) void:
-    -- (fmt::print# "KeccakAdd: " (-> state msglen) " "  data "\n")
+    -- (fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")
     let tail_u8 = as(front!(tail), ^!u8)
     let block_size uint = len(tail) * 8
     let tail_use uint = state ^. msglen % block_size

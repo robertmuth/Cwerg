@@ -8,10 +8,10 @@
       (field s3 s32))
 
 
-    
-  @doc "global with rec literal"
-  (global r02 auto (rec_val type_rec2 [
-    (field_val 9 s2) 
+
+@doc "global with rec literal"
+(global r02 auto (rec_val type_rec2 [
+    (field_val 9 s2)
     @doc "field_val comment"
     (field_val 7)]))
 
@@ -32,11 +32,16 @@
           (index_val 30)]))
 
 
-  
+
   @doc "fun"
-  (fun main [(param argc s32) 
+  (fun main [(param argc s32)
              @doc "param"
              (param argv (ptr (ptr u8)))] s32 :
+    (let! loc11 auto (array_val 30 uint [
+          (index_val 10)
+          @doc "index_val"
+          (index_val 20)
+          (index_val 30)]))
     @doc "cond"
     (cond :
         @doc "in block"

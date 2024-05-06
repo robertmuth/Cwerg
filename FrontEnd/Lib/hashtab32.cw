@@ -48,10 +48,10 @@ The Hashtable contains pointers to 3 arrays of size `size`:
   (let h u32 (call $khash [key]))
   (let filter u8 (or (as h u8) UsedEntryMark))
 
-  (let meta auto (-> ht meta))
-  (let keys auto (-> ht keys))
-  (let vals auto (-> ht vals))
-  (let size auto (-> ht size))
+  (let meta auto (^. ht meta))
+  (let keys auto (^. ht keys))
+  (let vals auto (^. ht vals))
+  (let size auto (^. ht size))
 
   (let! i auto (% h size))
 
@@ -75,9 +75,9 @@ The Hashtable contains pointers to 3 arrays of size `size`:
     (param val (ptr $vtype))] bool :
   (let h u32 (call $khash [key]))
   (let filter u8 (or (as h u8) UsedEntryMark))
-  (let meta auto (-> ht meta))
-  (let keys auto (-> ht keys))
-  (let size auto (-> ht size))
+  (let meta auto (^. ht meta))
+  (let keys auto (^. ht keys))
+  (let size auto (^. ht size))
   (let! i auto (% h size))
   (let! seen_deleted auto false)
   (let! first_deleted u32 0)
@@ -90,12 +90,12 @@ The Hashtable contains pointers to 3 arrays of size `size`:
          :)
          (= (^ (pinc meta first_deleted)) filter)
          (= (^ (pinc keys first_deleted)) (^ key))
-         (= (^ (pinc (-> ht vals) first_deleted)) (^ val))
-         (+= (-> ht used) 1)
+         (= (^ (pinc (^. ht vals) first_deleted)) (^ val))
+         (+= (^. ht used) 1)
          (return true)
     :)
     (if (&& (== m filter) (call $keq [key (pinc keys i)])) :
-        (= (^ (pinc (-> ht vals) i)) (^ val) )
+        (= (^ (pinc (^. ht vals) i)) (^ val) )
         (return false)
     :)
     (if (&& (! seen_deleted) (== m DeletedEntry)) :
@@ -113,9 +113,9 @@ The Hashtable contains pointers to 3 arrays of size `size`:
   (let h u32 (call $khash [key]))
   (let filter u8 (or (as h u8) UsedEntryMark))
 
-  (let meta auto (-> ht meta))
-  (let keys auto (-> ht keys))
-  (let size auto (-> ht size))
+  (let meta auto (^. ht meta))
+  (let keys auto (^. ht keys))
+  (let size auto (^. ht size))
   (let! i auto (% h size))
 
   (while true :
@@ -125,7 +125,7 @@ The Hashtable contains pointers to 3 arrays of size `size`:
     :)
     (if (&& (== m filter) (call $keq [key (pinc keys i)])) :
         (= (^ (pinc meta i)) DeletedEntry)
-        (-= (-> ht used) 1)
+        (-= (^. ht used) 1)
         (return true)
     :)
     (+= i 1)
@@ -134,10 +134,10 @@ The Hashtable contains pointers to 3 arrays of size `size`:
 )
 
 @pub (fun DebugDump [(param ht (ptr HashTab32))] void :
-  (let meta auto (-> ht meta))
-  (let keys auto (-> ht keys))
-  (let vals auto (-> ht vals))
-  (for i 0 (-> ht size) 1 :
+  (let meta auto (^. ht meta))
+  (let keys auto (^. ht keys))
+  (let vals auto (^. ht vals))
+  (for i 0 (^. ht size) 1 :
       (fmt::print# i " ")
       (let m auto (^ (pinc meta i)))
       (cond :

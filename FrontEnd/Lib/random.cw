@@ -29,8 +29,8 @@
 
 @doc "Generate a uniformly distributed 32-bit random number"
 (fun Pcg32GetRandom [(param state (ptr! Pcg32State))] u32 :
-    (let oldstate u64 (-> state state))
-    (= (-> state state) (+ (* oldstate 6364136223846793005_u64) (-> state inc)))
+    (let oldstate u64 (^. state state))
+    (= (^. state state) (+ (* oldstate 6364136223846793005_u64) (^. state inc)))
     (let xorshifted u32 (as (>> (xor (>> oldstate 18) oldstate) 27) u32))
     (let rot u32 (as (>> oldstate 59) u32))
     (return (or (>> xorshifted rot) (<< xorshifted (and (- 0 rot) 31)))))

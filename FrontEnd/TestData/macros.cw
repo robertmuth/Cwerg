@@ -7,7 +7,7 @@
 
 
 (fun TestRightArrowMacro [(param pointer (ptr MyRec))] u32 :
-    (return (-> pointer s2)))
+    (return (^. pointer s2)))
 
 
 (fun TestWhileMacro [(param end u32)] u32 :
