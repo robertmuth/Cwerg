@@ -118,6 +118,7 @@ class TK(enum.Enum):
     BEG_VEC_TYPE_PAREN = 22  # white space before and after
     END = 30
 
+
 KEYWORDS_TOPLEVEL = [
     "enum", "fun", "import", "rec", "static_assert", "type",
 ]
@@ -177,7 +178,7 @@ class TS:
         if not self._tokens:
             return False
         last = self._tokens[-1]
-        return last.kind is TK.EOL or last.kind is TK.END and last.kind is TK.COLON_END
+        return last.kind is TK.EOL or last.kind is TK.COLON_END
 
     def Pos(self) -> int:
         return self._count
@@ -390,92 +391,16 @@ def TokensMacroInvokeArgs(ts: TS, args):
             EmitTokens(ts, a)
 
 
-def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
+def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     if node.name == "^.":
         assert len(node.args) == 2
         TokensBinaryInfixNoSpace(
             ts, "^.", node.args[0], node.args[1].name, node)
         return
     ts.EmitKW(node.name)
-    is_block_like = node.name in ["for", "while", "tryset", "trylet"]
-    if not is_block_like:
-        beg_paren = ts.EmitBegParen("(")
-
-    args = node.args
-    if node.name == "for" or node.name == "tryset":
-        assert isinstance(args[0], (cwast.Id, cwast.MacroId)), f"{args[0]}"
-        ts.EmitAttr(args[0].name)
-        args = args[1:]
-        ts.EmitBinOp("=")
-    elif node.name == "trylet":
-        assert isinstance(args[0], cwast.Id)
-        ts.EmitAttr(args[0].name)
-        EmitTokens(ts, args[1])
-        args = args[2:]
-        ts.EmitBinOp("=")
-
-    TokensMacroInvokeArgs(ts, args)
-
-    if not is_block_like:
-        ts.EmitEnd(beg_paren)
-
-
-def TokensSimpleStmt(ts: TS, kind: str, arg):
-    ts.EmitAttr(kind)
-    if arg:
-        if isinstance(arg, str):
-            ts.EmitAttr(arg)
-        elif not isinstance(arg, cwast.ValVoid):
-            # for return
-            EmitTokens(ts, arg)
-
-    ts.EmitStmtEnd()
-
-
-def TokensStmtBlock(ts: TS, kind, arg, stmts):
-    ts.EmitAttr(kind)
-    if arg:
-        if type(arg) == str:
-            ts.EmitAttr(arg)
-        else:
-            EmitTokens(ts, arg)
-    EmitTokensCodeBlock(ts, stmts)
-
-
-def TokensStmtSet(ts: TS, kind, lhs, rhs):
-    ts.EmitAttr("set")
-    EmitTokens(ts, lhs)
-    ts.EmitBinOp(kind)
-    EmitTokens(ts, rhs)
-    ts.EmitStmtEnd()
-
-
-def TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
-    ts.EmitAttr(kind)
-    ts.EmitAttr(name)
-    if not isinstance(type_or_auto, cwast.TypeAuto):
-        EmitTokens(ts, type_or_auto)
-    if not isinstance(init_or_auto, cwast.ValAuto):
-        ts.EmitBinOp("=")
-        EmitTokens(ts, init_or_auto)
-    ts.EmitStmtEnd()
-
-
-def TokensMacroFor(ts: TS, node: cwast.MacroFor):
-    ts.EmitAttr("mfor")
-    ts.EmitAttr(node.name)
-    ts.EmitAttr(node.name_list)
-    EmitTokensCodeBlock(ts, node.body_for)
-
-
-def ConcreteIf(ts: TS, node: cwast.StmtIf):
-    ts.EmitAttr("if")
-    EmitTokens(ts, node.cond)
-    EmitTokensCodeBlock(ts, node.body_t)
-    #
-    if node.body_f:
-        ts.EmitAttr("else")
-        EmitTokensCodeBlock(ts, node.body_f)
+    beg_paren = ts.EmitBegParen("(")
+    TokensMacroInvokeArgs(ts, node.args)
+    ts.EmitEnd(beg_paren)
 
 
 def TokensValRec(ts: TS, node: cwast.ValRec):
@@ -572,7 +497,7 @@ def EmitTokenFunSig(ts: TS, params, result):
 def EmitTokensCodeBlock(ts: TS, stmts):
     beg = ts.EmitColonBeg()
     for child in stmts:
-        EmitTokens(ts, child)
+        EmitTokensStatement(ts, child)
         if not ts.LastTokenIsEOL():
             ts.EmitStmtEnd()
     ts.EmitColonEnd(beg)
@@ -610,9 +535,7 @@ _CONCRETE_SYNTAX = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     #
     cwast.MacroId: TokensMacroId,
-    cwast.MacroInvoke: TokensMacroInvoke,
-    cwast.MacroVar: lambda ts, n: TokensStmtLet(ts, WithMut("mlet", n.mut), n.name, n.type_or_auto, n.initial_or_undef_or_auto),
-    cwast.MacroFor: TokensMacroFor,
+    cwast.MacroInvoke: TokensExprMacroInvoke,
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(cwast.BaseTypeKindToKeyword(n.base_type_kind)),
@@ -633,7 +556,6 @@ _CONCRETE_SYNTAX = {
     cwast.ValString: TokensValString,
     cwast.ValRec: TokensValRec,
     cwast.ValArray: TokensValVec,
-
     #
     cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut("front", n.mut), [n.container]),
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, "uniontag", [n.expr]),
@@ -641,7 +563,7 @@ _CONCRETE_SYNTAX = {
     cwast.ExprUnsafeCast: lambda ts, n: TokensFunctional(ts, "unsafeas", [n.expr, n.type]),
     cwast.ExprIs: lambda ts, n: TokensFunctional(ts, "is", [n.expr, n.type]),
     cwast.ExprBitCast: lambda ts, n: TokensFunctional(ts, "bitsas", [n.expr, n.type]),
-    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, "offsetof", [n.type, cwastId(n.field)]),
+    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, "offsetof", [n.type, cwast.Id(n.field)]),
     cwast.ExprLen: lambda ts, n: TokensFunctional(ts, "len", [n.container]),
     cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
     cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "typeid", [n.type]),
@@ -663,25 +585,8 @@ _CONCRETE_SYNTAX = {
     cwast.Expr3: EmitExpr3,
     cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, "stringify", [n.expr]),
     cwast.ExprCall: lambda ts, n: TokensFunctional(ts, n.callee, n.args),
-    cwast.ExprStmt: lambda ts, n: TokensStmtBlock(ts, "expr", "", n.body),
+    cwast.ExprStmt: lambda ts, n: _TokensStmtBlock(ts, "expr", "", n.body),
     cwast.ExprParen: lambda ts, n: TokensParenGrouping(ts, n.expr),
-
-    #
-    cwast.StmtContinue: lambda ts, n: TokensSimpleStmt(ts, "continue", n.target),
-    cwast.StmtBreak: lambda ts, n: TokensSimpleStmt(ts, "break", n.target),
-    cwast.StmtTrap: lambda ts, n: TokensSimpleStmt(ts, "trap", ""),
-    cwast.StmtReturn: lambda ts, n: TokensSimpleStmt(ts, "return", n.expr_ret),
-    cwast.StmtExpr: lambda ts, n: TokensSimpleStmt(ts, "shed", n.expr),
-    cwast.StmtDefer: lambda ts, n: TokensStmtBlock(ts, "defer", "", n.body),
-    cwast.StmtBlock: lambda ts, n: TokensStmtBlock(ts, "block", n.label, n.body),
-    cwast.Case: lambda ts, n: TokensStmtBlock(ts, "case", n.cond, n.body),
-
-    cwast.StmtCond: lambda ts, n: TokensStmtBlock(ts, "cond", "", n.cases),
-    cwast.StmtCompoundAssignment: lambda ts, n: TokensStmtSet(ts, cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
-                                                              n.lhs, n.expr_rhs),
-    cwast.StmtAssignment: lambda ts, n: TokensStmtSet(ts, "=", n.lhs, n.expr_rhs),
-    cwast.DefVar: lambda ts, n: TokensStmtLet(ts, WithMut("let", n.mut), n.name, n.type_or_auto, n.initial_or_undef_or_auto),
-    cwast.StmtIf: ConcreteIf,
     #
     cwast.EnumVal:  TokensEnumVal,
     cwast.RecField:  TokensRecField,
@@ -702,7 +607,121 @@ def EmitTokens(ts: TS, node):
         TokensAnnotationsPost(ts, node)
 
 
-def EmitTokensToplevel(ts: TS, node):
+def _TokensSimpleStmt(ts: TS, kind: str, arg):
+    ts.EmitAttr(kind)
+    if arg:
+        if isinstance(arg, str):
+            ts.EmitAttr(arg)
+        elif not isinstance(arg, cwast.ValVoid):
+            # for return
+            EmitTokens(ts, arg)
+
+    ts.EmitStmtEnd()
+
+
+def _TokensStmtBlock(ts: TS, kind, arg, stmts):
+    ts.EmitAttr(kind)
+    if arg:
+        if type(arg) == str:
+            ts.EmitAttr(arg)
+        else:
+            EmitTokens(ts, arg)
+    EmitTokensCodeBlock(ts, stmts)
+
+
+def _TokensStmtSet(ts: TS, kind, lhs, rhs):
+    ts.EmitAttr("set")
+    EmitTokens(ts, lhs)
+    ts.EmitBinOp(kind)
+    EmitTokens(ts, rhs)
+    ts.EmitStmtEnd()
+
+
+def _TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
+    ts.EmitAttr(kind)
+    ts.EmitAttr(name)
+    if not isinstance(type_or_auto, cwast.TypeAuto):
+        EmitTokens(ts, type_or_auto)
+    if not isinstance(init_or_auto, cwast.ValAuto):
+        ts.EmitBinOp("=")
+        EmitTokens(ts, init_or_auto)
+    ts.EmitStmtEnd()
+
+
+def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
+    ts.EmitKW(node.name)
+    is_block_like = node.name in ["for", "while", "tryset", "trylet"]
+    if not is_block_like:
+        beg_paren = ts.EmitBegParen("(")
+
+    args = node.args
+    if node.name == "for" or node.name == "tryset":
+        assert isinstance(args[0], (cwast.Id, cwast.MacroId)), f"{args[0]}"
+        ts.EmitAttr(args[0].name)
+        args = args[1:]
+        ts.EmitBinOp("=")
+    elif node.name == "trylet":
+        assert isinstance(args[0], cwast.Id)
+        ts.EmitAttr(args[0].name)
+        EmitTokens(ts, args[1])
+        args = args[2:]
+        ts.EmitBinOp("=")
+
+    TokensMacroInvokeArgs(ts, args)
+
+    if not is_block_like:
+        ts.EmitEnd(beg_paren)
+
+
+def EmitTokensStatement(ts: TS, n):
+    TokensAnnotationsPre(ts, n)
+    if isinstance(n, cwast.StmtContinue):
+        _TokensSimpleStmt(ts, "continue", n.target)
+    elif isinstance(n, cwast.StmtBreak):
+        _TokensSimpleStmt(ts, "break", n.target)
+    elif isinstance(n, cwast.StmtTrap):
+        _TokensSimpleStmt(ts, "trap", "")
+    elif isinstance(n, cwast.StmtReturn):
+        _TokensSimpleStmt(ts, "return", n.expr_ret)
+    elif isinstance(n, cwast.StmtExpr):
+        _TokensSimpleStmt(ts, "shed", n.expr)
+    elif isinstance(n, cwast.StmtDefer):
+        _TokensStmtBlock(ts, "defer", "", n.body)
+    elif isinstance(n, cwast.StmtBlock):
+        _TokensStmtBlock(ts, "block", n.label, n.body)
+    elif isinstance(n,  cwast.Case):
+        _TokensStmtBlock(ts, "case", n.cond, n.body)
+    elif isinstance(n, cwast.StmtCond):
+        _TokensStmtBlock(ts, "cond", "", n.cases)
+    elif isinstance(n, cwast.StmtCompoundAssignment):
+        _TokensStmtSet(ts, cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
+                       n.lhs, n.expr_rhs)
+    elif isinstance(n, cwast.StmtAssignment):
+        _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
+    elif isinstance(n, cwast.DefVar):
+        _TokensStmtLet(ts, WithMut("let", n.mut), n.name,
+                       n.type_or_auto, n.initial_or_undef_or_auto)
+    elif isinstance(n, cwast.MacroVar):
+        _TokensStmtLet(ts, WithMut("mlet", n.mut), n.name,
+                       n.type_or_auto, n.initial_or_undef_or_auto)
+    elif isinstance(n, cwast.StmtIf):
+        _TokensStmtBlock(ts, "if", n.cond, n.body_t)
+        if n.body_f:
+            _TokensStmtBlock(ts, "else", "", n.body_f)
+    elif isinstance(n, cwast.MacroFor):
+        ts.EmitAttr("mfor")
+        ts.EmitAttr(n.name)
+        ts.EmitAttr(n.name_list)
+        # we now the content of body of the MacroFor must be stmts
+        # since it occurs in a stmt context
+        EmitTokensCodeBlock(ts, n.body_for)
+    elif isinstance(n, cwast.MacroInvoke):
+        _TokensStmtMacroInvoke(ts, n)
+    else:
+        assert False, f"unexpected stmt node {n}"
+
+
+def _EmitTokensToplevel(ts: TS, node):
     # extra newline before every toplevel stanza
     ts.EmitStmtEnd()
 
@@ -786,7 +805,7 @@ def EmitTokensModule(ts: TS, node):
     ts.EmitName(node.name)
     beg_colon = ts.EmitColonBeg()
     for child in node.body_mod:
-        EmitTokensToplevel(ts, child)
+        _EmitTokensToplevel(ts, child)
     ts.EmitColonEnd(beg_colon)
 
 
@@ -825,7 +844,7 @@ class Stack:
 class Sink:
     """TBD"""
 
-    def __init__(self, indent_amount = 4):
+    def __init__(self, indent_amount=4):
         self._indent_amount = indent_amount
         self._indent = 0
         self._col = 0
@@ -977,9 +996,11 @@ if __name__ == "__main__":
             if 0:
                 indent = 0
                 for tk in tokens:
-                    if tk.kind is TK.END and tk.beg.kind is TK.COLON_BEG:
+                    if tk.kind is TK.COLON_END:
                         indent -= 2
+
                     print(" " * indent, tk)
+
                     if tk.kind is TK.COLON_BEG:
                         indent += 2
 

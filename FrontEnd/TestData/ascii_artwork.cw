@@ -445,10 +445,10 @@ y                   y
         (param s (ptr! aanim::ObjectState))
         (param t r32)
         (param dt r32)] void :
-    (= (^. s x_pos) (+ (^. s x_pos) (* (-> s x_speed) dt)))
-    (= (^. s y_pos) (+ (^. s y_pos) (* (-> s y_speed) dt)))
+    (= (^. s x_pos) (+ (^. s x_pos) (* (^. s x_speed) dt)))
+    (= (^. s y_pos) (+ (^. s y_pos) (* (^. s y_speed) dt)))
     (+= (^. s frame) 1)
-    (if (>= (^. s frame) (len (^. (-> s obj) sprites))) :
+    (if (>= (^. s frame) (len (^. (^. s obj) sprites))) :
         (= (^. s frame) 0)
         :))
 
