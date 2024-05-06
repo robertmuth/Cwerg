@@ -118,7 +118,6 @@ class TK(enum.Enum):
     BEG_VEC_TYPE_PAREN = 22  # white space before and after
     END = 30
 
-
 KEYWORDS_TOPLEVEL = [
     "enum", "fun", "import", "rec", "static_assert", "type",
 ]
@@ -137,7 +136,6 @@ KEYWORDS_WITH_EXCL_SUFFIX = [
 BEG_TOKENS = set(KEYWORDS + KEYWORDS_WITH_EXCL_SUFFIX + [
     k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
 
-INDENT = 1
 MAX_LINE_LEN = 80
 
 
@@ -393,7 +391,7 @@ def TokensMacroInvokeArgs(ts: TS, args):
 
 
 def TokensMacroInvoke(ts: TS, node: cwast.MacroInvoke):
-    if node.name == "->":
+    if node.name == "^.":
         assert len(node.args) == 2
         TokensBinaryInfixNoSpace(
             ts, "^.", node.args[0], node.args[1].name, node)
@@ -827,7 +825,8 @@ class Stack:
 class Sink:
     """TBD"""
 
-    def __init__(self):
+    def __init__(self, indent_amount = 4):
+        self._indent_amount = indent_amount
         self._indent = 0
         self._col = 0
 
@@ -840,7 +839,7 @@ class Sink:
 
     def emit_token(self, token):
         if self._col == 0:
-            ws = " " * (4 * self._indent)
+            ws = " " * (self._indent_amount * self._indent)
             # ws = f"{len(ws):02}" + ws[2:]
             print(ws, end="")
             self._col = len(ws)
@@ -879,12 +878,14 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         want_space = True
         #
         if kind is TK.COMMENT:
+            if sink.CurrenColumn() != 0:
+                newline()
             sink.emit_token(tag)
             newline()
         elif kind is TK.COLON_BEG:
             sink.emit_token(tag)
             newline()
-            indent = stack.push(tk, INDENT if stack.depth() > 0 else 0)
+            indent = stack.push(tk, 1 if stack.depth() > 0 else 0)
             sink.set_indent(indent)
         elif kind in (TK.BEG_PAREN, TK.BEG_EXPR_PAREN, TK.BEG_VEC_TYPE_PAREN):
             sink.emit_token(tag)
@@ -892,7 +893,7 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
                 break_after_sep = (not tk.long_array_val) and stack.CurrentIndent(
                 ) + tk.length > MAX_LINE_LEN
                 indent = stack.push(
-                    tk, INDENT, break_after_sep=break_after_sep)
+                    tk, 1, break_after_sep=break_after_sep)
                 sink.set_indent(indent)
                 newline()
             else:
@@ -903,7 +904,8 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         elif kind is TK.END:
             beg, _, _ = stack.pop()
             sink.set_indent(stack.CurrentIndent())
-            assert beg.kind in (TK.BEG_EXPR_PAREN, TK.BEG_PAREN, TK.BEG_VEC_TYPE_PAREN)
+            assert beg.kind in (TK.BEG_EXPR_PAREN,
+                                TK.BEG_PAREN, TK.BEG_VEC_TYPE_PAREN)
             sink.emit_token(tag)
 
         elif kind is TK.EOL:
