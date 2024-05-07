@@ -579,7 +579,7 @@ ALL_FIELDS = [
     NfdNodeList("args", "function call arguments",
                 NODES_EXPR, MACRO_PARAM_KIND.EXPR),
     NfdNodeList("args_mod", "module arguments",
-                NODES_EXPR, MACRO_PARAM_KIND.EXPR),
+                NODES_EXPR + NODES_TYPES, MACRO_PARAM_KIND.EXPR),
     NfdNodeList("items", "enum items and/or comments", NODES_ITEMS,
                 MACRO_PARAM_KIND.INVALID),
     NfdNodeList("fields", "record fields and/or comments", NODES_FIELDS,

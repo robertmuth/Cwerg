@@ -419,21 +419,37 @@ def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     ts.EmitEnd(beg_paren)
 
 
-def TokensValRec(ts: TS, node: cwast.ValRec):
-    EmitTokens(ts, node.type)
+def TokensInitList(ts: TS, items):
+    sizes = []
     beg = ts.EmitBegParen("{")
     sep = False
-    for e in node.inits_field:
+    for e in items:
         if sep:
             ts.EmitSep(",")
         sep = True
         TokensAnnotationsPre(ts, e)
-        if e.init_field:
-            ts.EmitAttr(e.init_field)
-            ts.EmitAttr(":")
-        EmitTokens(ts, e.value_or_undef)
-
+        start = ts.Pos()
+        if isinstance(e, cwast.FieldVal):
+            if e.init_field:
+                ts.EmitAttr(e.init_field)
+                ts.EmitAttr(":")
+            EmitTokens(ts, e.value_or_undef)
+        elif isinstance(e, cwast.IndexVal):
+            if not isinstance(e.init_index, cwast.ValAuto):
+                EmitTokens(ts, e.init_index)
+                ts.EmitAttr(":")
+            EmitTokens(ts, e.value_or_undef)
+        else:
+            assert False
+        sizes.append(ts.Pos() - start)
+    if len(sizes) > 5 and max(sizes) < MAX_LINE_LEN:
+        beg.long_array_val = True
     ts.EmitEnd(beg)
+
+
+def TokensValRec(ts: TS, node: cwast.ValRec):
+    EmitTokens(ts, node.type)
+    TokensInitList(ts, node.inits_field)
 
 
 def TokensVecType(ts: TS, size, type):
@@ -445,55 +461,34 @@ def TokensVecType(ts: TS, size, type):
 
 def TokensValVec(ts: TS, node: cwast.ValArray):
     TokensVecType(ts, node.expr_size, node.type)
-    beg = ts.EmitBegParen("{")
-    sizes = []
+    TokensInitList(ts, node.inits_array)
+
+
+def TokensParameterList(ts: TS, lst):
     sep = False
-    for e in node.inits_array:
-        assert isinstance(e, cwast.IndexVal)
+    beg = ts.EmitBegParen("(")
+    for param in lst:
         if sep:
             ts.EmitSep(",")
         sep = True
-        start = ts.Pos()
-        TokensAnnotationsPre(ts, e)
-        if not isinstance(e.init_index, cwast.ValAuto):
-            EmitTokens(ts, e.init_index)
-            ts.EmitAttr(":")
-        EmitTokens(ts, e.value_or_undef)
-        sizes.append(ts.Pos() - start)
-    if len(sizes) > 5 and max(sizes) < MAX_LINE_LEN:
-        beg.long_array_val = True
+        if isinstance(param, cwast.FunParam):
+            ts.EmitName(param.name)
+            EmitTokens(ts, param.type)
+        elif isinstance(param, cwast.ModParam):
+            ts.EmitName(param.name)
+            ts.EmitAttr(param.mod_param_kind.name)
+        elif isinstance(param, cwast.MacroParam):
+            ts.EmitName(param.name)
+            ts.EmitAttr(param.macro_param_kind.name)
+        else:
+            assert False
     ts.EmitEnd(beg)
-
-
-def WithMut(name: str, mutable: bool) -> str:
-    return name + "!" if mutable else name
 
 
 def TokensTypeFun(ts: TS, node: cwast.TypeFun):
     ts.EmitUnOp("funtype")
-    beg_paren = ts.EmitBegParen("(")
-    sep = False
-    for p in node.params:
-        if sep:
-            ts.EmitSep(",")
-        sep = True
-        ts.EmitAttr(p.name)
-        EmitTokens(ts, p.type)
-    ts.EmitEnd(beg_paren)
+    TokensParameterList(ts, node.params)
     EmitTokens(ts, node.result)
-
-
-def EmitTokenFunSig(ts: TS, params, result):
-    beg_paren = ts.EmitBegParen("(")
-    sep = False
-    for p in params:
-        if sep:
-            ts.EmitSep(",")
-        sep = True
-        ts.EmitAttr(p.name)
-        EmitTokens(ts, p.type)
-    ts.EmitEnd(beg_paren)
-    EmitTokens(ts, result)
 
 
 def EmitTokensCodeBlock(ts: TS, stmts):
@@ -527,6 +522,10 @@ def TokensValString(ts: TS, node: cwast.ValString):
     ts.EmitAttr(f'{prefix}{quotes}{node.string}{quotes}'),
 
 
+def WithMut(name: str, mutable: bool) -> str:
+    return name + "!" if mutable else name
+
+
 _CONCRETE_SYNTAX = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     cwast.MacroId: lambda ts, n:  (ts.EmitAttr(n.name)),
@@ -534,6 +533,7 @@ _CONCRETE_SYNTAX = {
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(cwast.BaseTypeKindToKeyword(n.base_type_kind)),
+    #
     cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, WithMut("slice", n.mut), [n.type]),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, "typeof", [n.expr]),
     cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, "union", n.types),
@@ -548,6 +548,7 @@ _CONCRETE_SYNTAX = {
     cwast.ValUndef: lambda ts, n: ts.EmitAttr("undef"),
     cwast.ValVoid: lambda ts, n: ts.EmitAttr("void"),
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
+    cwast.ValSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
     cwast.ValString: TokensValString,
     cwast.ValRec: TokensValRec,
     cwast.ValArray: TokensValVec,
@@ -563,23 +564,23 @@ _CONCRETE_SYNTAX = {
     cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
     cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "typeid", [n.type]),
     cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, "narrowto", [n.expr, n.type]),
-    cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[n.unary_expr_kind], n.expr),
+    cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
+    cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", [n.expr]),
+    cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, "stringify", [n.expr]),
+    cwast.ExprCall: lambda ts, n: TokensFunctional(ts, n.callee, n.args),
     cwast.ExprPointer: lambda ts, n: TokensFunctional(
         ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
         [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
-    cwast.ExprIndex: TokensExprIndex,
-    cwast.ValSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
-    cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
-    cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", [n.expr]),
-    cwast.ExprField: lambda ts, n: TokensBinaryInfixNoSpace(ts, ".", n.container, n.field, n),
-    cwast.ExprDeref: lambda ts, n: TokensUnarySuffix(ts, "^", n.expr),
-    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithMut(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
+    #
+    cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[n.unary_expr_kind], n.expr),
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,
-    cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, "stringify", [n.expr]),
-    cwast.ExprCall: lambda ts, n: TokensFunctional(ts, n.callee, n.args),
+    cwast.ExprIndex: TokensExprIndex,
+    cwast.ExprField: lambda ts, n: TokensBinaryInfixNoSpace(ts, ".", n.container, n.field, n),
+    cwast.ExprDeref: lambda ts, n: TokensUnarySuffix(ts, "^", n.expr),
+    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithMut(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
     cwast.ExprStmt: lambda ts, n: _TokensStmtBlock(ts, "expr", "", n.body),
     cwast.ExprParen: lambda ts, n: TokensParenGrouping(ts, n.expr),
 }
@@ -797,7 +798,8 @@ def _EmitTokensToplevel(ts: TS, node):
     elif isinstance(node, cwast.DefFun):
         beg = ts.EmitStmtBeg("fun")
         ts.EmitName(node.name)
-        EmitTokenFunSig(ts, node.params, node.result)
+        TokensParameterList(ts, node.params)
+        EmitTokens(ts, node.result)
         ts.EmitStmtEnd(beg)
         #
         EmitTokensCodeBlock(ts, node.body)
@@ -805,15 +807,7 @@ def _EmitTokensToplevel(ts: TS, node):
         beg = ts.EmitStmtBeg("macro")
         ts.EmitName(node.name)
         ts.EmitAttr(node.macro_result_kind.name)
-        beg_paren = ts.EmitBegParen("(")
-        sep = False
-        for p in node.params_macro:
-            if sep:
-                ts.EmitSep(",")
-            sep = True
-            ts.EmitAttr(p.name)
-            ts.EmitAttr(p.macro_param_kind.name)
-        ts.EmitEnd(beg_paren)
+        TokensParameterList(ts, node.params_macro)
         #
         beg_paren = ts.EmitBegParen("[")
         sep = False
@@ -836,10 +830,12 @@ def _EmitTokensToplevel(ts: TS, node):
         ts.EmitNewline()
 
 
-def EmitTokensModule(ts: TS, node):
+def EmitTokensModule(ts: TS, node: cwast.DefMod):
     beg = ts.EmitStmtBeg("module")
     # we do not want the next item to be indented
     ts.EmitName(node.name)
+    if node.params_mod:
+        TokensParameterList(ts, node.params_mod)
     ts.EmitStmtEnd(beg)
     #
     beg_colon = ts.EmitColonBeg()
@@ -1017,6 +1013,34 @@ if __name__ == "__main__":
 
     from FrontEnd import parse_sexpr
 
+    def process_file(inp):
+        mods = parse_sexpr.ReadModsFromStream(inp)
+        assert len(mods) == 1
+        for m in mods:
+            assert isinstance(m, cwast.DefMod)
+            cwast.AnnotateRoleForMacroInvoke(m)
+            AddMissingParens(m)
+            cwast.CheckAST(m, set(), pre_symbolize=True)
+        # we first produce an output token stream from the AST
+        ts = TS()
+        EmitTokensModule(ts, mods[0])
+        tokens = list(ts.tokens())
+        if 0:
+            indent = 0
+            for tk in tokens:
+                if tk.kind in (TK.COLON_END, TK.STMT_END):
+                    indent -= 2
+
+                print(" " * indent, tk)
+
+                if tk.kind in (TK.COLON_BEG, TK.STMT_BEG):
+                    indent += 2
+
+        # reverse once because popping of the end of a list is more efficient
+        tokens.reverse()
+        # and now format the stream
+        FormatTokenStream(tokens, Stack(), Sink())
+
     def main():
         parser = argparse.ArgumentParser(description='pretty_printer')
         parser.add_argument('files', metavar='F', type=str, nargs='+',
@@ -1025,35 +1049,8 @@ if __name__ == "__main__":
 
         logging.basicConfig(level=logging.WARN)
         logger.setLevel(logging.INFO)
-        assert len(args.files) == 1
-        assert args.files[0].endswith(".cw")
-
-        with open(args.files[0], encoding="utf8") as f:
-            mods = parse_sexpr.ReadModsFromStream(f)
-            assert len(mods) == 1
-            for m in mods:
-                assert isinstance(m, cwast.DefMod)
-                cwast.AnnotateRoleForMacroInvoke(m)
-                AddMissingParens(m)
-                cwast.CheckAST(m, set(), pre_symbolize=True)
-            # we first produce an output token stream from the AST
-            ts = TS()
-            EmitTokensModule(ts, mods[0])
-            tokens = list(ts.tokens())
-            if 0:
-                indent = 0
-                for tk in tokens:
-                    if tk.kind in (TK.COLON_END, TK.STMT_END):
-                        indent -= 2
-
-                    print(" " * indent, tk)
-
-                    if tk.kind in (TK.COLON_BEG, TK.STMT_BEG):
-                        indent += 2
-
-            # reverse once because popping of the end of a list is more efficient
-            tokens.reverse()
-            # and now format the stream
-            FormatTokenStream(tokens, Stack(), Sink())
-
+        for a in args.files:
+            assert a.endswith(".cw")
+            with open(a, encoding="utf8") as inp:
+                process_file(inp)
     main()

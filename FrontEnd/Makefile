@@ -240,6 +240,10 @@ clean:
 	@rm -f $(DIR)/*
 
 
+pp_test:
+	./pp.py TestData/*.cw  Lib/*.cw  LangTest/*.cw
+
+
 reformat:
 	for f in TestData/*.cw ; do \
 		echo $$f ; ./pp_sexpr.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
