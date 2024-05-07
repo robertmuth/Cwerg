@@ -503,8 +503,6 @@ def EmitTokensCodeBlock(ts: TS, stmts):
     ts.EmitColonEnd(beg_colon)
 
 
-def TokensMacroId(ts: TS, node: cwast.MacroId):
-    ts.EmitAttr(node.name)
 
 
 def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
@@ -533,8 +531,7 @@ def TokensValString(ts: TS, node: cwast.ValString):
 
 _CONCRETE_SYNTAX = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
-    #
-    cwast.MacroId: TokensMacroId,
+    cwast.MacroId: lambda ts, n:  (ts.EmitAttr(n.name)),
     cwast.MacroInvoke: TokensExprMacroInvoke,
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
@@ -723,6 +720,15 @@ def EmitTokensStatement(ts: TS, n):
     if not ts.LastTokenIsCodeBlock():
         ts.EmitNewline()
 
+def EmitTokensExprMacroBlock(ts: TS, stmts):
+    beg_colon = ts.EmitColonBeg()
+    for child in stmts:
+        if child.__class__ in _CONCRETE_SYNTAX:
+            EmitTokens(ts, child)
+            ts.EmitNewline()
+        else:
+            assert False
+    ts.EmitColonEnd(beg_colon)
 
 def _EmitTokensToplevel(ts: TS, node):
     # extra newline before every toplevel stanza
@@ -814,7 +820,10 @@ def _EmitTokensToplevel(ts: TS, node):
         ts.EmitEnd(beg_paren)
         ts.EmitStmtEnd(beg)
         #
-        EmitTokensCodeBlock(ts, node.body_macro)
+        if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
+            EmitTokensCodeBlock(ts, node.body_macro)
+        else:
+            EmitTokensExprMacroBlock(ts, node.body_macro)
     else:
         assert False
     #
