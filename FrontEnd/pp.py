@@ -503,8 +503,6 @@ def EmitTokensCodeBlock(ts: TS, stmts):
     ts.EmitColonEnd(beg_colon)
 
 
-
-
 def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
     EmitTokens(ts, node.container)
     beg_paren = ts.EmitBegParen("[")
@@ -714,11 +712,15 @@ def EmitTokensStatement(ts: TS, n):
         EmitTokensCodeBlock(ts, n.body_for)
     elif isinstance(n, cwast.MacroInvoke):
         _TokensStmtMacroInvoke(ts, n)
+    elif isinstance(n, cwast.MacroId):
+        ts.EmitAttr(n.name)
+        ts.EmitNewline()
     else:
         assert False, f"unexpected stmt node {n}"
     #
     if not ts.LastTokenIsCodeBlock():
         ts.EmitNewline()
+
 
 def EmitTokensExprMacroBlock(ts: TS, stmts):
     beg_colon = ts.EmitColonBeg()
@@ -729,6 +731,7 @@ def EmitTokensExprMacroBlock(ts: TS, stmts):
         else:
             assert False
     ts.EmitColonEnd(beg_colon)
+
 
 def _EmitTokensToplevel(ts: TS, node):
     # extra newline before every toplevel stanza
@@ -746,10 +749,12 @@ def _EmitTokensToplevel(ts: TS, node):
         ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.Import):
         beg = ts.EmitStmtBeg("import")
-        ts.EmitName(node.name)
         if node.alias:
-            ts.EmitBinOp("as")
             ts.EmitAttr(node.alias)
+            ts.EmitBinOp("=")
+        ts.EmitName(node.name)
+        if node.args_mod:
+            TokensParenList(ts, node.args_mod)
         ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.DefType):
         beg = ts.EmitStmtBeg("type")

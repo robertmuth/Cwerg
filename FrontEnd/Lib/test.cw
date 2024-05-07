@@ -80,8 +80,7 @@ Both must have derivable types as we use `auto`"""
     (mlet $a_val auto $a_expr)
     (AssertEq# (len $e_val) (len $a_val))
     (for $i 0 (len $a_val) 1 :
-        (AssertApproxEq# (^ (pinc (front $e_val) $i)) (^ (pinc (front $a_val) $i))))
-    $epsilon)
+        (AssertApproxEq# (^ (pinc (front $e_val) $i)) (^ (pinc (front $a_val) $i)) $epsilon)))
 
 @doc ""
 @pub (macro AssertTrue# STMT_LIST [(mparam $e_expr EXPR)] [] :
