@@ -157,6 +157,9 @@ class Token:
         tag = self.tag
         if self.kind is TK.PAREN_END:
             tag = self.beg.kind.name
+        elif self.kind is TK.STMT_END:
+            tag = self.beg.tag
+
         return f"{self.kind.name} [{tag}]"
 
 
@@ -216,6 +219,10 @@ class TS:
     def EmitStmtBeg(self, a: str):
         return self.EmitToken(TK.STMT_BEG, a)
 
+    def EmitStmtEnd(self, beg):
+        assert beg.kind is TK.STMT_BEG
+        return self._EmitToken(Token(TK.STMT_END, "", beg))
+
     def EmitAttr(self, a: str):
         return self.EmitToken(TK.ATTR, a)
 
@@ -236,9 +243,6 @@ class TS:
 
     def EmitSep(self, a: str):
         return self.EmitToken(TK.SEP, a)
-
-    def EmitStmtEnd(self):
-        return self._EmitToken(Token(TK.STMT_END, ""))
 
     def EmitNewline(self):
         return self._EmitToken(Token(TK.NL, ""))
@@ -262,8 +266,9 @@ class TS:
     def EmitColonBeg(self):
         return self.EmitToken(TK.COLON_BEG, ":")
 
-    def EmitColonEnd(self):
-        return self.EmitToken(TK.COLON_END, "")
+    def EmitColonEnd(self, beg):
+        assert beg.kind == TK.COLON_BEG
+        return self.EmitToken(TK.COLON_END, "", beg=beg)
 
 
 def TokensParenList(ts: TS, lst):
@@ -369,7 +374,8 @@ def TokensAnnotationsPost(ts: TS, node):
             ts.EmitComment("  -- " + val)
 
 
-def TokensMacroInvokeArgs(ts: TS, args):
+def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
+    had_colon = False
     sep = False
     for a in args:
         if sep:
@@ -380,6 +386,9 @@ def TokensMacroInvokeArgs(ts: TS, args):
             ts.EmitAttr(a.name)
         elif isinstance(a, cwast.EphemeralList):
             if a.colon:
+                assert beg_invoke is not None
+                ts.EmitStmtEnd(beg_invoke)
+                had_colon = True
                 EmitTokensCodeBlock(ts, a.args)
             else:
                 sep2 = False
@@ -395,6 +404,7 @@ def TokensMacroInvokeArgs(ts: TS, args):
             EmitTokens(ts, a)
         else:
             EmitTokens(ts, a)
+    return had_colon
 
 
 def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
@@ -403,9 +413,9 @@ def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         TokensBinaryInfixNoSpace(
             ts, "^.", node.args[0], node.args[1].name, node)
         return
-    ts.EmitStmtBeg(node.name)
+    ts.EmitName(node.name)
     beg_paren = ts.EmitBegParen("(")
-    TokensMacroInvokeArgs(ts, node.args)
+    TokensMacroInvokeArgs(ts, node.args, None)
     ts.EmitEnd(beg_paren)
 
 
@@ -487,10 +497,10 @@ def EmitTokenFunSig(ts: TS, params, result):
 
 
 def EmitTokensCodeBlock(ts: TS, stmts):
-    ts.EmitColonBeg()
+    beg_colon = ts.EmitColonBeg()
     for child in stmts:
         EmitTokensStatement(ts, child)
-    ts.EmitColonEnd()
+    ts.EmitColonEnd(beg_colon)
 
 
 def TokensMacroId(ts: TS, node: cwast.MacroId):
@@ -594,49 +604,49 @@ def EmitTokens(ts: TS, node):
 
 
 def _TokensSimpleStmt(ts: TS, kind: str, arg):
-    ts.EmitStmtBeg(kind)
+    beg = ts.EmitStmtBeg(kind)
     if arg:
         if isinstance(arg, str):
             ts.EmitAttr(arg)
         elif not isinstance(arg, cwast.ValVoid):
             # for return
             EmitTokens(ts, arg)
-    ts.EmitStmtEnd()
+    ts.EmitStmtEnd(beg)
 
 
 def _TokensStmtBlock(ts: TS, kind, arg, stmts):
-    ts.EmitStmtBeg(kind)
+    beg = ts.EmitStmtBeg(kind)
     if arg:
         if type(arg) == str:
             ts.EmitAttr(arg)
         else:
             EmitTokens(ts, arg)
-    ts.EmitStmtEnd()
+    ts.EmitStmtEnd(beg)
     #
     EmitTokensCodeBlock(ts, stmts)
 
 
 def _TokensStmtSet(ts: TS, kind, lhs, rhs):
-    ts.EmitStmtBeg("set")
+    beg = ts.EmitStmtBeg("set")
     EmitTokens(ts, lhs)
     ts.EmitBinOp(kind)
     EmitTokens(ts, rhs)
-    ts.EmitStmtEnd()
+    ts.EmitStmtEnd(beg)
 
 
 def _TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
-    ts.EmitStmtBeg(kind)
+    beg = ts.EmitStmtBeg(kind)
     ts.EmitAttr(name)
     if not isinstance(type_or_auto, cwast.TypeAuto):
         EmitTokens(ts, type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
         ts.EmitBinOp("=")
         EmitTokens(ts, init_or_auto)
-    ts.EmitStmtEnd()
+    ts.EmitStmtEnd(beg)
 
 
 def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
-    ts.EmitStmtBeg(node.name)
+    beg = ts.EmitStmtBeg(node.name)
     is_block_like = node.name in ["for", "while", "tryset", "trylet"]
     if not is_block_like:
         beg_paren = ts.EmitBegParen("(")
@@ -654,10 +664,12 @@ def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         args = args[2:]
         ts.EmitBinOp("=")
 
-    TokensMacroInvokeArgs(ts, args)
+    had_colon = TokensMacroInvokeArgs(ts, args, beg)
 
     if not is_block_like:
         ts.EmitEnd(beg_paren)
+    if not had_colon:
+        ts.EmitStmtEnd(beg)
 
 
 def EmitTokensStatement(ts: TS, n):
@@ -696,10 +708,10 @@ def EmitTokensStatement(ts: TS, n):
         if n.body_f:
             _TokensStmtBlock(ts, "else", "", n.body_f)
     elif isinstance(n, cwast.MacroFor):
-        ts.EmitStmtBeg("mfor")
+        beg = ts.EmitStmtBeg("mfor")
         ts.EmitAttr(n.name)
         ts.EmitAttr(n.name_list)
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
         # we now the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
         EmitTokensCodeBlock(ts, n.body_for)
@@ -718,68 +730,68 @@ def _EmitTokensToplevel(ts: TS, node):
 
     TokensAnnotationsPre(ts, node)
     if isinstance(node, cwast.DefGlobal):
-        ts.EmitStmtBeg(WithMut("global", node.mut))
+        beg = ts.EmitStmtBeg(WithMut("global", node.mut))
         ts.EmitName(node.name)
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             EmitTokens(ts, node.type_or_auto)
         if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
             ts.EmitBinOp("=")
             EmitTokens(ts, node.initial_or_undef_or_auto)
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.Import):
-        ts.EmitStmtBeg("import")
+        beg = ts.EmitStmtBeg("import")
         ts.EmitName(node.name)
         if node.alias:
             ts.EmitBinOp("as")
             ts.EmitAttr(node.alias)
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.DefType):
-        ts.EmitStmtBeg("type")
+        beg = ts.EmitStmtBeg("type")
         ts.EmitName(node.name)
         ts.EmitBinOp("=")
         EmitTokens(ts, node.type)
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.DefRec):
-        ts.EmitStmtBeg("rec")
+        beg = ts.EmitStmtBeg("rec")
         ts.EmitName(node.name)
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
         #
-        ts.EmitColonBeg()
+        beg_colon = ts.EmitColonBeg()
         for f in node.fields:
             TokensAnnotationsPre(ts, f)
-            ts.EmitStmtBeg(f.name)
+            beg = ts.EmitStmtBeg(f.name)
             EmitTokens(ts, f.type)
-            ts.EmitStmtEnd()
+            ts.EmitStmtEnd(beg)
             ts.EmitNewline()
-        ts.EmitColonEnd()
+        ts.EmitColonEnd(beg_colon)
     elif isinstance(node, cwast.StmtStaticAssert):
-        ts.EmitStmtBeg("static_assert")
+        beg = ts.EmitStmtBeg("static_assert")
         EmitTokens(ts, node.cond)
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.DefEnum):
-        ts.EmitStmtBeg("enum")
+        beg = ts.EmitStmtBeg("enum")
         ts.EmitName(node.name)
         ts.EmitAttr(node.base_type_kind.name.lower())
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
         #
-        ts.EmitColonBeg()
+        beg_colon = ts.EmitColonBeg()
         for f in node.items:
             TokensAnnotationsPre(ts, f)
-            ts.EmitStmtBeg(f.name)
+            beg = ts.EmitStmtBeg(f.name)
             EmitTokens(ts, f.value_or_auto)
-            ts.EmitStmtEnd()
+            ts.EmitStmtEnd(beg)
             ts.EmitNewline()
 
-        ts.EmitColonEnd()
+        ts.EmitColonEnd(beg_colon)
     elif isinstance(node, cwast.DefFun):
-        ts.EmitStmtBeg("fun")
+        beg = ts.EmitStmtBeg("fun")
         ts.EmitName(node.name)
         EmitTokenFunSig(ts, node.params, node.result)
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
         #
         EmitTokensCodeBlock(ts, node.body)
     elif isinstance(node, cwast.DefMacro):
-        ts.EmitStmtBeg("macro")
+        beg = ts.EmitStmtBeg("macro")
         ts.EmitName(node.name)
         ts.EmitAttr(node.macro_result_kind.name)
         beg_paren = ts.EmitBegParen("(")
@@ -800,7 +812,7 @@ def _EmitTokensToplevel(ts: TS, node):
             sep = True
             ts.EmitAttr(gen_id)
         ts.EmitEnd(beg_paren)
-        ts.EmitStmtEnd()
+        ts.EmitStmtEnd(beg)
         #
         EmitTokensCodeBlock(ts, node.body_macro)
     else:
@@ -811,15 +823,15 @@ def _EmitTokensToplevel(ts: TS, node):
 
 
 def EmitTokensModule(ts: TS, node):
-    ts.EmitStmtBeg("module")
+    beg = ts.EmitStmtBeg("module")
     # we do not want the next item to be indented
     ts.EmitName(node.name)
-    ts.EmitStmtEnd()
+    ts.EmitStmtEnd(beg)
     #
-    ts.EmitColonBeg()
+    beg_colon = ts.EmitColonBeg()
     for child in node.body_mod:
         _EmitTokensToplevel(ts, child)
-    ts.EmitColonEnd()
+    ts.EmitColonEnd(beg_colon)
 
 
 class Stack:
@@ -936,9 +948,11 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
             sink.set_indent(indent)
         elif kind is TK.STMT_END:
             beg, _, _ = stack.pop()
+            assert beg.kind is TK.STMT_BEG, f"{beg}"
             sink.set_indent(stack.CurrentIndent())
         elif kind is TK.COLON_END:
             beg, _, _ = stack.pop()
+            assert beg.kind is TK.COLON_BEG
             sink.set_indent(stack.CurrentIndent())
         elif kind is TK.PAREN_END:
             beg, _, _ = stack.pop()
@@ -1015,12 +1029,12 @@ if __name__ == "__main__":
             if 0:
                 indent = 0
                 for tk in tokens:
-                    if tk.kind is TK.COLON_END:
+                    if tk.kind in (TK.COLON_END, TK.STMT_END):
                         indent -= 2
 
                     print(" " * indent, tk)
 
-                    if tk.kind is TK.COLON_BEG:
+                    if tk.kind in (TK.COLON_BEG, TK.STMT_BEG):
                         indent += 2
 
             # reverse once because popping of the end of a list is more efficient
