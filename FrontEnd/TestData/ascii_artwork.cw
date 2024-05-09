@@ -3,7 +3,7 @@
 * https://robobunny.com/projects/asciiquarium/
 * Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)"""
 (module artwork [] :
-(import ./ascii_anim aanim)
+(import aanim ./ascii_anim)
 
 
 

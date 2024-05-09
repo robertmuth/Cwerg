@@ -1,7 +1,7 @@
 @doc "main module with program entry point `main`"
 (module main [] :
-(import ./ascii_artwork artwork)
-(import ./ascii_anim aanim)
+(import artwork ./ascii_artwork)
+(import aanim ./ascii_anim)
 (import ansi)
 (import os)
 (import fmt)

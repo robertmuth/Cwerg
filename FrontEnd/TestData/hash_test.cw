@@ -14,7 +14,7 @@
     (return (== (^ a) (^ b)))
 )
 
-(import hashtab32 hashtab [u32 u32 hash_32 eq_32])
+(import hashtab  hashtab32 [u32 u32 hash_32 eq_32])
 
 (global SIZE u32 32)
 

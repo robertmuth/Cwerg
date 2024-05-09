@@ -95,7 +95,8 @@ def _TryToNormalizeModArgs(args, normalized) -> bool:
     return count == len(args)
 
 
-def _ModUniquePathName(root: pathlib.PurePath, curr: Optional[pathlib.PurePath], pathname: str) -> pathlib.PurePath:
+def _ModUniquePathName(root: pathlib.PurePath, curr: Optional[pathlib.PurePath],
+                       pathname: str) -> pathlib.PurePath:
     """
     Provide a unique id for a module.
 
@@ -202,6 +203,7 @@ class ModPoolBase:
                 for import_node, normalized_args in mod_info.imports:
                     if import_node.x_module:
                         continue
+                    path = import_node.path if import_node.path else import_node.name
                     if import_node.args_mod:
                         done = _TryToNormalizeModArgs(
                             import_node.args_mod, normalized_args)
@@ -211,7 +213,7 @@ class ModPoolBase:
                             "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
                         if done:
                             mid = (_ModUniquePathName(
-                                self._root, mod_info.uid[0], import_node.name),
+                                self._root, mod_info.uid[0], path),
                                 *normalized_args)
                             import_mod_info = self._AddModInfoForGeneric(mid)
                             import_node.x_module = import_mod_info.mod
@@ -223,7 +225,7 @@ class ModPoolBase:
                             num_unresolved += 1
                     else:
                         mid = (_ModUniquePathName(
-                            self._root, mod_info.uid[0], import_node.name),)
+                            self._root, mod_info.uid[0], path),)
                         import_mod_info = self._FindModInfo(mid)
                         if not import_mod_info:
                             import_mod_info = self._AddModInfoSimple(

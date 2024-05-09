@@ -11,7 +11,7 @@
 )
 
 
-(import heapsort rhs [real64 cmp_r64_lt])
+(import rhs heapsort [real64 cmp_r64_lt])
 
 (global SIZE uint 20)
 

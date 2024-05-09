@@ -264,7 +264,7 @@ _MSTR_TERMINATION_REGEX = {
 class Lexer:
 
     def __init__(self, lexer: LexerRaw):
-        self._lexer = lexer
+        self._lexer: LexerRaw = lexer
         self._peek_cache_small: Optional[TK] = None
         self._peek_cache: Optional[TK] = None
 
@@ -385,7 +385,7 @@ _FUN_LIKE = {
     "len": (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),
-    "offsetof": (cwast.ExprOffsetof, "TF"),
+    "offsetof": (cwast.ExprOffsetof, "TE"),
     "slice": (cwast.ValSlice, "EE"),
     "slice!": (cwast.ValSlice, "EE"),
     "front":  (cwast.ExprFront, "E"),
@@ -429,7 +429,7 @@ def _ParseFunLike(inp: Lexer, name: str) -> Any:
             params.append(_ParseExpr(inp))
 
         else:
-            assert a == "T"
+            assert a == "T", f"unknown parameter [{a}]"
             params.append(_ParseTypeExpr(inp))
 
     inp.match_or_die(TK_KIND.PAREN_CLOSED)
@@ -728,9 +728,14 @@ def _ParseOptionalLabel(inp: Lexer):
 def _ParseStatement(inp: Lexer):
     kw = inp.next()
     if kw.kind is TK_KIND.ID:
-        return _ParseStatementMacro(kw, inp)
+        if kw.text.endswith("#"):
+            return _ParseStatementMacro(kw, inp)
+        else:
+            # this happends inside a macro body
+            assert kw.text.startswith("$")
+            return cwast.MacroId(kw.text)
     assert kw.kind is TK_KIND.KW, f"{kw}"
-    if kw.text in ("let", "let!", "mlet"):
+    if kw.text in ("let", "let!", "mlet", "mlet!"):
         name = inp.match_or_die(TK_KIND.ID)
         if inp.match(TK_KIND.ASSIGN):
             type = cwast.TypeAuto()
@@ -942,12 +947,24 @@ def _ParseMacroGenIds(inp: Lexer):
 
 def _ParseTopLevel(inp: Lexer):
     kw = inp.next()
+    alias = ""
     if kw.text == "import":
         name = inp.match_or_die(TK_KIND.ID)
-        alias = ""
-        if inp.match(TK_KIND.KW, "as"):
-            alias = inp.next().text
-        return cwast.Import(name.text, alias, [])
+        path = ""
+        if inp.match(TK_KIND.ASSIGN):
+            path = inp.next().text
+            if path.startswith('"'):
+                assert path.endswith('"')
+                path = path[1:-1]
+        params = []
+        if inp.match(TK_KIND.PAREN_OPEN):
+            first = True
+            while not  inp.match(TK_KIND.PAREN_OPEN):
+                if not first:
+                    inp.match(TK_KIND.COMMA)
+                first = False
+                params.append(_ParseExpr(inp))
+        return cwast.Import(name.text, path, params)
     elif kw.text == "fun":
         name = inp.match_or_die(TK_KIND.ID)
         params = _ParseFormalParams(inp)
@@ -971,7 +988,12 @@ def _ParseTopLevel(inp: Lexer):
                 init = cwast.ValAuto()
         return cwast.DefGlobal(name.text, type, init)
     elif kw.text == "macro":
-        name = inp.match_or_die(TK_KIND.ID)
+        if inp.peek().kind is TK_KIND.KW:
+            name = inp.next()
+            assert name.text in pp.BUILTIN_MACROS, f"{name}"
+        else:
+            name = inp.match_or_die(TK_KIND.ID)
+            assert name.text.endswith("#")
         kind = inp.match_or_die(TK_KIND.ID)
         params = _ParseMacroParams(inp)
         gen_ids = _ParseMacroGenIds(inp)
@@ -996,7 +1018,7 @@ def _ParseTopLevel(inp: Lexer):
         cond = _ParseExpr(inp)
         return cwast.StmtStaticAssert(cond, "")
     else:
-        assert False, f"topelevel {kw}"
+        assert False, f"unexpected topelevel [{kw}]"
 
 
 def _ParseModule(inp: Lexer):

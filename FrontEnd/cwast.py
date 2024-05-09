@@ -3190,7 +3190,7 @@ def AnnotateImportsForQualifers(mod: DefMod):
     def visitor(node, _):
         nonlocal imports, dummy_import
         if isinstance(node, Import):
-            name = node.path if node.path else node.name
+            name = node.name
             if name in imports:
                 CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node
