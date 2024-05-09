@@ -14,6 +14,8 @@ from FrontEnd import cwast
 
 logger = logging.getLogger(__name__)
 
+BUILTIN_MACROS = ["for", "while", "tryset", "trylet"]
+
 _OPS_PRECENDENCE = {
     # "->": 10,
     cwast.ExprField: 10,
@@ -643,7 +645,7 @@ def _TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
 
 def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     beg = ts.EmitStmtBeg(node.name)
-    is_block_like = node.name in ["for", "while", "tryset", "trylet"]
+    is_block_like = node.name in BUILTIN_MACROS
     if not is_block_like:
         beg_paren = ts.EmitBegParen("(")
 
@@ -750,10 +752,13 @@ def _EmitTokensToplevel(ts: TS, node):
         ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.Import):
         beg = ts.EmitStmtBeg("import")
-        if node.alias:
-            ts.EmitAttr(node.alias)
-            ts.EmitBinOp("=")
         ts.EmitName(node.name)
+        path = node.path
+        if path:
+            ts.EmitBinOp("=")
+            if "/" in path:
+                path = '"' + path + '"'
+            ts.EmitAttr(path)
         if node.args_mod:
             TokensParenList(ts, node.args_mod)
         ts.EmitStmtEnd(beg)

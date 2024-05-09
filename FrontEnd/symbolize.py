@@ -65,7 +65,7 @@ class SymTab:
         self._syms[name] = node
 
     def AddImport(self, node: cwast.Import):
-        name = node.alias if node.alias else node.name
+        name = node.name
         if name in self._imports:
             cwast.CompilerError(node.x_srcloc, f"dup import {name}")
         assert isinstance(node.x_module, cwast.DefMod)

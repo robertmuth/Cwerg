@@ -518,7 +518,6 @@ ALL_FIELDS = [
            "name of enclosing while/for/block to brach to (empty means nearest)"),
     NfdStr("init_field", "initializer field or empty (empty means next field)"),
     NfdStr("path", "TBD"),
-    NfdStr("alias", "name of imported module to be used instead of given name"),
     NFD(NFK.STR_LIST, "gen_ids",
         "name placeholder ids to be generated at macro instantiation time"),
     #
@@ -671,7 +670,6 @@ _OPTIONAL_FIELDS = {
     "value_or_auto": "@ValAuto",
     "target": "",
     "path": "",
-    "alias": "",
     "message": "",
     "initial_or_undef_or_auto": "@ValAuto",
     "init_index": "@ValAuto",
@@ -1096,7 +1094,7 @@ class Import:
     FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE | NF.MODULE_ANNOTATED
     #
     name: str
-    alias: str
+    path: str
     args_mod: list[NODES_EXPR_T]
     #
     doc: str = ""
@@ -3192,10 +3190,7 @@ def AnnotateImportsForQualifers(mod: DefMod):
     def visitor(node, _):
         nonlocal imports, dummy_import
         if isinstance(node, Import):
-            name = node.name
-            # TODO: strip off path component if present
-            if node.alias:
-                name = node.alias
+            name = node.path if node.path else node.name
             if name in imports:
                 CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node
