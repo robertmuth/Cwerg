@@ -55,6 +55,7 @@ class TK_KIND(enum.Enum):
     SQUARE_CLOSED = enum.auto()
     CURLY_OPEN = enum.auto()
     CURLY_CLOSED = enum.auto()
+    #
     SPECIAL_MUT = enum.auto()
     SPECIAL_EOF = enum.auto()
 
@@ -133,7 +134,6 @@ _operators1 = [re.escape(x) for x in _OPERATORS_SIMPLE1]
 _compound_assignment = [re.escape(x) for x in cwast.ASSIGNMENT_SHORTCUT]
 
 _token_spec = [
-    (TK_KIND.ID.name, ID_RE),
     (TK_KIND.ANNOTATION.name, ANNOTATION_RE),
     (TK_KIND.COLON.name, ":"),
     (TK_KIND.COMMA.name, ","),
@@ -152,12 +152,14 @@ _token_spec = [
     (TK_KIND.MSTR.name,  string_re.MULTI_START),
     (TK_KIND.RMSTR.name, string_re.MULTI_START_R),
     (TK_KIND.XMSTR.name,  string_re.MULTI_START_X),
+    (TK_KIND.COMPOUND_ASSIGN.name, "|".join(_compound_assignment)),
+    (TK_KIND.ID.name, ID_RE),
+    (TK_KIND.OP2.name, "|".join(_operators2)),
+    (TK_KIND.OP1.name, "|".join(_operators1)),
     (TK_KIND.STR.name, "(?:" + string_re.START + \
      "|" + string_re.R_START + ")" + string_re.END),
     (TK_KIND.CHAR.name, CHAR_RE),
-    (TK_KIND.COMPOUND_ASSIGN.name, "|".join(_compound_assignment)),
-    (TK_KIND.OP2.name, "|".join(_operators2)),
-    (TK_KIND.OP1.name, "|".join(_operators1)),
+
     (TK_KIND.ASSIGN.name, "="),
 ]
 
@@ -244,6 +246,8 @@ class LexerRaw:
                 kind = TK_KIND.KW
                 if self._current_line.startswith("!", len(token)):
                     token = token + "!"
+            elif kind == TK_KIND.OP2:
+                kind = TK_KIND.KW
 
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]
@@ -413,6 +417,7 @@ def _ParseFunLike(inp: Lexer, name: str) -> Any:
     params = []
     for a in args:
         if inp.peek().kind is TK_KIND.PAREN_CLOSED and a == "e":
+            params.append(cwast.ValUndef())
             break
         if a == "p":
             params.append(cwast.POINTER_EXPR_SHORTCUT[name])
@@ -725,7 +730,7 @@ def _ParseStatement(inp: Lexer):
     if kw.kind is TK_KIND.ID:
         return _ParseStatementMacro(kw, inp)
     assert kw.kind is TK_KIND.KW, f"{kw}"
-    if kw.text in ("let", "let!"):
+    if kw.text in ("let", "let!", "mlet"):
         name = inp.match_or_die(TK_KIND.ID)
         if inp.match(TK_KIND.ASSIGN):
             type = cwast.TypeAuto()
@@ -999,8 +1004,19 @@ def _ParseModule(inp: Lexer):
     # print(comments, annotations)
     kw = inp.match_or_die(TK_KIND.KW, "module")
     name = inp.match_or_die(TK_KIND.ID)
+    params = []
+    if inp.match(TK_KIND.PAREN_OPEN):
+        first = True
+        while not inp.match(TK_KIND.PAREN_CLOSED):
+            if not first:
+                inp.match_or_die(TK_KIND.COMMA)
+            first = False
+            name = inp.match_or_die(TK_KIND.ID)
+            kind = inp.match_or_die(TK_KIND.ID)
+            params.append(cwast.ModParam(name.text,
+                                         cwast.MOD_PARAM_KIND[kind.text]))
     kw = inp.match_or_die(TK_KIND.COLON)
-    out = cwast.DefMod(name.text, [], [])
+    out = cwast.DefMod(name.text, params, [])
 
     while True:
         if inp.peek().kind is TK_KIND.SPECIAL_EOF:
