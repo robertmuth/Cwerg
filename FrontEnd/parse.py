@@ -447,6 +447,9 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
         return cwast.ValAuto()
     elif tk.text in _FUN_LIKE:
         return _ParseFunLike(inp, tk.text)
+    elif tk.text == "expr":
+        body  = _ParseStatementList(inp, tk.column)
+        return cwast.ExprStmt(body)
     else:
         assert False, f"{tk}"
 
