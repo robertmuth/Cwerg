@@ -113,10 +113,18 @@ def _RenderColonList(val: list, field: str, out, indent: int):
 
 
 def _ListIsCompact(val: list):
+    points = 0
     for v in val:
         if GetDoc(v):
             return False
-    if len(val) > 2:
+        if isinstance(v, (cwast.ValAuto, cwast.ValFalse, cwast.ValTrue, cwast.ValNum)):
+            points += 1
+        elif isinstance(v, (cwast.FunParam, cwast.MacroParam)):
+            points += 3
+        else:
+            points += 2
+
+    if points > 6:
         return False
     # for x in val:
     #    if isinstance(x, cwast.Comment):
@@ -165,50 +173,76 @@ def _RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: int):
     line.append(")")
 
 
-def _RenderLomgAttr(node):
-    pass
+_ATTR_MODE = {
+    "doc": "skip",  # handled elsewhere
+    "mut": "skip",
+    "ref": "after",
+    "pub": "before",
+    "init": "before",
+    "fini": "before",
+    "extern": "before",
+    "popl": "before",
+    "builtin": "before",
+    "cdecl": "before",
+    "eoldoc": "skip",
+    "polymorphic": "after",
+    "arg_ref": "after",
+    "res_ref": "after",
+    "unchecked": "after",
+    "wrapped": "after",
+    "untagged": "after",
+}
 
 
-def _RenderShortAttr(node):
-    out = []
+def _RenderAttr(node, out, indent, before_paren: bool):
+    if before_paren:
+        doc = GetDoc(node)
+        if doc:
+            out[-1].append("@doc ")
+            out[-1].append(doc)
+            out.append([" " * indent])
+
     for field, _ in node.ATTRS:
-        if field == "doc":
-            # handled elsewhere
+        mode = _ATTR_MODE[field]
+
+        if mode == "skip":
             continue
-        elif field == "mut":
-            # handled elsewhere
-            continue
+        elif mode == "before":
+            if not before_paren:
+                continue
+        elif mode == "after":
+            if before_paren:
+                continue
+        else:
+            assert False
+
         val = getattr(node, field)
         if not val:
             continue
         if isinstance(val, bool):
-            out.append(f"@{field} ")
+            out[-1].append(f"@{field} ")
         else:
-            assert isinstance(val, str)
+            assert False, f"{field}: [{val}]"
             out.append(f"@{field} {val} ")
-    return out
 
 
 def _RenderRecursivelyToIR(node, out, indent: int):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
         out.append([""])
-    line: list[str] = out[-1]
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
-        line.append(abbrev)
+        out[-1].append(abbrev)
         return
 
-    doc = GetDoc(node)
-    if doc:
-        line.append("@doc ")
-        line.append(doc)
-        out.append([" " * indent])
-        line = out[-1]
+    _RenderAttr(node, out, indent, before_paren=True)
 
     if isinstance(node, cwast.MacroInvoke):
         _RenderMacroInvoke(node, out, indent)
         return
 
+    if isinstance(node, cwast.IndexVal) and isinstance(node.init_index, cwast.ValAuto) and not node.doc:
+        _RenderRecursivelyToIR(node.value_or_undef, out, indent)
+        return
     node_name, fields = GetNodeTypeAndFields(node)
     if isinstance(node, (cwast.DefGlobal, cwast.DefVar, cwast.DefGlobal,
                          cwast.TypePtr, cwast.TypeSlice, cwast.ExprAddrOf,
@@ -216,14 +250,13 @@ def _RenderRecursivelyToIR(node, out, indent: int):
         if node.mut:
             node_name += "!"
 
-
-
-    line += _RenderShortAttr(node)
-    line.append("(")
+    out[-1].append("(")
     spacer = ""
+    _RenderAttr(node, out, indent, before_paren=False)
     if not isinstance(node, cwast.ExprCall):
-        line.append(node_name)
+        out[-1].append(node_name)
         spacer = " "
+
     for field, nfd in fields:
         field_kind = nfd.kind
         line = out[-1]
