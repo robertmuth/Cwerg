@@ -1165,14 +1165,16 @@ def InitConv():
             [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
 
     for dst_kind in [o.DK.S64, o.DK.S32, o.DK.U64, o.DK.U32]:
-        Pattern(o.CONV, [dst_kind, o.DK.S8],
-                [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 7])])
         Pattern(o.CONV, [dst_kind, o.DK.S16],
                 [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 15])])
-        Pattern(o.CONV, [dst_kind, o.DK.U8],
-                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xff])])
         Pattern(o.CONV, [dst_kind, o.DK.U16],
                 [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xffff])])
+
+    for dst_kind in [o.DK.S64, o.DK.S32, o.DK.U64, o.DK.U32, o.DK.S16, o.DK.U16]:
+        Pattern(o.CONV, [dst_kind, o.DK.S8],
+                [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 7])])
+        Pattern(o.CONV, [dst_kind, o.DK.U8],
+                [InsTmpl("and_x_imm", [PARAM.reg0, PARAM.reg1, 0xff])])
 
     for dst_kind in [o.DK.U64, o.DK.S64]:
         Pattern(o.CONV, [dst_kind, o.DK.U32],
