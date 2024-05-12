@@ -35,3 +35,4 @@
     (let rot u32 (as (>> oldstate 59) u32))
     (return (or (>> xorshifted rot) (<< xorshifted (and (- 0 rot) 31)))))
 )
+

@@ -153,6 +153,7 @@ def _RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: int):
     for a in node.args:
         line = out[-1]
         if isinstance(a, cwast.EphemeralList):
+            line.append(" ")
             if a.colon:
                 _RenderColonList(a.args, "dummy", out, indent)
             else:
@@ -197,6 +198,13 @@ def _RenderRecursivelyToIR(node, out, indent: int):
         line.append(abbrev)
         return
 
+    doc = GetDoc(node)
+    if doc:
+        line.append("@doc ")
+        line.append(doc)
+        out.append([" " * indent])
+        line = out[-1]
+
     if isinstance(node, cwast.MacroInvoke):
         _RenderMacroInvoke(node, out, indent)
         return
@@ -207,13 +215,8 @@ def _RenderRecursivelyToIR(node, out, indent: int):
                          cwast.ExprFront, cwast.MacroVar)):
         if node.mut:
             node_name += "!"
-    doc = GetDoc(node)
 
-    if doc:
-        line.append("@doc ")
-        line.append(doc)
-        out.append([" " * indent])
-        line = out[-1]
+
 
     line += _RenderShortAttr(node)
     line.append("(")

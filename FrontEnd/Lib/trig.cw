@@ -36,7 +36,7 @@
     (if y_is_zero :
         (let sin1_6 auto (* x3 (+ SIN1 (* x2 sin2_6))))
         (return (+ x sin1_6))
-        :
+     :
         (let t auto (- (* y 0.5) (* x3 sin2_6)))
         (let t2 auto (- (* x2 t) y))
         (return (- x (- t2 (* x3 SIN1))))))
@@ -75,3 +75,4 @@
     (let r2 auto (- (* x2 r) (* x y)))
     (return (+ w (+ w2 r2))))
 )
+

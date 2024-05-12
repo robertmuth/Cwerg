@@ -3,6 +3,7 @@
 
 (import string)
 
+
 (global STR_ABC auto "ABC")
 
 
@@ -37,7 +38,7 @@
     (test::AssertEq# 1_uint (string::rfind [STR_VXYZ STR_XYZ]))
     (test::AssertEq# 2_uint (string::rfind [STR_ABCD STR_CD]))
     (test::AssertEq# string::NOT_FOUND (string::find [STR_ABC STR_ABCD]))
-    @doc  "cmp"
+    @doc "cmp"
     (test::AssertEq# 0_sint (string::cmp [STR_ABCD STR_ABCD]))
     (test::AssertEq# -1_sint (string::cmp [STR_ABC STR_ABCD]))
     (test::AssertEq# 1_sint (string::cmp [STR_ABCD STR_ABC]))
@@ -82,7 +83,5 @@
     @doc "test end"
     (test::Success#)
     (return 0))
-
 )
-
 
