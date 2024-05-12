@@ -1,7 +1,9 @@
 @doc "Ascii Art Animation Module"
 (module aanim [] :
 (import ansi)
+
 (import fmt)
+
 
 @doc "arbitrary bounds so we can statically allocate maps"
 (global MAX_DIM s32 1024)
@@ -150,7 +152,7 @@
                     (= a (at (^. s attr_lookup) (- cc '1'))))
                 (case true :
                     (= a cc)))
-            :)
+         :)
         @doc "determine character"
         (let c u8 (at image_map ipos))
         (if (== c '\n') :
@@ -161,12 +163,12 @@
             (fmt::assert# (! have_color) ["color failure\n"])
             (if (< cpos (len color_map)) :
                 (= have_color true)
-                :)
+             :)
             (continue)
-            :)
+         :)
         (if (!= c ' ') :
             (= left_side false)
-            :)
+         :)
         (if (&& (&& (< x width) (< y height)) (&& (>= x 0) (>= y 0))) :
             (= (^. s visible) true)
             (let index auto (+ (* y width) x))
@@ -174,9 +176,9 @@
                 (if (&& (! left_side) (!= c (^. obj transparent_char))) :
                     (= (at (^. window char_map) index) c)
                     (= (at (^. window attr_map) index) a)
-                    :)
-                :)
-            :)
+                 :)
+             :)
+         :)
         (+= x 1)))
 
 
@@ -194,14 +196,14 @@
             (let a auto (at (^. obj attr_map) index))
             (if (== c ' ') :
                 (continue)
-                :)
+             :)
             (if (!= x (+ last_x 1)) :
                 (fmt::print# (ansi::POS# (+ y 1) (+ x 1)))
-                :)
+             :)
             (= last_x x)
             (if (!= last_attr a) :
-                (fmt::print# (get_fg_color [a]) (call get_style [a]))
-                :)
+                (fmt::print# (get_fg_color [a]) (get_style [a]))
+             :)
             (= last_attr a)
             (fmt::print# (wrap c fmt::rune)))))
 
@@ -215,6 +217,5 @@
         (= (at (^. obj char_map) i) c)
         (= (at (^. obj attr_map) i) a)
         (= (at (^. obj depth_map) i) 255)))
-
-
 )
+

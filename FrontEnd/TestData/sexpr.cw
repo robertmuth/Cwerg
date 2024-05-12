@@ -1,16 +1,11 @@
 (module m1 [] :
+
 @pub (fun foo1 [
         (param a s32)
         (param b s32)
         (param c s32)] s32 :
-    (shed (foo1 [
-            0
-            0
-            0]))
-    (shed (foo2 [
-            1
-            2
-            3]))
+    (shed (foo1 [0 0 0]))
+    (shed (foo2 [1 2 3]))
     (return 7))
 
 
@@ -26,10 +21,10 @@
         (param c s32)] s32 :
     (if (<= a b) :
         (= (^ v1a) 666)
-        :)
+     :)
     (if (! (<= a b)) :
         (+= v1 666)
-        :)
+     :)
     (return 7))
 
 
@@ -70,10 +65,7 @@
 (type type_ptr (ptr! s32))
 
 
-@pub (type type_union (union [
-        s32
-        void
-        type_ptr]))
+@pub (type type_union (union [s32 void type_ptr]))
 
 
 (fun foo3 [
@@ -82,10 +74,10 @@
         (param c s32)] bool :
     (if (and a b) :
         (return a)
-        :
+     :
         (return (xor a b)))
     (if (<= a b) :
-        :)
+     :)
     (return (== a b)))
 
 
@@ -96,7 +88,7 @@
     (let p1 (ptr u8) undef)
     (let p2 (ptr u8) undef)
     (if (== p1 p2) :
-        :)
+     :)
     (let p3 auto (? false p1 p2))
     (block my_block :
         (break)
@@ -110,11 +102,9 @@
     (return (< c (expr :
         (return 6)))))
 
+
 (fun foo6 [(param c s32)] s32 :
-    (return (* 55_s32
-               (paren (+ c 44)))
-    )
-)
+    (return (* 55_s32 (paren (+ c 44)))))
 
 
 (fun square [(param c s32)] s32 :
@@ -127,6 +117,6 @@
 
 (fun square_or_double [(param use_square bool) (param c s32)] s32 :
     (let foo auto (? use_square square double))
-    (return (call foo [c])))
-
+    (return (foo [c])))
 )
+

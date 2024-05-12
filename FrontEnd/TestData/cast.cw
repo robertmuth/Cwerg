@@ -1,4 +1,5 @@
 (module m1 [] :
+
 (fun fun1 [
         (param a s32)
         (param b u32)
@@ -7,7 +8,5 @@
     (let y auto (as c r64))
     (let z s32 (bitcast c s32))
     (return 66))
-
 )
-
 

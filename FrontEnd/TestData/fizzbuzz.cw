@@ -1,6 +1,8 @@
 @doc "fizzbuzz"
 (module main [] :
 (import fmt)
+
+
 (global NEWLINE auto "\n")
 
 
@@ -26,5 +28,5 @@
                 (fmt::print# i)))
         (fmt::print# [NEWLINE]))
     (return 0))
-
 )
+

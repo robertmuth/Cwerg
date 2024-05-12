@@ -1,4 +1,5 @@
 (module m1 [] :
+
 (static_assert (== (+ 3_s32 4) 7))
 
 
@@ -79,10 +80,7 @@
 
 
 @doc "rec literal with explicit field name"
-(global c32 auto (rec_val type_rec [
-        (field_val 7)
-        (field_val 9)
-        (field_val 7)]))
+(global c32 auto (rec_val type_rec [(field_val 7) (field_val 9) (field_val 7)]))
 
 
 (static_assert (== (. c32 s1) 7))
@@ -120,10 +118,7 @@
 
 
 @doc "array literal with explicit indices"
-(global c30 auto (array_val 30 uint [
-        (index_val 0 1)
-        (index_val 10 2)
-        (index_val 20 3)]))
+(global c30 auto (array_val 30 uint [(index_val 0 1) (index_val 10 2) (index_val 20 3)]))
 
 
 (global c40 auto (at c30 1))
@@ -133,17 +128,11 @@
 
 
 @doc "array literal"
-(global c31 auto (array_val 30 uint [
-        (index_val 10)
-        (index_val 20)
-        (index_val 30)]))
+(global c31 auto (array_val 30 uint [10 20 30]))
 
 
 @doc "rec literal"
-(global c33 auto (rec_val type_rec [
-        (field_val 7)
-        (field_val 9)
-        (field_val 7)]))
+(global c33 auto (rec_val type_rec [(field_val 7) (field_val 9) (field_val 7)]))
 
 
 (static_assert (== (. c33 s1) 7))
@@ -156,10 +145,7 @@
 
 
 @doc "rec literal"
-(global r01 auto (rec_val type_rec2 [
-        (field_val "aaa")
-        (field_val 9)
-        (field_val 7)]))
+(global r01 auto (rec_val type_rec2 [(field_val "aaa") (field_val 9) (field_val 7)]))
 
 
 @doc "rec literal"
@@ -189,16 +175,34 @@
 
 (global auto4 type_rec2)
 
+
 (static_assert (== (is auto4 type_rec2) true))
+
+
 (static_assert (!= (is auto4 s32) true))
+
+
 (static_assert (!= (is a8 s32) true))
+
+
 (static_assert (== (is a8 bool) true))
 
-(global! Real r32)
-(global p1 (ptr r32) (& Real))
-(global p2 (ptr! r32) (&! Real))
-(static_assert (== (is p1 bool) false))
-(static_assert (== (is p1 (ptr! r32)) false))
-(static_assert (== (is p1 (ptr r32)) true))
 
+(global! Real r32)
+
+
+(global p1 (ptr r32) (& Real))
+
+
+(global p2 (ptr! r32) (&! Real))
+
+
+(static_assert (== (is p1 bool) false))
+
+
+(static_assert (== (is p1 (ptr! r32)) false))
+
+
+(static_assert (== (is p1 (ptr r32)) true))
 )
+

@@ -1,5 +1,6 @@
 @doc "Binary Tree Example"
 (module main [] :
+
 (@wrapped type NoneType void)
 
 
@@ -19,9 +20,10 @@
 
 
 (fun InorderTraversal [(param root MaybeNode) (param visitor Visitor)] void :
-    (trylet node (ptr! BinaryTreeNode) root _ : (return))
+    (trylet node (ptr! BinaryTreeNode) root _ :
+        (return))
     (shed (InorderTraversal [(. (^ node) left) visitor]))
     (shed (visitor [node]))
     (shed (InorderTraversal [(. (^ node) right) visitor])))
-
 )
+

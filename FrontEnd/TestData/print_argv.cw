@@ -1,7 +1,7 @@
 @doc "print command-line args"
-
 (module main [] :
 (import fmt)
+
 
 (fun strlen [(param s (ptr u8))] uint :
     (let! i uint 0)
@@ -19,5 +19,5 @@ but it does support slices."""
         (let t auto (slice_val s (strlen [s])))
         (fmt::print# t "\n"))
     (return 0))
-
 )
+

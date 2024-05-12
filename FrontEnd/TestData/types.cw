@@ -1,4 +1,5 @@
 (module m1 [] :
+
 (@wrapped type t1 s32)
 
 
@@ -41,16 +42,10 @@
 (type type_ptr (ptr! s32))
 
 
-@pub (type type_union (union [
-        s32
-        void
-        type_ptr]))
+@pub (type type_union (union [s32 void type_ptr]))
 
 
-@pub (type type_union2 (union [
-        s32
-        void
-        (union [type_union u8])]))
+@pub (type type_union2 (union [s32 void (union [type_union u8])]))
 
 
 (type type_fun (sig [
@@ -61,5 +56,5 @@
 
 (fun funx [(param a type_union)] s32 :
     (return (narrowto a (uniondelta type_union (union [void type_ptr])))))
-
 )
+

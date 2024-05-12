@@ -1,7 +1,7 @@
 @doc "prime number sieve"
-
 (module sieve [] :
 (import test)
+
 
 (global SIZE uint 1000000)
 
@@ -14,11 +14,11 @@ value for the first element is replicated for the
 subsequent unspecified ones.
 
 index i reprents number 3 + 2 * i"""
-(global! is_prime auto (array_val SIZE bool [ true ]))
+(global! is_prime auto (array_val SIZE bool [true]))
+
 
 @doc "the actual sieve function"
 (fun sieve [] uint :
-
     (let! count uint 0)
     (for i 0 SIZE 1 :
         (if (at is_prime i) :
@@ -26,7 +26,7 @@ index i reprents number 3 + 2 * i"""
             (let p uint (+ 3 (+ i i)))
             (for k (+ i p) SIZE p :
                 (= (at is_prime k) false))
-            :))
+         :))
     (return count))
 
 
@@ -34,5 +34,5 @@ index i reprents number 3 + 2 * i"""
     (test::AssertEq# (sieve []) EXPECTED)
     (test::Success#)
     (return 0))
-
 )
+

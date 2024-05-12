@@ -17,9 +17,6 @@
     (return sum))
 
 
-
-
-
 (fun TestForMacro [(param end u32)] u32 :
     (let! sum u32 0)
     (for i 0 end 1 :
@@ -74,6 +71,5 @@
 
 (fun TestSwap [(param vec (slice! u8))] void :
     (swap# (at vec 1) (at vec 2)))
-
-
 )
+

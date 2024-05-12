@@ -1,4 +1,5 @@
 (module m1 [] :
+
 (static_assert (== (sizeof u8) 1_uint))
 
 
@@ -77,10 +78,7 @@
 (static_assert (== (sizeof sum1) 3))
 
 
-@pub (type sum2 (union [
-        bool
-        s32
-        s64]))
+@pub (type sum2 (union [bool s32 s64]))
 
 
 (static_assert (== (sizeof sum2) 16))
@@ -94,14 +92,13 @@
 
 @pub (type sum4 (union [ptr1 w3]))
 
+
 @doc "8 with union optimization"
 (static_assert (== (sizeof sum4) 16))
 
 
-@pub (type sum5 (union [
-        ptr1
-        w2
-        w3]))
+@pub (type sum5 (union [ptr1 w2 w3]))
+
 
 @doc "8 with union optimization"
 (static_assert (== (sizeof sum5) 16))
@@ -115,5 +112,5 @@
 
 
 (static_assert (== (sizeof sum6) 16))
-
 )
+

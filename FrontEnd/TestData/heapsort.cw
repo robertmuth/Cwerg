@@ -1,7 +1,9 @@
 @doc "heapsort"
 (module main [] :
 (import random)
+
 (import fmt)
+
 
 (global SIZE uint 20)
 
@@ -14,9 +16,10 @@
 
 (global ERROR auto "ERROR\n")
 
+
 (fun cmp_lt [(param a (ptr r64)) (param b (ptr r64))] bool :
-    (return (< (^ a) (^ b)))
-)
+    (return (< (^ a) (^ b))))
+
 
 (fun heap_sort [(param sdata (slice! r64))] void :
     (let data (ptr! r64) (front! sdata))
@@ -28,28 +31,25 @@
         (if (> l 1) :
             (-= l 1)
             (= rdata (^ (pinc data l)))
-            :
+         :
             (= rdata (^ (pinc data ir)))
             (= (^ (pinc data ir)) (^ (pinc data 1_uint)))
             (-= ir 1)
             (if (== ir 1) :
                 (= (^ (pinc data ir)) rdata)
                 (return)
-                :))
+             :))
         (let! i auto l)
         (let! j auto (<< l 1))
         (while (<= j ir) :
-            (if (&&
-                (< j ir)
-                (call cmp_lt [(pinc data j)
-                               (pinc data (+ j 1))])) :
+            (if (&& (< j ir) (cmp_lt [(pinc data j) (pinc data (+ j 1))])) :
                 (+= j 1)
-            :)
+             :)
             (if (< rdata (^ (pinc data j))) :
                 (= (^ (pinc data i)) (^ (pinc data j)))
                 (= i j)
                 (+= j i)
-                :
+             :
                 (= j (+ ir 1))))
         (= (^ (pinc data i)) rdata))
     (return))
@@ -78,7 +78,7 @@
         (if (> (at Data i) (at Data (+ i 1))) :
             (fmt::print# ERROR)
             (trap)
-            :))
+         :))
     (return 0))
-
 )
+
