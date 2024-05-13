@@ -2,98 +2,47 @@
 DIR=build
 QEMU=
 
-$(info $(shell mkdir -p $(DIR)))
 
-TESTS = macros.cw \
-        types.cw \
-        consts.cw \
-        sexpr.cw \
-        cast.cw \
-        comment.cw \
-        binary_tree.cw \
-        sizeof.cw
+TESTS = $(wildcard TestData/*cw)
+LANG_TESTS = $(wildcard LangTest/*cw)
+LIB_TESTS = $(wildcard Lib/*_test.cw)
 
-TESTS_PARSE = $(TESTS:%.cw=$(DIR)/%.cw.parse)
-TESTS_SYMTAB = $(TESTS:%.cw=$(DIR)/%.cw.symtab)
-TESTS_META = $(TESTS:%.cw=$(DIR)/%.cw.meta)
-TESTS_EVAL = $(TESTS:%.cw=$(DIR)/%.cw.eval)
+tests_py: clean \
+          tests_meta_py \
+          tests_eval_py \
+		  tests_pp_py \
+          tests_lang_x64 \
+          tests_lang_a64 \
+          tests_lib_x64 \
+          tests_lib_a64 \
+          tests_emit_x64 \
+          tests_emit_a64
 
-TESTS_PP = $(TESTS:%.cw=$(DIR)/%.cw.pp)
+tests_parse_py: $(TESTS:%.cw=$(DIR)/%.cw.parse)
+tests_meta_py: $(TESTS:%.cw=$(DIR)/%.cw.meta)
+tests_eval_py: $(TESTS:%.cw=$(DIR)/%.cw.eval)
+tests_symtab_py: $(TESTS:%.cw=$(DIR)/%.cw.symtab)
+tests_pp_py: $(TESTS:%.cw=$(DIR)/%.cw.pp)
 
-tests_py: clean $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP) \
-                tests_lang_x64 \
-                tests_lang_a64 \
-                tests_lib_x64 \
-                tests_lib_a64 \
-                tests_emit_x64 \
-                tests_emit_a64
 
-tests_all_py: $(TESTS_PARSE) $(TESTS_SYMTAB) $(TESTS_META) $(TESTS_EVAL) $(TESTS_PP)
 
-tests_pp_py: $(TESTS_PP)
+tests_all_py: tests_parse_py tests_symtab_py tests_meta_py tests_eval_py tests_pp_py
 
 STD_LIB_WITH_ARGV_X64 = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
 STD_LIB_WITH_ARGV_A64 = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
 STD_LIB_WITH_ARGV_A32 = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
-# test language features X64
-tests_lang_x64: \
-    $(DIR)/array_test.lang.x64.exe \
-    $(DIR)/assign_test.lang.x64.exe \
-    $(DIR)/enum_test.lang.x64.exe \
-    $(DIR)/rec_test.lang.x64.exe \
-    $(DIR)/expr_sint_test.lang.x64.exe \
-    $(DIR)/expr_uint_test.lang.x64.exe \
-    $(DIR)/defer_test.lang.x64.exe \
-    $(DIR)/sum_untagged_test.lang.x64.exe \
-    $(DIR)/sum_tagged_test.lang.x64.exe
+# test language
+tests_lang_x64: $(LANG_TESTS:%.cw=$(DIR)/%.x64.exe)
+tests_lib_x64: $(LIB_TESTS:%.cw=$(DIR)/%.x64.exe)
+#
+tests_lang_a64: $(LANG_TESTS:%.cw=$(DIR)/%.a64.exe)
+tests_lib_a64: $(LIB_TESTS:%.cw=$(DIR)/%.a64.exe)
 
-# test language features A64
-tests_lang_a64: \
-    $(DIR)/array_test.lang.a64.exe \
-    $(DIR)/assign_test.lang.a64.exe \
-    $(DIR)/enum_test.lang.a64.exe \
-    $(DIR)/rec_test.lang.a64.exe \
-    $(DIR)/defer_test.lang.a64.exe \
-    $(DIR)/sum_untagged_test.lang.a64.exe \
-    $(DIR)/sum_tagged_test.lang.a64.exe \
-    $(DIR)/expr_uint_test.lang.a64.exe \
-    $(DIR)/expr_sint_test.lang.a64.exe
+# TODO: broken
+tests_lang_a32: $(LANG_TESTS:%.cw=$(DIR)/%.a32.exe)
+tests_lang_a32: $(LIB_TESTS:%.cw=$(DIR)/%.a32.exe)
 
-# test language features A32
-# TODO: this does not work yet
-tests_lang_a32: \
-    $(DIR)/array_test.lang.a32.exe \
-    $(DIR)/assign_test.lang.a64.exe \
-    $(DIR)/enum_test.lang.a64.exe \
-    $(DIR)/rec_test.lang.a64.exe \
-    $(DIR)/defer_test.lang.a64.exe \
-    $(DIR)/sum_untagged_test.lang.a64.exe \
-    $(DIR)/sum_tagged_test.lang.a64.exe \
-    $(DIR)/expr_uint_test.lang.a64.exe \
-    $(DIR)/expr_sint_test.lang.a64.exe
-
-
-tests_lib_x64: \
-    $(DIR)/huffman_test.lib.x64.exe \
-    $(DIR)/flate_test.lib.x64.exe \
-    $(DIR)/fmt_test.lib.x64.exe \
-    $(DIR)/string_test.lib.x64.exe \
-    $(DIR)/trig_test.lib.x64.exe \
-    $(DIR)/checksum_test.lib.x64.exe \
-    $(DIR)/sha3_test.lib.x64.exe \
-    $(DIR)/bitstream_test.lib.x64.exe \
-    $(DIR)/bytestream_test.lib.x64.exe
-
-tests_lib_a64: \
-    $(DIR)/huffman_test.lib.a64.exe \
-    $(DIR)/flate_test.lib.a64.exe \
-    $(DIR)/fmt_test.lib.a64.exe \
-    $(DIR)/string_test.lib.a64.exe \
-    $(DIR)/trig_test.lib.a64.exe \
-    $(DIR)/checksum_test.lib.a64.exe \
-    $(DIR)/sha3_test.lib.a64.exe \
-    $(DIR)/sha3_test.lib.a64.exe
 
 tests_emit_x64: \
     $(DIR)/hash_test.run.x64.exe \
@@ -119,67 +68,49 @@ tests_emit_a64: \
     $(DIR)/print_argv.a64.test \
     $(DIR)/wordcount.a64.test
 
-$(DIR)/%.cw.parse: TestData/%.cw
+$(DIR)/%.cw.parse: %.cw
 	@echo "[parse $@]"
-	./parse.py $<
+	./parse_sexpr.py $<
 
-$(DIR)/%.cw.meta: TestData/%.cw
+$(DIR)/%.cw.meta: %.cw
 	@echo "[typify $@]"
 	./typify.py $<
 
-$(DIR)/%.cw.eval: TestData/%.cw
+$(DIR)/%.cw.eval: %.cw
 	@echo "[eval $@]"
 	./eval.py $<
 
-$(DIR)/%.cw.symtab: TestData/%.cw
+$(DIR)/%.cw.symtab: %.cw
 	@echo "[symbolize $@]"
 	./symbolize.py $<
 
-$(DIR)/%.cw.pp: TestData/%.cw
+$(DIR)/%.cw.pp: %.cw
 	@echo "[prettyprint $@]"
 	./pp_sexpr.py $< >$@.tmp.cw
 	./pp_sexpr.py $@.tmp.cw >$@
 	diff $@.tmp.cw $@
 
-## Language Tests
+## Exe Tests
 
-$(DIR)/%.lang.x64.exe: LangTest/%.cw
+$(DIR)/%.x64.exe: %.cw
 	@echo "[lang $@]"
 	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-$(DIR)/%.lang.a64.exe: LangTest/%.cw
+$(DIR)/%.a64.exe: %.cw
 	@echo "[lang $@]"
 	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-$(DIR)/%.lang.a32.exe: LangTest/%.cw
+# TODO: broken
+$(DIR)/%.a32.exe: %.cw
 	@echo "[lang $@]"
 	./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-## Library Tests
-
-$(DIR)/%.lib.x64.exe: Lib/%.cw
-	@echo "[lib $@]"
-	./emit_ir.py $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
-
-$(DIR)/%.lib.a64.exe: Lib/%.cw
-	@echo "[lib $@]"
-	./emit_ir.py $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
-
-$(DIR)/%.lib.a32.exe: Lib/%.cw
-	@echo "[lib $@]"
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
 
 ## Misc Tests
 
@@ -237,12 +168,23 @@ $(DIR)/asciiquarium.a64.exe: TestData/asciiquarium.cw
 
 
 clean:
-	@rm -f $(DIR)/*
-
+	@echo cleaning and setting up build dirs
+	@rm -rf $(DIR)/*
+	@mkdir -p  $(DIR)
+	@mkdir -p  $(DIR)/Lib
+	@mkdir -p  $(DIR)/TestData
+	@mkdir -p  $(DIR)/LangTest
 
 pp_test:
 	./pp.py TestData/*.cw  Lib/*.cw  LangTest/*.cw
 
+concrete_test:
+	for cw in LangTest/*.cw ; do \
+      echo "\n" $$cw ; \
+	  ./pp.py $$cw > $$cw.concrete ; \
+      ./parse.py < $$cw.concrete ; \
+      rm  $$cw.concrete ; \
+    done
 
 reformat:
 	for f in TestData/*.cw ; do \
