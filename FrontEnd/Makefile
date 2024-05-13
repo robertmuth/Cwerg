@@ -6,17 +6,33 @@ QEMU=
 TESTS = $(wildcard TestData/*cw)
 LANG_TESTS = $(wildcard LangTest/*cw)
 LIB_TESTS = $(wildcard Lib/*_test.cw)
+TEST_TESTS = \
+	TestData/fibonacci.cw \
+    TestData/fizzbuzz.cw \
+	TestData/hash_test.cw \
+    TestData/heapsort.cw \
+    TestData/hello_world.cw \
+    TestData/linked_list.cw \
+    TestData/sieve.cw \
+    TestData/sort.cw
+
+TESTS_A32 = \
+	TestData/fibonacci.cw \
+    TestData/sieve.cw \
+    Lib/bitstream_test.cw \
+    Lib/bytestream_test.cw \
+    Lib/string_test.cw \
+    Lib/trig_test.cw
 
 tests_py: clean \
           tests_meta_py \
           tests_eval_py \
 		  tests_pp_py \
-          tests_lang_x64 \
-          tests_lang_a64 \
-          tests_lib_x64 \
-          tests_lib_a64 \
-          tests_emit_x64 \
-          tests_emit_a64
+          tests_x64 \
+          tests_a64 \
+          tests_a32 \
+		  misc_test_x64 \
+		  misc_test_a64
 
 tests_parse_py: $(TESTS:%.cw=$(DIR)/%.cw.parse)
 tests_meta_py: $(TESTS:%.cw=$(DIR)/%.cw.meta)
@@ -33,40 +49,15 @@ STD_LIB_WITH_ARGV_A64 = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../S
 STD_LIB_WITH_ARGV_A32 = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
 # test language
-tests_lang_x64: $(LANG_TESTS:%.cw=$(DIR)/%.x64.exe)
-tests_lib_x64: $(LIB_TESTS:%.cw=$(DIR)/%.x64.exe)
-#
-tests_lang_a64: $(LANG_TESTS:%.cw=$(DIR)/%.a64.exe)
-tests_lib_a64: $(LIB_TESTS:%.cw=$(DIR)/%.a64.exe)
-
-# TODO: broken
-tests_lang_a32: $(LANG_TESTS:%.cw=$(DIR)/%.a32.exe)
-tests_lang_a32: $(LIB_TESTS:%.cw=$(DIR)/%.a32.exe)
+tests_x64: $(LANG_TESTS:%.cw=$(DIR)/%.x64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.x64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.x64.exe)
+tests_a64: $(LANG_TESTS:%.cw=$(DIR)/%.a64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.a64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.a64.exe)
+tests_a32: $(TESTS_A32:%.cw=$(DIR)/%.a32.exe)
 
 
-tests_emit_x64: \
-    $(DIR)/hash_test.run.x64.exe \
-    $(DIR)/sort.run.x64.exe \
-    $(DIR)/linked_list.run.x64.exe \
-    $(DIR)/hello_world.run.x64.exe \
-    $(DIR)/fizzbuzz.run.x64.exe \
-    $(DIR)/sieve.run.x64.exe \
-    $(DIR)/heapsort.run.x64.exe \
-	$(DIR)/fibonacci.run.x64.exe \
-	$(DIR)/print_argv.x64.test \
-    $(DIR)/wordcount.x64.test
+# Special due to commandline args
+misc_test_x64:  $(DIR)/print_argv.x64.test $(DIR)/wordcount.x64.test
+misc_test_a64:  $(DIR)/print_argv.a64.test $(DIR)/wordcount.a64.test
 
-tests_emit_a64: \
-    $(DIR)/hash_test.run.x64.exe \
-    $(DIR)/sort.run.a64.exe \
-    $(DIR)/linked_list.run.a64.exe \
-    $(DIR)/hello_world.run.a64.exe \
-    $(DIR)/fizzbuzz.run.a64.exe \
-    $(DIR)/sieve.run.a64.exe \
-    $(DIR)/heapsort.run.a64.exe \
-	$(DIR)/fibonacci.run.x64.exe \
-    $(DIR)/print_argv.a64.test \
-    $(DIR)/wordcount.a64.test
 
 $(DIR)/%.cw.parse: %.cw
 	@echo "[parse $@]"
@@ -107,24 +98,11 @@ $(DIR)/%.a64.exe: %.cw
 # TODO: broken
 $(DIR)/%.a32.exe: %.cw
 	@echo "[lang $@]"
-	./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw $< > $@.asm
+	./emit_ir.py -arch a32 $< > $@.asm
+	# ./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-
-## Misc Tests
-
-$(DIR)/%.run.x64.exe: TestData/%.cw
-	@echo "[run $@]"
-	./emit_ir.py $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
-
-$(DIR)/%.run.a64.exe: TestData/%.cw
-	@echo "[run $@]"
-	./emit_ir.py $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
 
 ## Compile only Tests
 
@@ -137,6 +115,8 @@ $(DIR)/%.compile.a64.exe: TestData/%.cw
 	@echo "[run $@]"
 	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
+
+# Misc Tests
 
 $(DIR)/wordcount.x64.test: build/wordcount.compile.x64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
