@@ -910,8 +910,17 @@ def SanityCheckMods(phase_name: str, emit_ir: str, mods: list[cwast.DefMod], tc,
         eval.VerifyASTEvalsRecursively(mod)
 
 
-def main():
+_ARCH_MAP = {
+    "x64": type_corpus.STD_TARGET_X64,
+    "a64": type_corpus.STD_TARGET_A64,
+    "a32": type_corpus.STD_TARGET_A32,
+}
+
+
+def main() -> int:
     parser = argparse.ArgumentParser(description='pretty_printer')
+    parser.add_argument(
+        '-arch', help='architecture to generated IR for', default="x64")
     parser.add_argument(
         '-emit_ir', help='stop at the given stage and emit ir')
     parser.add_argument('files', metavar='F', type=str, nargs='+',
@@ -960,8 +969,7 @@ def main():
         cwast.CheckAST(mod, eliminated_nodes)
 
     logger.info("Typify the nodes")
-    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(
-        type_corpus.STD_TARGET_X64)
+    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(_ARCH_MAP[args.arch])
     typify.DecorateASTWithTypes(mod_topo_order, tc)
     verifier = typify.TypeVerifier()
     for mod in mod_topo_order:
@@ -1162,7 +1170,7 @@ def main():
 
             if isinstance(node, cwast.DefFun):
                 EmitIRDefFun(node, tc, identifier.IdGenIR(node.name))
-
+    return 0
 
 if __name__ == "__main__":
     # import cProfile
