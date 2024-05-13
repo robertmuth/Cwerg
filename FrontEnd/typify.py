@@ -1209,7 +1209,7 @@ def main(argv):
         VerifyTypesRecursively(mod, tc, verifier)
 
     for t, n in tc.corpus.items():
-        logger.warning("%s %s %d %d", t, n.register_types, n.size, n.alignment)
+        logger.info("%s %s %d %d", t, n.register_types, n.size, n.alignment)
 
 
 if __name__ == "__main__":
