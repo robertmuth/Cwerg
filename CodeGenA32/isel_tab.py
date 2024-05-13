@@ -1019,36 +1019,36 @@ def InitMove():
 
 
 def InitConv():
-    for kind1 in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
+    for dst_kind in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
         # truncation or sign change from 32bit: nothing to be done here
-        for kind2 in [o.DK.U32, o.DK.S32]:
-            Pattern(o.CONV, [kind1, kind2],
-                    [InsTmplMove(PARAM.reg0, PARAM.reg1, kind2)])
+        for src_kind in [o.DK.U32, o.DK.S32]:
+            Pattern(o.CONV, [dst_kind, src_kind],
+                    [InsTmplMove(PARAM.reg0, PARAM.reg1, src_kind)])
     # truncation or sign change from 16bit: nothing to be done here
-    for kind1 in [o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
-        for kind2 in [o.DK.U16, o.DK.S16]:
-            Pattern(o.CONV, [kind1, kind2],
-                    [InsTmplMove(PARAM.reg0, PARAM.reg1, kind2)])
+    for dst_kind in [o.DK.U16, o.DK.S16, o.DK.U8, o.DK.S8]:
+        for src_kind in [o.DK.U16, o.DK.S16]:
+            Pattern(o.CONV, [dst_kind, src_kind],
+                    [InsTmplMove(PARAM.reg0, PARAM.reg1, src_kind)])
     # sign change from 8it: nothing to be done here
-    for kind1 in [o.DK.U8, o.DK.S8]:
-        for kind2 in [o.DK.U8, o.DK.S8]:
-            Pattern(o.CONV, [kind1, kind2],
-                    [InsTmplMove(PARAM.reg0, PARAM.reg1, kind2)])
-    for kind1 in [o.DK.U32, o.DK.S32]:
-        Pattern(o.CONV, [kind1, o.DK.U8],
-                [InsTmpl("uxtb", [PARAM.reg0, PARAM.reg1, 0])])
-        Pattern(o.CONV, [kind1, o.DK.U16],
+    for dst_kind in [o.DK.U8, o.DK.S8]:
+        for src_kind in [o.DK.U8, o.DK.S8]:
+            Pattern(o.CONV, [dst_kind, src_kind],
+                    [InsTmplMove(PARAM.reg0, PARAM.reg1, src_kind)])
+    for dst_kind in [o.DK.U32, o.DK.S32]:
+        Pattern(o.CONV, [dst_kind, o.DK.U16],
                 [InsTmpl("uxth", [PARAM.reg0, PARAM.reg1, 0])])
-        Pattern(o.CONV, [kind1, o.DK.S8],
-                [InsTmpl("sxtb", [PARAM.reg0, PARAM.reg1, 0])])
-        Pattern(o.CONV, [kind1, o.DK.S16],
+        Pattern(o.CONV, [dst_kind, o.DK.S16],
                 [InsTmpl("sxth", [PARAM.reg0, PARAM.reg1, 0])])
-
+    for dst_kind in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16]:
+        Pattern(o.CONV, [dst_kind, o.DK.U8],
+                    [InsTmpl("uxtb", [PARAM.reg0, PARAM.reg1, 0])])
+        Pattern(o.CONV, [dst_kind, o.DK.S8],
+                    [InsTmpl("sxtb", [PARAM.reg0, PARAM.reg1, 0])])
     # bitcast between 32bit regs: nothing to be done here
-    for kind1 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:
-        for kind2 in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:
-            Pattern(o.BITCAST, [kind1, kind2],
-                    [InsTmplMove(PARAM.reg0, PARAM.reg1, kind2)])
+    for dst_kind in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:
+        for src_kind in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:
+            Pattern(o.BITCAST, [dst_kind, src_kind],
+                    [InsTmplMove(PARAM.reg0, PARAM.reg1, src_kind)])
 
 
 def InitMiscBra():
