@@ -20,10 +20,10 @@
         (param size uint)] sint :)
 
 
-@pub @wrapped (type Error s32)
+@pub (@wrapped type Error s32)
 
 
-@pub @wrapped (type FD s32)
+@pub (@wrapped type FD s32)
 
 
 @pub (global Stdin auto (wrap 0 FD))
@@ -36,10 +36,7 @@
 
 
 @pub (fun FileWrite [(param fd FD) (param buffer (slice u8))] (union [uint Error]) :
-    (let res auto (write [
-            (unwrap fd)
-            (front buffer)
-            (len buffer)]))
+    (let res auto (write [(unwrap fd) (front buffer) (len buffer)]))
     (if (< res 0) :
         (return (wrap (as res s32) Error))
      :
@@ -47,10 +44,7 @@
 
 
 @pub (fun FileRead [(param fd FD) (param buffer (slice! u8))] (union [uint Error]) :
-    (let res auto (read [
-            (unwrap fd)
-            (front! buffer)
-            (len buffer)]))
+    (let res auto (read [(unwrap fd) (front! buffer) (len buffer)]))
     (if (< res 0) :
         (return (wrap (as res s32) Error))
      :

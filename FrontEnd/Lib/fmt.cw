@@ -1,5 +1,7 @@
 (module fmt [] :
 (import os)
+
+
 @pub @extern (fun memcpy [
         (param dst (ptr! u8))
         (param src (ptr u8))
@@ -29,16 +31,13 @@
     (field left_justify bool))
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v bool)
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (let s auto (? v (as "true" (slice u8)) (as "false" (slice u8))))
     (let n uint (min (len buffer) (len s)))
-    (return (mymemcpy [
-            (front! buffer)
-            (front s)
-            n])))
+    (return (mymemcpy [(front! buffer) (front s) n])))
 
 
 (macro unsigned_to_str# EXPR [
@@ -62,12 +61,9 @@
             (/= $v $base)
             (if (!= $v 0) :
                 (continue)
-                :))
+             :))
         (let n uint (min (- $max_width $pos) (len $out_eval)))
-        (return (mymemcpy [
-                (front! $out_eval)
-                (pinc (front $tmp) $pos)
-                n]))))
+        (return (mymemcpy [(front! $out_eval) (pinc (front $tmp) $pos) n]))))
 
 
 (fun slice_incp [(param s (slice! u8)) (param inc uint)] (slice! u8) :
@@ -94,12 +90,12 @@
 (fun s32_to_str [(param v s32) (param out (slice! u8))] uint :
     (if (== (len out) 0) :
         (return 0)
-        :)
+     :)
     (if (< v 0) :
         (let v_unsigned auto (- 0_s32 v))
         (= (at out 0) '-')
         (return (+ 1 (unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
-        :
+     :
         (return (unsigned_to_str# (as v u32) 10 32_uint out))))
 
 
@@ -112,97 +108,113 @@
     (return x))
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v u8)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u8_to_str [v out])))
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v u16)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u16_to_str [v out])))
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v u32)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u32_to_str [v out])))
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v u64)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u64_to_str [v out])))
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v s32)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (s32_to_str [v out])))
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v (slice u8))
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (let n uint (min (len buffer) (len v)))
-    (return (mymemcpy [
-            (front! buffer)
-            (front v)
-            n])))
+    (return (mymemcpy [(front! buffer) (front v) n])))
+
 
 @pub (@wrapped type uint_hex uint)
+
+
 @pub (@wrapped type u64_hex u64)
+
+
 @pub (@wrapped type u32_hex u32)
+
+
 @pub (@wrapped type u16_hex u16)
+
+
 @pub (@wrapped type u8_hex u8)
+
 
 (fun uint_to_hex_str [(param v uint) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 (* (sizeof uint) 8) out)))
 
+
 (fun u64_to_hex_str [(param v u64) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 64_uint out)))
+
 
 (fun u32_to_hex_str [(param v u32) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 
+
 (fun u16_to_hex_str [(param v u16) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
+
 
 (fun u8_to_hex_str [(param v u8) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 
-@polymorphic (fun SysRender [
+
+(@polymorphic fun SysRender [
         (param v uint_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (uint_to_hex_str [(unwrap v) out])))
 
-@polymorphic (fun SysRender [
+
+(@polymorphic fun SysRender [
         (param v u64_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u64_to_hex_str [(unwrap v) out])))
 
-@polymorphic (fun SysRender [
+
+(@polymorphic fun SysRender [
         (param v u32_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u32_to_hex_str [(unwrap v) out])))
 
-@polymorphic (fun SysRender [
+
+(@polymorphic fun SysRender [
         (param v u16_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (u16_to_hex_str [(unwrap v) out])))
 
-@polymorphic (fun SysRender [
+
+(@polymorphic fun SysRender [
         (param v u8_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -212,13 +224,13 @@
 @pub (@wrapped type rune u8)
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v rune)
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (if (== (len buffer) 0) :
         (return 0)
-        :
+     :
         (= (^ (front! buffer)) (unwrap v))
         (return 1)))
 
@@ -237,10 +249,7 @@
 
 (fun slice_copy [(param src (slice u8)) (param dst (slice! u8))] uint :
     (let n uint (min (len src) (len dst)))
-    (return (mymemcpy [
-            (front! dst)
-            (front src)
-            n])))
+    (return (mymemcpy [(front! dst) (front src) n])))
 
 
 (fun nan_to_str [
@@ -250,17 +259,18 @@
     (if frac_is_zero :
         (if is_non_neg :
             (return (slice_copy [INF_POS out]))
-            :
+         :
             (return (slice_copy [INF_NEG out])))
-        :
+     :
         (if is_non_neg :
             (return (slice_copy [NAN_POS out]))
-            :
+         :
             (return (slice_copy [NAN_NEG out])))))
 
+
 (fun to_hex_digit [(param digit u8)] u8 :
-  (return (? (<= digit 9) (+ digit '0') (+ digit (- 'a' 10))))
-)
+    (return (? (<= digit 9) (+ digit '0') (+ digit (- 'a' 10)))))
+
 
 @doc """r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
         exponentiation bias is 1023
@@ -272,18 +282,15 @@
     (let exp_bits auto (and (>> val_bits 52) 0x7ff))
     (let sign_bit auto (and (>> val_bits 63) 1))
     (if (== exp_bits 0x7ff) :
-        (return (nan_to_str [
-                (== sign_bit 0)
-                (== frac_bits 0)
-                out]))
-        :)
+        (return (nan_to_str [(== sign_bit 0) (== frac_bits 0) out]))
+     :)
     (let! buf auto (front! out))
     (let! exp auto (- exp_bits 1023))
     (let! i uint 0)
     (if (!= sign_bit 0) :
         (= (^ (pinc buf i)) '-')
         (+= i 1)
-        :)
+     :)
     (= (^ (pinc buf i)) '0')
     (+= i 1)
     (= (^ (pinc buf i)) 'x')
@@ -303,7 +310,7 @@
         (= (^ (pinc buf i)) '-')
         (+= i 1)
         (= exp (- 0_s64 exp))
-        :)
+     :)
     (let rest auto (slice_val (pinc buf i) (- (len out) i)))
     (+= i (u64_to_str [(as exp u64) rest]))
     (return i))
@@ -312,41 +319,43 @@
 @pub (@wrapped type r64_hex r64)
 
 
-@polymorphic (fun SysRender [
+(@polymorphic fun SysRender [
         (param v r64_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (return (r64_to_hex_str [(unwrap v) out])))
 
+
 @pub (@wrapped type str_hex (slice u8))
 
-@polymorphic (fun SysRender [
+
+(@polymorphic fun SysRender [
         (param v str_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (let v_str (slice u8) (unwrap v))
     (let dst_len auto (len v_str))
-    (if (<= dst_len (len out))
-    : (for i 0 dst_len 1 :
-        (let c u8 (at v_str i))
-        (let o1 uint (* i 2))
-        (let o2 uint (+ o1 1))
-        (= (at out o1) (to_hex_digit [(>> c 4)]))
-        (= (at out o2) (to_hex_digit [(and c 15)]))
-      )
-      (return (* dst_len 2))
-    :
-    (for i 0 (len out) 1 :   (= (at out i) '.'))
-    (return 0))
-)
-@polymorphic (fun SysRender [
+    (if (<= dst_len (len out)) :
+        (for i 0 dst_len 1 :
+            (let c u8 (at v_str i))
+            (let o1 uint (* i 2))
+            (let o2 uint (+ o1 1))
+            (= (at out o1) (to_hex_digit [(>> c 4)]))
+            (= (at out o2) (to_hex_digit [(and c 15)])))
+        (return (* dst_len 2))
+     :
+        (for i 0 (len out) 1 :
+            (= (at out i) '.'))
+        (return 0)))
+
+
+(@polymorphic fun SysRender [
         (param v (ptr void))
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (let h auto (wrap (bitcast v uint) uint_hex))
-    (return (@polymorphic SysRender [h out options]))
+    (return (@polymorphic SysRender [h out options])))
 
-)
 
 @pub (macro print# STMT_LIST [
         @doc "list of items to be printed"
@@ -355,23 +364,17 @@
     (mlet! $curr uint 0)
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
-        (+= $curr (@polymorphic SysRender [
-                $i
-                (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr))
-                (&! $options)])))
+        (+= $curr (@polymorphic SysRender [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
     (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
+
 @doc "same as above but takes an EXPR_LIST - should only be used by other macros"
-@pub (macro print_list# STMT_LIST [
-        (mparam $parts EXPR_LIST)] [$buffer $curr $options] :
+@pub (macro print_list# STMT_LIST [(mparam $parts EXPR_LIST)] [$buffer $curr $options] :
     (mlet! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
     (mlet! $curr uint 0)
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
-        (+= $curr (@polymorphic SysRender [
-                $i
-                (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr))
-                (&! $options)])))
+        (+= $curr (@polymorphic SysRender [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
     (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
@@ -384,9 +387,9 @@
 
 @pub (macro assert# STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST_REST)] [] :
     (if $cond :
-        :
+     :
         (print# (stringify $cond))
-        (print_list#  $parts)
+        (print_list# $parts)
         (trap)))
-
 )
+

@@ -1,14 +1,14 @@
-@builtin
-(module  $builtin [] :
+@builtin (module $builtin [] :
 
 @doc "macro for while-loop"
 @pub (macro while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
     (block _ :
         (if $cond :
-            :
+         :
             (break))
         $body
         (continue)))
+
 
 @doc """macro for number range for-loop,
 
@@ -25,7 +25,7 @@ The type of the loop variable is determined by $end"""
     (block _ :
         (if (>= $it $end_eval) :
             (break)
-            :)
+         :)
         (mlet $index auto $it)
         (= $it (+ $it $step_eval))
         $body
@@ -40,12 +40,12 @@ The type of the loop variable is determined by $end"""
         (mparam $catch_body STMT_LIST)] [$eval] :
     (mlet $eval auto $expr)
     (if (is $eval $type) :
-        :
-        (mlet $catch_name auto
-            (@unchecked narrowto $eval (uniondelta (typeof $eval) $type)))
+     :
+        (mlet $catch_name auto (@unchecked narrowto $eval (uniondelta (typeof $eval) $type)))
         $catch_body
         (trap))
     (mlet $name $type (narrowto $eval $type)))
+
 
 @pub (macro tryset STMT_LIST [
         (mparam $name ID)
@@ -54,9 +54,8 @@ The type of the loop variable is determined by $end"""
         (mparam $catch_body STMT_LIST)] [$eval] :
     (mlet $eval auto $expr)
     (if (is $eval (typeof $name)) :
-        :
-        (mlet $catch_name auto
-            (@unchecked narrowto $eval (uniondelta (typeof $eval) (typeof $type))))
+     :
+        (mlet $catch_name auto (@unchecked narrowto $eval (uniondelta (typeof $eval) (typeof $type))))
         $catch_body
         (trap))
     (mlet $name $type (narrowto $eval $type)))
@@ -67,8 +66,9 @@ The type of the loop variable is determined by $end"""
     (= $a $b)
     (= $b $t))
 
+
 @doc "macro for c-style -> operator"
 @pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))
-
 )
+

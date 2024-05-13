@@ -37,10 +37,7 @@
     (let n uint (- hlen nlen))
     (let! i uint 0)
     (block _ :
-        (if (are_two_non_empty_strings_the_same [
-                (pinc hptr i)
-                nptr
-                nlen]) :
+        (if (are_two_non_empty_strings_the_same [(pinc hptr i) nptr nlen]) :
             (return i)
          :)
         (+= i 1)
@@ -64,10 +61,7 @@
     (let nptr (ptr u8) (front needle))
     (let! i uint (- hlen nlen))
     (block _ :
-        (if (are_two_non_empty_strings_the_same [
-                (pinc hptr i)
-                nptr
-                nlen]) :
+        (if (are_two_non_empty_strings_the_same [(pinc hptr i) nptr nlen]) :
             (return i)
          :)
         (if (== i 0) :
@@ -87,10 +81,7 @@
         (return false)
      :)
     @doc "at this point we know that both slices have len > 0"
-    (return (are_two_non_empty_strings_the_same [
-            (front haystack)
-            (front needle)
-            nlen])))
+    (return (are_two_non_empty_strings_the_same [(front haystack) (front needle) nlen])))
 
 
 @pub (fun ends_with [(param haystack (slice u8)) (param needle (slice u8))] bool :
@@ -103,10 +94,7 @@
         (return false)
      :)
     @doc "at this point we know that both slices have len > 0"
-    (return (are_two_non_empty_strings_the_same [
-            (pinc (front haystack) (- hlen nlen))
-            (front needle)
-            nlen])))
+    (return (are_two_non_empty_strings_the_same [(pinc (front haystack) (- hlen nlen)) (front needle) nlen])))
 
 
 @pub (fun cmp [(param aslice (slice u8)) (param bslice (slice u8))] sint :
