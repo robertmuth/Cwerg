@@ -233,6 +233,7 @@ def _IsSimpleCall(node) -> bool:
         return False
     return not node.callee.name.startswith("$")
 
+
 def _RenderRecursivelyToIR(node, out, indent: int):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
         out.append([""])
@@ -312,15 +313,9 @@ def PrettyPrint(mod: cwast.DefMod):
 #
 ############################################################
 if __name__ == "__main__":
-    import os
     import argparse
-    import pathlib
 
-    from FrontEnd import type_corpus
     from FrontEnd import parse_sexpr
-    from FrontEnd import symbolize
-    from FrontEnd import typify
-    from FrontEnd import eval
 
     def main():
         parser = argparse.ArgumentParser(description='pretty_printer')

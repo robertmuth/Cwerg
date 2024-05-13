@@ -17,7 +17,7 @@ import logging
 import enum
 import dataclasses
 
-from typing import Any, Tuple, Union, List, Optional
+from typing import Any, Map, Optional
 
 from FrontEnd import cwast
 from FrontEnd import pp
@@ -95,14 +95,14 @@ _KEYWORDS_SIMPLE = [
 ]
 
 
-KEYWORDS = {}
+KEYWORDS: Map[str, TK_KIND] = {}
 for k in _KEYWORDS_SIMPLE:
     KEYWORDS[k] = TK_KIND.KW
 for k in pp.KEYWORDS:
     KEYWORDS[k] = TK_KIND.KW
-for k in cwast.BASE_TYPE_KIND:
-    if k is not cwast.BASE_TYPE_KIND.INVALID:
-        KEYWORDS[cwast.BaseTypeKindToKeyword(k)] = TK_KIND.KW
+for kind in cwast.BASE_TYPE_KIND:
+    if kind is not cwast.BASE_TYPE_KIND.INVALID:
+        KEYWORDS[cwast.BaseTypeKindToKeyword(kind)] = TK_KIND.KW
 for k in pp.KEYWORDS_WITH_EXCL_SUFFIX:
     KEYWORDS[k] = TK_KIND.SPECIAL_MUT
 # some operators are textual (xor, max, etc.)
@@ -448,7 +448,7 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
     elif tk.text in _FUN_LIKE:
         return _ParseFunLike(inp, tk.text)
     elif tk.text == "expr":
-        body  = _ParseStatementList(inp, tk.column)
+        body = _ParseStatementList(inp, tk.column)
         return cwast.ExprStmt(body)
     else:
         assert False, f"{tk}"
@@ -920,21 +920,6 @@ def _ParseMacroParams(inp: Lexer):
     return out
 
 
-def _ParseMacroParams(inp: Lexer):
-    out = []
-    inp.match_or_die(TK_KIND.PAREN_OPEN)
-    first = True
-    while not inp.match(TK_KIND.PAREN_CLOSED):
-        if not first:
-            inp.match_or_die(TK_KIND.COMMA)
-        first = False
-        name = inp.match_or_die(TK_KIND.ID)
-        kind = inp.match_or_die(TK_KIND.ID)
-        out.append(cwast.MacroParam(
-            name.text, cwast.MACRO_PARAM_KIND[kind.text]))
-    return out
-
-
 def _ParseMacroGenIds(inp: Lexer):
     out = []
     inp.match_or_die(TK_KIND.SQUARE_OPEN)
@@ -962,7 +947,7 @@ def _ParseTopLevel(inp: Lexer):
         params = []
         if inp.match(TK_KIND.PAREN_OPEN):
             first = True
-            while not  inp.match(TK_KIND.PAREN_OPEN):
+            while not inp.match(TK_KIND.PAREN_OPEN):
                 if not first:
                     inp.match(TK_KIND.COMMA)
                 first = False
