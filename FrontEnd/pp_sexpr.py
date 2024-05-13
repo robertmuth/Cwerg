@@ -226,6 +226,13 @@ def _RenderAttr(node, out, indent, before_paren: bool):
             out.append(f"@{field} {val} ")
 
 
+def _IsSimpleCall(node) -> bool:
+    if not isinstance(node, cwast.ExprCall):
+        return False
+    if not isinstance(node.callee, (cwast.Id, cwast.MacroId)):
+        return False
+    return not node.callee.name.startswith("$")
+
 def _RenderRecursivelyToIR(node, out, indent: int):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
         out.append([""])
@@ -253,7 +260,7 @@ def _RenderRecursivelyToIR(node, out, indent: int):
     out[-1].append("(")
     spacer = ""
     _RenderAttr(node, out, indent, before_paren=False)
-    if not isinstance(node, cwast.ExprCall):
+    if not _IsSimpleCall(node):
         out[-1].append(node_name)
         spacer = " "
 
