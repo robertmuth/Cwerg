@@ -17,10 +17,15 @@ TEST_TESTS = \
     TestData/sort.cw
 
 TESTS_A32 = \
-	TestData/fibonacci.cw \
+    TestData/fibonacci.cw \
+	TestData/fizzbuzz.cw \
+    TestData/hello_world.cw \
+	TestData/linked_list.cw \
     TestData/sieve.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
+    Lib/checksum_test.cw \
+    Lib/huffman_test.cw \
     Lib/string_test.cw \
     Lib/trig_test.cw
 
@@ -95,11 +100,9 @@ $(DIR)/%.a64.exe: %.cw
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-# TODO: broken
 $(DIR)/%.a32.exe: %.cw
 	@echo "[lang $@]"
-	./emit_ir.py -arch a32 $< > $@.asm
-	# ./emit_ir.py Lib/os.cw  Lib/builtin.cw Lib/test.cw $< > $@.asm
+	./emit_ir.py -shake_tree -arch a32 $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
