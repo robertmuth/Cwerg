@@ -2704,6 +2704,8 @@ class DefFun:
 
     `cdecl` disables name mangling
 
+    `ref`  fun may be assigned to a variable (i.e. its address may be taken)
+
     `polymorphic` indicates a polymorhic function. The `name` must be qualified with
                  the module containing the seed polymorphic definition.
     """
@@ -2720,6 +2722,7 @@ class DefFun:
     init: bool = False
     fini: bool = False
     pub: bool = False
+    ref: bool = False
     extern: bool = False
     cdecl: bool = False
     doc: str = ""

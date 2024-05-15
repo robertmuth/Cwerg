@@ -81,11 +81,11 @@ code generation.
 [ExprUnionTag&nbsp;(uniontypetag)](#expruniontag-uniontypetag) &ensp;
 [ExprUnionUntagged&nbsp;(unionuntagged)](#exprunionuntagged-unionuntagged) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
-[MacroFor&nbsp;($for)](#macrofor-for) &ensp;
+[MacroFor&nbsp;(mfor)](#macrofor-mfor) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
 [MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
 [MacroParam&nbsp;(mparam)](#macroparam-mparam) &ensp;
-[MacroVar&nbsp;($let)](#macrovar-let) &ensp;
+[MacroVar&nbsp;(mlet)](#macrovar-mlet) &ensp;
 [ModParam&nbsp;(modparam)](#modparam-modparam) &ensp;
 [StmtCompoundAssignment](#stmtcompoundassignment) &ensp;
 [StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
@@ -324,6 +324,8 @@ Function definition
 
     `cdecl` disables name mangling
 
+    `ref`  fun may be assigned to a variable (i.e. its address may be taken)
+
     `polymorphic` indicates a polymorhic function. The `name` must be qualified with
                  the module containing the seed polymorphic definition.
     
@@ -341,6 +343,7 @@ Flags:
 * init: run function at startup
 * fini: run function at shutdown
 * pub: has public visibility
+* ref: address may be taken
 * extern: is external function (empty body)
 * cdecl: use c-linkage (no module prefix)
 * doc: possibly multi-line comment
@@ -455,7 +458,7 @@ Import another Module from `path` as `name`
 
 Fields:
 * name [STR]: name of the object
-* alias [STR] (default ""): name of imported module to be used instead of given name
+* path [STR] (default ""): TBD
 * args_mod [LIST] (default list): module arguments
 
 Flags:
@@ -1013,7 +1016,7 @@ Fields:
 
 
 ### ExprUnionTag (uniontypetag)
-Typetage of tagged union type
+Typetag of tagged union type
 
     result has type is `typeid`
 
@@ -1086,7 +1089,7 @@ Flags:
 * colon: colon style list
 
 
-### MacroFor ($for)
+### MacroFor (mfor)
 Macro for-loop like statement
 
     loops over the macro parameter `name_list` which must be a list and
@@ -1134,7 +1137,7 @@ Flags:
 * doc: possibly multi-line comment
 
 
-### MacroVar ($let)
+### MacroVar (mlet)
 Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
 
     `name` must start with a `$`.
