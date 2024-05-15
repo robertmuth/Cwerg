@@ -319,7 +319,7 @@ if __name__ == "__main__":
 
     def main():
         parser = argparse.ArgumentParser(description='pretty_printer')
-        parser.add_argument('-i', "--inplace",
+        parser.add_argument("-inplace",
                             action="store_true", help='update files in place')
         parser.add_argument('files', metavar='F', type=str, nargs='+',
                             help='an input source file')

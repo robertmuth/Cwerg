@@ -21,6 +21,8 @@ from typing import Any, Optional, Dict
 
 from FrontEnd import cwast
 from FrontEnd import pp
+from FrontEnd import pp_sexpr
+from FrontEnd import string_re
 from FrontEnd import string_re
 
 logger = logging.getLogger(__name__)
@@ -307,6 +309,7 @@ class Lexer:
         else:
             self._peek_cache_small = tk
         # print(out)
+        # if we have annotations the node starts at the first one
         for a in annotations:
             if a.srcloc.lineno == out.srcloc.lineno:
                 out.column = a.column
@@ -455,7 +458,13 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
 
 
 def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
-    return cwast.ValString(tk.text)
+    t = tk.text
+    tq = False
+    if t.startswith('"""'):
+        assert t.endswith('"""')
+        t = t[3:-3]
+        tq = True
+    return cwast.ValString(t, triplequoted=tq)
 
 
 def _PParseChar(_inp: Lexer, tk: TK, _precedence) -> Any:
@@ -827,7 +836,6 @@ def _ParseStatement(inp: Lexer):
     else:
         assert False, f"{kw}"
 
-    print(f"-- {kw.column}: {tokens}")
 
 
 def _ParseStatementList(inp: Lexer, outer_indent: int):
@@ -841,7 +849,7 @@ def _ParseStatementList(inp: Lexer, outer_indent: int):
         if tk.column < indent:
             break
         stmt = _ParseStatement(inp)
-        print("STATEMENT: ", stmt)
+        logger.info("STATEMENT: %s", stmt)
         out.append(stmt)
     return out
 
@@ -932,9 +940,26 @@ def _ParseMacroGenIds(inp: Lexer):
         out.append(cwast.Id(name.text))
     return out
 
+def _ExtractAnnotations(tk: TK) ->dict[str, str]:
+    out: dict[str, Any] = {}
+    # print ("@@@@",tk)
+    comments = []
+    for c in tk.comments:
+        assert c.text.startswith("-- ")
+        comments.append(c.text[3:-1])
+    if comments:
+        if len(comments) == 1:
+            out["doc"] = f'"{comments[0]}"'
+        else:
+            assert False
+    for a in tk.annotations:
+        assert a.text.startswith("@")
+        out[a.text[1:]] = True
+    return out
 
 def _ParseTopLevel(inp: Lexer):
     kw = inp.next()
+    extra = _ExtractAnnotations(kw)
     alias = ""
     if kw.text == "import":
         name = inp.match_or_die(TK_KIND.ID)
@@ -958,7 +983,7 @@ def _ParseTopLevel(inp: Lexer):
         params = _ParseFormalParams(inp)
         result = _ParseTypeExpr(inp)
         body = _ParseStatementList(inp, kw.column)
-        return cwast.DefFun(name.text, params, result, body)
+        return cwast.DefFun(name.text, params, result, body, **extra)
     elif kw.text == "rec":
         name = inp.match_or_die(TK_KIND.ID)
         fields = _ParseFieldList(inp)
@@ -1025,26 +1050,27 @@ def _ParseModule(inp: Lexer):
             kind = inp.match_or_die(TK_KIND.ID)
             params.append(cwast.ModParam(name.text,
                                          cwast.MOD_PARAM_KIND[kind.text]))
-    kw = inp.match_or_die(TK_KIND.COLON)
-    out = cwast.DefMod(name.text, params, [])
+    inp.match_or_die(TK_KIND.COLON)
+    out = cwast.DefMod(name.text, params, [], **_ExtractAnnotations(kw))
 
     while True:
         if inp.peek().kind is TK_KIND.SPECIAL_EOF:
             break
         toplevel = _ParseTopLevel(inp)
-        print("TOPLEVEL: ", toplevel)
+        logger.info("TOPLEVEL: %s", toplevel)
         out.body_mod.append(toplevel)
     return out
 
 
 def ParseFile(inp: Lexer) -> Any:
     mod = _ParseModule(inp)
-
+    pp_sexpr.PrettyPrint(mod)
 
 ############################################################
 #
 ############################################################
 if __name__ == "__main__":
     import sys
-
+    logging.basicConfig(level=logging.WARNING)
+    logger.setLevel(logging.WARNING)
     ParseFile(Lexer(LexerRaw("stdin", sys.stdin)))

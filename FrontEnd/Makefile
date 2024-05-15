@@ -29,7 +29,11 @@ TESTS_A32 = \
     Lib/string_test.cw \
     Lib/trig_test.cw
 
+TESTS_CONCRETE = \
+    TestData/hello_world.cw
+
 tests_py: clean \
+		  tests_concrete_py \
           tests_meta_py \
           tests_eval_py \
 		  tests_pp_py \
@@ -45,6 +49,7 @@ tests_eval_py: $(TESTS:%.cw=$(DIR)/%.cw.eval)
 tests_symtab_py: $(TESTS:%.cw=$(DIR)/%.cw.symtab)
 tests_pp_py: $(TESTS:%.cw=$(DIR)/%.cw.pp)
 
+tests_concrete_py:  $(TESTS_CONCRETE:%.cw=$(DIR)/%.concrete)
 
 
 tests_all_py: tests_parse_py tests_symtab_py tests_meta_py tests_eval_py tests_pp_py
@@ -119,6 +124,13 @@ $(DIR)/%.compile.a64.exe: TestData/%.cw
 	./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 
+# concrete
+$(DIR)/%.concrete: %.cw
+	@echo "[concrete $@]"
+	./pp.py $< > $<.concrete
+	./parse.py < $<.concrete > $<.pp
+	diff -b $<.pp $<
+
 # Misc Tests
 
 $(DIR)/wordcount.x64.test: build/wordcount.compile.x64.exe
@@ -161,13 +173,6 @@ clean:
 pp_test:
 	./pp.py TestData/*.cw  Lib/*.cw  LangTest/*.cw
 
-concrete_test:
-	for cw in LangTest/*.cw ; do \
-      echo "\n" $$cw ; \
-	  ./pp.py $$cw > $$cw.concrete ; \
-      ./parse.py < $$cw.concrete ; \
-      rm  $$cw.concrete ; \
-    done
 
 reformat:
 	for f in TestData/*.cw ; do \

@@ -836,6 +836,7 @@ def _EmitTokensToplevel(ts: TS, node):
 
 
 def EmitTokensModule(ts: TS, node: cwast.DefMod):
+    TokensAnnotationsPre(ts, node)
     beg = ts.EmitStmtBeg("module")
     # we do not want the next item to be indented
     ts.EmitName(node.name)
