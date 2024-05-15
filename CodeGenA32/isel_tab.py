@@ -85,6 +85,10 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
         # needs scratch to compute the jmp address into
         scratch = fun.GetScratchReg(o.DK.C32, "switch", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
+    elif opc is o.ST_STK:
+        # may need scratch to compute the jmp address into
+        scratch = fun.GetScratchReg(o.DK.A32, "st_stk", False)
+        return [ir.Ins(o.NOP1, [scratch]), ins]
     elif opc is o.CAS:
         # needs scratch to compute the jmp address into
         scratch = fun.GetScratchReg(o.DK.U32, "cas", False)
@@ -1041,9 +1045,9 @@ def InitConv():
                 [InsTmpl("sxth", [PARAM.reg0, PARAM.reg1, 0])])
     for dst_kind in [o.DK.U32, o.DK.S32, o.DK.U16, o.DK.S16]:
         Pattern(o.CONV, [dst_kind, o.DK.U8],
-                    [InsTmpl("uxtb", [PARAM.reg0, PARAM.reg1, 0])])
+                [InsTmpl("uxtb", [PARAM.reg0, PARAM.reg1, 0])])
         Pattern(o.CONV, [dst_kind, o.DK.S8],
-                    [InsTmpl("sxtb", [PARAM.reg0, PARAM.reg1, 0])])
+                [InsTmpl("sxtb", [PARAM.reg0, PARAM.reg1, 0])])
     # bitcast between 32bit regs: nothing to be done here
     for dst_kind in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:
         for src_kind in [o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32]:

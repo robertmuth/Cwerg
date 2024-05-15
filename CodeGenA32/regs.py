@@ -118,7 +118,7 @@ def _GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
             cpu_reg = DBL_PARAMETER_REGS[flt // 2]
             flt += 2
         else:
-            assert k in {o.DK.C32, o.DK.S32, o.DK.A32, o.DK.U32}
+            assert k in {o.DK.C32, o.DK.S32, o.DK.A32, o.DK.U32}, f"unexpected reg type: {k}"
             assert gpr <= len(GPR_PARAMETER_REGS)
             cpu_reg = GPR_PARAMETER_REGS[gpr]
             gpr += 1
