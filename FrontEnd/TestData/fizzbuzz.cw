@@ -26,7 +26,7 @@
                 (fmt::print# BUZZ))
             (case true :
                 (fmt::print# i)))
-        (fmt::print# [NEWLINE]))
+        (fmt::print# NEWLINE))
     (return 0))
 )
 

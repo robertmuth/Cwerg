@@ -464,6 +464,11 @@ def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
         assert t.endswith('"""')
         t = t[3:-3]
         tq = True
+    elif  t.startswith('"'):
+        assert t.endswith('"')
+        t = t[1:-1]
+    else:
+        assert False
     return cwast.ValString(t, triplequoted=tq)
 
 
@@ -762,7 +767,7 @@ def _ParseStatement(inp: Lexer):
     elif kw.text == "while":
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke(cwast.Id("while"), [cond, cwast.EphemeralList(stmts, colon=True)])
+        return cwast.MacroInvoke("while", [cond, cwast.EphemeralList(stmts, colon=True)])
     elif kw.text == "if":
         cond = _ParseExpr(inp)
         stmts_t = _ParseStatementList(inp, kw.column)
@@ -808,7 +813,7 @@ def _ParseStatement(inp: Lexer):
         inp.match_or_die(TK_KIND.COMMA)
         step = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke(cwast.Id("for"),
+        return cwast.MacroInvoke("for",
                                  [cwast.Id(name.text), start, end, step, cwast.EphemeralList(stmts, colon=True)])
     elif kw.text == "break":
         return cwast.StmtBreak(_ParseOptionalLabel(inp))

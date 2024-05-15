@@ -30,7 +30,8 @@ TESTS_A32 = \
     Lib/trig_test.cw
 
 TESTS_CONCRETE = \
-    TestData/hello_world.cw
+    TestData/hello_world.cw \
+	TestData/fizzbuzz.cw
 
 tests_py: clean \
 		  tests_concrete_py \
@@ -127,9 +128,9 @@ $(DIR)/%.compile.a64.exe: TestData/%.cw
 # concrete
 $(DIR)/%.concrete: %.cw
 	@echo "[concrete $@]"
-	./pp.py $< > $<.concrete
-	./parse.py < $<.concrete > $<.pp
-	diff -b $<.pp $<
+	./pp.py $< > $@
+	./parse.py < $@ > $@.pp
+	diff -b $@.pp $<
 
 # Misc Tests
 
