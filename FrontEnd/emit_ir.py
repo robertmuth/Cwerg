@@ -26,6 +26,7 @@ from FrontEnd import eval
 from FrontEnd import identifier
 from FrontEnd import pp_html
 from FrontEnd import mod_pool
+from FrontEnd import dead_code
 
 logger = logging.getLogger(__name__)
 
@@ -919,6 +920,8 @@ _ARCH_MAP = {
 
 def main() -> int:
     parser = argparse.ArgumentParser(description='pretty_printer')
+    parser.add_argument("-shake_tree",
+                        action="store_true", help='remove unreachable functions')
     parser.add_argument(
         '-arch', help='architecture to generated IR for', default="x64")
     parser.add_argument(
@@ -964,7 +967,6 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprStringify)
     eliminated_nodes.add(cwast.EphemeralList)
     eliminated_nodes.add(cwast.ModParam)
-
     for mod in mod_topo_order:
         cwast.CheckAST(mod, eliminated_nodes)
 
@@ -974,6 +976,9 @@ def main() -> int:
     verifier = typify.TypeVerifier()
     for mod in mod_topo_order:
         typify.VerifyTypesRecursively(mod, tc, verifier)
+
+    if args.shake_tree:
+        dead_code.ShakeTree(mod_topo_order)
 
     logger.info("partial eval and static assert validation")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
@@ -1171,6 +1176,7 @@ def main() -> int:
             if isinstance(node, cwast.DefFun):
                 EmitIRDefFun(node, tc, identifier.IdGenIR(node.name))
     return 0
+
 
 if __name__ == "__main__":
     # import cProfile
