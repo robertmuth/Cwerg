@@ -141,7 +141,7 @@ if __name__ == "__main__":
     from FrontEnd import typify
     from FrontEnd import eval
 
-    def main():
+    def main() -> int:
         parser = argparse.ArgumentParser(description='pretty_printer')
         parser.add_argument('files', metavar='F', type=str, nargs='+',
                             help='an input source file')
@@ -167,5 +167,6 @@ if __name__ == "__main__":
 
         for mod in mod_topo_order:
             PrettyPrintHTML(mod)
+        return 0
 
-    main()
+    exit(main())

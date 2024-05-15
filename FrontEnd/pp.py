@@ -7,7 +7,7 @@ import logging
 import enum
 import dataclasses
 
-from typing import Optional
+from typing import Optional, Any, Callable
 
 from FrontEnd import cwast
 
@@ -175,7 +175,7 @@ _MATCHING_CLOSING_BRACE = {
 class TS:
     """TokenStream"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._tokens: list[Token] = []
         self._count = 0
 
@@ -528,7 +528,7 @@ def WithMut(name: str, mutable: bool) -> str:
     return name + "!" if mutable else name
 
 
-_CONCRETE_SYNTAX = {
+_CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     cwast.MacroId: lambda ts, n:  (ts.EmitAttr(n.name)),
     cwast.MacroInvoke: TokensExprMacroInvoke,
@@ -615,7 +615,7 @@ def _TokensSimpleStmt(ts: TS, kind: str, arg):
 def _TokensStmtBlock(ts: TS, kind, arg, stmts):
     beg = ts.EmitStmtBeg(kind)
     if arg:
-        if type(arg) == str:
+        if isinstance(arg, str):
             ts.EmitAttr(arg)
         else:
             EmitTokens(ts, arg)

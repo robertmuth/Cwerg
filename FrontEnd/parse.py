@@ -17,7 +17,7 @@ import logging
 import enum
 import dataclasses
 
-from typing import Any, Map, Optional
+from typing import Any, Optional, Dict
 
 from FrontEnd import cwast
 from FrontEnd import pp
@@ -95,7 +95,7 @@ _KEYWORDS_SIMPLE = [
 ]
 
 
-KEYWORDS: Map[str, TK_KIND] = {}
+KEYWORDS: Dict[str, TK_KIND] = {}
 for k in _KEYWORDS_SIMPLE:
     KEYWORDS[k] = TK_KIND.KW
 for k in pp.KEYWORDS:
