@@ -30,14 +30,14 @@
     (return sum))
 
 
-(global N u32 100)
+(global N uint 100)
 
 
 (global! NodePool auto (array_val N LinkedListNode))
 
 
-@doc "(* N 16) with union optimization"
-(static_assert (== (as (sizeof (typeof NodePool)) u32) (* N 24)))
+@doc "currently (* N 24) but should be (* N 16) on 64 bit system with union optimization"
+(static_assert (== (sizeof (typeof NodePool)) (* N (* (sizeof (ptr! LinkedListNode)) 3))))
 
 
 (fun DumpNode [(param i u32)] void :
@@ -51,7 +51,7 @@
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (fmt::print# "start: " (cast (front NodePool) (ptr void)) "\n")
     (for i 0 N 1 :
-        (= (. (at NodePool i) payload) i)
+        (= (. (at NodePool i) payload) (as i u32))
         (if (== i (- N 1)) :
             (= (. (at NodePool i) next) None)
          :
@@ -64,4 +64,3 @@
     (test::Success#)
     (return 0))
 )
-
