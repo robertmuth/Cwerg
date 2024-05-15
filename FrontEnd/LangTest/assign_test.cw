@@ -1,6 +1,7 @@
 (module main [] :
 (import test)
 
+
 @pub (defrec type_rec1 :
     @doc "this is a comment with \" with quotes \t "
     (field i1 s64)
@@ -19,8 +20,7 @@
     (field a3 (array 7 u32))
     (field a4 (array 7 u64))
     (field a5 (array 7 r32))
-    (field a6 (array 7 r64))
-    )
+    (field a6 (array 7 r64)))
 
 
 @pub (defrec type_rec2 :
@@ -38,17 +38,24 @@
     (field u6 u64))
 
 
-(global! ga1  (array 5 s64) undef)
+(global! ga1 (array 5 s64) undef)
+
 
 (global! gr1 type_rec1 undef)
+
+
 (global! gar1 (array 5 type_rec1) undef)
 
+
 (global! gr2 type_rec2 undef)
+
+
 (global! gar2 (array 5 type_rec2) undef)
 
+
 (fun get_addr [] (ptr! type_rec1) :
-    (return (&! gr1))
-)
+    (return (&! gr1)))
+
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "a1 u32"
@@ -61,16 +68,16 @@
     (test::AssertEq# (. gr1 i1) 0x8765432187654321_s64)
     (+= (. gr1 i1) 0x1)
     (test::AssertEq# (. gr1 i1) 0x8765432187654322_s64)
-     @doc "gr1 u64"
+    @doc "gr1 u64"
     (= (. gr1 i2) 0x1234567812345678)
     (test::AssertEq# (. gr1 i2) 0x1234567812345678_u64)
     (-= (. gr1 i2) 0x1)
     (test::AssertEq# (. gr1 i2) 0x1234567812345677_u64)
-     @doc "gr1 u64 via pointer"
+    @doc "gr1 u64 via pointer"
     (= (. (^ (get_addr [])) i2) 0x1234567812345678)
     (test::AssertEq# (. (^ (get_addr [])) i2) 0x1234567812345678_u64)
-    (-= (.  (^ (get_addr [])) i2) 0x1)
-    (test::AssertEq# (.  (^ (get_addr [])) i2) 0x1234567812345677_u64)
+    (-= (. (^ (get_addr [])) i2) 0x1)
+    (test::AssertEq# (. (^ (get_addr [])) i2) 0x1234567812345677_u64)
     @doc "gar1 s64"
     (= (. (at gar1 3) i1) 0x8765432187654321)
     (test::AssertEq# (. (at gar1 3) i1) 0x8765432187654321_s64)
@@ -79,11 +86,11 @@
     (test::AssertEq# (. (. gr2 t3) i1) 0x8765432187654321_s64)
     (+= (. (. gr2 t3) i1) 0x1)
     (test::AssertEq# (. (. gr2 t3) i1) 0x8765432187654322_s64)
-     @doc "gr2 u64"
+    @doc "gr2 u64"
     (= (. (. gr2 t3) i2) 0x1234567812345678)
     (test::AssertEq# (. (. gr2 t3) i2) 0x1234567812345678_u64)
     @doc "test end"
     (test::Success#)
     (return 0))
-
 )
+

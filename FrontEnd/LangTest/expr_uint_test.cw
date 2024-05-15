@@ -1,6 +1,7 @@
-@doc  "expr"
+@doc "expr"
 (module main [] :
 (import test)
+
 
 (fun test_u64 [(param a u64) (param b u64)] void :
     (test::AssertEq# (+ a b) 0x9999999999999999_u64)
@@ -34,8 +35,8 @@
     (test::AssertEq# (> a a) false)
     (test::AssertEq# (>= a a) true)
     (test::AssertEq# (== a a) true)
-    (test::AssertEq# (!= a a) false)
-)
+    (test::AssertEq# (!= a a) false))
+
 
 (fun test_u32 [(param a u32) (param b u32)] void :
     (test::AssertEq# (+ a b) 0x99999999_u32)
@@ -72,8 +73,8 @@
     (test::AssertEq# (> a a) false)
     (test::AssertEq# (>= a a) true)
     (test::AssertEq# (== a a) true)
-    (test::AssertEq# (!= a a) false)
-)
+    (test::AssertEq# (!= a a) false))
+
 
 (fun test_u16 [(param a u16) (param b u16)] void :
     (test::AssertEq# (+ a b) 0x5555_u16)
@@ -110,8 +111,8 @@
     (test::AssertEq# (> a a) false)
     (test::AssertEq# (>= a a) true)
     (test::AssertEq# (== a a) true)
-    (test::AssertEq# (!= a a) false)
-)
+    (test::AssertEq# (!= a a) false))
+
 
 (fun test_u8 [(param a u8) (param b u8)] void :
     (test::AssertEq# (+ a b) 0xff_u8)
@@ -148,18 +149,16 @@
     (test::AssertEq# (> a a) false)
     (test::AssertEq# (>= a a) true)
     (test::AssertEq# (== a a) true)
-    (test::AssertEq# (!= a a) false)
-)
+    (test::AssertEq# (!= a a) false))
+
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (shed (test_u64 [0x8765432187654321 0x1234567812345678]))
     (shed (test_u32 [0x87654321 0x12345678]))
     (shed (test_u16 [0x4321 0x1234]))
     (shed (test_u8 [0x87 0x78]))
-
     @doc "test end"
     (test::Success#)
     (return 0))
-
-
 )
+
