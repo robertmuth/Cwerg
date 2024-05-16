@@ -31,18 +31,24 @@ TESTS_A32 = \
 
 TESTS_CONCRETE = \
     TestData/hello_world.cw \
-	TestData/fizzbuzz.cw
+    TestData/fizzbuzz.cw \
+    TestData/fibonacci.cw \
+    TestData/large_args.cw
 
-tests_py: clean \
-		  tests_concrete_py \
-          tests_meta_py \
-          tests_eval_py \
-		  tests_pp_py \
-          tests_x64 \
-          tests_a64 \
-          tests_a32 \
-		  misc_test_x64 \
-		  misc_test_a64
+
+# not the clean part will be run out of order but the early targets are not
+# relying on the cleaning so things work out with "make -j"
+tests_py: \
+    clean \
+    tests_meta_py \
+    tests_eval_py \
+    tests_pp_py \
+    tests_x64 \
+    tests_a64 \
+    tests_a32 \
+    misc_test_x64 \
+    misc_test_a64 \
+    tests_concrete_py
 
 tests_parse_py: $(TESTS:%.cw=$(DIR)/%.cw.parse)
 tests_meta_py: $(TESTS:%.cw=$(DIR)/%.cw.meta)

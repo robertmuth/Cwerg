@@ -418,6 +418,9 @@ def _ParseFunLike(inp: Lexer, name: str) -> Any:
     inp.match_or_die(TK_KIND.PAREN_OPEN)
     first = True
     params = []
+    extra = {}
+    if name.endswith("!"):
+        extra["mut"] = True
     for a in args:
         if inp.peek().kind is TK_KIND.PAREN_CLOSED and a == "e":
             params.append(cwast.ValUndef())
@@ -436,7 +439,7 @@ def _ParseFunLike(inp: Lexer, name: str) -> Any:
             params.append(_ParseTypeExpr(inp))
 
     inp.match_or_die(TK_KIND.PAREN_CLOSED)
-    return ctor(*params)
+    return ctor(*params, **extra)
 
 
 def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
@@ -464,7 +467,7 @@ def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
         assert t.endswith('"""')
         t = t[3:-3]
         tq = True
-    elif  t.startswith('"'):
+    elif t.startswith('"'):
         assert t.endswith('"')
         t = t[1:-1]
     else:
@@ -623,11 +626,11 @@ _INFIX_EXPR_PARSERS = {
     "max": (10, _PParserInfixOp),
 
     #
-    "(": (10, _PParseFunctionCall),
+    "(": (20, _PParseFunctionCall),
     "{": (10, _PParseInitializer),
     "[":  (10, _PParseIndex),
-    "^": (10, _PParseDeref),
-    ".": (10, _PParseFieldAccess),
+    "^": (20, _PParseDeref),
+    ".": (20, _PParseFieldAccess),
     "?": (10, _PParseTernary),
 }
 
@@ -767,7 +770,7 @@ def _ParseStatement(inp: Lexer):
     elif kw.text == "while":
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke("while", [cond, cwast.EphemeralList(stmts, colon=True)])
+        return cwast.MacroInvoke(kw.text, [cond, cwast.EphemeralList(stmts, colon=True)])
     elif kw.text == "if":
         cond = _ParseExpr(inp)
         stmts_t = _ParseStatementList(inp, kw.column)
@@ -785,7 +788,7 @@ def _ParseStatement(inp: Lexer):
         inp.match_or_die(TK_KIND.COMMA)
         name2 = inp.match_or_die(TK_KIND.ID)
         stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke(cwast.Id(kw.text),
+        return cwast.MacroInvoke(kw.text,
                                  [cwast.Id(name), type, expr,  cwast.Id(name2),
                                   cwast.EphemeralList(stmts, colon=True)])
     elif kw.text == "set":
@@ -813,7 +816,7 @@ def _ParseStatement(inp: Lexer):
         inp.match_or_die(TK_KIND.COMMA)
         step = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke("for",
+        return cwast.MacroInvoke(kw.text,
                                  [cwast.Id(name.text), start, end, step, cwast.EphemeralList(stmts, colon=True)])
     elif kw.text == "break":
         return cwast.StmtBreak(_ParseOptionalLabel(inp))
@@ -840,7 +843,6 @@ def _ParseStatement(inp: Lexer):
         return cwast.StmtDefer(body)
     else:
         assert False, f"{kw}"
-
 
 
 def _ParseStatementList(inp: Lexer, outer_indent: int):
@@ -945,7 +947,8 @@ def _ParseMacroGenIds(inp: Lexer):
         out.append(cwast.Id(name.text))
     return out
 
-def _ExtractAnnotations(tk: TK) ->dict[str, str]:
+
+def _ExtractAnnotations(tk: TK) -> dict[str, str]:
     out: dict[str, Any] = {}
     # print ("@@@@",tk)
     comments = []
@@ -961,6 +964,7 @@ def _ExtractAnnotations(tk: TK) ->dict[str, str]:
         assert a.text.startswith("@")
         out[a.text[1:]] = True
     return out
+
 
 def _ParseTopLevel(inp: Lexer):
     kw = inp.next()
@@ -992,7 +996,7 @@ def _ParseTopLevel(inp: Lexer):
     elif kw.text == "rec":
         name = inp.match_or_die(TK_KIND.ID)
         fields = _ParseFieldList(inp)
-        return cwast.DefRec(name.text, fields)
+        return cwast.DefRec(name.text, fields, **_ExtractAnnotations(kw))
     elif kw.text in ("global", "global!"):
         name = inp.match_or_die(TK_KIND.ID)
         if inp.match(TK_KIND.ASSIGN):
@@ -1004,7 +1008,7 @@ def _ParseTopLevel(inp: Lexer):
                 init = _ParseExpr(inp)
             else:
                 init = cwast.ValAuto()
-        return cwast.DefGlobal(name.text, type, init)
+        return cwast.DefGlobal(name.text, type, init, mut=kw.text.endswith("!"))
     elif kw.text == "macro":
         if inp.peek().kind is TK_KIND.KW:
             name = inp.next()
@@ -1070,6 +1074,7 @@ def _ParseModule(inp: Lexer):
 def ParseFile(inp: Lexer) -> Any:
     mod = _ParseModule(inp)
     pp_sexpr.PrettyPrint(mod)
+
 
 ############################################################
 #
