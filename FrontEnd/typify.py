@@ -710,7 +710,7 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
 
 
 def _CheckFieldVal(node: cwast.FieldVal, _tc: type_corpus.TypeCorpus):
-    field_node = node.x_field
+    field_node: cwast.RecField = node.x_field
     _CheckTypeSame(node, field_node.x_type, node.x_type)
     if not isinstance(node.value_or_undef, cwast.ValUndef):
         _CheckTypeCompatibleForAssignment(
@@ -720,7 +720,7 @@ def _CheckFieldVal(node: cwast.FieldVal, _tc: type_corpus.TypeCorpus):
 
 
 def CheckFieldValStrict(node: cwast.FieldVal, _tc: type_corpus.TypeCorpus):
-    field_node = node.x_field
+    field_node: cwast.RecField = node.x_field
     _CheckTypeSame(node, field_node.x_type, node.x_type)
     if not isinstance(node.value_or_undef, cwast.ValUndef):
         _CheckTypeSameExceptMut(
@@ -851,7 +851,7 @@ def CheckExprCall(node: cwast.ExprCall,  _):
     fun_sig: cwast.CanonType = node.callee.x_type
     assert fun_sig.is_fun(), f"{fun_sig}"
     assert fun_sig.result_type(
-    ) == node.x_type, f"{fun_sig.result} {node.x_type}"
+    ) == node.x_type, f"{fun_sig.result_type()} {node.x_type}"
     for p, a in zip(fun_sig.parameter_types(), node.args):
         _CheckTypeCompatibleForAssignment(
             p,  a.x_type, p, type_corpus.is_mutable_array(a), a.x_srcloc)
@@ -861,7 +861,7 @@ def CheckExprCallStrict(node: cwast.ExprCall,  _):
     fun_sig: cwast.CanonType = node.callee.x_type
     assert fun_sig.is_fun(), f"{fun_sig}"
     assert fun_sig.result_type(
-    ) == node.x_type, f"{fun_sig.result} {node.x_type}"
+    ) == node.x_type, f"{fun_sig.result_type()} {node.x_type}"
     for p, a in zip(fun_sig.parameter_types(), node.args):
         _CheckTypeSameExceptMut(
             p,  a.x_type, p, a.x_srcloc)

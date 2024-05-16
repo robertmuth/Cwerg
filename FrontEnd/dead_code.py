@@ -1,9 +1,7 @@
 import logging
-import argparse
-import dataclasses
 import collections
 
-from typing import Union, Any, Optional, Set, Dict, List
+from typing import Set, Dict, List
 
 from FrontEnd import cwast
 
@@ -39,7 +37,7 @@ def ShakeTree(mods: List[cwast.DefMod]):
                 cg[fun].add(_Hell)
             else:
                 # make sure the function is recorded
-                dummy = cg[fun]
+                _ = cg[fun]
             cwast.VisitAstRecursivelyWithAllParents(fun, [], visitor)
 
     # compute dead functions

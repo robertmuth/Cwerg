@@ -944,7 +944,7 @@ def main() -> int:
 
     # keeps track of those node classes which have been eliminated and hence must not
     # occur in the AST anymore
-    eliminated_nodes = set()
+    eliminated_nodes: set[Any] = set()
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     for mod in mod_topo_order:

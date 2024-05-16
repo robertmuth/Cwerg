@@ -425,8 +425,6 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
                 ctx = macros.MacroContext(1)
                 FindAndExpandMacrosRecursively(node, builtin_syms, 0, ctx)
 
-
-
     for mod in mod_topo_order:
         logger.info("Resolving symbols inside module: %s", mod.name)
         # we wait until macro expansion with this
@@ -445,7 +443,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
         VerifyASTSymbolsRecursively(mod)
 
 
-def IterateValRec(inits_field: list[cwast.RecField], def_rec: cwast.CanonType):
+def IterateValRec(inits_field: list[cwast.FieldVal], def_rec: cwast.CanonType):
     inits: dict[cwast.RecField,
                 cwast.FieldVal] = {i.x_field: i for i in inits_field}
     used = 0
