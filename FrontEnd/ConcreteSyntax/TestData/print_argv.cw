@@ -18,4 +18,3 @@ fun strlen(s ^u8) uint:
         let t = slice(s, strlen(s))
         fmt::print#(t, "\n")
     return 0
-

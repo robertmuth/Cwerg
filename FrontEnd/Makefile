@@ -30,10 +30,16 @@ TESTS_A32 = \
     Lib/trig_test.cw
 
 TESTS_CONCRETE = \
-    TestData/hello_world.cw \
+    TestData/asciiquarium.cw \
+    TestData/binary_tree.cw \
+    TestData/cast.cw \
     TestData/fizzbuzz.cw \
     TestData/fibonacci.cw \
+    TestData/hello_world.cw \
     TestData/large_args.cw \
+    TestData/print_argv.cw \
+	TestData/sieve.cw \
+    TestData/sizeof.cw \
     TestData/types.cw \
     TestData/wordcount.cw
 
@@ -186,6 +192,11 @@ pp_test:
 reformat:
 	for f in TestData/*.cw ; do \
 		echo $$f ; ./pp_sexpr.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
+	done
+
+update_concrete_syntax:
+	for f in $(TESTS_CONCRETE) ; do  \
+	  ./pp.py  $$f > ConcreteSyntax/$$f ; \
 	done
 
 reformat_lib:

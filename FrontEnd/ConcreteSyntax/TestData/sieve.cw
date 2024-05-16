@@ -12,7 +12,7 @@ global EXPECTED uint = 148932
 -- subsequent unspecified ones.
 -- 
 -- index i reprents number 3 + 2 * i
-global! is_prime =[SIZE] bool{true}
+global! is_prime = [SIZE]bool{true}
 
 -- the actual sieve function
 fun sieve() uint:
@@ -29,4 +29,3 @@ fun sieve() uint:
     test::AssertEq#(sieve(), EXPECTED)
     test::Success#()
     return 0
-

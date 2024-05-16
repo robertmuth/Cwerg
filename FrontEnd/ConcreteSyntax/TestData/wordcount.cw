@@ -20,7 +20,7 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
     let! stats = TextStats{}
     let! in_word = false
     -- do not initialize buf with zeros
-    let! buf[1024] u8 = undef
+    let! buf [1024]u8 = undef
     while true:
         -- if FileRead returns an uint, assign it to n else return it
         trylet n uint = os::FileRead(fd, buf), err:
@@ -51,4 +51,3 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
     -- It is possible to define formatters for custom types.
     fmt::print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars, "\n")
     return 0
-

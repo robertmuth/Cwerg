@@ -20,4 +20,3 @@ fun InorderTraversal(root MaybeNode, visitor Visitor) void:
     shed InorderTraversal(node^.left, visitor)
     shed visitor(node)
     shed InorderTraversal(node^.right, visitor)
-

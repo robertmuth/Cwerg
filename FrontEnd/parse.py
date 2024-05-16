@@ -408,7 +408,7 @@ _FUN_LIKE = {
     "len": (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),
-    "offsetof": (cwast.ExprOffsetof, "TE"),
+    "offsetof": (cwast.ExprOffsetof, "TS"),
     "slice": (cwast.ValSlice, "EE"),
     "slice!": (cwast.ValSlice, "EE"),
     "front":  (cwast.ExprFront, "E"),
@@ -453,7 +453,10 @@ def _ParseFunLike(inp: Lexer, name: str) -> Any:
         first = False
         if a == "E" or a == "e":
             params.append(_ParseExpr(inp))
-
+        elif a == "S":
+            f = _ParseExpr(inp)
+            assert isinstance(f, cwast.Id)
+            params.append(f.name)
         else:
             assert a == "T", f"unknown parameter [{a}]"
             params.append(_ParseTypeExpr(inp))
@@ -519,7 +522,7 @@ def _PParseParenGroup(inp: Lexer, tk: TK, _precedence) -> Any:
 
 _PREFIX_EXPR_PARSERS = {
     TK_KIND.KW: (10, _PParseKeywordConstants),
-    TK_KIND.OP1: (10, _PParsePrefix),
+    TK_KIND.OP1: (20, _PParsePrefix),
     TK_KIND.OP2: (10, _PParsePrefix),
     TK_KIND.ID: (10, _PParseId),
     TK_KIND.NUM: (10, _PParseNum),
@@ -796,7 +799,8 @@ def _ParseStatement(inp: Lexer):
     elif kw.text == "while":
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke(kw.text, [cond, cwast.EphemeralList(stmts, colon=True)])
+        return cwast.MacroInvoke(kw.text, [cond, cwast.EphemeralList(stmts, colon=True)],
+                                 **_ExtractAnnotations(kw))
     elif kw.text == "if":
         cond = _ParseExpr(inp)
         stmts_t = _ParseStatementList(inp, kw.column)
@@ -864,7 +868,7 @@ def _ParseStatement(inp: Lexer):
         return cwast.MacroFor(var.text, container.text, stmts)
     elif kw.text == "shed":
         expr = _ParseExpr(inp)
-        return cwast.StmtExpr(expr)
+        return cwast.StmtExpr(expr,**_ExtractAnnotations(kw))
     elif kw.text == "trap":
         return cwast.StmtTrap()
     elif kw.text == "defer":
@@ -929,7 +933,8 @@ def _ParseFieldList(inp: Lexer):
             break
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
-        out.append(cwast.RecField(name.text, type, **_ExtractAnnotations(name)))
+        out.append(cwast.RecField(name.text, type,
+                   **_ExtractAnnotations(name)))
     return out
 
 
@@ -1019,7 +1024,8 @@ def _ParseTopLevel(inp: Lexer):
                 init = _ParseExpr(inp)
             else:
                 init = cwast.ValAuto()
-        return cwast.DefGlobal(name.text, type, init, mut=kw.text.endswith("!"))
+        return cwast.DefGlobal(name.text, type, init, mut=kw.text.endswith("!"),
+                               **_ExtractAnnotations(kw))
     elif kw.text == "macro":
         if inp.peek().kind is TK_KIND.KW:
             name = inp.next()
@@ -1049,7 +1055,7 @@ def _ParseTopLevel(inp: Lexer):
                              entries, **_ExtractAnnotations(kw))
     elif kw.text == "static_assert":
         cond = _ParseExpr(inp)
-        return cwast.StmtStaticAssert(cond, "")
+        return cwast.StmtStaticAssert(cond, "", **_ExtractAnnotations(kw))
     else:
         assert False, f"unexpected topelevel [{kw}]"
 

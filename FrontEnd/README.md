@@ -42,6 +42,13 @@ Similarly, parenthesis used to group expression will be modelled in the AST.
 * [Sieve](TestData/sieve.cw)
 * [Word Count](TestData/wordcount.cw)
 
+## Code Examples (using Concrete Syntax)
+
+* [Print Argv](ConcreteSyntax/TestData/print_argv.cw)
+* [Fizzbuzz](ConcreteSyntax/TestData/fizzbuzz.cw)
+* [Sieve](ConcreteSyntax/TestData/sieve.cw)
+* [Word Count](ConcreteSyntax/TestData/wordcount.cw)
+*
 ## Features Relative to C
 
 Added
