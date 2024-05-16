@@ -10,7 +10,7 @@ is fairly far along and can be used independently from the frontend.
 
 Documentation:
 * [Frontend Docs](FrontEndDocs/) (misc. documentation)
-* Cwerg Examples: [Sexpr Syntax](FrontEnd/TestData), [Proposed Concrete Syntax](FrontEnd/ConcteteSyntax) 
+* Cwerg Examples: [Sexpr Syntax](FrontEnd/TestData), [Proposed Concrete Syntax](FrontEnd/ConcreteSyntax) 
 * [Backend Docs](Docs/) (misc. documentation)
 * [Cwerg IR Examples](Examples/) (examples demonstrating backend API usage)
 
