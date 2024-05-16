@@ -6,7 +6,7 @@
 
 
 (fun is_white_space [(param c u8)] bool :
-    (return (|| (|| (== c ' ') (== c '\n')) (|| (== c '\t') (== c '\r')))))
+    (return (|| (|| (|| (== c ' ') (== c '\n')) (== c '\t')) (== c '\r'))))
 
 
 @doc "word, line and character count statistics"

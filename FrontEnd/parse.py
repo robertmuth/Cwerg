@@ -336,6 +336,26 @@ class Lexer:
         return self.next()
 
 
+def _ExtractAnnotations(tk: TK) -> dict[str, str]:
+    out: dict[str, Any] = {}
+    # print ("@@@@",tk)
+    comments = []
+    for c in tk.comments:
+        assert c.text.startswith("-- ")
+        comments.append(c.text[3:-1])
+    if comments:
+        if len(comments) == 1:
+            out["doc"] = f'"{comments[0]}"'
+        else:
+            c = '\n'.join(comments)
+            out["doc"] = f'"""{c}"""'
+    for a in tk.annotations:
+
+        assert a.text.startswith("@")
+        out[a.text[1:]] = True
+    return out
+
+
 PAREN_VALUE = {
     "{": 1,
     "}": -1,
@@ -596,13 +616,13 @@ def _PParseTernary(inp: Lexer, cond, _tk: TK, _precedence) -> Any:
 
 
 _INFIX_EXPR_PARSERS = {
-    "<": (10, _PParserInfixOp),
-    "<=": (10, _PParserInfixOp),
-    ">": (10, _PParserInfixOp),
-    ">=": (10, _PParserInfixOp),
+    "<": (7, _PParserInfixOp),
+    "<=": (7, _PParserInfixOp),
+    ">": (7, _PParserInfixOp),
+    ">=": (7, _PParserInfixOp),
     #
-    "==": (10, _PParserInfixOp),
-    "!=": (10, _PParserInfixOp),
+    "==": (7, _PParserInfixOp),
+    "!=": (7, _PParserInfixOp),
     #
     "+": (10, _PParserInfixOp),
     "-": (10, _PParserInfixOp),
@@ -610,8 +630,8 @@ _INFIX_EXPR_PARSERS = {
     "*": (10, _PParserInfixOp),
     "%": (10, _PParserInfixOp),
     #
-    "||": (10, _PParserInfixOp),
-    "&&": (10, _PParserInfixOp),
+    "||": (5, _PParserInfixOp),
+    "&&": (6, _PParserInfixOp),
     #
     "<<": (10, _PParserInfixOp),
     ">>": (10, _PParserInfixOp),
@@ -726,7 +746,7 @@ def _ParseStatementMacro(kw: TK, inp: Lexer):
     assert kw.text.endswith("#"), f"{kw}"
     if inp.match(TK_KIND.PAREN_OPEN):
         args = _ParseMacroCall(inp)
-        return cwast.MacroInvoke(kw.text, args)
+        return cwast.MacroInvoke(kw.text, args, **_ExtractAnnotations(kw))
     else:
         assert False
 
@@ -766,7 +786,13 @@ def _ParseStatement(inp: Lexer):
                 init = _ParseExpr(inp)
             else:
                 init = cwast.ValAuto()
-        return cwast.DefVar(name.text, type, init, mut=kw.text.endswith("!"))
+        if kw.text.startswith("m"):
+            return cwast.MacroVar(name.text, type, init, mut=kw.text.endswith("!"),
+                                  **_ExtractAnnotations(kw))
+        else:
+            return cwast.DefVar(name.text, type, init, mut=kw.text.endswith("!"),
+                                **_ExtractAnnotations(kw))
+
     elif kw.text == "while":
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
@@ -789,8 +815,9 @@ def _ParseStatement(inp: Lexer):
         name2 = inp.match_or_die(TK_KIND.ID)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
-                                 [cwast.Id(name), type, expr,  cwast.Id(name2),
-                                  cwast.EphemeralList(stmts, colon=True)])
+                                 [cwast.Id(name.text), type, expr,  cwast.Id(name2.text),
+                                  cwast.EphemeralList(stmts, colon=True)],
+                                 ** _ExtractAnnotations(kw))
     elif kw.text == "set":
         lhs = _ParseExpr(inp)
         kind = inp.next()
@@ -817,7 +844,9 @@ def _ParseStatement(inp: Lexer):
         step = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
-                                 [cwast.Id(name.text), start, end, step, cwast.EphemeralList(stmts, colon=True)])
+                                 [cwast.Id(name.text), start, end, step,
+                                  cwast.EphemeralList(stmts, colon=True)],
+                                 **_ExtractAnnotations(kw))
     elif kw.text == "break":
         return cwast.StmtBreak(_ParseOptionalLabel(inp))
     elif kw.text == "continue":
@@ -900,7 +929,7 @@ def _ParseFieldList(inp: Lexer):
             break
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
-        out.append(cwast.RecField(name.text, type))
+        out.append(cwast.RecField(name.text, type, **_ExtractAnnotations(name)))
     return out
 
 
@@ -916,7 +945,7 @@ def _ParseEnumList(inp: Lexer, outer_indent):
             break
         name = inp.match_or_die(TK_KIND.ID)
         val = _ParseExpr(inp)
-        out.append(cwast.EnumVal(name.text, val))
+        out.append(cwast.EnumVal(name.text, val, **_ExtractAnnotations(name)))
     return out
 
 
@@ -945,24 +974,6 @@ def _ParseMacroGenIds(inp: Lexer):
         first = False
         name = inp.match_or_die(TK_KIND.ID)
         out.append(cwast.Id(name.text))
-    return out
-
-
-def _ExtractAnnotations(tk: TK) -> dict[str, str]:
-    out: dict[str, Any] = {}
-    # print ("@@@@",tk)
-    comments = []
-    for c in tk.comments:
-        assert c.text.startswith("-- ")
-        comments.append(c.text[3:-1])
-    if comments:
-        if len(comments) == 1:
-            out["doc"] = f'"{comments[0]}"'
-        else:
-            assert False
-    for a in tk.annotations:
-        assert a.text.startswith("@")
-        out[a.text[1:]] = True
     return out
 
 
@@ -1029,13 +1040,13 @@ def _ParseTopLevel(inp: Lexer):
         name = inp.match_or_die(TK_KIND.ID)
         inp.match_or_die(TK_KIND.ASSIGN)
         type = _ParseTypeExpr(inp)
-        return cwast.DefType(name.text, type)
+        return cwast.DefType(name.text, type, **_ExtractAnnotations(kw))
     elif kw.text == "enum":
         name = inp.match_or_die(TK_KIND.ID)
         base_type = inp.match_or_die(TK_KIND.KW)
         entries = _ParseEnumList(inp, kw.column)
         return cwast.DefEnum(name.text, cwast.KeywordToBaseTypeKind(base_type.text),
-                             entries)
+                             entries, **_ExtractAnnotations(kw))
     elif kw.text == "static_assert":
         cond = _ParseExpr(inp)
         return cwast.StmtStaticAssert(cond, "")

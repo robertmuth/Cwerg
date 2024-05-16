@@ -33,7 +33,9 @@ TESTS_CONCRETE = \
     TestData/hello_world.cw \
     TestData/fizzbuzz.cw \
     TestData/fibonacci.cw \
-    TestData/large_args.cw
+    TestData/large_args.cw \
+    TestData/types.cw \
+    TestData/wordcount.cw
 
 
 # not the clean part will be run out of order but the early targets are not
