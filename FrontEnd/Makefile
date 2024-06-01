@@ -35,9 +35,10 @@ TESTS_CONCRETE = \
     TestData/cast.cw \
     TestData/fizzbuzz.cw \
     TestData/fibonacci.cw \
-	TestData/heapsort.cw \
+    TestData/heapsort.cw \
     TestData/hello_world.cw \
     TestData/large_args.cw \
+    TestData/linked_list.cw \
     TestData/print_argv.cw \
 	TestData/sieve.cw \
     TestData/sizeof.cw \

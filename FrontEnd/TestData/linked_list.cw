@@ -37,7 +37,7 @@
 
 
 @doc "currently (* N 24) but should be (* N 16) on 64 bit system with union optimization"
-(static_assert (== (sizeof (typeof NodePool)) (* N (* (sizeof (ptr! LinkedListNode)) 3))))
+(static_assert (== (sizeof (typeof NodePool)) (* (* N 3) (sizeof (ptr! LinkedListNode)))))
 
 
 (fun DumpNode [(param i u32)] void :
@@ -64,4 +64,3 @@
     (test::Success#)
     (return 0))
 )
-

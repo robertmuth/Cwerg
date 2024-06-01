@@ -430,7 +430,7 @@ _FUN_LIKE = {
     "is": (cwast.ExprIs, "ET"),
     "narrowto": (cwast.ExprNarrow, "ET"),
     "widdento": (cwast.ExprWiden, "ET"),
-    "unsafeas": (cwast.ExprBitCast, "ET"),
+    "unsafeas": (cwast.ExprUnsafeCast, "ET"),
     "bitsas": (cwast.ExprBitCast, "ET"),
 }
 
