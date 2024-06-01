@@ -20,7 +20,7 @@ fun sieve() uint:
     for i = 0, SIZE, 1:
         if is_prime[i]:
             set count += 1
-            let p uint = 3 + i + i
+            let p uint = i + i + 3
             for k = i + p, SIZE, p:
                 set is_prime[k] = false
     return count
