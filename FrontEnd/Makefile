@@ -40,6 +40,7 @@ TESTS_CONCRETE = \
     Lib/os.cw \
     Lib/string.cw \
     Lib/string_test.cw \
+    Lib/trig_test.cw \
     LangTest/array_test.cw \
     LangTest/assign_test.cw \
     LangTest/defer_test.cw \
