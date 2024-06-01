@@ -508,7 +508,11 @@ def _PParsePrefix(inp: Lexer, tk: TK, precedence) -> Any:
     rhs = _ParseExpr(inp, precedence)
     if tk.kind is TK_KIND.OP2:
         assert tk.text == "-"
-        return cwast.Expr1(cwast.UNARY_EXPR_KIND.MINUS, rhs)
+        if isinstance(rhs, cwast.ValNum):
+            rhs.number = "-" + rhs.number
+            return rhs
+        else:
+            return cwast.Expr1(cwast.UNARY_EXPR_KIND.MINUS, rhs)
     if tk.text.startswith("&"):
         return cwast.ExprAddrOf(rhs, mut=tk.text == "&!")
     kind = cwast.UNARY_EXPR_SHORTCUT[tk.text]
@@ -660,7 +664,7 @@ _INFIX_EXPR_PARSERS = {
     "^": (20, _PParseDeref),
     ".": (20, _PParseFieldAccess),
     "^.": (20, _PParseDerefFieldAccess),
-    "?": (10, _PParseTernary),
+    "?": (6, _PParseTernary),
 }
 
 

@@ -33,6 +33,7 @@ TESTS_CONCRETE = \
     TestData/asciiquarium.cw \
     TestData/binary_tree.cw \
     TestData/cast.cw \
+    TestData/consts.cw \
     TestData/fizzbuzz.cw \
     TestData/fibonacci.cw \
     TestData/heapsort.cw \
