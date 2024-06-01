@@ -74,10 +74,10 @@
     (-= (. gr1 i2) 0x1)
     (test::AssertEq# (. gr1 i2) 0x1234567812345677_u64)
     @doc "gr1 u64 via pointer"
-    (= (. (^ (get_addr [])) i2) 0x1234567812345678)
-    (test::AssertEq# (. (^ (get_addr [])) i2) 0x1234567812345678_u64)
-    (-= (. (^ (get_addr [])) i2) 0x1)
-    (test::AssertEq# (. (^ (get_addr [])) i2) 0x1234567812345677_u64)
+    (= (^. (get_addr []) i2) 0x1234567812345678)
+    (test::AssertEq# (^. (get_addr []) i2) 0x1234567812345678_u64)
+    (-= (^. (get_addr []) i2) 0x1)
+    (test::AssertEq# (^. (get_addr []) i2) 0x1234567812345677_u64)
     @doc "gar1 s64"
     (= (. (at gar1 3) i1) 0x8765432187654321)
     (test::AssertEq# (. (at gar1 3) i1) 0x8765432187654321_s64)
@@ -93,4 +93,3 @@
     (test::Success#)
     (return 0))
 )
-

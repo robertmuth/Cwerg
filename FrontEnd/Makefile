@@ -30,6 +30,11 @@ TESTS_A32 = \
     Lib/trig_test.cw
 
 TESTS_CONCRETE = \
+    LangTest/array_test.cw \
+    LangTest/assign_test.cw \
+    LangTest/defer_test.cw \
+    LangTest/enum_test.cw \
+	LangTest/sum_tagged_test.cw \
     TestData/asciiquarium.cw \
     TestData/binary_tree.cw \
     TestData/cast.cw \
