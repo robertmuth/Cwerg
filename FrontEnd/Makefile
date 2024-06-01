@@ -30,6 +30,13 @@ TESTS_A32 = \
     Lib/trig_test.cw
 
 TESTS_CONCRETE = \
+    Lib/ansi.cw \
+    Lib/bitstream_test.cw \
+    Lib/bytestream_test.cw \
+    Lib/checksum.cw \
+    Lib/checksum_test.cw \
+    Lib/hashtab32.cw \
+    Lib/heapsort.cw \
     LangTest/array_test.cw \
     LangTest/assign_test.cw \
     LangTest/defer_test.cw \

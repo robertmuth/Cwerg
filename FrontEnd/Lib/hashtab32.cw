@@ -4,17 +4,17 @@
 This also limits the max table size to (2^32 - 1).
 
 The approach used is linear probing with separate arrays afor keys and values
-(and meta data) to improve reference locality. 
+(and meta data) to improve reference locality.
 """
 (module hashtab32 [
         @doc "the key type"
         (modparam $ktype TYPE)
         @doc "the value type"
         (modparam $vtype TYPE)
-        @doc "the hash function: ptr($ktype) -> u32
+        @doc "the hash function: ptr($ktype) -> u32"
 
         (modparam $khash CONST_EXPR)
-        @doc "the key equality checker: ptr($ktype) X ptr($ktype) -> bool
+        @doc "the key equality checker: ptr($ktype) X ptr($ktype) -> bool"
 
         (modparam $keq CONST_EXPR)] :
 (import fmt)
@@ -147,4 +147,3 @@ The Hashtable contains pointers to 3 arrays of size `size`:
                 (fmt::print# m " " (^ (pinc keys i)) " " (^ (pinc vals i)))))
         (fmt::print# "\n")))
 )
-

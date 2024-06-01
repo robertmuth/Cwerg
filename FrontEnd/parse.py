@@ -640,15 +640,15 @@ _INFIX_EXPR_PARSERS = {
     #
     "+": (10, _PParserInfixOp),
     "-": (10, _PParserInfixOp),
-    "/": (15, _PParserInfixOp),
-    "*": (15, _PParserInfixOp),
-    "%": (15, _PParserInfixOp),
+    "/": (12, _PParserInfixOp),
+    "*": (12, _PParserInfixOp),
+    "%": (12, _PParserInfixOp),
     #
     "||": (5, _PParserInfixOp),
     "&&": (6, _PParserInfixOp),
     #
-    "<<": (10, _PParserInfixOp),
-    ">>": (10, _PParserInfixOp),
+    "<<": (11, _PParserInfixOp),
+    ">>": (11, _PParserInfixOp),
     #
     "&-&": (10, _PParserInfixOp),
     #
@@ -662,7 +662,7 @@ _INFIX_EXPR_PARSERS = {
     #
     "(": (20, _PParseFunctionCall),
     "{": (10, _PParseInitializer),
-    "[":  (10, _PParseIndex),
+    "[":  (13, _PParseIndex),
     "^": (20, _PParseDeref),
     ".": (20, _PParseFieldAccess),
     "^.": (20, _PParseDerefFieldAccess),
@@ -1084,10 +1084,10 @@ def _ParseModule(inp: Lexer):
             if not first:
                 inp.match_or_die(TK_KIND.COMMA)
             first = False
-            name = inp.match_or_die(TK_KIND.ID)
-            kind = inp.match_or_die(TK_KIND.ID)
-            params.append(cwast.ModParam(name.text,
-                                         cwast.MOD_PARAM_KIND[kind.text]))
+            pname = inp.match_or_die(TK_KIND.ID)
+            pkind = inp.match_or_die(TK_KIND.ID)
+            params.append(cwast.ModParam(pname.text,
+                                         cwast.MOD_PARAM_KIND[pkind.text], **_ExtractAnnotations(pname)))
     inp.match_or_die(TK_KIND.COLON)
     out = cwast.DefMod(name.text, params, [], **_ExtractAnnotations(kw))
 

@@ -473,6 +473,7 @@ def TokensParameterList(ts: TS, lst):
         if sep:
             ts.EmitSep(",")
         sep = True
+        TokensAnnotationsPre(ts, param)
         if isinstance(param, cwast.FunParam):
             ts.EmitName(param.name)
             EmitTokens(ts, param.type)
