@@ -42,6 +42,7 @@ TESTS_CONCRETE = \
     TestData/print_argv.cw \
 	TestData/sieve.cw \
     TestData/sizeof.cw \
+    TestData/sort.cw \
     TestData/types.cw \
     TestData/wordcount.cw
 

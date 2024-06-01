@@ -1003,7 +1003,7 @@ def _ParseTopLevel(inp: Lexer):
         params = []
         if inp.match(TK_KIND.PAREN_OPEN):
             first = True
-            while not inp.match(TK_KIND.PAREN_OPEN):
+            while not inp.match(TK_KIND.PAREN_CLOSED):
                 if not first:
                     inp.match(TK_KIND.COMMA)
                 first = False
