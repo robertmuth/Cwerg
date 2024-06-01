@@ -849,7 +849,7 @@ def _ParseStatement(inp: Lexer):
             val = _ParseExpr(inp)
         else:
             val = cwast.ValVoid()
-        return cwast.StmtReturn(val)
+        return cwast.StmtReturn(val, **_ExtractAnnotations(kw))
     elif kw.text == "for":
         name = inp.match_or_die(TK_KIND.ID)
         inp.match_or_die(TK_KIND.ASSIGN)
@@ -872,7 +872,7 @@ def _ParseStatement(inp: Lexer):
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.StmtBlock(label, stmts)
     elif kw.text == "cond":
-        return _ParseCondList(inp)
+        return _ParseCondList(kw, inp)
     elif kw.text == "mfor":
         var = inp.match_or_die(TK_KIND.ID)
         container = inp.match_or_die(TK_KIND.ID)
@@ -920,7 +920,7 @@ def _ParseExprList(inp: Lexer, outer_indent):
     return out
 
 
-def _ParseCondList(inp: Lexer):
+def _ParseCondList(kw: TK, inp: Lexer):
     inp.match_or_die(TK_KIND.COLON)
     indent = inp.peek().column
     cases = []
@@ -932,7 +932,7 @@ def _ParseCondList(inp: Lexer):
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, case.column)
         cases.append(cwast.Case(cond, stmts))
-    return cwast.StmtCond(cases)
+    return cwast.StmtCond(cases, **_ExtractAnnotations(kw))
 
 
 def _ParseFieldList(inp: Lexer):

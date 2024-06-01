@@ -37,6 +37,9 @@ TESTS_CONCRETE = \
     Lib/checksum_test.cw \
     Lib/hashtab32.cw \
     Lib/heapsort.cw \
+    Lib/os.cw \
+    Lib/string.cw \
+    Lib/string_test.cw \
     LangTest/array_test.cw \
     LangTest/assign_test.cw \
     LangTest/defer_test.cw \
