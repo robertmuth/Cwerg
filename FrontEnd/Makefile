@@ -35,6 +35,7 @@ TESTS_CONCRETE = \
     TestData/cast.cw \
     TestData/fizzbuzz.cw \
     TestData/fibonacci.cw \
+	TestData/heapsort.cw \
     TestData/hello_world.cw \
     TestData/large_args.cw \
     TestData/print_argv.cw \
@@ -144,7 +145,7 @@ $(DIR)/%.concrete: %.cw
 	@echo "[concrete $@]"
 	./pp.py $< > $@
 	./parse.py < $@ > $@.pp
-	diff -b $@.pp $<
+	diff -bB $@.pp $<
 
 # Misc Tests
 

@@ -23,7 +23,7 @@ index i reprents number 3 + 2 * i"""
     (for i 0 SIZE 1 :
         (if (at is_prime i) :
             (+= count 1)
-            (let p uint (+ 3 (+ i i)))
+            (let p uint (+ (+ i i) 3))
             (for k (+ i p) SIZE p :
                 (= (at is_prime k) false))
          :))
@@ -35,4 +35,3 @@ index i reprents number 3 + 2 * i"""
     (test::Success#)
     (return 0))
 )
-

@@ -39,6 +39,7 @@ class TK_KIND(enum.Enum):
     COMMA = enum.auto()
     COLON = enum.auto()
     QUESTION_MARK = enum.auto()
+    DEREFDOT = enum.auto()
     DOT = enum.auto()
     EOL = enum.auto()
     WS = enum.auto()
@@ -148,6 +149,7 @@ _token_spec = [
     (TK_KIND.COMMENT.name, COMMENT_RE),  # remark
     (TK_KIND.NUM.name, NUM_RE),
     (TK_KIND.QUESTION_MARK.name, r"\?"),
+    (TK_KIND.DEREFDOT.name, r"\^\."),
     (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
@@ -522,7 +524,7 @@ def _PParseParenGroup(inp: Lexer, tk: TK, _precedence) -> Any:
 
 _PREFIX_EXPR_PARSERS = {
     TK_KIND.KW: (10, _PParseKeywordConstants),
-    TK_KIND.OP1: (20, _PParsePrefix),
+    TK_KIND.OP1: (9, _PParsePrefix),
     TK_KIND.OP2: (10, _PParsePrefix),
     TK_KIND.ID: (10, _PParseId),
     TK_KIND.NUM: (10, _PParseNum),
@@ -610,6 +612,9 @@ def _PParseFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
     field = inp.match_or_die(TK_KIND.ID)
     return cwast.ExprField(rec, field.text)
 
+def _PParseDerefFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
+    field = inp.match_or_die(TK_KIND.ID)
+    return cwast.MacroInvoke("^.", [rec, cwast.Id(field.text)])
 
 def _PParseTernary(inp: Lexer, cond, _tk: TK, _precedence) -> Any:
     expr_t = _ParseExpr(inp)
@@ -629,9 +634,9 @@ _INFIX_EXPR_PARSERS = {
     #
     "+": (10, _PParserInfixOp),
     "-": (10, _PParserInfixOp),
-    "/": (10, _PParserInfixOp),
-    "*": (10, _PParserInfixOp),
-    "%": (10, _PParserInfixOp),
+    "/": (15, _PParserInfixOp),
+    "*": (15, _PParserInfixOp),
+    "%": (15, _PParserInfixOp),
     #
     "||": (5, _PParserInfixOp),
     "&&": (6, _PParserInfixOp),
@@ -654,6 +659,7 @@ _INFIX_EXPR_PARSERS = {
     "[":  (10, _PParseIndex),
     "^": (20, _PParseDeref),
     ".": (20, _PParseFieldAccess),
+    "^.": (20, _PParseDerefFieldAccess),
     "?": (10, _PParseTernary),
 }
 
@@ -829,7 +835,7 @@ def _ParseStatement(inp: Lexer):
         if kind.kind is TK_KIND.ASSIGN:
             return cwast.StmtAssignment(lhs, rhs)
         else:
-            assert kind.kind is TK_KIND.COMPOUND_ASSIGN
+            assert kind.kind is TK_KIND.COMPOUND_ASSIGN, f"{kind}"
             op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
             return cwast.StmtCompoundAssignment(op, lhs, rhs)
     elif kw.text == "return":
