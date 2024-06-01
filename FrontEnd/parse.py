@@ -616,9 +616,11 @@ def _PParseFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
     field = inp.match_or_die(TK_KIND.ID)
     return cwast.ExprField(rec, field.text)
 
+
 def _PParseDerefFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
     field = inp.match_or_die(TK_KIND.ID)
     return cwast.MacroInvoke("^.", [rec, cwast.Id(field.text)])
+
 
 def _PParseTernary(inp: Lexer, cond, _tk: TK, _precedence) -> Any:
     expr_t = _ParseExpr(inp)
@@ -697,7 +699,7 @@ def _ParseTypeExpr(inp: Lexer):
                     inp.match_or_die(TK_KIND.COMMA)
                 first = False
                 members.append(_ParseTypeExpr(inp))
-            return cwast.TypeUnion(members)
+            return cwast.TypeUnion(members, **_ExtractAnnotations(tk))
         kind = cwast.KeywordToBaseTypeKind(tk.text)
         assert kind is not cwast.BASE_TYPE_KIND.INVALID, f"{tk}"
         return cwast.TypeBase(kind)
@@ -837,7 +839,7 @@ def _ParseStatement(inp: Lexer):
         kind = inp.next()
         rhs = _ParseExpr(inp)
         if kind.kind is TK_KIND.ASSIGN:
-            return cwast.StmtAssignment(lhs, rhs)
+            return cwast.StmtAssignment(lhs, rhs, ** _ExtractAnnotations(kw))
         else:
             assert kind.kind is TK_KIND.COMPOUND_ASSIGN, f"{kind}"
             op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
@@ -878,7 +880,7 @@ def _ParseStatement(inp: Lexer):
         return cwast.MacroFor(var.text, container.text, stmts)
     elif kw.text == "shed":
         expr = _ParseExpr(inp)
-        return cwast.StmtExpr(expr,**_ExtractAnnotations(kw))
+        return cwast.StmtExpr(expr, **_ExtractAnnotations(kw))
     elif kw.text == "trap":
         return cwast.StmtTrap()
     elif kw.text == "defer":

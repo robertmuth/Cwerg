@@ -35,6 +35,7 @@ TESTS_CONCRETE = \
     LangTest/defer_test.cw \
     LangTest/enum_test.cw \
 	LangTest/sum_tagged_test.cw \
+    LangTest/sum_untagged_test.cw \
     TestData/asciiquarium.cw \
     TestData/binary_tree.cw \
     TestData/cast.cw \
