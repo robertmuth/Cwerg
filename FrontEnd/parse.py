@@ -630,34 +630,34 @@ def _PParseTernary(inp: Lexer, cond, _tk: TK, _precedence) -> Any:
 
 
 _INFIX_EXPR_PARSERS = {
-    "<": (7, _PParserInfixOp),
-    "<=": (7, _PParserInfixOp),
-    ">": (7, _PParserInfixOp),
-    ">=": (7, _PParserInfixOp),
+    "<": (pp.PREC2_COMPARISON, _PParserInfixOp),
+    "<=": (pp.PREC2_COMPARISON, _PParserInfixOp),
+    ">": (pp.PREC2_COMPARISON, _PParserInfixOp),
+    ">=": (pp.PREC2_COMPARISON, _PParserInfixOp),
     #
-    "==": (7, _PParserInfixOp),
-    "!=": (7, _PParserInfixOp),
+    "==": (pp.PREC2_COMPARISON, _PParserInfixOp),
+    "!=": (pp.PREC2_COMPARISON, _PParserInfixOp),
     #
-    "+": (10, _PParserInfixOp),
-    "-": (10, _PParserInfixOp),
-    "/": (12, _PParserInfixOp),
-    "*": (12, _PParserInfixOp),
-    "%": (12, _PParserInfixOp),
+    "+": (pp.PREC2_ADD, _PParserInfixOp),
+    "-": (pp.PREC2_ADD, _PParserInfixOp),
+    "/": (pp.PREC2_MUL, _PParserInfixOp),
+    "*": (pp.PREC2_MUL, _PParserInfixOp),
+    "%": (pp.PREC2_MUL, _PParserInfixOp),
     #
-    "||": (5, _PParserInfixOp),
-    "&&": (6, _PParserInfixOp),
+    "||": (pp.PREC2_ORSC, _PParserInfixOp),
+    "&&": (pp.PREC2_ANDSC, _PParserInfixOp),
     #
-    "<<": (11, _PParserInfixOp),
-    ">>": (11, _PParserInfixOp),
+    "<<": (pp.PREC2_SHIFT, _PParserInfixOp),
+    ">>": (pp.PREC2_SHIFT, _PParserInfixOp),
     #
     "&-&": (10, _PParserInfixOp),
     #
-    "xor": (10, _PParserInfixOp),
-    "or": (10, _PParserInfixOp),
-    "and": (10, _PParserInfixOp),
+    "xor": (pp.PREC2_ADD, _PParserInfixOp),
+    "or": (pp.PREC2_ADD, _PParserInfixOp),
+    "and": (pp.PREC2_MUL, _PParserInfixOp),
     #
-    "min": (10, _PParserInfixOp),
-    "max": (10, _PParserInfixOp),
+    "min": (pp.PREC2_MAX, _PParserInfixOp),
+    "max": (pp.PREC2_MAX, _PParserInfixOp),
 
     #
     "(": (20, _PParseFunctionCall),

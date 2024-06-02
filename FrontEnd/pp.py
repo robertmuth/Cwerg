@@ -32,45 +32,64 @@ _ANNOTATION_PREFIX = "@"
 _DEREFERENCE_OP = "^"
 _ADDRESS_OF_OP = "&"
 
+PREC2_ORSC = 5
+PREC2_ANDSC = 6
+PREC2_COMPARISON = 7
+PREC2_MAX = 9  # max min
+PREC2_ADD = 10 # + - or xor
+PREC2_MUL = 11 # * / % and
+PREC2_SHIFT = 12
+
+
 _OPS_PRECENDENCE_EXPR2 = {
-    cwast.BINARY_EXPR_KIND.SHL: 20,
-    cwast.BINARY_EXPR_KIND.ROTL: 20,
-    cwast.BINARY_EXPR_KIND.SHR: 20,
-    cwast.BINARY_EXPR_KIND.ROTR: 20,
+    cwast.BINARY_EXPR_KIND.SHL: PREC2_SHIFT,
+    cwast.BINARY_EXPR_KIND.ROTL: PREC2_SHIFT,
+    cwast.BINARY_EXPR_KIND.SHR: PREC2_SHIFT,
+    cwast.BINARY_EXPR_KIND.ROTR: PREC2_SHIFT,
     #
-    cwast.BINARY_EXPR_KIND.MUL: 30,
-    cwast.BINARY_EXPR_KIND.DIV: 30,
-    cwast.BINARY_EXPR_KIND.MOD: 30,
-    cwast.BINARY_EXPR_KIND.AND: 30,
-    cwast.BINARY_EXPR_KIND.XOR: 30,
+    cwast.BINARY_EXPR_KIND.MUL: PREC2_MUL,
+    cwast.BINARY_EXPR_KIND.DIV: PREC2_MUL,
+    cwast.BINARY_EXPR_KIND.MOD: PREC2_MUL,
+    cwast.BINARY_EXPR_KIND.AND: PREC2_MUL,
     #
-    cwast.BINARY_EXPR_KIND.OR: 35,
-    cwast.BINARY_EXPR_KIND.ADD: 35,
-    cwast.BINARY_EXPR_KIND.SUB: 35,
+    cwast.BINARY_EXPR_KIND.ADD: PREC2_ADD,
+    cwast.BINARY_EXPR_KIND.SUB: PREC2_ADD,
+    cwast.BINARY_EXPR_KIND.XOR: PREC2_ADD,
+    cwast.BINARY_EXPR_KIND.OR: PREC2_ADD,
     #
-    cwast.BINARY_EXPR_KIND.MAX: 40,
-    cwast.BINARY_EXPR_KIND.MIN: 40,
+    cwast.BINARY_EXPR_KIND.MAX: PREC2_MAX,
+    cwast.BINARY_EXPR_KIND.MIN: PREC2_MAX,
     #
-    cwast.BINARY_EXPR_KIND.GE: 60,
-    cwast.BINARY_EXPR_KIND.GT: 60,
-    cwast.BINARY_EXPR_KIND.LE: 60,
-    cwast.BINARY_EXPR_KIND.LT: 60,
-    cwast.BINARY_EXPR_KIND.EQ: 65,
-    cwast.BINARY_EXPR_KIND.NE: 65,
+    cwast.BINARY_EXPR_KIND.GE: PREC2_COMPARISON,
+    cwast.BINARY_EXPR_KIND.GT: PREC2_COMPARISON,
+    cwast.BINARY_EXPR_KIND.LE: PREC2_COMPARISON,
+    cwast.BINARY_EXPR_KIND.LT: PREC2_COMPARISON,
+    cwast.BINARY_EXPR_KIND.EQ: PREC2_COMPARISON,
+    cwast.BINARY_EXPR_KIND.NE: PREC2_COMPARISON,
     #
-    cwast.BINARY_EXPR_KIND.ANDSC: 70,
-    cwast.BINARY_EXPR_KIND.ORSC: 75,
+    cwast.BINARY_EXPR_KIND.ANDSC: PREC2_ANDSC,
+    cwast.BINARY_EXPR_KIND.ORSC: PREC2_ORSC,
 }
 
 
+def _prec2(node: cwast.Expr2):
+    return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind]
+
 def _NodeNeedsParen(node, parent, field: str):
+    """Do we need to add parenthesese around an expression
+    so that the (naive) concrete syntax emitter does not
+    produce invalid code.
+    """
     if isinstance(parent, cwast.Expr2):
         if field == "expr1":
             if isinstance(node, cwast.Expr2):
-                return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind] > _OPS_PRECENDENCE_EXPR2[parent.binary_expr_kind]
+               # parent: (expr2 node ...)
+               # (* (+ a b ) ...) =>  a + b * ...
+                return _prec2(node) < _prec2(parent)
         if field == "expr2":
+            # parent: (expr2 ... node)
             if isinstance(node, cwast.Expr2):
-                return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind] > _OPS_PRECENDENCE_EXPR2[parent.binary_expr_kind]
+                return _prec2(node) < _prec2(parent)
 
     return False
 
