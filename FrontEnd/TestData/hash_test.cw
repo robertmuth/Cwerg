@@ -33,11 +33,11 @@
 
 
 (global! ht auto (rec_val hashtab::HashTab32 [
-        (field_val (front! meta))
-        (field_val (front! keys))
-        (field_val (front! vals))
-        (field_val SIZE)
-        (field_val 0)]))
+        (front! meta)
+        (front! keys)
+        (front! vals)
+        SIZE
+        0]))
 
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

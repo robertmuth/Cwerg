@@ -47,21 +47,21 @@
 (global g1 (array 5 type_rec1) undef)
 
 
-(global g2 auto (rec_val type_rec2 [(field_val true) (field_val u0)]))
+(global g2 auto (rec_val type_rec2 [true u0]))
 
 
 (global! g3 auto (rec_val type_rec3 [
-        (field_val 0x1234)
-        (field_val 0x4321)
-        (field_val g2)
-        (field_val (array_val 13 u16 [0x11 undef 0x12]))]))
+        0x1234
+        0x4321
+        g2
+        (array_val 13 u16 [0x11 undef 0x12])]))
 
 
 (global! g3_alt auto (rec_val type_rec3 [
-        (field_val 0x1234)
-        (field_val 0x4321)
-        (field_val g2)
-        (field_val (array_val 13 u16 [0x11 undef 0x12]))]))
+        0x1234
+        0x4321
+        g2
+        (array_val 13 u16 [0x11 undef 0x12])]))
 
 
 @doc "BROKEN init"
@@ -80,10 +80,10 @@
 (global g5 type_rec5 undef)
 
 
-(global g6 type_rec5 (rec_val type_rec5 [(field_val 0) (field_val buffer) (field_val false)]))
+(global g6 type_rec5 (rec_val type_rec5 [0 buffer false]))
 
 
-(global g7 auto (array_val 1 type_rec5 [(rec_val type_rec5 [(field_val 0) (field_val buffer) (field_val false)])]))
+(global g7 auto (array_val 1 type_rec5 [(rec_val type_rec5 [0 buffer false])]))
 
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

@@ -112,17 +112,25 @@ def _RenderColonList(val: list, field: str, out, indent: int):
                 out.append([" " * indent])
 
 
+def _GuessNodeSize(v) -> int:
+    if isinstance(v, (cwast.ValAuto, cwast.ValFalse, cwast.ValTrue, cwast.ValNum)):
+        return 1
+    elif isinstance(v, (cwast.FunParam, cwast.MacroParam, cwast.ValArray, cwast.ValRec)):
+        return 3
+    elif isinstance(v, cwast.IndexVal):
+        return _GuessNodeSize(v.value_or_undef)
+    elif isinstance(v, cwast.FieldVal):
+        return _GuessNodeSize(v.value_or_undef)
+    else:
+        return 2
+
+
 def _ListIsCompact(val: list):
     points = 0
     for v in val:
         if GetDoc(v):
             return False
-        if isinstance(v, (cwast.ValAuto, cwast.ValFalse, cwast.ValTrue, cwast.ValNum)):
-            points += 1
-        elif isinstance(v, (cwast.FunParam, cwast.MacroParam)):
-            points += 3
-        else:
-            points += 2
+        points += _GuessNodeSize(v)
 
     if points > 6:
         return False
@@ -249,6 +257,9 @@ def _RenderRecursivelyToIR(node, out, indent: int):
         return
 
     if isinstance(node, cwast.IndexVal) and isinstance(node.init_index, cwast.ValAuto) and not node.doc:
+        _RenderRecursivelyToIR(node.value_or_undef, out, indent)
+        return
+    if isinstance(node, cwast.FieldVal) and node.init_field == "" and not node.doc:
         _RenderRecursivelyToIR(node.value_or_undef, out, indent)
         return
     node_name, fields = GetNodeTypeAndFields(node)

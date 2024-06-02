@@ -10,7 +10,7 @@
 
 
 (fun test1 [] void :
-    (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val DataFF)]))
+    (@ref let! bs auto (rec_val bitstream::Stream32 [DataFF]))
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 1]) 1_u32)
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 2]) 3_u32)
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 3]) 7_u32)
@@ -103,7 +103,7 @@
 
 
 (fun test2 [] void :
-    (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val Data123)]))
+    (@ref let! bs auto (rec_val bitstream::Stream32 [Data123]))
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 4]) 2_u32)
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 32]) 0x27856341_u32))
 

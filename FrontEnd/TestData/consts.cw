@@ -80,7 +80,7 @@
 
 
 @doc "rec literal with explicit field name"
-(global c32 auto (rec_val type_rec [(field_val 7) (field_val 9) (field_val 7)]))
+(global c32 auto (rec_val type_rec [7 9 7]))
 
 
 (static_assert (== (. c32 s1) 7))
@@ -132,7 +132,7 @@
 
 
 @doc "rec literal"
-(global c33 auto (rec_val type_rec [(field_val 7) (field_val 9) (field_val 7)]))
+(global c33 auto (rec_val type_rec [7 9 7]))
 
 
 (static_assert (== (. c33 s1) 7))
@@ -145,11 +145,11 @@
 
 
 @doc "rec literal"
-(global r01 auto (rec_val type_rec2 [(field_val "aaa") (field_val 9) (field_val 7)]))
+(global r01 auto (rec_val type_rec2 ["aaa" 9 7]))
 
 
 @doc "rec literal"
-(global r02 auto (rec_val type_rec2 [(field_val 9 s2) (field_val 7)]))
+(global r02 auto (rec_val type_rec2 [(field_val 9 s2) 7]))
 
 
 (static_assert (== (len (. r02 s1)) 0))

@@ -101,7 +101,7 @@
     (field s2 Union2))
 
 
-(global global_rec1 auto (rec_val rec1 [(field_val 1_s8) (field_val 2_s8)]))
+(global global_rec1 auto (rec_val rec1 [1_s8 2_s8]))
 
 
 @doc """

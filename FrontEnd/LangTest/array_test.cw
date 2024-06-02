@@ -114,12 +114,7 @@
 (global e2 (slice! s32) d2)
 
 
-(global e3 auto (array_val 5 s32 [
-        0
-        1
-        2
-        3
-        4]))
+(global e3 auto (array_val 5 s32 [0 1 2 3 4]))
 
 
 (global e4 auto (array_val 2 (slice s32) [e1 e1]))

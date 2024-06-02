@@ -24,14 +24,14 @@
     (let width s32 (as (fmt::str_to_u32 [arg_w]) s32))
     (let height s32 (as (fmt::str_to_u32 [arg_h]) s32))
     @doc "100ms per frame"
-    (@ref let req os::TimeSpec (rec_val os::TimeSpec [(field_val 0) (field_val 100000000)]))
+    (@ref let req os::TimeSpec (rec_val os::TimeSpec [0 100000000]))
     (@ref let! rem os::TimeSpec undef)
     (@ref let! window auto (rec_val aanim::Window [
-            (field_val width)
-            (field_val height)
-            (field_val undef)
-            (field_val undef)
-            (field_val undef)]))
+            width
+            height
+            undef
+            undef
+            undef]))
     (let! curr auto (front! all_objects))
     @doc "add obj"
     (shed (aanim::InitObjectState [curr (& artwork::DuckR)]))
