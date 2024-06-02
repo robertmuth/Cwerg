@@ -29,7 +29,7 @@ TESTS_A32 = \
     Lib/string_test.cw \
     Lib/trig_test.cw
 
-TESTS_CONCRETE = $(LANG_TESTS) \
+TESTS_CONCRETE = $(LANG_TESTS) $(TESTS) \
     Lib/ansi.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
@@ -40,26 +40,7 @@ TESTS_CONCRETE = $(LANG_TESTS) \
     Lib/os.cw \
     Lib/string.cw \
     Lib/string_test.cw \
-    Lib/trig_test.cw \
-    TestData/asciiquarium.cw \
-    TestData/binary_tree.cw \
-    TestData/cast.cw \
-	TestData/comment.cw \
-    TestData/consts.cw \
-    TestData/fizzbuzz.cw \
-    TestData/fibonacci.cw \
-    TestData/heapsort.cw \
-    TestData/hello_world.cw \
-    TestData/large_args.cw \
-    TestData/linked_list.cw \
-    TestData/macros.cw \
-    TestData/print_argv.cw \
-    TestData/sexpr.cw \
-	TestData/sieve.cw \
-    TestData/sizeof.cw \
-    TestData/sort.cw \
-    TestData/types.cw \
-    TestData/wordcount.cw
+    Lib/trig_test.cw
 
 
 # not the clean part will be run out of order but the early targets are not

@@ -491,17 +491,23 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
 
 def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
     t = tk.text
+    strkind = ""
     tq = False
     if t.startswith('"""'):
         assert t.endswith('"""')
         t = t[3:-3]
         tq = True
+    elif t.startswith('r"""'):
+        assert t.endswith('"""')
+        t = t[4:-3]
+        tq = True
+        strkind = "raw"
     elif t.startswith('"'):
         assert t.endswith('"')
         t = t[1:-1]
     else:
-        assert False
-    return cwast.ValString(t, triplequoted=tq)
+        assert False, f"unexpected string [{t}]"
+    return cwast.ValString(t, triplequoted=tq, strkind=strkind)
 
 
 def _PParseChar(_inp: Lexer, tk: TK, _precedence) -> Any:
@@ -548,7 +554,39 @@ def _PParserInfixOp(inp: Lexer, lhs, tk: TK, precedence) -> Any:
     return cwast.Expr2(cwast.BINARY_EXPR_SHORTCUT[tk.text], lhs, rhs)
 
 
+def _ParseMacroArg(inp: Lexer) -> Any:
+    if inp.match(TK_KIND.CURLY_OPEN):
+        args = []
+        first = True
+        while not inp.match(TK_KIND.CURLY_CLOSED):
+            if not first:
+                inp.match_or_die(TK_KIND.COMMA)
+            first = False
+            args.append(_ParseMacroArg(inp))
+        return cwast.EphemeralList(args)
+    else:
+        return _ParseExpr(inp)
+
+
+def _ParseMacroCallArgs(inp: Lexer) -> list[Any]:
+    args = []
+    first = True
+    while not inp.match(TK_KIND.PAREN_CLOSED):
+        if not first:
+            inp.match_or_die(TK_KIND.COMMA)
+        first = False
+        args.append(_ParseMacroArg(inp))
+    return args
+
+
+def _ParseExprMacro(name: str, inp: Lexer):
+    args = _ParseMacroCallArgs(inp)
+    return cwast.MacroInvoke(name, args)
+
+
 def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
+    if isinstance(callee, cwast.Id) and callee.name.endswith("#"):
+        return _ParseExprMacro(callee.name, inp)
     assert tk.kind is TK_KIND.PAREN_OPEN
     args = []
     first = True
@@ -732,6 +770,13 @@ def MaybeTypeExprStart(tk: TK) -> bool:
     return tk.text in _TYPE_START_KW or cwast.KeywordToBaseTypeKind(tk.text) != cwast.BASE_TYPE_KIND.INVALID
 
 
+def _ParseTypeExprOrExpr(inp: Lexer):
+    tk = inp.peek()
+    if MaybeTypeExprStart(tk):
+        return _ParseTypeExpr(inp)
+    return _ParseExpr(inp)
+
+
 def _ParseFormalParams(inp: Lexer):
     out = []
     inp.match_or_die(TK_KIND.PAREN_OPEN)
@@ -747,35 +792,10 @@ def _ParseFormalParams(inp: Lexer):
     return out
 
 
-def _ParseMacroArg(inp: Lexer) -> Any:
-    if inp.match(TK_KIND.CURLY_OPEN):
-        args = []
-        first = True
-        while not inp.match(TK_KIND.CURLY_CLOSED):
-            if not first:
-                inp.match_or_die(TK_KIND.COMMA)
-            first = False
-            args.append(_ParseMacroArg(inp))
-        return cwast.EphemeralList(args)
-    else:
-        return _ParseExpr(inp)
-
-
-def _ParseMacroCall(inp: Lexer) -> Any:
-    args = []
-    first = True
-    while not inp.match(TK_KIND.PAREN_CLOSED):
-        if not first:
-            inp.match_or_die(TK_KIND.COMMA)
-        first = False
-        args.append(_ParseMacroArg(inp))
-    return args
-
-
 def _ParseStatementMacro(kw: TK, inp: Lexer):
     assert kw.text.endswith("#"), f"{kw}"
     if inp.match(TK_KIND.PAREN_OPEN):
-        args = _ParseMacroCall(inp)
+        args = _ParseMacroCallArgs(inp)
         return cwast.MacroInvoke(kw.text, args, **_ExtractAnnotations(kw))
     else:
         assert False
@@ -1028,7 +1048,7 @@ def _ParseTopLevel(inp: Lexer):
                 if not first:
                     inp.match(TK_KIND.COMMA)
                 first = False
-                params.append(_ParseExpr(inp))
+                params.append(_ParseTypeExprOrExpr(inp))
         return cwast.Import(name.text, path, params)
     elif kw.text == "fun":
         name = inp.match_or_die(TK_KIND.ID)
