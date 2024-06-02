@@ -104,7 +104,7 @@
 
 
 (fun foo6 [(param c s32)] s32 :
-    (return (* 55_s32 (paren (+ c 44)))))
+    (return (* 55_s32 (+ c 44))))
 
 
 (fun square [(param c s32)] s32 :

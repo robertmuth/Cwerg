@@ -44,6 +44,7 @@ TESTS_CONCRETE = $(LANG_TESTS) \
     TestData/asciiquarium.cw \
     TestData/binary_tree.cw \
     TestData/cast.cw \
+	TestData/comment.cw \
     TestData/consts.cw \
     TestData/fizzbuzz.cw \
     TestData/fibonacci.cw \
@@ -51,7 +52,9 @@ TESTS_CONCRETE = $(LANG_TESTS) \
     TestData/hello_world.cw \
     TestData/large_args.cw \
     TestData/linked_list.cw \
+    TestData/macros.cw \
     TestData/print_argv.cw \
+    TestData/sexpr.cw \
 	TestData/sieve.cw \
     TestData/sizeof.cw \
     TestData/sort.cw \

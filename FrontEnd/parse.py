@@ -94,7 +94,7 @@ _KEYWORDS_SIMPLE = [
     "sizeof",
     "len",
     #
-    "stringfy",
+    "stringify",
 ]
 
 
@@ -432,6 +432,8 @@ _FUN_LIKE = {
     "widdento": (cwast.ExprWiden, "ET"),
     "unsafeas": (cwast.ExprUnsafeCast, "ET"),
     "bitsas": (cwast.ExprBitCast, "ET"),
+    #
+    "stringify": (cwast.ExprStringify, "E"),
 }
 
 
@@ -479,7 +481,9 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
     elif tk.text in _FUN_LIKE:
         return _ParseFunLike(inp, tk.text)
     elif tk.text == "expr":
-        body = _ParseStatementList(inp, tk.column)
+        # we use "0" as the indent intentionally
+        # allowing the next statement to begin at any column
+        body = _ParseStatementList(inp, 0)
         return cwast.ExprStmt(body)
     else:
         assert False, f"{tk}"
@@ -557,16 +561,18 @@ def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
 
 
 def _ParseArrayInit(inp: Lexer) -> Any:
+    tk: TK = inp.peek()
     val = _ParseExpr(inp)
     if inp.match(TK_KIND.COLON):
         index = val
         val = _ParseExpr(inp)
     else:
         index = cwast.ValAuto()
-    return cwast.IndexVal(val, index)
+    return cwast.IndexVal(val, index, **_ExtractAnnotations(tk))
 
 
 def _ParseRecInit(inp: Lexer) -> Any:
+    tk: TK = inp.peek()
     val = _ParseExpr(inp)
     if inp.match(TK_KIND.COLON):
         assert isinstance(val, cwast.Id)
@@ -575,7 +581,7 @@ def _ParseRecInit(inp: Lexer) -> Any:
 
     else:
         field = ""
-    return cwast.FieldVal(val, field)
+    return cwast.FieldVal(val, field, **_ExtractAnnotations(tk))
 
 
 def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
@@ -718,6 +724,14 @@ def _ParseTypeExpr(inp: Lexer):
         assert False, f"unexpected token {tk}"
 
 
+_TYPE_START_KW = set(["auto", "funtype", "slice", "slice!", "typeof",
+                      "uniondelta", "union", "[", "^", "^!"])
+
+
+def MaybeTypeExprStart(tk: TK) -> bool:
+    return tk.text in _TYPE_START_KW or cwast.KeywordToBaseTypeKind(tk.text) != cwast.BASE_TYPE_KIND.INVALID
+
+
 def _ParseFormalParams(inp: Lexer):
     out = []
     inp.match_or_die(TK_KIND.PAREN_OPEN)
@@ -728,7 +742,8 @@ def _ParseFormalParams(inp: Lexer):
         first = False
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
-        out.append(cwast.FunParam(name.text, type))
+        out.append(cwast.FunParam(name.text, type,
+                   **_ExtractAnnotations(name)))
     return out
 
 
@@ -931,7 +946,7 @@ def _ParseCondList(kw: TK, inp: Lexer):
         case = inp.match_or_die(TK_KIND.KW, "case")
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, case.column)
-        cases.append(cwast.Case(cond, stmts))
+        cases.append(cwast.Case(cond, stmts, **_ExtractAnnotations(case)))
     return cwast.StmtCond(cases, **_ExtractAnnotations(kw))
 
 
@@ -1110,6 +1125,7 @@ def RemoveRedundantParens(node):
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+
 
 def ParseFile(inp: Lexer) -> Any:
     mod = _ParseModule(inp)
