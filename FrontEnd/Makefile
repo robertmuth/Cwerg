@@ -29,7 +29,7 @@ TESTS_A32 = \
     Lib/string_test.cw \
     Lib/trig_test.cw
 
-TESTS_CONCRETE = \
+TESTS_CONCRETE = $(LANG_TESTS) \
     Lib/ansi.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
@@ -41,12 +41,6 @@ TESTS_CONCRETE = \
     Lib/string.cw \
     Lib/string_test.cw \
     Lib/trig_test.cw \
-    LangTest/array_test.cw \
-    LangTest/assign_test.cw \
-    LangTest/defer_test.cw \
-    LangTest/enum_test.cw \
-	LangTest/sum_tagged_test.cw \
-    LangTest/sum_untagged_test.cw \
     TestData/asciiquarium.cw \
     TestData/binary_tree.cw \
     TestData/cast.cw \

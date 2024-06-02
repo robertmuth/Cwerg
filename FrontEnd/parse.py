@@ -1100,8 +1100,20 @@ def _ParseModule(inp: Lexer):
     return out
 
 
+def RemoveRedundantParens(node):
+    """Remove Parens which would be re-added by AddMissingParens."""
+
+    def replacer(node, parent, field: str):
+        if isinstance(node, cwast.ExprParen):
+            if pp.NodeNeedsParen(node.expr, parent, field):
+                return node.expr
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+
 def ParseFile(inp: Lexer) -> Any:
     mod = _ParseModule(inp)
+    RemoveRedundantParens(mod)
     pp_sexpr.PrettyPrint(mod)
 
 

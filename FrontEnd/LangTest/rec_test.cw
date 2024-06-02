@@ -1,12 +1,14 @@
 (module main [] :
 (import test)
 
+
 @pub (defrec type_rec1 :
     @doc "this is a comment with \" with quotes \t "
     (field s1 s32)
     @doc "s2 comment "
     (field s2 s32)
-    (field s3  @eoldoc "s3 is ..." s32)
+    @doc "s3 is ..."
+    (field s3 s32)
     (field s4 bool)
     (field s5 u64)
     (field s6 u64))
@@ -38,7 +40,8 @@
 (global u0 u32 0x12345678)
 
 
-(global g0 type_rec1 @eoldoc "g0 is i mportant" undef)
+@doc "g0 is i mportant"
+(global g0 type_rec1 undef)
 
 
 (global g1 (array 5 type_rec1) undef)
@@ -51,19 +54,19 @@
         (field_val 0x1234)
         (field_val 0x4321)
         (field_val g2)
-        (field_val (array_val 13 u16 [
-                (index_val 0x11)
-                (index_val undef)
-                (index_val 0x12)]))]))
+        (field_val (array_val 13 u16 [0x11 undef 0x12]))]))
+
 
 (global! g3_alt auto (rec_val type_rec3 [
-        0x1234
-        0x4321
-        g2
-        (array_val 13 u16 [ 0x11 undef 0x12 ])]))
+        (field_val 0x1234)
+        (field_val 0x4321)
+        (field_val g2)
+        (field_val (array_val 13 u16 [0x11 undef 0x12]))]))
 
 
-(global g4 auto (array_val 4 type_rec2 [(index_val undef) @eoldoc " BROKEN init" (index_val g2)]))
+@doc "BROKEN init"
+(global g4 auto (array_val 4 type_rec2 [undef g2]))
+
 
 @pub (defrec type_rec5 :
     (field t1 u64)
@@ -71,16 +74,21 @@
     (field t5 bool))
 
 
-(global! buffer auto (array_val 3 u8 [ 0 0 0 ]))
+(global! buffer auto (array_val 3 u8 [0 0 0]))
+
 
 (global g5 type_rec5 undef)
-(global g6 type_rec5 (rec_val type_rec5 [0 buffer false]))
-(global g7 auto
-           (array_val 1 type_rec5 [(rec_val type_rec5 [0 buffer false])]))
+
+
+(global g6 type_rec5 (rec_val type_rec5 [(field_val 0) (field_val buffer) (field_val false)]))
+
+
+(global g7 auto (array_val 1 type_rec5 [(rec_val type_rec5 [(field_val 0) (field_val buffer) (field_val false)])]))
+
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
-    (let! v1 auto @eoldoc "after let " (rec_val type_rec3 []))
+    (let! v1 auto (rec_val type_rec3 []))
     (= (. v1 u2) 102)
     (= (. v1 u3) 103)
     (= (. v1 u6) 106)
@@ -100,10 +108,10 @@
     @doc "GLOBAL ALT"
     (test::AssertEq# (. g3_alt u2) 0x1234_u16)
     (test::AssertEq# (. g3_alt u3) 0x4321_u64)
-    (test::AssertEq# (. (. g3_alt  u4) t1) true)
-    (test::AssertEq# (. (. g3_alt  u4) t2) 0x12345678_u32)
-    (test::AssertEq# (at (. g3_alt  u5) 0) 0x11_u16)
-    (test::AssertEq# (at (. g3_alt  u5) 2) 0x12_u16)
+    (test::AssertEq# (. (. g3_alt u4) t1) true)
+    (test::AssertEq# (. (. g3_alt u4) t2) 0x12345678_u32)
+    (test::AssertEq# (at (. g3_alt u5) 0) 0x11_u16)
+    (test::AssertEq# (at (. g3_alt u5) 2) 0x12_u16)
     @doc "GLOBAL"
     (test::AssertEq# (. g3 u2) 0x1234_u16)
     (test::AssertEq# (. g3 u3) 0x4321_u64)
@@ -129,5 +137,7 @@
     (test::AssertEq# (at (. g3 u5) 10) 510_u16)
     @doc "test end"
     (test::Success#)
-    (return @eoldoc "after return" 0))
+    @doc "return"
+    (return 0))
 )
+

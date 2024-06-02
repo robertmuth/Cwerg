@@ -122,7 +122,7 @@
     (test::AssertEq# (or a b) 0xff_u8)
     (test::AssertEq# (and a b) 0x0_u8)
     (test::AssertEq# (xor a b) 0xff_u8)
-    @doc """ needs backend fixes (test::AssertEq# (* a b) 0x48_u8) """
+    @doc " needs backend fixes (test::AssertEq# (* a b) 0x48_u8) "
     (test::AssertEq# (/ a b) 0x1_u8)
     (test::AssertEq# (% a b) 0xf_u8)
     @doc ""
@@ -161,4 +161,3 @@
     (test::Success#)
     (return 0))
 )
-

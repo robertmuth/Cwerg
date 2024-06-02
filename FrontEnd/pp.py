@@ -75,7 +75,7 @@ _OPS_PRECENDENCE_EXPR2 = {
 def _prec2(node: cwast.Expr2):
     return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind]
 
-def _NodeNeedsParen(node, parent, field: str):
+def NodeNeedsParen(node, parent, field: str):
     """Do we need to add parenthesese around an expression
     so that the (naive) concrete syntax emitter does not
     produce invalid code.
@@ -84,12 +84,16 @@ def _NodeNeedsParen(node, parent, field: str):
         if field == "expr1":
             if isinstance(node, cwast.Expr2):
                # parent: (expr2 node ...)
-               # (* (+ a b ) ...) =>  a + b * ...
+               # BAD EXAMPLES:
+               # (* (+ a b ) c) =>  a + b * c
                 return _prec2(node) < _prec2(parent)
         if field == "expr2":
-            # parent: (expr2 ... node)
             if isinstance(node, cwast.Expr2):
-                return _prec2(node) < _prec2(parent)
+                # parent: (expr2 ... node)
+                # BAD EXAMPLES:
+                # (* c (+ a b)) =>  c * a + b
+                # (/ c (/ a b)) =>  c / a / b
+                return _prec2(node) <= _prec2(parent)
 
     return False
 
@@ -98,7 +102,7 @@ def AddMissingParens(node):
     """Eliminate Array to Slice casts. """
 
     def replacer(node, parent, field: str):
-        if _NodeNeedsParen(node, parent, field):
+        if NodeNeedsParen(node, parent, field):
             return cwast.ExprParen(node, x_srcloc=node.x_srcloc, x_type=node.x_type)
 
         return None
