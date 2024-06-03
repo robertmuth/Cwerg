@@ -352,7 +352,7 @@ def _ExtractAnnotations(tk: TK) -> dict[str, str]:
         assert c.text.startswith("-- ")
         comments.append(c.text[3:-1])
     if comments:
-        if len(comments) == 1:
+        if len(comments) == 1 and '"' not in comments[0]:
             out["doc"] = f'"{comments[0]}"'
         else:
             c = '\n'.join(comments)
@@ -544,11 +544,11 @@ def _PParseParenGroup(inp: Lexer, tk: TK, _precedence) -> Any:
 
 _PREFIX_EXPR_PARSERS = {
     TK_KIND.KW: (10, _PParseKeywordConstants),
-    TK_KIND.OP1: (9, _PParsePrefix),
-    TK_KIND.OP2: (10, _PParsePrefix),
+    TK_KIND.OP1: (pp.PREC1_NOT, _PParsePrefix),
+    TK_KIND.OP2: (10, _PParsePrefix), # only used for "-"
     TK_KIND.ID: (10, _PParseId),
     TK_KIND.NUM: (10, _PParseNum),
-    TK_KIND.SQUARE_OPEN: (10, _PParseArrayType),
+    TK_KIND.SQUARE_OPEN: (pp.PREC_INDEX, _PParseArrayType),
     TK_KIND.STR: (10, _PParseStr),
     TK_KIND.CHAR: (10, _PParseChar),
     TK_KIND.PAREN_OPEN: (10, _PParseParenGroup),
@@ -713,10 +713,10 @@ _INFIX_EXPR_PARSERS = {
     #
     "(": (20, _PParseFunctionCall),
     "{": (10, _PParseInitializer),
-    "[":  (13, _PParseIndex),
-    "^": (20, _PParseDeref),
-    ".": (20, _PParseFieldAccess),
-    "^.": (20, _PParseDerefFieldAccess),
+    "[":  (pp.PREC_INDEX, _PParseIndex),
+    "^": (pp.PREC_INDEX, _PParseDeref),
+    ".": (pp.PREC_INDEX, _PParseFieldAccess),
+    "^.": (pp.PREC_INDEX, _PParseDerefFieldAccess),
     "?": (6, _PParseTernary),
 }
 
@@ -885,7 +885,7 @@ def _ParseStatement(inp: Lexer):
         else:
             assert kind.kind is TK_KIND.COMPOUND_ASSIGN, f"{kind}"
             op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
-            return cwast.StmtCompoundAssignment(op, lhs, rhs)
+            return cwast.StmtCompoundAssignment(op, lhs, rhs, ** _ExtractAnnotations(kw))
     elif kw.text == "return":
         if inp.peek().srcloc.lineno == kw.srcloc.lineno:
             val = _ParseExpr(inp)

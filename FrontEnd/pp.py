@@ -39,6 +39,9 @@ PREC2_MAX = 9  # max min
 PREC2_ADD = 10 # + - or xor
 PREC2_MUL = 11 # * / % and
 PREC2_SHIFT = 12
+PREC1_NOT = 13
+PREC_INDEX = 14  #  &a[i] &struct^.field
+#PREC_DEREF = 15
 
 
 _OPS_PRECENDENCE_EXPR2 = {

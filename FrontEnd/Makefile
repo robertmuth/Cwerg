@@ -49,12 +49,10 @@ TESTS_CONCRETE = $(LANG_TESTS) $(TESTS) \
     Lib/trig.cw \
     Lib/trig_test.cw
 
-#	Lib/flate.cw
+#	Lib/flate.cw   ***
 #	Lib/flate_test.cw
-#	Lib/fmt.cw
+#	Lib/fmt.cw   poly
 #	Lib/fmt_test.cw
-#	Lib/huffman.cw
-#	Lib/huffman_test.cw
 #	Lib/sha3.cw
 #	Lib/sha3_test.cw
 
