@@ -24,7 +24,7 @@
     (field inc u64))
 
 
-@pub (global Pcg32StateDefault auto (rec_val Pcg32State [(field_val 0x853c49e6748fea9b_u64) (field_val 0xda3e39cb94b95bdb_u64)]))
+@pub (global Pcg32StateDefault auto (rec_val Pcg32State [0x853c49e6748fea9b_u64 0xda3e39cb94b95bdb_u64]))
 
 
 @doc "Generate a uniformly distributed 32-bit random number"

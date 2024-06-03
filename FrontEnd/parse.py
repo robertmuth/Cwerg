@@ -443,20 +443,20 @@ _FUN_LIKE = {
 }
 
 
-def _ParseFunLike(inp: Lexer, name: str) -> Any:
-    ctor, args = _FUN_LIKE[name]
+def _ParseFunLike(inp: Lexer, name: TK) -> Any:
+    ctor, args = _FUN_LIKE[name.text]
     inp.match_or_die(TK_KIND.PAREN_OPEN)
     first = True
     params = []
-    extra = {}
-    if name.endswith("!"):
+    extra = _ExtractAnnotations(name)
+    if name.text.endswith("!"):
         extra["mut"] = True
     for a in args:
         if inp.peek().kind is TK_KIND.PAREN_CLOSED and a == "e":
             params.append(cwast.ValUndef())
             break
         if a == "p":
-            params.append(cwast.POINTER_EXPR_SHORTCUT[name])
+            params.append(cwast.POINTER_EXPR_SHORTCUT[name.text])
             continue
         if not first:
             inp.match_or_die(TK_KIND.COMMA)
@@ -485,7 +485,7 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
     elif tk.text == "auto":
         return cwast.ValAuto()
     elif tk.text in _FUN_LIKE:
-        return _ParseFunLike(inp, tk.text)
+        return _ParseFunLike(inp, tk)
     elif tk.text == "expr":
         # we use "0" as the indent intentionally
         # allowing the next statement to begin at any column
@@ -601,7 +601,7 @@ def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
             inp.match_or_die(TK_KIND.COMMA)
         first = False
         args.append(_ParseExpr(inp))
-    return cwast.ExprCall(callee, args)
+    return cwast.ExprCall(callee, args, **_ExtractAnnotations(tk))
 
 
 def _ParseArrayInit(inp: Lexer) -> Any:
@@ -738,9 +738,9 @@ def _ParseTypeExpr(inp: Lexer):
             inp.match_or_die(TK_KIND.PAREN_CLOSED)
             return cwast.TypeSlice(type, mut=tk.text.endswith("!"))
         elif tk.text == "typeof":
-            return _ParseFunLike(inp, tk.text)
+            return _ParseFunLike(inp, tk)
         elif tk.text == "uniondelta":
-            return _ParseFunLike(inp, tk.text)
+            return _ParseFunLike(inp, tk)
         elif tk.text == "union":
             inp.match_or_die(TK_KIND.PAREN_OPEN)
             members = []

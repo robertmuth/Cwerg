@@ -8,7 +8,7 @@
 (import bitstream)
 
 
-@doc r"""Tree0
+@doc """Tree0
 
 
 B = 0
@@ -16,11 +16,7 @@ A = 11
 C = 101
 D = 100
 """
-(global Tree0Length auto (array_val 4 u16 [
-        2
-        1
-        3
-        3]))
+(global Tree0Length auto (array_val 4 u16 [2 1 3 3]))
 
 
 (global Tree0ExpectedSymbols auto (array_val 4 u16 [
@@ -30,11 +26,7 @@ D = 100
         (- 'D' 'A')]))
 
 
-(global Tree0ExpectedCounts auto (array_val 4 u16 [
-        0
-        1
-        1
-        2]))
+(global Tree0ExpectedCounts auto (array_val 4 u16 [0 1 1 2]))
 
 
 (fun test_tree0_decoding [] void :
@@ -45,7 +37,7 @@ D = 100
     (test::AssertSliceEq# counts Tree0ExpectedCounts))
 
 
-@doc r"""Tree1
+@doc """Tree1
 
 
  0                        *
@@ -150,7 +142,7 @@ D = 100
             0
             0
             0]))
-    (@ref let! bs auto (rec_val bitstream::Stream32 [(field_val data)]))
+    (@ref let! bs auto (rec_val bitstream::Stream32 [data]))
     (test::AssertEq# 5_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
     (test::AssertEq# 10_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
     (test::AssertEq# 7_u16 (huffman::NextSymbol [(&! bs) counts symbols]))
@@ -196,4 +188,3 @@ D = 100
     (test::Success#)
     (return 0))
 )
-
