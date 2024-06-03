@@ -60,7 +60,10 @@
     (test::AssertSliceEq# (slice_val (front s) n) "0x1.p1")
     (= n (@polymorphic fmt::SysRender [color:blue s (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "2")
-    (= n (@polymorphic fmt::SysRender [(rec_val ic32 [(field_val 111) (field_val 222)]) s (&! opt)]))
+    (= n (@polymorphic fmt::SysRender [
+            (rec_val ic32 [111 222])
+            s
+            (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "111+222i")
     (= n (@polymorphic fmt::SysRender [(wrap test_string fmt::str_hex) s (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "7177657274795f31323334")
