@@ -34,7 +34,7 @@
 
 
 @pub (defrec rec1 :
-    @doc "this is a comment with \" with quotes \t "
+    @doc """this is a comment with \" with quotes \t """
     (field f1 s32)
     (field f2 s32)
     (field f3 s32)
@@ -79,4 +79,3 @@
     (test::Success#)
     (return 0))
 )
-

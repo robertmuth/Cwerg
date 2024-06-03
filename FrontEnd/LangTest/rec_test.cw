@@ -3,7 +3,7 @@
 
 
 @pub (defrec type_rec1 :
-    @doc "this is a comment with \" with quotes \t "
+    @doc """this is a comment with \" with quotes \t """
     (field s1 s32)
     @doc "s2 comment "
     (field s2 s32)
@@ -140,4 +140,3 @@
     @doc "return"
     (return 0))
 )
-

@@ -10,7 +10,7 @@
 
 
 @pub (defrec type_rec :
-    @doc "this is a comment with \" with quotes \t"
+    @doc """this is a comment with \" with quotes \t"""
     (field s1 s32)
     (field s2 s32)
     (field s3 s32)
@@ -21,12 +21,12 @@
 
 
 @pub (defrec linked_list :
-    @doc "this is a comment with \" with quotes \t "
+    @doc """this is a comment with \" with quotes \t"""
     (field s1 (union [void (ptr linked_list)])))
 
 
 @pub (enum type_enum S32 :
-    @doc "this is a comment with \" with quotes \t "
+    @doc """this is a comment with \" with quotes \t"""
     (entry s1)
     (entry s2)
     (entry s3)
@@ -57,4 +57,3 @@
 (fun funx [(param a type_union)] s32 :
     (return (narrowto a (uniondelta type_union (union [void type_ptr])))))
 )
-
