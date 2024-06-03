@@ -17,11 +17,11 @@ module m1:
     u2 u64
 
 @pub rec linked_list:
-    -- this is a comment with \" with quotes \t 
+    -- this is a comment with \" with quotes \t
     s1 union(void, ^linked_list)
 
 @pub enum type_enum s32:
-    -- this is a comment with \" with quotes \t 
+    -- this is a comment with \" with quotes \t
     s1 auto
     s2 auto
     s3 auto
