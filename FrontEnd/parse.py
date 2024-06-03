@@ -856,7 +856,7 @@ def _ParseStatement(inp: Lexer):
         if p.column == kw.column and p.text == "else":
             inp.next()
             stmts_f = _ParseStatementList(inp, kw.column)
-        return cwast.StmtIf(cond, stmts_t, stmts_f)
+        return cwast.StmtIf(cond, stmts_t, stmts_f,  **_ExtractAnnotations(kw))
     elif kw.text in ("trylet", "trylet!"):
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)

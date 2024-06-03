@@ -31,15 +31,19 @@ TESTS_A32 = \
 
 TESTS_CONCRETE = $(LANG_TESTS) $(TESTS) \
     Lib/ansi.cw \
+    Lib/bitstream.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
     Lib/checksum.cw \
     Lib/checksum_test.cw \
     Lib/hashtab32.cw \
     Lib/heapsort.cw \
+    Lib/huffman.cw \
+    Lib/math.cw \
     Lib/os.cw \
     Lib/string.cw \
     Lib/string_test.cw \
+    Lib/trig.cw \
     Lib/trig_test.cw
 
 

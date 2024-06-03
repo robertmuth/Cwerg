@@ -92,7 +92,7 @@
         (let z auto (+ u v))
         (= s (+ t z))
         (= c (- z (- s t))))
-    (return (rec_val SumCompensation [(field_val s) (field_val c)])))
+    (return (rec_val SumCompensation [s c])))
 
 
 (fun horner_sum [(param x r64) (param coeffs (slice r64))] r64 :
