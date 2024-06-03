@@ -33,6 +33,7 @@ TESTS_CONCRETE = $(LANG_TESTS) $(TESTS) \
     Lib/ansi.cw \
     Lib/bitstream.cw \
     Lib/bitstream_test.cw \
+    Lib/bytestream.cw \
     Lib/bytestream_test.cw \
     Lib/checksum.cw \
     Lib/checksum_test.cw \

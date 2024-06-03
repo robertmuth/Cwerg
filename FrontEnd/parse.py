@@ -195,6 +195,12 @@ class TK:
     comments: list = dataclasses.field(default_factory=list)
     annotations: list = dataclasses.field(default_factory=list)
 
+    def has_annotation(self, a: str) -> bool:
+        for x in self.annotations:
+            if x.text == a:
+                return True
+        return False
+
     def __repr__(self):
         return f"{self.srcloc}:{self.column} {self.text} [{self.kind.name}]"
 
@@ -647,9 +653,10 @@ def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
 
 def _PParseIndex(inp: Lexer, array, tk: TK, _precedence) -> Any:
     assert tk.kind is TK_KIND.SQUARE_OPEN
+    tk = inp.peek()
     index = _ParseExpr(inp)
     inp.match_or_die(TK_KIND.SQUARE_CLOSED)
-    return cwast.ExprIndex(array, index)
+    return cwast.ExprIndex(array, index, **_ExtractAnnotations(tk))
 
 
 def _PParseDeref(_inp: Lexer, pointer, _tk: TK, _precedence) -> Any:
@@ -1012,7 +1019,7 @@ def _ParseMacroParams(inp: Lexer):
         name = inp.match_or_die(TK_KIND.ID)
         kind = inp.match_or_die(TK_KIND.ID)
         out.append(cwast.MacroParam(
-            name.text, cwast.MACRO_PARAM_KIND[kind.text]))
+            name.text, cwast.MACRO_PARAM_KIND[kind.text], **_ExtractAnnotations(name)))
     return out
 
 
@@ -1025,7 +1032,7 @@ def _ParseMacroGenIds(inp: Lexer):
             inp.match_or_die(TK_KIND.COMMA)
         first = False
         name = inp.match_or_die(TK_KIND.ID)
-        out.append(cwast.Id(name.text))
+        out.append(name.text)
     return out
 
 

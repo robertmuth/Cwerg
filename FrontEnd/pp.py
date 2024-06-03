@@ -531,6 +531,8 @@ def EmitTokensCodeBlock(ts: TS, stmts):
 def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
     EmitTokens(ts, node.container)
     beg_paren = ts.EmitBegParen("[")
+    if node.unchecked:
+        ts.EmitAttr("@unchecked")
     EmitTokens(ts, node.expr_index)
     ts.EmitEnd(beg_paren)
 
