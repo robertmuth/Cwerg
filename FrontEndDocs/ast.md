@@ -39,7 +39,7 @@ Core nodes are the ones that are known to the code generator.
 [StmtBlock&nbsp;(block)](#stmtblock-block) &ensp;
 [StmtBreak&nbsp;(break)](#stmtbreak-break) &ensp;
 [StmtContinue&nbsp;(continue)](#stmtcontinue-continue) &ensp;
-[StmtExpr&nbsp;(shed)](#stmtexpr-shed) &ensp;
+[StmtExpr&nbsp;(do)](#stmtexpr-do) &ensp;
 [StmtIf&nbsp;(if)](#stmtif-if) &ensp;
 [StmtReturn&nbsp;(return)](#stmtreturn-return) &ensp;
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
@@ -566,7 +566,7 @@ Flags:
 * doc: possibly multi-line comment
 
 
-### StmtExpr (shed)
+### StmtExpr (do)
 Expression statement
 
     Turns an expression (typically a call) into a statement
