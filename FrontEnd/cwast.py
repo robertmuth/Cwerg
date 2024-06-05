@@ -2442,7 +2442,7 @@ class StmtExpr:
 
     Turns an expression (typically a call) into a statement
     """
-    ALIAS = "shed"
+    ALIAS = "do"
     GROUP = GROUP.Statement
     FLAGS = NF.NONE
     #

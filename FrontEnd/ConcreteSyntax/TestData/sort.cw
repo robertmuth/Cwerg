@@ -31,12 +31,12 @@ fun dump_array(size uint, data ^r64) void:
     for i = 0, SIZE, 1:
         let v = random::get_random(1000)
         set Data[i + 1] = v
-    shed dump_array(SIZE, &Data[1])
+    do dump_array(SIZE, &Data[1])
     fmt::print#(NEWLINE)
     fmt::print#(SIZE, NEWLINE)
-    shed rhs::sort(Data)
+    do rhs::sort(Data)
     fmt::print#(NEWLINE)
-    shed dump_array(SIZE, &Data[1])
+    do dump_array(SIZE, &Data[1])
     fmt::print#(NEWLINE)
     for i = 1, SIZE, 1:
         if Data[i] > Data[i + 1]:

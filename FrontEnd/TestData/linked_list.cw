@@ -58,7 +58,7 @@
             (= (. (at NodePool i) next) (&! (at NodePool (+ i 1))))))
     @doc """
     (for i 0 N 1 :
-       (shed (DumpNode [i])))
+       (do (DumpNode [i])))
     """
     (test::AssertEq# (SumPayload [(front! NodePool)]) 4950_u32)
     (test::Success#)

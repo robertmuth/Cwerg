@@ -48,7 +48,7 @@
         (= val (! i))
         (let p auto (hashtab::InsertOrUpdate [(&! ht) (& key) (& val)]))
         (fmt::print# "Insert key: " key " val: " val " ->  " p "\n"))
-    (shed (hashtab::DebugDump [(& ht)]))
+    (do (hashtab::DebugDump [(& ht)]))
     (for i 0 (/ SIZE 2) 1 :
         (= key i)
         (let v_expected auto (! i))

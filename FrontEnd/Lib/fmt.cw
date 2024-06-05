@@ -364,7 +364,7 @@
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
         (+= $curr (@polymorphic SysRender [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
-    (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
+    (do (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
 @doc "same as above but takes an EXPR_LIST - should only be used by other macros"
@@ -374,7 +374,7 @@
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
         (+= $curr (@polymorphic SysRender [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
-    (shed (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
+    (do (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
 @pub (fun strz_to_slice [(param s (ptr u8))] (slice u8) :

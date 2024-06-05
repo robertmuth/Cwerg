@@ -32,7 +32,7 @@ global! ht = hashtab::HashTab32{front!(meta), front!(keys), front!(vals), SIZE, 
         set val = !i
         let p = hashtab::InsertOrUpdate(&!ht, &key, &val)
         fmt::print#("Insert key: ", key, " val: ", val, " ->  ", p, "\n")
-    shed hashtab::DebugDump(&ht)
+    do hashtab::DebugDump(&ht)
     for i = 0, SIZE / 2, 1:
         set key = i
         let v_expected = !i

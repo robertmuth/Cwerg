@@ -149,9 +149,9 @@
 
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (shed (test_global_array []))
-    (shed (test_local_array []))
-    (shed (test_mixed_array []))
+    (do (test_global_array []))
+    (do (test_local_array []))
+    (do (test_mixed_array []))
     @doc "test end"
     (test::Success#)
     (return 0))

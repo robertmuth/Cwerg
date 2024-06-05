@@ -20,13 +20,13 @@ fun IncSliceOrDie(buffer ^!slice(u8), n uint) void:
 -- 
 @pub fun FrontSliceOrDie(buffer ^!slice(u8), n uint) slice(u8):
     let out = slice(front(buffer^), n)
-    shed IncSliceOrDie(buffer, n)
+    do IncSliceOrDie(buffer, n)
     return out
 
 -- 
 @pub fun FrontSliceUnchecked(buffer ^!slice(u8), n uint) slice(u8):
     let out = slice(front(buffer^), n)
-    shed IncSliceUnchecked(buffer, n)
+    do IncSliceUnchecked(buffer, n)
     return out
 
 -- 
@@ -35,13 +35,13 @@ fun IncSliceOrDie(buffer ^!slice(u8), n uint) void:
     if len(buffer^) <= n:
         return OutOfBoundsErrorVal
     let out slice(u8) = slice(front(buffer^), n)
-    shed IncSliceUnchecked(buffer, n)
+    do IncSliceUnchecked(buffer, n)
     return out
 
 -- 
 @pub fun FrontLeU8Unchecked(buffer ^!slice(u8)) u8:
     let out u8 = buffer^[@unchecked 0]
-    shed IncSliceUnchecked(buffer, 1)
+    do IncSliceUnchecked(buffer, 1)
     return out
 
 -- 
@@ -60,7 +60,7 @@ fun IncSliceOrDie(buffer ^!slice(u8), n uint) void:
 @pub fun FrontLeU16Unchecked(buffer ^!slice(u8)) u16:
     let out0 = as(buffer^[@unchecked 0], u16)
     let out1 = as(buffer^[@unchecked 1], u16)
-    shed IncSliceUnchecked(buffer, 2)
+    do IncSliceUnchecked(buffer, 2)
     return out0 + out1 << 8
 
 -- 
@@ -81,7 +81,7 @@ fun IncSliceOrDie(buffer ^!slice(u8), n uint) void:
     let out1 = as(buffer^[@unchecked 1], u32)
     let out2 = as(buffer^[@unchecked 2], u32)
     let out3 = as(buffer^[@unchecked 3], u32)
-    shed IncSliceUnchecked(buffer, 4)
+    do IncSliceUnchecked(buffer, 4)
     return out0 + out1 << 8 + out2 << 16 + out3 << 24
 
 -- 

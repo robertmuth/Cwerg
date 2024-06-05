@@ -142,11 +142,11 @@ fun test_helper_single_code() void:
     test::AssertEq#(huffman::BAD_SYMBOL, symbols[1])
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
-    shed test_helper()
-    shed test_helper_single_code()
-    shed test_tree0_decoding()
-    shed test_tree1_decoding()
-    shed test_tree1_bitstream_decoding()
+    do test_helper()
+    do test_helper_single_code()
+    do test_tree0_decoding()
+    do test_tree1_decoding()
+    do test_tree1_bitstream_decoding()
     -- test end
     test::Success#()
     return 0

@@ -161,7 +161,7 @@ KEYWORDS_TOPLEVEL = [
 KEYWORDS = [
     "module", "defer", "block", "expr",
     "break", "continue",  "cond", "type", "if",
-    "shed", "discard", "case", "set", "for", "macro",
+    "do", "discard", "case", "set", "for", "macro",
     "while", "tryset", "trap", "return",
     "mfor", "swap", "else",
 ] + KEYWORDS_TOPLEVEL
@@ -714,7 +714,7 @@ def EmitTokensStatement(ts: TS, n):
     elif isinstance(n, cwast.StmtReturn):
         _TokensSimpleStmt(ts, "return", n.expr_ret)
     elif isinstance(n, cwast.StmtExpr):
-        _TokensSimpleStmt(ts, "shed", n.expr)
+        _TokensSimpleStmt(ts, "do", n.expr)
     elif isinstance(n, cwast.StmtDefer):
         _TokensStmtBlock(ts, "defer", "", n.body)
     elif isinstance(n, cwast.StmtBlock):

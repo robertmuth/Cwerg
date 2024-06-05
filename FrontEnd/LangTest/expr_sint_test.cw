@@ -160,10 +160,10 @@
 
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr s8)))] s32 :
-    (shed (test_s64 [0x8765432187654321 0x1234567812345678]))
-    (shed (test_s32 [0x87654321 0x12345678]))
-    (shed (test_s16 [0x8765 0x1234]))
-    (shed (test_s8 [0x87 0x78]))
+    (do (test_s64 [0x8765432187654321 0x1234567812345678]))
+    (do (test_s32 [0x87654321 0x12345678]))
+    (do (test_s16 [0x8765 0x1234]))
+    (do (test_s8 [0x87 0x78]))
     @doc "test end"
     (test::Success#)
     (return 0))

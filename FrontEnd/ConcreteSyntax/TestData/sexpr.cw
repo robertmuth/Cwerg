@@ -1,8 +1,8 @@
 module m1:
 
 @pub fun foo1(a s32, b s32, c s32) s32:
-    shed foo1(0, 0, 0)
-    shed foo2(1, 2, 3)
+    do foo1(0, 0, 0)
+    do foo2(1, 2, 3)
     return 7
 
 @pub global! v1 = 7_u64

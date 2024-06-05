@@ -149,10 +149,10 @@ fun test_u8(a u8, b u8) void:
     test::AssertEq#(a != a, false)
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
-    shed test_u64(0x8765432187654321, 0x1234567812345678)
-    shed test_u32(0x87654321, 0x12345678)
-    shed test_u16(0x4321, 0x1234)
-    shed test_u8(0x87, 0x78)
+    do test_u64(0x8765432187654321, 0x1234567812345678)
+    do test_u32(0x87654321, 0x12345678)
+    do test_u16(0x4321, 0x1234)
+    do test_u8(0x87, 0x78)
     -- test end
     test::Success#()
     return 0

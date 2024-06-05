@@ -34,57 +34,57 @@
             undef]))
     (let! curr auto (front! all_objects))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::DuckR)]))
-    (shed (aanim::SetBasics [curr 0.0 0 5]))
+    (do (aanim::InitObjectState [curr (& artwork::DuckR)]))
+    (do (aanim::SetBasics [curr 0.0 0 5]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::Castle)]))
-    (shed (aanim::SetBasics [
+    (do (aanim::InitObjectState [curr (& artwork::Castle)]))
+    (do (aanim::SetBasics [
             curr
             0.0
             (- (as width r32) 32)
             (- (as height r32) 13)]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::BigFishR)]))
-    (shed (aanim::SetBasics [curr 0.0 10 10]))
+    (do (aanim::InitObjectState [curr (& artwork::BigFishR)]))
+    (do (aanim::SetBasics [curr 0.0 10 10]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::SwanL)]))
-    (shed (aanim::SetBasics [curr 0.0 50 1]))
+    (do (aanim::InitObjectState [curr (& artwork::SwanL)]))
+    (do (aanim::SetBasics [curr 0.0 50 1]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::DolphinL)]))
-    (shed (aanim::SetBasics [curr 0.0 30 8]))
+    (do (aanim::InitObjectState [curr (& artwork::DolphinL)]))
+    (do (aanim::SetBasics [curr 0.0 30 8]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::MonsterR)]))
-    (shed (aanim::SetBasics [curr 0.0 30 2]))
+    (do (aanim::InitObjectState [curr (& artwork::MonsterR)]))
+    (do (aanim::SetBasics [curr 0.0 30 2]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::SharkR)]))
-    (shed (aanim::SetBasics [curr 0.0 30 30]))
+    (do (aanim::InitObjectState [curr (& artwork::SharkR)]))
+    (do (aanim::SetBasics [curr 0.0 30 30]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::ShipR)]))
-    (shed (aanim::SetBasics [curr 0.0 50 0]))
+    (do (aanim::InitObjectState [curr (& artwork::ShipR)]))
+    (do (aanim::SetBasics [curr 0.0 50 0]))
     (= curr (pinc curr 1))
     @doc "add obj"
-    (shed (aanim::InitObjectState [curr (& artwork::Fish1R)]))
-    (shed (aanim::SetBasics [curr 0.0 40 40]))
+    (do (aanim::InitObjectState [curr (& artwork::Fish1R)]))
+    (do (aanim::SetBasics [curr 0.0 40 40]))
     (= curr (pinc curr 1))
     @doc "add obj"
     (fmt::print# ansi::CURSOR_HIDE)
     (let! last_t r32 0.0)
     (for t 0.0 5.0_r32 0.1 :
-        (shed (aanim::window_fill [(&! window) ' ' ' ']))
+        (do (aanim::window_fill [(&! window) ' ' ' ']))
         (= curr (front! all_objects))
         (for i 0 9_uint 1 :
-            (shed (aanim::draw [(&! window) (pinc curr i)])))
-        (shed (aanim::window_draw [(& window) 'k']))
+            (do (aanim::draw [(&! window) (pinc curr i)])))
+        (do (aanim::window_draw [(& window) 'k']))
         (for i 0 9_uint 1 :
-            (shed (artwork::UpdateState [(pinc curr i) t (- t last_t)])))
-        (shed (os::nanosleep [(& req) (&! rem)]))
+            (do (artwork::UpdateState [(pinc curr i) t (- t last_t)])))
+        (do (os::nanosleep [(& req) (&! rem)]))
         (= last_t t))
     (fmt::print# ansi::CURSOR_SHOW)
     (return 0))

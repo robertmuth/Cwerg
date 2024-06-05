@@ -51,7 +51,7 @@ fun DumpNode(i u32) void:
             set NodePool[i].next = &!NodePool[i + 1]
     -- 
     --     (for i 0 N 1 :
-    --        (shed (DumpNode [i])))
+    --        (do (DumpNode [i])))
     --     
     test::AssertEq#(SumPayload(front!(NodePool)), 4950_u32)
     test::Success#()

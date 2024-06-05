@@ -34,9 +34,9 @@ global DataInc = [64]u8{
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
     -- init
-    shed checksum::InitCrcTab(checksum::PolyCrc32LE, &!Crc32Tab)
+    do checksum::InitCrcTab(checksum::PolyCrc32LE, &!Crc32Tab)
     fmt::print#({"\n\n"})
-    shed checksum::InitCrcTab(checksum::PolyCrc32cLE, &!Crc32cTab)
+    do checksum::InitCrcTab(checksum::PolyCrc32cLE, &!Crc32cTab)
     -- crc32
     --     python3 -c "import zlib; print(zlib.crc32(bytes([0xaa] * 1024)))"
     --     

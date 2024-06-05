@@ -4,8 +4,8 @@
         (param a s32)
         (param b s32)
         (param c s32)] s32 :
-    (shed (foo1 [0 0 0]))
-    (shed (foo2 [1 2 3]))
+    (do (foo1 [0 0 0]))
+    (do (foo2 [1 2 3]))
     (return 7))
 
 

@@ -91,7 +91,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 )
 
 (fun KeccakF  [(param x (ptr! (array 25 u64)))] void :
-    @doc """(shed (dumpA ["KeccakF:" x]))"""
+    @doc """(do (dumpA ["KeccakF:" x]))"""
 
 	(for round  0 24_uint 1 :
         @doc "theta(x)"
@@ -112,7 +112,7 @@ https://emn178.github.io/online-tools/sha3_512.html
         (XOR_1# x [2 7 12 17 22] t2)
         (XOR_1# x [3 8 13 18 23] t3)
         (XOR_1# x [4 9 14 19 24] t4)
-        @doc """(shed (dumpA ["theta" x]))"""
+        @doc """(do (dumpA ["theta" x]))"""
 
         @doc "rho(x)"
         (let! a u64 (at (^ x) 1))
@@ -149,7 +149,7 @@ https://emn178.github.io/online-tools/sha3_512.html
         (UPDATE# a b x 1 44)
 
 
-        @doc """(shed (dumpA ["rho" x]))"""
+        @doc """(do (dumpA ["rho" x]))"""
 
 
         @doc "chi"
@@ -167,7 +167,7 @@ https://emn178.github.io/online-tools/sha3_512.html
             (xor= (at (^ x) (+ i 4)) (and (! bc0) bc1))
         )
 
-        @doc """(shed (dumpA ["chi" x]))"""
+        @doc """(do (dumpA ["chi" x]))"""
 
         @doc "iota"
         (xor= (at (^ x) 0) (at rconst round))
@@ -195,8 +195,8 @@ https://emn178.github.io/online-tools/sha3_512.html
             (for i 0 offset 1 :
                 (= (^ (pinc tail_u8 (+ tail_use i))) (at data i))
             )
-            (shed (AddBlockAlignedLE [state  tail]))
-            (shed (KeccakF [(&! (^. state x))]))
+            (do (AddBlockAlignedLE [state  tail]))
+            (do (KeccakF [(&! (^. state x))]))
        )
     :)
     (while  (>= (- (len data) offset) block_size) :
@@ -204,8 +204,8 @@ https://emn178.github.io/online-tools/sha3_512.html
             (= (^ (pinc tail_u8 i)) (at data offset))
             (+= offset 1)
         )
-        (shed (AddBlockAlignedLE [state  tail]))
-        (shed (KeccakF [(&! (^. state x))]))
+        (do (AddBlockAlignedLE [state  tail]))
+        (do (KeccakF [(&! (^. state x))]))
 
     )
     (for i 0 (- (len data) offset) 1 :
@@ -227,23 +227,23 @@ https://emn178.github.io/online-tools/sha3_512.html
     (= (^ (pinc tail_u8 i)) 0))
    (or= (^ (pinc tail_u8 padding_start)) padding)
    (or= (^ (pinc tail_u8 (- block_size 1))) 0x80)
-   (shed (AddBlockAlignedLE [state  tail]))
-   (shed (KeccakF [(&! (^. state x))]))
+   (do (AddBlockAlignedLE [state  tail]))
+   (do (KeccakF [(&! (^. state x))]))
 )
 
 @doc "returns 512 bit cryptographic hash of data"
 @pub (fun Keccak512 [(param data (slice u8))] (array 64 u8) :
   (@ref let! state auto (rec_val StateKeccak512 []))
-  (shed (KeccakAdd [(&! (. state base)) (. state tail) data]))
-  (shed (KeccakFinalize [(&! (. state base)) (. state tail) KeccakPadding]))
+  (do (KeccakAdd [(&! (. state base)) (. state tail) data]))
+  (do (KeccakFinalize [(&! (. state base)) (. state tail) KeccakPadding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
 )
 
 @doc "returns 512 bit cryptographic hash of data"
 @pub (fun Sha3512 [(param data (slice u8))] (array 64 u8) :
   (@ref let! state auto (rec_val StateKeccak512 []))
-  (shed (KeccakAdd [(&! (. state base)) (. state tail) data]))
-  (shed (KeccakFinalize [(&! (. state base)) (. state tail) Sha3Padding]))
+  (do (KeccakAdd [(&! (. state base)) (. state tail) data]))
+  (do (KeccakFinalize [(&! (. state base)) (. state tail) Sha3Padding]))
   (return (^(as (& (. (. state base) x)) (ptr (array 64 u8)))))
 )
 

@@ -49,8 +49,8 @@
 
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (shed (test_bs_or_die []))
-    (shed (test_bs []))
+    (do (test_bs_or_die []))
+    (do (test_bs []))
     @doc "test end"
     (test::Success#)
     (return 0))

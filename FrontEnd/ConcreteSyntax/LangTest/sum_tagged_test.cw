@@ -97,9 +97,9 @@ fun fun_param(a bool, b bool, c s32, x Union3) void:
 
 fun test_tagged_union_parameter() void:
     let! x Union3 = true
-    shed fun_param(true, true, 0, x)
+    do fun_param(true, true, 0, x)
     set x = 666_s32
-    shed fun_param(false, true, 666, x)
+    do fun_param(false, true, 666, x)
 
 fun fun_result(a bool, b bool, c s32) Union3:
     let! out Union3 = undef
@@ -125,11 +125,11 @@ fun test_tagged_union_narrowto() void:
     let! z = narrowto(x, union(u8, bool))
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
-    shed test_tagged_union_basic()
-    shed test_tagged_union_void()
-    shed test_tagged_union_result()
-    shed test_tagged_union_parameter()
-    shed test_tagged_union_narrowto()
+    do test_tagged_union_basic()
+    do test_tagged_union_void()
+    do test_tagged_union_result()
+    do test_tagged_union_parameter()
+    do test_tagged_union_narrowto()
     -- test end
     test::Success#()
     return 0

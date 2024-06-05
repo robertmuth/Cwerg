@@ -47,8 +47,8 @@ If not you're just wasting my time
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc ""
-    (shed (test_Keccak512 []))
-    (shed (test_Sha3512 []))
+    (do (test_Keccak512 []))
+    (do (test_Sha3512 []))
     @doc """(let hash auto  (sha3::Keccak512 [limerick]))
     (fmt::print# (wrap hash fmt::str_hex) "\n")"""
     (test::Success#)

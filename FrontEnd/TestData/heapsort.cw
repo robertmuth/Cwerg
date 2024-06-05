@@ -67,12 +67,12 @@
     (for i 0 SIZE 1 :
         (let v auto (random::get_random [1000]))
         (= (at Data (+ i 1)) v))
-    (shed (dump_array [SIZE (& (at Data 1))]))
+    (do (dump_array [SIZE (& (at Data 1))]))
     (fmt::print# NEWLINE)
     (fmt::print# SIZE NEWLINE)
-    (shed (heap_sort [Data]))
+    (do (heap_sort [Data]))
     (fmt::print# NEWLINE)
-    (shed (dump_array [SIZE (& (at Data 1))]))
+    (do (dump_array [SIZE (& (at Data 1))]))
     (fmt::print# NEWLINE)
     (for i 1 SIZE 1 :
         (if (> (at Data i) (at Data (+ i 1))) :

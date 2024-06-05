@@ -48,8 +48,8 @@ fun test2() void:
     test::AssertEq#(bitstream::Stream32GetBits(&!bs, 32), 0x27856341_u32)
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
-    shed test1()
-    shed test2()
+    do test1()
+    do test2()
     -- test end
     test::Success#()
     return 0

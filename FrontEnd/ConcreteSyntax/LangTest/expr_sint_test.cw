@@ -156,10 +156,10 @@ fun test_s8(a s8, b s8) void:
     test::AssertEq#(a != a, false)
 
 @cdecl fun main(argc s32, argv ^^s8) s32:
-    shed test_s64(0x8765432187654321, 0x1234567812345678)
-    shed test_s32(0x87654321, 0x12345678)
-    shed test_s16(0x8765, 0x1234)
-    shed test_s8(0x87, 0x78)
+    do test_s64(0x8765432187654321, 0x1234567812345678)
+    do test_s32(0x87654321, 0x12345678)
+    do test_s16(0x8765, 0x1234)
+    do test_s8(0x87, 0x78)
     -- test end
     test::Success#()
     return 0

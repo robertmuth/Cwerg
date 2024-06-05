@@ -46,8 +46,8 @@ fun test_bs() void:
     test::AssertSliceEq#(result5, empty_slice)
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
-    shed test_bs_or_die()
-    shed test_bs()
+    do test_bs_or_die()
+    do test_bs()
     -- test end
     test::Success#()
     return 0

@@ -920,7 +920,7 @@ def _ParseStatement(inp: Lexer):
         container = inp.match_or_die(TK_KIND.ID)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroFor(var.text, container.text, stmts)
-    elif kw.text == "shed":
+    elif kw.text == "do":
         expr = _ParseExpr(inp)
         return cwast.StmtExpr(expr, **_ExtractAnnotations(kw))
     elif kw.text == "trap":

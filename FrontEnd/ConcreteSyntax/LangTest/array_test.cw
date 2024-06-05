@@ -122,9 +122,9 @@ fun test_global_array() void:
     test::AssertEq#(len(e1), 10_uint)
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
-    shed test_global_array()
-    shed test_local_array()
-    shed test_mixed_array()
+    do test_global_array()
+    do test_local_array()
+    do test_mixed_array()
     -- test end
     test::Success#()
     return 0

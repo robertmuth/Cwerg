@@ -17,6 +17,6 @@ type Visitor = funtype(node ^!BinaryTreeNode) void
 fun InorderTraversal(root MaybeNode, visitor Visitor) void:
     trylet node ^!BinaryTreeNode = root, _:
         return
-    shed InorderTraversal(node^.left, visitor)
-    shed visitor(node)
-    shed InorderTraversal(node^.right, visitor)
+    do InorderTraversal(node^.left, visitor)
+    do visitor(node)
+    do InorderTraversal(node^.right, visitor)

@@ -24,14 +24,14 @@
 @doc ""
 @pub (fun FrontSliceOrDie [(param buffer (ptr! (slice u8))) (param n uint)] (slice u8) :
     (let out auto (slice_val (front (^ buffer)) n))
-    (shed (IncSliceOrDie [buffer n]))
+    (do (IncSliceOrDie [buffer n]))
     (return out))
 
 
 @doc ""
 @pub (fun FrontSliceUnchecked [(param buffer (ptr! (slice u8))) (param n uint)] (slice u8) :
     (let out auto (slice_val (front (^ buffer)) n))
-    (shed (IncSliceUnchecked [buffer n]))
+    (do (IncSliceUnchecked [buffer n]))
     (return out))
 
 
@@ -41,14 +41,14 @@
         (return OutOfBoundsErrorVal)
      :)
     (let out (slice u8) (slice_val (front (^ buffer)) n))
-    (shed (IncSliceUnchecked [buffer n]))
+    (do (IncSliceUnchecked [buffer n]))
     (return out))
 
 
 @doc ""
 @pub (fun FrontLeU8Unchecked [(param buffer (ptr! (slice u8)))] u8 :
     (let out u8 (@unchecked at (^ buffer) 0))
-    (shed (IncSliceUnchecked [buffer 1]))
+    (do (IncSliceUnchecked [buffer 1]))
     (return out))
 
 
@@ -72,7 +72,7 @@
 @pub (fun FrontLeU16Unchecked [(param buffer (ptr! (slice u8)))] u16 :
     (let out0 auto (as (@unchecked at (^ buffer) 0) u16))
     (let out1 auto (as (@unchecked at (^ buffer) 1) u16))
-    (shed (IncSliceUnchecked [buffer 2]))
+    (do (IncSliceUnchecked [buffer 2]))
     (return (+ out0 (<< out1 8))))
 
 
@@ -98,7 +98,7 @@
     (let out1 auto (as (@unchecked at (^ buffer) 1) u32))
     (let out2 auto (as (@unchecked at (^ buffer) 2) u32))
     (let out3 auto (as (@unchecked at (^ buffer) 3) u32))
-    (shed (IncSliceUnchecked [buffer 4]))
+    (do (IncSliceUnchecked [buffer 4]))
     (return (+ (+ (+ out0 (<< out1 8)) (<< out2 16)) (<< out3 24))))
 
 

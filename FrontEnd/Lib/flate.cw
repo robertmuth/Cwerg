@@ -396,7 +396,7 @@ last symbol: 29
     (param dst (slice! u8))
    ] (union [uint CorruptionError NoSpaceError TruncationError]) :
    (debug# "handle_uncompressed\n")
-   (shed (bitstream::Stream32SkipToNextByte [bs]))
+   (do (bitstream::Stream32SkipToNextByte [bs]))
    (let length u32 (bitstream::Stream32GetBits [bs 16]))
    (let inv_length u32 (bitstream::Stream32GetBits [bs 16]))
    (if (bitstream::Stream32Eos [bs]) : (return TruncationErrorVal) :)
