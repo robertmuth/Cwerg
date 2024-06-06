@@ -44,6 +44,8 @@ TESTS_CONCRETE = $(LANG_TESTS) $(TESTS) \
     Lib/math.cw \
     Lib/os.cw \
     Lib/random.cw \
+    Lib/sha3.cw \
+    Lib/sha3_test.cw \
     Lib/string.cw \
     Lib/string_test.cw \
     Lib/trig.cw \

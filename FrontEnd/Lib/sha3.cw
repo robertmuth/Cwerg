@@ -49,8 +49,7 @@ https://emn178.github.io/online-tools/sha3_512.html
     (field tail (array (/ BlockSize224 8) u64)))
 
 
-@doc "only valid len for data are 9, 13, 17, 18
-
+@doc "only valid len for data are 9, 13, 17, 18"
 (fun AddBlockAlignedLE [(param state (ptr! StateKeccak)) (param data (slice u64))] void :
     (for i 0 9_uint 1 :
         (xor= (at (^. state x) i) (at data i)))

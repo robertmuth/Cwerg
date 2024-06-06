@@ -508,6 +508,11 @@ def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
         t = t[4:-3]
         tq = True
         strkind = "raw"
+    elif t.startswith('x"""'):
+        assert t.endswith('"""')
+        t = t[4:-3]
+        tq = True
+        strkind = "hex"
     elif t.startswith('"'):
         assert t.endswith('"')
         t = t[1:-1]
