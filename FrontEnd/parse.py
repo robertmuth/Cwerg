@@ -1100,7 +1100,7 @@ def _ParseTopLevel(inp: Lexer):
         else:
             body = _ParseStatementList(inp, kw.column)
         return cwast.DefMacro(name.text, cwast.MACRO_PARAM_KIND[kind.text],
-                              params, gen_ids, body)
+                              params, gen_ids, body,**_ExtractAnnotations(kw))
     elif kw.text == "type":
         name = inp.match_or_die(TK_KIND.ID)
         inp.match_or_die(TK_KIND.ASSIGN)
