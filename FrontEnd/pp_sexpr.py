@@ -192,7 +192,6 @@ _ATTR_MODE = {
     "popl": "before",
     "builtin": "before",
     "cdecl": "before",
-    "eoldoc": "skip",
     "polymorphic": "after",
     "arg_ref": "after",
     "res_ref": "after",

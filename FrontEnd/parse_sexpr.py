@@ -47,7 +47,7 @@ def ReadAttrs(t: str, attr: dict[str, Any], stream):
     while t.startswith("@"):
         tag = t[1:]
         val: Union[bool, str] = True
-        if tag in ("doc", "eoldoc"):
+        if tag == "doc":
             val = next(stream)
         attr[tag] = val
         t = next(stream)

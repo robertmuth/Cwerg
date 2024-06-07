@@ -36,12 +36,12 @@ PREC2_ORSC = 5
 PREC2_ANDSC = 6
 PREC2_COMPARISON = 7
 PREC2_MAX = 9  # max min
-PREC2_ADD = 10 # + - or xor
-PREC2_MUL = 11 # * / % and
+PREC2_ADD = 10  # + - or xor
+PREC2_MUL = 11  # * / % and
 PREC2_SHIFT = 12
 PREC1_NOT = 13
-PREC_INDEX = 14  #  &a[i] &struct^.field
-#PREC_DEREF = 15
+PREC_INDEX = 14  # &a[i] &struct^.field
+# PREC_DEREF = 15
 
 
 _OPS_PRECENDENCE_EXPR2 = {
@@ -77,6 +77,7 @@ _OPS_PRECENDENCE_EXPR2 = {
 
 def _prec2(node: cwast.Expr2):
     return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind]
+
 
 def NodeNeedsParen(node, parent, field: str):
     """Do we need to add parenthesese around an expression
@@ -368,9 +369,7 @@ def TokensAnnotationsPre(ts: TS, node):
             continue
         val = getattr(node, field)
         if val:
-            if field == "eoldoc":
-                continue
-            elif field == "doc":
+            if field == "doc":
                 if val.startswith('"""'):
                     val = val[3:-3]
                 else:
@@ -393,17 +392,7 @@ def TokensAnnotationsPre(ts: TS, node):
 
 
 def TokensAnnotationsPost(ts: TS, node):
-    for field, _ in node.ATTRS:
-        # these attributes will be rendered directly
-        if field != "eoldoc":
-            continue
-        val = getattr(node, field)
-        if val:
-            if val.startswith('"""'):
-                val = val[3:-3]
-            else:
-                val = val[1:-1]
-            ts.EmitComment("  -- " + val)
+    pass
 
 
 def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
