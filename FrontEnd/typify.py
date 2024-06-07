@@ -476,7 +476,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ExprCall):
         callee = node.callee
-        if node.polymorphic:
+        if node.is_polymorphic():
             assert len(node.args) > 0
             assert isinstance(callee, cwast.Id)
             t = _TypifyNodeRecursively(
@@ -1172,7 +1172,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
         for node in mod.body_mod:
             # Note: _TypifyNodeRecursivel() does NOT recurse into function bodies
             ct = _TypifyNodeRecursively(node, tc, cwast.NO_TYPE, ctx)
-            if isinstance(node, cwast.DefFun) and node.polymorphic:
+            if isinstance(node, cwast.DefFun) and node.is_polymorphic():
                 assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
                 poly_map.Register(node)
 

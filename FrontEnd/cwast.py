@@ -506,7 +506,6 @@ ALL_FIELDS = [
     NfdAttrBool("discard", "ignore non-void expression"),
     NfdAttrBool("init", "run function at startup"),
     NfdAttrBool("fini", "run function at shutdown"),
-    NfdAttrBool("polymorphic", "function definition or call is polymorphic"),
     NfdAttrBool("unchecked", "array acces is not checked"),
     NfdAttrBool("untagged", "union type is untagged"),
     NfdAttrBool("arg_ref", "in parameter was converted for by-val to pointer"),
@@ -1731,11 +1730,12 @@ class ExprCall:
     callee: NODES_EXPR_T
     args: list[NODES_EXPR_T]
     #
-    polymorphic: bool = False
-    #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
+
+    def is_polymorphic(self) -> bool:
+        return isinstance(self.callee, Id) and self.callee.name.endswith("@")
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.callee}"
@@ -2652,10 +2652,7 @@ class DefFun:
     `cdecl` disables name mangling
 
     `ref`  fun may be assigned to a variable (i.e. its address may be taken)
-
-    `polymorphic` indicates a polymorhic function. The `name` must be qualified with
-                 the module containing the seed polymorphic definition.
-    """
+     """
     ALIAS = "fun"
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.IMPORT_ANNOTATED
@@ -2665,7 +2662,6 @@ class DefFun:
     result: NODES_TYPES_T
     body: list[NODES_BODY_T]  # new scope
     #
-    polymorphic: bool = False
     init: bool = False
     fini: bool = False
     pub: bool = False
@@ -2677,6 +2673,9 @@ class DefFun:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_import: Import = INVALID_IMPORT  # only used for polymorphic function
+
+    def is_polymorphic(self) -> bool:
+        return self.name.endswith("@")
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params)
@@ -3149,7 +3148,7 @@ def AnnotateImportsForQualifers(mod: DefMod):
             if q:
                 # only polymorphic functions may have qualifiers
                 if isinstance(node, DefFun):
-                    assert node.polymorphic
+                    assert node.is_polymorphic()
                 if q not in imports:
                     CompilerError(node.x_srcloc, f"unkown module {q}")
                 node.x_import = imports[q]

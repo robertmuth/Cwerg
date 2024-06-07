@@ -145,7 +145,7 @@ def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
     for node in mod.body_mod:
         if isinstance(node, cwast.StmtStaticAssert):
             continue
-        if isinstance(node, cwast.DefFun) and node.polymorphic:
+        if isinstance(node, cwast.DefFun) and node.is_polymorphic():
             # symbol resolution for these can only be handled when we have
             # types so we skip them here
             continue
@@ -264,7 +264,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
 
     # recurse using a little bit of introspection
     for c, nfd in node.__class__.FIELDS:
-        if isinstance(node, cwast.ExprCall) and node.polymorphic and c == "callee":
+        if isinstance(node, cwast.ExprCall) and node.is_polymorphic() and c == "callee":
             # polymorphic stuff can only be handled once we have types
             continue
         if nfd.kind is cwast.NFK.NODE:
@@ -323,7 +323,7 @@ def VerifyASTSymbolsRecursively(node):
         if in_def_macro:
             return
 
-        if field == "callee" and isinstance(parent, cwast.ExprCall) and parent.polymorphic:
+        if field == "callee" and isinstance(parent, cwast.ExprCall) and parent.is_polymorphic():
             return
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:

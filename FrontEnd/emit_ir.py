@@ -1152,7 +1152,7 @@ def main() -> int:
                 # when we emit Cwerg IR we use the "/" sepearator not "::" because
                 # : is used for type annotations
                 suffix = ""
-                if isinstance(node, (cwast.DefFun)) and node.polymorphic:
+                if isinstance(node, (cwast.DefFun)) and node.is_polymorphic():
                     suffix = f"<{node.x_type.parameter_types()[0].name}>"
                 if node.cdecl:
                     node.name = node.name + suffix
