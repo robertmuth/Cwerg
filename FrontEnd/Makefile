@@ -55,8 +55,6 @@ TESTS_CONCRETE = $(LANG_TESTS) $(TESTS) \
 #	Lib/flate_test.cw
 #	Lib/fmt.cw   poly
 #	Lib/fmt_test.cw
-#	Lib/sha3.cw
-#	Lib/sha3_test.cw
 
 # not the clean part will be run out of order but the early targets are not
 # relying on the cleaning so things work out with "make -j"
