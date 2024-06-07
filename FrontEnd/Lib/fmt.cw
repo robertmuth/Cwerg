@@ -31,7 +31,7 @@
     (field left_justify bool))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v bool)
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -71,23 +71,23 @@
     (return (slice_val (pinc (front! s) n) (- (len s) n))))
 
 
-(@polymorphic fun DecToStr [(param v u8) (param out (slice! u8))] uint :
+(@polymorphic fun DecToStr@ [(param v u8) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-(@polymorphic fun DecToStr [(param v u16) (param out (slice! u8))] uint :
+(@polymorphic fun DecToStr@ [(param v u16) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-(@polymorphic fun DecToStr [(param v u32) (param out (slice! u8))] uint :
+(@polymorphic fun DecToStr@ [(param v u32) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-(@polymorphic fun DecToStr [(param v u64) (param out (slice! u8))] uint :
+(@polymorphic fun DecToStr@ [(param v u64) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-(@polymorphic fun DecToStr [(param v s32) (param out (slice! u8))] uint :
+(@polymorphic fun DecToStr@ [(param v s32) (param out (slice! u8))] uint :
     (if (== (len out) 0) :
         (return 0)
      :)
@@ -96,7 +96,7 @@
         (= (at out 0) '-')
         (return (+ 1 (unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
      :
-        (return (@polymorphic DecToStr [(as v u32) out]))))
+        (return (@polymorphic DecToStr@ [(as v u32) out]))))
 
 
 @pub (fun str_to_u32 [(param s (slice u8))] u32 :
@@ -108,42 +108,42 @@
     (return x))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v u8)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic DecToStr [v out])))
+    (return (@polymorphic DecToStr@ [v out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v u16)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic DecToStr [v out])))
+    (return (@polymorphic DecToStr@ [v out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v u32)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic DecToStr [v out])))
+    (return (@polymorphic DecToStr@ [v out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v u64)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic DecToStr [v out])))
+    (return (@polymorphic DecToStr@ [v out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v s32)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic DecToStr [v out])))
+    (return (@polymorphic DecToStr@ [v out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v (slice u8))
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -169,61 +169,61 @@
 
 
 
-(@polymorphic fun ToHexStr [(param v u64) (param out (slice! u8))] uint :
+(@polymorphic fun ToHexStr@ [(param v u64) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 64_uint out)))
 
 
-(@polymorphic fun ToHexStr [(param v u32) (param out (slice! u8))] uint :
+(@polymorphic fun ToHexStr@ [(param v u32) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 
 
-(@polymorphic fun ToHexStr [(param v u16) (param out (slice! u8))] uint :
+(@polymorphic fun ToHexStr@ [(param v u16) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 
 
-(@polymorphic fun ToHexStr [(param v u8) (param out (slice! u8))] uint :
+(@polymorphic fun ToHexStr@ [(param v u8) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v uint_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic ToHexStr [(unwrap v) out])))
+    (return (@polymorphic ToHexStr@ [(unwrap v) out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v u64_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic ToHexStr [(unwrap v) out])))
+    (return (@polymorphic ToHexStr@ [(unwrap v) out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v u32_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic ToHexStr [(unwrap v) out])))
+    (return (@polymorphic ToHexStr@ [(unwrap v) out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v u16_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic ToHexStr [(unwrap v) out])))
+    (return (@polymorphic ToHexStr@ [(unwrap v) out])))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v u8_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic ToHexStr [(unwrap v) out])))
+    (return (@polymorphic ToHexStr@ [(unwrap v) out])))
 
 
 @pub (@wrapped type rune u8)
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v rune)
         (param buffer (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -275,7 +275,7 @@
         exponentiation bias is 1023
         https://en.wikipedia.org/wiki/Double-precision_floating-point_format
         https://observablehq.com/@jrus/hexfloat"""
-(@polymorphic fun ToHexStr [(param val r64) (param out (slice! u8))] uint :
+(@polymorphic fun ToHexStr@ [(param val r64) (param out (slice! u8))] uint :
     (let val_bits auto (bitcast val s64))
     (let! frac_bits auto (and val_bits 0xf_ffff_ffff_ffff))
     (let exp_bits auto (and (>> val_bits 52) 0x7ff))
@@ -311,24 +311,24 @@
         (= exp (- 0_s64 exp))
      :)
     (let rest auto (slice_val (pinc buf i) (- (len out) i)))
-    (+= i (@polymorphic DecToStr [(as exp u64) rest]))
+    (+= i (@polymorphic DecToStr@ [(as exp u64) rest]))
     (return i))
 
 
 @pub (@wrapped type r64_hex r64)
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v r64_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (@polymorphic ToHexStr [(unwrap v) out])))
+    (return (@polymorphic ToHexStr@ [(unwrap v) out])))
 
 
 @pub (@wrapped type str_hex (slice u8))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v str_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
@@ -348,12 +348,12 @@
         (return 0)))
 
 
-(@polymorphic fun SysRender [
+(@polymorphic fun SysRender@ [
         (param v (ptr void))
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
     (let h auto (wrap (bitcast v uint) uint_hex))
-    (return (@polymorphic SysRender [h out options])))
+    (return (@polymorphic SysRender@ [h out options])))
 
 
 @pub (macro print# STMT_LIST [
@@ -363,7 +363,7 @@
     (mlet! $curr uint 0)
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
-        (+= $curr (@polymorphic SysRender [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
+        (+= $curr (@polymorphic SysRender@ [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
     (do (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
@@ -373,7 +373,7 @@
     (mlet! $curr uint 0)
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
-        (+= $curr (@polymorphic SysRender [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
+        (+= $curr (@polymorphic SysRender@ [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
     (do (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
