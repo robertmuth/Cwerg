@@ -42,6 +42,11 @@ so it can be linked against the startup code.
 * `bool`
 * `void`
 
+## Booleam Literals
+
+`true`, `false`
+
+There is no concept of truthiness
 
 ## String Literals
 
@@ -93,6 +98,8 @@ Variables use the same syntax as global except that the keyword is suffixed by `
 global! a_global_var u64 = 7_u64
 ```
 
+If an initializer expression is omitted, the global is initialized to zero.
+
 
 ### Type Definitions
 
@@ -142,3 +149,177 @@ rec Date:
 
 
 There are plans to have per field private/public access control but for now if the `rec` is annotated with `@pub` all fields are externally visible.
+
+#### Macros
+
+TBD
+
+### Static Asserts
+
+TBD
+
+### Functions
+
+Functions are declared like so:
+
+```
+ fun foo(param1 typ1, param2 type2, ...) returntype:
+    <STATEMENTS>+]
+```
+
+
+## Statements
+
+Note: all statments start with an introductory keyword.
+
+### Local Constants
+
+Local constants have the same syntax as global constants except
+they are introduce with the `let` keyword. All these statements are equivalent:
+
+```
+let a_local_const u64 = 7_u64
+let a_local_const u64 = 7
+let a_local_const = 7_u64
+```
+
+### Local Variables
+
+
+Local variable have the same syntax as local constants except that introductory
+keyword is suffixed with "!". All these statements are equivalent:
+
+```
+let! a_local_const u64 = 7_u64
+let! a_local_const u64 = 7
+let! a_local_const = 7_u64
+```
+If an initializer expression is omitted, the global is initialized to zero.
+The special initializer `undef` will leave the initial value undefined.
+
+
+### (Compound) Assignment Statements
+
+```
+set a_local_const = 666;
+set a_local_const += 666;
+```
+
+### Block Statements
+
+A block introduces an optionally labelled new scope.
+Controlflow will resume at the next statement after block if
+the control flow falls throuh the last statement of the block.
+```
+block <NAME>?:
+    <STAREMENTS>+
+```
+
+A `continue` statement inside the block will set controlflow to the beginning
+of the block and a `break` statement will exit the block.
+Both  `continue` and `break` statements can have an optional label indicating
+which enclosing `block` they refer to.
+
+### While Loops
+
+```
+while <CONDITION>:
+    <STAREMENTS>+
+```
+
+
+### For Loops
+
+### If-else Statements
+
+### Cond Statements
+
+### Defer Statements
+
+
+### Return Statements
+
+### Continue Statements
+
+### Break Statements
+
+### Trap Statements
+
+### Do Statements
+
+## Type Expressions
+
+## Expressions
+
+### Prefix Operators
+
+| Name  | Symbol | Description            |
+| ----- | ------ | ---------------------- |
+| NOT   | !      | bitwise or logical not |
+| MINUS | -      | unary minus            |
+
+
+### Infix Operators
+
+| Name   | Notation | Description               |
+| ------ | -------- | ------------------------- |
+| ADD    | +        |                           |
+| SUB    | -        |                           |
+| DIV    | /        |                           |
+| MUL    | *        |                           |
+| MOD    | %        |                           |
+| MIN    | min      |                           |
+| MAX    | max      |                           |
+| AND    | and      | bitwise and               |
+| OR     | or       | bitwise or                |
+| XOR    | xor      | bitwise xor               |
+| EQ     | ==       |                           |
+| NE     | !=       |                           |
+| LT     | <        |                           |
+| LE     | <=       |                           |
+| GT     | >        |                           |
+| GE     | >=       |                           |
+| ANDSC  | &&       | short-circuit logical and |
+| ORSC   | \|\|     | short-circuit logical or  |
+| SHR    | >>       |                           |
+| SHL    | <<       |                           |
+| ROTR   | >>>      | bitwise rotate right      |
+| ROTL   | <<<      | bitwise rotate left       |
+| PDELTA | &-&      | pointer difference        |
+
+Note, operator precendence has yet to be finalized
+
+### Function Style Operators
+
+
+| Notation               | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| len(E) -> uint         | length of an array or slice                                 |
+| front(E) -> P          | pointer to first element of array or slice                  |
+| front!(E) -> P         | mutable pointer to first element of array or slice          |
+| slice(P, E) -> S       | make a slice from a pointer and length                      |
+| slice!(P, E) -> S      | make a mutable slice from a mutable pointer and length      |
+| offsetof(R, F) -> uint | offset of field in record                                   |
+| sizeof(T) -> uint      | size of a type                                              |
+| pinc(P, E [, E]) -> P  | increment pointer with optional bounds check                |
+| pdec(P, E [, E]) -> P  | decrement pointer with optional bounds check                |
+| unwrap(E) -> E         | convert expression of a wrapped type to the underlying type |
+| type(E) -> T           | type of expression                                          |
+| typeidof(E) -> typeid  | typeid of an expression of union type                       |
+| uniondelta(T, T) -> T  | type delta of two union type expressions                    |
+| stringify(E) -> []u8   | convert an expression to a textual representation           |
+
+
+Casts
+
+
+TBD  - see [Casting](casting.md)
+
+
+| Notation          | Description                                |
+| ----------------- | ------------------------------------------ |
+| as(E, T) -> E     | casts with run-time checks                 |
+| wrapas(E, T) -> E | convert expression to a wrapped type       |
+| bitas(E, T) -> E  | convert expression to a type of same width |
+
+## Macros
