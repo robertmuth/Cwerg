@@ -37,17 +37,21 @@ so it can be linked against the startup code.
 ### Fibonacci
 
 ```
-fun fib(x uint) uint:
+@pub fun fib(x uint) uint:
     if x <= 1:
         return x
     return fib(x - 1) + fib(x - 2)
 ```
 
+The `@pub` annotation makes `fib` visible outside of the module.
+
 ### Sieve of Eratosthenes
 
 ```
+-- a global constant
 global N uint = 1000 * 1000 * 1000;
 
+-- a mutable global array of bool initialized to `true`
 -- index i reprents number 3 + 2 * i
 global! is_prime = [N]bool{true}
 
@@ -124,16 +128,16 @@ slice!(u32)
 ```
 
 
-## Lexical Elements
+## Literals
 
 
-## Booleam Literals
+### Booleam Literals
 
 `true`, `false`
 
 There is no concept of truthiness
 
-## String Literals
+### String Literals
 
 Regular string literals are enclosed in double-quotes. e.g. "escaped string\n" and may contain back-slash escapes. Most single character escapes are supported
 ('\n', '\t',  '\\', etc).
@@ -147,10 +151,13 @@ characters.
 Multi-line strings are enclosed in tripple quotes, e.g. """multi-line string:"""",
 and also come in unescaped (prefix "r") and hex (prefix "x") flavors.
 
-## Number Literals
+### Number Literals
 
 Number literals may contain underscores ("_") which are ignored. Since Cwerg does not implicitly convert numbers it is often necessary use typed number by adding one of the following suffices: u8, u16, u32, u64, s8, s16, s32, s64, r32, r64, e.g. "0x1234_s16".
 
+### Array Literals
+
+### Record Literals
 
 ## Module Definitions
 
