@@ -1,8 +1,16 @@
 # Cwerg Language Tutorial
 
-## Hello World
 
-```module main:
+## Examples
+
+Cwerg use a Python inspired syntax where the indentation level
+is significant. Adjacent lines of statements with the same indentation
+level belong to the same code block.
+
+### Hello World
+
+```
+module main:
 
 import fmt
 
@@ -12,10 +20,6 @@ import fmt
 
 ```
 
-Cwerg use a Python inspired syntax where the indentation level
-is significant. Adjacent lines of statements with the same indentation
-level belong to the same code block.
-
 Every file starts with a module stanza. The `name` of the module, "main",
 is largely ignored and may be dropped in the future.
 
@@ -23,15 +27,58 @@ The type information in the function declaration follows the Go model of
 identifier followed by type.
 Functions can only return one value.
 
-Annotations are identifiers that start with "@ and can preceed certain
+Annotations are identifiers that start with "@" and can preceed certain
 syntactical constructs. Here `@cdecl` disables the name mangiling of function main
 so it can be linked against the startup code.
 
 `fmt::print#` is a macro call. All macros names must end in "#".
 
-# Lexical Elements
 
-## Base Types
+### Fibonacci
+
+```
+fun fib(x uint) uint:
+    if x <= 1:
+        return x
+    return fib(x - 1) + fib(x - 2)
+```
+
+### Sieve of Eratosthenes
+
+```
+global N uint = 1000 * 1000 * 1000;
+
+-- index i reprents number 3 + 2 * i
+global! is_prime = [N]bool{true}
+
+-- Count the number of primes below n
+fun sieve() uint:
+    let! count uint = 1
+    for i = 0, N, 1:
+        if is_prime[i]:
+            set count += 1
+            let p uint = i + i + 3
+            for k = i + p, N, p:
+                set is_prime[k] = false
+    return count
+```
+
+Exclamtion marks at the end of keywords indicate mutability.
+
+## Type System
+
+Cwerg's is similar to C's with the following differences
+
+* there are very few implicit conversions
+* pointers cannot be null
+* there is a stronger emphasis on "const/mutability correctness"
+* arrays do not decay to to pointers and arrays of different sizes
+  are different types
+* slices can be used where arrays like objects with variable length are required
+* (tagged) unions are supported to simplifying error handling and emulate nullable
+ pointers
+
+### Base Types
 
 * `u8`, `u16`, `u32`, `u64`  unsigned int in various widths
 * `uint`  unsigned int big enough to hold a pointer
@@ -41,6 +88,44 @@ so it can be linked against the startup code.
 * `typeid` unsigned int big enough to hold a type tag
 * `bool`
 * `void`
+
+### Pointer
+
+
+```
+-- pointer to a u32
+^u32
+
+-- pointer to a mutable u32
+^!u32
+```
+
+### Arrays
+
+
+Array of different length are not compatible
+
+```
+-- 10 element array of element type u32
+[10]u32
+
+```
+
+### Slices
+
+Slices are essentially fat pointers consisting of pointer to the first element of an array
+and a length.
+
+```
+-- regular slice
+slice(u32)
+-- mutable slice
+slice!(u32)
+```
+
+
+## Lexical Elements
+
 
 ## Booleam Literals
 
@@ -67,16 +152,30 @@ and also come in unescaped (prefix "r") and hex (prefix "x") flavors.
 Number literals may contain underscores ("_") which are ignored. Since Cwerg does not implicitly convert numbers it is often necessary use typed number by adding one of the following suffices: u8, u16, u32, u64, s8, s16, s32, s64, r32, r64, e.g. "0x1234_s16".
 
 
+## Module Definitions
 
+Every file starts with module definition. A simple version looks like:
 
-## Module Level Declations
+```
+module optional-name:
+    <TOP-LEVEL-DECLARATIOND>+]
+```
+
+A more complex definition for the generic case looks like:
+
+```
+module optional-name(param-name1 param-kind1, param-name2 param-kind2, ...):
+    <TOP-LEVEL-DECLARATIOND>+]
+```
+
+## Top Level Declations
 
 By default all top level desclations are module private.
-The `@pub` annotation will export the annotated symbol.
+The `@pub` annotation will export the declaration and thereby make it visible to the
+importing module.
 
-Note, the declarations listed here can only appear at the module
+Note, the declarations listed here can only appear at the top
 level, not inside function bodies.
-
 
 ### Global Constants
 
@@ -230,24 +329,99 @@ while <CONDITION>:
 
 ### For Loops
 
+```
+for var-name = initial-expr, limit-expr, step-expr:
+    <STAREMENTS>+
+```
+
+For loops differ from their C counterparts in the following way:
+* they are mostly meant for ranging over a sequence of integers
+* initial-expr, limit-expr, step-expr are evaluated once at the beginning
+* the type of var-name is determined by the type of limit-expr
+
+If you need a for loop to iterated over a custom data-structure, define
+a macro.
+
 ### If-else Statements
+
+```
+if condition:
+    <STAREMENTS>+
+else:
+    <STAREMENTS>+
+```
 
 ### Cond Statements
 
+```
+cond:
+    case condition1:
+        <STAREMENTS>+
+    case condition2:
+        <STAREMENTS>+
+    ...
+```
+
 ### Defer Statements
+
+```
+defer:
+    <STAREMENTS>+
+```
+
+The code in the defer body will be run when the enclosing scope is exited.
+The code in the defer body **must not** branch out of the body.
+Multiple defer statements in the same scope are run in the reverse order they
+are defined.
 
 
 ### Return Statements
 
+```
+return optional-expression
+```
+
+Return a value from the enclosing function or expression statement.
+If no expression is provide `void` is assumed.
+
 ### Continue Statements
+
+```
+continue optional-label
+```
+
+Jump to the beginning of a  `block`, `while` or `for` statement.
+The optional label can be used to name the block to exit.
 
 ### Break Statements
 
+```
+break optional-label
+```
+
+Exit the enclosing `block`, `while` or `for` statement.
+The optional label can be used to name the block to exit.
+
 ### Trap Statements
+
+```
+trap
+```
+
+Stop execution of the program.
 
 ### Do Statements
 
-## Type Expressions
+```
+do expression
+```
+
+Runs the expression and discards the result
+
+
+
+
+
 
 ## Expressions
 
@@ -323,3 +497,5 @@ TBD  - see [Casting](casting.md)
 | bitas(E, T) -> E  | convert expression to a type of same width |
 
 ## Macros
+
+TBD  - see [Macros](macros.md)
