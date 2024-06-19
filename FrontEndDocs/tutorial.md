@@ -1,5 +1,18 @@
 # Cwerg Language Tutorial
 
+## Highlights
+
+* Low level, C-like language: no GC, no unexpected control flow
+* Python inspired syntax
+* Optional sexpr syntax
+* defer statement (scheduling code to run code at scope exit)
+* tagged unions (sum types)
+* optionally wrapped types (by-name type equivalence)
+* modules (not nested)
+* simple hygienic macro system
+* limited polymorphism
+* slices (array views)
+* (almost) no implicit conversions
 
 ## Examples
 
@@ -7,7 +20,7 @@ Cwerg use a Python inspired syntax where the indentation level
 is significant. Adjacent lines of statements with the same indentation
 level belong to the same code block.
 
-### Hello World
+### Hello World (full example)
 
 ```
 module main:
@@ -34,7 +47,7 @@ so it can be linked against the startup code.
 `fmt::print#` is a macro call. All macros names must end in "#".
 
 
-### Fibonacci
+### Fibonacci (excerpt)
 
 ```
 @pub fun fib(x uint) uint:
@@ -45,7 +58,7 @@ so it can be linked against the startup code.
 
 The `@pub` annotation makes `fib` visible outside of the module.
 
-### Sieve of Eratosthenes
+### Sieve of Eratosthenes (excerpt)
 
 ```
 -- a global constant
@@ -93,7 +106,7 @@ Cwerg's is similar to C's with the following differences
 * `bool`
 * `void`
 
-### Pointer
+### Pointer Types
 
 
 ```
@@ -105,7 +118,6 @@ Cwerg's is similar to C's with the following differences
 ```
 
 ### Arrays
-
 
 Array of different length are not compatible
 
@@ -127,6 +139,65 @@ slice(u32)
 slice!(u32)
 ```
 
+### Records
+
+
+Records which are like C-structs can be declared like so:
+
+```
+rec Date:
+    year u16
+    month u8
+    day   u8
+    hour u8
+    minute u8
+    second u8
+```
+
+Records can be declared like so:
+
+```
+rec Date:
+    year u16
+    month u8
+    day   u8
+    hour u8
+    minute u8
+    second u8
+```
+
+
+There are plans to have per field private/public access control but for now if the `rec` is annotated with `@pub` all fields are externally visible.
+
+### Enums
+
+Enums can be declared like so:
+
+```
+enum Color u8:
+    blue auto
+    green 10
+    red auto
+
+```
+
+This declares an enum `Color` with 3 members (`red`, `green`, `blue`)
+with an underlying type of `u8`.
+`auto` is used the previously asigned value incremented by 1 or zero if it is the first member.  So in the above example we get:
+```
+Color:blue has value 0
+Color:green has value 10
+Color:red has value 11
+```
+
+Enums are C-like in that they are essentially named integer constants.
+Unlike C, enums members are always used "fully qualified" using a single colon.
+
+### Wrapped types
+
+
+
+### Function types
 
 ## Literals
 
@@ -223,38 +294,12 @@ The type `t1` is said to be a wrapped type.
 
 ### Enums
 
-Enums can be declared like so:
 
-```
-enum Color u8:
-    blue 1
-    green auto
-    red 19
-```
-
-This declares an enum `Color` with 3 members (`red`, `green`, `blue`)
-with an underlying type of `u8`.
-`auto` used the previously asigned value incremented by 1.
-
-Enums are C-like in that they are essentially named integer constants.
 
 
 #### Records
 
-Records can be declared like so:
 
-```
-rec Date:
-    year u16
-    month u8
-    day   u8
-    hour u8
-    minute u8
-    second u8
-```
-
-
-There are plans to have per field private/public access control but for now if the `rec` is annotated with `@pub` all fields are externally visible.
 
 #### Macros
 
