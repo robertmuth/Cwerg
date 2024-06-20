@@ -2124,7 +2124,7 @@ class ExprTypeId:
     """TypeId of type
 
     Result has type is `typeid`"""
-    ALIAS = "typeid"
+    ALIAS = "typeidof"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.NON_CORE
     #

@@ -90,6 +90,7 @@ _KEYWORDS_SIMPLE = [
     "asnarrowed",
     "unwrap",
     #
+    "typeidof",
     "offsetof",
     "sizeof",
     "len",
@@ -427,7 +428,7 @@ _FUN_LIKE = {
     "typeof": (cwast.TypeOf, "E"),
     #
     "sizeof": (cwast.ExprSizeof, "T"),
-    "typeid": (cwast.ExprTypeId, "T"),
+    "typeidof": (cwast.ExprTypeId, "T"),
     #
     "uniondelta": (cwast.TypeUnionDelta, "TT"),
     # mixing expression and types

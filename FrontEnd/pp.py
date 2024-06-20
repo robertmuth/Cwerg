@@ -586,7 +586,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, "offsetof", [n.type, cwast.Id(n.field)]),
     cwast.ExprLen: lambda ts, n: TokensFunctional(ts, "len", [n.container]),
     cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
-    cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "typeid", [n.type]),
+    cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "typeidof", [n.type]),
     cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, "narrowto", [n.expr, n.type]),
     cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrapas", [n.expr, n.type]),
     cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", [n.expr]),

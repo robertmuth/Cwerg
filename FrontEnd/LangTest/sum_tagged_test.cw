@@ -33,7 +33,7 @@
         type_ptr]))
 
 
-(static_assert (== (typeid Union2) (typeid Union2Simplified)))
+(static_assert (== (typeidof Union2) (typeidof Union2Simplified)))
 
 
 (type Union3 (union [
@@ -52,19 +52,19 @@
 (static_assert (== (sizeof Delta1) 8))
 
 
-(static_assert (== (typeid Delta1) (typeid s64)))
+(static_assert (== (typeidof Delta1) (typeidof s64)))
 
 
 (type Delta2 (uniondelta Union3 (union [bool u8])))
 
 
-(static_assert (== (typeid Delta2) (typeid (union [s32 s64]))))
+(static_assert (== (typeidof Delta2) (typeidof (union [s32 s64]))))
 
 
 (type Delta3 (uniondelta Union3 (union [bool u8 s64])))
 
 
-(static_assert (== (typeid Delta3) (typeid s32)))
+(static_assert (== (typeidof Delta3) (typeidof s32)))
 
 
 @pub (type Union5 (union [t2 t3 s8]))
@@ -191,4 +191,3 @@
     (test::Success#)
     (return 0))
 )
-

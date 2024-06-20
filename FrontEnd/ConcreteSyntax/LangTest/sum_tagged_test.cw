@@ -20,7 +20,7 @@ static_assert sizeof(Union2) == 16
 
 type Union2Simplified = union(s32, void, u8, type_ptr)
 
-static_assert typeid(Union2) == typeid(Union2Simplified)
+static_assert typeidof(Union2) == typeidof(Union2Simplified)
 
 type Union3 = union(bool, u8, s32, s64)
 
@@ -30,15 +30,15 @@ type Delta1 = uniondelta(Union3, union(bool, u8, s32))
 
 static_assert sizeof(Delta1) == 8
 
-static_assert typeid(Delta1) == typeid(s64)
+static_assert typeidof(Delta1) == typeidof(s64)
 
 type Delta2 = uniondelta(Union3, union(bool, u8))
 
-static_assert typeid(Delta2) == typeid(union(s32, s64))
+static_assert typeidof(Delta2) == typeidof(union(s32, s64))
 
 type Delta3 = uniondelta(Union3, union(bool, u8, s64))
 
-static_assert typeid(Delta3) == typeid(s32)
+static_assert typeidof(Delta3) == typeidof(s32)
 
 @pub type Union5 = union(t2, t3, s8)
 
@@ -62,9 +62,9 @@ rec rec1:
 
 global global_rec1 = rec1{1_s8, 2_s8}
 
--- 
+--
 -- @pub (type sum11_t (union [bool u16]))
--- @pub (type sum12_t (union [type_ptr u16])) 
+-- @pub (type sum12_t (union [type_ptr u16]))
 fun test_tagged_union_basic() void:
     let! x Union3 = true
     let! y Union3 = undef

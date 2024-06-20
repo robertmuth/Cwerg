@@ -313,7 +313,7 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
                                 f"expected list start in {parent_cls.__name__} for: {field} {token}")
 
     else:
-        assert None
+        assert None, f"unexpected kind {nfd.kind} for field {field}"
 
 
 def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: dict[str, Any]):
