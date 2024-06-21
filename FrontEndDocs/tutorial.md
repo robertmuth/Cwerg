@@ -10,16 +10,17 @@
 * tagged unions (sum types)
 * optionally wrapped types (by-name type equivalence)
 * modules (not nested)
+* generics via generic modules
 * simple hygienic macro system
 * limited polymorphism
 * slices (array views)
 * (almost) no implicit conversions
+* all value are zero initialized by default
 
 ## Examples
 
 Cwerg use a Python inspired syntax where the indentation level
-is significant. Adjacent lines of statements with the same indentation
-level belong to the same code block.
+is significant.
 
 ### Hello World (full example)
 
@@ -82,6 +83,8 @@ fun sieve() uint:
 ```
 
 Exclamtion marks at the end of keywords indicate mutability.
+
+##
 
 ## Type System
 
@@ -358,22 +361,6 @@ If an initializer expression is omitted, the global is initialized to zero.
 
 
 
-
-
-
-
-
-
-
-
-#### Macros
-
-TBD
-
-### Static Asserts
-
-TBD
-
 ### Functions
 
 Functions are declared like so:
@@ -382,6 +369,18 @@ Functions are declared like so:
  fun foo(param1 typ1, param2 type2, ...) returntype:
     <STATEMENTS>+]
 ```
+
+### Enums, Types (Typedefs) and Recs (Structs)
+
+These were covered in the Type Section above
+
+#### Macros
+
+TBD
+
+### Static Asserts
+
+TBD
 
 
 ## Statements
@@ -616,3 +615,7 @@ TBD  - see [Casting](casting.md)
 ## Macros
 
 TBD  - see [Macros](macros.md)
+
+## Generic Modules
+
+TBD
