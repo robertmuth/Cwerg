@@ -35,6 +35,8 @@ TAB = "  "
 ZEROS = [b"\0" * i for i in range(128)]
 
 
+
+
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
@@ -936,9 +938,10 @@ def main() -> int:
     cwd = os.getcwd()
     mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
     assert len(args.files) == 1
-    assert args.files[0].endswith(".cw")
+    ext = mod_pool.EXTENSION_CW
+    assert args.files[0].endswith(ext)
     mp.ReadModulesRecursively(["builtin",
-                               str(pathlib.Path(args.files[0][:-3]).resolve())])
+                               str(pathlib.Path(args.files[0][:-len(ext)]).resolve())])
 
     mod_topo_order = mp.ModulesInTopologicalOrder()
 

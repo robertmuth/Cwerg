@@ -15,6 +15,8 @@ ModId = Tuple[pathlib.PurePath, ...]
 
 logger = logging.getLogger(__name__)
 
+EXTENSION_CWS = ".cws"
+EXTENSION_CW = ".cw"
 
 class ModInfo:
     def __init__(self, uid: ModId, mod: cwast.DefMod):
@@ -252,7 +254,7 @@ class ModPoolBase:
 class ModPool(ModPoolBase):
 
     def _ReadMod(self, handle: pathlib.PurePath) -> cwast.DefMod:
-        fn = str(handle) + ".cw"
+        fn = str(handle) + EXTENSION_CW
         asts = parse_sexpr.ReadModsFromStream(open(fn, encoding="utf8"), fn)
         assert len(asts) == 1, f"multiple modules in {fn}"
         mod = asts[0]
@@ -266,7 +268,7 @@ if __name__ == "__main__":
 
     def main(argv):
         assert len(argv) == 1
-        assert argv[0].endswith(".cw")
+        assert argv[0].endswith(EXTENSION_CW)
 
         cwd = os.getcwd()
         mp: ModPool = ModPool(pathlib.Path(cwd) / "Lib")
