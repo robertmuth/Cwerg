@@ -1,5 +1,6 @@
 # Cwerg Language Tutorial
 
+
 ## Highlights
 
 * Low level, C-like language: no GC, no unexpected control flow
@@ -84,7 +85,7 @@ Exclamtion marks at the end of keywords indicate mutability.
 
 ## Type System
 
-Cwerg's is similar to C's with the following differences
+Cwerg's type system is similar to C's with the following differences
 
 * there are very few implicit conversions
 * pointers cannot be null
@@ -108,6 +109,7 @@ Cwerg's is similar to C's with the following differences
 
 ### Pointer Types
 
+The pointer type notation is similar to Pascal.
 
 ```
 -- pointer to a u32
@@ -139,22 +141,17 @@ slice(u32)
 slice!(u32)
 ```
 
+### Function types
+
+
+Function type can be described like so:
+```
+funtype(param1 type1, param2 type2, ...) return-type
+```
 ### Records
 
 
-Records which are like C-structs can be declared like so:
-
-```
-rec Date:
-    year u16
-    month u8
-    day   u8
-    hour u8
-    minute u8
-    second u8
-```
-
-Records can be declared like so:
+Records, essentially C-structs, can be declared like so:
 
 ```
 rec Date:
@@ -193,11 +190,48 @@ Color:red has value 11
 Enums are C-like in that they are essentially named integer constants.
 Unlike C, enums members are always used "fully qualified" using a single colon.
 
-### Wrapped types
+### Type shortcuts and wrapped types
+
+Abbreviations for length types can be declared like so:
+
+```
+type t1 = funtype(x u8, y u8) u1
+```
+
+
+This is strictly and abbreviation, the lhs and the rhs can be used interchangably in the code.
+
+To force by name type equivalence in this case, use the `@wrapped` annotation like so
+```
+@wrapped type t1 = funtype(x u8, y u8) u1
+```
+The type `t1` is said to be a wrapped type.
 
 
 
-### Function types
+### (Tagged) Unions
+
+
+Tagged unions can be declared liek so:
+
+```
+union(s32, void, u8, ^sint, [32]u8))
+```
+
+Note, that there are no names only types. In case that the same type is
+needed twice in a single union, wrapped types can be  used.
+
+The annotation `@untagged` changes a union to untagged.
+
+Unions are a order independent, duplicate eliminating, and auto-flattening.
+In the example below `u1` and `u2` are the same type:
+```
+type u1  = union (u8, s64, union(u8, s32), union(u8, void))
+type u2  = union (s64, s32, void, u8))
+```
+
+More info in [Unions](union_types.md)
+
 
 ## Literals
 
@@ -228,7 +262,52 @@ Number literals may contain underscores ("_") which are ignored. Since Cwerg doe
 
 ### Array Literals
 
+Array literals are declared like so:
+```
+[5]s32{1, 2, 3}
+```
+If there are fewer initializers than the array size, the last value will
+repeated. So this is equivalent to:
+```
+[5]s32{1, 2, 3, 3, 3}
+```
+
+If no initializer is provided, zero will be used.
+initializers for specific indices can declared like so:
+```
+[5]s32{1:6, 3:9}
+```
+This is  equivalent to:
+```
+[5]s32{0, 6, 6, 9, 9}
+```
+
 ### Record Literals
+Assuming this record:
+```
+rec Date:
+    year u16
+    month u8
+    day   u8
+    hour u8
+    minute u8
+    second u8
+```
+
+record literals are declared like so:
+
+```
+    Date{2000, 1, 12}
+```
+
+If no initializer is provided, zero will be used.
+
+Initializers for specific fields can declared like so:
+
+
+```
+    Date{year:2000, month:1, day:12}
+```
 
 ## Module Definitions
 
@@ -278,26 +357,12 @@ global! a_global_var u64 = 7_u64
 If an initializer expression is omitted, the global is initialized to zero.
 
 
-### Type Definitions
-
-Type abbreviations can be declared like so:
-```
-type t1 = s32
-```
-This is strictly and abbreviation, so `t1` and `s32` can be used interchangably in the code.
-
-To force by name type equivalence in this case, use the `@wrapped` annotation like so
-```
-@wrapped type t1 = s32
-```
-The type `t1` is said to be a wrapped type.
-
-### Enums
 
 
 
 
-#### Records
+
+
 
 
 
