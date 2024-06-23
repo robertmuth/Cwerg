@@ -38,6 +38,30 @@ ZEROS = [b"\0" * i for i in range(128)]
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
+
+
+def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
+    names:set[str] = set()
+    clashes:set[Any] = set()
+
+    def visitor(n, _):
+        nonlocal names, clashes
+        if isinstance(n, cwast.DefVar):
+            if n.name in names:
+                clashes.add(n)
+            else:
+                names.add(n.name)
+    cwast.VisitAstRecursivelyPost(fun, visitor)
+    for n in clashes:
+        assert "%" not in n.name
+        for i in range(1000000):
+            nn = f"{n.name}%{i+1}"
+            if nn not in names:
+                names.add(nn)
+                n.name = nn
+                break
+
+
 @enum.unique
 class STORAGE_KIND(enum.Enum):
     """Macro Parameter Kinds"""
@@ -1145,26 +1169,7 @@ def main() -> int:
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
-                names = set()
-                clashes = set()
-
-                def visitor(n, _):
-                    nonlocal names, clashes
-                    if isinstance(n, cwast.DefVar):
-                        if n.name in names:
-                            clashes.add(n)
-                        else:
-                            names.add(n.name)
-                cwast.VisitAstRecursivelyPost(node, visitor)
-                for n in clashes:
-                    assert "%" not in n.name
-                    for i in range(1000000):
-                        nn = f"{n.name}%{i+1}"
-                        if nn not in names:
-                            names.add(nn)
-                            n.name = nn
-                            break
-
+                _FunRenameLocalsToAvoidNameClashes(node)
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 # when we emit Cwerg IR we use the "/" sepearator not "::" because
                 # : is used for type annotations
@@ -1184,7 +1189,7 @@ def main() -> int:
     # for mod in mod_topo_order:
     #    print (f"# {mod.x_modname}")
 
-    #for key, val in tc.corpus.items():
+    # for key, val in tc.corpus.items():
     #    if val.is_fun():
     #        print("######", key, val)
     for mod in mod_topo_order:
