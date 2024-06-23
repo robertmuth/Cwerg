@@ -35,8 +35,6 @@ TAB = "  "
 ZEROS = [b"\0" * i for i in range(128)]
 
 
-
-
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
@@ -106,17 +104,21 @@ def RenderList(items):
     return "[" + " ".join(items) + "]"
 
 
-def _EmitFunctionHeader(fun: cwast.DefFun):
-    ct = fun.x_type
-    ins: list[Any] = []
+def _FunTypeStrings(ct: cwast.CanonType) -> tuple[str, list[str]]:
+    assert ct.is_fun()
+    arg_types: list[Any] = []
     for p in ct.parameter_types():
-        #
-        ins += p.register_types
-    result = ""
+        arg_types += p.register_types
+    result_type = ""
     if not ct.result_type().is_void():
-        result = ct.result_type().get_single_register_type()
+        result_type = ct.result_type().get_single_register_type()
+    return result_type, arg_types
+
+
+def _EmitFunctionHeader(fun: cwast.DefFun, kind):
+    result_type, arg_types = _FunTypeStrings(fun.x_type)
     print(
-        f"\n\n.fun {fun.name} NORMAL [{result}] = [{' '.join(ins)}]")
+        f"\n\n.fun {fun.name} {kind} [{result_type}] = [{' '.join(arg_types)}]")
 
 
 def _EmitFunctionProlog(fun: cwast.DefFun,
@@ -380,7 +382,14 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             assert not a.startswith("["), f"{a} {node.args[4]}"
             print(f"{TAB}pusharg {a}")
         if isinstance(node.callee, cwast.Id):
-            print(f"{TAB}bsr {node.callee.x_symbol.name}")
+            def_node = node.callee.x_symbol
+            is_direct = isinstance(def_node, cwast.DefFun)
+            if is_direct:
+                print(f"{TAB}bsr {node.callee.x_symbol.name}")
+            else:
+                print(f">>>>>>>>>>>>>>>> {node.callee.x_type}")
+                assert False
+                print(f"{TAB}jsr {node.callee.x_symbol.name}")
         else:
             assert False
         if sig.result_type().is_void():
@@ -404,6 +413,11 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             return res
         elif isinstance(def_node, cwast.FunParam):
             return node.x_symbol.name
+        elif isinstance(def_node, cwast.DefFun):
+            res = id_gen.NewName("funaddr")
+            print(
+                f"{TAB}lea.fun {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name}")
+            return res
         elif _IsDefVarOnStack(def_node):
             res = id_gen.NewName("stkread")
             print(
@@ -890,7 +904,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
 
 def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     if not node.extern:
-        _EmitFunctionHeader(node)
+        _EmitFunctionHeader(node, "NORMAL")
         _EmitFunctionProlog(node, id_gen)
         for c in node.body:
             EmitIRStmt(c, None, tc, id_gen)
@@ -902,7 +916,7 @@ def SanityCheckMods(phase_name: str, emit_ir: str, mods: list[cwast.DefMod], tc,
     logger.info(phase_name)
     if emit_ir == phase_name:
         for mod in mods:
-            pp_html.PrettyPrintHTML(mod, tc)
+            pp_html.PrettyPrintHTML(mod)
             # pp_sexpr.PrettyPrint(mod)
         exit(0)
 
@@ -1170,6 +1184,9 @@ def main() -> int:
     # for mod in mod_topo_order:
     #    print (f"# {mod.x_modname}")
 
+    #for key, val in tc.corpus.items():
+    #    if val.is_fun():
+    #        print("######", key, val)
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
