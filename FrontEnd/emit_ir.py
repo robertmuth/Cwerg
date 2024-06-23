@@ -38,11 +38,9 @@ ZEROS = [b"\0" * i for i in range(128)]
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
-
-
 def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
-    names:set[str] = set()
-    clashes:set[Any] = set()
+    names: set[str] = set()
+    clashes: set[Any] = set()
 
     def visitor(n, _):
         nonlocal names, clashes
@@ -60,6 +58,19 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
                 names.add(nn)
                 n.name = nn
                 break
+
+
+def _MangledGlobalName(mod: cwast.DefMod, node: Any) -> str:
+    assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
+    # when we emit Cwerg IR we use the "/" sepearator not "::" because
+    # : is used for type annotations
+    suffix = ""
+    if isinstance(node, (cwast.DefFun)) and node.is_polymorphic():
+        suffix = f"<{node.x_type.parameter_types()[0].name}>"
+    if node.cdecl:
+        return node.name + suffix
+    else:
+        return mod.x_modname + "/" + node.name + suffix
 
 
 @enum.unique
@@ -139,10 +150,19 @@ def _FunTypeStrings(ct: cwast.CanonType) -> tuple[str, list[str]]:
     return result_type, arg_types
 
 
-def _EmitFunctionHeader(fun: cwast.DefFun, kind):
-    result_type, arg_types = _FunTypeStrings(fun.x_type)
+def _MakeFunSigName(ct: cwast.CanonType) -> str:
+    result_type, arg_types = _FunTypeStrings(ct)
+    if not result_type:
+        result_type = "void"
+    if not arg_types:
+        arg_types = ["void"]
+    return f"$sig/{result_type}_{'_'.join(arg_types)}"
+
+
+def _EmitFunctionHeader(name, kind, ct: cwast.CanonType):
+    result_type, arg_types = _FunTypeStrings(ct)
     print(
-        f"\n\n.fun {fun.name} {kind} [{result_type}] = [{' '.join(arg_types)}]")
+        f"\n\n.fun {name} {kind} [{result_type}] = [{' '.join(arg_types)}]")
 
 
 def _EmitFunctionProlog(fun: cwast.DefFun,
@@ -926,9 +946,9 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                              node.type_or_auto.x_type, 0)
 
 
-def EmitIRDefFun(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRDefFun(node: cwast.DefFun, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
     if not node.extern:
-        _EmitFunctionHeader(node, "NORMAL")
+        _EmitFunctionHeader(node.name, "NORMAL", node.x_type)
         _EmitFunctionProlog(node, id_gen)
         for c in node.body:
             EmitIRStmt(c, None, tc, id_gen)
@@ -1036,14 +1056,14 @@ def main() -> int:
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod("$generated", [], [],
                            x_srcloc=cwast.SRCLOC_GENERATED, x_modname="$generated")
-    id_gen_global = identifier.IdGen("$GLOBAL")
+    id_gen_global = identifier.IdGen()
     id_gens: dict[cwast.DefFun,  identifier.IdGen] = {}
 
     def GetIdGen(fun):
         assert isinstance(fun, cwast.DefFun)
         ig = id_gens.get(fun)
         if ig is None:
-            ig = identifier.IdGen(fun.name)
+            ig = identifier.IdGen()
             id_gens[fun] = ig
         return ig
 
@@ -1171,15 +1191,7 @@ def main() -> int:
             if isinstance(node, cwast.DefFun):
                 _FunRenameLocalsToAvoidNameClashes(node)
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
-                # when we emit Cwerg IR we use the "/" sepearator not "::" because
-                # : is used for type annotations
-                suffix = ""
-                if isinstance(node, (cwast.DefFun)) and node.is_polymorphic():
-                    suffix = f"<{node.x_type.parameter_types()[0].name}>"
-                if node.cdecl:
-                    node.name = node.name + suffix
-                else:
-                    node.name = mod.x_modname + "/" + node.name + suffix
+                node.name = _MangledGlobalName(mod, node)
 
     SanityCheckMods("after_name_cleanup", args.emit_ir,
                     mod_topo_order, tc, verifier, eliminated_nodes)
@@ -1189,9 +1201,15 @@ def main() -> int:
     # for mod in mod_topo_order:
     #    print (f"# {mod.x_modname}")
 
-    # for key, val in tc.corpus.items():
-    #    if val.is_fun():
-    #        print("######", key, val)
+    sig_names: list[str] = set()
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if isinstance(fun, cwast.DefFun):
+                sn = _MakeFunSigName(fun.x_type)
+                if sn not in sig_names:
+                    _EmitFunctionHeader(sn, "SIGNATURE", fun.x_type)
+                    sig_names.add(sn)
+
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
@@ -1199,7 +1217,7 @@ def main() -> int:
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
-                EmitIRDefFun(node, tc, identifier.IdGenIR(node.name))
+                EmitIRDefFun(node, tc, identifier.IdGenIR())
     return 0
 
 

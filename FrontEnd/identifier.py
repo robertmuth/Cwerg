@@ -10,8 +10,7 @@ class IdGenIR:
        are also valid IR names and use them verbatim.
        """
 
-    def __init__(self, handle: str = ""):
-        self.handle = handle
+    def __init__(self):
         self._names: dict[str, int] = {}
 
     def NewName(self, prefix: str) -> str:
@@ -31,8 +30,7 @@ class IdGen:
     identifier names.
     """
 
-    def __init__(self, handle=""):
-        self.handle = handle
+    def __init__(self):
         self._names: dict[str, int] = {}
 
     def NewName(self, prefix: str) -> str:

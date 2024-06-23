@@ -64,7 +64,13 @@ def AddressConstKind(node) -> CONSTANT_KIND:
 
 
 def ValueConstKind(node) -> CONSTANT_KIND:
-    """This works best once constant folding has occurred"""
+    """Determine the kind of constant the node represents
+
+    This works best once constant folding has occurred
+    NOT: not a constant
+    WITH_GOBAL_ADDRESS: constant requiring relocation
+    PURE: pure constant
+    """
     assert cwast.NF.VALUE_ANNOTATED in node.FLAGS
     if isinstance(node, (cwast.ValString, cwast.ValFalse, cwast.ValTrue,
                          cwast.ValVoid, cwast.ValUndef, cwast.ValNum)):
@@ -165,7 +171,7 @@ class GlobalConstantPool:
     def PopulateConstantPool(self, node):
         cwast.MaybeReplaceAstRecursively(node, self._maybe_replace)
 
-    def GetDefGlobals(self):
+    def GetDefGlobals(self) -> list[cwast.DefGlobal]:
         return self._all_globals
 
 
