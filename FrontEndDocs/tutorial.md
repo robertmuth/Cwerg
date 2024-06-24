@@ -26,6 +26,8 @@ is significant.
 We give some examples below to convey a general feeling for the language.
 The details should become clear after reading through the tutorial.
 
+More examples can be found here: https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/ConcreteSyntax/TestData
+
 ### Hello World (full example)
 
 ```
@@ -77,7 +79,7 @@ global! is_prime = [N]bool{true}
 -- Count the number of primes below n
 fun sieve() uint:
     let! count uint = 1
-    -- the type of `i` is determined by `N`
+    -- the type of `i`  is determined by `N`
     for i = 0, N, 1:
         if is_prime[i]:
             set count += 1
