@@ -1,11 +1,20 @@
-# Cwerg Language Tutorial
+# Cwerg Language Overview
+
+Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. The hope is to reach a sweet spot above what C gives us today and make it convenient to write system software like operating systems and compilers in this language.
+
+
+## Philosophy
+
+Above all Cwerg is meant to be a small language. Since small is subjective we have set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
+
+All control flow and all memory allocation is explicit.
+
+Discouraged practices are possible but require explicit overrides, e.g.: uninitialized variables, global visibility, mutability, unchecked array accesses, untagged unions, ... ...
 
 
 ## Highlights
 
 * Low level, C-like language: no GC, no unexpected control flow
-* Python inspired syntax
-* Optional sexpr syntax
 * defer statement (scheduling code to run code at scope exit)
 * tagged unions (sum types)
 * optionally wrapped types (by-name type equivalence)
@@ -15,10 +24,25 @@
 * limited polymorphism
 * slices (array views)
 * (almost) no implicit conversions
+* named blocks + multi-level break/continue
 * no truthinesss
 * all value are zero initialized by default
+* no goto, no va-args, no bitfields,
 
-## Examples
+## Syntax
+
+Cwerg currently has two syntaxes:
+
+1. Sexpr syntax that is close to the AST
+2. Python inspired concrete syntax
+
+The two syntaxes are intended to be equivalent
+and one can be translated to the other without
+loss of information.
+
+
+
+## Concrete Syntax Examples
 
 Cwerg use a Python inspired syntax where the indentation level
 is significant.
@@ -454,7 +478,7 @@ let a_local_const u64 = 7
 let a_local_const = 7_u64
 ```
 
-### Local Variables
+### Let Statements (Local Variables)
 
 
 Local variable have the same syntax as local constants except that introductory
@@ -475,6 +499,15 @@ The special initializer `undef` will leave the initial value undefined.
 set a_local_const = 666;
 set a_local_const += 666;
 ```
+
+### Tryset Statements
+
+TBD
+
+### Trylet Statements
+
+TBD
+
 
 ### Block Statements
 
