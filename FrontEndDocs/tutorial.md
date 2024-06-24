@@ -15,12 +15,16 @@
 * limited polymorphism
 * slices (array views)
 * (almost) no implicit conversions
+* no truthinesss
 * all value are zero initialized by default
 
 ## Examples
 
 Cwerg use a Python inspired syntax where the indentation level
 is significant.
+
+We give some examples below to convey a general feeling for the language.
+The details should become clear after reading through the tutorial.
 
 ### Hello World (full example)
 
@@ -66,13 +70,14 @@ The `@pub` annotation makes `fib` visible outside of the module.
 -- a global constant
 global N uint = 1000 * 1000 * 1000;
 
--- a mutable global array of bool initialized to `true`
+-- a mutable global array of bools initialized to `true`
 -- index i reprents number 3 + 2 * i
 global! is_prime = [N]bool{true}
 
 -- Count the number of primes below n
 fun sieve() uint:
     let! count uint = 1
+    -- the type of `i` is determined by `N`
     for i = 0, N, 1:
         if is_prime[i]:
             set count += 1
@@ -84,7 +89,47 @@ fun sieve() uint:
 
 Exclamtion marks at the end of keywords indicate mutability.
 
-##
+## Binary Tree (parameterized/generic module)
+
+```
+module BinaryTree(
+        -- the payload type
+        $type TYPE,
+        -- the less-than function ($type x $type) -> bool
+        $lt CONST_EXPR):
+
+@pub global Leaf = void
+
+@pub rec Node:
+    left union(void, ^!Node)
+    right union(void, ^!Node)
+    payload $type
+
+-- same as above for left and right
+@pub type MaybeNode = union(void, ^!Node)
+
+type Visitor = funtype(node ^$type) void
+
+@pub fun InorderTraversal(root MaybeNode, visitor Visitor) void:
+    trylet node ^!Node = root, _:
+        return
+    do InorderTraversal(node^.left, visitor)
+    do visitor(&node^.payload)
+    do InorderTraversal(node^.right, visitor)
+
+-- returns the new root
+@pub fun Insert(root MaybeNode, node ^!Node) ^!Node:
+    set node^.left = Leaf
+    set node^.right = Leaf
+    trylet curr ^!Node = root, _:
+        return node
+    if $lt(&node^.payload, &curr^.payload):
+        set curr^.left = Insert(curr^.left, node)
+    else:
+        set curr^.right = Insert(curr^.right, node)
+    return curr
+
+```
 
 ## Type System
 
@@ -95,7 +140,7 @@ Cwerg's type system is similar to C's with the following differences
 * there is a stronger emphasis on "const/mutability correctness"
 * arrays do not decay to to pointers and arrays of different sizes
   are different types
-* slices can be used where arrays like objects with variable length are required
+* slices can be used where array-like objects with variable length are required
 * (tagged) unions are supported to simplifying error handling and emulate nullable
  pointers
 
@@ -113,6 +158,7 @@ Cwerg's type system is similar to C's with the following differences
 ### Pointer Types
 
 The pointer type notation is similar to Pascal.
+The caret goes in front of type.
 
 ```
 -- pointer to a u32
@@ -124,12 +170,19 @@ The pointer type notation is similar to Pascal.
 
 ### Arrays
 
-Array of different length are not compatible
+Array dimension go in front of the element type:
 
 ```
 -- 10 element array of element type u32
-[10]u32
+    [10]u32
 
+```
+
+Array of different length are not compatible and
+are different from pointers to the element type.
+```
+static_assert typeidof([10]u32) != typeidof([2]u32)
+static_assert typeidof([10]u32) != typeidof(^u32)
 ```
 
 ### Slices
@@ -149,7 +202,7 @@ slice!(u32)
 
 Function type can be described like so:
 ```
-funtype(param1 type1, param2 type2, ...) return-type
+    funtype(param1 type1, param2 type2, ...) return-type
 ```
 ### Records
 
@@ -183,7 +236,7 @@ enum Color u8:
 
 This declares an enum `Color` with 3 members (`red`, `green`, `blue`)
 with an underlying type of `u8`.
-`auto` is used the previously asigned value incremented by 1 or zero if it is the first member.  So in the above example we get:
+`auto` is using the previously asigned value incremented by 1 or zero if it is the first member.  So in the above example we get:
 ```
 Color:blue has value 0
 Color:green has value 10
@@ -202,7 +255,7 @@ type t1 = funtype(x u8, y u8) u1
 ```
 
 
-This is strictly and abbreviation, the lhs and the rhs can be used interchangably in the code.
+This is strictly an abbreviation, the lhs and the rhs can be used interchangably in the code.
 
 To force by name type equivalence in this case, use the `@wrapped` annotation like so
 ```
@@ -215,22 +268,23 @@ The type `t1` is said to be a wrapped type.
 ### (Tagged) Unions
 
 
-Tagged unions can be declared liek so:
+Tagged unions can be declared like so:
 
 ```
 union(s32, void, u8, ^sint, [32]u8))
 ```
 
-Note, that there are no names only types. In case that the same type is
-needed twice in a single union, wrapped types can be  used.
+Note, that there are no names - only types. In case that the same type is
+needed twice in a single union, wrapped types can be used.
 
 The annotation `@untagged` changes a union to untagged.
 
-Unions are a order independent, duplicate eliminating, and auto-flattening.
+Unions are: order independent, duplicate eliminating, and auto-flattening.
 In the example below `u1` and `u2` are the same type:
 ```
 type u1  = union (u8, s64, union(u8, s32), union(u8, void))
 type u2  = union (s64, s32, void, u8))
+static_assert typeidof)u1)  ==  typeidof)u2)
 ```
 
 More info in [Unions](union_types.md)
@@ -243,7 +297,7 @@ More info in [Unions](union_types.md)
 
 `true`, `false`
 
-There is no concept of truthiness
+There is no concept of truthiness.
 
 ### String Literals
 
@@ -427,7 +481,7 @@ Controlflow will resume at the next statement after block if
 the control flow falls throuh the last statement of the block.
 ```
 block <NAME>?:
-    <STAREMENTS>+
+    <STAREMENTS>*
 ```
 
 A `continue` statement inside the block will set controlflow to the beginning
@@ -439,7 +493,7 @@ which enclosing `block` they refer to.
 
 ```
 while <CONDITION>:
-    <STAREMENTS>+
+    <STAREMENTS>*
 ```
 
 
@@ -447,7 +501,7 @@ while <CONDITION>:
 
 ```
 for var-name = initial-expr, limit-expr, step-expr:
-    <STAREMENTS>+
+    <STAREMENTS>*
 ```
 
 For loops differ from their C counterparts in the following way:
@@ -460,11 +514,19 @@ a macro.
 
 ### If-else Statements
 
+Simple
 ```
 if condition:
-    <STAREMENTS>+
+    <STAREMENTS>*
+```
+
+With else clause
+
+```
+if condition:
+    <STAREMENTS>*
 else:
-    <STAREMENTS>+
+    <STAREMENTS>*
 ```
 
 ### Cond Statements
@@ -472,17 +534,22 @@ else:
 ```
 cond:
     case condition1:
-        <STAREMENTS>+
+        <STAREMENTS>*
     case condition2:
-        <STAREMENTS>+
+        <STAREMENTS>*
     ...
 ```
+
+Note, there is no fallthrough.
+Case are checked in order.
+A `default` case  be expressed as `case true`
+and must go last.
 
 ### Defer Statements
 
 ```
 defer:
-    <STAREMENTS>+
+    <STAREMENTS>*
 ```
 
 The code in the defer body will be run when the enclosing scope is exited.
@@ -533,10 +600,6 @@ do expression
 ```
 
 Runs the expression and discards the result
-
-
-
-
 
 
 ## Expressions
@@ -600,7 +663,7 @@ Note, operator precendence has yet to be finalized
 | stringify(E) -> []u8   | convert an expression to a textual representation           |
 
 
-Casts
+### Casts
 
 
 TBD  - see [Casting](casting.md)
