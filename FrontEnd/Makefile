@@ -1,12 +1,14 @@
 
-DIR=build
-QEMU=
+DIR := build
+QEMU :=
 
+TESTS :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cw))
 
-TESTS = $(wildcard TestData/*cw)
-LANG_TESTS = $(wildcard LangTest/*cw)
-LIB_TESTS = $(wildcard Lib/*_test.cw)
-TEST_TESTS = \
+LANG_TESTS := $(wildcard LangTest/*.cw)
+LIB_TESTS := $(wildcard Lib/*_test.cw)
+
+TEST_TESTS := \
+	TestData/binary_tree_test.cw \
 	TestData/fibonacci.cw \
     TestData/fizzbuzz.cw \
 	TestData/hash_test.cw \
@@ -16,7 +18,7 @@ TEST_TESTS = \
     TestData/sieve.cw \
     TestData/sort.cw
 
-TESTS_A32 = \
+TESTS_A32 := \
     TestData/fibonacci.cw \
 	TestData/fizzbuzz.cw \
     TestData/hello_world.cw \
@@ -29,7 +31,7 @@ TESTS_A32 = \
     Lib/string_test.cw \
     Lib/trig_test.cw
 
-TESTS_CONCRETE = $(LANG_TESTS) $(TESTS) \
+TESTS_CONCRETE := $(LANG_TESTS) $(TESTS) \
     Lib/ansi.cw \
     Lib/bitstream.cw \
     Lib/bitstream_test.cw \
@@ -70,15 +72,25 @@ tests_py: \
     misc_test_x64 \
     misc_test_a64 \
     tests_concrete_py
+	@echo "PASSED $@"
 
 tests_parse_py: $(TESTS:%.cw=$(DIR)/%.cw.parse)
+	@echo "PASSED $@"
+
 tests_meta_py: $(TESTS:%.cw=$(DIR)/%.cw.meta)
+	@echo "PASSED $@"
+
 tests_eval_py: $(TESTS:%.cw=$(DIR)/%.cw.eval)
+	@echo "PASSED $@"
+
 tests_symtab_py: $(TESTS:%.cw=$(DIR)/%.cw.symtab)
+	@echo "PASSED $@"
+
 tests_pp_py: $(TESTS:%.cw=$(DIR)/%.cw.pp)
+	@echo "PASSED $@"
 
 tests_concrete_py:  $(TESTS_CONCRETE:%.cw=$(DIR)/%.concrete)
-
+	@echo "PASSED $@"
 
 tests_all_py: tests_parse_py tests_symtab_py tests_meta_py tests_eval_py tests_pp_py
 

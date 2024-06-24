@@ -428,12 +428,11 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         if isinstance(node.callee, cwast.Id):
             def_node = node.callee.x_symbol
             is_direct = isinstance(def_node, cwast.DefFun)
+            name = node.callee.x_symbol.name
             if is_direct:
-                print(f"{TAB}bsr {node.callee.x_symbol.name}")
+                print(f"{TAB}bsr {name}")
             else:
-                print(f">>>>>>>>>>>>>>>> {node.callee.x_type}")
-                assert False
-                print(f"{TAB}jsr {node.callee.x_symbol.name}")
+                print(f"{TAB}jsr {name} {_MakeFunSigName(node.callee.x_type)}")
         else:
             assert False
         if sig.result_type().is_void():
