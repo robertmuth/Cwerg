@@ -5,7 +5,6 @@
     @doc "the less-than function ($type x $type) -> bool"
     (modparam $lt CONST_EXPR)] :
 
-(import fmt)
 
 @pub (global Leaf auto void_val)
 
@@ -33,16 +32,13 @@
 @pub (fun Insert [(param root MaybeNode) (param node (ptr! Node))] (ptr! Node):
     (= (^. node left) Leaf)
     (= (^. node right) Leaf)
-    (if (is root void) :
-      (return node)
-    :)
-    (let! curr auto (narrowto root (ptr! Node)))
+    (trylet curr (ptr! Node) root _ :
+         (return node)
+    )
     (if (call $lt [(& (^. node payload))  (&(^. curr payload))]) :
-      (let x auto  (Insert [(^. curr left) node]))
-      (= (^. curr left) x)
+      (= (^. curr left) (Insert [(^. curr left) node]))
        :
-      (let x auto  (Insert [(^. curr right) node]))
-      (= (^. curr right) x)
+      (= (^. curr right) (Insert [(^. curr right) node]))
     )
     (return curr)
 )

@@ -564,3 +564,79 @@ def FunReplaceTypeOfAndTypeSumDelta(fun: cwast.DefFun):
         return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+
+
+def _IsSimpleInitializer(expr) -> bool:
+    if isinstance(expr, (cwast.ValUndef, cwast.ValFalse, cwast.ValTrue, cwast.ValNum,
+                         cwast.ValVoid, cwast.Id)):
+        return True
+    elif isinstance(expr, (cwast.ExprWiden,  cwast.ExprBitCast, cwast.ExprWrap,
+                           cwast.ExprUnwrap, cwast.ExprAs)):
+        return _IsSimpleInitializer(expr.expr)
+    else:
+        return False
+
+
+def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc: type_corpus.TypeCorpus):
+    """Rewrite assignments of recs (including unions and slices) and arrays
+
+    to ensure correctness.
+    Consider:
+
+    let a_record MyRec = ...
+    set a_record = MyRec{ foo(&a_record), baz(&a_record) }
+
+    A naive code generator might translate the assignment like:
+    set a_record . field1 = foo(&a_record)
+    set a_record . field2 = baz(&a_record)
+
+    This make the call to baz potentially incorrect
+    This phase will rewrite problematic assignments like the one above to:
+
+    let tmp_field1 = foo(&a_record)
+    let tmp_field2 = baz(&a_record)
+    set a_record = MyRec{ tmp_field1, tmp_field2 }
+
+
+    Another approach is to rewrite this as:
+    let tmp = MyRec{ foo(&a_record), baz(&a_record) }
+    set a_record = tmp
+
+    We reject this approach because it forces another stack variable: tmp.
+    """
+    def replacer(node, _parent, _field):
+        if not isinstance(node, cwast.StmtAssignment):
+            return None
+
+        rhs = node.expr_rhs
+        if isinstance(rhs, cwast.ValArray):
+            extra = []
+            for i in rhs.inits_array:
+                if not _IsSimpleInitializer(i.value_or_undef):
+                    # TODO: mimic the  ValRec case below
+                    assert False, f"{i}"
+            if not extra:
+                return None
+            extra.append(node)
+            return cwast.EphemeralList(extra)
+        elif isinstance(rhs,   cwast.ValRec):
+            extra = []
+            for i in rhs.inits_field:
+                if not _IsSimpleInitializer(i.value_or_undef):
+                    srcloc = i.x_srcloc
+                    def_tmp = cwast.DefVar(id_gen.NewName("val_rec_tmp"),
+                                           cwast.TypeAuto(
+                        x_srcloc=srcloc, x_type=i.x_type), i.value_or_undef,
+                        x_srcloc=srcloc)
+                    extra.append(def_tmp)
+                    i.value_or_undef = _IdNodeFromDef(def_tmp, srcloc)
+                    # assert False, f"{i.value_or_undef} {i.x_type}"
+            if not extra:
+                return None
+            extra.append(node)
+            return cwast.EphemeralList(extra)
+        else:
+            return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.EliminateEphemeralsRecursively(fun)

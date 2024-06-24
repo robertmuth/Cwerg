@@ -1164,6 +1164,7 @@ def main() -> int:
             id_gen = GetIdGen(fun)
             canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
+            canonicalize.FunRewriteComplexAssignments(fun, id_gen, tc)
 
     eliminated_nodes.add(cwast.StmtCompoundAssignment)
     eliminated_nodes.add(cwast.StmtCond)
