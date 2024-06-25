@@ -39,6 +39,8 @@ TESTS_CONCRETE := $(LANG_TESTS) $(TESTS) \
     Lib/bytestream_test.cw \
     Lib/checksum.cw \
     Lib/checksum_test.cw \
+    Lib/flate.cw \
+    Lib/flate_test.cw \
     Lib/fmt.cw \
     Lib/fmt_test.cw \
     Lib/hashtab32.cw \
@@ -53,11 +55,8 @@ TESTS_CONCRETE := $(LANG_TESTS) $(TESTS) \
     Lib/string.cw \
     Lib/string_test.cw \
     Lib/trig.cw \
-    Lib/trig_test.cw \
-    Lib/flate_test.cw
+    Lib/trig_test.cw
 
-#	Lib/flate.cw   ***
-#	Lib/flate_test.cw
 
 
 # not the clean part will be run out of order but the early targets are not

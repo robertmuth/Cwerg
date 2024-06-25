@@ -115,6 +115,10 @@ def _RenderColonList(val: list, field: str, out, indent: int):
 def _GuessNodeSize(v) -> int:
     if isinstance(v, (cwast.ValAuto, cwast.ValFalse, cwast.ValTrue, cwast.ValNum)):
         return 1
+    elif isinstance(v, cwast.ValString):
+        if v.triplequoted:
+            return 100
+        return len(v.string) // 8
     elif isinstance(v, (cwast.FunParam, cwast.MacroParam, cwast.ValArray, cwast.ValRec)):
         return 3
     elif isinstance(v, cwast.IndexVal):

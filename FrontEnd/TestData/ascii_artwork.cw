@@ -30,7 +30,8 @@ Fish body parts:
 @pub (global RandomColor auto "RcRyBgM")
 
 
-(global CastleSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global CastleSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
                 T~~
                 |
                /^\
@@ -44,7 +45,8 @@ Fish body parts:
   |=  []- |-  /| |\   |=_ =[] |
   |- =_   | =| | | |  |- = -  |
   |_______|__|_|_|_|__|_______|
-""" r"""
+"""
+                r"""
                  RR
 
                yyy
@@ -64,7 +66,8 @@ Fish body parts:
 @pub (global Castle auto (rec_val aanim::Object ["castle" CastleSprites 'B' (field_val 22 def_depth)]))
 
 
-(global SwanLSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global SwanLSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
  ___
 /,_ \    _,
 |/ )/   / |
@@ -72,22 +75,19 @@ Fish body parts:
  / ( /   _)
 /   `   _/)
 \  ~=-   /
-""" r"""
+"""
+                r"""
 
  g
 yy
 """])]))
 
 
-@pub (global SwanL auto (rec_val aanim::Object [
-        "swan_l"
-        SwanLSprites
-        'W'
-        (field_val 3 def_depth)
-        (field_val -1.0_r32 def_x_speed)]))
+@pub (global SwanL auto (rec_val aanim::Object ["swan_l" SwanLSprites 'W' (field_val 3 def_depth) (field_val -1.0_r32 def_x_speed)]))
 
 
-(global SwanRSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global SwanRSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
         ___
  ,_    / _,\
  | \   \( \|
@@ -95,119 +95,114 @@ yy
  (_   \_) \
  (\_   `   \
   \   -=~  /
-""" r"""
+"""
+                r"""
 
           g
           yy
 """])]))
 
 
-@pub (global SwanR auto (rec_val aanim::Object [
-        "swan_r"
-        SwanRSprites
-        'W'
-        (field_val 3 def_depth)
-        (field_val -1.0_r32 def_x_speed)]))
+@pub (global SwanR auto (rec_val aanim::Object ["swan_r" SwanRSprites 'W' (field_val 3 def_depth) (field_val -1.0_r32 def_x_speed)]))
 
 
 (global DucksRSprites auto (array_val 3 aanim::Sprite [
-        (rec_val aanim::Sprite [r"""
+        (rec_val aanim::Sprite [
+                r"""
       _??????????_??????????_
 ,____(')=??,____(')=??,____(')<
  \~~= ')????\~~= ')????\~~= ')
-""" r"""
+"""
+                r"""
       g          g          g
 wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
 """])
-        (rec_val aanim::Sprite [r"""
+        (rec_val aanim::Sprite [
+                r"""
       _??????????_??????????_
 ,____(')=??,____(')<??,____(')=
  \~~= ')????\~~= ')????\~~= ')
-""" r"""
+"""
+                r"""
       g          g          g
 wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
 """])
-        (rec_val aanim::Sprite [r"""
+        (rec_val aanim::Sprite [
+                r"""
       _??????????_??????????_
 ,____(')<??,____(')=??,____(')=
  \~~= ')????\~~= ')????\~~= ')
-""" r"""
+"""
+                r"""
       g          g          g
 wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
 """])]))
 
 
-@pub (global DuckR auto (rec_val aanim::Object [
-        "duck_r1"
-        DucksRSprites
-        'W'
-        (field_val 3 def_depth)
-        (field_val '?' transparent_char)
-        (field_val 1.0_r32 def_x_speed)]))
+@pub (global DuckR auto (rec_val aanim::Object ["duck_r1" DucksRSprites 'W' (field_val 3 def_depth) (field_val '?' transparent_char) (field_val 1.0_r32 def_x_speed)]))
 
 
-(global DolphinRSprites auto (array_val 2 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global DolphinRSprites auto (array_val 2 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
         ,
       __)\_
 (\_.-'    a`-.
 (/~~````(/~^^`
-""" r"""
+"""
+                r"""
 
 
           W
-"""]) (rec_val aanim::Sprite [r"""
+"""]) (rec_val aanim::Sprite [
+                r"""
         ,
 (\__  __)\_
 (/~.''    a`-.
     ````\)~^^`
-""" r"""
+"""
+                r"""
 
 
           W
 """])]))
 
 
-@pub (global DolphinR auto (rec_val aanim::Object [
-        "dolphin_r"
-        DolphinRSprites
-        'b'
-        (field_val 3 def_depth)
-        (field_val 1.0_r32 def_x_speed)]))
+@pub (global DolphinR auto (rec_val aanim::Object ["dolphin_r" DolphinRSprites 'b' (field_val 3 def_depth) (field_val 1.0_r32 def_x_speed)]))
 
 
-(global DolphinLSprites auto (array_val 2 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global DolphinLSprites auto (array_val 2 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
      ,
    _/(__
 .-'a    `-._/)
 '^^~\)''''~~\)
-""" r"""
+"""
+                r"""
 
 
    W
-"""]) (rec_val aanim::Sprite [r"""
+"""]) (rec_val aanim::Sprite [
+                r"""
      ,
    _/(__  __/)
 .-'a    ``.~\)
 '^^~(/''''
-""" r"""
+"""
+                r"""
 
 
    W
 """])]))
 
 
-@pub (global DolphinL auto (rec_val aanim::Object [
-        "dolphin_r"
-        DolphinLSprites
-        'b'
-        (field_val 3 def_depth)
-        (field_val -1.0_r32 def_x_speed)]))
+@pub (global DolphinL auto (rec_val aanim::Object ["dolphin_r" DolphinLSprites 'b' (field_val 3 def_depth) (field_val -1.0_r32 def_x_speed)]))
 
 
-(global BigFishRSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global BigFishRSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
  ______
 `""-.  `````-----.....__
      `.  .      .       `-.
@@ -222,7 +217,8 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
    .'____....----''.'=.'
    ""             .'.'
                ''"'`
-""" r"""
+"""
+                r"""
  111111
 11111  11111111111111111
      11  2      2       111
@@ -240,15 +236,11 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """])]))
 
 
-@pub (global BigFishR auto (rec_val aanim::Object [
-        "bigfish_r"
-        BigFishRSprites
-        'Y'
-        (field_val 2 def_depth)
-        (field_val 3.0_r32 def_x_speed)]))
+@pub (global BigFishR auto (rec_val aanim::Object ["bigfish_r" BigFishRSprites 'Y' (field_val 2 def_depth) (field_val 3.0_r32 def_x_speed)]))
 
 
-(global BigFishLSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global BigFishLSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
                            ______
           __.....-----'''''  .-""'
        .-'       .      .  .'
@@ -263,7 +255,8 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
           `.=`.``----....____`.
             `.`.             ""
               '`"``
-""" r"""
+"""
+                r"""
                            111111
           11111111111111111  11111
        111       2      2  11
@@ -281,61 +274,64 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """])]))
 
 
-@pub (global BigFishL auto (rec_val aanim::Object [
-        "bigfish_l"
-        BigFishLSprites
-        'Y'
-        (field_val 2 def_depth)
-        (field_val 3.0_r32 def_x_speed)]))
+@pub (global BigFishL auto (rec_val aanim::Object ["bigfish_l" BigFishLSprites 'Y' (field_val 2 def_depth) (field_val 3.0_r32 def_x_speed)]))
 
 
 (global MonsterRSprites auto (array_val 4 aanim::Sprite [
-        (rec_val aanim::Sprite [r"""
+        (rec_val aanim::Sprite [
+                r"""
                                                           ____
             __??????????????????????????????????????????/   o  \
           /    \????????_?????????????????????_???????/     ____ >
   _??????|  __  |?????/   \????????_????????/   \????|     |
  | \?????|  ||  |????|     |?????/   \?????|     |???|     |
-""" r"""
+"""
+                r"""
 
                                                             W
 
 
 
 """])
-        (rec_val aanim::Sprite [r"""
+        (rec_val aanim::Sprite [
+                r"""
                                                           ____
                                              __?????????/   o  \
              _?????????????????????_???????/    \?????/     ____ >
    _???????/   \????????_????????/   \????|  __  |???|     |
   | \?????|     |?????/   \?????|     |???|  ||  |???|     |
-""" r"""
+"""
+                r"""
 
                                                             W
 
 
 
 """])
-        (rec_val aanim::Sprite [r"""
+        (rec_val aanim::Sprite [
+                r"""
                                                           ____
                                   __????????????????????/   o  \
  _??????????????????????_???????/    \????????_???????/     ____ >
 | \??????????_????????/   \????|  __  |?????/   \????|     |
  \ \???????/   \?????|     |???|  ||  |????|     |???|     |
-""" r"""
+"""
+                r"""
 
                                                             W
 
 
 
 """])
-        (rec_val aanim::Sprite [r"""
+        (rec_val aanim::Sprite [
+                r"""
                                                           ____
                        __???????????????????????????????/   o  \
   _??????????_???????/    \????????_??????????????????/     ____ >
  | \???????/   \????|  __  |?????/   \????????_??????|     |
   \ \?????|     |???|  ||  |????|     |?????/   \????|     |
-""" r"""
+"""
+                r"""
 
                                                             W
 
@@ -353,14 +349,16 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
         (field_val 2.0_r32 def_x_speed)]))
 
 
-(global ShipRSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global ShipRSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
      |    |    |
     )_)  )_)  )_)
    )___))___))___)\
   )____)____)_____)\\\
 _____|____|____|____\\\\\__
 \                   /
-""" r"""
+"""
+                r"""
      y    y    y
 
                   w
@@ -370,15 +368,11 @@ y                   y
 """])]))
 
 
-@pub (global ShipR auto (rec_val aanim::Object [
-        "ship_r"
-        ShipRSprites
-        'W'
-        (field_val 7 def_depth)
-        (field_val 1.0_r32 def_x_speed)]))
+@pub (global ShipR auto (rec_val aanim::Object ["ship_r" ShipRSprites 'W' (field_val 7 def_depth) (field_val 1.0_r32 def_x_speed)]))
 
 
-(global SharkRSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global SharkRSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
                               __
                              ( `\
   ,??????????????????????????)   `\
@@ -389,7 +383,8 @@ y                   y
   .`.-`--...__         .-'     -.___.....-(|/|/|/|/'
  ;.'?????????`. ...----`.___.',,,_______......---'
  '???????????'-'
-""" r"""
+"""
+                r"""
 
 
 
@@ -403,23 +398,19 @@ y                   y
 """])]))
 
 
-@pub (global SharkR auto (rec_val aanim::Object [
-        "ship_r"
-        SharkRSprites
-        'C'
-        (field_val 2 def_depth)
-        (field_val '?' transparent_char)
-        (field_val 2.0_r32 def_x_speed)]))
+@pub (global SharkR auto (rec_val aanim::Object ["ship_r" SharkRSprites 'C' (field_val 2 def_depth) (field_val '?' transparent_char) (field_val 2.0_r32 def_x_speed)]))
 
 
-(global Fish1RSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [r"""
+(global Fish1RSprites auto (array_val 1 aanim::Sprite [(rec_val aanim::Sprite [
+                r"""
        \
      ...\..,
 \  /'       \
  >=     (  ' >
 /  \      / /
     `"'"'/''
-""" r"""
+"""
+                r"""
        2
      1112111
 6  11       1
