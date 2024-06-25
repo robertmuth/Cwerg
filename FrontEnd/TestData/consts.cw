@@ -1,4 +1,4 @@
-(module m1 [] :
+(module [] :
 
 (static_assert (== (+ 3_s32 4) 7))
 

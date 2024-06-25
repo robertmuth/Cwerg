@@ -1,4 +1,4 @@
-(module main [] :
+(module [] :
 (import test)
 
 (import fmt)
@@ -78,4 +78,3 @@
     (test::Success#)
     (return 0))
 )
-

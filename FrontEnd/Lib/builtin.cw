@@ -1,4 +1,4 @@
-@builtin (module $builtin [] :
+@builtin (module [] :
 
 @doc "macro for while-loop"
 @pub (macro while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
@@ -71,4 +71,3 @@ The type of the loop variable is determined by $end"""
 @pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (^ $pointer) $field))
 )
-

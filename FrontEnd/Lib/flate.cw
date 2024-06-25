@@ -1,5 +1,5 @@
 @doc "flate https://www.w3.org/TR/PNG-Compression.html"
-(module flate [] :
+(module [] :
 (import bitstream)
 
 (import fmt)

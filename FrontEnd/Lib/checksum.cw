@@ -1,5 +1,5 @@
 @doc "Checksums"
-(module checksum [] :
+(module [] :
 
 @pub (type CrcTab (array 256 u32))
 

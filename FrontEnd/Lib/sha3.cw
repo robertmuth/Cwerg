@@ -1,4 +1,4 @@
-(module sha3 [] :
+(module [] :
 (import fmt)
 
 
@@ -257,4 +257,3 @@ https://emn178.github.io/online-tools/sha3_512.html
     (do (KeccakFinalize [(&! (. state base)) (. state tail) Sha3Padding]))
     (return (^ (as (& (. (. state base) x)) (ptr (array 64 u8))))))
 )
-

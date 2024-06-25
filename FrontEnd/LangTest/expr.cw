@@ -1,5 +1,5 @@
 @doc "expr"
-(module main [] :
+(module [] :
 
 (fun assoc1 [
         (param a u32)

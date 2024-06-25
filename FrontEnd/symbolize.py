@@ -306,6 +306,10 @@ def _CheckAddressCanBeTaken(lhs):
     elif isinstance(lhs, cwast.ExprDeref):
         pass
     elif isinstance(lhs, cwast.ExprField):
+        if isinstance(lhs.container, cwast.ExprDeref):
+            # somebody has taken the address already, otherwise
+            # we could not dereference
+            return True
         _CheckAddressCanBeTaken(lhs.container)
     else:
         assert False, f"{lhs}"
@@ -426,7 +430,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
                 FindAndExpandMacrosRecursively(node, builtin_syms, 0, ctx)
 
     for mod in mod_topo_order:
-        logger.info("Resolving symbols inside module: %s", mod.name)
+        logger.info("Resolving symbols inside module: %s", mod.x_modname)
         # we wait until macro expansion with this
         _SetTargetFieldRecursively(mod)
 

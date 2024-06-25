@@ -1,5 +1,5 @@
 @doc "Ascii Art Animation Module"
-(module aanim [] :
+(module [] :
 (import ansi)
 
 (import fmt)

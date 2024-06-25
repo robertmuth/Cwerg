@@ -1,5 +1,5 @@
 @doc "Macro Examples"
-(module macro_testing [] :
+(module [] :
 
 @pub (defrec MyRec :
     (field s1 s32)
@@ -72,4 +72,3 @@
 (fun TestSwap [(param vec (slice! u8))] void :
     (swap# (at vec 1) (at vec 2)))
 )
-

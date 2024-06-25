@@ -1,5 +1,5 @@
 @doc "math module"
-(module math [] :
+(module [] :
 
 @doc "e"
 @pub (global E r64 2.718281828459045235360287471352662498)

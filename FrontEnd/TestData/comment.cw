@@ -1,5 +1,5 @@
 @doc "module"
-(module m1 [] :
+(module [] :
 
 @pub (defrec type_rec2 :
     (field s1 (slice u8))
@@ -60,4 +60,3 @@
             (return 4)))
     (return 0))
 )
-

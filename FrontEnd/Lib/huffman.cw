@@ -4,7 +4,7 @@ https://datatracker.ietf.org/doc/html/rfc1951 Section 3.2
 https://en.wikipedia.org/wiki/Canonical_Huffman_code
 
 """
-(module huffman [] :
+(module [] :
 (import bitstream)
 
 

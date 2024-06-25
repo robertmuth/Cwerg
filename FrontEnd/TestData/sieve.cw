@@ -1,5 +1,5 @@
 @doc "prime number sieve"
-(module sieve [] :
+(module [] :
 (import test)
 
 

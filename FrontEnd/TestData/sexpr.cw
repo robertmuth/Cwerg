@@ -1,4 +1,4 @@
-(module m1 [] :
+(module [] :
 
 @pub (fun foo1 [
         (param a s32)

@@ -1,4 +1,4 @@
-(module m1 [] :
+(module [] :
 
 (fun fun1 [
         (param a s32)
@@ -9,4 +9,3 @@
     (let z s32 (bitcast c s32))
     (return 66))
 )
-

@@ -6,7 +6,7 @@ This also limits the max table size to (2^32 - 1).
 The approach used is linear probing with separate arrays afor keys and values
 (and meta data) to improve reference locality.
 """
-(module hashtab32 [
+(module [
         @doc "the key type"
         (modparam $ktype TYPE)
         @doc "the value type"

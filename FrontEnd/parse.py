@@ -435,6 +435,7 @@ _FUN_LIKE = {
     "as": (cwast.ExprAs, "ET"),
     "wrapas": (cwast.ExprWrap, "ET"),
     "is": (cwast.ExprIs, "ET"),
+    # TODO: handle unchecked
     "narrowto": (cwast.ExprNarrow, "ET"),
     "widdento": (cwast.ExprWiden, "ET"),
     "unsafeas": (cwast.ExprUnsafeCast, "ET"),
@@ -662,6 +663,7 @@ def _PParseIndex(inp: Lexer, array, tk: TK, _precedence) -> Any:
     tk = inp.peek()
     index = _ParseExpr(inp)
     inp.match_or_die(TK_KIND.SQUARE_CLOSED)
+    # TODO: handle unchecked
     return cwast.ExprIndex(array, index, **_ExtractAnnotations(tk))
 
 
@@ -1124,7 +1126,6 @@ def _ParseModule(inp: Lexer):
     # comments, annotations = _ParseOptionalCommentsAttributes(inp)
     # print(comments, annotations)
     kw = inp.match_or_die(TK_KIND.KW, "module")
-    name = inp.match_or_die(TK_KIND.ID)
     params = []
     if inp.match(TK_KIND.PAREN_OPEN):
         first = True
@@ -1137,7 +1138,7 @@ def _ParseModule(inp: Lexer):
             params.append(cwast.ModParam(pname.text,
                                          cwast.MOD_PARAM_KIND[pkind.text], **_ExtractAnnotations(pname)))
     inp.match_or_die(TK_KIND.COLON)
-    out = cwast.DefMod(name.text, params, [], **_ExtractAnnotations(kw))
+    out = cwast.DefMod(params, [], **_ExtractAnnotations(kw))
 
     while True:
         if inp.peek().kind is TK_KIND.SPECIAL_EOF:

@@ -1,4 +1,4 @@
-(module fmt [] :
+(module [] :
 (import os)
 
 

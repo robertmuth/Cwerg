@@ -1,5 +1,5 @@
 @doc "fizzbuzz"
-(module main [] :
+(module [] :
 (import fmt)
 
 

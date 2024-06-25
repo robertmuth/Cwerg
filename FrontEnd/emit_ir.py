@@ -1053,7 +1053,7 @@ def main() -> int:
                     allow_type_auto=False)
 
     logger.info("Legalize 1")
-    mod_gen = cwast.DefMod("$generated", [], [],
+    mod_gen = cwast.DefMod([], [],
                            x_srcloc=cwast.SRCLOC_GENERATED, x_modname="$generated")
     id_gen_global = identifier.IdGen()
     id_gens: dict[cwast.DefFun,  identifier.IdGen] = {}

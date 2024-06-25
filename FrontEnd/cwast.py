@@ -2714,7 +2714,6 @@ class DefMod:
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.MODNAME_ANNOTATED | NF.SYMTAB
     #
-    name: str
     params_mod: list[NODES_PARAMS_MOD_T]
     body_mod: list[NODES_BODY_MOD_T]
     #
@@ -2722,12 +2721,12 @@ class DefMod:
     builtin: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_modname: str = ""  # unique name for code gen
+    x_modname: str = ""  # unique name for code gen, derived from path
     x_symtab: Any = None
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params_mod)
-        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.x_modname} [{params}]"
 ############################################################
 # Macro Like
 ############################################################

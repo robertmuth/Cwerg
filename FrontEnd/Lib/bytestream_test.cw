@@ -1,4 +1,4 @@
-(module bytestream_test [] :
+(module [] :
 (import fmt)
 
 (import test)

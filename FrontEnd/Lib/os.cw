@@ -1,4 +1,4 @@
-(module os [] :
+(module [] :
 
 @pub (defrec TimeSpec :
     (field sec uint)

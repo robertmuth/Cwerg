@@ -4,7 +4,7 @@ This intentionally does not import the fmt module to keep
 the footprint/dependencies small.
 (We may change our mind on this.)
 """
-(module test [] :
+(module [] :
 (import os)
 
 

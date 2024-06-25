@@ -1,5 +1,5 @@
 @doc "Binary Tree Example"
-(module BinaryTree [
+(module [
     @doc "the payload type"
     (modparam $type TYPE)
     @doc "the less-than function ($type x $type) -> bool"

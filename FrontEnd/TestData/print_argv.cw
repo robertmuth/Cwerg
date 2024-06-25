@@ -1,5 +1,5 @@
 @doc "print command-line args"
-(module main [] :
+(module [] :
 (import fmt)
 
 

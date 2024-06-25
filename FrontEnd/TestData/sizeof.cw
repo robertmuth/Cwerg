@@ -1,4 +1,4 @@
-(module m1 [] :
+(module [] :
 
 (static_assert (== (sizeof u8) 1_uint))
 

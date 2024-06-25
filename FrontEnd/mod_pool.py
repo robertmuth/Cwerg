@@ -238,7 +238,7 @@ class ModPoolBase:
                             new_active.append(import_mod_info)
                             seen_change = True
                         logger.info(
-                            f"in {mod_info.mod.name} resolving inport of {import_mod_info.mod.name}")
+                            f"in {mod_info.mod.x_modname} resolving inport of {import_mod_info.mod.x_modname}")
                         import_node.x_module = import_mod_info.mod
                         mod_info.mod.x_symtab.AddImport(import_node)
                 if num_unresolved:

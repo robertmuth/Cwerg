@@ -1,5 +1,5 @@
 @doc "Binary Tree Example"
-(module main [] :
+(module [] :
 (import test)
 
 (import fmt)

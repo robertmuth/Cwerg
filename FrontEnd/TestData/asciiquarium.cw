@@ -1,5 +1,5 @@
 @doc "main module with program entry point `main`"
-(module main [] :
+(module [] :
 (import artwork ./ascii_artwork)
 
 (import aanim ./ascii_anim)
