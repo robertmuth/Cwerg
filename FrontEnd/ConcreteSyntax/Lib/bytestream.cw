@@ -1,4 +1,4 @@
-module bytestream:
+module:
 
 import fmt
 

@@ -1,5 +1,5 @@
 -- random
-module random:
+module:
 
 global IM u32 = 139968
 

@@ -1,5 +1,5 @@
 -- expr
-module main:
+module:
 
 import test
 

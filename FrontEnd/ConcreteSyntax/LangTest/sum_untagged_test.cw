@@ -1,5 +1,5 @@
 -- union
-module main:
+module:
 
 import test
 

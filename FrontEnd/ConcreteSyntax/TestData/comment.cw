@@ -1,5 +1,5 @@
 -- module
-module m1:
+module:
 
 @pub rec type_rec2:
     s1 slice(u8)

@@ -1,5 +1,5 @@
 -- trigonometric functions
-module trig:
+module:
 
 -- see https://git.musl-libc.org/cgit/musl/tree/src/math/__sin.c
 global SIN1 r64 = -0x1.5555555555549p-3

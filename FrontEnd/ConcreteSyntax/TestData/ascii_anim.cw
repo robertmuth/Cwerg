@@ -1,5 +1,5 @@
 -- Ascii Art Animation Module
-module aanim:
+module:
 
 import ansi
 

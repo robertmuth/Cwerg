@@ -1,5 +1,5 @@
 -- Checksums
-module checksum:
+module:
 
 @pub type CrcTab = [256]u32
 

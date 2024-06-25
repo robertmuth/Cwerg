@@ -1,5 +1,5 @@
 -- hash_test
-module main:
+module:
 
 import fmt
 

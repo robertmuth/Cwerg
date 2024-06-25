@@ -1,4 +1,4 @@
-module m1:
+module:
 
 @wrapped type t1 = s32
 

@@ -1,4 +1,4 @@
-module os:
+module:
 
 @pub rec TimeSpec:
     sec uint

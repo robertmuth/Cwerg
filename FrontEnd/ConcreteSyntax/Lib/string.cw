@@ -1,5 +1,5 @@
 -- String Library
-module string:
+module:
 
 @pub global NOT_FOUND uint = !0
 

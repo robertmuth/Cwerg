@@ -2,7 +2,7 @@
 -- * https://github.com/cmatsuoka/asciiquarium
 -- * https://robobunny.com/projects/asciiquarium/
 -- * Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
-module artwork:
+module:
 
 import aanim = "./ascii_anim"
 

@@ -1,5 +1,5 @@
 -- Linked List Example
-module main:
+module:
 
 import test
 

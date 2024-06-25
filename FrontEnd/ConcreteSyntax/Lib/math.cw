@@ -1,5 +1,5 @@
 -- math module
-module math:
+module:
 
 -- e
 @pub global E r64 = 2.718281828459045235360287471352662498

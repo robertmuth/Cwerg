@@ -1,4 +1,4 @@
-module m1:
+module:
 
 @pub fun foo1(a s32, b s32, c s32) s32:
     do foo1(0, 0, 0)

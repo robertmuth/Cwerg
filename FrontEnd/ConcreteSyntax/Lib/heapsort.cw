@@ -1,5 +1,5 @@
 -- heapsort
-module heapsort($type TYPE, $cmp_lt CONST_EXPR):
+module($type TYPE, $cmp_lt CONST_EXPR):
 
 @pub fun sort(sdata slice!($type)) void:
     let data ^!$type = front!(sdata)

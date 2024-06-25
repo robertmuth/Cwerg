@@ -1,5 +1,5 @@
 -- fibonacci
-module main:
+module:
 
 import test
 

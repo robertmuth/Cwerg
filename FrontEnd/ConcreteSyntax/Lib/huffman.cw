@@ -4,7 +4,7 @@
 -- https://en.wikipedia.org/wiki/Canonical_Huffman_code
 -- 
 -- 
-module huffman:
+module:
 
 import bitstream
 

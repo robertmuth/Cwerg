@@ -1,5 +1,5 @@
 -- heapsort
-module main:
+module:
 
 import random
 

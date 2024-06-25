@@ -1,5 +1,5 @@
 -- Macro Examples
-module macro_testing:
+module:
 
 @pub rec MyRec:
     s1 s32

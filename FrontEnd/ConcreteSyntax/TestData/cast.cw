@@ -1,4 +1,4 @@
-module m1:
+module:
 
 fun fun1(a s32, b u32, c r32) u8:
     let x s8 = as(a, s8)

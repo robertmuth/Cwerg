@@ -1,5 +1,5 @@
 -- defer
-module main:
+module:
 
 import test
 

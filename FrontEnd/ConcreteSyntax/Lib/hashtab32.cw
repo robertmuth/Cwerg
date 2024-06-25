@@ -6,7 +6,7 @@
 -- The approach used is linear probing with separate arrays afor keys and values
 -- (and meta data) to improve reference locality.
 -- 
-module hashtab32(
+module(
         -- the key type
         $ktype TYPE,
         -- the value type

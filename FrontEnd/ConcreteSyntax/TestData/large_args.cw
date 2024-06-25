@@ -1,4 +1,4 @@
-module large_args:
+module:
 
 @pub rec MyRec:
     s1 s32

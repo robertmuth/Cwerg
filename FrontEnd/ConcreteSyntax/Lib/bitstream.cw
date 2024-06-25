@@ -1,4 +1,4 @@
-module bitstream:
+module:
 
 -- supports retrieval of bitfields up to 32 bit wide from underlying slice
 -- 

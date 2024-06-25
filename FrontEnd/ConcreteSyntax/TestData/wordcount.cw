@@ -1,5 +1,5 @@
 -- Word Count Example
-module main:
+module:
 
 import os
 
