@@ -92,12 +92,12 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
                 "\x00"
                 large_output_buffer])
         @doc "fixed huffman: ERROR ======================================="
-        (rec_val TestCase [
+        (index_val (rec_val TestCase [
                 "fixed huffman: huffman terminator corrupted"
                 (array_val 2 u8 [0x63 0x00])
                 flate::TruncationErrorVal
                 ""
-                large_output_buffer])
+                large_output_buffer]))
         (rec_val TestCase [
                 "fixed huffman: out of bounds copy"
                 (array_val 4 u8 [0x63 0x00 0x42 0x00])
@@ -111,16 +111,16 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
                 ""
                 large_output_buffer])
         @doc "fixed huffman: SUCCESS ======================================="
-        (rec_val TestCase [
+        (index_val (rec_val TestCase [
                 "fixed huffman:   empty"
                 (array_val 3 u8 [0x03 0x00])
                 0_uint
                 ""
-                large_output_buffer])
+                large_output_buffer]))
         (rec_val TestCase [
                 "fixed huffman:  0x00"
                 @doc "last=1 fixed=01 sym8=000_01100 sym7=00_00000"
-                (array_val 3 u8 [0x63 0x00 0x00])
+                (field_val (array_val 3 u8 [0x63 0x00 0x00]))
                 1_uint
                 "\x00"
                 large_output_buffer])
@@ -133,7 +133,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
         (rec_val TestCase [
                 "fixed huffman:  0x00 0x00"
                 @doc "last=1 fixed=01 sym8=000_01100 sym8=000_01110 sym7=00_00000"
-                (array_val 4 u8 [0x63 0x70 0x00 0x00])
+                (field_val (array_val 4 u8 [0x63 0x70 0x00 0x00]))
                 2_uint
                 "\x00\x40"
                 large_output_buffer])
@@ -147,7 +147,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
                 "fixed huffman:  0x00 0x00 in two blocks"
                 @doc """last=0 fixed=01 sym8=000_01100 sym7=00_00000
             last=1 fixed=01 sym8=00001_110 sym7=0000_000"""
-                (array_val 5 u8 [0x62 0x00 0xcc 0x01 0x00])
+                (field_val (array_val 5 u8 [0x62 0x00 0xcc 0x01 0x00]))
                 2_uint
                 "\x00\x40"
                 large_output_buffer])
@@ -160,83 +160,26 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
         (rec_val TestCase [
                 "fixed huffman:  We the people ... "
                 (array_val 37 u8 [
-                        0x0b
-                        0x4f
-                        0x55
-                        0x28
-                        0xc9
-                        0x48
-                        0x55
-                        0x08
-                        0x48
-                        0xcd
-                        0x2f
-                        0xc8
-                        0x49
-                        0x55
-                        0xc8
-                        0x4f
-                        0x03
-                        0xf3
-                        0x42
-                        0xf3
-                        0x32
-                        0x4b
-                        0x52
-                        0x53
-                        0x14
-                        0x82
-                        0x4b
-                        0x12
-                        0x4b
-                        0x52
-                        0x8b
-                        0x75
-                        0x14
-                        0xf4
-                        0xf4
-                        0xf4
+                        0x0b 0x4f 0x55 0x28 0xc9 0x48 0x55 0x08 0x48 0xcd 0x2f 0xc8
+                        0x49 0x55 0xc8 0x4f 0x03 0xf3 0x42 0xf3 0x32 0x4b 0x52 0x53
+                        0x14 0x82 0x4b 0x12 0x4b 0x52 0x8b 0x75 0x14 0xf4 0xf4 0xf4
                         0x00])
                 39_uint
                 "We the People of the United States, ..."
                 large_output_buffer])
         @doc "dynamic huffman: ======================================="
-        (rec_val TestCase [
+        (index_val (rec_val TestCase [
                 "dynamic huffman:  256 zero bytes compressed using RLE (only one distance code)"
                 (array_val 15 u8 [
-                        0xe5
-                        0xc0
-                        0x81
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x80
-                        0xa0
-                        0xfc
-                        0xa9
-                        0x07
-                        0x39
-                        0x73
-                        0x01])
+                        0xe5 0xc0 0x81 0x00 0x00 0x00 0x00 0x80 0xa0 0xfc 0xa9 0x07
+                        0x39 0x73 0x01])
                 256_uint
                 (slice_val (front zeros) 256)
-                large_output_buffer])
+                large_output_buffer]))
         (rec_val TestCase [
                 "dynamic huffman:  empty (no distance only literal tree)"
                 (array_val 13 u8 [
-                        0x05
-                        0xca
-                        0x81
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x90
-                        0xff
-                        0x6b
-                        0x01
+                        0x05 0xca 0x81 0x00 0x00 0x00 0x00 0x00 0x90 0xff 0x6b 0x01
                         0x00])
                 0_uint
                 ""
@@ -244,219 +187,55 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
         (rec_val TestCase [
                 "dynamic huffman:  256 zero bytes (no distance only literal tree)"
                 (array_val 45 u8 [
-                        0x05
-                        0xca
-                        0x81
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x10
-                        0xff
-                        0xd5
-                        0x02
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x02])
+                        0x05 0xca 0x81 0x00 0x00 0x00 0x00 0x00 0x10 0xff 0xd5 0x02
+                        0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                        0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                        0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02])
                 256_uint
                 (slice_val (front zeros) 256)
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman:  259 zero bytes compressed using literal/length code 285 (len 258)"
                 (array_val 15 u8 [
-                        0xed
-                        0xcc
-                        0x81
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x80
-                        0xa0
-                        0xfc
-                        0xa9
-                        0x17
-                        0xb9
-                        0x00
-                        0x2c])
+                        0xed 0xcc 0x81 0x00 0x00 0x00 0x00 0x80 0xa0 0xfc 0xa9 0x17
+                        0xb9 0x00 0x2c])
                 259_uint
                 (slice_val (front zeros) 259)
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman: 259 zero bytes compressed using literal/length code 284 + 31 (len 258)"
                 (array_val 16 u8 [
-                        0xe5
-                        0xcc
-                        0x81
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x80
-                        0xa0
-                        0xfc
-                        0xa9
-                        0x07
-                        0xb9
-                        0x00
-                        0xfc
-                        0x05])
+                        0xe5 0xcc 0x81 0x00 0x00 0x00 0x00 0x80 0xa0 0xfc 0xa9 0x07
+                        0xb9 0x00 0xfc 0x05])
                 259_uint
                 (slice_val (front zeros) 259)
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman:  copy of 3 bytes with a distance of 32768 "
                 (array_val 53 u8 [
-                        0xed
-                        0xdd
-                        0x01
-                        0x01
-                        0x00
-                        0x00
-                        0x08
-                        0x02
-                        0x20
-                        0xed
-                        0xff
-                        0xe8
-                        0xfa
-                        0x11
-                        0x1c
-                        0x61
-                        0x9a
-                        0xf7
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0x00
-                        0xe0
-                        0xfe
-                        0xff
-                        0x05])
+                        0xed 0xdd 0x01 0x01 0x00 0x00 0x08 0x02 0x20 0xed 0xff 0xe8
+                        0xfa 0x11 0x1c 0x61 0x9a 0xf7 0x00 0x00 0x00 0x00 0x00 0x00
+                        0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                        0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+                        0x00 0xe0 0xfe 0xff 0x05])
                 32771_uint
                 special_2_1_0
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman:  4 zero bytes - use code length codes include codes 16, 17, and 18"
                 (array_val 15 u8 [
-                        0x0d
-                        0xc3
-                        0x37
-                        0x01
-                        0x00
-                        0x00
-                        0x00
-                        0x80
-                        0x20
-                        0xfa
-                        0x77
-                        0x1e
-                        0xca
-                        0x61
-                        0x01])
+                        0x0d 0xc3 0x37 0x01 0x00 0x00 0x00 0x80 0x20 0xfa 0x77 0x1e
+                        0xca 0x61 0x01])
                 4_uint
                 (slice_val (front zeros) 4)
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman:  15 zero bytes - use all codeword lengths including 15"
                 (array_val 39 u8 [
-                        0x05
-                        0xea
-                        0x01
-                        0x82
-                        0x24
-                        0x49
-                        0x92
-                        0x24
-                        0x49
-                        0x02
-                        0x12
-                        0x8b
-                        0x9a
-                        0x47
-                        0x56
-                        0xcf
-                        0xde
-                        0xff
-                        0x9f
-                        0x7b
-                        0x0f
-                        0xd0
-                        0xee
-                        0x7d
-                        0xbf
-                        0xbf
-                        0x7f
-                        0xff
-                        0xfd
-                        0xef
-                        0xff
-                        0xfe
-                        0xdf
-                        0xff
-                        0xf7
-                        0xff
-                        0xfb
-                        0xff
-                        0x03])
+                        0x05 0xea 0x01 0x82 0x24 0x49 0x92 0x24 0x49 0x02 0x12 0x8b
+                        0x9a 0x47 0x56 0xcf 0xde 0xff 0x9f 0x7b 0x0f 0xd0 0xee 0x7d
+                        0xbf 0xbf 0x7f 0xff 0xfd 0xef 0xff 0xfe 0xdf 0xff 0xf7 0xff
+                        0xfb 0xff 0x03])
                 15_uint
                 "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e"
                 large_output_buffer])]))

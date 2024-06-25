@@ -53,7 +53,8 @@ TESTS_CONCRETE := $(LANG_TESTS) $(TESTS) \
     Lib/string.cw \
     Lib/string_test.cw \
     Lib/trig.cw \
-    Lib/trig_test.cw
+    Lib/trig_test.cw \
+    Lib/flate_test.cw
 
 #	Lib/flate.cw   ***
 #	Lib/flate_test.cw
@@ -86,7 +87,7 @@ tests_eval_py: $(TESTS:%.cw=$(DIR)/%.cw.eval)
 tests_symtab_py: $(TESTS:%.cw=$(DIR)/%.cw.symtab)
 	@echo "PASSED $@"
 
-tests_pp_py: $(TESTS:%.cw=$(DIR)/%.cw.pp)
+tests_pp_py: $(TESTS_CONCRETE:%.cw=$(DIR)/%.cw.pp)
 	@echo "PASSED $@"
 
 tests_concrete_py:  $(TESTS_CONCRETE:%.cw=$(DIR)/%.concrete)
@@ -213,6 +214,8 @@ clean:
 pp_test:
 	./pp.py TestData/*.cw  Lib/*.cw  LangTest/*.cw
 
+cloc:
+	@cloc ${CLOC_FLAGS} --by-file '--match-f=[.](py|cc|h)$$' .
 
 reformat:
 	for f in TestData/*.cw ; do \

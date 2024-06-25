@@ -145,6 +145,23 @@ def _RenderList(val: list, field: str, out, indent: int):
     line = out[-1]
     if not val:
         line.append("[]")
+    elif len(val) > 12:
+        line.append("[")
+        force_new_line = True
+        sep = ""
+        for cc in val:
+            line = out[-1]
+            if force_new_line or sum(len(x) for x in line) > 80:
+                out.append([" " * (indent + extra_indent)])
+                line = out[-1]
+                sep = ""
+                force_new_line = False
+            line.append(sep)
+            sep = " "
+            _RenderRecursivelyToIR(cc, out, indent + extra_indent)
+            if line != out[-1]:
+                force_new_line = True
+        out[-1].append("]")
     elif _ListIsCompact(val):
         line.append("[")
         sep = ""
