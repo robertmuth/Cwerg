@@ -2702,7 +2702,7 @@ class ModParam:
 
 
 @NodeCommon
-@dataclasses.dataclass(order=True)
+@dataclasses.dataclass()
 class DefMod:
     """Module Definition
 
@@ -2728,8 +2728,6 @@ class DefMod:
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params_mod)
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
-
-
 ############################################################
 # Macro Like
 ############################################################
@@ -3273,7 +3271,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 assert node.x_symbol is not None or isinstance(
                     node.x_import, Import), f"{node} without x_import"
             if node.name.startswith("$"):
-                CompilerError(node.x_srcloc, f"{node} start wirh $")
+                CompilerError(node.x_srcloc, f"{node} start with $")
         elif isinstance(node, MacroId):
             assert node.name.startswith("$")
         elif isinstance(node, MacroInvoke):

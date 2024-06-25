@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 EXTENSION_CWS = ".cws"
 EXTENSION_CW = ".cw"
 
+
 class ModInfo:
     def __init__(self, uid: ModId, mod: cwast.DefMod):
         self.uid = uid
@@ -27,7 +28,7 @@ class ModInfo:
             (node, [None] * len(node.args_mod)) for node in mod.body_mod if isinstance(node, cwast.Import)]
 
     def __str__(self):
-        return f"{self.mod.name}:{self.uid}"
+        return f"{self.mod.x_modname}:{self.uid}"
 
 
 def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod]:
@@ -54,27 +55,28 @@ def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod
             deps_in[mod].append(importee)
             deps_out[importee].append(mod)
 
-    # start with candidates with no incoming deps
-    candidates: list[cwast.DefMod] = []
+    # start with candidates with no incoming deps, candidates is sorted by
+    # mod.x_modname to make it deterministic
+    candidates: list[tuple[str, cwast.DefMod]] = []
     for mi in mod_infos:
         mod = mi.mod
+        assert isinstance(mod, cwast.DefMod)
         if not deps_in[mod]:
             logger.info("found leaf mod [%s]", mod)
-            heapq.heappush(candidates, mod)
+            heapq.heappush(candidates, (mod.x_modname, mod))
 
     # topological order
     out: list[cwast.DefMod] = []
     while len(out) != len(mod_infos):
         assert candidates
-        x = heapq.heappop(candidates)
-        assert isinstance(x, cwast.DefMod)
+        _, x = heapq.heappop(candidates)
         logger.info("picking next mod: %s", x)
         out.append(x)
 
         for importer in deps_out[x]:
             deps_in[importer].remove(x)
             if not deps_in[importer]:
-                heapq.heappush(candidates, importer)
+                heapq.heappush(candidates, (importer.x_modname, importer))
     return out
 
 
@@ -137,11 +139,12 @@ class ModPoolBase:
     def __str__(self):
         return f"root={self._root}"
 
-    def _AddModInfoCommon(self, mid, mod: cwast.DefMod) -> ModInfo:
+    def _AddModInfoCommon(self, mid: ModId, mod: cwast.DefMod) -> ModInfo:
         mod_info = ModInfo(mid, mod)
+        #print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
         self._all_mods[mid] = mod_info
-        name = mod_info.mod.name
+        name = mid[0].name
         assert name not in self._taken_names
         self._taken_names.add(name)
         mod_info.mod.x_modname = name
