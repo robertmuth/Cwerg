@@ -27,6 +27,7 @@ Above all Cwerg is meant to be a small language that can be maintained by a sing
 * variables are immutable by default
 * no goto, no va-args, no bitfields,
 
+
 ## Syntax
 
 Cwerg currently has two syntaxes:
@@ -39,7 +40,6 @@ and one can be translated to the other without
 loss of information.
 
 
-
 ## Concrete Syntax Examples
 
 Cwerg use a Python inspired syntax where the indentation level
@@ -49,6 +49,7 @@ We give some examples below to convey a general feeling for the language.
 The details should become clear after reading through the tutorial.
 
 More examples can be found here: https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/ConcreteSyntax/TestData
+
 
 ### Hello World (full example)
 
@@ -86,6 +87,7 @@ so it can be linked against the startup code.
 ```
 
 The `@pub` annotation makes `fib` visible outside of the module.
+
 
 ### Sieve of Eratosthenes (excerpt)
 
@@ -322,6 +324,7 @@ More info in [Unions](union_types.md)
 
 There is no concept of truthiness.
 
+
 ### String Literals
 
 Regular string literals are enclosed in double-quotes. e.g. "escaped string\n" and may contain back-slash escapes. Most single character escapes are supported
@@ -336,9 +339,11 @@ characters.
 Multi-line strings are enclosed in tripple quotes, e.g. """multi-line string:"""",
 and also come in unescaped (prefix "r") and hex (prefix "x") flavors.
 
+
 ### Number Literals
 
 Number literals may contain underscores ("_") which are ignored. Since Cwerg does not implicitly convert numbers it is often necessary use typed number by adding one of the following suffices: u8, u16, u32, u64, s8, s16, s32, s64, r32, r64, e.g. "0x1234_s16".
+
 
 ### Array Literals
 
@@ -389,21 +394,28 @@ Initializers for specific fields can declared like so:
     Date{year:2000, month:1, day:12}
 ```
 
+
 ## Module Definitions
 
 Every file starts with module definition. A simple version looks like:
 
 ```
-module optional-name:
-    <TOP-LEVEL-DECLARATIOND>+]
+module:
+    <TOP-LEVEL-DECLARATIOND>+
 ```
 
 A more complex definition for the generic case looks like:
 
 ```
 module optional-name(param-name1 param-kind1, param-name2 param-kind2, ...):
-    <TOP-LEVEL-DECLARATIOND>+]
+    <TOP-LEVEL-DECLARATIOND>+
 ```
+
+All module parameters must start with a '$' (similar to macro parameters)
+and must be have one of the following kinds:
+* CONST_EXPR: a constant expression including a function
+* TYPE: a type expression
+
 
 ## Top Level Declations
 
@@ -413,6 +425,7 @@ importing module.
 
 Note, the declarations listed here can only appear at the top
 level, not inside function bodies.
+
 
 ### Global Constants
 
@@ -437,23 +450,24 @@ global! a_global_var u64 = 7_u64
 If an initializer expression is omitted, the global is initialized to zero.
 
 
-
 ### Functions
 
 Functions are declared like so:
 
 ```
  fun foo(param1 typ1, param2 type2, ...) returntype:
-    <STATEMENTS>+]
+    <STATEMENTS>*
 ```
 
 ### Enums, Types (Typedefs) and Recs (Structs)
 
 These were covered in the Type Section above
 
+
 #### Macros
 
-TBD
+TBD  - see [Macros](macros.md)
+
 
 ### Static Asserts
 
@@ -463,6 +477,7 @@ TBD
 ## Statements
 
 Note: all statments start with an introductory keyword.
+
 
 ### Local Constants
 
@@ -474,6 +489,7 @@ let a_local_const u64 = 7_u64
 let a_local_const u64 = 7
 let a_local_const = 7_u64
 ```
+
 
 ### Let Statements (Local Variables)
 
@@ -500,6 +516,7 @@ set a_local_const and= 666;
 
 ```
 
+
 ### Trylet Statements
 
 A trylet statement is most useful for processing unions that represent two states. e.g.
@@ -515,6 +532,7 @@ Example error processing:
 The call to `os::FileRead` returns either a `uint` or one of several error types.
 If the call returns `uint`, it will be assigned to `n`. Otherwise the error type will
 be assigned `err` and then subsequently returned.
+
 
 ### Tryset Statements
 
@@ -542,6 +560,7 @@ of the block and a `break` statement will exit the block.
 Both  `continue` and `break` statements can have an optional label indicating
 which enclosing `block` they refer to.
 
+
 ### While Loops
 
 ```
@@ -565,6 +584,7 @@ For loops differ from their C counterparts in the following way:
 If you need a for loop to iterated over a custom data-structure, define
 a macro.
 
+
 ### If-else Statements
 
 Simple
@@ -582,6 +602,7 @@ else:
     <STAREMENTS>*
 ```
 
+
 ### Cond Statements
 
 ```
@@ -597,6 +618,7 @@ Note, there is no fallthrough.
 Case are checked in order.
 A `default` case  be expressed as `case true`
 and must go last.
+
 
 ### Defer Statements
 
@@ -620,6 +642,7 @@ return optional-expression
 Return a value from the enclosing function or expression statement.
 If no expression is provide `void` is assumed.
 
+
 ### Continue Statements
 
 ```
@@ -629,6 +652,7 @@ continue optional-label
 Jump to the beginning of a  `block`, `while` or `for` statement.
 The optional label can be used to name the block to exit.
 
+
 ### Break Statements
 
 ```
@@ -637,6 +661,21 @@ break optional-label
 
 Exit the enclosing `block`, `while` or `for` statement.
 The optional label can be used to name the block to exit.
+```
+    block label1;
+
+        block label2:
+            ...
+            -- exits the block, label2
+            break label2
+            ...
+            -- also exits the block, label2
+            break
+            ...
+            -- exits the block, label1
+            break label1
+
+```
 
 ### Trap Statements
 
@@ -646,13 +685,15 @@ trap
 
 Stop execution of the program.
 
+
 ### Do Statements
 
 ```
 do expression
 ```
 
-Runs the expression and discards the result
+Runs the expression and discards the result.
+The expression will usually be a function call with a side-effect.
 
 
 ## Expressions
@@ -745,11 +786,3 @@ TBD  - see [Casting](casting.md)
 | as(E, T) -> E     | casts with run-time checks                 |
 | wrapas(E, T) -> E | convert expression to a wrapped type       |
 | bitas(E, T) -> E  | convert expression to a type of same width |
-
-## Macros
-
-TBD  - see [Macros](macros.md)
-
-## Generic Modules
-
-TBD
