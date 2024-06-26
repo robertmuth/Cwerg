@@ -1,16 +1,11 @@
 # Cwerg Language Overview
 
-Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. The hope is to reach a sweet spot above what C gives us today and make it convenient to write system software like operating systems and compilers in this language.
+Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. The hope is to reach a sweet spot above what C gives us today. A language that makes it convenient to write system software like operating systems and compilers.
 
 
 ## Philosophy
 
-Above all Cwerg is meant to be a small language. Since small is subjective we have set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
-
-All control flow and all memory allocation is explicit.
-
-Discouraged practices are possible but require explicit overrides, e.g.: uninitialized variables, global visibility, mutability, unchecked array accesses, untagged unions, ... ...
-
+Above all Cwerg is meant to be a small language that can be maintained by a single person. Since small is subjective we have set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
 
 ## Highlights
 
@@ -23,10 +18,13 @@ Discouraged practices are possible but require explicit overrides, e.g.: uniniti
 * simple hygienic macro system
 * limited polymorphism
 * slices (array views)
-* (almost) no implicit conversions
 * named blocks + multi-level break/continue
-* no truthinesss
+* expression statements - cleaned up version of the C's comma operator
+* (almost) no implicit conversions and no truthinesss
 * all value are zero initialized by default
+* visibility is private by default
+* array indexing is checked by default
+* variables are immutable by default
 * no goto, no va-args, no bitfields,
 
 ## Syntax
@@ -55,7 +53,7 @@ More examples can be found here: https://github.com/robertmuth/Cwerg/tree/master
 ### Hello World (full example)
 
 ```
-module main:
+module:
 
 import fmt
 
@@ -65,8 +63,7 @@ import fmt
 
 ```
 
-Every file starts with a module stanza. The `name` of the module, "main",
-is largely ignored and may be dropped in the future.
+Every file starts with a module stanza.
 
 The type information in the function declaration follows the Go model of
 identifier followed by type.
@@ -118,7 +115,7 @@ Exclamtion marks at the end of keywords indicate mutability.
 ## Binary Tree (parameterized/generic module)
 
 ```
-module BinaryTree(
+module(
         -- the payload type
         $type TYPE,
         -- the less-than function ($type x $type) -> bool
@@ -497,17 +494,38 @@ The special initializer `undef` will leave the initial value undefined.
 
 ```
 set a_local_const = 666;
+...
 set a_local_const += 666;
+set a_local_const and= 666;
+
 ```
-
-### Tryset Statements
-
-TBD
 
 ### Trylet Statements
 
-TBD
+A trylet statement is most useful for processing unions that represent two states. e.g.
+* a valid pointer or null
+* a result or an error
 
+Example error processing:
+```
+    trylet n uint = os::FileRead(fd, buf), err:
+        return err
+```
+
+The call to `os::FileRead` returns either a `uint` or one of several error types.
+If the call returns `uint`, it will be assigned to `n`. Otherwise the error type will
+be assigned `err` and then subsequently returned.
+
+### Tryset Statements
+
+`tryset` is to `trylet` what `set` is to `let`.
+Example:
+```
+    let! u uint = ...
+    ...
+    tryset n = os::FileRead(fd, buf), err:
+        return err
+```
 
 ### Block Statements
 
@@ -696,6 +714,24 @@ Note, operator precendence has yet to be finalized
 | typeidof(E) -> typeid  | typeid of an expression of union type                       |
 | uniondelta(T, T) -> T  | type delta of two union type expressions                    |
 | stringify(E) -> []u8   | convert an expression to a textual representation           |
+
+
+### Expression Statements
+
+Expression Statements are code blocks that evalute to a value. Examples
+
+```
+let x s8 = foo()
+let sign s8 = expr:
+                  cond:
+                    case x == 0:
+                        return 0_s8
+                    case x < 0
+                        return -1_s8
+                    case true:
+                        return 1_s8
+
+```
 
 
 ### Casts
