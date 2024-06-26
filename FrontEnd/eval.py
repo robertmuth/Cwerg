@@ -14,6 +14,7 @@ from FrontEnd import symbolize
 from FrontEnd import type_corpus
 from FrontEnd import typify
 from FrontEnd import identifier
+from FrontEnd import canonicalize
 
 from Util.parse import EscapedStringToBytes, HexStringToBytes
 
@@ -708,7 +709,8 @@ def main(argv):
     mp.ReadModulesRecursively(["builtin",
                                str(pathlib.Path(argv[0][:-3]).resolve())])
     mod_topo_order = mp.ModulesInTopologicalOrder()
-
+    for mod in mod_topo_order:
+        canonicalize.FunRemoveParentheses(mod)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)

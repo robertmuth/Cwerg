@@ -1005,6 +1005,8 @@ def main() -> int:
     # keeps track of those node classes which have been eliminated and hence must not
     # occur in the AST anymore
     eliminated_nodes: set[Any] = set()
+    for mod in mod_topo_order:
+        canonicalize.FunRemoveParentheses(mod)
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     for mod in mod_topo_order:

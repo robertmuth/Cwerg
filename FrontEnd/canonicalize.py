@@ -640,3 +640,12 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
     cwast.EliminateEphemeralsRecursively(fun)
+
+
+def FunRemoveParentheses(fun: cwast.DefFun):
+    def replacer(node, _parent, _field):
+        if isinstance(node, cwast.ExprParen):
+            return node.expr
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)

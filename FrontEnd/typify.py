@@ -12,6 +12,7 @@ from typing import Tuple, Any
 from FrontEnd import cwast
 from FrontEnd import symbolize
 from FrontEnd import type_corpus
+from FrontEnd import canonicalize
 
 
 logger = logging.getLogger(__name__)
@@ -1122,7 +1123,6 @@ class TypeVerifier:
         }
 
     def Verify(self, node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):
-
         self._map[type(node)](node, tc)
 
     def Replace(self, node_type, checker):
@@ -1198,7 +1198,8 @@ def main(argv):
     mp.ReadModulesRecursively(["builtin",
                                str(pathlib.Path(argv[0][:-3]).resolve())])
     mod_topo_order = mp.ModulesInTopologicalOrder()
-
+    for mod in mod_topo_order:
+        canonicalize.FunRemoveParentheses(mod)
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)

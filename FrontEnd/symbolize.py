@@ -11,6 +11,7 @@ from typing import Optional, Any, Sequence, Union
 from FrontEnd import pp_sexpr
 from FrontEnd import macros
 from FrontEnd import cwast
+from FrontEnd import canonicalize
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +231,8 @@ def FindAndExpandMacrosRecursively(node, builtin_syms, nesting: int, ctx: macros
             children = getattr(node, c)
             new_children = []
             for child in children:
-                FindAndExpandMacrosRecursively(child, builtin_syms, nesting, ctx)
+                FindAndExpandMacrosRecursively(
+                    child, builtin_syms, nesting, ctx)
                 if cwast.NF.TO_BE_EXPANDED not in child.FLAGS:
                     new_children.append(child)
                 else:
@@ -574,6 +576,8 @@ def main(argv):
     mp.ReadModulesRecursively(
         ["builtin", str(pathlib.Path(argv[0][:-3]).resolve())])
     mod_topo_order = mp.ModulesInTopologicalOrder()
+    for mod in mod_topo_order:
+        canonicalize.FunRemoveParentheses(mod)
     MacroExpansionDecorateASTWithSymbols(mod_topo_order)
     for ast in mod_topo_order:
         cwast.CheckAST(ast, set())
