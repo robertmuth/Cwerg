@@ -44,8 +44,22 @@ The type of the loop variable is determined by $end"""
         (mlet $catch_name auto (@unchecked narrowto $eval (uniondelta (typeof $eval) $type)))
         $catch_body
         (trap))
-    (mlet $name $type (narrowto $eval $type)))
+    (mlet $name $type (@unchecked narrowto $eval $type)))
 
+
+@pub (macro trylet! STMT_LIST [
+        (mparam $name ID)
+        (mparam $type EXPR)
+        (mparam $expr EXPR)
+        (mparam $catch_name ID)
+        (mparam $catch_body STMT_LIST)] [$eval] :
+    (mlet $eval auto $expr)
+    (if (! (is $eval $type)) :
+        (mlet $catch_name auto (@unchecked narrowto $eval (uniondelta (typeof $eval) $type)))
+        $catch_body
+        (trap)
+    :)
+    (mlet! $name $type (@unchecked narrowto $eval $type)))
 
 @pub (macro tryset STMT_LIST [
         (mparam $name ID)
@@ -53,13 +67,12 @@ The type of the loop variable is determined by $end"""
         (mparam $catch_name ID)
         (mparam $catch_body STMT_LIST)] [$eval] :
     (mlet $eval auto $expr)
-    (if (is $eval (typeof $name)) :
-     :
+    (if (! (is $eval (typeof $name))) :
         (mlet $catch_name auto (@unchecked narrowto $eval (uniondelta (typeof $eval) (typeof $type))))
         $catch_body
-        (trap))
+        (trap)
+    :)
     (mlet $name $type (narrowto $eval $type)))
-
 
 (macro swap# STMT_LIST [(mparam $a EXPR) (mparam $b EXPR)] [$t] :
     (mlet $t auto $a)
@@ -69,5 +82,5 @@ The type of the loop variable is determined by $end"""
 
 @doc "macro for c-style -> operator"
 @pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
-    (. (^ $pointer) $field))
+    (. (paren (^ $pointer)) $field))
 )
