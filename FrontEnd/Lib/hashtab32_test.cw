@@ -13,7 +13,7 @@
 (fun eq_32 [(param a (ptr u32)) (param b (ptr u32))] bool :
     (return (== (^ a) (^ b))))
 
-(import hashtab hashtab32 [
+(import hashtab hashtab32_gen [
         u32
         u32
         hash_32
@@ -71,4 +71,3 @@
     (test::Success#)
     (return 0))
 )
-

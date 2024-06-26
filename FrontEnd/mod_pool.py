@@ -187,7 +187,7 @@ class ModPoolBase:
         for pathname in seed_modules:
             assert not pathname.startswith(".")
             uid = (_ModUniquePathName(self._root, None, pathname),)
-            assert self._FindModInfo(uid) is None
+            assert self._FindModInfo(uid) is None, f"duplicate module {uid}"
             mod_info = self._AddModInfoSimple(uid)
             active.append(mod_info)
 

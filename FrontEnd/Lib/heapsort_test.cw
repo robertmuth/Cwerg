@@ -11,7 +11,7 @@
 (fun cmp_r64_lt [(param a (ptr real64)) (param b (ptr real64))] bool :
     (return (< (^ a) (^ b))))
 
-(import rhs heapsort [real64 cmp_r64_lt])
+(import rhs heapsort_gen [real64 cmp_r64_lt])
 
 
 (global SIZE uint 20)
@@ -52,4 +52,3 @@
          :))
     (return 0))
 )
-

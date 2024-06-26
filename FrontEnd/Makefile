@@ -2,12 +2,15 @@
 DIR := build
 QEMU :=
 
-TESTS :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cw))
 TEST_SOURCES := $(wildcard TestData/*.cw)
+TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cw))
+
 LANG_TESTS := $(wildcard LangTest/*_test.cw)
 LANG_SOURCES := $(wildcard LangTest/*.cw)
+
 LIB_TESTS := $(wildcard Lib/*_test.cw)
 LIB_SOURCES :=  $(wildcard Lib/*.cw)
+LIB_SOURCES_NO_GENERIC := $(filter-out Lib/builtin.cw $(wildcard Lib/*gen.cw), $(wildcard Lib/*.cw))
 
 TEST_TESTS := \
 	TestData/binary_tree_test.cw \
@@ -32,7 +35,8 @@ TESTS_A32 := \
     Lib/string_test.cw \
     Lib/trig_test.cw
 
-TESTS_CONCRETE := $(LANG_SOURCES) $(TEST_SOURCES) $(LIB_SOURCES)
+ALL_SOURCES := $(LANG_SOURCES) $(TEST_SOURCES) $(LIB_SOURCES)
+ALL_SOURCES_NO_GENERIC := $(LANG_SOURCES) $(TEST_SOURCES_NO_GENERIC) $(LIB_SOURCES_NO_GENERIC)
 
 
 # not the clean part will be run out of order but the early targets are not
@@ -50,22 +54,22 @@ tests_py: \
     tests_concrete_py
 	@echo "PASSED $@"
 
-tests_parse_py: $(TESTS:%.cw=$(DIR)/%.cw.parse)
+tests_parse_py: $(ALL_SOURCES:%.cw=$(DIR)/%.cw.parse)
 	@echo "PASSED $@"
 
-tests_meta_py: $(TESTS:%.cw=$(DIR)/%.cw.meta)
+tests_meta_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
 	@echo "PASSED $@"
 
-tests_eval_py: $(TESTS:%.cw=$(DIR)/%.cw.eval)
+tests_eval_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.eval)
 	@echo "PASSED $@"
 
-tests_symtab_py: $(TESTS:%.cw=$(DIR)/%.cw.symtab)
+tests_symtab_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.symtab)
 	@echo "PASSED $@"
 
-tests_pp_py: $(TESTS_CONCRETE:%.cw=$(DIR)/%.cw.pp)
+tests_pp_py: $(ALL_SOURCES:%.cw=$(DIR)/%.cw.pp)
 	@echo "PASSED $@"
 
-tests_concrete_py:  $(TESTS_CONCRETE:%.cw=$(DIR)/%.concrete)
+tests_concrete_py:  $(ALL_SOURCES:%.cw=$(DIR)/%.concrete)
 	@echo "PASSED $@"
 
 tests_all_py: tests_parse_py tests_symtab_py tests_meta_py tests_eval_py tests_pp_py
@@ -198,7 +202,7 @@ reformat:
 	done
 
 update_concrete_syntax:
-	for f in $(TESTS_CONCRETE) ; do  \
+	for f in $(ALL_SOURCES) ; do  \
 	  ./pp.py  $$f > ConcreteSyntax/$$f ; \
 	done
 
