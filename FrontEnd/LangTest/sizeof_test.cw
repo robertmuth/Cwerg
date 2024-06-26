@@ -112,5 +112,9 @@
 
 
 (static_assert (== (sizeof sum6) 16))
-)
 
+
+@doc "just a compilation test"
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+   (return 0))
+)

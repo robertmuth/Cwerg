@@ -56,4 +56,8 @@
 
 (fun funx [(param a type_union)] s32 :
     (return (narrowto a (uniondelta type_union (union [void type_ptr])))))
+
+@doc "just a compilation test"
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+   (return 0))
 )

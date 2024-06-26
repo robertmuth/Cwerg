@@ -71,4 +71,8 @@
 
 (fun TestSwap [(param vec (slice! u8))] void :
     (swap# (at vec 1) (at vec 2)))
+
+@doc "just a compilation test"
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+   (return 0))
 )
