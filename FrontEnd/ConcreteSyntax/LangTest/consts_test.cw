@@ -143,3 +143,7 @@ static_assert is(p1, bool) == false
 static_assert is(p1, ^!r32) == false
 
 static_assert is(p1, ^r32) == true
+
+-- just a compilation test
+@cdecl fun main(argc s32, argv ^^u8) s32:
+    return 0

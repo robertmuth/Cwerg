@@ -52,3 +52,7 @@ fun TestForMacroStringify() slice(u8):
 
 fun TestSwap(vec slice!(u8)) void:
     swap#(vec[1], vec[2])
+
+-- just a compilation test
+@cdecl fun main(argc s32, argv ^^u8) s32:
+    return 0

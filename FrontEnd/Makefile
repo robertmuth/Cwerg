@@ -3,7 +3,7 @@ DIR := build
 QEMU :=
 
 TESTS :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cw))
-
+TEST_SOURCES := $(wildcard TestData/*.cw)
 LANG_TESTS := $(wildcard LangTest/*_test.cw)
 LANG_SOURCES := $(wildcard LangTest/*.cw)
 LIB_TESTS := $(wildcard Lib/*_test.cw)
@@ -32,7 +32,7 @@ TESTS_A32 := \
     Lib/string_test.cw \
     Lib/trig_test.cw
 
-TESTS_CONCRETE := $(LANG_SOURCES) $(TESTS) $(LIB_SOURCES)
+TESTS_CONCRETE := $(LANG_SOURCES) $(TEST_SOURCES) $(LIB_SOURCES)
 
 
 # not the clean part will be run out of order but the early targets are not
