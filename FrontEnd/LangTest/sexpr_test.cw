@@ -118,5 +118,8 @@
 (fun square_or_double [(param use_square bool) (param c s32)] s32 :
     (let foo auto (? use_square square double))
     (return (foo [c])))
-)
 
+@doc "just a compilation test"
+@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+   (return 0))
+)

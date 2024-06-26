@@ -317,7 +317,7 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Type
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
         EmitIRConditional(cond.expr, not invert, label_false, tc, id_gen)
     elif isinstance(cond, cwast.Expr2):
-        kind = cond.binary_expr_kind
+        kind: cwast.BINARY_EXPR_KIND = cond.binary_expr_kind
         if kind is cwast.BINARY_EXPR_KIND.ANDSC:
             if invert:
                 EmitIRConditional(cond.expr1, True, label_false, tc, id_gen)
@@ -336,12 +336,18 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Type
             else:
                 EmitIRConditional(cond.expr1, False, label_false, tc, id_gen)
                 EmitIRConditional(cond.expr2, False, label_false, tc, id_gen)
+        elif kind in (cwast.BINARY_EXPR_KIND.AND, cwast.BINARY_EXPR_KIND.OR,
+                        cwast.BINARY_EXPR_KIND.XOR):
+            op = EmitIRExpr(cond, tc, id_gen)
+            if invert:
+                print(f"{TAB}beq {op} 0 {label_false}")
+            else:
+                print(f"{TAB}bne {op} 0 {label_false}")
         else:
             assert cond.expr1.x_type.fits_in_register(
             ), f"NYI Expr2 for {cond} {cond.expr1.x_type}"
             op1 = EmitIRExpr(cond.expr1, tc, id_gen)
             op2 = EmitIRExpr(cond.expr2, tc, id_gen)
-
             if invert:
                 kind = _MAP_COMPARE_INVERT[kind]
             # reduce comparison to what can be easily tranalate IR
@@ -867,6 +873,12 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             name = node.container.x_symbol.name
             print(f".addr.mem {tc.get_address_size()} {name} 0")
             # assert False, f"{name} {node.container}"
+            return tc.get_address_size()
+        elif isinstance(node, cwast.ExprAddrOf):
+            assert isinstance(
+                node.expr_lhs, cwast.Id), "NYI complex static addresses"
+            data = node.expr_lhs
+            print(f"\n.addr.mem {tc.get_address_size()} {data.x_symbol.name} 0")
             return tc.get_address_size()
         elif isinstance(node, cwast.ExprWiden):
             count = _emit_recursively(node.expr, node.expr.x_type, offset)
