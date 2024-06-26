@@ -4,9 +4,10 @@ QEMU :=
 
 TESTS :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cw))
 
-LANG_TESTS := $(wildcard LangTest/*.cw)
+LANG_TESTS := $(wildcard LangTest/*_test.cw)
+LANG_SOURCES := $(wildcard LangTest/*.cw)
 LIB_TESTS := $(wildcard Lib/*_test.cw)
-LIB_SOURCES :=  $(filter-out Lib/builtin.cw, $(wildcard Lib/*.cw))
+LIB_SOURCES :=  $(wildcard Lib/*.cw)
 
 TEST_TESTS := \
 	TestData/binary_tree_test.cw \
@@ -22,7 +23,7 @@ TESTS_A32 := \
     LangTest/defer_test.cw \
     LangTest/enum_test.cw \
     LangTest/expr_test.cw \
-	LangTest/linked_list.cw \
+	LangTest/linked_list_test.cw \
 	LangTest/sieve_test.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
@@ -31,7 +32,7 @@ TESTS_A32 := \
     Lib/string_test.cw \
     Lib/trig_test.cw
 
-TESTS_CONCRETE := $(LANG_TESTS) $(TESTS) $(LIB_SOURCES)
+TESTS_CONCRETE := $(LANG_SOURCES) $(TESTS) $(LIB_SOURCES)
 
 
 # not the clean part will be run out of order but the early targets are not
