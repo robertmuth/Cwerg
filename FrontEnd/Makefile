@@ -12,19 +12,18 @@ TEST_TESTS := \
 	TestData/binary_tree_test.cw \
 	TestData/fibonacci.cw \
     TestData/fizzbuzz.cw \
-	TestData/hash_test.cw \
-    TestData/heapsort.cw \
-    TestData/hello_world.cw \
-    TestData/linked_list.cw \
-    TestData/sieve.cw \
-    TestData/sort.cw
+    TestData/hello_world.cw
 
 TESTS_A32 := \
     TestData/fibonacci.cw \
 	TestData/fizzbuzz.cw \
     TestData/hello_world.cw \
-	TestData/linked_list.cw \
-    TestData/sieve.cw \
+	LangTest/array_test.cw \
+    LangTest/defer_test.cw \
+    LangTest/enum_test.cw \
+    LangTest/expr_test.cw \
+	LangTest/linked_list.cw \
+	LangTest/sieve_test.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
     Lib/checksum_test.cw \
