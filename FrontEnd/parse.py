@@ -824,7 +824,7 @@ def _MaybeLabel(tk: TK, inp: Lexer):
 
 def _ParseOptionalLabel(inp: Lexer):
     p = inp.peek()
-    if p.kind is TK_KIND.ID:
+    if p.kind is TK_KIND.ID and not p.text.startswith("$"):
         inp.next()
         return p.text
     return ""
@@ -1092,6 +1092,8 @@ def _ParseTopLevel(inp: Lexer):
         if inp.peek().kind is TK_KIND.KW:
             name = inp.next()
             assert name.text in pp.BUILTIN_MACROS, f"{name}"
+        elif inp.peek().text == "^.":
+            name = inp.next()
         else:
             name = inp.match_or_die(TK_KIND.ID)
             assert name.text.endswith("#")

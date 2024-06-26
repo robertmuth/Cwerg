@@ -22,6 +22,7 @@ BUILT_IN_MACROS = set([
     "while",
     "for",
     "trylet",
+    "trylet!",
     "tryset",
     "^.",
 ])

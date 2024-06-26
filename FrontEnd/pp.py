@@ -14,7 +14,7 @@ from FrontEnd import cwast
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_MACROS = ["for", "while", "tryset", "trylet"]
+BUILTIN_MACROS = ["for", "while", "tryset", "trylet", "trylet!"]
 
 _OPS_PRECENDENCE = {
     # "->": 10,
