@@ -12,7 +12,7 @@
 | bitwise_as(E, T) -> E | convert expression to a type of same width, including int to pointer |
 | unsafe_as(E, T) -> E  | convert between pointers                                             |
 
-## wrap_as / unwrap
+## `wrap_as` / `unwrap`
 
 `unwrap` converts a value of a wrapped type or enum type to the underlying type.
 
@@ -39,9 +39,16 @@ Another example using wrapped type
 global freezing_point auto = wrap_as(100, temperature_celsius)
 ```
 
-## narrowing / widening
+## narrowing / widening (`narrow_as` / `widen_as`)
 
-TBD
+Narrowing describes the conversion from a union value to an individual
+type of that union or a subset of that union.
+
+If the union is tagged, this will include a typeid check which can be disabled with
+the `@unchecked` attribute.
+
+Explicit widening, i.e. the conversion for a value to a union the includes that value,
+is rarely needed since Cwerg does this implicitly.
 
 ## Regular/numerical cast (`as`)
 
