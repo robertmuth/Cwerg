@@ -2,10 +2,7 @@
 
 Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. The hope is to reach a sweet spot above what C gives us today. A language that makes it convenient to write system software like operating systems and compilers.
 
-
-## Philosophy
-
-Above all Cwerg is meant to be a small language that can be maintained by a single person. Since small is subjective we have set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
+ So Cwerg is meant to be a small language that can be maintained by a single person. Since small is subjective we have set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
 
 ## Highlights
 
@@ -46,7 +43,7 @@ Cwerg use a Python inspired syntax where the indentation level
 is significant.
 
 We give some examples below to convey a general feeling for the language.
-The details should become clear after reading through the tutorial.
+The details should become clear after reading the rest of the tutorial.
 
 More examples can be found here: https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/ConcreteSyntax/TestData
 
@@ -198,7 +195,7 @@ The caret goes in front of type.
 Array dimension go in front of the element type:
 
 ```
--- 10 element array of element type u32
+    -- 10 element array of element type u32
     [10]u32
 
 ```
@@ -216,10 +213,10 @@ Slices are essentially fat pointers consisting of pointer to the first element o
 and a length.
 
 ```
--- regular slice
-slice(u32)
--- mutable slice
-slice!(u32)
+    -- regular slice
+    slice(u32)
+    -- mutable slice
+    slice!(u32)
 ```
 
 ### Function types
@@ -296,7 +293,7 @@ The type `t1` is said to be a wrapped type.
 Tagged unions can be declared like so:
 
 ```
-union(s32, void, u8, ^sint, [32]u8))
+    union(s32, void, u8, ^sint, [32]u8))
 ```
 
 Note, that there are no names - only types. In case that the same type is
@@ -349,18 +346,18 @@ Number literals may contain underscores ("_") which are ignored. Since Cwerg doe
 
 Array literals are declared like so:
 ```
-[5]s32{1, 2, 3}
+    [5]s32{1, 2, 3}
 ```
 If there are fewer initializers than the array size, the last value will
 repeated. So this is equivalent to:
 ```
-[5]s32{1, 2, 3, 3, 3}
+    [5]s32{1, 2, 3, 3, 3}
 ```
 
 If no initializer is provided, zero will be used.
 initializers for specific indices can declared like so:
 ```
-[5]s32{1:6, 3:9}
+   [5]s32{1:6, 3:9}
 ```
 This is  equivalent to:
 ```
@@ -419,7 +416,7 @@ and must be have one of the following kinds:
 
 ## Top Level Declations
 
-By default all top level desclations are module private.
+By default all top level declarations are module private.
 The `@pub` annotation will export the declaration and thereby make it visible to the
 importing module.
 
@@ -436,7 +433,13 @@ global a_global_const u64 = 7_u64
 ```
 
 Cwerg has limit type inference so this could be simplified to either:
-`global a_global_const u64 = 7` or `global a_global_const = 7_u64`.
+```
+global a_global_const u64 = 7
+```
+or
+```
+global a_global_const = 7_u64
+```
 
 
 ### Global Variables
@@ -459,19 +462,26 @@ Functions are declared like so:
     <STATEMENTS>*
 ```
 
+Functions can only have one result.
+
+
 ### Enums, Types (Typedefs) and Recs (Structs)
 
 These were covered in the Type Section above
 
 
-#### Macros
-
-TBD  - see [Macros](macros.md)
-
 
 ### Static Asserts
 
-TBD
+Static asserts are checked at compile time. Example:
+```
+-- this ensures that we are on a 64bit s ystem
+static_assert sizeof(^u8) == 8
+```
+
+#### Macros
+
+TBD  - see [Macros](macros.md)
 
 
 ## Statements
@@ -663,7 +673,7 @@ Exit the enclosing `block`, `while` or `for` statement.
 The optional label can be used to name the block to exit.
 ```
     block label1;
-
+        ...
         block label2:
             ...
             -- exits the block, label2
@@ -674,7 +684,7 @@ The optional label can be used to name the block to exit.
             ...
             -- exits the block, label1
             break label1
-
+            ...
 ```
 
 ### Trap Statements
@@ -751,11 +761,18 @@ Note, operator precendence has yet to be finalized
 | pinc(P, E [, E]) -> P  | increment pointer with optional bounds check                |
 | pdec(P, E [, E]) -> P  | decrement pointer with optional bounds check                |
 | unwrap(E) -> E         | convert expression of a wrapped type to the underlying type |
+| is(E, T) -> bool       | check if union is of given type                             |
 | type(E) -> T           | type of expression                                          |
 | typeidof(E) -> typeid  | typeid of an expression of union type                       |
 | uniondelta(T, T) -> T  | type delta of two union type expressions                    |
 | stringify(E) -> []u8   | convert an expression to a textual representation           |
 
+Legend:
+* E: expression
+* T: type expression
+* P: pointer value
+* F: record field name
+* S: slice
 
 ### Expression Statements
 
@@ -779,10 +796,3 @@ let sign s8 = expr:
 
 
 TBD  - see [Casting](casting.md)
-
-
-| Notation          | Description                                |
-| ----------------- | ------------------------------------------ |
-| as(E, T) -> E     | casts with run-time checks                 |
-| wrapas(E, T) -> E | convert expression to a wrapped type       |
-| bitas(E, T) -> E  | convert expression to a type of same width |
