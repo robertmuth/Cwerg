@@ -41,7 +41,7 @@ The type of the loop variable is determined by $end"""
     (mlet $eval auto $expr)
     (if (is $eval $type) :
      :
-        (mlet $catch_name auto (@unchecked narrow_as $eval (uniondelta (type_of $eval) $type)))
+        (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) $type)))
         $catch_body
         (trap))
     (mlet $name $type (@unchecked narrow_as $eval $type)))
@@ -55,7 +55,7 @@ The type of the loop variable is determined by $end"""
         (mparam $catch_body STMT_LIST)] [$eval] :
     (mlet $eval auto $expr)
     (if (! (is $eval $type)) :
-        (mlet $catch_name auto (@unchecked narrow_as $eval (uniondelta (type_of $eval) $type)))
+        (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) $type)))
         $catch_body
         (trap)
     :)
@@ -68,7 +68,7 @@ The type of the loop variable is determined by $end"""
         (mparam $catch_body STMT_LIST)] [$eval] :
     (mlet $eval auto $expr)
     (if (! (is $eval (type_of $name))) :
-        (mlet $catch_name auto (@unchecked narrow_as $eval (uniondelta (type_of $eval) (type_of $type))))
+        (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) (type_of $type))))
         $catch_body
         (trap)
     :)

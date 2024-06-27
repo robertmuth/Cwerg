@@ -34,7 +34,7 @@
     if is($eval, $type):
     else:
         mlet $catch_name = @unchecked narrow_as(
-                $eval, uniondelta(type_of($eval), $type))
+                $eval, union_delta(type_of($eval), $type))
         $catch_body 
 
         trap
@@ -46,7 +46,7 @@
     mlet $eval = $expr
     if !is($eval, $type):
         mlet $catch_name = @unchecked narrow_as(
-                $eval, uniondelta(type_of($eval), $type))
+                $eval, union_delta(type_of($eval), $type))
         $catch_body 
 
         trap
@@ -57,7 +57,7 @@
     mlet $eval = $expr
     if !is($eval, type_of($name)):
         mlet $catch_name = @unchecked narrow_as(
-                $eval, uniondelta(type_of($eval), type_of($type)))
+                $eval, union_delta(type_of($eval), type_of($type)))
         $catch_body 
 
         trap

@@ -567,7 +567,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, KW(n), n.types),
     cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithMut("^", n.mut), n.type),
     cwast.TypeArray: lambda ts, n: TokensVecType(ts, n.size, n.type),
-    cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, "uniondelta", [n.type, n.subtrahend]),
+    cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, n.subtrahend]),
     cwast.TypeFun:  TokensTypeFun,
     #
     cwast.ValNum: lambda ts, n: ts.EmitAttr(n.number),

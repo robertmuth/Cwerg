@@ -228,7 +228,7 @@ fun test_all() void:
         fmt::print#("TEST - ", tc^.description, "\n")
         @ref let! bs = bitstream::Stream32{tc^.input}
         let res = flate::uncompress(&!bs, tc^.output)
-        test::AssertEq#(uniontag(res), uniontag(tc^.expected_result))
+        test::AssertEq#(union_tag(res), union_tag(tc^.expected_result))
         if is(res, uint):
             test::AssertSliceEq#(
                     tc^.expected_output, slice(

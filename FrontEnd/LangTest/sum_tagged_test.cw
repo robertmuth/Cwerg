@@ -46,7 +46,7 @@
 (static_assert (== (size_of Union3) 16))
 
 
-(type Delta1 (uniondelta Union3 (union [bool u8 s32])))
+(type Delta1 (union_delta Union3 (union [bool u8 s32])))
 
 
 (static_assert (== (size_of Delta1) 8))
@@ -55,13 +55,13 @@
 (static_assert (== (typeid_of Delta1) (typeid_of s64)))
 
 
-(type Delta2 (uniondelta Union3 (union [bool u8])))
+(type Delta2 (union_delta Union3 (union [bool u8])))
 
 
 (static_assert (== (typeid_of Delta2) (typeid_of (union [s32 s64]))))
 
 
-(type Delta3 (uniondelta Union3 (union [bool u8 s64])))
+(type Delta3 (union_delta Union3 (union [bool u8 s64])))
 
 
 (static_assert (== (typeid_of Delta3) (typeid_of s32)))

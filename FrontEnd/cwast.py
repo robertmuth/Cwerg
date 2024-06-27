@@ -1381,7 +1381,7 @@ class TypeUnion:
 class TypeUnionDelta:
     """Type resulting from the difference of TypeUnion and a non-empty subset sets of its members
     """
-    ALIAS = "uniondelta"
+    ALIAS = "union_delta"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.NON_CORE
     #

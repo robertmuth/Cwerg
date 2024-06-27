@@ -412,7 +412,7 @@ _FUN_LIKE = {
     cwast.ExprSizeof.ALIAS: (cwast.ExprSizeof, "T"),
     cwast.ExprTypeId.ALIAS: (cwast.ExprTypeId, "T"),
     #
-    "uniondelta": (cwast.TypeUnionDelta, "TT"),
+    cwast.TypeUnionDelta.ALIAS: (cwast.TypeUnionDelta, "TT"),
     # mixing expression and types
     cwast.ExprAs.ALIAS: (cwast.ExprAs, "ET"),
     cwast.ExprWrap.ALIAS: (cwast.ExprWrap, "ET"),

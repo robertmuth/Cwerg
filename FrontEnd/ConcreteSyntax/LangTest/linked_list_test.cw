@@ -33,7 +33,7 @@ global! NodePool = [N]LinkedListNode{}
 static_assert size_of(type_of(NodePool)) == N * 3 * size_of(^!LinkedListNode)
 
 fun DumpNode(i u32) void:
-    fmt::print#(i, " ", NodePool[i].payload, " ", uniontag(NodePool[i].next))
+    fmt::print#(i, " ", NodePool[i].payload, " ", union_tag(NodePool[i].next))
     if is(NodePool[i].next, NoneType):
         fmt::print#(" next: NULL\n")
     else:
