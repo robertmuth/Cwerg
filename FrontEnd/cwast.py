@@ -1963,7 +1963,7 @@ class ExprIs:
 class ExprWrap:
     """Cast: underlying type -> enum/wrapped
     """
-    ALIAS = "wrapas"
+    ALIAS = "wrap_as"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR
     #

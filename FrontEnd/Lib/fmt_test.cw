@@ -54,9 +54,9 @@
     (test::AssertSliceEq# (slice_val (front s) n) "69")
     (= n (fmt::SysRender@ [-69_s32 s (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "-69")
-    (= n (fmt::SysRender@ [(wrapas 120 fmt::rune) s (&! opt)]))
+    (= n (fmt::SysRender@ [(wrap_as 120 fmt::rune) s (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "x")
-    (= n (fmt::SysRender@ [(wrapas 2 fmt::r64_hex) s (&! opt)]))
+    (= n (fmt::SysRender@ [(wrap_as 2 fmt::r64_hex) s (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "0x1.p1")
     (= n (fmt::SysRender@ [color:blue s (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "2")
@@ -65,7 +65,7 @@
             s
             (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "111+222i")
-    (= n (fmt::SysRender@ [(wrapas test_string fmt::str_hex) s (&! opt)]))
+    (= n (fmt::SysRender@ [(wrap_as test_string fmt::str_hex) s (&! opt)]))
     (test::AssertSliceEq# (slice_val (front s) n) "7177657274795f31323334")
     @doc "test end"
     (test::Success#)

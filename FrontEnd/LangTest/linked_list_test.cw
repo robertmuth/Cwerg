@@ -8,7 +8,7 @@
 (@wrapped type NoneType void)
 
 
-@pub (global None auto (wrapas void_val NoneType))
+@pub (global None auto (wrap_as void_val NoneType))
 
 
 @pub (defrec LinkedListNode :

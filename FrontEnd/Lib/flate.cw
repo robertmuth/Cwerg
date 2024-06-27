@@ -27,27 +27,27 @@
 @pub (@wrapped type CorruptionError void)
 
 
-@pub (global CorruptionErrorVal auto (wrapas void_val CorruptionError))
+@pub (global CorruptionErrorVal auto (wrap_as void_val CorruptionError))
 
 
 @doc "the input bitstream was truncated"
 @pub (@wrapped type TruncationError void)
 
 
-@pub (global TruncationErrorVal auto (wrapas void_val TruncationError))
+@pub (global TruncationErrorVal auto (wrap_as void_val TruncationError))
 
 
 @doc "the provided output buffer was not large enough"
 @pub (@wrapped type NoSpaceError void)
 
 
-@pub (global NoSpaceErrorVal auto (wrapas void_val NoSpaceError))
+@pub (global NoSpaceErrorVal auto (wrap_as void_val NoSpaceError))
 
 
 @pub (@wrapped type Success void)
 
 
-@pub (global SuccessVal auto (wrapas void_val Success))
+@pub (global SuccessVal auto (wrap_as void_val Success))
 
 
 (global MAX_HUFFMAN_BITS u16 15)

@@ -26,19 +26,19 @@
 @pub (@wrapped type FD s32)
 
 
-@pub (global Stdin auto (wrapas 0 FD))
+@pub (global Stdin auto (wrap_as 0 FD))
 
 
-@pub (global Stdout auto (wrapas 1 FD))
+@pub (global Stdout auto (wrap_as 1 FD))
 
 
-@pub (global Stderr auto (wrapas 2 FD))
+@pub (global Stderr auto (wrap_as 2 FD))
 
 
 @pub (fun FileWrite [(param fd FD) (param buffer (slice u8))] (union [uint Error]) :
     (let res auto (write [(unwrap fd) (front buffer) (len buffer)]))
     (if (< res 0) :
-        (return (wrapas (as res s32) Error))
+        (return (wrap_as (as res s32) Error))
      :
         (return (as res uint))))
 
@@ -46,13 +46,13 @@
 @pub (fun FileRead [(param fd FD) (param buffer (slice! u8))] (union [uint Error]) :
     (let res auto (read [(unwrap fd) (front! buffer) (len buffer)]))
     (if (< res 0) :
-        (return (wrapas (as res s32) Error))
+        (return (wrap_as (as res s32) Error))
      :
         (return (as res uint))))
 
 
 @pub (fun TimeNanoSleep [(param req (ptr TimeSpec)) (param rem (ptr! TimeSpec))] Error :
     (let res auto (nanosleep [req rem]))
-    (return (wrapas res Error)))
+    (return (wrap_as res Error)))
 )
 
