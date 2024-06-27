@@ -50,7 +50,7 @@ If not you're just wasting my time
     (do (test_Keccak512 []))
     (do (test_Sha3512 []))
     @doc """(let hash auto  (sha3::Keccak512 [limerick]))
-    (fmt::print# (wrap hash fmt::str_hex) "\n")"""
+    (fmt::print# (wrapas hash fmt::str_hex) "\n")"""
     (test::Success#)
     (return 0))
 )

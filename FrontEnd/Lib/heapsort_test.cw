@@ -30,7 +30,7 @@
     (@ref let! buf (array 32 u8) undef)
     (for i 0 size 1 :
         (let v auto (^ (pinc data i)))
-        (fmt::print# (wrap v fmt::r64_hex) NEWLINE))
+        (fmt::print# (wrapas v fmt::r64_hex) NEWLINE))
     (return))
 
 

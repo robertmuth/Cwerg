@@ -350,7 +350,7 @@
         (param v (ptr void))
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (let h auto (wrap (bitcast v uint) uint_hex))
+    (let h auto (wrapas (bitcast v uint) uint_hex))
     (return (SysRender@ [h out options])))
 
 

@@ -6,7 +6,7 @@
 @pub (@wrapped type OutOfBoundsError void)
 
 
-@pub (global OutOfBoundsErrorVal auto (wrap void_val OutOfBoundsError))
+@pub (global OutOfBoundsErrorVal auto (wrapas void_val OutOfBoundsError))
 
 
 @doc ""

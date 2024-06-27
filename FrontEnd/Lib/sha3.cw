@@ -112,7 +112,7 @@ https://emn178.github.io/online-tools/sha3_512.html
     (fmt::print# tag "\n")
     (for i 0 5_uint 1 :
         (for j 0 5_uint 1 :
-            (fmt::print# " " (wrap (at (^ x) (+ i (* j 5))) fmt::u64_hex)))
+            (fmt::print# " " (wrapas (at (^ x) (+ i (* j 5))) fmt::u64_hex)))
         (fmt::print# "\n")))
 
 
