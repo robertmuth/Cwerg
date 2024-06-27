@@ -81,13 +81,12 @@ _KEYWORDS_SIMPLE = [
     "pinc",
     "pdec",
     #
-    "narrowto",
-    #
     "as",
-    "wrapas",
-    "bitsas",
-    "unsafeas",
-    "asnarrowed",
+    "wrap_as",
+    "bitwise_as",
+    "unsafe_as",
+    "widen_as",
+    "narrow_as",
     "unwrap",
     #
     "typeidof",
@@ -433,13 +432,13 @@ _FUN_LIKE = {
     "uniondelta": (cwast.TypeUnionDelta, "TT"),
     # mixing expression and types
     "as": (cwast.ExprAs, "ET"),
-    "wrapas": (cwast.ExprWrap, "ET"),
+    "wrap_as": (cwast.ExprWrap, "ET"),
     "is": (cwast.ExprIs, "ET"),
     # TODO: handle unchecked
-    "narrowto": (cwast.ExprNarrow, "ET"),
-    "widdento": (cwast.ExprWiden, "ET"),
-    "unsafeas": (cwast.ExprUnsafeCast, "ET"),
-    "bitsas": (cwast.ExprBitCast, "ET"),
+    "narrow_as": (cwast.ExprNarrow, "ET"),
+    "widden_as": (cwast.ExprWiden, "ET"),
+    "unsafe_as": (cwast.ExprUnsafeCast, "ET"),
+    "bitwise_as": (cwast.ExprBitCast, "ET"),
     #
     "stringify": (cwast.ExprStringify, "E"),
 }
