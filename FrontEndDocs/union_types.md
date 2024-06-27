@@ -1,4 +1,4 @@
-# Union  Types
+# Union Types
 
 ## Basics
 
@@ -11,9 +11,9 @@ Unions must have at least two members.
 Example:
 
 ```
-(type Union1 (union @untagged [ s32 void (ptr! s32) ]))
+type Union1 @untagged union(s32 void ^!s32)
 ```
-This represents a union of 3 members: s32, void and (ptr! s32).
+This represents a union of 3 members: s32, void and ^!s32.
 Note that void is valid member for unions.
 
 
@@ -22,67 +22,69 @@ A `tagged union` can be thought of as a pair of
 * an `untagged union`.
 
 Given a tagged union `u` the two components can be retrieved using
-`(uniontypetag u)` and `(unionuntagged u)`.
+`uniontag(u)` and `unionuntagged(u)`.
 
 
 Example:
 
 ```
-(type @wrapped t1 s32)
-(type Union1 (union [ s32 t1 ]))
+-- working around the distinct type requirement
+@wrapped type t1 s32
+type Union1 union(s32, t1)
 
-(type @wrapped t2 void)
-(type @wrapped t3 void)
+-- one or more wrapped void types can be used as error code
+@wrapped type error1 void
+@wrapped type error2 void
 
-@doc "multiple void types can be used as error code"
-(type Union2 (union [ void t2 t3 ]))
+type Union2 union(void, error1, error2)
 
-@doc "nullable pointers can be modelled like so"
-(type Union3 (union [ void (ptr! u8) ]))
+-- nullable pointers can be modelled like so
+type Union3 union(void, ^!u8)
 ```
 
 Union types are order independent:
 ```
-(type Union1 (union [ s32 void type_ptr ]))
-(type Union2 (union [ void s32 type_ptr ]))
+type Union1 union(s32. void, type_ptr)
+type Union2 union(void. s32. type_ptr)
 
-(static_assert (== (typeid Union1) (typeid Union2)))
+static_assert typeidof(Union1) ==  typeidof(Union2)
 ```
 
 Union types are duplicate eliminating
 
 ```
-(type Union1 (union [ void type_ptr ]))
+type Union1 union(void, type_ptr)
 
-(type Union2 (union [ void void type_ptr ]))
+type Union2 union(void, void, type_ptr)
 
-(static_assert (== (typeid Union1) (typeid Union2)))
+static_assert typeidof(Union1) ==  typeidof(Union2)
 ```
 
 Unions are "auto flattening", e.g.:
 
 ```
-(type Union1 (union [ s32 void type_ptr ]))
+type Union1 union(s32, void, type_ptr)
 
-(type Union2 (union [ s32 void (union [ Union1 u8 ]) ]))
+type Union2 union(s32, void, union(Union1, u8))
 
-(type Union3 (union [ s32 void u8 type_ptr ]))
+type Union3 union(s32, void, u8, type_ptr)
 
-(static_assert (== (typeid Union2) (typeid Union3)))
+static_assert typeidof(Union2) ==  typeidof(Union3)
+
 ```
 
 One can create a new union that is the set difference
 of two unions or a union and an individual type:
 
 ```
-(type Union1 (union [ s32 void s64 u8 ]))
-(type Union2 (union [ s32 void ]))
+type Union1 union(s32, void, s64, u8)
+type Union2 union(s32, void)
 
-(type Delta1 (uniondelta Union1 Union2))
-(static_assert (== (typeid Delta1) (typeid (union [ u8 s64 ]))))
+type Delta1 uniondelta(Union1, Union2)
+static_assert typeid(Delta1) == typeid(union(u8, s64))
 
-(type Delta2 (uniondelta Union2 void))
-(static_assert (== (typeid Delta2) (typeid s32)))
+type Delta2 uniondelta(Union2, void))
+static_assert typeid(Delta2) == typeid(s32)
 
 ```
 
@@ -95,7 +97,7 @@ A typed variable, parameter, field-element, return value, etc. of type union `u`
   * `v` and `u` are either both tagged or both untagged
   * the member types of `v` are a subset of the member types of `u`
 
-This amounts to an explicit type widening which can also be made explicit using the `widento` operator. No run-time type check is necessary here.
+This amounts to an explicit type widening which can also be made explicit using the `widen_as` operator. No run-time type check is necessary here.
 
 ## Equality Testing
 
