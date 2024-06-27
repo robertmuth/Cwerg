@@ -18,18 +18,18 @@ Core nodes are the ones that are known to the code generator.
 [Expr2](#expr2) &ensp;
 [ExprAddrOf&nbsp;(&)](#expraddrof-) &ensp;
 [ExprAs&nbsp;(as)](#expras-as) &ensp;
-[ExprBitCast&nbsp;(bitcast)](#exprbitcast-bitcast) &ensp;
+[ExprBitCast&nbsp;(bitwise_as)](#exprbitcast-bitwise_as) &ensp;
 [ExprCall&nbsp;(call)](#exprcall-call) &ensp;
 [ExprDeref&nbsp;(^)](#exprderef-) &ensp;
 [ExprField&nbsp;(.)](#exprfield-.) &ensp;
 [ExprFront&nbsp;(front)](#exprfront-front) &ensp;
-[ExprNarrow&nbsp;(narrowto)](#exprnarrow-narrowto) &ensp;
+[ExprNarrow&nbsp;(narrow_as)](#exprnarrow-narrow_as) &ensp;
 [ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
-[ExprUnsafeCast&nbsp;(cast)](#exprunsafecast-cast) &ensp;
+[ExprUnsafeCast&nbsp;(unsafe_as)](#exprunsafecast-unsafe_as) &ensp;
 [ExprUnwrap&nbsp;(unwrap)](#exprunwrap-unwrap) &ensp;
-[ExprWiden&nbsp;(widento)](#exprwiden-widento) &ensp;
-[ExprWrap&nbsp;(wrap)](#exprwrap-wrap) &ensp;
+[ExprWiden&nbsp;(widen_as)](#exprwiden-widen_as) &ensp;
+[ExprWrap&nbsp;(wrap_as)](#exprwrap-wrap_as) &ensp;
 [FieldVal&nbsp;(field_val)](#fieldval-field_val) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
 [Id&nbsp;(id)](#id-id) &ensp;
@@ -72,14 +72,14 @@ code generation.
 [ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
 [ExprIs&nbsp;(is)](#expris-is) &ensp;
 [ExprLen&nbsp;(len)](#exprlen-len) &ensp;
-[ExprOffsetof&nbsp;(offsetof)](#exproffsetof-offsetof) &ensp;
+[ExprOffsetof&nbsp;(offset_of)](#exproffsetof-offset_of) &ensp;
 [ExprParen&nbsp;(paren)](#exprparen-paren) &ensp;
-[ExprSizeof&nbsp;(sizeof)](#exprsizeof-sizeof) &ensp;
+[ExprSizeof&nbsp;(size_of)](#exprsizeof-size_of) &ensp;
 [ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
-[ExprTypeId&nbsp;(typeid)](#exprtypeid-typeid) &ensp;
-[ExprUnionTag&nbsp;(uniontypetag)](#expruniontag-uniontypetag) &ensp;
-[ExprUnionUntagged&nbsp;(unionuntagged)](#exprunionuntagged-unionuntagged) &ensp;
+[ExprTypeId&nbsp;(typeid_of)](#exprtypeid-typeid_of) &ensp;
+[ExprUnionTag&nbsp;(union_tag)](#expruniontag-union_tag) &ensp;
+[ExprUnionUntagged&nbsp;(union_untagged)](#exprunionuntagged-union_untagged) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
 [MacroFor&nbsp;(mfor)](#macrofor-mfor) &ensp;
 [MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
@@ -91,7 +91,7 @@ code generation.
 [StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
 [StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
 [StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
-[TypeOf&nbsp;(typeof)](#typeof-typeof) &ensp;
+[TypeOf&nbsp;(type_of)](#typeof-type_of) &ensp;
 [TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
 [TypeUnionDelta&nbsp;(uniondelta)](#typeuniondelta-uniondelta) &ensp;
 [ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
@@ -120,9 +120,6 @@ Refers to a type, variable, constant, function, module by name.
 
 Fields:
 * name [STR]: name of the object
-
-Flags:
-* eoldoc: line end comment
 
 
 ## Type Node Details
@@ -197,7 +194,6 @@ Fields:
 
 Flags:
 * doc: possibly multi-line comment
-* eoldoc: line end comment
 
 
 ### TypeArray (array)
@@ -218,9 +214,6 @@ Placeholder for an unspecified (auto derived) type
 
 Fields:
 
-Flags:
-* eoldoc: line end comment
-
 
 ### TypeBase
 Base type
@@ -230,9 +223,6 @@ Base type
 
 Fields:
 * base_type_kind [KIND]: one of: [SINT, S8, S16, S32, S64, UINT, U8, U16, U32, U64, R32, R64, VOID, NORET, BOOL, TYPEID](#base-type-kind)
-
-Flags:
-* eoldoc: line end comment
 
 
 ### TypeFun (sig)
@@ -246,7 +236,7 @@ Fields:
 * result [NODE]: return type
 
 
-### TypeOf (typeof)
+### TypeOf (type_of)
 Type of the expression
     
 
@@ -325,10 +315,7 @@ Function definition
     `cdecl` disables name mangling
 
     `ref`  fun may be assigned to a variable (i.e. its address may be taken)
-
-    `polymorphic` indicates a polymorhic function. The `name` must be qualified with
-                 the module containing the seed polymorphic definition.
-    
+     
 
 Allowed at top level only
 
@@ -339,7 +326,6 @@ Fields:
 * body [LIST]: new scope: statement list and/or comments
 
 Flags:
-* polymorphic: function definition or call is polymorphic
 * init: run function at startup
 * fini: run function at shutdown
 * pub: has public visibility
@@ -405,7 +391,6 @@ Module Definition
     
 
 Fields:
-* name [STR]: name of the object
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
 
@@ -485,7 +470,6 @@ Fields:
 
 Flags:
 * doc: possibly multi-line comment
-* eoldoc: line end comment
 
 
 ### StmtBlock (block)
@@ -527,7 +511,6 @@ Fields:
 
 Flags:
 * doc: possibly multi-line comment
-* eoldoc: line end comment
 
 
 ### StmtCond (cond)
@@ -603,7 +586,6 @@ Fields:
 
 Flags:
 * doc: possibly multi-line comment
-* eoldoc: line end comment
 
 
 ### StmtStaticAssert (static_assert)
@@ -658,7 +640,6 @@ Fields:
 
 Flags:
 * doc: possibly multi-line comment
-* eoldoc: line end comment
 
 
 ### ValArray (array_val)
@@ -703,9 +684,6 @@ Numeric constant (signed int, unsigned int, real
 Fields:
 * number [STR]: a number
 
-Flags:
-* eoldoc: line end comment
-
 
 ### ValRec (rec_val)
 A record literal
@@ -719,7 +697,6 @@ Fields:
 
 Flags:
 * doc: possibly multi-line comment
-* eoldoc: line end comment
 
 
 ### ValSlice (slice_val)
@@ -744,9 +721,6 @@ Fields:
 * strkind [INTERNAL_STR]: raw: ignore escape sequences in string, hex:
 * triplequoted [INTERNAL_BOOL]: string is using 3 double quotes
 
-Flags:
-* eoldoc: line end comment
-
 
 ### ValTrue (true)
 Bool constant `true`
@@ -760,9 +734,6 @@ Special constant to indiciate *no default value*
 
 Fields:
 
-Flags:
-* eoldoc: line end comment
-
 
 ### ValVoid (void_val)
 Only value inhabiting the `TypeVoid` type
@@ -771,9 +742,6 @@ Only value inhabiting the `TypeVoid` type
      
 
 Fields:
-
-Flags:
-* eoldoc: line end comment
 
 
 ## Expression Node Details
@@ -793,9 +761,6 @@ Fields:
 * binary_expr_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, AND, OR, XOR, EQ, NE, LT, LE, GT, GE, ANDSC, ORSC, SHR, SHL, ROTR, ROTL, PDELTA](#expr2-kind)
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: right operand expression
-
-Flags:
-* eoldoc: line end comment
 
 
 ### Expr3 (?)
@@ -835,7 +800,7 @@ Fields:
 * type [NODE]: type expression
 
 
-### ExprBitCast (bitcast)
+### ExprBitCast (bitwise_as)
 Bit cast.
 
     Type must have same size and alignment as type of item
@@ -859,9 +824,6 @@ Function call expression.
 Fields:
 * callee [NODE]: expression evaluating to the function to be called
 * args [LIST]: function call arguments
-
-Flags:
-* polymorphic: function definition or call is polymorphic
 
 
 ### ExprDeref (^)
@@ -929,7 +891,7 @@ Fields:
 * container [NODE]: array and slice
 
 
-### ExprNarrow (narrowto)
+### ExprNarrow (narrow_as)
 Narrowing Cast (for unions)
 
     optionally unchecked
@@ -943,7 +905,7 @@ Flags:
 * unchecked: array acces is not checked
 
 
-### ExprOffsetof (offsetof)
+### ExprOffsetof (offset_of)
 Byte offset of field in record types
 
     Result has type `uint`
@@ -971,7 +933,7 @@ Fields:
 * expr_bound_or_undef [NODE] (default ValUndef): 
 
 
-### ExprSizeof (sizeof)
+### ExprSizeof (size_of)
 Byte size of type
 
     Result has type is `uint`
@@ -1006,7 +968,7 @@ Fields:
 * expr [NODE]: expression
 
 
-### ExprTypeId (typeid)
+### ExprTypeId (typeid_of)
 TypeId of type
 
     Result has type is `typeid`
@@ -1015,7 +977,7 @@ Fields:
 * type [NODE]: type expression
 
 
-### ExprUnionTag (uniontypetag)
+### ExprUnionTag (union_tag)
 Typetag of tagged union type
 
     result has type is `typeid`
@@ -1024,7 +986,7 @@ Fields:
 * expr [NODE]: expression
 
 
-### ExprUnionUntagged (unionuntagged)
+### ExprUnionUntagged (union_untagged)
 Untagged union portion of tagged union type
 
     Result has type untagged union
@@ -1033,7 +995,7 @@ Fields:
 * expr [NODE]: expression
 
 
-### ExprUnsafeCast (cast)
+### ExprUnsafeCast (unsafe_as)
 Unsafe Cast
 
     Allowed:
@@ -1054,7 +1016,7 @@ Fields:
 * expr [NODE]: expression
 
 
-### ExprWiden (widento)
+### ExprWiden (widen_as)
 Widening Cast (for unions)
 
     Usually this is implicit
@@ -1065,7 +1027,7 @@ Fields:
 * type [NODE]: type expression
 
 
-### ExprWrap (wrap)
+### ExprWrap (wrap_as)
 Cast: underlying type -> enum/wrapped
     
 

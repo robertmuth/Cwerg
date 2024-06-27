@@ -41,7 +41,7 @@
 
 
 (fun DumpNode [(param i u32)] void :
-    (fmt::print# i " " (. (at NodePool i) payload) " " (uniontag (. (at NodePool i) next)))
+    (fmt::print# i " " (. (at NodePool i) payload) " " (union_tag (. (at NodePool i) next)))
     (if (is (. (at NodePool i) next) NoneType) :
         (fmt::print# " next: NULL\n")
      :

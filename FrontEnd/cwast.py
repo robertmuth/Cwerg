@@ -2145,7 +2145,7 @@ class ExprUnionTag:
     """Typetag of tagged union type
 
     result has type is `typeid`"""
-    ALIAS = "uniontag"
+    ALIAS = "union_tag"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.NON_CORE
     #
@@ -2165,7 +2165,7 @@ class ExprUnionUntagged:
     """Untagged union portion of tagged union type
 
     Result has type untagged union"""
-    ALIAS = "unionuntagged"
+    ALIAS = "union_untagged"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.NON_CORE
     #
