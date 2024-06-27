@@ -69,7 +69,7 @@ type Union2 union(s32, void, union(Union1, u8))
 
 type Union3 union(s32, void, u8, type_ptr)
 
-static_assert typeidof(Union2) ==  typeidof(Union3)
+static_assert typeid_of(Union2) ==  typeid_of(Union3)
 
 ```
 
@@ -80,11 +80,11 @@ of two unions or a union and an individual type:
 type Union1 union(s32, void, s64, u8)
 type Union2 union(s32, void)
 
-type Delta1 uniondelta(Union1, Union2)
-static_assert typeid(Delta1) == typeid(union(u8, s64))
+type Delta1 union_delta(Union1, Union2)
+static_assert typeid_of(Delta1) == typeid_of(union(u8, s64))
 
-type Delta2 uniondelta(Union2, void))
-static_assert typeid(Delta2) == typeid(s32)
+type Delta2 union_delta(Union2, void))
+static_assert typeid_of(Delta2) == typeid_of(s32)
 
 ```
 
@@ -110,35 +110,32 @@ the tagged union and compare the resulting value;
 
 Assuming
 ```
-(type Union1 (union [ s16 void u32 ]))
+type Union1 union(s16, void, u32)
 
-(let! u  Union1 ...)
-(let! v  Union1 ...)
+let! u  Union1 = ...
+let! v  Union1 = ...
 
-(let! x  u32 ...)
-
-```
-
-The following expressions are valid:
+let! x  u32 = ...
 
 ```
-... (!= u 222_s16) ...
 
-... (== u 222_s32) ...
-... (!= u 222_s32) ...
+The following expressions are valid
 
-... (== u void_val) ...
-... (!= u void_val) ...
+```
+... != u != 222_s16 ...
 
-... (== u v) ...
-... (!= u v) ...
+... u == 222_s32 ...
+... u != 222_s32 ...
 
-... (== u x) ...
-... (!= u x) ...
+... u == void_val ...
+... u != void_val ...
 
-@doc "not supported:"
-... (== u v) ...
-... (!= u v) ...
+... u == x ...
+... u != x ...
+
+-- not supported:
+... u == v ...
+... u != v ...
 
 ```
 
@@ -149,19 +146,19 @@ The `is` operator can be used to test if the run-time type of a tagged union bel
 
 Examples
 ```
-(type Union1 (union [ s16 void u32 ]))
+type Union1 union(s16, void, u32)
 
-(let! u  Union1 ...)
+let! u  Union = ...
 
-.. (is u s16) ..
-.. (is u (union  [ s16 void ])) ..
+.. is(u, s16) ...
+.. is(u, union(s16, void)) ...
 
 
 ```
 
 ## Narrowing
 
-Narrowing of values of a union type is possible with the `narrowto` operator.
+Narrowing of values of a union type is possible with the `narrow_as` operator.
 
 For `tagged unions` the narrowing can be explicitly marked as `@unchecked`.
 
@@ -170,85 +167,97 @@ For `untagged unions` there is nothing to check.
 Assuming `u` is of type `tu`  and `v`, `z` are of type `tv`,
 we need to consider the following cases:
 
-### case: ut is untagged union
+### case: tu is untagged union
+
+#### tv is not a union but tv ∈ member-types(tu)
 
 ```
-(= z (narrowto u tv))
+   set z = narrow_as(u,  tv)
 ```
-
-#### tv ∈ member-types(tu)
 
 This is always valid:
 
 
-`z` is set to the bits of `u` truncated to `(sizeof tv)`
+`z` is set to the bits of `u` truncated to `size_of(tv)`
 
 ####  tv is untagged union where member-types(tv) ⊆ member-types(tu)
 
+```
+   set z = narrow_as(u,  tv)
+```
+
 This is always valid:
 
-The value of `z` are the bits of `u` truncated to `(sizeof tv)`.
+The value of `z` are the bits of `u` truncated to `size_of(tv)`.
 
 
-### case: ut is tagged union unchecked
+### case: tu is tagged union - unchecked narrowing
+
+####  tv is not a union but tv ∈ member-types(tu)
 
 ```
-(= z (narrowto @unchecked u tv))
+   set z = @unchecked narrow_as(u, tv)
 ```
 
-#### tv ∈ member-types(tu)
-
-This is only valid if  `(uniontypetag u) == (typeid tv)`:
+This is only valid if  `union_tag(u) == typeid_of(tv)`:
 But the assumption is not checked.
 
-The value of `z` are the bits of `(unionuntagged u)` truncated to `(sizeof tv)`.
+The value of `z` are the bits of `union_untagged(u)` truncated to `size_of(tv)`.
 
 ####  tv is tagged union where member-types(tv) ⊆ member-types(tu)
 
+```
+   set z = @unchecked narrow_as(u, tv)
+```
 
-This is onlt valid if `(uniontypetag u) ∈  member-type-ids(tv)`:
+This is onlt valid if `union_tag(u) ∈  member-type-ids(tv)`:
 But the assumption is not checked.
 
 The value of `z` is a tagged union where
 
-`(uniontypetag z)`:  `(uniontypetag u)`
+`union_tag(z)` is set to  `union_tag(u)`
 
-`(unionuntagged z)`:   `(unionuntagged u)` truncated to
-`(sizeof (unionuntagged tv))`
+`union_untagged(z)` is set to `union_untagged(u)` truncated to
+`size_of(union_untagged(tv))`
 
 
-### case: ut is tagged union checked
+### case: ut is tagged union - checked narrowing
+
+
+#### tv is not a union but tv ∈ member-types(tu)
 
 ```
-(= z (narrowto u tv))
+    set z = narrowto(u, tv)
 ```
 
-#### tv ∈ member-types(tu)
-
-This will check if  `(uniontypetag u) == (typeid tv)` and trap if it is not.
-Otherwise, the value of `z` are the bits of `(unionuntagged u)` truncated to `(sizeof tv)`.
+This will check if  `union_tag(u) == typeid of(tv)` and trap if it is not.
+Otherwise, the value of `z` are the bits of `union_untagged(u)` truncated to `size_of(tv)`.
 
 #### tv is tagged union where member-types(tv) ⊆ member-types(tu)
 
-This will check if `(uniontypetag u) ∈  member-type-ids(tv)`
+```
+    set z = narrowto(u, tv)
+```
+
+This will check if `union_tag(u) ∈  member-type-ids(tv)`
 and trap if it is not.
 
 Otherwise, the value of `z` is a tagged union where
 
-`(uniontypetag z)`:  `(uniontypetag u)`
+`union_tag(z)`:  is set to `union_tag(u)`
 
-`(unionuntagged z)`:   `(unionuntagged u)` truncated to
-`(sizeof (unionuntagged tv))`
+`union_untagged(z)` is set to `union_untagged(u)` truncated to
+`size_of(union_untagged(tv))`
 
 
-Note, that checking `(uniontypetag u) ∈  member-type-ids(tv)` is equivalent
-to `(uniontypetag u) ∉  member-type-ids((uniondelta tu tv))` which may be faster to check.
+Note, that checking `union_tag(u) ∈  member-type-ids(tv)` is equivalent
+to `union_tag(u) ∉  member-type-ids((union_delta(tu, tv))` which may be faster to check.
 
 ## Lowering / CodeGen
 
 
 * EliminateImplicitConversions()
-  This introduces explicit `widento` operators for
+  This introduces explicit `widen_as` operators for
   * FieldVal (value_or_undef)
   * DefVar (initial_or_undef)
   * DefGlobal (initial_or_undef)
@@ -258,7 +267,7 @@ to `(uniontypetag u) ∉  member-type-ids((uniondelta tu tv))` which may be fast
   * StmtAssignment (expr_rhs)
 
 * EliminateComparisonConversionsForTaggedUnion()
-  This introduces unchecked `narrowto`nodes - see function comment.
+  This introduces unchecked `narrow_as` nodes - see function comment.
 
 
 * SimplifyTaggedExprNarrow()

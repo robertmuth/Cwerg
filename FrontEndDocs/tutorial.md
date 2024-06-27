@@ -4,6 +4,9 @@ Cwerg tries to find the right balance between language expressiveness and compil
 
  So Cwerg is meant to be a small language that can be maintained by a single person. Since small is subjective we have set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
 
+ Cwerg is also meant to be a fast language enabling whole program compilation. We target a compilation speed
+ of at least a million lines per seceond.
+
 ## Highlights
 
 * Low level, C-like language: no GC, no unexpected control flow
@@ -748,28 +751,52 @@ Note, operator precendence has yet to be finalized
 
 ### Function Style Operators
 
+#### Expression centric
 
-| Notation               | Description                                                 |
-| ---------------------- | ----------------------------------------------------------- |
-| len(E) -> uint         | length of an array or slice                                 |
-| front(E) -> P          | pointer to first element of array or slice                  |
-| front!(E) -> P         | mutable pointer to first element of array or slice          |
-| slice(P, E) -> S       | make a slice from a pointer and length                      |
-| slice!(P, E) -> S      | make a mutable slice from a mutable pointer and length      |
-| offsetof(R, F) -> uint | offset of field in record                                   |
-| sizeof(T) -> uint      | size of a type                                              |
-| pinc(P, E [, E]) -> P  | increment pointer with optional bounds check                |
-| pdec(P, E [, E]) -> P  | decrement pointer with optional bounds check                |
-| unwrap(E) -> E         | convert expression of a wrapped type to the underlying type |
-| is(E, T) -> bool       | check if union is of given type                             |
-| type(E) -> T           | type of expression                                          |
-| typeidof(E) -> typeid  | typeid of an expression of union type                       |
-| uniondelta(T, T) -> T  | type delta of two union type expressions                    |
-| stringify(E) -> []u8   | convert an expression to a textual representation           |
+| Notation                | Description                                            |
+| ----------------------- | ------------------------------------------------------ |
+| len(E) -> uint          | length of an array or slice                            |
+| front(E) -> P           | pointer to first element of array or slice             |
+| front!(E) -> P          | mutable pointer to first element of array or slice     |
+| slice(P, E) -> S        | make a slice from a pointer and length                 |
+| slice!(P, E) -> S       | make a mutable slice from a mutable pointer and length |
+| pinc(P, E [, E]) -> P   | increment pointer with optional bounds check           |
+| pdec(P, E [, E]) -> P   | decrement pointer with optional bounds check           |
+| stringify(E) -> []u8    | convert an expression to a textual representation      |
 
-Legend:
+
+#### Type centric
+
+| Notation               | Description                                       |
+| ---------------------- | ------------------------------------------------- |
+| is(E, T) -> bool       | check if union expression is of given type        |
+| type(E) -> T           | type of expression                                |
+| typeid_of(T) -> typeid | typeid of a type                                  |
+| type_of(E) -> T        | type of an expression                             |
+| union_delta(T, T) -> T  | type delta of two union type expressions          |
+| offset_of(R, F) -> uint | offset of field in record                              |
+| size_of(T) -> uint      | size of a type                                         |
+
+
+#### Casts
+
+| Notation              | Description                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| wrap_as(E, T) -> E    | convert value to enum or wrapped type                                |
+| unwrap(E) -> E        | convert  enum or wrapped type to underlying type                     |
+| narrow_as(E, T) -> E  | convert union value to actual type                                   |
+| widen_as(E, T) -> E   | convert value to union                                               |
+| as(E, T) -> E         | converts between  numerical types                                    |
+| bitwise_as(E, T) -> E | convert expression to a type of same width, including int to pointer |
+| unsafe_as(E, T) -> E  | convert between pointers                                             |
+
+Also see [Casting](casting.md)
+
+##### Legend
+
 * E: expression
 * T: type expression
+* T: record type
 * P: pointer value
 * F: record field name
 * S: slice
@@ -790,9 +817,3 @@ let sign s8 = expr:
                         return 1_s8
 
 ```
-
-
-### Casts
-
-
-TBD  - see [Casting](casting.md)
