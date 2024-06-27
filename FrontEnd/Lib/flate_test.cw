@@ -249,7 +249,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
         (let res auto (flate::uncompress [(&! bs) (^. tc output)]))
         (test::AssertEq# (uniontypetag res) (uniontypetag (^. tc expected_result)))
         (if (is res uint) :
-            (test::AssertSliceEq# (^. tc expected_output) (slice_val (front (^. tc output)) (@unchecked narrowto res uint)))
+            (test::AssertSliceEq# (^. tc expected_output) (slice_val (front (^. tc output)) (@unchecked narrow_as res uint)))
          :)))
 
 
@@ -259,4 +259,3 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
     (test::Success#)
     (return 0))
 )
-

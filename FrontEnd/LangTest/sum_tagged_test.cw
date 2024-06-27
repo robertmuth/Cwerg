@@ -175,10 +175,10 @@
 
 (fun test_tagged_union_narrowto [] void :
     (let! x Union3 true)
-    (let! y auto (narrowto x bool))
+    (let! y auto (narrow_as x bool))
     (test::AssertTrue# y)
-    (test::AssertTrue# (narrowto x bool))
-    (let! z auto (narrowto x (union [u8 bool]))))
+    (test::AssertTrue# (narrow_as x bool))
+    (let! z auto (narrow_as x (union [u8 bool]))))
 
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

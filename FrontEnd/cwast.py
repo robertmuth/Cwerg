@@ -2028,7 +2028,7 @@ class ExprNarrow:
 
     optionally unchecked
     """
-    ALIAS = "narrowto"
+    ALIAS = "narrow_as"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR
     #
@@ -2052,7 +2052,7 @@ class ExprWiden:
 
     Usually this is implicit
     """
-    ALIAS = "widento"
+    ALIAS = "widen_as"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR
     #
@@ -2076,7 +2076,7 @@ class ExprUnsafeCast:
     ptr a <-> ptr b
 
     """
-    ALIAS = "cast"
+    ALIAS = "unsafe_as"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR
     #
@@ -2104,7 +2104,7 @@ class ExprBitCast:
 
     It is also ok to bitcase complex objects like recs
     """
-    ALIAS = "bitcast"
+    ALIAS = "bitwise_as"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR
     #

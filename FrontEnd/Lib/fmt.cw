@@ -274,7 +274,7 @@
         https://en.wikipedia.org/wiki/Double-precision_floating-point_format
         https://observablehq.com/@jrus/hexfloat"""
 (fun ToHexStr@ [(param val r64) (param out (slice! u8))] uint :
-    (let val_bits auto (bitcast val s64))
+    (let val_bits auto (bitwise_as val s64))
     (let! frac_bits auto (and val_bits 0xf_ffff_ffff_ffff))
     (let exp_bits auto (and (>> val_bits 52) 0x7ff))
     (let sign_bit auto (and (>> val_bits 63) 1))
@@ -350,7 +350,7 @@
         (param v (ptr void))
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (let h auto (wrapas (bitcast v uint) uint_hex))
+    (let h auto (wrapas (bitwise_as v uint) uint_hex))
     (return (SysRender@ [h out options])))
 
 

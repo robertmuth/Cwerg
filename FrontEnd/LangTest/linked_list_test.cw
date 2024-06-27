@@ -45,11 +45,11 @@
     (if (is (. (at NodePool i) next) NoneType) :
         (fmt::print# " next: NULL\n")
      :
-        (fmt::print# " next: " (cast (narrowto (. (at NodePool i) next) (ptr! LinkedListNode)) (ptr void)) "\n")))
+        (fmt::print# " next: " (unsafe_as (narrow_as (. (at NodePool i) next) (ptr! LinkedListNode)) (ptr void)) "\n")))
 
 
 @cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (fmt::print# "start: " (cast (front NodePool) (ptr void)) "\n")
+    (fmt::print# "start: " (unsafe_as (front NodePool) (ptr void)) "\n")
     (for i 0 N 1 :
         (= (. (at NodePool i) payload) (as i u32))
         (if (== i (- N 1)) :
