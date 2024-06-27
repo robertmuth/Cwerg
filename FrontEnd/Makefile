@@ -19,15 +19,18 @@ TEST_TESTS := \
     TestData/hello_world.cw
 
 TESTS_A32 := \
-    TestData/fibonacci.cw \
-	TestData/fizzbuzz.cw \
-    TestData/hello_world.cw \
+    LangTest/consts_test.cw \
 	LangTest/array_test.cw \
+    LangTest/cast_test.cw \
     LangTest/defer_test.cw \
     LangTest/enum_test.cw \
     LangTest/expr_test.cw \
 	LangTest/linked_list_test.cw \
 	LangTest/sieve_test.cw \
+    LangTest/types_test.cw \
+    TestData/fibonacci.cw \
+	TestData/fizzbuzz.cw \
+    TestData/hello_world.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
     Lib/checksum_test.cw \
