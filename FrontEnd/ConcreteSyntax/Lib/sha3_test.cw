@@ -59,6 +59,6 @@ fun test_Sha3512() void:
     do test_Keccak512()
     do test_Sha3512()
     -- (let hash auto  (sha3::Keccak512 [limerick]))
-    --     (fmt::print# (wrap hash fmt::str_hex) "\n")
+    --     (fmt::print# (wrap_as hash fmt::str_hex) "\n")
     test::Success#()
     return 0

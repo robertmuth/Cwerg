@@ -37,11 +37,11 @@
 
 
 @doc "currently (* N 24) but should be (* N 16) on 64 bit system with union optimization"
-(static_assert (== (sizeof (typeof NodePool)) (* (* N 3) (sizeof (ptr! LinkedListNode)))))
+(static_assert (== (size_of (type_of NodePool)) (* (* N 3) (size_of (ptr! LinkedListNode)))))
 
 
 (fun DumpNode [(param i u32)] void :
-    (fmt::print# i " " (. (at NodePool i) payload) " " (uniontypetag (. (at NodePool i) next)))
+    (fmt::print# i " " (. (at NodePool i) payload) " " (uniontag (. (at NodePool i) next)))
     (if (is (. (at NodePool i) next) NoneType) :
         (fmt::print# " next: NULL\n")
      :

@@ -550,26 +550,30 @@ def WithMut(name: str, mutable: bool) -> str:
     return name + "!" if mutable else name
 
 
+
+def KW(node) -> str:
+    return node.ALIAS
+
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
     cwast.MacroId: lambda ts, n:  (ts.EmitAttr(n.name)),
     cwast.MacroInvoke: TokensExprMacroInvoke,
     #
-    cwast.TypeAuto: lambda ts, n: ts.EmitAttr("auto"),
+    cwast.TypeAuto: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(cwast.BaseTypeKindToKeyword(n.base_type_kind)),
     #
     cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, WithMut("slice", n.mut), [n.type]),
-    cwast.TypeOf: lambda ts, n: TokensFunctional(ts, "typeof", [n.expr]),
-    cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, "union", n.types),
+    cwast.TypeOf: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
+    cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, KW(n), n.types),
     cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithMut("^", n.mut), n.type),
     cwast.TypeArray: lambda ts, n: TokensVecType(ts, n.size, n.type),
     cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, "uniondelta", [n.type, n.subtrahend]),
     cwast.TypeFun:  TokensTypeFun,
     #
     cwast.ValNum: lambda ts, n: ts.EmitAttr(n.number),
-    cwast.ValTrue: lambda ts, n: ts.EmitAttr("true"),
-    cwast.ValFalse: lambda ts, n: ts.EmitAttr("false"),
-    cwast.ValUndef: lambda ts, n: ts.EmitAttr("undef"),
+    cwast.ValTrue: lambda ts, n: ts.EmitAttr(KW(n)),
+    cwast.ValFalse: lambda ts, n: ts.EmitAttr(KW(n)),
+    cwast.ValUndef: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.ValVoid: lambda ts, n: ts.EmitAttr("void"),
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.ValSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
@@ -577,21 +581,21 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ValRec: TokensValRec,
     cwast.ValArray: TokensValVec,
     #
-    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut("front", n.mut), [n.container]),
-    cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, "uniontag", [n.expr]),
-    cwast.ExprAs: lambda ts, n: TokensFunctional(ts, "as", [n.expr, n.type]),
-    cwast.ExprIs: lambda ts, n: TokensFunctional(ts, "is", [n.expr, n.type]),
-    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, "offsetof", [n.type, cwast.Id(n.field)]),
-    cwast.ExprLen: lambda ts, n: TokensFunctional(ts, "len", [n.container]),
-    cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, "sizeof", [n.type]),
-    cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, "typeidof", [n.type]),
-    cwast.ExprUnsafeCast: lambda ts, n: TokensFunctional(ts, "unsafe_as", [n.expr, n.type]),
-    cwast.ExprBitCast: lambda ts, n: TokensFunctional(ts, "bitwise_as", [n.expr, n.type]),
-    cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, "narrow_as", [n.expr, n.type]),
-    cwast.ExprWiden: lambda ts, n: TokensFunctional(ts, "widen_as", [n.expr, n.type]),
-    cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, "wrap_as", [n.expr, n.type]),
-    cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, "unwrap", [n.expr]),
-    cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, "stringify", [n.expr]),
+    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut(KW(n), n.mut), [n.container]),
+    cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
+    cwast.ExprAs: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
+    cwast.ExprIs: lambda ts, n: TokensFunctional(ts,  KW(n), [n.expr, n.type]),
+    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, cwast.Id(n.field)]),
+    cwast.ExprLen: lambda ts, n: TokensFunctional(ts, KW(n), [n.container]),
+    cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
+    cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
+    cwast.ExprUnsafeCast: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
+    cwast.ExprBitCast: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
+    cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
+    cwast.ExprWiden: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
+    cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
+    cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
+    cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
     cwast.ExprCall: lambda ts, n: TokensFunctional(ts, n.callee, n.args),
     cwast.ExprPointer: lambda ts, n: TokensFunctional(
         ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],

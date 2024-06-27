@@ -51,7 +51,7 @@ fun dump_array(size uint, data ^r64) void:
     @ref let! buf [32]u8 = undef
     for i = 0, size, 1:
         let v = pinc(data, i)^
-        fmt::print#(wrapas(v, fmt::r64_hex), NEWLINE)
+        fmt::print#(wrap_as(v, fmt::r64_hex), NEWLINE)
     return
 
 @cdecl fun main(argc s32, argv ^^u8) s32:

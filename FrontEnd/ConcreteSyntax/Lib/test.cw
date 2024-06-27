@@ -34,7 +34,7 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
     if is($expr, $type):
     else:
         SysPrint#("AssertIs failed: ")
-        SysPrint#(stringify(typeof($expr)))
+        SysPrint#(stringify(type_of($expr)))
         SysPrint#(" VS ")
         SysPrint#(stringify($type))
         SysPrint#("\n")

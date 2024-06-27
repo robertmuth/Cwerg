@@ -12,7 +12,7 @@ fun hash_32(xx ^u32) u32:
 fun eq_32(a ^u32, b ^u32) bool:
     return a^ == b^
 
-import hashtab = hashtab32(u32, u32, hash_32, eq_32)
+import hashtab = hashtab32_gen(u32, u32, hash_32, eq_32)
 
 global SIZE u32 = 32
 

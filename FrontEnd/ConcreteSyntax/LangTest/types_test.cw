@@ -40,7 +40,7 @@ type type_ptr = ^!s32
 type type_fun = funtype(a bool, b bool, c s32) s32
 
 fun funx(a type_union) s32:
-    return narrowto(a, uniondelta(type_union, union(void, type_ptr)))
+    return narrow_as(a, uniondelta(type_union, union(void, type_ptr)))
 
 -- just a compilation test
 @cdecl fun main(argc s32, argv ^^u8) s32:

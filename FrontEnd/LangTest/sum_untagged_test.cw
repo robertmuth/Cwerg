@@ -18,37 +18,37 @@
 (type UntaggedUnion1 (@untagged union [s32 void type_ptr]))
 
 
-(static_assert (== (sizeof UntaggedUnion1) 8))
+(static_assert (== (size_of UntaggedUnion1) 8))
 
 
 (type UntaggedUnion2 (@untagged union [s32 void (@untagged union [UntaggedUnion1 u8])]))
 
 
-(static_assert (== (sizeof UntaggedUnion2) 8))
+(static_assert (== (size_of UntaggedUnion2) 8))
 
 
 (type UntaggedUnion3 (@untagged union [bool s32 s64]))
 
 
-(static_assert (== (sizeof UntaggedUnion2) 8))
+(static_assert (== (size_of UntaggedUnion2) 8))
 
 
 (type UntaggedUnion4 (@untagged union [bool s32]))
 
 
-(static_assert (== (sizeof UntaggedUnion4) 4))
+(static_assert (== (size_of UntaggedUnion4) 4))
 
 
 @pub (type UntaggedUnion5 (@untagged union [t2 t3 s8]))
 
 
-(static_assert (== (sizeof UntaggedUnion5) 1))
+(static_assert (== (size_of UntaggedUnion5) 1))
 
 
 (type UntaggedUnion6 (@untagged union [bool u16]))
 
 
-(static_assert (== (sizeof UntaggedUnion6) 2))
+(static_assert (== (size_of UntaggedUnion6) 2))
 
 
 (type UntaggedUnion (@untagged union [
@@ -69,7 +69,7 @@
         (array 32 u8)]))
 
 
-(static_assert (== (sizeof UntaggedUnion) 32))
+(static_assert (== (size_of UntaggedUnion) 32))
 
 
 (defrec RecordWithUntaggedUnion :

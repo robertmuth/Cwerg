@@ -52,7 +52,7 @@
     (field the_field one_field_rec))
 
 
-(global c2 auto (offsetof type_rec s1))
+(global c2 auto (offset_of type_rec s1))
 
 
 @pub (enum type_enum S32 :

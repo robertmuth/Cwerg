@@ -38,7 +38,7 @@ Both must have derivable types as we use `auto`"""
     (if (is $expr $type) :
      :
         (SysPrint# "AssertIs failed: ")
-        (SysPrint# (stringify (typeof $expr)))
+        (SysPrint# (stringify (type_of $expr)))
         (SysPrint# " VS ")
         (SysPrint# (stringify $type))
         (SysPrint# "\n")

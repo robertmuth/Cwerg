@@ -7,7 +7,7 @@ import fmt
 
 @wrapped type NoneType = void
 
-@pub global None = wrapas(void, NoneType)
+@pub global None = wrap_as(void, NoneType)
 
 @pub rec LinkedListNode:
     next union(NoneType, ^!LinkedListNode)
@@ -30,7 +30,7 @@ global N uint = 100
 global! NodePool = [N]LinkedListNode{}
 
 -- currently (* N 24) but should be (* N 16) on 64 bit system with union optimization
-static_assert sizeof(typeof(NodePool)) == N * 3 * sizeof(^!LinkedListNode)
+static_assert size_of(type_of(NodePool)) == N * 3 * size_of(^!LinkedListNode)
 
 fun DumpNode(i u32) void:
     fmt::print#(i, " ", NodePool[i].payload, " ", uniontag(NodePool[i].next))
@@ -38,11 +38,12 @@ fun DumpNode(i u32) void:
         fmt::print#(" next: NULL\n")
     else:
         fmt::print#(
-                " next: ", unsafeas(
-                    narrowto(NodePool[i].next, ^!LinkedListNode), ^void), "\n")
+                " next: ",
+                unsafe_as(narrow_as(NodePool[i].next, ^!LinkedListNode), ^void),
+                "\n")
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
-    fmt::print#("start: ", unsafeas(front(NodePool), ^void), "\n")
+    fmt::print#("start: ", unsafe_as(front(NodePool), ^void), "\n")
     for i = 0, N, 1:
         set NodePool[i].payload = as(i, u32)
         if i == N - 1:

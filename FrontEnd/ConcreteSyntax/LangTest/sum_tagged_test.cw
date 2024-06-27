@@ -12,45 +12,45 @@ type type_ptr = ^!s32
 
 type Union1 = union(s32, void, type_ptr)
 
-static_assert sizeof(Union1) == 16
+static_assert size_of(Union1) == 16
 
 type Union2 = union(s32, void, union(Union1, u8))
 
-static_assert sizeof(Union2) == 16
+static_assert size_of(Union2) == 16
 
 type Union2Simplified = union(s32, void, u8, type_ptr)
 
-static_assert typeidof(Union2) == typeidof(Union2Simplified)
+static_assert typeid_of(Union2) == typeid_of(Union2Simplified)
 
 type Union3 = union(bool, u8, s32, s64)
 
-static_assert sizeof(Union3) == 16
+static_assert size_of(Union3) == 16
 
 type Delta1 = uniondelta(Union3, union(bool, u8, s32))
 
-static_assert sizeof(Delta1) == 8
+static_assert size_of(Delta1) == 8
 
-static_assert typeidof(Delta1) == typeidof(s64)
+static_assert typeid_of(Delta1) == typeid_of(s64)
 
 type Delta2 = uniondelta(Union3, union(bool, u8))
 
-static_assert typeidof(Delta2) == typeidof(union(s32, s64))
+static_assert typeid_of(Delta2) == typeid_of(union(s32, s64))
 
 type Delta3 = uniondelta(Union3, union(bool, u8, s64))
 
-static_assert typeidof(Delta3) == typeidof(s32)
+static_assert typeid_of(Delta3) == typeid_of(s32)
 
 @pub type Union5 = union(t2, t3, s8)
 
-static_assert sizeof(Union5) == 3
+static_assert size_of(Union5) == 3
 
 type Union6 = union(bool, u16)
 
-static_assert sizeof(Union6) == 4
+static_assert size_of(Union6) == 4
 
 type Union = union(bool, u64, u32, r32, r64, [32]u8)
 
-static_assert sizeof(Union) == 40
+static_assert size_of(Union) == 40
 
 rec rec1:
     s1 Union5
@@ -119,10 +119,10 @@ fun test_tagged_union_result() void:
 
 fun test_tagged_union_narrowto() void:
     let! x Union3 = true
-    let! y = narrowto(x, bool)
+    let! y = narrow_as(x, bool)
     test::AssertTrue#(y)
-    test::AssertTrue#(narrowto(x, bool))
-    let! z = narrowto(x, union(u8, bool))
+    test::AssertTrue#(narrow_as(x, bool))
+    let! z = narrow_as(x, union(u8, bool))
 
 @cdecl fun main(argc s32, argv ^^u8) s32:
     do test_tagged_union_basic()

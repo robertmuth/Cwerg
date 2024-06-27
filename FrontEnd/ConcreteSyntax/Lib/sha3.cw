@@ -80,7 +80,7 @@ fun dumpA(tag slice(u8), x ^[25]u64) void:
     fmt::print#(tag, "\n")
     for i = 0, 5_uint, 1:
         for j = 0, 5_uint, 1:
-            fmt::print#(" ", wrapas(x^[i + j * 5], fmt::u64_hex))
+            fmt::print#(" ", wrap_as(x^[i + j * 5], fmt::u64_hex))
         fmt::print#("\n")
 
 fun KeccakF(x ^![25]u64) void:

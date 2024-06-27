@@ -179,7 +179,7 @@ fun get_bg_color(attr u8) slice(u8):
             if last_attr != a:
                 fmt::print#(get_fg_color(a), get_style(a))
             set last_attr = a
-            fmt::print#(wrapas(c, fmt::rune))
+            fmt::print#(wrap_as(c, fmt::rune))
 
 @pub fun window_fill(obj ^!Window, c u8, a u8) void:
     let size = obj^.width * obj^.height

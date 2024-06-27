@@ -247,7 +247,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
         (fmt::print# "TEST - " (^. tc description) "\n")
         (@ref let! bs auto (rec_val bitstream::Stream32 [(^. tc input)]))
         (let res auto (flate::uncompress [(&! bs) (^. tc output)]))
-        (test::AssertEq# (uniontypetag res) (uniontypetag (^. tc expected_result)))
+        (test::AssertEq# (uniontag res) (uniontag (^. tc expected_result)))
         (if (is res uint) :
             (test::AssertSliceEq# (^. tc expected_output) (slice_val (front (^. tc output)) (@unchecked narrow_as res uint)))
          :)))

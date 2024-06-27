@@ -1400,7 +1400,7 @@ class TypeUnionDelta:
 class TypeOf:
     """Type of the expression
     """
-    ALIAS = "typeof"
+    ALIAS = "type_of"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.NON_CORE
     #
@@ -2125,7 +2125,7 @@ class ExprTypeId:
     """TypeId of type
 
     Result has type is `typeid`"""
-    ALIAS = "typeidof"
+    ALIAS = "typeid_of"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.NON_CORE
     #
@@ -2145,7 +2145,7 @@ class ExprUnionTag:
     """Typetag of tagged union type
 
     result has type is `typeid`"""
-    ALIAS = "uniontypetag"
+    ALIAS = "uniontag"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.NON_CORE
     #
@@ -2185,7 +2185,7 @@ class ExprSizeof:
     """Byte size of type
 
     Result has type is `uint`"""
-    ALIAS = "sizeof"
+    ALIAS = "size_of"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.NON_CORE
     #
@@ -2205,7 +2205,7 @@ class ExprOffsetof:
     """Byte offset of field in record types
 
     Result has type `uint`"""
-    ALIAS = "offsetof"
+    ALIAS = "offset_of"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.FIELD_ANNOTATED | NF.NON_CORE
     #

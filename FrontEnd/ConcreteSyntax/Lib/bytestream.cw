@@ -5,7 +5,7 @@ import fmt
 -- the input bitstream was corrupted
 @pub @wrapped type OutOfBoundsError = void
 
-@pub global OutOfBoundsErrorVal = wrapas(void, OutOfBoundsError)
+@pub global OutOfBoundsErrorVal = wrap_as(void, OutOfBoundsError)
 
 -- 
 fun IncSliceUnchecked(buffer ^!slice(u8), n uint) void:

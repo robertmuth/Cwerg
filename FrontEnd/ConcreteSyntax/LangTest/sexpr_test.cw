@@ -35,7 +35,7 @@ fun foo2(a s32, b s32, c s32) s32:
 @pub rec one_one_field_rec:
     the_field one_field_rec
 
-global c2 = offsetof(type_rec, s1)
+global c2 = offset_of(type_rec, s1)
 
 @pub enum type_enum s32:
     s1 7

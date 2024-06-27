@@ -66,36 +66,19 @@ class TK_KIND(enum.Enum):
 _KEYWORDS_SIMPLE = [
     "auto",    # type/val
     "slice",
-    "typeof",
-    "union",
     "array",
-    "uniondelta",
     "true",
     "false",
     "front",
-    "uniontag",
-    "is",
     "funtype",
     "else",
     #
     "pinc",
     "pdec",
-    #
-    "as",
-    "wrap_as",
-    "bitwise_as",
-    "unsafe_as",
-    "widen_as",
-    "narrow_as",
-    "unwrap",
-    #
-    "typeidof",
-    "offsetof",
-    "sizeof",
-    "len",
-    #
-    "stringify",
-]
+] + [nt.ALIAS for nt in [cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta, cwast.ExprUnionTag, cwast.ExprIs,
+                         cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden,
+                         cwast.ExprBitCast, cwast.ExprUnsafeCast, cwast.ExprNarrow, cwast.ExprTypeId,
+                         cwast.ExprOffsetof, cwast.ExprSizeof, cwast.ExprLen, cwast.ExprStringify]]
 
 
 KEYWORDS: Dict[str, TK_KIND] = {}
@@ -413,34 +396,34 @@ def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
 
 
 _FUN_LIKE = {
-    "len": (cwast.ExprLen, "E"),
+    cwast.ExprLen.ALIAS: (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),
-    "offsetof": (cwast.ExprOffsetof, "TS"),
+    cwast.ExprOffsetof.ALIAS: (cwast.ExprOffsetof, "TS"),
     "slice": (cwast.ValSlice, "EE"),
     "slice!": (cwast.ValSlice, "EE"),
-    "front":  (cwast.ExprFront, "E"),
-    "front!":  (cwast.ExprFront, "E"),
-    "unwrap": (cwast.ExprUnwrap, "E"),
-    "uniontag": (cwast.ExprUnionTag, "E"),
+    cwast.ExprFront.ALIAS:  (cwast.ExprFront, "E"),
+    cwast.ExprFront.ALIAS + "!":  (cwast.ExprFront, "E"),
+    cwast.ExprUnwrap.ALIAS: (cwast.ExprUnwrap, "E"),
+    cwast.ExprUnionTag.ALIAS: (cwast.ExprUnionTag, "E"),
     #
-    "typeof": (cwast.TypeOf, "E"),
+    cwast.TypeOf.ALIAS: (cwast.TypeOf, "E"),
     #
-    "sizeof": (cwast.ExprSizeof, "T"),
-    "typeidof": (cwast.ExprTypeId, "T"),
+    cwast.ExprSizeof.ALIAS: (cwast.ExprSizeof, "T"),
+    cwast.ExprTypeId.ALIAS: (cwast.ExprTypeId, "T"),
     #
     "uniondelta": (cwast.TypeUnionDelta, "TT"),
     # mixing expression and types
-    "as": (cwast.ExprAs, "ET"),
-    "wrap_as": (cwast.ExprWrap, "ET"),
-    "is": (cwast.ExprIs, "ET"),
+    cwast.ExprAs.ALIAS: (cwast.ExprAs, "ET"),
+    cwast.ExprWrap.ALIAS: (cwast.ExprWrap, "ET"),
+    cwast.ExprIs.ALIAS: (cwast.ExprIs, "ET"),
     # TODO: handle unchecked
-    "narrow_as": (cwast.ExprNarrow, "ET"),
-    "widden_as": (cwast.ExprWiden, "ET"),
-    "unsafe_as": (cwast.ExprUnsafeCast, "ET"),
-    "bitwise_as": (cwast.ExprBitCast, "ET"),
+    cwast.ExprNarrow.ALIAS: (cwast.ExprNarrow, "ET"),
+    cwast.ExprWiden.ALIAS: (cwast.ExprWiden, "ET"),
+    cwast.ExprUnsafeCast.ALIAS: (cwast.ExprUnsafeCast, "ET"),
+    cwast.ExprBitCast.ALIAS: (cwast.ExprBitCast, "ET"),
     #
-    "stringify": (cwast.ExprStringify, "E"),
+    cwast.ExprStringify.ALIAS: (cwast.ExprStringify, "E"),
 }
 
 
@@ -551,7 +534,7 @@ def _PParseParenGroup(inp: Lexer, tk: TK, _precedence) -> Any:
 _PREFIX_EXPR_PARSERS = {
     TK_KIND.KW: (10, _PParseKeywordConstants),
     TK_KIND.OP1: (pp.PREC1_NOT, _PParsePrefix),
-    TK_KIND.OP2: (10, _PParsePrefix), # only used for "-"
+    TK_KIND.OP2: (10, _PParsePrefix),  # only used for "-"
     TK_KIND.ID: (10, _PParseId),
     TK_KIND.NUM: (10, _PParseNum),
     TK_KIND.SQUARE_OPEN: (pp.PREC_INDEX, _PParseArrayType),
@@ -733,7 +716,7 @@ def _ParseTypeExpr(inp: Lexer):
     if tk.kind is TK_KIND.ID:
         return cwast.Id(tk.text)
     elif tk.kind is TK_KIND.KW:
-        if tk.text == "auto":
+        if tk.text == cwast.TypeAuto.ALIAS:
             return cwast.TypeAuto()
         elif tk.text == "funtype":
             params = _ParseFormalParams(inp)
@@ -744,11 +727,11 @@ def _ParseTypeExpr(inp: Lexer):
             type = _ParseTypeExpr(inp)
             inp.match_or_die(TK_KIND.PAREN_CLOSED)
             return cwast.TypeSlice(type, mut=tk.text.endswith("!"))
-        elif tk.text == "typeof":
+        elif tk.text == cwast.TypeOf.ALIAS:
             return _ParseFunLike(inp, tk)
-        elif tk.text == "uniondelta":
+        elif tk.text == cwast.TypeUnionDelta.ALIAS:
             return _ParseFunLike(inp, tk)
-        elif tk.text == "union":
+        elif tk.text == cwast.TypeUnion.ALIAS:
             inp.match_or_die(TK_KIND.PAREN_OPEN)
             members = []
             first = True
@@ -776,8 +759,8 @@ def _ParseTypeExpr(inp: Lexer):
         assert False, f"unexpected token {tk}"
 
 
-_TYPE_START_KW = set(["auto", "funtype", "slice", "slice!", "typeof",
-                      "uniondelta", "union", "[", "^", "^!"])
+_TYPE_START_KW = set([cwast.TypeAuto.ALIAS, "funtype", "slice", "slice!", cwast.TypeOf.ALIAS,
+                     cwast.TypeUnionDelta.ALIAS, cwast.TypeUnion.ALIAS, "[", "^", "^!"])
 
 
 def MaybeTypeExprStart(tk: TK) -> bool:
@@ -1104,7 +1087,7 @@ def _ParseTopLevel(inp: Lexer):
         else:
             body = _ParseStatementList(inp, kw.column)
         return cwast.DefMacro(name.text, cwast.MACRO_PARAM_KIND[kind.text],
-                              params, gen_ids, body,**_ExtractAnnotations(kw))
+                              params, gen_ids, body, **_ExtractAnnotations(kw))
     elif kw.text == "type":
         name = inp.match_or_die(TK_KIND.ID)
         inp.match_or_die(TK_KIND.ASSIGN)

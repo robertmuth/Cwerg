@@ -180,7 +180,7 @@ fun to_hex_digit(digit u8) u8:
 --         https://en.wikipedia.org/wiki/Double-precision_floating-point_format
 --         https://observablehq.com/@jrus/hexfloat
 fun ToHexStr@(val r64, out slice!(u8)) uint:
-    let val_bits = bitsas(val, s64)
+    let val_bits = bitwise_as(val, s64)
     let! frac_bits = val_bits and 0xf_ffff_ffff_ffff
     let exp_bits = val_bits >> 52 and 0x7ff
     let sign_bit = val_bits >> 63 and 1
@@ -239,7 +239,7 @@ fun SysRender@(v str_hex, out slice!(u8), options ^!SysFormatOptions) uint:
         return 0
 
 fun SysRender@(v ^void, out slice!(u8), options ^!SysFormatOptions) uint:
-    let h = wrapas(bitsas(v, uint), uint_hex)
+    let h = wrap_as(bitwise_as(v, uint), uint_hex)
     return SysRender@(h, out, options)
 
 @pub macro print# STMT_LIST(

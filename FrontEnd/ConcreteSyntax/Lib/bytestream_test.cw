@@ -25,8 +25,8 @@ fun test_bs() void:
     test::AssertEq#(0x4433_u16, bytestream::FrontLeU16(&!stream))
     test::AssertEq#(0x88776655_u32, bytestream::FrontLeU32(&!stream))
     let raw1 = bytestream::FrontSlice(&!stream, 10)
-    let dummy1 = typeidof(slice(u8))
-    let dummy2 = typeidof(bytestream::OutOfBoundsError)
+    let dummy1 = typeid_of(slice(u8))
+    let dummy2 = typeid_of(bytestream::OutOfBoundsError)
     trylet result1 slice(u8) = raw1, err:
         test::AssertUnreachable#()
     test::AssertSliceEq#(result1, "abcdefghij")
