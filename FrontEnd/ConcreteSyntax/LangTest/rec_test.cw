@@ -2,7 +2,7 @@ module:
 
 import test
 
-@pub rec type_rec1:
+pub rec type_rec1:
     -- this is a comment with \" with quotes \t 
     s1 s32
     -- s2 comment 
@@ -13,20 +13,20 @@ import test
     s5 u64
     s6 u64
 
-@pub rec type_rec2:
+pub rec type_rec2:
     t1 bool
     t2 u32
     t3 type_rec1
     t4 bool
 
-@pub rec type_rec3:
+pub rec type_rec3:
     u2 u16
     u3 u64
     u4 type_rec2
     u5 [13]u16
     u6 u64
 
-@pub rec type_rec4:
+pub rec type_rec4:
     t1 u64
     t2 u8
     t3 u16
@@ -49,7 +49,7 @@ global! g3_alt = type_rec3{0x1234, 0x4321, g2, [13]u16{0x11, undef, 0x12}}
 -- BROKEN init
 global g4 = [4]type_rec2{undef, g2}
 
-@pub rec type_rec5:
+pub rec type_rec5:
     t1 u64
     t2 slice!(u8)
     t5 bool

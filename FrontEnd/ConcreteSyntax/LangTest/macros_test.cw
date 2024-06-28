@@ -1,7 +1,7 @@
 -- Macro Examples
 module:
 
-@pub rec MyRec:
+pub rec MyRec:
     s1 s32
     s2 u32
 

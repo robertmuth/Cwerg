@@ -42,11 +42,11 @@ global c2 u32 = 7
 
 global c3 = 7.0_r32
 
-@pub global c4 = "xxxxxx"
+pub global c4 = "xxxxxx"
 
 global c10 = c2
 
-@pub rec type_rec:
+pub rec type_rec:
     s1 s32
     s2 s32
     s3 s32
@@ -68,7 +68,7 @@ static_assert c32.s4 == 0
 
 static_assert c32.b1 == false
 
-@pub enum type_enum s32:
+pub enum type_enum s32:
     e1 7
     e2 auto
     e3 19
@@ -97,7 +97,7 @@ global c33 = type_rec{7, 9, 7}
 
 static_assert c33.s1 == 7
 
-@pub rec type_rec2:
+pub rec type_rec2:
     s1 slice(u8)
     s2 s32
     s3 s32

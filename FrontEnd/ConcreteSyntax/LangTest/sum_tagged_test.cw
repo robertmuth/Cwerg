@@ -40,7 +40,7 @@ type Delta3 = union_delta(Union3, union(bool, u8, s64))
 
 static_assert typeid_of(Delta3) == typeid_of(s32)
 
-@pub type Union5 = union(t2, t3, s8)
+pub type Union5 = union(t2, t3, s8)
 
 static_assert size_of(Union5) == 3
 
@@ -56,7 +56,7 @@ rec rec1:
     s1 Union5
     s2 Union5
 
-@pub rec rec2:
+pub rec rec2:
     s1 Union1
     s2 Union2
 
@@ -84,7 +84,7 @@ fun test_tagged_union_basic() void:
     test::AssertTrue#(y == 777_s32)
     test::AssertTrue#(777_s32 == y)
 
-@pub type UnionVoid = union(void, t2, t3)
+pub type UnionVoid = union(void, t2, t3)
 
 fun test_tagged_union_void() void:
     let! x UnionVoid = void

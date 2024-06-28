@@ -27,7 +27,7 @@ import aanim = "./ascii_anim"
 -- 6: tailfin
 -- 7: gills
 -- 
-@pub global RandomColor = "RcRyBgM"
+pub global RandomColor = "RcRyBgM"
 
 global CastleSprites = [1]aanim::Sprite{
         aanim::Sprite{
@@ -62,7 +62,7 @@ global CastleSprites = [1]aanim::Sprite{
              yyyyyyy
 """}}
 
-@pub global Castle = aanim::Object{"castle", CastleSprites, 'B', def_depth : 22}
+pub global Castle = aanim::Object{"castle", CastleSprites, 'B', def_depth : 22}
 
 global SwanLSprites = [1]aanim::Sprite{
         aanim::Sprite{
@@ -81,7 +81,7 @@ global SwanLSprites = [1]aanim::Sprite{
 yy
 """}}
 
-@pub global SwanL = aanim::Object{
+pub global SwanL = aanim::Object{
         "swan_l", SwanLSprites, 'W', def_depth : 3, def_x_speed : -1.0_r32}
 
 global SwanRSprites = [1]aanim::Sprite{
@@ -101,7 +101,7 @@ global SwanRSprites = [1]aanim::Sprite{
           yy
 """}}
 
-@pub global SwanR = aanim::Object{
+pub global SwanR = aanim::Object{
         "swan_r", SwanRSprites, 'W', def_depth : 3, def_x_speed : -1.0_r32}
 
 global DucksRSprites = [3]aanim::Sprite{
@@ -139,7 +139,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
 """}}
 
-@pub global DuckR = aanim::Object{
+pub global DuckR = aanim::Object{
         "duck_r1", DucksRSprites, 'W', def_depth : 3, transparent_char : '?', def_x_speed 
         :1.0_r32}
 
@@ -169,7 +169,7 @@ global DolphinRSprites = [2]aanim::Sprite{
           W
 """}}
 
-@pub global DolphinR = aanim::Object{
+pub global DolphinR = aanim::Object{
         "dolphin_r", DolphinRSprites, 'b', def_depth : 3, def_x_speed : 1.0_r32}
 
 global DolphinLSprites = [2]aanim::Sprite{
@@ -196,7 +196,7 @@ global DolphinLSprites = [2]aanim::Sprite{
    W
 """}}
 
-@pub global DolphinL = aanim::Object{
+pub global DolphinL = aanim::Object{
         "dolphin_r", DolphinLSprites, 'b', def_depth : 3, def_x_speed : -1.0_r32}
 
 global BigFishRSprites = [1]aanim::Sprite{
@@ -234,7 +234,7 @@ global BigFishRSprites = [1]aanim::Sprite{
                11111
 """}}
 
-@pub global BigFishR = aanim::Object{
+pub global BigFishR = aanim::Object{
         "bigfish_r", BigFishRSprites, 'Y', def_depth : 2, def_x_speed : 3.0_r32}
 
 global BigFishLSprites = [1]aanim::Sprite{
@@ -272,7 +272,7 @@ global BigFishLSprites = [1]aanim::Sprite{
               11111
 """}}
 
-@pub global BigFishL = aanim::Object{
+pub global BigFishL = aanim::Object{
         "bigfish_l", BigFishLSprites, 'Y', def_depth : 2, def_x_speed : 3.0_r32}
 
 global MonsterRSprites = [4]aanim::Sprite{
@@ -337,7 +337,7 @@ global MonsterRSprites = [4]aanim::Sprite{
 
 """}}
 
-@pub global MonsterR = aanim::Object{
+pub global MonsterR = aanim::Object{
         "monster_r", MonsterRSprites, 'G', def_depth : 5, transparent_char : '?', 
         def_x_speed: 2.0_r32}
 
@@ -360,7 +360,7 @@ yyyyyyyyyyyyyyyyyyyywwwyy
 y                   y
 """}}
 
-@pub global ShipR = aanim::Object{
+pub global ShipR = aanim::Object{
         "ship_r", ShipRSprites, 'W', def_depth : 7, def_x_speed : 1.0_r32}
 
 global SharkRSprites = [1]aanim::Sprite{
@@ -390,7 +390,7 @@ global SharkRSprites = [1]aanim::Sprite{
 
 """}}
 
-@pub global SharkR = aanim::Object{
+pub global SharkR = aanim::Object{
         "ship_r", SharkRSprites, 'C', def_depth : 2, transparent_char : '?', def_x_speed 
         :2.0_r32}
 
@@ -413,9 +413,9 @@ global Fish1RSprites = [1]aanim::Sprite{
     11111311
 """}}
 
-@pub global Fish1R = aanim::Object{"fish1_r", Fish1RSprites, 'C', def_depth : 2}
+pub global Fish1R = aanim::Object{"fish1_r", Fish1RSprites, 'C', def_depth : 2}
 
-@pub fun UpdateState(s ^!aanim::ObjectState, t r32, dt r32) void:
+pub fun UpdateState(s ^!aanim::ObjectState, t r32, dt r32) void:
     set s^.x_pos = s^.x_pos + s^.x_speed * dt
     set s^.y_pos = s^.y_pos + s^.y_speed * dt
     set s^.frame += 1

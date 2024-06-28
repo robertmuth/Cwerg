@@ -1,13 +1,13 @@
 module:
 
-@pub fun foo1(a s32, b s32, c s32) s32:
+pub fun foo1(a s32, b s32, c s32) s32:
     do foo1(0, 0, 0)
     do foo2(1, 2, 3)
     return 7
 
-@pub global! v1 = 7_u64
+pub global! v1 = 7_u64
 
-@pub global v1a = &!v1
+pub global v1a = &!v1
 
 fun foo2(a s32, b s32, c s32) s32:
     if a <= b:
@@ -18,9 +18,9 @@ fun foo2(a s32, b s32, c s32) s32:
 
 @wrapped type t1 = s32
 
-@pub global c1 = 7_s64
+pub global c1 = 7_s64
 
-@pub rec type_rec:
+pub rec type_rec:
     s1 s32
     s2 s32
     s3 s32
@@ -29,15 +29,15 @@ fun foo2(a s32, b s32, c s32) s32:
     u1 u64
     u2 u64
 
-@pub rec one_field_rec:
+pub rec one_field_rec:
     the_field r32
 
-@pub rec one_one_field_rec:
+pub rec one_one_field_rec:
     the_field one_field_rec
 
 global c2 = offset_of(type_rec, s1)
 
-@pub enum type_enum s32:
+pub enum type_enum s32:
     s1 7
     s2 auto
     s3 19
@@ -45,7 +45,7 @@ global c2 = offset_of(type_rec, s1)
 
 type type_ptr = ^!s32
 
-@pub type type_union = union(s32, void, type_ptr)
+pub type type_union = union(s32, void, type_ptr)
 
 fun foo3(a bool, b bool, c s32) bool:
     if a and b:

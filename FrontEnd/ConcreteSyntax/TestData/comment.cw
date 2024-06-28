@@ -1,7 +1,7 @@
 -- module
 module:
 
-@pub rec type_rec2:
+pub rec type_rec2:
     s1 slice(u8)
     -- field comment
     s2 s32

@@ -12,13 +12,13 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
     mlet $msg_eval slice(u8) = $msg
     do os::write(unwrap(os::Stdout), front($msg_eval), len($msg_eval))
 
-@pub macro Success# STMT()[]:
+pub macro Success# STMT()[]:
     SysPrint#("OK\n")
 
 -- The two scalar arguments must be the same
 -- 
 -- Both must have derivable types as we use `auto`
-@pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
+pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
     if $e_val != $a_val:
@@ -30,7 +30,7 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
         trap
 
 -- First argument must have the type denoted by the second
-@pub macro AssertIs# STMT_LIST($expr EXPR, $type TYPE)[]:
+pub macro AssertIs# STMT_LIST($expr EXPR, $type TYPE)[]:
     if is($expr, $type):
     else:
         SysPrint#("AssertIs failed: ")
@@ -41,7 +41,7 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
         trap
 
 -- The two arguments must type derivable
-@pub macro AssertSliceEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[
+pub macro AssertSliceEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[
         $e_val, $a_val, $i]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
@@ -50,7 +50,7 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
         AssertEq#(pinc(front($e_val), $i)^, pinc(front($a_val), $i)^)
 
 -- The first two arguments must derivable types as we use `auto`
-@pub macro AssertApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EXPR)[
+pub macro AssertApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EXPR)[
         $e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
@@ -63,7 +63,7 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
         trap
 
 -- The first two arguments must type derivable
-@pub macro AssertSliceApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EXPR)[
+pub macro AssertSliceApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EXPR)[
         $e_val, $a_val, $i]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
@@ -73,7 +73,7 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
                 pinc(front($e_val), $i)^, pinc(front($a_val), $i)^, $epsilon)
 
 -- 
-@pub macro AssertTrue# STMT_LIST($e_expr EXPR)[]:
+pub macro AssertTrue# STMT_LIST($e_expr EXPR)[]:
     if $e_expr:
     else:
         SysPrint#("AssertTrue failed: ")
@@ -82,7 +82,7 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
         trap
 
 -- 
-@pub macro AssertFalse# STMT_LIST($e_expr EXPR)[]:
+pub macro AssertFalse# STMT_LIST($e_expr EXPR)[]:
     if $e_expr:
         SysPrint#("AssertFalse failed: ")
         SysPrint#(stringify($e_expr))
@@ -90,6 +90,6 @@ macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
         trap
 
 -- 
-@pub macro AssertUnreachable# STMT_LIST()[]:
+pub macro AssertUnreachable# STMT_LIST()[]:
     SysPrint#("AssertUnreachable\n")
     trap

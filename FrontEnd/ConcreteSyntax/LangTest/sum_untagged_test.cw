@@ -28,7 +28,7 @@ type UntaggedUnion4 = @untagged union(bool, s32)
 
 static_assert size_of(UntaggedUnion4) == 4
 
-@pub type UntaggedUnion5 = @untagged union(t2, t3, s8)
+pub type UntaggedUnion5 = @untagged union(t2, t3, s8)
 
 static_assert size_of(UntaggedUnion5) == 1
 

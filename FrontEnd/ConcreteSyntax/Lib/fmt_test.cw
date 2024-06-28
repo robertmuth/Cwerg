@@ -4,7 +4,7 @@ import test
 
 import fmt
 
-@pub enum color s32:
+pub enum color s32:
     black 0
     white 1
     blue 2
@@ -14,7 +14,7 @@ import fmt
 fun fmt::SysRender@(v color, out slice!(u8), options ^!fmt::SysFormatOptions) uint:
     return fmt::SysRender@(unwrap(v), out, options)
 
-@pub rec ic32:
+pub rec ic32:
     real s32
     imag s32
 

@@ -80,13 +80,13 @@ so it can be linked against the startup code.
 ### Fibonacci (excerpt)
 
 ```
-@pub fun fib(x uint) uint:
+pub fun fib(x uint) uint:
     if x <= 1:
         return x
     return fib(x - 1) + fib(x - 2)
 ```
 
-The `@pub` annotation makes `fib` visible outside of the module.
+The `pub` annotation makes `fib` visible outside of the module.
 
 
 ### Sieve of Eratosthenes (excerpt)
@@ -123,19 +123,19 @@ module(
         -- the less-than function ($type x $type) -> bool
         $lt CONST_EXPR):
 
-@pub global Leaf = void
+pub global Leaf = void
 
-@pub rec Node:
+pub rec Node:
     left union(void, ^!Node)
     right union(void, ^!Node)
     payload $type
 
 -- same as above for left and right
-@pub type MaybeNode = union(void, ^!Node)
+pub type MaybeNode = union(void, ^!Node)
 
 type Visitor = funtype(node ^$type) void
 
-@pub fun InorderTraversal(root MaybeNode, visitor Visitor) void:
+pub fun InorderTraversal(root MaybeNode, visitor Visitor) void:
     -- return if the union root is a Leaf
     trylet node ^!Node = root, _:
         return
@@ -144,7 +144,7 @@ type Visitor = funtype(node ^$type) void
     do InorderTraversal(node^.right, visitor)
 
 -- returns the new root
-@pub fun Insert(root MaybeNode, node ^!Node) ^!Node:
+pub fun Insert(root MaybeNode, node ^!Node) ^!Node:
     set node^.left = Leaf
     set node^.right = Leaf
     trylet curr ^!Node = root, _:
@@ -246,7 +246,7 @@ rec Date:
 ```
 
 
-There are plans to have per field private/public access control but for now if the `rec` is annotated with `@pub` all fields are externally visible.
+There are plans to have per field private/public access control but for now if the `rec` is annotated with `pub` all fields are externally visible.
 
 ### Enums
 
@@ -421,7 +421,7 @@ and must be have one of the following kinds:
 ## Top Level Declations
 
 By default all top level declarations are module private.
-The `@pub` annotation will export the declaration and thereby make it visible to the
+The `pub` annotation will export the declaration and thereby make it visible to the
 importing module.
 
 Note, the declarations listed here can only appear at the top

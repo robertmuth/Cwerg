@@ -8,9 +8,9 @@ module:
 
 import bitstream
 
-@pub global BAD_SYMBOL u16 = 0xffff
+pub global BAD_SYMBOL u16 = 0xffff
 
-@pub global BAD_TREE_ENCODING u16 = 0xffff
+pub global BAD_TREE_ENCODING u16 = 0xffff
 
 global MAX_SYMBOLS uint = 0xff00
 
@@ -24,7 +24,7 @@ global MAX_SYMBOLS uint = 0xff00
 -- 
 --   Note counts[0] is not used
 -- 
-@pub fun NextSymbol(bs ^!bitstream::Stream32, counts slice(u16), symbols slice(
+pub fun NextSymbol(bs ^!bitstream::Stream32, counts slice(u16), symbols slice(
         u16)) u16:
     let! offset u32 = 0
     let! base u32 = 0
@@ -67,7 +67,7 @@ fun CountsAreFeasible(counts slice(u16)) bool:
 -- Note counts[0] is always 0
 -- 
 -- 
-@pub fun ComputeCountsAndSymbolsFromLengths(
+pub fun ComputeCountsAndSymbolsFromLengths(
         lengths slice(u16), counts slice!(u16), symbols slice!(u16)) u16:
     if len(lengths) > MAX_SYMBOLS:
         return BAD_TREE_ENCODING

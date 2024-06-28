@@ -1,7 +1,7 @@
 @builtin module:
 
 -- macro for while-loop
-@pub macro while STMT($cond EXPR, $body STMT_LIST)[]:
+pub macro while STMT($cond EXPR, $body STMT_LIST)[]:
     block _:
         if $cond:
         else:
@@ -13,7 +13,7 @@
 -- macro for number range for-loop,
 -- 
 -- The type of the loop variable is determined by $end
-@pub macro for STMT_LIST($index ID, $start EXPR, $end EXPR, $step EXPR, $body STMT_LIST)[
+pub macro for STMT_LIST($index ID, $start EXPR, $end EXPR, $step EXPR, $body STMT_LIST)[
         $end_eval, $step_eval, $it]:
     mlet $end_eval type_of($end) = $end
     mlet $step_eval type_of($end) = $step
@@ -27,7 +27,7 @@
 
         continue
 
-@pub macro trylet STMT_LIST(
+pub macro trylet STMT_LIST(
         $name ID, $type EXPR, $expr EXPR, $catch_name ID, $catch_body STMT_LIST)[
         $eval]:
     mlet $eval = $expr
@@ -40,7 +40,7 @@
         trap
     mlet $name $type = @unchecked narrow_as($eval, $type)
 
-@pub macro trylet! STMT_LIST(
+pub macro trylet! STMT_LIST(
         $name ID, $type EXPR, $expr EXPR, $catch_name ID, $catch_body STMT_LIST)[
         $eval]:
     mlet $eval = $expr
@@ -52,7 +52,7 @@
         trap
     mlet! $name $type = @unchecked narrow_as($eval, $type)
 
-@pub macro tryset STMT_LIST(
+pub macro tryset STMT_LIST(
         $name ID, $expr EXPR, $catch_name ID, $catch_body STMT_LIST)[$eval]:
     mlet $eval = $expr
     if !is($eval, type_of($name)):
@@ -69,5 +69,5 @@ macro swap# STMT_LIST($a EXPR, $b EXPR)[$t]:
     set $b = $t
 
 -- macro for c-style -> operator
-@pub macro ^. EXPR($pointer EXPR, $field FIELD)[]:
+pub macro ^. EXPR($pointer EXPR, $field FIELD)[]:
     ($pointer^).$field 

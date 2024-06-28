@@ -9,7 +9,7 @@ global IC u32 = 29573
 
 global! LAST u32 = 42
 
-@pub fun get_random(n r64) r64:
+pub fun get_random(n r64) r64:
     set LAST = (LAST * IA + IC) % IM
     return n * as(LAST, r64) / as(IM, r64)
 
@@ -18,7 +18,7 @@ rec Pcg32State:
     state u64
     inc u64
 
-@pub global Pcg32StateDefault = Pcg32State{
+pub global Pcg32StateDefault = Pcg32State{
         0x853c49e6748fea9b_u64, 0xda3e39cb94b95bdb_u64}
 
 -- Generate a uniformly distributed 32-bit random number

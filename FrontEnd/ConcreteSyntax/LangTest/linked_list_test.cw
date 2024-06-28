@@ -7,9 +7,9 @@ import fmt
 
 @wrapped type NoneType = void
 
-@pub global None = wrap_as(void, NoneType)
+pub global None = wrap_as(void, NoneType)
 
-@pub rec LinkedListNode:
+pub rec LinkedListNode:
     next union(NoneType, ^!LinkedListNode)
     payload u32
 

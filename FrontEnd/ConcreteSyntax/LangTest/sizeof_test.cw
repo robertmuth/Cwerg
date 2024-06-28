@@ -19,7 +19,7 @@ static_assert size_of([20]r64) == 160
 
 static_assert size_of(slice(r64)) == 16
 
-@pub rec type_rec:
+pub rec type_rec:
     s1 s32
     s2 s32
     s3 s32
@@ -36,7 +36,7 @@ static_assert offset_of(type_rec, b1) == 16
 
 static_assert offset_of(type_rec, u1) == 24
 
-@pub enum type_enum s32:
+pub enum type_enum s32:
     e1 7
     e2 auto
     e3 19
@@ -52,29 +52,29 @@ static_assert size_of(type_enum) == 4
 
 type ptr1 = ^!s32
 
-@pub type sum1 = union(bool, u8)
+pub type sum1 = union(bool, u8)
 
 static_assert size_of(sum1) == 3
 
-@pub type sum2 = union(bool, s32, s64)
+pub type sum2 = union(bool, s32, s64)
 
 static_assert size_of(sum2) == 16
 
-@pub type sum3 = union(bool, w3)
+pub type sum3 = union(bool, w3)
 
 static_assert size_of(sum3) == 3
 
-@pub type sum4 = union(ptr1, w3)
+pub type sum4 = union(ptr1, w3)
 
 -- 8 with union optimization
 static_assert size_of(sum4) == 16
 
-@pub type sum5 = union(ptr1, w2, w3)
+pub type sum5 = union(ptr1, w2, w3)
 
 -- 8 with union optimization
 static_assert size_of(sum5) == 16
 
-@pub type sum6 = union(ptr1, w1, w2, w3)
+pub type sum6 = union(ptr1, w1, w2, w3)
 
 static_assert size_of(sum6) == 16
 

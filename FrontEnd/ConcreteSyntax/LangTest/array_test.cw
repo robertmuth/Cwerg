@@ -32,7 +32,7 @@ fun baz() void:
     let pc1 ^s32 = front(c1)
     set c2[5] = 0
 
-@pub rec type_rec3:
+pub rec type_rec3:
     u2 u16
     u3 u64
     u5 [10]u8

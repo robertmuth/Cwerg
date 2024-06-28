@@ -15,7 +15,7 @@ global SIN5 r64 = -0x1.ae5e68a2b9cebp-26
 global SIN6 r64 = 0x1.5d93a5acfd57cp-33
 
 -- | x + y | <= pi / 4
-@pub fun sin_restricted(x r64, y r64, y_is_zero bool) r64:
+pub fun sin_restricted(x r64, y r64, y_is_zero bool) r64:
     let x2 = x * x
     let x3 = x2 * x
     let x4 = x2 * x2
@@ -46,7 +46,7 @@ global COS5 r64 = 0x1.1ee9ebdb4b1c4p-29
 global COS6 r64 = 0x1.8fae9be8838d4p-37
 
 -- | x + y | <= pi / 4
-@pub fun cos_restricted(x r64, y r64) r64:
+pub fun cos_restricted(x r64, y r64) r64:
     let x2 = x * x
     let x4 = x2 * x2
     let x8 = x4 * x4

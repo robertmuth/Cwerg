@@ -20,23 +20,23 @@ macro xdump_slice# STMT_LIST($prefix EXPR, $slice EXPR)[$s_eval, $i]:
 macro dump_slice# STMT_LIST($prefix EXPR, $slice EXPR)[$s, $i]:
 
 -- the input bitstream was corrupted
-@pub @wrapped type CorruptionError = void
+pub @wrapped type CorruptionError = void
 
-@pub global CorruptionErrorVal = wrap_as(void, CorruptionError)
+pub global CorruptionErrorVal = wrap_as(void, CorruptionError)
 
 -- the input bitstream was truncated
-@pub @wrapped type TruncationError = void
+pub @wrapped type TruncationError = void
 
-@pub global TruncationErrorVal = wrap_as(void, TruncationError)
+pub global TruncationErrorVal = wrap_as(void, TruncationError)
 
 -- the provided output buffer was not large enough
-@pub @wrapped type NoSpaceError = void
+pub @wrapped type NoSpaceError = void
 
-@pub global NoSpaceErrorVal = wrap_as(void, NoSpaceError)
+pub global NoSpaceErrorVal = wrap_as(void, NoSpaceError)
 
-@pub @wrapped type Success = void
+pub @wrapped type Success = void
 
-@pub global SuccessVal = wrap_as(void, Success)
+pub global SuccessVal = wrap_as(void, Success)
 
 global MAX_HUFFMAN_BITS u16 = 15
 
@@ -335,7 +335,7 @@ fun handle_uncompressed(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) unio
         set dst[pos + i] = src[i]
     return pos + len(src)
 
-@pub fun uncompress(bs ^!bitstream::Stream32, dst slice!(u8)) union(
+pub fun uncompress(bs ^!bitstream::Stream32, dst slice!(u8)) union(
         uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("FlateUncompress\n")
     -- next position within dst to write

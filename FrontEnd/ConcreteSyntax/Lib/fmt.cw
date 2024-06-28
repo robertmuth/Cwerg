@@ -2,17 +2,17 @@ module:
 
 import os
 
-@pub @extern fun memcpy(dst ^!u8, src ^u8, size uint) ^!u8:
+pub @extern fun memcpy(dst ^!u8, src ^u8, size uint) ^!u8:
 
-@pub global FORMATED_STRING_MAX_LEN uint = 4096
+pub global FORMATED_STRING_MAX_LEN uint = 4096
 
-@pub fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
+pub fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
     for i = 0, size, 1:
         set pinc(dst, i)^ = pinc(src, i)^
     return size
 
 -- This gets passed to the actual formatters which decide how to interpret the options.
-@pub rec SysFormatOptions:
+pub rec SysFormatOptions:
     -- min width
     witdh u8
     precission u8
@@ -75,7 +75,7 @@ fun DecToStr@(v s32, out slice!(u8)) uint:
     else:
         return DecToStr@(as(v, u32), out)
 
-@pub fun str_to_u32(s slice(u8)) u32:
+pub fun str_to_u32(s slice(u8)) u32:
     let! x = 0_u32
     for i = 0, len(s), 1:
         set x *= 10
@@ -102,15 +102,15 @@ fun SysRender@(v slice(u8), buffer slice!(u8), options ^!SysFormatOptions) uint:
     let n uint = len(buffer) min len(v)
     return mymemcpy(front!(buffer), front(v), n)
 
-@pub @wrapped type uint_hex = uint
+pub @wrapped type uint_hex = uint
 
-@pub @wrapped type u64_hex = u64
+pub @wrapped type u64_hex = u64
 
-@pub @wrapped type u32_hex = u32
+pub @wrapped type u32_hex = u32
 
-@pub @wrapped type u16_hex = u16
+pub @wrapped type u16_hex = u16
 
-@pub @wrapped type u8_hex = u8
+pub @wrapped type u8_hex = u8
 
 fun ToHexStr@(v u64, out slice!(u8)) uint:
     return unsigned_to_str#(v, 16, 64_uint, out)
@@ -139,7 +139,7 @@ fun SysRender@(v u16_hex, out slice!(u8), options ^!SysFormatOptions) uint:
 fun SysRender@(v u8_hex, out slice!(u8), options ^!SysFormatOptions) uint:
     return ToHexStr@(unwrap(v), out)
 
-@pub @wrapped type rune = u8
+pub @wrapped type rune = u8
 
 fun SysRender@(v rune, buffer slice!(u8), options ^!SysFormatOptions) uint:
     if len(buffer) == 0:
@@ -215,12 +215,12 @@ fun ToHexStr@(val r64, out slice!(u8)) uint:
     set i += DecToStr@(as(exp, u64), rest)
     return i
 
-@pub @wrapped type r64_hex = r64
+pub @wrapped type r64_hex = r64
 
 fun SysRender@(v r64_hex, out slice!(u8), options ^!SysFormatOptions) uint:
     return ToHexStr@(unwrap(v), out)
 
-@pub @wrapped type str_hex = slice(u8)
+pub @wrapped type str_hex = slice(u8)
 
 fun SysRender@(v str_hex, out slice!(u8), options ^!SysFormatOptions) uint:
     let v_str slice(u8) = unwrap(v)
@@ -242,7 +242,7 @@ fun SysRender@(v ^void, out slice!(u8), options ^!SysFormatOptions) uint:
     let h = wrap_as(bitwise_as(v, uint), uint_hex)
     return SysRender@(h, out, options)
 
-@pub macro print# STMT_LIST(
+pub macro print# STMT_LIST(
     -- list of items to be printed
     $parts EXPR_LIST_REST)[$buffer, $curr, $options]:
     mlet! $buffer = [FORMATED_STRING_MAX_LEN]u8{}
@@ -255,7 +255,7 @@ fun SysRender@(v ^void, out slice!(u8), options ^!SysFormatOptions) uint:
     do os::write(unwrap(os::Stdout), front($buffer), $curr)
 
 -- same as above but takes an EXPR_LIST - should only be used by other macros
-@pub macro print_list# STMT_LIST($parts EXPR_LIST)[$buffer, $curr, $options]:
+pub macro print_list# STMT_LIST($parts EXPR_LIST)[$buffer, $curr, $options]:
     mlet! $buffer = [FORMATED_STRING_MAX_LEN]u8{}
     mlet! $curr uint = 0
     @ref mlet! $options = SysFormatOptions{}
@@ -265,13 +265,13 @@ fun SysRender@(v ^void, out slice!(u8), options ^!SysFormatOptions) uint:
                 $options)
     do os::write(unwrap(os::Stdout), front($buffer), $curr)
 
-@pub fun strz_to_slice(s ^u8) slice(u8):
+pub fun strz_to_slice(s ^u8) slice(u8):
     let! i uint = 0
     while pinc(s, i)^ != 0:
         set i += 1
     return slice(s, i)
 
-@pub macro assert# STMT($cond EXPR, $parts EXPR_LIST_REST)[]:
+pub macro assert# STMT($cond EXPR, $parts EXPR_LIST_REST)[]:
     if $cond:
     else:
         print#(stringify($cond))

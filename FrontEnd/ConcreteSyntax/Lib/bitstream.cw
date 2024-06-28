@@ -3,7 +3,7 @@ module:
 -- supports retrieval of bitfields up to 32 bit wide from underlying slice
 -- 
 -- not thread-safe
-@pub rec Stream32:
+pub rec Stream32:
     buf slice(u8)
     offset uint
     -- contains the next up to 8 bits from the stream
@@ -16,7 +16,7 @@ module:
 -- n must be from [0, 32]
 -- may set eos
 -- 
-@pub fun Stream32GetBits(bs ^!Stream32, bits_requested u8) u32:
+pub fun Stream32GetBits(bs ^!Stream32, bits_requested u8) u32:
     let! new_bits u32
     let! bits_count u8 = bs^.bits_count
     let! bits_cache u32 = as(bs^.bits_cache, u32)
@@ -48,15 +48,15 @@ module:
     return out
 
 -- Resume bit retrieval at the next byte boundary
-@pub fun Stream32SkipToNextByte(bs ^!Stream32) void:
+pub fun Stream32SkipToNextByte(bs ^!Stream32) void:
     -- If there are any bits in the cache throw them away
     set bs^.bits_count = 0
 
-@pub fun Stream32GetBool(bs ^!Stream32) bool:
+pub fun Stream32GetBool(bs ^!Stream32) bool:
     return as(Stream32GetBits(bs, 1), bool)
 
 -- may set eos bit
-@pub fun Stream32GetByteSlice(bs ^!Stream32, n uint) slice(u8):
+pub fun Stream32GetByteSlice(bs ^!Stream32, n uint) slice(u8):
     let! l uint = len(bs^.buf)
     let! f = front(bs^.buf)
     let offset uint = bs^.offset
@@ -68,12 +68,12 @@ module:
         return slice(pinc(f, offset), n)
 
 -- rounds down - bits_cache treated as consumed/empty
-@pub fun Stream32BytesLeft(bs ^Stream32) uint:
+pub fun Stream32BytesLeft(bs ^Stream32) uint:
     return len(bs^.buf) - bs^.offset
 
 -- rounds up - bits_cache treated as consumed/empty
-@pub fun Stream32BytesConsumed(bs ^Stream32) uint:
+pub fun Stream32BytesConsumed(bs ^Stream32) uint:
     return bs^.offset
 
-@pub fun Stream32Eos(bs ^Stream32) bool:
+pub fun Stream32Eos(bs ^Stream32) bool:
     return bs^.eos

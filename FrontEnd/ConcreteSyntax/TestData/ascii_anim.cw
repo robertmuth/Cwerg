@@ -8,20 +8,20 @@ import fmt
 -- arbitrary bounds so we can statically allocate maps
 global MAX_DIM s32 = 1024
 
-@pub global DEF_ATTR_LOOKUP = "RcRyBgM"
+pub global DEF_ATTR_LOOKUP = "RcRyBgM"
 
-@pub rec Window:
+pub rec Window:
     width s32
     height s32
     char_map [MAX_DIM * MAX_DIM]u8
     attr_map [MAX_DIM * MAX_DIM]u8
     depth_map [MAX_DIM * MAX_DIM]u8
 
-@pub rec Sprite:
+pub rec Sprite:
     image_map slice(u8)
     color_map slice(u8)
 
-@pub rec Object:
+pub rec Object:
     name slice(u8)
     sprites slice(Sprite)
     def_attr u8
@@ -30,7 +30,7 @@ global MAX_DIM s32 = 1024
     def_x_speed r32
     def_y_speed r32
 
-@pub rec ObjectState:
+pub rec ObjectState:
     obj ^Object
     start_time r32
     x_pos r32
@@ -44,7 +44,7 @@ global MAX_DIM s32 = 1024
     -- updated by draw
     visible bool
 
-@pub fun InitObjectState(s ^!ObjectState, o ^Object) void:
+pub fun InitObjectState(s ^!ObjectState, o ^Object) void:
     set s^.obj = o
     set s^.attr_lookup = DEF_ATTR_LOOKUP
     set s^.depth = o^.def_depth
@@ -53,7 +53,7 @@ global MAX_DIM s32 = 1024
     set s^.x_speed = o^.def_x_speed
     set s^.y_speed = o^.def_y_speed
 
-@pub fun SetBasics(s ^!ObjectState, start_time r32, x_pos r32, y_pos r32) void:
+pub fun SetBasics(s ^!ObjectState, start_time r32, x_pos r32, y_pos r32) void:
     set s^.start_time = start_time
     set s^.x_pos = x_pos
     set s^.y_pos = y_pos
@@ -109,7 +109,7 @@ fun get_bg_color(attr u8) slice(u8):
         case true:
             return ""
 
-@pub fun draw(window ^!Window, s ^!ObjectState) void:
+pub fun draw(window ^!Window, s ^!ObjectState) void:
     let width = window^.width
     let height = window^.height
     let obj = s^.obj
@@ -159,7 +159,7 @@ fun get_bg_color(attr u8) slice(u8):
                     set window^.attr_map[index] = a
         set x += 1
 
-@pub fun window_draw(obj ^Window, bg_col u8) void:
+pub fun window_draw(obj ^Window, bg_col u8) void:
     fmt::print#(get_bg_color(bg_col), ansi::CLEAR_ALL)
     let w = obj^.width
     let h = obj^.height
@@ -181,7 +181,7 @@ fun get_bg_color(attr u8) slice(u8):
             set last_attr = a
             fmt::print#(wrap_as(c, fmt::rune))
 
-@pub fun window_fill(obj ^!Window, c u8, a u8) void:
+pub fun window_fill(obj ^!Window, c u8, a u8) void:
     let size = obj^.width * obj^.height
     for i = 0, size, 1:
         set obj^.char_map[i] = c

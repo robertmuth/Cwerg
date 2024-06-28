@@ -2,19 +2,19 @@ module:
 
 import test
 
-@pub enum enum8 u8:
+pub enum enum8 u8:
     e1 7
     e2 auto
     e3 19
     e4 auto
 
-@pub enum enum16 u16:
+pub enum enum16 u16:
     e1 70
     e2 auto
     e3 190
     e4 auto
 
-@pub enum enum32 u32:
+pub enum enum32 u32:
     e1 700
     e2 auto
     e3 1900
@@ -27,7 +27,7 @@ global! g2 = enum16:e2
 
 global! g3 = enum32:e3
 
-@pub rec rec1:
+pub rec rec1:
     -- this is a comment with \" with quotes \t 
     f1 s32
     f2 s32

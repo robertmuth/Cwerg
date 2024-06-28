@@ -58,8 +58,9 @@ class TK_KIND(enum.Enum):
     SQUARE_CLOSED = enum.auto()
     CURLY_OPEN = enum.auto()
     CURLY_CLOSED = enum.auto()
-    #
-    SPECIAL_MUT = enum.auto()
+    # SPECIAL_xxx will be rewritten to one of the ones above
+    SPECIAL_MUT = enum.auto()   # keyword with ! suffix
+    SPECIAL_ANNOTATION = enum.auto()  # pub
     SPECIAL_EOF = enum.auto()
 
 
@@ -72,6 +73,7 @@ _KEYWORDS_SIMPLE = [
     "front",
     "funtype",
     "else",
+    "pub",
     #
     "pinc",
     "pdec",
@@ -94,7 +96,7 @@ for k in pp.KEYWORDS_WITH_EXCL_SUFFIX:
 # some operators are textual (xor, max, etc.)
 for k in cwast.BINARY_EXPR_SHORTCUT:
     KEYWORDS[k] = TK_KIND.OP2
-
+KEYWORDS["pub"] = TK_KIND.SPECIAL_ANNOTATION
 
 _OPERATORS_SIMPLE1 = [
     # "-",
@@ -240,7 +242,11 @@ class LexerRaw:
                 if self._current_line.startswith("!", len(token)):
                     token = token + "!"
             elif kind == TK_KIND.OP2:
+                # rewrite operartor with names like xor, etc.
                 kind = TK_KIND.KW
+            elif kind == TK_KIND.SPECIAL_ANNOTATION:
+                kind = TK_KIND.ANNOTATION
+                token = "@" + token
 
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]

@@ -2,7 +2,7 @@ module:
 
 import test
 
-@pub rec type_rec1:
+pub rec type_rec1:
     -- this is a comment with \" with quotes \t 
     i1 s64
     i2 u64
@@ -22,13 +22,13 @@ import test
     a5 [7]r32
     a6 [7]r64
 
-@pub rec type_rec2:
+pub rec type_rec2:
     t1 bool
     t2 u32
     t3 type_rec1
     t4 bool
 
-@pub rec type_rec3:
+pub rec type_rec3:
     u2 u16
     u3 u64
     u4 type_rec2

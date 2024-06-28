@@ -382,13 +382,15 @@ def TokensAnnotationsPre(ts: TS, node):
 
     # next handle non-docs
     for field, nfd in node.ATTRS:
-        # mut is handled directly
+        # mut is handled directly with the "!" suffix
         if nfd.kind is not cwast.NFK.ATTR_BOOL or field == "mut":
             continue
 
         val = getattr(node, field)
         if val:
-            ts.EmitAnnotationShort(_ANNOTATION_PREFIX + field)
+            if field != "pub":
+                field = _ANNOTATION_PREFIX + field
+            ts.EmitAnnotationShort(field)
 
 
 def TokensAnnotationsPost(ts: TS, node):
