@@ -136,6 +136,7 @@ module(
 type Visitor = funtype(node ^$type) void
 
 @pub fun InorderTraversal(root MaybeNode, visitor Visitor) void:
+    -- return if the union root is a Leaf
     trylet node ^!Node = root, _:
         return
     do InorderTraversal(node^.left, visitor)
