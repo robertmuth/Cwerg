@@ -71,7 +71,7 @@ identifier followed by type.
 Functions can only return one value.
 
 Annotations are identifiers that start with "@" and can precede certain
-syntactical constructs. Here `@cdecl` disables the name mangling of function main
+syntactic constructs. Here `@cdecl` disables the name mangling of function main
 so it can be linked against the startup code.
 
 `fmt::print#` is a macro call. All macros names must end in "#".
@@ -207,9 +207,21 @@ Array dimension go in front of the element type:
 Array of different length are not compatible and
 are different from pointers to the element type.
 ```
-static_assert typeidof([10]u32) != typeidof([2]u32)
-static_assert typeidof([10]u32) != typeidof(^u32)
+static_assert typeid_of([10]u32) != typeid_of([2]u32)
+static_assert typeid_of([10]u32) != typeid_of(^u32)
 ```
+
+The length and fist element of an array can be  accessed with:
+```
+    -- returns a readonly pointer to the first element of the array
+    ... = front(readomly_or_mutable_array)
+    -- returns a mutable pointer to the first element of the mutable array
+    ... = front!(mutable_array)
+    -- returns a `uint` with the length of the array
+    ... = len(a_array)
+```
+
+Note: array literals are readonly.
 
 ### Slices
 
@@ -221,6 +233,17 @@ and a length.
     slice(u32)
     -- mutable slice
     slice!(u32)
+```
+
+The two components of a slice can be accessed with:
+```
+    -- returns a readonly pointer to the first element of the slice
+    ... = front(readomly_or_mutable_slice)
+    -- returns a mutable pointer to the first element of the mutable slice
+    ... = front!(mutable_slice)
+    -- returns a `uint` with the length of the slice.
+    ... = len(a_slice)
+
 ```
 
 ### Function types
@@ -262,7 +285,7 @@ enum Color u8:
 
 This declares an enum `Color` with 3 members (`red`, `green`, `blue`)
 with an underlying type of `u8`.
-`auto` is using the previously asigned value incremented by 1 or zero if it is the first member.  So in the above example we get:
+`auto` is using the previously assigned value incremented by 1 or zero if it is the first member.  So in the above example we get:
 ```
 Color:blue has value 0
 Color:green has value 10
@@ -310,7 +333,7 @@ In the example below `u1` and `u2` are the same type:
 ```
 type u1  = union (u8, s64, union(u8, s32), union(u8, void))
 type u2  = union (s64, s32, void, u8))
-static_assert typeidof)u1)  ==  typeidof)u2)
+static_assert typeid_of)u1)  ==  typeid_of)u2)
 ```
 
 More info in [Unions](union_types.md)
@@ -418,7 +441,7 @@ and must be have one of the following kinds:
 * TYPE: a type expression
 
 
-## Top Level Declations
+## Top Level Declarations
 
 By default all top level declarations are module private.
 The `pub` annotation will export the declaration and thereby make it visible to the
@@ -562,14 +585,14 @@ Example:
 ### Block Statements
 
 A block introduces an optionally labelled new scope.
-Controlflow will resume at the next statement after block if
-the control flow falls throuh the last statement of the block.
+Control-flow will resume at the next statement after block if
+the control flow falls through the last statement of the block.
 ```
 block <NAME>?:
     <STATEMENT>*
 ```
 
-A `continue` statement inside the block will set controlflow to the beginning
+A `continue` statement inside the block will set control-flow to the beginning
 of the block and a `break` statement will exit the block.
 Both  `continue` and `break` statements can have an optional label indicating
 which enclosing `block` they refer to.
@@ -654,7 +677,7 @@ return optional-expression
 ```
 
 Return a value from the enclosing function or expression statement.
-If no expression is provided `void` is assumed.
+If no expression is provided, `void` is assumed.
 
 
 ### Continue Statements
