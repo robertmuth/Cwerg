@@ -5,7 +5,7 @@ Cwerg tries to find the right balance between language expressiveness and compil
  So Cwerg is meant to be a small language that can be maintained by a single person. Since small is subjective we have set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
 
  Cwerg is also meant to be a fast language enabling whole program compilation. We target a compilation speed
- of at least a million lines per seceond.
+ of at least a million lines per second.
 
 ## Highlights
 
@@ -70,8 +70,8 @@ The type information in the function declaration follows the Go model of
 identifier followed by type.
 Functions can only return one value.
 
-Annotations are identifiers that start with "@" and can preceed certain
-syntactical constructs. Here `@cdecl` disables the name mangiling of function main
+Annotations are identifiers that start with "@" and can precede certain
+syntactical constructs. Here `@cdecl` disables the name mangling of function main
 so it can be linked against the startup code.
 
 `fmt::print#` is a macro call. All macros names must end in "#".
@@ -93,10 +93,10 @@ The `@pub` annotation makes `fib` visible outside of the module.
 
 ```
 -- a global constant
-global N uint = 1000 * 1000 * 1000;
+global N uint = 1000 * 1000 * 1000
 
 -- a mutable global array of bools initialized to `true`
--- index i reprents number 3 + 2 * i
+-- index i represents number 3 + 2 * i
 global! is_prime = [N]bool{true}
 
 -- Count the number of primes below n
@@ -112,7 +112,7 @@ fun sieve() uint:
     return count
 ```
 
-Exclamtion marks at the end of keywords indicate mutability.
+Exclamation marks at the end of keywords indicate mutability.
 
 ## Binary Tree (parameterized/generic module)
 
@@ -280,7 +280,7 @@ type t1 = funtype(x u8, y u8) u1
 ```
 
 
-This is strictly an abbreviation, the lhs and the rhs can be used interchangably in the code.
+This is strictly an abbreviation, the lhs and the rhs can be used interchangeably in the code.
 
 To force by name type equivalence in this case, use the `@wrapped` annotation like so
 ```
@@ -318,7 +318,7 @@ More info in [Unions](union_types.md)
 ## Literals
 
 
-### Booleam Literals
+### Boolean Literals
 
 `true`, `false`
 
@@ -336,7 +336,7 @@ Unescaped (aka raw) strings are prefixed with "r", e.g. (r"string").
 Hex strings are prefixed with x, e.g. (x"de ad be ef") and ignore all white space
 characters.
 
-Multi-line strings are enclosed in tripple quotes, e.g. """multi-line string:"""",
+Multi-line strings are enclosed in triple quotes, e.g. """multi-line string:"""",
 and also come in unescaped (prefix "r") and hex (prefix "x") flavors.
 
 
@@ -401,14 +401,14 @@ Every file starts with module definition. A simple version looks like:
 
 ```
 module:
-    <TOP-LEVEL-DECLARATIOND>+
+    <TOP-LEVEL-DECLARATION>+
 ```
 
 A more complex definition for the generic case looks like:
 
 ```
 module optional-name(param-name1 param-kind1, param-name2 param-kind2, ...):
-    <TOP-LEVEL-DECLARATIOND>+
+    <TOP-LEVEL-DECLARATION>+
 ```
 
 All module parameters must start with a '$' (similar to macro parameters)
@@ -447,7 +447,7 @@ global a_global_const = 7_u64
 
 ### Global Variables
 
-Variables use the same syntax as global except that the keyword is suffixed by `!`, e.g.;
+Variables use the same syntax as global except that the keyword is suffixed by `!`, e.g.:
 
 ```
 global! a_global_var u64 = 7_u64
@@ -462,7 +462,7 @@ Functions are declared like so:
 
 ```
  fun foo(param1 typ1, param2 type2, ...) returntype:
-    <STATEMENTS>*
+    <STATEMENT>*
 ```
 
 Functions can only have one result.
@@ -478,7 +478,7 @@ These were covered in the Type Section above
 
 Static asserts are checked at compile time. Example:
 ```
--- this ensures that we are on a 64bit s ystem
+-- this ensures that we are on a 64bit system
 static_assert sizeof(^u8) == 8
 ```
 
@@ -489,13 +489,13 @@ TBD  - see [Macros](macros.md)
 
 ## Statements
 
-Note: all statments start with an introductory keyword.
+Note: all statements start with an introductory keyword.
 
 
 ### Local Constants
 
 Local constants have the same syntax as global constants except
-they are introduce with the `let` keyword. All these statements are equivalent:
+they are introduced with the `let` keyword. All these statements are equivalent:
 
 ```
 let a_local_const u64 = 7_u64
@@ -522,10 +522,10 @@ The special initializer `undef` will leave the initial value undefined.
 ### (Compound) Assignment Statements
 
 ```
-set a_local_const = 666;
+set a_local_const = 666
 ...
-set a_local_const += 666;
-set a_local_const and= 666;
+set a_local_const += 666
+set a_local_const and= 666
 
 ```
 
@@ -565,7 +565,7 @@ Controlflow will resume at the next statement after block if
 the control flow falls throuh the last statement of the block.
 ```
 block <NAME>?:
-    <STAREMENTS>*
+    <STATEMENT>*
 ```
 
 A `continue` statement inside the block will set controlflow to the beginning
@@ -578,7 +578,7 @@ which enclosing `block` they refer to.
 
 ```
 while <CONDITION>:
-    <STAREMENTS>*
+    <STATEMENT>*
 ```
 
 
@@ -586,7 +586,7 @@ while <CONDITION>:
 
 ```
 for var-name = initial-expr, limit-expr, step-expr:
-    <STAREMENTS>*
+    <STATEMENT>*
 ```
 
 For loops differ from their C counterparts in the following way:
@@ -594,7 +594,7 @@ For loops differ from their C counterparts in the following way:
 * initial-expr, limit-expr, step-expr are evaluated once at the beginning
 * the type of var-name is determined by the type of limit-expr
 
-If you need a for loop to iterated over a custom data-structure, define
+If you need a for loop to iterate over a custom data-structure, define
 a macro.
 
 
@@ -603,16 +603,16 @@ a macro.
 Simple
 ```
 if condition:
-    <STAREMENTS>*
+    <STATEMENT>*
 ```
 
 With else clause
 
 ```
 if condition:
-    <STAREMENTS>*
+    <STATEMENT>*
 else:
-    <STAREMENTS>*
+    <STATEMENT>*
 ```
 
 
@@ -621,9 +621,9 @@ else:
 ```
 cond:
     case condition1:
-        <STAREMENTS>*
+        <STATEMENT>*
     case condition2:
-        <STAREMENTS>*
+        <STATEMENT>*
     ...
 ```
 
@@ -637,7 +637,7 @@ and must go last.
 
 ```
 defer:
-    <STAREMENTS>*
+    <STATEMENT>*
 ```
 
 The code in the defer body will be run when the enclosing scope is exited.
@@ -653,7 +653,7 @@ return optional-expression
 ```
 
 Return a value from the enclosing function or expression statement.
-If no expression is provide `void` is assumed.
+If no expression is provided `void` is assumed.
 
 
 ### Continue Statements
@@ -675,7 +675,7 @@ break optional-label
 Exit the enclosing `block`, `while` or `for` statement.
 The optional label can be used to name the block to exit.
 ```
-    block label1;
+    block label1:
         ...
         block label2:
             ...
@@ -747,7 +747,7 @@ The expression will usually be a function call with a side-effect.
 | ROTL   | <<<      | bitwise rotate left       |
 | PDELTA | &-&      | pointer difference        |
 
-Note, operator precendence has yet to be finalized
+Note, operator precedence has yet to be finalized
 
 ### Function Style Operators
 
@@ -803,7 +803,7 @@ Also see [Casting](casting.md)
 
 ### Expression Statements
 
-Expression Statements are code blocks that evalute to a value. Examples
+Expression Statements are code blocks that evaluate to a value. Examples
 
 ```
 let x s8 = foo()
@@ -813,6 +813,7 @@ let sign s8 = expr:
                         return 0_s8
                     case x < 0
                         return -1_s8
+                    -- default case
                     case true:
                         return 1_s8
 
