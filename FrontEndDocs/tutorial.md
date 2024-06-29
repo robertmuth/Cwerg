@@ -101,8 +101,9 @@ global! is_prime = [N]bool{true}
 
 -- Count the number of primes below n
 fun sieve() uint:
+    -- mutable local varible
     let! count uint = 1
-    -- the type of `i`  is determined by `N`
+    -- the type of loop variable `i`  is determined by `N`
     for i = 0, N, 1:
         if is_prime[i]:
             set count += 1
@@ -157,6 +158,61 @@ pub fun Insert(root MaybeNode, node ^!Node) ^!Node:
 
 ```
 
+## Word Count (full example)
+```
+module:
+
+import os
+
+import fmt
+
+fun is_white_space(c u8) bool:
+    return c == ' ' || c == '\n' || c == '\t' || c == '\r'
+
+-- word, line and character count statistics
+rec TextStats:
+    num_lines uint
+    num_words uint
+    num_chars uint
+
+-- Returns either a TextStat or an Error
+fun WordCount(fd os::FD) union(TextStats, os::Error):
+    -- note limited type inference in next two stmts
+    let! stats = TextStats{}
+    let! in_word = false
+    -- do not initialize buf with zeros
+    let! buf [1024]u8 = undef
+    while true:
+        -- if FileRead returns an uint, assign it to n else return it
+        trylet n uint = os::FileRead(fd, buf), err:
+            return err
+        if n == 0:
+            break
+        set stats.num_chars += n
+        -- index variable has the same type as n.
+        for i = 0, n, 1:
+            let c = buf[i]
+            cond:
+                case c == '\n':
+                    set stats.num_lines += 1
+                case is_white_space(c):
+                    set in_word = false
+                case !in_word:
+                    set in_word = true
+                    set stats.num_words += 1
+        if n != len(buf):
+            break
+    return stats
+
+-- cdecl attribute disables name mangling
+@cdecl fun main(argc s32, argv ^^u8) s32:
+    trylet stats TextStats = WordCount(os::Stdin), err:
+        return 1
+    -- print# is a stmt macro for printing arbitrary values.
+    -- (It is possible to define formatters for custom types.)
+    fmt::print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars, "\n")
+    return 0
+```
 ## Type System
 
 Cwerg's type system is similar to C's with the following differences
@@ -249,14 +305,14 @@ The two components of a slice can be accessed with:
 ### Function types
 
 
-Function type can be described like so:
+Function types can be described like so:
 ```
     funtype(param1 type1, param2 type2, ...) return-type
 ```
 ### Records
 
 
-Records, essentially C-structs, can be declared like so:
+Record types, essentially C-structs, can be declared like so:
 
 ```
 rec Date:
@@ -273,7 +329,7 @@ There are plans to have per field private/public access control but for now if t
 
 ### Enums
 
-Enums can be declared like so:
+Enum types can be declared like so:
 
 ```
 enum Color u8:
@@ -331,13 +387,20 @@ The annotation `@untagged` changes a union to untagged.
 Unions are: order independent, duplicate eliminating, and auto-flattening.
 In the example below `u1` and `u2` are the same type:
 ```
-type u1  = union (u8, s64, union(u8, s32), union(u8, void))
-type u2  = union (s64, s32, void, u8))
-static_assert typeid_of)u1)  ==  typeid_of)u2)
+type u1  = union(u8, s64, union(u8, s32), union(u8, void))
+type u2  = union(s64, s32, void, u8))
+static_assert typeid_of(u1)  ==  typeid_of(u2)
+```
+
+Sometimes it is useful to define the type of a union which is the delta of two unions
+A and B where B's member types are a subset of A's. This can be done like so:
+```
+type u1  = union(u8, s64, void, r64)
+type u2  = union(s64, void))
+static_assert typeid_of(union_delta(u1, u2)  ==  typeid_of(union(u8, r64))
 ```
 
 More info in [Unions](union_types.md)
-
 
 ## Literals
 
@@ -367,6 +430,8 @@ and also come in unescaped (prefix "r") and hex (prefix "x") flavors.
 ### Number Literals
 
 Number literals may contain underscores ("_") which are ignored. Since Cwerg does not implicitly convert numbers it is often necessary use typed number by adding one of the following suffices: u8, u16, u32, u64, s8, s16, s32, s64, r32, r64, e.g. "0x1234_s16".
+
+Both hexadecimal (0x) and binary (0b) basis are supported but no octal.
 
 
 ### Array Literals
@@ -652,7 +717,7 @@ cond:
 ```
 
 Note, there is no fallthrough.
-Case are checked in order.
+Case are checked in order.z
 A `default` case  be expressed as `case true`
 and must go last.
 
@@ -770,6 +835,13 @@ The expression will usually be a function call with a side-effect.
 | ROTR   | >>>      | bitwise rotate right      |
 | ROTL   | <<<      | bitwise rotate left       |
 | PDELTA | &-&      | pointer difference        |
+
+
++, -, *, /. % for signed and unsigned integers have wrap-around
+sematics and do not trap on overflow.
+
+The main additions to C are: MIN, MAX, ROTL, ROTR which are directly
+supported by the backend.
 
 Note, operator precedence has yet to be finalized
 

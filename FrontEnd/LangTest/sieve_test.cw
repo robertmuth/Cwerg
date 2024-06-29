@@ -19,7 +19,9 @@ index i reprents number 3 + 2 * i"""
 
 @doc "the actual sieve function"
 (fun sieve [] uint :
+    @doc "mutable local variable"
     (let! count uint 0)
+    @doc "the type of loop variable `i`  is determined by `N`"
     (for i 0 SIZE 1 :
         (if (at is_prime i) :
             (+= count 1)
