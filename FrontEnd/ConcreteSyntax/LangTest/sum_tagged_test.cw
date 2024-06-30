@@ -124,7 +124,7 @@ fun test_tagged_union_narrowto() void:
     test::AssertTrue#(narrow_as(x, bool))
     let! z = narrow_as(x, union(u8, bool))
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     do test_tagged_union_basic()
     do test_tagged_union_void()
     do test_tagged_union_result()

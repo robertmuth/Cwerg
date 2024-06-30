@@ -234,7 +234,7 @@ fun test_all() void:
                     tc^.expected_output, slice(
                         front(tc^.output), @unchecked narrow_as(res, uint)))
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     do test_all()
     -- test end
     test::Success#()

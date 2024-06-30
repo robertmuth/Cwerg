@@ -40,7 +40,7 @@
         0]))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (@ref let! key u32 6)
     (@ref let! val u32 6)
     (for i 0 (/ SIZE 2) 1 :

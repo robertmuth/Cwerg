@@ -43,7 +43,7 @@ fun sign3(x s32) s32:
                     return 1_s32
 
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(assoc3(5, 7, 1, 2), 5_u32)
     -- 
     test::AssertEq#(sign1(20), 1_s32)

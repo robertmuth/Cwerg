@@ -14,7 +14,7 @@ cos   1    sqrt(3)/2   sqrt(2)/2  1/2        0
 (global EPSILON r64 0.0000001)
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (test::AssertApproxEq# (trig::sin_restricted [0.0 0.0 true]) 0.0_r64 EPSILON)
     (test::AssertApproxEq# (trig::sin_restricted [(/ math::PI 6.0) 0.0 true]) 0.5_r64 EPSILON)
     (test::AssertApproxEq# (trig::sin_restricted [(/ math::PI 4.0) 0.0 true]) (/ math::SQRT_2 2) EPSILON)

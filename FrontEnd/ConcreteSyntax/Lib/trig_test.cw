@@ -13,7 +13,7 @@ import test
 -- 
 global EPSILON r64 = 0.0000001
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     test::AssertApproxEq#(trig::sin_restricted(0.0, 0.0, true), 0.0_r64, EPSILON)
     test::AssertApproxEq#(
             trig::sin_restricted(math::PI / 6.0, 0.0, true), 0.5_r64, EPSILON)

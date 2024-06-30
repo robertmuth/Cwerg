@@ -86,7 +86,7 @@
 (global g7 auto (array_val 1 type_rec5 [(rec_val type_rec5 [0 buffer false])]))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
     (let! v1 auto (rec_val type_rec3 []))
     (= (. v1 u2) 102)

@@ -3,7 +3,7 @@ module:
 
 import fmt
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     fmt::print#("""hello world
 
     line 1

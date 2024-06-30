@@ -45,7 +45,7 @@ If not you're just wasting my time
         f500199d95b6d3e3 01758586281dcd26""" (sha3::Sha3512 [""])))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc ""
     (do (test_Keccak512 []))
     (do (test_Sha3512 []))

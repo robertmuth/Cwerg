@@ -10,7 +10,7 @@ fun strlen(s ^u8) uint:
         set i += 1
     return i
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     for i = 0, as(argc, u32), 1:
         let s ^u8 = pinc(argv, i)^
         -- the print# macro does not supprt zero terminated strings

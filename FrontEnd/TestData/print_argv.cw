@@ -11,7 +11,7 @@
     (return i))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (for i 0 (as argc u32) 1 :
         (let s (ptr u8) (^ (pinc argv i)))
         @doc """the print# macro does not supprt zero terminated strings

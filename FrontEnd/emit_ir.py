@@ -60,14 +60,14 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
                 break
 
 
-def _MangledGlobalName(mod: cwast.DefMod, node: Any) -> str:
+def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> str:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
     # : is used for type annotations
     suffix = ""
     if isinstance(node, (cwast.DefFun)) and node.is_polymorphic():
         suffix = f"<{node.x_type.parameter_types()[0].name}>"
-    if node.cdecl:
+    if is_cdecl:
         return node.name + suffix
     else:
         return mod.x_modname + "/" + node.name + suffix
@@ -337,7 +337,7 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Type
                 EmitIRConditional(cond.expr1, False, label_false, tc, id_gen)
                 EmitIRConditional(cond.expr2, False, label_false, tc, id_gen)
         elif kind in (cwast.BINARY_EXPR_KIND.AND, cwast.BINARY_EXPR_KIND.OR,
-                        cwast.BINARY_EXPR_KIND.XOR):
+                      cwast.BINARY_EXPR_KIND.XOR):
             op = EmitIRExpr(cond, tc, id_gen)
             if invert:
                 print(f"{TAB}beq {op} 0 {label_false}")
@@ -878,7 +878,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             assert isinstance(
                 node.expr_lhs, cwast.Id), "NYI complex static addresses"
             data = node.expr_lhs
-            print(f"\n.addr.mem {tc.get_address_size()} {data.x_symbol.name} 0")
+            print(
+                f"\n.addr.mem {tc.get_address_size()} {data.x_symbol.name} 0")
             return tc.get_address_size()
         elif isinstance(node, cwast.ExprWiden):
             count = _emit_recursively(node.expr, node.expr.x_type, offset)
@@ -1013,6 +1014,7 @@ def main() -> int:
     mp.ReadModulesRecursively([main], add_builtin=True)
 
     mod_topo_order = mp.ModulesInTopologicalOrder()
+    main_entry_fun: cwast.DefFun = mp.MainEntryFun()
 
     # keeps track of those node classes which have been eliminated and hence must not
     # occur in the AST anymore
@@ -1052,7 +1054,7 @@ def main() -> int:
         typify.VerifyTypesRecursively(mod, tc, verifier)
 
     if args.shake_tree:
-        dead_code.ShakeTree(mod_topo_order)
+        dead_code.ShakeTree(mod_topo_order, main_entry_fun)
 
     logger.info("partial eval and static assert validation")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
@@ -1199,13 +1201,13 @@ def main() -> int:
     # * uniquify local variables so we can use them directly
     #   for codegen without having to worry about name clashes
     for mod in mod_topo_order:
-
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
                 _FunRenameLocalsToAvoidNameClashes(node)
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
-                node.name = _MangledGlobalName(mod, node)
+                node.name = _MangledGlobalName(
+                    mod, node, node.cdecl or node == main_entry_fun)
 
     SanityCheckMods("after_name_cleanup", args.emit_ir,
                     mod_topo_order, tc, verifier, eliminated_nodes)

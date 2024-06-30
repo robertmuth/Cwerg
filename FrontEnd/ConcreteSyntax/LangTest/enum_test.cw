@@ -41,7 +41,7 @@ pub rec rec1:
 
 global! gr1 rec1 = undef
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     -- LOCAL
     let! v1 = enum8:e2
     let! v2 = enum16:e3

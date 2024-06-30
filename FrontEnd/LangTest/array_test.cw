@@ -148,7 +148,7 @@
     (test::AssertEq# (len e1) 10_uint))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (do (test_global_array []))
     (do (test_local_array []))
     (do (test_mixed_array []))
@@ -156,4 +156,3 @@
     (test::Success#)
     (return 0))
 )
-

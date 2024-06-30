@@ -182,9 +182,12 @@ class ModPoolBase:
     def AllModInfos(self) -> Sequence[ModInfo]:
         return self._all_mods.values()
 
-    def MainModule(self) -> cwast.DefMod:
+    def MainEntryFun(self) -> cwast.DefFun:
         assert self._main_mod
-        return self._main_mod
+        for fun in self._main_mod.body_mod:
+            if isinstance(fun, cwast.DefFun) and fun.name == "main":
+                return fun
+        assert False
 
     def ReadModulesRecursively(self, seed_modules: list[str], add_builtin: bool):
         active: list[ModInfo] = []

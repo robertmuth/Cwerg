@@ -18,7 +18,7 @@ global STR_EMPTY = ""
 
 global STR_TEST = "TEST\n"
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     -- find
     test::AssertEq#(string::NOT_FOUND, string::find(STR_ABC, STR_ABCD))
     test::AssertEq#(0_uint, string::find(STR_ABCD, STR_ABC))

@@ -30,7 +30,7 @@ fun fmt::SysRender@(v ic32, s slice!(u8), opt ^!fmt::SysFormatOptions) uint:
 
 global test_string slice(u8) = "qwerty_1234"
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     @ref let! opt = fmt::SysFormatOptions{}
     let! buffer = [fmt::FORMATED_STRING_MAX_LEN]u8{}
     @ref let! s slice!(u8) = buffer

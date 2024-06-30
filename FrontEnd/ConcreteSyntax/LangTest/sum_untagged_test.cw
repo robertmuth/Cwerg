@@ -120,7 +120,7 @@ fun test_untagged_union() void:
     test::AssertEq#(narrow_as(array1[13], [32]u8)[3], 0_u8)
     test::AssertEq#(narrow_as(array1[13], [32]u8)[7], 0x40_u8)
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     do test_untagged_union()
     -- test end
     test::Success#()

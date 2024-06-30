@@ -49,7 +49,7 @@
     (test::AssertEq# (bitstream::Stream32GetBits [(&! bs) 32]) 0x27856341_u32))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (do (test1 []))
     (do (test2 []))
     @doc "test end"

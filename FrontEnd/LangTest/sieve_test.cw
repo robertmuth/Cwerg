@@ -32,7 +32,7 @@ index i reprents number 3 + 2 * i"""
     (return count))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (test::AssertEq# (sieve []) EXPECTED)
     (test::Success#)
     (return 0))

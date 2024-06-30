@@ -45,7 +45,7 @@ fun test_bs() void:
         test::AssertUnreachable#()
     test::AssertSliceEq#(result5, empty_slice)
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     do test_bs_or_die()
     do test_bs()
     -- test end

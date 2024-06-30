@@ -120,6 +120,6 @@
     (return (foo [c])))
 
 @doc "just a compilation test"
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
    (return 0))
 )

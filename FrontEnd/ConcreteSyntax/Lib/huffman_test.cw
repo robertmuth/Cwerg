@@ -141,7 +141,7 @@ fun test_helper_single_code() void:
     test::AssertEq#(66_u16, symbols[0])
     test::AssertEq#(huffman::BAD_SYMBOL, symbols[1])
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     do test_helper()
     do test_helper_single_code()
     do test_tree0_decoding()

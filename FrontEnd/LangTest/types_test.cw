@@ -58,6 +58,6 @@
     (return (narrow_as a (union_delta type_union (union [void type_ptr])))))
 
 @doc "just a compilation test"
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
    (return 0))
 )

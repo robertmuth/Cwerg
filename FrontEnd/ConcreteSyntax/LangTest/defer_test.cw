@@ -26,7 +26,7 @@ fun foo() void:
         do store('c')
     do store('f')
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     do foo()
     test::AssertSliceEq#(slice(front(gSequence), gIndex), "abcdefgh")
     -- test end

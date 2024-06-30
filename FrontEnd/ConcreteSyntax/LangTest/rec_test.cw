@@ -62,7 +62,7 @@ global g6 type_rec5 = type_rec5{0, buffer, false}
 
 global g7 = [1]type_rec5{type_rec5{0, buffer, false}}
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     -- LOCAL
     let! v1 = type_rec3{}
     set v1.u2 = 102

@@ -48,7 +48,7 @@
     (test::AssertSliceEq# result5 empty_slice))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (do (test_bs_or_die []))
     (do (test_bs []))
     @doc "test end"

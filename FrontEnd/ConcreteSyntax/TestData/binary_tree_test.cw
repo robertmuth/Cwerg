@@ -35,7 +35,7 @@ fun reverse_bits(bits u32, width u32) u32:
 fun DumpNode(payload ^u32) void:
     fmt::print#(payload^, "\n")
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     let! root bt::MaybeNode = bt::Leaf
     for i = 0, N, 1:
         let node = alloc(reverse_bits(i, 6))

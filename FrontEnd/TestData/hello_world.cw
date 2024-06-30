@@ -3,7 +3,7 @@
 (import fmt)
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (fmt::print# """hello world
 
     line 1

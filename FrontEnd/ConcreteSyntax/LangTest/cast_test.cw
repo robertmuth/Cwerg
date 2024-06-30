@@ -7,5 +7,5 @@ fun fun1(a s32, b u32, c r32) u8:
     return 66
 
 -- just a compilation test
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     return 0

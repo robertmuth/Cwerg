@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 _Hell = cwast.DefFun("hell", [], cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID), [])
 
 
-def ShakeTree(mods: List[cwast.DefMod]):
+def ShakeTree(mods: List[cwast.DefMod], entry_fun: cwast.DefFun):
     # callgraph - map fun to its callers
     cg: Dict[cwast.DefFun, Set[cwast.DefFun]] = collections.defaultdict(set)
     cg[_Hell].add(_Hell)  # force hell to be alive
@@ -33,7 +33,7 @@ def ShakeTree(mods: List[cwast.DefMod]):
         for fun in m.body_mod:
             if not isinstance(fun, cwast.DefFun):
                 continue
-            if fun.init or fun.fini or fun.ref or fun.cdecl and fun.name == "main":
+            if fun.init or fun.fini or fun.ref or fun == entry_fun:
                 cg[fun].add(_Hell)
             else:
                 # make sure the function is recorded

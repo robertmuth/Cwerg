@@ -14,7 +14,7 @@
 (global! all_objects auto (array_val 100 aanim::ObjectState))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (if (< argc 3) :
         (fmt::print# "Not enough arguments, need width and height\n")
         (return 0)

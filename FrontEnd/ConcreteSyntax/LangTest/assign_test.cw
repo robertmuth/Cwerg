@@ -48,7 +48,7 @@ global! gar2 [5]type_rec2 = undef
 fun get_addr() ^!type_rec1:
     return &!gr1
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     -- a1 u32
     set ga1[3] = 0x8765432187654321
     test::AssertEq#(ga1[3], 0x8765432187654321_s64)

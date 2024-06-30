@@ -43,7 +43,7 @@
     (fmt::print# (^ payload) "\n"))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (let! root bt::MaybeNode bt::Leaf)
     (for i 0 N 1 :
         (let node auto (alloc [(reverse_bits [i 6])]))

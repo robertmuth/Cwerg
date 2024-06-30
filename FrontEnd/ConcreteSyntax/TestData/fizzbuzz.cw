@@ -11,7 +11,7 @@ global BUZZ = "BUZZ"
 
 global FIZZBUZZ = "FIBU"
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     for i = 0, 31_uint, 1:
         cond:
             case i % 15 == 0:

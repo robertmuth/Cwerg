@@ -13,7 +13,7 @@ import fmt
 
 global! all_objects = [100]aanim::ObjectState{}
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     if argc < 3:
         fmt::print#("Not enough arguments, need width and height\n")
         return 0

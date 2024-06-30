@@ -42,7 +42,7 @@ fun DumpNode(i u32) void:
                 unsafe_as(narrow_as(NodePool[i].next, ^!LinkedListNode), ^void),
                 "\n")
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     fmt::print#("start: ", unsafe_as(front(NodePool), ^void), "\n")
     for i = 0, N, 1:
         set NodePool[i].payload = as(i, u32)

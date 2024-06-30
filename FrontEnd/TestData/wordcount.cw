@@ -49,7 +49,7 @@
 
 
 @doc "cdecl attribute disables name mangling"
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (trylet stats TextStats (WordCount [os::Stdin]) err :
         (return 1))
     @doc """print# is a stmt macro for printing arbitrary values.

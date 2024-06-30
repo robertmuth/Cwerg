@@ -54,7 +54,7 @@ fun test_Sha3512() void:
         f500199d95b6d3e3 01758586281dcd26""",
             sha3::Sha3512(""))
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     -- 
     do test_Keccak512()
     do test_Sha3512()

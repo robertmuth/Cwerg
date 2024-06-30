@@ -43,5 +43,5 @@ fun funx(a type_union) s32:
     return narrow_as(a, union_delta(type_union, union(void, type_ptr)))
 
 -- just a compilation test
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     return 0

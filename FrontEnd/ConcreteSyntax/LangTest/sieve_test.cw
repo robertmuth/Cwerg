@@ -16,7 +16,9 @@ global! is_prime = [SIZE]bool{true}
 
 -- the actual sieve function
 fun sieve() uint:
+    -- mutable local variable
     let! count uint = 0
+    -- the type of loop variable `i`  is determined by `N`
     for i = 0, SIZE, 1:
         if is_prime[i]:
             set count += 1
@@ -25,7 +27,7 @@ fun sieve() uint:
                 set is_prime[k] = false
     return count
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(sieve(), EXPECTED)
     test::Success#()
     return 0

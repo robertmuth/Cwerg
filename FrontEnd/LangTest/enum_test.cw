@@ -49,7 +49,7 @@
 (global! gr1 rec1 undef)
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "LOCAL"
     (let! v1 auto enum8:e2)
     (let! v2 auto enum16:e3)

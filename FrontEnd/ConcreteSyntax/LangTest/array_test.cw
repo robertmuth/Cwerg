@@ -121,7 +121,7 @@ fun test_global_array() void:
     test::AssertEq#(update_array(c3, 0, 5), 77_u8)
     test::AssertEq#(len(e1), 10_uint)
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     do test_global_array()
     do test_local_array()
     do test_mixed_array()

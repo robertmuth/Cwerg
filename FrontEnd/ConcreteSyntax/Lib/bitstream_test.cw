@@ -47,7 +47,7 @@ fun test2() void:
     test::AssertEq#(bitstream::Stream32GetBits(&!bs, 4), 2_u32)
     test::AssertEq#(bitstream::Stream32GetBits(&!bs, 32), 0x27856341_u32)
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     do test1()
     do test2()
     -- test end

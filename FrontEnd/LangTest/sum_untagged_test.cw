@@ -156,7 +156,7 @@
     (test::AssertEq# (at (narrow_as (at array1 13) (array 32 u8)) 7) 0x40_u8))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (do (test_untagged_union []))
     @doc "test end"
     (test::Success#)

@@ -79,5 +79,5 @@ pub type sum6 = union(ptr1, w1, w2, w3)
 static_assert size_of(sum6) == 16
 
 -- just a compilation test
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     return 0

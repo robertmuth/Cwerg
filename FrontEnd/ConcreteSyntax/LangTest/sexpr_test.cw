@@ -86,5 +86,5 @@ fun square_or_double(use_square bool, c s32) s32:
     return foo(c)
 
 -- just a compilation test
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     return 0

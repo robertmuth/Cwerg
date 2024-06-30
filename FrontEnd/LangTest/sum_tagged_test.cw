@@ -181,7 +181,7 @@
     (let! z auto (narrow_as x (union [u8 bool]))))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (do (test_tagged_union_basic []))
     (do (test_tagged_union_void []))
     (do (test_tagged_union_result []))

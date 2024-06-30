@@ -48,7 +48,7 @@
         (fmt::print# " next: " (unsafe_as (narrow_as (. (at NodePool i) next) (ptr! LinkedListNode)) (ptr void)) "\n")))
 
 
-@cdecl (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+(fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (fmt::print# "start: " (unsafe_as (front NodePool) (ptr void)) "\n")
     (for i 0 N 1 :
         (= (. (at NodePool i) payload) (as i u32))

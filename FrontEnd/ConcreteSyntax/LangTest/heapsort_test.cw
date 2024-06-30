@@ -54,7 +54,7 @@ fun dump_array(size uint, data ^r64) void:
         fmt::print#(wrap_as(v, fmt::r64_hex), NEWLINE)
     return
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     for i = 0, SIZE, 1:
         let v = random::get_random(1000)
         set Data[i + 1] = v
