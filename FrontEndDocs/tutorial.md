@@ -58,7 +58,7 @@ module:
 
 import fmt
 
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     fmt::print#("hello world\n")
     return 0
 
@@ -69,10 +69,6 @@ Every file starts with a module stanza.
 The type information in the function declaration follows the Go model of
 identifier followed by type.
 Functions can only return one value.
-
-Annotations are identifiers that start with "@" and can precede certain
-syntactic constructs. Here `@cdecl` disables the name mangling of function main
-so it can be linked against the startup code.
 
 `fmt::print#` is a macro call. All macros names must end in "#".
 
@@ -204,8 +200,7 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
             break
     return stats
 
--- cdecl attribute disables name mangling
-@cdecl fun main(argc s32, argv ^^u8) s32:
+fun main(argc s32, argv ^^u8) s32:
     trylet stats TextStats = WordCount(os::Stdin), err:
         return 1
     -- print# is a stmt macro for printing arbitrary values.

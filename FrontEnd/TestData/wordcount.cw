@@ -48,7 +48,6 @@
     (return stats))
 
 
-@doc "cdecl attribute disables name mangling"
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (trylet stats TextStats (WordCount [os::Stdin]) err :
         (return 1))
