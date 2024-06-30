@@ -573,8 +573,8 @@ def main(argv):
 
     cwd = os.getcwd()
     mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-    mp.ReadModulesRecursively(
-        ["builtin", str(pathlib.Path(argv[0][:-3]).resolve())])
+    main = str(pathlib.Path(argv[0][:-3]).resolve())
+    mp.ReadModulesRecursively([main], add_builtin=True)
     mod_topo_order = mp.ModulesInTopologicalOrder()
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)

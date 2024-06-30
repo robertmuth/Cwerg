@@ -154,9 +154,8 @@ if __name__ == "__main__":
 
         cwd = os.getcwd()
         mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-        mp.ReadModulesRecursively(["builtin",
-                                   str(pathlib.Path(args.files[0][:-3]).resolve())])
-
+        main = str(pathlib.Path(args.files[0][:-3]).resolve())
+        mp.ReadModulesRecursively([main], add_builtin=True)
         mod_topo_order = mp.ModulesInTopologicalOrder()
         symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
         for mod in mod_topo_order:

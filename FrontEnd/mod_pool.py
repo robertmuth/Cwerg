@@ -9,9 +9,9 @@ from FrontEnd import cwast
 from FrontEnd import parse_sexpr
 from FrontEnd import symbolize
 
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
-ModId = Tuple[pathlib.PurePath, ...]
+ModId = tuple[pathlib.PurePath, ...]
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +133,7 @@ class ModPoolBase:
         self._root: pathlib.Path = root
         # all modules keyed by ModHandle
         self._all_mods: dict[ModId, ModInfo] = {}
+        self._main_mod: Optional[cwast.DefMod] = None
         self._taken_names: set[str] = set()
         self._raw_generic: dict[pathlib.PurePath, cwast.DefMod] = {}
 
@@ -152,7 +153,7 @@ class ModPoolBase:
 
     def _AddModInfoSimple(self, uid: ModId) -> ModInfo:
         """Register regular module"""
-        assert isinstance(uid, Tuple), uid
+        assert isinstance(uid, tuple), uid
         mod = self._ReadMod(uid[0])
         cwast.AnnotateImportsForQualifers(mod)
         mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
@@ -181,14 +182,24 @@ class ModPoolBase:
     def AllModInfos(self) -> Sequence[ModInfo]:
         return self._all_mods.values()
 
-    def ReadModulesRecursively(self, seed_modules: list[str]):
+    def MainModule(self) -> cwast.DefMod:
+        assert self._main_mod
+        return self._main_mod
+
+    def ReadModulesRecursively(self, seed_modules: list[str], add_builtin: bool):
         active: list[ModInfo] = []
+        if add_builtin:
+            uid = (_ModUniquePathName(self._root, None, "builtin"),)
+            mod_info = self._AddModInfoSimple(uid)
+            active.append(mod_info)
 
         for pathname in seed_modules:
             assert not pathname.startswith(".")
             uid = (_ModUniquePathName(self._root, None, pathname),)
             assert self._FindModInfo(uid) is None, f"duplicate module {uid}"
             mod_info = self._AddModInfoSimple(uid)
+            if not self._main_mod:
+                self._main_mod =  mod_info.mod
             active.append(mod_info)
 
         buitin_syms = symbolize.GetSymTabForBuiltInOrEmpty(

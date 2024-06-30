@@ -1009,8 +1009,8 @@ def main() -> int:
     assert len(args.files) == 1
     ext = mod_pool.EXTENSION_CW
     assert args.files[0].endswith(ext)
-    mp.ReadModulesRecursively(["builtin",
-                               str(pathlib.Path(args.files[0][:-len(ext)]).resolve())])
+    main = str(pathlib.Path(args.files[0][:-len(ext)]).resolve())
+    mp.ReadModulesRecursively([main], add_builtin=True)
 
     mod_topo_order = mp.ModulesInTopologicalOrder()
 
