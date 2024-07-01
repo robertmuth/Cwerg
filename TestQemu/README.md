@@ -1,11 +1,11 @@
 # Cross Testing Cross-tool-chains and QEMU
 
-This more or less assumes Ubuntu (20.04) running on x86-64.
+This more or less assumes Ubuntu (22.04) running on x86-64.
 
 (see https://gist.github.com/luk6xff/9f8d2520530a823944355e59343eadc1)
 
 
-Note that once the package `qemu-user-static` is installed, you can 
+Note that once the package `qemu-user-static` is installed, you can
 run arm32 and aarch64 executables directly as if they were native executable.
 So instead of `qemu-aarch64-static hello.aarch64.exe` you can just run `./hello.aarch64.exe`.
 
@@ -40,10 +40,10 @@ arm-linux-gnueabihf-as hello_barebones.a32.s -o hello_barebones.a32.o
 arm-linux-gnueabihf-objdump -d hello_barebones.a32.o
 arm-linux-gnueabihf-ld hello_barebones.a32.o -o hello_barebones-a32
 arm-linux-gnueabihf-objdump -d hello_barebones-a32
-qemu-arm-static  ./hello_barebones-a32 
+qemu-arm-static  ./hello_barebones-a32
 ```
 
-  
+
 ## A64 aka Aarch64
 
 
@@ -91,7 +91,7 @@ General purpose reg contents only
 qemu-aarch64-static -singlestep -d nochain,cpu  test.exe 2> trace.txt
 ```
 
-General purpose + FP reg contents and instruction: 
+General purpose + FP reg contents and instruction:
 
 ```
 qemu-aarch64-static -singlestep -d nochain,cpu,fpu,in_asm  test.exe 2> trace.txt

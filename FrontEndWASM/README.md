@@ -1,9 +1,11 @@
-## WASM Frontend 
+## WASM Frontend (Deprecated)
 
-The WASM Frontend is work in progress. It consists of a transpiler that
+The WASM Frontend is primarily use to exercise the Cwerg backend with more
+realistic inputs. It consists of a transpiler that
 convert WASM into Cwerg IR and support libraries which will provide a WASI API.
 
-There will only be a Python implementation.
+This component is unlikely to get much love in the foreseeable future and
+there will only be a Python implementation.
 
 The [parser](parser.py) and the [instructions table](opcode_tab.py) do not have any other dependencies and might be useful by themselves.
 
@@ -21,7 +23,7 @@ Currently implemented are:
 * fd_prestat_dir_name
 * fd_close
 * fd_write
-* fd_read 
+* fd_read
 * path_open (A64 open)
 * proc_exit
 
@@ -33,8 +35,8 @@ Currently implemented are:
 * follows the LLVM approach of encoding operand type in opcode -> combinatorial explosion of opcode space
 * no rigorous stack invariants at the end of a block, e.g. if there are unconditional branches,
   so all we can do is patch things up
-* interleaving of code and tests in WAST files (TestData/test_rewriter.py 
-  attempts to help with that but it is adhoc and buggy)  
+* interleaving of code and tests in WAST files (TestData/test_rewriter.py
+  attempts to help with that but it is adhoc and buggy)
 * featuritis (e.g. upcoming support for exception handling)
 
 
@@ -48,7 +50,7 @@ provides: wasicc, wasic++, wasild in `~/.local/bin`
 
 `wasmer <wasm-file>`  interpret wasm file (with WASI support)
 
-### References 
+### References
 
 #### Meta
 
@@ -73,7 +75,7 @@ https://github.com/WebAssembly/design/blob/main/Semantics.md
 * wasi test suite https://github.com/caspervonb/wasi-test-suite
 * wasi API https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md#modules
 
-https://github.com/WebAssembly/wabt  
+https://github.com/WebAssembly/wabt
 
 * ubuntu https://packages.ubuntu.com/search?keywords=wabt
 * tests https://github.com/WebAssembly/wabt/tree/main/test/spec

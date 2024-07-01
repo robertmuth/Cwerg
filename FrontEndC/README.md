@@ -1,26 +1,26 @@
-# C-Lite Frontend For Cwerg
+# C-Lite Frontend For Cwerg (Deprecated)
 
 This simplified C compiler frontend was the original starting point of the Cwerg project.
- 
-Most of the heavy lifting is done by Eli Bendersky's 
+
+Most of the heavy lifting is done by Eli Bendersky's
 (pycparser)[https://github.com/eliben/pycparser] lexer/parser for C99.
 
-This component is unlikely to get much love in the foreseeable future. 
+This component is unlikely to get much love in the foreseeable future.
 If you are looking for something more mature, you might save yourself some time by looking at the survey of other C-compilers which  can be found below.
 
 ## Project Status
 
 * the supported part of the C language is whatever is in `TestData/*c`
-  (this implies that the development is test driven) 
+  (this implies that the development is test driven)
   Expect the following **not** to work
-  * typedefs 
+  * typedefs
   * bitfields
   * vararg (except for limited support of printf)
   * post --/++
 * the canonicalizer is already useful. It transforms C programs into
-  equivalents programs that use a smaller subset of the C language. 
+  equivalents programs that use a smaller subset of the C language.
   For example, canonicalized programs do not
-  use pre/post in-/decrement and do not have for or while loops. 
+  use pre/post in-/decrement and do not have for or while loops.
 * translate.py contains a somewhat hacky Cwerg backend
 
 Note: the tests in this directory are only testing the canonicalizer
@@ -35,28 +35,28 @@ The compilation is split into the following phases:
 
 * Extract symbol and type information from the AST so that we can map
   each ID node to a declaration and each expression node to a type.
-  
+
   This is currently done by creating edges from nodes within the AST
   to other nodes inside the AST and new nodes.
-  
+
   Instead of inventing a new type system we use the nodes from pycparser
-  
+
  * Canonicalize the c code so we can keep the backend simple
-  
-   This effectively de-sugars some syntax like compound assigns and 
+
+   This effectively de-sugars some syntax like compound assigns and
    pre/post increment/decrement, loops, etc.
-  
+
    We can test the canonicalization transformations by re-emitting c-code
-   and ensuring that the transformed code has the same output as the original 
+   and ensuring that the transformed code has the same output as the original
    code.
-  
+
  * Code emission
-  
+
 ## Useful References
 
 * Some things every C programmer should know about C
   https://web.archive.org/web/20030812081713/http://klausler.com/cnotes.txt
- 
+
 ## Survey of other open source c-compiler projects
 
 ### A Compiler Writing Journey
@@ -87,7 +87,7 @@ Links
 * enormously versatile
 * rather steep learning curve
 * very actively developed
-* includes pre-processor 
+* includes pre-processor
 * llvm backend (supports all llvm targets)
 
 Links
@@ -108,7 +108,7 @@ Links
 ### firm
 
 * Intermediate code system using SSA and written in C
-* Started as research project at uni-karlsruhe.de 
+* Started as research project at uni-karlsruhe.de
 * C99 Compiler. CParser
 * targets: amd64, ia32, arm32, mips, riscv,sparc
 
@@ -118,17 +118,17 @@ Links:
 * code: https://github.com/libfirm/libfirm
 * Comparison with LLVM: https://pp.ipd.kit.edu/firm/LLVM.html
 * cparser: https://github.com/libfirm/cparser/
-  
+
 ### gcc
 
 * gold standard for C on Unix before clang came along
 * definitely not suitable for casual hacking
 * implemented in C (and nowadays C++)
-* includes pre-processor 
+* includes pre-processor
 * very steep learning curve
 * Information below may be dated (I am too traumatized to try again):
-* many many targets but not simultaneously 
-* configuration and building (especially cross compiles) very painful 
+* many many targets but not simultaneously
+* configuration and building (especially cross compiles) very painful
 
 Links
 
@@ -147,7 +147,7 @@ Links
 ### lcc
 
 * written in C by Dave Hanson, Chris Fraser et al
-* very well documented compiler 
+* very well documented compiler
 * partially aimed at education
 * feels a bit dated, front and backend are not separate programs
 * not actively developed any more (pelles c is based on it but not open source)
@@ -164,7 +164,7 @@ Links
 
 * written in C by Vladimir Makarov
 * A light-weight JIT compiler based on MIR (Medium Internal Representation)
-* c2mir C11 Compiler 
+* c2mir C11 Compiler
 * targets: arm64, ppc63, amd64
 
 Links
@@ -184,12 +184,12 @@ https://github.com/BeRo1985/pacc
 ### pcc
 
 * written in C by Anders Magnusson et al
-* based on the original Portable C Compiler by S. C. Johnson 
+* based on the original Portable C Compiler by S. C. Johnson
 * much improved though
 * actively maintained
 * easy to configure
 * multiple targets: x86 x86-64 mips mips64 68k power sparc pdp10 pdp11
-* clear separation between front and backend 
+* clear separation between front and backend
 
 Links
 
@@ -200,7 +200,7 @@ Links
 
 ### plan 9 cc
 
-* implemented in C 
+* implemented in C
 * had trouble configuring but did not spend a lot of time with it
 * multiple target: x86, x86-64, sparc, power, power-64, mips, arm
 
@@ -252,17 +252,10 @@ https://github.com/alexfru/SmallerC
 * written in C (self hosting) by Fabrice Bellard et al
 * small code base  but not for the faint of heart
 * everything included approach (including linker)
-* multiple targets: x86, x86-64, arm 
+* multiple targets: x86, x86-64, arm
 * emits elf object files
 
 Links
 
 * https://bellard.org/tcc/
 * http://download.savannah.gnu.org/releases/tinycc/
-
-
-
-
-
-
-
