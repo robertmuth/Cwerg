@@ -52,7 +52,7 @@ jobs:
         echo
         sudo apt-get install libunwind-dev gcc-multilib
         sudo apt-get install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
-        sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu 
+        sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
     - name: Show Version Summary
       run: |
         uname -a
@@ -61,17 +61,7 @@ jobs:
         echo
         lsb_release -a
         echo
-        python -V
-        echo
-        python3 -V
-        echo
-        gcc -v
-        echo
-        g++ -v
-        echo
-        clang -v
-        echo
-        clang++ -v
+        PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make show_versions
     - name: Run Tests
       run: |
         PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make tests_github

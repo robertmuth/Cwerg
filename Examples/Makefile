@@ -21,7 +21,7 @@ QEMUA32 = qemu-arm-static
 ############################################################
 DIR_A32=builda32
 
-# ubuntu is inconsistent in how it names the a32 toolchain 
+# ubuntu is inconsistent in how it names the a32 toolchain
 ifneq (, $(shell which arm-linux-gnueabihf-g++))
   CXX_A32 = arm-linux-gnueabihf-g++
 else ifneq (, $(shell which arm-linux-gnueabi-g++-11))
@@ -34,6 +34,8 @@ CC_A32 = arm-linux-gnueabihf-gcc
 A32_FLAGS = -DCWERG_DISABLE_UNWIND -Wl,-z,norelro -marm -march=armv7ve+fp -Wno-psabi
 
 
+# rebuild all code using an a32 toolchain CWERG_LIBS usally contains -lunwind -llzma
+# which may not be available and/or need here.
 setupa32:
 	mkdir -p $(DIR_A32) && cd $(DIR_A32) && CC=$(CC_A32) CXX=$(CXX_A32) cmake -DCWERG_FLAGS="$(A32_FLAGS)" -UCWERG_LIBS ../..
 
@@ -61,6 +63,8 @@ CXX_A64 = aarch64-linux-gnu-g++
 CC_A64 = aarch64-linux-gnu-gcc
 A64_FLAGS = -DCWERG_DISABLE_UNWIND -Wl,-z,norelro
 
+# rebuild all code using an a64 toolchain CWERG_LIBS usally contains -lunwind -llzma
+# which may not be available and/or need here.
 setupa64:
 	mkdir -p $(DIR_A64) && cd $(DIR_A64) && CC=$(CC_A64) CXX=$(CXX_A64) cmake -DCWERG_FLAGS="$(A64_FLAGS)" -UCWERG_LIBS  ../..
 
@@ -83,6 +87,8 @@ CXX_X64 = g++
 CC_X64 = gcc
 X64_FLAGS = -DCWERG_DISABLE_UNWIND -Wl,-z,norelro
 
+# rebuild all code using an x64 toolchain CWERG_LIBS usally contains -lunwind -llzma
+# which may not be available and/or need here.
 setupx64:
 	mkdir -p $(DIR_X64) && cd $(DIR_X64) && CC=$(CC_X64) CXX=$(CXX_X64) cmake -DCWERG_FLAGS="$(X64_FLAGS)" -UCWERG_LIBS  ../..
 

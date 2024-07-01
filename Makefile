@@ -18,7 +18,8 @@ export LC_ALL=C
 CWERG_LIBS = -lunwind -llzma
 CWERG_FLAGS = -DCWERG_ENABLE_UNWIND
 
-tests: 
+tests:
+	@echo Build Native Exes
 	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(CWERG_FLAGS)" -DCWERG_LIBS="$(CWERG_LIBS)" .. && $(MAKE) -s
 	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
 	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
@@ -33,14 +34,17 @@ tests:
 	cd FrontEndWASM && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Examples && $(MAKE) -s tests && $(MAKE) -s clean
 
-# includes version dumping and frontend tests
-tests_github:
+show_versions:
 	@echo Tool Versions
 	python3 -V
 	gcc -v
 	g++ -v
 	clang -v
 	clang++ -v
+
+
+# includes version dumping and frontend tests
+tests_github:
 	@echo Build Native Exes
 	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(DCWERG_FLAGS)" -DCWERG_LIBS="$(DCWERG_LIBS)" .. && $(MAKE) -s
 	@echo Run Tests
@@ -62,9 +66,8 @@ integration_tests:
 	$(MAKE) -f Makefile.integration -s tests clean
 
 
-tests_cross:
+test_cross_execution:
 	cd TestQemu && $(MAKE) -s tests_cross && $(MAKE)  -s clean
-	cd CpuA32 && $(MAKE) -s tests_cross && $(MAKE)  -s clean
 
 
 benchmark:
@@ -72,7 +75,7 @@ benchmark:
 
 #@ presubmit - tests that should pass before any commit
 #@
-presubmit: lint tests format 
+presubmit: lint tests format
 
 
 #@ lint - statically check python code for error
@@ -122,7 +125,7 @@ cloc:
 CLOC.txt:
 	make -s cloc | grep -v "github.com" > $@
 
-#@ format - reformat python and c(++) files 
+#@ format - reformat python and c(++) files
 #@
 format:
 	autopep8 -a -a -a -i */*.py
