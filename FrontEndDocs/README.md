@@ -1,6 +1,6 @@
 ## Frontend
 
-[Intro](../FrontEnd/README.md)
+[Overview](tutorial.md)
 
 [AST Node Description](ast.md)
 
