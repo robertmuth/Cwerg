@@ -957,7 +957,7 @@ class CanonType:
         if self.node is TypeArray or self.node is TypeSlice:
             return self.children[0]
         else:
-            assert False, f"unexpected type: {self.name}"
+            assert False, f"expected array or slice type: {self.name}"
 
     def aligned_size(self) -> int:
         # somtimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding

@@ -388,6 +388,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr_index, tc, uint_type, ctx)
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
+        if not ct.is_array_or_slice():
+            cwast.CompilerError(
+                node.container.x_srcloc, f"expected array or slice for {node} but got {ct}")
         return AnnotateNodeType(node, ct.contained_type())
     elif isinstance(node, cwast.ExprField):
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
