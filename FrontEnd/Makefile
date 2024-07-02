@@ -16,7 +16,8 @@ TEST_TESTS := \
 	TestData/binary_tree_test.cw \
 	TestData/fibonacci.cw \
     TestData/fizzbuzz.cw \
-    TestData/hello_world.cw
+    TestData/hello_world.cw \
+    TestData/nqueens.cw
 
 TESTS_A32 := \
     LangTest/consts_test.cw \
@@ -30,6 +31,7 @@ TESTS_A32 := \
     LangTest/types_test.cw \
     TestData/fibonacci.cw \
 	TestData/fizzbuzz.cw \
+	TestData/nqueens.cw \
     TestData/hello_world.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
