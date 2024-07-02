@@ -32,7 +32,7 @@ Re-implementations in other languages are explicitly encouraged. A lot of
 code is table driven to facilitate that.
 
 Cwerg de-emphasizes quality of the generated code (the hope is to come within 50%
-of state of the art  compilers) in favor of a small code base that can be
+of state of the art compilers) in favor of a small code base that can be
 understood by a single developer and very fast translation times.
 Explicit line number targets are in place to prevent feature creep:
 * frontend: 10kLOC

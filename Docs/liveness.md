@@ -13,7 +13,7 @@ This will make the following datastructure available:
 ```
 
 For C++ things are only slightly more elaborate:
-```  
+```
 FunNumberReg(fun);  // create an injective mapping int <-> Reg
 FunComputeLivenessInfo(fun);  // compute the actual liveness information
 ```
@@ -29,7 +29,7 @@ Usage
 
 We only save the liveness information at the end of the `bbl`.
 To use liveness information at the `ins` level, iterate backwards
-through the `ins` in the `bbl` and update the livenss info along the way.
+through the `ins` in the `bbl` and update the liveness info along the way.
 
 
 Liveness is primarily used to compute live ranges.
