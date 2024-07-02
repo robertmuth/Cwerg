@@ -2,11 +2,11 @@
 
 ### Setup
 
-For simplicity we assume you are running on an x86-64 system with a recent Debian 
+For simplicity we assume you are running on an x86-64 system with a recent Debian
 based Linux distributions.
 
 If the steps below do not work you can also check the continous integration setup
-in [../.github/workflows/ci.yml]. 
+in [../.github/workflows/ci.yml].
 
 To setup the python environment run this inside the
 top level repo directory.
@@ -21,7 +21,7 @@ python3 -V
 sudo apt install python3-pycparser
 ```
 
-To prepare the c++ build (you need at least a C++17 compatible compiler) run his 
+To prepare the c++ build (you need at least a C++17 compatible compiler) run this
 inside the top level repo directory. Both Gcc and Clang should work.
 
 ```
@@ -32,7 +32,7 @@ cd build
 cmake ..
 cd ..
 
-# you may need to install the unwind library (used by the ASSERT macro
+# you may need to install the unwind library (used by the ASSERT macro)
 sudo apt install libunwind-dev
 
 # in order to use the 32bit memory model ("-m32") on x86-64 you need to install
@@ -46,7 +46,7 @@ To set up and an Arm cross-compilation and testing environment please check
 ### Testing
 
 A good way to find yourself around the project is to start with
-the top level Makefile. Just running 
+the top level Makefile. Just running
 ```
 make
 ```
@@ -68,8 +68,8 @@ The Python function comments apply to the C++ functions as well in this case.
 
 ```
 #include "std_lib.h"   // needed because printf may be rewritten to call helpers defined here
-  
-  
+
+
 int printf( const char *restrict format, ... );
 
 // computes number of primes between [3 - SIZE]
@@ -78,7 +78,7 @@ int printf( const char *restrict format, ... );
 char is_prime[SIZE];
 
 unsigned sieve (unsigned repeats) {
-  unsigned num_primes; 
+  unsigned num_primes;
 
   for (unsigned n = 0; n < repeats; n++) {
     num_primes = 0;
@@ -358,7 +358,7 @@ arm-linux-gnueabihf-objdump -d ./sieve.a32.exe
 yielding:
 <details>
   <summary>Click to expand!</summary>
-  
+
 ```
   000206f0 <sieve>:
    206f0:	e92d4040 	push	{r6, lr}
@@ -488,15 +488,15 @@ yielding:
 
 ### Summary Of Commands For Generating an Executable
 
-Note, the frontend is really brittle and if you do not get the supported subset of C 
+Note, the frontend is really brittle and if you do not get the supported subset of C
 right, will result in crashes/obscure error messages.
 
 #### Arm32
 
 ```
-FrontEndC/translate.py --mode 32 FrontEndC/TestData/sieve.c --cpp_args=-IStdLib > sieve.asm 
+FrontEndC/translate.py --mode 32 FrontEndC/TestData/sieve.c --cpp_args=-IStdLib > sieve.asm
 cat StdLib/syscall.a32.asm StdLib/std_lib.32.asm sieve.asm | CodeGenA32/codegen.py -mode binary -add_startup_code - sieve.a32.exe
-  
+
 arm-linux-gnueabihf-objdump -d ./sieve.a32.exe
 ```
 
@@ -506,16 +506,5 @@ arm-linux-gnueabihf-objdump -d ./sieve.a32.exe
 FrontEndC/translate.py --mode 64 FrontEndC/TestData/sieve.c --cpp_args=-IStdLib > sieve.asm
 cat StdLib/syscall.a64.asm StdLib/std_lib.64.asm sieve.asm | CodeGenA64/codegen.py -mode binary -add_startup_code - sieve.a64.exe
 
-aarch64-linux-gnu-objdump -d ./sieve.a64.exe 
+aarch64-linux-gnu-objdump -d ./sieve.a64.exe
 ```
-
-
- 
-
-
-
-
-
-
-
-
