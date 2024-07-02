@@ -28,7 +28,7 @@ Appending a `!` will result in the corresponding writable flavor:
 | slice     | slice!    | Slice Type |
 
 
-Convertering a readonly pointer to a read/write pointer or
+Converting a readonly pointer to a read/write pointer or
 obtaining a read/write pointer to non-mutable causes type errors.
 (An unsafe cast is available to override this.)
 
@@ -104,7 +104,7 @@ fun foo () void:
 
 ### no null pointers
 
-`null` does not exists as a language concept but there tagged unions that can be used to emulate nullable types:
+`null` does not exist as a language concept but there are tagged unions that can be used to emulate nullable types:
 
 ```
 type nullable_u8_pointer = union(ptr(u8), void)
@@ -145,14 +145,14 @@ Everything lives in a module. Modules may NOT be nested. Import chains may not h
 
 ### arrays and slices
 
-The dimenson of an array is part of the type:
+The dimension of an array is part of the type:
 
 `array(100, u8)` is incompatible with `array(99, u8)`
 
 slices are available to model arrays with unknown dimension at compile time.
 
 Taking the address of an array results in a pointer to an array
-not the element type. To get a pointer to the fiest element use
+not the element type. To get a pointer to the first element use
 `front`.
 
 Indexing of arrays and slices employs bounds-checking unless explicitly disabled via
@@ -189,7 +189,7 @@ Pointer arithmetic is supported but is syntactically more involved.
 let i u32 = ...
 let! p ptr(u16) = ...
 let! q ptr(u16) = ...
-set p = pinc(s, i)  -- eqiuvalent of C `p + i`
+set p = pinc(s, i)  -- equivalent of C `p + i`
 set p = pinc(s, i, 1000)  -- same as above but trap if i >= 1000
 
 
