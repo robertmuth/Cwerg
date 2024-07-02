@@ -43,7 +43,6 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
             break
     return stats
 
--- cdecl attribute disables name mangling
 fun main(argc s32, argv ^^u8) s32:
     trylet stats TextStats = WordCount(os::Stdin), err:
         return 1
