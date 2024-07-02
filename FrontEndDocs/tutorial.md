@@ -1,8 +1,10 @@
 # Cwerg Language Overview
 
-Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. The hope is to reach a sweet spot above what C gives us today. A language that makes it convenient to write system software like operating systems and compilers.
+Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. The hope is to reach a sweet spot above what C gives us today:
+A small language that can be maintained by a single person and which is convenient for writing system software like operating systems and compilers.
 
- So Cwerg is meant to be a small language that can be maintained by a single person. Since small is subjective we have set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
+Since small is subjective we have set a complexity budget of about 10kLOC for a compiler frontend with basic optimizations
+(there is a comparable complexity budget for the backend).
 
  Cwerg is also meant to be a fast language enabling whole program compilation. We target a compilation speed
  of at least a million lines per second.
