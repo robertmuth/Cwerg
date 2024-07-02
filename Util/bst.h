@@ -7,6 +7,7 @@
 
 #include "Util/assert.h"
 #include <iostream>
+#include <cstdint>
 
 namespace cwerg {
 extern uint32_t bst_stats_num_finds;
