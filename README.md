@@ -12,12 +12,13 @@ It consists of the following components:
   Still actively development
 
 
-* **Backend**: [Overview](Docs/intro.md), [Additional Docs](Docs/)
+* **Backend**: [Overview](Docs/intro.md),  [Backend IR](Docs/opcodes.md), [Additional Docs](Docs/)
 
-  Muti-target (X86-64, Aarch64, Arm32).
+  Muti-target (currently: X86-64, Aarch64, Arm32).
+
   Also suitable for other compilers and as a JIT.
 
-* [Cwerg IR](Docs/opcodes.md)  which defines interface between frontend and backend.
+  Defines an IR that serves as the interface between frontend and backend.
 
 * [Deprecated C Frontend](FrontEndC/)  (translates a subset of C to Cwerg IR)
 * [Deprecated WASM Frontend](FrontEndWASM/) (translates WASM/WASI coded to Cwerg IR)
@@ -30,7 +31,7 @@ Most components are implemented twice (see [rationale](Docs/why_python.md)):
 Re-implementations in other languages are explicitly encouraged. A lot of
 code is table driven to facilitate that.
 
-Cwerg de-emphasizes quality of the generated code (we hope to come within 50%
+Cwerg de-emphasizes quality of the generated code (the hope is to come within 50%
 of state of the art  compilers) in favor of a small code base that can be
 understood by a single developer and very fast translation times.
 Explicit line number targets are in place to prevent feature creep:
