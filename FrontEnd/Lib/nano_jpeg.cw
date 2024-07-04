@@ -1,0 +1,113 @@
+module:
+
+global W1 s32 = 2841
+global W2 s32 = 2676
+global W3 s32 = 2408
+global W5 s32 = 1609
+global W6 s32 = 1108
+global W7 s32 = 565
+
+-- updates blk in place
+fun RowIDCT(blk ^![8]s32) void:
+    let! x1 = blk^[4] << 11
+    let! x2 = blk^[6]
+    let! x3 = blk^[2]
+    let! x4 = blk^[1]
+    let! x5 = blk^[7]
+    let! x6 = blk^[5]
+    let! x7 = blk^[3]
+    if 0 == (x1 or x2 or x3 or x4 or x5 or x6 or x7) :
+        let t = blk^[0] << 3
+        for i = 0, 8_u32, 1:
+            set blk^[i] = t
+        return
+    set x0 = (blk^[0] << 11) + 128
+    set x8 = (x4 + x5) * W7
+    set x4 = x8 + x4 * (W1 - W7)
+    set x5 = x8 - x5 * (W1 + W7)
+    set x8 = (x6 + x7) * W3
+    set x6 = x8 - x6 * (W3 - W5)
+    set x7 = x8 - x7 * (W3 + W5)
+    set x8 = x0 + x1
+    set x0 -= x1
+    set x1 = (x3 + x2) * W6
+    set x2 = x1 - x2 * (W2 + W6)
+    set x3 = x1 + x3 * (W2 - W6)
+    set x1 = x4 + x6
+    set x4 -= x6
+    set x6 = x5 + x7
+    set x5 -= x7
+    set x7 = x8 + x3
+    set x8 -= x3
+    set x3 = x0 + x2
+    set x0 -= x2
+    set x2 = ((x4 + x5) * 181 + 128) >> 8
+    set x4 = ((x4 - x5) * 181 + 128) >> 8
+    set blk^[0] = (x7 + x1) >> 8
+    set blk^[1] = (x3 + x2) >> 8
+    set blk^[2] = (x0 + x4) >> 8
+    set blk^[3] = (x8 + x6) >> 8
+    set blk^[4] = (x8 - x6) >> 8
+    set blk^[5] = (x0 - x4) >> 8
+    set blk^[6] = (x3 - x2) >> 8
+    set blk^[7] = (x7 - x1) >> 8
+
+
+fun Clip(x s32) u8:
+    cond:
+        case x < 0:
+            return 0
+        case x >= 0xff:
+            return 0xff
+        case true:
+            return as(x, u8)
+
+
+fun ColIDCT(blk ^[8*8]s32, out slice!(u8), stride int) void:
+    let! x1 = blk^[8*4] << 8
+    let! x2 = blk^[8*6]
+    let! x3 = blk^[8*2]
+    let! x4 = blk^[8*1]
+    let! x5 = blk^[8*7]
+    let! x6 = blk^[8*5]
+    let! x7 = blk^[8*3]
+    if 0 == (x1 or x2 or x3 or x4 or x5 or x6 or x7) :
+        let t = Clip(((blk^[0] + 32) >> 6) + 128)
+        for i = 0, 8_u32, 1:
+            set out[i * 8] = t
+        return
+    set x0 = (blk^[0] << 8) + 8192
+    set x8 = (x4 + x5) * W7 + 4
+    set x4 = (x8 + x4 * (W1 - W7)) >> 3
+    set x5 = (x8 - x5 * (W1 + W7)) >> 3
+    set x8 = (x6 + x7) * W3 + 4
+    set x6 = (x8 - x6 * (W3 - W5)) >> 3
+    set x7 = (x8 - x7 * (W3 + W5)) >> 3
+    set x8 = x0 + x1
+    set x0 -= x1
+    set x1 = (x3 + x2) * W6 + 4
+    set x2 = (x1 - x2 * (W2 + W6)) >> 3
+    set x3 = (x1 + x3 * (W2 - W6)) >> 3
+    set x1 = x4 + x6
+    set x4 -= x6
+    set x6 = x5 + x7
+    set x5 -= x7
+    set x7 = x8 + x3
+    set x8 -= x3
+    set x3 = x0 + x2
+    set x0 -= x2
+    set x2 = ((x4 + x5) * 181 + 128) >> 8
+    set x4 = ((x4 - x5) * 181 + 128) >> 8
+    set out[0 * stride] = Clip(((x7 + x1) >> 14) + 128)
+    set out[1 * stride] = Clip(((x3 + x2) >> 14) + 128)
+    set out[2 * stride] = Clip(((x0 + x4) >> 14) + 128)
+    set out[3 * stride] = jClip(((x8 + x6) >> 14) + 128)
+    set out[4 * stride] = Clip(((x8 - x6) >> 14) + 128)
+    set out[5 * stride] = Clip(((x0 - x4) >> 14) + 128)
+    set out[6 * stride] = Clip(((x3 - x2) >> 14) + 128)
+    set out[7 * stride] = Clip(((x7 - x1) >> 14) + 128)
+
+
+
+fun DecodeImage(data slice(u8)) void:
+    return
