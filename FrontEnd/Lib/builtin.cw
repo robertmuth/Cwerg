@@ -62,17 +62,17 @@ The type of the loop variable is determined by $end"""
     (mlet! $name $type (@unchecked narrow_as $eval $type)))
 
 @pub (macro tryset STMT_LIST [
-        (mparam $name ID)
+        (mparam $lhs EXPR)
         (mparam $expr EXPR)
         (mparam $catch_name ID)
         (mparam $catch_body STMT_LIST)] [$eval] :
     (mlet $eval auto $expr)
-    (if (! (is $eval (type_of $name))) :
-        (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) (type_of $type))))
+    (if (! (is $eval (type_of $lhs))) :
+        (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) (type_of $lhs))))
         $catch_body
         (trap)
     :)
-    (mlet $name $type (narrow_as $eval $type)))
+    (= $lhs (narrow_as $eval (type_of $lhs))))
 
 (macro swap# STMT_LIST [(mparam $a EXPR) (mparam $b EXPR)] [$t] :
     (mlet $t auto $a)

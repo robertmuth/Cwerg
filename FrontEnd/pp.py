@@ -679,9 +679,13 @@ def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         beg_paren = ts.EmitBegParen("(")
 
     args = node.args
-    if node.name == "for" or node.name == "tryset":
+    if node.name == "for":
         assert isinstance(args[0], (cwast.Id, cwast.MacroId)), f"{args[0]}"
         ts.EmitAttr(args[0].name)
+        args = args[1:]
+        ts.EmitBinOp("=")
+    elif node.name == "tryset":
+        EmitTokens(ts, args[0])
         args = args[1:]
         ts.EmitBinOp("=")
     elif node.name == "trylet":

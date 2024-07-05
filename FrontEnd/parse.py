@@ -234,7 +234,8 @@ class LexerRaw:
             return TK(TK_KIND.SPECIAL_EOF, cwast.SRCLOC_UNKNOWN, "", 0)
         m = TOKEN_RE.match(self._current_line)
         if not m:
-            cwast.CompilerError(self._GetSrcLoc(), f"bad line or character: [{self._current_line}]")
+            cwast.CompilerError(
+                self._GetSrcLoc(), f"bad line or character: [{self._current_line}]")
         kind = TK_KIND[m.lastgroup]
         token = m.group(0)
         col = self._col_no
@@ -873,6 +874,17 @@ def _ParseStatement(inp: Lexer):
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
                                  [cwast.Id(name.text), type, expr,  cwast.Id(name2.text),
+                                  cwast.EphemeralList(stmts, colon=True)],
+                                 ** _ExtractAnnotations(kw))
+    elif kw.text == "tryset":
+        lhs = _ParseExpr(inp)
+        inp.match_or_die(TK_KIND.ASSIGN)
+        expr = _ParseExpr(inp)
+        inp.match_or_die(TK_KIND.COMMA)
+        name2 = inp.match_or_die(TK_KIND.ID)
+        stmts = _ParseStatementList(inp, kw.column)
+        return cwast.MacroInvoke(kw.text,
+                                 [lhs, expr,  cwast.Id(name2.text),
                                   cwast.EphemeralList(stmts, colon=True)],
                                  ** _ExtractAnnotations(kw))
     elif kw.text == "set":

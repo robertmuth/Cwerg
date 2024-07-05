@@ -394,6 +394,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct.contained_type())
     elif isinstance(node, cwast.ExprField):
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
+        if not ct.is_rec():
+             cwast.CompilerError(
+                node.x_srcloc, f"container type is not record {node.container}")
         field_node = tc.lookup_rec_field(ct, node.field)
         if not field_node:
             cwast.CompilerError(
@@ -503,7 +506,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             params_ct = ct.parameter_types()
             if len(params_ct) != len(node.args):
                 cwast.CompilerError(node.x_srcloc,
-                                    f"number of args does not match for call to {callee}")
+                                    f"args number mismatch for call to {callee}: {len(params_ct)} vs {len(node.args)}")
             for p, a in zip(params_ct, node.args):
                 _TypifyNodeRecursively(a, tc, p, ctx)
             return AnnotateNodeType(node, ct.result_type())
