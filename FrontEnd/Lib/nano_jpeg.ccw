@@ -16,13 +16,13 @@ fun RowIDCT(blk ^![8]s32) void:
     let! x5 = blk^[7]
     let! x6 = blk^[5]
     let! x7 = blk^[3]
-    if 0 == (x1 or x2 or x3 or x4 or x5 or x6 or x7) :
+    if (x1 or x2 or x3 or x4 or x5 or x6 or x7) == 0:
         let t = blk^[0] << 3
         for i = 0, 8_u32, 1:
             set blk^[i] = t
         return
-    set x0 = (blk^[0] << 11) + 128
-    set x8 = (x4 + x5) * W7
+    let! x0 = (blk^[0] << 11) + 128
+    let! x8 = (x4 + x5) * W7
     set x4 = x8 + x4 * (W1 - W7)
     set x5 = x8 - x5 * (W1 + W7)
     set x8 = (x6 + x7) * W3
@@ -52,8 +52,8 @@ fun RowIDCT(blk ^![8]s32) void:
     set blk^[6] = (x3 - x2) >> 8
     set blk^[7] = (x7 - x1) >> 8
 
-
-fun Clip(x s32) u8:
+-- clamp x to [0:255]
+fun ClampU8(x s32) u8:
     cond:
         case x < 0:
             return 0
@@ -63,7 +63,7 @@ fun Clip(x s32) u8:
             return as(x, u8)
 
 
-fun ColIDCT(blk ^[8*8]s32, out slice!(u8), stride int) void:
+fun ColIDCT(blk ^[8*8]s32, out slice!(u8), stride uint) void:
     let! x1 = blk^[8*4] << 8
     let! x2 = blk^[8*6]
     let! x3 = blk^[8*2]
@@ -71,13 +71,13 @@ fun ColIDCT(blk ^[8*8]s32, out slice!(u8), stride int) void:
     let! x5 = blk^[8*7]
     let! x6 = blk^[8*5]
     let! x7 = blk^[8*3]
-    if 0 == (x1 or x2 or x3 or x4 or x5 or x6 or x7) :
-        let t = Clip(((blk^[0] + 32) >> 6) + 128)
+    if (x1 or x2 or x3 or x4 or x5 or x6 or x7) == 0:
+        let t = ClampU8(((blk^[0] + 32) >> 6) + 128)
         for i = 0, 8_u32, 1:
             set out[i * 8] = t
         return
-    set x0 = (blk^[0] << 8) + 8192
-    set x8 = (x4 + x5) * W7 + 4
+    let! x0 = (blk^[0] << 8) + 8192
+    let! x8 = (x4 + x5) * W7 + 4
     set x4 = (x8 + x4 * (W1 - W7)) >> 3
     set x5 = (x8 - x5 * (W1 + W7)) >> 3
     set x8 = (x6 + x7) * W3 + 4
@@ -98,14 +98,14 @@ fun ColIDCT(blk ^[8*8]s32, out slice!(u8), stride int) void:
     set x0 -= x2
     set x2 = ((x4 + x5) * 181 + 128) >> 8
     set x4 = ((x4 - x5) * 181 + 128) >> 8
-    set out[0 * stride] = Clip(((x7 + x1) >> 14) + 128)
-    set out[1 * stride] = Clip(((x3 + x2) >> 14) + 128)
-    set out[2 * stride] = Clip(((x0 + x4) >> 14) + 128)
-    set out[3 * stride] = jClip(((x8 + x6) >> 14) + 128)
-    set out[4 * stride] = Clip(((x8 - x6) >> 14) + 128)
-    set out[5 * stride] = Clip(((x0 - x4) >> 14) + 128)
-    set out[6 * stride] = Clip(((x3 - x2) >> 14) + 128)
-    set out[7 * stride] = Clip(((x7 - x1) >> 14) + 128)
+    set out[0 * stride] = ClampU8(((x7 + x1) >> 14) + 128)
+    set out[1 * stride] = ClampU8(((x3 + x2) >> 14) + 128)
+    set out[2 * stride] = ClampU8(((x0 + x4) >> 14) + 128)
+    set out[3 * stride] = ClampU8(((x8 + x6) >> 14) + 128)
+    set out[4 * stride] = ClampU8(((x8 - x6) >> 14) + 128)
+    set out[5 * stride] = ClampU8(((x0 - x4) >> 14) + 128)
+    set out[6 * stride] = ClampU8(((x3 - x2) >> 14) + 128)
+    set out[7 * stride] = ClampU8(((x7 - x1) >> 14) + 128)
 
 
 pub @wrapped type Success = void
@@ -121,14 +121,15 @@ fun IncSliceUnchecked(buffer ^!slice(u8), n uint) void:
       let length uint = len(buffer^)
       set buffer^ = slice(pinc(front(buffer^), n), length - n)
 
-fun DecodeU16(data ^!slice(u8), n uint) union(u16, CorruptionError):
+fun DecodeU16(data ^!slice(u8)) union(u16, CorruptionError):
     if len(data^) < 2:
         return CorruptionErrorVal
-    let out u16 = as(data[0], u16) << 16 or  as(data[1], u16)
-    do IncSliceUnchecked(&!data, 2)
+    let out u16 = as(data^[0], u16) << 16 or  as(data^[1], u16)
+    do IncSliceUnchecked(data, 2)
     return out
 
-pub fun DecodeImage(data slice(u8)) union(Success, CorruptionError, UnsupportedError):
+pub fun DecodeImage(a_data slice(u8)) union(Success, CorruptionError, UnsupportedError):
+    @ref let! data = a_data
     if len(data) < 2 || data[0] != 0xff || data[1] != 0xd8:
         return  CorruptionErrorVal
     do IncSliceUnchecked(&!data, 2)
@@ -145,12 +146,12 @@ pub fun DecodeImage(data slice(u8)) union(Success, CorruptionError, UnsupportedE
             case kind == 0xda:
             -- TBD
             case kind == 0xfe:
-                trylet l u16 = DecodeU16(&! data), err:
+                trylet l u16 = DecodeU16(&!data), err:
                     return err
                 do IncSliceUnchecked(&!data, as(l, uint))
             -- TBD
             case kind and 0xf0 == 0xe0:
-                trylet l u16 = DecodeU16(&! data), err:
+                trylet l u16 = DecodeU16(&!data), err:
                     return err
                 do IncSliceUnchecked(&!data, as(l, uint))
             case true:
