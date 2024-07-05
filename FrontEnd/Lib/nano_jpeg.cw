@@ -149,12 +149,12 @@
     (field width u16)
     (field height u16)
     (field ncomp u8)
-    (field mbsizex u8)
-    (field mbsizey u8)
+    (field mbsizex u16)
+    (field mbsizey u16)
+    (field mbwidth u16)
+    (field mbheight u16)
     (field size s32)
     (field length s32)
-    (field mbwidth s32)
-    (field mbheight s32)
     (field comp (array 3 Component))
     (field qtab (array 64 (array 4 u8))))
 
@@ -241,8 +241,12 @@
         (= (. (at (^. out comp) 0) ssx) 1)
         (= (. (at (^. out comp) 0) ssy) 1)
      :)
-    (= (^. out mbsizex) (<< ssxmax 3))
-    (= (^. out mbsizey) (<< ssymax 3)))
+    (let mbsizex u16 (<< (as ssxmax u16) 3))
+    (let mbsizey u16 (<< (as ssymax u16) 3))
+    (= (^. out mbsizex) mbsizex)
+    (= (^. out mbsizey) mbsizey)
+    (= (^. out mbwidth) (/ (- (+ (^. out width) mbsizex) 1) mbsizex))
+    (= (^. out mbheight) (/ (- (+ (^. out height) mbsizey) 1) mbsizey)))
 
 
 @pub (fun DecodeImage [(param a_data (slice u8))] (union [

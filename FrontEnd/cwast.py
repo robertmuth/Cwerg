@@ -476,7 +476,7 @@ NODES_COND_T = Union["ValFalse", "ValTrue",
                      "Expr1", "Expr2", "Expr3",
                      "ExprStmt", "ExprIs", "ExprNarrow"]
 
-NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField"]
+NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "ExprParen"]
 
 
 def _EnumValues(enum_class):

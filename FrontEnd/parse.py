@@ -829,7 +829,8 @@ def _ParseStatement(inp: Lexer):
             return _ParseStatementMacro(kw, inp)
         else:
             # this happends inside a macro body
-            assert kw.text.startswith("$")
+            if not kw.text.startswith("$"):
+                cwast.CompilerError(kw.srcloc, f"expect macro var but got {kw.text}")
             return cwast.MacroId(kw.text)
     assert kw.kind is TK_KIND.KW, f"{kw}"
     if kw.text in ("let", "let!", "mlet", "mlet!"):

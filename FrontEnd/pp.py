@@ -688,7 +688,7 @@ def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         EmitTokens(ts, args[0])
         args = args[1:]
         ts.EmitBinOp("=")
-    elif node.name == "trylet":
+    elif node.name == "trylet" or node.name == "trylet!":
         assert isinstance(args[0], cwast.Id)
         ts.EmitAttr(args[0].name)
         EmitTokens(ts, args[1])

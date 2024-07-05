@@ -121,23 +121,21 @@ rec Component:
 
     width u32
     height u32
-    stride s32
-    actabsel s32
-    dctabsel s32
-    dcpred s32
+    stride u32
+
 
 rec Context:
-    width u16
-    height u16
+    width u32
+    height u32`
     ncomp u8
-    mbsizex u8
-    mbsizey u8
+
+    mbsizex u32
+    mbsizey u32
+    mbwidth u32
+    mbheight u32
 
     size s32
     length s32
-
-    mbwidth s32
-    mbheight s32
 
     comp [3]Component
     qtab [64][4]u8
@@ -161,6 +159,9 @@ fun DecodeScan(data ^!slice(u8))
       return err
    return SuccessVal
 
+
+fun div_roundup(a u32, b u32) u32:
+    return (a + b -1) / b
 
 fun DecodeStartOfFrame(data ^!slice(u8), out ^!Context)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -213,8 +214,16 @@ fun DecodeStartOfFrame(data ^!slice(u8), out ^!Context)
         set out^.comp[0].ssx = 1
         set out^.comp[0].ssy = 1
 
-    set out^.mbsizex = ssxmax << 3
-    set out^.mbsizey = ssymax << 3
+    let mbsizex  u16 = as(ssxmax, u16) * 8
+    let mbsizey  u16 = as(ssymax, u16) * 8
+
+    set out^.mbsizex = mbsizex
+    set out^.mbsizey = mbsizey
+    set out^.mbwidth = (out^.width + mbsizex  - 1) / mbsizex
+    set out^.mbheight = (out^.height + mbsizey  - 1) / mbsizey
+    for i = 0, ncomp, 1:
+        let comp ^!Component = &!(out^.comp[i])
+        set comp^.width = out^.width
 
 pub fun DecodeImage(a_data slice(u8))
         union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
