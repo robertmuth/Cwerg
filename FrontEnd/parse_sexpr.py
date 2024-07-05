@@ -380,7 +380,7 @@ def ReadRestAndMakeNode(cls, pieces: list[Any], fields: list[Tuple[str, cwast.NF
 def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
     """The leading '(' has already been consumed"""
     tag = ReadAttrs(next(stream), attr, stream)
-    if len(tag) > 1 and tag.endswith("!"):
+    if len(tag) > 1 and tag.endswith("!") and tag != "trylet!":
         tag = tag[:-1]
         attr["mut"] = True
 

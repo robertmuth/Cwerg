@@ -114,30 +114,32 @@ rec Code:
     code u8
 
 rec Component:
-    cid s32
-    ssx s32
-    ssy s32
+    cid u8
+    ssx u8
+    ssy u8
+    qtsel u8
+
     width u32
     height u32
     stride s32
-    qtsel s32
     actabsel s32
     dctabsel s32
     dcpred s32
 
 rec Context:
-    size s32
-    length s32
     width u16
     height u16
+    ncomp u8
+    mbsizex u8
+    mbsizey u8
+
+    size s32
+    length s32
+
     mbwidth s32
     mbheight s32
-    mbsizex s32
-    mbsizey s32
-    ncomp u8
+
     comp [3]Component
-    qtused s32
-    qtavail s32
     qtab [64][4]u8
 
 
@@ -173,11 +175,46 @@ fun DecodeStartOfFrame(data ^!slice(u8), out ^!Context)
             return err
     tryset out^.width = BS::FrontBeU16(data), err:
             return err
-    tryset out^.ncomp = BS::FrontU8(data), err:
+    trylet ncomp u8  = BS::FrontU8(data), err:
             return err
-    if out^.ncomp != 1 &&  out^.ncomp != 3:
+    set out^.ncomp = ncomp
+    if ncomp != 1 &&  ncomp != 3:
         return UnsupportedErrorVal
 
+    let! ssxmax u8 = 0
+    let! ssymax u8 = 0
+    for i = 0, ncomp, 1:
+        let comp ^!Component = &!(out^.comp[i])
+        tryset comp^.cid = BS::FrontU8(data), err:
+            return err
+        trylet ss u8 = BS::FrontU8(data), err:
+            return err
+        let ssx = ss >> 4
+        let ssy = ss and 0xf
+        -- ssy must be a power of two
+        if ssx == 0 || ssy == 0 || ssy and (ssy - 1) != 0:
+            return CorruptionErrorVal
+
+        set comp^.ssx = ssx
+        set comp^.ssy = ssy
+        set ssxmax max= ssx
+        set ssymax max= ssy
+
+        trylet! qtsel u8 = BS::FrontU8(data), err:
+            return err
+        set qtsel and= 0xfc
+        if qtsel == 0:
+            return CorruptionErrorVal
+        set comp^.qtsel = qtsel and 0xfc
+
+    if ncomp == 1:
+        set ssxmax = 1
+        set ssymax =1
+        set out^.comp[0].ssx = 1
+        set out^.comp[0].ssy = 1
+
+    set out^.mbsizex = ssxmax << 3
+    set out^.mbsizey = ssymax << 3
 
 pub fun DecodeImage(a_data slice(u8))
         union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):

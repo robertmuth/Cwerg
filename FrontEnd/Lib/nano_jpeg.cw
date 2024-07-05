@@ -133,31 +133,29 @@
 
 
 (defrec Component :
-    (field cid s32)
-    (field ssx s32)
-    (field ssy s32)
+    (field cid u8)
+    (field ssx u8)
+    (field ssy u8)
+    (field qtsel u8)
     (field width u32)
     (field height u32)
     (field stride s32)
-    (field qtsel s32)
     (field actabsel s32)
     (field dctabsel s32)
     (field dcpred s32))
 
 
 (defrec Context :
-    (field size s32)
-    (field length s32)
     (field width u16)
     (field height u16)
+    (field ncomp u8)
+    (field mbsizex u8)
+    (field mbsizey u8)
+    (field size s32)
+    (field length s32)
     (field mbwidth s32)
     (field mbheight s32)
-    (field mbsizex s32)
-    (field mbsizey s32)
-    (field ncomp u8)
     (field comp (array 3 Component))
-    (field qtused s32)
-    (field qtavail s32)
     (field qtab (array 64 (array 4 u8))))
 
 
@@ -206,11 +204,45 @@
         (return err))
     (tryset (^. out width) (BS::FrontBeU16 [data]) err :
         (return err))
-    (tryset (^. out ncomp) (BS::FrontU8 [data]) err :
+    (trylet ncomp u8 (BS::FrontU8 [data]) err :
         (return err))
-    (if (&& (!= (^. out ncomp) 1) (!= (^. out ncomp) 3)) :
+    (= (^. out ncomp) ncomp)
+    (if (&& (!= ncomp 1) (!= ncomp 3)) :
         (return UnsupportedErrorVal)
-     :))
+     :)
+    (let! ssxmax u8 0)
+    (let! ssymax u8 0)
+    (for i 0 ncomp 1 :
+        (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
+        (tryset (^. comp cid) (BS::FrontU8 [data]) err :
+            (return err))
+        (trylet ss u8 (BS::FrontU8 [data]) err :
+            (return err))
+        (let ssx auto (>> ss 4))
+        (let ssy auto (and ss 0xf))
+        @doc "ssy must be a power of two"
+        (if (|| (|| (== ssx 0) (== ssy 0)) (!= (and ssy (- ssy 1)) 0)) :
+            (return CorruptionErrorVal)
+         :)
+        (= (^. comp ssx) ssx)
+        (= (^. comp ssy) ssy)
+        (max= ssxmax ssx)
+        (max= ssymax ssy)
+        (trylet! qtsel u8 (BS::FrontU8 [data]) err :
+            (return err))
+        (and= qtsel 0xfc)
+        (if (== qtsel 0) :
+            (return CorruptionErrorVal)
+         :)
+        (= (^. comp qtsel) (and qtsel 0xfc)))
+    (if (== ncomp 1) :
+        (= ssxmax 1)
+        (= ssymax 1)
+        (= (. (at (^. out comp) 0) ssx) 1)
+        (= (. (at (^. out comp) 0) ssy) 1)
+     :)
+    (= (^. out mbsizex) (<< ssxmax 3))
+    (= (^. out mbsizey) (<< ssymax 3)))
 
 
 @pub (fun DecodeImage [(param a_data (slice u8))] (union [

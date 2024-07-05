@@ -237,6 +237,7 @@ class ASSIGNMENT_KIND(enum.Enum):
     DIV = 3
     MUL = 4
     MOD = 5
+    #
     MIN = 6
     MAX = 7
     #
@@ -282,6 +283,9 @@ COMPOUND_KIND_TO_EXPR_KIND = {
     ASSIGNMENT_KIND.AND: BINARY_EXPR_KIND.AND,
     ASSIGNMENT_KIND.OR: BINARY_EXPR_KIND.OR,
     ASSIGNMENT_KIND.XOR: BINARY_EXPR_KIND.XOR,
+    #
+    ASSIGNMENT_KIND.MAX: BINARY_EXPR_KIND.MAX,
+    ASSIGNMENT_KIND.MIN: BINARY_EXPR_KIND.MIN,
     #
     ASSIGNMENT_KIND.SHR: BINARY_EXPR_KIND.SHR,
     ASSIGNMENT_KIND.SHL: BINARY_EXPR_KIND.SHL,
@@ -619,7 +623,8 @@ ALL_FIELDS = [
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("pointer", "pointer component of slice",
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("container", "array and slice", NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
+    NfdNode("container", "array and slice",
+            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("callee", "expression evaluating to the function to be called",
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("value", "", NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
@@ -2731,6 +2736,8 @@ class DefMod:
 ############################################################
 # Macro Like
 ############################################################
+
+
 @NodeCommon
 @dataclasses.dataclass()
 class ExprSrcLoc:
