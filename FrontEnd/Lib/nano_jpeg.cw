@@ -134,25 +134,22 @@
 
 (defrec Component :
     (field cid u8)
-    (field ssx u8)
-    (field ssy u8)
+    (field ssx u32)
+    (field ssy u32)
     (field qtsel u8)
     (field width u32)
     (field height u32)
-    (field stride s32)
-    (field actabsel s32)
-    (field dctabsel s32)
-    (field dcpred s32))
+    (field stride u32))
 
 
 (defrec Context :
-    (field width u16)
-    (field height u16)
+    (field width u32)
+    (field height u32)
     (field ncomp u8)
-    (field mbsizex u16)
-    (field mbsizey u16)
-    (field mbwidth u16)
-    (field mbheight u16)
+    (field mbsizex u32)
+    (field mbsizey u32)
+    (field mbwidth u32)
+    (field mbheight u32)
     (field size s32)
     (field length s32)
     (field comp (array 3 Component))
@@ -187,39 +184,47 @@
     (return SuccessVal))
 
 
+(fun div_roundup [(param a u32) (param b u32)] u32 :
+    (return (/ (- (+ a b) 1) b)))
+
+
 (fun DecodeStartOfFrame [(param data (ptr! (slice u8))) (param out (ptr! Context))] (union [
         Success
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
-    (let start_size auto (len (^ data)))
     (trylet l u16 (BS::FrontBeU16 [data]) err :
+        (return err))
+    (@ref let! data_end auto (^ data))
+    (trylet ok void (BS::Skip [(&! data_end) (as l uint)]) err :
         (return err))
     (trylet format u8 (BS::FrontU8 [data]) err :
         (return err))
     (if (!= format 8) :
         (return UnsupportedErrorVal)
      :)
-    (tryset (^. out height) (BS::FrontBeU16 [data]) err :
+    (trylet height u16 (BS::FrontBeU16 [data]) err :
         (return err))
-    (tryset (^. out width) (BS::FrontBeU16 [data]) err :
+    (= (^. out height) (as height u32))
+    (trylet width u16 (BS::FrontBeU16 [data]) err :
         (return err))
+    (= (^. out width) (as width u32))
     (trylet ncomp u8 (BS::FrontU8 [data]) err :
         (return err))
     (= (^. out ncomp) ncomp)
     (if (&& (!= ncomp 1) (!= ncomp 3)) :
         (return UnsupportedErrorVal)
      :)
-    (let! ssxmax u8 0)
-    (let! ssymax u8 0)
+    (let! ssxmax u32 0)
+    (let! ssymax u32 0)
     (for i 0 ncomp 1 :
         (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
         (tryset (^. comp cid) (BS::FrontU8 [data]) err :
             (return err))
         (trylet ss u8 (BS::FrontU8 [data]) err :
             (return err))
-        (let ssx auto (>> ss 4))
-        (let ssy auto (and ss 0xf))
+        (let ssx auto (as (>> ss 4) u32))
+        (let ssy auto (as (and ss 0xf) u32))
         @doc "ssy must be a power of two"
         (if (|| (|| (== ssx 0) (== ssy 0)) (!= (and ssy (- ssy 1)) 0)) :
             (return CorruptionErrorVal)
@@ -241,12 +246,24 @@
         (= (. (at (^. out comp) 0) ssx) 1)
         (= (. (at (^. out comp) 0) ssy) 1)
      :)
-    (let mbsizex u16 (<< (as ssxmax u16) 3))
-    (let mbsizey u16 (<< (as ssymax u16) 3))
+    (let mbsizex u32 (* (as ssxmax u32) 8))
+    (let mbsizey u32 (* (as ssymax u32) 8))
     (= (^. out mbsizex) mbsizex)
     (= (^. out mbsizey) mbsizey)
-    (= (^. out mbwidth) (/ (- (+ (^. out width) mbsizex) 1) mbsizex))
-    (= (^. out mbheight) (/ (- (+ (^. out height) mbsizey) 1) mbsizey)))
+    (= (^. out mbwidth) (div_roundup [(^. out width) mbsizex]))
+    (= (^. out mbheight) (div_roundup [(^. out height) mbsizey]))
+    (for i 0 ncomp 1 :
+        (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
+        (= (^. comp width) (div_roundup [(* (^. out width) (^. comp ssx)) ssxmax]))
+        (= (^. comp height) (div_roundup [(* (^. out height) (^. comp ssy)) ssymax]))
+        (= (^. comp stride) (* (* (^. out mbwidth) (^. comp ssx)) 8))
+        (if (&& (< (^. comp width) 3) (!= (^. comp ssx) ssxmax)) :
+            (return CorruptionErrorVal)
+         :)
+        (if (&& (< (^. comp height) 3) (!= (^. comp ssy) ssymax)) :
+            (return CorruptionErrorVal)
+         :))
+    (= (^ data) data_end))
 
 
 @pub (fun DecodeImage [(param a_data (slice u8))] (union [
