@@ -188,28 +188,24 @@
     (return (/ (- (+ a b) 1) b)))
 
 
-(fun DecodeStartOfFrame [(param data (ptr! (slice u8))) (param out (ptr! Context))] (union [
+(fun DecodeStartOfFrame [(param chunk (slice u8)) (param out (ptr! Context))] (union [
         Success
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
-    (trylet l u16 (BS::FrontBeU16 [data]) err :
-        (return err))
-    (@ref let! data_end auto (^ data))
-    (trylet ok void (BS::Skip [(&! data_end) (as l uint)]) err :
-        (return err))
-    (trylet format u8 (BS::FrontU8 [data]) err :
+    (@ref let! data auto chunk)
+    (trylet format u8 (BS::FrontU8 [(&! data)]) err :
         (return err))
     (if (!= format 8) :
         (return UnsupportedErrorVal)
      :)
-    (trylet height u16 (BS::FrontBeU16 [data]) err :
+    (trylet height u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
     (= (^. out height) (as height u32))
-    (trylet width u16 (BS::FrontBeU16 [data]) err :
+    (trylet width u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
     (= (^. out width) (as width u32))
-    (trylet ncomp u8 (BS::FrontU8 [data]) err :
+    (trylet ncomp u8 (BS::FrontU8 [(&! data)]) err :
         (return err))
     (= (^. out ncomp) ncomp)
     (if (&& (!= ncomp 1) (!= ncomp 3)) :
@@ -219,9 +215,9 @@
     (let! ssymax u32 0)
     (for i 0 ncomp 1 :
         (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
-        (tryset (^. comp cid) (BS::FrontU8 [data]) err :
+        (tryset (^. comp cid) (BS::FrontU8 [(&! data)]) err :
             (return err))
-        (trylet ss u8 (BS::FrontU8 [data]) err :
+        (trylet ss u8 (BS::FrontU8 [(&! data)]) err :
             (return err))
         (let ssx auto (as (>> ss 4) u32))
         (let ssy auto (as (and ss 0xf) u32))
@@ -233,7 +229,7 @@
         (= (^. comp ssy) ssy)
         (max= ssxmax ssx)
         (max= ssymax ssy)
-        (trylet! qtsel u8 (BS::FrontU8 [data]) err :
+        (trylet! qtsel u8 (BS::FrontU8 [(&! data)]) err :
             (return err))
         (and= qtsel 0xfc)
         (if (== qtsel 0) :
@@ -263,7 +259,7 @@
         (if (&& (< (^. comp height) 3) (!= (^. comp ssy) ssymax)) :
             (return CorruptionErrorVal)
          :))
-    (= (^ data) data_end))
+    (return SuccessVal))
 
 
 @pub (fun DecodeImage [(param a_data (slice u8))] (union [
@@ -271,7 +267,7 @@
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
-    (@ref let ctx Context undef)
+    (@ref let! ctx Context undef)
     (@ref let! data auto a_data)
     (trylet magic u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
@@ -279,24 +275,24 @@
         (return CorruptionErrorVal)
      :)
     (while true :
-        (trylet kind u16 (BS::FrontBeU16 [(&! data)]) err :
+        (trylet chunk_kind u16 (BS::FrontBeU16 [(&! data)]) err :
+            (return err))
+        (trylet chunk_length u16 (BS::FrontBeU16 [(&! data)]) err :
+            (return err))
+        (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as chunk_length uint)]) err :
             (return err))
         (cond :
-            (case (== kind 0xffc0) :)
-            (case (== kind 0xffc4) :)
-            (case (== kind 0xffdb) :)
-            (case (== kind 0xffdd) :)
-            (case (== kind 0xffda) :)
+            (case (== chunk_kind 0xffc0) :
+                (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! ctx)]) err :
+                    (return err)))
+            (case (== chunk_kind 0xffc4) :)
+            (case (== chunk_kind 0xffdb) :)
+            (case (== chunk_kind 0xffdd) :)
+            (case (== chunk_kind 0xffda) :)
             @doc "TBD"
-            (case (== kind 0xfffe) :
-                (trylet l u16 (BS::FrontBeU16 [(&! data)]) err :
-                    (return err))
-                (do (BS::Skip [(&! data) (as l uint)])))
+            (case (== chunk_kind 0xfffe) :)
             @doc "TBD"
-            (case (== (and kind 0xfff0) 0xffe0) :
-                (trylet l u16 (BS::FrontBeU16 [(&! data)]) err :
-                    (return err))
-                (do (BS::Skip [(&! data) (as l uint)])))
+            (case (== (and chunk_kind 0xfff0) 0xffe0) :)
             (case true :
                 (return UnsupportedErrorVal))))
     (return SuccessVal))
