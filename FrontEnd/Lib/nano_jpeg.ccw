@@ -108,6 +108,53 @@ fun ColIDCT(blk ^[8*8]s32, out slice!(u8), stride int) void:
     set out[7 * stride] = Clip(((x7 - x1) >> 14) + 128)
 
 
+pub @wrapped type Success = void
+pub global SuccessVal = wrap_as(void, Success)
 
-fun DecodeImage(data slice(u8)) void:
-    return
+pub @wrapped type CorruptionError = void
+pub global CorruptionErrorVal = wrap_as(void, CorruptionError)
+
+pub @wrapped type UnsupportedError = void
+pub global UnsupportedErrorVal = wrap_as(void, UnsupportedError)
+
+fun IncSliceUnchecked(buffer ^!slice(u8), n uint) void:
+      let length uint = len(buffer^)
+      set buffer^ = slice(pinc(front(buffer^), n), length - n)
+
+fun DecodeU16(data ^!slice(u8), n uint) union(u16, CorruptionError):
+    if len(data^) < 2:
+        return CorruptionErrorVal
+    let out u16 = as(data[0], u16) << 16 or  as(data[1], u16)
+    do IncSliceUnchecked(&!data, 2)
+    return out
+
+pub fun DecodeImage(data slice(u8)) union(Success, CorruptionError, UnsupportedError):
+    if len(data) < 2 || data[0] != 0xff || data[1] != 0xd8:
+        return  CorruptionErrorVal
+    do IncSliceUnchecked(&!data, 2)
+
+    while true:
+        if len(data) < 2 || data[0] != 0xff:
+            return  CorruptionErrorVal
+        let kind = data[1]
+        cond:
+            case kind == 0xc0:
+            case kind == 0xc4:
+            case kind == 0xdb:
+            case kind == 0xdd:
+            case kind == 0xda:
+            -- TBD
+            case kind == 0xfe:
+                trylet l u16 = DecodeU16(&! data), err:
+                    return err
+                do IncSliceUnchecked(&!data, as(l, uint))
+            -- TBD
+            case kind and 0xf0 == 0xe0:
+                trylet l u16 = DecodeU16(&! data), err:
+                    return err
+                do IncSliceUnchecked(&!data, as(l, uint))
+            case true:
+                return UnsupportedErrorVal
+
+
+    return SuccessVal

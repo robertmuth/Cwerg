@@ -200,6 +200,9 @@ class LexerRaw:
         self._col_no = 0
         self._current_line = ""
 
+    def _GetSrcLoc(self) -> cwast.SrcLoc:
+        return cwast.SrcLoc(self._fileamame, self._line_no)
+
     def _fill_line(self):
         self._line_no += 1
         line = self._fp.readline()
@@ -231,7 +234,7 @@ class LexerRaw:
             return TK(TK_KIND.SPECIAL_EOF, cwast.SRCLOC_UNKNOWN, "", 0)
         m = TOKEN_RE.match(self._current_line)
         if not m:
-            cwast.CompilerError("", f"bad line: [{self._current_line}]")
+            cwast.CompilerError(self._GetSrcLoc(), f"bad line or character: [{self._current_line}]")
         kind = TK_KIND[m.lastgroup]
         token = m.group(0)
         col = self._col_no
@@ -250,7 +253,7 @@ class LexerRaw:
 
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]
-        return TK(kind, cwast.SrcLoc(self._fileamame, self._line_no), token,  col)
+        return TK(kind, self._GetSrcLoc(), token,  col)
 
 
 _MSTR_TERMINATION_REGEX = {
@@ -329,7 +332,7 @@ class Lexer:
         tk = self.peek()
         if tk.kind != kind or text is not None and tk.text != text:
             cwast.CompilerError(
-                tk.srcloc, f"Expected {kind}, got {tk.kind} [{tk.text}]")
+                tk.srcloc, f"Expected {kind} [{text}], got {tk.kind} [{tk.text}]")
         return self.next()
 
 
