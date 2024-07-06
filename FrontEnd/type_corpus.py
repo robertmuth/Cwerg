@@ -347,7 +347,8 @@ class TypeCorpus:
         if ENABLE_UNION_OPTIMIZATIONS and len(scalars) == 1 and scalars[0].is_pointer():
             return scalars[0].register_types
 
-        k = next(iter(largest_by_kind)) if len(largest_by_kind) == 1 else "U"
+        if largest == 0:
+            return [f"U{self._target_arch_config.typeid_bitwidth}"]
         return [f"U{largest}", f"U{self._target_arch_config.typeid_bitwidth}"]
 
     def _get_register_type(self, ct: cwast.CanonType) -> Optional[list[str]]:

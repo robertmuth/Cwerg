@@ -1784,7 +1784,7 @@ class ExprField:
     x_field: Optional["RecField"] = None
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} {self.container} . {self.field}"
+        return f"{NODE_NAME(self)} {self.container}  field:{self.field}"
 
 
 @NodeCommon
@@ -1999,7 +1999,7 @@ class ExprUnwrap:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{self.__class__.__name__} {self.expr}"
+        return f"{NODE_NAME(self)} {self.expr}"
 
 
 @NodeCommon
@@ -2023,7 +2023,7 @@ class ExprAs:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{self.expr} AS {self.type}"
+        return f"{NODE_NAME(self)} {self.expr} -> {self.type}"
 
 
 @NodeCommon
@@ -2047,7 +2047,7 @@ class ExprNarrow:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{self.expr} NARROW_TO {self.type}"
+        return f"{NODE_NAME(self)} {self.expr} -> {self.type}"
 
 
 @NodeCommon
@@ -2069,7 +2069,7 @@ class ExprWiden:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{self.expr} WIDEN_TO {self.type}"
+        return f"{NODE_NAME(self)} {self.expr} {self.expr.x_type} -> {self.type.x_type}"
 
 
 @NodeCommon
@@ -2093,7 +2093,7 @@ class ExprUnsafeCast:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} {self.type}"
+        return f"{NODE_NAME(self)} {self.expr} -> {self.type}"
 
 
 @NodeCommon
@@ -2121,7 +2121,7 @@ class ExprBitCast:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} {self.type}"
+        return f"{NODE_NAME(self)} {self.expr} {self.type.x_type}"
 
 
 @NodeCommon

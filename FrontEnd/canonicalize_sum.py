@@ -191,7 +191,7 @@ def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) 
     return _MakeValRecForSum(dst_sum_rec, src_tag, union_value, sl)
 
 
-def _MakeValRecForWidenFromUnion(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
+def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
     assert dst_sum_rec.is_rec()
     _, dst_union_field = dst_sum_rec.ast_node.fields
     src_sum_rec: cwast.CanonType = value.expr.x_type

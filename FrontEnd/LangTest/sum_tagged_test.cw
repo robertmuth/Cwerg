@@ -2,13 +2,28 @@
 (import test)
 
 
-(@wrapped type t1 s32)
+(@wrapped type void_t1 void)
 
 
-(@wrapped type t2 void)
+(global void_t1_val auto (wrap_as void_val void_t1))
 
 
-(@wrapped type t3 void)
+(@wrapped type void_t2 void)
+
+
+(global void_t2_val auto (wrap_as void_val void_t2))
+
+
+(@wrapped type void_t3 void)
+
+
+(global void_t3_val auto (wrap_as void_val void_t3))
+
+
+(static_assert (== (size_of (union [void_t1 void_t2])) (size_of typeid)))
+
+
+(static_assert (== (size_of (union [void_t1 void_t2 void_t3])) (size_of typeid)))
 
 
 (type type_ptr (ptr! s32))
@@ -17,13 +32,13 @@
 (type Union1 (union [s32 void type_ptr]))
 
 
-(static_assert (== (size_of Union1) 16))
+(static_assert (== (size_of Union1) (* (size_of type_ptr) 2)))
 
 
 (type Union2 (union [s32 void (union [Union1 u8])]))
 
 
-(static_assert (== (size_of Union2) 16))
+(static_assert (== (size_of Union2) (* (size_of type_ptr) 2)))
 
 
 (type Union2Simplified (union [
@@ -67,7 +82,7 @@
 (static_assert (== (typeid_of Delta3) (typeid_of s32)))
 
 
-@pub (type Union5 (union [t2 t3 s8]))
+(type Union5 (union [void_t2 void_t3 s8]))
 
 
 (static_assert (== (size_of Union5) 3))
@@ -96,7 +111,7 @@
     (field s2 Union5))
 
 
-@pub (defrec rec2 :
+(defrec rec2 :
     (field s1 Union1)
     (field s2 Union2))
 
@@ -127,11 +142,14 @@
     (test::AssertTrue# (== 777_s32 y)))
 
 
-@pub (type UnionVoid (union [void t2 t3]))
+@pub (type UnionVoid (union [void void_t2 void_t3]))
 
 
 (fun test_tagged_union_void [] void :
-    (let! x UnionVoid void_val))
+    (let! x012 (union [void void_t1 void_t2]) void_val)
+    (let! x123 (union [void_t1 void_t2 void_t3]) void_t3_val)
+    (let! x12 (union [void_t1 void_t2]) void_t1_val)
+    (= x012 x12))
 
 
 (fun fun_param [
@@ -191,3 +209,4 @@
     (test::Success#)
     (return 0))
 )
+

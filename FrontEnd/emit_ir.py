@@ -567,6 +567,11 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         print(
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {node.x_field.x_offset}")
         return res
+    elif isinstance(node, cwast.ExprWiden):
+        # this should only happen for widening empty untagged unions
+        assert node.x_type.size == 0
+        # make sure we evaluate the rest for side-effects
+        return EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.ValVoid):
         pass
     else:
@@ -719,6 +724,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
         def_type: cwast.CanonType = node.type_or_auto.x_type
         initial = node.initial_or_undef_or_auto
         if def_type.size == 0 and not isinstance(initial, cwast.ValUndef):
+            # still need to evaluate the expression for the side effect
             EmitIRExpr(initial, tc, id_gen)
         elif _IsDefVarOnStack(node):
             assert def_type.size > 0
