@@ -6,11 +6,13 @@ import BS = bytestream
 
 import fmt
 
+-- To enable debug logging make sure the next macro is called `debug#`
+-- To enable debug logging make sure the second macro is called `debug#`
+macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
+      fmt::print#($parts)
 
 macro xdebug# STMT_LIST($parts EXPR_LIST_REST)[]:
-    fmt::print_list#($parts)
 
-macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
 
 global W1 s32 = 2841
 global W2 s32 = 2676
@@ -298,11 +300,13 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!Context)
 
 pub fun DecodeImage(a_data slice(u8))
         union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    debug#("DecodeImage: ", len(a_data), "\n")
     @ref let! ctx Context = undef
     @ref let! data = a_data
     trylet magic u16 = BS::FrontBeU16(&!data), err:
         return err
-    if magic != 0xffda:
+    if magic != 0xffd8:
+        debug#("bad magic: ", wrap_as(magic, fmt::u16_hex), "\n")
         return  CorruptionErrorVal
 
     while true:
@@ -312,17 +316,19 @@ pub fun DecodeImage(a_data slice(u8))
             return err
 
         debug#(wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length, "\n")
-        trylet chunk_slice slice(u8) = BS::FrontSlice(&!data, as(chunk_length, uint)), err:
+        trylet chunk_slice slice(u8) = BS::FrontSlice(&!data, as(chunk_length - 2, uint)), err:
             return err
         cond:
             case chunk_kind == 0xffc0:
-                trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!ctx), err:
-                    return err
+            -- trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!ctx), err:
+            --    return err
             case chunk_kind == 0xffc4:
             case chunk_kind == 0xffdb:
             case chunk_kind == 0xffdd:
+
+            -- start of scan chunk is followed by image data
             case chunk_kind == 0xffda:
-            -- TBD
+
             case chunk_kind == 0xfffe:
             -- TBD
             case chunk_kind and 0xfff0 == 0xffe0:

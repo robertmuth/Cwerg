@@ -6,11 +6,13 @@ https://github.com/corkami/formats/blob/master/image/jpeg.md"""
 (import fmt)
 
 
-(macro xdebug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :
-    (fmt::print_list# $parts))
+@doc """To enable debug logging make sure the next macro is called `debug#`
+To enable debug logging make sure the second macro is called `debug#`"""
+(macro debug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :
+    (fmt::print# $parts))
 
 
-(macro debug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :)
+(macro xdebug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :)
 
 
 (global W1 s32 2841)
@@ -347,11 +349,13 @@ https://github.com/corkami/formats/blob/master/image/jpeg.md"""
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
+    (debug# "DecodeImage: " (len a_data) "\n")
     (@ref let! ctx Context undef)
     (@ref let! data auto a_data)
     (trylet magic u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
-    (if (!= magic 0xffda) :
+    (if (!= magic 0xffd8) :
+        (debug# "bad magic: " (wrap_as magic fmt::u16_hex) "\n")
         (return CorruptionErrorVal)
      :)
     (while true :
@@ -360,12 +364,12 @@ https://github.com/corkami/formats/blob/master/image/jpeg.md"""
         (trylet chunk_length u16 (BS::FrontBeU16 [(&! data)]) err :
             (return err))
         (debug# (wrap_as chunk_kind fmt::u16_hex) " " chunk_length "\n")
-        (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as chunk_length uint)]) err :
+        (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
             (return err))
         (cond :
-            (case (== chunk_kind 0xffc0) :
-                (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! ctx)]) err :
-                    (return err)))
+            (case (== chunk_kind 0xffc0) :)
+            @doc """trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!ctx), err:
+   return err"""
             (case (== chunk_kind 0xffc4) :)
             (case (== chunk_kind 0xffdb) :)
             (case (== chunk_kind 0xffdd) :)

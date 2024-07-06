@@ -2,6 +2,7 @@
 (import test)
 
 (import fmt)
+(import NJ nano_jpeg)
 
 
 (global test_image auto x"""
@@ -200,8 +201,8 @@
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "(do (dump []))"
     (fmt::print# "image size: " (len test_image) "\n")
+    (do (NJ::DecodeImage [test_image]))
     @doc "test end"
     (test::Success#)
     (return 0))
 )
-
