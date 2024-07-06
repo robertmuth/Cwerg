@@ -1,8 +1,16 @@
-@doc """canonical huffman trees
+@doc """canonical huffman tree decoder
 
 https://datatracker.ietf.org/doc/html/rfc1951 Section 3.2
 https://en.wikipedia.org/wiki/Canonical_Huffman_code
 
+
+Usage:
+
+Assumptions:
+* encoded was as set symbols numbered 0-MAX_SYMBOLS
+* for each symbol the width of the associated huffman code was recorded in a length slice
+* unused symbols have a widths of 0
+* we do not need to know the actual code for a symbol because we use canonical codes
 """
 (module [] :
 (import bitstream)
@@ -25,6 +33,7 @@ This function has two failure modes:
 * the retrieved bits are out of range
   This will result in BAD_SYMBOL to be returned
 
+  counts[i] contains the number of huffman code of 2^i
   Note counts[0] is not used
 """
 @pub (fun NextSymbol [
@@ -143,4 +152,3 @@ Note counts[0] is always 0
      :)
     (return n))
 )
-
