@@ -188,6 +188,40 @@
     (return (/ (- (+ a b) 1) b)))
 
 
+(fun DecodeHufmanTable [(param chunk (slice u8)) (param vlctab (ptr (array 4 (array 65536 Code))))] (union [
+        Success
+        CorruptionError
+        UnsupportedError
+        BS::OutOfBoundsError]) :
+    (@ref let! data auto chunk)
+    (while (>= (len data) 17) :
+        (let kind auto (BS::FrontU8Unchecked [(&! data)]))
+        (if (!= (and kind 0xec) 0) :
+            (return CorruptionErrorVal)
+         :)
+        (if (!= (and kind 0x02) 0) :
+            (return UnsupportedErrorVal)
+         :)
+        @doc "combined DC/AC + tableid value"
+        (let pos u32 (or (paren (>> (and (as kind u32) 0x1f) 3)) (paren (and (as kind u32) 1))))
+        (let counts auto (BS::FrontSliceUnchecked [(&! data) 16]))
+        (let! remain s32 65536)
+        (let! spread s32 65536)
+        (for codelen 0 16_s32 1 :
+            (>>= spread 1)
+            (let n auto (as (at counts codelen) s32))
+            (if (== n 0) :
+                (continue)
+             :)
+            (-= remain (<< n (- 15 codelen)))
+            (if (< remain 0) :
+                (return CorruptionErrorVal)
+             :)
+            (let words auto (BS::FrontSlice [(&! data) (as n uint)]))
+            (for i 0 n 1 :
+                (return SuccessVal)))))
+
+
 (fun DecodeStartOfFrame [(param chunk (slice u8)) (param out (ptr! Context))] (union [
         Success
         CorruptionError
