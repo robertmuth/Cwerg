@@ -1,6 +1,16 @@
+--  Simple JPEG Decoder loosely based on
+-- https://github.com/corkami/formats/blob/master/image/jpeg.md
 module:
 
 import BS = bytestream
+
+import fmt
+
+
+macro xdebug# STMT_LIST($parts EXPR_LIST_REST)[]:
+    fmt::print_list#($parts)
+
+macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
 
 global W1 s32 = 2841
 global W2 s32 = 2676
@@ -190,6 +200,32 @@ fun DecodeHufmanTable(chunk slice(u8),  vlctab ^[4][65536]Code)
                 -- TODO
                 return SuccessVal
 
+fun DecodeQuantizationTable(chunk slice(u8),  qtab ^![4][64]u8)
+    union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    @ref let! data = chunk
+    let! qtavail u32 = 0
+    while len(data) >= 65:
+        let t = data[0]
+        if t and 0xfc != 0:
+            return CorruptionErrorVal
+        set qtavail or= 1 << as(t, u32)
+        for i = 0, 64_u32, 1:
+            set qtab^[t][i] = data[i + 1]
+        do BS::SkipUnchecked(&!data, 65)
+    if len(data) != 0:
+        return CorruptionErrorVal
+    return SuccessVal
+
+fun DecodeRestartInterval(chunk slice(u8),  qtab ^![4][64]u8)
+      union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    @ref let! data = chunk
+
+    trylet interval u16 = BS::FrontBeU16(&!data), err:
+        return err
+    -- TODO
+    return SuccessVal
+
+
 
 fun DecodeStartOfFrame(chunk slice(u8), out ^!Context)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -274,6 +310,8 @@ pub fun DecodeImage(a_data slice(u8))
             return err
         trylet chunk_length u16 = BS::FrontBeU16(&!data), err:
             return err
+
+        debug#(wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length, "\n")
         trylet chunk_slice slice(u8) = BS::FrontSlice(&!data, as(chunk_length, uint)), err:
             return err
         cond:

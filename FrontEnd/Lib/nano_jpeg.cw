@@ -1,5 +1,16 @@
+@doc """ Simple JPEG Decoder loosely based on
+https://github.com/corkami/formats/blob/master/image/jpeg.md"""
 (module [] :
 (import BS bytestream)
+
+(import fmt)
+
+
+(macro xdebug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :
+    (fmt::print_list# $parts))
+
+
+(macro debug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :)
 
 
 (global W1 s32 2841)
@@ -219,7 +230,42 @@
              :)
             (let words auto (BS::FrontSlice [(&! data) (as n uint)]))
             (for i 0 n 1 :
+                @doc "TODO"
                 (return SuccessVal)))))
+
+
+(fun DecodeQuantizationTable [(param chunk (slice u8)) (param qtab (ptr! (array 4 (array 64 u8))))] (union [
+        Success
+        CorruptionError
+        UnsupportedError
+        BS::OutOfBoundsError]) :
+    (@ref let! data auto chunk)
+    (let! qtavail u32 0)
+    (while (>= (len data) 65) :
+        (let t auto (at data 0))
+        (if (!= (and t 0xfc) 0) :
+            (return CorruptionErrorVal)
+         :)
+        (or= qtavail (<< 1 (as t u32)))
+        (for i 0 64_u32 1 :
+            (= (at (at (^ qtab) t) i) (at data (+ i 1))))
+        (do (BS::SkipUnchecked [(&! data) 65])))
+    (if (!= (len data) 0) :
+        (return CorruptionErrorVal)
+     :)
+    (return SuccessVal))
+
+
+(fun DecodeRestartInterval [(param chunk (slice u8)) (param qtab (ptr! (array 4 (array 64 u8))))] (union [
+        Success
+        CorruptionError
+        UnsupportedError
+        BS::OutOfBoundsError]) :
+    (@ref let! data auto chunk)
+    (trylet interval u16 (BS::FrontBeU16 [(&! data)]) err :
+        (return err))
+    @doc "TODO"
+    (return SuccessVal))
 
 
 (fun DecodeStartOfFrame [(param chunk (slice u8)) (param out (ptr! Context))] (union [
@@ -313,6 +359,7 @@
             (return err))
         (trylet chunk_length u16 (BS::FrontBeU16 [(&! data)]) err :
             (return err))
+        (debug# (wrap_as chunk_kind fmt::u16_hex) " " chunk_length "\n")
         (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as chunk_length uint)]) err :
             (return err))
         (cond :
