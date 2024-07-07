@@ -222,7 +222,6 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (let! total auto 0_uint)
         (for codelen 0 16_s32 1 :
             (+= total (as (at counts codelen) uint)))
-        (debug# "Hufman total codes[" pos "]: " total "\n")
         (if (< (len data) total) :
             (return BS::OutOfBoundsErrorVal)
          :)
@@ -255,16 +254,16 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (return qtavail))
 
 
-(fun DecodeRestartInterval [(param chunk (slice u8)) (param qtab (ptr! (array 4 (array 64 u8))))] (union [
-        Success
+(fun DecodeRestartInterval [(param chunk (slice u8))] (union [
+        u16
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
     (@ref let! data auto chunk)
     (trylet interval u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
-    @doc "TODO"
-    (return SuccessVal))
+    (debug# "restart interval: " interval "\n")
+    (return interval))
 
 
 (fun DecodeStartOfFrame [(param chunk (slice u8)) (param out (ptr! FrameInfo))] (union [
@@ -357,6 +356,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (@ref let! frame_info FrameInfo undef)
     (@ref let! quantization_tab (array 4 (array 64 u8)) undef)
     (let! qt_avail_bits u8 undef)
+    (let! restart_interval u16 undef)
     (@ref let! data auto a_data)
     (trylet magic u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
@@ -382,7 +382,9 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (case (== chunk_kind 0xffdb) :
                 (tryset qt_avail_bits (DecodeQuantizationTable [chunk_slice (&! quantization_tab)]) err :
                     (return err)))
-            (case (== chunk_kind 0xffdd) :)
+            (case (== chunk_kind 0xffdd) :
+                (tryset restart_interval (DecodeRestartInterval [chunk_slice]) err :
+                    (return err)))
             @doc "start of scan chunk is followed by image data"
             (case (== chunk_kind 0xffda) :)
             (case (== chunk_kind 0xfffe) :

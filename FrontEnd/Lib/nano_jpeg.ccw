@@ -214,14 +214,13 @@ fun DecodeQuantizationTable(chunk slice(u8),  qtab ^![4][64]u8)
         return CorruptionErrorVal
     return qtavail
 
-fun DecodeRestartInterval(chunk slice(u8),  qtab ^![4][64]u8)
-      union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+fun DecodeRestartInterval(chunk slice(u8))
+      union(u16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     @ref let! data = chunk
-
     trylet interval u16 = BS::FrontBeU16(&!data), err:
         return err
-    -- TODO
-    return SuccessVal
+    debug#("restart interval: ", interval, "\n")
+    return interval
 
 
 
@@ -307,6 +306,7 @@ pub fun DecodeImage(a_data slice(u8))
     @ref let! frame_info FrameInfo = undef
     @ref let! quantization_tab [4][64]u8 = undef
     let! qt_avail_bits u8 = undef
+    let! restart_interval u16 = undef
     @ref let! data = a_data
     trylet magic u16 = BS::FrontBeU16(&!data), err:
         return err
@@ -334,7 +334,8 @@ pub fun DecodeImage(a_data slice(u8))
                 tryset qt_avail_bits = DecodeQuantizationTable(chunk_slice, &!quantization_tab), err:
                     return err
             case chunk_kind == 0xffdd:
-
+                tryset restart_interval = DecodeRestartInterval(chunk_slice), err:
+                    return err
             -- start of scan chunk is followed by image data
             case chunk_kind == 0xffda:
 
