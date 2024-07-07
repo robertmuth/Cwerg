@@ -1,5 +1,9 @@
-@doc """ Simple JPEG Decoder loosely based on
-https://github.com/corkami/formats/blob/master/image/jpeg.md"""
+@doc """Simple JPEG Decoder loosely based on
+https://keyj.emphy.de/nanojpeg/
+More Info
+https://github.com/corkami/formats/blob/master/image/jpeg.md
+For Huffman codes
+https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf"""
 (module [] :
 (import BS bytestream)
 
@@ -198,13 +202,13 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (return (/ (- (+ a b) 1) b)))
 
 
-(fun DecodeHufmanTable [(param chunk (slice u8)) (param vlctab (ptr (array 4 (array 65536 Code))))] (union [
+(fun DecodeHufmanTable [(param chunk (slice u8))] (union [
         Success
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
     (@ref let! data auto chunk)
-    (while (>= (len data) 17) :
+    (while (> (len data) 0) :
         (let kind auto (BS::FrontU8Unchecked [(&! data)]))
         (if (!= (and kind 0xec) 0) :
             (return CorruptionErrorVal)
@@ -215,22 +219,17 @@ To enable debug logging make sure the second macro is called `debug#`"""
         @doc "combined DC/AC + tableid value"
         (let pos u32 (or (paren (>> (and (as kind u32) 0x1f) 3)) (paren (and (as kind u32) 1))))
         (let counts auto (BS::FrontSliceUnchecked [(&! data) 16]))
-        (let! remain s32 65536)
-        (let! spread s32 65536)
+        (let! total auto 0_uint)
         (for codelen 0 16_s32 1 :
-            (>>= spread 1)
-            (let n auto (as (at counts codelen) s32))
-            (if (== n 0) :
-                (continue)
-             :)
-            (-= remain (<< n (- 15 codelen)))
-            (if (< remain 0) :
-                (return CorruptionErrorVal)
-             :)
-            (let words auto (BS::FrontSlice [(&! data) (as n uint)]))
-            (for i 0 n 1 :
-                @doc "TODO"
-                (return SuccessVal)))))
+            (+= total (as (at counts codelen) uint)))
+        (debug# "Hufman total codes[" pos "]: " total "\n")
+        (if (< (len data) total) :
+            (return BS::OutOfBoundsErrorVal)
+         :)
+        (debug# "Hufman total codes[" pos "]: " total "\n")
+        @doc "TBD"
+        (do (BS::SkipUnchecked [(&! data) total])))
+    (return SuccessVal))
 
 
 (fun DecodeQuantizationTable [(param chunk (slice u8)) (param qtab (ptr! (array 4 (array 64 u8))))] (union [
@@ -370,14 +369,16 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (return err))
         (trylet chunk_length u16 (BS::FrontBeU16 [(&! data)]) err :
             (return err))
-        (debug# (wrap_as chunk_kind fmt::u16_hex) " " chunk_length "\n")
+        (debug# "CHUNK: " (wrap_as chunk_kind fmt::u16_hex) " " chunk_length "\n")
         (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
             (return err))
         (cond :
             (case (== chunk_kind 0xffc0) :
                 (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! frame_info)]) err :
                     (return err)))
-            (case (== chunk_kind 0xffc4) :)
+            (case (== chunk_kind 0xffc4) :
+                (trylet dummy Success (DecodeHufmanTable [chunk_slice]) err :
+                    (return err)))
             (case (== chunk_kind 0xffdb) :
                 (tryset qt_avail_bits (DecodeQuantizationTable [chunk_slice (&! quantization_tab)]) err :
                     (return err)))
@@ -390,6 +391,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
                 (debug# "chunk ignored\n"))
             (case true :
                 (return UnsupportedErrorVal))))
+    (debug# "DecodeImage complete\n")
     (return SuccessVal))
 )
 

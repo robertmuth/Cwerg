@@ -1,5 +1,9 @@
---  Simple JPEG Decoder loosely based on
+-- Simple JPEG Decoder loosely based on
+-- https://keyj.emphy.de/nanojpeg/
+-- More Info
 -- https://github.com/corkami/formats/blob/master/image/jpeg.md
+-- For Huffman codes
+-- https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
 module:
 
 import BS = bytestream
@@ -171,10 +175,10 @@ fun DecodeScan(data ^!slice(u8))
 fun div_roundup(a u32, b u32) u32:
     return (a + b -1) / b
 
-fun DecodeHufmanTable(chunk slice(u8),  vlctab ^[4][65536]Code)
+fun DecodeHufmanTable(chunk slice(u8))
     union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     @ref let! data = chunk
-    while len(data) >= 17:
+    while len(data) > 0:
         let kind = BS::FrontU8Unchecked(&!data)
         if kind and 0xec != 0:
             return CorruptionErrorVal
@@ -183,20 +187,15 @@ fun DecodeHufmanTable(chunk slice(u8),  vlctab ^[4][65536]Code)
         -- combined DC/AC + tableid value
         let pos u32 = ((as(kind, u32) and 0x1f) >> 3) or (as(kind, u32) and 1)
         let counts = BS::FrontSliceUnchecked(&!data, 16)
-        let! remain s32 = 65536
-        let! spread s32 = 65536
+        let! total = 0_uint
         for codelen = 0, 16_s32, 1:
-            set spread >>= 1
-            let n = as(counts[codelen], s32)
-            if n == 0:
-                continue
-            set remain -= n << (15 - codelen)
-            if remain < 0:
-                return CorruptionErrorVal
-            let words = BS::FrontSlice(&!data, as(n, uint))
-            for i = 0, n, 1:
-                -- TODO
-                return SuccessVal
+            set total += as(counts[codelen], uint)
+        if len(data) < total:
+            return  BS::OutOfBoundsErrorVal
+        debug#("Hufman total codes[", pos, "]: ", total, "\n")
+        -- TBD
+        do BS::SkipUnchecked(&!data, total)
+    return SuccessVal
 
 fun DecodeQuantizationTable(chunk slice(u8),  qtab ^![4][64]u8)
     union(u8, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -321,7 +320,7 @@ pub fun DecodeImage(a_data slice(u8))
         trylet chunk_length u16 = BS::FrontBeU16(&!data), err:
             return err
 
-        debug#(wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length, "\n")
+        debug#("CHUNK: ", wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length, "\n")
         trylet chunk_slice slice(u8) = BS::FrontSlice(&!data, as(chunk_length - 2, uint)), err:
             return err
         cond:
@@ -329,6 +328,8 @@ pub fun DecodeImage(a_data slice(u8))
                 trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!frame_info), err:
                     return err
             case chunk_kind == 0xffc4:
+                trylet dummy Success = DecodeHufmanTable(chunk_slice), err:
+                    return err
             case chunk_kind == 0xffdb:
                 tryset qt_avail_bits = DecodeQuantizationTable(chunk_slice, &!quantization_tab), err:
                     return err
@@ -344,5 +345,5 @@ pub fun DecodeImage(a_data slice(u8))
             case true:
                 return UnsupportedErrorVal
 
-
+    debug#("DecodeImage complete\n")
     return SuccessVal
