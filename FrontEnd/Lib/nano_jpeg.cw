@@ -155,7 +155,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (field stride u32))
 
 
-(defrec Context :
+(defrec FrameInfo :
     (field width u32)
     (field height u32)
     (field ncomp u8)
@@ -163,10 +163,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (field mbsizey u32)
     (field mbwidth u32)
     (field mbheight u32)
-    (field size s32)
-    (field length s32)
-    (field comp (array 3 Component))
-    (field qtab (array 64 (array 4 u8))))
+    (field comp (array 3 Component)))
 
 
 @pub (@wrapped type Success void)
@@ -237,25 +234,26 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 
 (fun DecodeQuantizationTable [(param chunk (slice u8)) (param qtab (ptr! (array 4 (array 64 u8))))] (union [
-        Success
+        u8
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
     (@ref let! data auto chunk)
-    (let! qtavail u32 0)
+    (let! qtavail u8 0)
     (while (>= (len data) 65) :
         (let t auto (at data 0))
         (if (!= (and t 0xfc) 0) :
             (return CorruptionErrorVal)
          :)
-        (or= qtavail (<< 1 (as t u32)))
+        (debug# "processing qt: " t "\n")
+        (or= qtavail (<< 1 t))
         (for i 0 64_u32 1 :
             (= (at (at (^ qtab) t) i) (at data (+ i 1))))
         (do (BS::SkipUnchecked [(&! data) 65])))
     (if (!= (len data) 0) :
         (return CorruptionErrorVal)
      :)
-    (return SuccessVal))
+    (return qtavail))
 
 
 (fun DecodeRestartInterval [(param chunk (slice u8)) (param qtab (ptr! (array 4 (array 64 u8))))] (union [
@@ -270,7 +268,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (return SuccessVal))
 
 
-(fun DecodeStartOfFrame [(param chunk (slice u8)) (param out (ptr! Context))] (union [
+(fun DecodeStartOfFrame [(param chunk (slice u8)) (param out (ptr! FrameInfo))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -279,6 +277,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (trylet format u8 (BS::FrontU8 [(&! data)]) err :
         (return err))
     (if (!= format 8) :
+        (debug# "unsupported format: " format "\n")
         (return UnsupportedErrorVal)
      :)
     (trylet height u16 (BS::FrontBeU16 [(&! data)]) err :
@@ -291,11 +290,14 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (return err))
     (= (^. out ncomp) ncomp)
     (if (&& (!= ncomp 1) (!= ncomp 3)) :
+        (debug# "unsupported ncomp: " ncomp "\n")
         (return UnsupportedErrorVal)
      :)
+    (debug# "frame: " width "x" height " ncomp: " ncomp "\n")
     (let! ssxmax u32 0)
     (let! ssymax u32 0)
     (for i 0 ncomp 1 :
+        (debug# "processing comp: " i "\n")
         (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
         (tryset (^. comp cid) (BS::FrontU8 [(&! data)]) err :
             (return err))
@@ -305,6 +307,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (let ssy auto (as (and ss 0xf) u32))
         @doc "ssy must be a power of two"
         (if (|| (|| (== ssx 0) (== ssy 0)) (!= (and ssy (- ssy 1)) 0)) :
+            (debug# "bad ss: " ssx "x" ssy "\n")
             (return CorruptionErrorVal)
          :)
         (= (^. comp ssx) ssx)
@@ -313,11 +316,11 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (max= ssymax ssy)
         (trylet! qtsel u8 (BS::FrontU8 [(&! data)]) err :
             (return err))
-        (and= qtsel 0xfc)
-        (if (== qtsel 0) :
+        (if (!= (and qtsel 0xfc) 0) :
+            (debug# "bad qtsel: " qtsel "\n")
             (return CorruptionErrorVal)
          :)
-        (= (^. comp qtsel) (and qtsel 0xfc)))
+        (= (^. comp qtsel) qtsel))
     (if (== ncomp 1) :
         (= ssxmax 1)
         (= ssymax 1)
@@ -336,9 +339,11 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (= (^. comp height) (div_roundup [(* (^. out height) (^. comp ssy)) ssymax]))
         (= (^. comp stride) (* (* (^. out mbwidth) (^. comp ssx)) 8))
         (if (&& (< (^. comp width) 3) (!= (^. comp ssx) ssxmax)) :
+            (debug# "bad width: " (^. comp width) "\n")
             (return CorruptionErrorVal)
          :)
         (if (&& (< (^. comp height) 3) (!= (^. comp ssy) ssymax)) :
+            (debug# "bad height: " (^. comp height) "\n")
             (return CorruptionErrorVal)
          :))
     (return SuccessVal))
@@ -350,7 +355,9 @@ To enable debug logging make sure the second macro is called `debug#`"""
         UnsupportedError
         BS::OutOfBoundsError]) :
     (debug# "DecodeImage: " (len a_data) "\n")
-    (@ref let! ctx Context undef)
+    (@ref let! frame_info FrameInfo undef)
+    (@ref let! quantization_tab (array 4 (array 64 u8)) undef)
+    (let! qt_avail_bits u8 undef)
     (@ref let! data auto a_data)
     (trylet magic u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
@@ -367,17 +374,20 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
             (return err))
         (cond :
-            (case (== chunk_kind 0xffc0) :)
-            @doc """trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!ctx), err:
-   return err"""
+            (case (== chunk_kind 0xffc0) :
+                (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! frame_info)]) err :
+                    (return err)))
             (case (== chunk_kind 0xffc4) :)
-            (case (== chunk_kind 0xffdb) :)
+            (case (== chunk_kind 0xffdb) :
+                (tryset qt_avail_bits (DecodeQuantizationTable [chunk_slice (&! quantization_tab)]) err :
+                    (return err)))
             (case (== chunk_kind 0xffdd) :)
+            @doc "start of scan chunk is followed by image data"
             (case (== chunk_kind 0xffda) :)
-            @doc "TBD"
-            (case (== chunk_kind 0xfffe) :)
-            @doc "TBD"
-            (case (== (and chunk_kind 0xfff0) 0xffe0) :)
+            (case (== chunk_kind 0xfffe) :
+                (debug# "chunk ignored\n"))
+            (case (== (and chunk_kind 0xfff0) 0xffe0) :
+                (debug# "chunk ignored\n"))
             (case true :
                 (return UnsupportedErrorVal))))
     (return SuccessVal))

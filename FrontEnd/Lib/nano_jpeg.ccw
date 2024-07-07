@@ -136,7 +136,7 @@ rec Component:
     stride u32
 
 
-rec Context:
+rec FrameInfo:
     width u32
     height u32
     ncomp u8
@@ -146,11 +146,7 @@ rec Context:
     mbwidth u32
     mbheight u32
 
-    size s32
-    length s32
-
     comp [3]Component
-    qtab [64][4]u8
 
 
 
@@ -203,20 +199,21 @@ fun DecodeHufmanTable(chunk slice(u8),  vlctab ^[4][65536]Code)
                 return SuccessVal
 
 fun DecodeQuantizationTable(chunk slice(u8),  qtab ^![4][64]u8)
-    union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    union(u8, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     @ref let! data = chunk
-    let! qtavail u32 = 0
+    let! qtavail u8 = 0
     while len(data) >= 65:
         let t = data[0]
         if t and 0xfc != 0:
             return CorruptionErrorVal
-        set qtavail or= 1 << as(t, u32)
+        debug#("processing qt: ", t, "\n")
+        set qtavail or= 1 << t
         for i = 0, 64_u32, 1:
             set qtab^[t][i] = data[i + 1]
         do BS::SkipUnchecked(&!data, 65)
     if len(data) != 0:
         return CorruptionErrorVal
-    return SuccessVal
+    return qtavail
 
 fun DecodeRestartInterval(chunk slice(u8),  qtab ^![4][64]u8)
       union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -229,12 +226,13 @@ fun DecodeRestartInterval(chunk slice(u8),  qtab ^![4][64]u8)
 
 
 
-fun DecodeStartOfFrame(chunk slice(u8), out ^!Context)
+fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     @ref let! data = chunk
     trylet format u8 = BS::FrontU8(&!data), err:
         return err
     if format != 8:
+        debug#("unsupported format: ", format, "\n")
         return UnsupportedErrorVal
     trylet height u16 = BS::FrontBeU16(&!data), err:
             return err
@@ -246,11 +244,14 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!Context)
             return err
     set out^.ncomp = ncomp
     if ncomp != 1 &&  ncomp != 3:
+        debug#("unsupported ncomp: ", ncomp, "\n")
         return UnsupportedErrorVal
 
+    debug#("frame: ", width, "x", height,  " ncomp: ", ncomp, "\n")
     let! ssxmax u32 = 0
     let! ssymax u32 = 0
     for i = 0, ncomp, 1:
+        debug#("processing comp: ", i, "\n")
         let comp ^!Component = &!(out^.comp[i])
         tryset comp^.cid = BS::FrontU8(&!data), err:
             return err
@@ -260,6 +261,7 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!Context)
         let ssy = as(ss and 0xf, u32)
         -- ssy must be a power of two
         if ssx == 0 || ssy == 0 || ssy and (ssy - 1) != 0:
+            debug#("bad ss: ", ssx, "x", ssy, "\n")
             return CorruptionErrorVal
 
         set comp^.ssx = ssx
@@ -269,10 +271,10 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!Context)
 
         trylet! qtsel u8 = BS::FrontU8(&!data), err:
             return err
-        set qtsel and= 0xfc
-        if qtsel == 0:
+        if qtsel and 0xfc!= 0:
+            debug#("bad qtsel: ", qtsel, "\n")
             return CorruptionErrorVal
-        set comp^.qtsel = qtsel and 0xfc
+        set comp^.qtsel = qtsel
 
     if ncomp == 1:
         set ssxmax = 1
@@ -293,15 +295,19 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!Context)
         set comp^.height = div_roundup(out^.height * comp^.ssy, ssymax)
         set comp^.stride = out^.mbwidth * comp^.ssx * 8
         if comp^.width < 3 && comp^.ssx != ssxmax:
+            debug#("bad width: ", comp^.width, "\n")
             return CorruptionErrorVal
         if comp^.height < 3 && comp^.ssy != ssymax:
+            debug#("bad height: ", comp^.height, "\n")
             return CorruptionErrorVal
     return SuccessVal
 
 pub fun DecodeImage(a_data slice(u8))
         union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("DecodeImage: ", len(a_data), "\n")
-    @ref let! ctx Context = undef
+    @ref let! frame_info FrameInfo = undef
+    @ref let! quantization_tab [4][64]u8 = undef
+    let! qt_avail_bits u8 = undef
     @ref let! data = a_data
     trylet magic u16 = BS::FrontBeU16(&!data), err:
         return err
@@ -320,18 +326,21 @@ pub fun DecodeImage(a_data slice(u8))
             return err
         cond:
             case chunk_kind == 0xffc0:
-            -- trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!ctx), err:
-            --    return err
+                trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!frame_info), err:
+                    return err
             case chunk_kind == 0xffc4:
             case chunk_kind == 0xffdb:
+                tryset qt_avail_bits = DecodeQuantizationTable(chunk_slice, &!quantization_tab), err:
+                    return err
             case chunk_kind == 0xffdd:
 
             -- start of scan chunk is followed by image data
             case chunk_kind == 0xffda:
 
             case chunk_kind == 0xfffe:
-            -- TBD
+                debug#("chunk ignored\n")
             case chunk_kind and 0xfff0 == 0xffe0:
+                debug#("chunk ignored\n")
             case true:
                 return UnsupportedErrorVal
 
