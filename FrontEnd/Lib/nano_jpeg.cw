@@ -156,7 +156,9 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (field qtsel u8)
     (field width u32)
     (field height u32)
-    (field stride u32))
+    (field stride u32)
+    (field dctabsel u8)
+    (field actabsel u8))
 
 
 (defrec FrameInfo :
@@ -186,16 +188,6 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 
 @pub (global UnsupportedErrorVal auto (wrap_as void_val UnsupportedError))
-
-
-(fun DecodeScan [(param data (ptr! (slice u8)))] (union [
-        Success
-        CorruptionError
-        UnsupportedError
-        BS::OutOfBoundsError]) :
-    (trylet l u16 (BS::FrontBeU16 [data]) err :
-        (return err))
-    (return SuccessVal))
 
 
 (fun div_roundup [(param a u32) (param b u32)] u32 :
@@ -295,10 +287,10 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (let! ssxmax u32 0)
     (let! ssymax u32 0)
     (for i 0 ncomp 1 :
-        (debug# "processing comp: " i "\n")
         (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
         (tryset (^. comp cid) (BS::FrontU8 [(&! data)]) err :
             (return err))
+        (debug# "processing comp: " i " " (^. comp cid) "\n")
         (trylet ss u8 (BS::FrontU8 [(&! data)]) err :
             (return err))
         (let ssx auto (as (>> ss 4) u32))
@@ -347,6 +339,43 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (return SuccessVal))
 
 
+(fun DecodeScan [(param chunk (slice u8)) (param frame_info (ptr! FrameInfo))] (union [
+        Success
+        CorruptionError
+        UnsupportedError
+        BS::OutOfBoundsError]) :
+    (@ref let! data auto chunk)
+    (trylet ncomp u8 (BS::FrontU8 [(&! data)]) err :
+        (return err))
+    (if (!= ncomp (^. frame_info ncomp)) :
+        (return UnsupportedErrorVal)
+     :)
+    (for i 0 ncomp 1 :
+        (if (< (len data) 2) :
+            (return BS::OutOfBoundsErrorVal)
+         :)
+        (let comp (ptr! Component) (&! (paren (at (^. frame_info comp) i))))
+        (if (!= (at data 0) (^. comp cid)) :
+            (return CorruptionErrorVal)
+         :)
+        (let tabsel auto (at data 1))
+        (if (!= (and tabsel 0xee) 0) :
+            (return CorruptionErrorVal)
+         :)
+        (= (^. comp dctabsel) (>> tabsel 4))
+        (= (^. comp actabsel) (or (and tabsel 1) 2))
+        (debug# "tabsel[" (^. comp cid) "]: " tabsel "\n")
+        (do (BS::SkipUnchecked [(&! data) 2]))
+        (if (< (len data) 3) :
+            (return BS::OutOfBoundsErrorVal)
+         :))
+    (if (|| (|| (!= (at data 0) 0) (!= (at data 1) 63)) (!= (at data 2) 0)) :
+        (return UnsupportedErrorVal)
+     :)
+    (do (BS::SkipUnchecked [(&! data) 3]))
+    (return SuccessVal))
+
+
 @pub (fun DecodeImage [(param a_data (slice u8))] (union [
         Success
         CorruptionError
@@ -385,8 +414,10 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (case (== chunk_kind 0xffdd) :
                 (tryset restart_interval (DecodeRestartInterval [chunk_slice]) err :
                     (return err)))
-            @doc "start of scan chunk is followed by image data"
-            (case (== chunk_kind 0xffda) :)
+            (case (== chunk_kind 0xffda) :
+                @doc "start of scan chunk is followed by image data"
+                (trylet dummy Success (DecodeScan [chunk_slice (&! frame_info)]) err :
+                    (return err)))
             (case (== chunk_kind 0xfffe) :
                 (debug# "chunk ignored\n"))
             (case (== (and chunk_kind 0xfff0) 0xffe0) :
