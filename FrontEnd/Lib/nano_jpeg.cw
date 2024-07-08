@@ -187,6 +187,16 @@ the exact number is bits_count"""
     (return out))
 
 
+(defrec AppInfo :
+    (field version_major u8)
+    (field version_minor u8)
+    (field units u8)
+    (field density_x u16)
+    (field density_y u16)
+    (field thumbnail_w u8)
+    (field thumbnail_h u8))
+
+
 (defrec Component :
     (field cid u8)
     (field ssx u32)
@@ -297,6 +307,30 @@ the exact number is bits_count"""
         (return err))
     (debug# "restart interval: " interval "\n")
     (return interval))
+
+
+(fun DecodeAppInfo [(param chunk (slice u8)) (param app_info (ptr! AppInfo))] (union [
+        Success
+        CorruptionError
+        UnsupportedError
+        BS::OutOfBoundsError]) :
+    (@ref let! data auto chunk)
+    (if (< (len data) 14) :
+        (return CorruptionErrorVal)
+     :)
+    (if (|| (|| (|| (|| (!= (at data 0) 'J') (!= (at data 1) 'F')) (!= (at data 2) 'I')) (!= (at data 3) 'F')) (!= (at data 4) 0)) :
+        (return CorruptionErrorVal)
+     :)
+    (do (BS::SkipUnchecked [(&! data) 5]))
+    (= (^. app_info version_major) (BS::FrontU8Unchecked [(&! data)]))
+    (= (^. app_info version_minor) (BS::FrontU8Unchecked [(&! data)]))
+    (= (^. app_info units) (BS::FrontU8Unchecked [(&! data)]))
+    (= (^. app_info density_x) (BS::FrontBeU16Unchecked [(&! data)]))
+    (= (^. app_info density_y) (BS::FrontBeU16Unchecked [(&! data)]))
+    (= (^. app_info thumbnail_w) (BS::FrontU8Unchecked [(&! data)]))
+    (= (^. app_info thumbnail_h) (BS::FrontU8Unchecked [(&! data)]))
+    (debug# "AppInfo: " (^. app_info version_major) "." (^. app_info version_minor) "\n")
+    (return SuccessVal))
 
 
 (fun DecodeStartOfFrame [(param chunk (slice u8)) (param out (ptr! FrameInfo))] (union [
@@ -450,6 +484,7 @@ the exact number is bits_count"""
         UnsupportedError
         BS::OutOfBoundsError]) :
     (debug# "DecodeImage: " (len a_data) "\n")
+    (@ref let! app_info AppInfo undef)
     (@ref let! frame_info FrameInfo undef)
     (@ref let! quantization_tab (array 4 (array 64 u8)) undef)
     (let! qt_avail_bits u8 0)
@@ -470,6 +505,9 @@ the exact number is bits_count"""
         (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
             (return err))
         (cond :
+            (case (== chunk_kind 0xffe0) :
+                (trylet dummy Success (DecodeAppInfo [chunk_slice (&! app_info)]) err :
+                    (return err)))
             (case (== chunk_kind 0xffc0) :
                 (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! frame_info)]) err :
                     (return err)))

@@ -164,6 +164,16 @@ pub fun GetNextBit(bs ^!BitStream) u16:
     set bs^.bits_cache = bits_cache
     return out
 
+
+rec AppInfo:
+    version_major u8
+    version_minor u8
+    units u8
+    density_x u16
+    density_y u16
+    thumbnail_w u8
+    thumbnail_h u8
+
 rec Component:
     cid u8
     ssx u32
@@ -258,7 +268,23 @@ fun DecodeRestartInterval(chunk slice(u8))
     debug#("restart interval: ", interval, "\n")
     return interval
 
-
+fun DecodeAppInfo(chunk slice(u8), app_info ^!AppInfo)
+       union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    @ref let! data = chunk
+    if len(data) < 14:
+        return CorruptionErrorVal
+    if data[0] != 'J' || data[1] != 'F' || data[2] != 'I'  || data[3] != 'F' || data[4] != 0:
+        return CorruptionErrorVal
+    do BS::SkipUnchecked(&!data, 5)
+    set app_info^.version_major = BS::FrontU8Unchecked(&!data)
+    set app_info^.version_minor = BS::FrontU8Unchecked(&!data)
+    set app_info^.units = BS::FrontU8Unchecked(&!data)
+    set app_info^.density_x = BS::FrontBeU16Unchecked(&!data)
+    set app_info^.density_y = BS::FrontBeU16Unchecked(&!data)
+    set app_info^.thumbnail_w = BS::FrontU8Unchecked(&!data)
+    set app_info^.thumbnail_h = BS::FrontU8Unchecked(&!data)
+    debug#("AppInfo: ", app_info^.version_major, ".", app_info^.version_minor, "\n")
+    return SuccessVal
 
 fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -394,6 +420,7 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo)
 pub fun DecodeImage(a_data slice(u8))
         union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("DecodeImage: ", len(a_data), "\n")
+    @ref let! app_info AppInfo = undef
     @ref let! frame_info FrameInfo = undef
     @ref let! quantization_tab [4][64]u8 = undef
     let! qt_avail_bits u8 = 0
@@ -415,6 +442,9 @@ pub fun DecodeImage(a_data slice(u8))
         trylet chunk_slice slice(u8) = BS::FrontSlice(&!data, as(chunk_length - 2, uint)), err:
             return err
         cond:
+            case chunk_kind == 0xffe0:
+                trylet dummy Success = DecodeAppInfo(chunk_slice, &!app_info), err:
+                    return err
             case chunk_kind == 0xffc0:
                 trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!frame_info), err:
                     return err
