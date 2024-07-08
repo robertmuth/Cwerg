@@ -395,7 +395,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprField):
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
         if not ct.is_rec():
-             cwast.CompilerError(
+            cwast.CompilerError(
                 node.x_srcloc, f"container type is not record {node.container}")
         field_node = tc.lookup_rec_field(ct, node.field)
         if not field_node:
@@ -427,6 +427,11 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(node.expr, tc, target_type, ctx)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.Expr2):
+        if node.binary_expr_kind in cwast.BINOP_BOOL:
+            # for comparisons the type of the expressions has nothing to do with
+            # the type of the operands
+            # TODO introduce BINOP_OPS_HAVE_SAME_TYPE_AS_EXPRESSION
+            target_type = cwast.NO_TYPE
         ct = _TypifyNodeRecursively(
             node.expr1, tc, target_type, ctx)
         if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE and ct.is_number():
