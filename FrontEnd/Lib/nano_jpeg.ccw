@@ -125,9 +125,44 @@ fun ColIDCT(blk ^[8*8]s32, out slice!(u8), stride uint) void:
     set out[6 * stride] = ClampU8(((x3 - x2) >> 14) + 128)
     set out[7 * stride] = ClampU8(((x7 - x1) >> 14) + 128)
 
-rec Code:
-    bits u8
-    code u8
+
+
+pub rec BitStream:
+    buf slice(u8)
+    offset uint
+    -- contains the next up to 8 bits from the stream
+    -- the exact number is bits_count
+    bits_cache u8
+    bits_count u8
+    -- end-of-stream flag - once set it will not be cleared
+    eos bool
+
+pub fun GetNextBit(bs ^!BitStream) u16:
+    let! bits_count u8 = bs^.bits_count
+    let! bits_cache u8 = bs^.bits_cache
+    if bits_count == 0:
+        if bs^.offset == len(bs^.buf):
+            set bs^.eos = true
+            return 0
+        set bits_cache = bs^.buf[bs^.offset]
+        set bs^.offset += 1
+        set bits_count = 8
+        if bits_cache == 0xff:
+            if bs^.offset == len(bs^.buf):
+                set bs^.eos = true
+                return 0
+            let zeros = bs^.buf[bs^.offset]
+            if zeros != 0:
+                set bs^.eos = true
+                return 0
+            set bs^.offset += 1
+
+    let out = as(bits_cache and 1, u16)
+    set bits_cache >>= 1
+    set bits_count -= 1
+    set bs^.bits_count = bits_count
+    set bs^.bits_cache = bits_cache
+    return out
 
 rec Component:
     cid u8
@@ -135,6 +170,7 @@ rec Component:
     ssy u32
     qtsel u8
 
+    -- image dimensions in pixels
     width u32
     height u32
     stride u32
@@ -146,8 +182,10 @@ rec FrameInfo:
     height u32
     ncomp u8
 
+    -- macro block dimensions in pixels (e.g. 8x8)
     mbsizex u32
     mbsizey u32
+    -- image dimension measure in macro blocks
     mbwidth u32
     mbheight u32
 
@@ -243,14 +281,13 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         debug#("unsupported ncomp: ", ncomp, "\n")
         return UnsupportedErrorVal
 
-    debug#("frame: ", width, "x", height,  " ncomp: ", ncomp, "\n")
+    debug#("frame: ", width, "x", height, " ncomp: ", ncomp, "\n")
     let! ssxmax u32 = 0
     let! ssymax u32 = 0
     for i = 0, ncomp, 1:
         let comp ^!Component = &!(out^.comp[i])
         tryset comp^.cid = BS::FrontU8(&!data), err:
             return err
-         debug#("processing comp: ", i, " ", comp^.cid, "\n")
 
         trylet ss u8 = BS::FrontU8(&!data), err:
             return err
@@ -260,6 +297,8 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         if ssx == 0 || ssy == 0 || ssy and (ssy - 1) != 0:
             debug#("bad ss: ", ssx, "x", ssy, "\n")
             return CorruptionErrorVal
+
+         debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")
 
         set comp^.ssx = ssx
         set comp^.ssy = ssy
@@ -286,6 +325,7 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
     set out^.mbsizey = mbsizey
     set out^.mbwidth = div_roundup(out^.width, mbsizex)
     set out^.mbheight = div_roundup(out^.height, mbsizey)
+    debug#("mbsize: ", mbsizex, "x", mbsizey,  " mbdim: ", out^.mbwidth, "x", out^.mbheight, "\n")
     for i = 0, ncomp, 1:
         let comp ^!Component = &!(out^.comp[i])
         set comp^.width = div_roundup(out^.width * comp^.ssx, ssxmax)
@@ -297,6 +337,8 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         if comp^.height < 3 && comp^.ssy != ssymax:
             debug#("bad height: ", comp^.height, "\n")
             return CorruptionErrorVal
+        debug#("comp: ", i, " ", comp^.width, "x", comp^.height, " stride:", comp^.stride, "\n")
+
     return SuccessVal
 
 fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
@@ -328,13 +370,34 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
     do BS::SkipUnchecked(&!data, 3)
    return SuccessVal
 
+
+
+fun  DecodeBlock(bs ^!BitStream)
+    union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    return SuccessVal
+
+fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo)
+       union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    @ref let! bs = BitStream{chunk}
+    let num_macro_blocks = frame_info^.mbwidth * frame_info^.mbheight
+    for m = 0, num_macro_blocks, 1:
+        for c = 0, frame_info^.ncomp, 1:
+            let comp ^Component = &(frame_info^.comp[c])
+            for y = 0, comp^.ssy, 1:
+                for x = 0, comp^.ssx, 1:
+                    trylet dummy Success = DecodeBlock(&!bs), err:
+                        return err
+
+
+    return SuccessVal
+
 pub fun DecodeImage(a_data slice(u8))
         union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("DecodeImage: ", len(a_data), "\n")
     @ref let! frame_info FrameInfo = undef
     @ref let! quantization_tab [4][64]u8 = undef
-    let! qt_avail_bits u8 = undef
-    let! restart_interval u16 = undef
+    let! qt_avail_bits u8 = 0
+    let! restart_interval u16 = 0
     @ref let! data = a_data
     trylet magic u16 = BS::FrontBeU16(&!data), err:
         return err
@@ -365,7 +428,7 @@ pub fun DecodeImage(a_data slice(u8))
                 tryset restart_interval = DecodeRestartInterval(chunk_slice), err:
                     return err
             case chunk_kind == 0xffda:
-                -- start of scan chunk is followed by image data
+                -- start of scan chunk, huffman encoded image data follows
                 trylet dummy Success = DecodeScan(chunk_slice, &!frame_info), err:
                     return err
             case chunk_kind == 0xfffe:

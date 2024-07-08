@@ -144,9 +144,47 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (= (at out (* 7 stride)) (ClampU8 [(+ (paren (>> (- x7 x1) 14)) 128)])))
 
 
-(defrec Code :
-    (field bits u8)
-    (field code u8))
+@pub (defrec BitStream :
+    (field buf (slice u8))
+    (field offset uint)
+    @doc """contains the next up to 8 bits from the stream
+the exact number is bits_count"""
+    (field bits_cache u8)
+    (field bits_count u8)
+    @doc "end-of-stream flag - once set it will not be cleared"
+    (field eos bool))
+
+
+@pub (fun GetNextBit [(param bs (ptr! BitStream))] u16 :
+    (let! bits_count u8 (^. bs bits_count))
+    (let! bits_cache u8 (^. bs bits_cache))
+    (if (== bits_count 0) :
+        (if (== (^. bs offset) (len (^. bs buf))) :
+            (= (^. bs eos) true)
+            (return 0)
+         :)
+        (= bits_cache (at (^. bs buf) (^. bs offset)))
+        (+= (^. bs offset) 1)
+        (= bits_count 8)
+        (if (== bits_cache 0xff) :
+            (if (== (^. bs offset) (len (^. bs buf))) :
+                (= (^. bs eos) true)
+                (return 0)
+             :)
+            (let zeros auto (at (^. bs buf) (^. bs offset)))
+            (if (!= zeros 0) :
+                (= (^. bs eos) true)
+                (return 0)
+             :)
+            (+= (^. bs offset) 1)
+         :)
+     :)
+    (let out auto (as (and bits_cache 1) u16))
+    (>>= bits_cache 1)
+    (-= bits_count 1)
+    (= (^. bs bits_count) bits_count)
+    (= (^. bs bits_cache) bits_cache)
+    (return out))
 
 
 (defrec Component :
@@ -154,6 +192,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (field ssx u32)
     (field ssy u32)
     (field qtsel u8)
+    @doc "image dimensions in pixels"
     (field width u32)
     (field height u32)
     (field stride u32)
@@ -165,8 +204,10 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (field width u32)
     (field height u32)
     (field ncomp u8)
+    @doc "macro block dimensions in pixels (e.g. 8x8)"
     (field mbsizex u32)
     (field mbsizey u32)
+    @doc "image dimension measure in macro blocks"
     (field mbwidth u32)
     (field mbheight u32)
     (field comp (array 3 Component)))
@@ -290,7 +331,6 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
         (tryset (^. comp cid) (BS::FrontU8 [(&! data)]) err :
             (return err))
-        (debug# "processing comp: " i " " (^. comp cid) "\n")
         (trylet ss u8 (BS::FrontU8 [(&! data)]) err :
             (return err))
         (let ssx auto (as (>> ss 4) u32))
@@ -300,6 +340,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (debug# "bad ss: " ssx "x" ssy "\n")
             (return CorruptionErrorVal)
          :)
+        (debug# "comp: " i " " (^. comp cid) " " ssx "x" ssy "\n")
         (= (^. comp ssx) ssx)
         (= (^. comp ssy) ssy)
         (max= ssxmax ssx)
@@ -323,6 +364,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (= (^. out mbsizey) mbsizey)
     (= (^. out mbwidth) (div_roundup [(^. out width) mbsizex]))
     (= (^. out mbheight) (div_roundup [(^. out height) mbsizey]))
+    (debug# "mbsize: " mbsizex "x" mbsizey " mbdim: " (^. out mbwidth) "x" (^. out mbheight) "\n")
     (for i 0 ncomp 1 :
         (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
         (= (^. comp width) (div_roundup [(* (^. out width) (^. comp ssx)) ssxmax]))
@@ -335,7 +377,8 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (if (&& (< (^. comp height) 3) (!= (^. comp ssy) ssymax)) :
             (debug# "bad height: " (^. comp height) "\n")
             (return CorruptionErrorVal)
-         :))
+         :)
+        (debug# "comp: " i " " (^. comp width) "x" (^. comp height) " stride:" (^. comp stride) "\n"))
     (return SuccessVal))
 
 
@@ -376,6 +419,31 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (return SuccessVal))
 
 
+(fun DecodeBlock [(param bs (ptr! BitStream))] (union [
+        Success
+        CorruptionError
+        UnsupportedError
+        BS::OutOfBoundsError]) :
+    (return SuccessVal))
+
+
+(fun DecodeMacroBlocksHuffman [(param chunk (slice u8)) (param frame_info (ptr FrameInfo))] (union [
+        Success
+        CorruptionError
+        UnsupportedError
+        BS::OutOfBoundsError]) :
+    (@ref let! bs auto (rec_val BitStream [chunk]))
+    (let num_macro_blocks auto (* (^. frame_info mbwidth) (^. frame_info mbheight)))
+    (for m 0 num_macro_blocks 1 :
+        (for c 0 (^. frame_info ncomp) 1 :
+            (let comp (ptr Component) (& (paren (at (^. frame_info comp) c))))
+            (for y 0 (^. comp ssy) 1 :
+                (for x 0 (^. comp ssx) 1 :
+                    (trylet dummy Success (DecodeBlock [(&! bs)]) err :
+                        (return err))))))
+    (return SuccessVal))
+
+
 @pub (fun DecodeImage [(param a_data (slice u8))] (union [
         Success
         CorruptionError
@@ -384,8 +452,8 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (debug# "DecodeImage: " (len a_data) "\n")
     (@ref let! frame_info FrameInfo undef)
     (@ref let! quantization_tab (array 4 (array 64 u8)) undef)
-    (let! qt_avail_bits u8 undef)
-    (let! restart_interval u16 undef)
+    (let! qt_avail_bits u8 0)
+    (let! restart_interval u16 0)
     (@ref let! data auto a_data)
     (trylet magic u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
@@ -415,7 +483,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
                 (tryset restart_interval (DecodeRestartInterval [chunk_slice]) err :
                     (return err)))
             (case (== chunk_kind 0xffda) :
-                @doc "start of scan chunk is followed by image data"
+                @doc "start of scan chunk, huffman encoded image data follows"
                 (trylet dummy Success (DecodeScan [chunk_slice (&! frame_info)]) err :
                     (return err)))
             (case (== chunk_kind 0xfffe) :
