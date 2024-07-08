@@ -466,6 +466,7 @@ the exact number is bits_count"""
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
+    (debug# "decode blocks\n")
     (@ref let! bs auto (rec_val BitStream [chunk]))
     (let num_macro_blocks auto (* (^. frame_info mbwidth) (^. frame_info mbheight)))
     (for m 0 num_macro_blocks 1 :
@@ -523,7 +524,10 @@ the exact number is bits_count"""
             (case (== chunk_kind 0xffda) :
                 @doc "start of scan chunk, huffman encoded image data follows"
                 (trylet dummy Success (DecodeScan [chunk_slice (&! frame_info)]) err :
-                    (return err)))
+                    (return err))
+                (trylet dummy2 Success (DecodeMacroBlocksHuffman [chunk_slice (& frame_info)]) err :
+                    (return err))
+                (break))
             (case (== chunk_kind 0xfffe) :
                 (debug# "chunk ignored\n"))
             (case (== (and chunk_kind 0xfff0) 0xffe0) :

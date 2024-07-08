@@ -127,7 +127,8 @@ fun ColIDCT(blk ^[8*8]s32, out slice!(u8), stride uint) void:
 
 
 
-pub rec BitStream:
+-- for huffman decoding
+rec BitStream:
     buf slice(u8)
     offset uint
     -- contains the next up to 8 bits from the stream
@@ -137,7 +138,7 @@ pub rec BitStream:
     -- end-of-stream flag - once set it will not be cleared
     eos bool
 
-pub fun GetNextBit(bs ^!BitStream) u16:
+pub fun GetNextBit(bs ^!BitStream) u32:
     let! bits_count u8 = bs^.bits_count
     let! bits_cache u8 = bs^.bits_cache
     if bits_count == 0:
@@ -157,7 +158,7 @@ pub fun GetNextBit(bs ^!BitStream) u16:
                 return 0
             set bs^.offset += 1
 
-    let out = as(bits_cache and 1, u16)
+    let out = as(bits_cache and 1, u32)
     set bits_cache >>= 1
     set bits_count -= 1
     set bs^.bits_count = bits_count
@@ -396,7 +397,20 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
     do BS::SkipUnchecked(&!data, 3)
    return SuccessVal
 
-
+fun NextSymbol(bs ^!bitstream::Stream32, counts slice(u16), symbols slice(
+        u16)) u16:
+    let! offset u32 = 0
+    let! base u32 = 0
+    for level = 1, len(counts), 1:
+        set offset <<= 1
+        set offset += bitstream::Stream32GetBits(bs, 1)
+        let count u32 = as(counts[level], u32)
+        if offset < count:
+            set base += offset
+            return symbols[base]
+        set base += count
+        set offset -= count
+    return BAD_SYMBOL
 
 fun  DecodeBlock(bs ^!BitStream)
     union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -404,6 +418,7 @@ fun  DecodeBlock(bs ^!BitStream)
 
 fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    debug#("Decode blocks\n")
     @ref let! bs = BitStream{chunk}
     let num_macro_blocks = frame_info^.mbwidth * frame_info^.mbheight
     for m = 0, num_macro_blocks, 1:
@@ -461,6 +476,9 @@ pub fun DecodeImage(a_data slice(u8))
                 -- start of scan chunk, huffman encoded image data follows
                 trylet dummy Success = DecodeScan(chunk_slice, &!frame_info), err:
                     return err
+                trylet dummy2 Success = DecodeMacroBlocksHuffman(chunk_slice, &frame_info), err:
+                    return err
+                break
             case chunk_kind == 0xfffe:
                 debug#("chunk ignored\n")
             case chunk_kind and 0xfff0 == 0xffe0:
