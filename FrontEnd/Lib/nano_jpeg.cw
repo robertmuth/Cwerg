@@ -271,32 +271,38 @@ the exact number is bits_count"""
     (return (/ (- (+ a b) 1) b)))
 
 
-(fun DecodeHufmanTable [(param chunk (slice u8))] (union [
+(fun DecodeHufmanTable [(param chunk (slice u8)) (param huffman_trees (ptr! (array 2 (array 2 HuffmanTree))))] (union [
         Success
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
     (@ref let! data auto chunk)
-    (while (> (len data) 0) :
-        (let kind auto (BS::FrontU8Unchecked [(&! data)]))
-        (if (!= (and kind 0xec) 0) :
-            (return CorruptionErrorVal)
-         :)
-        (if (!= (and kind 0x02) 0) :
-            (return UnsupportedErrorVal)
-         :)
-        @doc "combined DC/AC + tableid value"
-        (let pos u32 (or (paren (>> (and (as kind u32) 0x1f) 3)) (paren (and (as kind u32) 1))))
-        (let counts auto (BS::FrontSliceUnchecked [(&! data) 16]))
-        (let! total auto 0_uint)
-        (for codelen 0 16_s32 1 :
-            (+= total (as (at counts codelen) uint)))
-        (if (< (len data) total) :
-            (return BS::OutOfBoundsErrorVal)
-         :)
-        (debug# "Hufman total codes[" pos "]: " total "\n")
-        @doc "TBD"
-        (do (BS::SkipUnchecked [(&! data) total])))
+    (let kind auto (BS::FrontU8Unchecked [(&! data)]))
+    (if (!= (and kind 0xec) 0) :
+        (return CorruptionErrorVal)
+     :)
+    (let pos auto (and kind 3))
+    (if (> pos 1) :
+        (return UnsupportedErrorVal)
+     :)
+    (let ac_or_dc auto (>> (and kind 0x10) 4))
+    (let ht (ptr! HuffmanTree) (&! (at (at (^ huffman_trees) ac_or_dc) pos)))
+    (let counts auto (BS::FrontSliceUnchecked [(&! data) 16]))
+    (let! total auto 0_uint)
+    (for i 0 16_s32 1 :
+        (+= total (as (at counts i) uint))
+        (= (at (^. ht counts) i) (at counts i)))
+    (if (< (len data) total) :
+        (return BS::OutOfBoundsErrorVal)
+     :)
+    (for i 0 total 1 :
+        (= (at (^. ht symbols) i) (at data i)))
+    (if (> total 255) :
+        (return CorruptionErrorVal)
+     :)
+    (= (^. ht num_symbols) (as total u8))
+    (do (BS::SkipUnchecked [(&! data) total]))
+    (debug# "Hufman total codes[" ac_or_dc "," pos "]: " total "\n")
     (return SuccessVal))
 
 
@@ -513,7 +519,7 @@ the exact number is bits_count"""
     (debug# "DecodeImage: " (len a_data) "\n")
     (@ref let! app_info AppInfo undef)
     (@ref let! frame_info FrameInfo undef)
-    (@ref let! huffman_trees (array 4 HuffmanTree) undef)
+    (@ref let! huffman_trees (array 2 (array 2 HuffmanTree)) undef)
     (@ref let! quantization_tab (array 4 (array 64 u8)) undef)
     (let! qt_avail_bits u8 0)
     (let! restart_interval u16 0)
@@ -540,7 +546,7 @@ the exact number is bits_count"""
                 (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! frame_info)]) err :
                     (return err)))
             (case (== chunk_kind 0xffc4) :
-                (trylet dummy Success (DecodeHufmanTable [chunk_slice]) err :
+                (trylet dummy Success (DecodeHufmanTable [chunk_slice (&! huffman_trees)]) err :
                     (return err)))
             (case (== chunk_kind 0xffdb) :
                 (tryset qt_avail_bits (DecodeQuantizationTable [chunk_slice (&! quantization_tab)]) err :

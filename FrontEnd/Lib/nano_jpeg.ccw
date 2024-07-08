@@ -246,26 +246,31 @@ pub global UnsupportedErrorVal = wrap_as(void, UnsupportedError)
 fun div_roundup(a u32, b u32) u32:
     return (a + b -1) / b
 
-fun DecodeHufmanTable(chunk slice(u8))
+fun DecodeHufmanTable(chunk slice(u8), huffman_trees ^![2][2]HuffmanTree)
     union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     @ref let! data = chunk
-    while len(data) > 0:
-        let kind = BS::FrontU8Unchecked(&!data)
-        if kind and 0xec != 0:
-            return CorruptionErrorVal
-        if kind and 0x02 != 0:
-            return UnsupportedErrorVal
-        -- combined DC/AC + tableid value
-        let pos u32 = ((as(kind, u32) and 0x1f) >> 3) or (as(kind, u32) and 1)
-        let counts = BS::FrontSliceUnchecked(&!data, 16)
-        let! total = 0_uint
-        for codelen = 0, 16_s32, 1:
-            set total += as(counts[codelen], uint)
-        if len(data) < total:
-            return  BS::OutOfBoundsErrorVal
-        debug#("Hufman total codes[", pos, "]: ", total, "\n")
-        -- TBD
-        do BS::SkipUnchecked(&!data, total)
+    let kind = BS::FrontU8Unchecked(&!data)
+    if kind and 0xec != 0:
+        return CorruptionErrorVal
+    let pos = kind and 3
+    if pos > 1:
+        return UnsupportedErrorVal
+    let ac_or_dc = (kind and 0x10) >> 4
+    let ht ^!HuffmanTree = &!huffman_trees^[ac_or_dc][pos]
+    let counts = BS::FrontSliceUnchecked(&!data, 16)
+    let! total = 0_uint
+    for i = 0, 16_s32, 1:
+        set total += as(counts[i], uint)
+        set ht^.counts[i] = counts[i]
+    if len(data) < total:
+        return  BS::OutOfBoundsErrorVal
+    for i = 0, total, 1:
+        set ht^.symbols[i] = data[i]
+    if total > 255:
+        return CorruptionErrorVal
+    set ht^.num_symbols = as(total, u8)
+    do BS::SkipUnchecked(&!data, total)
+    debug#("Hufman total codes[", ac_or_dc, ",", pos, "]: ", total, "\n")
     return SuccessVal
 
 fun DecodeQuantizationTable(chunk slice(u8),  qtab ^![4][64]u8)
@@ -448,7 +453,7 @@ pub fun DecodeImage(a_data slice(u8))
     debug#("DecodeImage: ", len(a_data), "\n")
     @ref let! app_info AppInfo = undef
     @ref let! frame_info FrameInfo = undef
-    @ref let! huffman_trees [4]HuffmanTree = undef
+    @ref let! huffman_trees [2][2]HuffmanTree = undef
     @ref let! quantization_tab [4][64]u8 = undef
     let! qt_avail_bits u8 = 0
     let! restart_interval u16 = 0
@@ -476,7 +481,7 @@ pub fun DecodeImage(a_data slice(u8))
                 trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!frame_info), err:
                     return err
             case chunk_kind == 0xffc4:
-                trylet dummy Success = DecodeHufmanTable(chunk_slice), err:
+                trylet dummy Success = DecodeHufmanTable(chunk_slice, &!huffman_trees), err:
                     return err
             case chunk_kind == 0xffdb:
                 tryset qt_avail_bits = DecodeQuantizationTable(chunk_slice, &!quantization_tab), err:
