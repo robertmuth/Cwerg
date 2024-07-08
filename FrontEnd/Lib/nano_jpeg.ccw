@@ -165,6 +165,27 @@ pub fun GetNextBit(bs ^!BitStream) u32:
     set bs^.bits_cache = bits_cache
     return out
 
+rec HuffmanTree:
+    counts [16]u8
+    symbols [256]u8
+    num_symbols u8
+
+global BAD_SYMBOL = 0xffff_u16
+
+fun NextSymbol(bs ^!BitStream, ht ^HuffmanTree) u16:
+    let! offset u32 = 0
+    let! base u32 = 0
+    for level = 1, len(ht^.counts), 1:
+        set offset <<= 1
+        set offset += GetNextBit(bs)
+        let count u32 = as(ht^.counts[level], u32)
+        if offset < count:
+            set base += offset
+            return as(ht^.symbols[base], u16)
+        set base += count
+        set offset -= count
+    return BAD_SYMBOL
+
 
 rec AppInfo:
     version_major u8
@@ -174,6 +195,9 @@ rec AppInfo:
     density_y u16
     thumbnail_w u8
     thumbnail_h u8
+
+
+
 
 rec Component:
     cid u8
@@ -397,20 +421,7 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
     do BS::SkipUnchecked(&!data, 3)
    return SuccessVal
 
-fun NextSymbol(bs ^!bitstream::Stream32, counts slice(u16), symbols slice(
-        u16)) u16:
-    let! offset u32 = 0
-    let! base u32 = 0
-    for level = 1, len(counts), 1:
-        set offset <<= 1
-        set offset += bitstream::Stream32GetBits(bs, 1)
-        let count u32 = as(counts[level], u32)
-        if offset < count:
-            set base += offset
-            return symbols[base]
-        set base += count
-        set offset -= count
-    return BAD_SYMBOL
+
 
 fun  DecodeBlock(bs ^!BitStream)
     union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -437,6 +448,7 @@ pub fun DecodeImage(a_data slice(u8))
     debug#("DecodeImage: ", len(a_data), "\n")
     @ref let! app_info AppInfo = undef
     @ref let! frame_info FrameInfo = undef
+    @ref let! huffman_trees [4]HuffmanTree = undef
     @ref let! quantization_tab [4][64]u8 = undef
     let! qt_avail_bits u8 = 0
     let! restart_interval u16 = 0

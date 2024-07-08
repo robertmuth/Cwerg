@@ -144,7 +144,8 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (= (at out (* 7 stride)) (ClampU8 [(+ (paren (>> (- x7 x1) 14)) 128)])))
 
 
-@pub (defrec BitStream :
+@doc "for huffman decoding"
+(defrec BitStream :
     (field buf (slice u8))
     (field offset uint)
     @doc """contains the next up to 8 bits from the stream
@@ -155,7 +156,7 @@ the exact number is bits_count"""
     (field eos bool))
 
 
-@pub (fun GetNextBit [(param bs (ptr! BitStream))] u16 :
+@pub (fun GetNextBit [(param bs (ptr! BitStream))] u32 :
     (let! bits_count u8 (^. bs bits_count))
     (let! bits_cache u8 (^. bs bits_cache))
     (if (== bits_count 0) :
@@ -179,12 +180,37 @@ the exact number is bits_count"""
             (+= (^. bs offset) 1)
          :)
      :)
-    (let out auto (as (and bits_cache 1) u16))
+    (let out auto (as (and bits_cache 1) u32))
     (>>= bits_cache 1)
     (-= bits_count 1)
     (= (^. bs bits_count) bits_count)
     (= (^. bs bits_cache) bits_cache)
     (return out))
+
+
+(defrec HuffmanTree :
+    (field counts (array 16 u8))
+    (field symbols (array 256 u8))
+    (field num_symbols u8))
+
+
+(global BAD_SYMBOL auto 0xffff_u16)
+
+
+(fun NextSymbol [(param bs (ptr! BitStream)) (param ht (ptr HuffmanTree))] u16 :
+    (let! offset u32 0)
+    (let! base u32 0)
+    (for level 1 (len (^. ht counts)) 1 :
+        (<<= offset 1)
+        (+= offset (GetNextBit [bs]))
+        (let count u32 (as (at (^. ht counts) level) u32))
+        (if (< offset count) :
+            (+= base offset)
+            (return (as (at (^. ht symbols) base) u16))
+         :)
+        (+= base count)
+        (-= offset count))
+    (return BAD_SYMBOL))
 
 
 (defrec AppInfo :
@@ -466,7 +492,7 @@ the exact number is bits_count"""
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
-    (debug# "decode blocks\n")
+    (debug# "Decode blocks\n")
     (@ref let! bs auto (rec_val BitStream [chunk]))
     (let num_macro_blocks auto (* (^. frame_info mbwidth) (^. frame_info mbheight)))
     (for m 0 num_macro_blocks 1 :
@@ -487,6 +513,7 @@ the exact number is bits_count"""
     (debug# "DecodeImage: " (len a_data) "\n")
     (@ref let! app_info AppInfo undef)
     (@ref let! frame_info FrameInfo undef)
+    (@ref let! huffman_trees (array 4 HuffmanTree) undef)
     (@ref let! quantization_tab (array 4 (array 64 u8)) undef)
     (let! qt_avail_bits u8 0)
     (let! restart_interval u16 0)
