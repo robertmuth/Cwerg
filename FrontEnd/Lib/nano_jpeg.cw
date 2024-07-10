@@ -3,7 +3,8 @@ https://keyj.emphy.de/nanojpeg/
 More Info
 https://github.com/corkami/formats/blob/master/image/jpeg.md
 For Huffman codes
-https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf"""
+https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
+https://www.youtube.com/watch?v=CPT4FSkFUgs"""
 (module [] :
 (import BS bytestream)
 
@@ -156,7 +157,7 @@ the exact number is bits_count"""
     (field eos bool))
 
 
-@pub (fun GetNextBit [(param bs (ptr! BitStream))] u32 :
+@pub (fun GetNextBit [(param bs (ptr! BitStream))] u16 :
     (let! bits_count u8 (^. bs bits_count))
     (let! bits_cache u8 (^. bs bits_cache))
     (if (== bits_count 0) :
@@ -165,6 +166,7 @@ the exact number is bits_count"""
             (return 0)
          :)
         (= bits_cache (at (^. bs buf) (^. bs offset)))
+        @doc """debug#("new cache: ", wrap_as(bits_cache, fmt::u8_hex), "\n")"""
         (+= (^. bs offset) 1)
         (= bits_count 8)
         (if (== bits_cache 0xff) :
@@ -179,37 +181,54 @@ the exact number is bits_count"""
              :)
             (+= (^. bs offset) 1)
          :)
+        (= (^. bs bits_cache) bits_cache)
      :)
-    (let out auto (as (and bits_cache 1) u32))
-    (>>= bits_cache 1)
     (-= bits_count 1)
+    (let out auto (as (and (paren (>> bits_cache bits_count)) 1) u16))
     (= (^. bs bits_count) bits_count)
-    (= (^. bs bits_cache) bits_cache)
     (return out))
 
 
 (defrec HuffmanTree :
     (field counts (array 16 u8))
     (field symbols (array 256 u8))
-    (field num_symbols u8))
+    (field num_symbols u8)
+    (field min_code (array 16 u16))
+    (field max_code (array 16 u16))
+    (field val_ptr (array 16 u8)))
 
 
 (global BAD_SYMBOL auto 0xffff_u16)
 
 
-(fun NextSymbol [(param bs (ptr! BitStream)) (param ht (ptr HuffmanTree))] u16 :
-    (let! offset u32 0)
-    (let! base u32 0)
+(fun NextSymbolOld [(param bs (ptr! BitStream)) (param ht (ptr HuffmanTree))] u16 :
+    (let! offset u16 0)
+    (let! base u16 0)
     (for level 1 (len (^. ht counts)) 1 :
         (<<= offset 1)
         (+= offset (GetNextBit [bs]))
-        (let count u32 (as (at (^. ht counts) level) u32))
+        (let count u16 (as (at (^. ht counts) level) u16))
         (if (< offset count) :
             (+= base offset)
+            (debug# "level: " level " bits: " base " symbol: " (at (^. ht symbols) base) "\n")
             (return (as (at (^. ht symbols) base) u16))
          :)
         (+= base count)
         (-= offset count))
+    (return BAD_SYMBOL))
+
+
+(fun NextSymbol [(param bs (ptr! BitStream)) (param ht (ptr HuffmanTree))] u16 :
+    (let! offset u16 (GetNextBit [bs]))
+    (for level 0 (len (^. ht counts)) 1 :
+        (let mc auto (at (^. ht max_code) level))
+        (if (&& (<= offset mc) (!= mc 0xffff)) :
+            (+= offset (- (as (at (^. ht val_ptr) level) u16) (at (^. ht min_code) level)))
+            (debug# "huffman level=" level " offset:=" offset " symbol=" (at (^. ht symbols) offset) "\n")
+            (return (as (at (^. ht symbols) offset) u16))
+         :)
+        (<<= offset 1)
+        (+= offset (GetNextBit [bs])))
     (return BAD_SYMBOL))
 
 
@@ -285,8 +304,9 @@ the exact number is bits_count"""
     (if (> pos 1) :
         (return UnsupportedErrorVal)
      :)
-    (let ac_or_dc auto (>> (and kind 0x10) 4))
-    (let ht (ptr! HuffmanTree) (&! (at (at (^ huffman_trees) ac_or_dc) pos)))
+    @doc "0 means dc"
+    (let is_ac auto (>> (and kind 0x10) 4))
+    (let ht (ptr! HuffmanTree) (&! (at (at (^ huffman_trees) is_ac) pos)))
     (let counts auto (BS::FrontSliceUnchecked [(&! data) 16]))
     (let! total auto 0_uint)
     (for i 0 16_s32 1 :
@@ -302,7 +322,22 @@ the exact number is bits_count"""
      :)
     (= (^. ht num_symbols) (as total u8))
     (do (BS::SkipUnchecked [(&! data) total]))
-    (debug# "Hufman total codes[" ac_or_dc "," pos "]: " total "\n")
+    (debug# "Hufman total codes[" is_ac "," pos "]: " total "\n")
+    (let! acc u16 0)
+    (let! code u16 0)
+    (for i 0 16_s32 1 :
+        (let num u16 (as (at counts i) u16))
+        (if (== num 0) :
+            (= (at (^. ht min_code) i) 0)
+            (= (at (^. ht max_code) i) 0xffff_u16)
+            (= (at (^. ht val_ptr) i) 0)
+         :
+            (= (at (^. ht min_code) i) code)
+            (= (at (^. ht max_code) i) (- (+ code num) 1))
+            (= (at (^. ht val_ptr) i) (as acc u8))
+            (+= acc num)
+            (+= code num))
+        (<<= code 1))
     (return SuccessVal))
 
 
@@ -471,9 +506,9 @@ the exact number is bits_count"""
         (if (!= (and tabsel 0xee) 0) :
             (return CorruptionErrorVal)
          :)
-        (= (^. comp dctabsel) (>> tabsel 4))
-        (= (^. comp actabsel) (or (and tabsel 1) 2))
-        (debug# "tabsel[" (^. comp cid) "]: " tabsel "\n")
+        (= (^. comp dctabsel) (and (paren (>> tabsel 4)) 1))
+        (= (^. comp actabsel) (and tabsel 1))
+        (debug# "tabsel[" (^. comp cid) "]: " (^. comp dctabsel) "." (^. comp actabsel) "\n")
         (do (BS::SkipUnchecked [(&! data) 2]))
         (if (< (len data) 3) :
             (return BS::OutOfBoundsErrorVal)
@@ -482,18 +517,36 @@ the exact number is bits_count"""
         (return UnsupportedErrorVal)
      :)
     (do (BS::SkipUnchecked [(&! data) 3]))
+    (debug# ">>>>>>> " (at data 0) "\n")
     (return SuccessVal))
 
 
-(fun DecodeBlock [(param bs (ptr! BitStream))] (union [
+(fun DecodeBlock [
+        (param bs (ptr! BitStream))
+        (param dc_tab (ptr HuffmanTree))
+        (param ac_tab (ptr HuffmanTree))] (union [
         Success
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
+    (let dc_code auto (NextSymbol [bs dc_tab]))
+    (for i 0 (and dc_code 0xf) 1 :
+        (do (GetNextBit [bs])))
+    (while true :
+        (let ac_code auto (NextSymbol [bs ac_tab]))
+        (let extra_bits auto (and ac_code 0xf))
+        (for i 0 extra_bits 1 :
+            (do (GetNextBit [bs])))
+        (if (== ac_code 0) :
+            (break)
+         :))
     (return SuccessVal))
 
 
-(fun DecodeMacroBlocksHuffman [(param chunk (slice u8)) (param frame_info (ptr FrameInfo))] (union [
+(fun DecodeMacroBlocksHuffman [
+        (param chunk (slice u8))
+        (param frame_info (ptr FrameInfo))
+        (param huffman_trees (ptr (array 2 (array 2 HuffmanTree))))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -503,11 +556,17 @@ the exact number is bits_count"""
     (let num_macro_blocks auto (* (^. frame_info mbwidth) (^. frame_info mbheight)))
     (for m 0 num_macro_blocks 1 :
         (for c 0 (^. frame_info ncomp) 1 :
-            (let comp (ptr Component) (& (paren (at (^. frame_info comp) c))))
+            (let comp (ptr Component) (& (at (^. frame_info comp) c)))
+            (let dc_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 0) (^. comp dctabsel))))
+            (let ac_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 1) (^. comp actabsel))))
             (for y 0 (^. comp ssy) 1 :
                 (for x 0 (^. comp ssx) 1 :
-                    (trylet dummy Success (DecodeBlock [(&! bs)]) err :
-                        (return err))))))
+                    (debug# "Block: " m " comp=" c " x=" x " y=" y "\n")
+                    (trylet dummy Success (DecodeBlock [(&! bs) dc_tab ac_tab]) err :
+                        (return err))
+                    (if (== m 10) :
+                        (return UnsupportedErrorVal)
+                     :)))))
     (return SuccessVal))
 
 
@@ -558,7 +617,7 @@ the exact number is bits_count"""
                 @doc "start of scan chunk, huffman encoded image data follows"
                 (trylet dummy Success (DecodeScan [chunk_slice (&! frame_info)]) err :
                     (return err))
-                (trylet dummy2 Success (DecodeMacroBlocksHuffman [chunk_slice (& frame_info)]) err :
+                (trylet dummy2 Success (DecodeMacroBlocksHuffman [data (& frame_info) (& huffman_trees)]) err :
                     (return err))
                 (break))
             (case (== chunk_kind 0xfffe) :

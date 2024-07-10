@@ -4,6 +4,7 @@
 -- https://github.com/corkami/formats/blob/master/image/jpeg.md
 -- For Huffman codes
 -- https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
+-- https://www.youtube.com/watch?v=CPT4FSkFUgs
 module:
 
 import BS = bytestream
@@ -138,7 +139,7 @@ rec BitStream:
     -- end-of-stream flag - once set it will not be cleared
     eos bool
 
-pub fun GetNextBit(bs ^!BitStream) u32:
+pub fun GetNextBit(bs ^!BitStream) u16:
     let! bits_count u8 = bs^.bits_count
     let! bits_cache u8 = bs^.bits_cache
     if bits_count == 0:
@@ -146,6 +147,7 @@ pub fun GetNextBit(bs ^!BitStream) u32:
             set bs^.eos = true
             return 0
         set bits_cache = bs^.buf[bs^.offset]
+        -- debug#("new cache: ", wrap_as(bits_cache, fmt::u8_hex), "\n")
         set bs^.offset += 1
         set bits_count = 8
         if bits_cache == 0xff:
@@ -157,35 +159,49 @@ pub fun GetNextBit(bs ^!BitStream) u32:
                 set bs^.eos = true
                 return 0
             set bs^.offset += 1
+        set bs^.bits_cache = bits_cache
 
-    let out = as(bits_cache and 1, u32)
-    set bits_cache >>= 1
     set bits_count -= 1
+    let out = as((bits_cache >> bits_count) and 1 , u16)
     set bs^.bits_count = bits_count
-    set bs^.bits_cache = bits_cache
     return out
 
 rec HuffmanTree:
     counts [16]u8
     symbols [256]u8
     num_symbols u8
+    min_code [16]u16
+    max_code [16]u16
+    val_ptr [16]u8
 
 global BAD_SYMBOL = 0xffff_u16
 
-fun NextSymbol(bs ^!BitStream, ht ^HuffmanTree) u16:
-    let! offset u32 = 0
-    let! base u32 = 0
+fun NextSymbolOld(bs ^!BitStream, ht ^HuffmanTree) u16:
+    let! offset u16 = 0
+    let! base u16 = 0
     for level = 1, len(ht^.counts), 1:
         set offset <<= 1
         set offset += GetNextBit(bs)
-        let count u32 = as(ht^.counts[level], u32)
+        let count u16 = as(ht^.counts[level], u16)
         if offset < count:
             set base += offset
+            debug#("level: ", level,  " bits: ", base, " symbol: ", ht^.symbols[base], "\n")
             return as(ht^.symbols[base], u16)
         set base += count
         set offset -= count
     return BAD_SYMBOL
 
+fun NextSymbol(bs ^!BitStream, ht ^HuffmanTree) u16:
+    let! offset u16 = GetNextBit(bs)
+    for level = 0, len(ht^.counts), 1:
+        let mc =  ht^.max_code[level]
+        if offset <= mc && mc != 0xffff:
+            set offset += as(ht^.val_ptr[level], u16) - ht^.min_code[level]
+            debug#("huffman level=", level,  " offset:=", offset, " symbol=", ht^.symbols[offset], "\n")
+            return as(ht^.symbols[offset],u16)
+        set offset <<= 1
+        set offset += GetNextBit(bs)
+    return BAD_SYMBOL
 
 rec AppInfo:
     version_major u8
@@ -239,10 +255,6 @@ pub @wrapped type UnsupportedError = void
 pub global UnsupportedErrorVal = wrap_as(void, UnsupportedError)
 
 
-
-
-
-
 fun div_roundup(a u32, b u32) u32:
     return (a + b -1) / b
 
@@ -255,8 +267,9 @@ fun DecodeHufmanTable(chunk slice(u8), huffman_trees ^![2][2]HuffmanTree)
     let pos = kind and 3
     if pos > 1:
         return UnsupportedErrorVal
-    let ac_or_dc = (kind and 0x10) >> 4
-    let ht ^!HuffmanTree = &!huffman_trees^[ac_or_dc][pos]
+    -- 0 means dc
+    let is_ac = (kind and 0x10) >> 4
+    let ht ^!HuffmanTree = &!huffman_trees^[is_ac][pos]
     let counts = BS::FrontSliceUnchecked(&!data, 16)
     let! total = 0_uint
     for i = 0, 16_s32, 1:
@@ -270,7 +283,23 @@ fun DecodeHufmanTable(chunk slice(u8), huffman_trees ^![2][2]HuffmanTree)
         return CorruptionErrorVal
     set ht^.num_symbols = as(total, u8)
     do BS::SkipUnchecked(&!data, total)
-    debug#("Hufman total codes[", ac_or_dc, ",", pos, "]: ", total, "\n")
+    debug#("Hufman total codes[", is_ac, ",", pos, "]: ", total, "\n")
+    let! acc u16 = 0
+    let! code u16 = 0
+    for i = 0, 16_s32, 1:
+        let num u16 = as(counts[i], u16)
+        if num == 0:
+            set ht^.min_code[i] = 0
+            set ht^.max_code[i] = 0xffff_u16
+            set ht^.val_ptr[i] = 0
+        else:
+            set ht^.min_code[i] = code
+            set ht^.max_code[i] = code + num -1
+            set ht^.val_ptr[i] = as(acc, u8)
+            set acc += num
+            set code += num
+        set code <<= 1
+
     return SuccessVal
 
 fun DecodeQuantizationTable(chunk slice(u8),  qtab ^![4][64]u8)
@@ -399,13 +428,13 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
 
 fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-   @ref let! data = chunk
-   trylet ncomp u8  = BS::FrontU8(&!data), err:
+    @ref let! data = chunk
+    trylet ncomp u8  = BS::FrontU8(&!data), err:
             return err
-   if ncomp != frame_info^.ncomp:
+    if ncomp != frame_info^.ncomp:
         return UnsupportedErrorVal
 
-   for i = 0, ncomp, 1:
+    for i = 0, ncomp, 1:
         if len(data) < 2:
             return  BS::OutOfBoundsErrorVal
         let comp ^!Component = &!(frame_info^.comp[i])
@@ -414,9 +443,9 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
         let tabsel = data[1]
         if tabsel and 0xee != 0:
              return CorruptionErrorVal
-        set comp^.dctabsel = tabsel >> 4
-        set comp^.actabsel = tabsel and 1 or 2
-        debug#("tabsel[", comp^.cid,"]: ", tabsel, "\n")
+        set comp^.dctabsel = (tabsel >> 4) and 1
+        set comp^.actabsel = tabsel and 1
+        debug#("tabsel[", comp^.cid,"]: ",  comp^.dctabsel, ".",comp^.actabsel, "\n")
         do BS::SkipUnchecked(&!data, 2)
         if len(data) < 3:
             return  BS::OutOfBoundsErrorVal
@@ -424,27 +453,42 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
     if data[0] != 0 || data[1] != 63 || data[2] != 0:
         return UnsupportedErrorVal
     do BS::SkipUnchecked(&!data, 3)
-   return SuccessVal
-
-
-
-fun  DecodeBlock(bs ^!BitStream)
-    union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    debug#(">>>>>>> ", data[0], "\n")
     return SuccessVal
 
-fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo)
+
+
+fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree)
+    union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    let dc_code = NextSymbol(bs,  dc_tab)
+    for i = 0, dc_code and 0xf, 1:
+        do GetNextBit(bs)
+    while true:
+        let ac_code = NextSymbol(bs,  ac_tab)
+        let extra_bits = ac_code and 0xf
+        for i = 0, extra_bits, 1:
+            do GetNextBit(bs)
+        if ac_code == 0:
+            break
+    return SuccessVal
+
+fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_trees ^[2][2]HuffmanTree)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
     @ref let! bs = BitStream{chunk}
     let num_macro_blocks = frame_info^.mbwidth * frame_info^.mbheight
     for m = 0, num_macro_blocks, 1:
         for c = 0, frame_info^.ncomp, 1:
-            let comp ^Component = &(frame_info^.comp[c])
+            let comp ^Component = &frame_info^.comp[c]
+            let dc_tab ^HuffmanTree = &huffman_trees^[0][comp^.dctabsel]
+            let ac_tab ^HuffmanTree = &huffman_trees^[1][comp^.actabsel]
             for y = 0, comp^.ssy, 1:
                 for x = 0, comp^.ssx, 1:
-                    trylet dummy Success = DecodeBlock(&!bs), err:
+                    debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
+                    trylet dummy Success = DecodeBlock(&!bs, dc_tab, ac_tab), err:
                         return err
-
+                    if m == 10:
+                        return UnsupportedErrorVal
 
     return SuccessVal
 
@@ -493,7 +537,7 @@ pub fun DecodeImage(a_data slice(u8))
                 -- start of scan chunk, huffman encoded image data follows
                 trylet dummy Success = DecodeScan(chunk_slice, &!frame_info), err:
                     return err
-                trylet dummy2 Success = DecodeMacroBlocksHuffman(chunk_slice, &frame_info), err:
+                trylet dummy2 Success = DecodeMacroBlocksHuffman(data, &frame_info, &huffman_trees), err:
                     return err
                 break
             case chunk_kind == 0xfffe:
