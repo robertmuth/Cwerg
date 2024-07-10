@@ -176,20 +176,6 @@ rec HuffmanTree:
 
 global BAD_SYMBOL = 0xffff_u16
 
-fun NextSymbolOld(bs ^!BitStream, ht ^HuffmanTree) u16:
-    let! offset u16 = 0
-    let! base u16 = 0
-    for level = 1, len(ht^.counts), 1:
-        set offset <<= 1
-        set offset += GetNextBit(bs)
-        let count u16 = as(ht^.counts[level], u16)
-        if offset < count:
-            set base += offset
-            debug#("level: ", level,  " bits: ", base, " symbol: ", ht^.symbols[base], "\n")
-            return as(ht^.symbols[base], u16)
-        set base += count
-        set offset -= count
-    return BAD_SYMBOL
 
 fun NextSymbol(bs ^!BitStream, ht ^HuffmanTree) u16:
     let! offset u16 = GetNextBit(bs)
@@ -202,6 +188,18 @@ fun NextSymbol(bs ^!BitStream, ht ^HuffmanTree) u16:
         set offset <<= 1
         set offset += GetNextBit(bs)
     return BAD_SYMBOL
+
+-- not we rely on wrap around arithmetic
+-- we assume num_bits > 0
+fun GetVal(bs ^!BitStream, num_bits u16) u16:
+    -- let! out u16 = GetNextBit(bs)
+    -- if out != 0:
+    --    set out = 0xffff
+    let! out u16 = 0
+    for i = 1, num_bits, 1:
+        set out <<= 1
+        set out or= GetNextBit(bs)
+    return out
 
 rec AppInfo:
     version_major u8
@@ -457,12 +455,13 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
     return SuccessVal
 
 
-
-fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree)
-    union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+-- returns new dc value on sucess
+fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, last_dc u16)
+    union(u16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     let dc_code = NextSymbol(bs,  dc_tab)
     for i = 0, dc_code and 0xf, 1:
-        do GetNextBit(bs)
+            do GetNextBit(bs)
+    let dc_val u16 = 0
     let! coeff u16 = 0
     while true:
         let ac_code = NextSymbol(bs,  ac_tab)
@@ -474,14 +473,14 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree)
         set coeff += (ac_code >> 4) + 1
         if coeff >= 63:
           break
-    return SuccessVal
+    return last_dc + dc_val
 
 fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_trees ^[2][2]HuffmanTree)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
     @ref let! bs = BitStream{chunk}
-    let num_macro_blocks = frame_info^.mbwidth * frame_info^.mbheight
-    for m = 0, num_macro_blocks, 1:
+    let! dc_last = [3]u16{0, 0, 0}
+    for m = 0, frame_info^.mbwidth * frame_info^.mbheight, 1:
         for c = 0, frame_info^.ncomp, 1:
             let comp ^Component = &frame_info^.comp[c]
             let dc_tab ^HuffmanTree = &huffman_trees^[0][comp^.dctabsel]
@@ -490,7 +489,7 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_tr
                 for x = 0, comp^.ssx, 1:
                     -- debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
                     debug#("Block ===================\n")
-                    trylet dummy Success = DecodeBlock(&!bs, dc_tab, ac_tab), err:
+                    tryset dc_last[c] = DecodeBlock(&!bs, dc_tab, ac_tab, dc_last[c]), err:
                         return err
                     if m == 1000:
                         return UnsupportedErrorVal

@@ -201,23 +201,6 @@ the exact number is bits_count"""
 (global BAD_SYMBOL auto 0xffff_u16)
 
 
-(fun NextSymbolOld [(param bs (ptr! BitStream)) (param ht (ptr HuffmanTree))] u16 :
-    (let! offset u16 0)
-    (let! base u16 0)
-    (for level 1 (len (^. ht counts)) 1 :
-        (<<= offset 1)
-        (+= offset (GetNextBit [bs]))
-        (let count u16 (as (at (^. ht counts) level) u16))
-        (if (< offset count) :
-            (+= base offset)
-            (debug# "level: " level " bits: " base " symbol: " (at (^. ht symbols) base) "\n")
-            (return (as (at (^. ht symbols) base) u16))
-         :)
-        (+= base count)
-        (-= offset count))
-    (return BAD_SYMBOL))
-
-
 (fun NextSymbol [(param bs (ptr! BitStream)) (param ht (ptr HuffmanTree))] u16 :
     (let! offset u16 (GetNextBit [bs]))
     (for level 0 (len (^. ht counts)) 1 :
@@ -230,6 +213,19 @@ the exact number is bits_count"""
         (<<= offset 1)
         (+= offset (GetNextBit [bs])))
     (return BAD_SYMBOL))
+
+
+@doc """not we rely on wrap around arithmetic
+we assume num_bits > 0"""
+(fun GetVal [(param bs (ptr! BitStream)) (param num_bits u16)] u16 :
+    @doc """let! out u16 = GetNextBit(bs)
+if out != 0:
+   set out = 0xffff"""
+    (let! out u16 0)
+    (for i 1 num_bits 1 :
+        (<<= out 1)
+        (or= out (GetNextBit [bs])))
+    (return out))
 
 
 (defrec AppInfo :
@@ -521,17 +517,20 @@ the exact number is bits_count"""
     (return SuccessVal))
 
 
+@doc "returns new dc value on sucess"
 (fun DecodeBlock [
         (param bs (ptr! BitStream))
         (param dc_tab (ptr HuffmanTree))
-        (param ac_tab (ptr HuffmanTree))] (union [
-        Success
+        (param ac_tab (ptr HuffmanTree))
+        (param last_dc u16)] (union [
+        u16
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
     (let dc_code auto (NextSymbol [bs dc_tab]))
     (for i 0 (and dc_code 0xf) 1 :
         (do (GetNextBit [bs])))
+    (let dc_val u16 0)
     (let! coeff u16 0)
     (while true :
         (let ac_code auto (NextSymbol [bs ac_tab]))
@@ -545,7 +544,7 @@ the exact number is bits_count"""
         (if (>= coeff 63) :
             (break)
          :))
-    (return SuccessVal))
+    (return (+ last_dc dc_val)))
 
 
 (fun DecodeMacroBlocksHuffman [
@@ -558,8 +557,8 @@ the exact number is bits_count"""
         BS::OutOfBoundsError]) :
     (debug# "Decode blocks\n")
     (@ref let! bs auto (rec_val BitStream [chunk]))
-    (let num_macro_blocks auto (* (^. frame_info mbwidth) (^. frame_info mbheight)))
-    (for m 0 num_macro_blocks 1 :
+    (let! dc_last auto (array_val 3 u16 [0 0 0]))
+    (for m 0 (* (^. frame_info mbwidth) (^. frame_info mbheight)) 1 :
         (for c 0 (^. frame_info ncomp) 1 :
             (let comp (ptr Component) (& (at (^. frame_info comp) c)))
             (let dc_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 0) (^. comp dctabsel))))
@@ -568,7 +567,11 @@ the exact number is bits_count"""
                 (for x 0 (^. comp ssx) 1 :
                     @doc """debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")"""
                     (debug# "Block ===================\n")
-                    (trylet dummy Success (DecodeBlock [(&! bs) dc_tab ac_tab]) err :
+                    (tryset (at dc_last c) (DecodeBlock [
+                            (&! bs)
+                            dc_tab
+                            ac_tab
+                            (at dc_last c)]) err :
                         (return err))
                     (if (== m 1000) :
                         (return UnsupportedErrorVal)
