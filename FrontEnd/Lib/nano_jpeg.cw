@@ -224,7 +224,7 @@ the exact number is bits_count"""
         (let mc auto (at (^. ht max_code) level))
         (if (&& (<= offset mc) (!= mc 0xffff)) :
             (+= offset (- (as (at (^. ht val_ptr) level) u16) (at (^. ht min_code) level)))
-            (debug# "huffman level=" level " offset:=" offset " symbol=" (at (^. ht symbols) offset) "\n")
+            (debug# "huffman level=" level " offset=" offset " symbol=" (at (^. ht symbols) offset) "\n")
             (return (as (at (^. ht symbols) offset) u16))
          :)
         (<<= offset 1)
@@ -532,12 +532,17 @@ the exact number is bits_count"""
     (let dc_code auto (NextSymbol [bs dc_tab]))
     (for i 0 (and dc_code 0xf) 1 :
         (do (GetNextBit [bs])))
+    (let! coeff u16 0)
     (while true :
         (let ac_code auto (NextSymbol [bs ac_tab]))
         (let extra_bits auto (and ac_code 0xf))
         (for i 0 extra_bits 1 :
             (do (GetNextBit [bs])))
         (if (== ac_code 0) :
+            (break)
+         :)
+        (+= coeff (+ (paren (>> ac_code 4)) 1))
+        (if (>= coeff 63) :
             (break)
          :))
     (return SuccessVal))
@@ -561,10 +566,11 @@ the exact number is bits_count"""
             (let ac_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 1) (^. comp actabsel))))
             (for y 0 (^. comp ssy) 1 :
                 (for x 0 (^. comp ssx) 1 :
-                    (debug# "Block: " m " comp=" c " x=" x " y=" y "\n")
+                    @doc """debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")"""
+                    (debug# "Block ===================\n")
                     (trylet dummy Success (DecodeBlock [(&! bs) dc_tab ac_tab]) err :
                         (return err))
-                    (if (== m 10) :
+                    (if (== m 1000) :
                         (return UnsupportedErrorVal)
                      :)))))
     (return SuccessVal))

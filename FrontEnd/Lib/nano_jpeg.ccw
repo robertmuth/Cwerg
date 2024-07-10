@@ -197,7 +197,7 @@ fun NextSymbol(bs ^!BitStream, ht ^HuffmanTree) u16:
         let mc =  ht^.max_code[level]
         if offset <= mc && mc != 0xffff:
             set offset += as(ht^.val_ptr[level], u16) - ht^.min_code[level]
-            debug#("huffman level=", level,  " offset:=", offset, " symbol=", ht^.symbols[offset], "\n")
+            debug#("huffman level=", level,  " offset=", offset, " symbol=", ht^.symbols[offset], "\n")
             return as(ht^.symbols[offset],u16)
         set offset <<= 1
         set offset += GetNextBit(bs)
@@ -463,6 +463,7 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree)
     let dc_code = NextSymbol(bs,  dc_tab)
     for i = 0, dc_code and 0xf, 1:
         do GetNextBit(bs)
+    let! coeff u16 = 0
     while true:
         let ac_code = NextSymbol(bs,  ac_tab)
         let extra_bits = ac_code and 0xf
@@ -470,6 +471,9 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree)
             do GetNextBit(bs)
         if ac_code == 0:
             break
+        set coeff += (ac_code >> 4) + 1
+        if coeff >= 63:
+          break
     return SuccessVal
 
 fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_trees ^[2][2]HuffmanTree)
@@ -484,10 +488,11 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_tr
             let ac_tab ^HuffmanTree = &huffman_trees^[1][comp^.actabsel]
             for y = 0, comp^.ssy, 1:
                 for x = 0, comp^.ssx, 1:
-                    debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
+                    -- debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
+                    debug#("Block ===================\n")
                     trylet dummy Success = DecodeBlock(&!bs, dc_tab, ac_tab), err:
                         return err
-                    if m == 10:
+                    if m == 1000:
                         return UnsupportedErrorVal
 
     return SuccessVal
