@@ -1480,7 +1480,7 @@ class ValNum:
     Underscores in `number` are ignored. `number` can be explicitly typed via
     suffices like `_u64`, `_s16`, `_r32`.
     """
-    ALIAS = "num"
+    ALIAS = ""
     GROUP = GROUP.Value
     FLAGS = NF_EXPR
     #
