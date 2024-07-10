@@ -468,7 +468,7 @@ and also come in unescaped (prefix "r") and hex (prefix "x") flavors.
 Number literals may contain underscores ("_") which are ignored. Since Cwerg does not implicitly convert numbers it is often necessary use typed number by adding one of the following suffices: u8, u16, u32, u64, s8, s16, s32, s64, r32, r64, e.g. "0x1234_s16".
 
 Both hexadecimal (0x) and binary (0b) basis are supported but no octal.
-
+For hexadecimal numbers only the lower case letters (a-f) are valid.
 
 ### Array Literals
 
@@ -592,6 +592,7 @@ Functions are declared like so:
 
 Functions can only have one result.
 
+Function parameters are not mutable.
 
 ### Enums, Types (Typedefs) and Recs (Structs)
 
@@ -718,6 +719,7 @@ For loops differ from their C counterparts in the following way:
 * they are mostly meant for ranging over a sequence of integers
 * initial-expr, limit-expr, step-expr are evaluated once at the beginning
 * the type of var-name is determined by the type of limit-expr
+* var-name is not mutable
 
 If you need a for loop to iterate over a custom data-structure, define
 a macro.
