@@ -119,12 +119,14 @@ Note counts[0] is always 0
             (if (! (CountsAreFeasible [counts])) :
                 (return BAD_TREE_ENCODING)
              :)))
-    @doc "accumulate counts to get offsets"
+    @doc """accumulate counts to get offsets
+    counts[i] := sum(0<= x <= i, counts[x])
+    """
     (= n 0)
     (for i 1 (len counts) 1 :
         (+= n (at counts i))
         (= (at counts i) n))
-    @doc "fill in symbols"
+    @doc "fill in symbols grouped by bit-width preserving ordered for same width symbols"
     (for i 0 (len symbols) 1 :
         (= (at symbols i) BAD_SYMBOL))
     (for i 0 (len lengths) 1 :
@@ -135,6 +137,10 @@ Note counts[0] is always 0
             (+= (at counts (- bits 1)) 1)
          :))
     @doc """de-accumulate to get back original count
+
+    at this point we have: counts_now[i] == sum(0<= x <= i + 1, counts_orig[x])
+    we compute:  counts_orig[i] := counts_now[i - 1] -   counts_now[i - 2]
+
     n0 is the original value of the element at index i-2
     n1 is the original value of the element at index i-1"""
     (let! n0 u16 0)
