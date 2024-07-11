@@ -460,17 +460,20 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, last_
     union(s16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     let dc_code = NextSymbol(bs,  dc_tab)
     let dc_val s16 = GetVal(bs, dc_code and 0xf)
-    debug#("dc=", dc_val, "\n")
-    let! coeff u16 = 0
+    debug#("dc=", dc_val + last_dc, "\n")
+    let! coeff u16 = 1
     while true:
         let ac_code = NextSymbol(bs,  ac_tab)
-        let extra_bits = ac_code and 0xf
-        for i = 0, extra_bits, 1:
-            do GetNextBit(bs)
         if ac_code == 0:
             break
-        set coeff += (ac_code >> 4) + 1
-        if coeff >= 63:
+        let extra_bits = ac_code and 0xf
+        let skip = (ac_code >> 4)
+        if extra_bits == 0 && skip != 15:
+            return CorruptionErrorVal
+        let ac_val = GetVal(bs, extra_bits)
+        set coeff += skip + 1
+        debug#("ac=", ac_val, " ", coeff - 1, "\n")
+        if coeff > 63:
           break
     return last_dc + dc_val
 

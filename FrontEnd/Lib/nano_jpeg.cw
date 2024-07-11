@@ -530,18 +530,22 @@ the exact number is bits_count"""
         BS::OutOfBoundsError]) :
     (let dc_code auto (NextSymbol [bs dc_tab]))
     (let dc_val s16 (GetVal [bs (and dc_code 0xf)]))
-    (debug# "dc=" dc_val "\n")
-    (let! coeff u16 0)
+    (debug# "dc=" (+ dc_val last_dc) "\n")
+    (let! coeff u16 1)
     (while true :
         (let ac_code auto (NextSymbol [bs ac_tab]))
-        (let extra_bits auto (and ac_code 0xf))
-        (for i 0 extra_bits 1 :
-            (do (GetNextBit [bs])))
         (if (== ac_code 0) :
             (break)
          :)
-        (+= coeff (+ (paren (>> ac_code 4)) 1))
-        (if (>= coeff 63) :
+        (let extra_bits auto (and ac_code 0xf))
+        (let skip auto (paren (>> ac_code 4)))
+        (if (&& (== extra_bits 0) (!= skip 15)) :
+            (return CorruptionErrorVal)
+         :)
+        (let ac_val auto (GetVal [bs extra_bits]))
+        (+= coeff (+ skip 1))
+        (debug# "ac=" ac_val " " (- coeff 1) "\n")
+        (if (> coeff 63) :
             (break)
          :))
     (return (+ last_dc dc_val)))
