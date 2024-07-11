@@ -215,17 +215,18 @@ the exact number is bits_count"""
     (return BAD_SYMBOL))
 
 
-@doc """not we rely on wrap around arithmetic
-we assume num_bits > 0"""
-(fun GetVal [(param bs (ptr! BitStream)) (param num_bits u16)] u16 :
-    @doc """let! out u16 = GetNextBit(bs)
-if out != 0:
-   set out = 0xffff"""
-    (let! out u16 0)
-    (for i 1 num_bits 1 :
+@doc "not we rely on wrap around arithmetic"
+(fun GetVal [(param bs (ptr! BitStream)) (param num_bits u16)] s16 :
+    (let bits auto (as num_bits s32))
+    (let! out s32 0)
+    (for i 0 bits 1 :
         (<<= out 1)
-        (or= out (GetNextBit [bs])))
-    (return out))
+        (or= out (as (GetNextBit [bs]) s32)))
+    @doc "note: signed shift"
+    (if (< out (<< 1 (- bits 1))) :
+        (+= out (+ (paren (<< (paren -1) bits)) 1))
+     :)
+    (return (as out s16)))
 
 
 (defrec AppInfo :
@@ -517,20 +518,19 @@ if out != 0:
     (return SuccessVal))
 
 
-@doc "returns new dc value on sucess"
+@doc "returns new dc value on success"
 (fun DecodeBlock [
         (param bs (ptr! BitStream))
         (param dc_tab (ptr HuffmanTree))
         (param ac_tab (ptr HuffmanTree))
-        (param last_dc u16)] (union [
-        u16
+        (param last_dc s16)] (union [
+        s16
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
     (let dc_code auto (NextSymbol [bs dc_tab]))
-    (for i 0 (and dc_code 0xf) 1 :
-        (do (GetNextBit [bs])))
-    (let dc_val u16 0)
+    (let dc_val s16 (GetVal [bs (and dc_code 0xf)]))
+    (debug# "dc=" dc_val "\n")
     (let! coeff u16 0)
     (while true :
         (let ac_code auto (NextSymbol [bs ac_tab]))
@@ -557,7 +557,7 @@ if out != 0:
         BS::OutOfBoundsError]) :
     (debug# "Decode blocks\n")
     (@ref let! bs auto (rec_val BitStream [chunk]))
-    (let! dc_last auto (array_val 3 u16 [0 0 0]))
+    (let! dc_last auto (array_val 3 s16 [0 0 0]))
     (for m 0 (* (^. frame_info mbwidth) (^. frame_info mbheight)) 1 :
         (for c 0 (^. frame_info ncomp) 1 :
             (let comp (ptr Component) (& (at (^. frame_info comp) c)))

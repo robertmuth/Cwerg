@@ -86,6 +86,16 @@
 (fun DecToStr@ [(param v u64) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
+(fun DecToStr@ [(param v s16) (param out (slice! u8))] uint :
+    (if (== (len out) 0) :
+        (return 0)
+     :)
+    (if (< v 0) :
+        (let v_unsigned auto (- 0_s16 v))
+        (= (at out 0) '-')
+        (return (+ 1 (unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
+     :
+        (return (DecToStr@ [(as v u16) out]))))
 
 (fun DecToStr@ [(param v s32) (param out (slice! u8))] uint :
     (if (== (len out) 0) :
@@ -135,6 +145,11 @@
         (param options (ptr! SysFormatOptions))] uint :
     (return (DecToStr@ [v out])))
 
+(fun SysRender@ [
+        (param v s16)
+        (param out (slice! u8))
+        (param options (ptr! SysFormatOptions))] uint :
+    (return (DecToStr@ [v out])))
 
 (fun SysRender@ [
         (param v s32)

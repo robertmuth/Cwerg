@@ -190,16 +190,16 @@ fun NextSymbol(bs ^!BitStream, ht ^HuffmanTree) u16:
     return BAD_SYMBOL
 
 -- not we rely on wrap around arithmetic
--- we assume num_bits > 0
-fun GetVal(bs ^!BitStream, num_bits u16) u16:
-    -- let! out u16 = GetNextBit(bs)
-    -- if out != 0:
-    --    set out = 0xffff
-    let! out u16 = 0
-    for i = 1, num_bits, 1:
+fun GetVal(bs ^!BitStream, num_bits u16) s16:
+    let bits = as(num_bits, s32)
+    let! out s32 = 0
+    for i = 0, bits, 1:
         set out <<= 1
-        set out or= GetNextBit(bs)
-    return out
+        set out or= as(GetNextBit(bs), s32)
+    -- note: signed shift
+    if out < 1 << (bits - 1):
+        set out += ((-1) << bits) + 1
+    return as(out, s16)
 
 rec AppInfo:
     version_major u8
@@ -455,13 +455,12 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
     return SuccessVal
 
 
--- returns new dc value on sucess
-fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, last_dc u16)
-    union(u16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+-- returns new dc value on success
+fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, last_dc s16)
+    union(s16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     let dc_code = NextSymbol(bs,  dc_tab)
-    for i = 0, dc_code and 0xf, 1:
-            do GetNextBit(bs)
-    let dc_val u16 = 0
+    let dc_val s16 = GetVal(bs, dc_code and 0xf)
+    debug#("dc=", dc_val, "\n")
     let! coeff u16 = 0
     while true:
         let ac_code = NextSymbol(bs,  ac_tab)
@@ -479,7 +478,7 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_tr
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
     @ref let! bs = BitStream{chunk}
-    let! dc_last = [3]u16{0, 0, 0}
+    let! dc_last = [3]s16{0, 0, 0}
     for m = 0, frame_info^.mbwidth * frame_info^.mbheight, 1:
         for c = 0, frame_info^.ncomp, 1:
             let comp ^Component = &frame_info^.comp[c]
