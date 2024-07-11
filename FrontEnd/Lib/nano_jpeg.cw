@@ -4,7 +4,9 @@ More Info
 https://github.com/corkami/formats/blob/master/image/jpeg.md
 For Huffman codes
 https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
-https://www.youtube.com/watch?v=CPT4FSkFUgs"""
+https://www.youtube.com/watch?v=CPT4FSkFUgs
+Feig, E.; Winograd, S. (September 1992b). "Fast algorithms for the discrete cosine transform".
+                  IEEE Transactions on Signal Processing. 40 (9): 2174–2193"""
 (module [] :
 (import BS bytestream)
 
@@ -18,6 +20,22 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 
 (macro xdebug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :)
+
+
+(global WinogradMultipliers auto (array_val 64 u8 [
+        128 178 178 167 246 167 151 232 232 151 128 209 219 209 128 101 178 197 197
+        178 101 69 139 167 177 167 139 69 35 96 131 151 151 131 96 35 49 91 118 128
+        118 91 49 46 81 101 101 81 46 42 69 79 69 42 35 54 54 35 28 37 28 19 19 10]))
+
+
+(fun ApplyWindogradMulipliers [(param qt_tab (ptr! (array 64 s16)))] void :
+    (let c s32 (paren (<< 1 (- (- 10 7) 1))))
+    (for i 0 (len (^ qt_tab)) 1 :
+        (let! x s32 (as (at (^ qt_tab) i) s32))
+        (*= x (as (at WinogradMultipliers i) s32))
+        (+= x c)
+        (>>= x (- 10 7))
+        (= (at (^ qt_tab) i) (as x s16))))
 
 
 (global W1 s32 2841)
@@ -243,13 +261,16 @@ the exact number is bits_count"""
     (field cid u8)
     (field ssx u32)
     (field ssy u32)
-    (field qtsel u8)
+    @doc "quantization table index:  0-3"
+    (field qt_tab u8)
     @doc "image dimensions in pixels"
     (field width u32)
     (field height u32)
     (field stride u32)
-    (field dctabsel u8)
-    (field actabsel u8))
+    @doc "huffman table index for dc decoding: 0-1"
+    (field dc_tab u8)
+    @doc "huffman table index for ac decoding: 0-1"
+    (field ac_tab u8))
 
 
 (defrec FrameInfo :
@@ -338,27 +359,29 @@ the exact number is bits_count"""
     (return SuccessVal))
 
 
-(fun DecodeQuantizationTable [(param chunk (slice u8)) (param qtab (ptr! (array 4 (array 64 u8))))] (union [
+(fun DecodeQuantizationTable [(param chunk (slice u8)) (param qt_tabs (ptr! (array 4 (array 64 s16))))] (union [
         u8
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
     (@ref let! data auto chunk)
-    (let! qtavail u8 0)
+    (let! qt_avail u8 0)
     (while (>= (len data) 65) :
         (let t auto (at data 0))
         (if (!= (and t 0xfc) 0) :
             (return CorruptionErrorVal)
          :)
         (debug# "processing qt: " t "\n")
-        (or= qtavail (<< 1 t))
+        (or= qt_avail (<< 1 t))
+        (let qt_tab auto (&! (at (^ qt_tabs) t)))
         (for i 0 64_u32 1 :
-            (= (at (at (^ qtab) t) i) (at data (+ i 1))))
+            (= (at (^ qt_tab) i) (as (at data (+ i 1)) s16)))
+        (do (ApplyWindogradMulipliers [qt_tab]))
         (do (BS::SkipUnchecked [(&! data) 65])))
     (if (!= (len data) 0) :
         (return CorruptionErrorVal)
      :)
-    (return qtavail))
+    (return qt_avail))
 
 
 (fun DecodeRestartInterval [(param chunk (slice u8))] (union [
@@ -443,13 +466,13 @@ the exact number is bits_count"""
         (= (^. comp ssy) ssy)
         (max= ssxmax ssx)
         (max= ssymax ssy)
-        (trylet! qtsel u8 (BS::FrontU8 [(&! data)]) err :
+        (trylet! qt_tab u8 (BS::FrontU8 [(&! data)]) err :
             (return err))
-        (if (!= (and qtsel 0xfc) 0) :
-            (debug# "bad qtsel: " qtsel "\n")
+        (if (!= (and qt_tab 0xfc) 0) :
+            (debug# "bad qt_tab: " qt_tab "\n")
             (return CorruptionErrorVal)
          :)
-        (= (^. comp qtsel) qtsel))
+        (= (^. comp qt_tab) qt_tab))
     (if (== ncomp 1) :
         (= ssxmax 1)
         (= ssymax 1)
@@ -503,9 +526,9 @@ the exact number is bits_count"""
         (if (!= (and tabsel 0xee) 0) :
             (return CorruptionErrorVal)
          :)
-        (= (^. comp dctabsel) (and (paren (>> tabsel 4)) 1))
-        (= (^. comp actabsel) (and tabsel 1))
-        (debug# "tabsel[" (^. comp cid) "]: " (^. comp dctabsel) "." (^. comp actabsel) "\n")
+        (= (^. comp dc_tab) (and (paren (>> tabsel 4)) 1))
+        (= (^. comp ac_tab) (and tabsel 1))
+        (debug# "tabsel[" (^. comp cid) "]: " (^. comp dc_tab) "." (^. comp ac_tab) "\n")
         (do (BS::SkipUnchecked [(&! data) 2]))
         (if (< (len data) 3) :
             (return BS::OutOfBoundsErrorVal)
@@ -529,6 +552,7 @@ the exact number is bits_count"""
         (param bs (ptr! BitStream))
         (param dc_tab (ptr HuffmanTree))
         (param ac_tab (ptr HuffmanTree))
+        (param qt_tab (ptr (array 64 s16)))
         (param out (ptr! (array (* 8 8) s16)))
         (param last_dc s16)] (union [
         s16
@@ -540,7 +564,7 @@ the exact number is bits_count"""
     (let dc_code auto (NextSymbol [bs dc_tab]))
     (let dc_val s16 (+ last_dc (GetVal [bs (and dc_code 0xf)])))
     (debug# "dc=" dc_val "\n")
-    (= (at (^ out) 0) dc_val)
+    (= (at (^ out) 0) (* dc_val (at (^ qt_tab) 0)))
     (let! coeff u16 1)
     (while true :
         (let ac_code auto (NextSymbol [bs ac_tab]))
@@ -555,7 +579,7 @@ the exact number is bits_count"""
         (let ac_val auto (GetVal [bs extra_bits]))
         (+= coeff (+ skip 1))
         (debug# "ac=" ac_val " " (- coeff 1) "\n")
-        (= (at (^ out) (at ZigZagIndex coeff)) ac_val)
+        (= (at (^ out) (at ZigZagIndex coeff)) (* ac_val (at (^ qt_tab) coeff)))
         (if (> coeff 63) :
             (break)
          :))
@@ -565,7 +589,8 @@ the exact number is bits_count"""
 (fun DecodeMacroBlocksHuffman [
         (param chunk (slice u8))
         (param frame_info (ptr FrameInfo))
-        (param huffman_trees (ptr (array 2 (array 2 HuffmanTree))))] (union [
+        (param huffman_trees (ptr (array 2 (array 2 HuffmanTree))))
+        (param quantization_tab (ptr (array 4 (array 64 s16))))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -577,8 +602,9 @@ the exact number is bits_count"""
     (for m 0 (* (^. frame_info mbwidth) (^. frame_info mbheight)) 1 :
         (for c 0 (^. frame_info ncomp) 1 :
             (let comp (ptr Component) (& (at (^. frame_info comp) c)))
-            (let dc_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 0) (^. comp dctabsel))))
-            (let ac_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 1) (^. comp actabsel))))
+            (let dc_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 0) (^. comp dc_tab))))
+            (let ac_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 1) (^. comp ac_tab))))
+            (let qt_tab (ptr (array 64 s16)) (& (at (^ quantization_tab) (^. comp qt_tab))))
             (for y 0 (^. comp ssy) 1 :
                 (for x 0 (^. comp ssx) 1 :
                     @doc """debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")"""
@@ -587,6 +613,7 @@ the exact number is bits_count"""
                             (&! bs)
                             dc_tab
                             ac_tab
+                            qt_tab
                             (&! buffer)
                             (at dc_last c)]) err :
                         (return err))
@@ -605,7 +632,7 @@ the exact number is bits_count"""
     (@ref let! app_info AppInfo undef)
     (@ref let! frame_info FrameInfo undef)
     (@ref let! huffman_trees (array 2 (array 2 HuffmanTree)) undef)
-    (@ref let! quantization_tab (array 4 (array 64 u8)) undef)
+    (@ref let! quantization_tab (array 4 (array 64 s16)) undef)
     (let! qt_avail_bits u8 0)
     (let! restart_interval u16 0)
     (@ref let! data auto a_data)
@@ -643,7 +670,11 @@ the exact number is bits_count"""
                 @doc "start of scan chunk, huffman encoded image data follows"
                 (trylet dummy Success (DecodeScan [chunk_slice (&! frame_info)]) err :
                     (return err))
-                (trylet dummy2 Success (DecodeMacroBlocksHuffman [data (& frame_info) (& huffman_trees)]) err :
+                (trylet dummy2 Success (DecodeMacroBlocksHuffman [
+                        data
+                        (& frame_info)
+                        (& huffman_trees)
+                        (& quantization_tab)]) err :
                     (return err))
                 (break))
             (case (== chunk_kind 0xfffe) :

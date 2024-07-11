@@ -5,6 +5,8 @@
 -- For Huffman codes
 -- https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
 -- https://www.youtube.com/watch?v=CPT4FSkFUgs
+-- Feig, E.; Winograd, S. (September 1992b). "Fast algorithms for the discrete cosine transform".
+--                   IEEE Transactions on Signal Processing. 40 (9): 2174–2193
 module:
 
 import BS = bytestream
@@ -17,6 +19,26 @@ macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
       fmt::print#($parts)
 
 macro xdebug# STMT_LIST($parts EXPR_LIST_REST)[]:
+
+global WinogradMultipliers = [64]u8 {
+   128,  178,  178,  167,  246,  167,  151,  232,
+   232,  151,  128,  209,  219,  209,  128,  101,
+   178,  197,  197,  178,  101,   69,  139,  167,
+   177,  167,  139,   69,   35,   96,  131,  151,
+   151,  131,   96,   35,   49,   91,  118,  128,
+   118,   91,   49,   46,   81,  101,  101,   81,
+   46,   42,   69,   79,   69,   42,   35,   54,
+   54,   35,   28,   37,   28,   19,   19,   10}
+
+
+fun ApplyWindogradMulipliers(qt_tab ^![64]s16) void:
+    let c s32 = (1 << (10 - 7 - 1))
+    for i = 0, len(qt_tab^), 1:
+        let! x s32 = as(qt_tab^[i], s32)
+        set x *= as(WinogradMultipliers[i], s32)
+        set x += c
+        set x >>= 10 - 7
+        set qt_tab^[i] = as(x, s16)
 
 
 global W1 s32 = 2841
@@ -217,14 +239,17 @@ rec Component:
     cid u8
     ssx u32
     ssy u32
-    qtsel u8
+    -- quantization table index:  0-3
+    qt_tab u8
 
     -- image dimensions in pixels
     width u32
     height u32
     stride u32
-    dctabsel u8
-    actabsel u8
+    -- huffman table index for dc decoding: 0-1
+    dc_tab u8
+    -- huffman table index for ac decoding: 0-1
+    ac_tab u8
 
 rec FrameInfo:
     width u32
@@ -300,22 +325,24 @@ fun DecodeHufmanTable(chunk slice(u8), huffman_trees ^![2][2]HuffmanTree)
 
     return SuccessVal
 
-fun DecodeQuantizationTable(chunk slice(u8),  qtab ^![4][64]u8)
+fun DecodeQuantizationTable(chunk slice(u8),  qt_tabs ^![4][64]s16)
     union(u8, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     @ref let! data = chunk
-    let! qtavail u8 = 0
+    let! qt_avail u8 = 0
     while len(data) >= 65:
         let t = data[0]
         if t and 0xfc != 0:
             return CorruptionErrorVal
         debug#("processing qt: ", t, "\n")
-        set qtavail or= 1 << t
+        set qt_avail or= 1 << t
+        let qt_tab = &!qt_tabs^[t]
         for i = 0, 64_u32, 1:
-            set qtab^[t][i] = data[i + 1]
+            set qt_tab^[i] = as(data[i + 1], s16)
+        do ApplyWindogradMulipliers(qt_tab)
         do BS::SkipUnchecked(&!data, 65)
     if len(data) != 0:
         return CorruptionErrorVal
-    return qtavail
+    return qt_avail
 
 fun DecodeRestartInterval(chunk slice(u8))
       union(u16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -388,12 +415,12 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         set ssxmax max= ssx
         set ssymax max= ssy
 
-        trylet! qtsel u8 = BS::FrontU8(&!data), err:
+        trylet! qt_tab u8 = BS::FrontU8(&!data), err:
             return err
-        if qtsel and 0xfc!= 0:
-            debug#("bad qtsel: ", qtsel, "\n")
+        if qt_tab and 0xfc!= 0:
+            debug#("bad qt_tab: ", qt_tab, "\n")
             return CorruptionErrorVal
-        set comp^.qtsel = qtsel
+        set comp^.qt_tab = qt_tab
 
     if ncomp == 1:
         set ssxmax = 1
@@ -441,9 +468,9 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
         let tabsel = data[1]
         if tabsel and 0xee != 0:
              return CorruptionErrorVal
-        set comp^.dctabsel = (tabsel >> 4) and 1
-        set comp^.actabsel = tabsel and 1
-        debug#("tabsel[", comp^.cid,"]: ",  comp^.dctabsel, ".",comp^.actabsel, "\n")
+        set comp^.dc_tab = (tabsel >> 4) and 1
+        set comp^.ac_tab = tabsel and 1
+        debug#("tabsel[", comp^.cid,"]: ",  comp^.dc_tab, ".",comp^.ac_tab, "\n")
         do BS::SkipUnchecked(&!data, 2)
         if len(data) < 3:
             return  BS::OutOfBoundsErrorVal
@@ -465,14 +492,15 @@ global ZigZagIndex = [8 * 8]u8 {
    53, 60, 61, 54, 47, 55, 62, 63}
 
 -- returns new dc value on success
-fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, out ^![8*8]s16, last_dc s16)
+fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree,
+                 qt_tab^ [64]s16, out ^![8*8]s16, last_dc s16)
     union(s16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     for i= 0, len(out^), 1:
         set out^[i] = 0
     let dc_code = NextSymbol(bs,  dc_tab)
     let dc_val s16 = last_dc + GetVal(bs, dc_code and 0xf)
     debug#("dc=", dc_val, "\n")
-    set out^[0] = dc_val
+    set out^[0] = dc_val * qt_tab^[0]
     let! coeff u16 = 1
     while true:
         let ac_code = NextSymbol(bs,  ac_tab)
@@ -485,12 +513,13 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, out ^
         let ac_val = GetVal(bs, extra_bits)
         set coeff += skip + 1
         debug#("ac=", ac_val, " ", coeff - 1, "\n")
-        set out^[ZigZagIndex[coeff]] = ac_val
+        set out^[ZigZagIndex[coeff]] = ac_val * qt_tab^[coeff]
         if coeff > 63:
           break
     return dc_val
 
-fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_trees ^[2][2]HuffmanTree)
+fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,
+                             huffman_trees ^[2][2]HuffmanTree, quantization_tab^ [4][64]s16)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
     @ref let! bs = BitStream{chunk}
@@ -500,13 +529,14 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_tr
     for m = 0, frame_info^.mbwidth * frame_info^.mbheight, 1:
         for c = 0, frame_info^.ncomp, 1:
             let comp ^Component = &frame_info^.comp[c]
-            let dc_tab ^HuffmanTree = &huffman_trees^[0][comp^.dctabsel]
-            let ac_tab ^HuffmanTree = &huffman_trees^[1][comp^.actabsel]
+            let dc_tab ^HuffmanTree = &huffman_trees^[0][comp^.dc_tab]
+            let ac_tab ^HuffmanTree = &huffman_trees^[1][comp^.ac_tab]
+            let qt_tab ^[64]s16 = &quantization_tab^[comp^.qt_tab]
             for y = 0, comp^.ssy, 1:
                 for x = 0, comp^.ssx, 1:
                     -- debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
                     debug#("Block ===================\n")
-                    tryset dc_last[c] = DecodeBlock(&!bs, dc_tab, ac_tab, &!buffer, dc_last[c]), err:
+                    tryset dc_last[c] = DecodeBlock(&!bs, dc_tab, ac_tab, qt_tab, &!buffer, dc_last[c]), err:
                         return err
                     if m == 1000:
                         return UnsupportedErrorVal
@@ -519,7 +549,7 @@ pub fun DecodeImage(a_data slice(u8))
     @ref let! app_info AppInfo = undef
     @ref let! frame_info FrameInfo = undef
     @ref let! huffman_trees [2][2]HuffmanTree = undef
-    @ref let! quantization_tab [4][64]u8 = undef
+    @ref let! quantization_tab [4][64]s16 = undef
     let! qt_avail_bits u8 = 0
     let! restart_interval u16 = 0
     @ref let! data = a_data
@@ -558,7 +588,8 @@ pub fun DecodeImage(a_data slice(u8))
                 -- start of scan chunk, huffman encoded image data follows
                 trylet dummy Success = DecodeScan(chunk_slice, &!frame_info), err:
                     return err
-                trylet dummy2 Success = DecodeMacroBlocksHuffman(data, &frame_info, &huffman_trees), err:
+                trylet dummy2 Success = DecodeMacroBlocksHuffman(
+                    data, &frame_info, &huffman_trees, &quantization_tab), err:
                     return err
                 break
             case chunk_kind == 0xfffe:
