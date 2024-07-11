@@ -19,6 +19,7 @@ Since small is subjective we have set a complexity budget of about 10kLOC for a 
 * generics via generic modules
 * simple hygienic macro system
 * limited polymorphism
+* polymorphism and generics replace printf and enable custom formatters
 * slices (array views)
 * named blocks + multi-level break/continue
 * expression statements - cleaned up version of the C's comma operator
@@ -27,7 +28,10 @@ Since small is subjective we have set a complexity budget of about 10kLOC for a 
 * visibility is private by default
 * array indexing is checked by default
 * variables are immutable by default
-* no goto, no va-args, no bitfields,
+* no goto, no va-args, no bitfields
+* no cyclic dependencies between modules
+* no cyclic dependencies between types (self-cycles are allowed)
+
 
 
 ## Syntax
