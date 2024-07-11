@@ -2,7 +2,14 @@
 
 @doc """supports retrieval of bitfields up to 32 bit wide from underlying slice
 
-not thread-safe"""
+Bits will be streamed in a little endian fashion:
+Suppose the stream consists of 3 bytes [0b10101010, 0b11001100, 0b1111000]
+These will be treated like this bit stream:
+0x11110000_11001100_10101010
+where bits are taken from the bottom/least signficant bits
+This is different from a jpeg bitstream is uses a big-endian flavor.
+
+Not thread-safe"""
 @pub (defrec Stream32 :
     (field buf (slice u8))
     (field offset uint)
@@ -87,4 +94,3 @@ may set eos
 @pub (fun Stream32Eos [(param bs (ptr Stream32))] bool :
     (return (^. bs eos)))
 )
-
