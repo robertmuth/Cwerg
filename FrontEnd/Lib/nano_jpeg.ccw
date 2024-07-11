@@ -454,13 +454,25 @@ fun DecodeScan(chunk slice(u8), frame_info ^!FrameInfo)
     debug#(">>>>>>> ", data[0], "\n")
     return SuccessVal
 
+global ZigZagIndex = [8 * 8]u8 {
+   0,  1,  8, 16,  9,  2,  3, 10,
+   17, 24, 32, 25, 18, 11,  4,  5,
+   12, 19, 26, 33, 40, 48, 41, 34,
+   27, 20, 13,  6,  7, 14, 21, 28,
+   35, 42, 49, 56, 57, 50, 43, 36,
+   29, 22, 15, 23, 30, 37, 44, 51,
+   58, 59, 52, 45, 38, 31, 39, 46,
+   53, 60, 61, 54, 47, 55, 62, 63}
 
 -- returns new dc value on success
-fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, last_dc s16)
+fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, out ^![8*8]s16, last_dc s16)
     union(s16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    for i= 0, len(out^), 1:
+        set out^[i] = 0
     let dc_code = NextSymbol(bs,  dc_tab)
-    let dc_val s16 = GetVal(bs, dc_code and 0xf)
-    debug#("dc=", dc_val + last_dc, "\n")
+    let dc_val s16 = last_dc + GetVal(bs, dc_code and 0xf)
+    debug#("dc=", dc_val, "\n")
+    set out^[0] = dc_val
     let! coeff u16 = 1
     while true:
         let ac_code = NextSymbol(bs,  ac_tab)
@@ -473,15 +485,18 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree, last_
         let ac_val = GetVal(bs, extra_bits)
         set coeff += skip + 1
         debug#("ac=", ac_val, " ", coeff - 1, "\n")
+        set out^[ZigZagIndex[coeff]] = ac_val
         if coeff > 63:
           break
-    return last_dc + dc_val
+    return dc_val
 
 fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_trees ^[2][2]HuffmanTree)
        union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
     @ref let! bs = BitStream{chunk}
     let! dc_last = [3]s16{0, 0, 0}
+    @ref let! buffer [8*8]s16 = undef
+
     for m = 0, frame_info^.mbwidth * frame_info^.mbheight, 1:
         for c = 0, frame_info^.ncomp, 1:
             let comp ^Component = &frame_info^.comp[c]
@@ -491,7 +506,7 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,  huffman_tr
                 for x = 0, comp^.ssx, 1:
                     -- debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
                     debug#("Block ===================\n")
-                    tryset dc_last[c] = DecodeBlock(&!bs, dc_tab, ac_tab, dc_last[c]), err:
+                    tryset dc_last[c] = DecodeBlock(&!bs, dc_tab, ac_tab, &!buffer, dc_last[c]), err:
                         return err
                     if m == 1000:
                         return UnsupportedErrorVal

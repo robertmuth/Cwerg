@@ -518,19 +518,29 @@ the exact number is bits_count"""
     (return SuccessVal))
 
 
+(global ZigZagIndex auto (array_val (* 8 8) u8 [
+        0 1 8 16 9 2 3 10 17 24 32 25 18 11 4 5 12 19 26 33 40 48 41 34 27 20 13 6
+        7 14 21 28 35 42 49 56 57 50 43 36 29 22 15 23 30 37 44 51 58 59 52 45 38
+        31 39 46 53 60 61 54 47 55 62 63]))
+
+
 @doc "returns new dc value on success"
 (fun DecodeBlock [
         (param bs (ptr! BitStream))
         (param dc_tab (ptr HuffmanTree))
         (param ac_tab (ptr HuffmanTree))
+        (param out (ptr! (array (* 8 8) s16)))
         (param last_dc s16)] (union [
         s16
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
+    (for i 0 (len (^ out)) 1 :
+        (= (at (^ out) i) 0))
     (let dc_code auto (NextSymbol [bs dc_tab]))
-    (let dc_val s16 (GetVal [bs (and dc_code 0xf)]))
-    (debug# "dc=" (+ dc_val last_dc) "\n")
+    (let dc_val s16 (+ last_dc (GetVal [bs (and dc_code 0xf)])))
+    (debug# "dc=" dc_val "\n")
+    (= (at (^ out) 0) dc_val)
     (let! coeff u16 1)
     (while true :
         (let ac_code auto (NextSymbol [bs ac_tab]))
@@ -545,10 +555,11 @@ the exact number is bits_count"""
         (let ac_val auto (GetVal [bs extra_bits]))
         (+= coeff (+ skip 1))
         (debug# "ac=" ac_val " " (- coeff 1) "\n")
+        (= (at (^ out) (at ZigZagIndex coeff)) ac_val)
         (if (> coeff 63) :
             (break)
          :))
-    (return (+ last_dc dc_val)))
+    (return dc_val))
 
 
 (fun DecodeMacroBlocksHuffman [
@@ -562,6 +573,7 @@ the exact number is bits_count"""
     (debug# "Decode blocks\n")
     (@ref let! bs auto (rec_val BitStream [chunk]))
     (let! dc_last auto (array_val 3 s16 [0 0 0]))
+    (@ref let! buffer (array (* 8 8) s16) undef)
     (for m 0 (* (^. frame_info mbwidth) (^. frame_info mbheight)) 1 :
         (for c 0 (^. frame_info ncomp) 1 :
             (let comp (ptr Component) (& (at (^. frame_info comp) c)))
@@ -575,6 +587,7 @@ the exact number is bits_count"""
                             (&! bs)
                             dc_tab
                             ac_tab
+                            (&! buffer)
                             (at dc_last c)]) err :
                         (return err))
                     (if (== m 1000) :
