@@ -1,10 +1,11 @@
 -- Simple JPEG Decoder loosely based on
--- https://keyj.emphy.de/nanojpeg/
--- More Info
+-- https://github.com/richgel999/picojpeg
+-- More on jpeg
 -- https://github.com/corkami/formats/blob/master/image/jpeg.md
--- For Huffman codes
--- https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
 -- https://www.youtube.com/watch?v=CPT4FSkFUgs
+-- More on Huffman codes
+-- https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
+-- on fast idct transforms:
 -- Feig, E.; Winograd, S. (September 1992b). "Fast algorithms for the discrete cosine transform".
 --                   IEEE Transactions on Signal Processing. 40 (9): 2174–2193
 module:
@@ -35,10 +36,13 @@ fun ApplyWindogradMulipliers(qt_tab ^![64]s16) void:
     let c s32 = (1 << (10 - 7 - 1))
     for i = 0, len(qt_tab^), 1:
         let! x s32 = as(qt_tab^[i], s32)
+        let y = x
         set x *= as(WinogradMultipliers[i], s32)
         set x += c
         set x >>= 10 - 7
+        debug#("apply: ", i, " ", y, " ", x, "\n")
         set qt_tab^[i] = as(x, s16)
+
 
 
 global W1 s32 = 2841
@@ -499,9 +503,9 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree,
         set out^[i] = 0
     let dc_code = NextSymbol(bs,  dc_tab)
     let dc_val s16 = last_dc + GetVal(bs, dc_code and 0xf)
-    debug#("dc=", dc_val, "\n")
+    debug#("dc=", dc_val * qt_tab^[0], "\n")
     set out^[0] = dc_val * qt_tab^[0]
-    let! coeff u16 = 1
+    let! coeff u16 = 0
     while true:
         let ac_code = NextSymbol(bs,  ac_tab)
         if ac_code == 0:
@@ -512,9 +516,9 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree,
             return CorruptionErrorVal
         let ac_val = GetVal(bs, extra_bits)
         set coeff += skip + 1
-        debug#("ac=", ac_val, " ", coeff - 1, "\n")
+        debug#("ac=", ac_val, " ", qt_tab^[coeff], " ", coeff, "\n")
         set out^[ZigZagIndex[coeff]] = ac_val * qt_tab^[coeff]
-        if coeff > 63:
+        if coeff >= 63:
           break
     return dc_val
 

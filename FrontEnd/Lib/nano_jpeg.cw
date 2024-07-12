@@ -1,10 +1,11 @@
 @doc """Simple JPEG Decoder loosely based on
-https://keyj.emphy.de/nanojpeg/
-More Info
+https://github.com/richgel999/picojpeg
+More on jpeg
 https://github.com/corkami/formats/blob/master/image/jpeg.md
-For Huffman codes
-https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
 https://www.youtube.com/watch?v=CPT4FSkFUgs
+More on Huffman codes
+https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
+on fast idct transforms:
 Feig, E.; Winograd, S. (September 1992b). "Fast algorithms for the discrete cosine transform".
                   IEEE Transactions on Signal Processing. 40 (9): 2174–2193"""
 (module [] :
@@ -32,9 +33,11 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (let c s32 (paren (<< 1 (- (- 10 7) 1))))
     (for i 0 (len (^ qt_tab)) 1 :
         (let! x s32 (as (at (^ qt_tab) i) s32))
+        (let y auto x)
         (*= x (as (at WinogradMultipliers i) s32))
         (+= x c)
         (>>= x (- 10 7))
+        (debug# "apply: " i " " y " " x "\n")
         (= (at (^ qt_tab) i) (as x s16))))
 
 
@@ -563,9 +566,9 @@ the exact number is bits_count"""
         (= (at (^ out) i) 0))
     (let dc_code auto (NextSymbol [bs dc_tab]))
     (let dc_val s16 (+ last_dc (GetVal [bs (and dc_code 0xf)])))
-    (debug# "dc=" dc_val "\n")
+    (debug# "dc=" (* dc_val (at (^ qt_tab) 0)) "\n")
     (= (at (^ out) 0) (* dc_val (at (^ qt_tab) 0)))
-    (let! coeff u16 1)
+    (let! coeff u16 0)
     (while true :
         (let ac_code auto (NextSymbol [bs ac_tab]))
         (if (== ac_code 0) :
@@ -578,9 +581,9 @@ the exact number is bits_count"""
          :)
         (let ac_val auto (GetVal [bs extra_bits]))
         (+= coeff (+ skip 1))
-        (debug# "ac=" ac_val " " (- coeff 1) "\n")
+        (debug# "ac=" ac_val " " (at (^ qt_tab) coeff) " " coeff "\n")
         (= (at (^ out) (at ZigZagIndex coeff)) (* ac_val (at (^ qt_tab) coeff)))
-        (if (> coeff 63) :
+        (if (>= coeff 63) :
             (break)
          :))
     (return dc_val))
