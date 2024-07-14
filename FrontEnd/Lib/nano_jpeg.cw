@@ -41,73 +41,78 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (= (at (^ qt_tab) i) (as x s16))))
 
 
-(global W1 s32 2841)
+@doc """multiply helper functions are the 4 types of signed multiplies needed by the Winograd IDCT.
+1 / cos(4 * pi/16)   362, 256+106"""
+(global c_b1_b3 s32 362)
 
 
-(global W2 s32 2676)
+@doc "1 / cos(6*pi/16) 669,  256+256+157"
+(global c_b2 s32 669)
 
 
-(global W3 s32 2408)
+@doc "1 / cos(2*pi/16)  277, 256+21"
+(global c_b4 s32 277)
 
 
-(global W5 s32 1609)
+@doc "1 / (cos(2*pi/16) + cos(6*pi/16))  196, 196"
+(global c_b5 s32 196)
 
 
-(global W6 s32 1108)
-
-
-(global W7 s32 565)
+(fun imul [(param w s16) (param c s32)] s16 :
+    (let! x s32 (* (as w s32) c))
+    (+= x 128)
+    (return (as (>> x 8) s16)))
 
 
 @doc "updates blk in place"
-(fun RowIDCT [(param blk (ptr! (array 8 s32)))] void :
-    (let! x1 auto (<< (at (^ blk) 4) 11))
-    (let! x2 auto (at (^ blk) 6))
-    (let! x3 auto (at (^ blk) 2))
-    (let! x4 auto (at (^ blk) 1))
-    (let! x5 auto (at (^ blk) 7))
-    (let! x6 auto (at (^ blk) 5))
-    (let! x7 auto (at (^ blk) 3))
-    (if (== (paren (or (or (or (or (or (or x1 x2) x3) x4) x5) x6) x7)) 0) :
-        (let t auto (<< (at (^ blk) 0) 3))
-        (for i 0 8_u32 1 :
-            (= (at (^ blk) i) t))
-        (return)
-     :)
-    (let! x0 auto (+ (paren (<< (at (^ blk) 0) 11)) 128))
-    (let! x8 auto (* (+ x4 x5) W7))
-    (= x4 (+ x8 (* x4 (- W1 W7))))
-    (= x5 (- x8 (* x5 (+ W1 W7))))
-    (= x8 (* (+ x6 x7) W3))
-    (= x6 (- x8 (* x6 (- W3 W5))))
-    (= x7 (- x8 (* x7 (+ W3 W5))))
-    (= x8 (+ x0 x1))
-    (-= x0 x1)
-    (= x1 (* (+ x3 x2) W6))
-    (= x2 (- x1 (* x2 (+ W2 W6))))
-    (= x3 (+ x1 (* x3 (- W2 W6))))
-    (= x1 (+ x4 x6))
-    (-= x4 x6)
-    (= x6 (+ x5 x7))
-    (-= x5 x7)
-    (= x7 (+ x8 x3))
-    (-= x8 x3)
-    (= x3 (+ x0 x2))
-    (-= x0 x2)
-    (= x2 (>> (+ (* (+ x4 x5) 181) 128) 8))
-    (= x4 (>> (+ (* (- x4 x5) 181) 128) 8))
-    (= (at (^ blk) 0) (>> (+ x7 x1) 8))
-    (= (at (^ blk) 1) (>> (+ x3 x2) 8))
-    (= (at (^ blk) 2) (>> (+ x0 x4) 8))
-    (= (at (^ blk) 3) (>> (+ x8 x6) 8))
-    (= (at (^ blk) 4) (>> (- x8 x6) 8))
-    (= (at (^ blk) 5) (>> (- x0 x4) 8))
-    (= (at (^ blk) 6) (>> (- x3 x2) 8))
-    (= (at (^ blk) 7) (>> (- x7 x1) 8)))
+(fun RowIDCT [(param blk (ptr! (array (* 8 8) s16)))] void :
+    (for o 0 (len (^ blk)) 8 :
+        (let src0 auto (at (^ blk) (+ o 0)))
+        (let src5 auto (at (^ blk) (+ o 1)))
+        (let src2 auto (at (^ blk) (+ o 2)))
+        (let src7 auto (at (^ blk) (+ o 3)))
+        (let src1 auto (at (^ blk) (+ o 4)))
+        (let src4 auto (at (^ blk) (+ o 5)))
+        (let src3 auto (at (^ blk) (+ o 6)))
+        (let src6 auto (at (^ blk) (+ o 7)))
+        (if (== (paren (or (or (or (or (or (or src1 src2) src3) src4) src5) src6) src7)) 0) :
+            (for i 0 8_u32 1 :
+                (= (at (^ blk) i) src0))
+            (return)
+         :)
+        (let x4 auto (- src4 src7))
+        (let x7 auto (+ src4 src7))
+        (let x5 auto (+ src5 src6))
+        (let x6 auto (- src5 src6))
+        (let tmp1 auto (imul [(- x4 x6) c_b5]))
+        (let stg26 auto (- (imul [x6 c_b4]) tmp1))
+        (let x24 auto (- tmp1 (imul [x4 c_b2])))
+        (let x15 auto (- x5 x7))
+        (let x17 auto (+ x5 x7))
+        (let tmp2 auto (- stg26 x17))
+        (let tmp3 auto (- (imul [x15 c_b1_b3]) tmp2))
+        (let x44 auto (+ tmp3 x24))
+        (let x30 auto (+ src0 src1))
+        (let x31 auto (- src0 src1))
+        (let x12 auto (- src2 src3))
+        (let x13 auto (+ src2 src3))
+        (let x32 auto (- (imul [x12 c_b1_b3]) x13))
+        (let x40 auto (+ x30 x13))
+        (let x43 auto (- x30 x13))
+        (let x41 auto (+ x31 x32))
+        (let x42 auto (- x31 x32))
+        (= (at (^ blk) (+ o 0)) (+ x40 x17))
+        (= (at (^ blk) (+ o 1)) (+ x41 tmp2))
+        (= (at (^ blk) (+ o 2)) (+ x42 tmp3))
+        (= (at (^ blk) (+ o 3)) (- x43 x44))
+        (= (at (^ blk) (+ o 4)) (+ x43 x44))
+        (= (at (^ blk) (+ o 5)) (- x42 tmp3))
+        (= (at (^ blk) (+ o 6)) (- x41 tmp2))
+        (= (at (^ blk) (+ o 7)) (- x40 x17))))
 
 
 @doc "clamp x to [0:255]"
-(fun ClampU8 [(param x s32)] u8 :
+(fun descale_clamp [(param x s16)] u8 :
     (cond :
         (case (< x 0) :
             (return 0))
@@ -115,55 +120,6 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (return 0xff))
         (case true :
             (return (as x u8)))))
-
-
-(fun ColIDCT [
-        (param blk (ptr (array (* 8 8) s32)))
-        (param out (slice! u8))
-        (param stride uint)] void :
-    (let! x1 auto (<< (at (^ blk) (* 8 4)) 8))
-    (let! x2 auto (at (^ blk) (* 8 6)))
-    (let! x3 auto (at (^ blk) (* 8 2)))
-    (let! x4 auto (at (^ blk) (* 8 1)))
-    (let! x5 auto (at (^ blk) (* 8 7)))
-    (let! x6 auto (at (^ blk) (* 8 5)))
-    (let! x7 auto (at (^ blk) (* 8 3)))
-    (if (== (paren (or (or (or (or (or (or x1 x2) x3) x4) x5) x6) x7)) 0) :
-        (let t auto (ClampU8 [(+ (paren (>> (+ (at (^ blk) 0) 32) 6)) 128)]))
-        (for i 0 8_u32 1 :
-            (= (at out (* i 8)) t))
-        (return)
-     :)
-    (let! x0 auto (+ (paren (<< (at (^ blk) 0) 8)) 8192))
-    (let! x8 auto (+ (* (+ x4 x5) W7) 4))
-    (= x4 (>> (+ x8 (* x4 (- W1 W7))) 3))
-    (= x5 (>> (- x8 (* x5 (+ W1 W7))) 3))
-    (= x8 (+ (* (+ x6 x7) W3) 4))
-    (= x6 (>> (- x8 (* x6 (- W3 W5))) 3))
-    (= x7 (>> (- x8 (* x7 (+ W3 W5))) 3))
-    (= x8 (+ x0 x1))
-    (-= x0 x1)
-    (= x1 (+ (* (+ x3 x2) W6) 4))
-    (= x2 (>> (- x1 (* x2 (+ W2 W6))) 3))
-    (= x3 (>> (+ x1 (* x3 (- W2 W6))) 3))
-    (= x1 (+ x4 x6))
-    (-= x4 x6)
-    (= x6 (+ x5 x7))
-    (-= x5 x7)
-    (= x7 (+ x8 x3))
-    (-= x8 x3)
-    (= x3 (+ x0 x2))
-    (-= x0 x2)
-    (= x2 (>> (+ (* (+ x4 x5) 181) 128) 8))
-    (= x4 (>> (+ (* (- x4 x5) 181) 128) 8))
-    (= (at out (* 0 stride)) (ClampU8 [(+ (paren (>> (+ x7 x1) 14)) 128)]))
-    (= (at out (* 1 stride)) (ClampU8 [(+ (paren (>> (+ x3 x2) 14)) 128)]))
-    (= (at out (* 2 stride)) (ClampU8 [(+ (paren (>> (+ x0 x4) 14)) 128)]))
-    (= (at out (* 3 stride)) (ClampU8 [(+ (paren (>> (+ x8 x6) 14)) 128)]))
-    (= (at out (* 4 stride)) (ClampU8 [(+ (paren (>> (- x8 x6) 14)) 128)]))
-    (= (at out (* 5 stride)) (ClampU8 [(+ (paren (>> (- x0 x4) 14)) 128)]))
-    (= (at out (* 6 stride)) (ClampU8 [(+ (paren (>> (- x3 x2) 14)) 128)]))
-    (= (at out (* 7 stride)) (ClampU8 [(+ (paren (>> (- x7 x1) 14)) 128)])))
 
 
 @doc "for huffman decoding"
