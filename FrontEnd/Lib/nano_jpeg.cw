@@ -30,6 +30,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 
 (fun ApplyWindogradMulipliers [(param qt_tab (ptr! (array 64 s16)))] void :
+    @doc "should this be = (1 << (10 - 7) - 1  to ensure rounding up?"
     (let c s32 (paren (<< 1 (- (- 10 7) 1))))
     (for i 0 (len (^ qt_tab)) 1 :
         (let! x s32 (as (at (^ qt_tab) i) s32))
@@ -64,6 +65,30 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (return (as (>> x 8) s16)))
 
 
+(macro CommonIDCT# STMT_LIST [] [] :
+    (let x4 auto (- src4 src7))
+    (let x7 auto (+ src4 src7))
+    (let x5 auto (+ src5 src6))
+    (let x6 auto (- src5 src6))
+    (let tmp1 auto (imul [(- x4 x6) c_b5]))
+    (let stg26 auto (- (imul [x6 c_b4]) tmp1))
+    (let x24 auto (- tmp1 (imul [x4 c_b2])))
+    (let x15 auto (- x5 x7))
+    (let x17 auto (+ x5 x7))
+    (let tmp2 auto (- stg26 x17))
+    (let tmp3 auto (- (imul [x15 c_b1_b3]) tmp2))
+    (let x44 auto (+ tmp3 x24))
+    (let x30 auto (+ src0 src1))
+    (let x31 auto (- src0 src1))
+    (let x12 auto (- src2 src3))
+    (let x13 auto (+ src2 src3))
+    (let x32 auto (- (imul [x12 c_b1_b3]) x13))
+    (let x40 auto (+ x30 x13))
+    (let x43 auto (- x30 x13))
+    (let x41 auto (+ x31 x32))
+    (let x42 auto (- x31 x32)))
+
+
 @doc "updates blk in place"
 (fun RowIDCT [(param blk (ptr! (array (* 8 8) s16)))] void :
     (for o 0 (len (^ blk)) 8 :
@@ -80,27 +105,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
                 (= (at (^ blk) i) src0))
             (return)
          :)
-        (let x4 auto (- src4 src7))
-        (let x7 auto (+ src4 src7))
-        (let x5 auto (+ src5 src6))
-        (let x6 auto (- src5 src6))
-        (let tmp1 auto (imul [(- x4 x6) c_b5]))
-        (let stg26 auto (- (imul [x6 c_b4]) tmp1))
-        (let x24 auto (- tmp1 (imul [x4 c_b2])))
-        (let x15 auto (- x5 x7))
-        (let x17 auto (+ x5 x7))
-        (let tmp2 auto (- stg26 x17))
-        (let tmp3 auto (- (imul [x15 c_b1_b3]) tmp2))
-        (let x44 auto (+ tmp3 x24))
-        (let x30 auto (+ src0 src1))
-        (let x31 auto (- src0 src1))
-        (let x12 auto (- src2 src3))
-        (let x13 auto (+ src2 src3))
-        (let x32 auto (- (imul [x12 c_b1_b3]) x13))
-        (let x40 auto (+ x30 x13))
-        (let x43 auto (- x30 x13))
-        (let x41 auto (+ x31 x32))
-        (let x42 auto (- x31 x32))
+        (CommonIDCT#)
         (= (at (^ blk) (+ o 0)) (+ x40 x17))
         (= (at (^ blk) (+ o 1)) (+ x41 tmp2))
         (= (at (^ blk) (+ o 2)) (+ x42 tmp3))
@@ -111,8 +116,11 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (= (at (^ blk) (+ o 7)) (- x40 x17))))
 
 
-@doc "clamp x to [0:255]"
-(fun descale_clamp [(param x s16)] u8 :
+@doc "descale and clamp x to [0:255]"
+(fun descale_clamp [(param xx s16)] u8 :
+    @doc "should this be = (1 << 7 - 1  to ensure rounding up?"
+    (let c s16 (<< 1 6))
+    (let x auto (+ (paren (>> (+ xx c) 7)) 128))
     (cond :
         (case (< x 0) :
             (return 0))
@@ -120,6 +128,33 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (return 0xff))
         (case true :
             (return (as x u8)))))
+
+
+(fun ColIDCT [(param blk (ptr (array (* 8 8) s16))) (param out (ptr! (array (* 8 8) u8)))] void :
+    (for o 0 8_uint 1 :
+        (let src0 auto (at (^ blk) (+ o (* 8 0))))
+        (let src5 auto (at (^ blk) (+ o (* 8 1))))
+        (let src2 auto (at (^ blk) (+ o (* 8 2))))
+        (let src7 auto (at (^ blk) (+ o (* 8 3))))
+        (let src1 auto (at (^ blk) (+ o (* 8 4))))
+        (let src4 auto (at (^ blk) (+ o (* 8 5))))
+        (let src3 auto (at (^ blk) (+ o (* 8 6))))
+        (let src6 auto (at (^ blk) (+ o (* 8 7))))
+        (if (== (paren (or (or (or (or (or (or src1 src2) src3) src4) src5) src6) src7)) 0) :
+            (let t auto (descale_clamp [src0]))
+            (for i 0 (len (^ blk)) 8 :
+                (= (at (^ out) (+ o i)) t))
+            (return)
+         :)
+        (CommonIDCT#)
+        (= (at (^ out) (+ o (* 8 0))) (descale_clamp [(+ x40 x17)]))
+        (= (at (^ out) (+ o (* 8 1))) (descale_clamp [(+ x41 tmp2)]))
+        (= (at (^ out) (+ o (* 8 2))) (descale_clamp [(+ x42 tmp3)]))
+        (= (at (^ out) (+ o (* 8 3))) (descale_clamp [(- x43 x44)]))
+        (= (at (^ out) (+ o (* 8 4))) (descale_clamp [(+ x43 x44)]))
+        (= (at (^ out) (+ o (* 8 5))) (descale_clamp [(- x42 tmp3)]))
+        (= (at (^ out) (+ o (* 8 6))) (descale_clamp [(- x41 tmp2)]))
+        (= (at (^ out) (+ o (* 8 7))) (descale_clamp [(- x40 x17)]))))
 
 
 @doc "for huffman decoding"
