@@ -29,15 +29,18 @@ To enable debug logging make sure the second macro is called `debug#`"""
         118 91 49 46 81 101 101 81 46 42 69 79 69 42 35 54 54 35 28 37 28 19 19 10]))
 
 
+(macro div_pow2_with_rounding# EXPR [(mparam $x EXPR) (mparam $d EXPR)] [] :
+    (>> (+ $x (paren (<< 1 (- $d 1)))) $d))
+
+
 (fun ApplyWindogradMulipliers [(param qt_tab (ptr! (array 64 s16)))] void :
-    @doc "should this be = (1 << (10 - 7) - 1  to ensure rounding up?"
     (let c s32 (paren (<< 1 (- (- 10 7) 1))))
     (for i 0 (len (^ qt_tab)) 1 :
         (let! x s32 (as (at (^ qt_tab) i) s32))
         (let y auto x)
         (*= x (as (at WinogradMultipliers i) s32))
-        (+= x c)
-        (>>= x (- 10 7))
+        @doc "divide by 2^3 with rouding"
+        (= x (div_pow2_with_rounding# x (- 10 7)))
         (debug# "apply: " i " " y " " x "\n")
         (= (at (^ qt_tab) i) (as x s16))))
 
@@ -60,9 +63,8 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 
 (fun imul [(param w s16) (param c s32)] s16 :
-    (let! x s32 (* (as w s32) c))
-    (+= x 128)
-    (return (as (>> x 8) s16)))
+    (let x s32 (* (as w s32) c))
+    (return (as (div_pow2_with_rounding# x 8) s16)))
 
 
 (macro CommonIDCT# STMT_LIST [] [] :
@@ -101,11 +103,13 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (let src3 auto (at (^ blk) (+ o 6)))
         (let src6 auto (at (^ blk) (+ o 7)))
         (if (== (paren (or (or (or (or (or (or src1 src2) src3) src4) src5) src6) src7)) 0) :
-            (for i 0 8_u32 1 :
-                (= (at (^ blk) i) src0))
-            (return)
+            (debug# "idc-row shortcicuit " src0 "\n")
+            (for i 0 8_uint 1 :
+                (= (at (^ blk) (+ o i)) src0))
+            (continue)
          :)
         (CommonIDCT#)
+        (debug# "idc-row out " (+ x40 x17) " " (+ x41 tmp2) " " (+ x42 tmp3) " " (- x43 x44) "\n")
         (= (at (^ blk) (+ o 0)) (+ x40 x17))
         (= (at (^ blk) (+ o 1)) (+ x41 tmp2))
         (= (at (^ blk) (+ o 2)) (+ x42 tmp3))
@@ -118,9 +122,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 @doc "descale and clamp x to [0:255]"
 (fun descale_clamp [(param xx s16)] u8 :
-    @doc "should this be = (1 << 7 - 1  to ensure rounding up?"
-    (let c s16 (<< 1 6))
-    (let x auto (+ (paren (>> (+ xx c) 7)) 128))
+    (let x auto (+ (div_pow2_with_rounding# xx 7) 128))
     (cond :
         (case (< x 0) :
             (return 0))
@@ -141,12 +143,14 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (let src3 auto (at (^ blk) (+ o (* 8 6))))
         (let src6 auto (at (^ blk) (+ o (* 8 7))))
         (if (== (paren (or (or (or (or (or (or src1 src2) src3) src4) src5) src6) src7)) 0) :
+            (debug# "idc-col shortcicuit " o " " src0 "\n")
             (let t auto (descale_clamp [src0]))
             (for i 0 (len (^ blk)) 8 :
                 (= (at (^ out) (+ o i)) t))
-            (return)
+            (continue)
          :)
         (CommonIDCT#)
+        (debug# "idc-col out " (+ x40 x17) " " (+ x41 tmp2) " " (+ x42 tmp3) " " (- x43 x44) "\n")
         (= (at (^ out) (+ o (* 8 0))) (descale_clamp [(+ x40 x17)]))
         (= (at (^ out) (+ o (* 8 1))) (descale_clamp [(+ x41 tmp2)]))
         (= (at (^ out) (+ o (* 8 2))) (descale_clamp [(+ x42 tmp3)]))
@@ -593,6 +597,7 @@ the exact number is bits_count"""
     (@ref let! bs auto (rec_val BitStream [chunk]))
     (let! dc_last auto (array_val 3 s16 [0 0 0]))
     (@ref let! buffer (array (* 8 8) s16) undef)
+    (@ref let! buffer2 (array (* 8 8) u8) undef)
     (for m 0 (* (^. frame_info mbwidth) (^. frame_info mbheight)) 1 :
         (for c 0 (^. frame_info ncomp) 1 :
             (let comp (ptr Component) (& (at (^. frame_info comp) c)))
@@ -611,6 +616,8 @@ the exact number is bits_count"""
                             (&! buffer)
                             (at dc_last c)]) err :
                         (return err))
+                    (do (RowIDCT [(&! buffer)]))
+                    (do (ColIDCT [(& buffer) (&! buffer2)]))
                     (if (== m 1000) :
                         (return UnsupportedErrorVal)
                      :)))))
