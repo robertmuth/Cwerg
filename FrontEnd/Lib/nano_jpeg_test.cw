@@ -197,6 +197,7 @@
         (fmt::print# (slice_val (front data) n))
         (= data (slice_val (pinc (front data) n) (- (len data) n)))))
 
+(@ref global! gByteBuffer (array 100000 u8) undef)
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "(do (dump []))"
@@ -214,7 +215,7 @@
         (. comp width) "x"  (. comp height) " stride:"  (. comp stride)
          "\n")
     )
-    (do (NJ::DecodeImage [test_image]))
+    (do (NJ::DecodeImage [test_image gByteBuffer]))
     @doc "test end"
     (test::Success#)
     (return 0))

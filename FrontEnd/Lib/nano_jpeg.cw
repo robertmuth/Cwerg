@@ -655,7 +655,7 @@ the exact number is bits_count"""
     (return CorruptionErrorVal))
 
 
-@pub (fun DecodeImage [(param a_data (slice u8))] (union [
+@pub (fun DecodeImage [(param a_data (slice u8)) (param out (slice! u8))] (union [
         Success
         CorruptionError
         UnsupportedError
