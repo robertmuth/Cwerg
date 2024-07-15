@@ -201,6 +201,9 @@
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "(do (dump []))"
     (fmt::print# "image size: " (len test_image) "\n")
+    (trylet fi NJ::FrameInfo (NJ::DecodeFrameInfo [test_image]) err :
+        (return 1)
+    )
     (do (NJ::DecodeImage [test_image]))
     @doc "test end"
     (test::Success#)

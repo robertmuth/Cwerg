@@ -255,7 +255,7 @@ rec AppInfo:
 
 
 
-rec Component:
+pub rec Component:
     cid u8
     ssx u32
     ssy u32
@@ -271,7 +271,7 @@ rec Component:
     -- huffman table index for ac decoding: 0-1
     ac_tab u8
 
-rec FrameInfo:
+pub rec FrameInfo:
     width u32
     height u32
     ncomp u8
@@ -566,6 +566,30 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,
                         return UnsupportedErrorVal
 
     return GetBytesConsumed(&bs)
+
+
+pub fun DecodeFrameInfo(a_data slice(u8))
+        union(FrameInfo, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+    @ref let! frame_info FrameInfo = undef
+    @ref let! data = a_data
+    trylet magic u16 = BS::FrontBeU16(&!data), err:
+        return err
+    if magic != 0xffd8:
+        return  CorruptionErrorVal
+
+    while true:
+        trylet chunk_kind u16 = BS::FrontBeU16(&!data), err:
+            return err
+        trylet chunk_length u16 = BS::FrontBeU16(&!data), err:
+            return err
+        trylet chunk_slice slice(u8) = BS::FrontSlice(&!data, as(chunk_length - 2, uint)), err:
+            return err
+        if chunk_kind == 0xffc0:
+            trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!frame_info), err:
+                return err
+            return frame_info
+    return CorruptionErrorVal
+
 
 pub fun DecodeImage(a_data slice(u8))
         union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):

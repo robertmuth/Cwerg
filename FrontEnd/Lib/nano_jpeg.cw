@@ -259,7 +259,7 @@ the exact number is bits_count"""
     (field thumbnail_h u8))
 
 
-(defrec Component :
+@pub (defrec Component :
     (field cid u8)
     (field ssx u32)
     (field ssy u32)
@@ -275,7 +275,7 @@ the exact number is bits_count"""
     (field ac_tab u8))
 
 
-(defrec FrameInfo :
+@pub (defrec FrameInfo :
     (field width u32)
     (field height u32)
     (field ncomp u8)
@@ -626,6 +626,33 @@ the exact number is bits_count"""
                         (return UnsupportedErrorVal)
                      :)))))
     (return (GetBytesConsumed [(& bs)])))
+
+
+@pub (fun DecodeFrameInfo [(param a_data (slice u8))] (union [
+        FrameInfo
+        CorruptionError
+        UnsupportedError
+        BS::OutOfBoundsError]) :
+    (@ref let! frame_info FrameInfo undef)
+    (@ref let! data auto a_data)
+    (trylet magic u16 (BS::FrontBeU16 [(&! data)]) err :
+        (return err))
+    (if (!= magic 0xffd8) :
+        (return CorruptionErrorVal)
+     :)
+    (while true :
+        (trylet chunk_kind u16 (BS::FrontBeU16 [(&! data)]) err :
+            (return err))
+        (trylet chunk_length u16 (BS::FrontBeU16 [(&! data)]) err :
+            (return err))
+        (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
+            (return err))
+        (if (== chunk_kind 0xffc0) :
+            (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! frame_info)]) err :
+                (return err))
+            (return frame_info)
+         :))
+    (return CorruptionErrorVal))
 
 
 @pub (fun DecodeImage [(param a_data (slice u8))] (union [
