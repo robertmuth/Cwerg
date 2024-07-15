@@ -178,6 +178,9 @@ rec BitStream:
     -- end-of-stream flag - once set it will not be cleared
     eos bool
 
+pub fun GetBytesConsumed(bs ^BitStream) uint:
+    return bs^.offset
+
 pub fun GetNextBit(bs ^!BitStream) u16:
     let! bits_count u8 = bs^.bits_count
     let! bits_cache u8 = bs^.bits_cache
@@ -538,7 +541,7 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree,
 
 fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,
                              huffman_trees ^[2][2]HuffmanTree, quantization_tab^ [4][64]s16)
-       union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+       union(uint, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
     @ref let! bs = BitStream{chunk}
     let! dc_last = [3]s16{0, 0, 0}
@@ -562,7 +565,7 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,
                     if m == 1000:
                         return UnsupportedErrorVal
 
-    return SuccessVal
+    return GetBytesConsumed(&bs)
 
 pub fun DecodeImage(a_data slice(u8))
         union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
@@ -583,6 +586,8 @@ pub fun DecodeImage(a_data slice(u8))
     while true:
         trylet chunk_kind u16 = BS::FrontBeU16(&!data), err:
             return err
+        if chunk_kind == 0xffd9:
+            break
         trylet chunk_length u16 = BS::FrontBeU16(&!data), err:
             return err
 
@@ -609,10 +614,10 @@ pub fun DecodeImage(a_data slice(u8))
                 -- start of scan chunk, huffman encoded image data follows
                 trylet dummy Success = DecodeScan(chunk_slice, &!frame_info), err:
                     return err
-                trylet dummy2 Success = DecodeMacroBlocksHuffman(
+                trylet bytes_consumed uint = DecodeMacroBlocksHuffman(
                     data, &frame_info, &huffman_trees, &quantization_tab), err:
                     return err
-                break
+                do BS::SkipUnchecked(&!data, bytes_consumed)
             case chunk_kind == 0xfffe:
                 debug#("chunk ignored\n")
             case chunk_kind and 0xfff0 == 0xffe0:
@@ -620,5 +625,5 @@ pub fun DecodeImage(a_data slice(u8))
             case true:
                 return UnsupportedErrorVal
 
-    debug#("DecodeImage complete\n")
+    debug#("DecodeImage complete ", len(data),"\n")
     return SuccessVal

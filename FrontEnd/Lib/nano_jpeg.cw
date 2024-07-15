@@ -173,6 +173,10 @@ the exact number is bits_count"""
     (field eos bool))
 
 
+@pub (fun GetBytesConsumed [(param bs (ptr BitStream))] uint :
+    (return (^. bs offset)))
+
+
 @pub (fun GetNextBit [(param bs (ptr! BitStream))] u16 :
     (let! bits_count u8 (^. bs bits_count))
     (let! bits_cache u8 (^. bs bits_cache))
@@ -589,7 +593,7 @@ the exact number is bits_count"""
         (param frame_info (ptr FrameInfo))
         (param huffman_trees (ptr (array 2 (array 2 HuffmanTree))))
         (param quantization_tab (ptr (array 4 (array 64 s16))))] (union [
-        Success
+        uint
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
@@ -621,7 +625,7 @@ the exact number is bits_count"""
                     (if (== m 1000) :
                         (return UnsupportedErrorVal)
                      :)))))
-    (return SuccessVal))
+    (return (GetBytesConsumed [(& bs)])))
 
 
 @pub (fun DecodeImage [(param a_data (slice u8))] (union [
@@ -646,6 +650,9 @@ the exact number is bits_count"""
     (while true :
         (trylet chunk_kind u16 (BS::FrontBeU16 [(&! data)]) err :
             (return err))
+        (if (== chunk_kind 0xffd9) :
+            (break)
+         :)
         (trylet chunk_length u16 (BS::FrontBeU16 [(&! data)]) err :
             (return err))
         (debug# "CHUNK: " (wrap_as chunk_kind fmt::u16_hex) " " chunk_length "\n")
@@ -671,20 +678,20 @@ the exact number is bits_count"""
                 @doc "start of scan chunk, huffman encoded image data follows"
                 (trylet dummy Success (DecodeScan [chunk_slice (&! frame_info)]) err :
                     (return err))
-                (trylet dummy2 Success (DecodeMacroBlocksHuffman [
+                (trylet bytes_consumed uint (DecodeMacroBlocksHuffman [
                         data
                         (& frame_info)
                         (& huffman_trees)
                         (& quantization_tab)]) err :
                     (return err))
-                (break))
+                (do (BS::SkipUnchecked [(&! data) bytes_consumed])))
             (case (== chunk_kind 0xfffe) :
                 (debug# "chunk ignored\n"))
             (case (== (and chunk_kind 0xfff0) 0xffe0) :
                 (debug# "chunk ignored\n"))
             (case true :
                 (return UnsupportedErrorVal))))
-    (debug# "DecodeImage complete\n")
+    (debug# "DecodeImage complete " (len data) "\n")
     (return SuccessVal))
 )
 
