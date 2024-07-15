@@ -447,7 +447,7 @@ the exact number is bits_count"""
         (debug# "unsupported ncomp: " ncomp "\n")
         (return UnsupportedErrorVal)
      :)
-    (debug# "frame: " width "x" height " ncomp: " ncomp "\n")
+    @doc """debug#("frame: ", width, "x", height, " ncomp: ", ncomp, "\n")"""
     (let! ssxmax u32 0)
     (let! ssymax u32 0)
     (for i 0 ncomp 1 :
@@ -463,7 +463,7 @@ the exact number is bits_count"""
             (debug# "bad ss: " ssx "x" ssy "\n")
             (return CorruptionErrorVal)
          :)
-        (debug# "comp: " i " " (^. comp cid) " " ssx "x" ssy "\n")
+        @doc """debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")"""
         (= (^. comp ssx) ssx)
         (= (^. comp ssy) ssy)
         (max= ssxmax ssx)
@@ -487,7 +487,7 @@ the exact number is bits_count"""
     (= (^. out mbsizey) mbsizey)
     (= (^. out mbwidth) (div_roundup [(^. out width) mbsizex]))
     (= (^. out mbheight) (div_roundup [(^. out height) mbsizey]))
-    (debug# "mbsize: " mbsizex "x" mbsizey " mbdim: " (^. out mbwidth) "x" (^. out mbheight) "\n")
+    @doc """debug#("mbsize: ", mbsizex, "x", mbsizey,  " mbdim: ", out^.mbwidth, "x", out^.mbheight, "\n")"""
     (for i 0 ncomp 1 :
         (let comp (ptr! Component) (&! (paren (at (^. out comp) i))))
         (= (^. comp width) (div_roundup [(* (^. out width) (^. comp ssx)) ssxmax]))
@@ -500,8 +500,8 @@ the exact number is bits_count"""
         (if (&& (< (^. comp height) 3) (!= (^. comp ssy) ssymax)) :
             (debug# "bad height: " (^. comp height) "\n")
             (return CorruptionErrorVal)
-         :)
-        (debug# "comp: " i " " (^. comp width) "x" (^. comp height) " stride:" (^. comp stride) "\n"))
+         :))
+    @doc """debug#("comp: ", i, " ", comp^.width, "x", comp^.height, " stride:", comp^.stride, "\n")"""
     (return SuccessVal))
 
 

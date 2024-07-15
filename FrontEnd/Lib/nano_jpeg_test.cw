@@ -200,9 +200,19 @@
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "(do (dump []))"
-    (fmt::print# "image size: " (len test_image) "\n")
+    (fmt::print# "image byte size: " (len test_image) "\n")
     (trylet fi NJ::FrameInfo (NJ::DecodeFrameInfo [test_image]) err :
         (return 1)
+    )
+    (fmt::print# "image size: pixels:" (. fi width) "x" (. fi height)
+                 " ncomp:" (. fi ncomp)
+                 " mbsize: " (. fi mbsizex) "x" (. fi mbsizey)
+                 " mbdim: " (. fi mbwidth) "x" (. fi mbheight) "\n")
+    (for i 0 (. fi ncomp) 1 :
+        (let comp auto (at (. fi comp) i))
+        (fmt::print# "comp: " (. comp cid) " "(. comp ssx) "x"  (. comp ssy) " "
+        (. comp width) "x"  (. comp height) " stride:"  (. comp stride)
+         "\n")
     )
     (do (NJ::DecodeImage [test_image]))
     @doc "test end"

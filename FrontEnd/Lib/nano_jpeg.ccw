@@ -411,7 +411,7 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         debug#("unsupported ncomp: ", ncomp, "\n")
         return UnsupportedErrorVal
 
-    debug#("frame: ", width, "x", height, " ncomp: ", ncomp, "\n")
+    -- debug#("frame: ", width, "x", height, " ncomp: ", ncomp, "\n")
     let! ssxmax u32 = 0
     let! ssymax u32 = 0
     for i = 0, ncomp, 1:
@@ -428,7 +428,7 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
             debug#("bad ss: ", ssx, "x", ssy, "\n")
             return CorruptionErrorVal
 
-         debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")
+         -- debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")
 
         set comp^.ssx = ssx
         set comp^.ssy = ssy
@@ -455,7 +455,7 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
     set out^.mbsizey = mbsizey
     set out^.mbwidth = div_roundup(out^.width, mbsizex)
     set out^.mbheight = div_roundup(out^.height, mbsizey)
-    debug#("mbsize: ", mbsizex, "x", mbsizey,  " mbdim: ", out^.mbwidth, "x", out^.mbheight, "\n")
+    -- debug#("mbsize: ", mbsizex, "x", mbsizey,  " mbdim: ", out^.mbwidth, "x", out^.mbheight, "\n")
     for i = 0, ncomp, 1:
         let comp ^!Component = &!(out^.comp[i])
         set comp^.width = div_roundup(out^.width * comp^.ssx, ssxmax)
@@ -467,7 +467,7 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         if comp^.height < 3 && comp^.ssy != ssymax:
             debug#("bad height: ", comp^.height, "\n")
             return CorruptionErrorVal
-        debug#("comp: ", i, " ", comp^.width, "x", comp^.height, " stride:", comp^.stride, "\n")
+        -- debug#("comp: ", i, " ", comp^.width, "x", comp^.height, " stride:", comp^.stride, "\n")
 
     return SuccessVal
 
