@@ -919,9 +919,15 @@ def _ParseStatement(inp: Lexer):
                                   cwast.EphemeralList(stmts, colon=True)],
                                  **_ExtractAnnotations(kw))
     elif kw.text == "break":
-        return cwast.StmtBreak(_ParseOptionalLabel(inp))
+        label = ""
+        if inp.peek().srcloc.lineno == kw.srcloc.lineno:
+            label = _ParseOptionalLabel(inp)
+        return cwast.StmtBreak(label)
     elif kw.text == "continue":
-        return cwast.StmtContinue(_ParseOptionalLabel(inp))
+        label = ""
+        if inp.peek().srcloc.lineno == kw.srcloc.lineno:
+            label = _ParseOptionalLabel(inp)
+        return cwast.StmtContinue(label)
     elif kw.text == "block":
         label = _ParseOptionalLabel(inp)
         stmts = _ParseStatementList(inp, kw.column)
