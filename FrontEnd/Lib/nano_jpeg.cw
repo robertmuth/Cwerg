@@ -279,6 +279,7 @@ the exact number is bits_count"""
     (field width u32)
     (field height u32)
     (field ncomp u8)
+    (field format u8)
     @doc "macro block dimensions in pixels (e.g. 8x8)"
     (field mbsizex u32)
     (field mbsizey u32)
@@ -434,6 +435,7 @@ the exact number is bits_count"""
         (debug# "unsupported format: " format "\n")
         (return UnsupportedErrorVal)
      :)
+    (= (^. out format) format)
     (trylet height u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
     (= (^. out height) (as height u32))
@@ -462,6 +464,10 @@ the exact number is bits_count"""
         (if (|| (|| (== ssx 0) (== ssy 0)) (!= (and ssy (- ssy 1)) 0)) :
             (debug# "bad ss: " ssx "x" ssy "\n")
             (return CorruptionErrorVal)
+         :)
+        @doc "other values will mostly work but need testing"
+        (if (|| (!= ssx 1) (!= ssy 1)) :
+            (return UnsupportedErrorVal)
          :)
         @doc """debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")"""
         (= (^. comp ssx) ssx)
@@ -592,7 +598,8 @@ the exact number is bits_count"""
         (param chunk (slice u8))
         (param frame_info (ptr FrameInfo))
         (param huffman_trees (ptr (array 2 (array 2 HuffmanTree))))
-        (param quantization_tab (ptr (array 4 (array 64 s16))))] (union [
+        (param quantization_tab (ptr (array 4 (array 64 s16))))
+        (param out (slice! u8))] (union [
         uint
         CorruptionError
         UnsupportedError
@@ -621,10 +628,7 @@ the exact number is bits_count"""
                             (at dc_last c)]) err :
                         (return err))
                     (do (RowIDCT [(&! buffer)]))
-                    (do (ColIDCT [(& buffer) (&! buffer2)]))
-                    (if (== m 1000) :
-                        (return UnsupportedErrorVal)
-                     :)))))
+                    (do (ColIDCT [(& buffer) (&! buffer2)]))))))
     (return (GetBytesConsumed [(& bs)])))
 
 
@@ -699,8 +703,9 @@ the exact number is bits_count"""
                 (tryset qt_avail_bits (DecodeQuantizationTable [chunk_slice (&! quantization_tab)]) err :
                     (return err)))
             (case (== chunk_kind 0xffdd) :
-                (tryset restart_interval (DecodeRestartInterval [chunk_slice]) err :
-                    (return err)))
+                @doc """tryset restart_interval = DecodeRestartInterval(chunk_slice), err:
+   return err"""
+                (return UnsupportedErrorVal))
             (case (== chunk_kind 0xffda) :
                 @doc "start of scan chunk, huffman encoded image data follows"
                 (trylet dummy Success (DecodeScan [chunk_slice (&! frame_info)]) err :
@@ -709,7 +714,8 @@ the exact number is bits_count"""
                         data
                         (& frame_info)
                         (& huffman_trees)
-                        (& quantization_tab)]) err :
+                        (& quantization_tab)
+                        out]) err :
                     (return err))
                 (do (BS::SkipUnchecked [(&! data) bytes_consumed])))
             (case (== chunk_kind 0xfffe) :

@@ -197,7 +197,9 @@
         (fmt::print# (slice_val (front data) n))
         (= data (slice_val (pinc (front data) n) (- (len data) n)))))
 
+
 (@ref global! gByteBuffer (array 100000 u8) undef)
+
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "(do (dump []))"
@@ -205,10 +207,11 @@
     (trylet fi NJ::FrameInfo (NJ::DecodeFrameInfo [test_image]) err :
         (return 1)
     )
-    (fmt::print# "image size: pixels:" (. fi width) "x" (. fi height)
+    (fmt::print# "image format:" (. fi format)
+                 " pixels:" (. fi width) "x" (. fi height)
                  " ncomp:" (. fi ncomp)
-                 " mbsize: " (. fi mbsizex) "x" (. fi mbsizey)
-                 " mbdim: " (. fi mbwidth) "x" (. fi mbheight) "\n")
+                 " mbsize:" (. fi mbsizex) "x" (. fi mbsizey)
+                 " mbdim:" (. fi mbwidth) "x" (. fi mbheight) "\n")
     (for i 0 (. fi ncomp) 1 :
         (let comp auto (at (. fi comp) i))
         (fmt::print# "comp: " (. comp cid) " "(. comp ssx) "x"  (. comp ssy) " "

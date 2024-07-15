@@ -275,6 +275,7 @@ pub rec FrameInfo:
     width u32
     height u32
     ncomp u8
+    format u8
 
     -- macro block dimensions in pixels (e.g. 8x8)
     mbsizex u32
@@ -398,6 +399,7 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
     if format != 8:
         debug#("unsupported format: ", format, "\n")
         return UnsupportedErrorVal
+    set out^.format = format
     trylet height u16 = BS::FrontBeU16(&!data), err:
             return err
     set out^.height = as(height, u32)
@@ -427,9 +429,10 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         if ssx == 0 || ssy == 0 || ssy and (ssy - 1) != 0:
             debug#("bad ss: ", ssx, "x", ssy, "\n")
             return CorruptionErrorVal
-
+         -- other values will mostly work but need testing
+        if ssx != 1 || ssy != 1:
+            return UnsupportedErrorVal
          -- debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")
-
         set comp^.ssx = ssx
         set comp^.ssy = ssy
         set ssxmax max= ssx
@@ -539,8 +542,11 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree,
 
     return dc_val
 
-fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,
-                             huffman_trees ^[2][2]HuffmanTree, quantization_tab^ [4][64]s16)
+fun DecodeMacroBlocksHuffman(chunk slice(u8),
+                             frame_info ^FrameInfo,
+                             huffman_trees ^[2][2]HuffmanTree,
+                             quantization_tab ^[4][64]s16,
+                             out slice!(u8))
        union(uint, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
     @ref let! bs = BitStream{chunk}
@@ -562,8 +568,7 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8), frame_info ^FrameInfo,
                         return err
                     do RowIDCT(&!buffer)
                     do ColIDCT(&buffer, &!buffer2)
-                    if m == 1000:
-                        return UnsupportedErrorVal
+
 
     return GetBytesConsumed(&bs)
 
@@ -632,14 +637,15 @@ pub fun DecodeImage(a_data slice(u8), out slice!(u8))
                 tryset qt_avail_bits = DecodeQuantizationTable(chunk_slice, &!quantization_tab), err:
                     return err
             case chunk_kind == 0xffdd:
-                tryset restart_interval = DecodeRestartInterval(chunk_slice), err:
-                    return err
+                -- tryset restart_interval = DecodeRestartInterval(chunk_slice), err:
+                --    return err
+                return UnsupportedErrorVal
             case chunk_kind == 0xffda:
                 -- start of scan chunk, huffman encoded image data follows
                 trylet dummy Success = DecodeScan(chunk_slice, &!frame_info), err:
                     return err
                 trylet bytes_consumed uint = DecodeMacroBlocksHuffman(
-                    data, &frame_info, &huffman_trees, &quantization_tab), err:
+                    data, &frame_info, &huffman_trees, &quantization_tab, out), err:
                     return err
                 do BS::SkipUnchecked(&!data, bytes_consumed)
             case chunk_kind == 0xfffe:
