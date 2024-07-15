@@ -124,7 +124,7 @@ fun RowIDCT(blk ^![8*8]s16) void:
 
 
 -- descale and clamp x to [0:255]
-fun descale_clamp(xx s16) u8:
+fun descale_clamp(xx s16) s16:
     let x = div_pow2_with_rounding#(xx, 7) + 128
     cond:
         case x < 0:
@@ -132,11 +132,11 @@ fun descale_clamp(xx s16) u8:
         case x >= 0xff:
             return 0xff
         case true:
-            return as(x, u8)
+            return x
 
 
 
-fun ColIDCT(blk ^[8*8]s16, out ^![8*8]u8) void:
+fun ColIDCT(blk ^![8*8]s16) void:
     for o = 0, 8_uint, 1:
         let src0 = blk^[o + 8*0]
         let src5 = blk^[o + 8*1]
@@ -151,20 +151,20 @@ fun ColIDCT(blk ^[8*8]s16, out ^![8*8]u8) void:
             debug#("idc-col shortcicuit ", o, " ", src0, "\n")
             let t = descale_clamp(src0)
             for i = 0, len(blk^), 8:
-                set out^[o + i] = t
+                set blk^[o + i] = t
             continue
 
         CommonIDCT#()
 
         debug#("idc-col out ", x40 + x17, " ", x41 + tmp2, " ", x42 + tmp3, " ", x43 - x44, "\n")
-        set out^[o + 8*0] =  descale_clamp(x40 + x17)
-        set out^[o + 8*1] =  descale_clamp(x41 + tmp2)
-        set out^[o + 8*2] =  descale_clamp(x42 + tmp3)
-        set out^[o + 8*3] =  descale_clamp(x43 - x44)
-        set out^[o + 8*4] =  descale_clamp(x43 + x44)
-        set out^[o + 8*5] =  descale_clamp(x42 - tmp3)
-        set out^[o + 8*6] =  descale_clamp(x41 - tmp2)
-        set out^[o + 8*7] =  descale_clamp(x40 - x17)
+        set blk^[o + 8*0] =  descale_clamp(x40 + x17)
+        set blk^[o + 8*1] =  descale_clamp(x41 + tmp2)
+        set blk^[o + 8*2] =  descale_clamp(x42 + tmp3)
+        set blk^[o + 8*3] =  descale_clamp(x43 - x44)
+        set blk^[o + 8*4] =  descale_clamp(x43 + x44)
+        set blk^[o + 8*5] =  descale_clamp(x42 - tmp3)
+        set blk^[o + 8*6] =  descale_clamp(x41 - tmp2)
+        set blk^[o + 8*7] =  descale_clamp(x40 - x17)
 
 
 -- for huffman decoding
@@ -429,7 +429,6 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         if ssx == 0 || ssy == 0 || ssy and (ssy - 1) != 0:
             debug#("bad ss: ", ssx, "x", ssy, "\n")
             return CorruptionErrorVal
-         -- other values will mostly work but need testing
         if ssx != 1 || ssy != 1:
             return UnsupportedErrorVal
          -- debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")
@@ -542,8 +541,9 @@ fun  DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree,
 
     return dc_val
 
+
 fun DecodeMacroBlocksHuffman(chunk slice(u8),
-                             frame_info ^FrameInfo,
+                             fi ^FrameInfo,
                              huffman_trees ^[2][2]HuffmanTree,
                              quantization_tab ^[4][64]s16,
                              out slice!(u8))
@@ -554,20 +554,21 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8),
     @ref let! buffer [8*8]s16 = undef
     @ref let! buffer2 [8*8]u8 = undef
 
-    for m = 0, frame_info^.mbwidth * frame_info^.mbheight, 1:
-        for c = 0, frame_info^.ncomp, 1:
-            let comp ^Component = &frame_info^.comp[c]
-            let dc_tab ^HuffmanTree = &huffman_trees^[0][comp^.dc_tab]
-            let ac_tab ^HuffmanTree = &huffman_trees^[1][comp^.ac_tab]
-            let qt_tab ^[64]s16 = &quantization_tab^[comp^.qt_tab]
-            for y = 0, comp^.ssy, 1:
-                for x = 0, comp^.ssx, 1:
-                    -- debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
-                    debug#("Block ===================\n")
-                    tryset dc_last[c] = DecodeBlock(&!bs, dc_tab, ac_tab, qt_tab, &!buffer, dc_last[c]), err:
-                        return err
-                    do RowIDCT(&!buffer)
-                    do ColIDCT(&buffer, &!buffer2)
+    -- we assume ssx/ssy are 1
+    let byte_stride = fi^.mbwidth * 8 * as(fi^.ncomp, u32)
+    for my = 0, fi^.mbheight * 8, 8:
+        for mx = 0, fi^.mbwidth * 8, 8:
+            for c = 0, fi^.ncomp, 1:
+                let comp ^Component = &fi^.comp[c]
+                let dc_tab ^HuffmanTree = &huffman_trees^[0][comp^.dc_tab]
+                let ac_tab ^HuffmanTree = &huffman_trees^[1][comp^.ac_tab]
+                let qt_tab ^[64]s16 = &quantization_tab^[comp^.qt_tab]
+                -- debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
+                debug#("Block ===================\n")
+                tryset dc_last[c] = DecodeBlock(&!bs, dc_tab, ac_tab, qt_tab, &!buffer, dc_last[c]), err:
+                    return err
+                do RowIDCT(&!buffer)
+                do ColIDCT(&!buffer)
 
 
     return GetBytesConsumed(&bs)
@@ -575,7 +576,7 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8),
 
 pub fun DecodeFrameInfo(a_data slice(u8))
         union(FrameInfo, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-    @ref let! frame_info FrameInfo = undef
+    @ref let! fi FrameInfo = undef
     @ref let! data = a_data
     trylet magic u16 = BS::FrontBeU16(&!data), err:
         return err
@@ -590,9 +591,9 @@ pub fun DecodeFrameInfo(a_data slice(u8))
         trylet chunk_slice slice(u8) = BS::FrontSlice(&!data, as(chunk_length - 2, uint)), err:
             return err
         if chunk_kind == 0xffc0:
-            trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!frame_info), err:
+            trylet dummy Success = DecodeStartOfFrame(chunk_slice, &!fi), err:
                 return err
-            return frame_info
+            return fi
     return CorruptionErrorVal
 
 

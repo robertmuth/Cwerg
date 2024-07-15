@@ -121,7 +121,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 
 @doc "descale and clamp x to [0:255]"
-(fun descale_clamp [(param xx s16)] u8 :
+(fun descale_clamp [(param xx s16)] s16 :
     (let x auto (+ (div_pow2_with_rounding# xx 7) 128))
     (cond :
         (case (< x 0) :
@@ -129,10 +129,10 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (case (>= x 0xff) :
             (return 0xff))
         (case true :
-            (return (as x u8)))))
+            (return x))))
 
 
-(fun ColIDCT [(param blk (ptr (array (* 8 8) s16))) (param out (ptr! (array (* 8 8) u8)))] void :
+(fun ColIDCT [(param blk (ptr! (array (* 8 8) s16)))] void :
     (for o 0 8_uint 1 :
         (let src0 auto (at (^ blk) (+ o (* 8 0))))
         (let src5 auto (at (^ blk) (+ o (* 8 1))))
@@ -146,19 +146,19 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (debug# "idc-col shortcicuit " o " " src0 "\n")
             (let t auto (descale_clamp [src0]))
             (for i 0 (len (^ blk)) 8 :
-                (= (at (^ out) (+ o i)) t))
+                (= (at (^ blk) (+ o i)) t))
             (continue)
          :)
         (CommonIDCT#)
         (debug# "idc-col out " (+ x40 x17) " " (+ x41 tmp2) " " (+ x42 tmp3) " " (- x43 x44) "\n")
-        (= (at (^ out) (+ o (* 8 0))) (descale_clamp [(+ x40 x17)]))
-        (= (at (^ out) (+ o (* 8 1))) (descale_clamp [(+ x41 tmp2)]))
-        (= (at (^ out) (+ o (* 8 2))) (descale_clamp [(+ x42 tmp3)]))
-        (= (at (^ out) (+ o (* 8 3))) (descale_clamp [(- x43 x44)]))
-        (= (at (^ out) (+ o (* 8 4))) (descale_clamp [(+ x43 x44)]))
-        (= (at (^ out) (+ o (* 8 5))) (descale_clamp [(- x42 tmp3)]))
-        (= (at (^ out) (+ o (* 8 6))) (descale_clamp [(- x41 tmp2)]))
-        (= (at (^ out) (+ o (* 8 7))) (descale_clamp [(- x40 x17)]))))
+        (= (at (^ blk) (+ o (* 8 0))) (descale_clamp [(+ x40 x17)]))
+        (= (at (^ blk) (+ o (* 8 1))) (descale_clamp [(+ x41 tmp2)]))
+        (= (at (^ blk) (+ o (* 8 2))) (descale_clamp [(+ x42 tmp3)]))
+        (= (at (^ blk) (+ o (* 8 3))) (descale_clamp [(- x43 x44)]))
+        (= (at (^ blk) (+ o (* 8 4))) (descale_clamp [(+ x43 x44)]))
+        (= (at (^ blk) (+ o (* 8 5))) (descale_clamp [(- x42 tmp3)]))
+        (= (at (^ blk) (+ o (* 8 6))) (descale_clamp [(- x41 tmp2)]))
+        (= (at (^ blk) (+ o (* 8 7))) (descale_clamp [(- x40 x17)]))))
 
 
 @doc "for huffman decoding"
@@ -465,7 +465,6 @@ the exact number is bits_count"""
             (debug# "bad ss: " ssx "x" ssy "\n")
             (return CorruptionErrorVal)
          :)
-        @doc "other values will mostly work but need testing"
         (if (|| (!= ssx 1) (!= ssy 1)) :
             (return UnsupportedErrorVal)
          :)
@@ -596,7 +595,7 @@ the exact number is bits_count"""
 
 (fun DecodeMacroBlocksHuffman [
         (param chunk (slice u8))
-        (param frame_info (ptr FrameInfo))
+        (param fi (ptr FrameInfo))
         (param huffman_trees (ptr (array 2 (array 2 HuffmanTree))))
         (param quantization_tab (ptr (array 4 (array 64 s16))))
         (param out (slice! u8))] (union [
@@ -609,26 +608,26 @@ the exact number is bits_count"""
     (let! dc_last auto (array_val 3 s16 [0 0 0]))
     (@ref let! buffer (array (* 8 8) s16) undef)
     (@ref let! buffer2 (array (* 8 8) u8) undef)
-    (for m 0 (* (^. frame_info mbwidth) (^. frame_info mbheight)) 1 :
-        (for c 0 (^. frame_info ncomp) 1 :
-            (let comp (ptr Component) (& (at (^. frame_info comp) c)))
-            (let dc_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 0) (^. comp dc_tab))))
-            (let ac_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 1) (^. comp ac_tab))))
-            (let qt_tab (ptr (array 64 s16)) (& (at (^ quantization_tab) (^. comp qt_tab))))
-            (for y 0 (^. comp ssy) 1 :
-                (for x 0 (^. comp ssx) 1 :
-                    @doc """debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")"""
-                    (debug# "Block ===================\n")
-                    (tryset (at dc_last c) (DecodeBlock [
-                            (&! bs)
-                            dc_tab
-                            ac_tab
-                            qt_tab
-                            (&! buffer)
-                            (at dc_last c)]) err :
-                        (return err))
-                    (do (RowIDCT [(&! buffer)]))
-                    (do (ColIDCT [(& buffer) (&! buffer2)]))))))
+    (let byte_stride auto (* (* (^. fi mbwidth) 8) (as (^. fi ncomp) u32)))
+    (for my 0 (* (^. fi mbheight) 8) 8 :
+        (for mx 0 (* (^. fi mbwidth) 8) 8 :
+            (for c 0 (^. fi ncomp) 1 :
+                (let comp (ptr Component) (& (at (^. fi comp) c)))
+                (let dc_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 0) (^. comp dc_tab))))
+                (let ac_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 1) (^. comp ac_tab))))
+                (let qt_tab (ptr (array 64 s16)) (& (at (^ quantization_tab) (^. comp qt_tab))))
+                @doc """debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")"""
+                (debug# "Block ===================\n")
+                (tryset (at dc_last c) (DecodeBlock [
+                        (&! bs)
+                        dc_tab
+                        ac_tab
+                        qt_tab
+                        (&! buffer)
+                        (at dc_last c)]) err :
+                    (return err))
+                (do (RowIDCT [(&! buffer)]))
+                (do (ColIDCT [(&! buffer)])))))
     (return (GetBytesConsumed [(& bs)])))
 
 
@@ -637,7 +636,7 @@ the exact number is bits_count"""
         CorruptionError
         UnsupportedError
         BS::OutOfBoundsError]) :
-    (@ref let! frame_info FrameInfo undef)
+    (@ref let! fi FrameInfo undef)
     (@ref let! data auto a_data)
     (trylet magic u16 (BS::FrontBeU16 [(&! data)]) err :
         (return err))
@@ -652,9 +651,9 @@ the exact number is bits_count"""
         (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
             (return err))
         (if (== chunk_kind 0xffc0) :
-            (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! frame_info)]) err :
+            (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! fi)]) err :
                 (return err))
-            (return frame_info)
+            (return fi)
          :))
     (return CorruptionErrorVal))
 
