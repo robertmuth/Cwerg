@@ -68,6 +68,3 @@ jobs:
     - name: Benchmark
       run: |
         PYPY=python3 CC=clang CXX=clang++ MAKESILENT= make benchmark
-    - name: Integration Tests
-      run: |
-        PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make integration_tests

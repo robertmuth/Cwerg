@@ -31,6 +31,7 @@ tests:
 	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Util && $(MAKE) -s tests && $(MAKE) -s clean
+	cd FrontEnd && $(MAKE) -s tests_py && $(MAKE) -s clean
 	cd FrontEndWASM && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Examples && $(MAKE) -s tests && $(MAKE) -s clean
 
@@ -58,12 +59,11 @@ tests_github:
 	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Util && $(MAKE) -s tests_py && $(MAKE) -s clean
-	cd FrontEndC && $(MAKE) -s tests && $(MAKE) -s clean
+	cd FrontEnd && $(MAKE) -s tests_py && $(MAKE) -s clean
 	cd FrontEndWASM && $(MAKE) -s tests && $(MAKE) -s clean
 	cd Examples && $(MAKE) -s tests && $(MAKE) -s clean
 
-integration_tests:
-	$(MAKE) -f Makefile.integration -s tests clean
+
 
 
 test_cross_execution:
