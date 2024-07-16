@@ -123,9 +123,8 @@ fun RowIDCT(blk ^![8*8]s16) void:
         set blk^[o + 7] = x40 - x17
 
 
--- descale and clamp x to [0:255]
-fun descale_clamp(xx s16) s16:
-    let x = div_pow2_with_rounding#(xx, 7) + 128
+
+fun clamp8(x s16) s16:
     cond:
         case x < 0:
             return 0
@@ -134,6 +133,9 @@ fun descale_clamp(xx s16) s16:
         case true:
             return x
 
+-- descale and clamp x to [0:255]
+fun descale_clamp(xx s16) s16:
+    return clamp8(div_pow2_with_rounding#(xx, 7) + 128)
 
 
 fun ColIDCT(blk ^![8*8]s16) void:
@@ -429,6 +431,7 @@ fun DecodeStartOfFrame(chunk slice(u8), out ^!FrameInfo)
         if ssx == 0 || ssy == 0 || ssy and (ssy - 1) != 0:
             debug#("bad ss: ", ssx, "x", ssy, "\n")
             return CorruptionErrorVal
+        -- for now we only support YH1V1
         if ssx != 1 || ssy != 1:
             return UnsupportedErrorVal
          -- debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")
@@ -600,6 +603,27 @@ pub fun DecodeFrameInfo(a_data slice(u8))
                 return err
             return fi
     return CorruptionErrorVal
+
+pub fun ConvertYH1V1ToRGB(out slice!(u8)) void:
+    for i = 0, len(out), 3:
+        -- note: a lot of weirdness to not overflow s16
+        let Y  = as(out[i], s16)
+        let Cb = as(out[i+1], s16)
+        let Cr = as(out[i+2], s16)
+        --  R = Y + 1.402 (Cr-128)
+        -- 0.42 = 103/256
+        let crR = Cr + ((Cr * 103) >> 8) - 179
+        set out[i] = as(clamp8(Y + crR), u8)
+        -- G = Y - 0.34414 (Cb-128) - 0.71414 (Cr-128)
+        -- 0.344 = 88/256
+        -- 0.714 = 183/256
+        let cbG = ((Cb * 88) >> 8) - 44
+        let crG = ((Cr * 183) >> 8) - 91
+        set out[i+1] = as(clamp8(clamp8(Y - cbG) - crG), u8)
+        -- B = Y + 1.772 (Cb-128)
+        -- 0.772 = 198/256
+        let cbB = Cb + ((Cb * 198) >> 8) - 227
+        set out[i+2] =  as(clamp8(Y + cbB), u8)
 
 
 pub fun DecodeImage(a_data slice(u8), out slice!(u8))

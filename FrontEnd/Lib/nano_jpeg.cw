@@ -120,9 +120,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (= (at (^ blk) (+ o 7)) (- x40 x17))))
 
 
-@doc "descale and clamp x to [0:255]"
-(fun descale_clamp [(param xx s16)] s16 :
-    (let x auto (+ (div_pow2_with_rounding# xx 7) 128))
+(fun clamp8 [(param x s16)] s16 :
     (cond :
         (case (< x 0) :
             (return 0))
@@ -130,6 +128,11 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (return 0xff))
         (case true :
             (return x))))
+
+
+@doc "descale and clamp x to [0:255]"
+(fun descale_clamp [(param xx s16)] s16 :
+    (return (clamp8 [(+ (div_pow2_with_rounding# xx 7) 128)])))
 
 
 (fun ColIDCT [(param blk (ptr! (array (* 8 8) s16)))] void :
@@ -465,6 +468,7 @@ the exact number is bits_count"""
             (debug# "bad ss: " ssx "x" ssy "\n")
             (return CorruptionErrorVal)
          :)
+        @doc "for now we only support YH1V1"
         (if (|| (!= ssx 1) (!= ssy 1)) :
             (return UnsupportedErrorVal)
          :)
@@ -663,6 +667,28 @@ the exact number is bits_count"""
             (return fi)
          :))
     (return CorruptionErrorVal))
+
+
+@pub (fun ConvertYH1V1ToRGB [(param out (slice! u8))] void :
+    (for i 0 (len out) 3 :
+        @doc "note: a lot of weirdness to not overflow s16"
+        (let Y auto (as (at out i) s16))
+        (let Cb auto (as (at out (+ i 1)) s16))
+        (let Cr auto (as (at out (+ i 2)) s16))
+        @doc """ R = Y + 1.402 (Cr-128)
+0.42 = 103/256"""
+        (let crR auto (- (+ Cr (paren (>> (* Cr 103) 8))) 179))
+        (= (at out i) (as (clamp8 [(+ Y crR)]) u8))
+        @doc """G = Y - 0.34414 (Cb-128) - 0.71414 (Cr-128)
+0.344 = 88/256
+0.714 = 183/256"""
+        (let cbG auto (- (paren (>> (* Cb 88) 8)) 44))
+        (let crG auto (- (paren (>> (* Cr 183) 8)) 91))
+        (= (at out (+ i 1)) (as (clamp8 [(- (clamp8 [(- Y cbG)]) crG)]) u8))
+        @doc """B = Y + 1.772 (Cb-128)
+0.772 = 198/256"""
+        (let cbB auto (- (+ Cb (paren (>> (* Cb 198) 8))) 227))
+        (= (at out (+ i 2)) (as (clamp8 [(+ Y cbB)]) u8))))
 
 
 @pub (fun DecodeImage [(param a_data (slice u8)) (param out (slice! u8))] (union [
