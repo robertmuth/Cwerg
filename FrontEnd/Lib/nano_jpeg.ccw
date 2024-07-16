@@ -16,10 +16,10 @@ import fmt
 
 -- To enable debug logging make sure the next macro is called `debug#`
 -- To enable debug logging make sure the second macro is called `debug#`
-macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
+macro xdebug# STMT_LIST($parts EXPR_LIST_REST)[]:
       fmt::print#($parts)
 
-macro xdebug# STMT_LIST($parts EXPR_LIST_REST)[]:
+macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
 
 global WinogradMultipliers = [64]u8 {
    128,  178,  178,  167,  246,  167,  151,  232,

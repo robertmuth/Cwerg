@@ -16,11 +16,11 @@ Feig, E.; Winograd, S. (September 1992b). "Fast algorithms for the discrete cosi
 
 @doc """To enable debug logging make sure the next macro is called `debug#`
 To enable debug logging make sure the second macro is called `debug#`"""
-(macro debug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :
+(macro xdebug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :
     (fmt::print# $parts))
 
 
-(macro xdebug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :)
+(macro debug# STMT_LIST [(mparam $parts EXPR_LIST_REST)] [] :)
 
 
 (global WinogradMultipliers auto (array_val 64 u8 [
