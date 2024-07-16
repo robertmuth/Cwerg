@@ -5,7 +5,7 @@
 
 (import fmt)
 
-(import NJ nano_jpeg)
+(import JD jpeg_decode)
 
 
 (global test_image auto x"""
@@ -211,18 +211,17 @@
     (do (checksum::InitCrcTab [checksum::PolyCrc32LE (&! Crc32Tab)]))
     @doc "(do (dump []))"
     (fmt::print# "image byte size: " (len test_image) "\n")
-    (trylet fi NJ::FrameInfo (NJ::DecodeFrameInfo [test_image]) err :
+    (trylet fi JD::FrameInfo (JD::DecodeFrameInfo [test_image]) err :
         (return 1))
     (fmt::print# "image format:" (. fi format) " pixels:" (. fi width) "x" (. fi height) " ncomp:" (. fi ncomp) " mbsize:" (. fi mbsizex) "x" (. fi mbsizey) " mbdim:" (. fi mbwidth) "x" (. fi mbheight) "\n")
     (for i 0 (. fi ncomp) 1 :
         (let comp auto (at (. fi comp) i))
         (fmt::print# "comp: " (. comp cid) " " (. comp ssx) "x" (. comp ssy) " " (. comp width) "x" (. comp height) " stride:" (. comp stride) "\n"))
-    (do (NJ::DecodeImage [test_image gByteBuffer]))
+    (do (JD::DecodeImage [test_image gByteBuffer]))
     (test::AssertEq# 394850026_u32 (checksum::CalcCrc [(slice_val (front gByteBuffer) 151776) 0 (& Crc32Tab)]))
-    (do (NJ::ConvertYH1V1ToRGB [gByteBuffer]))
+    (do (JD::ConvertYH1V1ToRGB [gByteBuffer]))
     (test::AssertEq# 1970744859_u32 (checksum::CalcCrc [(slice_val (front gByteBuffer) 151776) 0 (& Crc32Tab)]))
     @doc "test end"
     (test::Success#)
     (return 0))
 )
-
