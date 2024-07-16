@@ -1,5 +1,6 @@
 (module [] :
 (import test)
+(import os)
 
 (import fmt)
 (import NJ nano_jpeg)
@@ -198,7 +199,7 @@
         (= data (slice_val (pinc (front data) n) (- (len data) n)))))
 
 
-(@ref global! gByteBuffer (array 100000 u8) undef)
+(@ref global! gByteBuffer (array (* 1024 1024) u8) undef)
 
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
@@ -221,5 +222,6 @@
     (do (NJ::DecodeImage [test_image gByteBuffer]))
     @doc "test end"
     (test::Success#)
+    @doc "(do (os::write [2_s32 (front gByteBuffer) 151776]))"
     (return 0))
 )

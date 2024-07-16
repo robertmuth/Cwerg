@@ -552,13 +552,12 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8),
     @ref let! bs = BitStream{chunk}
     let! dc_last = [3]s16{0, 0, 0}
     @ref let! buffer [8*8]s16 = undef
-    @ref let! buffer2 [8*8]u8 = undef
-
+    let ncomp u32 =  as(fi^.ncomp, u32)
     -- we assume ssx/ssy are 1
-    let byte_stride = fi^.mbwidth * 8 * as(fi^.ncomp, u32)
+    let byte_stride = fi^.mbwidth * 8 * ncomp
     for my = 0, fi^.mbheight * 8, 8:
         for mx = 0, fi^.mbwidth * 8, 8:
-            for c = 0, fi^.ncomp, 1:
+            for c = 0, ncomp, 1:
                 let comp ^Component = &fi^.comp[c]
                 let dc_tab ^HuffmanTree = &huffman_trees^[0][comp^.dc_tab]
                 let ac_tab ^HuffmanTree = &huffman_trees^[1][comp^.ac_tab]
@@ -569,6 +568,12 @@ fun DecodeMacroBlocksHuffman(chunk slice(u8),
                     return err
                 do RowIDCT(&!buffer)
                 do ColIDCT(&!buffer)
+                let! i u32 = 0
+                for y = my, my + 8, 1:
+                    let o = y * byte_stride + c
+                    for x = mx, mx + 8, 1:
+                        set out[o + x * ncomp] = as(buffer[i], u8)
+                        set i += 1
 
 
     return GetBytesConsumed(&bs)

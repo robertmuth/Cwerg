@@ -607,11 +607,12 @@ the exact number is bits_count"""
     (@ref let! bs auto (rec_val BitStream [chunk]))
     (let! dc_last auto (array_val 3 s16 [0 0 0]))
     (@ref let! buffer (array (* 8 8) s16) undef)
-    (@ref let! buffer2 (array (* 8 8) u8) undef)
-    (let byte_stride auto (* (* (^. fi mbwidth) 8) (as (^. fi ncomp) u32)))
+    (let ncomp u32 (as (^. fi ncomp) u32))
+    @doc "we assume ssx/ssy are 1"
+    (let byte_stride auto (* (* (^. fi mbwidth) 8) ncomp))
     (for my 0 (* (^. fi mbheight) 8) 8 :
         (for mx 0 (* (^. fi mbwidth) 8) 8 :
-            (for c 0 (^. fi ncomp) 1 :
+            (for c 0 ncomp 1 :
                 (let comp (ptr Component) (& (at (^. fi comp) c)))
                 (let dc_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 0) (^. comp dc_tab))))
                 (let ac_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 1) (^. comp ac_tab))))
@@ -627,7 +628,13 @@ the exact number is bits_count"""
                         (at dc_last c)]) err :
                     (return err))
                 (do (RowIDCT [(&! buffer)]))
-                (do (ColIDCT [(&! buffer)])))))
+                (do (ColIDCT [(&! buffer)]))
+                (let! i u32 0)
+                (for y my (+ my 8) 1 :
+                    (let o auto (+ (* y byte_stride) c))
+                    (for x mx (+ mx 8) 1 :
+                        (= (at out (+ o (* x ncomp))) (as (at buffer i) u8))
+                        (+= i 1))))))
     (return (GetBytesConsumed [(& bs)])))
 
 
