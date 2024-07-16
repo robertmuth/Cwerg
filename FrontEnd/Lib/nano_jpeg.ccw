@@ -133,9 +133,9 @@ fun clamp8(x s16) s16:
         case true:
             return x
 
--- descale and clamp x to [0:255]
-fun descale_clamp(xx s16) s16:
-    return clamp8(div_pow2_with_rounding#(xx, 7) + 128)
+-- descale
+fun descale(xx s16) s16:
+    return div_pow2_with_rounding#(xx, 7) + 128
 
 
 fun ColIDCT(blk ^![8*8]s16) void:
@@ -151,22 +151,23 @@ fun ColIDCT(blk ^![8*8]s16) void:
 
         if (src1 or src2 or src3 or src4 or src5 or src6 or src7) == 0:
             debug#("idc-col shortcicuit ", o, " ", src0, "\n")
-            let t = descale_clamp(src0)
+            let t = clamp8(descale(src0))
             for i = 0, len(blk^), 8:
                 set blk^[o + i] = t
             continue
 
         CommonIDCT#()
 
-        debug#("idc-col out ", x40 + x17, " ", x41 + tmp2, " ", x42 + tmp3, " ", x43 - x44, "\n")
-        set blk^[o + 8*0] =  descale_clamp(x40 + x17)
-        set blk^[o + 8*1] =  descale_clamp(x41 + tmp2)
-        set blk^[o + 8*2] =  descale_clamp(x42 + tmp3)
-        set blk^[o + 8*3] =  descale_clamp(x43 - x44)
-        set blk^[o + 8*4] =  descale_clamp(x43 + x44)
-        set blk^[o + 8*5] =  descale_clamp(x42 - tmp3)
-        set blk^[o + 8*6] =  descale_clamp(x41 - tmp2)
-        set blk^[o + 8*7] =  descale_clamp(x40 - x17)
+        debug#("idc-col out ", descale(x40 + x17), " ", descale(x41 + tmp2),
+               " ", descale(x42 + tmp3), " ", descale(x43 - x44), "\n")
+        set blk^[o + 8*0] =  clamp8(descale(x40 + x17))
+        set blk^[o + 8*1] =  clamp8(descale(x41 + tmp2))
+        set blk^[o + 8*2] =  clamp8(descale(x42 + tmp3))
+        set blk^[o + 8*3] =  clamp8(descale(x43 - x44))
+        set blk^[o + 8*4] =  clamp8(descale(x43 + x44))
+        set blk^[o + 8*5] =  clamp8(descale(x42 - tmp3))
+        set blk^[o + 8*6] =  clamp8(descale(x41 - tmp2))
+        set blk^[o + 8*7] =  clamp8(descale(x40 - x17))
 
 
 -- for huffman decoding
@@ -604,26 +605,35 @@ pub fun DecodeFrameInfo(a_data slice(u8))
             return fi
     return CorruptionErrorVal
 
+
+fun clamp8b(x s32) s32:
+    cond:
+        case x < 0:
+            return 0
+        case x >= 0xff:
+            return 0xff
+        case true:
+            return x
+
 pub fun ConvertYH1V1ToRGB(out slice!(u8)) void:
     for i = 0, len(out), 3:
-        -- note: a lot of weirdness to not overflow s16
-        let Y  = as(out[i], s16)
-        let Cb = as(out[i+1], s16)
-        let Cr = as(out[i+2], s16)
+        let Y  = as(out[i], s32)
+        let Cb = as(out[i+1], s32)
+        let Cr = as(out[i+2], s32)
         --  R = Y + 1.402 (Cr-128)
-        -- 0.42 = 103/256
-        let crR = Cr + ((Cr * 103) >> 8) - 179
-        set out[i] = as(clamp8(Y + crR), u8)
+        -- 0.402 = 103/256
+        let crR  = Cr + ((Cr * 103) >> 8) - 179
+        set out[i] = as(clamp8b(Y + crR), u8)
         -- G = Y - 0.34414 (Cb-128) - 0.71414 (Cr-128)
         -- 0.344 = 88/256
         -- 0.714 = 183/256
         let cbG = ((Cb * 88) >> 8) - 44
         let crG = ((Cr * 183) >> 8) - 91
-        set out[i+1] = as(clamp8(clamp8(Y - cbG) - crG), u8)
+        set out[i+1] = as(clamp8b(clamp8b(Y - cbG) - crG), u8)
         -- B = Y + 1.772 (Cb-128)
         -- 0.772 = 198/256
         let cbB = Cb + ((Cb * 198) >> 8) - 227
-        set out[i+2] =  as(clamp8(Y + cbB), u8)
+        set out[i+2] =  as(clamp8b(Y + cbB), u8)
 
 
 pub fun DecodeImage(a_data slice(u8), out slice!(u8))

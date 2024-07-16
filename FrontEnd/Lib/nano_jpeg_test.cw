@@ -1,6 +1,6 @@
 (module [] :
 (import test)
-(import os)
+(import checksum)
 
 (import fmt)
 (import NJ nano_jpeg)
@@ -202,7 +202,11 @@
 (@ref global! gByteBuffer (array (* 1024 1024) u8) undef)
 
 
+(global! Crc32Tab checksum::CrcTab undef)
+
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
+    (do (checksum::InitCrcTab [checksum::PolyCrc32LE (&! Crc32Tab)]))
+
     @doc "(do (dump []))"
     (fmt::print# "image byte size: " (len test_image) "\n")
     (trylet fi NJ::FrameInfo (NJ::DecodeFrameInfo [test_image]) err :
@@ -219,9 +223,16 @@
         (. comp width) "x"  (. comp height) " stride:"  (. comp stride)
          "\n")
     )
+
     (do (NJ::DecodeImage [test_image gByteBuffer]))
+    (test::AssertEq# 394850026_u32
+      (checksum::CalcCrc [(slice_val (front gByteBuffer) 151776) 0 (& Crc32Tab)]))
+    (do (NJ::ConvertYH1V1ToRGB [gByteBuffer]))
+
+    (test::AssertEq# 1970744859_u32
+      (checksum::CalcCrc [(slice_val (front gByteBuffer) 151776) 0 (& Crc32Tab)]))
+
     @doc "test end"
     (test::Success#)
-    @doc "(do (os::write [2_s32 (front gByteBuffer) 151776]))"
     (return 0))
 )

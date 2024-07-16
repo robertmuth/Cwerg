@@ -130,9 +130,9 @@ To enable debug logging make sure the second macro is called `debug#`"""
             (return x))))
 
 
-@doc "descale and clamp x to [0:255]"
-(fun descale_clamp [(param xx s16)] s16 :
-    (return (clamp8 [(+ (div_pow2_with_rounding# xx 7) 128)])))
+@doc "descale"
+(fun descale [(param xx s16)] s16 :
+    (return (+ (div_pow2_with_rounding# xx 7) 128)))
 
 
 (fun ColIDCT [(param blk (ptr! (array (* 8 8) s16)))] void :
@@ -147,21 +147,21 @@ To enable debug logging make sure the second macro is called `debug#`"""
         (let src6 auto (at (^ blk) (+ o (* 8 7))))
         (if (== (paren (or (or (or (or (or (or src1 src2) src3) src4) src5) src6) src7)) 0) :
             (debug# "idc-col shortcicuit " o " " src0 "\n")
-            (let t auto (descale_clamp [src0]))
+            (let t auto (clamp8 [(descale [src0])]))
             (for i 0 (len (^ blk)) 8 :
                 (= (at (^ blk) (+ o i)) t))
             (continue)
          :)
         (CommonIDCT#)
-        (debug# "idc-col out " (+ x40 x17) " " (+ x41 tmp2) " " (+ x42 tmp3) " " (- x43 x44) "\n")
-        (= (at (^ blk) (+ o (* 8 0))) (descale_clamp [(+ x40 x17)]))
-        (= (at (^ blk) (+ o (* 8 1))) (descale_clamp [(+ x41 tmp2)]))
-        (= (at (^ blk) (+ o (* 8 2))) (descale_clamp [(+ x42 tmp3)]))
-        (= (at (^ blk) (+ o (* 8 3))) (descale_clamp [(- x43 x44)]))
-        (= (at (^ blk) (+ o (* 8 4))) (descale_clamp [(+ x43 x44)]))
-        (= (at (^ blk) (+ o (* 8 5))) (descale_clamp [(- x42 tmp3)]))
-        (= (at (^ blk) (+ o (* 8 6))) (descale_clamp [(- x41 tmp2)]))
-        (= (at (^ blk) (+ o (* 8 7))) (descale_clamp [(- x40 x17)]))))
+        (debug# "idc-col out " (descale [(+ x40 x17)]) " " (descale [(+ x41 tmp2)]) " " (descale [(+ x42 tmp3)]) " " (descale [(- x43 x44)]) "\n")
+        (= (at (^ blk) (+ o (* 8 0))) (clamp8 [(descale [(+ x40 x17)])]))
+        (= (at (^ blk) (+ o (* 8 1))) (clamp8 [(descale [(+ x41 tmp2)])]))
+        (= (at (^ blk) (+ o (* 8 2))) (clamp8 [(descale [(+ x42 tmp3)])]))
+        (= (at (^ blk) (+ o (* 8 3))) (clamp8 [(descale [(- x43 x44)])]))
+        (= (at (^ blk) (+ o (* 8 4))) (clamp8 [(descale [(+ x43 x44)])]))
+        (= (at (^ blk) (+ o (* 8 5))) (clamp8 [(descale [(- x42 tmp3)])]))
+        (= (at (^ blk) (+ o (* 8 6))) (clamp8 [(descale [(- x41 tmp2)])]))
+        (= (at (^ blk) (+ o (* 8 7))) (clamp8 [(descale [(- x40 x17)])]))))
 
 
 @doc "for huffman decoding"
@@ -669,26 +669,35 @@ the exact number is bits_count"""
     (return CorruptionErrorVal))
 
 
+(fun clamp8b [(param x s32)] s32 :
+    (cond :
+        (case (< x 0) :
+            (return 0))
+        (case (>= x 0xff) :
+            (return 0xff))
+        (case true :
+            (return x))))
+
+
 @pub (fun ConvertYH1V1ToRGB [(param out (slice! u8))] void :
     (for i 0 (len out) 3 :
-        @doc "note: a lot of weirdness to not overflow s16"
-        (let Y auto (as (at out i) s16))
-        (let Cb auto (as (at out (+ i 1)) s16))
-        (let Cr auto (as (at out (+ i 2)) s16))
+        (let Y auto (as (at out i) s32))
+        (let Cb auto (as (at out (+ i 1)) s32))
+        (let Cr auto (as (at out (+ i 2)) s32))
         @doc """ R = Y + 1.402 (Cr-128)
-0.42 = 103/256"""
+0.402 = 103/256"""
         (let crR auto (- (+ Cr (paren (>> (* Cr 103) 8))) 179))
-        (= (at out i) (as (clamp8 [(+ Y crR)]) u8))
+        (= (at out i) (as (clamp8b [(+ Y crR)]) u8))
         @doc """G = Y - 0.34414 (Cb-128) - 0.71414 (Cr-128)
 0.344 = 88/256
 0.714 = 183/256"""
         (let cbG auto (- (paren (>> (* Cb 88) 8)) 44))
         (let crG auto (- (paren (>> (* Cr 183) 8)) 91))
-        (= (at out (+ i 1)) (as (clamp8 [(- (clamp8 [(- Y cbG)]) crG)]) u8))
+        (= (at out (+ i 1)) (as (clamp8b [(- (clamp8b [(- Y cbG)]) crG)]) u8))
         @doc """B = Y + 1.772 (Cb-128)
 0.772 = 198/256"""
         (let cbB auto (- (+ Cb (paren (>> (* Cb 198) 8))) 227))
-        (= (at out (+ i 2)) (as (clamp8 [(+ Y cbB)]) u8))))
+        (= (at out (+ i 2)) (as (clamp8b [(+ Y cbB)]) u8))))
 
 
 @pub (fun DecodeImage [(param a_data (slice u8)) (param out (slice! u8))] (union [
