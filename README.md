@@ -4,7 +4,7 @@
 
 ![Status](../../workflows/cwerg-tests/badge.svg)
 [![GitHub stars](https://img.shields.io/github/stars/robertmuth/Cwerg.svg?label=github%20stars)](https://github.com/robertmuth/Cwerg/stargazers)
-![Discord](https://img.shields.io/discord/1266057429091881011?logo=discord&style=flat)]
+[![Discord](https://img.shields.io/discord/1266057429091881011?logo=discord&style=flat)](https://discord.com/channels/1266057429091881011/)
 
 Cwerg aims to be a complete, compact and fast "from-scratch" compiler for a C-like language.
 It consists of the following components:
