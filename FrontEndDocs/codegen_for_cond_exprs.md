@@ -65,14 +65,14 @@ def EmitConditional(cond, label_true, label_false):
     elif cond is-a ExprBinary:
         op1 = EmitExpr(cond.expr1)   # op1 contains the register/var with value of cond.expr1
         op2 = EmitExpr(cond.expr2)   # similar as above
-        Emit("   b{AstCmpToAsmCmp(cond.kind)} {op1} {op2} {label_true}")
-        Emit("   bra {label_false}")
+        Emit(f"   b{AstCmpToAsmCmp(cond.kind)} {op1} {op2} {label_true}")
+        Emit(f"   bra {label_false}")
     elif cond is-a Expr&&:
         label_and = NewLabel()
         EmitConditional(cond.expr1, label_and, label_false)
         Emit(f"{label_and}:")
         EmitConditional(cond.expr2, label_true, label_false)
-    elif kind is cwast.BINARY_EXPR_KIND.ORSC:
+    elif kind is-a Expr||:
         label_or = NewLabel()
         EmitConditional(cond.expr1, label_true, label_or)
         Emit(f"{label_or}:")
