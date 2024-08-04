@@ -8,7 +8,7 @@ import dataclasses
 import logging
 import enum
 
-from typing import Optional, Union, Any, TypeAlias, NoReturn
+from typing import Optional, Union, Any, TypeAlias, NoReturn, Final
 
 logger = logging.getLogger(__name__)
 
@@ -289,6 +289,8 @@ COMPOUND_KIND_TO_EXPR_KIND = {
     #
     ASSIGNMENT_KIND.SHR: BINARY_EXPR_KIND.SHR,
     ASSIGNMENT_KIND.SHL: BINARY_EXPR_KIND.SHL,
+    ASSIGNMENT_KIND.ROTL: BINARY_EXPR_KIND.ROTL,
+    ASSIGNMENT_KIND.ROTR: BINARY_EXPR_KIND.ROTR,
 }
 
 
@@ -794,7 +796,7 @@ def NodeCommon(cls):
 
     assert hasattr(cls, "ALIAS") and hasattr(
         cls, "FLAGS") and hasattr(cls, "GROUP")
-    assert hasattr(cls, "x_srcloc")
+    assert hasattr(cls, "x_srcloc"), f"class is missing x_srcloc {cls}"
     if cls.GROUP is GROUP.Statement:
         assert hasattr(cls, "doc"), f"mising doc {cls.__name__}"
     _CheckNodeFieldOrder(cls)
@@ -1026,7 +1028,7 @@ class CanonType:
 NO_TYPE = CanonType(None, "@invali@d")
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class SrcLoc:
     filename: str
     lineno: int
@@ -1035,8 +1037,8 @@ class SrcLoc:
         return f"{self.filename}({self.lineno})"
 
 
-SRCLOC_UNKNOWN = SrcLoc("@unknown@", 0)
-SRCLOC_GENERATED = SrcLoc("@generated@", 0)
+SRCLOC_UNKNOWN: Final[SrcLoc] = SrcLoc("@unknown@", 0)
+SRCLOC_GENERATED: Final[SrcLoc] = SrcLoc("@generated@", 0)
 
 ############################################################
 # Emphemeral
