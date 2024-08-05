@@ -198,8 +198,8 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.Cano
     assert src_sum_rec.is_rec()
     assert src_sum_rec.original_type.is_tagged_union()
     src_tag_field, src_union_field = src_sum_rec.ast_node.fields
-    # to drop this we would need to introducea temporary
-    assert isinstance(value.expr, cwast.Id)
+    # to drop this we would need to introduce a temporary since we access it more than once
+    assert isinstance(value.expr, cwast.Id), f"{value.expr}"
     srcloc = value.x_srcloc
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
 

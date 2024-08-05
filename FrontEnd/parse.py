@@ -342,7 +342,7 @@ def _ExtractAnnotations(tk: TK) -> dict[str, str]:
     # print ("@@@@",tk)
     comments = []
     for c in tk.comments:
-        assert c.text.startswith("-- ")
+        assert c.text.startswith("-- "), f"expected comment got: [{c.text}]"
         comments.append(c.text[3:-1])
     if comments:
         if len(comments) == 1 and '"' not in comments[0]:

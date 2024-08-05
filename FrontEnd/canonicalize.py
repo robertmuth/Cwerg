@@ -613,13 +613,19 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
             extra = []
             for i in rhs.inits_array:
                 if not _IsSimpleInitializer(i.value_or_undef):
-                    # TODO: mimic the  ValRec case below
-                    assert False, f"{i}"
+                    srcloc = i.x_srcloc
+                    def_tmp = cwast.DefVar(id_gen.NewName("val_array_tmp"),
+                                           cwast.TypeAuto(
+                        x_srcloc=srcloc, x_type=i.x_type), i.value_or_undef,
+                        x_srcloc=srcloc)
+                    extra.append(def_tmp)
+                    i.value_or_undef = _IdNodeFromDef(def_tmp, srcloc)
+                    # assert False, f"{i.value_or_undef} {i.x_type}"
             if not extra:
                 return None
             extra.append(node)
             return cwast.EphemeralList(extra)
-        elif isinstance(rhs,   cwast.ValRec):
+        elif isinstance(rhs, cwast.ValRec):
             extra = []
             for i in rhs.inits_field:
                 if not _IsSimpleInitializer(i.value_or_undef):

@@ -105,7 +105,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
                 out = o
         return out
     else:
-        assert False, "unexpected {node}"
+        # cwast.CompilerError(node.x_srcloc, f"unexpected {node}")
         return CONSTANT_KIND.NOT
 
 # def _ValueShouldBeGlobalConst(node) -> bool:
@@ -364,21 +364,38 @@ _EVAL2_UINT = {
 }
 
 
+def _HandleUintOverflow(kind: cwast.BASE_TYPE_KIND, val: int) -> int:
+    mask = (1 << (8 * cwast.BASE_TYPE_KIND_TO_SIZE[kind])) - 1
+    return val & mask
+
+
 def _EvalExpr2(node: cwast.Expr2) -> bool:
     if node.expr1.x_value is None or node.expr2.x_value is None:
         return False
     op = node.binary_expr_kind
-    if op in _EVAL2_ANY:
-        return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
-    if node.x_type.is_real():
+    x_type = node.x_type
+    if x_type.is_real():
+        if op in _EVAL2_ANY:
+            return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
         if op in _EVAL2_REAL:
             return _AssignValue(node, _EVAL2_REAL[op](node.expr1, node.expr2))
-    if node.x_type.is_int():
+    if x_type.is_sint():
+        # TODO: deal with signed overflow
+        if op in _EVAL2_ANY:
+            return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
         if op in _EVAL2_INT:
             return _AssignValue(node, _EVAL2_INT[op](node.expr1, node.expr2))
-    if node.x_type.is_real():
+    if x_type.is_uint():
+        kind = x_type.base_type_kind
+        if op in _EVAL2_ANY:
+            return _AssignValue(node,
+                                _HandleUintOverflow(kind, _EVAL2_ANY[op](node.expr1, node.expr2)))
+        if op in _EVAL2_INT:
+            return _AssignValue(node,
+                                _HandleUintOverflow(kind, _EVAL2_INT[op](node.expr1, node.expr2)))
         if op in _EVAL2_UINT:
-            return _AssignValue(node, _EVAL2_UINT[op](node.expr1, node.expr2))
+            return _AssignValue(node,
+                                _HandleUintOverflow(kind, _EVAL2_UINT[op](node.expr1, node.expr2)))
     return False
 
 
@@ -669,7 +686,8 @@ def VerifyASTEvalsRecursively(node):
                         pass
                     else:
                         cwast.CompilerError(
-                            node.x_srcloc, f"expected const node: {node} of type {node.x_type} "
+                            node.x_srcloc, f"expected const node: {
+                                node} of type {node.x_type} "
                             f"inside {parent}")
 
         if field == "init_index":
@@ -678,7 +696,8 @@ def VerifyASTEvalsRecursively(node):
 
         # Note: this info is currently filled in by the Type Decorator
         if isinstance(node, cwast.TypeArray):
-            assert node.size.x_value is not None, f"unevaluated type dimension: {node}"
+            assert node.size.x_value is not None, f"unevaluated type dimension: {
+                node}"
 
     cwast.VisitAstRecursivelyWithParent(node, visitor, None, None)
 
