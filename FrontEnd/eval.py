@@ -374,18 +374,19 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
         return False
     op = node.binary_expr_kind
     x_type = node.x_type
+
     if x_type.is_real():
         if op in _EVAL2_ANY:
             return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
         if op in _EVAL2_REAL:
             return _AssignValue(node, _EVAL2_REAL[op](node.expr1, node.expr2))
-    if x_type.is_sint():
+    elif x_type.is_sint():
         # TODO: deal with signed overflow
         if op in _EVAL2_ANY:
             return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
         if op in _EVAL2_INT:
             return _AssignValue(node, _EVAL2_INT[op](node.expr1, node.expr2))
-    if x_type.is_uint():
+    elif x_type.is_uint():
         kind = x_type.base_type_kind
         if op in _EVAL2_ANY:
             return _AssignValue(node,
@@ -396,6 +397,10 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
         if op in _EVAL2_UINT:
             return _AssignValue(node,
                                 _HandleUintOverflow(kind, _EVAL2_UINT[op](node.expr1, node.expr2)))
+    elif x_type.is_bool():
+        if op in _EVAL2_ANY:
+            return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
+
     return False
 
 
