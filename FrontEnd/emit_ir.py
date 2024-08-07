@@ -6,6 +6,7 @@ import logging
 import argparse
 import dataclasses
 import enum
+import math
 import struct
 import pathlib
 import os
@@ -419,6 +420,21 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
         assert False, f"unsupported expression {kind}"
 
 
+def _FormatNumber(val: cwast.ValNum) -> str:
+    if val.x_type.is_int():
+        return str(val.x_value)
+    elif val.x_type.is_real():
+        num = val.x_value
+        if math.isnan(num) or math.isinf(num):
+            # note, python renders -nan and +nan as just nan
+            sign = math.copysign(1, num)
+            num = abs(num)
+            return ("+" if sign >= 0 else "-") + str(num)
+        return str(num)
+    else:
+        assert False, f"unsupported scalar: {val}"
+
+
 def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
@@ -448,7 +464,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             print(f"{TAB}poparg {res}:{sig.result_type().get_single_register_type()}")
             return res
     elif isinstance(node, cwast.ValNum):
-        return f"{node.x_value}:{node.x_type.get_single_register_type()}"
+        return f"{_FormatNumber(node)}:{node.x_type.get_single_register_type()}"
     elif isinstance(node, cwast.ValFalse):
         return "0:U8"
     elif isinstance(node, cwast.ValTrue):
