@@ -70,6 +70,29 @@ Both must have derivable types as we use `auto`"""
         (trap)
      :))
 
+@pub (macro AssertEqR64# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
+    (mlet $e_val r64 $e_expr)
+    (mlet $a_val r64 $a_expr)
+    (if (!= (bitwise_as $e_val u64) (bitwise_as $a_val u64)) :
+        (SysPrint# "AssertEq failed: ")
+        (SysPrint# (stringify $e_expr))
+        (SysPrint# " VS ")
+        (SysPrint# (stringify $a_expr))
+        (SysPrint# "\n")
+        (trap)
+     :))
+
+@pub (macro AssertNeR64# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
+    (mlet $e_val r64 $e_expr)
+    (mlet $a_val r64 $a_expr)
+    (if (== (bitwise_as $e_val u64) (bitwise_as $a_val u64)) :
+        (SysPrint# "AssertEq failed: ")
+        (SysPrint# (stringify $e_expr))
+        (SysPrint# " VS ")
+        (SysPrint# (stringify $a_expr))
+        (SysPrint# "\n")
+        (trap)
+     :))
 
 @doc "The first two arguments must type derivable"
 @pub (macro AssertSliceApproxEq# STMT_LIST [
@@ -108,4 +131,3 @@ Both must have derivable types as we use `auto`"""
     (SysPrint# "AssertUnreachable\n")
     (trap))
 )
-

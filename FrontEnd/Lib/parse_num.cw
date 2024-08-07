@@ -28,7 +28,7 @@
      :)
     (if (== c 'i') :
         (if (|| (|| (!= (+ i 2) n) (!= (at s 1) 'n')) (!= (at s 2) 'f')) :
-            (return ParseErrorVal)
+            (return (* +inf_r64 sign))
          :)
         (return sign)
      :)
