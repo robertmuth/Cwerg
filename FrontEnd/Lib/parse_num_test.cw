@@ -28,24 +28,19 @@
     @doc "sanity checks for NANs"
     (test::AssertNeR64# +inf_r64 -inf_r64)
     (test::AssertNeR64# +nan_r64 -nan_r64)
-    @doc """
 
-    (test::AssertEq# -nan_r64 (parse_r64 ["-nan"]))
-    (test::AssertEq# +nan_r64 (parse_r64 ["+nan"]))
-    """
-    (test::AssertEq# +inf_r64 (parse_r64 ["+inf"]))
-    (test::AssertEq# -inf_r64 (parse_r64 ["-inf"])))
+    (test::AssertEqR64# -nan_r64 (parse_r64 ["-nan"]))
+    (test::AssertEqR64# +nan_r64 (parse_r64 ["+nan"]))
+    (test::AssertEqR64# +inf_r64 (parse_r64 ["+inf"]))
+    (test::AssertEqR64# -inf_r64 (parse_r64 ["-inf"])))
 
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc """
-    (fmt::print# (wrap_as +inf_r64 fmt::r64_hex) "\n")
-    (fmt::print# (wrap_as (* +inf_r64 1.0_r64) fmt::r64_hex) "\n")
-
-    (fmt::print# (wrap_as  (narrow_as (parse_num::parse_r64 ["+inf"]) r64)  fmt::r64_hex) "\n")
+    (fmt::print# (bitwise_as (parse_r64 ["-nan"]) u64) "\n")
+    (fmt::print# (bitwise_as -nan_r64 u64) "\n")
     """
     (do (test_simple []))
     (test::Success#)
     (return 0))
 )
-

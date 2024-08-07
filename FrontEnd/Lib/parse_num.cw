@@ -28,9 +28,15 @@
      :)
     (if (== c 'i') :
         (if (|| (|| (!= (+ i 2) n) (!= (at s 1) 'n')) (!= (at s 2) 'f')) :
-            (return (* +inf_r64 sign))
+            (return (? (>= sign 0) +inf_r64 -inf_r64))
          :)
-        (return sign)
+        (return ParseErrorVal)
+     :)
+    (if (== c 'n') :
+        (if (|| (|| (!= (+ i 2) n) (!= (at s 1) 'a')) (!= (at s 2) 'n')) :
+            (return (? (>= sign 0) +nan_r64 -nan_r64))
+         :)
+        (return ParseErrorVal)
      :)
     (while (== c '0') :
         (if (>= i n) :
