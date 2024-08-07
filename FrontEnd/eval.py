@@ -700,8 +700,7 @@ def VerifyASTEvalsRecursively(node):
 
         # Note: this info is currently filled in by the Type Decorator
         if isinstance(node, cwast.TypeArray):
-            assert node.size.x_value is not None, f"unevaluated type dimension: {
-                node}"
+            assert node.size.x_value is not None, f"uneval'ed type dim: {node}"
 
     cwast.VisitAstRecursivelyWithParent(node, visitor, None, None)
 

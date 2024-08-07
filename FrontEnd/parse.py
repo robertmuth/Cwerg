@@ -455,7 +455,7 @@ def _ParseFunLike(inp: Lexer, name: TK) -> Any:
     ctor, args = _FUN_LIKE[name.text]
     inp.match_or_die(TK_KIND.PAREN_OPEN)
     first = True
-    params = []
+    params: list[Any] = []
     extra = _ExtractAnnotations(name)
     if name.text.endswith("!"):
         extra["mut"] = True
