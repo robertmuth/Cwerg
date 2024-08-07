@@ -691,9 +691,8 @@ def VerifyASTEvalsRecursively(node):
                         pass
                     else:
                         cwast.CompilerError(
-                            node.x_srcloc, f"expected const node: {
-                                node} of type {node.x_type} "
-                            f"inside {parent}")
+                            node.x_srcloc, f"expected const node: {node} "
+                            f"of type {node.x_type} inside {parent}")
 
         if field == "init_index":
             assert (node.x_value is not None or
