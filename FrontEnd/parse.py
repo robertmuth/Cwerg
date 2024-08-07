@@ -140,7 +140,8 @@ _token_spec = [
     (TK_KIND.MSTR.name,  string_re.MULTI_START),
     (TK_KIND.RMSTR.name, string_re.MULTI_START_R),
     (TK_KIND.XMSTR.name,  string_re.MULTI_START_X),
-    (TK_KIND.COMPOUND_ASSIGN.name, "(?:" +  "|".join(_compound_assignment)) + r")(?=\s|$)"),
+    (TK_KIND.COMPOUND_ASSIGN.name,
+     "(?:" + "|".join(_compound_assignment) + r")(?=\s|$)"),
     (TK_KIND.ID.name, ID_RE),
     # require binary ops to be followed by whitespace, this helps with
     # disambiguating unary +/-
@@ -157,11 +158,13 @@ _token_spec = [
 
 TOKEN_RE = re.compile("|".join(f'(?P<{a}>{b})' for a, b in _token_spec))
 
+
 def assert_match(a, b=None):
     # note that re.fullmatch tries harder to match the full string than match
     if b is None:
         b = a
     assert TOKEN_RE.match(a).group() == b
+
 
 assert_match("0.0_r64")
 assert_match("5_u16")
@@ -837,10 +840,12 @@ def _ParseStatement(inp: Lexer):
         else:
             # this happends inside a macro body
             if not kw.text.startswith("$"):
-                cwast.CompilerError(kw.srcloc, f"expect macro var but got {kw.text}")
+                cwast.CompilerError(
+                    kw.srcloc, f"expect macro var but got {kw.text}")
             return cwast.MacroId(kw.text)
     if kw.kind is not TK_KIND.KW:
-        cwast.CompilerError(kw.srcloc, f"expected statement keyword but got: {kw}")
+        cwast.CompilerError(
+            kw.srcloc, f"expected statement keyword but got: {kw}")
     if kw.text in ("let", "let!", "mlet", "mlet!"):
         name = inp.match_or_die(TK_KIND.ID)
         if inp.match(TK_KIND.ASSIGN):
