@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 ############################################################
 
 
+def ReCombine(lst: list[str]):
+    return "|".join("(?:" + x + ")" for x in lst)
+
+
 # Note: we rely on the matching being done greedily
 # we also allow for non-terminated string for better error handling
 _TOKEN_CHAR = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
@@ -27,19 +31,54 @@ _TOKEN_NAMENUM = r'[^\[\]\(\)\' \r\n\t]+'
 _TOKEN_OP = r'[\[\]\(\)]'
 
 
-_RE_TOKENS_ALL = re.compile("|".join(["(?:" + x + ")" for x in [
+_RE_TOKENS_ALL = re.compile(ReCombine([
     # order is important: multi-line before regular
     string_re.MULTI_START,
     string_re.MULTI_START_R,
     string_re.MULTI_START_X,
-    string_re.STR, string_re.R_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]]))
+    string_re.STR, string_re.R_STR, _TOKEN_CHAR, _TOKEN_OP, _TOKEN_NAMENUM]))
 
 # TODO: make this stricter WRT to :: vs :
 _RE_TOKEN_ID = re.compile(
     r'([_A-Za-z$][_A-Za-z$0-9]*:+)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?!?')
 
+
+##
+_RE_REAL_TYPE_OPT = r'(?:r32|r64)?'
+_RE_INT_TYPE_OPT = r'(?:u8|u16|u32|u64|uint|s8|s16|s32|s64|sint)?'
+_RE_NUM_TYPE_OPT = r'(?:u8|u16|u32|u64|uint|s8|s16|s32|s64|sint|r32|r64)?'
+
+# Note: sign is mandatory to distinguish nans from identifiers
+_RE_NUM_REAL_NAN = r'[-+](?:inf|nan)(?:_r32|_r64)?'
+_RE_NUM_REAL_HEX = r'[-+]?0x[0-9a-f][0-9a-f_]*[.]?(?:[0-9a-f][0-9a-f_]*)?p[-+]?[0-9][0-9_]*'
+# Note, some extra care so that the decimal dot can not be confused with record field accesses
+_RE_NUM_REAL_DEC_EXP_OPT = r'(?:e[-+]?[0-9][_0-9]*)?'
+_RE_NUM_REAL_DEC_FRAC = r'[-+]?[.]([0-9][0-9_]*)'
+_RE_NUM_REAL_OR_INT_DEC = r'[-+]?[0-9][_0-9]*[.]?(?:[0-9][0-9_]*)?'
+##
+# Note: only lower case accepted
+_RE_NUM_INT_HEX = '0x[0-9a-f][_0-9a-f]*'
+_RE_NUM_INT_BIN = '0b[01][_01]*'
+
+
 # hex is lower case
-_RE_TOKEN_NUM = re.compile(r'-?[.0-9][-+_.a-z0-9]*')
+RE_STR_NUM = ReCombine([
+    # REALs
+    _RE_NUM_REAL_NAN + _RE_REAL_TYPE_OPT,
+    _RE_NUM_REAL_HEX + _RE_REAL_TYPE_OPT,
+    _RE_NUM_REAL_DEC_FRAC + _RE_NUM_REAL_DEC_EXP_OPT + _RE_REAL_TYPE_OPT,
+    # INTs
+    _RE_NUM_INT_HEX + _RE_INT_TYPE_OPT,
+    _RE_NUM_INT_BIN + _RE_INT_TYPE_OPT,
+    # REAL OR INT
+    # This must come after HEX and Bin since it matches the leading zero
+    _RE_NUM_REAL_OR_INT_DEC + _RE_NUM_REAL_DEC_EXP_OPT + _RE_NUM_TYPE_OPT
+])
+
+RE_TOKEN_NUM = re.compile(RE_STR_NUM)
+
+assert RE_TOKEN_NUM.match("5_r32").group() == "5_r32"
+assert RE_TOKEN_NUM.match("5_u16").group() == "5_u16"
 
 
 def ReadAttrs(t: str, attr: dict[str, Any], stream):
@@ -182,6 +221,9 @@ def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
 
         return cwast.ValString(t, x_srcloc=srcloc, strkind=strkind,
                                triplequoted=triplequoted,    **attr)
+    elif RE_TOKEN_NUM.fullmatch(t):
+        logger.info("NUM %s at %s", t, srcloc)
+        return cwast.ValNum(t, x_srcloc=srcloc, **attr)
     elif _RE_TOKEN_ID.fullmatch(t):
         if t in cwast.NODES_ALIASES:
             cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
@@ -189,9 +231,6 @@ def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
             return cwast.MacroId(t, x_srcloc=srcloc)
         logger.info("ID %s at %s", t, srcloc)
         return cwast.Id(t, x_srcloc=srcloc, **attr)
-    elif _RE_TOKEN_NUM.fullmatch(t):
-        logger.info("NUM %s at %s", t, srcloc)
-        return cwast.ValNum(t, x_srcloc=srcloc, **attr)
     elif len(t) >= 2 and t[0] == "'" and t[-1] == "'":
         logger.info("CHAR %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc, **attr)
@@ -340,7 +379,8 @@ def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: dict[str, Any]):
                 stream, parent_cls), colon=True, x_srcloc=srcloc))
         else:
             out = ExpandShortHand(token, stream.srcloc(), sub_attr)
-            assert out is not None, f"while processing {tag} unexpected macro arg: {token}"
+            assert out is not None, f"while processing {
+                tag} unexpected macro arg: {token}"
             args.append(out)
     return args
 

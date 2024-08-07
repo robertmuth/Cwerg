@@ -20,9 +20,9 @@ import dataclasses
 from typing import Any, Optional, Dict
 
 from FrontEnd import cwast
+from FrontEnd import parse_sexpr
 from FrontEnd import pp
 from FrontEnd import pp_sexpr
-from FrontEnd import string_re
 from FrontEnd import string_re
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,7 @@ for k in cwast.BINARY_EXPR_SHORTCUT:
 KEYWORDS["pub"] = TK_KIND.SPECIAL_ANNOTATION
 
 _OPERATORS_SIMPLE1 = [
-    # "-",
+    "-",  # note, also in binops
     "^!",
     "^",
     "&!",
@@ -110,7 +110,6 @@ _OPERATORS_SIMPLE1 = [
 
 ANNOTATION_RE = r"@[a-zA-Z]+"
 ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#@]?"
-NUM_RE = r"[0-9](?:[-_0-9a-f.xp])*(?:sint|uint|[sru][0-9]+)?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
@@ -132,7 +131,7 @@ _token_spec = [
     (TK_KIND.SQUARE_OPEN.name, r"\["),
     (TK_KIND.SQUARE_CLOSED.name, r"\]"),
     (TK_KIND.COMMENT.name, COMMENT_RE),  # remark
-    (TK_KIND.NUM.name, NUM_RE),
+    (TK_KIND.NUM.name, parse_sexpr.RE_STR_NUM),
     (TK_KIND.QUESTION_MARK.name, r"\?"),
     (TK_KIND.DEREFDOT.name, r"\^\."),
     (TK_KIND.DOT.name, r"\."),
@@ -141,9 +140,12 @@ _token_spec = [
     (TK_KIND.MSTR.name,  string_re.MULTI_START),
     (TK_KIND.RMSTR.name, string_re.MULTI_START_R),
     (TK_KIND.XMSTR.name,  string_re.MULTI_START_X),
-    (TK_KIND.COMPOUND_ASSIGN.name, "|".join(_compound_assignment)),
+    (TK_KIND.COMPOUND_ASSIGN.name, "(?:" +  "|".join(_compound_assignment)) + r")(?=\s|$)"),
     (TK_KIND.ID.name, ID_RE),
-    (TK_KIND.OP2.name, "|".join(_operators2)),
+    # require binary ops to be followed by whitespace, this helps with
+    # disambiguating unary +/-
+    (TK_KIND.OP2.name, "(?:" + "|".join(_operators2) + r")(?=\s|$)"),
+    # OP1 must follow OP2 and NUM because of matching overlap
     (TK_KIND.OP1.name, "|".join(_operators1)),
     (TK_KIND.STR.name, "(?:" + string_re.START + \
      "|" + string_re.R_START + ")" + string_re.END),
@@ -155,17 +157,26 @@ _token_spec = [
 
 TOKEN_RE = re.compile("|".join(f'(?P<{a}>{b})' for a, b in _token_spec))
 
+def assert_match(a, b=None):
+    # note that re.fullmatch tries harder to match the full string than match
+    if b is None:
+        b = a
+    assert TOKEN_RE.match(a).group() == b
 
-assert TOKEN_RE.fullmatch("_::abb#")
+assert_match("0.0_r64")
+assert_match("5_u16")
+assert_match("5_u16")
+assert_match('-0x1.5555555555549p-3')
+assert_match("_::abb#")
 assert not TOKEN_RE.fullmatch("$_:_:abb#")
-assert TOKEN_RE.fullmatch("<")
-assert TOKEN_RE.fullmatch("<<")
-assert TOKEN_RE.fullmatch("<<<")
+assert_match("< ", "<")
+assert_match("<<")
+assert_match("<<<")
 assert not TOKEN_RE.fullmatch("<<<<")
-assert TOKEN_RE.fullmatch("aa")
-assert TOKEN_RE.fullmatch('''"""aa"""''')
-assert TOKEN_RE.fullmatch('''r"""aa"""''')
-assert TOKEN_RE.fullmatch('''x"""aa"""''')
+assert_match("aa")
+assert_match('''"""aa"""''')
+assert_match('''r"""aa"""''')
+assert_match('''x"""aa"""''')
 # assert TOKEN_RE.fullmatch("^!")
 
 # print(TOKEN_RE.findall("zzzzz+aa*7u8 <<<<"))
@@ -521,16 +532,12 @@ def _PParseChar(_inp: Lexer, tk: TK, _precedence) -> Any:
 
 def _PParsePrefix(inp: Lexer, tk: TK, precedence) -> Any:
     rhs = _ParseExpr(inp, precedence)
-    if tk.kind is TK_KIND.OP2:
-        assert tk.text == "-"
-        if isinstance(rhs, cwast.ValNum):
-            rhs.number = "-" + rhs.number
-            return rhs
-        else:
-            return cwast.Expr1(cwast.UNARY_EXPR_KIND.MINUS, rhs)
-    if tk.text.startswith("&"):
+    if tk.text.startswith("-"):
+        kind = cwast.UNARY_EXPR_KIND.MINUS
+    elif tk.text.startswith("&"):
         return cwast.ExprAddrOf(rhs, mut=tk.text == "&!")
-    kind = cwast.UNARY_EXPR_SHORTCUT[tk.text]
+    else:
+        kind = cwast.UNARY_EXPR_SHORTCUT[tk.text]
     return cwast.Expr1(kind, rhs)
 
 
