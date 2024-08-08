@@ -65,12 +65,22 @@ def ComputeStringSize(strkind: str, string: str) -> int:
     return n
 
 
+def _NumCleanupAndTypeExtraction(num: str) -> tuple[str, cwast.BASE_TYPE_KIND]:
+    num = num.replace("_", "")
+    suffix = ""
+    if num[-4:] in ("uint", "sint"):
+        suffix = num[-4:]
+    elif num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64", "r32", "r64"):
+        suffix = num[-3:]
+    elif num[-2:] in ("u8", "s8"):
+        suffix = num[-2:]
+    else:
+        return num, cwast.BASE_TYPE_KIND.INVALID
+    return num[:-len(suffix)], cwast.BASE_TYPE_KIND[suffix.upper()]
+
+
 def ParseNumRaw(num_val: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,  cwast.BASE_TYPE_KIND]:
     num = num_val.number
-
-    def get_kind(length):
-        return cwast.BASE_TYPE_KIND[num[-length:].upper()]
-
     if num[0] == "'":
         if kind is cwast.BASE_TYPE_KIND.INVALID:
             cwast.CompilerError(
@@ -88,19 +98,14 @@ def ParseNumRaw(num_val: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,
         else:
             return ord(num[1]), kind
 
-    num = num.replace("_", "")
-    if num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64"):
-        return int(num[: -3], 0), get_kind(3)
-    elif num[-2:] in ("u8", "s8"):
-        return int(num[: -2], 0), get_kind(2)
-    elif num[-4:] in ("uint", "sint"):
-        return int(num[: -4], 0), get_kind(4)
-    elif num[-3:] in ("r32", "r64"):
-        return float(num[: -3]), get_kind(3)
-    elif kind in cwast.BASE_TYPE_KIND_INT:
+    num, kind_explicit = _NumCleanupAndTypeExtraction(num)
+    if kind_explicit != cwast.BASE_TYPE_KIND.INVALID:
+        kind = kind_explicit
+
+    if kind in cwast.BASE_TYPE_KIND_INT:
         return int(num, 0), kind
     elif kind in cwast.BASE_TYPE_KIND_REAL:
-        if "p" in num:
+        if "0x" in num:
             return float.fromhex(num), kind
         return float(num), kind
     else:
@@ -196,7 +201,8 @@ def _ComputeArrayLength(node, kind: cwast.BASE_TYPE_KIND) -> int:
 
 
 def UpdateNodeType(node, ct: cwast.CanonType):
-    assert cwast.NF.TYPE_ANNOTATED in node.FLAGS, f"node not meant for type annotation: {node}"
+    assert cwast.NF.TYPE_ANNOTATED in node.FLAGS, f"node not meant for type annotation: {
+        node}"
     assert ct, f"No valid type for {node}"
     node.x_type = ct
     return ct
@@ -778,7 +784,8 @@ def CheckExprPointer(node: cwast.ExprPointer, _):
 
 def CheckExprField(node: cwast.ExprField, _):
     # _CheckTypeSame(node,  node.x_field.x_type, ct)
-    assert node.x_type is node.x_field.x_type, f"field node {node.container.x_type} type mismatch: {node.x_type} {node.x_field.x_type}"
+    assert node.x_type is node.x_field.x_type, f"field node {
+        node.container.x_type} type mismatch: {node.x_type} {node.x_field.x_type}"
 
 
 def CheckExprFront(node: cwast.ExprFront, _):
@@ -1149,8 +1156,10 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             ct: cwast.CanonType = node.x_type
-            assert ct is not cwast.NO_TYPE, f"missing type for {node} in {node.x_srcloc}"
-            assert ct.name in tc.corpus, f"bad type annotation for {node}: {node.x_type}"
+            assert ct is not cwast.NO_TYPE, f"missing type for {
+                node} in {node.x_srcloc}"
+            assert ct.name in tc.corpus, f"bad type annotation for {
+                node}: {node.x_type}"
             verifier.Verify(node, tc)
 
         elif isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED):
@@ -1158,7 +1167,8 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
 
         if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
             field = node.x_field
-            assert field is not None, f"node without field annotation: {node.x_srcloc} {node}"
+            assert field is not None, f"node without field annotation: {
+                node.x_srcloc} {node}"
             assert isinstance(field, cwast.RecField)
 
     cwast.VisitAstRecursivelyPost(node, visitor)

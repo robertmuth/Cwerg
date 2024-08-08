@@ -536,7 +536,8 @@ ALL_FIELDS = [
             f"one of: [{_EnumValues(MOD_PARAM_KIND)}](#modparam-kind)",
             MOD_PARAM_KIND),
     NfdKind("assignment_kind",
-            f"one of: [{_EnumValues(ASSIGNMENT_KIND)}](#stmtcompoundassignment-kind)",
+            f"one of: [{_EnumValues(ASSIGNMENT_KIND)
+                        }](#stmtcompoundassignment-kind)",
             ASSIGNMENT_KIND),
     NfdKind("macro_param_kind",
             f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#MacroParam-kind)",
@@ -772,10 +773,12 @@ def _CheckNodeFieldOrder(cls):
     xs = 0
     for field, node_type in cls.__annotations__.items():
         if field.startswith("x_"):
-            assert field in X_FIELDS, f"unexpected x-field: {field} in node {node_type}"
+            assert field in X_FIELDS, f"unexpected x-field: {
+                field} in node {node_type}"
             if field != "x_srcloc":
                 flag_kind = X_FIELDS[field]
-                assert flag_kind in cls.FLAGS, f"{cls}: {field} missing flag {flag_kind}"
+                assert flag_kind in cls.FLAGS, f"{cls}: {
+                    field} missing flag {flag_kind}"
             xs += 1
             continue
         nfd = ALL_FIELDS_MAP[field]
@@ -1214,6 +1217,8 @@ BASE_TYPE_KIND_UINT = set([
     BASE_TYPE_KIND.U16,
     BASE_TYPE_KIND.U32,
     BASE_TYPE_KIND.U64,
+    BASE_TYPE_KIND.UINT,
+
 ])
 
 BASE_TYPE_KIND_SINT = set([
@@ -1221,6 +1226,7 @@ BASE_TYPE_KIND_SINT = set([
     BASE_TYPE_KIND.S16,
     BASE_TYPE_KIND.S32,
     BASE_TYPE_KIND.S64,
+    BASE_TYPE_KIND.SINT,
 ])
 
 BASE_TYPE_KIND_INT = BASE_TYPE_KIND_UINT | BASE_TYPE_KIND_SINT
