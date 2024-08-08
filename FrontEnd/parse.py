@@ -811,11 +811,18 @@ def _ParseFormalParams(inp: Lexer):
 
 def _ParseStatementMacro(kw: TK, inp: Lexer):
     assert kw.text.endswith("#"), f"{kw}"
+    args = []
     if inp.match(TK_KIND.PAREN_OPEN):
         args = _ParseMacroCallArgs(inp)
-        return cwast.MacroInvoke(kw.text, args, **_ExtractAnnotations(kw))
     else:
-        assert False
+        while True:
+            args.append(_ParseExpr(inp))
+            if inp.match(TK_KIND.COMMA):
+                continue
+            stmts = _ParseStatementList(inp, kw.column)
+            args.append(cwast.EphemeralList(stmts, colon=True))
+            break
+    return cwast.MacroInvoke(kw.text, args, **_ExtractAnnotations(kw))
 
 
 def _MaybeLabel(tk: TK, inp: Lexer):

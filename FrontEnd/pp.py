@@ -431,6 +431,7 @@ def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
 
 
 def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
+    """Handle Expression Macros"""
     if node.name == "^.":
         assert len(node.args) == 2
         TokensBinaryInfixNoSpace(
@@ -552,9 +553,9 @@ def WithMut(name: str, mutable: bool) -> str:
     return name + "!" if mutable else name
 
 
-
 def KW(node) -> str:
     return node.ALIAS
+
 
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
@@ -672,9 +673,19 @@ def _TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
     ts.EmitStmtEnd(beg)
 
 
+def _IsMacroWithBlock(node: cwast.MacroInvoke):
+    if node.name in BUILTIN_MACROS:
+        return True
+    if node.args:
+        last = node.args[-1]
+        if isinstance(last, cwast.EphemeralList) and last.colon:
+            return True
+    return False
+
 def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
+    """Handles Stmt Macros"""
     beg = ts.EmitStmtBeg(node.name)
-    is_block_like = node.name in BUILTIN_MACROS
+    is_block_like = _IsMacroWithBlock(node)
     if not is_block_like:
         beg_paren = ts.EmitBegParen("(")
 
