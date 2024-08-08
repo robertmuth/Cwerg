@@ -87,6 +87,10 @@ def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bo
         else:
             return ct_dst.is_mutable() == ct_src.is_mutable()
 
+    if ct_src.is_bool():
+        if ct_dst.is_int() or ct_dst.is_real():
+            return True
+
     if ct_src.is_array() and ct_dst.is_slice():
         # TODO: check "ref"
         return ct_src.underlying_array_type() == ct_dst.underlying_slice_type()
