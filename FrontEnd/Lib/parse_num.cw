@@ -2,6 +2,8 @@
 (module [] :
 (import number)
 
+(import fmt)
+
 
 @pub (@wrapped type ParseError void)
 
@@ -21,9 +23,10 @@
         (mparam $str ID)
         (mparam $c ID)
         (mparam $i ID)
-        (mparam $n ID)] [] :
+        (mparam $n ID)
+        (mparam $body STMT_LIST)] [] :
     (if (>= $i $n) :
-        (return ParseErrorVal)
+        $body
      :)
     (= $c (at $str $i))
     (+= $i 1))
@@ -40,17 +43,20 @@
         (<<= $val 4)
         (or= $val (as (hex_digit_val [$c]) u64))
         (+= $count 1)
-        (next_char# $str $c $i $n)))
+        (next_char# $str $c $i $n :
+            (return ParseErrorVal))))
 
 
+@doc "expects a string without sign and without '0x' prefix"
 (fun parse_r64_hex_helper [(param s (slice u8)) (param negative bool)] (union [ParseError r64]) :
-    @doc "minimum is 0x1p1 - 5 chars"
     (let! i uint 0)
     (let n auto (len s))
     (let! c u8)
-    (next_char# s c i n)
+    (next_char# s c i n :
+        (return ParseErrorVal))
     (while (== c '0') :
-        (next_char# s c i n))
+        (next_char# s c i n :
+            (return ParseErrorVal)))
     (let! digits_before_dot auto 0_u32)
     (let! mantissa auto 0_u64)
     (read_hex_digits# s c i n mantissa digits_before_dot)
@@ -62,22 +68,27 @@
         (+= i 1)
         (read_hex_digits# s c i n mantissa digits_after_dot)
      :)
-    (if (!= c 'p') :
-        (return ParseErrorVal)
-     :)
     (let! negative_exponent auto false)
-    (next_char# s c i n)
-    (if (|| (== c '-') (== c '+')) :
-        (if (== c '-') :
-            (= negative_exponent true)
-         :)
-        (next_char# s c i n)
-     :)
     (let! exponent auto 0_u32)
-    (while (&& (>= c '0') (<= c '9')) :
-        (*= exponent 10)
-        (+= exponent (as (- c '0') u32)))
+    (if (== c 'p') :
+        (next_char# s c i n :
+            (return ParseErrorVal))
+        (if (|| (== c '-') (== c '+')) :
+            (if (== c '-') :
+                (= negative_exponent true)
+             :)
+            (next_char# s c i n :
+                (return ParseErrorVal))
+         :)
+        (while (&& (>= c '0') (<= c '9')) :
+            (*= exponent 10)
+            (+= exponent (as (- c '0') u32))
+            (next_char# s c i n :
+                (break)))
+     :)
     (-= exponent (* digits_after_dot 4))
+    @doc """early out for simple corner case
+fmt::print# ("mantissa: ", mantissa, "\n")"""
     (if (== mantissa 0) :
         (return (? negative -0_r64 +0_r64))
      :)
@@ -106,16 +117,19 @@
 
 
 @pub (fun parse_r64 [(param s (slice u8))] (union [ParseError r64]) :
+    @doc "index of next char to read"
     (let! i uint 0)
     (let! n auto (len s))
     (let! c u8)
-    (next_char# s c i n)
+    (next_char# s c i n :
+        (return ParseErrorVal))
     (let! negative auto false)
     (if (|| (== c '-') (== c '+')) :
         (if (== c '-') :
             (= negative true)
          :)
-        (next_char# s c i n)
+        (next_char# s c i n :
+            (return ParseErrorVal))
      :)
     (if (== c 'i') :
         (if (|| (|| (!= (+ i 2) n) (!= (at s 1) 'n')) (!= (at s 2) 'f')) :
@@ -129,15 +143,13 @@
          :)
         (return ParseErrorVal)
      :)
-    (if (&& (&& (== c '0') (< (+ i 1) n)) (== (at s (+ i 1)) 'x')) :
-        (return (parse_r64_hex_helper [s negative]))
+    (if (&& (&& (== c '0') (<= i n)) (== (at s i) 'x')) :
+        (+= i 1)
+        (return (parse_r64_hex_helper [(slice_val (pinc (front s) i) (- n i)) negative]))
      :)
     (while (== c '0') :
-        (if (>= i n) :
-            (return (? negative -0.0_r64 +0.0_r64))
-         :)
-        (= c (at s i))
-        (+= i 1))
+        (next_char# s c i n :
+            (return (? negative -0.0_r64 +0.0_r64))))
     (return 1.0_r64))
 )
 

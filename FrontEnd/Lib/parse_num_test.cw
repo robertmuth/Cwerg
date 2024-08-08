@@ -34,13 +34,16 @@
     (test::AssertEqR64# +inf_r64 (parse_r64 ["+inf"]))
     (test::AssertEqR64# -inf_r64 (parse_r64 ["-inf"])))
 
+(fun test_hex [] void :
+    (test::AssertEqR64# 0x0p0 (parse_r64 ["0x0p0"]))
+)
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    @doc """
-    (fmt::print# (bitwise_as (parse_r64 ["-nan"]) u64) "\n")
-    (fmt::print# (bitwise_as -nan_r64 u64) "\n")
-    """
+    (fmt::print# (bitwise_as (parse_r64 ["0x0p0"]) u64) "\n")
+    (fmt::print# (bitwise_as 0x0p0_r64 u64) "\n")
     (do (test_simple []))
+    (do (test_hex []))
+
     (test::Success#)
     (return 0))
 )
