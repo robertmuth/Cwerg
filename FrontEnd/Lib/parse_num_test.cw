@@ -1,3 +1,4 @@
+
 (module [] :
 (import fmt)
 
@@ -35,7 +36,27 @@
     (test::AssertEqR64# -inf_r64 (parse_r64 ["-inf"])))
 
 (fun test_hex [] void :
+    @doc """
+    try testing.expectEqual(try parseFloat(f64, "-0x1p-1"), -0.5);
+    try testing.expectEqual(try parseFloat(f64, "0x10p+10"), 16384.0);
+    try testing.expectEqual(try parseFloat(f64, "0x10p-10"), 0.015625);
+    // Max normalized value.
+    try testing.expectEqual(try parseFloat(f64, "0x1.fffffffffffffp+1023"), math.floatMax(f64));
+    try testing.expectEqual(try parseFloat(f64, "-0x1.fffffffffffffp1023"), -math.floatMax(f64));
+    // Min normalized value.
+    try testing.expectEqual(try parseFloat(f64, "0x1p-1022"), math.floatMin(f64));
+    try testing.expectEqual(try parseFloat(f64, "-0x1p-1022"), -math.floatMin(f64));
+    // Min denormalized value.
+    try testing.expectEqual(try parseFloat(f64, "0x1p-1074"), math.floatTrueMin(f64));
+    try testing.expectEqual(try parseFloat(f64, "-0x1p-1074"), -math.floatTrueMin(f64));
+    """
+    (test::AssertEqR64# 0.125 (parse_r64 ["0x1p-3"]))
+    (test::AssertEqR64# 0.25 (parse_r64 ["0x1p-2"]))
+    (test::AssertEqR64# 0.5 (parse_r64 ["0x1p-1"]))
+
     (test::AssertEqR64# 0x0p0 (parse_r64 ["0x0p0"]))
+    (test::AssertEqR64# 1.0 (parse_r64 ["0x1p0"]))
+
 )
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

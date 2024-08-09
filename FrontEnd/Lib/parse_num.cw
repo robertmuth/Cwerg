@@ -1,4 +1,5 @@
-@doc "parse numbers from u8 to int/real"
+@doc """parse numbers from u8 to int/real
+https://gregstoll.com/~gregstoll/floattohex/"""
 (module [] :
 (import number)
 
@@ -58,41 +59,53 @@
         (next_char# s c i n :
             (return ParseErrorVal)))
     (let! digits_before_dot auto 0_u32)
-    (let! mantissa auto 0_u64)
-    (read_hex_digits# s c i n mantissa digits_before_dot)
+    (let! mant auto 0_u64)
+    (read_hex_digits# s c i n mant digits_before_dot)
     (let! digits_after_dot auto 0_u32)
     (if (== c '.') :
         (if (>= i n) :
             (return ParseErrorVal)
          :)
         (+= i 1)
-        (read_hex_digits# s c i n mantissa digits_after_dot)
+        (read_hex_digits# s c i n mant digits_after_dot)
      :)
-    (let! negative_exponent auto false)
-    (let! exponent auto 0_u32)
+    (let! negative_exp auto false)
+    (let! exp auto 0_u32)
     (if (== c 'p') :
         (next_char# s c i n :
             (return ParseErrorVal))
         (if (|| (== c '-') (== c '+')) :
             (if (== c '-') :
-                (= negative_exponent true)
+                (= negative_exp true)
              :)
             (next_char# s c i n :
                 (return ParseErrorVal))
          :)
         (while (&& (>= c '0') (<= c '9')) :
-            (*= exponent 10)
-            (+= exponent (as (- c '0') u32))
+            (*= exp 10)
+            (+= exp (as (- c '0') u32))
             (next_char# s c i n :
                 (break)))
      :)
-    (-= exponent (* digits_after_dot 4))
-    @doc """early out for simple corner case
-fmt::print# ("mantissa: ", mantissa, "\n")"""
-    (if (== mantissa 0) :
+    (if negative_exp :
+        (= exp (! exp))
+        (+= exp 1)
+     :)
+    (-= exp (* digits_after_dot 4))
+    (+= exp number::r64_mantissa_bits)
+    @doc "early out for simple corner case"
+    (if (== mant 0) :
         (return (? negative -0_r64 +0_r64))
      :)
-    (return 0_r64))
+    (fmt::print# "BEFORE mantissa: " mant " exponent: " exp " digits-bef: " digits_before_dot " digits-aft: " digits_after_dot "\n")
+    (while (== (>> mant (as number::r64_mantissa_bits u64)) 0) :
+        @doc """fmt::print# ("@@ shift ", mant, "\n")"""
+        (<<= mant 1)
+        (-= exp 1))
+    (and= mant number::r64_mantissa_mask)
+    (+= exp number::r64_exponent_bias)
+    (fmt::print# number::r64_mantissa_mask " mantissa: " mant " exponent: " exp "\n")
+    (return (number::make_r64 [negative (as exp u64) mant])))
 
 
 @pub (fun parse_r64_hex [(param s (slice u8))] (union [ParseError r64]) :

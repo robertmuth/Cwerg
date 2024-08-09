@@ -5,11 +5,11 @@
 
 
 @pub (global r64_mantissa_bits u32 52)
+@pub (global r64_mantissa_mask u64 (- (<< 1 52) 1))
 
+@pub (global r64_exponent_bias u32 1023)
 
 @pub (global r64_exponent_max s32 1023)
-
-
 @pub (global r64_exponent_min s32 -1022)
 
 @pub (fun make_r64 [(param negative bool)
