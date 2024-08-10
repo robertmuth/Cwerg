@@ -40,7 +40,6 @@
     @doc """
     try testing.expectEqual(try parseFloat(f64, "0x1.fffffffffffffp+1023"), math.floatMax(f64));
     try testing.expectEqual(try parseFloat(f64, "-0x1.fffffffffffffp1023"), -math.floatMax(f64));
-
     """
     (test::AssertEqR64# 1.0 (parse_r64 ["0x1p0"]))
     (test::AssertEqR64# 0.5 (parse_r64 ["0x1p-1"]))
@@ -70,9 +69,8 @@
     (test::AssertEqR64# 16.0 (parse_r64 ["0x10.0p0"]))
     (test::AssertEqR64# 1.0 (parse_r64 ["0x10p-4"]))
     (test::AssertEqR64# 1.00 (parse_r64 ["0x100p-8"]))
-    (test::AssertEqR64# 1.000 (parse_r64 ["0x100p-8"]))
 
-
+    (test::AssertEqR64# 1.000 (parse_r64 ["0x100.00p-8"]))
 
 )
 

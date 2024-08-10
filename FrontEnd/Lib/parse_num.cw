@@ -33,19 +33,43 @@ https://gregstoll.com/~gregstoll/floattohex/"""
     (+= $i 1))
 
 
+@doc """if we have too many digits we drop the one after the dot but
+adjust must adjust the exponent for the one before"""
 (macro read_hex_digits# STMT_LIST [
         (mparam $str ID)
         (mparam $c ID)
         (mparam $i ID)
         (mparam $n ID)
+        (mparam $max_digits EXPR)
         (mparam $val ID)
-        (mparam $count ID)] [] :
-    (while (is_hex_digit [c]) :
-        (<<= $val 4)
-        (or= $val (as (hex_digit_val [$c]) u64))
-        (+= $count 1)
+        (mparam $adjust ID)] [$digits] :
+    (mlet! $digits auto $max_digits)
+    @doc "ignore leading zeros"
+    (while (== c '0') :
         (next_char# $str $c $i $n :
-            (return ParseErrorVal))))
+            (return ParseErrorVal)))
+    (while (is_hex_digit [c]) :
+        (if (== $digits 0) :
+            (+= $adjust 4)
+         :
+            (<<= $val 4)
+            (or= $val (as (hex_digit_val [$c]) u64)))
+        (-= $digits 1)
+        (next_char# $str $c $i $n :
+            (return ParseErrorVal)))
+    (if (== c '.') :
+        (next_char# $str $c $i $n :
+            (return ParseErrorVal))
+        (while (is_hex_digit [c]) :
+            (if (!= $digits 0) :
+                (<<= $val 4)
+                (or= $val (as (hex_digit_val [$c]) u64))
+                (-= $adjust 4)
+             :)
+            (-= $digits 1)
+            (next_char# $str $c $i $n :
+                (return ParseErrorVal)))
+     :))
 
 
 @doc "expects a string without sign and without '0x' prefix"
@@ -55,23 +79,13 @@ https://gregstoll.com/~gregstoll/floattohex/"""
     (let! c u8)
     (next_char# s c i n :
         (return ParseErrorVal))
-    (while (== c '0') :
-        (next_char# s c i n :
-            (return ParseErrorVal)))
-    (let! digits_before_dot auto 0_s32)
     (let! mant auto 0_u64)
-    (read_hex_digits# s c i n mant digits_before_dot)
-    (let! digits_after_dot auto 0_s32)
-    (if (== c '.') :
-        (if (>= i n) :
-            (return ParseErrorVal)
-         :)
-        (+= i 1)
-        (read_hex_digits# s c i n mant digits_after_dot)
-     :)
-    (let! negative_exp auto false)
+    (let! exp_adjustments auto 0_s32)
+    @doc "allow an extra 2 digits"
+    (read_hex_digits# s c i n (+ (/ number::r64_mantissa_bits 8) 2) mant exp_adjustments)
     (let! exp auto 0_s32)
     (if (== c 'p') :
+        (let! negative_exp auto false)
         (next_char# s c i n :
             (return ParseErrorVal))
         (if (|| (== c '-') (== c '+')) :
@@ -86,17 +100,17 @@ https://gregstoll.com/~gregstoll/floattohex/"""
             (+= exp (as (- c '0') s32))
             (next_char# s c i n :
                 (break)))
+        (if negative_exp :
+            (= exp (~ exp))
+         :)
      :)
-    (if negative_exp :
-        (= exp (~ exp))
-     :)
-    (-= exp (* digits_after_dot 4))
+    (+= exp exp_adjustments)
     (+= exp (as number::r64_mantissa_bits s32))
     @doc "early out for simple corner case"
     (if (== mant 0) :
         (return (? negative -0_r64 +0_r64))
      :)
-    (fmt::print# "BEFORE mantissa: " mant " exponent: " exp " digits-bef: " digits_before_dot " digits-aft: " digits_after_dot "\n")
+    (fmt::print# "BEFORE mantissa: " mant " exponent: " exp "\n")
     @doc """replace this while loop utilizing "count leading zeros""""
     (while (== (>> mant (as number::r64_mantissa_bits u64)) 0) :
         @doc """fmt::print# ("@@ shift ", mant, "\n")"""
