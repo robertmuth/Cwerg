@@ -20,6 +20,14 @@ https://gregstoll.com/~gregstoll/floattohex/"""
     (return (? (<= c '9') (- c '0') (+ (- c 'a') 10))))
 
 
+(fun is_dec_digit [(param c u8)] bool :
+    (return (&& (>= c '0') (<= c '9'))))
+
+
+(fun dec_digit_val [(param c u8)] u8 :
+    (return (- c '0')))
+
+
 @doc "this macros capture i,n,s from the environment"
 (macro next_char# STMT_LIST [(mparam $c ID) (mparam $body STMT_LIST)] [] :
     (if (>= i n) :
@@ -37,33 +45,69 @@ this macro captures i,n,s from the environment"""
         (mparam $max_digits EXPR)
         (mparam $val ID)
         (mparam $adjust ID)] [$digits] :
-    (mlet! $digits auto $max_digits)
-    @doc "ignore leading zeros"
-    (while (== $c '0') :
-        (next_char# $c :
-            (return ParseErrorVal)))
-    (while (is_hex_digit [c]) :
-        (if (== $digits 0) :
-            (+= $adjust 4)
-         :
-            (<<= $val 4)
-            (or= $val (as (hex_digit_val [$c]) u64))
-            (-= $digits 1))
-        (next_char# $c :
-            (return ParseErrorVal)))
-    (if (== c '.') :
-        (next_char# $c :
-            (return ParseErrorVal))
-        (while (is_hex_digit [c]) :
-            (if (!= $digits 0) :
-                (<<= $val 4)
-                (or= $val (as (hex_digit_val [$c]) u64))
-                (-= $adjust 4)
-                (-= $digits 1)
-             :)
+    (block end_of_input :
+        (mlet! $digits auto $max_digits)
+        @doc "ignore leading zeros"
+        (while (== $c '0') :
             (next_char# $c :
-                (return ParseErrorVal)))
-     :))
+                (break end_of_input)))
+        (while (is_hex_digit [$c]) :
+            (if (== $digits 0) :
+                (+= $adjust 1)
+             :
+                (*= $val 16)
+                (+= $val (as (hex_digit_val [$c]) u64))
+                (-= $digits 1))
+            (next_char# $c :
+                (break end_of_input)))
+        (if (== c '.') :
+            (next_char# $c :
+                (break end_of_input))
+            (while (is_hex_digit [$c]) :
+                (if (!= $digits 0) :
+                    (*= $val 16)
+                    (+= $val (as (hex_digit_val [$c]) u64))
+                    (-= $adjust 1)
+                    (-= $digits 1)
+                 :)
+                (next_char# $c :
+                    (break end_of_input)))
+         :)))
+
+
+(macro read_dec_mantissa# STMT_LIST [
+        (mparam $c ID)
+        (mparam $max_digits EXPR)
+        (mparam $val ID)
+        (mparam $adjust ID)] [$digits] :
+    (block end_of_input :
+        (mlet! $digits auto $max_digits)
+        @doc "ignore leading zeros"
+        (while (== $c '0') :
+            (next_char# $c :)
+            (break end_of_input))
+        (while (is_dec_digit [$c]) :
+            (if (== $digits 0) :
+                (+= $adjust 1)
+             :
+                (*= $val 10)
+                (+= $val (as (dec_digit_val [$c]) u64))
+                (-= $digits 1))
+            (next_char# $c :
+                (break end_of_input)))
+        (if (== c '.') :
+            (next_char# $c :
+                (return ParseErrorVal))
+            (while (is_dec_digit [$c]) :
+                (if (!= $digits 0) :
+                    (*= $val 10)
+                    (+= $val (as (dec_digit_val [$c]) u64))
+                    (-= $adjust 1)
+                    (-= $digits 1)
+                 :)
+                (next_char# $c :
+                    (break end_of_input)))
+         :)))
 
 
 @doc "this macro captures i,n,s from the environment"
@@ -76,9 +120,9 @@ this macro captures i,n,s from the environment"""
         (next_char# $c :
             (return ParseErrorVal))
      :)
-    (while (&& (>= $c '0') (<= $c '9')) :
+    (while (is_dec_digit [$c]) :
         (*= $exp 10)
-        (+= $exp (as (- $c '0') s32))
+        (+= $exp (as (dec_digit_val [$c]) s32))
         (next_char# $c :
             (break)))
     (if $negative :
@@ -98,21 +142,21 @@ note. this code does not perform
         (return ParseErrorVal))
     (let! mant auto 0_u64)
     (let! exp_adjustments auto 0_s32)
+    (let! exp auto 0_s32)
     @doc "allow an extra 2 digits beyond the 52 / 4 = 13 mantissa hex digits"
     (read_hex_mantissa# c (+ (/ number::r64_mantissa_bits 4) 2) mant exp_adjustments)
-    (let! exp auto 0_s32)
     (if (== c 'p') :
         (next_char# c :
             (return ParseErrorVal))
         (read_dec_exponent# c exp)
      :)
-    @doc "TODO: check that we have consumed all chars"
-    (+= exp exp_adjustments)
-    (+= exp (as number::r64_mantissa_bits s32))
-    @doc "early out for simple corner case"
+    @doc """TODO: check that we have consumed all chars
+early out for simple corner case"""
     (if (== mant 0) :
         (return (? negative -0_r64 +0_r64))
      :)
+    (+= exp (* exp_adjustments 4))
+    (+= exp (as number::r64_mantissa_bits s32))
     @doc """gitfmt::print# ("BEFORE mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
 we want the highest set bit to be at position number::r64_mantissa_bits + 1
 replace both while loops utilizing "count leading zeros""""
@@ -192,9 +236,22 @@ final touches"""
         (+= i 1)
         (return (parse_r64_hex_helper [(slice_val (pinc (front s) i) (- n i)) negative]))
      :)
-    (while (== c '0') :
+    (let! mant auto 0_u64)
+    (let! exp_adjustments auto 0_s32)
+    (let! exp auto 0_s32)
+    @doc "log2(10^19) == 63.11"
+    (read_dec_mantissa# c 19_s32 mant exp_adjustments)
+    (if (== c 'e') :
         (next_char# c :
-            (return (? negative -0.0_r64 +0.0_r64))))
-    (return 1.0_r64))
+            (return ParseErrorVal))
+        (read_dec_exponent# c exp)
+     :)
+    @doc """TODO: check that we have consumed all chars
+early out for simple corner case
+fmt::print# ("AFTER mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")"""
+    (if (== mant 0) :
+        (return (? negative -0_r64 +0_r64))
+     :)
+    (return ParseErrorVal))
 )
 

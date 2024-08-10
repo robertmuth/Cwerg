@@ -19,7 +19,7 @@
 
 
 (fun test_simple [] void :
-    @doc "zero tests"
+    @doc """zero tests"""
     (test::AssertNeR64# +0.0_r64 -0.0_r64)
     (test::AssertEqR64# 0.0_r64 (parse_r64 ["0"]))
     (test::AssertEqR64# 0.0_r64 (parse_r64 ["+0"]))
@@ -27,6 +27,7 @@
     (test::AssertEqR64# 0.0_r64 (parse_r64 ["+000000"]))
     (test::AssertEq# -0.0_r64 (parse_r64 ["-0"]))
     (test::AssertEqR64# 0.0_r64 (parse_r64 ["000000"]))
+
     @doc "sanity checks for NANs"
     (test::AssertNeR64# +inf_r64 -inf_r64)
     (test::AssertNeR64# +nan_r64 -nan_r64)
@@ -41,6 +42,8 @@
     try testing.expectEqual(try parseFloat(f64, "0x1.fffffffffffffp+1023"), math.floatMax(f64));
     try testing.expectEqual(try parseFloat(f64, "-0x1.fffffffffffffp1023"), -math.floatMax(f64));
     """
+    (test::AssertEqR64# 0.0 (parse_r64 ["0x0"]))
+    (test::AssertEqR64# 0.0 (parse_r64 ["0x.0"]))
     (test::AssertEqR64# 1.0 (parse_r64 ["0x1p0"]))
     (test::AssertEqR64# 0.5 (parse_r64 ["0x1p-1"]))
     (test::AssertEqR64# 0.25 (parse_r64 ["0x1p-2"]))
@@ -51,6 +54,8 @@
     (test::AssertEqR64#  0.015625 (parse_r64 ["0x10p-10"]))
 
     @doc "negative"
+    (test::AssertEqR64# -0.0 (parse_r64 ["-0x0"]))
+    (test::AssertEqR64# -0.0 (parse_r64 ["-0x.0"]))
     (test::AssertEqR64# -0x0p0 (parse_r64 ["-0x0p0"]))
     (test::AssertEqR64# -1.0 (parse_r64 ["-0x1p0"]))
     (test::AssertEqR64# -0.5 (parse_r64 ["-0x1p-1"]))
