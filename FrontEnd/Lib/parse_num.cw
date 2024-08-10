@@ -20,33 +20,25 @@ https://gregstoll.com/~gregstoll/floattohex/"""
     (return (? (<= c '9') (- c '0') (+ (- c 'a') 10))))
 
 
-(macro next_char# STMT_LIST [
-        (mparam $str ID)
-        (mparam $c ID)
-        (mparam $i ID)
-        (mparam $n ID)
-        (mparam $body STMT_LIST)] [] :
-    (if (>= $i $n) :
+(macro next_char# STMT_LIST [(mparam $c ID) (mparam $body STMT_LIST)] [] :
+    (if (>= i n) :
         $body
      :)
-    (= $c (at $str $i))
-    (+= $i 1))
+    (= $c (at s i))
+    (+= i 1))
 
 
 @doc """if we have too many digits we drop the one after the dot but
 adjust must adjust the exponent for the one before"""
 (macro read_hex_digits# STMT_LIST [
-        (mparam $str ID)
         (mparam $c ID)
-        (mparam $i ID)
-        (mparam $n ID)
         (mparam $max_digits EXPR)
         (mparam $val ID)
         (mparam $adjust ID)] [$digits] :
     (mlet! $digits auto $max_digits)
     @doc "ignore leading zeros"
-    (while (== c '0') :
-        (next_char# $str $c $i $n :
+    (while (== $c '0') :
+        (next_char# $c :
             (return ParseErrorVal)))
     (while (is_hex_digit [c]) :
         (if (== $digits 0) :
@@ -55,10 +47,10 @@ adjust must adjust the exponent for the one before"""
             (<<= $val 4)
             (or= $val (as (hex_digit_val [$c]) u64)))
         (-= $digits 1)
-        (next_char# $str $c $i $n :
+        (next_char# $c :
             (return ParseErrorVal)))
     (if (== c '.') :
-        (next_char# $str $c $i $n :
+        (next_char# $c :
             (return ParseErrorVal))
         (while (is_hex_digit [c]) :
             (if (!= $digits 0) :
@@ -67,7 +59,7 @@ adjust must adjust the exponent for the one before"""
                 (-= $adjust 4)
              :)
             (-= $digits 1)
-            (next_char# $str $c $i $n :
+            (next_char# $c :
                 (return ParseErrorVal)))
      :))
 
@@ -77,28 +69,28 @@ adjust must adjust the exponent for the one before"""
     (let! i uint 0)
     (let n auto (len s))
     (let! c u8)
-    (next_char# s c i n :
+    (next_char# c :
         (return ParseErrorVal))
     (let! mant auto 0_u64)
     (let! exp_adjustments auto 0_s32)
     @doc "allow an extra 2 digits"
-    (read_hex_digits# s c i n (+ (/ number::r64_mantissa_bits 8) 2) mant exp_adjustments)
+    (read_hex_digits# c (+ (/ number::r64_mantissa_bits 8) 2) mant exp_adjustments)
     (let! exp auto 0_s32)
     (if (== c 'p') :
         (let! negative_exp auto false)
-        (next_char# s c i n :
+        (next_char# c :
             (return ParseErrorVal))
         (if (|| (== c '-') (== c '+')) :
             (if (== c '-') :
                 (= negative_exp true)
              :)
-            (next_char# s c i n :
+            (next_char# c :
                 (return ParseErrorVal))
          :)
         (while (&& (>= c '0') (<= c '9')) :
             (*= exp 10)
             (+= exp (as (- c '0') s32))
-            (next_char# s c i n :
+            (next_char# c :
                 (break)))
         (if negative_exp :
             (= exp (~ exp))
@@ -159,14 +151,14 @@ maybe return 0.0"""
     (let! i uint 0)
     (let! n auto (len s))
     (let! c u8)
-    (next_char# s c i n :
+    (next_char# c :
         (return ParseErrorVal))
     (let! negative auto false)
     (if (|| (== c '-') (== c '+')) :
         (if (== c '-') :
             (= negative true)
          :)
-        (next_char# s c i n :
+        (next_char# c :
             (return ParseErrorVal))
      :)
     (if (== c 'i') :
@@ -186,7 +178,7 @@ maybe return 0.0"""
         (return (parse_r64_hex_helper [(slice_val (pinc (front s) i) (- n i)) negative]))
      :)
     (while (== c '0') :
-        (next_char# s c i n :
+        (next_char# c :
             (return (? negative -0.0_r64 +0.0_r64))))
     (return 1.0_r64))
 )
