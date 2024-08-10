@@ -2,15 +2,16 @@
 
 @doc "https://en.wikipedia.org/wiki/IEEE_754"
 @pub (global r64_exponent_bits u32 11)
-
-
 @pub (global r64_mantissa_bits u32 52)
 @pub (global r64_mantissa_mask u64 (- (<< 1 52) 1))
+@pub (global r64_exponent_mask u64 (- (<< 1 11) 1))
 
-@pub (global r64_exponent_bias u32 1023)
-
+@pub (global r64_exponent_bias s32 1023)
 @pub (global r64_exponent_max s32 1023)
 @pub (global r64_exponent_min s32 -1022)
+
+@doc """note: we do not support denorms"""
+@pub (global r64_min r64 -0x1p-1022)
 
 @pub (fun make_r64 [(param negative bool)
                     (param exp u64)

@@ -58,10 +58,10 @@ https://gregstoll.com/~gregstoll/floattohex/"""
     (while (== c '0') :
         (next_char# s c i n :
             (return ParseErrorVal)))
-    (let! digits_before_dot auto 0_u32)
+    (let! digits_before_dot auto 0_s32)
     (let! mant auto 0_u64)
     (read_hex_digits# s c i n mant digits_before_dot)
-    (let! digits_after_dot auto 0_u32)
+    (let! digits_after_dot auto 0_s32)
     (if (== c '.') :
         (if (>= i n) :
             (return ParseErrorVal)
@@ -70,7 +70,7 @@ https://gregstoll.com/~gregstoll/floattohex/"""
         (read_hex_digits# s c i n mant digits_after_dot)
      :)
     (let! negative_exp auto false)
-    (let! exp auto 0_u32)
+    (let! exp auto 0_s32)
     (if (== c 'p') :
         (next_char# s c i n :
             (return ParseErrorVal))
@@ -83,29 +83,40 @@ https://gregstoll.com/~gregstoll/floattohex/"""
          :)
         (while (&& (>= c '0') (<= c '9')) :
             (*= exp 10)
-            (+= exp (as (- c '0') u32))
+            (+= exp (as (- c '0') s32))
             (next_char# s c i n :
                 (break)))
      :)
     (if negative_exp :
-        (= exp (! exp))
-        (+= exp 1)
+        (= exp (~ exp))
      :)
     (-= exp (* digits_after_dot 4))
-    (+= exp number::r64_mantissa_bits)
+    (+= exp (as number::r64_mantissa_bits s32))
     @doc "early out for simple corner case"
     (if (== mant 0) :
         (return (? negative -0_r64 +0_r64))
      :)
     (fmt::print# "BEFORE mantissa: " mant " exponent: " exp " digits-bef: " digits_before_dot " digits-aft: " digits_after_dot "\n")
+    @doc """replace this while loop utilizing "count leading zeros""""
     (while (== (>> mant (as number::r64_mantissa_bits u64)) 0) :
         @doc """fmt::print# ("@@ shift ", mant, "\n")"""
         (<<= mant 1)
         (-= exp 1))
-    (and= mant number::r64_mantissa_mask)
+    (if (> exp number::r64_exponent_max) :
+        @doc "maybe return inf"
+        (return ParseErrorVal)
+     :)
+    (if (< exp number::r64_exponent_min) :
+        @doc """we do not support denormalization
+maybe return 0.0"""
+        (return ParseErrorVal)
+     :)
     (+= exp number::r64_exponent_bias)
+    @doc "final touches"
+    (let exp_u64 auto (and (as exp u64) number::r64_exponent_mask))
+    (and= mant number::r64_mantissa_mask)
     (fmt::print# number::r64_mantissa_mask " mantissa: " mant " exponent: " exp "\n")
-    (return (number::make_r64 [negative (as exp u64) mant])))
+    (return (number::make_r64 [negative exp_u64 mant])))
 
 
 @pub (fun parse_r64_hex [(param s (slice u8))] (union [ParseError r64]) :
