@@ -18,15 +18,8 @@
     (return (narrow_as (parse_num::parse_r64 [s]) r64)))
 
 
-(fun test_simple [] void :
-    @doc """zero tests"""
-    (test::AssertNeR64# +0.0_r64 -0.0_r64)
-    (test::AssertEqR64# 0.0_r64 (parse_r64 ["0"]))
-    (test::AssertEqR64# 0.0_r64 (parse_r64 ["+0"]))
-    (test::AssertEqR64# 0.0_r64 (parse_r64 ["000000"]))
-    (test::AssertEqR64# 0.0_r64 (parse_r64 ["+000000"]))
-    (test::AssertEq# -0.0_r64 (parse_r64 ["-0"]))
-    (test::AssertEqR64# 0.0_r64 (parse_r64 ["000000"]))
+(fun test_nan [] void :
+
 
     @doc "sanity checks for NANs"
     (test::AssertNeR64# +inf_r64 -inf_r64)
@@ -36,6 +29,39 @@
     (test::AssertEqR64# +nan_r64 (parse_r64 ["+nan"]))
     (test::AssertEqR64# +inf_r64 (parse_r64 ["+inf"]))
     (test::AssertEqR64# -inf_r64 (parse_r64 ["-inf"])))
+
+(fun test_dec [] void :
+    @doc """zero tests"""
+    (test::AssertNeR64# +0.0_r64 -0.0_r64)
+    (test::AssertEqR64# 0.0_r64 (parse_r64 ["0"]))
+    (test::AssertEqR64# 0.0_r64 (parse_r64 ["+0"]))
+    (test::AssertEq# -0.0_r64 (parse_r64 ["-0"]))
+    (test::AssertEqR64# 0.0_r64 (parse_r64 ["000000"]))
+    (test::AssertEqR64# 0.0_r64 (parse_r64 ["+000000"]))
+    (test::AssertEqR64# -0.0_r64 (parse_r64 ["-000000"]))
+
+    (test::AssertEqR64# 0.0_r64 (parse_r64 [".0"]))
+    (test::AssertEqR64# 0.0_r64 (parse_r64 [".00000"]))
+    (test::AssertEqR64# 0.0_r64 (parse_r64 ["000000.00000"]))
+    (test::AssertEqR64# 0.0_r64 (parse_r64 ["000000.00000"]))
+
+    @doc """regular tests"""
+    (test::AssertEqR64# 1.0_r64 (parse_r64 ["1"]))
+    (test::AssertEqR64# 1.0_r64 (parse_r64 [".1e1"]))
+    (test::AssertEqR64# 1.0_r64 (parse_r64 [".0000000001e10"]))
+    (test::AssertEqR64# 666_r64 (parse_r64 ["666"]))
+    (test::AssertEqR64# 666_r64 (parse_r64 ["666.00000"]))
+    (test::AssertEqR64# 0_r64 (parse_r64 ["1e-500"]))
+    (test::AssertEqR64# -0_r64 (parse_r64 ["-1e-500"]))
+    (test::AssertEqR64# +inf_r64 (parse_r64 ["1e+500"]))
+    (test::AssertEqR64# -inf_r64 (parse_r64 ["-1e+500"]))
+    (test::AssertEqR64# 3.141592653589793238462643_r64 (parse_r64 ["3.141592653589793238462643"]))
+    (test::AssertEqR64# 2.718281828459045235360287_r64 (parse_r64 ["2.718281828459045235360287"]))
+    @doc """largest value (2^53 -1) * 2^(1023 - 52)
+    Note we have an error here: 0x1.ffffffffffffbp1023_r64 should be 0x1.fffffffffffffp1023_r64
+    """
+    (test::AssertEqR64# 0x1.ffffffffffffbp1023_r64 (parse_r64 ["1.79769313486231570814e308"]))
+)
 
 (fun test_hex [] void :
     @doc """
@@ -89,9 +115,12 @@
 )
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
-    (fmt::print# (bitwise_as (parse_r64 ["0x0p0"]) u64) "\n")
+    @doc """
+    (fmt::print# (wrap_as (parse_r64 ["1.79769313486231570814e308"]) fmt::r64_hex) "\n")
     (fmt::print# (bitwise_as 0x0p0_r64 u64) "\n")
-    (do (test_simple []))
+    """
+    (do (test_nan []))
+    (do (test_dec []))
     (do (test_hex []))
 
     (test::Success#)
