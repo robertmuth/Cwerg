@@ -68,10 +68,19 @@
     (test::AssertEqR64# 16.0 (parse_r64 ["0x10p0"]))
     (test::AssertEqR64# 16.0 (parse_r64 ["0x10.0p0"]))
     (test::AssertEqR64# 1.0 (parse_r64 ["0x10p-4"]))
-    (test::AssertEqR64# 1.00 (parse_r64 ["0x100p-8"]))
+    (test::AssertEqR64# 1.0 (parse_r64 ["0x100p-8"]))
+    (test::AssertEqR64# 1.0 (parse_r64 ["0x100.00p-8"]))
+    (test::AssertEqR64# 1.0 (parse_r64 ["0x0.01p8"]))
 
-    (test::AssertEqR64# 1.000 (parse_r64 ["0x100.00p-8"]))
-
+    @doc "after the point"
+    (test::AssertEqR64#  0x1.fffep-1 (parse_r64 ["0x0.ffffp0"]))
+    (test::AssertEqR64#  0x1.fffffffep-1 (parse_r64 ["0x0.ffffffffp0"]))
+    (test::AssertEqR64#  0x1.fffffffffffep-1 (parse_r64 ["0x0.ffffffffffffp0"]))
+    (test::AssertEqR64#  0x1.fffffffffffffp-1 (parse_r64 ["0x0.fffffffffffff8p0"]))
+    @doc "extra digits have no effect"
+    (test::AssertEqR64#  0x1.fffffffffffffp-1 (parse_r64 ["0x0.fffffffffffffffffffffp0"]))
+    (test::AssertEqR64#  0x1fffffffffffffp0 (parse_r64 ["0x1fffffffffffffp0"]))
+    (test::AssertEqR64#  0x1fffffffffffffp32 (parse_r64 ["0x1fffffffffffffffffffffp0"]))
 )
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

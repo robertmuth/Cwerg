@@ -20,6 +20,7 @@ https://gregstoll.com/~gregstoll/floattohex/"""
     (return (? (<= c '9') (- c '0') (+ (- c 'a') 10))))
 
 
+@doc "this macros capture i,n,s from the environment"
 (macro next_char# STMT_LIST [(mparam $c ID) (mparam $body STMT_LIST)] [] :
     (if (>= i n) :
         $body
@@ -29,8 +30,9 @@ https://gregstoll.com/~gregstoll/floattohex/"""
 
 
 @doc """if we have too many digits we drop the one after the dot but
-adjust must adjust the exponent for the one before"""
-(macro read_hex_digits# STMT_LIST [
+adjust must adjust the exponent for the one before
+this macro captures i,n,s from the environment"""
+(macro read_hex_mantissa# STMT_LIST [
         (mparam $c ID)
         (mparam $max_digits EXPR)
         (mparam $val ID)
@@ -45,8 +47,8 @@ adjust must adjust the exponent for the one before"""
             (+= $adjust 4)
          :
             (<<= $val 4)
-            (or= $val (as (hex_digit_val [$c]) u64)))
-        (-= $digits 1)
+            (or= $val (as (hex_digit_val [$c]) u64))
+            (-= $digits 1))
         (next_char# $c :
             (return ParseErrorVal)))
     (if (== c '.') :
@@ -57,14 +59,37 @@ adjust must adjust the exponent for the one before"""
                 (<<= $val 4)
                 (or= $val (as (hex_digit_val [$c]) u64))
                 (-= $adjust 4)
+                (-= $digits 1)
              :)
-            (-= $digits 1)
             (next_char# $c :
                 (return ParseErrorVal)))
      :))
 
 
-@doc "expects a string without sign and without '0x' prefix"
+@doc "this macro captures i,n,s from the environment"
+(macro read_dec_exponent# STMT_LIST [(mparam $c ID) (mparam $exp ID)] [$negative] :
+    (mlet! $negative auto false)
+    (if (|| (== $c '-') (== $c '+')) :
+        (if (== $c '-') :
+            (= $negative true)
+         :)
+        (next_char# $c :
+            (return ParseErrorVal))
+     :)
+    (while (&& (>= $c '0') (<= $c '9')) :
+        (*= $exp 10)
+        (+= $exp (as (- $c '0') s32))
+        (next_char# $c :
+            (break)))
+    (if $negative :
+        (= $exp (~ exp))
+     :))
+
+
+@doc """expects a string without sign and without '0x' prefix
+note. this code does not perform
+* denormalization - this is not supported by Cwerg
+* rounding - the whole point of hex float is to control the mantissa exactly"""
 (fun parse_r64_hex_helper [(param s (slice u8)) (param negative bool)] (union [ParseError r64]) :
     (let! i uint 0)
     (let n auto (len s))
@@ -73,41 +98,31 @@ adjust must adjust the exponent for the one before"""
         (return ParseErrorVal))
     (let! mant auto 0_u64)
     (let! exp_adjustments auto 0_s32)
-    @doc "allow an extra 2 digits"
-    (read_hex_digits# c (+ (/ number::r64_mantissa_bits 8) 2) mant exp_adjustments)
+    @doc "allow an extra 2 digits beyond the 52 / 4 = 13 mantissa hex digits"
+    (read_hex_mantissa# c (+ (/ number::r64_mantissa_bits 4) 2) mant exp_adjustments)
     (let! exp auto 0_s32)
     (if (== c 'p') :
-        (let! negative_exp auto false)
         (next_char# c :
             (return ParseErrorVal))
-        (if (|| (== c '-') (== c '+')) :
-            (if (== c '-') :
-                (= negative_exp true)
-             :)
-            (next_char# c :
-                (return ParseErrorVal))
-         :)
-        (while (&& (>= c '0') (<= c '9')) :
-            (*= exp 10)
-            (+= exp (as (- c '0') s32))
-            (next_char# c :
-                (break)))
-        (if negative_exp :
-            (= exp (~ exp))
-         :)
+        (read_dec_exponent# c exp)
      :)
+    @doc "TODO: check that we have consumed all chars"
     (+= exp exp_adjustments)
     (+= exp (as number::r64_mantissa_bits s32))
     @doc "early out for simple corner case"
     (if (== mant 0) :
         (return (? negative -0_r64 +0_r64))
      :)
-    (fmt::print# "BEFORE mantissa: " mant " exponent: " exp "\n")
-    @doc """replace this while loop utilizing "count leading zeros""""
+    @doc """gitfmt::print# ("BEFORE mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
+we want the highest set bit to be at position number::r64_mantissa_bits + 1
+replace both while loops utilizing "count leading zeros""""
     (while (== (>> mant (as number::r64_mantissa_bits u64)) 0) :
         @doc """fmt::print# ("@@ shift ", mant, "\n")"""
-        (<<= mant 1)
-        (-= exp 1))
+        (<<= mant 8)
+        (-= exp 8))
+    (while (!= (>> mant (as number::r64_mantissa_bits u64)) 1) :
+        (>>= mant 1)
+        (+= exp 1))
     (if (> exp number::r64_exponent_max) :
         @doc "maybe return inf"
         (return ParseErrorVal)
@@ -118,10 +133,10 @@ maybe return 0.0"""
         (return ParseErrorVal)
      :)
     (+= exp number::r64_exponent_bias)
-    @doc "final touches"
+    @doc """fmt::print# ("AFTER mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
+final touches"""
     (let exp_u64 auto (and (as exp u64) number::r64_exponent_mask))
     (and= mant number::r64_mantissa_mask)
-    (fmt::print# number::r64_mantissa_mask " mantissa: " mant " exponent: " exp "\n")
     (return (number::make_r64 [negative exp_u64 mant])))
 
 
