@@ -6,13 +6,7 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
 
 (import parse_num)
 
-(import number)
-
-
-(global NAN_EXP auto 1024_s32)
-
-
-(global DENORM_EXP auto -1023_s32)
+(import num_real)
 
 
 (global log2_10 r64 3.3219280948873623478703194294)
@@ -30,8 +24,8 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
 @doc """compute n so that:
 target_range_lo <= x * 10^n < target_range_hi"""
 (fun exp10_multiplier [(param x r64)] s32 :
-    (let biased_exp auto (- (as (>> (paren (<< (bitwise_as x u64) 1)) 53) s32) number::r64_exponent_bias))
-    (if (|| (== biased_exp DENORM_EXP) (== biased_exp NAN_EXP)) :
+    (let biased_exp auto (- (as (>> (paren (<< (bitwise_as x u64) 1)) 53) s32) num_real::r64_exponent_bias))
+    (if (|| (== biased_exp num_real::r64_exponent_nan) (== biased_exp num_real::r64_exponent_denorm)) :
         (return biased_exp)
      :)
     @doc "first approximation of a power of 10"

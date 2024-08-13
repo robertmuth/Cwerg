@@ -4,7 +4,7 @@
 (import test)
 
 (import fmt_real)
-(import number)
+(import num_real)
 
 
 (fun test_nan [] void :
