@@ -261,7 +261,7 @@
     (let exp_bits auto (and (>> val_bits 52) 0x7ff))
     (let sign_bit auto (and (>> val_bits 63) 1))
     (if (== exp_bits 0x7ff) :
-        (return (num_real::NanToStr [(== sign_bit 0) (== frac_bits 0) out]))
+        (return (num_real::NanToStr [(== sign_bit 1) (== frac_bits 0) out]))
      :)
     (let! buf auto (front! out))
     (let! exp auto (- exp_bits 1023))

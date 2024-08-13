@@ -96,17 +96,17 @@
 
 
 @pub (fun NanToStr [
-        (param is_non_neg bool)
+        (param is_neg bool)
         (param frac_is_zero bool)
         (param out (slice! u8))] uint :
     (if frac_is_zero :
-        (if is_non_neg :
-            (return (slice_copy [INF_POS out]))
+        (if is_neg :
+            (return (slice_copy [INF_NEG out]))
          :
-            (return (slice_copy [INF_NEG out])))
+            (return (slice_copy [INF_POS out])))
      :
-        (if is_non_neg :
-            (return (slice_copy [NAN_POS out]))
+        (if is_neg :
+            (return (slice_copy [NAN_NEG out]))
          :
-            (return (slice_copy [NAN_NEG out])))))
+            (return (slice_copy [NAN_POS out])))))
 )

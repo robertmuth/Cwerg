@@ -33,5 +33,7 @@ target_range_lo <= x * 10^n < target_range_hi"""
     (return 0))
 
 
-@pub (fun fmt_r64 [(param x r64) (param out (slice! u8))] void :)
+@pub (fun fmt_r64 [(param x r64) (param out (slice! u8))] uint :
+    (return 0))
 )
+
