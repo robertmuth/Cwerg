@@ -1,6 +1,6 @@
 (module [] :
 (import os)
-
+(import number)
 
 @pub @extern (fun memcpy [
         (param dst (ptr! u8))
@@ -247,39 +247,6 @@
         (return 1)))
 
 
-(global INF_POS auto "inf")
-
-
-(global INF_NEG auto "-inf")
-
-
-(global NAN_POS auto "nan")
-
-
-(global NAN_NEG auto "-nan")
-
-
-(fun slice_copy [(param src (slice u8)) (param dst (slice! u8))] uint :
-    (let n uint (min (len src) (len dst)))
-    (return (mymemcpy [(front! dst) (front src) n])))
-
-
-(fun nan_to_str [
-        (param is_non_neg bool)
-        (param frac_is_zero bool)
-        (param out (slice! u8))] uint :
-    (if frac_is_zero :
-        (if is_non_neg :
-            (return (slice_copy [INF_POS out]))
-         :
-            (return (slice_copy [INF_NEG out])))
-     :
-        (if is_non_neg :
-            (return (slice_copy [NAN_POS out]))
-         :
-            (return (slice_copy [NAN_NEG out])))))
-
-
 (fun to_hex_digit [(param digit u8)] u8 :
     (return (? (<= digit 9) (+ digit '0') (+ digit (- 'a' 10)))))
 
@@ -294,7 +261,7 @@
     (let exp_bits auto (and (>> val_bits 52) 0x7ff))
     (let sign_bit auto (and (>> val_bits 63) 1))
     (if (== exp_bits 0x7ff) :
-        (return (nan_to_str [(== sign_bit 0) (== frac_bits 0) out]))
+        (return (number::NanToStr [(== sign_bit 0) (== frac_bits 0) out]))
      :)
     (let! buf auto (front! out))
     (let! exp auto (- exp_bits 1023))

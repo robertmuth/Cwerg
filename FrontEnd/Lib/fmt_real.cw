@@ -37,5 +37,8 @@ target_range_lo <= x * 10^n < target_range_hi"""
     @doc "first approximation of a power of 10"
     (let! exp10 s32 (as (- log10_2_to_52 (/ (as biased_exp r64) log2_10)) s32))
     (return 0))
+
+
+@pub (fun fmt_r64 [(param x r64) (param out (slice! u8))] void :)
 )
 
