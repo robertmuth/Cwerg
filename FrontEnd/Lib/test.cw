@@ -32,6 +32,21 @@ Both must have derivable types as we use `auto`"""
         (trap)
      :))
 
+@doc """The two scalar arguments must be the same
+
+Both must have derivable types as we use `auto`"""
+@pub (macro AssertNe# STMT_LIST [(mparam $e_expr EXPR) (mparam $a_expr EXPR)] [$e_val $a_val] :
+    (mlet $e_val auto $e_expr)
+    (mlet $a_val auto $a_expr)
+    (if (== $e_val $a_val) :
+        (SysPrint# "AssertEq failed: ")
+        (SysPrint# (stringify $e_expr))
+        (SysPrint# " VS ")
+        (SysPrint# (stringify $a_expr))
+        (SysPrint# "\n")
+        (trap)
+     :))
+
 
 @doc "First argument must have the type denoted by the second"
 @pub (macro AssertIs# STMT_LIST [(mparam $expr EXPR) (mparam $type TYPE)] [] :

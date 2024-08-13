@@ -14,11 +14,11 @@
 @pub (global r64_min r64 -0x1p-1022)
 
 @pub (fun make_r64 [(param negative bool)
-                    (param exp u64)
+                    (param exponent u64)
                     (param mantissa u64) ] r64 :
     (let! out u64 (as negative u64))
     (<<= out (as r64_exponent_bits u64))
-    (or= out exp)
+    (or= out exponent)
     (<<= out (as r64_mantissa_bits u64))
     (or= out mantissa)
     (return (bitwise_as out r64))
