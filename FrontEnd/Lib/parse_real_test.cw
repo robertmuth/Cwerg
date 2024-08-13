@@ -4,7 +4,7 @@
 
 (import test)
 
-(import parse_num)
+(import parse_real)
 (import num_real)
 
 
@@ -15,7 +15,7 @@
 
 
 (fun parse_r64 [(param s (slice u8))] r64 :
-    (return (narrow_as (parse_num::parse_r64 [s]) r64)))
+    (return (narrow_as (parse_real::parse_r64 [s]) r64)))
 
 
 (fun test_nan [] void :

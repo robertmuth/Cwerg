@@ -4,7 +4,7 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
 (module [] :
 (import fmt)
 
-(import parse_num)
+(import parse_real)
 
 (import num_real)
 
@@ -35,4 +35,3 @@ target_range_lo <= x * 10^n < target_range_hi"""
 
 @pub (fun fmt_r64 [(param x r64) (param out (slice! u8))] void :)
 )
-
