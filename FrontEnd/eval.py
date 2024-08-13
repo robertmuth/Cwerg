@@ -352,12 +352,11 @@ _EVAL2_REAL = {
 _EVAL2_INT = {
     cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x.x_value // y.x_value,
     cwast.BINARY_EXPR_KIND.MOD: lambda x, y: x.x_value % y.x_value,
-
+    cwast.BINARY_EXPR_KIND.SHL: lambda x, y: x.x_value << y.x_value,
+    cwast.BINARY_EXPR_KIND.SHR: lambda x, y: x.x_value >> y.x_value,
 }
 
 _EVAL2_UINT = {
-    cwast.BINARY_EXPR_KIND.SHL: lambda x, y: x.x_value << y.x_value,
-    cwast.BINARY_EXPR_KIND.SHR: lambda x, y: x.x_value >> y.x_value,
     cwast.BINARY_EXPR_KIND.OR: lambda x, y: x.x_value | y.x_value,
     cwast.BINARY_EXPR_KIND.AND: lambda x, y: x.x_value & y.x_value,
     cwast.BINARY_EXPR_KIND.XOR: lambda x, y: x.x_value ^ y.x_value,

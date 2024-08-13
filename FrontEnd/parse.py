@@ -815,13 +815,12 @@ def _ParseStatementMacro(kw: TK, inp: Lexer):
     if inp.match(TK_KIND.PAREN_OPEN):
         args = _ParseMacroCallArgs(inp)
     else:
-        while True:
+        while inp.peek().kind is not TK_KIND.COLON:
             args.append(_ParseExpr(inp))
-            if inp.match(TK_KIND.COMMA):
-                continue
-            stmts = _ParseStatementList(inp, kw.column)
-            args.append(cwast.EphemeralList(stmts, colon=True))
-            break
+            if not inp.match(TK_KIND.COMMA):
+                break
+        stmts = _ParseStatementList(inp, kw.column)
+        args.append(cwast.EphemeralList(stmts, colon=True))
     return cwast.MacroInvoke(kw.text, args, **_ExtractAnnotations(kw))
 
 
