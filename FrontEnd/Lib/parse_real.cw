@@ -224,7 +224,7 @@ final touches"""
     (if (>= exp 309) :
         (return (? negative -inf_r64 +inf_r64))
      :)
-    (if (<= exp (~ 309)) :
+    (if (<= exp -309) :
         (return (? negative -0_r64 +0_r64))
      :)
     @doc "on x86-64 there is not conversion instruction from u64->r64"
@@ -299,3 +299,4 @@ https://github.com/c3lang/c3c/blob/master/lib/std/core/string_to_real.c3
 https://github.com/oridb/mc/blob/master/lib/std/fltparse.myr"""
     (return (r64_dec_fast_helper [mant exp negative])))
 )
+

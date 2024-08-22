@@ -1,31 +1,67 @@
 (module [] :
 
-@doc "https://en.wikipedia.org/wiki/IEEE_754"
+@doc """https://en.wikipedia.org/wiki/IEEE_754
+https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/
+denormalized:
+https://randomascii.wordpress.com/2012/05/20/thats-not-normalthe-performance-of-odd-floats/
+x64 vs arm vs risc:
+https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20RISC%2DV%2C%20the%20rounding,001%3A%20Round%20towards%20Zero
+"""
 @pub (global r64_exponent_bits u32 11)
+
+
 @pub (global r64_mantissa_bits u32 52)
+
+
 @pub (global r64_mantissa_mask u64 (- (<< 1 52) 1))
+
+
 @pub (global r64_exponent_mask u64 (- (<< 1 11) 1))
 
+
 @pub (global r64_exponent_bias s32 1023)
+
+
 @doc "constants for unbiased exponents"
 @pub (global r64_exponent_max s32 1023)
+
+
 @pub (global r64_exponent_min s32 -1022)
+
+
 @pub (global r64_exponent_nan s32 1024)
+
+
 @pub (global r64_exponent_denorm s32 -1023)
 
-@doc """note: we do not support denorms"""
+
+@doc "note: we do not support denorms"
 @pub (global r64_min r64 -0x1p-1022)
 
-@pub (fun make_r64 [(param negative bool)
-                    (param exponent u64)
-                    (param mantissa u64) ] r64 :
+
+@pub (fun r64_raw_mantissa [(param val r64)] u64 :
+    (return (and (bitwise_as val u64) r64_mantissa_mask)))
+
+
+@pub (fun r64_raw_exponent [(param val r64)] s32 :
+    (return (as (>> (<< (bitwise_as val u64) 1) 53) s32)))
+
+
+@pub (fun r64_is_negative [(param val r64)] bool :
+    (return (< (bitwise_as val s64) 0)))
+
+
+@pub (fun make_r64 [
+        (param negative bool)
+        (param exponent u64)
+        (param mantissa u64)] r64 :
     (let! out u64 (as negative u64))
     (<<= out (as r64_exponent_bits u64))
     (or= out exponent)
     (<<= out (as r64_mantissa_bits u64))
     (or= out mantissa)
-    (return (bitwise_as out r64))
-)
+    (return (bitwise_as out r64)))
+
 
 @pub (global r32_exponent_bits u32 8)
 
@@ -39,16 +75,17 @@
 @pub (global r32_exponent_min s32 -126)
 
 
-@pub (fun make_r32 [(param negative bool)
-                    (param exp u32)
-                    (param mantissa u32) ] r32 :
+@pub (fun make_r32 [
+        (param negative bool)
+        (param raw_exp u32)
+        (param raw_mantissa u32)] r32 :
     (let! out u32 (as negative u32))
     (<<= out r32_exponent_bits)
-    (or= out exp)
+    (or= out raw_exp)
     (<<= out r32_mantissa_bits)
-    (or= out mantissa)
-    (return (bitwise_as out r32))
-)
+    (or= out raw_mantissa)
+    (return (bitwise_as out r32)))
+
 
 @doc "8 * 308 = 2.5KB table. log10(2^1023) == 307.95"
 @pub (global powers_of_ten auto (array_val 309 r64 [
@@ -78,9 +115,16 @@
 
 
 (global INF_POS auto "+inf")
+
+
 (global INF_NEG auto "-inf")
+
+
 (global NAN_POS auto "+nan")
+
+
 (global NAN_NEG auto "-nan")
+
 
 @pub (fun mymemcpy [
         (param dst (ptr! u8))
@@ -89,6 +133,7 @@
     (for i 0 size 1 :
         (= (^ (pinc dst i)) (^ (pinc src i))))
     (return size))
+
 
 (fun slice_copy [(param src (slice u8)) (param dst (slice! u8))] uint :
     (let n uint (min (len src) (len dst)))
@@ -110,3 +155,4 @@
          :
             (return (slice_copy [NAN_POS out])))))
 )
+
