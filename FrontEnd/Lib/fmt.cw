@@ -49,42 +49,7 @@
     (return (slice_val (pinc (front! s) n) (- (len s) n))))
 
 
-(fun DecToStr@ [(param v u8) (param out (slice! u8))] uint :
-    (return (fmt_int::unsigned_to_str# v 10 32_uint out)))
 
-
-(fun DecToStr@ [(param v u16) (param out (slice! u8))] uint :
-    (return (fmt_int::unsigned_to_str# v 10 32_uint out)))
-
-
-(fun DecToStr@ [(param v u32) (param out (slice! u8))] uint :
-    (return (fmt_int::unsigned_to_str# v 10 32_uint out)))
-
-
-(fun DecToStr@ [(param v u64) (param out (slice! u8))] uint :
-    (return (fmt_int::unsigned_to_str# v 10 32_uint out)))
-
-(fun DecToStr@ [(param v s16) (param out (slice! u8))] uint :
-    (if (== (len out) 0) :
-        (return 0)
-     :)
-    (if (< v 0) :
-        (let v_unsigned auto (- 0_s16 v))
-        (= (at out 0) '-')
-        (return (+ 1 (fmt_int::unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
-     :
-        (return (DecToStr@ [(as v u16) out]))))
-
-(fun DecToStr@ [(param v s32) (param out (slice! u8))] uint :
-    (if (== (len out) 0) :
-        (return 0)
-     :)
-    (if (< v 0) :
-        (let v_unsigned auto (- 0_s32 v))
-        (= (at out 0) '-')
-        (return (+ 1 (fmt_int::unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
-     :
-        (return (DecToStr@ [(as v u32) out]))))
 
 
 @pub (fun str_to_u32 [(param s (slice u8))] u32 :
@@ -100,40 +65,40 @@
         (param v u8)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (DecToStr@ [v out])))
+    (return (fmt_int::FmtDec@ [v out])))
 
 
 (fun SysRender@ [
         (param v u16)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (DecToStr@ [v out])))
+    (return (fmt_int::FmtDec@ [v out])))
 
 
 (fun SysRender@ [
         (param v u32)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (DecToStr@ [v out])))
+    (return (fmt_int::FmtDec@ [v out])))
 
 
 (fun SysRender@ [
         (param v u64)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (DecToStr@ [v out])))
+    (return (fmt_int::FmtDec@ [v out])))
 
 (fun SysRender@ [
         (param v s16)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (DecToStr@ [v out])))
+    (return (fmt_int::FmtDec@ [v out])))
 
 (fun SysRender@ [
         (param v s32)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (DecToStr@ [v out])))
+    (return (fmt_int::FmtDec@ [v out])))
 
 
 (fun SysRender@ [
@@ -143,6 +108,12 @@
     (let n uint (min (len buffer) (len v)))
     (return (mymemcpy [(front! buffer) (front v) n])))
 
+(fun SysRender@ [
+        (param v (slice! u8))
+        (param buffer (slice! u8))
+        (param options (ptr! SysFormatOptions))] uint :
+    (let n uint (min (len buffer) (len v)))
+    (return (mymemcpy [(front! buffer) (front v) n])))
 
 @pub (@wrapped type uint_hex uint)
 
@@ -159,56 +130,39 @@
 @pub (@wrapped type u8_hex u8)
 
 
-
-(fun ToHexStr@ [(param v u64) (param out (slice! u8))] uint :
-    (return (fmt_int::unsigned_to_str# v 16 64_uint out)))
-
-
-(fun ToHexStr@ [(param v u32) (param out (slice! u8))] uint :
-    (return (fmt_int::unsigned_to_str# v 16 32_uint out)))
-
-
-(fun ToHexStr@ [(param v u16) (param out (slice! u8))] uint :
-    (return (fmt_int::unsigned_to_str# v 16 32_uint out)))
-
-
-(fun ToHexStr@ [(param v u8) (param out (slice! u8))] uint :
-    (return (fmt_int::unsigned_to_str# v 16 32_uint out)))
-
-
 (fun SysRender@ [
         (param v uint_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (ToHexStr@ [(unwrap v) out])))
+    (return (fmt_int::FmtHex@ [(unwrap v) out])))
 
 
 (fun SysRender@ [
         (param v u64_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (ToHexStr@ [(unwrap v) out])))
+    (return (fmt_int::FmtHex@ [(unwrap v) out])))
 
 
 (fun SysRender@ [
         (param v u32_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (ToHexStr@ [(unwrap v) out])))
+    (return (fmt_int::FmtHex@ [(unwrap v) out])))
 
 
 (fun SysRender@ [
         (param v u16_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (ToHexStr@ [(unwrap v) out])))
+    (return (fmt_int::FmtHex@ [(unwrap v) out])))
 
 
 (fun SysRender@ [
         (param v u8_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (ToHexStr@ [(unwrap v) out])))
+    (return (fmt_int::FmtHex@ [(unwrap v) out])))
 
 
 @pub (@wrapped type rune u8)
@@ -269,7 +223,7 @@
         (= exp (- 0_s64 exp))
      :)
     (let rest auto (slice_val (pinc buf i) (- (len out) i)))
-    (+= i (DecToStr@ [(as exp u64) rest]))
+    (+= i (fmt_int::FmtDec@ [(as exp u64) rest]))
     (return i))
 
 

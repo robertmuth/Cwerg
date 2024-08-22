@@ -1,5 +1,4 @@
 (module [] :
-(import os)
 
 (fun mymemcpy [
         (param dst (ptr! u8))
@@ -9,7 +8,7 @@
         (= (^ (pinc dst i)) (^ (pinc src i))))
     (return size))
 
-@pub (macro unsigned_to_str# EXPR [
+(macro unsigned_to_str# EXPR [
         (mparam $val EXPR)
         (mparam $base EXPR)
         (mparam $max_width EXPR)
@@ -33,4 +32,71 @@
              :))
         (let n uint (min (- $max_width $pos) (len $out_eval)))
         (return (mymemcpy [(front! $out_eval) (pinc (front $tmp) $pos) n]))))
+
+@doc """Why the polymorphism?
+        It makes shorter names and avoids the need for separate
+        uint and sint handling"""
+@pub (fun FmtDec@ [(param v u8) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 10 32_uint out)))
+
+
+@pub (fun FmtDec@ [(param v u16) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 10 32_uint out)))
+
+
+@pub (fun FmtDec@ [(param v u32) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 10 32_uint out)))
+
+
+@pub (fun FmtDec@ [(param v u64) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 10 32_uint out)))
+
+
+(fun slice_incp [(param s (slice! u8)) (param inc uint)] (slice! u8) :
+    (let n uint (min inc (len s)))
+    (return (slice_val (pinc (front! s) n) (- (len s) n))))
+
+
+@pub (fun FmtDec@ [(param v s16) (param out (slice! u8))] uint :
+    (if (== (len out) 0) :
+        (return 0)
+     :)
+    (if (< v 0) :
+        (let v_unsigned auto (- 0_s16 v))
+        (= (at out 0) '-')
+        (return (+ 1 (FmtDec@ [v_unsigned (slice_incp [out 1])])))
+     :
+        (return (FmtDec@ [(as v u16) out]))))
+
+
+@pub (fun FmtDec@ [(param v s32) (param out (slice! u8))] uint :
+    (if (== (len out) 0) :
+        (return 0)
+     :)
+    (if (< v 0) :
+        (= (at out 0) '-')
+        (let v_unsigned auto (as (- 0_s32 v) u32))
+        (return (+ 1 (FmtDec@ [v_unsigned (slice_incp [out 1])])))
+     :
+        (return (FmtDec@ [(as v u32) out]))))
+
+
+
+@doc """Why the polymorphism?
+        It makes shorter names and avoids the need for separate
+        uint and sint handling"""
+@pub (fun FmtHex@ [(param v u64) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 16 64_uint out)))
+
+@pub (fun FmtHex@ [(param v u32) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 16 32_uint out)))
+
+
+@pub (fun FmtHex@ [(param v u16) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 16 32_uint out)))
+
+
+@pub (fun FmtHex@ [(param v u8) (param out (slice! u8))] uint :
+    (return (unsigned_to_str# v 16 32_uint out)))
+
 )
