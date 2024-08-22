@@ -1,6 +1,7 @@
 (module [] :
 (import os)
 (import num_real)
+(import fmt_int)
 
 @pub @extern (fun memcpy [
         (param dst (ptr! u8))
@@ -40,30 +41,7 @@
     (return (mymemcpy [(front! buffer) (front s) n])))
 
 
-(macro unsigned_to_str# EXPR [
-        (mparam $val EXPR)
-        (mparam $base EXPR)
-        (mparam $max_width EXPR)
-        @doc "a slice for the output string"
-        (mparam $out EXPR)] [$v $out_eval $tmp $pos] :
-    (expr :
-        @doc "unsigned to str with given base"
-        (mlet! $v auto $val)
-        (mlet! $tmp auto (array_val 1024 u8))
-        (mlet! $pos uint $max_width)
-        (mlet $out_eval auto $out)
-        (block _ :
-            (-= $pos 1)
-            (let c auto (% $v $base))
-            (let! c8 auto (as c u8))
-            (+= c8 (? (<= c8 9) '0' (- 'a' 10)))
-            (= (at $tmp $pos) c8)
-            (/= $v $base)
-            (if (!= $v 0) :
-                (continue)
-             :))
-        (let n uint (min (- $max_width $pos) (len $out_eval)))
-        (return (mymemcpy [(front! $out_eval) (pinc (front $tmp) $pos) n]))))
+
 
 
 (fun slice_incp [(param s (slice! u8)) (param inc uint)] (slice! u8) :
@@ -72,19 +50,19 @@
 
 
 (fun DecToStr@ [(param v u8) (param out (slice! u8))] uint :
-    (return (unsigned_to_str# v 10 32_uint out)))
+    (return (fmt_int::unsigned_to_str# v 10 32_uint out)))
 
 
 (fun DecToStr@ [(param v u16) (param out (slice! u8))] uint :
-    (return (unsigned_to_str# v 10 32_uint out)))
+    (return (fmt_int::unsigned_to_str# v 10 32_uint out)))
 
 
 (fun DecToStr@ [(param v u32) (param out (slice! u8))] uint :
-    (return (unsigned_to_str# v 10 32_uint out)))
+    (return (fmt_int::unsigned_to_str# v 10 32_uint out)))
 
 
 (fun DecToStr@ [(param v u64) (param out (slice! u8))] uint :
-    (return (unsigned_to_str# v 10 32_uint out)))
+    (return (fmt_int::unsigned_to_str# v 10 32_uint out)))
 
 (fun DecToStr@ [(param v s16) (param out (slice! u8))] uint :
     (if (== (len out) 0) :
@@ -93,7 +71,7 @@
     (if (< v 0) :
         (let v_unsigned auto (- 0_s16 v))
         (= (at out 0) '-')
-        (return (+ 1 (unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
+        (return (+ 1 (fmt_int::unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
      :
         (return (DecToStr@ [(as v u16) out]))))
 
@@ -104,7 +82,7 @@
     (if (< v 0) :
         (let v_unsigned auto (- 0_s32 v))
         (= (at out 0) '-')
-        (return (+ 1 (unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
+        (return (+ 1 (fmt_int::unsigned_to_str# v_unsigned 10 32_uint (slice_incp [out 1]))))
      :
         (return (DecToStr@ [(as v u32) out]))))
 
@@ -183,19 +161,19 @@
 
 
 (fun ToHexStr@ [(param v u64) (param out (slice! u8))] uint :
-    (return (unsigned_to_str# v 16 64_uint out)))
+    (return (fmt_int::unsigned_to_str# v 16 64_uint out)))
 
 
 (fun ToHexStr@ [(param v u32) (param out (slice! u8))] uint :
-    (return (unsigned_to_str# v 16 32_uint out)))
+    (return (fmt_int::unsigned_to_str# v 16 32_uint out)))
 
 
 (fun ToHexStr@ [(param v u16) (param out (slice! u8))] uint :
-    (return (unsigned_to_str# v 16 32_uint out)))
+    (return (fmt_int::unsigned_to_str# v 16 32_uint out)))
 
 
 (fun ToHexStr@ [(param v u8) (param out (slice! u8))] uint :
-    (return (unsigned_to_str# v 16 32_uint out)))
+    (return (fmt_int::unsigned_to_str# v 16 32_uint out)))
 
 
 (fun SysRender@ [
