@@ -44,8 +44,17 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
 
 @doc """for a given float val we want to find a decomposition
 val = x * 10^t so that   2^53 / 10 < x <= 2^53
-because this way we can compute the base ten digits easily."""
-@pub (fun FmtE [
+because this way we can compute the base ten digits easily.
+From the standard for %e:
+The double argument shall be converted in the style "[-]d.ddde±dd",
+where there is one digit before the radix character (which is non-zero if the argument
+is non-zero) and the number of digits after it is equal to the precision; if the precision
+is missing, it shall be taken as 6; if the precision is zero and no '#' flag is present, no
+radix character shall appear. The low-order digit shall be rounded in an implementation-defined
+manner. The E conversion specifier shall produce a number with 'E' instead of 'e' introducing
+the exponent. The exponent shall always contain at least two digits. If the value is zero,
+the exponent shall be zero."""
+@pub (fun FmtE@ [
         (param val r64)
         (param precision u32)
         (param force_sign bool)
@@ -54,7 +63,11 @@ because this way we can compute the base ten digits easily."""
     (if (< (len out) (+ (as precision uint) 8)) :
         (return 0)
      :)
+    (if (num_real::r64_is_subnormal [val]) :
+        (return 0)
+     :)
     (let! t s32 (find_t [val]))
+    (fmt::print# "@@@ " t "\n")
     (let x auto (div_by_power_of_10 [val t]))
     (let! mantissa auto (+ (num_real::r64_raw_mantissa [x]) (<< 1 52)))
     (let exponent auto (- (num_real::r64_raw_exponent [x]) num_real::r64_exponent_bias))
@@ -67,6 +80,25 @@ because this way we can compute the base ten digits easily."""
      :)
     (let! buffer (array 32 u8) undef)
     (let num_digits uint (fmt_int::FmtDec@ [mantissa (as buffer (slice! u8))]))
+    @doc "round if we drop digits"
+    (if (> num_digits (as (+ precision 1) uint)) :
+        (let! pos auto (+ precision 2))
+        (let! carry bool (>= (at buffer pos) '5'))
+        (while carry :
+            (if (== pos 0) :
+                (+= t 1)
+                (for j (as (+ precision 2) s32) 1_s32 -1 :
+                    (= (at buffer j) (at buffer (- j 1))))
+                (= (at buffer 0) '1')
+                (break)
+             :)
+            (-= pos 1)
+            (if (== (at buffer pos) '9') :
+                (= (at buffer pos) '0')
+             :
+                (= carry false)
+                (+= (at buffer pos) 1)))
+     :)
     (+= t (as (- num_digits 1) s32))
     (let! i auto 0_uint)
     (cond :
