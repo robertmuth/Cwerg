@@ -23,9 +23,14 @@ The type of the loop variable is determined by $end"""
     (mlet $step_eval (type_of $end) $step)
     (mlet! $it (type_of $end) $start)
     (block _ :
-        (if (>= $it $end_eval) :
-            (break)
-         :)
+        (if (>= $step_eval 0) :
+            (if (>= $it $end_eval) :
+                (break)
+             :)
+         :
+            (if (<= $it $end_eval) :
+                (break)
+             :))
         (mlet $index auto $it)
         (= $it (+ $it $step_eval))
         $body
@@ -58,8 +63,9 @@ The type of the loop variable is determined by $end"""
         (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) $type)))
         $catch_body
         (trap)
-    :)
+     :)
     (mlet! $name $type (@unchecked narrow_as $eval $type)))
+
 
 @pub (macro tryset STMT_LIST [
         (mparam $lhs EXPR)
@@ -71,8 +77,9 @@ The type of the loop variable is determined by $end"""
         (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) (type_of $lhs))))
         $catch_body
         (trap)
-    :)
+     :)
     (= $lhs (narrow_as $eval (type_of $lhs))))
+
 
 (macro swap# STMT_LIST [(mparam $a EXPR) (mparam $b EXPR)] [$t] :
     (mlet $t auto $a)
@@ -84,3 +91,4 @@ The type of the loop variable is determined by $end"""
 @pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (paren (^ $pointer)) $field))
 )
+
