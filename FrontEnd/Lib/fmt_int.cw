@@ -8,6 +8,7 @@
         (= (^ (pinc dst i)) (^ (pinc src i))))
     (return size))
 
+
 (macro unsigned_to_str# EXPR [
         (mparam $val EXPR)
         (mparam $base EXPR)
@@ -32,6 +33,7 @@
              :))
         (let n uint (min (- $max_width $pos) (len $out_eval)))
         (return (mymemcpy [(front! $out_eval) (pinc (front $tmp) $pos) n]))))
+
 
 @doc """Why the polymorphism?
         It makes shorter names and avoids the need for separate
@@ -81,12 +83,12 @@
         (return (FmtDec@ [(as v u32) out]))))
 
 
-
 @doc """Why the polymorphism?
         It makes shorter names and avoids the need for separate
         uint and sint handling"""
 @pub (fun FmtHex@ [(param v u64) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 64_uint out)))
+
 
 @pub (fun FmtHex@ [(param v u32) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
@@ -98,5 +100,5 @@
 
 @pub (fun FmtHex@ [(param v u8) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
-
 )
+

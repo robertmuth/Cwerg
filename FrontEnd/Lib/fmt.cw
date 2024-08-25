@@ -41,17 +41,6 @@
     (return (mymemcpy [(front! buffer) (front s) n])))
 
 
-
-
-
-(fun slice_incp [(param s (slice! u8)) (param inc uint)] (slice! u8) :
-    (let n uint (min inc (len s)))
-    (return (slice_val (pinc (front! s) n) (- (len s) n))))
-
-
-
-
-
 @pub (fun str_to_u32 [(param s (slice u8))] u32 :
     (let! x auto 0_u32)
     (for i 0 (len s) 1 :
