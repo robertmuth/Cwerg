@@ -183,7 +183,7 @@ replace both while loops utilizing "count leading zeros""""
 maybe return 0.0"""
         (return ParseErrorVal)
      :)
-    (+= exp num_real::r64_exponent_bias)
+    (+= exp num_real::r64_raw_exponent_bias)
     @doc """fmt::print# ("AFTER mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
 final touches"""
     (let exp_u64 auto (and (as exp u64) num_real::r64_exponent_mask))
@@ -299,4 +299,3 @@ https://github.com/c3lang/c3c/blob/master/lib/std/core/string_to_real.c3
 https://github.com/oridb/mc/blob/master/lib/std/fltparse.myr"""
     (return (r64_dec_fast_helper [mant exp negative])))
 )
-

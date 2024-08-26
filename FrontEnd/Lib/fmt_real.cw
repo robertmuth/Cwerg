@@ -21,6 +21,15 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
 (global target_range_lo auto (/ (as (<< 1_u64 53) r64) 10.0))
 
 
+@pub (fun mymemcpy [
+        (param dst (ptr! u8))
+        (param src (ptr u8))
+        (param size uint)] uint :
+    (for i 0 size 1 :
+        (= (^ (pinc dst i)) (^ (pinc src i))))
+    (return size))
+
+
 (fun div_by_power_of_10 [(param val r64) (param pow10 s32)] r64 :
     (if (>= pow10 0) :
         (return (/ val (at num_real::powers_of_ten pow10)))
@@ -29,7 +38,7 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
 
 
 (fun find_t [(param val r64)] s32 :
-    (let biased_exp auto (- (num_real::r64_raw_exponent [val]) num_real::r64_exponent_bias))
+    (let biased_exp auto (- (num_real::r64_raw_exponent [val]) num_real::r64_raw_exponent_bias))
     (let! t s32 (~ (as (- log10_2_to_52 (/ (as biased_exp r64) log2_10)) s32)))
     (while true :
         (let x auto (div_by_power_of_10 [val t]))
@@ -40,6 +49,16 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
                 (+= t 1))
             (case true :
                 (return t)))))
+
+
+@doc """assumptions:
+* raw_exp is nan
+* len(out) >= 5"""
+(fun FmtNan [(param val r64) (param out (slice! u8))] uint :
+    (let! mantissa auto (num_real::r64_raw_mantissa [val]))
+    (let is_negative auto (num_real::r64_is_negative [val]))
+    (= (at out 0) (? is_negative '-' '+'))
+    (return 0))
 
 
 @doc """for a given float val we want to find a decomposition
@@ -75,6 +94,21 @@ the exponent shall be zero."""
         (return (+ i (fmt_int::FmtDec@ [exp (slice_inc# out i)])))))
 
 
+(fun FmtMantissaE [
+        (param digits (slice u8))
+        (param precision uint)
+        (param out (slice! u8))] uint :
+    (let num_digits auto (len digits))
+    (= (at out 0) (at digits 0))
+    (= (at out 1) '.')
+    (for j 1 (+ precision 1) 1 :
+        (if (< j num_digits) :
+            (= (at out (+ j 1)) (at digits j))
+         :
+            (= (at out (+ j 1)) '0')))
+    (return (+ precision 2)))
+
+
 @pub (fun FmtE@ [
         (param val r64)
         (param precision u32)
@@ -84,14 +118,17 @@ the exponent shall be zero."""
     (if (< (len out) (+ (as precision uint) 8)) :
         (return 0)
      :)
-    (if (num_real::r64_is_subnormal [val]) :
+    (if (== (num_real::r64_raw_exponent [val]) num_real::r64_raw_exponent_subnormal) :
         (return 0)
+     :)
+    (if (== (num_real::r64_raw_exponent [val]) num_real::r64_raw_exponent_nan) :
+        (return (FmtNan [val out]))
      :)
     (let! t s32 (find_t [val]))
     @doc """fmt::print#("@@@ ", t, "\n")"""
     (let x auto (div_by_power_of_10 [val t]))
     (let! mantissa auto (+ (num_real::r64_raw_mantissa [x]) (<< 1 52)))
-    (let exponent auto (- (num_real::r64_raw_exponent [x]) num_real::r64_exponent_bias))
+    (let exponent auto (- (num_real::r64_raw_exponent [x]) num_real::r64_raw_exponent_bias))
     (let is_negative auto (num_real::r64_is_negative [x]))
     (fmt::assert# (&& (>= exponent 49) (<= exponent 52)) ["out of bounds\n"])
     (if (!= exponent 52) :
