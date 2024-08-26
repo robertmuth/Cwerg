@@ -42,11 +42,6 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
                 (return t)))))
 
 
-(fun slice_incp [(param s (slice! u8)) (param inc uint)] (slice! u8) :
-    (let n uint (min inc (len s)))
-    (return (slice_val (pinc (front! s) n) (- (len s) n))))
-
-
 @doc """for a given float val we want to find a decomposition
 val = x * 10^t so that   2^53 / 10 < x <= 2^53
 because this way we can compute the base ten digits easily.
@@ -70,14 +65,14 @@ the exponent shall be zero."""
             (= (at out 1) '0')
             (+= i 1)
          :)
-        (return (+ i (fmt_int::FmtDec@ [(~ exp) (slice_incp [out i])])))
+        (return (+ i (fmt_int::FmtDec@ [(~ exp) (slice_inc# out i)])))
      :
         (= (at out 0) '+')
         (if (<= exp 9) :
             (= (at out 1) '0')
             (+= i 1)
          :)
-        (return (+ i (fmt_int::FmtDec@ [exp (slice_incp [out i])])))))
+        (return (+ i (fmt_int::FmtDec@ [exp (slice_inc# out i)])))))
 
 
 @pub (fun FmtE@ [

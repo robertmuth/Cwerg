@@ -54,11 +54,6 @@
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-(fun slice_incp [(param s (slice! u8)) (param inc uint)] (slice! u8) :
-    (let n uint (min inc (len s)))
-    (return (slice_val (pinc (front! s) n) (- (len s) n))))
-
-
 @pub (fun FmtDec@ [(param v s16) (param out (slice! u8))] uint :
     (if (== (len out) 0) :
         (return 0)
@@ -66,7 +61,7 @@
     (if (< v 0) :
         (let v_unsigned auto (- 0_s16 v))
         (= (at out 0) '-')
-        (return (+ 1 (FmtDec@ [v_unsigned (slice_incp [out 1])])))
+        (return (+ 1 (FmtDec@ [v_unsigned (slice_inc# out 1)])))
      :
         (return (FmtDec@ [(as v u16) out]))))
 
@@ -78,7 +73,7 @@
     (if (< v 0) :
         (= (at out 0) '-')
         (let v_unsigned auto (as (- 0_s32 v) u32))
-        (return (+ 1 (FmtDec@ [v_unsigned (slice_incp [out 1])])))
+        (return (+ 1 (FmtDec@ [v_unsigned (slice_inc# out 1)])))
      :
         (return (FmtDec@ [(as v u32) out]))))
 
@@ -101,4 +96,3 @@
 @pub (fun FmtHex@ [(param v u8) (param out (slice! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 )
-

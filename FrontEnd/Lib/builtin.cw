@@ -87,8 +87,18 @@ The type of the loop variable is determined by $end"""
     (= $b $t))
 
 
+@pub (macro slice_inc# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
+    (expr :
+        (mlet $orig_slice auto $slice)
+        (mlet $orig_len auto (len $orig_slice))
+        (mlet $orig_size uint $size)
+        (if (> $orig_size $orig_len) :
+            (trap)
+         :)
+        (return (slice_val (pinc (front! $orig_slice) $orig_size) (- $orig_len $orig_size)))))
+
+
 @doc "macro for c-style -> operator"
 @pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (paren (^ $pointer)) $field))
 )
-
