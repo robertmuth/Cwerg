@@ -50,6 +50,9 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
 @pub (fun r64_is_negative [(param val r64)] bool :
     (return (< (bitwise_as val s64) 0)))
 
+@doc "includes zero"
+@pub (fun r64_is_subnormal [(param val r64)] bool :
+    (return (== (r64_raw_exponent [val]) 0)))
 
 @pub (fun make_r64 [
         (param negative bool)
@@ -155,4 +158,3 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
          :
             (return (slice_copy [NAN_POS out])))))
 )
-
