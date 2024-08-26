@@ -42,6 +42,11 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
                 (return t)))))
 
 
+(fun slice_incp [(param s (slice! u8)) (param inc uint)] (slice! u8) :
+    (let n uint (min inc (len s)))
+    (return (slice_val (pinc (front! s) n) (- (len s) n))))
+
+
 @doc """for a given float val we want to find a decomposition
 val = x * 10^t so that   2^53 / 10 < x <= 2^53
 because this way we can compute the base ten digits easily.
@@ -54,6 +59,27 @@ radix character shall appear. The low-order digit shall be rounded in an impleme
 manner. The E conversion specifier shall produce a number with 'E' instead of 'e' introducing
 the exponent. The exponent shall always contain at least two digits. If the value is zero,
 the exponent shall be zero."""
+@pub (fun FmtExponentE [(param exp s32) (param out (slice! u8))] uint :
+    (if (< (len out) 3) :
+        (return 0)
+     :)
+    (let! i auto 1_uint)
+    (if (< exp 0) :
+        (= (at out 0) '-')
+        (if (>= exp -9) :
+            (= (at out 1) '0')
+            (+= i 1)
+         :)
+        (return (+ i (fmt_int::FmtDec@ [(~ exp) (slice_incp [out i])])))
+     :
+        (= (at out 0) '+')
+        (if (<= exp 9) :
+            (= (at out 1) '0')
+            (+= i 1)
+         :)
+        (return (+ i (fmt_int::FmtDec@ [exp (slice_incp [out i])])))))
+
+
 @pub (fun FmtE@ [
         (param val r64)
         (param precision u32)
@@ -67,7 +93,7 @@ the exponent shall be zero."""
         (return 0)
      :)
     (let! t s32 (find_t [val]))
-    (fmt::print# "@@@ " t "\n")
+    @doc """fmt::print#("@@@ ", t, "\n")"""
     (let x auto (div_by_power_of_10 [val t]))
     (let! mantissa auto (+ (num_real::r64_raw_mantissa [x]) (<< 1 52)))
     (let exponent auto (- (num_real::r64_raw_exponent [x]) num_real::r64_exponent_bias))
@@ -80,7 +106,7 @@ the exponent shall be zero."""
      :)
     (let! buffer (array 32 u8) undef)
     (let num_digits uint (fmt_int::FmtDec@ [mantissa (as buffer (slice! u8))]))
-    @doc "round if we drop digits"
+    @doc "decimal rounding if we drop digits"
     (if (> num_digits (as (+ precision 1) uint)) :
         (let! pos auto (+ precision 2))
         (let! carry bool (>= (at buffer pos) '5'))
@@ -120,11 +146,11 @@ the exponent shall be zero."""
         (+= i 1))
     (= (at out i) 'e')
     (+= i 1)
-    (let num_exp_digits auto (fmt_int::FmtDec@ [t (as buffer (slice! u8))]))
+    (let num_exp_digits auto (FmtExponentE [t (as buffer (slice! u8))]))
     (for j 0 num_exp_digits 1 :
         (= (at out i) (at buffer j))
         (+= i 1))
-    (fmt::print# "@@@ " t " " exponent " " buffer " out:" out "\n")
+    @doc """fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")"""
     (return i))
 )
 

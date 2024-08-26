@@ -7,23 +7,37 @@
 
 (import num_real)
 
+(fun slice_incp [(param s (slice! u8)) (param inc uint)] (slice! u8) :
+      (let n uint (min inc (len s)))
+      (return (slice_val (pinc (front! s) n) (- (len s) n))))
+
 
 (fun test_nan [] void :
     @doc "sanity checks for NANs"
     (test::AssertNe# +inf_r64 -inf_r64))
 
 
-(fun test_normal [(param multiplier s32) (param precision uint)] void :
+(fun test_normal [(param multiplier u32)
+                  (param exp10 s32)
+                  (param precision uint)] void :
     (let! expected (array 64 u8) undef)
-    (let! expected2 (array 64 u8) undef)
-    (let! buf (array 1024 u8) undef)
-    @doc "sanity checks for NANs"
-    (for i 0 -294_sint -1 :
-        (let! val r64 (as multiplier r64))
-        (/= val (at num_real::powers_of_ten (~ i)))
-        (do (fmt_real::FmtE@ [val 8 true buf]))
-
+    (let! actual (array 1024 u8) undef)
+    (let! val r64 (as multiplier r64))
+    (/= val (at num_real::powers_of_ten (~ exp10)))
+    (let len_a uint (fmt_real::FmtE@ [val 8 true actual]))
+    (= (at expected 0) '+')
+    (= (at expected 1) (+ '0' (as multiplier u8)))
+    (= (at expected 2) '.')
+    (for j 0 precision 1 :
+        (= (at expected (+ j 3)) '0')
     )
+    (= (at expected (+ precision 3)) 'e')
+    (let! len_e uint (fmt_real::FmtExponentE [exp10
+                                    (slice_incp [expected (+ precision 4)])]))
+    (+= len_e precision)
+    (+= len_e 4)
+    (test::AssertSliceEq# (slice_val (front expected) len_e)
+                          (slice_val (front actual) len_a))
 )
 
 
@@ -33,7 +47,9 @@
     (fmt::print# (bitwise_as 0x0p0_r64 u64) "\n")
     """
     (do (test_nan []))
-    (do (test_normal [1 8]))
+    (for i 0 -294_s32 -1 :
+        (do (test_normal [1 i 8]))
+    )
     (test::Success#)
     (return 0))
 )
