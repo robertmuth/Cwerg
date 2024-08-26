@@ -18,22 +18,39 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
 
 @pub (global r64_exponent_mask u64 (- (<< 1 11) 1))
 
+
 @doc "constants for unbiased exponents"
 @pub (global r64_raw_exponent_bias s32 1023)
+
+
 @pub (global r64_raw_exponent_nan s32 2047)
+
+
 @pub (global r64_raw_exponent_subnormal s32 0)
 
 
 @doc "constants for biased exponents"
 @pub (global r64_exponent_max s32 1023)
+
+
 @pub (global r64_exponent_min s32 -1022)
+
+
 @pub (global r64_exponent_nan s32 1024)
+
+
 @pub (global r64_exponent_subnormal s32 -1023)
+
 
 @doc "constants for mantissa"
 @pub (global r64_mantissa_infinity u64 0)
+
+
 @pub (global r64_mantissa_qnan u64 0x8_0000_0000_0000)
+
+
 @pub (global r64_mantissa_snan u64 0x4_0000_0000_0000)
+
 
 @doc "note: we do not support denorms"
 @pub (global r64_min r64 -0x1p-1022)
@@ -51,23 +68,22 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
     (return (< (bitwise_as val s64) 0)))
 
 
-
-
 @doc "includes zero"
 @pub (fun r64_is_subnormal [(param val r64)] bool :
     (return (== (r64_raw_exponent [val]) r64_raw_exponent_subnormal)))
 
+
 @pub (fun r64_is_qnan [(param val r64)] bool :
-    (return  (&& (== (r64_raw_mantissa [val]) r64_mantissa_qnan)
-                 (== (r64_raw_exponent [val]) r64_raw_exponent_nan))))
+    (return (&& (== (r64_raw_mantissa [val]) r64_mantissa_qnan) (== (r64_raw_exponent [val]) r64_raw_exponent_nan))))
+
 
 @pub (fun r64_is_snan [(param val r64)] bool :
-    (return  (&& (== (r64_raw_mantissa [val]) r64_mantissa_qnan)
-                 (== (r64_raw_exponent [val]) r64_raw_exponent_nan))))
+    (return (&& (== (r64_raw_mantissa [val]) r64_mantissa_qnan) (== (r64_raw_exponent [val]) r64_raw_exponent_nan))))
+
 
 @pub (fun r64_is_infinite [(param val r64)] bool :
-    (return  (&& (== (r64_raw_mantissa [val]) r64_mantissa_infinity)
-                 (== (r64_raw_exponent [val]) r64_raw_exponent_nan))))
+    (return (&& (== (r64_raw_mantissa [val]) r64_mantissa_infinity) (== (r64_raw_exponent [val]) r64_raw_exponent_nan))))
+
 
 @pub (fun make_r64 [
         (param negative bool)
@@ -173,3 +189,4 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
          :
             (return (slice_copy [NAN_POS out])))))
 )
+

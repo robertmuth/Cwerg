@@ -109,13 +109,29 @@ the exponent shall be zero."""
     (return (+ precision 2)))
 
 
+@doc """return a potential "carry""""
+(fun RoundDigitsUp [(param digits (slice! u8))] bool :
+    (for pos 0 (len digits) 1 :
+        (let i auto (- (- (len digits) pos) 1))
+        (if (== (at digits i) '9') :
+            (= (at digits i) '0')
+         :
+            (+= (at digits i) 1)
+            (return false)))
+    (for pos 0 (- (len digits) 1) 1 :
+        (let i auto (- (- (len digits) pos) 1))
+        (= (at digits i) (at digits (- i 1))))
+    (= (at digits 0) '1')
+    (return true))
+
+
 @pub (fun FmtE@ [
         (param val r64)
-        (param precision u32)
+        (param precision uint)
         (param force_sign bool)
         (param out (slice! u8))] uint :
     @doc "worst case -x.[precision]e-xxx"
-    (if (< (len out) (+ (as precision uint) 8)) :
+    (if (< (len out) (+ precision 8)) :
         (return 0)
      :)
     (if (== (num_real::r64_raw_exponent [val]) num_real::r64_raw_exponent_subnormal) :
@@ -139,23 +155,10 @@ the exponent shall be zero."""
     (let! buffer (array 32 u8) undef)
     (let num_digits uint (fmt_int::FmtDec@ [mantissa (as buffer (slice! u8))]))
     @doc "decimal rounding if we drop digits"
-    (if (> num_digits (as (+ precision 1) uint)) :
-        (let! pos auto (+ precision 2))
-        (let! carry bool (>= (at buffer pos) '5'))
-        (while carry :
-            (if (== pos 0) :
-                (+= t 1)
-                (for j (as (+ precision 2) s32) 1_s32 -1 :
-                    (= (at buffer j) (at buffer (- j 1))))
-                (= (at buffer 0) '1')
-                (break)
-             :)
-            (-= pos 1)
-            (if (== (at buffer pos) '9') :
-                (= (at buffer pos) '0')
-             :
-                (= carry false)
-                (+= (at buffer pos) 1)))
+    (if (&& (> num_digits (+ precision 1)) (>= (at buffer (+ precision 2)) '5')) :
+        (if (RoundDigitsUp [(slice_val (front! buffer) (+ precision 1))]) :
+            (+= t 1)
+         :)
      :)
     (+= t (as (- num_digits 1) s32))
     (let! i auto 0_uint)
@@ -170,7 +173,7 @@ the exponent shall be zero."""
     (+= i 1)
     (= (at out i) '.')
     (+= i 1)
-    (for j 1 (as (+ precision 1) uint) 1 :
+    (for j 1 (+ precision 1) 1 :
         (if (< j num_digits) :
             (= (at out i) (at buffer j))
          :
