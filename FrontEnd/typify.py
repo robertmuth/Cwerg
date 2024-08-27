@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import Tuple, Any
+from typing import Tuple, Any, Optional
 
 
 from FrontEnd import cwast
@@ -219,6 +219,22 @@ def AnnotateNodeField(node, field_node: cwast.RecField):
         node, (cwast.ExprField, cwast.FieldVal, cwast.ExprOffsetof))
     assert node.x_field is None
     node.x_field = field_node
+
+def _GetExprStmtType(root: cwast.ExprStmt) -> cwast.CanonType:
+    result: Optional[cwast.CanonType] = None
+    def visitor(node, _):
+        nonlocal result, root
+        if node != root and isinstance(node, cwast.ExprStmt):
+            return VerifyTypesRecursively
+        if not isinstance(node, cwast.StmtReturn):
+            return False
+        if result:
+            assert result is node.expr_ret.x_type
+        else:
+            result = node.expr_ret.x_type
+    cwast.VisitAstRecursively(root, visitor)
+    assert result is not None
+    return result
 
 
 def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
@@ -488,9 +504,10 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         _TypifyNodeRecursively(node.expr, tc, cwast.NO_TYPE, ctx)
         return cwast.NO_TYPE
     elif isinstance(node, cwast.ExprStmt):
-        assert target_type != cwast.NO_TYPE
         for c in node.body:
             _TypifyNodeRecursively(c, tc, target_type, ctx)
+        if target_type ==  cwast.NO_TYPE:
+            target_type = _GetExprStmtType(node)
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ExprCall):
         callee = node.callee

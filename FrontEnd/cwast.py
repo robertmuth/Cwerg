@@ -2963,7 +2963,8 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 #
 ############################################################
 def VisitAstRecursively(node, visitor, field=None):
-    visitor(node, field)
+    if visitor(node, field):
+        return
 
     for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
@@ -2975,7 +2976,8 @@ def VisitAstRecursively(node, visitor, field=None):
 
 
 def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
-    visitor(node, parent, field)
+    if visitor(node, parent, field):
+        return
 
     for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
