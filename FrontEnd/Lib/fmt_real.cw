@@ -74,24 +74,41 @@ manner. The E conversion specifier shall produce a number with 'E' instead of 'e
 the exponent. The exponent shall always contain at least two digits. If the value is zero,
 the exponent shall be zero."""
 @pub (fun FmtExponentE [(param exp s32) (param out (slice! u8))] uint :
-    (if (< (len out) 3) :
+    (if (< (len out) 4) :
         (return 0)
      :)
-    (let! i auto 1_uint)
+    @doc "account for e±"
+    (let! i auto 2_uint)
+    (= (at out 0) 'e')
     (if (< exp 0) :
-        (= (at out 0) '-')
+        (= (at out 1) '-')
         (if (>= exp -9) :
-            (= (at out 1) '0')
+            (= (at out 2) '0')
             (+= i 1)
          :)
         (return (+ i (fmt_int::FmtDec@ [(~ exp) (slice_inc# out i)])))
      :
-        (= (at out 0) '+')
+        (= (at out 1) '+')
         (if (<= exp 9) :
-            (= (at out 1) '0')
+            (= (at out 2) '0')
             (+= i 1)
          :)
         (return (+ i (fmt_int::FmtDec@ [exp (slice_inc# out i)])))))
+
+
+(fun FmtSign [
+        (param is_negative bool)
+        (param force_sign bool)
+        (param out (slice! u8))] uint :
+    (cond :
+        (case is_negative :
+            (= (at out 0) '-')
+            (return 1))
+        (case force_sign :
+            (= (at out 0) '+')
+            (return 1))
+        (case true :
+            (return 0))))
 
 
 (fun FmtMantissaE [
@@ -110,19 +127,19 @@ the exponent shall be zero."""
 
 
 @doc """return a potential "carry""""
-(fun RoundDigitsUp [(param digits (slice! u8))] bool :
+(fun RoundDigitsUp [(param digits (slice! u8))] s32 :
     (for pos 0 (len digits) 1 :
         (let i auto (- (- (len digits) pos) 1))
         (if (== (at digits i) '9') :
             (= (at digits i) '0')
          :
             (+= (at digits i) 1)
-            (return false)))
+            (return 0)))
     (for pos 0 (- (len digits) 1) 1 :
         (let i auto (- (- (len digits) pos) 1))
         (= (at digits i) (at digits (- i 1))))
     (= (at digits 0) '1')
-    (return true))
+    (return 1))
 
 
 @pub (fun FmtE@ [
@@ -131,10 +148,23 @@ the exponent shall be zero."""
         (param force_sign bool)
         (param out (slice! u8))] uint :
     @doc "worst case -x.[precision]e-xxx"
+    (let is_negative auto (num_real::r64_is_negative [val]))
+    (let! buffer (array 32 u8) undef)
     (if (< (len out) (+ precision 8)) :
         (return 0)
      :)
+    (if (> (+ precision 1) (len buffer)) :
+        (return 0)
+     :)
     (if (== (num_real::r64_raw_exponent [val]) num_real::r64_raw_exponent_subnormal) :
+        (if (== (num_real::r64_raw_mantissa [val]) 0) :
+            (= (at buffer 0) '0')
+            (let! i auto 0_uint)
+            (+= i (FmtSign [is_negative force_sign out]))
+            (+= i (FmtMantissaE [(slice_val (front buffer) 1) precision (slice_inc# out i)]))
+            (+= i (FmtExponentE [0 (slice_inc# out i)]))
+            (return i)
+         :)
         (return 0)
      :)
     (if (== (num_real::r64_raw_exponent [val]) num_real::r64_raw_exponent_nan) :
@@ -145,46 +175,22 @@ the exponent shall be zero."""
     (let x auto (div_by_power_of_10 [val t]))
     (let! mantissa auto (+ (num_real::r64_raw_mantissa [x]) (<< 1 52)))
     (let exponent auto (- (num_real::r64_raw_exponent [x]) num_real::r64_raw_exponent_bias))
-    (let is_negative auto (num_real::r64_is_negative [x]))
     (fmt::assert# (&& (>= exponent 49) (<= exponent 52)) ["out of bounds\n"])
     (if (!= exponent 52) :
         (-= t 1)
         (*= mantissa 10)
         (>>= mantissa (as (- 52_s32 exponent) u64))
      :)
-    (let! buffer (array 32 u8) undef)
     (let num_digits uint (fmt_int::FmtDec@ [mantissa (as buffer (slice! u8))]))
     @doc "decimal rounding if we drop digits"
     (if (&& (> num_digits (+ precision 1)) (>= (at buffer (+ precision 2)) '5')) :
-        (if (RoundDigitsUp [(slice_val (front! buffer) (+ precision 1))]) :
-            (+= t 1)
-         :)
+        (+= t (RoundDigitsUp [(slice_val (front! buffer) (+ precision 1))]))
      :)
     (+= t (as (- num_digits 1) s32))
     (let! i auto 0_uint)
-    (cond :
-        (case is_negative :
-            (= (at out i) '-')
-            (+= i 1))
-        (case force_sign :
-            (= (at out i) '+')
-            (+= i 1)))
-    (= (at out i) (at buffer 0))
-    (+= i 1)
-    (= (at out i) '.')
-    (+= i 1)
-    (for j 1 (+ precision 1) 1 :
-        (if (< j num_digits) :
-            (= (at out i) (at buffer j))
-         :
-            (= (at out i) '0'))
-        (+= i 1))
-    (= (at out i) 'e')
-    (+= i 1)
-    (let num_exp_digits auto (FmtExponentE [t (as buffer (slice! u8))]))
-    (for j 0 num_exp_digits 1 :
-        (= (at out i) (at buffer j))
-        (+= i 1))
+    (+= i (FmtSign [is_negative force_sign out]))
+    (+= i (FmtMantissaE [(slice_val (front buffer) num_digits) precision (slice_inc# out i)]))
+    (+= i (FmtExponentE [t (slice_inc# out i)]))
     @doc """fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")"""
     (return i))
 )
