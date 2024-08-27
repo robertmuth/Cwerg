@@ -1123,6 +1123,7 @@ def main() -> int:
             canonicalize.FunReplaceExprIs(fun, tc)
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
+            typify.RemoveUselessCast(fun, tc)
 
     eliminated_nodes.add(cwast.ExprSizeof)
     eliminated_nodes.add(cwast.ExprOffsetof)

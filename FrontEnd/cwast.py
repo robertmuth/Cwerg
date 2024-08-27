@@ -1411,7 +1411,8 @@ class TypeUnionDelta:
 @NodeCommon
 @dataclasses.dataclass()
 class TypeOf:
-    """Type of the expression
+    """(Static) type of the expression. Computed at compile-time.
+    The underlying expression is not evaluated.
     """
     ALIAS = "type_of"
     GROUP = GROUP.Type

@@ -72,6 +72,10 @@ def is_compatible_for_eq(actual: cwast.CanonType, expected: cwast.CanonType) -> 
 
 
 def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if ct_src is ct_dst:
+        # this happens in certain macros
+        return True
+
     if ct_src.is_int():
         if ct_dst.is_int() or ct_dst.is_real() or ct_dst.is_bool():
             return True

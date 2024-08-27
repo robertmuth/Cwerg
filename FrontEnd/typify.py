@@ -1205,6 +1205,16 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                     _TypifyNodeRecursively(
                         c, tc, node.result.x_type, ctx)
 
+
+def RemoveUselessCast(node, tc: type_corpus.TypeCorpus):
+    def replacer(node, _parent, _field):
+        nonlocal tc
+        if isinstance(node, cwast.ExprAs):
+            if node.x_type is node.expr.x_type:
+                return node.expr
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 ############################################################
 #
 ############################################################
