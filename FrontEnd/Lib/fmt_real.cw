@@ -58,6 +58,13 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
     (let! mantissa auto (num_real::r64_raw_mantissa [val]))
     (let is_negative auto (num_real::r64_is_negative [val]))
     (= (at out 0) (? is_negative '-' '+'))
+    (cond :
+        (case (== mantissa num_real::r64_mantissa_infinity) :
+            (return (slice_append_or_die# "inf" (slice_inc_or_die# out 1))))
+        (case (== mantissa num_real::r64_mantissa_qnan) :
+            (return (slice_append_or_die# "qnan" (slice_inc_or_die# out 1))))
+        (case (== mantissa num_real::r64_mantissa_snan) :
+            (return (slice_append_or_die# "snan" (slice_inc_or_die# out 1)))))
     (return 0))
 
 
@@ -86,14 +93,14 @@ the exponent shall be zero."""
             (= (at out 2) '0')
             (+= i 1)
          :)
-        (return (+ i (fmt_int::FmtDec@ [(~ exp) (slice_inc# out i)])))
+        (return (+ i (fmt_int::FmtDec@ [(~ exp) (slice_inc_or_die# out i)])))
      :
         (= (at out 1) '+')
         (if (<= exp 9) :
             (= (at out 2) '0')
             (+= i 1)
          :)
-        (return (+ i (fmt_int::FmtDec@ [exp (slice_inc# out i)])))))
+        (return (+ i (fmt_int::FmtDec@ [exp (slice_inc_or_die# out i)])))))
 
 
 (fun FmtSign [
@@ -161,8 +168,8 @@ the exponent shall be zero."""
             (= (at buffer 0) '0')
             (let! i auto 0_uint)
             (+= i (FmtSign [is_negative force_sign out]))
-            (+= i (FmtMantissaE [(slice_val (front buffer) 1) precision (slice_inc# out i)]))
-            (+= i (FmtExponentE [0 (slice_inc# out i)]))
+            (+= i (FmtMantissaE [(slice_val (front buffer) 1) precision (slice_inc_or_die# out i)]))
+            (+= i (FmtExponentE [0 (slice_inc_or_die# out i)]))
             (return i)
          :)
         (return 0)
@@ -189,8 +196,8 @@ the exponent shall be zero."""
     (+= t (as (- num_digits 1) s32))
     (let! i auto 0_uint)
     (+= i (FmtSign [is_negative force_sign out]))
-    (+= i (FmtMantissaE [(slice_val (front buffer) num_digits) precision (slice_inc# out i)]))
-    (+= i (FmtExponentE [t (slice_inc# out i)]))
+    (+= i (FmtMantissaE [(slice_val (front buffer) num_digits) precision (slice_inc_or_die# out i)]))
+    (+= i (FmtExponentE [t (slice_inc_or_die# out i)]))
     @doc """fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")"""
     (return i))
 )

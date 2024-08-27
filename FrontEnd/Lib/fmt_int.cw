@@ -61,7 +61,7 @@
     (if (< v 0) :
         (let v_unsigned auto (- 0_s16 v))
         (= (at out 0) '-')
-        (return (+ 1 (FmtDec@ [v_unsigned (slice_inc# out 1)])))
+        (return (+ 1 (FmtDec@ [v_unsigned (slice_inc_or_die# out 1)])))
      :
         (return (FmtDec@ [(as v u16) out]))))
 
@@ -73,7 +73,7 @@
     (if (< v 0) :
         (= (at out 0) '-')
         (let v_unsigned auto (as (- 0_s32 v) u32))
-        (return (+ 1 (FmtDec@ [v_unsigned (slice_inc# out 1)])))
+        (return (+ 1 (FmtDec@ [v_unsigned (slice_inc_or_die# out 1)])))
      :
         (return (FmtDec@ [(as v u32) out]))))
 

@@ -87,9 +87,10 @@ The type of the loop variable is determined by $end"""
     (= $b $t))
 
 
-@pub (macro slice_inc# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
+@doc "works with arrays and slices. For arrays we make sure we do not copy them."
+@pub (macro slice_inc_or_die# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
     (expr :
-        (mlet $orig_slice auto $slice)
+        (mlet $orig_slice auto (as $slice (slice! (type_of (^ (front $slice))))))
         (mlet $orig_len auto (len $orig_slice))
         (mlet $orig_size uint $size)
         (if (> $orig_size $orig_len) :
@@ -98,7 +99,33 @@ The type of the loop variable is determined by $end"""
         (return (slice_val (pinc (front! $orig_slice) $orig_size) (- $orig_len $orig_size)))))
 
 
+@doc "works with arrays and slices. For arrays we make sure we do not copy them."
+@pub (macro slice_truncate_or_die# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
+    (expr :
+        (mlet $orig_slice auto (as $slice (slice! (type_of (^ (front $slice))))))
+        (mlet $orig_len auto (len $orig_slice))
+        (mlet $orig_size uint $size)
+        (if (> $orig_size $orig_len) :
+            (trap)
+         :)
+        (return (slice_val (front! $orig_slice) $orig_size))))
+
+
+@doc "works with arrays and slices. For arrays we make sure we do not copy them."
+@pub (macro slice_append_or_die# EXPR [(mparam $slice EXPR) (mparam $out EXPR)] [$e_slice $e_out] :
+    (expr :
+        (mlet $e_slice auto (as $slice (slice (type_of (^ (front $slice))))))
+        (mlet $e_out auto (as $out (slice! (type_of (^ (front $out))))))
+        (if (> (len $e_slice) (len $e_out)) :
+            (trap)
+         :)
+        (for i 0 (len $e_slice) 1 :
+            (= (at $e_out i) (at $e_slice i)))
+        (return (len $e_slice))))
+
+
 @doc "macro for c-style -> operator"
 @pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (paren (^ $pointer)) $field))
 )
+
