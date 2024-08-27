@@ -15,7 +15,7 @@
 
 (global PRECISION uint 8)
 
-(fun make_expected [(param is_neg bool) (param integer s32) (param exp10 s32) (param precision uint) (param out (slice! u8))] uint :
+(fun make_expected [(param is_neg bool) (param integer u32) (param exp10 s32) (param precision uint) (param out (slice! u8))] uint :
     (= (at out 0) (? is_neg '-' '+'))
     (= (at out 1) (+ '0' (as integer u8)))
     (= (at out 2) '.')
@@ -29,7 +29,7 @@
 
 (fun test_normal [
         (param is_neg bool)
-        (param multiplier s32)
+        (param multiplier u32)
         (param exp10 s32)
         (param precision uint)] void :
     (let! expected (array 1024 u8) undef)
@@ -39,8 +39,11 @@
         (/= val (at num_real::powers_of_ten (~ exp10)))
      :
         (*= val (at num_real::powers_of_ten exp10)))
+    (if is_neg :
+        (*= val -1.0)
+    :)
     (let len_a uint (fmt_real::FmtE@ [val PRECISION true actual]))
-    (let len_e uint (make_expected [false multiplier exp10 precision expected]))
+    (let len_e uint (make_expected [is_neg multiplier exp10 precision expected]))
     (test::AssertSliceEq# (slice_val (front expected) len_e) (slice_val (front actual) len_a)))
 
 
@@ -50,15 +53,16 @@
     (fmt::print# (bitwise_as 0x0p0_r64 u64) "\n")
     """
     (do (test_nans []))
+    @doc "null:
+    (do (test_normal [false 0 0 PRECISION]))
+    (do (test_normal [true 0 0 PRECISION]))
+
     (for i 0 294_s32 1 :
-        (do (test_normal [false 1 i PRECISION]))
-        (do (test_normal [false 3 i PRECISION]))
-        (do (test_normal [false 5 i PRECISION]))
-        (do (test_normal [false 9 i PRECISION]))
-        (do (test_normal [false 1 (~ i) PRECISION]))
-        (do (test_normal [false 3 (~ i) PRECISION]))
-        (do (test_normal [false 5 (~ i) PRECISION]))
-        (do (test_normal [false 9 (~ i) PRECISION])))
+        (for m 1 10_u32 2 :
+            (do (test_normal [false m i PRECISION]))
+            (do (test_normal [false m (~ i) PRECISION]))
+        )
+    )
     (test::Success#)
     (return 0))
 )
