@@ -197,7 +197,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
             return cwast.ValNum(f"{12345}_u32")
         elif isinstance(node, cwast.ExprStringify):
             # assert isinstance(node.expr, cwast.Id)
-            return cwast.ValString(f'"{node.expr}"', strkind="raw", x_srcloc=node.x_srcloc)
+            return cwast.ValString(f'{node.expr}', strkind="raw", x_srcloc=node.x_srcloc)
 
         assert isinstance(node, cwast.MacroInvoke)
         symtab = node.x_import.x_module.x_symtab
