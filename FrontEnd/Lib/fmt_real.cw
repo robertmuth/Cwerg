@@ -60,11 +60,11 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
     (= (at out 0) (? is_negative '-' '+'))
     (cond :
         (case (== mantissa num_real::r64_mantissa_infinity) :
-            (return (slice_append_or_die# "inf" (slice_inc_or_die# out 1))))
+            (return (+ 1 (slice_append_or_die# "inf" (slice_inc_or_die# out 1)))))
         (case (== mantissa num_real::r64_mantissa_qnan) :
-            (return (slice_append_or_die# "qnan" (slice_inc_or_die# out 1))))
+            (return (+ 1 (slice_append_or_die# "qnan" (slice_inc_or_die# out 1)))))
         (case (== mantissa num_real::r64_mantissa_snan) :
-            (return (slice_append_or_die# "snan" (slice_inc_or_die# out 1)))))
+            (return (+ 1 (slice_append_or_die# "snan" (slice_inc_or_die# out 1))))))
     (return 0))
 
 

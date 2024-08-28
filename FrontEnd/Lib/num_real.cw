@@ -54,7 +54,10 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
 
 @doc "note: we do not support denorms"
 @pub (global r64_min r64 -0x1p-1022)
-
+@pub (global r64_zero_pos r64 +0.0)
+@pub (global r64_zero_neg r64 -0.0)
+@pub (global r64_inf_pos r64 +inf)
+@pub (global r64_inf_neg r64 -inf)
 
 @pub (fun r64_raw_mantissa [(param val r64)] u64 :
     (return (and (bitwise_as val u64) r64_mantissa_mask)))
@@ -189,4 +192,3 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
          :
             (return (slice_copy [NAN_POS out])))))
 )
-
