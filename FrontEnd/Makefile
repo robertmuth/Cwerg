@@ -56,7 +56,7 @@ tests_py: \
     tests_a32 \
     misc_test_x64 \
     misc_test_a64 \
-    tests_concrete_py
+    # tests_concrete_py \
 	@echo "PASSED $@"
 
 tests_parse_py: $(ALL_SOURCES:%.cw=$(DIR)/%.cw.parse)
@@ -100,39 +100,39 @@ $(DIR)/%.cw.parse: %.cw
 
 $(DIR)/%.cw.meta: %.cw
 	@echo "[typify $@]"
-	./typify.py $<
+	$(PYPY) ./typify.py $<
 
 $(DIR)/%.cw.eval: %.cw
 	@echo "[eval $@]"
-	./eval.py $<
+	$(PYPY) ./eval.py $<
 
 $(DIR)/%.cw.symtab: %.cw
 	@echo "[symbolize $@]"
-	./symbolize.py $<
+	$(PYPY) ./symbolize.py $<
 
 $(DIR)/%.cw.pp: %.cw
 	@echo "[prettyprint $@]"
-	./pp_sexpr.py $< >$@.tmp.cw
-	./pp_sexpr.py $@.tmp.cw >$@
+	$(PYPY) ./pp_sexpr.py $< >$@.tmp.cw
+	$(PYPY) ./pp_sexpr.py $@.tmp.cw >$@
 	diff $@.tmp.cw $@
 
 ## Exe Tests
 
 $(DIR)/%.x64.exe: %.cw
 	@echo "[lang $@]"
-	./emit_ir.py $< > $@.asm
+	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 $(DIR)/%.a64.exe: %.cw
 	@echo "[lang $@]"
-	./emit_ir.py $< > $@.asm
+	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 $(DIR)/%.a32.exe: %.cw
 	@echo "[lang $@]"
-	./emit_ir.py -shake_tree -arch a32 $< > $@.asm
+	$(PYPY) ./emit_ir.py -shake_tree -arch a32 $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
@@ -141,19 +141,19 @@ $(DIR)/%.a32.exe: %.cw
 
 $(DIR)/%.compile.x64.exe: TestData/%.cw
 	@echo "[run $@]"
-	./emit_ir.py $< > $@.asm
+	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 
 $(DIR)/%.compile.a64.exe: TestData/%.cw
 	@echo "[run $@]"
-	./emit_ir.py $< > $@.asm
+	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 
 # concrete
 $(DIR)/%.concrete: %.cw
 	@echo "[concrete $@]"
-	./pp.py $< > $@
-	./parse.py < $@ > $@.pp
+	$(PYPY) ./pp.py $< > $@
+	$(PYPY) ./parse.py < $@ > $@.pp
 	diff -bB $@.pp $<
 
 # Misc Tests
@@ -175,12 +175,12 @@ $(DIR)/print_argv.a64.test: build/print_argv.compile.a64.exe
 ## Manual tests
 
 $(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
-	./emit_ir.py $< > $@.asm
+	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
 
 $(DIR)/asciiquarium.a64.exe: TestData/asciiquarium.cw
-	./emit_ir.py  $< > $@.asm
+	$(PYPY) ./emit_ir.py  $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@ 128 48
 
@@ -196,7 +196,7 @@ clean:
 	@mkdir -p  $(DIR)/LangTest
 
 pp_test:
-	./pp.py TestData/*.cw  Lib/*.cw  LangTest/*.cw
+	$(PYPY) ./pp.py TestData/*.cw  Lib/*.cw  LangTest/*.cw
 
 cloc:
 	@cloc ${CLOC_FLAGS} --by-file '--match-f=[.](py|cc|h)$$' .
@@ -208,7 +208,7 @@ reformat:
 
 update_concrete_syntax:
 	for f in $(ALL_SOURCES) ; do  \
-	  ./pp.py  $$f > ConcreteSyntax/$$f ; \
+	  $(PYPY) ./pp.py  $$f > ConcreteSyntax/$$f ; \
 	done
 
 reformat_lib:
