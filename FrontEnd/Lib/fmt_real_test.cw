@@ -27,6 +27,14 @@
         (let len_a auto (fmt_real::FmtE@ [num_real::r64_inf_neg 1 true actual]))
         (test::AssertSliceEq# "-inf" (slice_val (front actual) len_a))
     )
+    (block _ :
+        (let len_a auto (fmt_real::FmtE@ [num_real::r64_nan_pos 1 true actual]))
+        (test::AssertSliceEq# "+nan" (slice_val (front actual) len_a))
+    )
+    (block _ :
+        (let len_a auto (fmt_real::FmtE@ [num_real::r64_nan_neg 1 true actual]))
+        (test::AssertSliceEq# "-nan" (slice_val (front actual) len_a))
+    )
 )
 
 

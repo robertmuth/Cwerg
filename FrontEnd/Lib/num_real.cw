@@ -58,7 +58,10 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
 @pub (global r64_zero_neg r64 -0.0)
 @pub (global r64_inf_pos r64 +inf)
 @pub (global r64_inf_neg r64 -inf)
-
+@doc "quiet nan: these are correct for arm/x86/riscv"
+@pub (global r64_nan_pos r64 +nan)
+@pub (global r64_nan_neg r64 -nan)
+@doc "siganling nan: these are correct for arm/x86/riscv"
 @pub (fun r64_raw_mantissa [(param val r64)] u64 :
     (return (and (bitwise_as val u64) r64_mantissa_mask)))
 
