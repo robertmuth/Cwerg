@@ -127,5 +127,19 @@ The type of the loop variable is determined by $end"""
 @doc "macro for c-style -> operator"
 @pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (paren (^ $pointer)) $field))
-)
 
+@pub @extern @cdecl (fun print_ln [
+          (param s (ptr u8))
+          (param size uint)] void :)
+
+
+@doc "simple assert for those libs that cannot import fmt"
+@pub (macro assert# STMT [(mparam $cond EXPR) (mparam $text EXPR)] [$e_cond $e_text] :
+    (if $cond :
+     :
+        (mlet $e_cond (slice u8) (stringify $cond))
+        (mlet $e_text (slice u8) $text)
+        (do (print_ln [(front $e_cond) (len $e_cond)]))
+        (do (print_ln [(front $e_text) (len $e_text)]))
+        (trap)))
+)

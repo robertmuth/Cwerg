@@ -2,8 +2,6 @@
 https://stackoverflow.com/questions/7153979/algorithm-to-convert-an-ieee-754-double-to-a-string
 https://www.ryanjuckett.com/printing-floating-point-numbers/"""
 (module [] :
-(import fmt)
-
 (import num_real)
 
 (import fmt_int)
@@ -182,7 +180,7 @@ the exponent shall be zero."""
     (let x auto (div_by_power_of_10 [val t]))
     (let! mantissa auto (+ (num_real::r64_raw_mantissa [x]) (<< 1 52)))
     (let exponent auto (- (num_real::r64_raw_exponent [x]) num_real::r64_raw_exponent_bias))
-    (fmt::assert# (&& (>= exponent 49) (<= exponent 52)) ["out of bounds\n"])
+    (assert# (&& (>= exponent 49) (<= exponent 52)) "out of bounds\n")
     (if (!= exponent 52) :
         (-= t 1)
         (*= mantissa 10)
