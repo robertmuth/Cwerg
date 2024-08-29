@@ -198,5 +198,73 @@ the exponent shall be zero."""
     (+= i (FmtExponentE [t (slice_inc_or_die# out i)]))
     @doc """fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")"""
     (return i))
+
+
+(fun to_hex_digit [(param digit u8)] u8 :
+    (return (? (<= digit 9) (+ digit '0') (+ digit (- 'a' 10)))))
+
+
+(fun FmtMantissaHex [(param frac_bits u64)
+                     (param is_denorm bool)
+                     (param out (slice! u8))] uint :
+    (= (at out 0) '0')
+    (= (at out 1) 'x')
+    (= (at out 2) (? is_denorm '0' '1'))
+    (= (at out 3) '.')
+    (let! bits auto frac_bits)
+    (let! i auto 4_uint)
+    (while (!= bits 0) :
+        (= (at out i) (to_hex_digit [(as (>> bits 48) u8)]))
+        (+= i 1)
+        (and= bits 0xffff_ffff_ffff)
+        (<<= bits 4)
+    )
+    (return i)
 )
 
+(fun FmtExponentHex [(param raw_exponent s32)
+                     (param is_potential_zero bool)
+                     (param out (slice! u8))] uint :
+    (let! exp s32 raw_exponent)
+    (if (== raw_exponent num_real::r64_raw_exponent_subnormal) :
+        (= exp (? is_potential_zero 0 -1022))
+    :
+        (-= exp  num_real::r64_raw_exponent_bias)
+    )
+
+    (= (at out 0) 'p')
+    (if (< exp 0) :
+        (= (at out 1) '-')
+        (= exp (~ exp))
+     :
+        (= (at out 1) '+')
+     )
+    (return (+ 2 (fmt_int::FmtDec@ [(as exp u32) (slice_inc_or_die# out 2)])))
+)
+
+@doc """r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
+        exponentiation bias is 1023
+        https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+        https://observablehq.com/@jrus/hexfloat"""
+@pub (fun FmtHex@ [(param val r64) (param out (slice! u8))] uint :
+    (let! frac_bits auto (num_real::r64_raw_mantissa [val]))
+    (let is_negative auto (num_real::r64_is_negative [val]))
+    (let raw_exponent auto (num_real::r64_raw_exponent [val]))
+    (if (== raw_exponent num_real::r64_raw_exponent_nan) :
+        (return (FmtNan [val out]))
+    :)
+
+    (let! i uint 0)
+    (if is_negative :
+        (= (at out i) '-')
+        (+= i 1)
+     :)
+    (+= i (FmtMantissaHex [frac_bits
+                           (== raw_exponent num_real::r64_raw_exponent_subnormal)
+                           (slice_inc_or_die# out i)]))
+    (+= i (FmtExponentHex [raw_exponent
+                           (==  frac_bits 0)
+                           (slice_inc_or_die# out i)]))
+    (return i))
+
+)

@@ -37,6 +37,23 @@
     )
 )
 
+@doc "python3 -c 'print(0.0).hex())'"
+(fun test_hex [] void :
+    (let! actual (array 1024 u8) undef)
+    (block _ :
+        (let len_a auto (fmt_real::FmtHex@ [+0.5_r64 actual]))
+        (test::AssertSliceEq# "0x1.p-1" (slice_val (front actual) len_a))
+    )
+    (block _ :
+        (let len_a auto (fmt_real::FmtHex@ [+2.0_r64 actual]))
+        (test::AssertSliceEq# "0x1.p+1" (slice_val (front actual) len_a))
+    )
+    (block _ :
+        (let len_a auto (fmt_real::FmtHex@ [+0.0_r64 actual]))
+        @doc """(fmt::print# actual " BBBB\n")"""
+        (test::AssertSliceEq# "0x0.p+0" (slice_val (front actual) len_a))
+    )
+)
 
 (global PRECISION uint 8)
 
@@ -93,6 +110,7 @@
     (fmt::print# (bitwise_as 0x0p0_r64 u64) "\n")
     """
     (do (test_special []))
+    (do (test_hex []))
     @doc "null:"
     (do (test_normal [false 0 0 PRECISION]))
     (do (test_normal [true 0 0 PRECISION]))

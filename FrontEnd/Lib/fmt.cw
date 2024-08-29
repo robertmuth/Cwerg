@@ -1,7 +1,7 @@
 (module [] :
 (import os)
-(import num_real)
 (import fmt_int)
+(import fmt_real)
 
 @pub @extern (fun memcpy [
         (param dst (ptr! u8))
@@ -168,54 +168,6 @@
         (return 1)))
 
 
-(fun to_hex_digit [(param digit u8)] u8 :
-    (return (? (<= digit 9) (+ digit '0') (+ digit (- 'a' 10)))))
-
-
-@doc """r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
-        exponentiation bias is 1023
-        https://en.wikipedia.org/wiki/Double-precision_floating-point_format
-        https://observablehq.com/@jrus/hexfloat"""
-(fun ToHexStr@ [(param val r64) (param out (slice! u8))] uint :
-    (let val_bits auto (bitwise_as val s64))
-    (let! frac_bits auto (and val_bits 0xf_ffff_ffff_ffff))
-    (let exp_bits auto (and (>> val_bits 52) 0x7ff))
-    (let sign_bit auto (and (>> val_bits 63) 1))
-    (if (== exp_bits 0x7ff) :
-        (return (num_real::NanToStr [(== sign_bit 1) (== frac_bits 0) out]))
-     :)
-    (let! buf auto (front! out))
-    (let! exp auto (- exp_bits 1023))
-    (let! i uint 0)
-    (if (!= sign_bit 0) :
-        (= (^ (pinc buf i)) '-')
-        (+= i 1)
-     :)
-    (= (^ (pinc buf i)) '0')
-    (+= i 1)
-    (= (^ (pinc buf i)) 'x')
-    (+= i 1)
-    (= (^ (pinc buf i)) (? (== exp_bits 0) '0' '1'))
-    (+= i 1)
-    (= (^ (pinc buf i)) '.')
-    (+= i 1)
-    (while (!= frac_bits 0) :
-        (= (^ (pinc buf i)) (to_hex_digit [(as (>> frac_bits 48) u8)]))
-        (+= i 1)
-        (and= frac_bits 0xffff_ffff_ffff)
-        (<<= frac_bits 4))
-    (= (^ (pinc buf i)) 'p')
-    (+= i 1)
-    (if (< exp 0) :
-        (= (^ (pinc buf i)) '-')
-        (+= i 1)
-        (= exp (- 0_s64 exp))
-     :)
-    (let rest auto (slice_val (pinc buf i) (- (len out) i)))
-    (+= i (fmt_int::FmtDec@ [(as exp u64) rest]))
-    (return i))
-
-
 @pub (@wrapped type r64_hex r64)
 
 
@@ -223,11 +175,18 @@
         (param v r64_hex)
         (param out (slice! u8))
         (param options (ptr! SysFormatOptions))] uint :
-    (return (ToHexStr@ [(unwrap v) out])))
+    (return (fmt_real::FmtHex@ [(unwrap v) out])))
 
+(fun SysRender@ [
+        (param v r64)
+        (param out (slice! u8))
+        (param options (ptr! SysFormatOptions))] uint :
+    (return (fmt_real::FmtE@ [v 6 false out])))
 
 @pub (@wrapped type str_hex (slice u8))
 
+(fun to_hex_digit [(param digit u8)] u8 :
+    (return (? (<= digit 9) (+ digit '0') (+ digit (- 'a' 10)))))
 
 (fun SysRender@ [
         (param v str_hex)

@@ -153,45 +153,4 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
         1e288 1e289 1e290 1e291 1e292 1e293 1e294 1e295 1e296 1e297 1e298 1e299 1e300
         1e301 1e302 1e303 1e304 1e305 1e306 1e307 1e308]))
 
-
-(global INF_POS auto "+inf")
-
-
-(global INF_NEG auto "-inf")
-
-
-(global NAN_POS auto "+nan")
-
-
-(global NAN_NEG auto "-nan")
-
-
-@pub (fun mymemcpy [
-        (param dst (ptr! u8))
-        (param src (ptr u8))
-        (param size uint)] uint :
-    (for i 0 size 1 :
-        (= (^ (pinc dst i)) (^ (pinc src i))))
-    (return size))
-
-
-(fun slice_copy [(param src (slice u8)) (param dst (slice! u8))] uint :
-    (let n uint (min (len src) (len dst)))
-    (return (mymemcpy [(front! dst) (front src) n])))
-
-
-@pub (fun NanToStr [
-        (param is_neg bool)
-        (param frac_is_zero bool)
-        (param out (slice! u8))] uint :
-    (if frac_is_zero :
-        (if is_neg :
-            (return (slice_copy [INF_NEG out]))
-         :
-            (return (slice_copy [INF_POS out])))
-     :
-        (if is_neg :
-            (return (slice_copy [NAN_NEG out]))
-         :
-            (return (slice_copy [NAN_POS out])))))
 )
