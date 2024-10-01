@@ -27,7 +27,7 @@ def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
                                 tc: type_corpus.TypeCorpus) -> cwast.CanonType:
     srcloc = cwast.SRCLOC_GENERATED
     #
-    ct = tc.insert_ptr_type(slice_type.mut, slice_type.underlying_slice_type())
+    ct = tc.insert_ptr_type(slice_type.mut, slice_type.underlying_span_type())
     pointer_type = cwast.TypeAuto(x_type=ct, x_srcloc=srcloc)
     pointer_field = cwast.RecField(
         SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc, x_type=ct)
@@ -78,7 +78,7 @@ def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SLICE_TO_ST
     # Note; we add new types to the map while iterating over it so we take a snapshot first
     out: SLICE_TO_STRUCT_MAP = {}
     for ct in tc.topo_order[:]:
-        if ct.is_slice():
+        if ct.is_span():
             out[ct] = _MakeSliceReplacementStruct(ct, tc)
         elif ct.is_fun() and _DoesFunSigContainSlices(ct, out):
             out[ct] = _SliceRewriteFunSig(ct, tc, out)
@@ -111,7 +111,7 @@ def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc) -> 
 
 def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
                           uint_type: cwast.CanonType) -> cwast.ValSpan:
-    p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_slice_type())
+    p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_span_type())
     value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
         node) or isinstance(node, (cwast.ValVec, cwast.ValString)) else None
     pointer = cwast.ExprFront(
@@ -132,7 +132,7 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
         nonlocal tc, uint_type
         if isinstance(node, cwast.ExprAs):
             if (node.x_type != node.expr.x_type and
-                node.x_type.is_slice() and
+                node.x_type.is_span() and
                     node.expr.x_type.is_array()):
                 return MakeValSliceFromArray(
                     node.expr, node.x_type, tc, uint_type)

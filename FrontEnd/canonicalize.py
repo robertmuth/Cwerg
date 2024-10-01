@@ -341,10 +341,10 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
         bound = container_type.dim
         mut = type_corpus.is_mutable_array(node.container)
     else:
-        assert container_type.is_slice()
+        assert container_type.is_span()
         mut = container_type.is_mutable()
     ptr_ct = tc.insert_ptr_type(
-        mut, container_type.underlying_array_or_slice_type())
+        mut, container_type.underlying_vec_or_span_type())
     bound = cwast.ExprLen(cwast.CloneNodeRecursively(
         node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type, x_value=bound)
     start_addr = cwast.ExprFront(
@@ -431,7 +431,7 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
 
 
 def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
-    if orig_node.x_type.is_array() and target_type.is_slice():
+    if orig_node.x_type.is_array() and target_type.is_span():
         return canonicalize_slice.MakeValSliceFromArray(
             orig_node, target_type, tc, uint_type)
     elif target_type.is_union():

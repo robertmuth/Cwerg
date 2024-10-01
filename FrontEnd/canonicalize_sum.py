@@ -102,8 +102,8 @@ def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUC
             if replacement is not None:
                 out[ct] = tc.insert_array_type(
                     ct.array_dim(), replacement, original_type=ct)
-        elif ct.is_slice():
-            replacement = out.get(ct.underlying_slice_type())
+        elif ct.is_span():
+            replacement = out.get(ct.underlying_span_type())
             # we probably should run this after slices have been eliminated so we
             # we do not have to deal with this case
             if replacement is not None:

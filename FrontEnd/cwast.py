@@ -624,9 +624,9 @@ ALL_FIELDS = [
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("expr_ret", "result expression (ValVoid means no result)",
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("pointer", "pointer component of slice",
+    NfdNode("pointer", "pointer component of span",
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("container", "array and slice",
+    NfdNode("container", "vec and span",
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("callee", "expression evaluating to the function to be called",
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
@@ -853,7 +853,7 @@ class CanonType:
     children: list["CanonType"] = dataclasses.field(default_factory=list)
     #
     ast_node: Optional[Union["DefRec", "DefEnum"]] = None
-    # we may rewrite slices and unions into structs
+    # we may rewrite spans and unions into recs
     # this provides a way to access the original type (mostly its typeid)
     original_type: Optional["CanonType"] = None
     # The fields below are filled during finalization
@@ -911,7 +911,7 @@ class CanonType:
     def is_pointer(self) -> bool:
         return self.node is TypePtr
 
-    def is_slice(self) -> bool:
+    def is_span(self) -> bool:
         return self.node is TypeSpan
 
     def is_enum(self) -> bool:
@@ -948,26 +948,26 @@ class CanonType:
         assert self.is_pointer()
         return self.children[0]
 
-    def underlying_slice_type(self) -> "CanonType":
-        assert self.is_slice()
+    def underlying_span_type(self) -> "CanonType":
+        assert self.is_span()
         return self.children[0]
 
     def underlying_array_type(self) -> "CanonType":
         assert self.is_array()
         return self.children[0]
 
-    def is_array_or_slice(self) -> bool:
+    def is_vec_or_span(self) -> bool:
         return self.node is TypeVec or self.node is TypeSpan
 
-    def underlying_array_or_slice_type(self) -> "CanonType":
-        assert self.is_array() or self.is_slice()
+    def underlying_vec_or_span_type(self) -> "CanonType":
+        assert self.is_array() or self.is_span()
         return self.children[0]
 
     def contained_type(self) -> "CanonType":
         if self.node is TypeVec or self.node is TypeSpan:
             return self.children[0]
         else:
-            assert False, f"expected array or slice type: {self.name}"
+            assert False, f"expected vec or span type: {self.name}"
 
     def aligned_size(self) -> int:
         # somtimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding
@@ -1301,7 +1301,7 @@ class TypePtr:
 @NodeCommon
 @dataclasses.dataclass()
 class TypeSpan:
-    """A view/slice of an array with compile-time unknown dimensions
+    """A span (view) of a vec with compile-time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
@@ -1312,7 +1312,7 @@ class TypeSpan:
     #
     type: NODES_TYPES_T
     #
-    mut: bool = False  # slice is mutable
+    mut: bool = False  # span is mutable
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1618,7 +1618,7 @@ class ValVec:
 @NodeCommon
 @dataclasses.dataclass()
 class ValSpan:
-    """A slice value comprised of a pointer and length
+    """A span value comprised of a pointer and length
 
     type and mutability is defined by the pointer
     """
@@ -1882,13 +1882,13 @@ class Expr3:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprIndex:
-    """Optionally unchecked indexed access of array or slice
+    """Optionally unchecked indexed access of vec or span
     """
     ALIAS = "at"
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.MAY_BE_LHS | NF.NON_CORE
     #
-    container: NODES_EXPR_T  # must be of type slice or array
+    container: NODES_EXPR_T  # must be of type span or vec
     expr_index: NODES_EXPR_T  # must be of int type
     #
     unchecked: bool = False
@@ -1904,7 +1904,7 @@ class ExprIndex:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprLen:
-    """Length of array or slice
+    """Length of vec or span
 
     Result type is `uint`.
     """
@@ -1912,7 +1912,7 @@ class ExprLen:
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR | NF.NON_CORE
     #
-    container: NODES_EXPR_T   # must be of type slice or array
+    container: NODES_EXPR_T   # must be of type span or vec
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1926,7 +1926,7 @@ class ExprLen:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprFront:
-    """Address of the first element of an array or slice
+    """Address of the first element of an vec or span
 
     Similar to `(& (at container 0))` but will not fail if container has zero size
     """
@@ -1934,7 +1934,7 @@ class ExprFront:
     GROUP = GROUP.Expression
     FLAGS = NF_EXPR
     #
-    container: NODES_EXPR_T   # must be of type slice or array
+    container: NODES_EXPR_T   # must be of type span or vec
     #
     mut: bool = False
     #

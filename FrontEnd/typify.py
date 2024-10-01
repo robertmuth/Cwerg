@@ -30,7 +30,7 @@ def address_can_be_taken(node) -> bool:
             isinstance(node, cwast.ExprField) or
             isinstance(node, cwast.ExprDeref) or
             isinstance(node, cwast.ExprIndex) and
-            node.container.x_type.is_slice() or
+            node.container.x_type.is_span() or
             isinstance(node, cwast.ExprIndex) and
             address_can_be_taken(node.container))
 
@@ -410,7 +410,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr_index, tc, uint_type, ctx)
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
-        if not ct.is_array_or_slice():
+        if not ct.is_vec_or_span():
             cwast.CompilerError(
                 node.container.x_srcloc, f"expected array or slice for {node} but got {ct}")
         return AnnotateNodeType(node, ct.contained_type())
@@ -468,8 +468,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             if ct.is_pointer():
                 assert ct2.is_pointer()
                 ct = tc.get_sint_canon_type()
-            elif ct.is_slice():
-                assert ct2.is_slice()
+            elif ct.is_span():
+                assert ct2.is_span()
             else:
                 assert False
         return AnnotateNodeType(node, ct)
@@ -489,11 +489,11 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprFront):
         ct = _TypifyNodeRecursively(
             node.container, tc, cwast.NO_TYPE, ctx)
-        if not ct.is_slice() and not ct.is_array():
+        if not ct.is_span() and not ct.is_array():
             cwast.CompilerError(
                 node.x_srcloc, "expected container in front expression")
         p_type = tc.insert_ptr_type(
-            node.mut, ct.underlying_array_or_slice_type())
+            node.mut, ct.underlying_vec_or_span_type())
         return AnnotateNodeType(node, p_type)
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
@@ -732,10 +732,10 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
             _CheckTypeSame(node, op1_type.underlying_pointer_type(),
                            op2_type.underlying_pointer_type())
 
-        elif op1_type.is_slice():
-            assert op2_type.is_slice() and result_type == op1_type
-            _CheckTypeSame(node, op1_type.underlying_slice_type(),
-                           op2_type.underlying_slice_type())
+        elif op1_type.is_span():
+            assert op2_type.is_span() and result_type == op1_type
+            _CheckTypeSame(node, op1_type.underlying_span_type(),
+                           op2_type.underlying_span_type())
         else:
             assert False
     else:
@@ -807,7 +807,7 @@ def CheckExprField(node: cwast.ExprField, _):
 
 def CheckExprFront(node: cwast.ExprFront, _):
 
-    assert node.container.x_type.is_array_or_slice(
+    assert node.container.x_type.is_vec_or_span(
     ), f"unpected front expr {node.container.x_type}"
     if node.mut:
         if not type_corpus.is_mutable_array_or_slice(node.container):
@@ -820,7 +820,7 @@ def CheckExprFront(node: cwast.ExprFront, _):
 
     assert node.x_type.is_pointer()
     _CheckTypeSame(node, node.x_type.underlying_pointer_type(),
-                   node.container.x_type.underlying_array_or_slice_type())
+                   node.container.x_type.underlying_vec_or_span_type())
 
 
 def CheckExprAs(node: cwast.ExprAs, _):
@@ -904,7 +904,7 @@ def CheckExprCallStrict(node: cwast.ExprCall,  _):
 
 
 def CheckExprIndex(node: cwast.ExprIndex, _):
-    assert node.x_type is node.container.x_type.underlying_array_or_slice_type()
+    assert node.x_type is node.container.x_type.underlying_vec_or_span_type()
 
 
 def CheckExprWrap(node: cwast.ExprWrap,  _):
@@ -939,7 +939,7 @@ def CheckDefFunTypeFun(node, _):
 
 def CheckValSlice(node: cwast.ValSpan, _):
     assert node.x_type.is_mutable() == node.pointer.x_type.is_mutable()
-    _CheckTypeSame(node, node.x_type.underlying_slice_type(),
+    _CheckTypeSame(node, node.x_type.underlying_span_type(),
                    node.pointer.x_type.underlying_pointer_type())
 
 

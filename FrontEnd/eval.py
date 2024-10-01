@@ -259,7 +259,7 @@ def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]
         if init is None:
             if ct.is_base_type():
                 rec[field.name] = _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
-            elif ct.is_slice():
+            elif ct.is_span():
                 rec[field.name] = []  # null slice
             elif ct.is_pointer():
                 cwast.CompilerError(
@@ -473,7 +473,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return False
     elif isinstance(node, cwast.IndexVal):
         if node.value_or_undef.x_value is None:
-            if (node.x_type.is_slice() and node.value_or_undef.x_type.is_array() and
+            if (node.x_type.is_span() and node.value_or_undef.x_type.is_array() and
                     IsGlobalSymId(node.value_or_undef)):
                 return _AssignValue(node, VAL_GLOBALSLICE)
 
@@ -484,7 +484,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return _EvalValArray(node)
     elif isinstance(node, cwast.FieldVal):
         if node.value_or_undef.x_value is None:
-            if (node.x_type.is_slice() and node.value_or_undef.x_type.is_array() and
+            if (node.x_type.is_span() and node.value_or_undef.x_type.is_array() and
                     IsGlobalSymId(node.value_or_undef)):
                 return _AssignValue(node, VAL_GLOBALSLICE)
         else:
@@ -678,8 +678,8 @@ def VerifyASTEvalsRecursively(node):
                                                 f"expected const node: {node} inside: {parent}")
             else:
                 if node.x_value is None:
-                    if node.x_type.is_slice() or (node.x_type.original_type and
-                                                  node.x_type.original_type.is_slice()):
+                    if node.x_type.is_span() or (node.x_type.original_type and
+                                                  node.x_type.original_type.is_span()):
                         # TODO: we do not track constant addresses yet
                         # for now assume they are constant
                         pass
