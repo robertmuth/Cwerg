@@ -4,10 +4,10 @@
 @pub (global CLEAR_ALL auto "\x1b[2J")
 
 
-(type b_u128 (array 2 u64))
+(type b_u128 (vec 2 u64))
 
 
-(type b_u256 (array 4 u64))
+(type b_u256 (vec 4 u64))
 
 
 @pub (fun add_b_u128 [(param x b_u128) (param y b_u128)] b_u128 :

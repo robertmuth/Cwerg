@@ -201,7 +201,7 @@
         (= data (span_val (pinc (front data) n) (- (len data) n)))))
 
 
-(@ref global! gByteBuffer (array (* 1024 1024) u8) undef)
+(@ref global! gByteBuffer (vec (* 1024 1024) u8) undef)
 
 
 (global! Crc32Tab checksum::CrcTab undef)

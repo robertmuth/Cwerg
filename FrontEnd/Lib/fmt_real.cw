@@ -154,7 +154,7 @@ the exponent shall be zero."""
         (param out (span! u8))] uint :
     @doc "worst case -x.[precision]e-xxx"
     (let is_negative auto (num_real::r64_is_negative [val]))
-    (let! buffer (array 32 u8) undef)
+    (let! buffer (vec 32 u8) undef)
     (if (< (len out) (+ precision 8)) :
         (return 0)
      :)

@@ -30,8 +30,8 @@ D = 100
 
 
 (fun test_tree0_decoding [] void :
-    (let! counts (array 4 u16))
-    (let! symbols (array 4 u16))
+    (let! counts (vec 4 u16))
+    (let! symbols (vec 4 u16))
     (test::AssertEq# (huffman::ComputeCountsAndSymbolsFromLengths [Tree0Length counts symbols]) 4_u16)
     (test::AssertSliceEq# symbols Tree0ExpectedSymbols)
     (test::AssertSliceEq# counts Tree0ExpectedCounts))
@@ -122,16 +122,16 @@ D = 100
 
 
 (fun test_tree1_decoding [] void :
-    (let! counts (array 7 u16))
-    (let! symbols (array 11 u16))
+    (let! counts (vec 7 u16))
+    (let! symbols (vec 11 u16))
     (test::AssertEq# (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols]) 11_u16)
     (test::AssertSliceEq# symbols Tree1ExpectedSymbols)
     (test::AssertSliceEq# counts Tree1ExpectedCounts))
 
 
 (fun test_tree1_bitstream_decoding [] void :
-    (let! counts (array 7 u16))
-    (let! symbols (array 11 u16))
+    (let! counts (vec 7 u16))
+    (let! symbols (vec 11 u16))
     (test::AssertEq# (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols]) 11_u16)
     (let data auto (vec_val 8 u8 [
             0b11111100
@@ -151,12 +151,12 @@ D = 100
 
 
 (fun test_helper [] void :
-    (let! lengths (array 285 u16))
+    (let! lengths (vec 285 u16))
     (= (at lengths 0) 1)
     (= (at lengths 256) 2)
     (= (at lengths 284) 2)
-    (let! counts (array 8 u16))
-    (let! symbols (array 8 u16))
+    (let! counts (vec 8 u16))
+    (let! symbols (vec 8 u16))
     (test::AssertEq# (huffman::ComputeCountsAndSymbolsFromLengths [lengths counts symbols]) 3_u16)
     (test::AssertEq# 0_u16 (at counts 0))
     (test::AssertEq# 1_u16 (at counts 1))
@@ -167,10 +167,10 @@ D = 100
 
 
 (fun test_helper_single_code [] void :
-    (let! lengths (array 285 u16))
+    (let! lengths (vec 285 u16))
     (= (at lengths 66) 1)
-    (let! counts (array 8 u16))
-    (let! symbols (array 8 u16))
+    (let! counts (vec 8 u16))
+    (let! symbols (vec 8 u16))
     (test::AssertEq# (huffman::ComputeCountsAndSymbolsFromLengths [lengths counts symbols]) 2_u16)
     (test::AssertEq# 0_u16 (at counts 0))
     (test::AssertEq# 2_u16 (at counts 1))

@@ -22,7 +22,7 @@
 (static_assert (== (size_of (ptr (ptr s64))) 8))
 
 
-(static_assert (== (size_of (array 20 r64)) 160))
+(static_assert (== (size_of (vec 20 r64)) 160))
 
 
 (static_assert (== (size_of (span r64)) 16))

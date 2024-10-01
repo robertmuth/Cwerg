@@ -25,7 +25,7 @@
     (field u2 u16)
     (field u3 u64)
     (field u4 type_rec2)
-    (field u5 (array 13 u16))
+    (field u5 (vec 13 u16))
     (field u6 u64))
 
 
@@ -44,7 +44,7 @@
 (global g0 type_rec1 undef)
 
 
-(global g1 (array 5 type_rec1) undef)
+(global g1 (vec 5 type_rec1) undef)
 
 
 (global g2 auto (rec_val type_rec2 [true u0]))

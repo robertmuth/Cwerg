@@ -69,8 +69,8 @@
     (return (stringify TestForMacroStringify)))
 
 
-(fun TestSwap [(param vec (span! u8))] void :
-    (swap# (at vec 1) (at vec 2)))
+(fun TestSwap [(param array (span! u8))] void :
+    (swap# (at array 1) (at array 2)))
 
 @doc "just a compilation test"
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

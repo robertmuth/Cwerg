@@ -2,7 +2,7 @@
 (import test)
 
 
-(type type_array (array 3 bool))
+(type type_array (vec 3 bool))
 
 
 (type type_slice (span s32))
@@ -19,7 +19,7 @@
 (global dim auto 5_u16)
 
 
-(fun foo [(param a (array 10 u8)) (param b (array dim u64))] u8 :
+(fun foo [(param a (vec 10 u8)) (param b (vec dim u64))] u8 :
     (let v2 auto (at c1 0))
     (let v3 auto (& (at c1 0)))
     (let v4 auto (&! (at c2 0)))
@@ -46,7 +46,7 @@
 @pub (defrec type_rec3 :
     (field u2 u16)
     (field u3 u64)
-    (field u5 (array 10 u8))
+    (field u5 (vec 10 u8))
     (field u6 u64))
 
 

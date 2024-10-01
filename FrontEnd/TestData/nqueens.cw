@@ -8,7 +8,7 @@
 (global DIM auto 10_s32)
 
 
-(type Board (array DIM (array DIM bool)))
+(type Board (vec DIM (vec DIM bool)))
 
 
 (fun DumpBoard [(param board (ptr Board))] void :
@@ -54,7 +54,7 @@
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "initialized to false"
-    (@ref let! board auto (vec_val DIM (array DIM bool)))
+    (@ref let! board auto (vec_val DIM (vec DIM bool)))
     (let n auto (Solve [(&! board) 0]))
     (fmt::print# n "\n")
     (test::AssertEq# n 724_uint)

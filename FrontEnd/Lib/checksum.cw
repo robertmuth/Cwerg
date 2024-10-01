@@ -1,7 +1,7 @@
 @doc "Checksums"
 (module [] :
 
-@pub (type CrcTab (array 256 u32))
+@pub (type CrcTab (vec 256 u32))
 
 
 @doc "0xedb88320 is reversed 0x04c11db7"

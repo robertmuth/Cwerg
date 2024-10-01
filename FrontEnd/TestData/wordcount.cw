@@ -22,7 +22,7 @@
     (let! stats auto (rec_val TextStats []))
     (let! in_word auto false)
     @doc "do not initialize buf with zeros"
-    (let! buf (array 1024 u8) undef)
+    (let! buf (vec 1024 u8) undef)
     (while true :
         @doc "if FileRead returns an uint, assign it to n else return it"
         (trylet n uint (os::FileRead [fd buf]) err :

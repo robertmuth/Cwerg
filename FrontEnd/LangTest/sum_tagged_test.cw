@@ -100,7 +100,7 @@
         u32
         r32
         r64
-        (array 32 u8)]))
+        (vec 32 u8)]))
 
 
 (static_assert (== (size_of Union) 40))

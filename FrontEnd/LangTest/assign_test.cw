@@ -15,12 +15,12 @@
     (field f1 r64)
     (field f2 r32)
     (field b1 bool)
-    (field a1 (array 7 u8))
-    (field a2 (array 7 u16))
-    (field a3 (array 7 u32))
-    (field a4 (array 7 u64))
-    (field a5 (array 7 r32))
-    (field a6 (array 7 r64)))
+    (field a1 (vec 7 u8))
+    (field a2 (vec 7 u16))
+    (field a3 (vec 7 u32))
+    (field a4 (vec 7 u64))
+    (field a5 (vec 7 r32))
+    (field a6 (vec 7 r64)))
 
 
 @pub (defrec type_rec2 :
@@ -34,23 +34,23 @@
     (field u2 u16)
     (field u3 u64)
     (field u4 type_rec2)
-    (field u5 (array 13 u16))
+    (field u5 (vec 13 u16))
     (field u6 u64))
 
 
-(global! ga1 (array 5 s64) undef)
+(global! ga1 (vec 5 s64) undef)
 
 
 (global! gr1 type_rec1 undef)
 
 
-(global! gar1 (array 5 type_rec1) undef)
+(global! gar1 (vec 5 type_rec1) undef)
 
 
 (global! gr2 type_rec2 undef)
 
 
-(global! gar2 (array 5 type_rec2) undef)
+(global! gar2 (vec 5 type_rec2) undef)
 
 
 (fun get_addr [] (ptr! type_rec1) :

@@ -15,9 +15,9 @@
 @pub (defrec Window :
     (field width s32)
     (field height s32)
-    (field char_map (array (* MAX_DIM MAX_DIM) u8))
-    (field attr_map (array (* MAX_DIM MAX_DIM) u8))
-    (field depth_map (array (* MAX_DIM MAX_DIM) u8)))
+    (field char_map (vec (* MAX_DIM MAX_DIM) u8))
+    (field attr_map (vec (* MAX_DIM MAX_DIM) u8))
+    (field depth_map (vec (* MAX_DIM MAX_DIM) u8)))
 
 
 @pub (defrec Sprite :

@@ -33,7 +33,7 @@
     (entry s4))
 
 
-(type type_array (array 3 bool))
+(type type_array (vec 3 bool))
 
 
 (type type_slice (span type_rec))

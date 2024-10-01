@@ -234,12 +234,12 @@
     (let cl_num_syms uint (as (+ (bitstream::Stream32GetBits [bs 4]) 4) uint))
     (debug# "handle_dynamic_huffman lit_num_syms=" lit_num_syms " dist_num_syms=" dist_num_syms " cl_num_syms=" cl_num_syms "\n")
     @doc ""
-    (@ref let! lit_dist_lengths (array (+ MAX_DIST_SYMS MAX_LIT_SYMS) u16))
+    (@ref let! lit_dist_lengths (vec (+ MAX_DIST_SYMS MAX_LIT_SYMS) u16))
     (block _ :
         @doc "build the code_len auxiliary huffman tree"
-        (let! cl_lengths (array NUM_CODE_LEN_SYMS u16))
-        (let! cl_symbols (array NUM_CODE_LEN_SYMS u16))
-        (let! cl_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
+        (let! cl_lengths (vec NUM_CODE_LEN_SYMS u16))
+        (let! cl_symbols (vec NUM_CODE_LEN_SYMS u16))
+        (let! cl_counts (vec (+ MAX_HUFFMAN_BITS 1) u16))
         (for i 0 (len cl_lengths) 1 :
             (= (at cl_lengths i) 0))
         (for i 0 cl_num_syms 1 :
@@ -264,8 +264,8 @@
                 lit_dist_slice]) err :
             (return err)))
     (dump_slice# "combo: " (span_val (front lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
-    (let! lit_symbols (array MAX_LIT_SYMS u16))
-    (let! lit_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
+    (let! lit_symbols (vec MAX_LIT_SYMS u16))
+    (let! lit_counts (vec (+ MAX_HUFFMAN_BITS 1) u16))
     (block _ :
         (let lit_lengths auto (span_val (front! lit_dist_lengths) lit_num_syms))
         (let lit_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths [lit_lengths lit_counts lit_symbols]))
@@ -273,8 +273,8 @@
             (return CorruptionErrorVal)
          :)
         (debug# "computed literal tree. last=" lit_last_symbol "\n"))
-    (let! dist_symbols (array MAX_DIST_SYMS u16))
-    (let! dist_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
+    (let! dist_symbols (vec MAX_DIST_SYMS u16))
+    (let! dist_counts (vec (+ MAX_HUFFMAN_BITS 1) u16))
     (block _ :
         (let dist_lengths auto (span_val (pinc (front! lit_dist_lengths) lit_num_syms) dist_num_syms))
         (let dist_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths [dist_lengths dist_counts dist_symbols]))

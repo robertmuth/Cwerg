@@ -33,7 +33,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (>> (+ $x (paren (<< 1 (- $d 1)))) $d))
 
 
-(fun ApplyWindogradMulipliers [(param qt_tab (ptr! (array 64 s16)))] void :
+(fun ApplyWindogradMulipliers [(param qt_tab (ptr! (vec 64 s16)))] void :
     (let c s32 (paren (<< 1 (- (- 10 7) 1))))
     (for i 0 (len (^ qt_tab)) 1 :
         (let! x s32 (as (at (^ qt_tab) i) s32))
@@ -92,7 +92,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 
 @doc "updates blk in place"
-(fun RowIDCT [(param blk (ptr! (array (* 8 8) s16)))] void :
+(fun RowIDCT [(param blk (ptr! (vec (* 8 8) s16)))] void :
     (for o 0 (len (^ blk)) 8 :
         (let src0 auto (at (^ blk) (+ o 0)))
         (let src5 auto (at (^ blk) (+ o 1)))
@@ -135,7 +135,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
     (return (+ (div_pow2_with_rounding# xx 7) 128)))
 
 
-(fun ColIDCT [(param blk (ptr! (array (* 8 8) s16)))] void :
+(fun ColIDCT [(param blk (ptr! (vec (* 8 8) s16)))] void :
     (for o 0 8_uint 1 :
         (let src0 auto (at (^ blk) (+ o (* 8 0))))
         (let src5 auto (at (^ blk) (+ o (* 8 1))))
@@ -213,12 +213,12 @@ the exact number is bits_count"""
 
 
 (defrec HuffmanTree :
-    (field counts (array 16 u8))
-    (field symbols (array 256 u8))
+    (field counts (vec 16 u8))
+    (field symbols (vec 256 u8))
     (field num_symbols u8)
-    (field min_code (array 16 u16))
-    (field max_code (array 16 u16))
-    (field val_ptr (array 16 u8)))
+    (field min_code (vec 16 u16))
+    (field max_code (vec 16 u16))
+    (field val_ptr (vec 16 u8)))
 
 
 (global BAD_SYMBOL auto 0xffff_u16)
@@ -289,7 +289,7 @@ the exact number is bits_count"""
     @doc "image dimension measure in macro blocks"
     (field mbwidth u32)
     (field mbheight u32)
-    (field comp (array 3 Component)))
+    (field comp (vec 3 Component)))
 
 
 @pub (@wrapped type Success void)
@@ -314,7 +314,7 @@ the exact number is bits_count"""
     (return (/ (- (+ a b) 1) b)))
 
 
-(fun DecodeHufmanTable [(param chunk (span u8)) (param huffman_trees (ptr! (array 2 (array 2 HuffmanTree))))] (union [
+(fun DecodeHufmanTable [(param chunk (span u8)) (param huffman_trees (ptr! (vec 2 (vec 2 HuffmanTree))))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -365,7 +365,7 @@ the exact number is bits_count"""
     (return SuccessVal))
 
 
-(fun DecodeQuantizationTable [(param chunk (span u8)) (param qt_tabs (ptr! (array 4 (array 64 s16))))] (union [
+(fun DecodeQuantizationTable [(param chunk (span u8)) (param qt_tabs (ptr! (vec 4 (vec 64 s16))))] (union [
         u8
         CorruptionError
         UnsupportedError
@@ -563,8 +563,8 @@ the exact number is bits_count"""
         (param bs (ptr! BitStream))
         (param dc_tab (ptr HuffmanTree))
         (param ac_tab (ptr HuffmanTree))
-        (param qt_tab (ptr (array 64 s16)))
-        (param out (ptr! (array (* 8 8) s16)))
+        (param qt_tab (ptr (vec 64 s16)))
+        (param out (ptr! (vec (* 8 8) s16)))
         (param last_dc s16)] (union [
         s16
         CorruptionError
@@ -600,8 +600,8 @@ the exact number is bits_count"""
 (fun DecodeMacroBlocksHuffman [
         (param chunk (span u8))
         (param fi (ptr FrameInfo))
-        (param huffman_trees (ptr (array 2 (array 2 HuffmanTree))))
-        (param quantization_tab (ptr (array 4 (array 64 s16))))
+        (param huffman_trees (ptr (vec 2 (vec 2 HuffmanTree))))
+        (param quantization_tab (ptr (vec 4 (vec 64 s16))))
         (param out (span! u8))] (union [
         uint
         CorruptionError
@@ -610,7 +610,7 @@ the exact number is bits_count"""
     (debug# "Decode blocks\n")
     (@ref let! bs auto (rec_val BitStream [chunk]))
     (let! dc_last auto (vec_val 3 s16 [0 0 0]))
-    (@ref let! buffer (array (* 8 8) s16) undef)
+    (@ref let! buffer (vec (* 8 8) s16) undef)
     (let ncomp u32 (as (^. fi ncomp) u32))
     @doc "we assume ssx/ssy are 1"
     (let byte_stride auto (* (* (^. fi mbwidth) 8) ncomp))
@@ -620,7 +620,7 @@ the exact number is bits_count"""
                 (let comp (ptr Component) (& (at (^. fi comp) c)))
                 (let dc_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 0) (^. comp dc_tab))))
                 (let ac_tab (ptr HuffmanTree) (& (at (at (^ huffman_trees) 1) (^. comp ac_tab))))
-                (let qt_tab (ptr (array 64 s16)) (& (at (^ quantization_tab) (^. comp qt_tab))))
+                (let qt_tab (ptr (vec 64 s16)) (& (at (^ quantization_tab) (^. comp qt_tab))))
                 @doc """debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")"""
                 (debug# "Block ===================\n")
                 (tryset (at dc_last c) (DecodeBlock [
@@ -708,8 +708,8 @@ the exact number is bits_count"""
     (debug# "DecodeImage: " (len a_data) "\n")
     (@ref let! app_info AppInfo undef)
     (@ref let! frame_info FrameInfo undef)
-    (@ref let! huffman_trees (array 2 (array 2 HuffmanTree)) undef)
-    (@ref let! quantization_tab (array 4 (array 64 s16)) undef)
+    (@ref let! huffman_trees (vec 2 (vec 2 HuffmanTree)) undef)
+    (@ref let! quantization_tab (vec 4 (vec 64 s16)) undef)
     (let! qt_avail_bits u8 0)
     (let! restart_interval u16 0)
     (@ref let! data auto a_data)

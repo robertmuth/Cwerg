@@ -10,7 +10,7 @@
 
 (fun test_special [] void :
     @doc "sanity checks for NANs"
-    (let! actual (array 1024 u8) undef)
+    (let! actual (vec 1024 u8) undef)
     (block _ :
         (let len_a auto (fmt_real::FmtE@ [num_real::r64_zero_pos 1 true actual]))
         (test::AssertSliceEq# "+0.0e+00" (span_val (front actual) len_a))
@@ -39,7 +39,7 @@
 
 @doc "python3 -c 'print(0.0).hex())'"
 (fun test_hex [] void :
-    (let! actual (array 1024 u8) undef)
+    (let! actual (vec 1024 u8) undef)
     (block _ :
         (let len_a auto (fmt_real::FmtHex@ [+0.5_r64 actual]))
         (test::AssertSliceEq# "0x1.p-1" (span_val (front actual) len_a))
@@ -80,8 +80,8 @@
         (param multiplier u32)
         (param exp10 s32)
         (param precision uint)] void :
-    (let! expected (array 1024 u8) undef)
-    (let! actual (array 1024 u8) undef)
+    (let! expected (vec 1024 u8) undef)
+    (let! actual (vec 1024 u8) undef)
     (let! val r64 (as multiplier r64))
     (if (< exp10 0) :
         (/= val (at num_real::powers_of_ten (~ exp10)))

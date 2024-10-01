@@ -1328,7 +1328,7 @@ class TypeVec:
     """An array of the given type and `size`
 
     """
-    ALIAS = "array"
+    ALIAS = "vec"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
