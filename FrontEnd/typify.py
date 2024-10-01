@@ -274,7 +274,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.TypePtr):
         t = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.insert_ptr_type(node.mut, t))
-    elif isinstance(node, cwast.TypeSlice):
+    elif isinstance(node, cwast.TypeSpan):
         t = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.insert_slice_type(node.mut, t))
     elif isinstance(node, cwast.FunParam):
@@ -291,7 +291,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         AnnotateNodeType(node, ct)
         # recursing into the body is done explicitly
         return ct
-    elif isinstance(node, cwast.TypeArray):
+    elif isinstance(node, cwast.TypeVec):
         # note this is the only place where we need a comptime eval for types
         t = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         uint_type = tc.get_uint_canon_type()
@@ -368,7 +368,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         else:
             _TypifyNodeRecursively(node.init_index, tc, uint_type, ctx)
         return AnnotateNodeType(node, target_type)
-    elif isinstance(node, cwast.ValArray):
+    elif isinstance(node, cwast.ValVec):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         for x in node.inits_array:
             assert isinstance(x, cwast.IndexVal)
@@ -634,10 +634,10 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprTypeId):
         _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.get_typeid_canon_type())
-    elif isinstance(node, cwast.ValSlice):
+    elif isinstance(node, cwast.ValSpan):
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr_size, tc, uint_type, ctx)
-        if isinstance(target_type, cwast.TypeSlice):
+        if isinstance(target_type, cwast.TypeSpan):
             ptr_type = tc.insert_ptr_type(target_type.mut, target_type.type)
             _TypifyNodeRecursively(node.pointer, tc, ptr_type, ctx)
             return AnnotateNodeType(node, target_type)
@@ -685,7 +685,7 @@ def _CheckTypeSameExceptMut(node, actual: cwast.CanonType, expected: cwast.Canon
     if actual is expected:
         return
     if actual.node is expected.node and actual.mut and not expected.mut:
-        if (actual.node in (cwast.TypePtr, cwast.TypeSlice, cwast.TypeArray, cwast.TypePtr) and
+        if (actual.node in (cwast.TypePtr, cwast.TypeSpan, cwast.TypeVec, cwast.TypePtr) and
                 actual.children[0] == expected.children[0]):
             return
     if actual.original_type and expected.original_type:
@@ -762,7 +762,7 @@ def CheckFieldValStrict(node: cwast.FieldVal, _tc: type_corpus.TypeCorpus):
             node, node.value_or_undef.x_type, node.x_type)
 
 
-def CheckValArray(node: cwast.ValArray, _tc: type_corpus.TypeCorpus):
+def CheckValArray(node: cwast.ValVec, _tc: type_corpus.TypeCorpus):
     cstr = node.type.x_type
     for x in node.inits_array:
         assert isinstance(x, cwast.IndexVal), f"{x}"
@@ -937,7 +937,7 @@ def CheckDefFunTypeFun(node, _):
     # We should also ensure three is a proper return but that requires dataflow
 
 
-def CheckValSlice(node: cwast.ValSlice, _):
+def CheckValSlice(node: cwast.ValSpan, _):
     assert node.x_type.is_mutable() == node.pointer.x_type.is_mutable()
     _CheckTypeSame(node, node.x_type.underlying_slice_type(),
                    node.pointer.x_type.underlying_pointer_type())
@@ -1068,7 +1068,7 @@ class TypeVerifier:
         # maps nodes
         self._map = {
             cwast.FieldVal: _CheckFieldVal,
-            cwast.ValArray: CheckValArray,
+            cwast.ValVec: CheckValArray,
             cwast.Expr1: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
 
             cwast.TypeOf: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
@@ -1100,7 +1100,7 @@ class TypeVerifier:
             #
             cwast.DefFun: CheckDefFunTypeFun,
             #
-            cwast.ValSlice: CheckValSlice,
+            cwast.ValSpan: CheckValSlice,
             #
             cwast.ValNum: CheckValNum,
             #
@@ -1118,9 +1118,9 @@ class TypeVerifier:
             #
             cwast.DefType: CheckNothing,
             cwast.TypeBase: CheckNothing,
-            cwast.TypeSlice: CheckNothing,
+            cwast.TypeSpan: CheckNothing,
             cwast.IndexVal: CheckNothing,
-            cwast.TypeArray: CheckNothing,
+            cwast.TypeVec: CheckNothing,
             cwast.TypeAuto: CheckNothing,
             cwast.TypePtr: CheckNothing,
             cwast.FunParam: CheckNothing,

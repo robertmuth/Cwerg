@@ -367,7 +367,7 @@ class TypeCorpus:
             return _BASE_TYPE_MAP.get(ct.base_type_kind)
         elif ct.node is cwast.TypePtr:
             return [self.get_data_address_reg_type()]
-        elif ct.node is cwast.TypeSlice:
+        elif ct.node is cwast.TypeSpan:
             return [self.get_data_address_reg_type(), self.get_uint_reg_type()]
         elif ct.node is cwast.DefRec:
             assert isinstance(ct.ast_node, cwast.DefRec)
@@ -380,7 +380,7 @@ class TypeCorpus:
                 if a is not None and b is not None and len(a) + len(b) <= 2:
                     return a + b
             return None
-        elif ct.node is cwast.TypeArray:
+        elif ct.node is cwast.TypeVec:
             return None
         elif ct.node is cwast.DefEnum:
             return _BASE_TYPE_MAP[ct.base_type_kind]
@@ -423,12 +423,12 @@ class TypeCorpus:
         elif ct.node is cwast.TypePtr:
             size = self._target_arch_config.code_addr_bitwidth // 8
             return size, size
-        elif ct.node is cwast.TypeSlice:
+        elif ct.node is cwast.TypeSpan:
             # slice is converted to (pointer, length) tuple
             ptr_field_size = self._target_arch_config.data_addr_bitwidth // 8
             len_field_size = self._target_arch_config.uint_bitwidth // 8
             return ptr_field_size + len_field_size, ptr_field_size
-        elif ct.node is cwast.TypeArray:
+        elif ct.node is cwast.TypeVec:
             return ct.children[0].aligned_size() * ct.dim, ct.children[0].alignment
         elif ct.node is cwast.TypeUnion:
             return _get_size_and_offset_for_sum_type(
@@ -481,12 +481,12 @@ class TypeCorpus:
             name = f"slice_mut<{ct.name}>"
         else:
             name = f"slice<{ct.name}>"
-        return self._insert(cwast.CanonType(cwast.TypeSlice, name, mut=mut, children=[ct],
+        return self._insert(cwast.CanonType(cwast.TypeSpan, name, mut=mut, children=[ct],
                                             original_type=original_type))
 
     def insert_array_type(self, dim: int, ct: cwast.CanonType, original_type=None) -> cwast.CanonType:
         name = f"array<{ct.name},{dim}>"
-        return self._insert(cwast.CanonType(cwast.TypeArray, name, dim=dim,
+        return self._insert(cwast.CanonType(cwast.TypeVec, name, dim=dim,
                                             children=[ct], original_type=original_type))
 
     def lookup_rec_field(self, ct: cwast.CanonType, field_name) -> Optional[cwast.RecField]:

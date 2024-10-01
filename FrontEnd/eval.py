@@ -80,7 +80,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
         return AddressConstKind(node.expr_lhs)
     elif isinstance(node, cwast.ExprFront):
         return AddressConstKind(node.container)
-    elif isinstance(node, cwast.ValSlice):
+    elif isinstance(node, cwast.ValSpan):
         if not isinstance(node.expr_size, cwast.ValNum):
             return CONSTANT_KIND.NOT
         return ValueConstKind(node.pointer)
@@ -93,7 +93,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
             if o.value < out.value:
                 out = o
         return out
-    elif isinstance(node, cwast.ValArray):
+    elif isinstance(node, cwast.ValVec):
         out = CONSTANT_KIND.PURE
         for index in node.inits_array:
             if not isinstance(index.init_index, (cwast.ValAuto, cwast.ValNum)):
@@ -153,7 +153,7 @@ class GlobalConstantPool:
     def _maybe_replace(self, node, parent, _field) -> Optional[Any]:
         if isinstance(parent, cwast.DefGlobal):
             return None
-        elif (isinstance(node, cwast.ValArray) and ValueConstKind(node) is not
+        elif (isinstance(node, cwast.ValVec) and ValueConstKind(node) is not
               CONSTANT_KIND.NOT and not isinstance(parent, cwast.DefVar)):
             def_node = self._add_def_global(node)
             # TODO: maybe update str_map for the CONSTANT_KIND.PURE case
@@ -279,7 +279,7 @@ def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]
     return rec
 
 
-def _EvalValArray(node: cwast.ValArray) -> bool:
+def _EvalValArray(node: cwast.ValVec) -> bool:
     has_unknown = False
     # first pass if we cannot evaluate everyting, we must give up
     # This could be relaxed if we allow None values in "out"
@@ -480,7 +480,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         else:
             return _AssignValue(node, node.value_or_undef.x_value)
         return False
-    elif isinstance(node, cwast.ValArray):
+    elif isinstance(node, cwast.ValVec):
         return _EvalValArray(node)
     elif isinstance(node, cwast.FieldVal):
         if node.value_or_undef.x_value is None:
@@ -596,7 +596,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ExprAddrOf):
         # TODO maybe track symbolic addresses
         return False
-    elif isinstance(node, cwast.ValSlice):
+    elif isinstance(node, cwast.ValSpan):
         if node.pointer.x_value is not None and node.expr_size.x_value is not None:
             return _AssignValue(node,
                                 (node.pointer.x_value, node.expr_size.x_value))
@@ -698,7 +698,7 @@ def VerifyASTEvalsRecursively(node):
                     isinstance(node, cwast.ValAuto)), f"unevaluated ValArray init index: {node}"
 
         # Note: this info is currently filled in by the Type Decorator
-        if isinstance(node, cwast.TypeArray):
+        if isinstance(node, cwast.TypeVec):
             assert node.size.x_value is not None, f"uneval'ed type dim: {node}"
 
     cwast.VisitAstRecursivelyWithParent(node, visitor, None, None)

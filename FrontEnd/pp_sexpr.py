@@ -119,7 +119,7 @@ def _GuessNodeSize(v) -> int:
         if v.triplequoted:
             return 100
         return len(v.string) // 8
-    elif isinstance(v, (cwast.FunParam, cwast.MacroParam, cwast.ValArray, cwast.ValRec)):
+    elif isinstance(v, (cwast.FunParam, cwast.MacroParam, cwast.ValVec, cwast.ValRec)):
         return 3
     elif isinstance(v, cwast.IndexVal):
         return _GuessNodeSize(v.value_or_undef)
@@ -284,7 +284,7 @@ def _RenderRecursivelyToIR(node, out, indent: int):
         return
     node_name, fields = GetNodeTypeAndFields(node)
     if isinstance(node, (cwast.DefGlobal, cwast.DefVar, cwast.DefGlobal,
-                         cwast.TypePtr, cwast.TypeSlice, cwast.ExprAddrOf,
+                         cwast.TypePtr, cwast.TypeSpan, cwast.ExprAddrOf,
                          cwast.ExprFront, cwast.MacroVar)):
         if node.mut:
             node_name += "!"

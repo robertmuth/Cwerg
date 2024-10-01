@@ -423,7 +423,7 @@ def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
                     EmitTokens(ts, e)
                 ts.EmitEnd(beg)
         elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeOf,
-                            cwast.TypeArray, cwast.TypePtr, cwast.TypeSlice)):
+                            cwast.TypeVec, cwast.TypePtr, cwast.TypeSpan)):
             EmitTokens(ts, a)
         else:
             EmitTokens(ts, a)
@@ -483,7 +483,7 @@ def TokensVecType(ts: TS, size, type):
     EmitTokens(ts, type)
 
 
-def TokensValVec(ts: TS, node: cwast.ValArray):
+def TokensValVec(ts: TS, node: cwast.ValVec):
     TokensVecType(ts, node.expr_size, node.type)
     TokensInitList(ts, node.inits_array)
 
@@ -565,11 +565,11 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(cwast.BaseTypeKindToKeyword(n.base_type_kind)),
     #
-    cwast.TypeSlice: lambda ts, n: TokensFunctional(ts, WithMut("slice", n.mut), [n.type]),
+    cwast.TypeSpan: lambda ts, n: TokensFunctional(ts, WithMut("slice", n.mut), [n.type]),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
     cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, KW(n), n.types),
     cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithMut("^", n.mut), n.type),
-    cwast.TypeArray: lambda ts, n: TokensVecType(ts, n.size, n.type),
+    cwast.TypeVec: lambda ts, n: TokensVecType(ts, n.size, n.type),
     cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, n.subtrahend]),
     cwast.TypeFun:  TokensTypeFun,
     #
@@ -579,10 +579,10 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ValUndef: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.ValVoid: lambda ts, n: ts.EmitAttr("void"),
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
-    cwast.ValSlice: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
+    cwast.ValSpan: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
     cwast.ValString: TokensValString,
     cwast.ValRec: TokensValRec,
-    cwast.ValArray: TokensValVec,
+    cwast.ValVec: TokensValVec,
     #
     cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut(KW(n), n.mut), [n.container]),
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),

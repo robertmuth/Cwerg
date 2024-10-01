@@ -450,7 +450,7 @@ def IsSameTypeExceptMut(src: cwast.CanonType, dst: cwast.CanonType) -> bool:
     if src is dst:
         return True
     if src.node is dst.node and src.mut and not dst.mut:
-        return (src.node in (cwast.TypePtr, cwast.TypeSlice, cwast.TypeArray, cwast.TypePtr) and
+        return (src.node in (cwast.TypePtr, cwast.TypeSpan, cwast.TypeVec, cwast.TypePtr) and
                 src.children[0] == dst.children[0])
     return False
 
@@ -609,7 +609,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
             return None
 
         rhs = node.expr_rhs
-        if isinstance(rhs, cwast.ValArray):
+        if isinstance(rhs, cwast.ValVec):
             extra = []
             for i in rhs.inits_array:
                 if not _IsSimpleInitializer(i.value_or_undef):

@@ -442,13 +442,13 @@ NODES_BODY_T = Union["StmtDefer", "StmtIf", "StmtBreak", "StmtContinue", "StmtRe
                      "StmtAssignment", "StmtTrap"]
 
 
-NODES_TYPES_T = Union["TypeBase", "TypeSlice", "TypeArray", "TypePtr", "TypeFun", "Id",
+NODES_TYPES_T = Union["TypeBase", "TypeSpan", "TypeVec", "TypePtr", "TypeFun", "Id",
                       "TypeUnion", "TypeOf", "TypeUnionDelta"]
 
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_T, "TypeAuto"]
 
 NODES_VAL_T = Union["ValFalse", "ValTrue", "ValNum",
-                    "ValVoid", "ValArray", "ValString", "ValRec", "ValSlice"]
+                    "ValVoid", "ValVec", "ValString", "ValRec", "ValSpan"]
 
 NODES_EXPR_T = Union[NODES_VAL_T,
                      #
@@ -912,7 +912,7 @@ class CanonType:
         return self.node is TypePtr
 
     def is_slice(self) -> bool:
-        return self.node is TypeSlice
+        return self.node is TypeSpan
 
     def is_enum(self) -> bool:
         return self.node is DefEnum
@@ -937,7 +937,7 @@ class CanonType:
         return self.children
 
     def is_array(self) -> bool:
-        return self.node is TypeArray
+        return self.node is TypeVec
 
     def is_void_or_wrapped_void(self) -> bool:
         if self.node is DefType:
@@ -957,14 +957,14 @@ class CanonType:
         return self.children[0]
 
     def is_array_or_slice(self) -> bool:
-        return self.node is TypeArray or self.node is TypeSlice
+        return self.node is TypeVec or self.node is TypeSpan
 
     def underlying_array_or_slice_type(self) -> "CanonType":
         assert self.is_array() or self.is_slice()
         return self.children[0]
 
     def contained_type(self) -> "CanonType":
-        if self.node is TypeArray or self.node is TypeSlice:
+        if self.node is TypeVec or self.node is TypeSpan:
             return self.children[0]
         else:
             assert False, f"expected array or slice type: {self.name}"
@@ -1300,7 +1300,7 @@ class TypePtr:
 
 @NodeCommon
 @dataclasses.dataclass()
-class TypeSlice:
+class TypeSpan:
     """A view/slice of an array with compile-time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
@@ -1324,7 +1324,7 @@ class TypeSlice:
 
 @NodeCommon
 @dataclasses.dataclass()
-class TypeArray:
+class TypeVec:
     """An array of the given type and `size`
 
     """
@@ -1590,7 +1590,7 @@ class FieldVal:
 
 @NodeCommon
 @dataclasses.dataclass()
-class ValArray:
+class ValVec:
     """An array literal
 
     `[10]int{.1 = 5, .2 = 6, 77}`
@@ -1617,7 +1617,7 @@ class ValArray:
 
 @NodeCommon
 @dataclasses.dataclass()
-class ValSlice:
+class ValSpan:
     """A slice value comprised of a pointer and length
 
     type and mutability is defined by the pointer

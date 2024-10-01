@@ -691,7 +691,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             else:
                 EmitIRExprToMemory(init.value_or_undef, BaseOffset(
                     dst.base, dst.offset+field.x_offset), tc, id_gen)
-    elif isinstance(init_node, cwast.ValArray):
+    elif isinstance(init_node, cwast.ValVec):
         element_size: int = init_node.x_type.array_element_size()
         for index, c in symbolize.IterateValArray(init_node, init_node.x_type.array_dim()):
             if c is None:
@@ -915,7 +915,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
         elif ct.is_array():
             assert isinstance(
-                node, (cwast.ValArray, cwast.ValString)), f"{node}"
+                node, (cwast.ValVec, cwast.ValString)), f"{node}"
             print(f"# array: {ct.name}")
             width = ct.array_dim()
             x_type = ct.underlying_array_type()
@@ -935,7 +935,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                         out += _InitDataForBaseType(x_type, v)
                     return _EmitMem(out, ct.name)
             else:
-                assert isinstance(node, cwast.ValArray), f"{node}"
+                assert isinstance(node, cwast.ValVec), f"{node}"
                 last = cwast.ValUndef()
                 stride = ct.size // width
                 assert stride * width == ct.size, f"{ct.size} {width}"
@@ -1166,8 +1166,8 @@ def main() -> int:
     for mod in mod_topo_order:
         canonicalize_slice.ReplaceSlice(mod, slice_to_struct_map)
     eliminated_nodes.add(cwast.ExprLen)
-    eliminated_nodes.add(cwast.ValSlice)
-    eliminated_nodes.add(cwast.TypeSlice)
+    eliminated_nodes.add(cwast.ValSpan)
+    eliminated_nodes.add(cwast.TypeSpan)
 
     sum_to_struct_map = canonicalize_sum.MakeSumTypeReplacementMap(
         mod_topo_order, tc)

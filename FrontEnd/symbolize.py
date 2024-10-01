@@ -466,7 +466,7 @@ def IterateValRec(inits_field: list[cwast.FieldVal], def_rec: cwast.CanonType):
 _UNDEF = cwast.ValUndef()
 
 
-def IterateValArray(val_array: cwast.ValArray, width):
+def IterateValArray(val_array: cwast.ValVec, width):
     curr_val = 0
     for init in val_array.inits_array:
         assert isinstance(init, cwast.IndexVal)
@@ -492,7 +492,7 @@ def IterateValArray(val_array: cwast.ValArray, width):
 # for now no DefEnum
 _NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.TypeUnion,
                                   cwast.DefType,
-                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSlice,
+                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan,
                                   cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
 
 

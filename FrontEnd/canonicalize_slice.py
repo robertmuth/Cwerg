@@ -110,10 +110,10 @@ def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc) -> 
 
 
 def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                          uint_type: cwast.CanonType) -> cwast.ValSlice:
+                          uint_type: cwast.CanonType) -> cwast.ValSpan:
     p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_slice_type())
     value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
-        node) or isinstance(node, (cwast.ValArray, cwast.ValString)) else None
+        node) or isinstance(node, (cwast.ValVec, cwast.ValString)) else None
     pointer = cwast.ExprFront(
         node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=value)
     width = node.x_type.array_dim()
@@ -121,7 +121,7 @@ def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeC
                           x_srcloc=node.x_srcloc, x_type=uint_type)
     if value is not None:
         value = eval.VAL_GLOBALSLICE
-    return cwast.ValSlice(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=value)
+    return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=value)
 
 
 def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
@@ -184,19 +184,19 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
                                      cwast.Expr3, cwast.ExprDeref, cwast.ExprNarrow,
                                      cwast.ExprAddrOf, cwast.ExprCall,
                                      cwast.ValAuto,
-                                     cwast.FieldVal, cwast.IndexVal, cwast.ValArray)):
+                                     cwast.FieldVal, cwast.IndexVal, cwast.ValVec)):
                     typify.UpdateNodeType(node, def_rec)
                     return None
-                elif isinstance(node, cwast.TypeSlice):
+                elif isinstance(node, cwast.TypeSpan):
                     return _MakeIdForDefRec(def_rec, node.x_srcloc)
-                elif isinstance(node, cwast.ValSlice):
+                elif isinstance(node, cwast.ValSpan):
                     return _MakeValRecForSlice(node.pointer, node.expr_size, def_rec, node.x_srcloc)
                 elif isinstance(node, cwast.Id):
                     sym = node.x_symbol
                     # TODO
                     # This needs a lot of work also what about field references to
                     # rewritten fields
-                    if isinstance(sym, cwast.TypeSlice):
+                    if isinstance(sym, cwast.TypeSpan):
                         symbolize.AnnotateNodeSymbol(node, def_rec)
                     typify.UpdateNodeType(node, def_rec)
                     return None

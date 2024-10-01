@@ -416,7 +416,7 @@ def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
     dim = _ParseExpr(inp)
     inp.match_or_die(TK_KIND.SQUARE_CLOSED)
     type = _ParseTypeExpr(inp)
-    return cwast.TypeArray(dim, type)
+    return cwast.TypeVec(dim, type)
 
 
 _FUN_LIKE = {
@@ -424,8 +424,8 @@ _FUN_LIKE = {
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),
     cwast.ExprOffsetof.ALIAS: (cwast.ExprOffsetof, "TS"),
-    "slice": (cwast.ValSlice, "EE"),
-    "slice!": (cwast.ValSlice, "EE"),
+    "slice": (cwast.ValSpan, "EE"),
+    "slice!": (cwast.ValSpan, "EE"),
     cwast.ExprFront.ALIAS:  (cwast.ExprFront, "E"),
     cwast.ExprFront.ALIAS + "!":  (cwast.ExprFront, "E"),
     cwast.ExprUnwrap.ALIAS: (cwast.ExprUnwrap, "E"),
@@ -649,7 +649,7 @@ def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
             inits.append(_ParseRecInit(inp))
         return cwast.ValRec(type, inits)
     else:
-        assert isinstance(type, cwast.TypeArray)
+        assert isinstance(type, cwast.TypeVec)
         inits = []
         first = True
         while not inp.match(TK_KIND.CURLY_CLOSED):
@@ -657,7 +657,7 @@ def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
                 inp.match_or_die(TK_KIND.COMMA)
             first = False
             inits.append(_ParseArrayInit(inp))
-        return cwast.ValArray(type.size, type.type, inits)
+        return cwast.ValVec(type.size, type.type, inits)
 
 
 def _PParseIndex(inp: Lexer, array, tk: TK, _precedence) -> Any:
@@ -746,7 +746,7 @@ def _ParseTypeExpr(inp: Lexer):
             inp.match_or_die(TK_KIND.PAREN_OPEN)
             type = _ParseTypeExpr(inp)
             inp.match_or_die(TK_KIND.PAREN_CLOSED)
-            return cwast.TypeSlice(type, mut=tk.text.endswith("!"))
+            return cwast.TypeSpan(type, mut=tk.text.endswith("!"))
         elif tk.text == cwast.TypeOf.ALIAS:
             return _ParseFunLike(inp, tk)
         elif tk.text == cwast.TypeUnionDelta.ALIAS:
@@ -768,7 +768,7 @@ def _ParseTypeExpr(inp: Lexer):
         dim = _ParseExpr(inp)
         inp.match_or_die(TK_KIND.SQUARE_CLOSED)
         type = _ParseTypeExpr(inp)
-        return cwast.TypeArray(dim, type)
+        return cwast.TypeVec(dim, type)
     elif tk.text == "^":
         rest = _ParseTypeExpr(inp)
         return cwast.TypePtr(rest)
