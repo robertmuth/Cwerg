@@ -25,7 +25,7 @@
 (static_assert (== (size_of (array 20 r64)) 160))
 
 
-(static_assert (== (size_of (slice r64)) 16))
+(static_assert (== (size_of (span r64)) 16))
 
 
 @pub (defrec type_rec :

@@ -9,15 +9,15 @@
 
 
 (defrec TestCase :
-    (field description (slice u8))
-    (field input (slice u8))
+    (field description (span u8))
+    (field input (span u8))
     (field expected_result (union [
             uint
             flate::CorruptionError
             flate::NoSpaceError
             flate::TruncationError]))
-    (field expected_output (slice u8))
-    (field output (slice! u8)))
+    (field expected_output (span u8))
+    (field output (span! u8)))
 
 
 (global! large_output_buffer auto (vec_val 65536 u8 [0]))

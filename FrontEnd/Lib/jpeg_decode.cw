@@ -166,7 +166,7 @@ To enable debug logging make sure the second macro is called `debug#`"""
 
 @doc "for huffman decoding"
 (defrec BitStream :
-    (field buf (slice u8))
+    (field buf (span u8))
     (field offset uint)
     @doc """contains the next up to 8 bits from the stream
 the exact number is bits_count"""
@@ -314,7 +314,7 @@ the exact number is bits_count"""
     (return (/ (- (+ a b) 1) b)))
 
 
-(fun DecodeHufmanTable [(param chunk (slice u8)) (param huffman_trees (ptr! (array 2 (array 2 HuffmanTree))))] (union [
+(fun DecodeHufmanTable [(param chunk (span u8)) (param huffman_trees (ptr! (array 2 (array 2 HuffmanTree))))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -365,7 +365,7 @@ the exact number is bits_count"""
     (return SuccessVal))
 
 
-(fun DecodeQuantizationTable [(param chunk (slice u8)) (param qt_tabs (ptr! (array 4 (array 64 s16))))] (union [
+(fun DecodeQuantizationTable [(param chunk (span u8)) (param qt_tabs (ptr! (array 4 (array 64 s16))))] (union [
         u8
         CorruptionError
         UnsupportedError
@@ -390,7 +390,7 @@ the exact number is bits_count"""
     (return qt_avail))
 
 
-(fun DecodeRestartInterval [(param chunk (slice u8))] (union [
+(fun DecodeRestartInterval [(param chunk (span u8))] (union [
         u16
         CorruptionError
         UnsupportedError
@@ -402,7 +402,7 @@ the exact number is bits_count"""
     (return interval))
 
 
-(fun DecodeAppInfo [(param chunk (slice u8)) (param app_info (ptr! AppInfo))] (union [
+(fun DecodeAppInfo [(param chunk (span u8)) (param app_info (ptr! AppInfo))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -426,7 +426,7 @@ the exact number is bits_count"""
     (return SuccessVal))
 
 
-(fun DecodeStartOfFrame [(param chunk (slice u8)) (param out (ptr! FrameInfo))] (union [
+(fun DecodeStartOfFrame [(param chunk (span u8)) (param out (ptr! FrameInfo))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -514,7 +514,7 @@ the exact number is bits_count"""
     (return SuccessVal))
 
 
-(fun DecodeScan [(param chunk (slice u8)) (param frame_info (ptr! FrameInfo))] (union [
+(fun DecodeScan [(param chunk (span u8)) (param frame_info (ptr! FrameInfo))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -598,11 +598,11 @@ the exact number is bits_count"""
 
 
 (fun DecodeMacroBlocksHuffman [
-        (param chunk (slice u8))
+        (param chunk (span u8))
         (param fi (ptr FrameInfo))
         (param huffman_trees (ptr (array 2 (array 2 HuffmanTree))))
         (param quantization_tab (ptr (array 4 (array 64 s16))))
-        (param out (slice! u8))] (union [
+        (param out (span! u8))] (union [
         uint
         CorruptionError
         UnsupportedError
@@ -642,7 +642,7 @@ the exact number is bits_count"""
     (return (GetBytesConsumed [(& bs)])))
 
 
-@pub (fun DecodeFrameInfo [(param a_data (slice u8))] (union [
+@pub (fun DecodeFrameInfo [(param a_data (span u8))] (union [
         FrameInfo
         CorruptionError
         UnsupportedError
@@ -659,7 +659,7 @@ the exact number is bits_count"""
             (return err))
         (trylet chunk_length u16 (BS::FrontBeU16 [(&! data)]) err :
             (return err))
-        (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
+        (trylet chunk_slice (span u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
             (return err))
         (if (== chunk_kind 0xffc0) :
             (trylet dummy Success (DecodeStartOfFrame [chunk_slice (&! fi)]) err :
@@ -679,7 +679,7 @@ the exact number is bits_count"""
             (return x))))
 
 
-@pub (fun ConvertYH1V1ToRGB [(param out (slice! u8))] void :
+@pub (fun ConvertYH1V1ToRGB [(param out (span! u8))] void :
     (for i 0 (len out) 3 :
         (let Y auto (as (at out i) s32))
         (let Cb auto (as (at out (+ i 1)) s32))
@@ -700,7 +700,7 @@ the exact number is bits_count"""
         (= (at out (+ i 2)) (as (clamp8b [(+ Y cbB)]) u8))))
 
 
-@pub (fun DecodeImage [(param a_data (slice u8)) (param out (slice! u8))] (union [
+@pub (fun DecodeImage [(param a_data (span u8)) (param out (span! u8))] (union [
         Success
         CorruptionError
         UnsupportedError
@@ -728,7 +728,7 @@ the exact number is bits_count"""
         (trylet chunk_length u16 (BS::FrontBeU16 [(&! data)]) err :
             (return err))
         (debug# "CHUNK: " (wrap_as chunk_kind fmt::u16_hex) " " chunk_length "\n")
-        (trylet chunk_slice (slice u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
+        (trylet chunk_slice (span u8) (BS::FrontSlice [(&! data) (as (- chunk_length 2) uint)]) err :
             (return err))
         (cond :
             (case (== chunk_kind 0xffe0) :

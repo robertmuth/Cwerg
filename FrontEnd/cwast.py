@@ -1306,7 +1306,7 @@ class TypeSpan:
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
     """
-    ALIAS = "slice"
+    ALIAS = "span"
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #

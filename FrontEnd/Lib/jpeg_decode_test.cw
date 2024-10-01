@@ -194,7 +194,7 @@
 
 
 (fun dump [] void :
-    (let! data (slice u8) test_image)
+    (let! data (span u8) test_image)
     (while (> (len data) 0) :
         (let n uint (min (len data) 1024))
         (fmt::print# (span_val (front data) n))

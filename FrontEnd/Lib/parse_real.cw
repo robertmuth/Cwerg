@@ -141,7 +141,7 @@ this macro captures i,n,s from the environment"""
 note. this code does not perform
 * denormalization - this is not supported by Cwerg
 * rounding - the whole point of hex float is to control the mantissa exactly"""
-(fun parse_r64_hex_helper [(param s (slice u8)) (param negative bool)] (union [ParseError r64]) :
+(fun parse_r64_hex_helper [(param s (span u8)) (param negative bool)] (union [ParseError r64]) :
     (let! i uint 0)
     (let n auto (len s))
     (let! c u8)
@@ -191,7 +191,7 @@ final touches"""
     (return (num_real::make_r64 [negative exp_u64 mant])))
 
 
-@pub (fun parse_r64_hex [(param s (slice u8))] (union [ParseError r64]) :
+@pub (fun parse_r64_hex [(param s (span u8))] (union [ParseError r64]) :
     (let! n auto (len s))
     (if (< n 5) :
         (return ParseErrorVal)
@@ -238,7 +238,7 @@ final touches"""
         (return (/ out (at num_real::powers_of_ten (~ exp))))))
 
 
-@pub (fun parse_r64 [(param s (slice u8))] (union [ParseError r64]) :
+@pub (fun parse_r64 [(param s (span u8))] (union [ParseError r64]) :
     @doc "index of next char to read"
     (let! i uint 0)
     (let! n auto (len s))

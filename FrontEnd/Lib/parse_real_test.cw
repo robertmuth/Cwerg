@@ -14,7 +14,7 @@
 (global u32_max auto (- 0_u32 1))
 
 
-(fun parse_r64 [(param s (slice u8))] r64 :
+(fun parse_r64 [(param s (span u8))] r64 :
     (return (narrow_as (parse_real::parse_r64 [s]) r64)))
 
 

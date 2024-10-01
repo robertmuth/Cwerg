@@ -50,7 +50,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 
 
 @doc "only valid len for data are 9, 13, 17, 18"
-(fun AddBlockAlignedLE [(param state (ptr! StateKeccak)) (param data (slice u64))] void :
+(fun AddBlockAlignedLE [(param state (ptr! StateKeccak)) (param data (span u64))] void :
     (for i 0 9_uint 1 :
         (xor= (at (^. state x) i) (at data i)))
     (if (== (len data) 9) :
@@ -108,7 +108,7 @@ https://emn178.github.io/online-tools/sha3_512.html
     (= $a $b))
 
 
-(fun dumpA [(param tag (slice u8)) (param x (ptr (array 25 u64)))] void :
+(fun dumpA [(param tag (span u8)) (param x (ptr (array 25 u64)))] void :
     (fmt::print# tag "\n")
     (for i 0 5_uint 1 :
         (for j 0 5_uint 1 :
@@ -195,8 +195,8 @@ https://emn178.github.io/online-tools/sha3_512.html
 
 @pub (fun KeccakAdd [
         (param state (ptr! StateKeccak))
-        (param tail (slice! u64))
-        (param data (slice u8))] void :
+        (param tail (span! u64))
+        (param data (span u8))] void :
     @doc """(fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")"""
     (let tail_u8 auto (as (front! tail) (ptr! u8)))
     (let block_size uint (* (len tail) 8))
@@ -229,7 +229,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 
 @pub (fun KeccakFinalize [
         (param state (ptr! StateKeccak))
-        (param tail (slice! u64))
+        (param tail (span! u64))
         (param padding u8)] void :
     (let tail_u8 auto (as (front! tail) (ptr! u8)))
     (let block_size auto (* (len tail) 8))
@@ -243,7 +243,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 
 
 @doc "returns 512 bit cryptographic hash of data"
-@pub (fun Keccak512 [(param data (slice u8))] (array 64 u8) :
+@pub (fun Keccak512 [(param data (span u8))] (array 64 u8) :
     (@ref let! state auto (rec_val StateKeccak512 []))
     (do (KeccakAdd [(&! (. state base)) (. state tail) data]))
     (do (KeccakFinalize [(&! (. state base)) (. state tail) KeccakPadding]))
@@ -251,7 +251,7 @@ https://emn178.github.io/online-tools/sha3_512.html
 
 
 @doc "returns 512 bit cryptographic hash of data"
-@pub (fun Sha3512 [(param data (slice u8))] (array 64 u8) :
+@pub (fun Sha3512 [(param data (span u8))] (array 64 u8) :
     (@ref let! state auto (rec_val StateKeccak512 []))
     (do (KeccakAdd [(&! (. state base)) (. state tail) data]))
     (do (KeccakFinalize [(&! (. state base)) (. state tail) Sha3Padding]))

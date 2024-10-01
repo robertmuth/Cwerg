@@ -65,11 +65,11 @@
     (return result))
 
 
-(fun TestForMacroStringify [] (slice u8) :
+(fun TestForMacroStringify [] (span u8) :
     (return (stringify TestForMacroStringify)))
 
 
-(fun TestSwap [(param vec (slice! u8))] void :
+(fun TestSwap [(param vec (span! u8))] void :
     (swap# (at vec 1) (at vec 2)))
 
 @doc "just a compilation test"

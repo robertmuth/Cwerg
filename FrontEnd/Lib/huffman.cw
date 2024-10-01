@@ -38,8 +38,8 @@ This function has two failure modes:
 """
 @pub (fun NextSymbol [
         (param bs (ptr! bitstream::Stream32))
-        (param counts (slice u16))
-        (param symbols (slice u16))] u16 :
+        (param counts (span u16))
+        (param symbols (span u16))] u16 :
     (let! offset u32 0)
     (let! base u32 0)
     (for level 1 (len counts) 1 :
@@ -58,7 +58,7 @@ This function has two failure modes:
 @doc """Check that symbol count at a level can be encoded
 
 """
-(fun CountsAreFeasible [(param counts (slice u16))] bool :
+(fun CountsAreFeasible [(param counts (span u16))] bool :
     (let! available u16 2)
     (for level 1 (len counts) 1 :
         (let used auto (at counts level))
@@ -85,9 +85,9 @@ Note counts[0] is always 0
 
 """
 @pub (fun ComputeCountsAndSymbolsFromLengths [
-        (param lengths (slice u16))
-        (param counts (slice! u16))
-        (param symbols (slice! u16))] u16 :
+        (param lengths (span u16))
+        (param counts (span! u16))
+        (param symbols (span! u16))] u16 :
     (if (> (len lengths) MAX_SYMBOLS) :
         (return BAD_TREE_ENCODING)
      :)

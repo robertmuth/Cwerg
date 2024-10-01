@@ -35,7 +35,7 @@
 @pub (global Stderr auto (wrap_as 2 FD))
 
 
-@pub (fun FileWrite [(param fd FD) (param buffer (slice u8))] (union [uint Error]) :
+@pub (fun FileWrite [(param fd FD) (param buffer (span u8))] (union [uint Error]) :
     (let res auto (write [(unwrap fd) (front buffer) (len buffer)]))
     (if (< res 0) :
         (return (wrap_as (as res s32) Error))
@@ -43,7 +43,7 @@
         (return (as res uint))))
 
 
-@pub (fun FileRead [(param fd FD) (param buffer (slice! u8))] (union [uint Error]) :
+@pub (fun FileRead [(param fd FD) (param buffer (span! u8))] (union [uint Error]) :
     (let res auto (read [(unwrap fd) (front! buffer) (len buffer)]))
     (if (< res 0) :
         (return (wrap_as (as res s32) Error))

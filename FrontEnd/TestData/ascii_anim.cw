@@ -21,13 +21,13 @@
 
 
 @pub (defrec Sprite :
-    (field image_map (slice u8))
-    (field color_map (slice u8)))
+    (field image_map (span u8))
+    (field color_map (span u8)))
 
 
 @pub (defrec Object :
-    (field name (slice u8))
-    (field sprites (slice Sprite))
+    (field name (span u8))
+    (field sprites (span Sprite))
     (field def_attr u8)
     (field def_depth u8)
     (field transparent_char u8)
@@ -44,7 +44,7 @@
     (field frame uint)
     (field x_speed r32)
     (field y_speed r32)
-    (field attr_lookup (slice u8))
+    (field attr_lookup (span u8))
     (field def_attr u8)
     @doc "updated by draw"
     (field visible bool))
@@ -74,11 +74,11 @@
     (return (or c 0x20)))
 
 
-(fun get_style [(param attr u8)] (slice u8) :
-    (return (? (< attr 'a') (as ansi::SET_MODE_BOLD (slice u8)) (as ansi::RESET_MODE_BOLD_OR_DIM (slice u8)))))
+(fun get_style [(param attr u8)] (span u8) :
+    (return (? (< attr 'a') (as ansi::SET_MODE_BOLD (span u8)) (as ansi::RESET_MODE_BOLD_OR_DIM (span u8)))))
 
 
-(fun get_fg_color [(param attr u8)] (slice u8) :
+(fun get_fg_color [(param attr u8)] (span u8) :
     (let col u8 (tolower [attr]))
     (cond :
         (case (== col 'k') :
@@ -101,7 +101,7 @@
             (return ""))))
 
 
-(fun get_bg_color [(param attr u8)] (slice u8) :
+(fun get_bg_color [(param attr u8)] (span u8) :
     (let col u8 (tolower [attr]))
     (cond :
         (case (== col 'k') :

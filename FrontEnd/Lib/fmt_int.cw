@@ -38,42 +38,42 @@
 @doc """Why the polymorphism?
         It makes shorter names and avoids the need for separate
         uint and sint handling"""
-@pub (fun FmtDec@ [(param v u8) (param out (slice! u8))] uint :
+@pub (fun FmtDec@ [(param v u8) (param out (span! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-@pub (fun FmtDec@ [(param v u16) (param out (slice! u8))] uint :
+@pub (fun FmtDec@ [(param v u16) (param out (span! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-@pub (fun FmtDec@ [(param v u32) (param out (slice! u8))] uint :
+@pub (fun FmtDec@ [(param v u32) (param out (span! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-@pub (fun FmtDec@ [(param v u64) (param out (slice! u8))] uint :
+@pub (fun FmtDec@ [(param v u64) (param out (span! u8))] uint :
     (return (unsigned_to_str# v 10 32_uint out)))
 
 
-@pub (fun FmtDec@ [(param v s16) (param out (slice! u8))] uint :
+@pub (fun FmtDec@ [(param v s16) (param out (span! u8))] uint :
     (if (== (len out) 0) :
         (return 0)
      :)
     (if (< v 0) :
         (let v_unsigned auto (- 0_s16 v))
         (= (at out 0) '-')
-        (return (+ 1 (FmtDec@ [v_unsigned (slice_inc_or_die# out 1)])))
+        (return (+ 1 (FmtDec@ [v_unsigned (span_inc_or_die# out 1)])))
      :
         (return (FmtDec@ [(as v u16) out]))))
 
 
-@pub (fun FmtDec@ [(param v s32) (param out (slice! u8))] uint :
+@pub (fun FmtDec@ [(param v s32) (param out (span! u8))] uint :
     (if (== (len out) 0) :
         (return 0)
      :)
     (if (< v 0) :
         (= (at out 0) '-')
         (let v_unsigned auto (as (- 0_s32 v) u32))
-        (return (+ 1 (FmtDec@ [v_unsigned (slice_inc_or_die# out 1)])))
+        (return (+ 1 (FmtDec@ [v_unsigned (span_inc_or_die# out 1)])))
      :
         (return (FmtDec@ [(as v u32) out]))))
 
@@ -81,18 +81,18 @@
 @doc """Why the polymorphism?
         It makes shorter names and avoids the need for separate
         uint and sint handling"""
-@pub (fun FmtHex@ [(param v u64) (param out (slice! u8))] uint :
+@pub (fun FmtHex@ [(param v u64) (param out (span! u8))] uint :
     (return (unsigned_to_str# v 16 64_uint out)))
 
 
-@pub (fun FmtHex@ [(param v u32) (param out (slice! u8))] uint :
+@pub (fun FmtHex@ [(param v u32) (param out (span! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 
 
-@pub (fun FmtHex@ [(param v u16) (param out (slice! u8))] uint :
+@pub (fun FmtHex@ [(param v u16) (param out (span! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 
 
-@pub (fun FmtHex@ [(param v u8) (param out (slice! u8))] uint :
+@pub (fun FmtHex@ [(param v u8) (param out (span! u8))] uint :
     (return (unsigned_to_str# v 16 32_uint out)))
 )

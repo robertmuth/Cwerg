@@ -21,7 +21,7 @@
     (return (< (^ a) (^ b))))
 
 
-(fun heap_sort [(param sdata (slice! r64))] void :
+(fun heap_sort [(param sdata (span! r64))] void :
     (let data (ptr! r64) (front! sdata))
     (let n auto (len sdata))
     (let! ir auto n)

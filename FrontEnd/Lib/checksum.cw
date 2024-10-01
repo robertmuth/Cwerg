@@ -26,7 +26,7 @@
 
 @doc "start crc is 0"
 @pub (fun CalcCrc [
-        (param buf (slice u8))
+        (param buf (span u8))
         (param start_crc u32)
         (param tab (ptr CrcTab))] u32 :
     (let! crc u32 (xor start_crc 0xffffffff))
@@ -44,7 +44,7 @@
 
 
 @doc "only use expensive modulo when absolutely needed"
-@pub (fun Adler32ShortSliceHelper [(param buf (slice u8)) (param start_crc u32)] u32 :
+@pub (fun Adler32ShortSliceHelper [(param buf (span u8)) (param start_crc u32)] u32 :
     (let! a u32 (and start_crc 0xffff))
     (let! b u32 (and (>> start_crc 16) 0xffff))
     (for i 0 (len buf) 1 :
@@ -60,7 +60,7 @@
 
 
 @doc "start crc is 1"
-@pub (fun Adler32 [(param buf (slice u8)) (param start_crc u32)] u32 :
+@pub (fun Adler32 [(param buf (span u8)) (param start_crc u32)] u32 :
     (let! crc u32 start_crc)
     (let! start uint 0)
     (while (< start (len buf)) :

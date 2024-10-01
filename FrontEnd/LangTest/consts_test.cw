@@ -139,7 +139,7 @@
 
 
 @pub (defrec type_rec2 :
-    (field s1 (slice u8))
+    (field s1 (span u8))
     (field s2 s32)
     (field s3 s32))
 

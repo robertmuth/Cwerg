@@ -36,7 +36,7 @@
 (type type_array (array 3 bool))
 
 
-(type type_slice (slice type_rec))
+(type type_slice (span type_rec))
 
 
 (type type_ptr (ptr! s32))

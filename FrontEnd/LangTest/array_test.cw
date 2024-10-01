@@ -5,7 +5,7 @@
 (type type_array (array 3 bool))
 
 
-(type type_slice (slice s32))
+(type type_slice (span s32))
 
 
 (global c1 auto (vec_val 10 s32 [1 2 3]))
@@ -28,7 +28,7 @@
 
 
 (fun update_array [
-        (param s (slice! u8))
+        (param s (span! u8))
         (param pos uint)
         (param new u8)] u8 :
     (let old auto (at s pos))
@@ -36,7 +36,7 @@
     (return old))
 
 
-@doc "ERROR: (let f4 (slice mut s32) e1)"
+@doc "ERROR: (let f4 (span mut s32) e1)"
 (fun baz [] void :
     @doc "ERROR: (= (at c1 5) 0)"
     (let pc1 (ptr s32) (front c1))
@@ -108,28 +108,28 @@
 (global! c3 auto (vec_val 10 u8 [4 5 6]))
 
 
-(global e1 (slice s32) d1)
+(global e1 (span s32) d1)
 
 
-(global e2 (slice! s32) d2)
+(global e2 (span! s32) d2)
 
 
 (global e3 auto (vec_val 5 s32 [0 1 2 3 4]))
 
 
-(global e4 auto (vec_val 2 (slice s32) [e1 e1]))
+(global e4 auto (vec_val 2 (span s32) [e1 e1]))
 
 
 @doc """ERROR
-       (global e5 (slice (slice s32)) e4)
-       (global e3 (slice mut s32) d2)"""
-(global f1 (slice s32) e1)
+       (global e5 (span (span s32)) e4)
+       (global e3 (span mut s32) d2)"""
+(global f1 (span s32) e1)
 
 
-(global f3 (slice s32) e2)
+(global f3 (span s32) e2)
 
 
-(global f2 (slice! s32) e2)
+(global f2 (span! s32) e2)
 
 
 (fun test_global_array [] void :

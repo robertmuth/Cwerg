@@ -9,7 +9,7 @@ the footprint/dependencies small.
 
 
 (macro SysPrint# STMT_LIST [(mparam $msg EXPR)] [$msg_eval] :
-    (mlet $msg_eval (slice u8) $msg)
+    (mlet $msg_eval (span u8) $msg)
     (do (os::write [(unwrap os::Stdout) (front $msg_eval) (len $msg_eval)])))
 
 

@@ -14,7 +14,7 @@
 
 (fun fmt::SysRender@ [
         (param v color)
-        (param out (slice! u8))
+        (param out (span! u8))
         (param options (ptr! fmt::SysFormatOptions))] uint :
     (return (fmt::SysRender@ [(unwrap v) out options])))
 
@@ -26,7 +26,7 @@
 
 (fun fmt::SysRender@ [
         (param v ic32)
-        (param s (slice! u8))
+        (param s (span! u8))
         (param opt (ptr! fmt::SysFormatOptions))] uint :
     (let f auto (front! s))
     (let l auto (len s))
@@ -38,13 +38,13 @@
     (return n))
 
 
-(global test_string (slice u8) "qwerty_1234")
+(global test_string (span u8) "qwerty_1234")
 
 
 (fun test_custom [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
     (let! buffer auto (vec_val fmt::FORMATED_STRING_MAX_LEN u8))
-    (@ref let! s (slice! u8) buffer)
+    (@ref let! s (span! u8) buffer)
     (let! n uint 0)
     @doc "complex"
     (= n (fmt::SysRender@ [
@@ -60,7 +60,7 @@
 (fun test_int [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
     (let! buffer auto (vec_val fmt::FORMATED_STRING_MAX_LEN u8))
-    (@ref let! s (slice! u8) buffer)
+    (@ref let! s (span! u8) buffer)
     (let! n uint 0)
     (= n (fmt::SysRender@ [666_uint s (&! opt)]))
     (test::AssertSliceEq# (span_val (front s) n) "666")
@@ -73,7 +73,7 @@
 (fun test_real [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
     (let! buffer auto (vec_val fmt::FORMATED_STRING_MAX_LEN u8))
-    (@ref let! s (slice! u8) buffer)
+    (@ref let! s (span! u8) buffer)
     (let! n uint 0)
     (= n (fmt::SysRender@ [(wrap_as 2 fmt::r64_hex) s (&! opt)]))
     @doc """(fmt::print# s " \n")"""
@@ -86,7 +86,7 @@
 (fun test_misc [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
     (let! buffer auto (vec_val fmt::FORMATED_STRING_MAX_LEN u8))
-    (@ref let! s (slice! u8) buffer)
+    (@ref let! s (span! u8) buffer)
     (let! n uint 0)
     (= n (fmt::SysRender@ [true s (&! opt)]))
     (test::AssertSliceEq# (span_val (front s) n) "true")

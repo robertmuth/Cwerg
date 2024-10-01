@@ -69,9 +69,9 @@
 @doc "read length for the combined literal and distance huffman costs"
 (fun read_lit_dist_lengths [
         (param bs (ptr! bitstream::Stream32))
-        (param cl_counts (slice u16))
-        (param cl_symbols (slice u16))
-        (param lengths (slice! u16))] (union [Success CorruptionError TruncationError]) :
+        (param cl_counts (span u16))
+        (param cl_symbols (span u16))
+        (param lengths (span! u16))] (union [Success CorruptionError TruncationError]) :
     (let! i uint 0)
     (while (< i (len lengths)) :
         (let sym auto (huffman::NextSymbol [bs cl_counts cl_symbols]))
@@ -153,12 +153,12 @@
 @doc "common part for handing both dynamic and fixed hufman"
 (fun handle_huffman_common [
         (param bs (ptr! bitstream::Stream32))
-        (param lit_counts (slice u16))
-        (param lit_symbols (slice u16))
-        (param dist_counts (slice u16))
-        (param dist_symbols (slice u16))
+        (param lit_counts (span u16))
+        (param lit_symbols (span u16))
+        (param dist_counts (span u16))
+        (param dist_symbols (span u16))
         (param pos uint)
-        (param dst (slice! u8))] (union [
+        (param dst (span! u8))] (union [
         uint
         CorruptionError
         NoSpaceError
@@ -224,7 +224,7 @@
 (fun handle_dynamic_huffman [
         (param bs (ptr! bitstream::Stream32))
         (param pos uint)
-        (param dst (slice! u8))] (union [
+        (param dst (span! u8))] (union [
         uint
         CorruptionError
         NoSpaceError
@@ -350,7 +350,7 @@ last symbol: 29
 (fun handle_fixed_huffman [
         (param bs (ptr! bitstream::Stream32))
         (param pos uint)
-        (param dst (slice! u8))] (union [
+        (param dst (span! u8))] (union [
         uint
         CorruptionError
         NoSpaceError
@@ -370,7 +370,7 @@ last symbol: 29
 (fun handle_uncompressed [
         (param bs (ptr! bitstream::Stream32))
         (param pos uint)
-        (param dst (slice! u8))] (union [
+        (param dst (span! u8))] (union [
         uint
         CorruptionError
         NoSpaceError
@@ -398,7 +398,7 @@ last symbol: 29
     (return (+ pos (len src))))
 
 
-@pub (fun uncompress [(param bs (ptr! bitstream::Stream32)) (param dst (slice! u8))] (union [
+@pub (fun uncompress [(param bs (ptr! bitstream::Stream32)) (param dst (span! u8))] (union [
         uint
         CorruptionError
         NoSpaceError

@@ -63,13 +63,13 @@
         (param integer u32)
         (param exp10 s32)
         (param precision uint)
-        (param out (slice! u8))] uint :
+        (param out (span! u8))] uint :
     (= (at out 0) (? is_neg '-' '+'))
     (= (at out 1) (+ '0' (as integer u8)))
     (= (at out 2) '.')
     (for j 0 precision 1 :
         (= (at out (+ j 3)) '0'))
-    (let! n uint (fmt_real::FmtExponentE [exp10 (slice_inc_or_die# out (+ precision 3))]))
+    (let! n uint (fmt_real::FmtExponentE [exp10 (span_inc_or_die# out (+ precision 3))]))
     (+= n precision)
     (+= n 3)
     (return n))

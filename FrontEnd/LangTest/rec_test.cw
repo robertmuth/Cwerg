@@ -70,7 +70,7 @@
 
 @pub (defrec type_rec5 :
     (field t1 u64)
-    (field t2 (slice! u8))
+    (field t2 (span! u8))
     (field t5 bool))
 
 

@@ -88,9 +88,9 @@ The type of the loop variable is determined by $end"""
 
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
-@pub (macro slice_inc_or_die# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
+@pub (macro span_inc_or_die# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
     (expr :
-        (mlet $orig_slice auto (as $slice (slice! (type_of (^ (front $slice))))))
+        (mlet $orig_slice auto (as $slice (span! (type_of (^ (front $slice))))))
         (mlet $orig_len auto (len $orig_slice))
         (mlet $orig_size uint $size)
         (if (> $orig_size $orig_len) :
@@ -100,9 +100,9 @@ The type of the loop variable is determined by $end"""
 
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
-@pub (macro slice_truncate_or_die# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
+@pub (macro span_truncate_or_die# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
     (expr :
-        (mlet $orig_slice auto (as $slice (slice! (type_of (^ (front $slice))))))
+        (mlet $orig_slice auto (as $slice (span! (type_of (^ (front $slice))))))
         (mlet $orig_len auto (len $orig_slice))
         (mlet $orig_size uint $size)
         (if (> $orig_size $orig_len) :
@@ -112,10 +112,10 @@ The type of the loop variable is determined by $end"""
 
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
-@pub (macro slice_append_or_die# EXPR [(mparam $slice EXPR) (mparam $out EXPR)] [$e_slice $e_out] :
+@pub (macro span_append_or_die# EXPR [(mparam $slice EXPR) (mparam $out EXPR)] [$e_slice $e_out] :
     (expr :
-        (mlet $e_slice auto (as $slice (slice (type_of (^ (front $slice))))))
-        (mlet $e_out auto (as $out (slice! (type_of (^ (front $out))))))
+        (mlet $e_slice auto (as $slice (span (type_of (^ (front $slice))))))
+        (mlet $e_out auto (as $out (span! (type_of (^ (front $out))))))
         (if (> (len $e_slice) (len $e_out)) :
             (trap)
          :)
@@ -137,8 +137,8 @@ The type of the loop variable is determined by $end"""
 @pub (macro assert# STMT [(mparam $cond EXPR) (mparam $text EXPR)] [$e_cond $e_text] :
     (if $cond :
      :
-        (mlet $e_cond (slice u8) (stringify $cond))
-        (mlet $e_text (slice u8) $text)
+        (mlet $e_cond (span u8) (stringify $cond))
+        (mlet $e_text (span u8) $text)
         (do (print_ln [(front $e_cond) (len $e_cond)]))
         (do (print_ln [(front $e_text) (len $e_text)]))
         (trap)))

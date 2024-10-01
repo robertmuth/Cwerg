@@ -52,17 +52,17 @@ https://www.ryanjuckett.com/printing-floating-point-numbers/"""
 @doc """assumptions:
 * raw_exp is nan
 * len(out) >= 5"""
-(fun FmtNan [(param val r64) (param out (slice! u8))] uint :
+(fun FmtNan [(param val r64) (param out (span! u8))] uint :
     (let! mantissa auto (num_real::r64_raw_mantissa [val]))
     (let is_negative auto (num_real::r64_is_negative [val]))
     (= (at out 0) (? is_negative '-' '+'))
     (cond :
         (case (== mantissa num_real::r64_mantissa_infinity) :
-            (return (+ 1 (slice_append_or_die# "inf" (slice_inc_or_die# out 1)))))
+            (return (+ 1 (span_append_or_die# "inf" (span_inc_or_die# out 1)))))
         (case (== mantissa num_real::r64_mantissa_qnan) :
-            (return (+ 1 (slice_append_or_die# "nan" (slice_inc_or_die# out 1)))))
+            (return (+ 1 (span_append_or_die# "nan" (span_inc_or_die# out 1)))))
         (case (== mantissa num_real::r64_mantissa_snan) :
-            (return (+ 1 (slice_append_or_die# "snan" (slice_inc_or_die# out 1))))))
+            (return (+ 1 (span_append_or_die# "snan" (span_inc_or_die# out 1))))))
     (return 0))
 
 
@@ -78,7 +78,7 @@ radix character shall appear. The low-order digit shall be rounded in an impleme
 manner. The E conversion specifier shall produce a number with 'E' instead of 'e' introducing
 the exponent. The exponent shall always contain at least two digits. If the value is zero,
 the exponent shall be zero."""
-@pub (fun FmtExponentE [(param exp s32) (param out (slice! u8))] uint :
+@pub (fun FmtExponentE [(param exp s32) (param out (span! u8))] uint :
     (if (< (len out) 4) :
         (return 0)
      :)
@@ -91,20 +91,20 @@ the exponent shall be zero."""
             (= (at out 2) '0')
             (+= i 1)
          :)
-        (return (+ i (fmt_int::FmtDec@ [(~ exp) (slice_inc_or_die# out i)])))
+        (return (+ i (fmt_int::FmtDec@ [(~ exp) (span_inc_or_die# out i)])))
      :
         (= (at out 1) '+')
         (if (<= exp 9) :
             (= (at out 2) '0')
             (+= i 1)
          :)
-        (return (+ i (fmt_int::FmtDec@ [exp (slice_inc_or_die# out i)])))))
+        (return (+ i (fmt_int::FmtDec@ [exp (span_inc_or_die# out i)])))))
 
 
 (fun FmtSign [
         (param is_negative bool)
         (param force_sign bool)
-        (param out (slice! u8))] uint :
+        (param out (span! u8))] uint :
     (cond :
         (case is_negative :
             (= (at out 0) '-')
@@ -117,9 +117,9 @@ the exponent shall be zero."""
 
 
 (fun FmtMantissaE [
-        (param digits (slice u8))
+        (param digits (span u8))
         (param precision uint)
-        (param out (slice! u8))] uint :
+        (param out (span! u8))] uint :
     (let num_digits auto (len digits))
     (= (at out 0) (at digits 0))
     (= (at out 1) '.')
@@ -132,7 +132,7 @@ the exponent shall be zero."""
 
 
 @doc """return a potential "carry""""
-(fun RoundDigitsUp [(param digits (slice! u8))] s32 :
+(fun RoundDigitsUp [(param digits (span! u8))] s32 :
     (for pos 0 (len digits) 1 :
         (let i auto (- (- (len digits) pos) 1))
         (if (== (at digits i) '9') :
@@ -151,7 +151,7 @@ the exponent shall be zero."""
         (param val r64)
         (param precision uint)
         (param force_sign bool)
-        (param out (slice! u8))] uint :
+        (param out (span! u8))] uint :
     @doc "worst case -x.[precision]e-xxx"
     (let is_negative auto (num_real::r64_is_negative [val]))
     (let! buffer (array 32 u8) undef)
@@ -166,8 +166,8 @@ the exponent shall be zero."""
             (= (at buffer 0) '0')
             (let! i auto 0_uint)
             (+= i (FmtSign [is_negative force_sign out]))
-            (+= i (FmtMantissaE [(span_val (front buffer) 1) precision (slice_inc_or_die# out i)]))
-            (+= i (FmtExponentE [0 (slice_inc_or_die# out i)]))
+            (+= i (FmtMantissaE [(span_val (front buffer) 1) precision (span_inc_or_die# out i)]))
+            (+= i (FmtExponentE [0 (span_inc_or_die# out i)]))
             (return i)
          :)
         (return 0)
@@ -186,7 +186,7 @@ the exponent shall be zero."""
         (*= mantissa 10)
         (>>= mantissa (as (- 52_s32 exponent) u64))
      :)
-    (let num_digits uint (fmt_int::FmtDec@ [mantissa (as buffer (slice! u8))]))
+    (let num_digits uint (fmt_int::FmtDec@ [mantissa (as buffer (span! u8))]))
     @doc "decimal rounding if we drop digits"
     (if (&& (> num_digits (+ precision 1)) (>= (at buffer (+ precision 2)) '5')) :
         (+= t (RoundDigitsUp [(span_val (front! buffer) (+ precision 1))]))
@@ -194,8 +194,8 @@ the exponent shall be zero."""
     (+= t (as (- num_digits 1) s32))
     (let! i auto 0_uint)
     (+= i (FmtSign [is_negative force_sign out]))
-    (+= i (FmtMantissaE [(span_val (front buffer) num_digits) precision (slice_inc_or_die# out i)]))
-    (+= i (FmtExponentE [t (slice_inc_or_die# out i)]))
+    (+= i (FmtMantissaE [(span_val (front buffer) num_digits) precision (span_inc_or_die# out i)]))
+    (+= i (FmtExponentE [t (span_inc_or_die# out i)]))
     @doc """fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")"""
     (return i))
 
@@ -206,7 +206,7 @@ the exponent shall be zero."""
 
 (fun FmtMantissaHex [(param frac_bits u64)
                      (param is_denorm bool)
-                     (param out (slice! u8))] uint :
+                     (param out (span! u8))] uint :
     (= (at out 0) '0')
     (= (at out 1) 'x')
     (= (at out 2) (? is_denorm '0' '1'))
@@ -224,7 +224,7 @@ the exponent shall be zero."""
 
 (fun FmtExponentHex [(param raw_exponent s32)
                      (param is_potential_zero bool)
-                     (param out (slice! u8))] uint :
+                     (param out (span! u8))] uint :
     (let! exp s32 raw_exponent)
     (if (== raw_exponent num_real::r64_raw_exponent_subnormal) :
         (= exp (? is_potential_zero 0 -1022))
@@ -239,14 +239,14 @@ the exponent shall be zero."""
      :
         (= (at out 1) '+')
      )
-    (return (+ 2 (fmt_int::FmtDec@ [(as exp u32) (slice_inc_or_die# out 2)])))
+    (return (+ 2 (fmt_int::FmtDec@ [(as exp u32) (span_inc_or_die# out 2)])))
 )
 
 @doc """r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
         exponentiation bias is 1023
         https://en.wikipedia.org/wiki/Double-precision_floating-point_format
         https://observablehq.com/@jrus/hexfloat"""
-@pub (fun FmtHex@ [(param val r64) (param out (slice! u8))] uint :
+@pub (fun FmtHex@ [(param val r64) (param out (span! u8))] uint :
     (let! frac_bits auto (num_real::r64_raw_mantissa [val]))
     (let is_negative auto (num_real::r64_is_negative [val]))
     (let raw_exponent auto (num_real::r64_raw_exponent [val]))
@@ -261,10 +261,10 @@ the exponent shall be zero."""
      :)
     (+= i (FmtMantissaHex [frac_bits
                            (== raw_exponent num_real::r64_raw_exponent_subnormal)
-                           (slice_inc_or_die# out i)]))
+                           (span_inc_or_die# out i)]))
     (+= i (FmtExponentHex [raw_exponent
                            (==  frac_bits 0)
-                           (slice_inc_or_die# out i)]))
+                           (span_inc_or_die# out i)]))
     (return i))
 
 )

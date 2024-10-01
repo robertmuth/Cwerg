@@ -1,7 +1,7 @@
 @doc "heapsort"
 (module [(modparam $type TYPE) (modparam $cmp_lt CONST_EXPR)] :
 
-@pub (fun sort [(param sdata (slice! $type))] void :
+@pub (fun sort [(param sdata (span! $type))] void :
     (let data (ptr! $type) (front! sdata))
     (let n auto (len sdata))
     (let! ir auto n)

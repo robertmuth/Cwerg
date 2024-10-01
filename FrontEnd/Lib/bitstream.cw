@@ -11,7 +11,7 @@ This is different from a jpeg bitstream is uses a big-endian flavor.
 
 Not thread-safe"""
 @pub (defrec Stream32 :
-    (field buf (slice u8))
+    (field buf (span u8))
     (field offset uint)
     @doc """contains the next up to 8 bits from the stream
 the exact number is bits_count"""
@@ -69,7 +69,7 @@ may set eos
 
 
 @doc "may set eos bit"
-@pub (fun Stream32GetByteSlice [(param bs (ptr! Stream32)) (param n uint)] (slice u8) :
+@pub (fun Stream32GetByteSlice [(param bs (ptr! Stream32)) (param n uint)] (span u8) :
     (let! l uint (len (^. bs buf)))
     (let! f auto (front (^. bs buf)))
     (let offset uint (^. bs offset))
