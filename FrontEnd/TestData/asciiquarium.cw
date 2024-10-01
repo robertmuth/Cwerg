@@ -11,7 +11,7 @@
 (import fmt)
 
 
-(global! all_objects auto (array_val 100 aanim::ObjectState))
+(global! all_objects auto (vec_val 100 aanim::ObjectState))
 
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

@@ -23,13 +23,13 @@
 (global SIZE u32 32)
 
 
-(global! meta auto (array_val SIZE u8 [0]))
+(global! meta auto (vec_val SIZE u8 [0]))
 
 
-(global! keys auto (array_val SIZE u32 [0]))
+(global! keys auto (vec_val SIZE u32 [0]))
 
 
-(global! vals auto (array_val SIZE u32 [0]))
+(global! vals auto (vec_val SIZE u32 [0]))
 
 
 (global! ht auto (rec_val hashtab::HashTab32 [

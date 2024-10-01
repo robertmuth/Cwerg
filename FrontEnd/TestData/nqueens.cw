@@ -54,7 +54,7 @@
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     @doc "initialized to false"
-    (@ref let! board auto (array_val DIM (array DIM bool)))
+    (@ref let! board auto (vec_val DIM (array DIM bool)))
     (let n auto (Solve [(&! board) 0]))
     (fmt::print# n "\n")
     (test::AssertEq# n 724_uint)

@@ -17,7 +17,7 @@
 (global SIZE uint 20)
 
 
-(global! Data auto (array_val SIZE r64))
+(global! Data auto (vec_val SIZE r64))
 
 
 (global NEWLINE auto "\n")

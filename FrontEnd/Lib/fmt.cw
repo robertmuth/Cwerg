@@ -219,7 +219,7 @@
 @pub (macro print# STMT_LIST [
         @doc "list of items to be printed"
         (mparam $parts EXPR_LIST_REST)] [$buffer $curr $options] :
-    (mlet! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
+    (mlet! $buffer auto (vec_val FORMATED_STRING_MAX_LEN u8))
     (mlet! $curr uint 0)
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
@@ -229,7 +229,7 @@
 
 @doc "same as above but takes an EXPR_LIST - should only be used by other macros"
 @pub (macro print_list# STMT_LIST [(mparam $parts EXPR_LIST)] [$buffer $curr $options] :
-    (mlet! $buffer auto (array_val FORMATED_STRING_MAX_LEN u8))
+    (mlet! $buffer auto (vec_val FORMATED_STRING_MAX_LEN u8))
     (mlet! $curr uint 0)
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :

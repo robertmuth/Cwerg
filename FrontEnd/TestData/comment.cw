@@ -24,7 +24,7 @@
     (entry e4))
 
 
-(global c31 auto (array_val 30 uint [
+(global c31 auto (vec_val 30 uint [
         10
         @doc "index_val"
         (index_val 20)
@@ -36,7 +36,7 @@
         (param argc s32)
         @doc "param"
         (param argv (ptr (ptr u8)))] s32 :
-    (let! loc11 auto (array_val 30 uint [
+    (let! loc11 auto (vec_val 30 uint [
             10
             @doc "index_val"
             (index_val 20)

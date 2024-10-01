@@ -33,7 +33,7 @@
 (global N uint 100)
 
 
-(global! NodePool auto (array_val N LinkedListNode))
+(global! NodePool auto (vec_val N LinkedListNode))
 
 
 @doc "currently (* N 24) but should be (* N 16) on 64 bit system with union optimization"

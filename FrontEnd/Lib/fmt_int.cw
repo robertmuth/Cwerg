@@ -18,7 +18,7 @@
     (expr :
         @doc "unsigned to str with given base"
         (mlet! $v auto $val)
-        (mlet! $tmp auto (array_val 1024 u8))
+        (mlet! $tmp auto (vec_val 1024 u8))
         (mlet! $pos uint $max_width)
         (mlet $out_eval auto $out)
         (block _ :

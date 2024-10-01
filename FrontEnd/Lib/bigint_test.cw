@@ -12,16 +12,16 @@
 (global u32_max auto (- 0_u32 1))
 
 
-(global b_u128_zero auto (array_val 2 u64 [0 0]))
+(global b_u128_zero auto (vec_val 2 u64 [0 0]))
 
 
-(global b_u128_one auto (array_val 2 u64 [1 0]))
+(global b_u128_one auto (vec_val 2 u64 [1 0]))
 
 
-(global b_u128_two auto (array_val 2 u64 [2 0]))
+(global b_u128_two auto (vec_val 2 u64 [2 0]))
 
 
-(global b_u128_max auto (array_val 2 u64 [u64_max u64_max]))
+(global b_u128_max auto (vec_val 2 u64 [u64_max u64_max]))
 
 
 (fun test_add_b_u128 [] void :

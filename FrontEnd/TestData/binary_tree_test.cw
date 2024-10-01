@@ -14,7 +14,7 @@
 (global N u32 64)
 
 
-(global! NodePool auto (array_val N bt::Node))
+(global! NodePool auto (vec_val N bt::Node))
 
 
 (global! NodePoolFreeIndex uint 0)

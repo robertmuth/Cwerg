@@ -118,7 +118,7 @@
 
 
 @doc "array literal with explicit indices"
-(global c30 auto (array_val 30 uint [(index_val 0 1) (index_val 10 2) (index_val 20 3)]))
+(global c30 auto (vec_val 30 uint [(index_val 0 1) (index_val 10 2) (index_val 20 3)]))
 
 
 (global c40 auto (at c30 1))
@@ -128,7 +128,7 @@
 
 
 @doc "array literal"
-(global c31 auto (array_val 30 uint [10 20 30]))
+(global c31 auto (vec_val 30 uint [10 20 30]))
 
 
 @doc "rec literal"

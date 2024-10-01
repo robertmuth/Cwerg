@@ -54,18 +54,18 @@
         0x1234
         0x4321
         g2
-        (array_val 13 u16 [0x11 undef 0x12])]))
+        (vec_val 13 u16 [0x11 undef 0x12])]))
 
 
 (global! g3_alt auto (rec_val type_rec3 [
         0x1234
         0x4321
         g2
-        (array_val 13 u16 [0x11 undef 0x12])]))
+        (vec_val 13 u16 [0x11 undef 0x12])]))
 
 
 @doc "BROKEN init"
-(global g4 auto (array_val 4 type_rec2 [undef g2]))
+(global g4 auto (vec_val 4 type_rec2 [undef g2]))
 
 
 @pub (defrec type_rec5 :
@@ -74,7 +74,7 @@
     (field t5 bool))
 
 
-(global! buffer auto (array_val 3 u8 [0 0 0]))
+(global! buffer auto (vec_val 3 u8 [0 0 0]))
 
 
 (global g5 type_rec5 undef)
@@ -83,7 +83,7 @@
 (global g6 type_rec5 (rec_val type_rec5 [0 buffer false]))
 
 
-(global g7 auto (array_val 1 type_rec5 [(rec_val type_rec5 [0 buffer false])]))
+(global g7 auto (vec_val 1 type_rec5 [(rec_val type_rec5 [0 buffer false])]))
 
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

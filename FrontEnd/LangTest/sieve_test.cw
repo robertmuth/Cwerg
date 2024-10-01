@@ -14,7 +14,7 @@ value for the first element is replicated for the
 subsequent unspecified ones.
 
 index i reprents number 3 + 2 * i"""
-(global! is_prime auto (array_val SIZE bool [true]))
+(global! is_prime auto (vec_val SIZE bool [true]))
 
 
 @doc "the actual sieve function"

@@ -10,7 +10,7 @@
     (return (+ (fib [(- x 1)]) (fib [(- x 2)]))))
 
 
-(global expected auto (array_val 20 uint [
+(global expected auto (vec_val 20 uint [
         0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181]))
 
 

@@ -12,31 +12,31 @@
 (global! Crc32cTab checksum::CrcTab undef)
 
 
-(global Data00k auto (array_val 1024 u8 [0x00]))
+(global Data00k auto (vec_val 1024 u8 [0x00]))
 
 
-(global Data55k auto (array_val 1024 u8 [0x55]))
+(global Data55k auto (vec_val 1024 u8 [0x55]))
 
 
-(global DataAAk auto (array_val 1024 u8 [0xaa]))
+(global DataAAk auto (vec_val 1024 u8 [0xaa]))
 
 
-(global DataFFk auto (array_val 1024 u8 [0xff]))
+(global DataFFk auto (vec_val 1024 u8 [0xff]))
 
 
-(global Data00m auto (array_val (* 1024 1024) u8 [0x00]))
+(global Data00m auto (vec_val (* 1024 1024) u8 [0x00]))
 
 
-(global Data55m auto (array_val (* 1024 1024) u8 [0x55]))
+(global Data55m auto (vec_val (* 1024 1024) u8 [0x55]))
 
 
-(global DataAAm auto (array_val (* 1024 1024) u8 [0xaa]))
+(global DataAAm auto (vec_val (* 1024 1024) u8 [0xaa]))
 
 
-(global DataFFm auto (array_val (* 1024 1024) u8 [0xff]))
+(global DataFFm auto (vec_val (* 1024 1024) u8 [0xff]))
 
 
-(global DataInc auto (array_val 64 u8 [
+(global DataInc auto (vec_val 64 u8 [
         0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
         28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52
         53 54 55 56 57 58 59 60 61 62 63]))

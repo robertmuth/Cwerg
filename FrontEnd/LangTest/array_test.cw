@@ -8,10 +8,10 @@
 (type type_slice (slice s32))
 
 
-(global c1 auto (array_val 10 s32 [1 2 3]))
+(global c1 auto (vec_val 10 s32 [1 2 3]))
 
 
-(global! c2 auto (array_val 10 s32 [1 2 3]))
+(global! c2 auto (vec_val 10 s32 [1 2 3]))
 
 
 @doc """ (let c20 auto (len c1)")
@@ -50,15 +50,15 @@
     (field u6 u64))
 
 
-(global! r1 auto (rec_val type_rec3 [(field_val (array_val 10 u8 [77 88 99]) u5)]))
+(global! r1 auto (rec_val type_rec3 [(field_val (vec_val 10 u8 [77 88 99]) u5)]))
 
 
-(global! c4 auto (array_val 10 u8 [41 51 61]))
+(global! c4 auto (vec_val 10 u8 [41 51 61]))
 
 
 (fun test_mixed_array [] void :
     @doc ""
-    (@ref let! a auto (array_val 10 u8 [1 2 3]))
+    (@ref let! a auto (vec_val 10 u8 [1 2 3]))
     (let pa auto (& a))
     (let pa_mut auto (&! a))
     (test::AssertEq# (at c4 2) 61_u8)
@@ -77,8 +77,8 @@
 
 (fun test_local_array [] void :
     @doc ""
-    (@ref let! a auto (array_val 10 u8 [1 2 3]))
-    (@ref let b auto (array_val 10 u8 [4 5 6]))
+    (@ref let! a auto (vec_val 10 u8 [1 2 3]))
+    (@ref let b auto (vec_val 10 u8 [4 5 6]))
     (let pa auto (& a))
     (let pa_mut auto (&! a))
     (let pb auto (& b))
@@ -99,13 +99,13 @@
     (test::AssertEq# (update_array [(^ pa_mut) 0 2]) 3_u8))
 
 
-(global d1 auto (array_val 10 s32 [11 22 33]))
+(global d1 auto (vec_val 10 s32 [11 22 33]))
 
 
-(global! d2 auto (array_val 10 s32 [111 222 333]))
+(global! d2 auto (vec_val 10 s32 [111 222 333]))
 
 
-(global! c3 auto (array_val 10 u8 [4 5 6]))
+(global! c3 auto (vec_val 10 u8 [4 5 6]))
 
 
 (global e1 (slice s32) d1)
@@ -114,10 +114,10 @@
 (global e2 (slice! s32) d2)
 
 
-(global e3 auto (array_val 5 s32 [0 1 2 3 4]))
+(global e3 auto (vec_val 5 s32 [0 1 2 3 4]))
 
 
-(global e4 auto (array_val 2 (slice s32) [e1 e1]))
+(global e4 auto (vec_val 2 (slice s32) [e1 e1]))
 
 
 @doc """ERROR

@@ -16,17 +16,17 @@ A = 11
 C = 101
 D = 100
 """
-(global Tree0Length auto (array_val 4 u16 [2 1 3 3]))
+(global Tree0Length auto (vec_val 4 u16 [2 1 3 3]))
 
 
-(global Tree0ExpectedSymbols auto (array_val 4 u16 [
+(global Tree0ExpectedSymbols auto (vec_val 4 u16 [
         (- 'B' 'A')
         (- 'A' 'A')
         (- 'C' 'A')
         (- 'D' 'A')]))
 
 
-(global Tree0ExpectedCounts auto (array_val 4 u16 [0 1 1 2]))
+(global Tree0ExpectedCounts auto (vec_val 4 u16 [0 1 1 2]))
 
 
 (fun test_tree0_decoding [] void :
@@ -83,7 +83,7 @@ D = 100
 9-J 111110
 10-K 111111
 """
-(global Tree1Length auto (array_val 11 u16 [
+(global Tree1Length auto (vec_val 11 u16 [
         4
         4
         4
@@ -97,7 +97,7 @@ D = 100
         6]))
 
 
-(global Tree1ExpectedSymbols auto (array_val 11 u16 [
+(global Tree1ExpectedSymbols auto (vec_val 11 u16 [
         (- 'F' 'A')
         (- 'E' 'A')
         (- 'G' 'A')
@@ -111,7 +111,7 @@ D = 100
         (- 'K' 'A')]))
 
 
-(global Tree1ExpectedCounts auto (array_val 7 u16 [
+(global Tree1ExpectedCounts auto (vec_val 7 u16 [
         0
         0
         1
@@ -133,7 +133,7 @@ D = 100
     (let! counts (array 7 u16))
     (let! symbols (array 11 u16))
     (test::AssertEq# (huffman::ComputeCountsAndSymbolsFromLengths [Tree1Length counts symbols]) 11_u16)
-    (let data auto (array_val 8 u8 [
+    (let data auto (vec_val 8 u8 [
             0b11111100
             0b01001001
             0b1

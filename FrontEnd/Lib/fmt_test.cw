@@ -43,7 +43,7 @@
 
 (fun test_custom [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
-    (let! buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
+    (let! buffer auto (vec_val fmt::FORMATED_STRING_MAX_LEN u8))
     (@ref let! s (slice! u8) buffer)
     (let! n uint 0)
     @doc "complex"
@@ -59,7 +59,7 @@
 
 (fun test_int [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
-    (let! buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
+    (let! buffer auto (vec_val fmt::FORMATED_STRING_MAX_LEN u8))
     (@ref let! s (slice! u8) buffer)
     (let! n uint 0)
     (= n (fmt::SysRender@ [666_uint s (&! opt)]))
@@ -72,7 +72,7 @@
 
 (fun test_real [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
-    (let! buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
+    (let! buffer auto (vec_val fmt::FORMATED_STRING_MAX_LEN u8))
     (@ref let! s (slice! u8) buffer)
     (let! n uint 0)
     (= n (fmt::SysRender@ [(wrap_as 2 fmt::r64_hex) s (&! opt)]))
@@ -85,7 +85,7 @@
 
 (fun test_misc [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
-    (let! buffer auto (array_val fmt::FORMATED_STRING_MAX_LEN u8))
+    (let! buffer auto (vec_val fmt::FORMATED_STRING_MAX_LEN u8))
     (@ref let! s (slice! u8) buffer)
     (let! n uint 0)
     (= n (fmt::SysRender@ [true s (&! opt)]))

@@ -62,7 +62,7 @@
 (global NUM_CODE_LEN_SYMS u16 19)
 
 
-(global CodeLenCodeIndex auto (array_val 19 u8 [
+(global CodeLenCodeIndex auto (vec_val 19 u8 [
         16 17 18 0 8 7 9 6 10 5 11 4 12 3 13 2 14 1 15]))
 
 
@@ -129,24 +129,24 @@
 
 
 @doc "amount of bytes to copy: fixed base"
-(global width_base_lookup auto (array_val 29 u16 [
+(global width_base_lookup auto (vec_val 29 u16 [
         3 4 5 6 7 8 9 10 11 13 15 17 19 23 27 31 35 43 51 59 67 83 99 115 131 163
         195 227 258]))
 
 
 @doc "amount of bytes to copy: bit count of variable part"
-(global width_bits_lookup auto (array_val 29 u8 [
+(global width_bits_lookup auto (vec_val 29 u8 [
         0 0 0 0 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4 5 5 5 5 0]))
 
 
 @doc "distance to the bytes to copy: fixed base"
-(global dist_base_lookup auto (array_val 30 u16 [
+(global dist_base_lookup auto (vec_val 30 u16 [
         1 2 3 4 5 7 9 13 17 25 33 49 65 97 129 193 257 385 513 769 1025 1537 2049
         3073 4097 6145 8193 12289 16385 24577]))
 
 
 @doc "distance to the bytes to copy: bit count of variable part"
-(global dist_bits_lookup auto (array_val 30 u8 [
+(global dist_bits_lookup auto (vec_val 30 u8 [
         0 0 0 0 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 13]))
 
 
@@ -302,7 +302,7 @@
 
 last symbol: 285
 """
-(global fixed_lit_counts auto (array_val 10 u16 [
+(global fixed_lit_counts auto (vec_val 10 u16 [
         0
         0
         0
@@ -315,7 +315,7 @@ last symbol: 285
         112]))
 
 
-(global fixed_lit_symbols auto (array_val 288 u16 [
+(global fixed_lit_symbols auto (vec_val 288 u16 [
         256 257 258 259 260 261 262 263 264 265 266 267 268 269 270 271 272 273 274
         275 276 277 278 279 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21
         22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46
@@ -338,10 +338,10 @@ last symbol: 285
 
 last symbol: 29
 """
-(global fixed_dist_counts auto (array_val 6 u16 [0 0 0 0 0 32]))
+(global fixed_dist_counts auto (vec_val 6 u16 [0 0 0 0 0 32]))
 
 
-(global fixed_dist_symbols auto (array_val 32 u16 [
+(global fixed_dist_symbols auto (vec_val 32 u16 [
         0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
         28 29 30 31]))
 

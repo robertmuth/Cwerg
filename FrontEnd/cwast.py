@@ -1597,7 +1597,7 @@ class ValVec:
 
     `expr_size` must be constant or auto
     """
-    ALIAS = "array_val"
+    ALIAS = "vec_val"
     GROUP = GROUP.Value
     FLAGS = NF_EXPR
     #

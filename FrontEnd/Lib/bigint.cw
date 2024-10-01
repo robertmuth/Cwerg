@@ -14,7 +14,7 @@
     (let z0 auto (+ (at x 0) (at y 0)))
     (let z1 auto (+ (at x 1) (at y 1)))
     (let carry auto (? (< z0 (at x 0)) 1_u64 0_u64))
-    (return (array_val 2 u64 [z0 (+ z1 carry)])))
+    (return (vec_val 2 u64 [z0 (+ z1 carry)])))
 
 
 @pub (fun mul_u64_by_u64_to_b_u128 [(param x u64) (param y u64)] b_u128 :
@@ -32,6 +32,6 @@ but this might cause an overflow in the high bits"""
     (let middle0 auto (+ (+ p10 (>> p00 32)) (as (as p01 u32) u64)))
     @doc "add missing component after shifting to right"
     (let middle1 auto (+ (>> middle0 32) (>> p01 32)))
-    (return (array_val 2 u64 [(or (as (as p00 u32) u64) (<< middle0 32)) (+ p11 middle1)])))
+    (return (vec_val 2 u64 [(or (as (as p00 u32) u64) (<< middle0 32)) (+ p11 middle1)])))
 )
 

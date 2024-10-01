@@ -6,7 +6,7 @@
 (global! gIndex uint 0)
 
 
-(global! gSequence auto (array_val 10 u8 [0]))
+(global! gSequence auto (vec_val 10 u8 [0]))
 
 
 (fun store [(param c u8)] void :
