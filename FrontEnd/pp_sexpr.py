@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""SEXPR Pretty printer (PP) for Cwerg AST
+"""SEXPR Pretty printer (PP) for Cwerg AST to sexpr syntax
 
 """
 

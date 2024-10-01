@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Concrete Syntax Pretty printer (PP) for Cwerg AST
+"""Concrete Syntax Pretty printer (PP) for Cwerg AST to concrete syntax
 
 """
 
@@ -473,7 +473,7 @@ def TokensInitList(ts: TS, items):
 
 def TokensValRec(ts: TS, node: cwast.ValRec):
     EmitTokens(ts, node.type)
-    TokensInitList(ts, node.inits_field)
+    TokensInitList(ts, node.inits_rec)
 
 
 def TokensVecType(ts: TS, size, type):
@@ -485,7 +485,7 @@ def TokensVecType(ts: TS, size, type):
 
 def TokensValVec(ts: TS, node: cwast.ValVec):
     TokensVecType(ts, node.expr_size, node.type)
-    TokensInitList(ts, node.inits_array)
+    TokensInitList(ts, node.inits_vec)
 
 
 def TokensParameterList(ts: TS, lst):

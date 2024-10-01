@@ -566,11 +566,11 @@ ALL_FIELDS = [
                 MACRO_PARAM_KIND.INVALID),
     NfdNodeList("types", "union types", NODES_TYPES_T,
                 MACRO_PARAM_KIND.TYPE),
-    NfdNodeList("inits_array",
-                "array initializers and/or comments", NODES_INITS_ARRAY_T,
+    NfdNodeList("inits_vec",
+                "vec initializers and/or comments", NODES_INITS_ARRAY_T,
                 MACRO_PARAM_KIND.INVALID),
-    NfdNodeList("inits_field",
-                "record initializers and/or comments", NODES_INITS_REC_T,
+    NfdNodeList("inits_rec",
+                "rec initializers and/or comments", NODES_INITS_REC_T,
                 MACRO_PARAM_KIND.INVALID),
     #
     NfdNodeList("body_mod",
@@ -656,7 +656,7 @@ _OPTIONAL_FIELDS = {
     "initial_or_undef_or_auto": "@ValAuto",
     "init_index": "@ValAuto",
     "init_field": "",
-    "inits_array": "@EmptyList",
+    "inits_vec": "@EmptyList",
     "expr_bound_or_undef": "@ValUndef",
     "args_mod": "@EmptyList",
 }
@@ -1591,11 +1591,14 @@ class FieldVal:
 @NodeCommon
 @dataclasses.dataclass()
 class ValVec:
-    """An array literal
+    """An vec literal
 
     `[10]int{.1 = 5, .2 = 6, 77}`
 
     `expr_size` must be constant or auto
+
+    Note, that it is NOT possible to use a type alias here.
+    Both the element type and the dimension need to be specified.
     """
     ALIAS = "vec_val"
     GROUP = GROUP.Value
@@ -1603,7 +1606,7 @@ class ValVec:
     #
     expr_size: NODES_EXPR_OR_AUTO_T
     type: NODES_TYPES_T
-    inits_array: list[NODES_INITS_ARRAY_T]
+    inits_vec: list[NODES_INITS_ARRAY_T]
     #
     doc: str = ""
     #
@@ -1640,7 +1643,7 @@ class ValSpan:
 @NodeCommon
 @dataclasses.dataclass()
 class ValString:
-    """An array value encoded as a string
+    """An vec_val encoded as a string
 
     type is `[strlen(string)]u8`. `string` may be escaped/raw
     """
@@ -1673,7 +1676,7 @@ class ValRec:
     FLAGS = NF_EXPR
     #
     type: NODES_TYPES_T
-    inits_field: list[NODES_INITS_REC_T]
+    inits_rec: list[NODES_INITS_REC_T]
     #
     doc: str = ""
     #
@@ -1682,7 +1685,7 @@ class ValRec:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        t = [str(i) for i in self.inits_field]
+        t = [str(i) for i in self.inits_rec]
         return f"{NODE_NAME(self)} [{self.type}] {' '.join(t)}"
 
 

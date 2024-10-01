@@ -370,7 +370,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ValVec):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        for x in node.inits_array:
+        for x in node.inits_vec:
             assert isinstance(x, cwast.IndexVal)
             _TypifyNodeRecursively(x, tc, ct, ctx)
         #
@@ -382,7 +382,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(node.type, tc, target_type, ctx)
         assert ct.is_rec()
         all_fields: list[cwast.RecField] = [f for f in ct.ast_node.fields]
-        for val in node.inits_field:
+        for val in node.inits_rec:
             assert isinstance(val, cwast.FieldVal)
             if val.init_field:
                 while True:
@@ -764,7 +764,7 @@ def CheckFieldValStrict(node: cwast.FieldVal, _tc: type_corpus.TypeCorpus):
 
 def CheckValArray(node: cwast.ValVec, _tc: type_corpus.TypeCorpus):
     cstr = node.type.x_type
-    for x in node.inits_array:
+    for x in node.inits_vec:
         assert isinstance(x, cwast.IndexVal), f"{x}"
         if not isinstance(x.init_index, cwast.ValAuto):
             assert x.init_index.x_type.is_int()

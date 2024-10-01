@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Pretty printer (PP) for Cwerg AST
+"""Pretty printer (PP) for Cwerg AST to HTML
 
 """
 

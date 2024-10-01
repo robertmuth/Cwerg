@@ -86,7 +86,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
         return ValueConstKind(node.pointer)
     elif isinstance(node, cwast.ValRec):
         out = CONSTANT_KIND.PURE
-        for field in node.inits_field:
+        for field in node.inits_rec:
             o = ValueConstKind(field.value_or_undef)
             if o is CONSTANT_KIND.NOT:
                 return o
@@ -95,7 +95,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
         return out
     elif isinstance(node, cwast.ValVec):
         out = CONSTANT_KIND.PURE
-        for index in node.inits_array:
+        for index in node.inits_vec:
             if not isinstance(index.init_index, (cwast.ValAuto, cwast.ValNum)):
                 return CONSTANT_KIND.NOT
             o = ValueConstKind(index.value_or_undef)
@@ -283,7 +283,7 @@ def _EvalValArray(node: cwast.ValVec) -> bool:
     has_unknown = False
     # first pass if we cannot evaluate everyting, we must give up
     # This could be relaxed if we allow None values in "out"
-    for c in node.inits_array:
+    for c in node.inits_vec:
         assert isinstance(c, cwast.IndexVal)
         if not isinstance(c.init_index, cwast.ValAuto):
             if c.init_index.x_value is None:
@@ -491,7 +491,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
             return _AssignValue(node, node.value_or_undef.x_value)
         return False
     elif isinstance(node, cwast.ValRec):
-        return _AssignValue(node, _EvalValRec(node.x_type, node.inits_field, node.x_srcloc))
+        return _AssignValue(node, _EvalValRec(node.x_type, node.inits_rec, node.x_srcloc))
     elif isinstance(node, cwast.ValString):
         s = node.string
         if not all(ord(c) < 128 for c in s):
