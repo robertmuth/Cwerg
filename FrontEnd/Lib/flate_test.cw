@@ -174,7 +174,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
                         0xe5 0xc0 0x81 0x00 0x00 0x00 0x00 0x80 0xa0 0xfc 0xa9 0x07
                         0x39 0x73 0x01])
                 256_uint
-                (slice_val (front zeros) 256)
+                (span_val (front zeros) 256)
                 large_output_buffer]))
         (rec_val TestCase [
                 "dynamic huffman:  empty (no distance only literal tree)"
@@ -192,7 +192,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
                         0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                         0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02])
                 256_uint
-                (slice_val (front zeros) 256)
+                (span_val (front zeros) 256)
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman:  259 zero bytes compressed using literal/length code 285 (len 258)"
@@ -200,7 +200,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
                         0xed 0xcc 0x81 0x00 0x00 0x00 0x00 0x80 0xa0 0xfc 0xa9 0x17
                         0xb9 0x00 0x2c])
                 259_uint
-                (slice_val (front zeros) 259)
+                (span_val (front zeros) 259)
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman: 259 zero bytes compressed using literal/length code 284 + 31 (len 258)"
@@ -208,7 +208,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
                         0xe5 0xcc 0x81 0x00 0x00 0x00 0x00 0x80 0xa0 0xfc 0xa9 0x07
                         0xb9 0x00 0xfc 0x05])
                 259_uint
-                (slice_val (front zeros) 259)
+                (span_val (front zeros) 259)
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman:  copy of 3 bytes with a distance of 32768 "
@@ -227,7 +227,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
                         0x0d 0xc3 0x37 0x01 0x00 0x00 0x00 0x80 0x20 0xfa 0x77 0x1e
                         0xca 0x61 0x01])
                 4_uint
-                (slice_val (front zeros) 4)
+                (span_val (front zeros) 4)
                 large_output_buffer])
         (rec_val TestCase [
                 "dynamic huffman:  15 zero bytes - use all codeword lengths including 15"
@@ -249,7 +249,7 @@ Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.
         (let res auto (flate::uncompress [(&! bs) (^. tc output)]))
         (test::AssertEq# (union_tag res) (union_tag (^. tc expected_result)))
         (if (is res uint) :
-            (test::AssertSliceEq# (^. tc expected_output) (slice_val (front (^. tc output)) (@unchecked narrow_as res uint)))
+            (test::AssertSliceEq# (^. tc expected_output) (span_val (front (^. tc output)) (@unchecked narrow_as res uint)))
          :)))
 
 

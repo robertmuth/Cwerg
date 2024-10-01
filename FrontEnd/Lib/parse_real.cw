@@ -209,7 +209,7 @@ final touches"""
         (return ParseErrorVal)
      :)
     (+= i 2)
-    (return (parse_r64_hex_helper [(slice_val (pinc (front s) i) (- n i)) negative])))
+    (return (parse_r64_hex_helper [(span_val (pinc (front s) i) (- n i)) negative])))
 
 
 (fun r64_dec_fast_helper [
@@ -267,7 +267,7 @@ final touches"""
      :)
     (if (&& (&& (== c '0') (<= i n)) (== (at s i) 'x')) :
         (+= i 1)
-        (return (parse_r64_hex_helper [(slice_val (pinc (front s) i) (- n i)) negative]))
+        (return (parse_r64_hex_helper [(span_val (pinc (front s) i) (- n i)) negative]))
      :)
     (let! mant auto 0_u64)
     (let! exp_adjustments auto 0_s32)

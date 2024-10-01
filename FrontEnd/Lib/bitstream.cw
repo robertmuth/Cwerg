@@ -75,10 +75,10 @@ may set eos
     (let offset uint (^. bs offset))
     (if (> n (- l offset)) :
         (= (^. bs eos) true)
-        (return (slice_val f 0))
+        (return (span_val f 0))
      :
         (= (^. bs offset) (+ offset n))
-        (return (slice_val (pinc f offset) n))))
+        (return (span_val (pinc f offset) n))))
 
 
 @doc "rounds down - bits_cache treated as consumed/empty"

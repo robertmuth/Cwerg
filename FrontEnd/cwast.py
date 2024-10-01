@@ -1622,7 +1622,7 @@ class ValSpan:
 
     type and mutability is defined by the pointer
     """
-    ALIAS = "slice_val"
+    ALIAS = "span_val"
     GROUP = GROUP.Value
     FLAGS = NF_EXPR | NF.NON_CORE
     #

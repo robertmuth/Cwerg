@@ -96,7 +96,7 @@ The type of the loop variable is determined by $end"""
         (if (> $orig_size $orig_len) :
             (trap)
          :)
-        (return (slice_val (pinc (front! $orig_slice) $orig_size) (- $orig_len $orig_size)))))
+        (return (span_val (pinc (front! $orig_slice) $orig_size) (- $orig_len $orig_size)))))
 
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
@@ -108,7 +108,7 @@ The type of the loop variable is determined by $end"""
         (if (> $orig_size $orig_len) :
             (trap)
          :)
-        (return (slice_val (front! $orig_slice) $orig_size))))
+        (return (span_val (front! $orig_slice) $orig_size))))
 
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."

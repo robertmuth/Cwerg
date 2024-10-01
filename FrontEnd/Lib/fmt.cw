@@ -223,7 +223,7 @@
     (mlet! $curr uint 0)
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
-        (+= $curr (SysRender@ [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
+        (+= $curr (SysRender@ [$i (span_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
     (do (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
@@ -233,7 +233,7 @@
     (mlet! $curr uint 0)
     (@ref mlet! $options auto (rec_val SysFormatOptions []))
     (mfor $i $parts :
-        (+= $curr (SysRender@ [$i (slice_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
+        (+= $curr (SysRender@ [$i (span_val (pinc (front! $buffer) $curr) (- (len $buffer) $curr)) (&! $options)])))
     (do (os::write [(unwrap os::Stdout) (front $buffer) $curr])))
 
 
@@ -241,7 +241,7 @@
     (let! i uint 0)
     (while (!= (^ (pinc s i)) 0) :
         (+= i 1))
-    (return (slice_val s i)))
+    (return (span_val s i)))
 
 
 @pub (macro assert# STMT [(mparam $cond EXPR) (mparam $parts EXPR_LIST_REST)] [] :

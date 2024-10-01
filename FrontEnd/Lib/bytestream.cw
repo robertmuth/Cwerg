@@ -12,7 +12,7 @@
 @doc ""
 @pub (fun SkipUnchecked [(param buffer (ptr! (slice u8))) (param n uint)] void :
     (let length uint (len (^ buffer)))
-    (= (^ buffer) (slice_val (pinc (front (^ buffer)) n) (- length n))))
+    (= (^ buffer) (span_val (pinc (front (^ buffer)) n) (- length n))))
 
 @doc ""
 @pub (fun Skip [(param buffer (ptr! (slice u8))) (param n uint)] (union [void OutOfBoundsError]) :
@@ -24,19 +24,19 @@
 @doc ""
 (fun IncSliceOrDie [(param buffer (ptr! (slice u8))) (param n uint)] void :
     (let length uint (len (^ buffer)))
-    (= (^ buffer) (slice_val (pinc (front (^ buffer)) n length) (- length n))))
+    (= (^ buffer) (span_val (pinc (front (^ buffer)) n length) (- length n))))
 
 
 @doc ""
 @pub (fun FrontSliceOrDie [(param buffer (ptr! (slice u8))) (param n uint)] (slice u8) :
-    (let out auto (slice_val (front (^ buffer)) n))
+    (let out auto (span_val (front (^ buffer)) n))
     (do (IncSliceOrDie [buffer n]))
     (return out))
 
 
 @doc ""
 @pub (fun FrontSliceUnchecked [(param buffer (ptr! (slice u8))) (param n uint)] (slice u8) :
-    (let out auto (slice_val (front (^ buffer)) n))
+    (let out auto (span_val (front (^ buffer)) n))
     (do (SkipUnchecked [buffer n]))
     (return out))
 
@@ -46,7 +46,7 @@
     (if (<= (len (^ buffer)) n) :
         (return OutOfBoundsErrorVal)
      :)
-    (let out (slice u8) (slice_val (front (^ buffer)) n))
+    (let out (slice u8) (span_val (front (^ buffer)) n))
     (do (SkipUnchecked [buffer n]))
     (return out))
 

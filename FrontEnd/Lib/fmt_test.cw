@@ -32,9 +32,9 @@
     (let l auto (len s))
     (let! n uint 0)
     (= n (fmt::SysRender@ [(. v real) s opt]))
-    (+= n (fmt::SysRender@ ["+" (slice_val (pinc f n) (- l n)) opt]))
-    (+= n (fmt::SysRender@ [(. v imag) (slice_val (pinc f n) (- l n)) opt]))
-    (+= n (fmt::SysRender@ ["i" (slice_val (pinc f n) (- l n)) opt]))
+    (+= n (fmt::SysRender@ ["+" (span_val (pinc f n) (- l n)) opt]))
+    (+= n (fmt::SysRender@ [(. v imag) (span_val (pinc f n) (- l n)) opt]))
+    (+= n (fmt::SysRender@ ["i" (span_val (pinc f n) (- l n)) opt]))
     (return n))
 
 
@@ -51,10 +51,10 @@
             (rec_val ic32 [111 222])
             s
             (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "111+222i")
+    (test::AssertSliceEq# (span_val (front s) n) "111+222i")
     @doc "enum"
     (= n (fmt::SysRender@ [color:blue s (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "2")
+    (test::AssertSliceEq# (span_val (front s) n) "2")
 )
 
 (fun test_int [] void :
@@ -63,11 +63,11 @@
     (@ref let! s (slice! u8) buffer)
     (let! n uint 0)
     (= n (fmt::SysRender@ [666_uint s (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "666")
+    (test::AssertSliceEq# (span_val (front s) n) "666")
     (= n (fmt::SysRender@ [69_u16 s (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "69")
+    (test::AssertSliceEq# (span_val (front s) n) "69")
     (= n (fmt::SysRender@ [-69_s32 s (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "-69")
+    (test::AssertSliceEq# (span_val (front s) n) "-69")
 )
 
 (fun test_real [] void :
@@ -77,10 +77,10 @@
     (let! n uint 0)
     (= n (fmt::SysRender@ [(wrap_as 2 fmt::r64_hex) s (&! opt)]))
     @doc """(fmt::print# s " \n")"""
-    (test::AssertSliceEq# (slice_val (front s) n) "0x1.p+1")
+    (test::AssertSliceEq# (span_val (front s) n) "0x1.p+1")
 
     (= n (fmt::SysRender@ [666e+20_r64 s (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "6.660000e+22")
+    (test::AssertSliceEq# (span_val (front s) n) "6.660000e+22")
 )
 
 (fun test_misc [] void :
@@ -89,13 +89,13 @@
     (@ref let! s (slice! u8) buffer)
     (let! n uint 0)
     (= n (fmt::SysRender@ [true s (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "true")
+    (test::AssertSliceEq# (span_val (front s) n) "true")
 
     (= n (fmt::SysRender@ [(wrap_as 120 fmt::rune) s (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "x")
+    (test::AssertSliceEq# (span_val (front s) n) "x")
 
     (= n (fmt::SysRender@ [(wrap_as test_string fmt::str_hex) s (&! opt)]))
-    (test::AssertSliceEq# (slice_val (front s) n) "7177657274795f31323334")
+    (test::AssertSliceEq# (span_val (front s) n) "7177657274795f31323334")
 )
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :

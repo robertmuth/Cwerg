@@ -65,7 +65,7 @@
     (let! start uint 0)
     (while (< start (len buf)) :
         (let end auto (min (+ start Adler32MaxLen) (len buf)))
-        (= crc (Adler32ShortSliceHelper [(slice_val (pinc (front buf) start) (- end start)) crc]))
+        (= crc (Adler32ShortSliceHelper [(span_val (pinc (front buf) start) (- end start)) crc]))
         (= start end))
     (return crc))
 )

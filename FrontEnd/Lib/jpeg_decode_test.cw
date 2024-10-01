@@ -197,8 +197,8 @@
     (let! data (slice u8) test_image)
     (while (> (len data) 0) :
         (let n uint (min (len data) 1024))
-        (fmt::print# (slice_val (front data) n))
-        (= data (slice_val (pinc (front data) n) (- (len data) n)))))
+        (fmt::print# (span_val (front data) n))
+        (= data (span_val (pinc (front data) n) (- (len data) n)))))
 
 
 (@ref global! gByteBuffer (array (* 1024 1024) u8) undef)
@@ -218,9 +218,9 @@
         (let comp auto (at (. fi comp) i))
         (fmt::print# "comp: " (. comp cid) " " (. comp ssx) "x" (. comp ssy) " " (. comp width) "x" (. comp height) " stride:" (. comp stride) "\n"))
     (do (JD::DecodeImage [test_image gByteBuffer]))
-    (test::AssertEq# 394850026_u32 (checksum::CalcCrc [(slice_val (front gByteBuffer) 151776) 0 (& Crc32Tab)]))
+    (test::AssertEq# 394850026_u32 (checksum::CalcCrc [(span_val (front gByteBuffer) 151776) 0 (& Crc32Tab)]))
     (do (JD::ConvertYH1V1ToRGB [gByteBuffer]))
-    (test::AssertEq# 1970744859_u32 (checksum::CalcCrc [(slice_val (front gByteBuffer) 151776) 0 (& Crc32Tab)]))
+    (test::AssertEq# 1970744859_u32 (checksum::CalcCrc [(span_val (front gByteBuffer) 151776) 0 (& Crc32Tab)]))
     @doc "test end"
     (test::Success#)
     (return 0))

@@ -256,18 +256,18 @@
         (if (> dist_num_syms 30) :
             (return CorruptionErrorVal)
          :)
-        (let lit_dist_slice auto (slice_val (front! lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
+        (let lit_dist_slice auto (span_val (front! lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
         (trylet x Success (read_lit_dist_lengths [
                 bs
                 cl_counts
                 cl_symbols
                 lit_dist_slice]) err :
             (return err)))
-    (dump_slice# "combo: " (slice_val (front lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
+    (dump_slice# "combo: " (span_val (front lit_dist_lengths) (+ lit_num_syms dist_num_syms)))
     (let! lit_symbols (array MAX_LIT_SYMS u16))
     (let! lit_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
     (block _ :
-        (let lit_lengths auto (slice_val (front! lit_dist_lengths) lit_num_syms))
+        (let lit_lengths auto (span_val (front! lit_dist_lengths) lit_num_syms))
         (let lit_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths [lit_lengths lit_counts lit_symbols]))
         (if (== lit_last_symbol huffman::BAD_TREE_ENCODING) :
             (return CorruptionErrorVal)
@@ -276,7 +276,7 @@
     (let! dist_symbols (array MAX_DIST_SYMS u16))
     (let! dist_counts (array (+ MAX_HUFFMAN_BITS 1) u16))
     (block _ :
-        (let dist_lengths auto (slice_val (pinc (front! lit_dist_lengths) lit_num_syms) dist_num_syms))
+        (let dist_lengths auto (span_val (pinc (front! lit_dist_lengths) lit_num_syms) dist_num_syms))
         (let dist_last_symbol u16 (huffman::ComputeCountsAndSymbolsFromLengths [dist_lengths dist_counts dist_symbols]))
         (if (== dist_last_symbol huffman::BAD_TREE_ENCODING) :
             (debug# "BAD ENCODING\n")
@@ -286,9 +286,9 @@
     (return (handle_huffman_common [
             bs
             lit_counts
-            (slice_val (front lit_symbols) lit_num_syms)
+            (span_val (front lit_symbols) lit_num_syms)
             dist_counts
-            (slice_val (front dist_symbols) dist_num_syms)
+            (span_val (front dist_symbols) dist_num_syms)
             pos
             dst])))
 

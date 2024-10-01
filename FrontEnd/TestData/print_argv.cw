@@ -16,7 +16,7 @@
         (let s (ptr u8) (^ (pinc argv i)))
         @doc """the print# macro does not supprt zero terminated strings
 but it does support slices."""
-        (let t auto (slice_val s (strlen [s])))
+        (let t auto (span_val s (strlen [s])))
         (fmt::print# t "\n"))
     (return 0))
 )

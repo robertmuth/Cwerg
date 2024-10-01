@@ -166,7 +166,7 @@ the exponent shall be zero."""
             (= (at buffer 0) '0')
             (let! i auto 0_uint)
             (+= i (FmtSign [is_negative force_sign out]))
-            (+= i (FmtMantissaE [(slice_val (front buffer) 1) precision (slice_inc_or_die# out i)]))
+            (+= i (FmtMantissaE [(span_val (front buffer) 1) precision (slice_inc_or_die# out i)]))
             (+= i (FmtExponentE [0 (slice_inc_or_die# out i)]))
             (return i)
          :)
@@ -189,12 +189,12 @@ the exponent shall be zero."""
     (let num_digits uint (fmt_int::FmtDec@ [mantissa (as buffer (slice! u8))]))
     @doc "decimal rounding if we drop digits"
     (if (&& (> num_digits (+ precision 1)) (>= (at buffer (+ precision 2)) '5')) :
-        (+= t (RoundDigitsUp [(slice_val (front! buffer) (+ precision 1))]))
+        (+= t (RoundDigitsUp [(span_val (front! buffer) (+ precision 1))]))
      :)
     (+= t (as (- num_digits 1) s32))
     (let! i auto 0_uint)
     (+= i (FmtSign [is_negative force_sign out]))
-    (+= i (FmtMantissaE [(slice_val (front buffer) num_digits) precision (slice_inc_or_die# out i)]))
+    (+= i (FmtMantissaE [(span_val (front buffer) num_digits) precision (slice_inc_or_die# out i)]))
     (+= i (FmtExponentE [t (slice_inc_or_die# out i)]))
     @doc """fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")"""
     (return i))
