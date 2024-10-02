@@ -54,13 +54,27 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
 
 @doc "note: we do not support denorms"
 @pub (global r64_min r64 -0x1p-1022)
+
+
 @pub (global r64_zero_pos r64 +0.0)
+
+
 @pub (global r64_zero_neg r64 -0.0)
+
+
 @pub (global r64_inf_pos r64 +inf)
+
+
 @pub (global r64_inf_neg r64 -inf)
+
+
 @doc "quiet nan: these are correct for arm/x86/riscv"
 @pub (global r64_nan_pos r64 +nan)
+
+
 @pub (global r64_nan_neg r64 -nan)
+
+
 @doc "siganling nan: these are correct for arm/x86/riscv"
 @pub (fun r64_raw_mantissa [(param val r64)] u64 :
     (return (and (bitwise_as val u64) r64_mantissa_mask)))
@@ -152,5 +166,5 @@ https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20
         1e275 1e276 1e277 1e278 1e279 1e280 1e281 1e282 1e283 1e284 1e285 1e286 1e287
         1e288 1e289 1e290 1e291 1e292 1e293 1e294 1e295 1e296 1e297 1e298 1e299 1e300
         1e301 1e302 1e303 1e304 1e305 1e306 1e307 1e308]))
-
 )
+

@@ -13,47 +13,38 @@
     (let! actual (vec 1024 u8) undef)
     (block _ :
         (let len_a auto (fmt_real::FmtE@ [num_real::r64_zero_pos 1 true actual]))
-        (test::AssertSliceEq# "+0.0e+00" (span_val (front actual) len_a))
-    )
+        (test::AssertSliceEq# "+0.0e+00" (span_val (front actual) len_a)))
     (block _ :
         (let len_a auto (fmt_real::FmtE@ [num_real::r64_zero_neg 1 true actual]))
-        (test::AssertSliceEq# "-0.0e+00" (span_val (front actual) len_a))
-    )
+        (test::AssertSliceEq# "-0.0e+00" (span_val (front actual) len_a)))
     (block _ :
         (let len_a auto (fmt_real::FmtE@ [num_real::r64_inf_pos 1 true actual]))
-        (test::AssertSliceEq# "+inf" (span_val (front actual) len_a))
-    )
+        (test::AssertSliceEq# "+inf" (span_val (front actual) len_a)))
     (block _ :
         (let len_a auto (fmt_real::FmtE@ [num_real::r64_inf_neg 1 true actual]))
-        (test::AssertSliceEq# "-inf" (span_val (front actual) len_a))
-    )
+        (test::AssertSliceEq# "-inf" (span_val (front actual) len_a)))
     (block _ :
         (let len_a auto (fmt_real::FmtE@ [num_real::r64_nan_pos 1 true actual]))
-        (test::AssertSliceEq# "+nan" (span_val (front actual) len_a))
-    )
+        (test::AssertSliceEq# "+nan" (span_val (front actual) len_a)))
     (block _ :
         (let len_a auto (fmt_real::FmtE@ [num_real::r64_nan_neg 1 true actual]))
-        (test::AssertSliceEq# "-nan" (span_val (front actual) len_a))
-    )
-)
+        (test::AssertSliceEq# "-nan" (span_val (front actual) len_a))))
+
 
 @doc "python3 -c 'print(0.0).hex())'"
 (fun test_hex [] void :
     (let! actual (vec 1024 u8) undef)
     (block _ :
         (let len_a auto (fmt_real::FmtHex@ [+0.5_r64 actual]))
-        (test::AssertSliceEq# "0x1.p-1" (span_val (front actual) len_a))
-    )
+        (test::AssertSliceEq# "0x1.p-1" (span_val (front actual) len_a)))
     (block _ :
         (let len_a auto (fmt_real::FmtHex@ [+2.0_r64 actual]))
-        (test::AssertSliceEq# "0x1.p+1" (span_val (front actual) len_a))
-    )
+        (test::AssertSliceEq# "0x1.p+1" (span_val (front actual) len_a)))
     (block _ :
         (let len_a auto (fmt_real::FmtHex@ [+0.0_r64 actual]))
         @doc """(fmt::print# actual " BBBB\n")"""
-        (test::AssertSliceEq# "0x0.p+0" (span_val (front actual) len_a))
-    )
-)
+        (test::AssertSliceEq# "0x0.p+0" (span_val (front actual) len_a))))
+
 
 (global PRECISION uint 8)
 
@@ -129,3 +120,4 @@
     (test::Success#)
     (return 0))
 )
+

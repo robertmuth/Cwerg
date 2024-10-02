@@ -128,9 +128,8 @@ The type of the loop variable is determined by $end"""
 @pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
     (. (paren (^ $pointer)) $field))
 
-@pub @extern @cdecl (fun print_ln [
-          (param s (ptr u8))
-          (param size uint)] void :)
+
+@pub @extern @cdecl (fun print_ln [(param s (ptr u8)) (param size uint)] void :)
 
 
 @doc "simple assert for those libs that cannot import fmt"
@@ -143,3 +142,4 @@ The type of the loop variable is determined by $end"""
         (do (print_ln [(front $e_text) (len $e_text)]))
         (trap)))
 )
+

@@ -54,8 +54,8 @@
     (test::AssertSliceEq# (span_val (front s) n) "111+222i")
     @doc "enum"
     (= n (fmt::SysRender@ [color:blue s (&! opt)]))
-    (test::AssertSliceEq# (span_val (front s) n) "2")
-)
+    (test::AssertSliceEq# (span_val (front s) n) "2"))
+
 
 (fun test_int [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
@@ -67,8 +67,8 @@
     (= n (fmt::SysRender@ [69_u16 s (&! opt)]))
     (test::AssertSliceEq# (span_val (front s) n) "69")
     (= n (fmt::SysRender@ [-69_s32 s (&! opt)]))
-    (test::AssertSliceEq# (span_val (front s) n) "-69")
-)
+    (test::AssertSliceEq# (span_val (front s) n) "-69"))
+
 
 (fun test_real [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
@@ -78,10 +78,9 @@
     (= n (fmt::SysRender@ [(wrap_as 2 fmt::r64_hex) s (&! opt)]))
     @doc """(fmt::print# s " \n")"""
     (test::AssertSliceEq# (span_val (front s) n) "0x1.p+1")
-
     (= n (fmt::SysRender@ [666e+20_r64 s (&! opt)]))
-    (test::AssertSliceEq# (span_val (front s) n) "6.660000e+22")
-)
+    (test::AssertSliceEq# (span_val (front s) n) "6.660000e+22"))
+
 
 (fun test_misc [] void :
     (@ref let! opt auto (rec_val fmt::SysFormatOptions []))
@@ -90,13 +89,11 @@
     (let! n uint 0)
     (= n (fmt::SysRender@ [true s (&! opt)]))
     (test::AssertSliceEq# (span_val (front s) n) "true")
-
     (= n (fmt::SysRender@ [(wrap_as 120 fmt::rune) s (&! opt)]))
     (test::AssertSliceEq# (span_val (front s) n) "x")
-
     (= n (fmt::SysRender@ [(wrap_as test_string fmt::str_hex) s (&! opt)]))
-    (test::AssertSliceEq# (span_val (front s) n) "7177657274795f31323334")
-)
+    (test::AssertSliceEq# (span_val (front s) n) "7177657274795f31323334"))
+
 
 (fun main [(param argc s32) (param argv (ptr (ptr u8)))] s32 :
     (do (test_int []))
@@ -107,3 +104,4 @@
     (test::Success#)
     (return 0))
 )
+
