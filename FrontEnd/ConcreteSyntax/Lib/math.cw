@@ -47,7 +47,7 @@ pub global SQRT_3 r64 = 1.7320508075688772935274463415058723669428
 pub global ONE_SQRT_3 r64 = 0.5773502691896257645091487805019574556476
 
 -- Kahan's doubly compensated summation. Less accurate but fast
-fun sum_kahan_compensated(summands slice(r64)) r64:
+fun sum_kahan_compensated(summands span(r64)) r64:
     let! s r64 = 0.0
     let! c r64 = 0.0
     for i = 0, len(summands), 1:
@@ -63,7 +63,7 @@ pub rec SumCompensation:
     compensation r64
 
 -- Priest's doubly compensated summation. Accurate but slow
-fun sum_priest_compensated(summands slice(r64)) SumCompensation:
+fun sum_priest_compensated(summands span(r64)) SumCompensation:
     let! s r64 = 0.0
     let! c r64 = 0.0
     for i = 0, len(summands), 1:
@@ -77,7 +77,7 @@ fun sum_priest_compensated(summands slice(r64)) SumCompensation:
         set c = z - (s - t)
     return SumCompensation{s, c}
 
-fun horner_sum(x r64, coeffs slice(r64)) r64:
+fun horner_sum(x r64, coeffs span(r64)) r64:
     let! s r64 = 0.0
     for i = 0, len(coeffs), 1:
         let c = coeffs[i]

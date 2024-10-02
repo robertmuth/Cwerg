@@ -52,9 +52,9 @@ global CodeLenCodeIndex = [19]u8{
 -- read length for the combined literal and distance huffman costs
 fun read_lit_dist_lengths(
         bs ^!bitstream::Stream32,
-        cl_counts slice(u16),
-        cl_symbols slice(u16),
-        lengths slice!(u16)) union(Success, CorruptionError, TruncationError):
+        cl_counts span(u16),
+        cl_symbols span(u16),
+        lengths span!(u16)) union(Success, CorruptionError, TruncationError):
     let! i uint = 0
     while i < len(lengths):
         let sym = huffman::NextSymbol(bs, cl_counts, cl_symbols)
@@ -126,13 +126,12 @@ global dist_bits_lookup = [30]u8{
 -- common part for handing both dynamic and fixed hufman
 fun handle_huffman_common(
         bs ^!bitstream::Stream32,
-        lit_counts slice(u16),
-        lit_symbols slice(u16),
-        dist_counts slice(u16),
-        dist_symbols slice(u16),
+        lit_counts span(u16),
+        lit_symbols span(u16),
+        dist_counts span(u16),
+        dist_symbols span(u16),
         pos uint,
-        dst slice!(u8)) union(
-        uint, CorruptionError, NoSpaceError, TruncationError):
+        dst span!(u8)) union(uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("handle_huffman_common ", pos, "\n")
     let! i uint = pos
     while true:
@@ -186,7 +185,7 @@ fun handle_huffman_common(
     return i
 
 -- handle 0b10 section
-fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) union(
+fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8)) union(
         uint, CorruptionError, NoSpaceError, TruncationError):
     let lit_num_syms uint = as(bitstream::Stream32GetBits(bs, 5) + 257, uint)
     let dist_num_syms uint = as(bitstream::Stream32GetBits(bs, 5) + 1, uint)
@@ -221,18 +220,17 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) u
             return CorruptionErrorVal
         if dist_num_syms > 30:
             return CorruptionErrorVal
-        let lit_dist_slice = slice(
+        let lit_dist_slice = span(
                 front!(lit_dist_lengths), lit_num_syms + dist_num_syms)
         trylet x Success = read_lit_dist_lengths(
                 bs, cl_counts, cl_symbols, lit_dist_slice), err:
             return err
     dump_slice#(
-            "combo: ", slice(
-                front(lit_dist_lengths), lit_num_syms + dist_num_syms))
+            "combo: ", span(front(lit_dist_lengths), lit_num_syms + dist_num_syms))
     let! lit_symbols [MAX_LIT_SYMS]u16
     let! lit_counts [MAX_HUFFMAN_BITS + 1]u16
     block _:
-        let lit_lengths = slice(front!(lit_dist_lengths), lit_num_syms)
+        let lit_lengths = span(front!(lit_dist_lengths), lit_num_syms)
         let lit_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
                 lit_lengths, lit_counts, lit_symbols)
         if lit_last_symbol == huffman::BAD_TREE_ENCODING:
@@ -241,7 +239,7 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) u
     let! dist_symbols [MAX_DIST_SYMS]u16
     let! dist_counts [MAX_HUFFMAN_BITS + 1]u16
     block _:
-        let dist_lengths = slice(
+        let dist_lengths = span(
                 pinc(front!(lit_dist_lengths), lit_num_syms), dist_num_syms)
         let dist_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
                 dist_lengths, dist_counts, dist_symbols)
@@ -252,9 +250,9 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) u
     return handle_huffman_common(
             bs,
             lit_counts,
-            slice(front(lit_symbols), lit_num_syms),
+            span(front(lit_symbols), lit_num_syms),
             dist_counts,
-            slice(front(dist_symbols), dist_num_syms),
+            span(front(dist_symbols), dist_num_syms),
             pos,
             dst)
 
@@ -302,7 +300,7 @@ global fixed_dist_symbols = [32]u16{
         21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31}
 
 -- handle 0b01 section
-fun handle_fixed_huffman(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) union(
+fun handle_fixed_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8)) union(
         uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("handle_fixed_huffman\n")
     return handle_huffman_common(
@@ -315,7 +313,7 @@ fun handle_fixed_huffman(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) uni
             dst)
 
 -- handle 0b00 section
-fun handle_uncompressed(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) union(
+fun handle_uncompressed(bs ^!bitstream::Stream32, pos uint, dst span!(u8)) union(
         uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("handle_uncompressed\n")
     do bitstream::Stream32SkipToNextByte(bs)
@@ -335,7 +333,7 @@ fun handle_uncompressed(bs ^!bitstream::Stream32, pos uint, dst slice!(u8)) unio
         set dst[pos + i] = src[i]
     return pos + len(src)
 
-pub fun uncompress(bs ^!bitstream::Stream32, dst slice!(u8)) union(
+pub fun uncompress(bs ^!bitstream::Stream32, dst span!(u8)) union(
         uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("FlateUncompress\n")
     -- next position within dst to write

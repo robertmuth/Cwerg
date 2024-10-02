@@ -9,12 +9,12 @@ import bitstream
 import fmt
 
 rec TestCase:
-    description slice(u8)
-    input slice(u8)
+    description span(u8)
+    input span(u8)
     expected_result union(
             uint, flate::CorruptionError, flate::NoSpaceError, flate::TruncationError)
-    expected_output slice(u8)
-    output slice!(u8)
+    expected_output span(u8)
+    output span!(u8)
 
 global! large_output_buffer = [65536]u8{0}
 
@@ -155,7 +155,7 @@ global AllTestCases = [27]TestCase{
                 0xe5, 0xc0, 0x81, 0x00, 0x00, 0x00, 0x00, 0x80, 0xa0, 0xfc, 0xa9, 
                 0x07, 0x39, 0x73, 0x01},
             256_uint,
-            slice(front(zeros), 256),
+            span(front(zeros), 256),
             large_output_buffer},
         TestCase{
             "dynamic huffman:  empty (no distance only literal tree)",
@@ -174,7 +174,7 @@ global AllTestCases = [27]TestCase{
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
                 0x02},
             256_uint,
-            slice(front(zeros), 256),
+            span(front(zeros), 256),
             large_output_buffer},
         TestCase{
             "dynamic huffman:  259 zero bytes compressed using literal/length code 285 (len 258)",
@@ -182,7 +182,7 @@ global AllTestCases = [27]TestCase{
                 0xed, 0xcc, 0x81, 0x00, 0x00, 0x00, 0x00, 0x80, 0xa0, 0xfc, 0xa9, 
                 0x17, 0xb9, 0x00, 0x2c},
             259_uint,
-            slice(front(zeros), 259),
+            span(front(zeros), 259),
             large_output_buffer},
         TestCase{
             "dynamic huffman: 259 zero bytes compressed using literal/length code 284 + 31 (len 258)",
@@ -190,7 +190,7 @@ global AllTestCases = [27]TestCase{
                 0xe5, 0xcc, 0x81, 0x00, 0x00, 0x00, 0x00, 0x80, 0xa0, 0xfc, 0xa9, 
                 0x07, 0xb9, 0x00, 0xfc, 0x05},
             259_uint,
-            slice(front(zeros), 259),
+            span(front(zeros), 259),
             large_output_buffer},
         TestCase{
             "dynamic huffman:  copy of 3 bytes with a distance of 32768 ",
@@ -209,7 +209,7 @@ global AllTestCases = [27]TestCase{
                 0x0d, 0xc3, 0x37, 0x01, 0x00, 0x00, 0x00, 0x80, 0x20, 0xfa, 0x77, 
                 0x1e, 0xca, 0x61, 0x01},
             4_uint,
-            slice(front(zeros), 4),
+            span(front(zeros), 4),
             large_output_buffer},
         TestCase{
             "dynamic huffman:  15 zero bytes - use all codeword lengths including 15",
@@ -231,7 +231,7 @@ fun test_all() void:
         test::AssertEq#(union_tag(res), union_tag(tc^.expected_result))
         if is(res, uint):
             test::AssertSliceEq#(
-                    tc^.expected_output, slice(
+                    tc^.expected_output, span(
                         front(tc^.output), @unchecked narrow_as(res, uint)))
 
 fun main(argc s32, argv ^^u8) s32:

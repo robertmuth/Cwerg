@@ -2,7 +2,7 @@
 module:
 
 pub rec type_rec2:
-    s1 slice(u8)
+    s1 span(u8)
     -- field comment
     s2 s32
     s3 s32

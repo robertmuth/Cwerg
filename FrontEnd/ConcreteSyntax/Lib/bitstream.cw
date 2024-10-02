@@ -2,9 +2,16 @@ module:
 
 -- supports retrieval of bitfields up to 32 bit wide from underlying slice
 -- 
--- not thread-safe
+-- Bits will be streamed in a little endian fashion:
+-- Suppose the stream consists of 3 bytes [0b10101010, 0b11001100, 0b1111000]
+-- These will be treated like this bit stream:
+-- 0x11110000_11001100_10101010
+-- where bits are taken from the bottom/least signficant bits
+-- This is different from a jpeg bitstream is uses a big-endian flavor.
+-- 
+-- Not thread-safe
 pub rec Stream32:
-    buf slice(u8)
+    buf span(u8)
     offset uint
     -- contains the next up to 8 bits from the stream
     -- the exact number is bits_count
@@ -56,16 +63,16 @@ pub fun Stream32GetBool(bs ^!Stream32) bool:
     return as(Stream32GetBits(bs, 1), bool)
 
 -- may set eos bit
-pub fun Stream32GetByteSlice(bs ^!Stream32, n uint) slice(u8):
+pub fun Stream32GetByteSlice(bs ^!Stream32, n uint) span(u8):
     let! l uint = len(bs^.buf)
     let! f = front(bs^.buf)
     let offset uint = bs^.offset
     if n > l - offset:
         set bs^.eos = true
-        return slice(f, 0)
+        return span(f, 0)
     else:
         set bs^.offset = offset + n
-        return slice(pinc(f, offset), n)
+        return span(pinc(f, offset), n)
 
 -- rounds down - bits_cache treated as consumed/empty
 pub fun Stream32BytesLeft(bs ^Stream32) uint:

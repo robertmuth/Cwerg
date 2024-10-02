@@ -20,14 +20,14 @@ pub global Stdout = wrap_as(1, FD)
 
 pub global Stderr = wrap_as(2, FD)
 
-pub fun FileWrite(fd FD, buffer slice(u8)) union(uint, Error):
+pub fun FileWrite(fd FD, buffer span(u8)) union(uint, Error):
     let res = write(unwrap(fd), front(buffer), len(buffer))
     if res < 0:
         return wrap_as(as(res, s32), Error)
     else:
         return as(res, uint)
 
-pub fun FileRead(fd FD, buffer slice!(u8)) union(uint, Error):
+pub fun FileRead(fd FD, buffer span!(u8)) union(uint, Error):
     let res = read(unwrap(fd), front!(buffer), len(buffer))
     if res < 0:
         return wrap_as(as(res, s32), Error)

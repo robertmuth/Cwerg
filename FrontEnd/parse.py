@@ -66,8 +66,8 @@ class TK_KIND(enum.Enum):
 
 _KEYWORDS_SIMPLE = [
     "auto",    # type/val
-    "slice",
-    "array",
+    "span",
+    "vec",
     "true",
     "false",
     "front",
@@ -424,8 +424,8 @@ _FUN_LIKE = {
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),
     cwast.ExprOffsetof.ALIAS: (cwast.ExprOffsetof, "TS"),
-    "slice": (cwast.ValSpan, "EE"),
-    "slice!": (cwast.ValSpan, "EE"),
+    "span": (cwast.ValSpan, "EE"),
+    "span!": (cwast.ValSpan, "EE"),
     cwast.ExprFront.ALIAS:  (cwast.ExprFront, "E"),
     cwast.ExprFront.ALIAS + "!":  (cwast.ExprFront, "E"),
     cwast.ExprUnwrap.ALIAS: (cwast.ExprUnwrap, "E"),
@@ -742,7 +742,7 @@ def _ParseTypeExpr(inp: Lexer):
             params = _ParseFormalParams(inp)
             result = _ParseTypeExpr(inp)
             return cwast.TypeFun(params, result)
-        elif tk.text in ("slice", "slice!"):
+        elif tk.text in ("span", "span!"):
             inp.match_or_die(TK_KIND.PAREN_OPEN)
             type = _ParseTypeExpr(inp)
             inp.match_or_die(TK_KIND.PAREN_CLOSED)
@@ -779,7 +779,7 @@ def _ParseTypeExpr(inp: Lexer):
         assert False, f"unexpected token {tk}"
 
 
-_TYPE_START_KW = set([cwast.TypeAuto.ALIAS, "funtype", "slice", "slice!", cwast.TypeOf.ALIAS,
+_TYPE_START_KW = set([cwast.TypeAuto.ALIAS, "funtype", "span", "span!", cwast.TypeOf.ALIAS,
                      cwast.TypeUnionDelta.ALIAS, cwast.TypeUnion.ALIAS, "[", "^", "^!"])
 
 

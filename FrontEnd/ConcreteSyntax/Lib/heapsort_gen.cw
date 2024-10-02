@@ -1,7 +1,7 @@
 -- heapsort
 module($type TYPE, $cmp_lt CONST_EXPR):
 
-pub fun sort(sdata slice!($type)) void:
+pub fun sort(sdata span!($type)) void:
     let data ^!$type = front!(sdata)
     let n = len(sdata)
     let! ir = n

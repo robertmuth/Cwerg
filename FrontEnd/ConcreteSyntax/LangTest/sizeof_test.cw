@@ -17,7 +17,7 @@ static_assert size_of(^^s64) == 8
 
 static_assert size_of([20]r64) == 160
 
-static_assert size_of(slice(r64)) == 16
+static_assert size_of(span(r64)) == 16
 
 pub rec type_rec:
     s1 s32

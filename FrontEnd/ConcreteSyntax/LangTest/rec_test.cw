@@ -51,7 +51,7 @@ global g4 = [4]type_rec2{undef, g2}
 
 pub rec type_rec5:
     t1 u64
-    t2 slice!(u8)
+    t2 span!(u8)
     t5 bool
 
 global! buffer = [3]u8{0, 0, 0}

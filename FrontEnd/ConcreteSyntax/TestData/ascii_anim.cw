@@ -18,12 +18,12 @@ pub rec Window:
     depth_map [MAX_DIM * MAX_DIM]u8
 
 pub rec Sprite:
-    image_map slice(u8)
-    color_map slice(u8)
+    image_map span(u8)
+    color_map span(u8)
 
 pub rec Object:
-    name slice(u8)
-    sprites slice(Sprite)
+    name span(u8)
+    sprites span(Sprite)
     def_attr u8
     def_depth u8
     transparent_char u8
@@ -39,7 +39,7 @@ pub rec ObjectState:
     frame uint
     x_speed r32
     y_speed r32
-    attr_lookup slice(u8)
+    attr_lookup span(u8)
     def_attr u8
     -- updated by draw
     visible bool
@@ -61,11 +61,11 @@ pub fun SetBasics(s ^!ObjectState, start_time r32, x_pos r32, y_pos r32) void:
 fun tolower(c u8) u8:
     return c or 0x20
 
-fun get_style(attr u8) slice(u8):
-    return attr < 'a' ? as(ansi::SET_MODE_BOLD, slice(u8)) : as(
-            ansi::RESET_MODE_BOLD_OR_DIM, slice(u8))
+fun get_style(attr u8) span(u8):
+    return attr < 'a' ? as(ansi::SET_MODE_BOLD, span(u8)) : as(
+            ansi::RESET_MODE_BOLD_OR_DIM, span(u8))
 
-fun get_fg_color(attr u8) slice(u8):
+fun get_fg_color(attr u8) span(u8):
     let col u8 = tolower(attr)
     cond:
         case col == 'k':
@@ -87,7 +87,7 @@ fun get_fg_color(attr u8) slice(u8):
         case true:
             return ""
 
-fun get_bg_color(attr u8) slice(u8):
+fun get_bg_color(attr u8) span(u8):
     let col u8 = tolower(attr)
     cond:
         case col == 'k':

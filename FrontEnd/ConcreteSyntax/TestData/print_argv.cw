@@ -15,6 +15,6 @@ fun main(argc s32, argv ^^u8) s32:
         let s ^u8 = pinc(argv, i)^
         -- the print# macro does not supprt zero terminated strings
         -- but it does support slices.
-        let t = slice(s, strlen(s))
+        let t = span(s, strlen(s))
         fmt::print#(t, "\n")
     return 0

@@ -29,7 +29,7 @@ pub enum type_enum s32:
 
 type type_array = [3]bool
 
-type type_slice = slice(type_rec)
+type type_slice = span(type_rec)
 
 type type_ptr = ^!s32
 

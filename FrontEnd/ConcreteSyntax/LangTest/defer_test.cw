@@ -28,7 +28,7 @@ fun foo() void:
 
 fun main(argc s32, argv ^^u8) s32:
     do foo()
-    test::AssertSliceEq#(slice(front(gSequence), gIndex), "abcdefgh")
+    test::AssertSliceEq#(span(front(gSequence), gIndex), "abcdefgh")
     -- test end
     test::Success#()
     return 0

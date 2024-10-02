@@ -98,7 +98,7 @@ global c33 = type_rec{7, 9, 7}
 static_assert c33.s1 == 7
 
 pub rec type_rec2:
-    s1 slice(u8)
+    s1 span(u8)
     s2 s32
     s3 s32
 

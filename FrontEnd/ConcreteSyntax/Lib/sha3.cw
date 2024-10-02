@@ -39,7 +39,7 @@ pub rec StateKeccak224:
     tail [BlockSize224 / 8]u64
 
 -- only valid len for data are 9, 13, 17, 18
-fun AddBlockAlignedLE(state ^!StateKeccak, data slice(u64)) void:
+fun AddBlockAlignedLE(state ^!StateKeccak, data span(u64)) void:
     for i = 0, 9_uint, 1:
         set state^.x[i] xor= data[i]
     if len(data) == 9:
@@ -76,7 +76,7 @@ macro UPDATE# STMT_LIST($a EXPR, $b EXPR, $x EXPR, $i EXPR, $bitpos EXPR)[]:
     set $x^[$i] = $a << $bitpos or $a >> (64 - $bitpos)
     set $a = $b
 
-fun dumpA(tag slice(u8), x ^[25]u64) void:
+fun dumpA(tag span(u8), x ^[25]u64) void:
     fmt::print#(tag, "\n")
     for i = 0, 5_uint, 1:
         for j = 0, 5_uint, 1:
@@ -156,7 +156,7 @@ fun KeccakF(x ^![25]u64) void:
         -- iota
         set x^[0] xor= rconst[round]
 
-pub fun KeccakAdd(state ^!StateKeccak, tail slice!(u64), data slice(u8)) void:
+pub fun KeccakAdd(state ^!StateKeccak, tail span!(u64), data span(u8)) void:
     -- (fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")
     let tail_u8 = as(front!(tail), ^!u8)
     let block_size uint = len(tail) * 8
@@ -185,7 +185,7 @@ pub fun KeccakAdd(state ^!StateKeccak, tail slice!(u64), data slice(u8)) void:
         set offset += 1
     set state^.msglen += len(data)
 
-pub fun KeccakFinalize(state ^!StateKeccak, tail slice!(u64), padding u8) void:
+pub fun KeccakFinalize(state ^!StateKeccak, tail span!(u64), padding u8) void:
     let tail_u8 = as(front!(tail), ^!u8)
     let block_size = len(tail) * 8
     let padding_start uint = state^.msglen % block_size
@@ -197,14 +197,14 @@ pub fun KeccakFinalize(state ^!StateKeccak, tail slice!(u64), padding u8) void:
     do KeccakF(&!state^.x)
 
 -- returns 512 bit cryptographic hash of data
-pub fun Keccak512(data slice(u8)) [64]u8:
+pub fun Keccak512(data span(u8)) [64]u8:
     @ref let! state = StateKeccak512{}
     do KeccakAdd(&!state.base, state.tail, data)
     do KeccakFinalize(&!state.base, state.tail, KeccakPadding)
     return as(&state.base.x, ^[64]u8)^
 
 -- returns 512 bit cryptographic hash of data
-pub fun Sha3512(data slice(u8)) [64]u8:
+pub fun Sha3512(data span(u8)) [64]u8:
     @ref let! state = StateKeccak512{}
     do KeccakAdd(&!state.base, state.tail, data)
     do KeccakFinalize(&!state.base, state.tail, Sha3Padding)

@@ -4,7 +4,7 @@ import test
 
 type type_array = [3]bool
 
-type type_slice = slice(s32)
+type type_slice = span(s32)
 
 global c1 = [10]s32{1, 2, 3}
 
@@ -21,12 +21,12 @@ fun foo(a [10]u8, b [dim]u64) u8:
     set c2[0] = 666
     return 66
 
-fun update_array(s slice!(u8), pos uint, new u8) u8:
+fun update_array(s span!(u8), pos uint, new u8) u8:
     let old = s[pos]
     set s[pos] = new
     return old
 
--- ERROR: (let f4 (slice mut s32) e1)
+-- ERROR: (let f4 (span mut s32) e1)
 fun baz() void:
     -- ERROR: (= (at c1 5) 0)
     let pc1 ^s32 = front(c1)
@@ -89,22 +89,22 @@ global! d2 = [10]s32{111, 222, 333}
 
 global! c3 = [10]u8{4, 5, 6}
 
-global e1 slice(s32) = d1
+global e1 span(s32) = d1
 
-global e2 slice!(s32) = d2
+global e2 span!(s32) = d2
 
 global e3 = [5]s32{0, 1, 2, 3, 4}
 
-global e4 = [2]slice(s32){e1, e1}
+global e4 = [2]span(s32){e1, e1}
 
 -- ERROR
---        (global e5 (slice (slice s32)) e4)
---        (global e3 (slice mut s32) d2)
-global f1 slice(s32) = e1
+--        (global e5 (span (span s32)) e4)
+--        (global e3 (span mut s32) d2)
+global f1 span(s32) = e1
 
-global f3 slice(s32) = e2
+global f3 span(s32) = e2
 
-global f2 slice!(s32) = e2
+global f2 span!(s32) = e2
 
 fun test_global_array() void:
     -- basic

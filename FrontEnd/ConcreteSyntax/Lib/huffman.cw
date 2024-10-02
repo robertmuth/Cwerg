@@ -1,8 +1,16 @@
--- canonical huffman trees
+-- canonical huffman tree decoder
 -- 
 -- https://datatracker.ietf.org/doc/html/rfc1951 Section 3.2
 -- https://en.wikipedia.org/wiki/Canonical_Huffman_code
 -- 
+-- 
+-- Usage:
+-- 
+-- Assumptions:
+-- * encoded was as set symbols numbered 0-MAX_SYMBOLS
+-- * for each symbol the width of the associated huffman code was recorded in a length slice
+-- * unused symbols have a widths of 0
+-- * we do not need to know the actual code for a symbol because we use canonical codes
 -- 
 module:
 
@@ -22,9 +30,10 @@ global MAX_SYMBOLS uint = 0xff00
 -- * the retrieved bits are out of range
 --   This will result in BAD_SYMBOL to be returned
 -- 
+--   counts[i] contains the number of huffman code of 2^i
 --   Note counts[0] is not used
 -- 
-pub fun NextSymbol(bs ^!bitstream::Stream32, counts slice(u16), symbols slice(
+pub fun NextSymbol(bs ^!bitstream::Stream32, counts span(u16), symbols span(
         u16)) u16:
     let! offset u32 = 0
     let! base u32 = 0
@@ -42,7 +51,7 @@ pub fun NextSymbol(bs ^!bitstream::Stream32, counts slice(u16), symbols slice(
 -- Check that symbol count at a level can be encoded
 -- 
 -- 
-fun CountsAreFeasible(counts slice(u16)) bool:
+fun CountsAreFeasible(counts span(u16)) bool:
     let! available u16 = 2
     for level = 1, len(counts), 1:
         let used = counts[level]
@@ -68,7 +77,7 @@ fun CountsAreFeasible(counts slice(u16)) bool:
 -- 
 -- 
 pub fun ComputeCountsAndSymbolsFromLengths(
-        lengths slice(u16), counts slice!(u16), symbols slice!(u16)) u16:
+        lengths span(u16), counts span!(u16), symbols span!(u16)) u16:
     if len(lengths) > MAX_SYMBOLS:
         return BAD_TREE_ENCODING
     for level = 0, len(counts), 1:
@@ -96,11 +105,13 @@ pub fun ComputeCountsAndSymbolsFromLengths(
             if !CountsAreFeasible(counts):
                 return BAD_TREE_ENCODING
     -- accumulate counts to get offsets
+    --     counts[i] := sum(0<= x <= i, counts[x])
+    --     
     set n = 0
     for i = 1, len(counts), 1:
         set n += counts[i]
         set counts[i] = n
-    -- fill in symbols
+    -- fill in symbols grouped by bit-width preserving ordered for same width symbols
     for i = 0, len(symbols), 1:
         set symbols[i] = BAD_SYMBOL
     for i = 0, len(lengths), 1:
@@ -110,6 +121,10 @@ pub fun ComputeCountsAndSymbolsFromLengths(
             set symbols[offset] = as(i, u16)
             set counts[bits - 1] += 1
     -- de-accumulate to get back original count
+    -- 
+    --     at this point we have: counts_now[i] == sum(0<= x <= i + 1, counts_orig[x])
+    --     we compute:  counts_orig[i] := counts_now[i - 1] -   counts_now[i - 2]
+    -- 
     --     n0 is the original value of the element at index i-2
     --     n1 is the original value of the element at index i-1
     let! n0 u16 = 0

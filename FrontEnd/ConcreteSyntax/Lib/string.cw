@@ -16,7 +16,7 @@ fun are_two_non_empty_strings_the_same(s1 ^u8, s2 ^u8, n uint) bool:
         else:
             return true
 
-pub fun find(haystack slice(u8), needle slice(u8)) uint:
+pub fun find(haystack span(u8), needle span(u8)) uint:
     let nlen uint = len(needle)
     let hlen uint = len(haystack)
     if nlen == 0:
@@ -37,7 +37,7 @@ pub fun find(haystack slice(u8), needle slice(u8)) uint:
         else:
             return NOT_FOUND
 
-pub fun rfind(haystack slice(u8), needle slice(u8)) uint:
+pub fun rfind(haystack span(u8), needle span(u8)) uint:
     let nlen uint = len(needle)
     let hlen uint = len(haystack)
     if nlen == 0:
@@ -56,7 +56,7 @@ pub fun rfind(haystack slice(u8), needle slice(u8)) uint:
         set i -= 1
         continue
 
-pub fun starts_with(haystack slice(u8), needle slice(u8)) bool:
+pub fun starts_with(haystack span(u8), needle span(u8)) bool:
     let hlen uint = len(haystack)
     let nlen uint = len(needle)
     if nlen == 0:
@@ -67,7 +67,7 @@ pub fun starts_with(haystack slice(u8), needle slice(u8)) bool:
     return are_two_non_empty_strings_the_same(
             front(haystack), front(needle), nlen)
 
-pub fun ends_with(haystack slice(u8), needle slice(u8)) bool:
+pub fun ends_with(haystack span(u8), needle span(u8)) bool:
     let hlen uint = len(haystack)
     let nlen uint = len(needle)
     if nlen == 0:
@@ -78,7 +78,7 @@ pub fun ends_with(haystack slice(u8), needle slice(u8)) bool:
     return are_two_non_empty_strings_the_same(
             pinc(front(haystack), hlen - nlen), front(needle), nlen)
 
-pub fun cmp(aslice slice(u8), bslice slice(u8)) sint:
+pub fun cmp(aslice span(u8), bslice span(u8)) sint:
     let alen uint = len(aslice)
     let blen uint = len(bslice)
     let n uint = alen min blen
@@ -108,7 +108,7 @@ pub fun cmp(aslice slice(u8), bslice slice(u8)) sint:
         case true:
             return 1
 
-fun contains_char(haystack slice(u8), needle u8) bool:
+fun contains_char(haystack span(u8), needle u8) bool:
     -- assumes that haystack is not empty
     let n uint = len(haystack)
     let hptr ^u8 = front(haystack)
@@ -122,7 +122,7 @@ fun contains_char(haystack slice(u8), needle u8) bool:
         else:
             return false
 
-pub fun find_first_of(haystack slice(u8), needle slice(u8)) uint:
+pub fun find_first_of(haystack span(u8), needle span(u8)) uint:
     let nlen uint = len(needle)
     let hlen uint = len(haystack)
     if hlen == 0:
@@ -141,7 +141,7 @@ pub fun find_first_of(haystack slice(u8), needle slice(u8)) uint:
         else:
             return NOT_FOUND
 
-pub fun find_first_not_of(haystack slice(u8), needle slice(u8)) uint:
+pub fun find_first_not_of(haystack span(u8), needle span(u8)) uint:
     let nlen uint = len(needle)
     let hlen uint = len(haystack)
     if hlen == 0:
@@ -161,7 +161,7 @@ pub fun find_first_not_of(haystack slice(u8), needle slice(u8)) uint:
         else:
             return NOT_FOUND
 
-pub fun find_last_of(haystack slice(u8), needle slice(u8)) uint:
+pub fun find_last_of(haystack span(u8), needle span(u8)) uint:
     let nlen uint = len(needle)
     let hlen uint = len(haystack)
     if hlen == 0:
@@ -179,7 +179,7 @@ pub fun find_last_of(haystack slice(u8), needle slice(u8)) uint:
             return NOT_FOUND
         continue
 
-pub fun find_last_not_of(haystack slice(u8), needle slice(u8)) uint:
+pub fun find_last_not_of(haystack span(u8), needle span(u8)) uint:
     let nlen uint = len(needle)
     let hlen uint = len(haystack)
     if hlen == 0:

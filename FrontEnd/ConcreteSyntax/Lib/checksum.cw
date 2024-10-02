@@ -21,7 +21,7 @@ pub fun InitCrcTab(poly u32, tab ^!CrcTab) void:
         set tab^[i] = crc
 
 -- start crc is 0
-pub fun CalcCrc(buf slice(u8), start_crc u32, tab ^CrcTab) u32:
+pub fun CalcCrc(buf span(u8), start_crc u32, tab ^CrcTab) u32:
     let! crc u32 = start_crc xor 0xffffffff
     for i = 0, len(buf), 1:
         let index u8 = as(crc and 0xff, u8) xor buf[i]
@@ -34,7 +34,7 @@ global Adler32Mod u32 = 65521
 global Adler32MaxLen uint = 5552
 
 -- only use expensive modulo when absolutely needed
-pub fun Adler32ShortSliceHelper(buf slice(u8), start_crc u32) u32:
+pub fun Adler32ShortSliceHelper(buf span(u8), start_crc u32) u32:
     let! a u32 = start_crc and 0xffff
     let! b u32 = start_crc >> 16 and 0xffff
     for i = 0, len(buf), 1:
@@ -48,12 +48,12 @@ pub fun Adler32ShortSliceHelper(buf slice(u8), start_crc u32) u32:
 pub global Adler32SeedCrc u32 = 1
 
 -- start crc is 1
-pub fun Adler32(buf slice(u8), start_crc u32) u32:
+pub fun Adler32(buf span(u8), start_crc u32) u32:
     let! crc u32 = start_crc
     let! start uint = 0
     while start < len(buf):
         let end = start + Adler32MaxLen min len(buf)
         set crc = Adler32ShortSliceHelper(
-                slice(pinc(front(buf), start), end - start), crc)
+                span(pinc(front(buf), start), end - start), crc)
         set start = end
     return crc

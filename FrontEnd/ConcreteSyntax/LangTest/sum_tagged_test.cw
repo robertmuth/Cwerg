@@ -2,21 +2,31 @@ module:
 
 import test
 
-@wrapped type t1 = s32
+@wrapped type void_t1 = void
 
-@wrapped type t2 = void
+global void_t1_val = wrap_as(void, void_t1)
 
-@wrapped type t3 = void
+@wrapped type void_t2 = void
+
+global void_t2_val = wrap_as(void, void_t2)
+
+@wrapped type void_t3 = void
+
+global void_t3_val = wrap_as(void, void_t3)
+
+static_assert size_of(union(void_t1, void_t2)) == size_of(typeid)
+
+static_assert size_of(union(void_t1, void_t2, void_t3)) == size_of(typeid)
 
 type type_ptr = ^!s32
 
 type Union1 = union(s32, void, type_ptr)
 
-static_assert size_of(Union1) == 16
+static_assert size_of(Union1) == size_of(type_ptr) * 2
 
 type Union2 = union(s32, void, union(Union1, u8))
 
-static_assert size_of(Union2) == 16
+static_assert size_of(Union2) == size_of(type_ptr) * 2
 
 type Union2Simplified = union(s32, void, u8, type_ptr)
 
@@ -40,7 +50,7 @@ type Delta3 = union_delta(Union3, union(bool, u8, s64))
 
 static_assert typeid_of(Delta3) == typeid_of(s32)
 
-pub type Union5 = union(t2, t3, s8)
+type Union5 = union(void_t2, void_t3, s8)
 
 static_assert size_of(Union5) == 3
 
@@ -56,7 +66,7 @@ rec rec1:
     s1 Union5
     s2 Union5
 
-pub rec rec2:
+rec rec2:
     s1 Union1
     s2 Union2
 
@@ -84,10 +94,13 @@ fun test_tagged_union_basic() void:
     test::AssertTrue#(y == 777_s32)
     test::AssertTrue#(777_s32 == y)
 
-pub type UnionVoid = union(void, t2, t3)
+pub type UnionVoid = union(void, void_t2, void_t3)
 
 fun test_tagged_union_void() void:
-    let! x UnionVoid = void
+    let! x012 union(void, void_t1, void_t2) = void
+    let! x123 union(void_t1, void_t2, void_t3) = void_t3_val
+    let! x12 union(void_t1, void_t2) = void_t1_val
+    set x012 = x12
 
 fun fun_param(a bool, b bool, c s32, x Union3) void:
     if a:

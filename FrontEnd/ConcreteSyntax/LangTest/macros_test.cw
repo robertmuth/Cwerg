@@ -47,11 +47,11 @@ fun TestProductMacro() u32:
     product#(result,{111, 2 * 111, 333, 444, 555, 666})
     return result
 
-fun TestForMacroStringify() slice(u8):
+fun TestForMacroStringify() span(u8):
     return stringify(TestForMacroStringify)
 
-fun TestSwap(vec slice!(u8)) void:
-    swap#(vec[1], vec[2])
+fun TestSwap(array span!(u8)) void:
+    swap#(array[1], array[2])
 
 -- just a compilation test
 fun main(argc s32, argv ^^u8) s32:

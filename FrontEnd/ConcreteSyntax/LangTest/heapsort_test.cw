@@ -16,7 +16,7 @@ global ERROR = "ERROR\n"
 fun cmp_lt(a ^r64, b ^r64) bool:
     return a^ < b^
 
-fun heap_sort(sdata slice!(r64)) void:
+fun heap_sort(sdata span!(r64)) void:
     let data ^!r64 = front!(sdata)
     let n = len(sdata)
     let! ir = n

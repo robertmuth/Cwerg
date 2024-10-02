@@ -168,7 +168,7 @@ KEYWORDS = [
 ] + KEYWORDS_TOPLEVEL
 
 KEYWORDS_WITH_EXCL_SUFFIX = [
-    "trylet", "mlet", "slice", "let", "global", "front"]
+    "trylet", "mlet", "span", "let", "global", "front"]
 
 BEG_TOKENS = set(KEYWORDS + KEYWORDS_WITH_EXCL_SUFFIX + [
     k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
@@ -565,7 +565,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(cwast.BaseTypeKindToKeyword(n.base_type_kind)),
     #
-    cwast.TypeSpan: lambda ts, n: TokensFunctional(ts, WithMut("slice", n.mut), [n.type]),
+    cwast.TypeSpan: lambda ts, n: TokensFunctional(ts, WithMut("span", n.mut), [n.type]),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
     cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, KW(n), n.types),
     cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithMut("^", n.mut), n.type),
@@ -579,7 +579,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ValUndef: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.ValVoid: lambda ts, n: ts.EmitAttr("void"),
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
-    cwast.ValSpan: lambda ts, n: TokensFunctional(ts, "slice", [n.pointer, n.expr_size]),
+    cwast.ValSpan: lambda ts, n: TokensFunctional(ts, "span", [n.pointer, n.expr_size]),
     cwast.ValString: TokensValString,
     cwast.ValRec: TokensValRec,
     cwast.ValVec: TokensValVec,

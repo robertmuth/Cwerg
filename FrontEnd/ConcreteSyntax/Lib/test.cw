@@ -9,7 +9,7 @@ module:
 import os
 
 macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
-    mlet $msg_eval slice(u8) = $msg
+    mlet $msg_eval span(u8) = $msg
     do os::write(unwrap(os::Stdout), front($msg_eval), len($msg_eval))
 
 pub macro Success# STMT()[]:
@@ -22,6 +22,20 @@ pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
     if $e_val != $a_val:
+        SysPrint#("AssertEq failed: ")
+        SysPrint#(stringify($e_expr))
+        SysPrint#(" VS ")
+        SysPrint#(stringify($a_expr))
+        SysPrint#("\n")
+        trap
+
+-- The two scalar arguments must be the same
+-- 
+-- Both must have derivable types as we use `auto`
+pub macro AssertNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
+    mlet $e_val = $e_expr
+    mlet $a_val = $a_expr
+    if $e_val == $a_val:
         SysPrint#("AssertEq failed: ")
         SysPrint#(stringify($e_expr))
         SysPrint#(" VS ")
@@ -56,6 +70,28 @@ pub macro AssertApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EXPR)[
     mlet $a_val = $a_expr
     if $e_val < $a_val - $epsilon || $e_val > $a_val + $epsilon:
         SysPrint#("AssertApproxEq failed: ")
+        SysPrint#(stringify($e_expr))
+        SysPrint#(" VS ")
+        SysPrint#(stringify($a_expr))
+        SysPrint#("\n")
+        trap
+
+pub macro AssertEqR64# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
+    mlet $e_val r64 = $e_expr
+    mlet $a_val r64 = $a_expr
+    if bitwise_as($e_val, u64) != bitwise_as($a_val, u64):
+        SysPrint#("AssertEq failed: ")
+        SysPrint#(stringify($e_expr))
+        SysPrint#(" VS ")
+        SysPrint#(stringify($a_expr))
+        SysPrint#("\n")
+        trap
+
+pub macro AssertNeR64# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
+    mlet $e_val r64 = $e_expr
+    mlet $a_val r64 = $a_expr
+    if bitwise_as($e_val, u64) == bitwise_as($a_val, u64):
+        SysPrint#("AssertEq failed: ")
         SysPrint#(stringify($e_expr))
         SysPrint#(" VS ")
         SysPrint#(stringify($a_expr))
