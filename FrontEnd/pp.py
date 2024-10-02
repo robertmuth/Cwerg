@@ -1062,16 +1062,14 @@ if __name__ == "__main__":
     from FrontEnd import parse_sexpr
 
     def process_file(inp):
-        mods = parse_sexpr.ReadModsFromStream(inp)
-        assert len(mods) == 1
-        for m in mods:
-            assert isinstance(m, cwast.DefMod)
-            cwast.AnnotateRoleForMacroInvoke(m)
-            AddMissingParens(m)
-            cwast.CheckAST(m, set(), pre_symbolize=True)
+        mod = parse_sexpr.ReadModFromStream(inp, "stdin")
+        assert isinstance(mod, cwast.DefMod)
+        cwast.AnnotateRoleForMacroInvoke(mod)
+        AddMissingParens(mod)
+        cwast.CheckAST(mod, set(), pre_symbolize=True)
         # we first produce an output token stream from the AST
         ts = TS()
-        EmitTokensModule(ts, mods[0])
+        EmitTokensModule(ts, mod)
         tokens = list(ts.tokens())
         if 0:
             indent = 0

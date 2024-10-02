@@ -459,7 +459,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
         return ReadRestAndMakeNode(cls, [], cls.FIELDS, attr, stream)
 
 
-def ReadModsFromStream(fp, fn="stdin") -> list[cwast.DefMod]:
+def ReadModFromStream(fp, fn) -> cwast.DefMod:
     asts = []
     stream = ReadTokens(fp, fn)
     failure = False
@@ -479,7 +479,8 @@ def ReadModsFromStream(fp, fn="stdin") -> list[cwast.DefMod]:
             failure = False
     except StopIteration:
         assert not failure, "truncated file"
-    return asts
+    assert len(asts) == 1
+    return asts[0]
 
 
 ############################################################
@@ -491,4 +492,4 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     assert len(sys.argv) == 2
     with open(sys.argv[1], encoding="utf8") as f:
-        ReadModsFromStream(f)
+        ReadModFromStream(f)

@@ -362,11 +362,10 @@ if __name__ == "__main__":
             assert fn.endswith(".cw")
 
             fp = open(fn, encoding="utf8")
-            mods = parse_sexpr.ReadModsFromStream(fp)
+            mod = parse_sexpr.ReadModFromStream(fp, fn)
             fp.close()
-            assert len(mods) == 1
             out = [[""]]
-            _RenderRecursivelyToIR(mods[0], out, 0)
+            _RenderRecursivelyToIR(mod, out, 0)
             if args.inplace:
                 fp = open(fn, "w", encoding="utf8")
                 for a in out:

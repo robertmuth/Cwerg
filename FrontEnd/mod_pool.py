@@ -8,6 +8,7 @@ import heapq
 from FrontEnd import cwast
 from FrontEnd import parse_sexpr
 from FrontEnd import symbolize
+from FrontEnd import parse
 
 from typing import Optional, Sequence
 
@@ -99,7 +100,8 @@ def _TryToNormalizeModArgs(args, normalized) -> bool:
     return count == len(args)
 
 
-def _ModUniquePathName(root: pathlib.PurePath, curr: Optional[pathlib.PurePath],
+def _ModUniquePathName(root: pathlib.PurePath,
+                       curr: Optional[pathlib.PurePath],
                        pathname: str) -> pathlib.PurePath:
     """
     Provide a unique id for a module.
@@ -117,6 +119,7 @@ def _ModUniquePathName(root: pathlib.PurePath, curr: Optional[pathlib.PurePath],
         return (pc / pathname).resolve()
     else:
         return (root / pathname).resolve()
+
 
 
 class ModPoolBase:
@@ -271,12 +274,20 @@ class ModPoolBase:
 class ModPool(ModPoolBase):
 
     def _ReadMod(self, handle: pathlib.PurePath) -> cwast.DefMod:
+        """Overload"""
+        # fn = str(handle) + EXTENSION_CW
+        # if pathlib.Path(fn).exists():
+        #     asts = parse(open(fn, encoding="utf8"), fn)
+        #     assert len(asts) == 1, f"multiple modules in {fn}"
+        #     mod = asts[0]
+        #     assert isinstance(mod, cwast.DefMod)
+        #     return mod
         fn = str(handle) + EXTENSION_CW
-        asts = parse_sexpr.ReadModsFromStream(open(fn, encoding="utf8"), fn)
-        assert len(asts) == 1, f"multiple modules in {fn}"
-        mod = asts[0]
-        assert isinstance(mod, cwast.DefMod)
-        return mod
+        if pathlib.Path(fn).exists():
+            mod = parse_sexpr.ReadModFromStream(open(fn, encoding="utf8"), fn)
+            assert isinstance(mod, cwast.DefMod)
+            return mod
+        assert False, f"module {str(handle)} does not exist"
 
 
 if __name__ == "__main__":
