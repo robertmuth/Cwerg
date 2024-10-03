@@ -569,12 +569,13 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
 
 def main(argv):
     assert len(argv) == 1
-    assert argv[0].endswith(".cw")
-
+    fn = argv[0]
+    fn, ext = os.path.splitext(fn)
+    assert ext in (".cw", ".cws")
     cwd = os.getcwd()
     mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-    main = str(pathlib.Path(argv[0][:-3]).resolve())
-    mp.ReadModulesRecursively([main], add_builtin=True)
+    main = str(pathlib.Path(fn).resolve())
+    mp.ReadModulesRecursively([main], add_builtin=fn != "Lib/builtin")
     mod_topo_order = mp.ModulesInTopologicalOrder()
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)

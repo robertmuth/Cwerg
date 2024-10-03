@@ -359,8 +359,7 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.WARN)
         logger.setLevel(logging.INFO)
         for fn in args.files:
-            assert fn.endswith(".cw")
-
+            assert fn.endswith(".cws")
             fp = open(fn, encoding="utf8")
             mod = parse_sexpr.ReadModFromStream(fp, fn)
             fp.close()

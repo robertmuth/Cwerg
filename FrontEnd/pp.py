@@ -1063,7 +1063,6 @@ if __name__ == "__main__":
 
     def process_file(inp):
         mod = parse_sexpr.ReadModFromStream(inp, "stdin")
-        assert isinstance(mod, cwast.DefMod)
         cwast.AnnotateRoleForMacroInvoke(mod)
         AddMissingParens(mod)
         cwast.CheckAST(mod, set(), pre_symbolize=True)
@@ -1096,7 +1095,7 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.WARN)
         logger.setLevel(logging.INFO)
         for a in args.files:
-            assert a.endswith(".cw")
+            assert a.endswith(".cws")
             with open(a, encoding="utf8") as inp:
                 process_file(inp)
     main()

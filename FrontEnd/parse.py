@@ -1192,10 +1192,9 @@ def RemoveRedundantParens(node):
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-def ParseFile(inp: Lexer) -> Any:
-    mod = _ParseModule(inp)
-    RemoveRedundantParens(mod)
-    pp_sexpr.PrettyPrint(mod)
+def ReadModFromStream(fp, fn) -> cwast.DefMod:
+    inp = Lexer(LexerRaw(fn, fp))
+    return _ParseModule(inp)
 
 
 ############################################################
@@ -1203,6 +1202,13 @@ def ParseFile(inp: Lexer) -> Any:
 ############################################################
 if __name__ == "__main__":
     import sys
-    logging.basicConfig(level=logging.WARNING)
-    logger.setLevel(logging.WARNING)
-    ParseFile(Lexer(LexerRaw("stdin", sys.stdin)))
+
+    def main():
+        logging.basicConfig(level=logging.WARNING)
+        logger.setLevel(logging.WARNING)
+        inp = Lexer(LexerRaw("stdin", sys.stdin))
+        mod = _ParseModule(inp)
+        RemoveRedundantParens(mod)
+        pp_sexpr.PrettyPrint(mod)
+
+    main()

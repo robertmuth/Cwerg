@@ -275,14 +275,14 @@ class ModPool(ModPoolBase):
 
     def _ReadMod(self, handle: pathlib.PurePath) -> cwast.DefMod:
         """Overload"""
-        # fn = str(handle) + EXTENSION_CW
-        # if pathlib.Path(fn).exists():
-        #     asts = parse(open(fn, encoding="utf8"), fn)
-        #     assert len(asts) == 1, f"multiple modules in {fn}"
-        #     mod = asts[0]
-        #     assert isinstance(mod, cwast.DefMod)
-        #     return mod
         fn = str(handle) + EXTENSION_CW
+        if pathlib.Path(fn).exists():
+            asts = parse(open(fn, encoding="utf8"), fn)
+            assert len(asts) == 1, f"multiple modules in {fn}"
+            mod = asts[0]
+            assert isinstance(mod, cwast.DefMod)
+            return mod
+        fn = str(handle) + EXTENSION_CWS
         if pathlib.Path(fn).exists():
             mod = parse_sexpr.ReadModFromStream(open(fn, encoding="utf8"), fn)
             assert isinstance(mod, cwast.DefMod)

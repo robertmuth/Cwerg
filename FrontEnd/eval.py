@@ -679,7 +679,7 @@ def VerifyASTEvalsRecursively(node):
             else:
                 if node.x_value is None:
                     if node.x_type.is_span() or (node.x_type.original_type and
-                                                  node.x_type.original_type.is_span()):
+                                                 node.x_type.original_type.is_span()):
                         # TODO: we do not track constant addresses yet
                         # for now assume they are constant
                         pass
@@ -723,12 +723,14 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: list[cwast.DefMod]):
 def main(argv):
     cwast.ASSERT_AFTER_ERROR = False
     assert len(argv) == 1
-    assert argv[0].endswith(".cw")
+    fn = argv[0]
+    fn, ext = os.path.splitext(fn)
+    assert ext in (".cw", ".cws")
 
     cwd = os.getcwd()
     mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-    main = str(pathlib.Path(argv[0][:-3]).resolve())
-    mp.ReadModulesRecursively([main], add_builtin=True)
+    main = str(pathlib.Path(fn).resolve())
+    mp.ReadModulesRecursively([main], add_builtin=fn != "Lib/builtin")
     mod_topo_order = mp.ModulesInTopologicalOrder()
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)

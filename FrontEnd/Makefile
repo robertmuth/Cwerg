@@ -2,43 +2,43 @@
 DIR := build
 QEMU :=
 
-TEST_SOURCES := $(wildcard TestData/*.cw)
-TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cw))
+TEST_SOURCES := $(wildcard TestData/*.cws)
+TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cws), $(wildcard TestData/*.cws))
 
-LANG_TESTS := $(wildcard LangTest/*_test.cw)
-LANG_SOURCES := $(wildcard LangTest/*.cw)
+LANG_TESTS := $(wildcard LangTest/*_test.cws)
+LANG_SOURCES := $(wildcard LangTest/*.cws)
 
-LIB_TESTS := $(wildcard Lib/*_test.cw)
-LIB_SOURCES :=  $(wildcard Lib/*.cw)
-LIB_SOURCES_NO_GENERIC := $(filter-out Lib/builtin.cw $(wildcard Lib/*gen.cw), $(wildcard Lib/*.cw))
+LIB_TESTS := $(wildcard Lib/*_test.cws)
+LIB_SOURCES :=  $(wildcard Lib/*.cws)
+LIB_SOURCES_NO_GENERIC := $(filter-out Lib/builtin.cws $(wildcard Lib/*gen.cws), $(wildcard Lib/*.cws))
 
 TEST_TESTS := \
-	TestData/binary_tree_test.cw \
-	TestData/fibonacci.cw \
-    TestData/fizzbuzz.cw \
-    TestData/hello_world.cw \
-    TestData/nqueens.cw
+	TestData/binary_tree_test.cws \
+	TestData/fibonacci.cws \
+    TestData/fizzbuzz.cws \
+    TestData/hello_world.cws \
+    TestData/nqueens.cws
 
 TESTS_A32 := \
-    LangTest/consts_test.cw \
-	LangTest/array_test.cw \
-    LangTest/cast_test.cw \
-    LangTest/defer_test.cw \
-    LangTest/enum_test.cw \
-    LangTest/expr_test.cw \
-	LangTest/linked_list_test.cw \
-	LangTest/sieve_test.cw \
-    LangTest/types_test.cw \
-    TestData/fibonacci.cw \
-	TestData/fizzbuzz.cw \
-	TestData/nqueens.cw \
-    TestData/hello_world.cw \
-    Lib/bitstream_test.cw \
-    Lib/bytestream_test.cw \
-    Lib/checksum_test.cw \
-    Lib/huffman_test.cw \
-    Lib/string_test.cw \
-    Lib/trig_test.cw
+    LangTest/consts_test.cws \
+	LangTest/array_test.cws \
+    LangTest/cast_test.cws \
+    LangTest/defer_test.cws \
+    LangTest/enum_test.cws \
+    LangTest/expr_test.cws \
+	LangTest/linked_list_test.cws \
+	LangTest/sieve_test.cws \
+    LangTest/types_test.cws \
+    TestData/fibonacci.cws \
+	TestData/fizzbuzz.cws \
+	TestData/nqueens.cws \
+    TestData/hello_world.cws \
+    Lib/bitstream_test.cws \
+    Lib/bytestream_test.cws \
+    Lib/checksum_test.cws \
+    Lib/huffman_test.cws \
+    Lib/string_test.cws \
+    Lib/trig_test.cws
 
 ALL_SOURCES := $(LANG_SOURCES) $(TEST_SOURCES) $(LIB_SOURCES)
 ALL_SOURCES_NO_GENERIC := $(LANG_SOURCES) $(TEST_SOURCES_NO_GENERIC) $(LIB_SOURCES_NO_GENERIC)
@@ -59,22 +59,22 @@ tests_py: \
     # tests_concrete_py \
 	@echo "PASSED $@"
 
-tests_parse_py: $(ALL_SOURCES:%.cw=$(DIR)/%.cw.parse)
+tests_parse_py: $(ALL_SOURCES:%.cws=$(DIR)/%.cw.parse)
 	@echo "PASSED $@"
 
-tests_meta_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
+tests_meta_py: $(ALL_SOURCES_NO_GENERIC:%.cws=$(DIR)/%.cw.meta)
 	@echo "PASSED $@"
 
-tests_eval_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.eval)
+tests_eval_py: $(ALL_SOURCES_NO_GENERIC:%.cws=$(DIR)/%.cw.eval)
 	@echo "PASSED $@"
 
-tests_symtab_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.symtab)
+tests_symtab_py: $(ALL_SOURCES_NO_GENERIC:%.cws=$(DIR)/%.cw.symtab)
 	@echo "PASSED $@"
 
-tests_pp_py: $(ALL_SOURCES:%.cw=$(DIR)/%.cw.pp)
+tests_pp_py: $(ALL_SOURCES:%.cws=$(DIR)/%.cws.pp)
 	@echo "PASSED $@"
 
-tests_concrete_py:  $(ALL_SOURCES:%.cw=$(DIR)/%.concrete)
+tests_concrete_py:  $(ALL_SOURCES:%.cws=$(DIR)/%.concrete)
 	@echo "PASSED $@"
 
 tests_all_py: tests_parse_py tests_symtab_py tests_meta_py tests_eval_py tests_pp_py
@@ -84,9 +84,9 @@ STD_LIB_WITH_ARGV_A64 = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../S
 STD_LIB_WITH_ARGV_A32 = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
 # test language
-tests_x64: $(LANG_TESTS:%.cw=$(DIR)/%.x64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.x64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.x64.exe)
-tests_a64: $(LANG_TESTS:%.cw=$(DIR)/%.a64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.a64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.a64.exe)
-tests_a32: $(TESTS_A32:%.cw=$(DIR)/%.a32.exe)
+tests_x64: $(LANG_TESTS:%.cws=$(DIR)/%.x64.exe) $(LIB_TESTS:%.cws=$(DIR)/%.x64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.x64.exe)
+tests_a64: $(LANG_TESTS:%.cws=$(DIR)/%.a64.exe) $(LIB_TESTS:%.cws=$(DIR)/%.a64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.a64.exe)
+tests_a32: $(TESTS_A32:%.cws=$(DIR)/%.a32.exe)
 
 
 # Special due to commandline args
@@ -94,43 +94,59 @@ misc_test_x64:  $(DIR)/print_argv.x64.test $(DIR)/wordcount.x64.test
 misc_test_a64:  $(DIR)/print_argv.a64.test $(DIR)/wordcount.a64.test
 
 
+$(DIR)/%.cw.parse: %.cws
+	@echo "[parse $@]"
+	./parse_sexpr.py $<
+
 $(DIR)/%.cw.parse: %.cw
 	@echo "[parse $@]"
 	./parse_sexpr.py $<
+
+$(DIR)/%.cw.meta: %.cws
+	@echo "[typify $@]"
+	$(PYPY) ./typify.py $<
 
 $(DIR)/%.cw.meta: %.cw
 	@echo "[typify $@]"
 	$(PYPY) ./typify.py $<
 
+$(DIR)/%.cw.eval: %.cws
+	@echo "[eval $@]"
+	$(PYPY) ./eval.py $<
+
 $(DIR)/%.cw.eval: %.cw
 	@echo "[eval $@]"
 	$(PYPY) ./eval.py $<
+
+$(DIR)/%.cw.symtab: %.cws
+	@echo "[symbolize $@]"
+	$(PYPY) ./symbolize.py $<
 
 $(DIR)/%.cw.symtab: %.cw
 	@echo "[symbolize $@]"
 	$(PYPY) ./symbolize.py $<
 
-$(DIR)/%.cw.pp: %.cw
+$(DIR)/%.cws.pp: %.cws
 	@echo "[prettyprint $@]"
-	$(PYPY) ./pp_sexpr.py $< >$@.tmp.cw
-	$(PYPY) ./pp_sexpr.py $@.tmp.cw >$@
-	diff $@.tmp.cw $@
+	$(PYPY) ./pp_sexpr.py $< >$@.tmp.cws
+	$(PYPY) ./pp_sexpr.py $@.tmp.cws >$@
+	diff $@.tmp.cws $@
 
 ## Exe Tests
 
-$(DIR)/%.x64.exe: %.cw
+$(DIR)/%.x64.exe: %.cws
 	@echo "[lang $@]"
 	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-$(DIR)/%.a64.exe: %.cw
+$(DIR)/%.a64.exe: %.cws
 	@echo "[lang $@]"
 	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-$(DIR)/%.a32.exe: %.cw
+$(DIR)/%.a32.exe: %.cws
 	@echo "[lang $@]"
 	$(PYPY) ./emit_ir.py -shake_tree -arch a32 $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
@@ -139,18 +155,18 @@ $(DIR)/%.a32.exe: %.cw
 
 ## Compile only Tests
 
-$(DIR)/%.compile.x64.exe: TestData/%.cw
+$(DIR)/%.compile.x64.exe: TestData/%.cws
 	@echo "[run $@]"
 	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 
-$(DIR)/%.compile.a64.exe: TestData/%.cw
+$(DIR)/%.compile.a64.exe: TestData/%.cws
 	@echo "[run $@]"
 	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
 
 # concrete
-$(DIR)/%.concrete: %.cw
+$(DIR)/%.concrete: %.cws
 	@echo "[concrete $@]"
 	$(PYPY) ./pp.py $< > $@
 	$(PYPY) ./parse.py < $@ > $@.pp

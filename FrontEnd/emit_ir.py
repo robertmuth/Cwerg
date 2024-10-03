@@ -1030,9 +1030,10 @@ def main() -> int:
     cwd = os.getcwd()
     mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
     assert len(args.files) == 1
-    ext = mod_pool.EXTENSION_CW
-    assert args.files[0].endswith(ext)
-    main = str(pathlib.Path(args.files[0][:-len(ext)]).resolve())
+    fn = args.files[0]
+    fn, ext = os.path.splitext(fn)
+    assert ext in (".cw", ".cws")
+    main = str(pathlib.Path(fn).resolve())
     mp.ReadModulesRecursively([main], add_builtin=True)
 
     mod_topo_order = mp.ModulesInTopologicalOrder()

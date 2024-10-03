@@ -220,8 +220,10 @@ def AnnotateNodeField(node, field_node: cwast.RecField):
     assert node.x_field is None
     node.x_field = field_node
 
+
 def _GetExprStmtType(root: cwast.ExprStmt) -> cwast.CanonType:
     result: Optional[cwast.CanonType] = None
+
     def visitor(node, _):
         nonlocal result, root
         if node != root and isinstance(node, cwast.ExprStmt):
@@ -506,7 +508,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprStmt):
         for c in node.body:
             _TypifyNodeRecursively(c, tc, target_type, ctx)
-        if target_type ==  cwast.NO_TYPE:
+        if target_type == cwast.NO_TYPE:
             target_type = _GetExprStmtType(node)
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ExprCall):
@@ -1239,12 +1241,13 @@ def RemoveUselessCast(node, tc: type_corpus.TypeCorpus):
 
 def main(argv):
     assert len(argv) == 1
-    assert argv[0].endswith(".cw")
-
+    fn = argv[0]
+    fn, ext = os.path.splitext(fn)
+    assert ext in (".cw", ".cws")
     cwd = os.getcwd()
     mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
-    main = str(pathlib.Path(argv[0][:-3]).resolve())
-    mp.ReadModulesRecursively([main], add_builtin=True)
+    main = str(pathlib.Path(fn).resolve())
+    mp.ReadModulesRecursively([main], add_builtin=fn != "Lib/builtin")
     mod_topo_order = mp.ModulesInTopologicalOrder()
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
