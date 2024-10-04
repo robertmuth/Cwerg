@@ -404,11 +404,11 @@ def _ParseExpr(inp: Lexer, precedence=0):
 
 
 def _PParseId(_inp: Lexer, tk: TK, _precedence) -> Any:
-    return cwast.Id(tk.text)
+    return cwast.Id(tk.text, x_srcloc=tk.srcloc)
 
 
 def _PParseNum(_inp: Lexer, tk: TK, _precedence) -> Any:
-    return cwast.ValNum(tk.text)
+    return cwast.ValNum(tk.text, x_srcloc=tk.srcloc)
 
 
 def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
@@ -416,7 +416,7 @@ def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
     dim = _ParseExpr(inp)
     inp.match_or_die(TK_KIND.SQUARE_CLOSED)
     type = _ParseTypeExpr(inp)
-    return cwast.TypeVec(dim, type)
+    return cwast.TypeVec(dim, type, x_srcloc=tk.srcloc)
 
 
 _FUN_LIKE = {
@@ -457,11 +457,12 @@ def _ParseFunLike(inp: Lexer, name: TK) -> Any:
     first = True
     params: list[Any] = []
     extra = _ExtractAnnotations(name)
+    extra["x_srcloc"] = name.srcloc
     if name.text.endswith("!"):
         extra["mut"] = True
     for a in args:
         if inp.peek().kind is TK_KIND.PAREN_CLOSED and a == "e":
-            params.append(cwast.ValUndef())
+            params.append(cwast.ValUndef(x_srcloc=name.srcloc))
             break
         if a == "p":
             params.append(cwast.POINTER_EXPR_SHORTCUT[name.text])
@@ -485,20 +486,20 @@ def _ParseFunLike(inp: Lexer, name: TK) -> Any:
 
 def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
     if tk.text == "true":
-        return cwast.ValTrue()
+        return cwast.ValTrue(x_srcloc=tk.srcloc)
     elif tk.text == "false":
-        return cwast.ValFalse()
+        return cwast.ValFalse(x_srcloc=tk.srcloc)
     elif tk.text == "void":
-        return cwast.ValVoid()
+        return cwast.ValVoid(x_srcloc=tk.srcloc)
     elif tk.text == "auto":
-        return cwast.ValAuto()
+        return cwast.ValAuto(x_srcloc=tk.srcloc)
     elif tk.text in _FUN_LIKE:
         return _ParseFunLike(inp, tk)
     elif tk.text == "expr":
         # we use "0" as the indent intentionally
         # allowing the next statement to begin at any column
         body = _ParseStatementList(inp, 0)
-        return cwast.ExprStmt(body)
+        return cwast.ExprStmt(body, x_srcloc=tk.srcloc)
     else:
         assert False, f"{tk}"
 
@@ -526,7 +527,7 @@ def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
         t = t[1:-1]
     else:
         assert False, f"unexpected string [{t}]"
-    return cwast.ValString(t, triplequoted=tq, strkind=strkind)
+    return cwast.ValString(t, triplequoted=tq, strkind=strkind, x_srcloc=tk.srcloc)
 
 
 def _PParseChar(_inp: Lexer, tk: TK, _precedence) -> Any:
@@ -538,17 +539,17 @@ def _PParsePrefix(inp: Lexer, tk: TK, precedence) -> Any:
     if tk.text.startswith("-"):
         kind = cwast.UNARY_EXPR_KIND.MINUS
     elif tk.text.startswith("&"):
-        return cwast.ExprAddrOf(rhs, mut=tk.text == "&!")
+        return cwast.ExprAddrOf(rhs, mut=tk.text == "&!", x_srcloc=tk.srcloc)
     else:
         kind = cwast.UNARY_EXPR_SHORTCUT[tk.text]
-    return cwast.Expr1(kind, rhs)
+    return cwast.Expr1(kind, rhs, x_srcloc=tk.srcloc)
 
 
 def _PParseParenGroup(inp: Lexer, tk: TK, _precedence) -> Any:
     assert tk.kind is TK_KIND.PAREN_OPEN
     inner = _ParseExpr(inp)
     inp.match_or_die(TK_KIND.PAREN_CLOSED)
-    return cwast.ExprParen(inner)
+    return cwast.ExprParen(inner, x_srcloc=tk.srcloc)
 
 
 _PREFIX_EXPR_PARSERS = {
@@ -566,7 +567,7 @@ _PREFIX_EXPR_PARSERS = {
 
 def _PParserInfixOp(inp: Lexer, lhs, tk: TK, precedence) -> Any:
     rhs = _ParseExpr(inp, precedence)
-    return cwast.Expr2(cwast.BINARY_EXPR_SHORTCUT[tk.text], lhs, rhs)
+    return cwast.Expr2(cwast.BINARY_EXPR_SHORTCUT[tk.text], lhs, rhs, x_srcloc=tk.srcloc)
 
 
 def _ParseMacroArg(inp: Lexer) -> Any:
@@ -594,14 +595,14 @@ def _ParseMacroCallArgs(inp: Lexer) -> list[Any]:
     return args
 
 
-def _ParseExprMacro(name: str, inp: Lexer):
+def _ParseExprMacro(name: cwast.Id, inp: Lexer):
     args = _ParseMacroCallArgs(inp)
-    return cwast.MacroInvoke(name, args)
+    return cwast.MacroInvoke(name.name, args, x_srcloc=name.x_srcloc)
 
 
 def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
     if isinstance(callee, cwast.Id) and callee.name.endswith("#"):
-        return _ParseExprMacro(callee.name, inp)
+        return _ParseExprMacro(callee, inp)
     assert tk.kind is TK_KIND.PAREN_OPEN
     args = []
     first = True
@@ -620,7 +621,7 @@ def _ParseArrayInit(inp: Lexer) -> Any:
         index = val
         val = _ParseExpr(inp)
     else:
-        index = cwast.ValAuto()
+        index = cwast.ValAuto(x_srcloc=tk.srcloc)
     return cwast.IndexVal(val, index, **_ExtractAnnotations(tk))
 
 
@@ -634,7 +635,7 @@ def _ParseRecInit(inp: Lexer) -> Any:
 
     else:
         field = ""
-    return cwast.FieldVal(val, field, **_ExtractAnnotations(tk))
+    return cwast.FieldVal(val, field, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
 
 
 def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
@@ -647,7 +648,7 @@ def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
                 inp.match_or_die(TK_KIND.COMMA)
             first = False
             inits.append(_ParseRecInit(inp))
-        return cwast.ValRec(type, inits)
+        return cwast.ValRec(type, inits, x_srcloc=tk.srcloc)
     else:
         assert isinstance(type, cwast.TypeVec)
         inits = []
@@ -657,7 +658,7 @@ def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
                 inp.match_or_die(TK_KIND.COMMA)
             first = False
             inits.append(_ParseArrayInit(inp))
-        return cwast.ValVec(type.size, type.type, inits)
+        return cwast.ValVec(type.size, type.type, inits, x_srcloc=tk.srcloc)
 
 
 def _PParseIndex(inp: Lexer, array, tk: TK, _precedence) -> Any:
@@ -675,12 +676,13 @@ def _PParseDeref(_inp: Lexer, pointer, _tk: TK, _precedence) -> Any:
 
 def _PParseFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
     field = inp.match_or_die(TK_KIND.ID)
-    return cwast.ExprField(rec, field.text)
+    return cwast.ExprField(rec, field.text, x_srcloc=field.srcloc)
 
 
-def _PParseDerefFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
+def _PParseDerefFieldAccess(inp: Lexer, rec, tk: TK, _precedence) -> Any:
     field = inp.match_or_die(TK_KIND.ID)
-    return cwast.MacroInvoke("^.", [rec, cwast.Id(field.text)])
+    return cwast.MacroInvoke("^.", [rec, cwast.Id(field.text, x_srcloc=field.srcloc)],
+                             x_srcloc=tk.srcloc)
 
 
 def _PParseTernary(inp: Lexer, cond, _tk: TK, _precedence) -> Any:
@@ -733,20 +735,22 @@ _INFIX_EXPR_PARSERS = {
 
 def _ParseTypeExpr(inp: Lexer):
     tk = inp.next()
+    extra = _ExtractAnnotations(tk)
+    extra["x_srcloc"] = tk.srcloc
     if tk.kind is TK_KIND.ID:
-        return cwast.Id(tk.text)
+        return cwast.Id(tk.text, **extra)
     elif tk.kind is TK_KIND.KW:
         if tk.text == cwast.TypeAuto.ALIAS:
-            return cwast.TypeAuto()
+            return cwast.TypeAuto(**extra)
         elif tk.text == "funtype":
             params = _ParseFormalParams(inp)
             result = _ParseTypeExpr(inp)
-            return cwast.TypeFun(params, result)
+            return cwast.TypeFun(params, result, **extra)
         elif tk.text in ("span", "span!"):
             inp.match_or_die(TK_KIND.PAREN_OPEN)
             type = _ParseTypeExpr(inp)
             inp.match_or_die(TK_KIND.PAREN_CLOSED)
-            return cwast.TypeSpan(type, mut=tk.text.endswith("!"))
+            return cwast.TypeSpan(type, mut=tk.text.endswith("!"), **extra)
         elif tk.text == cwast.TypeOf.ALIAS:
             return _ParseFunLike(inp, tk)
         elif tk.text == cwast.TypeUnionDelta.ALIAS:
@@ -760,21 +764,21 @@ def _ParseTypeExpr(inp: Lexer):
                     inp.match_or_die(TK_KIND.COMMA)
                 first = False
                 members.append(_ParseTypeExpr(inp))
-            return cwast.TypeUnion(members, **_ExtractAnnotations(tk))
+            return cwast.TypeUnion(members, **extra)
         kind = cwast.KeywordToBaseTypeKind(tk.text)
         assert kind is not cwast.BASE_TYPE_KIND.INVALID, f"{tk}"
-        return cwast.TypeBase(kind)
+        return cwast.TypeBase(kind, **extra)
     elif tk.text == '[':
         dim = _ParseExpr(inp)
         inp.match_or_die(TK_KIND.SQUARE_CLOSED)
         type = _ParseTypeExpr(inp)
-        return cwast.TypeVec(dim, type)
+        return cwast.TypeVec(dim, type, **extra)
     elif tk.text == "^":
         rest = _ParseTypeExpr(inp)
-        return cwast.TypePtr(rest)
+        return cwast.TypePtr(rest, **extra)
     elif tk.text == "^!":
         rest = _ParseTypeExpr(inp)
-        return cwast.TypePtr(rest, mut=True)
+        return cwast.TypePtr(rest, mut=True, **extra)
     else:
         assert False, f"unexpected token {tk}"
 
@@ -805,7 +809,7 @@ def _ParseFormalParams(inp: Lexer):
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
         out.append(cwast.FunParam(name.text, type,
-                   **_ExtractAnnotations(name)))
+                   x_srcloc=name.srcloc, **_ExtractAnnotations(name)))
     return out
 
 
@@ -821,7 +825,7 @@ def _ParseStatementMacro(kw: TK, inp: Lexer):
                 break
         stmts = _ParseStatementList(inp, kw.column)
         args.append(cwast.EphemeralList(stmts, colon=True))
-    return cwast.MacroInvoke(kw.text, args, **_ExtractAnnotations(kw))
+    return cwast.MacroInvoke(kw.text, args, x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
 
 
 def _MaybeLabel(tk: TK, inp: Lexer):
@@ -840,6 +844,8 @@ def _ParseOptionalLabel(inp: Lexer):
 
 def _ParseStatement(inp: Lexer):
     kw = inp.next()
+    extra = _ExtractAnnotations(kw)
+    extra["x_srcloc"] = kw.srcloc
     if kw.kind is TK_KIND.ID:
         if kw.text.endswith("#"):
             return _ParseStatementMacro(kw, inp)
@@ -848,33 +854,33 @@ def _ParseStatement(inp: Lexer):
             if not kw.text.startswith("$"):
                 cwast.CompilerError(
                     kw.srcloc, f"expect macro var but got {kw.text}")
-            return cwast.MacroId(kw.text)
+            return cwast.MacroId(kw.text, **extra)
     if kw.kind is not TK_KIND.KW:
         cwast.CompilerError(
             kw.srcloc, f"expected statement keyword but got: {kw}")
     if kw.text in ("let", "let!", "mlet", "mlet!"):
         name = inp.match_or_die(TK_KIND.ID)
         if inp.match(TK_KIND.ASSIGN):
-            type = cwast.TypeAuto()
+            type = cwast.TypeAuto(x_srcloc=name.srcloc)
             init = _ParseExpr(inp)
         else:
             type = _ParseTypeExpr(inp)
             if inp.match(TK_KIND.ASSIGN):
                 init = _ParseExpr(inp)
             else:
-                init = cwast.ValAuto()
+                init = cwast.ValAuto(x_srcloc=name.srcloc)
         if kw.text.startswith("m"):
             return cwast.MacroVar(name.text, type, init, mut=kw.text.endswith("!"),
-                                  **_ExtractAnnotations(kw))
+                                  **extra)
         else:
             return cwast.DefVar(name.text, type, init, mut=kw.text.endswith("!"),
-                                **_ExtractAnnotations(kw))
+                                **extra)
 
     elif kw.text == "while":
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text, [cond, cwast.EphemeralList(stmts, colon=True)],
-                                 **_ExtractAnnotations(kw))
+                                 **extra)
     elif kw.text == "if":
         cond = _ParseExpr(inp)
         stmts_t = _ParseStatementList(inp, kw.column)
@@ -883,7 +889,7 @@ def _ParseStatement(inp: Lexer):
         if p.column == kw.column and p.text == "else":
             inp.next()
             stmts_f = _ParseStatementList(inp, kw.column)
-        return cwast.StmtIf(cond, stmts_t, stmts_f,  **_ExtractAnnotations(kw))
+        return cwast.StmtIf(cond, stmts_t, stmts_f,  x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
     elif kw.text in ("trylet", "trylet!"):
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
@@ -893,9 +899,9 @@ def _ParseStatement(inp: Lexer):
         name2 = inp.match_or_die(TK_KIND.ID)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
-                                 [cwast.Id(name.text), type, expr,  cwast.Id(name2.text),
+                                 [cwast.Id(name.text, x_srcloc=name.srcloc), type, expr,  cwast.Id(name2.text, x_srcloc=name2.srcloc),
                                   cwast.EphemeralList(stmts, colon=True)],
-                                 ** _ExtractAnnotations(kw))
+                                 **extra)
     elif kw.text == "tryset":
         lhs = _ParseExpr(inp)
         inp.match_or_die(TK_KIND.ASSIGN)
@@ -904,25 +910,25 @@ def _ParseStatement(inp: Lexer):
         name2 = inp.match_or_die(TK_KIND.ID)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
-                                 [lhs, expr,  cwast.Id(name2.text),
+                                 [lhs, expr,  cwast.Id(name2.text, x_srcloc=name2.srcloc),
                                   cwast.EphemeralList(stmts, colon=True)],
-                                 ** _ExtractAnnotations(kw))
+                                 **extra)
     elif kw.text == "set":
         lhs = _ParseExpr(inp)
         kind = inp.next()
         rhs = _ParseExpr(inp)
         if kind.kind is TK_KIND.ASSIGN:
-            return cwast.StmtAssignment(lhs, rhs, ** _ExtractAnnotations(kw))
+            return cwast.StmtAssignment(lhs, rhs, **extra)
         else:
             assert kind.kind is TK_KIND.COMPOUND_ASSIGN, f"{kind}"
             op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
-            return cwast.StmtCompoundAssignment(op, lhs, rhs, ** _ExtractAnnotations(kw))
+            return cwast.StmtCompoundAssignment(op, lhs, rhs, **extra)
     elif kw.text == "return":
         if inp.peek().srcloc.lineno == kw.srcloc.lineno:
             val = _ParseExpr(inp)
         else:
             val = cwast.ValVoid()
-        return cwast.StmtReturn(val, **_ExtractAnnotations(kw))
+        return cwast.StmtReturn(val, **extra)
     elif kw.text == "for":
         name = inp.match_or_die(TK_KIND.ID)
         inp.match_or_die(TK_KIND.ASSIGN)
@@ -933,23 +939,23 @@ def _ParseStatement(inp: Lexer):
         step = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
-                                 [cwast.Id(name.text), start, end, step,
+                                 [cwast.Id(name.text, x_srcloc=name.srcloc), start, end, step,
                                   cwast.EphemeralList(stmts, colon=True)],
-                                 **_ExtractAnnotations(kw))
+                                 **extra)
     elif kw.text == "break":
         label = ""
         if inp.peek().srcloc.lineno == kw.srcloc.lineno:
             label = _ParseOptionalLabel(inp)
-        return cwast.StmtBreak(label)
+        return cwast.StmtBreak(label, **extra)
     elif kw.text == "continue":
         label = ""
         if inp.peek().srcloc.lineno == kw.srcloc.lineno:
             label = _ParseOptionalLabel(inp)
-        return cwast.StmtContinue(label)
+        return cwast.StmtContinue(label, **extra)
     elif kw.text == "block":
         label = _ParseOptionalLabel(inp)
         stmts = _ParseStatementList(inp, kw.column)
-        return cwast.StmtBlock(label, stmts)
+        return cwast.StmtBlock(label, stmts, **extra)
     elif kw.text == "cond":
         return _ParseCondList(kw, inp)
     elif kw.text == "mfor":
@@ -961,10 +967,10 @@ def _ParseStatement(inp: Lexer):
         expr = _ParseExpr(inp)
         return cwast.StmtExpr(expr, **_ExtractAnnotations(kw))
     elif kw.text == "trap":
-        return cwast.StmtTrap()
+        return cwast.StmtTrap(**extra)
     elif kw.text == "defer":
         body = _ParseStatementList(inp, kw.column)
-        return cwast.StmtDefer(body)
+        return cwast.StmtDefer(body, **extra)
     else:
         assert False, f"{kw}"
 
@@ -1025,7 +1031,7 @@ def _ParseFieldList(inp: Lexer):
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
         out.append(cwast.RecField(name.text, type,
-                   **_ExtractAnnotations(name)))
+                   x_srcloc=tk.srcloc,**_ExtractAnnotations(name)))
     return out
 
 
@@ -1056,7 +1062,9 @@ def _ParseMacroParams(inp: Lexer):
         name = inp.match_or_die(TK_KIND.ID)
         kind = inp.match_or_die(TK_KIND.ID)
         out.append(cwast.MacroParam(
-            name.text, cwast.MACRO_PARAM_KIND[kind.text], **_ExtractAnnotations(name)))
+            name.text, cwast.MACRO_PARAM_KIND[kind.text],
+            x_srcloc=name.srcloc,
+            **_ExtractAnnotations(name)))
     return out
 
 
@@ -1076,6 +1084,7 @@ def _ParseMacroGenIds(inp: Lexer):
 def _ParseTopLevel(inp: Lexer):
     kw = inp.next()
     extra = _ExtractAnnotations(kw)
+    extra["x_srcloc"] = kw.srcloc
     alias = ""
     if kw.text == "import":
         name = inp.match_or_die(TK_KIND.ID)
@@ -1103,20 +1112,20 @@ def _ParseTopLevel(inp: Lexer):
     elif kw.text == "rec":
         name = inp.match_or_die(TK_KIND.ID)
         fields = _ParseFieldList(inp)
-        return cwast.DefRec(name.text, fields, **_ExtractAnnotations(kw))
+        return cwast.DefRec(name.text, fields, **extra)
     elif kw.text in ("global", "global!"):
         name = inp.match_or_die(TK_KIND.ID)
         if inp.match(TK_KIND.ASSIGN):
-            type = cwast.TypeAuto()
+            type = cwast.TypeAuto(x_srcloc=name.srcloc)
             init = _ParseExpr(inp)
         else:
             type = _ParseTypeExpr(inp)
             if inp.match(TK_KIND.ASSIGN):
                 init = _ParseExpr(inp)
             else:
-                init = cwast.ValAuto()
+                init = cwast.ValAuto(x_srcloc=name.srcloc)
         return cwast.DefGlobal(name.text, type, init, mut=kw.text.endswith("!"),
-                               **_ExtractAnnotations(kw))
+                               **extra)
     elif kw.text == "macro":
         if inp.peek().kind is TK_KIND.KW:
             name = inp.next()
@@ -1134,18 +1143,18 @@ def _ParseTopLevel(inp: Lexer):
         else:
             body = _ParseStatementList(inp, kw.column)
         return cwast.DefMacro(name.text, cwast.MACRO_PARAM_KIND[kind.text],
-                              params, gen_ids, body, **_ExtractAnnotations(kw))
+                              params, gen_ids, body, extra)
     elif kw.text == "type":
         name = inp.match_or_die(TK_KIND.ID)
         inp.match_or_die(TK_KIND.ASSIGN)
         type = _ParseTypeExpr(inp)
-        return cwast.DefType(name.text, type, **_ExtractAnnotations(kw))
+        return cwast.DefType(name.text, type, extra)
     elif kw.text == "enum":
         name = inp.match_or_die(TK_KIND.ID)
         base_type = inp.match_or_die(TK_KIND.KW)
         entries = _ParseEnumList(inp, kw.column)
         return cwast.DefEnum(name.text, cwast.KeywordToBaseTypeKind(base_type.text),
-                             entries, **_ExtractAnnotations(kw))
+                             entries, **extra)
     elif kw.text == "static_assert":
         cond = _ParseExpr(inp)
         return cwast.StmtStaticAssert(cond, "", **_ExtractAnnotations(kw))
@@ -1167,9 +1176,12 @@ def _ParseModule(inp: Lexer):
             pname = inp.match_or_die(TK_KIND.ID)
             pkind = inp.match_or_die(TK_KIND.ID)
             params.append(cwast.ModParam(pname.text,
-                                         cwast.MOD_PARAM_KIND[pkind.text], **_ExtractAnnotations(pname)))
+                                         cwast.MOD_PARAM_KIND[pkind.text],
+                                         x_srcloc=pname.srcloc,
+                                         **_ExtractAnnotations(pname)))
     inp.match_or_die(TK_KIND.COLON)
-    out = cwast.DefMod(params, [], **_ExtractAnnotations(kw))
+    out = cwast.DefMod(params, [], x_srcloc=kw.srcloc,
+                       **_ExtractAnnotations(kw))
 
     while True:
         if inp.peek().kind is TK_KIND.SPECIAL_EOF:

@@ -333,11 +333,11 @@ def _RenderRecursivelyToIR(node, out, indent: int):
         out.append([""])
 
 
-def PrettyPrint(mod: cwast.DefMod):
+def PrettyPrint(mod: cwast.DefMod, outp):
     out = [[""]]
     _RenderRecursivelyToIR(mod, out, 0)
     for a in out:
-        print("".join(a))
+        print("".join(a), file=outp)
 
 
 ############################################################

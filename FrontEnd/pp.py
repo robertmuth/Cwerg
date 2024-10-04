@@ -682,6 +682,7 @@ def _IsMacroWithBlock(node: cwast.MacroInvoke):
             return True
     return False
 
+
 def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     """Handles Stmt Macros"""
     beg = ts.EmitStmtBeg(node.name)
@@ -927,25 +928,26 @@ class Stack:
 class Sink:
     """TBD"""
 
-    def __init__(self, indent_amount=4):
+    def __init__(self,  outp, indent_amount=4):
         self._indent_amount = indent_amount
         self._indent = 0
         self._col = 0
+        self._outp = outp
 
     def CurrenColumn(self):
         return self._col
 
     def newline(self):
-        print()
+        print(file=self._outp)
         self._col = 0
 
     def emit_token(self, token):
         if self._col == 0:
             ws = " " * (self._indent_amount * self._indent)
             # ws = f"{len(ws):02}" + ws[2:]
-            print(ws, end="")
+            print(ws, end="", file=self._outp)
             self._col = len(ws)
-        print(token, end="")
+        print(token, end="", file=self._outp)
         self._col += len(token)
 
     def emit_space(self):
@@ -1053,49 +1055,45 @@ def FormatTokenStream(tokens, stack: Stack, sink: Sink):
         # assert stack._stack[0][0] == "module", stack._stack[0][1] == TK.BEG
 
 
+def PrettyPrint(mod: cwast.DefMod, outp):
+    cwast.CheckAST(mod, set(), pre_symbolize=True)
+    # we first produce an output token stream from the AST
+    ts = TS()
+    EmitTokensModule(ts, mod)
+    tokens = list(ts.tokens())
+    if 0:
+        indent = 0
+        for tk in tokens:
+            if tk.kind in (TK.COLON_END, TK.STMT_END):
+                indent -= 2
+
+            print(" " * indent, tk)
+
+            if tk.kind in (TK.COLON_BEG, TK.STMT_BEG):
+                indent += 2
+
+    # reverse once because popping of the end of a list is more efficient
+    tokens.reverse()
+    # and now format the stream
+    FormatTokenStream(tokens, Stack(), Sink(outp))
+
+
 ############################################################
 #
 ############################################################
 if __name__ == "__main__":
-    import argparse
+    import sys
 
-    from FrontEnd import parse_sexpr
+    from FrontEnd import parse
 
-    def process_file(inp):
-        mod = parse_sexpr.ReadModFromStream(inp, "stdin")
-        cwast.AnnotateRoleForMacroInvoke(mod)
-        AddMissingParens(mod)
-        cwast.CheckAST(mod, set(), pre_symbolize=True)
-        # we first produce an output token stream from the AST
-        ts = TS()
-        EmitTokensModule(ts, mod)
-        tokens = list(ts.tokens())
-        if 0:
-            indent = 0
-            for tk in tokens:
-                if tk.kind in (TK.COLON_END, TK.STMT_END):
-                    indent -= 2
-
-                print(" " * indent, tk)
-
-                if tk.kind in (TK.COLON_BEG, TK.STMT_BEG):
-                    indent += 2
-
-        # reverse once because popping of the end of a list is more efficient
-        tokens.reverse()
-        # and now format the stream
-        FormatTokenStream(tokens, Stack(), Sink())
+    def process_file(inp, outp):
+        mod = parse.ReadModFromStream(inp, "stdin")
+        # cwast.AnnotateRoleForMacroInvoke(mod)
+        # AddMissingParens(mod)
+        PrettyPrint(mod, sys.stdout)
 
     def main():
-        parser = argparse.ArgumentParser(description='pretty_printer')
-        parser.add_argument('files', metavar='F', type=str, nargs='+',
-                            help='an input source file')
-        args = parser.parse_args()
-
         logging.basicConfig(level=logging.WARN)
         logger.setLevel(logging.INFO)
-        for a in args.files:
-            assert a.endswith(".cws")
-            with open(a, encoding="utf8") as inp:
-                process_file(inp)
+        process_file(sys.stdin, sys.stdout)
     main()
