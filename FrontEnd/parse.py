@@ -611,7 +611,7 @@ def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
             inp.match_or_die(TK_KIND.COMMA)
         first = False
         args.append(_ParseExpr(inp))
-    return cwast.ExprCall(callee, args, **_ExtractAnnotations(tk))
+    return cwast.ExprCall(callee, args, x_srcloc=callee.x_srcloc, **_ExtractAnnotations(tk))
 
 
 def _ParseArrayInit(inp: Lexer) -> Any:
@@ -667,7 +667,7 @@ def _PParseIndex(inp: Lexer, array, tk: TK, _precedence) -> Any:
     index = _ParseExpr(inp)
     inp.match_or_die(TK_KIND.SQUARE_CLOSED)
     # TODO: handle unchecked
-    return cwast.ExprIndex(array, index, **_ExtractAnnotations(tk))
+    return cwast.ExprIndex(array, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
 
 
 def _PParseDeref(_inp: Lexer, pointer, _tk: TK, _precedence) -> Any:
@@ -824,7 +824,7 @@ def _ParseStatementMacro(kw: TK, inp: Lexer):
             if not inp.match(TK_KIND.COMMA):
                 break
         stmts = _ParseStatementList(inp, kw.column)
-        args.append(cwast.EphemeralList(stmts, colon=True))
+        args.append(cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc))
     return cwast.MacroInvoke(kw.text, args, x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
 
 
@@ -900,7 +900,7 @@ def _ParseStatement(inp: Lexer):
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
                                  [cwast.Id(name.text, x_srcloc=name.srcloc), type, expr,  cwast.Id(name2.text, x_srcloc=name2.srcloc),
-                                  cwast.EphemeralList(stmts, colon=True)],
+                                  cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
                                  **extra)
     elif kw.text == "tryset":
         lhs = _ParseExpr(inp)
@@ -911,7 +911,7 @@ def _ParseStatement(inp: Lexer):
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
                                  [lhs, expr,  cwast.Id(name2.text, x_srcloc=name2.srcloc),
-                                  cwast.EphemeralList(stmts, colon=True)],
+                                  cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
                                  **extra)
     elif kw.text == "set":
         lhs = _ParseExpr(inp)
@@ -940,7 +940,7 @@ def _ParseStatement(inp: Lexer):
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
                                  [cwast.Id(name.text, x_srcloc=name.srcloc), start, end, step,
-                                  cwast.EphemeralList(stmts, colon=True)],
+                                  cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
                                  **extra)
     elif kw.text == "break":
         label = ""
@@ -1031,7 +1031,7 @@ def _ParseFieldList(inp: Lexer):
         name = inp.match_or_die(TK_KIND.ID)
         type = _ParseTypeExpr(inp)
         out.append(cwast.RecField(name.text, type,
-                   x_srcloc=tk.srcloc,**_ExtractAnnotations(name)))
+                   x_srcloc=tk.srcloc, **_ExtractAnnotations(name)))
     return out
 
 
@@ -1148,7 +1148,7 @@ def _ParseTopLevel(inp: Lexer):
         name = inp.match_or_die(TK_KIND.ID)
         inp.match_or_die(TK_KIND.ASSIGN)
         type = _ParseTypeExpr(inp)
-        return cwast.DefType(name.text, type, extra)
+        return cwast.DefType(name.text, type, **extra)
     elif kw.text == "enum":
         name = inp.match_or_die(TK_KIND.ID)
         base_type = inp.match_or_die(TK_KIND.KW)

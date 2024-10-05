@@ -585,7 +585,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprWrap):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        assert ct.is_wrapped()
+        assert ct.is_wrapped(), f"Expected wrapped type in {node} {node.x_srcloc}"
         _TypifyNodeRecursively(
             node.expr, tc, ct.underlying_wrapped_type(), ctx)
         return AnnotateNodeType(node, ct)

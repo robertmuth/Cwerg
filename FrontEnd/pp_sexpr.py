@@ -250,7 +250,7 @@ def _RenderAttr(node, out, indent, before_paren: bool):
         if isinstance(val, bool):
             out[-1].append(f"@{field} ")
         else:
-            assert False, f"{field}: [{val}]"
+            assert False, f"in node {node} unknown attribute [{field}]: [{val}]"
             out.append(f"@{field} {val} ")
 
 
