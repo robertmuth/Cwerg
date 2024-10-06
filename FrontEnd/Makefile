@@ -5,8 +5,8 @@ QEMU :=
 TEST_SOURCES := $(wildcard TestData/*.cws)
 TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cws), $(wildcard TestData/*.cws))
 
-LANG_TESTS := $(wildcard LangTest/*_test.cws)
-LANG_SOURCES := $(wildcard LangTest/*.cws)
+LANG_TESTS := $(wildcard LangTest/*_test.cw)
+LANG_SOURCES := $(wildcard LangTest/*.cw)
 
 LIB_TESTS := $(wildcard Lib/*_test.cw)
 LIB_SOURCES :=  $(wildcard Lib/*.cw)
@@ -20,15 +20,15 @@ TEST_TESTS := \
     TestData/nqueens.cws
 
 TESTS_A32 := \
-    LangTest/consts_test.cws \
-	LangTest/array_test.cws \
-    LangTest/cast_test.cws \
-    LangTest/defer_test.cws \
-    LangTest/enum_test.cws \
-    LangTest/expr_test.cws \
-	LangTest/linked_list_test.cws \
-	LangTest/sieve_test.cws \
-    LangTest/types_test.cws \
+    LangTest/consts_test.cw \
+	LangTest/array_test.cw \
+    LangTest/cast_test.cw \
+    LangTest/defer_test.cw \
+    LangTest/enum_test.cw \
+    LangTest/expr_test.cw \
+	LangTest/linked_list_test.cw \
+	LangTest/sieve_test.cw \
+    LangTest/types_test.cw \
     TestData/fibonacci.cws \
 	TestData/fizzbuzz.cws \
 	TestData/nqueens.cws \
@@ -84,8 +84,8 @@ STD_LIB_WITH_ARGV_A64 = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../S
 STD_LIB_WITH_ARGV_A32 = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
 # test language
-tests_x64: $(LANG_TESTS:%.cws=$(DIR)/%.x64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.x64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.x64.exe)
-tests_a64: $(LANG_TESTS:%.cws=$(DIR)/%.a64.exe) $(LIB_TESTS:%.cws=$(DIR)/%.a64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.a64.exe)
+tests_x64: $(LANG_TESTS:%.cw=$(DIR)/%.x64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.x64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.x64.exe)
+tests_a64: $(LANG_TESTS:%.cw=$(DIR)/%.a64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.a64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.a64.exe)
 tests_a32: $(TESTS_A32:%.cws=$(DIR)/%.a32.exe)
 
 
