@@ -228,6 +228,6 @@ check_conv:
 	done
 
 reformat:
-	for f in Lib/*.cw ; do \
+	for f in */*.cw ; do \
 		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
 	done
