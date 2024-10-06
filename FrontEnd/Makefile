@@ -2,7 +2,7 @@
 DIR := build
 QEMU :=
 
-TEST_SOURCES := $(wildcard TestData/*.cws)
+TEST_SOURCES := $(wildcard TestData/*.cw)
 TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cws), $(wildcard TestData/*.cws))
 
 LANG_TESTS := $(wildcard LangTest/*_test.cw)
