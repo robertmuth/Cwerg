@@ -107,8 +107,7 @@ def NodeNeedsParen(node, parent, field: str):
 
 
 def AddMissingParens(node):
-    """Eliminate Array to Slice casts. """
-
+    """Add Missing Parenthesis to help with translation to concrete syntax. """
     def replacer(node, parent, field: str):
         if NodeNeedsParen(node, parent, field):
             return cwast.ExprParen(node, x_srcloc=node.x_srcloc, x_type=node.x_type)
