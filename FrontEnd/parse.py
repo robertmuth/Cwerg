@@ -747,7 +747,8 @@ def _ParseTypeExpr(inp: Lexer):
     extra = _ExtractAnnotations(tk)
     extra["x_srcloc"] = tk.srcloc
     if tk.kind is TK_KIND.ID:
-        assert not tk.text.startswith("$")
+        if tk.text.startswith("$"):
+            return cwast.MacroId(tk.text, **extra)
         return cwast.Id(tk.text, **extra)
     elif tk.kind is TK_KIND.KW:
         if tk.text == cwast.TypeAuto.ALIAS:
@@ -1030,7 +1031,8 @@ def _ParseCondList(kw: TK, inp: Lexer):
         case = inp.match_or_die(TK_KIND.KW, "case")
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, case.column)
-        cases.append(cwast.Case(cond, stmts, x_srcloc=cond.x_srcloc, **_ExtractAnnotations(case)))
+        cases.append(cwast.Case(
+            cond, stmts, x_srcloc=cond.x_srcloc, **_ExtractAnnotations(case)))
     return cwast.StmtCond(cases, x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
 
 
