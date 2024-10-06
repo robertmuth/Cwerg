@@ -56,7 +56,7 @@ tests_py: \
     tests_a32 \
     misc_test_x64 \
     misc_test_a64 \
-    # tests_concrete_py \
+    # tests_concrete_py
 	@echo "PASSED $@"
 
 tests_parse_py: $(ALL_SOURCES:%.cws=$(DIR)/%.cw.parse)

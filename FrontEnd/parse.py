@@ -938,7 +938,7 @@ def _ParseStatement(inp: Lexer):
         if inp.peek().srcloc.lineno == kw.srcloc.lineno:
             val = _ParseExpr(inp)
         else:
-            val = cwast.ValVoid(x_srcloc=inp.peek().srcloc)
+            val = cwast.ValVoid(kw.srcloc)
         return cwast.StmtReturn(val, **extra)
     elif kw.text == "for":
         name = inp.match_or_die(TK_KIND.ID)
