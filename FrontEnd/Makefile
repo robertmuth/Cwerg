@@ -8,9 +8,9 @@ TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cws), $(wildca
 LANG_TESTS := $(wildcard LangTest/*_test.cws)
 LANG_SOURCES := $(wildcard LangTest/*.cws)
 
-LIB_TESTS := $(wildcard Lib/*_test.cws)
-LIB_SOURCES :=  $(wildcard Lib/*.cws)
-LIB_SOURCES_NO_GENERIC := $(filter-out Lib/builtin.cws $(wildcard Lib/*gen.cws), $(wildcard Lib/*.cws))
+LIB_TESTS := $(wildcard Lib/*_test.cw)
+LIB_SOURCES :=  $(wildcard Lib/*.cw)
+LIB_SOURCES_NO_GENERIC := $(filter-out Lib/builtin.cws $(wildcard Lib/*gen.cw), $(wildcard Lib/*.cw))
 
 TEST_TESTS := \
 	TestData/binary_tree_test.cws \
@@ -33,12 +33,12 @@ TESTS_A32 := \
 	TestData/fizzbuzz.cws \
 	TestData/nqueens.cws \
     TestData/hello_world.cws \
-    Lib/bitstream_test.cws \
-    Lib/bytestream_test.cws \
-    Lib/checksum_test.cws \
-    Lib/huffman_test.cws \
-    Lib/string_test.cws \
-    Lib/trig_test.cws
+    Lib/bitstream_test.cw \
+    Lib/bytestream_test.cw \
+    Lib/checksum_test.cw \
+    Lib/huffman_test.cw \
+    Lib/string_test.cw \
+    Lib/trig_test.cw
 
 ALL_SOURCES := $(LANG_SOURCES) $(TEST_SOURCES) $(LIB_SOURCES)
 ALL_SOURCES_NO_GENERIC := $(LANG_SOURCES) $(TEST_SOURCES_NO_GENERIC) $(LIB_SOURCES_NO_GENERIC)
