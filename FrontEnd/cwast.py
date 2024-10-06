@@ -739,7 +739,7 @@ X_FIELDS = {
 
 
 def NODE_NAME(node):
-    if node.ALIAS is not None:
+    if node.ALIAS:
         return "[" + node.ALIAS + "]"
     return "[" + node.__class__.__name__ + "]"
 

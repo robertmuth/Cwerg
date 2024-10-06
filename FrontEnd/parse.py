@@ -540,7 +540,7 @@ def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
 
 
 def _PParseChar(_inp: Lexer, tk: TK, _precedence) -> Any:
-    return cwast.ValNum(tk.text)
+    return cwast.ValNum(tk.text, x_srcloc=tk.srcloc)
 
 
 def _PParsePrefix(inp: Lexer, tk: TK, precedence) -> Any:
