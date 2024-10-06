@@ -938,7 +938,7 @@ def _ParseStatement(inp: Lexer):
         if inp.peek().srcloc.lineno == kw.srcloc.lineno:
             val = _ParseExpr(inp)
         else:
-            val = cwast.ValVoid()
+            val = cwast.ValVoid(x_srcloc=inp.peek().srcloc)
         return cwast.StmtReturn(val, **extra)
     elif kw.text == "for":
         name = inp.match_or_die(TK_KIND.ID)
@@ -1063,7 +1063,7 @@ def _ParseEnumList(inp: Lexer, outer_indent):
             break
         name = inp.match_or_die(TK_KIND.ID)
         val = _ParseExpr(inp)
-        out.append(cwast.EnumVal(name.text, val, **_ExtractAnnotations(name)))
+        out.append(cwast.EnumVal(name.text, val, x_srcloc=tk.srcloc,**_ExtractAnnotations(name)))
     return out
 
 
