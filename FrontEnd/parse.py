@@ -1173,7 +1173,7 @@ def _ParseTopLevel(inp: Lexer):
                              entries, **extra)
     elif kw.text == "static_assert":
         cond = _ParseExpr(inp)
-        return cwast.StmtStaticAssert(cond, "", **_ExtractAnnotations(kw))
+        return cwast.StmtStaticAssert(cond, "", **extra)
     else:
         assert False, f"unexpected topelevel [{kw}]"
 

@@ -84,7 +84,7 @@ STD_LIB_WITH_ARGV_A64 = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../S
 STD_LIB_WITH_ARGV_A32 = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
 # test language
-tests_x64: $(LANG_TESTS:%.cws=$(DIR)/%.x64.exe) $(LIB_TESTS:%.cws=$(DIR)/%.x64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.x64.exe)
+tests_x64: $(LANG_TESTS:%.cws=$(DIR)/%.x64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.x64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.x64.exe)
 tests_a64: $(LANG_TESTS:%.cws=$(DIR)/%.a64.exe) $(LIB_TESTS:%.cws=$(DIR)/%.a64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.a64.exe)
 tests_a32: $(TESTS_A32:%.cws=$(DIR)/%.a32.exe)
 
@@ -140,7 +140,19 @@ $(DIR)/%.x64.exe: %.cws
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
+$(DIR)/%.x64.exe: %.cw
+	@echo "[lang $@]"
+	$(PYPY) ./emit_ir.py $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../CodeGenX64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
 $(DIR)/%.a64.exe: %.cws
+	@echo "[lang $@]"
+	$(PYPY) ./emit_ir.py $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
+
+$(DIR)/%.a64.exe: %.cw
 	@echo "[lang $@]"
 	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../CodeGenA64/codegen.py -mode binary - $@ > $@.out
@@ -152,7 +164,11 @@ $(DIR)/%.a32.exe: %.cws
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
-
+$(DIR)/%.a32.exe: %.cw
+	@echo "[lang $@]"
+	$(PYPY) ./emit_ir.py -shake_tree -arch a32 $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../CodeGenA32/codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@
 ## Compile only Tests
 
 $(DIR)/%.compile.x64.exe: TestData/%.cws
@@ -227,7 +243,24 @@ update_concrete_syntax:
 	  $(PYPY) ./pp.py  $$f > ConcreteSyntax/$$f ; \
 	done
 
-reformat_lib:
+# concrete
+$(DIR)/%.concrete: %.cws
+	@echo "[concrete $@]"
+	$(PYPY) ./pp.py $< > $@
+	$(PYPY) ./parse.py < $@ > $@.pp
+	diff -bB $@.pp $<
+
+check_conv_sexpr:
+	for f in */*.cws ; do \
+		echo $$f ; ./cws2cw.py < $$f | ./cw2cws.py > xxx; diff -w  $$f xxx ; \
+	done
+
+check_conv:
+	for f in */*.cw ; do \
+		echo $$f ; ./cw2cws.py < $$f | ./cws2cw.py > xxx; diff -w  $$f xxx ; \
+	done
+
+reformat:
 	for f in Lib/*.cw ; do \
-		echo $$f ; ./pp_sexpr.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
+		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
 	done
