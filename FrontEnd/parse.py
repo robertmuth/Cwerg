@@ -77,6 +77,8 @@ _KEYWORDS_SIMPLE = [
     #
     "pinc",
     "pdec",
+    #
+    "abs",
 ] + [nt.ALIAS for nt in [cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta,
                          cwast.ExprUnionTag, cwast.ExprIs,
                          #
@@ -427,6 +429,7 @@ def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
 
 
 _FUN_LIKE = {
+    "abs": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.ABS, x, **kw), "E"),
     cwast.ExprLen.ALIAS: (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),
@@ -1063,7 +1066,8 @@ def _ParseEnumList(inp: Lexer, outer_indent):
             break
         name = inp.match_or_die(TK_KIND.ID)
         val = _ParseExpr(inp)
-        out.append(cwast.EnumVal(name.text, val, x_srcloc=tk.srcloc,**_ExtractAnnotations(name)))
+        out.append(cwast.EnumVal(name.text, val,
+                   x_srcloc=tk.srcloc, **_ExtractAnnotations(name)))
     return out
 
 
