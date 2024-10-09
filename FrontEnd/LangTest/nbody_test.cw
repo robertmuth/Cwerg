@@ -3,10 +3,11 @@ module:
 
 import test
 import fmt
-
-global  PI = 3.141592653589793_r64
+import fmt_real
+global PI = 3.141592653589793_r64
 global SOLAR_MASS = PI * PI * 4.0
 global DAYS_PER_YEAR = 365.24_r64
+global EPSILON = 5e-13_r64
 
 rec Body:
     x r64
@@ -21,10 +22,10 @@ rec Body:
 fun BodyCommon(x r64, y r64, z r64,
                vx r64, vy r64, vz r64, m r64) Body:
     return Body{x, y, z,
-     vx * DAYS_PER_YEAR,
-     vy * DAYS_PER_YEAR,
-     vz * DAYS_PER_YEAR,
-     m * SOLAR_MASS}
+                vx * DAYS_PER_YEAR,
+                vy * DAYS_PER_YEAR,
+                vz * DAYS_PER_YEAR,
+                m * SOLAR_MASS}
 
 
 fun BodyJupiter() Body:
@@ -68,7 +69,7 @@ fun BodyNeptune() Body:
                 5.15138902046611451e-05)
 
 fun BodySun() Body:
-    return BodyCommon(0,0,0, 0,0,0, 1)
+    return BodyCommon(0,0,0, 0,0,0, 1.0)
 
 fun UpdateOffsetMomentum(bodies ^![5]Body) void:
     let! px = 0.0_r64
@@ -100,9 +101,9 @@ fun Advance(bodies ^![5]Body, dt r64) void:
             set bi^.vy -= dy * mj
             set bi^.vz -= dz * mj
             let mi = bi^.mass * mag
-            set bj^.vx -= dx * mi
-            set bj^.vy -= dy * mi
-            set bj^.vz -= dz * mi
+            set bj^.vx += dx * mi
+            set bj^.vy += dy * mi
+            set bj^.vz += dz * mi
     for i = 0, len(bodies^), 1:
         let bi = &!bodies^[i]
         set bi^.x += dt * bi^.vx
@@ -142,12 +143,18 @@ fun main(argc s32, argv ^^u8) s32:
     -- DIM! = 5040
     -- test::AssertEq#(COUNT, 5040_u32)
     if true:
+        -- sanity test with one iteration
         do Advance(&!bodies, DT)
         let e = Energy(&bodies)
-        fmt::print#("\n")
+        -- fmt::print#(wrap_as(e, fmt::r64_hex), " ", e, "\n")
+        test::AssertApproxEq#(e, -0.16907495402506745_r64, EPSILON)
     else:
         for i = 0, NUM_ITER, 1:
             do Advance(&!bodies, DT)
+        let e = Energy(&bodies)
+        -- fmt::print#(wrap_as(e, fmt::r64_hex), " ", e,  "\n")
+        test::AssertApproxEq#(e, -0.1690859889909308_r64, EPSILON)
+
 
     test::Success#()
     return 0
