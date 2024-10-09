@@ -363,8 +363,14 @@ def _ExtractAnnotations(tk: TK) -> dict[str, str]:
     # print ("@@@@",tk)
     comments = []
     for c in tk.comments:
-        assert c.text.startswith("-- "), f"expected comment got: [{c.text}]"
-        comments.append(c.text[3:-1])
+        com = c.text
+        if com == "--\n":
+            com = "\n"
+        elif com.startswith("-- "):
+            com = com[3:-1]
+        else:
+            cwast.CompilerError(tk.srcloc, f"expected comment got: [{com}]")
+        comments.append(com)
     if comments:
         if len(comments) == 1 and '"' not in comments[0]:
             out["doc"] = f'"{comments[0]}"'

@@ -26,6 +26,9 @@ fun div_by_power_of_10(val r64, pow10 s32) r64:
     else:
         return val * num_real::powers_of_ten[-pow10]
 
+-- find power of 10 to divide val by so that ideally the result
+-- is an integer between target_range_lo and target_range_hi
+-- val must be positive
 fun find_t(val r64) s32:
     let biased_exp = num_real::r64_raw_exponent(val) - num_real::r64_raw_exponent_bias
     let! t s32 = -as(log10_2_to_52 - as(biased_exp, r64) / log2_10, s32)
@@ -131,6 +134,7 @@ pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
         return 0
     if precision + 1 > len(buffer):
         return 0
+
     if num_real::r64_raw_exponent(val) == num_real::r64_raw_exponent_subnormal:
         if num_real::r64_raw_mantissa(val) == 0:
             set buffer[0] = '0'
@@ -143,7 +147,9 @@ pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
         return 0
     if num_real::r64_raw_exponent(val) == num_real::r64_raw_exponent_nan:
         return FmtNan(val, out)
-    let! t s32 = find_t(val)
+    -- find power of 10 to divide val by so that ideally the result
+    -- is an integer between target_range_lo and target_range_hi
+    let! t s32 = find_t(abs(val))
     -- fmt::print#("@@@ ", t, "\n")
     let x = div_by_power_of_10(val, t)
     let! mantissa = num_real::r64_raw_mantissa(x) + 1 << 52

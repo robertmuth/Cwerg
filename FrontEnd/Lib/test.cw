@@ -1,9 +1,9 @@
 -- test helpers macros
--- 
+--
 -- This intentionally does not import the fmt module to keep
 -- the footprint/dependencies small.
 -- (We may change our mind on this.)
--- 
+--
 module:
 
 import os
@@ -16,7 +16,7 @@ pub macro Success# STMT()[]:
     SysPrint#("OK\n")
 
 -- The two scalar arguments must be the same
--- 
+--
 -- Both must have derivable types as we use `auto`
 pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
@@ -30,7 +30,7 @@ pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
         trap
 
 -- The two scalar arguments must be the same
--- 
+--
 -- Both must have derivable types as we use `auto`
 pub macro AssertNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
@@ -68,7 +68,7 @@ pub macro AssertApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EXPR)[
         $e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
-    if $e_val < $a_val - $epsilon || $e_val > $a_val + $epsilon:
+    if abs($e_val - $a_val) >= $epsilon:
         SysPrint#("AssertApproxEq failed: ")
         SysPrint#(stringify($e_expr))
         SysPrint#(" VS ")
@@ -108,7 +108,7 @@ pub macro AssertSliceApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EX
         AssertApproxEq#(
                 pinc(front($e_val), $i)^, pinc(front($a_val), $i)^, $epsilon)
 
--- 
+--
 pub macro AssertTrue# STMT_LIST($e_expr EXPR)[]:
     if $e_expr:
     else:
@@ -117,7 +117,7 @@ pub macro AssertTrue# STMT_LIST($e_expr EXPR)[]:
         SysPrint#("\n")
         trap
 
--- 
+--
 pub macro AssertFalse# STMT_LIST($e_expr EXPR)[]:
     if $e_expr:
         SysPrint#("AssertFalse failed: ")
@@ -125,7 +125,7 @@ pub macro AssertFalse# STMT_LIST($e_expr EXPR)[]:
         SysPrint#("\n")
         trap
 
--- 
+--
 pub macro AssertUnreachable# STMT_LIST()[]:
     SysPrint#("AssertUnreachable\n")
     trap
