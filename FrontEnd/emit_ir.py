@@ -417,8 +417,12 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
     elif kind is cwast.UNARY_EXPR_KIND.NOT:
         print(f"{TAB}xor {res}:{res_type} = 0x{ff:x} {op}")
     elif kind is cwast.UNARY_EXPR_KIND.ABS:
+        # TODO: special case unsigned
         print(f"{TAB}sub {res}:{res_type} = 0 {op}")
         print(f"{TAB}cmplt {res} = {res} {op} {op} {0}")
+    elif kind is cwast.UNARY_EXPR_KIND.SQRT:
+        # TODO: check float type
+        print(f"{TAB}sqrt {res}:{res_type} = {op}")
     else:
         assert False, f"unsupported expression {kind}"
 

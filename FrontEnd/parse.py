@@ -79,6 +79,7 @@ _KEYWORDS_SIMPLE = [
     "pdec",
     #
     "abs",
+    "sqrt",
 ] + [nt.ALIAS for nt in [cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta,
                          cwast.ExprUnionTag, cwast.ExprIs,
                          #
@@ -430,6 +431,8 @@ def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
 
 _FUN_LIKE = {
     "abs": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.ABS, x, **kw), "E"),
+    "sqrt": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.SQRT, x, **kw), "E"),
+
     cwast.ExprLen.ALIAS: (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),

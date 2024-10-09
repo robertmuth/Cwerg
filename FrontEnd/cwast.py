@@ -301,12 +301,14 @@ class UNARY_EXPR_KIND(enum.Enum):
     NOT = 1
     MINUS = 2
     ABS = 3
+    SQRT = 4
 
 
 UNARY_EXPR_SHORTCUT = {
     "!": UNARY_EXPR_KIND.NOT,
     "~": UNARY_EXPR_KIND.MINUS,
     "abs": UNARY_EXPR_KIND.ABS,
+    "sqrt": UNARY_EXPR_KIND.SQRT,
 }
 
 UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
