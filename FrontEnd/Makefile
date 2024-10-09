@@ -19,6 +19,7 @@ TEST_TESTS := \
     TestData/hello_world.cw \
     TestData/nqueens.cw
 
+# excludes 64bit tests
 TESTS_A32 := \
     LangTest/consts_test.cw \
 	LangTest/array_test.cw \
