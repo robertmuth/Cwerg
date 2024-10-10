@@ -38,8 +38,7 @@ TESTS_A32 := \
     Lib/bytestream_test.cw \
     Lib/checksum_test.cw \
     Lib/huffman_test.cw \
-    Lib/string_test.cw \
-    Lib/trig_test.cw
+    Lib/string_test.cw
 
 ALL_SOURCES := $(LANG_SOURCES) $(TEST_SOURCES) $(LIB_SOURCES)
 ALL_SOURCES_NO_GENERIC := $(LANG_SOURCES) $(TEST_SOURCES_NO_GENERIC) $(LIB_SOURCES_NO_GENERIC)
