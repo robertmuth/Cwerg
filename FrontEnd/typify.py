@@ -238,6 +238,33 @@ def _GetExprStmtType(root: cwast.ExprStmt) -> cwast.CanonType:
     assert result is not None
     return result
 
+def _TypifyDefGlobalOrDefVar(node, tc: type_corpus.TypeCorpus,
+                             ctx: _TypeContext):
+    initial = node.initial_or_undef_or_auto
+    if isinstance(node.type_or_auto, cwast.TypeAuto):
+        assert not isinstance(initial, cwast.ValUndef)
+        ct = _TypifyNodeRecursively(
+            node.initial_or_undef_or_auto, tc, cwast.NO_TYPE, ctx)
+        _TypifyNodeRecursively(node.type_or_auto, tc, ct, ctx)
+    else:
+        ct = _TypifyNodeRecursively(
+            node.type_or_auto, tc, cwast.NO_TYPE, ctx)
+        if not isinstance(initial, cwast.ValUndef):
+            ct = _TypifyNodeRecursively(initial, tc, ct, ctx)
+
+
+def _TypifyTypeFunOrDefFun(node, tc: type_corpus.TypeCorpus,
+                           ctx: _TypeContext):
+    params = []
+    for p in node.params:
+        assert isinstance(p, cwast.FunParam)
+        _TypifyNodeRecursively(p.type, tc, cwast.NO_TYPE, ctx)
+        params.append(p.type.x_type)
+    result = _TypifyNodeRecursively(
+        node.result, tc, cwast.NO_TYPE, ctx)
+    ct = tc.insert_fun_type(params, result)
+    return AnnotateNodeType(node, ct)
+
 
 def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                            target_type: cwast.CanonType,
@@ -283,16 +310,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         return cwast.NO_TYPE
     elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
-        params = []
-        for p in node.params:
-            _TypifyNodeRecursively(p, tc, cwast.NO_TYPE, ctx)
-            params.append(p.type.x_type)
-        result = _TypifyNodeRecursively(
-            node.result, tc, cwast.NO_TYPE, ctx)
-        ct = tc.insert_fun_type(params, result)
-        AnnotateNodeType(node, ct)
-        # recursing into the body is done explicitly
-        return ct
+        return _TypifyTypeFunOrDefFun(node, tc, ctx)
     elif isinstance(node, cwast.TypeVec):
         # note this is the only place where we need a comptime eval for types
         t = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
@@ -428,17 +446,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         AnnotateNodeField(node, field_node)
         return AnnotateNodeType(node, field_node.x_type)
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-        initial = node.initial_or_undef_or_auto
-        if isinstance(node.type_or_auto, cwast.TypeAuto):
-            assert not isinstance(initial, cwast.ValUndef)
-            ct = _TypifyNodeRecursively(
-                node.initial_or_undef_or_auto, tc, cwast.NO_TYPE, ctx)
-            _TypifyNodeRecursively(node.type_or_auto, tc, ct, ctx)
-        else:
-            ct = _TypifyNodeRecursively(
-                node.type_or_auto, tc, cwast.NO_TYPE, ctx)
-            if not isinstance(initial, cwast.ValUndef):
-                ct = _TypifyNodeRecursively(initial, tc, ct, ctx)
+        _TypifyDefGlobalOrDefVar(node, tc, ctx)
         return cwast.NO_TYPE
     elif isinstance(node, cwast.ExprDeref):
         ct = _TypifyNodeRecursively(node.expr, tc, cwast.NO_TYPE, ctx)
