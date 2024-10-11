@@ -238,6 +238,7 @@ def _GetExprStmtType(root: cwast.ExprStmt) -> cwast.CanonType:
     assert result is not None
     return result
 
+
 def _TypifyDefGlobalOrDefVar(node, tc: type_corpus.TypeCorpus,
                              ctx: _TypeContext):
     initial = node.initial_or_undef_or_auto
@@ -266,6 +267,43 @@ def _TypifyTypeFunOrDefFun(node, tc: type_corpus.TypeCorpus,
     return AnnotateNodeType(node, ct)
 
 
+def _TypifyTopLevelNodeRecursively(node, tc: type_corpus.TypeCorpus,
+                                   ctx: _TypeContext) -> cwast.CanonType:
+    if isinstance(node, cwast.DefFun):
+        return _TypifyTypeFunOrDefFun(node, tc, ctx)
+    elif isinstance(node, cwast.DefEnum):
+        ct = tc.insert_enum_type(f"{ctx.mod_name}/{node.name}", node)
+        for f in node.items:
+            _TypifyNodeRecursively(f, tc, ct, ctx)
+        return AnnotateNodeType(node, ct)
+    elif isinstance(node, cwast.DefRec):
+        # allow recursive definitions referring back to rec inside
+        # the fields
+        ct = tc.insert_rec_type(f"{ctx.mod_name}/{node.name}", node)
+        AnnotateNodeType(node, ct)
+        for f in node.fields:
+            _TypifyNodeRecursively(f, tc, cwast.NO_TYPE, ctx)
+        # we delay this until after fields have been typified this is necessary
+        # because of recursive types
+        tc.finalize_rec_type(ct)
+        return cwast.NO_TYPE
+    elif isinstance(node, cwast.DefGlobal):
+        _TypifyDefGlobalOrDefVar(node, tc, ctx)
+        return cwast.NO_TYPE
+    elif isinstance(node, (cwast.StmtStaticAssert)):
+        _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
+        return cwast.NO_TYPE
+    elif isinstance(node, cwast.Import):
+        pass
+    elif isinstance(node, cwast.DefType):
+        ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
+        if node.wrapped:
+            ct = tc.insert_wrapped_type(ct)
+        return AnnotateNodeType(node, ct)
+    else:
+        assert False, f"{node}"
+
+
 def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                            target_type: cwast.CanonType,
                            ctx: _TypeContext) -> cwast.CanonType:
@@ -278,6 +316,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     if ct is not cwast.NO_TYPE:
         # has been typified already
         return ct
+
+    if cwast.NF.TOP_LEVEL in node.FLAGS or isinstance(node, cwast.Import):
+        return _TypifyTopLevelNodeRecursively(node, tc, ctx)
 
     if isinstance(node, cwast.TypeAuto):
         assert target_type is not cwast.NO_TYPE
@@ -309,7 +350,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.FunParam):
         _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         return cwast.NO_TYPE
-    elif isinstance(node, (cwast.TypeFun, cwast.DefFun)):
+    elif isinstance(node, cwast.TypeFun):
         return _TypifyTypeFunOrDefFun(node, tc, ctx)
     elif isinstance(node, cwast.TypeVec):
         # note this is the only place where we need a comptime eval for types
@@ -321,17 +362,6 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.RecField):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.DefRec):
-        # allow recursive definitions referring back to rec inside
-        # the fields
-        ct = tc.insert_rec_type(f"{ctx.mod_name}/{node.name}", node)
-        AnnotateNodeType(node, ct)
-        for f in node.fields:
-            _TypifyNodeRecursively(f, tc, cwast.NO_TYPE, ctx)
-        # we delay this until after fields have been typified this is necessary
-        # because of recursive types
-        tc.finalize_rec_type(ct)
-        return ct
     elif isinstance(node, cwast.EnumVal):
         if isinstance(node.value_or_auto, cwast.ValAuto):
             AnnotateNodeType(node.value_or_auto, target_type)
@@ -339,16 +369,6 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             ct = _TypifyNodeRecursively(
                 node.value_or_auto, tc, target_type, ctx)
         return AnnotateNodeType(node, target_type)
-    elif isinstance(node, cwast.DefEnum):
-        ct = tc.insert_enum_type(f"{ctx.mod_name}/{node.name}", node)
-        for f in node.items:
-            _TypifyNodeRecursively(f, tc, ct, ctx)
-        return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.DefType):
-        ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        if node.wrapped:
-            ct = tc.insert_wrapped_type(ct)
-        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.TypeUnion):
         # this is tricky code to ensure that children of TypeSum
         # are not TypeSum themselves on the canonical side
@@ -445,7 +465,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                 node.x_srcloc, f"unknown record field {node.field}")
         AnnotateNodeField(node, field_node)
         return AnnotateNodeType(node, field_node.x_type)
-    elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
+    elif isinstance(node, cwast.DefVar):
         _TypifyDefGlobalOrDefVar(node, tc, ctx)
         return cwast.NO_TYPE
     elif isinstance(node, cwast.ExprDeref):
@@ -593,7 +613,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprWrap):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        assert ct.is_wrapped(), f"Expected wrapped type in {node} {node.x_srcloc}"
+        assert ct.is_wrapped(), f"Expected wrapped type in {
+            node} {node.x_srcloc}"
         _TypifyNodeRecursively(
             node.expr, tc, ct.underlying_wrapped_type(), ctx)
         return AnnotateNodeType(node, ct)
@@ -632,11 +653,6 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(node.expr, tc, cwast.NO_TYPE, ctx)
         assert ct.is_tagged_union()
         return AnnotateNodeType(node, tc.insert_union_type(ct.children, True))
-    elif isinstance(node, (cwast.StmtStaticAssert)):
-        _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
-        return cwast.NO_TYPE
-    elif isinstance(node, cwast.Import):
-        return cwast.NO_TYPE
     elif isinstance(node, cwast.StmtDefer):
         for c in node.body:
             _TypifyNodeRecursively(c, tc, target_type, ctx)
