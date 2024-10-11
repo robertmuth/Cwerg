@@ -2,6 +2,21 @@
 
 """Type annotator for Cwerg AST
 
+This will run after
+
+* macro eliminiation,
+* generic module specialization
+* symbolization
+
+and before
+
+* partial evaluation
+
+However, some adhoc partial evaluation is necessary here as
+well to determine vec dimensions.
+
+We cannot run the fulll partial evaluation earlier because
+it depends on type information.
 """
 
 import logging
@@ -210,6 +225,7 @@ def UpdateNodeType(node, ct: cwast.CanonType):
 
 def AnnotateNodeType(node, ct: cwast.CanonType):
     logger.info("TYPE of %s: %s", node, ct.name)
+    assert ct != cwast.NO_TYPE
     assert node.x_type is cwast.NO_TYPE, f"duplicate annotation for {node}"
     return UpdateNodeType(node, ct)
 
@@ -277,17 +293,6 @@ def _TypifyTopLevelNodeRecursively(node, tc: type_corpus.TypeCorpus,
         for f in node.items:
             _TypifyNodeRecursively(f, tc, ct, ctx)
         return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.DefRec):
-        # allow recursive definitions referring back to rec inside
-        # the fields
-        ct = tc.insert_rec_type(f"{ctx.mod_name}/{node.name}", node)
-        AnnotateNodeType(node, ct)
-        for f in node.fields:
-            _TypifyNodeRecursively(f, tc, cwast.NO_TYPE, ctx)
-        # we delay this until after fields have been typified this is necessary
-        # because of recursive types
-        tc.finalize_rec_type(ct)
-        return cwast.NO_TYPE
     elif isinstance(node, cwast.DefType):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         if node.wrapped:
@@ -403,9 +408,6 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         _TypifyNodeRecursively(node.size, tc, uint_type, ctx)
         dim = _ComputeArrayLength(node.size, uint_type.base_type_kind)
         return AnnotateNodeType(node, tc.insert_array_type(dim, t))
-    elif isinstance(node, cwast.RecField):
-        ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.EnumVal):
         if isinstance(node.value_or_auto, cwast.ValAuto):
             AnnotateNodeType(node.value_or_auto, target_type)
@@ -1226,7 +1228,31 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
     * some x_value (only array dimention as they are related to types)
     * some x_symbol for polymorphic invocations
     """
+
     poly_map = _PolyMap(tc)
+    # make rec types known without fully processing the rec fields
+    # so that they can be used for recursive type definitions
+    # We stil need to process the fields which is done later below
+    for mod in mod_topo_order:
+        ctx = _TypeContext(mod.x_modname, poly_map)
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefRec):
+                ct = tc.insert_rec_type(f"{ctx.mod_name}/{node.name}", node)
+                AnnotateNodeType(node, ct)
+    #
+    for mod in mod_topo_order:
+        ctx = _TypeContext(mod.x_modname, poly_map)
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefRec):
+                ct = node.x_type
+                for f in node.fields:
+                    assert isinstance(f,  cwast.RecField)
+                    fct = _TypifyNodeRecursively(f.type, tc, cwast.NO_TYPE, ctx)
+                    AnnotateNodeType(f, fct)
+                # we delay this until after fields have been typified this is necessary
+                # because of recursive types
+                tc.finalize_rec_type(ct)
+    # deal with the top level stuff - not function bodies
     for mod in mod_topo_order:
         ctx = _TypeContext(mod.x_modname, poly_map)
         for node in mod.body_mod:
@@ -1235,13 +1261,13 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
             if isinstance(node, cwast.DefFun) and node.is_polymorphic():
                 assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
                 poly_map.Register(node)
-
+    # now typify function bodies
     for mod in mod_topo_order:
         ctx = _TypeContext(mod.x_modname, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 for c in node.body:
-                    _TypifyNodeRecursively(
+                    _TypifyUntypedNodeRecursively(
                         c, tc, node.result.x_type, ctx)
 
 
