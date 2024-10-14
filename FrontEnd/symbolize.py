@@ -258,9 +258,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
         scopes[-1][name] = node
         symtab.AddLocalSym(name, node)
 
-    if isinstance(node, cwast.DefVar):
-        record_local_sym(node)
-    elif isinstance(node, cwast.Id):
+    if isinstance(node, cwast.Id):
         _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
         return
 
@@ -290,6 +288,9 @@ def ResolveSymbolsInsideFunctionsRecursively(
                     symtab.DelSym(name)
                 scopes.pop(-1)
 
+
+    if isinstance(node, cwast.DefVar):
+        record_local_sym(node)
 
 def _CheckAddressCanBeTaken(lhs):
     if isinstance(lhs, cwast.Id):
@@ -333,7 +334,8 @@ def VerifyASTSymbolsRecursively(node):
             return
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
-            assert node.x_symbol is not None, f"unresolved symbol {node} {node.x_srcloc}"
+            assert node.x_symbol is not None, f"unresolved symbol {
+                node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
             assert not node.name.startswith("$"), f"{node.name}"
@@ -382,7 +384,8 @@ def _SetTargetFieldRecursively(node):
                     node.x_target = p
                     break
             else:
-                assert False, f"{node} --- {[p.__class__.__name__ for p in parents]}"
+                assert False, f"{
+                    node} --- {[p.__class__.__name__ for p in parents]}"
     cwast.VisitAstRecursivelyWithAllParents(node, [], visitor)
 
 
@@ -538,10 +541,10 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
         if isinstance(a, cwast.DefFun):
             assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
             translation[p.name] = cwast.Id(
-                "GENERIC::" + a.name, x_symbol=a, x_srcloc=p.x_srcloc)
+                "GENERIC::" + a.name, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.DefRec, cwast.DefType)):
             translation[p.name] = cwast.Id(
-                "GENERIC::" + a.name, x_symbol=a, x_srcloc=p.x_srcloc)
+                "GENERIC::" + a.name, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
             translation[p.name] = a
         else:
@@ -583,7 +586,7 @@ def main(argv):
     for ast in mod_topo_order:
         cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
-        pp_sexpr.PrettyPrint(ast)
+        pp_sexpr.PrettyPrint(ast, sys.stdout)
 
 
 if __name__ == "__main__":
