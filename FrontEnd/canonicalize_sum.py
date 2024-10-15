@@ -2,9 +2,8 @@
 
 
 Protocol:
-* sum_to_struct_map = canonicalize_sum.MakeSumTypeReplacementMap(mod_topo_order)
+* sum_to_struct_map = MakeSumTypeReplacementMap(mod_topo_order)
 * for mod in mod_in_top_order:
-  - ReplaceExplicitSumCast(mod, sum_to_struct_map, tc)
   - ReplaceSums(mod, sum_to_struct_map)
 """
 
@@ -295,6 +294,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
     def replacer(node, _parent, _field):
 
         if isinstance(node, cwast.ExprUnionTag):
+            # get the tag field from the rec that now represents the union
             def_rec = node.expr.x_type
             assert def_rec.is_rec()
             assert len(def_rec.ast_node.fields) == 2
@@ -304,6 +304,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
                                    x_field=tag_field)
         elif isinstance(node, cwast.ExprUnionUntagged):
+            # get the payload field from the rec that now represents the union
             def_rec = node.expr.x_type
             assert def_rec.is_rec()
             assert len(def_rec.ast_node.fields) == 2
@@ -314,6 +315,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
                                    x_field=tag_field)
         if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:
             return None
+        # now deal with type/expression nodes whose type is changing
         def_rec: Optional[cwast.CanonType] = sum_to_struct_map.get(
             node.x_type)
         if def_rec is None:
@@ -321,7 +323,9 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
         if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
                              cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
                              cwast.FunParam, cwast.ExprCall, cwast.RecField,
-                             cwast.ExprField, cwast.FieldVal)):
+                             cwast.ExprField, cwast.FieldVal, cwast.IndexVal,
+                             cwast.ValVec, cwast.TypePtr, cwast.ExprPointer,
+                             cwast.ExprFront, cwast.ExprDeref)):
             typify.UpdateNodeType(node, def_rec)
             return None
         elif isinstance(node, cwast.TypeUnion):
@@ -351,10 +355,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
                 symbolize.AnnotateNodeSymbol(node, def_rec)
             typify.UpdateNodeType(node, def_rec)
             return None
-        elif isinstance(node, cwast.ExprPointer):
-            assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP
-            assert False
         else:
-            assert False, f"do not know how to convert sum node [{def_rec.name}]: {node} {node.x_srcloc}"
+            assert False, f"do not know how to convert sum node [{def_rec.name}]:\n {node} {node.x_srcloc}"
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)

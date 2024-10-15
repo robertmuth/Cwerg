@@ -461,7 +461,7 @@ def EliminateImplicitConversions(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
     def visitor(node, _):
         nonlocal tc, uint_type
 
-        if isinstance(node, cwast.FieldVal):
+        if isinstance(node, (cwast.FieldVal, cwast.IndexVal)):
             if not isinstance(node.value_or_undef, cwast.ValUndef):
                 if not IsSameTypeExceptMut(node.value_or_undef.x_type, node.x_type):
                     node.value_or_undef = _HandleImplicitConversion(

@@ -72,9 +72,9 @@ rec rec2:
 
 global global_rec1 = rec1{1_s8, 2_s8}
 
--- 
+--
 -- @pub (type sum11_t (union [bool u16]))
--- @pub (type sum12_t (union [type_ptr u16])) 
+-- @pub (type sum12_t (union [type_ptr u16]))
 fun test_tagged_union_basic() void:
     let! x Union3 = true
     let! y Union3 = undef
@@ -137,11 +137,19 @@ fun test_tagged_union_narrowto() void:
     test::AssertTrue#(narrow_as(x, bool))
     let! z = narrow_as(x, union(u8, bool))
 
+fun test_tagged_union_vec() void:
+    let array = [2]union(bool, u32, r32){true, 0_u32}
+    test::AssertTrue#(is(array[0], bool))
+    test::AssertTrue#(!is(array[0], u32))
+    test::AssertTrue#(!is(array[1], bool))
+    test::AssertTrue#(is(array[1], u32))
+
 fun main(argc s32, argv ^^u8) s32:
     do test_tagged_union_basic()
     do test_tagged_union_void()
     do test_tagged_union_result()
     do test_tagged_union_parameter()
+    do test_tagged_union_narrowto()
     do test_tagged_union_narrowto()
     -- test end
     test::Success#()
