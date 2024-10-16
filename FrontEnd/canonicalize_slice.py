@@ -38,10 +38,10 @@ def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
     length_field = cwast.RecField(
         SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc, x_type=uint_ct)
     #
-    name = f"tuple_{slice_type.name}"
+    name = f"xtuple_{slice_type.name}"
     rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
                        x_srcloc=srcloc)
-    ct = tc.insert_rec_type(f"{name}", rec, original_type=slice_type)
+    ct = tc.insert_rec_type(f"{name}", rec)
     typify.AnnotateNodeType(rec, ct)
     tc.finalize_rec_type(ct)
     return ct
@@ -77,19 +77,26 @@ def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SLICE_TO_ST
     # Go through the type table in topological order and generate the map.
     # Note; we add new types to the map while iterating over it so we take a snapshot first
     out: SLICE_TO_STRUCT_MAP = {}
+
+    def add_replacement(old_ct: cwast.CanonType, new_ct: cwast.CanonType):
+        out[old_ct] = new_ct
+        assert old_ct.replacement_type is None
+        old_ct.replacement_type = new_ct
+        new_ct.original_type = old_ct
+
     for ct in tc.topo_order[:]:
         if ct.is_span():
-            out[ct] = _MakeSliceReplacementStruct(ct, tc)
+            add_replacement(ct, _MakeSliceReplacementStruct(ct, tc))
         elif ct.is_fun() and _DoesFunSigContainSlices(ct, out):
-            out[ct] = _SliceRewriteFunSig(ct, tc, out)
+            add_replacement(ct, _SliceRewriteFunSig(ct, tc, out))
         elif ct.is_pointer():
             replacement = out.get(ct.underlying_pointer_type())
             if replacement is not None:
-                out[ct] = tc.insert_ptr_type(ct.mut, replacement, original_type=ct)
+                add_replacement(ct, tc.insert_ptr_type(ct.mut, replacement))
         elif ct.is_array():
             replacement = out.get(ct.underlying_array_type())
             if replacement is not None:
-                out[ct] = tc.insert_array_type(ct.array_dim(), replacement, ct)
+                add_replacement(ct,  tc.insert_array_type(ct.array_dim(), replacement))
 
     return out
 
@@ -143,7 +150,7 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
 
 def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
     """
-    Replaces all slice<X> expressions with rec named tuple_slice<X>
+    Replaces all slice<X> expressions with rec named xtuple_span<X>
     (cast to slices are eliminated by ReplaceExplicitSliceCast)
     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
 

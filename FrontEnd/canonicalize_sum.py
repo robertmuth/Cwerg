@@ -46,11 +46,10 @@ def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
     union_field = cwast.RecField(
         SUM_FIELD_UNION, union_type, x_srcloc=srcloc, x_type=union_ct)
     #
-    name = f"tuple_{sum_type.name}"
+    name = f"xtuple_{sum_type.name}"
     rec = cwast.DefRec(name, [tag_field, union_field],
                        pub=True, x_srcloc=srcloc)
-    rec_ct: cwast.CanonType = tc.insert_rec_type(
-        f"{name}", rec, original_type=sum_type)
+    rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
     typify.AnnotateNodeType(rec, rec_ct)
     tc.finalize_rec_type(rec_ct)
 
@@ -73,7 +72,7 @@ def _SumRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
     result = sum_to_struct_map.get(
         fun_sig.result_type(), fun_sig.result_type())
     params = [sum_to_struct_map.get(p, p) for p in fun_sig.parameter_types()]
-    return tc.insert_fun_type(params, result, original_type=fun_sig)
+    return tc.insert_fun_type(params, result)
 
 
 def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT_MAP:
@@ -86,28 +85,36 @@ def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUC
     # Go through the type table in topological order and generate the map.
     # Note; we add new types to the map while iterating over it so we take a snapshot first
     out: SUM_TO_STRUCT_MAP = {}
+
+    def add_replacement(old_ct: cwast.CanonType, new_ct: cwast.CanonType):
+        out[old_ct] = new_ct
+        # assert old_ct.replacement_type is None
+        old_ct.replacement_type = new_ct
+        new_ct.original_type = old_ct
+
     for ct in tc.topo_order[:]:
+        if ct.replacement_type is not None:
+            continue
         if ct.is_tagged_union():
-            out[ct] = _MakeSumReplacementStruct(ct, tc)
+            add_replacement(ct, _MakeSumReplacementStruct(ct, tc))
         elif ct.is_fun() and _DoesFunSigContainSums(ct, out):
-            out[ct] = _SumRewriteFunSig(ct, tc, out)
+            add_replacement(ct, _SumRewriteFunSig(ct, tc, out))
         elif ct.is_pointer():
             replacement = out.get(ct.underlying_pointer_type())
             if replacement is not None:
-                out[ct] = tc.insert_ptr_type(
-                    ct.mut, replacement, original_type=ct)
+                add_replacement(ct, tc.insert_ptr_type(ct.mut, replacement))
         elif ct.is_array():
             replacement = out.get(ct.underlying_array_type())
             if replacement is not None:
-                out[ct] = tc.insert_array_type(
-                    ct.array_dim(), replacement, original_type=ct)
+                add_replacement(ct, tc.insert_array_type(
+                    ct.array_dim(), replacement))
         elif ct.is_span():
             replacement = out.get(ct.underlying_span_type())
             # we probably should run this after slices have been eliminated so we
             # we do not have to deal with this case
             if replacement is not None:
-                out[ct] = tc.insert_slice_type(
-                    ct.mut, replacement, original_type=ct)
+                add_replacement(ct, tc.insert_slice_type(
+                    ct.mut, replacement))
     return out
 
 
@@ -267,11 +274,13 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
 
         else:
             sl = node.x_srcloc
-            body  = []
+            body = []
             expr = cwast.ExprStmt(body, x_srcloc=sl, x_type=node.x_type)
-            node.expr = canonicalize.MakeNodeCopyableWithoutRiskOfSideEffects(node.expr, body, id_gen, False)
-            assert canonicalize.IsNodeCopyableWithoutRiskOfSideEffects(node.expr)
-            #assert isinstance(node.expr, cwast.Id), f"NYI: {node.expr}"
+            node.expr = canonicalize.MakeNodeCopyableWithoutRiskOfSideEffects(
+                node.expr, body, id_gen, False)
+            assert canonicalize.IsNodeCopyableWithoutRiskOfSideEffects(
+                node.expr)
+            # assert isinstance(node.expr, cwast.Id), f"NYI: {node.expr}"
             cond = cwast.ExprIs(cwast.CloneNodeRecursively(node.expr, {}, {}), cwast.TypeAuto(
                 x_srcloc=sl, x_type=node.x_type), x_srcloc=sl)
             if node.x_type.is_union():
@@ -279,7 +288,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
             else:
                 _ConvertTaggedNarrowToUntaggedNarrow(node, tc)
             body.append(cwast.StmtIf(cond, [],
-                                 [(cwast.StmtTrap(x_srcloc=sl))], x_srcloc=sl))
+                                     [(cwast.StmtTrap(x_srcloc=sl))], x_srcloc=sl))
             body.append(cwast.StmtReturn(node, x_srcloc=sl, x_target=expr))
             return expr
         return None
@@ -356,6 +365,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
             typify.UpdateNodeType(node, def_rec)
             return None
         else:
-            assert False, f"do not know how to convert sum node [{def_rec.name}]:\n {node} {node.x_srcloc}"
+            assert False, f"do not know how to convert sum node [{
+                def_rec.name}]:\n {node} {node.x_srcloc}"
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
