@@ -75,6 +75,6 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(jp::NumJsonObjectsNeeded(test3), 11_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test4), 9_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test5), 17_u32)
-
+    test::AssertEq#(jp::NumJsonObjectsNeeded(test6), 85_u32)
     test::Success#()
     return 0
