@@ -860,6 +860,7 @@ class CanonType:
     # we may rewrite spans and unions into recs
     # this provides a way to access the original type (mostly its typeid)
     original_type: Optional["CanonType"] = None
+    replacement_type: Optional["CanonType"] = None
     # The fields below are filled during finalization
     alignment: int = -1
     size: int = -1
@@ -1029,7 +1030,7 @@ class CanonType:
             self._set_union_kind()
 
     def __str__(self):
-        return self.name
+        return self.name + "☠" if self.replacement_type else " "
 
 
 NO_TYPE = CanonType(None, "@invali@d")
