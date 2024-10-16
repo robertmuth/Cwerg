@@ -63,7 +63,7 @@ def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
     result = slice_to_struct_map.get(
         fun_sig.result_type(), fun_sig.result_type())
     params = [slice_to_struct_map.get(p, p) for p in fun_sig.parameter_types()]
-    return tc.insert_fun_type(params, result, fun_sig)
+    return tc.insert_fun_type(params, result)
 
 
 def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SLICE_TO_STRUCT_MAP:

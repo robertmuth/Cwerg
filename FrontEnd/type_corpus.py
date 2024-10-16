@@ -189,7 +189,7 @@ def is_mutable_array(node) -> bool:
 
 
 def is_mutable_array_or_slice(node) -> bool:
-    """Mutable refers to the elements of the arrray/slice"""
+    """Mutable refers to the elements of the array/span"""
     ct: cwast.CanonType = node.x_type
     if ct.is_span():
         return ct.mut
@@ -468,26 +468,26 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(
             cwast.TypeBase, cwast.BaseTypeKindToKeyword(kind), base_type_kind=kind))
 
-    def insert_ptr_type(self, mut: bool, ct: cwast.CanonType, original_type=None) -> cwast.CanonType:
+    def insert_ptr_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         if mut:
             name = f"ptr_mut<{ct.name}>"
         else:
             name = f"ptr<{ct.name}>"
         return self._insert(cwast.CanonType(cwast.TypePtr, name, mut=mut, children=[ct],
-                                            original_type=original_type))
+                                            ))
 
-    def insert_slice_type(self, mut: bool, ct: cwast.CanonType, original_type=None) -> cwast.CanonType:
+    def insert_slice_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         if mut:
-            name = f"slice_mut<{ct.name}>"
+            name = f"span_mut<{ct.name}>"
         else:
-            name = f"slice<{ct.name}>"
+            name = f"span<{ct.name}>"
         return self._insert(cwast.CanonType(cwast.TypeSpan, name, mut=mut, children=[ct],
-                                            original_type=original_type))
+                                            ))
 
-    def insert_array_type(self, dim: int, ct: cwast.CanonType, original_type=None) -> cwast.CanonType:
+    def insert_array_type(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"array<{ct.name},{dim}>"
         return self._insert(cwast.CanonType(cwast.TypeVec, name, dim=dim,
-                                            children=[ct], original_type=original_type))
+                                            children=[ct]))
 
     def lookup_rec_field(self, ct: cwast.CanonType, field_name) -> Optional[cwast.RecField]:
         """Oddball since the node returned is NOT inside corpus
@@ -501,11 +501,11 @@ class TypeCorpus:
                 return x
         return None
 
-    def insert_rec_type(self, name: str, ast_node: cwast.DefRec, original_type=None) -> cwast.CanonType:
+    def insert_rec_type(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"
-        return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node, original_type=original_type), finalize=False)
+        return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node), finalize=False)
 
     def insert_enum_type(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
@@ -530,12 +530,11 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=sorted_children, untagged=untagged))
 
     def insert_fun_type(self, params: list[cwast.CanonType],
-                        result: cwast.CanonType, original_type=None) -> cwast.CanonType:
+                        result: cwast.CanonType) -> cwast.CanonType:
         x = [p.name for p in params]
         x.append(result.name)
         name = f"fun<{','.join(x)}>"
-        return self._insert(cwast.CanonType(cwast.TypeFun, name, children=params + [result],
-                                            original_type=original_type))
+        return self._insert(cwast.CanonType(cwast.TypeFun, name, children=params + [result]))
 
     def insert_wrapped_type(self, ct: cwast.CanonType) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
