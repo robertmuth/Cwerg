@@ -1030,7 +1030,8 @@ class CanonType:
             self._set_union_kind()
 
     def __str__(self):
-        return self.name + "☠" if self.replacement_type else " "
+        return self.name + ("☠" if self.replacement_type else " ")
+
 
 
 NO_TYPE = CanonType(None, "@invali@d")
