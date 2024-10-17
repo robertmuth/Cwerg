@@ -7,7 +7,7 @@ from typing import Any, Optional
 from FrontEnd import identifier
 from FrontEnd import cwast
 from FrontEnd import type_corpus
-from FrontEnd import canonicalize_slice
+from FrontEnd import eval
 from FrontEnd import typify
 
 ############################################################
@@ -469,9 +469,24 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
     fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=srcloc, x_target=fun))
 
 
+def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
+                          uint_type: cwast.CanonType) -> cwast.ValSpan:
+    p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_span_type())
+    value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
+        node) or isinstance(node, (cwast.ValVec, cwast.ValString)) else None
+    pointer = cwast.ExprFront(
+        node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=value)
+    width = node.x_type.array_dim()
+    length = cwast.ValNum(f"{width}", x_value=width,
+                          x_srcloc=node.x_srcloc, x_type=uint_type)
+    if value is not None:
+        value = eval.VAL_GLOBALSLICE
+    return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=value)
+
+
 def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
     if orig_node.x_type.is_array() and target_type.is_span():
-        return canonicalize_slice.MakeValSliceFromArray(
+        return MakeValSliceFromArray(
             orig_node, target_type, tc, uint_type)
     elif target_type.is_union():
         sum_type = cwast.TypeAuto(

@@ -16,8 +16,8 @@ from typing import Union, Any, Optional
 from Util.parse import BytesToEscapedString
 
 from FrontEnd import canonicalize_large_args
-from FrontEnd import canonicalize_slice
-from FrontEnd import canonicalize_sum
+from FrontEnd import canonicalize_span
+from FrontEnd import canonicalize_union
 from FrontEnd import canonicalize
 from FrontEnd import symbolize
 from FrontEnd import type_corpus
@@ -1121,13 +1121,13 @@ def main() -> int:
             canonicalize.ReplaceConstExpr(fun)
             canonicalize.EliminateImplicitConversions(fun, tc)
             canonicalize.EliminateComparisonConversionsForTaggedUnions(fun)
-            canonicalize_slice.ReplaceExplicitSliceCast(fun, tc)
+            canonicalize_span.ReplaceExplicitSliceCast(fun, tc)
 
             if not isinstance(fun, cwast.DefFun):
                 continue
             id_gen = GetIdGen(fun)
             # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
-            canonicalize_sum.SimplifyTaggedExprNarrow(fun, tc, id_gen)
+            canonicalize_union.SimplifyTaggedExprNarrow(fun, tc, id_gen)
             canonicalize.FunReplaceExprIs(fun, tc)
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
@@ -1167,16 +1167,16 @@ def main() -> int:
     eliminated_nodes.add(cwast.Expr3)
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
-    canonicalize_slice.MakeAndRegisterSliceTypeReplacements(mod_gen, tc)
+    canonicalize_span.MakeAndRegisterSliceTypeReplacements(mod_gen, tc)
     for mod in ([mod_gen] + mod_topo_order):
-        canonicalize_slice.ReplaceSliceTypes(mod)
+        canonicalize_span.ReplaceSliceTypes(mod)
     eliminated_nodes.add(cwast.ExprLen)
     eliminated_nodes.add(cwast.ValSpan)
     eliminated_nodes.add(cwast.TypeSpan)
 
-    canonicalize_sum.MakeAndRegisterSumTypeReplacements(mod_gen, tc)
+    canonicalize_union.MakeAndRegisterSumTypeReplacements(mod_gen, tc)
     for mod in ([mod_gen] + mod_topo_order):
-        canonicalize_sum.ReplaceSums(mod)
+        canonicalize_union.ReplaceSums(mod)
 
     eliminated_nodes.add(cwast.ExprUnionTag)
     eliminated_nodes.add(cwast.ExprUnionUntagged)
