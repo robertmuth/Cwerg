@@ -1167,12 +1167,11 @@ def main() -> int:
     eliminated_nodes.add(cwast.Expr3)
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
-    slice_to_struct_map = canonicalize_slice.MakeSliceTypeReplacementMap(
-        mod_topo_order, tc)
-    mod_gen.body_mod += [
-        v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
+    canonicalize_slice.MakeAndRegisterSliceTypeReplacements(mod_topo_order, tc)
+    # mod_gen.body_mod += [
+    #    v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
     for mod in mod_topo_order:
-        canonicalize_slice.ReplaceSlice(mod, slice_to_struct_map)
+        canonicalize_slice.ReplaceSliceTypes(mod)
     eliminated_nodes.add(cwast.ExprLen)
     eliminated_nodes.add(cwast.ValSpan)
     eliminated_nodes.add(cwast.TypeSpan)

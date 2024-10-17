@@ -47,26 +47,27 @@ def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
     return ct
 
 
-def _DoesFunSigContainSlices(fun_sig: cwast.CanonType,
-                             slice_to_struct_map: SLICE_TO_STRUCT_MAP) -> bool:
-    if fun_sig.result_type() in slice_to_struct_map:
+def _DoesFunSigContainSlices(fun_sig: cwast.CanonType) -> bool:
+    if fun_sig.result_type().replacement_type is not None:
         return True
     for p in fun_sig.parameter_types():
-        if p in slice_to_struct_map:
+        if p.replacement_type is not None:
             return True
     return False
 
 
-def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                        slice_to_struct_map: SLICE_TO_STRUCT_MAP) -> cwast.CanonType:
+def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus) -> cwast.CanonType:
+    def new_or_old(ct: cwast.CanonType) -> cwast.CanonType:
+        if ct.replacement_type:
+            return ct.replacement_type
+        return ct
     assert fun_sig.is_fun()
-    result = slice_to_struct_map.get(
-        fun_sig.result_type(), fun_sig.result_type())
-    params = [slice_to_struct_map.get(p, p) for p in fun_sig.parameter_types()]
+    result = new_or_old(fun_sig.result_type())
+    params = [new_or_old(p) for p in fun_sig.parameter_types()]
     return tc.insert_fun_type(params, result)
 
 
-def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SLICE_TO_STRUCT_MAP:
+def MakeAndRegisterSliceTypeReplacements(mods, tc: type_corpus.TypeCorpus):
     """For all types directly involving slices, produce a replacement type
     and return the map from one the other
 
@@ -74,31 +75,31 @@ def MakeSliceTypeReplacementMap(mods, tc: type_corpus.TypeCorpus) -> SLICE_TO_ST
     TODO: what about sum types?
     """
 
-    # Go through the type table in topological order and generate the map.
-    # Note; we add new types to the map while iterating over it so we take a snapshot first
-    out: SLICE_TO_STRUCT_MAP = {}
-
+    # Go through the type table in topological order.
+    # Note: we add new types to the map while iterating over it so we take
+    # a snapshot first
     def add_replacement(old_ct: cwast.CanonType, new_ct: cwast.CanonType):
-        out[old_ct] = new_ct
         assert old_ct.replacement_type is None
         old_ct.replacement_type = new_ct
         new_ct.original_type = old_ct
 
     for ct in tc.topo_order[:]:
+        if ct.replacement_type:
+            continue
         if ct.is_span():
+            # maybe add the DefRec to the module with generated code
             add_replacement(ct, _MakeSliceReplacementStruct(ct, tc))
-        elif ct.is_fun() and _DoesFunSigContainSlices(ct, out):
-            add_replacement(ct, _SliceRewriteFunSig(ct, tc, out))
+        elif ct.is_fun() and _DoesFunSigContainSlices(ct):
+            add_replacement(ct, _SliceRewriteFunSig(ct, tc))
         elif ct.is_pointer():
-            replacement = out.get(ct.underlying_pointer_type())
+            replacement = ct.underlying_pointer_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.insert_ptr_type(ct.mut, replacement))
         elif ct.is_array():
-            replacement = out.get(ct.underlying_array_type())
+            replacement = ct.underlying_array_type().replacement_type
             if replacement is not None:
-                add_replacement(ct,  tc.insert_array_type(ct.array_dim(), replacement))
-
-    return out
+                add_replacement(ct,  tc.insert_array_type(
+                    ct.array_dim(), replacement))
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
@@ -148,7 +149,7 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
+def ReplaceSliceTypes(node):
     """
     Replaces all slice<X> expressions with rec named xtuple_span<X>
     (cast to slices are eliminated by ReplaceExplicitSliceCast)
@@ -182,8 +183,7 @@ def ReplaceSlice(node, slice_to_struct_map: SLICE_TO_STRUCT_MAP):
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
 
-            def_rec: Optional[cwast.CanonType] = slice_to_struct_map.get(
-                node.x_type)
+            def_rec = node.x_type.replacement_type
             if def_rec is not None:
                 if isinstance(node, (cwast.TypeAuto, cwast.DefType, cwast.TypePtr,
                                      cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
