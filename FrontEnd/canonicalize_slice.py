@@ -5,6 +5,7 @@
 
 from typing import Optional
 
+from FrontEnd import canonicalize
 from FrontEnd import cwast
 from FrontEnd import type_corpus
 from FrontEnd import typify
@@ -47,26 +48,6 @@ def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
     return ct
 
 
-def _DoesFunSigContainSlices(fun_sig: cwast.CanonType) -> bool:
-    if fun_sig.result_type().replacement_type is not None:
-        return True
-    for p in fun_sig.parameter_types():
-        if p.replacement_type is not None:
-            return True
-    return False
-
-
-def _SliceRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus) -> cwast.CanonType:
-    def new_or_old(ct: cwast.CanonType) -> cwast.CanonType:
-        if ct.replacement_type:
-            return ct.replacement_type
-        return ct
-    assert fun_sig.is_fun()
-    result = new_or_old(fun_sig.result_type())
-    params = [new_or_old(p) for p in fun_sig.parameter_types()]
-    return tc.insert_fun_type(params, result)
-
-
 def MakeAndRegisterSliceTypeReplacements(mods, tc: type_corpus.TypeCorpus):
     """For all types directly involving slices, produce a replacement type
     and return the map from one the other
@@ -89,8 +70,10 @@ def MakeAndRegisterSliceTypeReplacements(mods, tc: type_corpus.TypeCorpus):
         if ct.is_span():
             # maybe add the DefRec to the module with generated code
             add_replacement(ct, _MakeSliceReplacementStruct(ct, tc))
-        elif ct.is_fun() and _DoesFunSigContainSlices(ct):
-            add_replacement(ct, _SliceRewriteFunSig(ct, tc))
+        elif ct.is_fun():
+            new_ct = canonicalize.MaybeMakeFunSigReplacementType(ct, tc)
+            if new_ct:
+                add_replacement(ct, new_ct)
         elif ct.is_pointer():
             replacement = ct.underlying_pointer_type().replacement_type
             if replacement is not None:

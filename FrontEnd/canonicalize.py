@@ -1,7 +1,7 @@
 """Canonicalize Misc
 
 """
-from typing import Any
+from typing import Any, Optional
 
 
 from FrontEnd import identifier
@@ -12,7 +12,28 @@ from FrontEnd import canonicalize_slice
 ############################################################
 #
 ############################################################
+def _DoesFunSigNeedReplacementType(fun_sig: cwast.CanonType) -> bool:
+    if fun_sig.result_type().replacement_type is not None:
+        return True
+    for p in fun_sig.parameter_types():
+        if p.replacement_type is not None:
+            return True
+    return False
 
+def MaybeMakeFunSigReplacementType(fun_sig: cwast.CanonType,
+                                   tc: type_corpus.TypeCorpus) -> Optional[cwast.CanonType]:
+    if not _DoesFunSigNeedReplacementType(fun_sig):
+        return None
+
+    def new_or_old(ct: cwast.CanonType) -> cwast.CanonType:
+        if ct.replacement_type:
+            return ct.replacement_type
+        return ct
+
+    assert fun_sig.is_fun()
+    result = new_or_old(fun_sig.result_type())
+    params = [new_or_old(p) for p in fun_sig.parameter_types()]
+    return tc.insert_fun_type(params, result)
 
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None

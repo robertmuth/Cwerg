@@ -53,27 +53,7 @@ def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
     return rec_ct
 
 
-def _DoesFunSigContainSums(fun_sig: cwast.CanonType) -> bool:
-    if fun_sig.result_type().replacement_type is not None:
-        return True
-    for p in fun_sig.parameter_types():
-        if p.replacement_type is not None:
-            return True
-    return False
-
-
-def _SumRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus) -> cwast.CanonType:
-    def new_or_old(ct: cwast.CanonType) -> cwast.CanonType:
-        if ct.replacement_type:
-            return ct.replacement_type
-        return ct
-    assert fun_sig.is_fun()
-    result = new_or_old(fun_sig.result_type())
-    params = [new_or_old(p) for p in fun_sig.parameter_types()]
-    return tc.insert_fun_type(params, result)
-
-
-def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus):
+def MakeAndRegisterSumTypeReplacements(_mods, tc: type_corpus.TypeCorpus):
     """For all types directly involving tagged sums, produce a replacement type, a DefRec,
     and return the map from one the other.
 
@@ -93,8 +73,10 @@ def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus):
         if ct.is_tagged_union():
             # maybe add DefRec to mod for generated code
             add_replacement(ct, _MakeSumReplacementStruct(ct, tc))
-        elif ct.is_fun() and _DoesFunSigContainSums(ct):
-            add_replacement(ct, _SumRewriteFunSig(ct, tc))
+        elif ct.is_fun():
+            new_ct = canonicalize.MaybeMakeFunSigReplacementType(ct, tc)
+            if new_ct:
+                add_replacement(ct, new_ct)
         elif ct.is_pointer():
             replacement = ct.underlying_pointer_type().replacement_type
             if replacement is not None:
@@ -105,9 +87,10 @@ def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus):
                 add_replacement(ct, tc.insert_array_type(
                     ct.array_dim(), replacement))
         elif ct.is_span():
+            # This is now run this after slices have been eliminated so
+            # we do not have to deal with this case anymore
+            assert False
             replacement = ct.underlying_span_type().replacement_type
-            # we probably should run this after slices have been eliminated so we
-            # we do not have to deal with this case
             if replacement is not None:
                 add_replacement(ct, tc.insert_slice_type(
                     ct.mut, replacement))

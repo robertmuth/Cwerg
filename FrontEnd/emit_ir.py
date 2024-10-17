@@ -1174,7 +1174,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.ValSpan)
     eliminated_nodes.add(cwast.TypeSpan)
 
-    canonicalize_sum.MakeSumTypeReplacementMap(mod_topo_order, tc)
+    canonicalize_sum.MakeAndRegisterSumTypeReplacements(mod_topo_order, tc)
     for mod in mod_topo_order:
         canonicalize_sum.ReplaceSums(mod)
 
