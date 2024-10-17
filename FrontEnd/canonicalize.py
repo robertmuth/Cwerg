@@ -8,10 +8,13 @@ from FrontEnd import identifier
 from FrontEnd import cwast
 from FrontEnd import type_corpus
 from FrontEnd import canonicalize_slice
+from FrontEnd import typify
 
 ############################################################
 #
 ############################################################
+
+
 def _DoesFunSigNeedReplacementType(fun_sig: cwast.CanonType) -> bool:
     if fun_sig.result_type().replacement_type is not None:
         return True
@@ -19,6 +22,7 @@ def _DoesFunSigNeedReplacementType(fun_sig: cwast.CanonType) -> bool:
         if p.replacement_type is not None:
             return True
     return False
+
 
 def MaybeMakeFunSigReplacementType(fun_sig: cwast.CanonType,
                                    tc: type_corpus.TypeCorpus) -> Optional[cwast.CanonType]:
@@ -34,6 +38,20 @@ def MaybeMakeFunSigReplacementType(fun_sig: cwast.CanonType,
     result = new_or_old(fun_sig.result_type())
     params = [new_or_old(p) for p in fun_sig.parameter_types()]
     return tc.insert_fun_type(params, result)
+
+
+def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cwast.DefRec:
+    fields = []
+    for field_name, field_ct in fields_desc:
+        field_type = cwast.TypeAuto(x_srcloc=srcloc, x_type=field_ct)
+        fields.append(cwast.RecField(
+            field_name, field_type, x_srcloc=srcloc, x_type=field_ct))
+    rec = cwast.DefRec(name, fields, pub=True, x_srcloc=srcloc)
+    rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
+    typify.AnnotateNodeType(rec, rec_ct)
+    tc.finalize_rec_type(rec_ct)
+    return rec
+
 
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None

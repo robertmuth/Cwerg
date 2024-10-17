@@ -27,30 +27,13 @@ SUM_FIELD_UNION = "union"
 
 
 def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
-                              tc: type_corpus.TypeCorpus) -> cwast.CanonType:
+                              tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     assert not sum_type.untagged
-    srcloc = cwast.SRCLOC_GENERATED
-    #
-    tag_ct: cwast.CanonType = tc.get_base_canon_type(
-        cwast.BASE_TYPE_KIND.TYPEID)
-    tag_type = cwast.TypeBase(tag_ct.base_type_kind,
-                              x_srcloc=srcloc, x_type=tag_ct)
-    tag_field = cwast.RecField(
-        SUM_FIELD_TAG, tag_type, x_srcloc=srcloc, x_type=tag_ct)
-    #
-    union_ct = tc.insert_union_type(sum_type.union_member_types(), True)
-    union_type = cwast.TypeAuto(x_srcloc=srcloc, x_type=union_ct)
-    union_field = cwast.RecField(
-        SUM_FIELD_UNION, union_type, x_srcloc=srcloc, x_type=union_ct)
-    #
-    name = f"xtuple_{sum_type.name}"
-    rec = cwast.DefRec(name, [tag_field, union_field],
-                       pub=True, x_srcloc=srcloc)
-    rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
-    typify.AnnotateNodeType(rec, rec_ct)
-    tc.finalize_rec_type(rec_ct)
-
-    return rec_ct
+    fields = [
+        (SUM_FIELD_TAG, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.TYPEID)),
+        (SUM_FIELD_UNION, tc.insert_union_type(sum_type.union_member_types(), True))
+    ]
+    return canonicalize.MakeDefRec(f"xtuple_{sum_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
 def MakeAndRegisterSumTypeReplacements(_mods, tc: type_corpus.TypeCorpus):
@@ -72,7 +55,8 @@ def MakeAndRegisterSumTypeReplacements(_mods, tc: type_corpus.TypeCorpus):
             continue
         if ct.is_tagged_union():
             # maybe add DefRec to mod for generated code
-            add_replacement(ct, _MakeSumReplacementStruct(ct, tc))
+            rec = _MakeSumReplacementStruct(ct, tc)
+            add_replacement(ct, rec.x_type)
         elif ct.is_fun():
             new_ct = canonicalize.MaybeMakeFunSigReplacementType(ct, tc)
             if new_ct:

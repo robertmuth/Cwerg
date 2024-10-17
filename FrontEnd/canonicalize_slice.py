@@ -21,31 +21,14 @@ SLICE_FIELD_POINTER = "pointer"
 SLICE_FIELD_LENGTH = "length"
 
 
-SLICE_TO_STRUCT_MAP = dict[cwast.CanonType, cwast.CanonType]
-
-
 def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
-                                tc: type_corpus.TypeCorpus) -> cwast.CanonType:
-    srcloc = cwast.SRCLOC_GENERATED
-    #
-    ct = tc.insert_ptr_type(slice_type.mut, slice_type.underlying_span_type())
-    pointer_type = cwast.TypeAuto(x_type=ct, x_srcloc=srcloc)
-    pointer_field = cwast.RecField(
-        SLICE_FIELD_POINTER, pointer_type, x_srcloc=srcloc, x_type=ct)
-    #
-    uint_ct = tc.get_uint_canon_type()
-    length_type = cwast.TypeBase(
-        uint_ct.base_type_kind, x_srcloc=srcloc, x_type=uint_ct)
-    length_field = cwast.RecField(
-        SLICE_FIELD_LENGTH, length_type, x_srcloc=srcloc, x_type=uint_ct)
-    #
-    name = f"xtuple_{slice_type.name}"
-    rec = cwast.DefRec(name, [pointer_field, length_field], pub=True,
-                       x_srcloc=srcloc)
-    ct = tc.insert_rec_type(f"{name}", rec)
-    typify.AnnotateNodeType(rec, ct)
-    tc.finalize_rec_type(ct)
-    return ct
+                                tc: type_corpus.TypeCorpus) -> cwast.DefRec:
+    fields = [
+        (SLICE_FIELD_POINTER, tc.insert_ptr_type(
+            slice_type.mut, slice_type.underlying_span_type())),
+        (SLICE_FIELD_LENGTH,  tc.get_uint_canon_type())
+    ]
+    return canonicalize.MakeDefRec(f"xtuple_{slice_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
 def MakeAndRegisterSliceTypeReplacements(mods, tc: type_corpus.TypeCorpus):
@@ -69,7 +52,8 @@ def MakeAndRegisterSliceTypeReplacements(mods, tc: type_corpus.TypeCorpus):
             continue
         if ct.is_span():
             # maybe add the DefRec to the module with generated code
-            add_replacement(ct, _MakeSliceReplacementStruct(ct, tc))
+            rec = _MakeSliceReplacementStruct(ct, tc)
+            add_replacement(ct, rec.x_type)
         elif ct.is_fun():
             new_ct = canonicalize.MaybeMakeFunSigReplacementType(ct, tc)
             if new_ct:
