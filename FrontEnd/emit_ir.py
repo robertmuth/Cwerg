@@ -268,7 +268,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         EmitIRExprToMemory(node,  BaseOffset(base, 0), tc, id_gen)
         return BaseOffset(base, 0)
     else:
-        assert False, f"unsupported node for lvalue {node}"
+        assert False, f"unsupported node for lvalue {node} at {node.x_srcloc}"
 
 
 def _GetLValueAddress(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> str:
@@ -647,17 +647,10 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             _EmitCopy(dst, BaseOffset(src_base, 0),
                       ct.size, ct.alignment, id_gen)
     elif isinstance(init_node, cwast.ExprWiden):
-        # if we are widening the src determines the size
+        assert init_node.x_type.is_untagged_union()
         ct: cwast.CanonType = init_node.expr.x_type
         if ct.size != 0:
-            if ct.fits_in_register():
-                reg = EmitIRExpr(init_node.expr, tc, id_gen)
-                assert reg is not None
-                print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-            else:
-                src_base = _GetLValueAddress(init_node.expr, tc, id_gen)
-                _EmitCopy(dst, BaseOffset(src_base, 0),
-                          ct.size, ct.alignment, id_gen)
+            EmitIRExprToMemory(init_node.expr, dst, tc, id_gen)
     elif isinstance(init_node, cwast.Id) and _StorageForId(init_node) is STORAGE_KIND.REGISTER:
         reg = EmitIRExpr(init_node, tc, id_gen)
         assert reg is not None

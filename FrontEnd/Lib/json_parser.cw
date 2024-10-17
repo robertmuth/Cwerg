@@ -63,13 +63,12 @@ pub rec File:
     objects span!(Object)
     used_objects u32
 
-global z = """
+
 fun FileAllocObject(file ^!File) union(AllocError, ^!Object):
     if file^.used_objects < as(len(file^.objects), u32):
         set file^.used_objects += 1
         return &!file^.objects[file^.used_objects - 1]
     return AllocErrorVal
-"""
 
 global ERROR = 0_u32
 
@@ -77,7 +76,6 @@ global ERROR = 0_u32
 fun IsEndOfNum(c u8) bool:
     return c == ' ' || c == ']' || c == '}' || c == ',' || c == '\n' || c == ':'
 
-global y = """
 fun ReadNextObject(data span(u8), offset u32, obj ^!Object) u32:
     let c = data[offset]
     if c == '[':
@@ -111,7 +109,6 @@ fun ReadNextObject(data span(u8), offset u32, obj ^!Object) u32:
         set end += 1
     set obj^ = ValNum{start, end - start}
     return end
-"""
 
 fun NextNonWS(data span(u8), offset u32) u32:
     let! i = offset
