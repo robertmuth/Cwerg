@@ -632,7 +632,7 @@ def _IsSimpleInitializer(expr) -> bool:
 
 
 def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc: type_corpus.TypeCorpus):
-    """Rewrite assignments of recs (including unions and slices) and arrays
+    """Rewrite assignments of recs (including unions and spans) and arrays
 
     to ensure correctness.
     Consider:

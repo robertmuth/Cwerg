@@ -55,7 +55,6 @@ def MakeAndRegisterSumTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.Ty
         if ct.replacement_type is not None:
             continue
         if ct.is_tagged_union():
-            # maybe add DefRec to mod for generated code
             rec = _MakeSumReplacementStruct(ct, tc)
             mod_gen.body_mod.append(rec)
             add_replacement(ct, rec.x_type)
@@ -73,7 +72,7 @@ def MakeAndRegisterSumTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.Ty
                 add_replacement(ct, tc.insert_array_type(
                     ct.array_dim(), replacement))
         elif ct.is_span():
-            # This is now run this after slices have been eliminated so
+            # This is now run this after spans have been eliminated so
             # we do not have to deal with this case anymore
             assert False
             replacement = ct.underlying_span_type().replacement_type

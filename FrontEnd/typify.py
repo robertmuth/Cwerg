@@ -329,7 +329,7 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
             node.type, tc, cwast.NO_TYPE, ctx)
         subtrahend = _TypifyNodeRecursively(
             node.subtrahend, tc, cwast.NO_TYPE, ctx)
-        return AnnotateNodeType(node, tc.insert_sum_complement(minuend, subtrahend))
+        return AnnotateNodeType(node, tc.insert_union_complement(minuend, subtrahend))
     elif isinstance(node, cwast.TypeOf):
         ct = _TypifyNodeRecursively(node.expr, tc,  cwast.NO_TYPE, ctx)
         return AnnotateNodeType(node, ct)

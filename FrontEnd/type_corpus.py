@@ -223,7 +223,7 @@ _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, list[str]] = {
 }
 
 
-def _get_size_and_offset_for_sum_type(ct: cwast.CanonType, tag_size, ptr_size):
+def _get_size_and_offset_for_union_type(ct: cwast.CanonType, tag_size, ptr_size):
     assert ct.node is cwast.TypeUnion
     num_void = 0
     num_pointer = 0
@@ -331,7 +331,7 @@ class TypeCorpus:
     def get_address_size(self):
         return self._target_arch_config.data_addr_bitwidth // 8
 
-    def _get_register_type_for_sum_type(self, ct: cwast.CanonType) -> Optional[list[str]]:
+    def _get_register_type_for_union_type(self, ct: cwast.CanonType) -> Optional[list[str]]:
         assert ct.node is cwast.TypeUnion
         num_void = 0
         scalars: list[cwast.CanonType] = []
@@ -385,7 +385,7 @@ class TypeCorpus:
         elif ct.node is cwast.DefEnum:
             return _BASE_TYPE_MAP[ct.base_type_kind]
         elif ct.node is cwast.TypeUnion:
-            return self._get_register_type_for_sum_type(ct)
+            return self._get_register_type_for_union_type(ct)
         elif ct.node is cwast.DefType:
             return self._get_register_type(ct.children[0])
         elif ct.node is cwast.TypeFun:
@@ -431,7 +431,7 @@ class TypeCorpus:
         elif ct.node is cwast.TypeVec:
             return ct.children[0].aligned_size() * ct.dim, ct.children[0].alignment
         elif ct.node is cwast.TypeUnion:
-            return _get_size_and_offset_for_sum_type(
+            return _get_size_and_offset_for_union_type(
                 ct, self._target_arch_config.typeid_bitwidth // 8,
                 self._target_arch_config.data_addr_bitwidth // 8)
         elif ct.node is cwast.DefEnum:
@@ -545,7 +545,7 @@ class TypeCorpus:
         assert name not in self.corpus
         return self._insert(cwast.CanonType(cwast.DefType, name, children=[ct]))
 
-    def insert_sum_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
+    def insert_union_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
         assert all.node is cwast.TypeUnion, f"expect sum type: {all.name}"
         if part.node is cwast.TypeUnion:
             part_children = part.children
