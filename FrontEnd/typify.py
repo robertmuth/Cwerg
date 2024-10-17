@@ -1215,6 +1215,7 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
                 node} in {node.x_srcloc}"
             assert ct.name in tc.corpus, f"bad type annotation for {
                 node}: {node.x_type}"
+            assert ct.replacement_type is None
             verifier.Verify(node, tc)
 
         elif isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED):
