@@ -477,6 +477,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
     elif isinstance(node, cwast.ValTrue):
         return "1:U8"
     elif isinstance(node, cwast.Id):
+        if node.x_type.size == 0:
+            return "@@@@@ BAD, DO NOT USE @@@@@@ "
         def_node = node.x_symbol
         if isinstance(def_node, cwast.DefGlobal):
             res = id_gen.NewName("globread")

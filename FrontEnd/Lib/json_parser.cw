@@ -4,7 +4,7 @@ module:
 
 import fmt
 
-type Object = union(Dict, DictEntry, Vec, VecEntry, ValString, ValNum, void)
+pub type Object = union(Dict, DictEntry, Vec, VecEntry, ValString, ValNum, void)
 
 pub @wrapped type Success = void
 pub global SuccessVal = wrap_as(void, Success)
@@ -119,7 +119,6 @@ fun NextNonWS(data span(u8), offset u32) u32:
         set i += 1
     return i
 
-global x = """
 pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
     let data = file^.data
     -- skip initial ws
@@ -127,6 +126,7 @@ pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
     if start >= as(len(data), u32):
         -- empty json is an error for now
         return DataErrorVal
+    let s = """
     trylet obj ^!Object = FileAllocObject(file), err :
         return err
     set start = ReadNextObject(file^.data, start, obj)
@@ -145,8 +145,8 @@ pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
     if start != as(len(data), u32):
         -- garbage at end of file
         return DataErrorVal
+    """
     return SuccessVal
-"""
 
 enum State u8:
     invalid auto

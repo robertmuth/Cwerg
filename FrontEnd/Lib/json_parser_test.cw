@@ -1,8 +1,10 @@
 module:
 
 import fmt
-import jp =json_parser
+import jp = json_parser
 import test
+
+global test_empty = ""
 
 global test0 = """0"""
 
@@ -68,7 +70,8 @@ global test6 = """
 }
 """
 
-fun main(argc s32, argv ^^u8) s32:
+
+fun test_counter() void:
     test::AssertEq#(jp::NumJsonObjectsNeeded(test0), 1_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test1), 3_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test2), 7_u32)
@@ -76,5 +79,15 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(jp::NumJsonObjectsNeeded(test4), 9_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test5), 17_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test6), 85_u32)
+
+fun test_parser() void:
+    let! objects = [100]jp::Object{void}
+    @ref let! file = jp::File{test_empty, objects}
+    test::AssertEq#(jp::FileParse(&!file), jp::DataErrorVal)
+
+fun main(argc s32, argv ^^u8) s32:
+    do test_counter()
+    do test_parser()
+
     test::Success#()
     return 0
