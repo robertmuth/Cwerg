@@ -110,7 +110,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
 
 # def _ValueShouldBeGlobalConst(node) -> bool:
 #     if not isinstance(node, cwast.ValString, cwast.ValArray, cwast.ValRec):
-#         # do not bother with small values like slices, etc.
+#         # do not bother with small values like spans, etc.
 #         return False;
 #     # Maybe instantiating small string directly?
 #     if isinstance(node, cwast.ValString): return True
@@ -132,7 +132,7 @@ class GlobalConstantPool:
        Note: that we can also collapse idententical constants
     2) If the address of the  const is taken we must materialize the constant.
        This should only apply to case were strings/arrays are implicitly converted
-       to a s slice.
+       to a span.
 
     """
 
@@ -260,7 +260,7 @@ def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]
             if ct.is_base_type():
                 rec[field.name] = _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
             elif ct.is_span():
-                rec[field.name] = []  # null slice
+                rec[field.name] = []  # null span
             elif ct.is_pointer():
                 cwast.CompilerError(
                     srcloc, f"ptr field {field.name} must be initialized")
@@ -669,7 +669,7 @@ def VerifyASTEvalsRecursively(node):
                             # TODO: we do not track constant addresses yet
                             # for now assume they are constant
                             pass
-                        elif parent.x_type.is_slice():
+                        elif parent.x_type.is_span():
                             # TODO: we do not track constant addresses yet
                             # for now assume they are constant
                             pass

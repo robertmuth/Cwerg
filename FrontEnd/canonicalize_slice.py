@@ -15,27 +15,27 @@ from FrontEnd import eval
 ############################################################
 # Convert Slices to equvalent struct
 #
-# slice mut u8 -> struct {pointer ptr mut  u8, len uint}
+# span mut u8 -> struct {pointer ptr mut  u8, len uint}
 ############################################################
 SLICE_FIELD_POINTER = "pointer"
 SLICE_FIELD_LENGTH = "length"
 
 
-def _MakeSliceReplacementStruct(slice_type: cwast.CanonType,
+def _MakeSliceReplacementStruct(span_type: cwast.CanonType,
                                 tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     fields = [
         (SLICE_FIELD_POINTER, tc.insert_ptr_type(
-            slice_type.mut, slice_type.underlying_span_type())),
+            span_type.mut, span_type.underlying_span_type())),
         (SLICE_FIELD_LENGTH,  tc.get_uint_canon_type())
     ]
-    return canonicalize.MakeDefRec(f"xtuple_{slice_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
+    return canonicalize.MakeDefRec(f"xtuple_{span_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
 def MakeAndRegisterSliceTypeReplacements(mods, tc: type_corpus.TypeCorpus):
-    """For all types directly involving slices, produce a replacement type
+    """For all types directly involving spans, produce a replacement type
     and return the map from one the other
 
-    Note: recs containing slice fields are not thought of as directly involving slices
+    Note: recs containing span fields are not thought of as directly involving spans
     TODO: what about sum types?
     """
 
@@ -73,15 +73,15 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
     return cwast.Id(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec, x_srcloc=srcloc)
 
 
-def _MakeValRecForSlice(pointer, length, slice_rec: cwast.CanonType, srcloc) -> cwast.ValRec:
-    pointer_field, length_field = slice_rec.ast_node.fields
+def _MakeValRecForSlice(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValRec:
+    pointer_field, length_field = span_rec.ast_node.fields
     inits = [cwast.FieldVal(pointer, "",
                             x_field=pointer_field, x_type=pointer_field.x_type,
                             x_srcloc=srcloc, x_value=pointer.x_value),
              cwast.FieldVal(length, "",
                             x_field=length_field, x_type=length_field.x_type,
                             x_srcloc=srcloc, x_value=length.x_value)]
-    return cwast.ValRec(_MakeIdForDefRec(slice_rec, srcloc), inits, x_srcloc=srcloc, x_type=slice_rec)
+    return cwast.ValRec(_MakeIdForDefRec(span_rec, srcloc), inits, x_srcloc=srcloc, x_type=span_rec)
 
 
 def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
@@ -118,13 +118,13 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
 
 def ReplaceSliceTypes(node):
     """
-    Replaces all slice<X> expressions with rec named xtuple_span<X>
-    (cast to slices are eliminated by ReplaceExplicitSliceCast)
+    Replaces all span<X> expressions with rec named xtuple_span<X>
+    (cast to spans are eliminated by ReplaceExplicitSliceCast)
     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
 
     Complications:
      TODO: see unused _ConvertMutSliceValRecToSliceValRec helper
-     `slice<u8> = slice-mut<u8>` is ok before the change to structs but not afterwards
+     `span<u8> = span-mut<u8>` is ok before the change to structs but not afterwards
     """
     def replacer(node, _parent, field):
 
@@ -132,18 +132,20 @@ def ReplaceSliceTypes(node):
         if isinstance(node, cwast.ExprLen):
             def_rec = node.container.x_type
             if def_rec.is_rec():
+                assert def_rec.original_type is not None
+                assert def_rec.original_type.is_span()
                 assert len(def_rec.ast_node.fields) == 2
                 field = def_rec.ast_node.fields[1]
-                # this is only reached if this used to be a slice
                 return cwast.ExprField(node.container, SLICE_FIELD_LENGTH,
                                        x_srcloc=node.x_srcloc, x_type=field.x_type,
                                        x_field=field)
         elif isinstance(node, cwast.ExprFront):
             def_rec = node.container.x_type
             if def_rec.is_rec():
+                assert def_rec.original_type is not None
+                assert def_rec.original_type.is_span()
                 assert len(def_rec.ast_node.fields) == 2
                 field = def_rec.ast_node.fields[0]
-                # this is only reached if this used to be a slice
                 return cwast.ExprField(node.container, SLICE_FIELD_POINTER,
                                        x_srcloc=node.x_srcloc, x_type=field.x_type,
                                        x_field=field)
@@ -182,7 +184,7 @@ def ReplaceSliceTypes(node):
                         return None
 
                 cwast.CompilerError(
-                    node.x_srcloc, "do not know how to convert slice related node " +
+                    node.x_srcloc, "do not know how to convert span related node " +
                     f"[{def_rec.name}]: {type(node)} of type {node.x_type}")
         return None
 

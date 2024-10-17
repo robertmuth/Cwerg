@@ -186,9 +186,9 @@ class _PolyMap:
             return out
         # TODO: why do we need this - seems unsafe:
         if first_param_type.is_array():
-            slice_type = self._type_corpus. insert_slice_type(
+            span_type = self._type_corpus. insert_span_type(
                 False, first_param_type.underlying_array_type())
-            type_name = slice_type.name
+            type_name = span_type.name
 
             out = self._map.get((callee_mod, fun_name, type_name))
             if out:
@@ -308,7 +308,7 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, tc.insert_ptr_type(node.mut, t))
     elif isinstance(node, cwast.TypeSpan):
         t = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        return AnnotateNodeType(node, tc.insert_slice_type(node.mut, t))
+        return AnnotateNodeType(node, tc.insert_span_type(node.mut, t))
     elif isinstance(node, cwast.TypeFun):
         return _TypifyTypeFunOrDefFun(node, tc, ctx)
     elif isinstance(node, cwast.TypeVec):
@@ -512,7 +512,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
         if not ct.is_vec_or_span():
             cwast.CompilerError(
-                node.container.x_srcloc, f"expected array or slice for {node} but got {ct}")
+                node.container.x_srcloc, f"expected array or span for {node} but got {ct}")
         return AnnotateNodeType(node, ct.contained_type())
     elif isinstance(node, cwast.ExprField):
         ct = _TypifyNodeRecursively(node.container, tc, target_type, ctx)
@@ -683,7 +683,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             ptr_type = _TypifyNodeRecursively(
                 node.pointer, tc, cwast.NO_TYPE, ctx)
             return AnnotateNodeType(
-                node, tc.insert_slice_type(ptr_type.mut, ptr_type.underlying_pointer_type()))
+                node, tc.insert_span_type(ptr_type.mut, ptr_type.underlying_pointer_type()))
     elif isinstance(node, cwast.ExprParen):
         ct = _TypifyNodeRecursively(node.expr, tc, target_type, ctx)
         return AnnotateNodeType(node, ct)
@@ -848,7 +848,7 @@ def CheckExprFront(node: cwast.ExprFront, _):
     assert node.container.x_type.is_vec_or_span(
     ), f"unpected front expr {node.container.x_type}"
     if node.mut:
-        if not type_corpus.is_mutable_array_or_slice(node.container):
+        if not type_corpus.is_mutable_array_or_span(node.container):
             cwast.CompilerError(
                 node.x_srcloc, f"container not mutable: {node} {node.container}")
 

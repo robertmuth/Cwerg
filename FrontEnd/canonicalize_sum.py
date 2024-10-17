@@ -76,7 +76,7 @@ def MakeAndRegisterSumTypeReplacements(_mods, tc: type_corpus.TypeCorpus):
             assert False
             replacement = ct.underlying_span_type().replacement_type
             if replacement is not None:
-                add_replacement(ct, tc.insert_slice_type(
+                add_replacement(ct, tc.insert_span_type(
                     ct.mut, replacement))
 
 

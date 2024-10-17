@@ -188,7 +188,7 @@ def is_mutable_array(node) -> bool:
     return is_proper_lhs(node)
 
 
-def is_mutable_array_or_slice(node) -> bool:
+def is_mutable_array_or_span(node) -> bool:
     """Mutable refers to the elements of the array/span"""
     ct: cwast.CanonType = node.x_type
     if ct.is_span():
@@ -424,7 +424,7 @@ class TypeCorpus:
             size = self._target_arch_config.code_addr_bitwidth // 8
             return size, size
         elif ct.node is cwast.TypeSpan:
-            # slice is converted to (pointer, length) tuple
+            # span is converted to (pointer, length) tuple
             ptr_field_size = self._target_arch_config.data_addr_bitwidth // 8
             len_field_size = self._target_arch_config.uint_bitwidth // 8
             return ptr_field_size + len_field_size, ptr_field_size
@@ -476,7 +476,7 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.TypePtr, name, mut=mut, children=[ct],
                                             ))
 
-    def insert_slice_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
+    def insert_span_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         if mut:
             name = f"span_mut<{ct.name}>"
         else:
