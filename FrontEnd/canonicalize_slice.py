@@ -31,7 +31,7 @@ def _MakeSliceReplacementStruct(span_type: cwast.CanonType,
     return canonicalize.MakeDefRec(f"xtuple_{span_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
-def MakeAndRegisterSliceTypeReplacements(mods, tc: type_corpus.TypeCorpus):
+def MakeAndRegisterSliceTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):
     """For all types directly involving spans, produce a replacement type
     and return the map from one the other
 
@@ -53,6 +53,7 @@ def MakeAndRegisterSliceTypeReplacements(mods, tc: type_corpus.TypeCorpus):
         if ct.is_span():
             # maybe add the DefRec to the module with generated code
             rec = _MakeSliceReplacementStruct(ct, tc)
+            mod_gen.body_mod.append(rec)
             add_replacement(ct, rec.x_type)
         elif ct.is_fun():
             new_ct = canonicalize.MaybeMakeFunSigReplacementType(ct, tc)

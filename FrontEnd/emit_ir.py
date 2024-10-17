@@ -1167,21 +1167,21 @@ def main() -> int:
     eliminated_nodes.add(cwast.Expr3)
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
-    canonicalize_slice.MakeAndRegisterSliceTypeReplacements(mod_topo_order, tc)
-    for mod in mod_topo_order:
+    canonicalize_slice.MakeAndRegisterSliceTypeReplacements(mod_gen, tc)
+    for mod in ([mod_gen] + mod_topo_order):
         canonicalize_slice.ReplaceSliceTypes(mod)
     eliminated_nodes.add(cwast.ExprLen)
     eliminated_nodes.add(cwast.ValSpan)
     eliminated_nodes.add(cwast.TypeSpan)
 
-    canonicalize_sum.MakeAndRegisterSumTypeReplacements(mod_topo_order, tc)
-    for mod in mod_topo_order:
+    canonicalize_sum.MakeAndRegisterSumTypeReplacements(mod_gen, tc)
+    for mod in ([mod_gen] + mod_topo_order):
         canonicalize_sum.ReplaceSums(mod)
 
     eliminated_nodes.add(cwast.ExprUnionTag)
     eliminated_nodes.add(cwast.ExprUnionUntagged)
 
-    SanityCheckMods("after_slice_elimination", args.emit_ir,
+    SanityCheckMods("after_span_elimination", args.emit_ir,
                     [mod_gen] + mod_topo_order, tc, verifier, eliminated_nodes)
 
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(

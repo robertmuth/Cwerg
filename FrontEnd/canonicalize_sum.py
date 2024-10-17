@@ -26,17 +26,18 @@ SUM_FIELD_TAG = "tag"
 SUM_FIELD_UNION = "union"
 
 
-def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
+def _MakeSumReplacementStruct(union_type: cwast.CanonType,
                               tc: type_corpus.TypeCorpus) -> cwast.DefRec:
-    assert not sum_type.untagged
+    assert not union_type.untagged
     fields = [
         (SUM_FIELD_TAG, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.TYPEID)),
-        (SUM_FIELD_UNION, tc.insert_union_type(sum_type.union_member_types(), True))
+        (SUM_FIELD_UNION, tc.insert_union_type(
+            union_type.union_member_types(), True))
     ]
-    return canonicalize.MakeDefRec(f"xtuple_{sum_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
+    return canonicalize.MakeDefRec(f"xtuple_{union_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
-def MakeAndRegisterSumTypeReplacements(_mods, tc: type_corpus.TypeCorpus):
+def MakeAndRegisterSumTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):
     """For all types directly involving tagged sums, produce a replacement type, a DefRec,
     and return the map from one the other.
 
@@ -46,7 +47,7 @@ def MakeAndRegisterSumTypeReplacements(_mods, tc: type_corpus.TypeCorpus):
     # Go through the type table in topological order and generate the map.
     # Note; we add new types to the map while iterating over it so we take a snapshot first
     def add_replacement(old_ct: cwast.CanonType, new_ct: cwast.CanonType):
-        # assert old_ct.replacement_type is None
+        assert old_ct.replacement_type is None
         old_ct.replacement_type = new_ct
         new_ct.original_type = old_ct
 
@@ -56,6 +57,7 @@ def MakeAndRegisterSumTypeReplacements(_mods, tc: type_corpus.TypeCorpus):
         if ct.is_tagged_union():
             # maybe add DefRec to mod for generated code
             rec = _MakeSumReplacementStruct(ct, tc)
+            mod_gen.body_mod.append(rec)
             add_replacement(ct, rec.x_type)
         elif ct.is_fun():
             new_ct = canonicalize.MaybeMakeFunSigReplacementType(ct, tc)
@@ -268,9 +270,10 @@ def ReplaceSums(node):
             # get the tag field from the rec that now represents the union
             def_rec = node.expr.x_type
             assert def_rec.is_rec()
+            assert def_rec.original_type is not None
+            assert def_rec.original_type.is_union()
             assert len(def_rec.ast_node.fields) == 2
             tag_field: cwast.RecField = def_rec.ast_node.fields[0]
-            # this is only reached if this used to be a slice
             return cwast.ExprField(node.expr, SUM_FIELD_TAG,
                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
                                    x_field=tag_field)
@@ -278,9 +281,10 @@ def ReplaceSums(node):
             # get the payload field from the rec that now represents the union
             def_rec = node.expr.x_type
             assert def_rec.is_rec()
+            assert def_rec.original_type is not None
+            assert def_rec.original_type.is_union()
             assert len(def_rec.ast_node.fields) == 2
             tag_field: cwast.RecField = def_rec.ast_node.fields[1]
-            # this is only reached if this used to be a slice
             return cwast.ExprField(node.expr, SUM_FIELD_UNION,
                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
                                    x_field=tag_field)
@@ -295,7 +299,7 @@ def ReplaceSums(node):
                              cwast.FunParam, cwast.ExprCall, cwast.RecField,
                              cwast.ExprField, cwast.FieldVal, cwast.IndexVal,
                              cwast.ValVec, cwast.TypePtr, cwast.ExprPointer,
-                             cwast.ExprFront, cwast.ExprDeref)):
+                             cwast.ExprFront, cwast.ExprDeref, cwast.ExprAddrOf)):
             typify.UpdateNodeType(node, def_rec)
             return None
         elif isinstance(node, cwast.TypeUnion):
