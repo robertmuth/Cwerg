@@ -1168,18 +1168,15 @@ def main() -> int:
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
     canonicalize_slice.MakeAndRegisterSliceTypeReplacements(mod_topo_order, tc)
-    # mod_gen.body_mod += [
-    #    v for v in slice_to_struct_map.values() if isinstance(v, cwast.DefRec)]
     for mod in mod_topo_order:
         canonicalize_slice.ReplaceSliceTypes(mod)
     eliminated_nodes.add(cwast.ExprLen)
     eliminated_nodes.add(cwast.ValSpan)
     eliminated_nodes.add(cwast.TypeSpan)
 
-    sum_to_struct_map = canonicalize_sum.MakeSumTypeReplacementMap(
-        mod_topo_order, tc)
+    canonicalize_sum.MakeSumTypeReplacementMap(mod_topo_order, tc)
     for mod in mod_topo_order:
-        canonicalize_sum.ReplaceSums(mod, sum_to_struct_map)
+        canonicalize_sum.ReplaceSums(mod)
 
     eliminated_nodes.add(cwast.ExprUnionTag)
     eliminated_nodes.add(cwast.ExprUnionUntagged)

@@ -2,9 +2,9 @@
 
 
 Protocol:
-* sum_to_struct_map = MakeSumTypeReplacementMap(mod_topo_order)
+* MakeSumTypeReplacementMap(mod_topo_order)
 * for mod in mod_in_top_order:
-  - ReplaceSums(mod, sum_to_struct_map)
+  - ReplaceSums(mod)
 """
 
 
@@ -24,9 +24,6 @@ from FrontEnd import identifier
 ############################################################
 SUM_FIELD_TAG = "tag"
 SUM_FIELD_UNION = "union"
-
-# TypeSum -> DefRec
-SUM_TO_STRUCT_MAP = dict[cwast.CanonType, cwast.CanonType]
 
 
 def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
@@ -56,26 +53,27 @@ def _MakeSumReplacementStruct(sum_type: cwast.CanonType,
     return rec_ct
 
 
-def _DoesFunSigContainSums(fun_sig: cwast.CanonType,
-                           sum_to_struct_map: SUM_TO_STRUCT_MAP) -> bool:
-    if fun_sig.result_type() in sum_to_struct_map:
+def _DoesFunSigContainSums(fun_sig: cwast.CanonType) -> bool:
+    if fun_sig.result_type().replacement_type is not None:
         return True
     for p in fun_sig.parameter_types():
-        if p in sum_to_struct_map:
+        if p.replacement_type is not None:
             return True
     return False
 
 
-def _SumRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                      sum_to_struct_map: SUM_TO_STRUCT_MAP) -> cwast.CanonType:
+def _SumRewriteFunSig(fun_sig: cwast.CanonType, tc: type_corpus.TypeCorpus) -> cwast.CanonType:
+    def new_or_old(ct: cwast.CanonType) -> cwast.CanonType:
+        if ct.replacement_type:
+            return ct.replacement_type
+        return ct
     assert fun_sig.is_fun()
-    result = sum_to_struct_map.get(
-        fun_sig.result_type(), fun_sig.result_type())
-    params = [sum_to_struct_map.get(p, p) for p in fun_sig.parameter_types()]
+    result = new_or_old(fun_sig.result_type())
+    params = [new_or_old(p) for p in fun_sig.parameter_types()]
     return tc.insert_fun_type(params, result)
 
 
-def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUCT_MAP:
+def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus):
     """For all types directly involving tagged sums, produce a replacement type, a DefRec,
     and return the map from one the other.
 
@@ -84,10 +82,7 @@ def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUC
 
     # Go through the type table in topological order and generate the map.
     # Note; we add new types to the map while iterating over it so we take a snapshot first
-    out: SUM_TO_STRUCT_MAP = {}
-
     def add_replacement(old_ct: cwast.CanonType, new_ct: cwast.CanonType):
-        out[old_ct] = new_ct
         # assert old_ct.replacement_type is None
         old_ct.replacement_type = new_ct
         new_ct.original_type = old_ct
@@ -96,26 +91,26 @@ def MakeSumTypeReplacementMap(_mods, tc: type_corpus.TypeCorpus) -> SUM_TO_STRUC
         if ct.replacement_type is not None:
             continue
         if ct.is_tagged_union():
+            # maybe add DefRec to mod for generated code
             add_replacement(ct, _MakeSumReplacementStruct(ct, tc))
-        elif ct.is_fun() and _DoesFunSigContainSums(ct, out):
-            add_replacement(ct, _SumRewriteFunSig(ct, tc, out))
+        elif ct.is_fun() and _DoesFunSigContainSums(ct):
+            add_replacement(ct, _SumRewriteFunSig(ct, tc))
         elif ct.is_pointer():
-            replacement = out.get(ct.underlying_pointer_type())
+            replacement = ct.underlying_pointer_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.insert_ptr_type(ct.mut, replacement))
         elif ct.is_array():
-            replacement = out.get(ct.underlying_array_type())
+            replacement = ct.underlying_array_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.insert_array_type(
                     ct.array_dim(), replacement))
         elif ct.is_span():
-            replacement = out.get(ct.underlying_span_type())
+            replacement = ct.underlying_span_type().replacement_type
             # we probably should run this after slices have been eliminated so we
             # we do not have to deal with this case
             if replacement is not None:
                 add_replacement(ct, tc.insert_slice_type(
                     ct.mut, replacement))
-    return out
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
@@ -296,7 +291,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
+def ReplaceSums(node):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
     """
@@ -325,8 +320,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
         if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:
             return None
         # now deal with type/expression nodes whose type is changing
-        def_rec: Optional[cwast.CanonType] = sum_to_struct_map.get(
-            node.x_type)
+        def_rec: Optional[cwast.CanonType] = node.x_type.replacement_type
         if def_rec is None:
             return None
         if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
@@ -342,9 +336,9 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
         elif isinstance(node, cwast.ExprWiden):
             ct_src: cwast.CanonType = node.expr.x_type
             if ct_src.original_type is not None and ct_src.original_type.is_tagged_union():
-                return _MakeValRecForWidenFromUnion(node, sum_to_struct_map[node.x_type])
+                return _MakeValRecForWidenFromUnion(node, def_rec)
             else:
-                return _MakeValRecForWidenFromNonUnion(node, sum_to_struct_map[node.x_type])
+                return _MakeValRecForWidenFromNonUnion(node, def_rec)
 
         elif isinstance(node, cwast.ExprNarrow):
             # applies to the destination of the narrow
@@ -354,7 +348,7 @@ def ReplaceSums(node, sum_to_struct_map: SUM_TO_STRUCT_MAP):
             assert ct_src.is_rec(
             ), f"{ct_src} -> {node.x_type}: {node.x_srcloc}"
 
-            return _MakeValRecForNarrow(node, sum_to_struct_map[node.x_type])
+            return _MakeValRecForNarrow(node, def_rec)
         elif isinstance(node, cwast.Id):
             sym = node.x_symbol
             # TODO
