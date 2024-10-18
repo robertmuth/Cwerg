@@ -531,8 +531,12 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
     elif isinstance(node, cwast.ExprBitCast):
         res = id_gen.NewName("bitcast")
         expr = EmitIRExpr(node.expr, tc, id_gen)
-        print(
-            f"{TAB}bitcast {res}:{node.type.x_type.get_single_register_type()} = {expr}")
+        src_reg_type  = node.expr.x_type.get_single_register_type()
+        dst_reg_type = node.type.x_type.get_single_register_type()
+        if src_reg_type == dst_reg_type:
+            print( f"{TAB}mov {res}:{dst_reg_type} = {expr}")
+        else:
+            print( f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
         return res
     elif isinstance(node, cwast.ExprUnsafeCast):
         return EmitIRExpr(node.expr, tc, id_gen)
