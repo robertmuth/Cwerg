@@ -19,23 +19,23 @@ pub global DataErrorVal = wrap_as(void, DataError)
 global Null = wrap_as(0xffffffff, Index)
 
 -- numeric atom
-rec ValNum:
+pub rec ValNum:
     offset u32
     length u32
 
 -- a string atom, the leading and trailing double quotes have been stripped
-rec ValString:
+pub rec ValString:
     offset u32
     length u32
     has_esc bool
 
-rec Dict:
+pub rec Dict:
     -- next sibling
     next Index
     -- first dict entry
     first Index
 
-rec DictEntry:
+pub rec DictEntry:
     -- next dict entry
     next Index
     -- value of entry
@@ -43,13 +43,13 @@ rec DictEntry:
     key_offset u32
     key_length u32
 
-rec Vec:
+pub rec Vec:
     -- next sibling
     next Index
     -- first vec entry
     first Index
 
-rec VecEntry:
+pub rec VecEntry:
     -- next vec entry
     next Index
     val Index
@@ -65,6 +65,7 @@ pub rec File:
 
 
 fun FileAllocObject(file ^!File) union(AllocError, ^!Object):
+    fmt::print#("alloc obj\n")
     if file^.used_objects < as(len(file^.objects), u32):
         set file^.used_objects += 1
         return &!file^.objects[file^.used_objects - 1]
@@ -120,6 +121,7 @@ fun NextNonWS(data span(u8), offset u32) u32:
     return i
 
 pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
+    fmt::print#("parse\n")
     let data = file^.data
     -- skip initial ws
     let! start = NextNonWS(data, 0)
@@ -131,13 +133,15 @@ pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
     set start = ReadNextObject(file^.data, start, obj)
     cond:
         case is(obj^, Dict):
+            fmt::print#("dict seen\n")
             return DataErrorVal
         case is(obj^, Vec):
+            fmt::print#("vec seen\n")
             return DataErrorVal
         case is(obj^, DictEntry) || is(obj^, DictEntry):
             return DataErrorVal
         case is(obj^, ValString) || is(obj^, ValNum):
-            return DataErrorVal
+        -- fmt::print#("string or num seen\n")
         case true:
             return DataErrorVal
     -- there should only be ws left
