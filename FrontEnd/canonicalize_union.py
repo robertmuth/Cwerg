@@ -267,31 +267,33 @@ def ReplaceSums(node):
 
         if isinstance(node, cwast.ExprUnionTag):
             # get the tag field from the rec that now represents the union
-            def_rec = node.expr.x_type
-            assert def_rec.is_rec()
-            assert def_rec.original_type is not None
-            assert def_rec.original_type.is_union()
-            assert len(def_rec.ast_node.fields) == 2
-            tag_field: cwast.RecField = def_rec.ast_node.fields[0]
+            # because of the post-order traversal, node.expr has already been processed
+            new_ct = node.expr.x_type
+            assert new_ct.is_rec()
+            assert new_ct.original_type is not None
+            assert new_ct.original_type.is_union()
+            assert len(new_ct.ast_node.fields) == 2
+            tag_field: cwast.RecField = new_ct.ast_node.fields[0]
             return cwast.ExprField(node.expr, SUM_FIELD_TAG,
                                    x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
                                    x_field=tag_field)
         elif isinstance(node, cwast.ExprUnionUntagged):
             # get the payload field from the rec that now represents the union
-            def_rec = node.expr.x_type
-            assert def_rec.is_rec()
-            assert def_rec.original_type is not None
-            assert def_rec.original_type.is_union()
-            assert len(def_rec.ast_node.fields) == 2
-            tag_field: cwast.RecField = def_rec.ast_node.fields[1]
+            new_ct = node.expr.x_type
+            assert new_ct.is_rec()
+            assert new_ct.original_type is not None
+            assert new_ct.original_type.is_union()
+            assert len(new_ct.ast_node.fields) == 2
+            tag_field: cwast.RecField = new_ct.ast_node.fields[1]
             return cwast.ExprField(node.expr, SUM_FIELD_UNION,
-                                   x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
+                                   x_srcloc=node.x_srcloc,
+                                   x_type=tag_field.x_type,
                                    x_field=tag_field)
         if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:
             return None
         # now deal with type/expression nodes whose type is changing
-        def_rec: Optional[cwast.CanonType] = node.x_type.replacement_type
-        if def_rec is None:
+        new_ct: Optional[cwast.CanonType] = node.x_type.replacement_type
+        if new_ct is None:
             return None
         if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
                              cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
@@ -299,37 +301,36 @@ def ReplaceSums(node):
                              cwast.ExprField, cwast.FieldVal, cwast.IndexVal,
                              cwast.ValVec, cwast.TypePtr, cwast.ExprPointer,
                              cwast.ExprFront, cwast.ExprDeref, cwast.ExprAddrOf)):
-            typify.UpdateNodeType(node, def_rec)
+            typify.UpdateNodeType(node, new_ct)
             return None
         elif isinstance(node, cwast.TypeUnion):
-            return _MakeIdForDefRec(def_rec, node.x_srcloc)
+            return _MakeIdForDefRec(new_ct, node.x_srcloc)
         elif isinstance(node, cwast.ExprWiden):
             ct_src: cwast.CanonType = node.expr.x_type
             if ct_src.original_type is not None and ct_src.original_type.is_tagged_union():
-                return _MakeValRecForWidenFromUnion(node, def_rec)
+                return _MakeValRecForWidenFromUnion(node, new_ct)
             else:
-                return _MakeValRecForWidenFromNonUnion(node, def_rec)
+                return _MakeValRecForWidenFromNonUnion(node, new_ct)
 
         elif isinstance(node, cwast.ExprNarrow):
-            # applies to the destination of the narrow
-            assert isinstance(
-                node.expr, cwast.Id), "need to introduce ExprStmt"
-            ct_src: cwast.CanonType = node.expr.x_type
-            assert ct_src.is_rec(
-            ), f"{ct_src} -> {node.x_type}: {node.x_srcloc}"
-
-            return _MakeValRecForNarrow(node, def_rec)
+            if new_ct.original_type.is_tagged_union():
+                assert new_ct.is_rec()
+                # node.expr has already been processed
+                assert node.expr.x_type.original_type.is_tagged_union()
+                assert node.expr.x_type.is_rec()
+                # if the old type of the expression was an untagged unoion
+                # we must translate it to ValRec representing the new type.
+                # Note: if the narrowed type is an untagged union, the starting
+                # type must also be one
+                return _MakeValRecForNarrow(node, new_ct)
+            else:
+                typify.UpdateNodeType(node, new_ct)
+                return None
         elif isinstance(node, cwast.Id):
-            sym = node.x_symbol
-            # TODO
-            # This needs a lot of work also what about field references to
-            # rewritten fields
-            if isinstance(sym, cwast.TypeUnion):
-                symbolize.AnnotateNodeSymbol(node, def_rec)
-            typify.UpdateNodeType(node, def_rec)
+            typify.UpdateNodeType(node, new_ct)
             return None
         else:
             assert False, f"do not know how to convert sum node [{
-                def_rec.name}]:\n {node} {node.x_srcloc}"
+                new_ct.name}]:\n {node} {node.x_srcloc}"
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)

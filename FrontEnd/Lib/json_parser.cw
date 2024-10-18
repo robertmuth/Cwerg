@@ -126,10 +126,10 @@ pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
     if start >= as(len(data), u32):
         -- empty json is an error for now
         return DataErrorVal
-    let s = """
     trylet obj ^!Object = FileAllocObject(file), err :
         return err
     set start = ReadNextObject(file^.data, start, obj)
+    let s = """
     cond:
         case is(obj^, Dict):
             return DataErrorVal

@@ -83,7 +83,7 @@ fun test_counter() void:
 fun test_parser() void:
     let! objects = [100]jp::Object{void}
     @ref let! file = jp::File{test_empty, objects}
-    test::AssertEq#(jp::FileParse(&!file), jp::DataErrorVal)
+    test::AssertIs#(jp::FileParse(&!file), jp::DataError)
 
 fun main(argc s32, argv ^^u8) s32:
     do test_counter()
