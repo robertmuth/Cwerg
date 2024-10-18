@@ -48,12 +48,13 @@ pub rec Vec:
     next Index
     -- first vec entry
     first Index
+    length u32
 
 pub rec VecEntry:
     -- next vec entry
     next Index
     val Index
-
+    index u32
 
 pub rec File:
     -- the raw json data - must out-live the `file` rec
@@ -80,7 +81,7 @@ fun IsEndOfNum(c u8) bool:
 fun ReadNextObject(data span(u8), offset u32, obj ^!Object) u32:
     let c = data[offset]
     if c == '[':
-        set obj^ = Vec{Null, Null}
+        set obj^ = Vec{Null, Null, 0}
         return offset + 1
     if c == '{':
         set obj^ = Dict{Null, Null}
@@ -120,33 +121,59 @@ fun NextNonWS(data span(u8), offset u32) u32:
         set i += 1
     return i
 
-pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
-    fmt::print#("parse\n")
-    let data = file^.data
-    -- skip initial ws
-    let! start = NextNonWS(data, 0)
-    if start >= as(len(data), u32):
-        -- empty json is an error for now
-        return DataErrorVal
-    trylet obj ^!Object = FileAllocObject(file), err :
-        return err
-    set start = ReadNextObject(file^.data, start, obj)
+fun ParseVec(file ^!File, container ^!Vec, start u32) union(u32, AllocError, DataError):
+    let! i = start
+    let! n = 0_u32
+    while true:
+        set i = NextNonWS(file^.data, i)
+        fmt::print#("ParseVec Loop ", n, " ", i, "\n")
+        if i >= as(len(file^.data), u32):
+            return DataErrorVal
+        let c = file^.data[i]
+        if c == ']':
+            set i += 1
+            return i
+        if n != 0:
+            if c == ',':
+                return DataErrorVal
+            set i = NextNonWS(file^.data, i + 1)
+        trylet obj ^!Object = FileAllocObject(file), err :
+            return err
+        tryset i = ParseNextRecursively(file, i, obj), err:
+            return err
+        set n += 1
+    return 0_u32
+
+fun ParseNextRecursively(file ^!File, start u32, obj ^!Object) union(u32, AllocError, DataError):
+    let! i = ReadNextObject(file^.data, start, obj)
     cond:
         case is(obj^, Dict):
             fmt::print#("dict seen\n")
             return DataErrorVal
         case is(obj^, Vec):
             fmt::print#("vec seen\n")
-            return DataErrorVal
-        case is(obj^, DictEntry) || is(obj^, DictEntry):
-            return DataErrorVal
+            tryset i = ParseVec(file, bitwise_as(obj, ^!Vec), i), err:
+                return err
         case is(obj^, ValString) || is(obj^, ValNum):
-        -- fmt::print#("string or num seen\n")
-        case true:
-            return DataErrorVal
+            fmt::print#("string or num seen\n")
+            return i
+    return DataErrorVal
+
+pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
+    fmt::print#("parse\n")
+    -- skip initial ws
+    let! i = 0_u32
+    set i = NextNonWS(file^.data, i)
+    if i >= as(len(file^.data), u32):
+        -- empty json is an error for now
+        return DataErrorVal
+    trylet obj ^!Object = FileAllocObject(file), err :
+        return err
+    tryset i = ParseNextRecursively(file, i, obj), err:
+        return err
     -- there should only be ws left
-    set start = NextNonWS(data, start)
-    if start != as(len(data), u32):
+    set i = NextNonWS(file^.data, i)
+    if i != as(len(file^.data), u32):
         -- garbage at end of file
         return DataErrorVal
     return SuccessVal
