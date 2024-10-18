@@ -4,7 +4,7 @@ module:
 
 import fmt
 
-pub type Object = union(Dict, DictEntry, Vec, VecEntry, ValString, ValNum, void)
+pub type Object = union(Dict, DictEntry, Vec, VecEntry, ValStr, ValNum, void)
 
 pub @wrapped type Success = void
 pub global SuccessVal = wrap_as(void, Success)
@@ -24,7 +24,7 @@ pub rec ValNum:
     length u32
 
 -- a string atom, the leading and trailing double quotes have been stripped
-pub rec ValString:
+pub rec ValStr:
     offset u32
     length u32
     has_esc bool
@@ -93,7 +93,7 @@ fun ReadNextObject(data span(u8), offset u32, obj ^!Object) u32:
         while end < as(len(data), u32):
             let d = data[end]
             if d == '"':
-                set obj^ = ValString{start, end - start, seen_esc}
+                set obj^ = ValStr{start, end - start, seen_esc}
                 return end + 1
             if d == '\\':
                 set seen_esc = true
@@ -103,17 +103,18 @@ fun ReadNextObject(data span(u8), offset u32, obj ^!Object) u32:
         -- error
         set obj^ = void
         return 0
+    -- parsing ValNum
     let start = offset
-    let! end = start + 1
-    while end < as(len(data), u32):
-        if IsEndOfNum(data[offset]):
+    let! i = start + 1
+    while i < as(len(data), u32):
+        if IsEndOfNum(data[i]):
             break
-        set end += 1
-    set obj^ = ValNum{start, end - start}
-    return end
+        set i += 1
+    set obj^ = ValNum{start, i - start}
+    return i
 
-fun NextNonWS(data span(u8), offset u32) u32:
-    let! i = offset
+fun NextNonWS(data span(u8), start u32) u32:
+    let! i = start
     while i < as(len(data), u32):
         let c = data[i]
         if c != ' ' && c != '\n':
@@ -122,6 +123,7 @@ fun NextNonWS(data span(u8), offset u32) u32:
     return i
 
 fun ParseVec(file ^!File, container ^!Vec, start u32) union(u32, AllocError, DataError):
+    fmt::print#("ParseVec ",  start, "\n")
     let! i = start
     let! n = 0_u32
     while true:
@@ -131,12 +133,17 @@ fun ParseVec(file ^!File, container ^!Vec, start u32) union(u32, AllocError, Dat
             return DataErrorVal
         let c = file^.data[i]
         if c == ']':
+            fmt::print#("ParseVec End ",  i, "\n")
             set i += 1
+            set container^.length = n
             return i
         if n != 0:
-            if c == ',':
+            if c != ',':
                 return DataErrorVal
             set i = NextNonWS(file^.data, i + 1)
+        trylet entry ^!Object = FileAllocObject(file), err :
+            return err
+        set entry^ = VecEntry{Null, Null ,n}
         trylet obj ^!Object = FileAllocObject(file), err :
             return err
         tryset i = ParseNextRecursively(file, i, obj), err:
@@ -145,22 +152,20 @@ fun ParseVec(file ^!File, container ^!Vec, start u32) union(u32, AllocError, Dat
     return 0_u32
 
 fun ParseNextRecursively(file ^!File, start u32, obj ^!Object) union(u32, AllocError, DataError):
+    fmt::print#("ParseNextRecursively ",  start, "\n")
     let! i = ReadNextObject(file^.data, start, obj)
     cond:
         case is(obj^, Dict):
-            fmt::print#("dict seen\n")
             return DataErrorVal
         case is(obj^, Vec):
-            fmt::print#("vec seen\n")
-            tryset i = ParseVec(file, bitwise_as(obj, ^!Vec), i), err:
-                return err
-        case is(obj^, ValString) || is(obj^, ValNum):
+            return ParseVec(file, bitwise_as(obj, ^!Vec), i)
+        case is(obj^, ValStr) || is(obj^, ValNum):
             fmt::print#("string or num seen\n")
             return i
     return DataErrorVal
 
 pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
-    fmt::print#("parse\n")
+    fmt::print#("FileParse\n")
     -- skip initial ws
     let! i = 0_u32
     set i = NextNonWS(file^.data, i)
@@ -171,6 +176,7 @@ pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
         return err
     tryset i = ParseNextRecursively(file, i, obj), err:
         return err
+    fmt::print#("FileParse End ", i, "\n")
     -- there should only be ws left
     set i = NextNonWS(file^.data, i)
     if i != as(len(file^.data), u32):
