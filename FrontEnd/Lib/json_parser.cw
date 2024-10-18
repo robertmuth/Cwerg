@@ -129,15 +129,15 @@ pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
     trylet obj ^!Object = FileAllocObject(file), err :
         return err
     set start = ReadNextObject(file^.data, start, obj)
-    let s = """
     cond:
         case is(obj^, Dict):
             return DataErrorVal
         case is(obj^, Vec):
             return DataErrorVal
-        case is(obj^, DictEntry) or is(obj^, DictEntry):
+        case is(obj^, DictEntry) || is(obj^, DictEntry):
             return DataErrorVal
         case is(obj^, ValString) || is(obj^, ValNum):
+            return DataErrorVal
         case true:
             return DataErrorVal
     -- there should only be ws left
@@ -145,7 +145,6 @@ pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
     if start != as(len(data), u32):
         -- garbage at end of file
         return DataErrorVal
-    """
     return SuccessVal
 
 enum State u8:
