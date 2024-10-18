@@ -469,8 +469,8 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
     fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=srcloc, x_target=fun))
 
 
-def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                          uint_type: cwast.CanonType) -> cwast.ValSpan:
+def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
+                         uint_type: cwast.CanonType) -> cwast.ValSpan:
     p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_span_type())
     value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
         node) or isinstance(node, (cwast.ValVec, cwast.ValString)) else None
@@ -486,7 +486,7 @@ def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeC
 
 def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
     if orig_node.x_type.is_array() and target_type.is_span():
-        return MakeValSliceFromArray(
+        return MakeValSpanFromArray(
             orig_node, target_type, tc, uint_type)
     elif target_type.is_union():
         sum_type = cwast.TypeAuto(
@@ -611,7 +611,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def FunReplaceTypeOfAndTypeSumDelta(fun: cwast.DefFun):
+def FunReplaceTypeOfAndTypeUnionDelta(fun: cwast.DefFun):
     def replacer(node, _parent, _field):
         if not isinstance(node, (cwast.TypeOf, cwast.TypeUnionDelta)):
             return None

@@ -1,10 +1,10 @@
-"""Canonicalizer For Tagged Sum
+"""Canonicalizer For Tagged Unions
 
 
 Protocol:
-* MakeSumTypeReplacementMap(mod_topo_order)
+* MakeUnionsTypeReplacementMap(mod_topo_order)
 * for mod in mod_in_top_order:
-  - ReplaceSums(mod)
+  - ReplaceUnionss(mod)
 """
 
 
@@ -13,12 +13,11 @@ from typing import Optional
 from FrontEnd import cwast
 from FrontEnd import type_corpus
 from FrontEnd import typify
-from FrontEnd import symbolize
 from FrontEnd import canonicalize
 from FrontEnd import identifier
 
 ############################################################
-# Convert Tagged Sum to equvalent struct
+# Convert Tagged Unions to equvalent struct
 #
 # sum[r64, bool, ...] -> struct {tag u16, union untagged-sum[r64, bool, ... ]}
 ############################################################
@@ -26,7 +25,7 @@ SUM_FIELD_TAG = "tag"
 SUM_FIELD_UNION = "union"
 
 
-def _MakeSumReplacementStruct(union_type: cwast.CanonType,
+def _MakeUnionReplacementStruct(union_type: cwast.CanonType,
                               tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     assert not union_type.untagged
     fields = [
@@ -37,7 +36,7 @@ def _MakeSumReplacementStruct(union_type: cwast.CanonType,
     return canonicalize.MakeDefRec(f"xtuple_{union_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
-def MakeAndRegisterSumTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):
+def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):
     """For all types directly involving tagged sums, produce a replacement type, a DefRec,
     and return the map from one the other.
 
@@ -55,7 +54,7 @@ def MakeAndRegisterSumTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.Ty
         if ct.replacement_type is not None:
             continue
         if ct.is_tagged_union():
-            rec = _MakeSumReplacementStruct(ct, tc)
+            rec = _MakeUnionReplacementStruct(ct, tc)
             mod_gen.body_mod.append(rec)
             add_replacement(ct, rec.x_type)
         elif ct.is_fun():
@@ -92,7 +91,7 @@ def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.Va
                         x_type=ct_typeid)
 
 
-def _MakeValRecForSum(sum_rec: cwast.CanonType, tag_value, union_value, srcloc):
+def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc):
     tag_field, union_field = sum_rec.ast_node.fields
     return cwast.ValRec(_MakeIdForDefRec(sum_rec, srcloc), [
         cwast.FieldVal(tag_value, "",
@@ -117,7 +116,7 @@ def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.Canon
     value.x_type = union_field.x_type
     value.type = cwast.TypeAuto(x_srcloc=srcloc, x_type=union_field.x_type)
 
-    return _MakeValRecForSum(sum_rec,
+    return _MakeValRecForUnion(sum_rec,
                              _MakeTypeidVal(
                                  value.expr.x_type.get_original_typeid(), srcloc, tag_field.x_type),
                              value,
@@ -157,7 +156,7 @@ def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) 
                                    x_value=value.x_value,
                                    x_type=dst_untagged_union_ct)
     # tag is the same as with the src but (untagged) union is narrowed
-    return _MakeValRecForSum(dst_sum_rec, src_tag, union_value, sl)
+    return _MakeValRecForUnion(dst_sum_rec, src_tag, union_value, sl)
 
 
 def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
@@ -185,7 +184,7 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.Cano
                                   x_value=value.x_value,
                                   x_type=dst_union_field.x_type)
 
-    return _MakeValRecForSum(dst_sum_rec,
+    return _MakeValRecForUnion(dst_sum_rec,
                              tag_value, union_value,
                              srcloc)
 
@@ -259,7 +258,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def ReplaceSums(node):
+def ReplaceUnions(node):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
     """

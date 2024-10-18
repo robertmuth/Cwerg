@@ -1111,12 +1111,12 @@ def main() -> int:
     #    print (key.name, " -> ", val.name)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
-            canonicalize.FunReplaceTypeOfAndTypeSumDelta(fun)  # maybe Mod...
+            canonicalize.FunReplaceTypeOfAndTypeUnionDelta(fun)  # maybe Mod...
             canonicalize.FunReplaceExprIndex(fun, tc)
             canonicalize.ReplaceConstExpr(fun)
             canonicalize.EliminateImplicitConversions(fun, tc)
             canonicalize.EliminateComparisonConversionsForTaggedUnions(fun)
-            canonicalize_span.ReplaceExplicitSliceCast(fun, tc)
+            canonicalize_span.ReplaceExplicitSpanCast(fun, tc)
 
             if not isinstance(fun, cwast.DefFun):
                 continue
@@ -1135,13 +1135,13 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprIs)
     eliminated_nodes.add(cwast.TypeOf)
     eliminated_nodes.add(cwast.TypeUnionDelta)
-    verifier.Replace(cwast.ExprNarrow, typify.CheckExprNarrowUnchecked)
+    verifier.Replace(cwast.ExprNarrow, typify._CheckExprNarrowUnchecked)
     verifier.Replace(cwast.FieldVal, typify.CheckFieldValStrict)
-    verifier.Replace(cwast.ExprCall, typify.CheckExprCallStrict)
+    verifier.Replace(cwast.ExprCall, typify._CheckExprCallStrict)
     verifier.Replace(cwast.StmtAssignment, typify.CheckStmtAssignmentStrict)
-    verifier.Replace(cwast.StmtReturn, typify.CheckStmtReturnStrict)
-    verifier.Replace(cwast.DefGlobal, typify.CheckDefVarDefGlobalStrict)
-    verifier.Replace(cwast.DefVar, typify.CheckDefVarDefGlobalStrict)
+    verifier.Replace(cwast.StmtReturn, typify._CheckStmtReturnStrict)
+    verifier.Replace(cwast.DefGlobal, typify._CheckDefVarDefGlobalStrict)
+    verifier.Replace(cwast.DefVar, typify._CheckDefVarDefGlobalStrict)
 
     SanityCheckMods("after_initial_lowering", args.emit_ir,
                     mod_topo_order, tc, verifier, eliminated_nodes)
@@ -1162,16 +1162,16 @@ def main() -> int:
     eliminated_nodes.add(cwast.Expr3)
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
-    canonicalize_span.MakeAndRegisterSliceTypeReplacements(mod_gen, tc)
+    canonicalize_span.MakeAndRegisterSpanTypeReplacements(mod_gen, tc)
     for mod in ([mod_gen] + mod_topo_order):
-        canonicalize_span.ReplaceSliceTypes(mod)
+        canonicalize_span.ReplaceSpans(mod)
     eliminated_nodes.add(cwast.ExprLen)
     eliminated_nodes.add(cwast.ValSpan)
     eliminated_nodes.add(cwast.TypeSpan)
 
-    canonicalize_union.MakeAndRegisterSumTypeReplacements(mod_gen, tc)
+    canonicalize_union.MakeAndRegisterUnionTypeReplacements(mod_gen, tc)
     for mod in ([mod_gen] + mod_topo_order):
-        canonicalize_union.ReplaceSums(mod)
+        canonicalize_union.ReplaceUnions(mod)
 
     eliminated_nodes.add(cwast.ExprUnionTag)
     eliminated_nodes.add(cwast.ExprUnionUntagged)

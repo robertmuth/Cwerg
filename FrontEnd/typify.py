@@ -319,8 +319,8 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
         dim = _ComputeArrayLength(node.size, uint_type.base_type_kind)
         return AnnotateNodeType(node, tc.insert_array_type(dim, t))
     elif isinstance(node, cwast.TypeUnion):
-        # this is tricky code to ensure that children of TypeSum
-        # are not TypeSum themselves on the canonical side
+        # this is tricky code to ensure that children of TypeUnion
+        # are not TypeUnion themselves on the canonical side
         pieces = [_TypifyNodeRecursively(
             f, tc, cwast.NO_TYPE, ctx) for f in node.types]
         return AnnotateNodeType(node, tc.insert_union_type(pieces, node.untagged))
@@ -747,7 +747,7 @@ def _CheckTypeCompatibleForAssignment(node, actual: cwast.CanonType,
                                       expected: cwast.CanonType, mutable: bool, srcloc=None):
     if not type_corpus.is_compatible(actual, expected, mutable):
         cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
-                            f"{node}: incompatible actual: {actual} expected: {expected}")
+                            f"{node}:\n incompatible actual: {actual} expected: {expected}")
 
 
 def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonType,
@@ -887,7 +887,7 @@ def _CheckExprNarrow(node: cwast.ExprNarrow, _):
             node.x_srcloc,  f"bad narrow {ct_src.original_type} -> {ct_dst}: {node.expr}")
 
 
-def CheckExprNarrowUnchecked(node: cwast.ExprNarrow, _):
+def _CheckExprNarrowUnchecked(node: cwast.ExprNarrow, _):
     ct_src: cwast.CanonType = node.expr.x_type
     ct_dst: cwast.CanonType = node.type.x_type
     if ct_src.is_tagged_union() and not node.unchecked:
@@ -895,7 +895,7 @@ def CheckExprNarrowUnchecked(node: cwast.ExprNarrow, _):
             node.x_srcloc,  f"narrow must be unchecked {ct_src.original_type} -> {ct_dst}: {node.expr}")
 
 
-def CheckExprAddrOf(node: cwast.ExprAddrOf, _):
+def _CheckExprAddrOf(node: cwast.ExprAddrOf, _):
     ct = node.x_type
     expr_ct = node.expr_lhs.x_type
     if node.mut:
@@ -908,20 +908,20 @@ def CheckExprAddrOf(node: cwast.ExprAddrOf, _):
     assert ct.is_pointer() and ct.underlying_pointer_type() == expr_ct
 
 
-def CheckExprSumUntagged(node: cwast.ExprUnionUntagged, _):
+def _CheckExprUnionUntagged(node: cwast.ExprUnionUntagged, _):
     assert node.x_type.is_untagged_union()
     assert node.expr.x_type.is_tagged_union(), f"{node.expr.x_type}"
     for c1, c2 in zip(node.x_type.union_member_types(), node.expr.x_type.union_member_types()):
         _CheckTypeSame(node, c1, c2)
 
 
-def CheckValNum(node: cwast.ValNum, _):
+def _CheckValNum(node: cwast.ValNum, _):
     ct = node.x_type
     if not ct.is_base_type() and not ct.is_enum():
         cwast.CompilerError(node.x_srcloc, f"type mismatch {node} vs {ct}")
 
 
-def CheckExprCall(node: cwast.ExprCall,  _):
+def _CheckExprCall(node: cwast.ExprCall,  _):
     fun_sig: cwast.CanonType = node.callee.x_type
     assert fun_sig.is_fun(), f"{fun_sig}"
     assert fun_sig.result_type(
@@ -931,7 +931,7 @@ def CheckExprCall(node: cwast.ExprCall,  _):
             p,  a.x_type, p, type_corpus.is_mutable_array(a), a.x_srcloc)
 
 
-def CheckExprCallStrict(node: cwast.ExprCall,  _):
+def _CheckExprCallStrict(node: cwast.ExprCall,  _):
     fun_sig: cwast.CanonType = node.callee.x_type
     assert fun_sig.is_fun(), f"{fun_sig}"
     assert fun_sig.result_type(
@@ -941,11 +941,11 @@ def CheckExprCallStrict(node: cwast.ExprCall,  _):
             p,  a.x_type, p, a.x_srcloc)
 
 
-def CheckExprIndex(node: cwast.ExprIndex, _):
+def _CheckExprIndex(node: cwast.ExprIndex, _):
     assert node.x_type is node.container.x_type.underlying_vec_or_span_type()
 
 
-def CheckExprWrap(node: cwast.ExprWrap,  _):
+def _CheckExprWrap(node: cwast.ExprWrap,  _):
     ct_node: cwast.CanonType = node.x_type
     ct_expr: cwast.CanonType = node.expr.x_type
     assert ct_node == node.type.x_type
@@ -954,7 +954,7 @@ def CheckExprWrap(node: cwast.ExprWrap,  _):
             node.x_srcloc, f"bad wrap {ct_expr} -> {ct_node}")
 
 
-def CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
+def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
     ct_node: cwast.CanonType = node.x_type
     ct_expr: cwast.CanonType = node.expr.x_type
     if ct_expr.is_enum():
@@ -966,7 +966,7 @@ def CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
         assert False
 
 
-def CheckDefFunTypeFun(node, _):
+def _CheckDefFunTypeFun(node, _):
     ct = node.x_type
     assert ct.is_fun()
     _CheckTypeSame(node.result, ct.result_type(), node.result.x_type)
@@ -975,13 +975,13 @@ def CheckDefFunTypeFun(node, _):
     # We should also ensure three is a proper return but that requires dataflow
 
 
-def CheckValSlice(node: cwast.ValSpan, _):
+def _CheckValSpan(node: cwast.ValSpan, _):
     assert node.x_type.is_mutable() == node.pointer.x_type.is_mutable()
     _CheckTypeSame(node, node.x_type.underlying_span_type(),
                    node.pointer.x_type.underlying_pointer_type())
 
 
-def CheckExprSumTag(node: cwast.ExprUnionTag, tc: type_corpus.TypeCorpus):
+def _CheckExprUnionTag(node: cwast.ExprUnionTag, tc: type_corpus.TypeCorpus):
     assert node.x_type is tc.get_typeid_canon_type()
     assert node.expr.x_type.is_tagged_union()
 
@@ -997,27 +997,27 @@ def CheckId(node: cwast.Id,  _):
     #    _CheckTypeSame(node, tc, node.x_type, def_node.x_type)
 
 
-def CheckDefRecDefEnum(node, _):
+def _CheckDefRecDefEnum(node, _):
     assert node.x_type.ast_node is node
 
 
-def CheckIsBool(node: Any, _):
+def _CheckIsBool(node: Any, _):
     assert node.x_type.is_bool()
 
 
-def CheckIsVoid(node: Any, _):
+def _CheckIsVoid(node: Any, _):
     assert node.x_type.is_void()
 
 
-def CheckIsUint(node: Any,  tc: type_corpus.TypeCorpus):
+def _CheckIsUint(node: Any,  tc: type_corpus.TypeCorpus):
     assert node.x_type is tc.get_uint_canon_type()
 
 
-def CheckIsTypeId(node: Any, tc: type_corpus.TypeCorpus):
+def _CheckIsTypeId(node: Any, tc: type_corpus.TypeCorpus):
     assert node.x_type is tc.get_typeid_canon_type()
 
 
-def CheckStmtCompoundAssignment(node: cwast.StmtCompoundAssignment,  tc: type_corpus.TypeCorpus):
+def _CheckStmtCompoundAssignment(node: cwast.StmtCompoundAssignment,  tc: type_corpus.TypeCorpus):
     if not type_corpus.is_proper_lhs(node.lhs):
         cwast.CompilerError(
             node.x_srcloc, f"cannot assign to readonly data: {node}")
@@ -1027,7 +1027,7 @@ def CheckStmtCompoundAssignment(node: cwast.StmtCompoundAssignment,  tc: type_co
     _CheckExpr2Types(node, var_ct, var_ct, expr_ct, kind, tc)
 
 
-def CheckStmtAssignment(node: cwast.StmtAssignment, _):
+def _CheckStmtAssignment(node: cwast.StmtAssignment, _):
     var_ct = node.lhs.x_type
     expr_ct = node.expr_rhs.x_type
     _CheckTypeCompatibleForAssignment(
@@ -1051,7 +1051,7 @@ def CheckStmtAssignmentStrict(node: cwast.StmtAssignment, _):
             node.x_srcloc, f"cannot assign to readonly data: {node}")
 
 
-def CheckStmtReturn(node: cwast.StmtReturn, _):
+def _CheckStmtReturn(node: cwast.StmtReturn, _):
     target = node.x_target
     actual = node.expr_ret.x_type
     if isinstance(target, cwast.DefFun):
@@ -1062,7 +1062,7 @@ def CheckStmtReturn(node: cwast.StmtReturn, _):
     _CheckTypeCompatible(node,  actual, expected)
 
 
-def CheckStmtReturnStrict(node: cwast.StmtReturn, _):
+def _CheckStmtReturnStrict(node: cwast.StmtReturn, _):
     target = node.x_target
     actual = node.expr_ret.x_type
     if isinstance(target, cwast.DefFun):
@@ -1073,11 +1073,11 @@ def CheckStmtReturnStrict(node: cwast.StmtReturn, _):
     _CheckTypeSameExceptMut(node,  actual, expected)
 
 
-def CheckStmtIfStmtCond(node, _):
+def _CheckStmtIfStmtCond(node, _):
     assert node.cond.x_type.is_bool()
 
 
-def CheckDefVarDefGlobal(node, _):
+def _CheckDefVarDefGlobal(node, _):
     initial = node.initial_or_undef_or_auto
     if not isinstance(initial, cwast.ValUndef):
         ct = node.type_or_auto.x_type
@@ -1087,7 +1087,7 @@ def CheckDefVarDefGlobal(node, _):
             initial.x_srcloc)
 
 
-def CheckDefVarDefGlobalStrict(node, _):
+def _CheckDefVarDefGlobalStrict(node, _):
     initial = node.initial_or_undef_or_auto
     if not isinstance(initial, cwast.ValUndef):
         ct = node.type_or_auto.x_type
@@ -1095,7 +1095,7 @@ def CheckDefVarDefGlobalStrict(node, _):
             node, initial.x_type, ct, initial.x_srcloc)
 
 
-def CheckNothing(_, _2):
+def _CheckNothing(_, _2):
     pass
 
 
@@ -1115,83 +1115,83 @@ class TypeVerifier:
             cwast.Expr3: CheckExpr3,
             cwast.ExprDeref: CheckExprDeref,
             cwast.ExprPointer: CheckExprPointer,
-            cwast.ExprIndex: CheckExprIndex,
+            cwast.ExprIndex: _CheckExprIndex,
             cwast.ExprField: CheckExprField,
             cwast.ExprFront: CheckExprFront,
             cwast.ExprAs: CheckExprAs,
             cwast.ExprWiden: _CheckExprWiden,
             cwast.ExprNarrow: _CheckExprNarrow,
-            cwast.ExprAddrOf: CheckExprAddrOf,
-            cwast.ExprUnionTag: CheckExprSumTag,
-            cwast.ExprUnionUntagged: CheckExprSumUntagged,
-            cwast.ExprWrap: CheckExprWrap,
-            cwast.ExprUnwrap: CheckExprUnwrap,
-            cwast.ExprCall: CheckExprCall,
+            cwast.ExprAddrOf: _CheckExprAddrOf,
+            cwast.ExprUnionTag: _CheckExprUnionTag,
+            cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
+            cwast.ExprWrap: _CheckExprWrap,
+            cwast.ExprUnwrap: _CheckExprUnwrap,
+            cwast.ExprCall: _CheckExprCall,
 
             cwast.Id: CheckId,
             #
             cwast.TypeUnion: lambda node, tc: node.x_type.is_union(),
-            cwast.TypeFun: CheckDefFunTypeFun,
+            cwast.TypeFun: _CheckDefFunTypeFun,
             #
-            cwast.DefRec: CheckDefRecDefEnum,
-            cwast.DefEnum: CheckDefRecDefEnum,
+            cwast.DefRec: _CheckDefRecDefEnum,
+            cwast.DefEnum: _CheckDefRecDefEnum,
             #
-            cwast.DefFun: CheckDefFunTypeFun,
+            cwast.DefFun: _CheckDefFunTypeFun,
             #
-            cwast.ValSpan: CheckValSlice,
+            cwast.ValSpan: _CheckValSpan,
             #
-            cwast.ValNum: CheckValNum,
+            cwast.ValNum: _CheckValNum,
             #
-            cwast.ExprIs: CheckIsBool,
-            cwast.ValTrue: CheckIsBool,
-            cwast.ValFalse: CheckIsBool,
+            cwast.ExprIs: _CheckIsBool,
+            cwast.ValTrue: _CheckIsBool,
+            cwast.ValFalse: _CheckIsBool,
             #
-            cwast.ValVoid: CheckIsVoid,
+            cwast.ValVoid: _CheckIsVoid,
             #
-            cwast.ExprTypeId: CheckIsTypeId,
+            cwast.ExprTypeId: _CheckIsTypeId,
             #
-            cwast.ExprOffsetof: CheckIsUint,
-            cwast.ExprSizeof:  CheckIsUint,
-            cwast.ExprLen: CheckIsUint,
+            cwast.ExprOffsetof: _CheckIsUint,
+            cwast.ExprSizeof:  _CheckIsUint,
+            cwast.ExprLen: _CheckIsUint,
             #
-            cwast.DefType: CheckNothing,
-            cwast.TypeBase: CheckNothing,
-            cwast.TypeSpan: CheckNothing,
-            cwast.IndexVal: CheckNothing,
-            cwast.TypeVec: CheckNothing,
-            cwast.TypeAuto: CheckNothing,
-            cwast.TypePtr: CheckNothing,
-            cwast.FunParam: CheckNothing,
-            cwast.EnumVal: CheckNothing,
-            cwast.ValAuto: CheckNothing,
-            cwast.ValString: CheckNothing,
-            cwast.ExprStmt: CheckNothing,
-            cwast.ValRec: CheckNothing,
-            cwast.RecField: CheckNothing,
-            cwast.TypeUnionDelta:  CheckNothing,
+            cwast.DefType: _CheckNothing,
+            cwast.TypeBase: _CheckNothing,
+            cwast.TypeSpan: _CheckNothing,
+            cwast.IndexVal: _CheckNothing,
+            cwast.TypeVec: _CheckNothing,
+            cwast.TypeAuto: _CheckNothing,
+            cwast.TypePtr: _CheckNothing,
+            cwast.FunParam: _CheckNothing,
+            cwast.EnumVal: _CheckNothing,
+            cwast.ValAuto: _CheckNothing,
+            cwast.ValString: _CheckNothing,
+            cwast.ExprStmt: _CheckNothing,
+            cwast.ValRec: _CheckNothing,
+            cwast.RecField: _CheckNothing,
+            cwast.TypeUnionDelta:  _CheckNothing,
             # minuned = node.type.x_type
             #  subtrahend = node.subtrahend.x_type
             # TODO: need to use original types if available
-            cwast.ExprUnsafeCast: CheckNothing,
+            cwast.ExprUnsafeCast: _CheckNothing,
             # src = node.expr.x_type
             # dst = node.type.x_type
             # TODO
             # assert is_compatible_for_as(src, dst)
-            cwast.ExprBitCast: CheckNothing,
+            cwast.ExprBitCast: _CheckNothing,
             # src = node.expr.x_type
             # dst = node.type.x_type
             # TODO
             # assert is_compatible_for_as(src, dst)
             #
             # Statements
-            cwast.StmtIf: CheckStmtIfStmtCond,
-            cwast.StmtCond: CheckStmtIfStmtCond,
-            cwast.StmtExpr:  CheckNothing,
-            cwast.StmtCompoundAssignment: CheckStmtCompoundAssignment,
-            cwast.StmtAssignment: CheckStmtAssignment,
-            cwast.StmtReturn: CheckStmtReturn,
-            cwast.DefVar: CheckDefVarDefGlobal,
-            cwast.DefGlobal: CheckDefVarDefGlobal,
+            cwast.StmtIf: _CheckStmtIfStmtCond,
+            cwast.StmtCond: _CheckStmtIfStmtCond,
+            cwast.StmtExpr:  _CheckNothing,
+            cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
+            cwast.StmtAssignment: _CheckStmtAssignment,
+            cwast.StmtReturn: _CheckStmtReturn,
+            cwast.DefVar: _CheckDefVarDefGlobal,
+            cwast.DefGlobal: _CheckDefVarDefGlobal,
             cwast.ExprParen: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
         }
 

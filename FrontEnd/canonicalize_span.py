@@ -1,4 +1,4 @@
-"""Canonicalizer For Slices
+"""Canonicalizer For Spans
 
 """
 
@@ -13,7 +13,7 @@ from FrontEnd import symbolize
 from FrontEnd import eval
 
 ############################################################
-# Convert Slices to equvalent struct
+# Convert Spans to equvalent struct
 #
 # span mut u8 -> struct {pointer ptr mut  u8, len uint}
 ############################################################
@@ -21,8 +21,8 @@ SLICE_FIELD_POINTER = "pointer"
 SLICE_FIELD_LENGTH = "length"
 
 
-def _MakeSliceReplacementStruct(span_type: cwast.CanonType,
-                                tc: type_corpus.TypeCorpus) -> cwast.DefRec:
+def _MakeSpanReplacementStruct(span_type: cwast.CanonType,
+                               tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     fields = [
         (SLICE_FIELD_POINTER, tc.insert_ptr_type(
             span_type.mut, span_type.underlying_span_type())),
@@ -31,7 +31,7 @@ def _MakeSliceReplacementStruct(span_type: cwast.CanonType,
     return canonicalize.MakeDefRec(f"xtuple_{span_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
-def MakeAndRegisterSliceTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):
+def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):
     """For all types directly involving spans, produce a replacement type
     and return the map from one the other
 
@@ -52,7 +52,7 @@ def MakeAndRegisterSliceTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
             continue
         if ct.is_span():
             # maybe add the DefRec to the module with generated code
-            rec = _MakeSliceReplacementStruct(ct, tc)
+            rec = _MakeSpanReplacementStruct(ct, tc)
             mod_gen.body_mod.append(rec)
             add_replacement(ct, rec.x_type)
         elif ct.is_fun():
@@ -74,7 +74,7 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
     return cwast.Id(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec, x_srcloc=srcloc)
 
 
-def _MakeValRecForSlice(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValRec:
+def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValRec:
     pointer_field, length_field = span_rec.ast_node.fields
     inits = [cwast.FieldVal(pointer, "",
                             x_field=pointer_field, x_type=pointer_field.x_type,
@@ -85,8 +85,8 @@ def _MakeValRecForSlice(pointer, length, span_rec: cwast.CanonType, srcloc) -> c
     return cwast.ValRec(_MakeIdForDefRec(span_rec, srcloc), inits, x_srcloc=srcloc, x_type=span_rec)
 
 
-def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                          uint_type: cwast.CanonType) -> cwast.ValSpan:
+def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
+                         uint_type: cwast.CanonType) -> cwast.ValSpan:
     p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_span_type())
     value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
         node) or isinstance(node, (cwast.ValVec, cwast.ValString)) else None
@@ -100,8 +100,8 @@ def MakeValSliceFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeC
     return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=value)
 
 
-def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
-    """Eliminate Array to Slice casts. """
+def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
+    """Eliminate Array to Span casts. """
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
     def replacer(node, _parent, _field):
@@ -110,21 +110,21 @@ def ReplaceExplicitSliceCast(node, tc: type_corpus.TypeCorpus):
             if (node.x_type != node.expr.x_type and
                 node.x_type.is_span() and
                     node.expr.x_type.is_array()):
-                return MakeValSliceFromArray(
+                return MakeValSpanFromArray(
                     node.expr, node.x_type, tc, uint_type)
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
-def ReplaceSliceTypes(node):
+def ReplaceSpans(node):
     """
     Replaces all span<X> expressions with rec named xtuple_span<X>
-    (cast to spans are eliminated by ReplaceExplicitSliceCast)
+    (cast to spans are eliminated by ReplaceExplicitSpanCast)
     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
 
     Complications:
-     TODO: see unused _ConvertMutSliceValRecToSliceValRec helper
+     TODO: see unused _ConvertMutSpanValRecToSpanValRec helper
      `span<u8> = span-mut<u8>` is ok before the change to structs but not afterwards
     """
     def replacer(node, _parent, field):
@@ -167,7 +167,7 @@ def ReplaceSliceTypes(node):
                 elif isinstance(node, cwast.TypeSpan):
                     return _MakeIdForDefRec(def_rec, node.x_srcloc)
                 elif isinstance(node, cwast.ValSpan):
-                    return _MakeValRecForSlice(node.pointer, node.expr_size, def_rec, node.x_srcloc)
+                    return _MakeValRecForSpan(node.pointer, node.expr_size, def_rec, node.x_srcloc)
                 elif isinstance(node, cwast.Id):
                     sym = node.x_symbol
                     # TODO
