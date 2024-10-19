@@ -1,10 +1,13 @@
 -- JSON Parser
--- Limit is 4GB of data
+-- Limit is 4GB of data and 527M objects where
+-- * each atom uses up one objects
+-- * each dict or vec use an additional object
+-- * each dict and vec entry use an  addition object
 module:
 
 import fmt
 
-pub type Object = union(Dict, DictEntry, Vec, VecEntry, ValStr, ValNum, void)
+pub type Object = union(Dict, DictEntry, Vec, VecEntry, Val, void)
 
 pub @wrapped type Success = void
 pub global SuccessVal = wrap_as(void, Success)
@@ -18,16 +21,25 @@ pub global DataErrorVal = wrap_as(void, DataError)
 @wrapped type Index = u32
 global Null = wrap_as(0xffffffff, Index)
 
--- numeric atom
-pub rec ValNum:
-    offset u32
-    length u32
 
--- a string atom, the leading and trailing double quotes have been stripped
-pub rec ValStr:
+pub enum ObjKind u8:
+    Invalid 0
+    Vec 1
+    Dict 2
+    Other 3
+
+
+pub enum ValKind u8:
+    Invalid 0
+    Num 1
+    Str 2
+    EscStr 3
+
+-- an atom, for strings the leading and trailing double quotes have been stripped
+pub rec Val:
     offset u32
     length u32
-    has_esc bool
+    kind ValKind
 
 pub rec Dict:
     -- next sibling
@@ -38,10 +50,8 @@ pub rec Dict:
 pub rec DictEntry:
     -- next dict entry
     next Index
-    -- value of entry
+    key Index
     val Index
-    key_offset u32
-    key_length u32
 
 pub rec Vec:
     -- next sibling
@@ -93,7 +103,7 @@ fun ReadNextObject(data span(u8), offset u32, obj ^!Object) u32:
         while end < as(len(data), u32):
             let d = data[end]
             if d == '"':
-                set obj^ = ValStr{start, end - start, seen_esc}
+                set obj^ = Val{start, end - start, seen_esc ? ValKind:EscStr : ValKind:Str}
                 return end + 1
             if d == '\\':
                 set seen_esc = true
@@ -103,14 +113,14 @@ fun ReadNextObject(data span(u8), offset u32, obj ^!Object) u32:
         -- error
         set obj^ = void
         return 0
-    -- parsing ValNum
+    -- parsinglNum
     let start = offset
     let! i = start + 1
     while i < as(len(data), u32):
         if IsEndOfNum(data[i]):
             break
         set i += 1
-    set obj^ = ValNum{start, i - start}
+    set obj^ = Val{start, i - start, ValKind:Num}
     return i
 
 fun NextNonWS(data span(u8), start u32) u32:
@@ -144,9 +154,9 @@ fun ParseVec(file ^!File, container ^!Vec, start u32) union(u32, AllocError, Dat
         trylet entry ^!Object = FileAllocObject(file), err :
             return err
         set entry^ = VecEntry{Null, Null ,n}
-        trylet obj ^!Object = FileAllocObject(file), err :
+        trylet val ^!Object = FileAllocObject(file), err :
             return err
-        tryset i = ParseNextRecursively(file, i, obj), err:
+        tryset i = ParseNextRecursively(file, i, val), err:
             return err
         set n += 1
     return 0_u32
@@ -159,12 +169,12 @@ fun ParseNextRecursively(file ^!File, start u32, obj ^!Object) union(u32, AllocE
             return DataErrorVal
         case is(obj^, Vec):
             return ParseVec(file, bitwise_as(obj, ^!Vec), i)
-        case is(obj^, ValStr) || is(obj^, ValNum):
+        case is(obj^, Val):
             fmt::print#("string or num seen\n")
             return i
     return DataErrorVal
 
-pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
+pub fun Parse(file ^!File) union(Success, AllocError, DataError):
     fmt::print#("FileParse\n")
     -- skip initial ws
     let! i = 0_u32
@@ -183,6 +193,7 @@ pub fun FileParse(file ^!File) union(Success, AllocError, DataError):
         -- garbage at end of file
         return DataErrorVal
     return SuccessVal
+
 
 enum State u8:
     invalid auto
@@ -207,14 +218,15 @@ pub fun NumJsonObjectsNeeded(raw span(u8)) u32:
                 set state = State:in_string
             case state == State:in_number:
                 if c == ':':
-                    set n -= 2
+                    -- probably impossible as numbers are not allowed as keys
+                    set n -= 1
                     set state = State:between_tokens
                 if c == ' ' || c == ']' || c == '}' || c == ',' || c == '\n':
                     set state = State:between_tokens
             -- from here on we can assume that state == State:between_tokens
             case IsEndOfNum(c):
                 if c == ':':
-                    set n -= 2
+                    set n -= 1
                 continue
             case c == '[' ||  c == '{':
                 set n += n == 0 ? 1 : 2
