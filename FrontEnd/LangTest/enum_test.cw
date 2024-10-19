@@ -28,7 +28,7 @@ global! g2 = enum16:e2
 global! g3 = enum32:e3
 
 pub rec rec1:
-    -- this is a comment with \" with quotes \t 
+    -- this is a comment with \" with quotes \t
     f1 s32
     f2 s32
     f3 s32
@@ -67,6 +67,10 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(gr1.f5, enum8:e3)
     test::AssertEq#(gr1.f6, enum16:e4)
     test::AssertEq#(gr1.f7, enum32:e1)
+    --
+    set g1 = enum8:e1
+    test::AssertEq#(unwrap(g1), 7_u8)
+    test::AssertEq#(g1, wrap_as(7_u8, enum8))
     -- test end
     test::Success#()
     return 0

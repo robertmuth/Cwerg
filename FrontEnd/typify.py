@@ -629,11 +629,15 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprWrap):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        assert ct.is_wrapped(), f"Expected wrapped type in {
+        assert ct.is_wrapped() or ct.is_enum(), f"Expected wrapped type in {
             node} {node.x_srcloc}"
-        _TypifyNodeRecursively(
-            node.expr, tc, ct.underlying_wrapped_type(), ctx)
+        if ct.is_enum():
+            expr_ct = tc.get_base_canon_type(ct.base_type_kind)
+        else:
+            expr_ct = ct.underlying_wrapped_type()
+        _TypifyNodeRecursively(node.expr, tc, expr_ct, ctx)
         return AnnotateNodeType(node, ct)
+
     elif isinstance(node, cwast.ExprUnwrap):
         ct = _TypifyNodeRecursively(node.expr, tc, cwast.NO_TYPE, ctx)
         if ct.is_wrapped():
