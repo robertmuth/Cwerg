@@ -29,11 +29,12 @@ def AnnotateNodeSymbol(id_node, def_node):
     id_node.x_symbol = def_node
 
 
-def _resolve_enum_item(node: cwast.DefEnum, entry_name) -> cwast.EnumVal:
+def _resolve_enum_item(node: cwast.DefEnum, entry_name, srcloc) -> cwast.EnumVal:
     for item in node.items:
         if isinstance(item, cwast.EnumVal) and item.name == entry_name:
             return item
-    assert False, f"unknown enum [{entry_name}] for [{node.name}]"
+    cwast.CompilerError(srcloc,
+                        f"unknown enum [{entry_name}] for [{node.name}]")
 
 
 class SymTab:
@@ -95,7 +96,7 @@ class SymTab:
                 assert isinstance(s, cwast.DefEnum)
                 if must_be_public:
                     assert s.pub, f"{name} must be public"
-                return _resolve_enum_item(s, entry_name)
+                return _resolve_enum_item(s, entry_name, ident.x_srcloc)
             cwast.CompilerError(
                 ident.x_srcloc, f"could not resolve enum base-name [{enum_name}]")
 
