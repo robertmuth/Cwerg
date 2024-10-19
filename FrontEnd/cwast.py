@@ -847,6 +847,7 @@ def align(x, a):
 @dataclasses.dataclass()
 class CanonType:
     """Canonical Type"""
+    # type of node, e.g. DefRec, TypeBase, TypeUnion, TypeSpan, etc.
     node: Any
     name: str
     #
@@ -995,7 +996,7 @@ class CanonType:
 
     def get_single_register_type(self) -> str:
         reg_type = self.register_types
-        assert reg_type is not None and len(reg_type) == 1
+        assert reg_type is not None and len(reg_type) == 1, f"{self} {reg_type}"
         return reg_type[0]
 
     def get_original_typeid(self):
@@ -2123,8 +2124,8 @@ class ExprBitCast:
 
     s32,u32,f32 <-> s32,u32,f32
     s64,u64, f64 <-> s64,u64, f64
-    sint, uint <-> ptr
-
+    sint, uint <-> ptr(x)
+    ptr(a) <-> ptr(b)
     It is also ok to bitcase complex objects like recs
     """
     ALIAS = "bitwise_as"
