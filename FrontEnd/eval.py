@@ -249,6 +249,26 @@ _BASE_TYPE_TO_DEFAULT = {
     cwast.BASE_TYPE_KIND.BOOL: False,
 }
 
+def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
+    if ct.is_base_type():
+        return _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
+    elif ct.is_wrapped():
+        return _GetDefaultForType(ct.underlying_wrapped_type(), srcloc)
+    elif ct.is_span():
+        return []  # null span
+    elif ct.is_pointer():
+        cwast.CompilerError(srcloc, f"ptr field  {ct} must be initialized")
+    elif ct.is_rec():
+        out = {}
+        for field in ct.ast_node.fields:
+            out[field.name] = _GetDefaultForType(field.x_type, srcloc)
+        return out
+    elif ct.is_array():
+        dim = ct.array_dim()
+        v = _GetDefaultForType(ct.underlying_array_type(), srcloc)
+        return [v] * dim
+    else:
+        assert False, f"{ct} {srcloc}"
 
 def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]:
     rec: dict[str, Any] = {}
@@ -257,20 +277,7 @@ def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]
         # print ("    ", field)
         ct: cwast.CanonType = field.x_type
         if init is None:
-            if ct.is_base_type():
-                rec[field.name] = _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
-            elif ct.is_span():
-                rec[field.name] = []  # null span
-            elif ct.is_pointer():
-                cwast.CompilerError(
-                    srcloc, f"ptr field {field.name} must be initialized")
-            elif ct.is_rec():
-                rec[field.name] = _EvalValRec(ct, [], srcloc)
-            elif ct.is_array():
-                # TODO:
-                pass
-            else:
-                assert False, f"{ct}"
+            rec[field.name] = _GetDefaultForType(ct, srcloc)
         else:
             assert isinstance(init, cwast.FieldVal), f"{init}"
             if init.x_value is None:
