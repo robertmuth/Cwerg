@@ -6,10 +6,10 @@ import test
 
 global test_empty = ""
 
-global test_leaf_num = """ 0 """
-global test_leaf_bool = """ false """
-global test_leaf_str = """ "str" """
-global test_leaf_str_esc = """ "str\"" """
+global test_val_num = """ 0 """
+global test_val_bool = """ false """
+global test_val_str = """ "str" """
+global test_val_str_esc = """ "str\"" """
 
 
 global test_vec_simple = """[100, 500, 300, 200, 400 ]"""
@@ -78,9 +78,9 @@ global test6 = """
 
 
 fun test_counter() void:
-    test::AssertEq#(jp::NumJsonObjectsNeeded(test_leaf_bool), 1_u32)
-    test::AssertEq#(jp::NumJsonObjectsNeeded(test_leaf_num), 1_u32)
-    test::AssertEq#(jp::NumJsonObjectsNeeded(test_leaf_str), 1_u32)
+    test::AssertEq#(jp::NumJsonObjectsNeeded(test_val_bool), 1_u32)
+    test::AssertEq#(jp::NumJsonObjectsNeeded(test_val_num), 1_u32)
+    test::AssertEq#(jp::NumJsonObjectsNeeded(test_val_str), 1_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test1), 4_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test2), 10_u32)
     test::AssertEq#(jp::NumJsonObjectsNeeded(test_vec_simple), 11_u32)
@@ -89,36 +89,35 @@ fun test_counter() void:
     test::AssertEq#(jp::NumJsonObjectsNeeded(test6), 103_u32)
 
 fun test_parser() void:
-    let! objects = [200]jp::Object{void}
+    let! objects = [200]jp::Object{}
     @ref let! file jp::File
     --
     set file = jp::File{test_empty, objects}
     test::AssertIs#(jp::Parse(&!file), jp::DataError)
     --
-    set file = jp::File{test_leaf_num, objects}
+    set file = jp::File{test_val_num, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
-                    jp::NumJsonObjectsNeeded(test_leaf_num))
-    test::AssertIs#(file.objects[0], jp::Val)
+                    jp::NumJsonObjectsNeeded(test_val_num))
+    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Val)
     --
-    set file = jp::File{test_leaf_bool, objects}
+    set file = jp::File{test_val_bool, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
-                   jp::NumJsonObjectsNeeded(test_leaf_bool))
-    test::AssertIs#(file.objects[0], jp::Val)
+                   jp::NumJsonObjectsNeeded(test_val_bool))
+    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Val)
     --
-    set file = jp::File{test_leaf_str, objects}
+    set file = jp::File{test_val_str, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
-                    jp::NumJsonObjectsNeeded(test_leaf_str))
-    test::AssertIs#(file.objects[0], jp::Val)
-
+                    jp::NumJsonObjectsNeeded(test_val_str))
+    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Val)
     --
     set file = jp::File{test_vec_simple, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_vec_simple))
-    test::AssertIs#(file.objects[0], jp::Vec)
+    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Vec)
 
 fun main(argc s32, argv ^^u8) s32:
     do test_counter()

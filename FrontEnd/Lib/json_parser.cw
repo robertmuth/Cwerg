@@ -1,5 +1,5 @@
 -- JSON Parser
--- Limit is 4GB of data and 527M objects where
+-- Limit is 4GB of data and 1B objects where
 -- * each atom uses up one objects
 -- * each dict or vec use an additional object
 -- * each dict and vec entry use an  addition object
@@ -7,7 +7,7 @@ module:
 
 import fmt
 
-pub type Object = union(Dict, DictEntry, Vec, VecEntry, Val, void)
+pub type Object = @untagged union(Dict, DictEntry, Vec, VecEntry, Val)
 
 pub @wrapped type Success = void
 pub global SuccessVal = wrap_as(void, Success)
@@ -18,16 +18,23 @@ pub global AllocErrorVal = wrap_as(void, AllocError)
 pub @wrapped type DataError = void
 pub global DataErrorVal = wrap_as(void, DataError)
 
-@wrapped type Index = u32
-global Null = wrap_as(0xffffffff, Index)
 
-
-pub enum ObjKind u8:
+pub enum ObjKind u32:
     Invalid 0
     Vec 1
     Dict 2
-    Other 3
+    Val 3
 
+@wrapped type Index = u32
+global Null = wrap_as(0, Index)
+
+fun MakeIndex(index u32, kind ObjKind) Index:
+    if index >= 1_u32 << 30:
+        trap
+    return wrap_as(unwrap(kind) << 30 or index, Index)
+
+pub fun IndexKind(index Index) ObjKind:
+    return wrap_as(unwrap(index) >> 30, ObjKind)
 
 pub enum ValKind u8:
     Invalid 0
@@ -72,124 +79,122 @@ pub rec File:
     data span(u8)
     -- objects[0] will contain the root of the tree after parsing
     objects span!(Object)
+    root Index
+    --
     used_objects u32
-
-
-fun FileAllocObject(file ^!File) union(AllocError, ^!Object):
-    fmt::print#("alloc obj\n")
-    if file^.used_objects < as(len(file^.objects), u32):
-        set file^.used_objects += 1
-        return &!file^.objects[file^.used_objects - 1]
-    return AllocErrorVal
-
-global ERROR = 0_u32
+    -- index into  `data`. Only used during parsing
+    next_byte u32
 
 
 fun IsEndOfNum(c u8) bool:
     return c == ' ' || c == ']' || c == '}' || c == ',' || c == '\n' || c == ':'
 
-fun ReadNextObject(data span(u8), offset u32, obj ^!Object) u32:
-    let c = data[offset]
-    if c == '[':
-        set obj^ = Vec{Null, Null, 0}
-        return offset + 1
-    if c == '{':
-        set obj^ = Dict{Null, Null}
-        return offset + 1
-    if c == '"':
-        let start = offset + 1
+
+fun AllocObj(file ^!File) union(u32, AllocError):
+    if file^.used_objects == as(len(file^.objects), u32):
+        return AllocErrorVal
+    let index = file^.used_objects
+    set file^.used_objects += 1
+    return index
+
+fun ParseVal(file ^!File) union(Index, AllocError, DataError):
+    fmt::print#("ParseVal ", file^.next_byte, "\n")
+    trylet index u32 = AllocObj(file), err:
+        return err
+
+    let! start = file^.next_byte
+    let length = as(len(file^.data), u32)
+    if file^.data[start] == '"':
+        -- parsing Str or EscStr
+        set start += 1
         let! end = start
         let! seen_esc = false
-        while end < as(len(data), u32):
-            let d = data[end]
+        while end < length:
+            let d = file^.data[end]
             if d == '"':
-                set obj^ = Val{start, end - start, seen_esc ? ValKind:EscStr : ValKind:Str}
-                return end + 1
+                set file^.objects[index] = Val{start, end - start, seen_esc ? ValKind:EscStr : ValKind:Str}
+                set file^.next_byte = end + 1
+                return MakeIndex(index, ObjKind:Val)
             if d == '\\':
                 set seen_esc = true
                 set end += 2
                 continue
             set end += 1
-        -- error
-        set obj^ = void
-        return 0
+        -- string was not terminated
+        return DataErrorVal
     -- parsinglNum
-    let start = offset
-    let! i = start + 1
-    while i < as(len(data), u32):
-        if IsEndOfNum(data[i]):
+    let! end = start + 1
+    while end < length:
+        if IsEndOfNum(file^.data[end]):
             break
-        set i += 1
-    set obj^ = Val{start, i - start, ValKind:Num}
-    return i
+        set end += 1
+    set file^.objects[index] = Val{start, end - start, ValKind:Num}
+    set file^.next_byte = end
+    return MakeIndex(index, ObjKind:Val)
 
-fun NextNonWS(data span(u8), start u32) u32:
-    let! i = start
-    while i < as(len(data), u32):
-        let c = data[i]
+fun SkipWS(file ^!File) bool:
+    let! i = file^.next_byte
+    let end = as(len(file^.data), u32)
+    while i < end:
+        let c = file^.data[i]
         if c != ' ' && c != '\n':
             break
         set i += 1
-    return i
+    set file^.next_byte = i
+    return i >= end
 
-fun ParseVec(file ^!File, container ^!Vec, start u32) union(u32, AllocError, DataError):
-    fmt::print#("ParseVec ",  start, "\n")
-    let! i = start
+fun ParseVec(file ^!File) union(Index, AllocError, DataError):
+    fmt::print#("ParseVec ",  file^.next_byte, "\n")
+    trylet container u32 = AllocObj(file), err:
+        return err
     let! n = 0_u32
     while true:
-        set i = NextNonWS(file^.data, i)
-        fmt::print#("ParseVec Loop ", n, " ", i, "\n")
-        if i >= as(len(file^.data), u32):
+        fmt::print#("ParseVec Loop ", file^.next_byte, " round=", n, "\n")
+        if  SkipWS(file):
+        -- corrupted
             return DataErrorVal
-        let c = file^.data[i]
+        let c = file^.data[file^.next_byte]
+        set file^.next_byte += 1
         if c == ']':
-            fmt::print#("ParseVec End ",  i, "\n")
-            set i += 1
-            set container^.length = n
-            return i
+            fmt::print#("ParseVec End ",  file^.next_byte, "\n")
+            -- set container^.length = n
+            return MakeIndex(container, ObjKind:Vec)
         if n != 0:
             if c != ',':
+                fmt::print#("missing comma\n")
                 return DataErrorVal
-            set i = NextNonWS(file^.data, i + 1)
-        trylet entry ^!Object = FileAllocObject(file), err :
+            if SkipWS(file):
+                return DataErrorVal
+        trylet entry u32 = AllocObj(file), err:
             return err
-        set entry^ = VecEntry{Null, Null ,n}
-        trylet val ^!Object = FileAllocObject(file), err :
-            return err
-        tryset i = ParseNextRecursively(file, i, val), err:
+        trylet val Index = ParseNext(file), err:
             return err
         set n += 1
-    return 0_u32
+    -- unreachable
+    trap
 
-fun ParseNextRecursively(file ^!File, start u32, obj ^!Object) union(u32, AllocError, DataError):
-    fmt::print#("ParseNextRecursively ",  start, "\n")
-    let! i = ReadNextObject(file^.data, start, obj)
-    cond:
-        case is(obj^, Dict):
-            return DataErrorVal
-        case is(obj^, Vec):
-            return ParseVec(file, bitwise_as(obj, ^!Vec), i)
-        case is(obj^, Val):
-            fmt::print#("string or num seen\n")
-            return i
-    return DataErrorVal
+-- assumes the next char is valid and not a WS
+fun ParseNext(file ^!File) union(Index, AllocError, DataError):
+    fmt::print#("ParseNext ", file^.next_byte, "\n")
+    let c = file^.data[file^.next_byte]
+    if c == '{':
+        -- not yet supported
+        return DataErrorVal
+    if c == '[':
+        set file^.next_byte += 1
+        return ParseVec(file)
+    return ParseVal(file)
+
 
 pub fun Parse(file ^!File) union(Success, AllocError, DataError):
-    fmt::print#("FileParse\n")
-    -- skip initial ws
-    let! i = 0_u32
-    set i = NextNonWS(file^.data, i)
-    if i >= as(len(file^.data), u32):
+    fmt::print#("Parse ",  file^.next_byte,"\n")
+    if SkipWS(file):
         -- empty json is an error for now
         return DataErrorVal
-    trylet obj ^!Object = FileAllocObject(file), err :
+    tryset file^.root = ParseNext(file), err:
         return err
-    tryset i = ParseNextRecursively(file, i, obj), err:
-        return err
-    fmt::print#("FileParse End ", i, "\n")
-    -- there should only be ws left
-    set i = NextNonWS(file^.data, i)
-    if i != as(len(file^.data), u32):
+    fmt::print#("Parse End ",  file^.next_byte, "\n")
+    if !SkipWS(file):
         -- garbage at end of file
         return DataErrorVal
     return SuccessVal
