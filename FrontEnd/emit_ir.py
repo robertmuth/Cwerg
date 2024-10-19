@@ -1118,7 +1118,7 @@ def main() -> int:
             canonicalize.FunReplaceTypeOfAndTypeUnionDelta(fun)  # maybe Mod...
             canonicalize.FunReplaceExprIndex(fun, tc)
             canonicalize.ReplaceConstExpr(fun)
-            canonicalize.EliminateImplicitConversions(fun, tc)
+            canonicalize.MakeImplicitConversionsExplicit(fun, tc)
             canonicalize.EliminateComparisonConversionsForTaggedUnions(fun)
             canonicalize_span.ReplaceExplicitSpanCast(fun, tc)
 
