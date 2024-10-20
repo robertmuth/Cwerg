@@ -87,8 +87,28 @@ pub rec File:
 
 
 fun IsEndOfNum(c u8) bool:
-    return c == ' ' || c == ']' || c == '}' || c == ',' || c == '\n' || c == ':'
+    return c == ' ' || c == ']' || c == '}' || c == ',' ||
+           c == '\n' || c == ':' || c == '\t'
 
+
+fun MaybeConsume(file ^!File, c u8) bool:
+    let! i = file^.next_byte
+    if i < as(len(file^.data), u32):
+        if c == file^.data[i]:
+            set file^.next_byte += 1
+            return true
+    return false
+
+fun SkipWS(file ^!File) bool:
+    let! i = file^.next_byte
+    let end = as(len(file^.data), u32)
+    while i < end:
+        let c = file^.data[i]
+        if c != ' ' && c != '\n' && c != '\t':
+            break
+        set i += 1
+    set file^.next_byte = i
+    return i >= end
 
 fun AllocObj(file ^!File) union(u32, AllocError):
     if file^.used_objects == as(len(file^.objects), u32):
@@ -98,7 +118,7 @@ fun AllocObj(file ^!File) union(u32, AllocError):
     return index
 
 fun ParseVal(file ^!File) union(Index, AllocError, DataError):
-    fmt::print#("ParseVal ", file^.next_byte, "\n")
+    -- fmt::print#("ParseVal ", file^.next_byte, "\n")
     trylet index u32 = AllocObj(file), err:
         return err
 
@@ -114,6 +134,7 @@ fun ParseVal(file ^!File) union(Index, AllocError, DataError):
             if d == '"':
                 set file^.objects[index] = Val{start, end - start, seen_esc ? ValKind:EscStr : ValKind:Str}
                 set file^.next_byte = end + 1
+                -- fmt::print#("ParseVal End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
                 return MakeIndex(index, ObjKind:Val)
             if d == '\\':
                 set seen_esc = true
@@ -129,41 +150,31 @@ fun ParseVal(file ^!File) union(Index, AllocError, DataError):
             break
         set end += 1
     set file^.objects[index] = Val{start, end - start, ValKind:Num}
+    -- fmt::print#("ParseVal End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
     set file^.next_byte = end
     return MakeIndex(index, ObjKind:Val)
 
-fun SkipWS(file ^!File) bool:
-    let! i = file^.next_byte
-    let end = as(len(file^.data), u32)
-    while i < end:
-        let c = file^.data[i]
-        if c != ' ' && c != '\n':
-            break
-        set i += 1
-    set file^.next_byte = i
-    return i >= end
+
 
 fun ParseVec(file ^!File) union(Index, AllocError, DataError):
-    fmt::print#("ParseVec ", file^.next_byte, "\n")
+    -- fmt::print#("ParseVec ", file^.next_byte, "\n")
     trylet container u32 = AllocObj(file), err:
         return err
     let! first_entry = NullIndex
     let! last_entry = NullIndex
     let! n = 0_u32
     while true:
-        fmt::print#("ParseVec Loop ", file^.next_byte, " round=", n, "\n")
+        -- fmt::print#("ParseVec Loop ", file^.next_byte, " round=", n, "\n")
         if  SkipWS(file):
         -- corrupted
             return DataErrorVal
-        let c = file^.data[file^.next_byte]
-        set file^.next_byte += 1
-        if c == ']':
-            fmt::print#("ParseVec End ", file^.next_byte, "\n")
+        if MaybeConsume(file, ']'):
+            -- fmt::print#("ParseVec End ", file^.next_byte, "\n")
             set file^.objects[container] = Vec{NullIndex, first_entry, n}
             return MakeIndex(container, ObjKind:Vec)
         if n != 0:
-            if c != ',':
-                fmt::print#("missing comma\n")
+            if !MaybeConsume(file, ','):
+                -- fmt::print#("missing comma\n")
                 return DataErrorVal
             if SkipWS(file):
                 return DataErrorVal
@@ -179,24 +190,23 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
     trap
 
 fun ParseDict(file ^!File) union(Index, AllocError, DataError):
-    fmt::print#("ParseDict ", file^.next_byte, "\n")
+    -- fmt::print#("ParseDict ", file^.next_byte, "\n")
     trylet container u32 = AllocObj(file), err:
         return err
     let! first_entry = NullIndex
     let! last_entry = NullIndex
     let! n = 0_u32
     while true:
-        fmt::print#("ParseDict Loop ", file^.next_byte, " round=", n, "\n")
+        -- fmt::print#("ParseDict Loop ", file^.next_byte, " round=", n, "\n")
         if SkipWS(file):
             return DataErrorVal
-        let c = file^.data[file^.next_byte]
-        set file^.next_byte += 1
-        if c == '}':
-            fmt::print#("ParseDict End ", file^.next_byte, "\n")
+        if MaybeConsume(file, '}'):
+            -- fmt::print#("ParseDict End ", file^.next_byte, "\n")
             set file^.objects[container] = Dict{NullIndex, first_entry}
             return MakeIndex(container, ObjKind:Dict)
         if n != 0:
-            if c != ',':
+            if !MaybeConsume(file, ','):
+                -- fmt::print#("missing comma\n")
                 return DataErrorVal
             if SkipWS(file):
                 return DataErrorVal
@@ -206,9 +216,8 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             return err
         if SkipWS(file):
             return DataErrorVal
-        let colon = file^.data[file^.next_byte]
-        set file^.next_byte += 1
-        if colon != ':':
+        if !MaybeConsume(file, ':'):
+            -- fmt::print#("missing colon\n")
             return DataErrorVal
         if SkipWS(file):
             return DataErrorVal
@@ -222,7 +231,7 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
 
 -- assumes the next char is valid and not a WS
 fun ParseNext(file ^!File) union(Index, AllocError, DataError):
-    fmt::print#("ParseNext ", file^.next_byte, "\n")
+    -- fmt::print#("ParseNext ", file^.next_byte, "\n")
     let c = file^.data[file^.next_byte]
     if c == '{':
         set file^.next_byte += 1
@@ -234,13 +243,13 @@ fun ParseNext(file ^!File) union(Index, AllocError, DataError):
 
 
 pub fun Parse(file ^!File) union(Success, AllocError, DataError):
-    fmt::print#("Parse ",  file^.next_byte,"\n")
+    -- fmt::print#("Parse ",  file^.next_byte,"\n")
     if SkipWS(file):
         -- empty json is an error for now
         return DataErrorVal
     tryset file^.root = ParseNext(file), err:
         return err
-    fmt::print#("Parse End ",  file^.next_byte, "\n")
+    -- fmt::print#("Parse End ",  file^.next_byte, "\n")
     if !SkipWS(file):
         -- garbage at end of file
         return DataErrorVal
