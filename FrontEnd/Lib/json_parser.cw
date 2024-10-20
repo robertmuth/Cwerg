@@ -2,12 +2,15 @@
 -- Limit is 4GB of data and 1B objects where
 -- * each atom uses up one objects
 -- * each dict or vec use an additional object
--- * each dict and vec entry use an  addition object
+-- * each dict and vec entry use an additional object
+--
+-- This is very barebones parser that does not do any
+-- massaging of the data.
 module:
 
 import fmt
 
-pub type Object = @untagged union(Cont, Entry, Atom)
+pub type Object = @untagged union(Cont, Item, Atom)
 
 pub @wrapped type Success = void
 pub global SuccessVal = wrap_as(void, Success)
@@ -22,7 +25,7 @@ pub global DataErrorVal = wrap_as(void, DataError)
 pub enum ObjKind u32:
     Invalid 0
     Cont 1
-    Entry 2
+    Item 2
     Atom 3
 
 @wrapped type Index = u32
@@ -67,12 +70,19 @@ pub rec Cont:
     first Index
     kind ContKind
 
-pub rec Entry:
+-- Items make up the contents of Cont
+pub rec Item:
     -- next entry inside Cont
     next Index
     -- key is not used for Vecs
     key Index
     val Index
+
+pub fun ItemGetNext(file ^File, item Index) Index:
+    if IndexGetKind(item) != ObjKind:Item:
+        trap
+    let ptr = bitwise_as(&file^.objects[IndexGetValue(item)], ^Item)
+    return ptr^.next
 
 pub rec File:
     -- the raw json data - must out-live the `file` rec
@@ -86,12 +96,25 @@ pub rec File:
     -- index into  `data`. Only used during parsing
     next_byte u32
 
-pub fun ContGetKind(file ^File, index Index)  ContKind:
+pub fun ContGetKind(file ^File, index Index) ContKind:
     if IndexGetKind(index) != ObjKind:Cont:
         trap
     let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Cont)
     return ptr^.kind
 
+pub fun ContGetFirst(file ^File, cont Index) Index:
+    if IndexGetKind(cont) != ObjKind:Cont:
+        trap
+    let ptr = bitwise_as(&file^.objects[IndexGetValue(cont)], ^Cont)
+    return ptr^.first
+
+pub fun ContGetSize(file ^File, cont Index) u32:
+    let! out = 0_u32
+    let! index = ContGetFirst(file, cont)
+    while index != NullIndex:
+        set index = ItemGetNext(file, index)
+        set out += 1
+    return out
 
 fun IsEndOfNum(c u8) bool:
     return c == ' ' || c == ']' || c == '}' || c == ',' ||
@@ -177,9 +200,11 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
             return DataErrorVal
         if MaybeConsume(file, ']'):
             -- fmt::print#("ParseVec End ", file^.next_byte, "\n")
-            if n != 0:
-                set file^.objects[last_entry] = Entry{NullIndex, NullIndex, last_val}
-            return MakeIndex(first_entry, ObjKind:Entry)
+            if n == 0:
+                return NullIndex
+            else:
+                set file^.objects[last_entry] = Item{NullIndex, NullIndex, last_val}
+                return MakeIndex(first_entry, ObjKind:Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
                 -- fmt::print#("comma corruption\n")
@@ -192,7 +217,7 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
             set first_entry = entry
         else:
             -- now that we know the next pointer, finalize the previous entry
-            set file^.objects[last_entry] = Entry{MakeIndex(entry, ObjKind:Entry), NullIndex, last_val}
+            set file^.objects[last_entry] = Item{MakeIndex(entry, ObjKind:Item), NullIndex, last_val}
         set last_entry = entry
         set last_val = val
         set n += 1
@@ -213,9 +238,11 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             return DataErrorVal
         if MaybeConsume(file, '}'):
             -- fmt::print#("ParseDict End ", file^.next_byte, "\n")
-            if n != 0:
-                set file^.objects[last_entry] = Entry{NullIndex, last_key, last_val}
-            return MakeIndex(first_entry, ObjKind:Entry)
+            if n == 0:
+                return NullIndex
+            else:
+                set file^.objects[last_entry] = Item{NullIndex, last_key, last_val}
+                return MakeIndex(first_entry, ObjKind:Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
                 -- fmt::print#("comma corruption\n")
@@ -233,7 +260,7 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             set first_entry = entry
         else:
             -- now that we know the next pointer, finalize the previous entry
-            set file^.objects[last_entry] = Entry{MakeIndex(entry, ObjKind:Entry), last_key, last_val}
+            set file^.objects[last_entry] = Item{MakeIndex(entry, ObjKind:Item), last_key, last_val}
         set last_entry = entry
         set last_key = key
         set last_val = val
