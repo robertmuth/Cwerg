@@ -98,7 +98,7 @@ fun AllocObj(file ^!File) union(u32, AllocError):
     return index
 
 fun ParseVal(file ^!File) union(Index, AllocError, DataError):
-    -- fmt::print#("ParseVal ", file^.next_byte, "\n")
+    fmt::print#("ParseVal ", file^.next_byte, "\n")
     trylet index u32 = AllocObj(file), err:
         return err
 
