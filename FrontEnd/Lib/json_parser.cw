@@ -7,7 +7,7 @@ module:
 
 import fmt
 
-pub type Object = @untagged union(Cont, Entry, Val)
+pub type Object = @untagged union(Cont, Entry, Atom)
 
 pub @wrapped type Success = void
 pub global SuccessVal = wrap_as(void, Success)
@@ -23,7 +23,7 @@ pub enum ObjKind u32:
     Invalid 0
     Cont 1
     Entry 2
-    Val 3
+    Atom 3
 
 @wrapped type Index = u32
 global NullIndex = wrap_as(0, Index)
@@ -37,19 +37,25 @@ pub fun IndexGetKind(index Index) ObjKind:
     return wrap_as(unwrap(index) >> 30, ObjKind)
 
 fun IndexGetValue(index Index) u32:
-    return unwrap(index) and ((1_u32 << 31) - 1)
+    return unwrap(index) and ((1_u32 << 30) - 1)
 
-pub enum ValKind u8:
+pub enum AtomKind u8:
     Invalid 0
     Num 1
     Str 2
     EscStr 3
 
 -- an atom, for strings the leading and trailing double quotes have been stripped
-pub rec Val:
+pub rec Atom:
     offset u32
     length u32
-    kind ValKind
+    kind AtomKind
+
+pub fun AtomGetKind(file ^File, index Index)  AtomKind:
+    if IndexGetKind(index) != ObjKind:Atom:
+        trap
+    let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Atom)
+    return ptr^.kind
 
 pub enum ContKind u8:
     Invalid 0
@@ -118,8 +124,8 @@ fun AllocObj(file ^!File) union(u32, AllocError):
     set file^.used_objects += 1
     return index
 
-fun ParseVal(file ^!File) union(Index, AllocError, DataError):
-    -- fmt::print#("ParseVal ", file^.next_byte, "\n")
+fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
+    -- fmt::print#("ParseAtom ", file^.next_byte, "\n")
     trylet index u32 = AllocObj(file), err:
         return err
 
@@ -133,10 +139,10 @@ fun ParseVal(file ^!File) union(Index, AllocError, DataError):
         while end < length:
             let d = file^.data[end]
             if d == '"':
-                set file^.objects[index] = Val{start, end - start, seen_esc ? ValKind:EscStr : ValKind:Str}
+                set file^.objects[index] = Atom{start, end - start, seen_esc ? AtomKind:EscStr : AtomKind:Str}
                 set file^.next_byte = end + 1
-                -- fmt::print#("ParseVal End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
-                return MakeIndex(index, ObjKind:Val)
+                -- fmt::print#("ParseAtom End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
+                return MakeIndex(index, ObjKind:Atom)
             if d == '\\':
                 set seen_esc = true
                 set end += 2
@@ -150,10 +156,10 @@ fun ParseVal(file ^!File) union(Index, AllocError, DataError):
         if IsEndOfNum(file^.data[end]):
             break
         set end += 1
-    set file^.objects[index] = Val{start, end - start, ValKind:Num}
-    -- fmt::print#("ParseVal End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
+    set file^.objects[index] = Atom{start, end - start, AtomKind:Num}
+    -- fmt::print#("ParseAtom End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
     set file^.next_byte = end
-    return MakeIndex(index, ObjKind:Val)
+    return MakeIndex(index, ObjKind:Atom)
 
 
 
@@ -252,7 +258,7 @@ fun ParseNext(file ^!File) union(Index, AllocError, DataError):
             return err
         set file^.objects[container] = Cont{first, ContKind:Vec}
         return MakeIndex(container, ObjKind:Cont)
-    return ParseVal(file)
+    return ParseAtom(file)
 
 
 pub fun Parse(file ^!File) union(Success, AllocError, DataError):
