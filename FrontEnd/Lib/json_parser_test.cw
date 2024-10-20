@@ -104,19 +104,19 @@ fun test_parser() void:
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_val_num))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Val)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Val)
     --
     set file = jp::File{test_val_bool, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                    jp::NumJsonObjectsNeeded(test_val_bool))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Val)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Val)
     --
     set file = jp::File{test_val_str, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_val_str))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Val)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Val)
     --
     --
     --
@@ -124,19 +124,23 @@ fun test_parser() void:
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_vec_empty))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Vec)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+    -- test::AssertEq#(jp::ContGetKind(&file, file.root), jp::ContKind:Vec)
+
     --
     set file = jp::File{test_vec_simple, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_vec_simple))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Vec)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+    -- test::AssertEq#(jp::ContGetKind(&file, file.root), jp::ContKind:Vec)
     --
     set file = jp::File{test_vec_small, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_vec_small))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Vec)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+    -- test::AssertEq#(jp::ContGetKind(&file, file.root), jp::ContKind:Vec)
     --
     --
     --
@@ -144,19 +148,22 @@ fun test_parser() void:
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_dict_empty))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Dict)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+    -- test::AssertEq#(jp::ContGetKind(&file, file.root), jp::ContKind:Dict)
     --
     set file = jp::File{test_dict_simple, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_dict_simple))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Dict)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+    -- test::AssertEq#(jp::ContGetKind(&file, file.root), jp::ContKind:Dict)
     --
     set file = jp::File{test_dict_small, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test_dict_small))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Dict)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+    -- test::AssertEq#(jp::ContGetKind(&file, file.root), jp::ContKind:Dict)
     --
     --
     --
@@ -164,19 +171,22 @@ fun test_parser() void:
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test4))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Vec)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+    -- test::AssertEq#(jp::ContGetKind(&file, file.root), jp::ContKind:Vec)
     --
     set file = jp::File{test5, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test5))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Vec)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+    -- test::AssertEq#(jp::ContGetKind(&file, file.root), jp::ContKind:Vec)
     --
     set file = jp::File{test6, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,
                     jp::NumJsonObjectsNeeded(test6))
-    test::AssertEq#(jp::IndexKind(file.root), jp::ObjKind:Dict)
+    test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Cont)
+
 
 fun main(argc s32, argv ^^u8) s32:
     do test_counter()
