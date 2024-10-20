@@ -112,13 +112,13 @@ def ParseNumRaw(num_val: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,
         assert num[-1] == "'"
         if num[1] == "\\":
             if num[2] == "n":
-                return 10, kind
+                return ord('\n'), kind
             elif num[2] == "t":
-                return 8, kind
+                return ord('\t'), kind
             elif num[2] == "r":
-                return 13, kind
+                return ord('\r'), kind
             elif num[2] == "\\":
-                return 92, kind
+                return ord('\\'), kind
             assert False, f"unsupported escape sequence: [{num}]"
 
         else:
