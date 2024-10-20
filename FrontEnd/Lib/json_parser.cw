@@ -26,7 +26,7 @@ pub enum ObjKind u32:
     Val 3
 
 @wrapped type Index = u32
-global Null = wrap_as(0, Index)
+global NullIndex = wrap_as(0, Index)
 
 fun MakeIndex(index u32, kind ObjKind) Index:
     if index >= 1_u32 << 30:
@@ -98,7 +98,7 @@ fun AllocObj(file ^!File) union(u32, AllocError):
     return index
 
 fun ParseVal(file ^!File) union(Index, AllocError, DataError):
-    fmt::print#("ParseVal ", file^.next_byte, "\n")
+    -- fmt::print#("ParseVal ", file^.next_byte, "\n")
     trylet index u32 = AllocObj(file), err:
         return err
 
@@ -144,9 +144,11 @@ fun SkipWS(file ^!File) bool:
     return i >= end
 
 fun ParseVec(file ^!File) union(Index, AllocError, DataError):
-    fmt::print#("ParseVec ",  file^.next_byte, "\n")
+    fmt::print#("ParseVec ", file^.next_byte, "\n")
     trylet container u32 = AllocObj(file), err:
         return err
+    let! first_entry = NullIndex
+    let! last_entry = NullIndex
     let! n = 0_u32
     while true:
         fmt::print#("ParseVec Loop ", file^.next_byte, " round=", n, "\n")
@@ -156,8 +158,8 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
         let c = file^.data[file^.next_byte]
         set file^.next_byte += 1
         if c == ']':
-            fmt::print#("ParseVec End ",  file^.next_byte, "\n")
-            -- set container^.length = n
+            fmt::print#("ParseVec End ", file^.next_byte, "\n")
+            set file^.objects[container] = Vec{NullIndex, first_entry, n}
             return MakeIndex(container, ObjKind:Vec)
         if n != 0:
             if c != ',':
@@ -169,6 +171,51 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
             return err
         trylet val Index = ParseNext(file), err:
             return err
+        set file^.objects[entry] = VecEntry{NullIndex, val, n}
+        set last_entry = MakeIndex(entry, ObjKind:Val)
+
+        set n += 1
+    -- unreachable
+    trap
+
+fun ParseDict(file ^!File) union(Index, AllocError, DataError):
+    fmt::print#("ParseDict ", file^.next_byte, "\n")
+    trylet container u32 = AllocObj(file), err:
+        return err
+    let! first_entry = NullIndex
+    let! last_entry = NullIndex
+    let! n = 0_u32
+    while true:
+        fmt::print#("ParseDict Loop ", file^.next_byte, " round=", n, "\n")
+        if SkipWS(file):
+            return DataErrorVal
+        let c = file^.data[file^.next_byte]
+        set file^.next_byte += 1
+        if c == '}':
+            fmt::print#("ParseDict End ", file^.next_byte, "\n")
+            set file^.objects[container] = Dict{NullIndex, first_entry}
+            return MakeIndex(container, ObjKind:Dict)
+        if n != 0:
+            if c != ',':
+                return DataErrorVal
+            if SkipWS(file):
+                return DataErrorVal
+        trylet entry u32 = AllocObj(file), err:
+            return err
+        trylet key Index = ParseNext(file), err:
+            return err
+        if SkipWS(file):
+            return DataErrorVal
+        let colon = file^.data[file^.next_byte]
+        set file^.next_byte += 1
+        if colon != ':':
+            return DataErrorVal
+        if SkipWS(file):
+            return DataErrorVal
+        trylet val Index = ParseNext(file), err:
+            return err
+        set file^.objects[entry] = DictEntry{NullIndex, key, val}
+        set last_entry = MakeIndex(entry, ObjKind:Val)
         set n += 1
     -- unreachable
     trap
@@ -178,8 +225,8 @@ fun ParseNext(file ^!File) union(Index, AllocError, DataError):
     fmt::print#("ParseNext ", file^.next_byte, "\n")
     let c = file^.data[file^.next_byte]
     if c == '{':
-        -- not yet supported
-        return DataErrorVal
+        set file^.next_byte += 1
+        return ParseDict(file)
     if c == '[':
         set file^.next_byte += 1
         return ParseVec(file)
