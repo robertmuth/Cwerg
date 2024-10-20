@@ -65,13 +65,11 @@ pub rec Vec:
     next Index
     -- first vec entry
     first Index
-    length u32
 
 pub rec VecEntry:
     -- next vec entry
     next Index
     val Index
-    index u32
 
 pub rec File:
     -- the raw json data - must out-live the `file` rec
@@ -158,10 +156,10 @@ fun ParseVal(file ^!File) union(Index, AllocError, DataError):
 
 fun ParseVec(file ^!File) union(Index, AllocError, DataError):
     -- fmt::print#("ParseVec ", file^.next_byte, "\n")
-    trylet container u32 = AllocObj(file), err:
-        return err
-    let! first_entry = NullIndex
-    let! last_entry = NullIndex
+    let! first_entry = 0_u32
+    let! last_entry = 0_u32
+    let! last_val = NullIndex
+
     let! n = 0_u32
     while true:
         -- fmt::print#("ParseVec Loop ", file^.next_byte, " round=", n, "\n")
@@ -170,8 +168,9 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
             return DataErrorVal
         if MaybeConsume(file, ']'):
             -- fmt::print#("ParseVec End ", file^.next_byte, "\n")
-            set file^.objects[container] = Vec{NullIndex, first_entry, n}
-            return MakeIndex(container, ObjKind:Vec)
+            if n != 0:
+                set file^.objects[last_entry] = VecEntry{NullIndex, last_val}
+            return MakeIndex(first_entry, ObjKind:Val)
         if n != 0:
             if !MaybeConsume(file, ','):
                 -- fmt::print#("missing comma\n")
@@ -182,19 +181,24 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
             return err
         trylet val Index = ParseNext(file), err:
             return err
-        set file^.objects[entry] = VecEntry{NullIndex, val, n}
-        set last_entry = MakeIndex(entry, ObjKind:Val)
-
+        if n == 0:
+            set first_entry = entry
+        else:
+            -- now that we know the next pointer, finalize the previous entry
+            set file^.objects[last_entry] = VecEntry{MakeIndex(entry, ObjKind:Val), last_val}
+        set last_entry = entry
+        set last_val = val
         set n += 1
     -- unreachable
     trap
 
 fun ParseDict(file ^!File) union(Index, AllocError, DataError):
     -- fmt::print#("ParseDict ", file^.next_byte, "\n")
-    trylet container u32 = AllocObj(file), err:
-        return err
-    let! first_entry = NullIndex
-    let! last_entry = NullIndex
+    let! first_entry = 0_u32
+    let! last_entry = 0_u32
+    let! last_val = NullIndex
+    let! last_key = NullIndex
+
     let! n = 0_u32
     while true:
         -- fmt::print#("ParseDict Loop ", file^.next_byte, " round=", n, "\n")
@@ -202,8 +206,9 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             return DataErrorVal
         if MaybeConsume(file, '}'):
             -- fmt::print#("ParseDict End ", file^.next_byte, "\n")
-            set file^.objects[container] = Dict{NullIndex, first_entry}
-            return MakeIndex(container, ObjKind:Dict)
+            if n != 0:
+                set file^.objects[last_entry] = DictEntry{NullIndex, last_key, last_val}
+            return MakeIndex(first_entry, ObjKind:Val)
         if n != 0:
             if !MaybeConsume(file, ','):
                 -- fmt::print#("missing comma\n")
@@ -223,8 +228,14 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             return DataErrorVal
         trylet val Index = ParseNext(file), err:
             return err
-        set file^.objects[entry] = DictEntry{NullIndex, key, val}
-        set last_entry = MakeIndex(entry, ObjKind:Val)
+        if n == 0:
+            set first_entry = entry
+        else:
+            -- now that we know the next pointer, finalize the previous entry
+            set file^.objects[last_entry] = DictEntry{MakeIndex(entry, ObjKind:Val), last_key, last_val}
+        set last_entry = entry
+        set last_key = key
+        set last_val = val
         set n += 1
     -- unreachable
     trap
@@ -232,13 +243,20 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
 -- assumes the next char is valid and not a WS
 fun ParseNext(file ^!File) union(Index, AllocError, DataError):
     -- fmt::print#("ParseNext ", file^.next_byte, "\n")
-    let c = file^.data[file^.next_byte]
-    if c == '{':
-        set file^.next_byte += 1
-        return ParseDict(file)
-    if c == '[':
-        set file^.next_byte += 1
-        return ParseVec(file)
+    if MaybeConsume(file, '{'):
+        trylet container u32 = AllocObj(file), err:
+            return err
+        trylet first Index = ParseDict(file), err:
+            return err
+        set file^.objects[container] = Dict{NullIndex, first}
+        return MakeIndex(container, ObjKind:Dict)
+    if MaybeConsume(file, '['):
+        trylet container u32 = AllocObj(file), err:
+            return err
+        trylet first Index = ParseVec(file), err:
+            return err
+        set file^.objects[container] = Vec{NullIndex, first}
+        return MakeIndex(container, ObjKind:Vec)
     return ParseVal(file)
 
 
