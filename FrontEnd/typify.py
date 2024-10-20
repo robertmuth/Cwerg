@@ -493,6 +493,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                     if val.init_field == field_node.name:
                         break
             else:
+                if not all_fields:
+                    cwast.CompilerError(val.x_srcloc, "too many rec initializers")
                 field_node = all_fields.pop(0)
             # TODO: make sure this link is set
             field_ct = field_node.x_type
