@@ -106,6 +106,7 @@ fun test_parser() void:
                     jp::NumJsonObjectsNeeded(test_val_num))
     test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Atom)
     test::AssertEq#(jp::AtomGetKind(&file, file.root), jp::AtomKind:Num)
+    test::AssertSliceEq#(jp::AtomGetData(&file, file.root), "0")
     --
     set file = jp::File{test_val_bool, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
@@ -113,6 +114,7 @@ fun test_parser() void:
                    jp::NumJsonObjectsNeeded(test_val_bool))
     test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Atom)
     test::AssertEq#(jp::AtomGetKind(&file, file.root), jp::AtomKind:Num)
+    test::AssertSliceEq#(jp::AtomGetData(&file, file.root), "false")
     --
     set file = jp::File{test_val_str, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
@@ -120,6 +122,7 @@ fun test_parser() void:
                     jp::NumJsonObjectsNeeded(test_val_str))
     test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Atom)
     test::AssertEq#(jp::AtomGetKind(&file, file.root), jp::AtomKind:Str)
+    test::AssertSliceEq#(jp::AtomGetData(&file, file.root), "str")
     --
     set file = jp::File{test_val_str_esc, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
@@ -127,6 +130,7 @@ fun test_parser() void:
                     jp::NumJsonObjectsNeeded(test_val_str_esc))
     test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Atom)
     test::AssertEq#(jp::AtomGetKind(&file, file.root), jp::AtomKind:EscStr)
+    test::AssertSliceEq#(jp::AtomGetData(&file, file.root), r"""str\"""")
     --
     --
     --

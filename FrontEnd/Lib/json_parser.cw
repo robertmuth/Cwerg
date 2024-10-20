@@ -60,6 +60,12 @@ pub fun AtomGetKind(file ^File, index Index)  AtomKind:
     let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Atom)
     return ptr^.kind
 
+pub fun AtomGetData(file ^File, index Index)  span(u8):
+    if IndexGetKind(index) != ObjKind:Atom:
+        trap
+    let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Atom)
+    return span(&file^.data[ptr^.offset] , as(ptr^.length, uint))
+
 pub enum ContKind u8:
     Invalid 0
     Vec 1
