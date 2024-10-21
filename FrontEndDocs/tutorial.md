@@ -20,33 +20,22 @@ Since small is subjective we have set a complexity budget of about 10kLOC for a 
 * simple hygienic macro system
 * limited polymorphism
 * polymorphism and generics replace printf and enable custom formatters
-* slices (array views)
+* spans (vec (array) views)
 * named blocks + multi-level break/continue
 * expression statements - cleaned up version of the C's comma operator
 * (almost) no implicit conversions and no truthinesss
-* all value are zero initialized by default
+* vecs (array) do not decay to pointers
+* all value are zero initialized by default (can be overriden with undef)
 * visibility is private by default
-* array indexing is checked by default
+* vec (array) indexing is checked by default
 * variables are immutable by default
 * no goto, no va-args, no bitfields
 * no cyclic dependencies between modules
 * no cyclic dependencies between types (self-cycles are allowed)
-
+* all comments are on separate lines (no end of line comments)
 
 
 ## Syntax
-
-Cwerg currently has two syntaxes:
-
-1. Sexpr syntax that is close to the AST
-2. Python inspired concrete syntax
-
-The two syntaxes are intended to be equivalent
-and one can be translated to the other without
-loss of information.
-
-
-## Concrete Syntax Examples
 
 Cwerg use a Python inspired syntax where the indentation level
 is significant.
@@ -54,7 +43,10 @@ is significant.
 We give some examples below to convey a general feeling for the language.
 The details should become clear after reading the rest of the tutorial.
 
-More examples can be found here: https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/ConcreteSyntax/TestData
+More examples can be found in
+*  https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/TestData
+*  https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/Lib
+*  https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/LangTest
 
 
 ### Hello World (full example)
@@ -72,11 +64,11 @@ fun main(argc s32, argv ^^u8) s32:
 
 Every file starts with a module stanza.
 
-The type information in the function declaration follows the Go model of
-identifier followed by type.
+The type information in the function declaration follows the Go model
+of identifier followed by type.
 Functions can only return one value.
 
-`fmt::print#` is a macro call. All macros names must end in "#".
+`fmt::print#` is a macro invocation. All macros names must end in "#".
 
 
 ### Sieve of Eratosthenes (excerpt)
@@ -85,7 +77,7 @@ Functions can only return one value.
 -- a global constant
 global N uint = 1000 * 1000 * 1000
 
--- a mutable global array of bools initialized to `true`
+-- a mutable global vec of bools initialized to `true`
 -- index i represents number 3 + 2 * i
 global! is_prime = [N]bool{true}
 
@@ -257,14 +249,15 @@ fun main(argc s32, argv ^^u8) s32:
 
 Cwerg's type system is similar to C's with the following differences
 
-* there are very few implicit conversions
+* there are almost no implicit conversions
 * pointers cannot be null
 * there is a stronger emphasis on "const/mutability correctness"
-* arrays do not decay to to pointers and arrays of different sizes
-  are different types
-* slices can be used where array-like objects with variable length are required
-* (tagged) unions are supported to simplifying error handling and emulate nullable
- pointers
+* vecs (arays) do not decay to to pointers
+* vecs of different sizes are different types
+* spans can be used where vec-like objects with variable length
+  are required
+* (tagged) unions are supported to simplifying error handling and
+  emulate nullable pointers
 
 ### Base Types
 
@@ -290,54 +283,68 @@ The caret goes in front of type.
 ^!u32
 ```
 
-### Arrays
+### Vecs (Arrays)
 
 Array dimension go in front of the element type:
 
 ```
-    -- 10 element array of element type u32
+    -- 10 element vec of element type u32
     [10]u32
 
 ```
 
-Array of different length are not compatible and
+Vecs of different length are not compatible and
 are different from pointers to the element type.
 ```
 static_assert typeid_of([10]u32) != typeid_of([2]u32)
 static_assert typeid_of([10]u32) != typeid_of(^u32)
 ```
 
-The length and fist element of an array can be  accessed with:
+Accessing the length of a vec:
 ```
-    -- returns a readonly pointer to the first element of the array
-    ... = front(readomly_or_mutable_array)
-    -- returns a mutable pointer to the first element of the mutable array
-    ... = front!(mutable_array)
-    -- returns a `uint` with the length of the array
-    ... = len(a_array)
+    -- returns a `uint` with the length of the vec
+    ... = len(a_vec)
+```
+Accessing the address of the first element of a vec:
+
+```
+    -- returns a readonly pointer to the first element of the vec
+
+    ... = front(readonly_or_mutable_vec)
+
+    -- returns a mutable pointer to the first element of the mutable vec
+
+    ... = front!(mutable_vec)
 ```
 
-Note: array literals are readonly.
+Note: vec literals are readonly.
 
-### Slices
+### Spans
 
-Slices are essentially fat pointers consisting of pointer to the first element of an array
+Spans are essentially fat pointers consisting of pointer to the first element of a vec
 and a length.
 
 ```
-    -- regular slice
-    slice(u32)
-    -- mutable slice
-    slice!(u32)
+    -- regular span with elements of type `u32`
+    span(u32)
+
+    -- mutable span with elements of type `u32`
+    span!(u32)
 ```
 
-The two components of a slice can be accessed with:
+The length and address of the first element of a span can be accessed
+with the same syntax as for vec:
 ```
     -- returns a readonly pointer to the first element of the slice
+
     ... = front(readomly_or_mutable_slice)
+
     -- returns a mutable pointer to the first element of the mutable slice
+
     ... = front!(mutable_slice)
+
     -- returns a `uint` with the length of the slice.
+
     ... = len(a_slice)
 
 ```
@@ -349,10 +356,10 @@ Function types can be described like so:
 ```
     funtype(param1 type1, param2 type2, ...) return-type
 ```
-### Records
+### Recs (Structs)
 
 
-Record types, essentially C-structs, can be declared like so:
+Rec types can be declared like so:
 
 ```
 rec Date:
@@ -389,11 +396,11 @@ Color:red has value 11
 ```
 
 Enums are C-like in that they are essentially named integer constants.
-Unlike C, enums members are always used "fully qualified" using a single colon.
+Unlike C, enums members are always used "fully qualified" using a **single** colon.
 
 ### Type shortcuts and wrapped types
 
-Abbreviations for length types can be declared like so:
+Abbreviations for lengthy types can be declared like so:
 
 ```
 type t1 = funtype(x u8, y u8) u1
@@ -402,7 +409,7 @@ type t1 = funtype(x u8, y u8) u1
 
 This is strictly an abbreviation, the lhs and the rhs can be used interchangeably in the code.
 
-To force by name type equivalence in this case, use the `@wrapped` annotation like so
+To force by name type equivalence use the `@wrapped` annotation like so
 ```
 @wrapped type t1 = funtype(x u8, y u8) u1
 ```
@@ -424,7 +431,11 @@ needed twice in a single union, wrapped types can be used.
 
 The annotation `@untagged` changes a union to untagged.
 
-Unions are: order independent, duplicate eliminating, and auto-flattening.
+Unions are:
+*  order independent
+*  duplicate eliminating
+*  auto-flattening
+
 In the example below `u1` and `u2` are the same type:
 ```
 type u1  = union(u8, s64, union(u8, s32), union(u8, void))
@@ -439,6 +450,10 @@ type u1  = union(u8, s64, void, r64)
 type u2  = union(s64, void))
 static_assert typeid_of(union_delta(u1, u2)  ==  typeid_of(union(u8, r64))
 ```
+
+Note having names for union elements changes the usage patterns
+compared with C, especially for tagged unions.
+The usual patterns is to copy the entire member into or our of the union.
 
 More info in [Unions](union_types.md)
 
@@ -460,8 +475,8 @@ Also supported are hexadecimal escape ('\xff') but **not** octal escapes.
 
 Unescaped (aka raw) strings are prefixed with "r", e.g. (r"string").
 
-Hex strings are prefixed with x, e.g. (x"de ad be ef") and ignore all white space
-characters.
+Hex strings are prefixed with x, e.g. (x"de ad be ef") and ignore all
+white space characters.
 
 Multi-line strings are enclosed in triple quotes, e.g. """multi-line string:"""",
 and also come in unescaped (prefix "r") and hex (prefix "x") flavors.
@@ -469,18 +484,18 @@ and also come in unescaped (prefix "r") and hex (prefix "x") flavors.
 
 ### Number Literals
 
-Number literals may contain underscores ("_") which are ignored. Since Cwerg does not implicitly convert numbers it is often necessary use typed number by adding one of the following suffices: u8, u16, u32, u64, s8, s16, s32, s64, r32, r64, e.g. "0x1234_s16".
+Number literals may contain underscores ("_") which are ignored. Since Cwerg does not implicitly convert numbers it is often necessary to use typed number by adding one of the following suffices: u8, u16, u32, u64, s8, s16, s32, s64, r32, r64, e.g. "0x1234_s16".
 
-Both hexadecimal (0x) and binary (0b) basis are supported but no octal.
+Both hexadecimal (0x) and binary (0b) basis are supported but **not octal**.
 For hexadecimal numbers only the lower case letters (a-f) are valid.
 
-### Array Literals
+### Vec (Array) Literals
 
-Array literals are declared like so:
+Vec literals are declared like so:
 ```
     [5]s32{1, 2, 3}
 ```
-If there are fewer initializers than the array size, the last value will
+If there are fewer initializers than the vec size, the last value will
 repeated. So this is equivalent to:
 ```
     [5]s32{1, 2, 3, 3, 3}
@@ -491,13 +506,13 @@ initializers for specific indices can declared like so:
 ```
    [5]s32{1:6, 3:9}
 ```
-This is  equivalent to:
+This is equivalent to:
 ```
 [5]s32{0, 6, 6, 9, 9}
 ```
 
-### Record Literals
-Assuming this record:
+### Rec (Struct) Literals
+Assuming this rec:
 ```
 rec Date:
     year u16
@@ -508,7 +523,7 @@ rec Date:
     second u8
 ```
 
-record literals are declared like so:
+Rec literals are declared like so:
 
 ```
     Date{2000, 1, 12}
@@ -516,17 +531,18 @@ record literals are declared like so:
 
 If no initializer is provided, zero will be used.
 
-Initializers for specific fields can declared like so:
+Initializers for specific fields can be declared like so:
 
 
 ```
     Date{year:2000, month:1, day:12}
 ```
 
+The initializer may skip fields but must be in rec order.
 
 ## Module Definitions
 
-Every file starts with module definition. A simple version looks like:
+Every file starts with module stanza. A simple version looks like:
 
 ```
 module:
@@ -549,8 +565,8 @@ and must be have one of the following kinds:
 ## Top Level Declarations
 
 By default all top level declarations are module private.
-The `pub` annotation will export the declaration and thereby make it visible to the
-importing module.
+The `pub` annotation will export the declaration and thereby make it
+visible to the importing module.
 
 Note, the declarations listed here can only appear at the top
 level, not inside function bodies.
@@ -634,8 +650,7 @@ let a_local_const = 7_u64
 ```
 
 
-### Let Statements (Local Variables)
-
+### Local Variables
 
 Local variable have the same syntax as local constants except that introductory
 keyword is suffixed with "!". All these statements are equivalent:
@@ -893,11 +908,11 @@ Note, operator precedence has yet to be finalized
 
 | Notation                | Description                                            |
 | ----------------------- | ------------------------------------------------------ |
-| len(E) -> uint          | length of an array or slice                            |
-| front(E) -> P           | pointer to first element of array or slice             |
-| front!(E) -> P          | mutable pointer to first element of array or slice     |
-| slice(P, E) -> S        | make a slice from a pointer and length                 |
-| slice!(P, E) -> S       | make a mutable slice from a mutable pointer and length |
+| len(E) -> uint          | length of an vec or span                            |
+| front(E) -> P           | pointer to first element of vec or span             |
+| front!(E) -> P          | mutable pointer to first element of vec or span     |
+| span(P, E) -> S        | make a span from a pointer and length                 |
+| span!(P, E) -> S       | make a mutable span from a mutable pointer and length |
 | pinc(P, E [, E]) -> P   | increment pointer with optional bounds check           |
 | pdec(P, E [, E]) -> P   | decrement pointer with optional bounds check           |
 | stringify(E) -> []u8    | convert an expression to a textual representation      |
