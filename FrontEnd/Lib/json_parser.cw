@@ -1,20 +1,26 @@
 -- JSON Parser
+-- A very barebones parser that does not do any
+-- massaging of the data.
+--
 -- Limit is 4GB of data and 1B objects where
 -- * each atom uses up one objects
 -- * each dict or vec use an additional object
 -- * each dict and vec entry use an additional object
---
--- This is very barebones parser that does not do any
--- massaging of the data.
---
+-- An array/pool of Objects needs to be provided to the parser
+-- which will initialize it.
 -- If you do not want to hardcode an upperbound use
 -- NumJsonObjectsNeeded() to determine the number of
--- objects in a JSON string
--- The instantiate a File rec with the object pool like so:
+-- objects in a JSON string dynamically.
+--
+-- Instantiate a File rec with the object pool like so:
+--
 -- let! objects = [200]jp::Object{}
 -- @ref let! file = jp::File{"""{ "a": "str", "b": false, "c": 6}""", objects}
--- next parse the json inside the File:
+--
+-- Next parse the json inside the File:
+--
 -- let result = jp::Parse(&!file)
+--
 -- Finally walk the json starting with the root in file.root
 -- Thw following helpers are avaiable:
 -- * IndexGetKind()
@@ -50,7 +56,7 @@ pub enum ObjKind u32:
     Atom 3
 
 @wrapped type Index = u32
-global NullIndex = wrap_as(0, Index)
+pub global NullIndex = wrap_as(0, Index)
 
 fun MakeIndex(index u32, kind ObjKind) Index:
     if index >= 1_u32 << 30:
@@ -87,15 +93,7 @@ pub fun AtomGetData(file ^File, index Index)  span(u8):
     let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Atom)
     return span(&file^.data[ptr^.offset] , as(ptr^.length, uint))
 
-pub enum ContKind u8:
-    Invalid 0
-    Vec 1
-    Dict 2
 
-rec Cont:
-    -- first cont entry
-    first Index
-    kind ContKind
 
 -- Items make up the contents of Cont
 rec Item:
@@ -123,6 +121,16 @@ pub fun ItemGetVal(file ^File, item Index) Index:
     let ptr = bitwise_as(&file^.objects[IndexGetValue(item)], ^Item)
     return ptr^.val
 
+pub enum ContKind u8:
+    Invalid 0
+    Vec 1
+    Dict 2
+
+rec Cont:
+    -- first cont entry
+    first Index
+    kind ContKind
+
 pub fun ContGetKind(file ^File, index Index) ContKind:
     if IndexGetKind(index) != ObjKind:Cont:
         trap
@@ -137,11 +145,45 @@ pub fun ContGetFirst(file ^File, cont Index) Index:
 
 pub fun ContGetSize(file ^File, cont Index) u32:
     let! out = 0_u32
-    let! index = ContGetFirst(file, cont)
-    while index != NullIndex:
-        set index = ItemGetNext(file, index)
+    let! item = ContGetFirst(file, cont)
+    while item != NullIndex:
+        set item = ItemGetNext(file, item)
         set out += 1
     return out
+
+
+fun spaneq(a span(u8), b span(u8)) bool:
+    let a_len = len(a)
+    let b_len = len(b)
+    if a_len != b_len:
+        return false
+    for i = 0, a_len, 1:
+        if a[i] != b[i]:
+            return false
+    return true
+
+pub fun ContGetItemForKey(file ^File, cont Index, key span(u8)) Index:
+    if IndexGetKind(cont) != ObjKind:Cont:
+        trap
+    let! item = ContGetFirst(file, cont)
+    while item != NullIndex:
+        let key_atom = ItemGeKey(file, item)
+        if key_atom != NullIndex:
+            let key_data = AtomGetData(file, key_atom)
+            if spaneq(key_data, key):
+                return item
+        set item =  ItemGetNext(file, item)
+    return NullIndex
+
+pub fun ContGetItemForIndex(file ^File, cont Index, index u32) Index:
+    if IndexGetKind(cont) != ObjKind:Cont:
+        trap
+    let! n = 0_u32
+    let! item = ContGetFirst(file, cont)
+    while n < index && item != NullIndex:
+        set item =  ItemGetNext(file, item)
+        set n += 1
+    return item
 
 pub rec File:
     -- the raw json data - must out-live the `file` rec
