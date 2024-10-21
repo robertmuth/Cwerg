@@ -36,7 +36,7 @@ pub macro AssertNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
     if $e_val == $a_val:
-        SysPrint#("AssertEq failed: ")
+        SysPrint#("AssertNe failed: ")
         SysPrint#(stringify($e_expr))
         SysPrint#(" VS ")
         SysPrint#(stringify($a_expr))
