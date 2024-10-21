@@ -6,6 +6,27 @@
 --
 -- This is very barebones parser that does not do any
 -- massaging of the data.
+--
+-- If you do not want to hardcode an upperbound use
+-- NumJsonObjectsNeeded() to determine the number of
+-- objects in a JSON string
+-- The instantiate a File rec with the object pool like so:
+-- let! objects = [200]jp::Object{}
+-- @ref let! file = jp::File{"""{ "a": "str", "b": false, "c": 6}""", objects}
+-- next parse the json inside the File:
+-- let result = jp::Parse(&!file)
+-- Finally walk the json starting with the root in file.root
+-- Thw following helpers are avaiable:
+-- * IndexGetKind()
+-- * AtomGetKind()
+-- * AtomGetData()
+-- * ItemGetNext()
+-- * ItemGetKey()
+-- * ItemGetVal()
+-- * ContGetKind()
+-- * ContGetFirst()
+-- * ContGetSize()
+
 module:
 
 import fmt
@@ -49,7 +70,7 @@ pub enum AtomKind u8:
     EscStr 3
 
 -- an atom, for strings the leading and trailing double quotes have been stripped
-pub rec Atom:
+rec Atom:
     offset u32
     length u32
     kind AtomKind
@@ -71,13 +92,13 @@ pub enum ContKind u8:
     Vec 1
     Dict 2
 
-pub rec Cont:
+rec Cont:
     -- first cont entry
     first Index
     kind ContKind
 
 -- Items make up the contents of Cont
-pub rec Item:
+rec Item:
     -- next entry inside Cont
     next Index
     -- key is not used for Vecs
@@ -90,17 +111,17 @@ pub fun ItemGetNext(file ^File, item Index) Index:
     let ptr = bitwise_as(&file^.objects[IndexGetValue(item)], ^Item)
     return ptr^.next
 
-pub rec File:
-    -- the raw json data - must out-live the `file` rec
-    -- because `objects` contain internal references to it
-    data span(u8)
-    -- objects[0] will contain the root of the tree after parsing
-    objects span!(Object)
-    root Index
-    --
-    used_objects u32
-    -- index into  `data`. Only used during parsing
-    next_byte u32
+pub fun ItemGeKey(file ^File, item Index) Index:
+    if IndexGetKind(item) != ObjKind:Item:
+        trap
+    let ptr = bitwise_as(&file^.objects[IndexGetValue(item)], ^Item)
+    return ptr^.key
+
+pub fun ItemGetVal(file ^File, item Index) Index:
+    if IndexGetKind(item) != ObjKind:Item:
+        trap
+    let ptr = bitwise_as(&file^.objects[IndexGetValue(item)], ^Item)
+    return ptr^.val
 
 pub fun ContGetKind(file ^File, index Index) ContKind:
     if IndexGetKind(index) != ObjKind:Cont:
@@ -121,6 +142,19 @@ pub fun ContGetSize(file ^File, cont Index) u32:
         set index = ItemGetNext(file, index)
         set out += 1
     return out
+
+pub rec File:
+    -- the raw json data - must out-live the `file` rec
+    -- because `objects` contain internal references to it
+    data span(u8)
+    -- objects[0] will contain the root of the tree after parsing
+    objects span!(Object)
+    root Index
+    --
+    used_objects u32
+    -- index into  `data`. Only used during parsing
+    next_byte u32
+
 
 fun IsEndOfNum(c u8) bool:
     return c == ' ' || c == ']' || c == '}' || c == ',' ||
