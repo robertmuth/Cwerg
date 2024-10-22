@@ -98,7 +98,7 @@ def NodeNeedsParen(node, parent, field: str):
                 # (* c (+ a b)) =>  c * a + b
                 # (/ c (/ a b)) =>  c / a / b
                 return _prec2(node) <= _prec2(parent)
-    if isinstance(parent, cwast.Expr1):
+    if isinstance(parent, cwast.Expr1) and parent.unary_expr_kind in cwast.UNARY_EXPR_SHORTCUT_CONCRETE:
         # BAD EXAMPLES:
         # (! (< a b)) => ! a < b
         return isinstance(node, cwast.Expr2)
