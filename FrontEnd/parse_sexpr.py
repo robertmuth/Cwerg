@@ -40,7 +40,7 @@ _RE_TOKENS_ALL = re.compile(ReCombine([
 
 # TODO: make this stricter WRT to :: vs :
 _RE_TOKEN_ID = re.compile(
-    r'([_A-Za-z$][_A-Za-z$0-9]*:+)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?!?')
+    r'([_A-Za-z$][_A-Za-z$0-9]*:+)*([_A-Za-z$%][_A-Za-z$0-9]*)(%[0-9]+)?!?@?')
 
 
 ##
@@ -225,8 +225,8 @@ def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
         logger.info("NUM %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc, **attr)
     elif _RE_TOKEN_ID.fullmatch(t):
-        if t in cwast.NODES_ALIASES:
-            cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
+        # if t in cwast.NODES_ALIASES:
+        #    cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
         if t[0] == "$":
             return cwast.MacroId(t, x_srcloc=srcloc)
         logger.info("ID %s at %s", t, srcloc)
@@ -443,8 +443,8 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
                 # unknown node name - assume it is a macro
                 return ReadMacroInvocation(tag, stream, attr)
             else:
-                return ReadRestAndMakeNode(cwast.ExprCall, [cwast.Id(tag, x_srcloc=stream.srcloc())],
-                                           cwast.ExprCall.FIELDS[1:], attr, stream)
+                 cwast.CompilerError(stream.srcloc(), "Bad sexpr")
+
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
 
         # This helps catching missing closing braces early

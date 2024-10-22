@@ -15,7 +15,7 @@
 -- Instantiate a File rec with the object pool like so:
 --
 -- let! objects = [200]jp::Object{}
--- ref let! file = jp::File{"""{ "a": "str", "b": false, "c": 6}""", objects}
+-- ref let! file = jp::File{" [ 100, 500, 300, 200, 400 ] ", objects}
 --
 -- Next parse the json inside the File:
 --

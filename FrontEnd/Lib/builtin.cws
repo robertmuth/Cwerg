@@ -138,8 +138,7 @@ The type of the loop variable is determined by $end"""
      :
         (mlet $e_cond (span u8) (stringify $cond))
         (mlet $e_text (span u8) $text)
-        (do (print_ln [(front $e_cond) (len $e_cond)]))
-        (do (print_ln [(front $e_text) (len $e_text)]))
+        (do (call print_ln [(front $e_cond) (len $e_cond)]))
+        (do (call print_ln [(front $e_text) (len $e_text)]))
         (trap)))
 )
-
