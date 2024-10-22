@@ -158,7 +158,7 @@ fun spaneq(a span(u8), b span(u8)) bool:
     if a_len != b_len:
         return false
     for i = 0, a_len, 1:
-        if a[i] != b[i]:
+        if a[@unchecked i] != b[@unchecked i]:
             return false
     return true
 

@@ -555,6 +555,14 @@ def WithMut(name: str, mutable: bool) -> str:
 def KW(node) -> str:
     return node.ALIAS
 
+def TokensExpr1(ts: TS, node: cwast.Expr1):
+    sym = cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV.get(node.unary_expr_kind)
+    if sym:
+        TokensUnaryPrefix(ts, sym, node.expr)
+    else:
+        sym = cwast.UNARY_EXPR_SHORTCUT_INV.get(node.unary_expr_kind)
+        TokensFunctional(ts, sym, [node.expr]),
+
 
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
@@ -604,7 +612,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
         [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
     #
-    cwast.Expr1: lambda ts, n: TokensUnaryPrefix(ts, cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[n.unary_expr_kind], n.expr),
+    cwast.Expr1: lambda ts, n: TokensExpr1,
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,
