@@ -20,14 +20,14 @@ Since small is subjective we have set a complexity budget of about 10kLOC for a 
 * simple hygienic macro system
 * limited polymorphism
 * polymorphism and generics replace printf and enable custom formatters
-* spans (vec (array) views)
+* vecs (arrays) do not decay to pointers
+* vec indexing is checked by default
+* spans (views on vecs)
 * named blocks + multi-level break/continue
 * expression statements - cleaned up version of the C's comma operator
 * (almost) no implicit conversions and no truthinesss
-* vecs (array) do not decay to pointers
 * all value are zero initialized by default (can be overriden with undef)
 * visibility is private by default
-* vec (array) indexing is checked by default
 * variables are immutable by default
 * no goto, no va-args, no bitfields
 * no cyclic dependencies between modules
