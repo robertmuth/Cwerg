@@ -18,7 +18,7 @@ fun test_simple() void:
     test::AssertEq#(jp::NumJsonObjectsNeeded(test_val_str), 1_u32)
     --
     let! objects = [200]jp::Object{}
-    @ref let! file jp::File
+    ref let! file jp::File
     --
     set file = jp::File{test_empty, objects}
     test::AssertIs#(jp::Parse(&!file), jp::DataError)
@@ -70,7 +70,7 @@ fun test_dict() void:
     test::AssertEq#(jp::NumJsonObjectsNeeded(test_dict_small), 10_u32)
     --
     let! objects = [200]jp::Object{}
-    @ref let! file jp::File
+    ref let! file jp::File
     --
     set file = jp::File{test_dict_empty, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
@@ -104,7 +104,7 @@ fun test_vec() void:
     test::AssertEq#(jp::NumJsonObjectsNeeded(test_vec_small), 11_u32)
     --
     let! objects = [200]jp::Object{}
-    @ref let! file jp::File
+    ref let! file jp::File
     --
     set file = jp::File{test_vec_empty, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
@@ -161,7 +161,7 @@ fun test_parser() void:
     test::AssertEq#(jp::NumJsonObjectsNeeded(test6), 99_u32)
     --
     let! objects = [200]jp::Object{}
-    @ref let! file jp::File
+    ref let! file jp::File
     --
     set file = jp::File{test4, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
@@ -211,7 +211,7 @@ global test6 = """
 
 fun test_walk() void:
     let! objects = [200]jp::Object{}
-    @ref let! file jp::File
+    ref let! file jp::File
     set file = jp::File{test6, objects}
     test::AssertIs#(jp::Parse(&!file), jp::Success)
     test::AssertEq#(file.used_objects,

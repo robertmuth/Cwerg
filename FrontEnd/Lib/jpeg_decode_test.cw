@@ -199,7 +199,7 @@ fun dump() void:
         fmt::print#(span(front(data), n))
         set data = span(pinc(front(data), n), len(data) - n)
 
-@ref global! gByteBuffer [1024 * 1024]u8 = undef
+ref global! gByteBuffer [1024 * 1024]u8 = undef
 
 global! Crc32Tab checksum::CrcTab = undef
 

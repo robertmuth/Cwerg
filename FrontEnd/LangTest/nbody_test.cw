@@ -131,7 +131,7 @@ global DT = 0.01_r64
 global NUM_ITER = 250000_u32
 
 fun main(argc s32, argv ^^u8) s32:
-    @ref let! bodies = [5]Body{
+    ref let! bodies = [5]Body{
         BodySun(),
         BodyJupiter(),
         BodySaturn(),

@@ -64,15 +64,15 @@ fun SysRender@(v span!(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
     let n uint = len(buffer) min len(v)
     return mymemcpy(front!(buffer), front(v), n)
 
-pub @wrapped type uint_hex = uint
+pub wrapped type uint_hex = uint
 
-pub @wrapped type u64_hex = u64
+pub wrapped type u64_hex = u64
 
-pub @wrapped type u32_hex = u32
+pub wrapped type u32_hex = u32
 
-pub @wrapped type u16_hex = u16
+pub wrapped type u16_hex = u16
 
-pub @wrapped type u8_hex = u8
+pub wrapped type u8_hex = u8
 
 fun SysRender@(v uint_hex, out span!(u8), options ^!SysFormatOptions) uint:
     return fmt_int::FmtHex@(unwrap(v), out)
@@ -89,7 +89,7 @@ fun SysRender@(v u16_hex, out span!(u8), options ^!SysFormatOptions) uint:
 fun SysRender@(v u8_hex, out span!(u8), options ^!SysFormatOptions) uint:
     return fmt_int::FmtHex@(unwrap(v), out)
 
-pub @wrapped type rune = u8
+pub wrapped type rune = u8
 
 fun SysRender@(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
     if len(buffer) == 0:
@@ -98,7 +98,7 @@ fun SysRender@(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
         set front!(buffer)^ = unwrap(v)
         return 1
 
-pub @wrapped type r64_hex = r64
+pub wrapped type r64_hex = r64
 
 fun SysRender@(v r64_hex, out span!(u8), options ^!SysFormatOptions) uint:
     return fmt_real::FmtHex@(unwrap(v), out)
@@ -106,7 +106,7 @@ fun SysRender@(v r64_hex, out span!(u8), options ^!SysFormatOptions) uint:
 fun SysRender@(v r64, out span!(u8), options ^!SysFormatOptions) uint:
     return fmt_real::FmtE@(v, 6, false, out)
 
-pub @wrapped type str_hex = span(u8)
+pub wrapped type str_hex = span(u8)
 
 fun to_hex_digit(digit u8) u8:
     return digit <= 9 ? digit + '0' : digit + ('a' - 10)
@@ -136,7 +136,7 @@ pub macro print# STMT_LIST(
     $parts EXPR_LIST_REST)[$buffer, $curr, $options]:
     mlet! $buffer = [FORMATED_STRING_MAX_LEN]u8{}
     mlet! $curr uint = 0
-    @ref mlet! $options = SysFormatOptions{}
+    ref mlet! $options = SysFormatOptions{}
     mfor $i $parts:
         set $curr += SysRender@(
                 $i, span(pinc(front!($buffer), $curr), len($buffer) - $curr), &!$options)
@@ -146,7 +146,7 @@ pub macro print# STMT_LIST(
 pub macro print_list# STMT_LIST($parts EXPR_LIST)[$buffer, $curr, $options]:
     mlet! $buffer = [FORMATED_STRING_MAX_LEN]u8{}
     mlet! $curr uint = 0
-    @ref mlet! $options = SysFormatOptions{}
+    ref mlet! $options = SysFormatOptions{}
     mfor $i $parts:
         set $curr += SysRender@(
                 $i, span(pinc(front!($buffer), $curr), len($buffer) - $curr), &!$options)

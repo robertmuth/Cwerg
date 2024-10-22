@@ -9,7 +9,7 @@ import bitstream
 global DataFF = [1024]u8{0xff}
 
 fun test1() void:
-    @ref let! bs = bitstream::Stream32{DataFF}
+    ref let! bs = bitstream::Stream32{DataFF}
     test::AssertEq#(bitstream::Stream32GetBits(&!bs, 1), 1_u32)
     test::AssertEq#(bitstream::Stream32GetBits(&!bs, 2), 3_u32)
     test::AssertEq#(bitstream::Stream32GetBits(&!bs, 3), 7_u32)
@@ -43,7 +43,7 @@ global Data123 = [1024]u8{
         0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78}
 
 fun test2() void:
-    @ref let! bs = bitstream::Stream32{Data123}
+    ref let! bs = bitstream::Stream32{Data123}
     test::AssertEq#(bitstream::Stream32GetBits(&!bs, 4), 2_u32)
     test::AssertEq#(bitstream::Stream32GetBits(&!bs, 32), 0x27856341_u32)
 

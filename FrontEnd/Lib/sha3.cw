@@ -198,14 +198,14 @@ pub fun KeccakFinalize(state ^!StateKeccak, tail span!(u64), padding u8) void:
 
 -- returns 512 bit cryptographic hash of data
 pub fun Keccak512(data span(u8)) [64]u8:
-    @ref let! state = StateKeccak512{}
+    ref let! state = StateKeccak512{}
     do KeccakAdd(&!state.base, state.tail, data)
     do KeccakFinalize(&!state.base, state.tail, KeccakPadding)
     return as(&state.base.x, ^[64]u8)^
 
 -- returns 512 bit cryptographic hash of data
 pub fun Sha3512(data span(u8)) [64]u8:
-    @ref let! state = StateKeccak512{}
+    ref let! state = StateKeccak512{}
     do KeccakAdd(&!state.base, state.tail, data)
     do KeccakFinalize(&!state.base, state.tail, Sha3Padding)
     return as(&state.base.x, ^[64]u8)^

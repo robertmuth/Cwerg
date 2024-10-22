@@ -277,15 +277,15 @@ pub rec FrameInfo:
     mbheight u32
     comp [3]Component
 
-pub @wrapped type Success = void
+pub wrapped type Success = void
 
 pub global SuccessVal = wrap_as(void, Success)
 
-pub @wrapped type CorruptionError = void
+pub wrapped type CorruptionError = void
 
 pub global CorruptionErrorVal = wrap_as(void, CorruptionError)
 
-pub @wrapped type UnsupportedError = void
+pub wrapped type UnsupportedError = void
 
 pub global UnsupportedErrorVal = wrap_as(void, UnsupportedError)
 
@@ -294,7 +294,7 @@ fun div_roundup(a u32, b u32) u32:
 
 fun DecodeHufmanTable(chunk span(u8), huffman_trees ^![2][2]HuffmanTree) union(
         Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-    @ref let! data = chunk
+    ref let! data = chunk
     let kind = BS::FrontU8Unchecked(&!data)
     if kind and 0xec != 0:
         return CorruptionErrorVal
@@ -337,7 +337,7 @@ fun DecodeHufmanTable(chunk span(u8), huffman_trees ^![2][2]HuffmanTree) union(
 
 fun DecodeQuantizationTable(chunk span(u8), qt_tabs ^![4][64]s16) union(
         u8, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-    @ref let! data = chunk
+    ref let! data = chunk
     let! qt_avail u8 = 0
     while len(data) >= 65:
         let t = data[0]
@@ -356,7 +356,7 @@ fun DecodeQuantizationTable(chunk span(u8), qt_tabs ^![4][64]s16) union(
 
 fun DecodeRestartInterval(chunk span(u8)) union(
         u16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-    @ref let! data = chunk
+    ref let! data = chunk
     trylet interval u16 = BS::FrontBeU16(&!data), err:
         return err
     debug#("restart interval: ", interval, "\n")
@@ -364,7 +364,7 @@ fun DecodeRestartInterval(chunk span(u8)) union(
 
 fun DecodeAppInfo(chunk span(u8), app_info ^!AppInfo) union(
         Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-    @ref let! data = chunk
+    ref let! data = chunk
     if len(data) < 14:
         return CorruptionErrorVal
     if data[0] != 'J' || data[1] != 'F' || data[2] != 'I' || data[3] != 'F' || data[
@@ -384,7 +384,7 @@ fun DecodeAppInfo(chunk span(u8), app_info ^!AppInfo) union(
 
 fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo) union(
         Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-    @ref let! data = chunk
+    ref let! data = chunk
     trylet format u8 = BS::FrontU8(&!data), err:
         return err
     if format != 8:
@@ -460,7 +460,7 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo) union(
 
 fun DecodeScan(chunk span(u8), frame_info ^!FrameInfo) union(
         Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-    @ref let! data = chunk
+    ref let! data = chunk
     trylet ncomp u8 = BS::FrontU8(&!data), err:
         return err
     if ncomp != frame_info^.ncomp:
@@ -532,9 +532,9 @@ fun DecodeMacroBlocksHuffman(
         out span!(u8)) union(
         uint, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
-    @ref let! bs = BitStream{chunk}
+    ref let! bs = BitStream{chunk}
     let! dc_last = [3]s16{0, 0, 0}
-    @ref let! buffer [8 * 8]s16 = undef
+    ref let! buffer [8 * 8]s16 = undef
     let ncomp u32 = as(fi^.ncomp, u32)
     -- we assume ssx/ssy are 1
     let byte_stride = fi^.mbwidth * 8 * ncomp
@@ -562,8 +562,8 @@ fun DecodeMacroBlocksHuffman(
 
 pub fun DecodeFrameInfo(a_data span(u8)) union(
         FrameInfo, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
-    @ref let! fi FrameInfo = undef
-    @ref let! data = a_data
+    ref let! fi FrameInfo = undef
+    ref let! data = a_data
     trylet magic u16 = BS::FrontBeU16(&!data), err:
         return err
     if magic != 0xffd8:
@@ -614,13 +614,13 @@ pub fun ConvertYH1V1ToRGB(out span!(u8)) void:
 pub fun DecodeImage(a_data span(u8), out span!(u8)) union(
         Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("DecodeImage: ", len(a_data), "\n")
-    @ref let! app_info AppInfo = undef
-    @ref let! frame_info FrameInfo = undef
-    @ref let! huffman_trees [2][2]HuffmanTree = undef
-    @ref let! quantization_tab [4][64]s16 = undef
+    ref let! app_info AppInfo = undef
+    ref let! frame_info FrameInfo = undef
+    ref let! huffman_trees [2][2]HuffmanTree = undef
+    ref let! quantization_tab [4][64]s16 = undef
     let! qt_avail_bits u8 = 0
     let! restart_interval u16 = 0
-    @ref let! data = a_data
+    ref let! data = a_data
     trylet magic u16 = BS::FrontBeU16(&!data), err:
         return err
     if magic != 0xffd8:

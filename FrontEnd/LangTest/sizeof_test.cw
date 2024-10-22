@@ -44,11 +44,11 @@ pub enum type_enum s32:
 
 static_assert size_of(type_enum) == 4
 
-@wrapped type w1 = s32
+wrapped type w1 = s32
 
-@wrapped type w2 = void
+wrapped type w2 = void
 
-@wrapped type w3 = void
+wrapped type w3 = void
 
 type ptr1 = ^!s32
 

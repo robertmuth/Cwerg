@@ -44,7 +44,7 @@ global! c4 = [10]u8{41, 51, 61}
 
 fun test_mixed_array() void:
     -- 
-    @ref let! a = [10]u8{1, 2, 3}
+    ref let! a = [10]u8{1, 2, 3}
     let pa = &a
     let pa_mut = &!a
     test::AssertEq#(c4[2], 61_u8)
@@ -62,8 +62,8 @@ fun test_mixed_array() void:
 
 fun test_local_array() void:
     -- 
-    @ref let! a = [10]u8{1, 2, 3}
-    @ref let b = [10]u8{4, 5, 6}
+    ref let! a = [10]u8{1, 2, 3}
+    ref let b = [10]u8{4, 5, 6}
     let pa = &a
     let pa_mut = &!a
     let pb = &b

@@ -6,7 +6,7 @@ import num_real
 
 import fmt
 
-pub @wrapped type ParseError = void
+pub wrapped type ParseError = void
 
 pub global ParseErrorVal = wrap_as(void, ParseError)
 

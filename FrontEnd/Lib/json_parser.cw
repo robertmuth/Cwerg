@@ -15,7 +15,7 @@
 -- Instantiate a File rec with the object pool like so:
 --
 -- let! objects = [200]jp::Object{}
--- @ref let! file = jp::File{"""{ "a": "str", "b": false, "c": 6}""", objects}
+-- ref let! file = jp::File{"""{ "a": "str", "b": false, "c": 6}""", objects}
 --
 -- Next parse the json inside the File:
 --
@@ -39,13 +39,13 @@ import fmt
 
 pub type Object = @untagged union(Cont, Item, Atom)
 
-pub @wrapped type Success = void
+pub wrapped type Success = void
 pub global SuccessVal = wrap_as(void, Success)
 
-pub @wrapped type AllocError = void
+pub wrapped type AllocError = void
 pub global AllocErrorVal = wrap_as(void, AllocError)
 
-pub @wrapped type DataError = void
+pub wrapped type DataError = void
 pub global DataErrorVal = wrap_as(void, DataError)
 
 
@@ -55,7 +55,7 @@ pub enum ObjKind u32:
     Item 2
     Atom 3
 
-@wrapped type Index = u32
+wrapped type Index = u32
 pub global NullIndex = wrap_as(0, Index)
 
 fun MakeIndex(index u32, kind ObjKind) Index:

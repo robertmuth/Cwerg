@@ -10,9 +10,9 @@ pub @extern @cdecl fun write(fd s32, s ^u8, size uint) sint:
 
 pub @extern @cdecl fun read(fd s32, s ^!u8, size uint) sint:
 
-pub @wrapped type Error = s32
+pub wrapped type Error = s32
 
-pub @wrapped type FD = s32
+pub wrapped type FD = s32
 
 pub global Stdin = wrap_as(0, FD)
 

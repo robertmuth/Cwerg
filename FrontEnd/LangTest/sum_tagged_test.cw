@@ -2,15 +2,15 @@ module:
 
 import test
 
-@wrapped type void_t1 = void
+wrapped type void_t1 = void
 
 global void_t1_val = wrap_as(void, void_t1)
 
-@wrapped type void_t2 = void
+wrapped type void_t2 = void
 
 global void_t2_val = wrap_as(void, void_t2)
 
-@wrapped type void_t3 = void
+wrapped type void_t3 = void
 
 global void_t3_val = wrap_as(void, void_t3)
 

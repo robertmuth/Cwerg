@@ -1,10 +1,10 @@
 module:
 
-@wrapped type t1 = s32
+wrapped type t1 = s32
 
-@wrapped type t2 = void
+wrapped type t2 = void
 
-@wrapped type t3 = void
+wrapped type t3 = void
 
 pub rec type_rec:
     -- this is a comment with \" with quotes \t

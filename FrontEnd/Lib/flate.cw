@@ -20,21 +20,21 @@ macro xdump_slice# STMT_LIST($prefix EXPR, $slice EXPR)[$s_eval, $i]:
 macro dump_slice# STMT_LIST($prefix EXPR, $slice EXPR)[$s, $i]:
 
 -- the input bitstream was corrupted
-pub @wrapped type CorruptionError = void
+pub wrapped type CorruptionError = void
 
 pub global CorruptionErrorVal = wrap_as(void, CorruptionError)
 
 -- the input bitstream was truncated
-pub @wrapped type TruncationError = void
+pub wrapped type TruncationError = void
 
 pub global TruncationErrorVal = wrap_as(void, TruncationError)
 
 -- the provided output buffer was not large enough
-pub @wrapped type NoSpaceError = void
+pub wrapped type NoSpaceError = void
 
 pub global NoSpaceErrorVal = wrap_as(void, NoSpaceError)
 
-pub @wrapped type Success = void
+pub wrapped type Success = void
 
 pub global SuccessVal = wrap_as(void, Success)
 
@@ -199,7 +199,7 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8)) un
             cl_num_syms,
             "\n")
     -- 
-    @ref let! lit_dist_lengths [MAX_DIST_SYMS + MAX_LIT_SYMS]u16
+    ref let! lit_dist_lengths [MAX_DIST_SYMS + MAX_LIT_SYMS]u16
     block _:
         -- build the code_len auxiliary huffman tree
         let! cl_lengths [NUM_CODE_LEN_SYMS]u16

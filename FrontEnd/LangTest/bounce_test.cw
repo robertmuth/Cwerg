@@ -63,7 +63,7 @@ fun BallBounce(b ^!Ball) bool:
 
 fun main(argc s32, argv ^^u8) s32:
     do RngReset()
-    @ref let! balls = [NUM_BALLS]Ball{}
+    ref let! balls = [NUM_BALLS]Ball{}
     for i = 0, NUM_BALLS, 1:
         do BallInit(&!balls[i])
     let! num_bounces = 0_u32

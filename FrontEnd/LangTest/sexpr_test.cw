@@ -16,7 +16,7 @@ fun foo2(a s32, b s32, c s32) s32:
         set v1 += 666
     return 7
 
-@wrapped type t1 = s32
+wrapped type t1 = s32
 
 pub global c1 = 7_s64
 

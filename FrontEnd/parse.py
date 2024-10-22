@@ -74,6 +74,8 @@ _KEYWORDS_SIMPLE = [
     "funtype",
     "else",
     "pub",
+    "wrapped",
+    "ref",
     #
     "pinc",
     "pdec",
@@ -104,6 +106,8 @@ for k in pp.KEYWORDS_WITH_EXCL_SUFFIX:
 for k in cwast.BINARY_EXPR_SHORTCUT:
     KEYWORDS[k] = TK_KIND.OP2
 KEYWORDS["pub"] = TK_KIND.SPECIAL_ANNOTATION
+KEYWORDS["ref"] = TK_KIND.SPECIAL_ANNOTATION
+KEYWORDS["wrapped"] = TK_KIND.SPECIAL_ANNOTATION
 
 _OPERATORS_SIMPLE1 = [
     "-",  # note, also in binops

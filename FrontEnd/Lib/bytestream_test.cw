@@ -10,7 +10,7 @@ global empty_slice span(u8)
 
 fun test_bs_or_die() void:
     let! data [23]u8 = "\x22\x33\x44\x55\x66\x77\x88abcdefghijklmnop"
-    @ref let! stream span(u8) = data
+    ref let! stream span(u8) = data
     test::AssertEq#(0x22_u8, bytestream::FrontU8OrDie(&!stream))
     test::AssertEq#(0x4433_u16, bytestream::FrontLeU16OrDie(&!stream))
     test::AssertEq#(0x88776655_u32, bytestream::FrontLeU32OrDie(&!stream))
@@ -20,7 +20,7 @@ fun test_bs_or_die() void:
 
 fun test_bs() void:
     let! data [23]u8 = "\x22\x33\x44\x55\x66\x77\x88abcdefghijklmnop"
-    @ref let! stream span(u8) = data
+    ref let! stream span(u8) = data
     test::AssertEq#(0x22_u8, bytestream::FrontU8(&!stream))
     test::AssertEq#(0x4433_u16, bytestream::FrontLeU16(&!stream))
     test::AssertEq#(0x88776655_u32, bytestream::FrontLeU32(&!stream))

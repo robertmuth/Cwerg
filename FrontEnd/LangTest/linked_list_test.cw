@@ -5,7 +5,7 @@ import test
 
 import fmt
 
-@wrapped type NoneType = void
+wrapped type NoneType = void
 
 pub global None = wrap_as(void, NoneType)
 

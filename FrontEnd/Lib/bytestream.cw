@@ -3,7 +3,7 @@ module:
 import fmt
 
 -- the input bitstream was corrupted
-pub @wrapped type OutOfBoundsError = void
+pub wrapped type OutOfBoundsError = void
 
 pub global OutOfBoundsErrorVal = wrap_as(void, OutOfBoundsError)
 

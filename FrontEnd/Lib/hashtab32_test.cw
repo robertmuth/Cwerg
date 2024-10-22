@@ -25,8 +25,8 @@ global! vals = [SIZE]u32{0}
 global! ht = hashtab::HashTab32{front!(meta), front!(keys), front!(vals), SIZE, 0}
 
 fun main(argc s32, argv ^^u8) s32:
-    @ref let! key u32 = 6
-    @ref let! val u32 = 6
+    ref let! key u32 = 6
+    ref let! val u32 = 6
     for i = 0, SIZE / 2, 1:
         set key = i
         set val = !i
