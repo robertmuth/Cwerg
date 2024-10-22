@@ -612,7 +612,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
         [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
     #
-    cwast.Expr1: lambda ts, n: TokensExpr1,
+    cwast.Expr1: TokensExpr1,
     cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
                                                  n.expr1, n.expr2, n),
     cwast.Expr3: EmitExpr3,

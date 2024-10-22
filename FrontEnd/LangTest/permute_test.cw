@@ -5,14 +5,13 @@ module:
 import test
 
 global DIM = 7_s32
-global! COUNT = 0_u32
 
+global! COUNT = 0_u32
 
 fun swapit(v ^![DIM]s32, i s32, j s32) void:
     let t = v^[i]
-    set  v^[i] =  v^[j]
-    set  v^[j]  = t
-
+    set v^[i] = v^[j]
+    set v^[j] = t
 
 fun permute(v ^![DIM]s32, n s32) void:
     -- Note: some changes to actually produce permutations
@@ -24,8 +23,6 @@ fun permute(v ^![DIM]s32, n s32) void:
         do swapit(v, n1, i)
         do permute(v, n1)
         do swapit(v, n1, i)
-
-
 
 fun main(argc s32, argv ^^u8) s32:
     ref let! v = [DIM]s32{}

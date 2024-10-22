@@ -369,7 +369,7 @@ def _ExtractAnnotations(tk: TK) -> dict[str, str]:
     for c in tk.comments:
         com = c.text
         if com == "--\n":
-            com = "\n"
+            com = ""
         elif com.startswith("-- "):
             com = com[3:-1]
         else:

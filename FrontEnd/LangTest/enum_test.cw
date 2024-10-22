@@ -1,3 +1,6 @@
+-- multi
+-- line
+-- comment
 module:
 
 import test
