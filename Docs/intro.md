@@ -2,7 +2,7 @@
 
 While primarily developed for the Cwerg Language,
 the Cwerg backend is suitable for any new (C-like) programming
-language implementations that want to avoid heavy dependencies like
+language implementation that wants to avoid heavy dependencies like
 [LLVM](https://llvm.org). It has no dependencies and can directly generate
 ELF executables for Arm32, Arm64 and X86-64 ISAs.
 
@@ -36,7 +36,7 @@ Most of the backend components are implemented twice (see [rationale](why_python
 ## Size Targets
 
 The backend is meant to be maintainable by a single developer.
-Reducing complexity is hence essetial. We use code size as a proxy
+Reducing complexity is hence essential. We use code size as a proxy
 for complexity and track it carefully in [LOC](../CLOC.txt).
 
 The following are the targets:
