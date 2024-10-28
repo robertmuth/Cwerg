@@ -10,8 +10,8 @@
 #include "Base/optimize.h"
 #include "Base/sanity.h"
 #include "Base/serialize.h"
-#include "CodeGenX64/isel_gen.h"
-#include "CodeGenX64/regs.h"
+#include "BE/CodeGenX64/isel_gen.h"
+#include "BE/CodeGenX64/regs.h"
 
 namespace cwerg::code_gen_x64 {
 namespace {

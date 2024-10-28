@@ -1,12 +1,12 @@
 // (c) Robert Muth - see LICENSE for more info
 
-#include "CodeGenX64/codegen.h"
+#include "BE/CodeGenX64/codegen.h"
 
 #include <string_view>
 
 #include "Base/serialize.h"
-#include "CodeGenX64/isel_gen.h"
-#include "CodeGenX64/regs.h"
+#include "BE/CodeGenX64/isel_gen.h"
+#include "BE/CodeGenX64/regs.h"
 #include "BE/CpuX64/assembler.h"
 #include "BE/CpuX64/opcode_gen.h"
 #include "BE/CpuX64/opcode_gen_enum.h"

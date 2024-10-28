@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 """Testing helper for table driven code selection"""
 
-from CpuX64 import symbolic
+from BE.CpuX64 import symbolic
 from Base import serialize
 from Base import ir
-from CodeGenX64 import isel_tab
-from CodeGenX64 import regs
+from BE.CodeGenX64 import isel_tab
+from BE.CodeGenX64 import regs
 
 from typing import Any
 import sys

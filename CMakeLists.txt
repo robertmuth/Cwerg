@@ -282,15 +282,15 @@ add_executable(a64_codegen_tool.exe
 )
 
 add_library(CODEGENX64_LIB OBJECT
-        CodeGenX64/isel_gen.cc
-        CodeGenX64/isel_gen.h
-        CodeGenX64/isel_gen_patterns.h
-        CodeGenX64/codegen.cc
-        CodeGenX64/codegen.h
-        CodeGenX64/legalize.cc
-        CodeGenX64/legalize.h
-        CodeGenX64/regs.cc
-        CodeGenX64/regs.h
+        BE/CodeGenX64/isel_gen.cc
+        BE/CodeGenX64/isel_gen.h
+        BE/CodeGenX64/isel_gen_patterns.h
+        BE/CodeGenX64/codegen.cc
+        BE/CodeGenX64/codegen.h
+        BE/CodeGenX64/legalize.cc
+        BE/CodeGenX64/legalize.h
+        BE/CodeGenX64/regs.cc
+        BE/CodeGenX64/regs.h
 )
 
 add_executable(x64_isel_tester.exe
@@ -299,7 +299,7 @@ add_executable(x64_isel_tester.exe
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        CodeGenX64/isel_tester.cc
+        BE/CodeGenX64/isel_tester.cc
 )
 
 add_executable(x64_codegen_tool.exe
@@ -308,7 +308,7 @@ add_executable(x64_codegen_tool.exe
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        CodeGenX64/codegen_tool.cc
+        BE/CodeGenX64/codegen_tool.cc
 )
 
 add_executable(builder_example.exe

@@ -1,8 +1,8 @@
 // This examples shows how to jit cwerg ir to a64 assembly
 
 #include "Base/ir.h"
-#include "CodeGenX64/codegen.h"
-#include "CodeGenX64/legalize.h"
+#include "BE/CodeGenX64/codegen.h"
+#include "BE/CodeGenX64/legalize.h"
 #include "BE/CpuX64/symbolic.h"
 #include "Util/assert.h"
 

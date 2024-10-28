@@ -2,7 +2,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/ir.h"
-#include "CodeGenX64/regs.h"
+#include "BE/CodeGenX64/regs.h"
 
 #include <iostream>
 

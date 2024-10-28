@@ -33,7 +33,7 @@ if MODE == "a64":
 if MODE == "x64":
     print("Selected mode X64")
     import CpuX64.opcode_tab as cpu
-    from CodeGenX64 import codegen
+    from BE.CodeGenX64 import codegen
 
 # language=css
 STYLE = """

@@ -16,13 +16,13 @@ from Base import opcode_tab as o
 from Base import sanity
 from Base import serialize
 
-from CpuX64 import opcode_tab as x64
-from CpuX64 import symbolic
-from CpuX64 import assembler
+from BE.CpuX64 import opcode_tab as x64
+from BE.CpuX64 import symbolic
+from BE.CpuX64 import assembler
 
-from CodeGenX64 import isel_tab
-from CodeGenX64 import regs
-from CodeGenX64 import legalize
+from BE.CodeGenX64 import isel_tab
+from BE.CodeGenX64 import regs
+from BE.CodeGenX64 import legalize
 
 from BE.Elf import enum_tab
 from BE.Elf import elf_unit

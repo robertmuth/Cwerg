@@ -10,8 +10,8 @@ from Base import optimize
 from Base import reg_stats
 from Base import sanity
 from Base import serialize
-from CodeGenX64 import isel_tab
-from CodeGenX64 import regs
+from BE.CodeGenX64 import isel_tab
+from BE.CodeGenX64 import regs
 
 
 def DumpBbl(bbl: ir.Bbl):

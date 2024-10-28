@@ -6,7 +6,7 @@
 
 #include "Base/ir.h"
 #include "Base/opcode_gen.h"
-#include "CodeGenX64/regs.h"
+#include "BE/CodeGenX64/regs.h"
 #include "BE/CpuX64/opcode_gen.h"
 
 namespace cwerg::code_gen_x64 {

@@ -1,4 +1,4 @@
-#include "CodeGenX64/regs.h"
+#include "BE/CodeGenX64/regs.h"
 #include "Base/cfg.h"
 #include "Base/reg_alloc.h"
 #include "Base/serialize.h"

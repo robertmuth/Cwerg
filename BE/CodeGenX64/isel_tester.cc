@@ -1,8 +1,8 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Base/serialize.h"
-#include "CodeGenX64/isel_gen.h"
-#include "CodeGenX64/regs.h"
+#include "BE/CodeGenX64/isel_gen.h"
+#include "BE/CodeGenX64/regs.h"
 #include "BE/CpuX64/symbolic.h"
 #include "Util/parse.h"
 
