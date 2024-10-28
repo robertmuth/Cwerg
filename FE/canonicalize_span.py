@@ -5,12 +5,12 @@
 
 from typing import Optional
 
-from FrontEnd import canonicalize
-from FrontEnd import cwast
-from FrontEnd import type_corpus
-from FrontEnd import typify
-from FrontEnd import symbolize
-from FrontEnd import eval
+from FE import canonicalize
+from FE import cwast
+from FE import type_corpus
+from FE import typify
+from FE import symbolize
+from FE import eval
 
 ############################################################
 # Convert Spans to equvalent struct

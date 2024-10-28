@@ -9,7 +9,7 @@ import logging
 
 from typing import Any, Tuple
 
-from FrontEnd import cwast
+from FE import cwast
 
 
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@ import logging
 
 from typing import Optional
 
-from FrontEnd import cwast
+from FE import cwast
 
 
 logger = logging.getLogger(__name__)
@@ -337,7 +337,7 @@ def PrettyPrint(mod: cwast.DefMod, outp):
 if __name__ == "__main__":
     import argparse
 
-    from FrontEnd import parse_sexpr
+    from FE import parse_sexpr
 
     def main():
         parser = argparse.ArgumentParser(description='pretty_printer')

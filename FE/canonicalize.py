@@ -4,11 +4,11 @@
 from typing import Any, Optional
 
 
-from FrontEnd import identifier
-from FrontEnd import cwast
-from FrontEnd import type_corpus
-from FrontEnd import eval
-from FrontEnd import typify
+from FE import identifier
+from FE import cwast
+from FE import type_corpus
+from FE import eval
+from FE import typify
 
 ############################################################
 #

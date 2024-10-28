@@ -3,9 +3,9 @@
 import pathlib
 import logging
 
-from FrontEnd import cwast
-from FrontEnd import mod_pool
-from FrontEnd import symbolize
+from FE import cwast
+from FE import mod_pool
+from FE import symbolize
 
 logger = logging.getLogger(__name__)
 

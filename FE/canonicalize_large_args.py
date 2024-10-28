@@ -18,10 +18,10 @@ Effects of this step:
 
 from typing import Optional, Any
 
-from FrontEnd import identifier
-from FrontEnd import cwast
-from FrontEnd import type_corpus
-from FrontEnd import typify
+from FE import identifier
+from FE import cwast
+from FE import type_corpus
+from FE import typify
 
 ############################################################
 # Convert large parameter into pointer to object allocated

@@ -10,11 +10,11 @@ Protocol:
 
 from typing import Optional
 
-from FrontEnd import cwast
-from FrontEnd import type_corpus
-from FrontEnd import typify
-from FrontEnd import canonicalize
-from FrontEnd import identifier
+from FE import cwast
+from FE import type_corpus
+from FE import typify
+from FE import canonicalize
+from FE import identifier
 
 ############################################################
 # Convert Tagged Unions to equvalent struct

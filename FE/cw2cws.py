@@ -8,8 +8,8 @@ import logging
 import sys
 
 
-from FrontEnd import parse
-from FrontEnd import pp_sexpr
+from FE import parse
+from FE import pp_sexpr
 
 logger = logging.getLogger(__name__)
 

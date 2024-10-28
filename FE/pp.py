@@ -9,7 +9,7 @@ import dataclasses
 
 from typing import Optional, Any, Callable
 
-from FrontEnd import cwast
+from FE import cwast
 
 
 logger = logging.getLogger(__name__)
@@ -1091,7 +1091,7 @@ def PrettyPrint(mod: cwast.DefMod, outp):
 if __name__ == "__main__":
     import sys
 
-    from FrontEnd import parse
+    from FE import parse
 
     def process_file(inp, outp):
         mod = parse.ReadModFromStream(inp, "stdin")

@@ -5,10 +5,10 @@ import logging
 import collections
 import heapq
 
-from FrontEnd import cwast
-from FrontEnd import parse_sexpr
-from FrontEnd import symbolize
-from FrontEnd import parse
+from FE import cwast
+from FE import parse_sexpr
+from FE import symbolize
+from FE import parse
 
 from typing import Optional, Sequence
 

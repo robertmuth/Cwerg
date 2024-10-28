@@ -3,7 +3,7 @@ import collections
 
 from typing import Set, Dict, List
 
-from FrontEnd import cwast
+from FE import cwast
 
 
 logger = logging.getLogger(__name__)

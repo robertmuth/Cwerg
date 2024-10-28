@@ -19,11 +19,11 @@ import dataclasses
 
 from typing import Any, Optional, Dict
 
-from FrontEnd import cwast
-from FrontEnd import parse_sexpr
-from FrontEnd import pp
-from FrontEnd import pp_sexpr
-from FrontEnd import string_re
+from FE import cwast
+from FE import parse_sexpr
+from FE import pp
+from FE import pp_sexpr
+from FE import string_re
 
 logger = logging.getLogger(__name__)
 

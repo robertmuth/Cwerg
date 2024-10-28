@@ -15,19 +15,19 @@ from typing import Union, Any, Optional
 
 from Util.parse import BytesToEscapedString
 
-from FrontEnd import canonicalize_large_args
-from FrontEnd import canonicalize_span
-from FrontEnd import canonicalize_union
-from FrontEnd import canonicalize
-from FrontEnd import symbolize
-from FrontEnd import type_corpus
-from FrontEnd import cwast
-from FrontEnd import typify
-from FrontEnd import eval
-from FrontEnd import identifier
-from FrontEnd import pp_html
-from FrontEnd import mod_pool
-from FrontEnd import dead_code
+from FE import canonicalize_large_args
+from FE import canonicalize_span
+from FE import canonicalize_union
+from FE import canonicalize
+from FE import symbolize
+from FE import type_corpus
+from FE import cwast
+from FE import typify
+from FE import eval
+from FE import identifier
+from FE import pp_html
+from FE import mod_pool
+from FE import dead_code
 
 logger = logging.getLogger(__name__)
 

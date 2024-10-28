@@ -8,10 +8,10 @@ import logging
 
 from typing import Optional, Any, Sequence, Union
 
-from FrontEnd import pp_sexpr
-from FrontEnd import macros
-from FrontEnd import cwast
-from FrontEnd import canonicalize
+from FE import pp_sexpr
+from FE import macros
+from FE import cwast
+from FE import canonicalize
 
 logger = logging.getLogger(__name__)
 
@@ -593,7 +593,7 @@ if __name__ == "__main__":
     import sys
     import os
     import pathlib
-    from FrontEnd import mod_pool
+    from FE import mod_pool
 
     logging.basicConfig(level=logging.WARNING)
     logger.setLevel(logging.INFO)

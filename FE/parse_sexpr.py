@@ -10,8 +10,8 @@ import logging
 
 from typing import Any, Tuple, Union
 
-from FrontEnd import cwast
-from FrontEnd import string_re
+from FE import cwast
+from FE import string_re
 
 logger = logging.getLogger(__name__)
 ############################################################

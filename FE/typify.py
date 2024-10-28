@@ -33,10 +33,10 @@ import logging
 from typing import Tuple, Any, Optional
 
 
-from FrontEnd import cwast
-from FrontEnd import symbolize
-from FrontEnd import type_corpus
-from FrontEnd import canonicalize
+from FE import cwast
+from FE import symbolize
+from FE import type_corpus
+from FE import canonicalize
 
 
 logger = logging.getLogger(__name__)
@@ -1336,7 +1336,7 @@ if __name__ == "__main__":
     import sys
     import os
     import pathlib
-    from FrontEnd import mod_pool
+    from FE import mod_pool
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.WARN)
