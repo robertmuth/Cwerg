@@ -2760,10 +2760,15 @@ class DefMod:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprSrcLoc:
-    """Source Location encoded as u32"""
-    ALIAS = "src_loc"
+    """Source Location encoded as string
+
+    expr is not evaluated but just used for its x_srcloc
+    """
+    ALIAS = "srcloc"
     GROUP = GROUP.Expression
     FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF_EXPR
+    #
+    expr: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
 
