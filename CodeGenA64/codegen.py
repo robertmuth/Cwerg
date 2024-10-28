@@ -23,8 +23,8 @@ from CodeGenA64 import isel_tab
 from CodeGenA64 import regs
 from CodeGenA64 import legalize
 
-from Elf import enum_tab
-from Elf import elf_unit
+from BE.Elf import enum_tab
+from BE.Elf import elf_unit
 
 
 def LegalizeAll(unit, opt_stats, fout, verbose=False):

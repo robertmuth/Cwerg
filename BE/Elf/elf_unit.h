@@ -5,7 +5,7 @@
 #include <map>
 #include <string_view>
 #include <vector>
-#include "Elf/elfhelper.h"
+#include "BE/Elf/elfhelper.h"
 #include "Util/assert.h"
 
 namespace cwerg::elf {

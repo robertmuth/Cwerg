@@ -11,8 +11,8 @@ import enum
 from typing import List, Dict, Optional, Set, Tuple, Any, BinaryIO
 
 
-from Elf.elfhelper import Executable
-from Elf.enum_tab import EI_CLASS
+from BE.Elf.elfhelper import Executable
+from BE.Elf.enum_tab import EI_CLASS
 from Util import parse
 
 

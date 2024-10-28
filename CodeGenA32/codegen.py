@@ -24,8 +24,8 @@ from CodeGenA32 import isel_tab
 from CodeGenA32 import regs
 from CodeGenA32 import legalize
 
-from Elf import enum_tab
-from Elf import elf_unit
+from BE.Elf import enum_tab
+from BE.Elf import elf_unit
 
 
 def LegalizeAll(unit: ir.Unit, opt_stats, fout, verbose=False):

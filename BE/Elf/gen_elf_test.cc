@@ -1,7 +1,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
-#include "Elf/elfhelper.h"
-#include "Elf/enum_gen.h"
+#include "BE/Elf/elfhelper.h"
+#include "BE/Elf/enum_gen.h"
 #include "Util/assert.h"
 
 #include <fcntl.h>

@@ -11,7 +11,7 @@ from Base import ir
 from Base import opcode_tab as o
 from CodeGenX64 import regs
 from CpuX64 import opcode_tab as x64
-from Elf import enum_tab
+from BE.Elf import enum_tab
 from Util import cgen
 
 

@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional, Any
-import Elf.elfhelper as elf
+import BE.Elf.elfhelper as elf
 
 ZERO_BYTE = bytes([0])
 

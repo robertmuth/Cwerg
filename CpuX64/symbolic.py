@@ -4,7 +4,7 @@ This module contains code for (un-)symbolizing the X64 ISA operands
 
 from typing import List, Tuple
 
-from Elf import enum_tab
+from BE.Elf import enum_tab
 from CpuX64 import opcode_tab as x64
 from Util import parse
 

@@ -1,7 +1,7 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
-#include "Elf/enum_gen.h"
+#include "BE/Elf/enum_gen.h"
 #include "Util/assert.h"
 
 #include <cstdint>

@@ -47,10 +47,10 @@ import io
 import struct
 from typing import List, Dict, Optional, Set, Tuple, Any
 
-from Elf.enum_tab import E_MACHINE, EI_CLASS, EI_DATA, E_TYPE, E_FLAGS_ARM, ST_INFO_BIND, \
+from BE.Elf.enum_tab import E_MACHINE, EI_CLASS, EI_DATA, E_TYPE, E_FLAGS_ARM, ST_INFO_BIND, \
     ST_INFO_TYPE
-from Elf.enum_tab import P_TYPE, P_FLAGS
-from Elf.enum_tab import SH_TYPE, SH_FLAGS
+from BE.Elf.enum_tab import P_TYPE, P_FLAGS
+from BE.Elf.enum_tab import SH_TYPE, SH_FLAGS
 
 
 def Align(x, align):

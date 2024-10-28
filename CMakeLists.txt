@@ -155,11 +155,11 @@ add_executable(x64_assembler_tool.exe
 )
 
 add_library(ELF_LIB OBJECT
-        Elf/enum_gen.cc
-        Elf/enum_gen.h
-        Elf/elfhelper.cc
-        Elf/elfhelper.h
-        Elf/elf_unit.h)
+        BE/Elf/enum_gen.cc
+        BE/Elf/enum_gen.h
+        BE/Elf/elfhelper.cc
+        BE/Elf/elfhelper.h
+        BE/Elf/elf_unit.h)
 
 add_library(BASE_LIB OBJECT
         Base/canonicalize.cc
@@ -199,13 +199,13 @@ add_executable(optimize_tool.exe
 add_executable(elf_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
-        Elf/elf_tool.cc
+        BE/Elf/elf_tool.cc
 )
 
 add_executable(gen_elf_test.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
-        Elf/gen_elf_test.cc
+        BE/Elf/gen_elf_test.cc
 )
 
 add_executable(a32_assembler_tool.exe

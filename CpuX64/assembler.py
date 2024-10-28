@@ -7,9 +7,9 @@ from typing import List, Dict, Any
 
 from CpuX64 import opcode_tab as x64
 from CpuX64 import symbolic
-from Elf import elf_unit
-from Elf import elfhelper as elf
-from Elf import enum_tab
+from BE.Elf import elf_unit
+from BE.Elf import elfhelper as elf
+from BE.Elf import enum_tab
 from Util import parse
 
 NOP_SEQUENCES = [bytes(),

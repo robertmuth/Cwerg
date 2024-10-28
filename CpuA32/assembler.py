@@ -7,9 +7,9 @@ from typing import List, Dict, Any
 
 from CpuA32 import opcode_tab as a32
 from CpuA32 import symbolic
-from Elf import elfhelper as elf
-from Elf import elf_unit
-from Elf import enum_tab
+from BE.Elf import elfhelper as elf
+from BE.Elf import elf_unit
+from BE.Elf import enum_tab
 
 from Util import parse
 

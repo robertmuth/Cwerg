@@ -2,8 +2,8 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "CpuX64/opcode_gen.h"
-#include "Elf/elfhelper.h"
-#include "Elf/elf_unit.h"
+#include "BE/Elf/elfhelper.h"
+#include "BE/Elf/elf_unit.h"
 
 
 namespace cwerg::x64 {

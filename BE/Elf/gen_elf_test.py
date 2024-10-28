@@ -6,8 +6,8 @@ Use commandline parameter gena32, gena64, genx64 to select the architecture
 """
 import sys
 
-from Elf import elfhelper
-from Elf.enum_tab import SH_FLAGS, EI_CLASS
+from BE.Elf import elfhelper
+from BE.Elf.enum_tab import SH_FLAGS, EI_CLASS
 
 RODATA_X64 = b"Hello, world (x64)\n"
 

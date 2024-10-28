@@ -6,7 +6,7 @@ import struct
 from typing import List, Tuple, Set
 
 from CpuA32 import opcode_tab as a32
-from Elf import enum_tab
+from BE.Elf import enum_tab
 
 
 def _EmitReloc(ins: a32.Ins, pos: int) -> str:

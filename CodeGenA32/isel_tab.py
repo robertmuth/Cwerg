@@ -13,7 +13,7 @@ from Base import ir
 from Base import opcode_tab as o
 from CodeGenA32 import regs
 from CpuA32 import opcode_tab as arm
-from Elf import enum_tab
+from BE.Elf import enum_tab
 from Util import cgen
 
 

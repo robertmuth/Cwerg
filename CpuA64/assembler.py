@@ -7,10 +7,10 @@ from typing import List, Dict, Optional, Any
 
 from CpuA64 import opcode_tab as a64
 from CpuA64 import symbolic
-from Elf import elfhelper as elf
-from Elf import enum_tab
+from BE.Elf import elfhelper as elf
+from BE.Elf import enum_tab
 from Util import parse
-from Elf import elf_unit
+from BE.Elf import elf_unit
 
 NOP_BYTES = bytes([0x1f, 0x20, 0x03, 0xd5])
 
