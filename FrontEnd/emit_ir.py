@@ -745,9 +745,10 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
     if isinstance(node, cwast.DefVar):
         def_type: cwast.CanonType = node.type_or_auto.x_type
         initial = node.initial_or_undef_or_auto
-        if def_type.size == 0 and not isinstance(initial, cwast.ValUndef):
-            # still need to evaluate the expression for the side effect
-            EmitIRExpr(initial, tc, id_gen)
+        if def_type.size == 0:
+            if not isinstance(initial, cwast.ValUndef):
+                # still need to evaluate the expression for the side effect
+                EmitIRExpr(initial, tc, id_gen)
         elif _IsDefVarOnStack(node):
             assert def_type.size > 0
             print(f"{TAB}.stk {node.name} {def_type.alignment} {def_type.size}")
