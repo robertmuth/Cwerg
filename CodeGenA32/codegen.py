@@ -16,9 +16,9 @@ from Base import opcode_tab as o
 from Base import sanity
 from Base import serialize
 
-from CpuA32 import opcode_tab as a32
-from CpuA32 import symbolic
-from CpuA32 import assembler
+from BE.CpuA32 import opcode_tab as a32
+from BE.CpuA32 import symbolic
+from BE.CpuA32 import assembler
 
 from CodeGenA32 import isel_tab
 from CodeGenA32 import regs

@@ -1,8 +1,8 @@
 // (c) Robert Muth - see LICENSE for more info
 
-#include "CpuA32/assembler.h"
-#include "CpuA32/opcode_gen.h"
-#include "CpuA32/symbolic.h"
+#include "BE/CpuA32/assembler.h"
+#include "BE/CpuA32/opcode_gen.h"
+#include "BE/CpuA32/symbolic.h"
 #include "Util/parse.h"
 
 #include <map>

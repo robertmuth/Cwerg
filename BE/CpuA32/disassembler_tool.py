@@ -2,8 +2,8 @@
 
 import sys
 
-from CpuA32 import symbolic
-from CpuA32 import opcode_tab as a32
+from BE.CpuA32 import symbolic
+from BE.CpuA32 import opcode_tab as a32
 
 
 def disass(data):

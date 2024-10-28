@@ -9,7 +9,7 @@ import os
 import stat
 import sys
 
-from CpuA32 import assembler as a32
+from BE.CpuA32 import assembler as a32
 
 
 def lint(input):

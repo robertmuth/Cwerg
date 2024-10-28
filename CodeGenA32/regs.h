@@ -6,7 +6,7 @@
 #include "Base/ir.h"
 #include "Base/lowering.h"
 #include "Base/reg_stats.h"
-#include "CpuA32/opcode_gen.h"
+#include "BE/CpuA32/opcode_gen.h"
 
 namespace cwerg::code_gen_a32 {
 using namespace cwerg;

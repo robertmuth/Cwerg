@@ -75,19 +75,19 @@ add_executable(mem_pool_test.exe
 )
 
 add_library(CPUA32_LIB OBJECT
-        CpuA32/symbolic.cc
-        CpuA32/symbolic.h
-        CpuA32/assembler.cc
-        CpuA32/assembler.h
-        CpuA32/opcode_gen.cc
-        CpuA32/opcode_gen.h
+        BE/CpuA32/symbolic.cc
+        BE/CpuA32/symbolic.h
+        BE/CpuA32/assembler.cc
+        BE/CpuA32/assembler.h
+        BE/CpuA32/opcode_gen.cc
+        BE/CpuA32/opcode_gen.h
 )
 
 add_library(CPUA32_LITE_LIB OBJECT
-        CpuA32/symbolic.cc
-        CpuA32/symbolic.h
-        CpuA32/opcode_gen.cc
-        CpuA32/opcode_gen.h
+        BE/CpuA32/symbolic.cc
+        BE/CpuA32/symbolic.h
+        BE/CpuA32/opcode_gen.cc
+        BE/CpuA32/opcode_gen.h
 )
 
 add_library(CPUA64_LIB OBJECT
@@ -212,14 +212,14 @@ add_executable(a32_assembler_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUA32_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
-        CpuA32/assembler_tool.cc
+        BE/CpuA32/assembler_tool.cc
 )
 
 add_executable(a32_disassembler_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUA32_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
-        CpuA32/disassembler_tool.cc
+        BE/CpuA32/disassembler_tool.cc
 )
 
 add_library(CODEGENA32_LIB OBJECT

@@ -64,7 +64,7 @@ opcode_gen.h: opcode_tab.py
 ############################################################
 # C++ Port
 ############################################################
-BUILD_DIR=../build
+BUILD_DIR=../../build
 
 ASSEMBLER_TOOL=$(BUILD_DIR)/a32_assembler_tool.exe
 DISASSEMBLER_TOOL=$(BUILD_DIR)/a32_disassembler_tool.exe

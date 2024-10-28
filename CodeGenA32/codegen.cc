@@ -10,8 +10,8 @@
 #include "CodeGenA32/isel_gen.h"
 #include "CodeGenA32/legalize.h"
 #include "CodeGenA32/regs.h"
-#include "CpuA32/opcode_gen.h"
-#include "CpuA32/symbolic.h"
+#include "BE/CpuA32/opcode_gen.h"
+#include "BE/CpuA32/symbolic.h"
 #include "Util/parse.h"
 
 namespace cwerg::code_gen_a32 {

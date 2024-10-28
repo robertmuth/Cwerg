@@ -7,8 +7,8 @@ import sys
 from Base import serialize
 from Base import ir
 
-from CpuA32 import opcode_tab as a32
-from CpuA32 import symbolic
+from BE.CpuA32 import opcode_tab as a32
+from BE.CpuA32 import symbolic
 
 from CodeGenA32 import isel_tab
 from CodeGenA32 import regs

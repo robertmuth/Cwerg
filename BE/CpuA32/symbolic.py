@@ -5,7 +5,7 @@ be processed by an assembler.
 import struct
 from typing import List, Tuple, Set
 
-from CpuA32 import opcode_tab as a32
+from BE.CpuA32 import opcode_tab as a32
 from BE.Elf import enum_tab
 
 

@@ -4,7 +4,7 @@
 #include <optional>
 #include <string_view>
 #include <vector>
-#include "CpuA32/opcode_gen.h"
+#include "BE/CpuA32/opcode_gen.h"
 
 namespace cwerg::a32 {
 

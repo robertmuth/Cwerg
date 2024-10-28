@@ -1,6 +1,6 @@
 // This examples shows how to jit a32 assembly directly (not cwerg IR)
-#include "CpuA32/opcode_gen.h"
-#include "CpuA32/symbolic.h"
+#include "BE/CpuA32/opcode_gen.h"
+#include "BE/CpuA32/symbolic.h"
 #include "Util/assert.h"
 
 #include <sys/mman.h>

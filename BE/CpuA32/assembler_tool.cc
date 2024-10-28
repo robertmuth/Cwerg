@@ -1,6 +1,6 @@
 // (c) Robert Muth - see LICENSE for more info
 
-#include "CpuA32/assembler.h"
+#include "BE/CpuA32/assembler.h"
 
 #include <fstream>
 #include <string_view>
