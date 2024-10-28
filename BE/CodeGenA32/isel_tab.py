@@ -11,7 +11,7 @@ import enum
 
 from Base import ir
 from Base import opcode_tab as o
-from CodeGenA32 import regs
+from BE.CodeGenA32 import regs
 from BE.CpuA32 import opcode_tab as arm
 from BE.Elf import enum_tab
 from Util import cgen

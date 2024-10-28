@@ -1,7 +1,7 @@
-#include "CodeGenA32/regs.h"
+#include "BE/CodeGenA32/regs.h"
 #include "Base/reg_alloc.h"
 #include "Base/serialize.h"
-#include "CodeGenA32/isel_gen.h"
+#include "BE/CodeGenA32/isel_gen.h"
 #include "Util/parse.h"
 
 namespace cwerg::code_gen_a32 {

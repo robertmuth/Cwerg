@@ -2,7 +2,7 @@
 
 import unittest
 
-from CodeGenA32 import isel_tab
+from BE.CodeGenA32 import isel_tab
 from Base import ir
 from Base import opcode_tab as o
 

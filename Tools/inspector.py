@@ -25,7 +25,7 @@ from Base import serialize
 if MODE == "a32":
     print("Selected mode X64")
     import CpuA32.opcode_tab as cpu
-    from CodeGenA32 import codegen
+    from BE.CodeGenA32 import codegen
 if MODE == "a64":
     print("Selected mode A64")
     import CpuA64.opcode_tab as cpu

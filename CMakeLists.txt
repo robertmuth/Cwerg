@@ -223,14 +223,14 @@ add_executable(a32_disassembler_tool.exe
 )
 
 add_library(CODEGENA32_LIB OBJECT
-        CodeGenA32/isel_gen.cc
-        CodeGenA32/isel_gen.h
-        CodeGenA32/codegen.cc
-        CodeGenA32/codegen.h
-        CodeGenA32/legalize.cc
-        CodeGenA32/legalize.h
-        CodeGenA32/regs.cc
-        CodeGenA32/regs.h
+        BE/CodeGenA32/isel_gen.cc
+        BE/CodeGenA32/isel_gen.h
+        BE/CodeGenA32/codegen.cc
+        BE/CodeGenA32/codegen.h
+        BE/CodeGenA32/legalize.cc
+        BE/CodeGenA32/legalize.h
+        BE/CodeGenA32/regs.cc
+        BE/CodeGenA32/regs.h
 )
 
 add_executable(a32_isel_tester.exe
@@ -239,7 +239,7 @@ add_executable(a32_isel_tester.exe
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENA32_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        CodeGenA32/isel_tester.cc
+        BE/CodeGenA32/isel_tester.cc
 )
 
 add_executable(a32_codegen_tool.exe
@@ -248,7 +248,7 @@ add_executable(a32_codegen_tool.exe
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENA32_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        CodeGenA32/codegen_tool.cc
+        BE/CodeGenA32/codegen_tool.cc
 )
 
 add_library(CODEGENA64_LIB OBJECT

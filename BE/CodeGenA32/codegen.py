@@ -20,9 +20,9 @@ from BE.CpuA32 import opcode_tab as a32
 from BE.CpuA32 import symbolic
 from BE.CpuA32 import assembler
 
-from CodeGenA32 import isel_tab
-from CodeGenA32 import regs
-from CodeGenA32 import legalize
+from BE.CodeGenA32 import isel_tab
+from BE.CodeGenA32 import regs
+from BE.CodeGenA32 import legalize
 
 from BE.Elf import enum_tab
 from BE.Elf import elf_unit

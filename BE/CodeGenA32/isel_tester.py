@@ -10,8 +10,8 @@ from Base import ir
 from BE.CpuA32 import opcode_tab as a32
 from BE.CpuA32 import symbolic
 
-from CodeGenA32 import isel_tab
-from CodeGenA32 import regs
+from BE.CodeGenA32 import isel_tab
+from BE.CodeGenA32 import regs
 
 
 def OpToStr(op: Any) -> str:

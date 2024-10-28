@@ -1,15 +1,15 @@
 // (c) Robert Muth - see LICENSE for more info
 
-#include "CodeGenA32/codegen.h"
+#include "BE/CodeGenA32/codegen.h"
 
 #include "Base/cfg.h"
 #include "Base/ir.h"
 #include "Base/optimize.h"
 #include "Base/sanity.h"
 #include "Base/serialize.h"
-#include "CodeGenA32/isel_gen.h"
-#include "CodeGenA32/legalize.h"
-#include "CodeGenA32/regs.h"
+#include "BE/CodeGenA32/isel_gen.h"
+#include "BE/CodeGenA32/legalize.h"
+#include "BE/CodeGenA32/regs.h"
 #include "BE/CpuA32/opcode_gen.h"
 #include "BE/CpuA32/symbolic.h"
 #include "Util/parse.h"

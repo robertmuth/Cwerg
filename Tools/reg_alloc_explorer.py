@@ -33,7 +33,7 @@ from Base import opcode_tab as o
 
 # NOTE NOTE NOTE: you must change this to reflect the  backend where he liveranges originate
 if False:
-    from CodeGenA32 import regs
+    from BE.CodeGenA32 import regs
 else:
     from BE.CodeGenA64 import regs
 
