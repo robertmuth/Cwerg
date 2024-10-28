@@ -35,7 +35,7 @@ from Base import opcode_tab as o
 if False:
     from CodeGenA32 import regs
 else:
-    from CodeGenA64 import regs
+    from BE.CodeGenA64 import regs
 
 # language=css
 STYLE = """

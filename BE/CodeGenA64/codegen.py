@@ -19,9 +19,9 @@ from BE.CpuA64 import opcode_tab as a64
 from BE.CpuA64 import symbolic
 from BE.CpuA64 import assembler
 
-from CodeGenA64 import isel_tab
-from CodeGenA64 import regs
-from CodeGenA64 import legalize
+from BE.CodeGenA64 import isel_tab
+from BE.CodeGenA64 import regs
+from BE.CodeGenA64 import legalize
 
 from BE.Elf import enum_tab
 from BE.Elf import elf_unit

@@ -12,8 +12,8 @@ from Base import reg_stats
 from Base import sanity
 from Base import optimize
 from Base import serialize
-from CodeGenA64 import isel_tab
-from CodeGenA64 import regs
+from BE.CodeGenA64 import isel_tab
+from BE.CodeGenA64 import regs
 
 _DUMMY_A32 = ir.Reg("dummy", o.DK.A32)
 _ZERO_OFFSET = ir.Const(o.DK.U32, 0)

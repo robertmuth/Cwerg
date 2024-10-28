@@ -85,12 +85,12 @@ $(DIR)/isel_test:
 # Code Gen
 ############################################################
 
-isel_gen.cc: isel_tab.py ../Base/opcode_tab.py
+isel_gen.cc: isel_tab.py ../../Base/opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
-isel_gen.h: isel_tab.py ../Base/opcode_tab.py
+isel_gen.h: isel_tab.py ../../Base/opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_h <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
@@ -98,7 +98,7 @@ isel_gen.h: isel_tab.py ../Base/opcode_tab.py
 ############################################################
 # C++
 ############################################################
-BUILD_DIR=../build
+BUILD_DIR=../../build
 CODEGEN_TOOL=$(BUILD_DIR)/a64_codegen_tool.exe
 
 $(CODEGEN_TOOL)::
@@ -140,7 +140,7 @@ $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm | sed -e "s|$@.ppm|nanojpeg.ppm|" > $@.actual
 	diff $@.actual ../TestData/nano_jpeg.golden
-	
+
 ############################################################
 # Parity
 ############################################################

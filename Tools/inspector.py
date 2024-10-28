@@ -29,7 +29,7 @@ if MODE == "a32":
 if MODE == "a64":
     print("Selected mode A64")
     import CpuA64.opcode_tab as cpu
-    from CodeGenA64 import codegen
+    from BE.CodeGenA64 import codegen
 if MODE == "x64":
     print("Selected mode X64")
     import CpuX64.opcode_tab as cpu

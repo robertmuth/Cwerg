@@ -7,7 +7,7 @@
 #include "Base/opcode_gen.h"
 #include "Base/ir.h"
 #include "BE/CpuA64/opcode_gen.h"
-#include "CodeGenA64/regs.h"
+#include "BE/CodeGenA64/regs.h"
 
 namespace cwerg::code_gen_a64 {
 /* @AUTOGEN-START@ */

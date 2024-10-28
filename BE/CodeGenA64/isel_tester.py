@@ -4,8 +4,8 @@
 from BE.CpuA64 import symbolic
 from Base import serialize
 from Base import ir
-from CodeGenA64 import isel_tab
-from CodeGenA64 import regs
+from BE.CodeGenA64 import isel_tab
+from BE.CodeGenA64 import regs
 
 from typing import Any
 import sys
