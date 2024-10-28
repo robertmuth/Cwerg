@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include "Base/ir.h"
-#include "CpuX64/assembler.h"
+#include "BE/CpuX64/assembler.h"
 
 namespace cwerg::code_gen_x64 {
 using namespace cwerg;

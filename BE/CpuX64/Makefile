@@ -26,7 +26,7 @@ tests: $(DIR)/disassembler_test $(DIR)/symbolize_parity $(DIR)/codegen_parity $(
 	@echo "[OK CPUX64]"
 
 hello-x64:
-	gcc -static -Wl,-z,norelro -O2 hello.c -o hello-x64 
+	gcc -static -Wl,-z,norelro -O2 hello.c -o hello-x64
 
 hello_barebones-x64:
 	as hello_barebones.s -o $(DIR)/hello_barebones.o
@@ -83,7 +83,7 @@ GENERATED = opcode_gen.cc opcode_gen.h opcode_gen_encodings.h opcode_gen_names.h
 ############################################################
 # C++ Port
 ############################################################
-BUILD_DIR=../build
+BUILD_DIR=../../build
 
 ASSEMBLER_TOOL=$(BUILD_DIR)/x64_assembler_tool.exe
 DISASSEMBLER_TOOL=$(BUILD_DIR)/x64_disassembler_tool.exe

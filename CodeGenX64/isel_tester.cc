@@ -3,7 +3,7 @@
 #include "Base/serialize.h"
 #include "CodeGenX64/isel_gen.h"
 #include "CodeGenX64/regs.h"
-#include "CpuX64/symbolic.h"
+#include "BE/CpuX64/symbolic.h"
 #include "Util/parse.h"
 
 #include <iostream>

@@ -14,7 +14,7 @@ constexpr const unsigned NA = 15;
 
 using namespace cwerg;
 
-#include "CpuX64/opcode_gen_enum.h"
+#include "BE/CpuX64/opcode_gen_enum.h"
 
 /* @AUTOGEN-START@ */
 constexpr const unsigned MAX_OPERAND_COUNT = 6;

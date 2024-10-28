@@ -10,8 +10,8 @@ import re
 import sys
 from typing import List
 
-from CpuX64 import opcode_tab as x64
-from CpuX64 import symbolic
+from BE.CpuX64 import opcode_tab as x64
+from BE.CpuX64 import symbolic
 
 
 def Hexify(data) -> str:

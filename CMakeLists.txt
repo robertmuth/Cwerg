@@ -107,19 +107,19 @@ add_library(CPUA64_LITE_LIB OBJECT
 )
 
 add_library(CPUX64_LIB OBJECT
-        CpuX64/symbolic.cc
-        CpuX64/symbolic.h
-        CpuX64/assembler.cc
-        CpuX64/assembler.h
-        CpuX64/opcode_gen.cc
-        CpuX64/opcode_gen.h
+        BE/CpuX64/symbolic.cc
+        BE/CpuX64/symbolic.h
+        BE/CpuX64/assembler.cc
+        BE/CpuX64/assembler.h
+        BE/CpuX64/opcode_gen.cc
+        BE/CpuX64/opcode_gen.h
 )
 
 add_library(CPUX64_LITE_LIB OBJECT
-        CpuX64/symbolic.cc
-        CpuX64/symbolic.h
-        CpuX64/opcode_gen.cc
-        CpuX64/opcode_gen.h
+        BE/CpuX64/symbolic.cc
+        BE/CpuX64/symbolic.h
+        BE/CpuX64/opcode_gen.cc
+        BE/CpuX64/opcode_gen.h
 )
 
 add_executable(a64_opcode_test.exe
@@ -144,14 +144,14 @@ add_executable(a64_assembler_tool.exe
 add_executable(x64_disassembler_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUX64_LITE_LIB>
-        CpuX64/disassembler_tool.cc
+        BE/CpuX64/disassembler_tool.cc
 )
 
 add_executable(x64_assembler_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUX64_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
-        CpuX64/assembler_tool.cc
+        BE/CpuX64/assembler_tool.cc
 )
 
 add_library(ELF_LIB OBJECT

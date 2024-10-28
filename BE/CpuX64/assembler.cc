@@ -1,11 +1,11 @@
 // (c) Robert Muth - see LICENSE for more info
 
-#include "CpuX64/assembler.h"
+#include "BE/CpuX64/assembler.h"
 
 #include <map>
 
-#include "CpuX64/opcode_gen.h"
-#include "CpuX64/symbolic.h"
+#include "BE/CpuX64/opcode_gen.h"
+#include "BE/CpuX64/symbolic.h"
 #include "Util/parse.h"
 
 namespace cwerg::x64 {

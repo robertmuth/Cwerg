@@ -5,8 +5,8 @@
 #include <iostream>
 #include <string_view>
 
-#include "CpuX64/opcode_gen.h"
-#include "CpuX64/symbolic.h"
+#include "BE/CpuX64/opcode_gen.h"
+#include "BE/CpuX64/symbolic.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
 

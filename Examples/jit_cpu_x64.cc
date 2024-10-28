@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-#include "CpuX64/opcode_gen.h"
-#include "CpuX64/symbolic.h"
+#include "BE/CpuX64/opcode_gen.h"
+#include "BE/CpuX64/symbolic.h"
 #include "Util/assert.h"
 
 using namespace cwerg::x64;

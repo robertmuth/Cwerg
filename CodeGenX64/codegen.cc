@@ -7,10 +7,10 @@
 #include "Base/serialize.h"
 #include "CodeGenX64/isel_gen.h"
 #include "CodeGenX64/regs.h"
-#include "CpuX64/assembler.h"
-#include "CpuX64/opcode_gen.h"
-#include "CpuX64/opcode_gen_enum.h"
-#include "CpuX64/symbolic.h"
+#include "BE/CpuX64/assembler.h"
+#include "BE/CpuX64/opcode_gen.h"
+#include "BE/CpuX64/opcode_gen_enum.h"
+#include "BE/CpuX64/symbolic.h"
 #include "Util/parse.h"
 
 namespace cwerg::code_gen_x64 {
