@@ -5,7 +5,7 @@ from typing import List, Tuple
 import struct
 
 from BE.Elf import enum_tab
-from CpuA64 import opcode_tab as a64
+from BE.CpuA64 import opcode_tab as a64
 from Util import parse
 
 

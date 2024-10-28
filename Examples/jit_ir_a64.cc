@@ -3,7 +3,7 @@
 #include "Base/ir.h"
 #include "CodeGenA64/codegen.h"
 #include "CodeGenA64/legalize.h"
-#include "CpuA64/symbolic.h"
+#include "BE/CpuA64/symbolic.h"
 #include "Util/assert.h"
 
 #include <sys/mman.h>

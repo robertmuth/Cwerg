@@ -3,7 +3,7 @@
 #include "CodeGenA64/codegen.h"
 #include "CodeGenA64/legalize.h"
 #include "CodeGenA64/regs.h"
-#include "CpuA64/assembler.h"
+#include "BE/CpuA64/assembler.h"
 #include "Util/breakpoint.h"
 #include "Util/parse.h"
 #include "Util/switch.h"

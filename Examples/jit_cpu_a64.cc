@@ -1,6 +1,6 @@
 // This examples shows how to jit a64 assembly directly (not cwerg IR)
-#include "CpuA64/opcode_gen.h"
-#include "CpuA64/symbolic.h"
+#include "BE/CpuA64/opcode_gen.h"
+#include "BE/CpuA64/symbolic.h"
 #include "Util/assert.h"
 
 #include <sys/mman.h>

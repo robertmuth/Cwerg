@@ -1,7 +1,7 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
-#include "CpuA64/opcode_gen.h"
+#include "BE/CpuA64/opcode_gen.h"
 #include "BE/Elf/elfhelper.h"
 #include "BE/Elf/elf_unit.h"
 

@@ -91,19 +91,19 @@ add_library(CPUA32_LITE_LIB OBJECT
 )
 
 add_library(CPUA64_LIB OBJECT
-        CpuA64/symbolic.cc
-        CpuA64/symbolic.h
-        CpuA64/assembler.cc
-        CpuA64/assembler.h
-        CpuA64/opcode_gen.cc
-        CpuA64/opcode_gen.h
+        BE/CpuA64/symbolic.cc
+        BE/CpuA64/symbolic.h
+        BE/CpuA64/assembler.cc
+        BE/CpuA64/assembler.h
+        BE/CpuA64/opcode_gen.cc
+        BE/CpuA64/opcode_gen.h
 )
 
 add_library(CPUA64_LITE_LIB OBJECT
-        CpuA64/symbolic.cc
-        CpuA64/symbolic.h
-        CpuA64/opcode_gen.cc
-        CpuA64/opcode_gen.h
+        BE/CpuA64/symbolic.cc
+        BE/CpuA64/symbolic.h
+        BE/CpuA64/opcode_gen.cc
+        BE/CpuA64/opcode_gen.h
 )
 
 add_library(CPUX64_LIB OBJECT
@@ -125,20 +125,20 @@ add_library(CPUX64_LITE_LIB OBJECT
 add_executable(a64_opcode_test.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUA64_LITE_LIB>
-        CpuA64/opcode_test.cc
+        BE/CpuA64/opcode_test.cc
 )
 
 add_executable(a64_disassembler_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUA64_LITE_LIB>
-        CpuA64/disassembler_tool.cc
+        BE/CpuA64/disassembler_tool.cc
 )
 
 add_executable(a64_assembler_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUA64_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
-        CpuA64/assembler_tool.cc
+        BE/CpuA64/assembler_tool.cc
 )
 
 add_executable(x64_disassembler_tool.exe

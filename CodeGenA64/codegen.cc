@@ -5,8 +5,8 @@
 #include "Base/serialize.h"
 #include "CodeGenA64/isel_gen.h"
 #include "CodeGenA64/regs.h"
-#include "CpuA64/opcode_gen.h"
-#include "CpuA64/symbolic.h"
+#include "BE/CpuA64/opcode_gen.h"
+#include "BE/CpuA64/symbolic.h"
 #include "Util/parse.h"
 
 namespace cwerg::code_gen_a64 {

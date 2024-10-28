@@ -3,7 +3,7 @@
     It only checks the encoding of certain immediate fields.
 */
 
-#include "CpuA64/opcode_gen.h"
+#include "BE/CpuA64/opcode_gen.h"
 #include "Util/assert.h"
 
 #include <cstdint>

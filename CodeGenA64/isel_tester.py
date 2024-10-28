@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """Testing helper for table driven code selection"""
 
-from CpuA64 import symbolic
+from BE.CpuA64 import symbolic
 from Base import serialize
 from Base import ir
 from CodeGenA64 import isel_tab

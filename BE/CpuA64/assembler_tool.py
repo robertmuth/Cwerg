@@ -9,7 +9,7 @@ import stat
 import sys
 from typing import Dict, Any
 
-from CpuA64 import assembler as asm
+from BE.CpuA64 import assembler as asm
 
 
 def lint(input):

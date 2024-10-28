@@ -9,9 +9,9 @@ import re
 import sys
 from typing import List, Dict
 
-from CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP, Assemble, Disassemble, Ins
+from BE.CpuA64.opcode_tab import OK, Opcode, OPC_FLAG, CONDITION_CODES_INV_MAP, Assemble, Disassemble, Ins
 
-from CpuA64 import symbolic
+from BE.CpuA64 import symbolic
 
 SIMPLE_ALIASES = {
     # official name, cwerg name without variant

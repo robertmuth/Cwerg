@@ -5,8 +5,8 @@ This files contains ELF like abstraction to help build an a64 assembler.
 """
 from typing import List, Dict, Optional, Any
 
-from CpuA64 import opcode_tab as a64
-from CpuA64 import symbolic
+from BE.CpuA64 import opcode_tab as a64
+from BE.CpuA64 import symbolic
 from BE.Elf import elfhelper as elf
 from BE.Elf import enum_tab
 from Util import parse
