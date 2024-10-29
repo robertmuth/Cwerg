@@ -1,5 +1,5 @@
-# Cwerg Language
+# Cwerg Language (Frontend)
 
-see [Overview](../FrontEndDocs/tutorial.md)
+see [Overview](Docs/tutorial.md)
 
-or [Misc Docs](../FrontEndDocs/)
+or [Misc Docs](Docs/)

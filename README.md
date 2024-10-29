@@ -8,13 +8,13 @@
 
 Cwerg aims to be a complete, compact and fast "from-scratch" compiler for a C-like language.
 It consists of the following components:
-* **Frontend**: [Overview](FrontEndDocs/tutorial.md), [Additional Docs](FrontEndDocs/)
+* **Frontend**: [Overview](FE/Docs/tutorial.md), [Additional Docs](FE/Docs/)
 
   A low-level C-like language with a Python inspired concrete syntax.
   Still actively development
 
 
-* **Backend**: [Overview](Docs/intro.md),  [Backend IR](Docs/opcodes.md), [Additional Docs](Docs/)
+* **Backend**: [Overview](BE/Docs/intro.md),  [Backend IR](BE/Docs/opcodes.md), [Additional Docs](BE/Docs/)
 
   Muti-target (currently: X86-64, Aarch64, Arm32).
 
@@ -26,7 +26,7 @@ It consists of the following components:
 * [Deprecated WASM Frontend](FrontEndWASM/) (translates WASM/WASI coded to Cwerg IR)
 
 
-Most components are implemented twice (see [rationale](Docs/why_python.md)):
+Most components are implemented twice (see [rationale](BE/Docs/why_python.md)):
 1. spec/reference implementation: Python 3.9
 2. high performance implementation: C++17 (with limited STL usage)
 
