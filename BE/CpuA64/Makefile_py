@@ -1,0 +1,47 @@
+
+.SUFFIXES:
+DIR=build
+QEMU = qemu-aarch64-static
+
+$(info $(shell mkdir -p $(DIR)))
+
+TESTS = exit.asm hello.asm fib.asm
+
+TEST_INSTRUCTIONS = 0 90000440 9126c000 14014192 97fffcf7 54000140 1e201004 f2c7f84a \
+                    f2c0000a f280000a 6ee0fb39 2ea41c20 6f02e6b0 1e602008 \
+					9e670100 1e260000 e205800 2e303800 ee2e062 4ee3e282
+
+
+tests: $(DIR)/disassembler_test objdump_compat_test $(DIR)/argv_test  $(TESTS:%.asm=$(DIR)/%.test)
+	@echo "[OK PY CpuA64]"
+
+
+
+objdump_compat_test:
+	@echo "[$@]"
+	$(PYPY) ./opcode_test.py TestData/a64_test.vector.supported.dis
+	$(PYPY) ./opcode_test.py TestData/a64_test.regular.dis
+
+############################################################
+# Python Port
+############################################################
+$(DIR)/%.test : TestData/%.asm
+	echo "[integration $@]"
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
+	${QEMU} $@.exe > $@.actual.out
+	diff $@.actual.out $<.golden
+
+$(DIR)/argv_test: TestData/argv.asm
+	echo "[integration $@]"
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
+	${QEMU} $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
+	diff $@.actual.out $<.golden
+
+$(DIR)/disassembler_test:
+	@echo "[$@]"
+	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
+	diff $@.actual.out TestData/disassembler_test.golden
+
+
+clean:
+	rm -f $(DIR)/*

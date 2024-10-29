@@ -1,0 +1,13 @@
+MAKE_FLAGS = --warn-undefined-variables --file=Makefile_py
+
+
+tests:
+	cd Base && $(MAKE) $(MAKE_FLAGS) tests &&  $(MAKE) $(MAKE_FLAGS) clean
+	cd CpuA32 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+	cd CpuA64 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+	cd CpuX64 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+	cd CodeGenA32 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+	cd CodeGenA64 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+	cd CodeGenX64 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+	cd Elf && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+	@echo "BE PY OK"

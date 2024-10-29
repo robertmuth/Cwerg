@@ -1,0 +1,83 @@
+
+# no built-in rules please
+.SUFFIXES:
+
+DIR=build
+
+QEMU = qemu-aarch64-static
+
+$(info $(shell mkdir -p $(DIR)))
+
+TESTS = fp_op.asm \
+        int_op.asm \
+        reg_torture_f32.asm \
+        reg_torture.asm \
+        cmp.asm \
+        fib.asm \
+        fib_debug.asm \
+        stack.asm \
+        multiple_results.asm \
+        multiple_results_f32.asm \
+        multiple_results_f64.asm \
+        memaddr.64.asm \
+        switch.asm \
+        indirect.64.asm \
+        queens.64.asm \
+        pfannkuchen.64.asm
+
+TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)
+
+STD_LIB_NO_ARGV = ../StdLib/startup_no_argv.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
+STD_LIB_WITH_ARGV = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
+
+
+tests: $(TEST_EXES) \
+        $(DIR)/syscall.a64.asm.exe \
+		$(DIR)/cli.a64.asm.exe \
+		$(DIR)/nanojpeg \
+		$(DIR)/isel_test \
+        $(DIR)/threads.a64.asm.exe
+	@echo "[OK PY CodeGenA64]"
+
+
+# note we sneak in our poor man's std_lib here
+$(DIR)/%.asm.exe: ../TestData/%.asm
+	@echo "[integration $@]"
+	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ >$@.out
+	${QEMU} $@ > $@.actual.out
+	diff $@.actual.out $<.golden
+
+$(DIR)/syscall.a64.asm.exe: TestData/syscall.a64.asm
+	@echo "[integration $@]"
+	$(PYPY) ./codegen.py -mode binary $<  $@
+	${QEMU} $@ > $@.actual.out
+	diff $@.actual.out $<.golden
+
+$(DIR)/cli.a64.asm.exe: TestData/cli.a64.asm
+	@echo "[integration $@]"
+	cat $(STD_LIB_WITH_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
+	diff $@.actual.out $<.golden
+
+$(DIR)/threads.a64.asm.exe: ../TestData/threads.64.asm
+	@echo "[integration $@]"
+	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	${QEMU} $@ > $@.actual.out
+	diff $@.actual.out $<.golden
+
+$(DIR)/nanojpeg:
+	@echo "[$@]"
+	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py -mode binary - $@.exe >$@.out
+	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
+	md5sum  $@.ppm > $@.actual
+	diff $@.actual TestData/nano_jpeg.golden
+
+$(DIR)/isel_test:
+	@echo "[integration $@]"
+	$(PYPY) ./isel_tester.py < TestData/codegen_test.asm  > $@.actual.out
+	diff $@.actual.out TestData/codegen_test.asm.golden
+
+
+
+clean:
+	@rm -f $(DIR)/*

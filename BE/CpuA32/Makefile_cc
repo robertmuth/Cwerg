@@ -9,43 +9,9 @@ TESTS = memaddr.asm exit.asm hello.asm fib.asm switch.asm
 
 TEST_INSTRUCTIONS = eefdbbc0 e12fff31 924aa001 ebffdc62 e8bd87f0 ecbd8b08 08bd81f0 e1920f9f 015461fa e3c70102 0
 
-tests: tests_py tests_c
-	@echo "[OK CpuA32]"
+tests: $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
+	@echo "[OK C++ CpuA32]"
 
-tests_py: objdump_compat_test $(DIR)/disassembler_test \
-              $(DIR)/argv_test $(TESTS:%.asm=$(DIR)/%.test)
-
-tests_c: $(DIR)/symbolize_parity $(TESTS:%.asm=$(DIR)/%.test_c) $(DIR)/codegen_parity
-
-############################################################
-# Python Port
-############################################################
-$(DIR)/%.test : TestData/%.asm
-	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	$(QEMU_A32) $@.exe > $@.actual.out
-	diff $@.actual.out $<.golden
-
-
-$(DIR)/argv_test: TestData/argv.asm
-	echo "[integration $@]"
-	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	$(QEMU_A32) $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
-	diff $@.actual.out $<.golden
-
-objdump_compat_test:
-	@echo "[$@]"
-	$(PYPY) ./opcode_test.py TestData/arm_test.dis
-
-
-$(DIR)/disassembler_test:
-	@echo "[$@]"
-	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
-	diff $@.actual.out TestData/disassembler_test.golden
-
-# dump opcode table
-opcodes:
-	$(PYPY) ./opcode_tab.py dist
 
 ############################################################
 # Code Gen
@@ -61,6 +27,7 @@ opcode_gen.h: opcode_tab.py
 	$(PYPY) ./opcode_tab.py gen_h <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
+GENERATED = opcode_gen.cc opcode_gen.h
 ############################################################
 # C++ Port
 ############################################################

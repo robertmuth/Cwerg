@@ -1,0 +1,54 @@
+.SUFFIXES:  # no built-in rules
+DIR=build
+
+$(info $(shell mkdir -p $(DIR)))
+
+QEMU_A64 = qemu-aarch64-static
+QEMU_A32 = qemu-arm-static
+QEMU_X64 =
+
+
+
+tests: $(DIR)/clone_x64_test $(DIR)/clone_a32_test $(DIR)/gen_x64_test $(DIR)/gen_a32_test $(DIR)/gen_a64_test
+	@echo "[OK PY Elf]"
+
+
+############################################################
+# Python Port
+############################################################
+
+$(DIR)/clone_x64_test:
+	@echo "[$@]"
+	$(PYPY) ./elfhelper.py clone TestData/hello-x64 $@.clone.out > $@.out 2>&1
+	cmp -l $@.clone.out TestData/hello-x64
+
+$(DIR)/clone_a32_test:
+	@echo "[$@]"
+	$(PYPY) ./elfhelper.py clone TestData/hello_barebones-a32 $@.clone.out > $@.out 2>&1
+	cmp -l  $@.clone.out TestData/hello_barebones-a32
+
+
+$(DIR)/gen_x64_test:
+	@echo "[$@]"
+	$(PYPY) ./gen_elf_test.py genx64 $@.exe > $@.log.out 2>&1
+	chmod a+rx $@.exe
+	$(QEMU_X64) ./$@.exe > $@.out
+	diff $@.out TestData/gen.x64.golden
+
+$(DIR)/gen_a32_test:
+	@echo "[$@]"
+	$(PYPY) ./gen_elf_test.py gena32 $@.exe  > $@.log.out 2>&1
+	chmod a+rx $@.exe
+	$(QEMU_A32) ./$@.exe > $@.out
+	diff $@.out TestData/gen.a32.golden
+
+$(DIR)/gen_a64_test:
+	@echo "[$@]"
+	$(PYPY) ./gen_elf_test.py gena64 $@.exe  > $@.log.out 2>&1
+	chmod a+rx $@.exe
+	$(QEMU_A64) ./$@.exe > $@.out
+	diff $@.out TestData/gen.a64.golden
+
+
+clean:
+	rm -f $(DIR)/*

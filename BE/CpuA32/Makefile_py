@@ -1,0 +1,49 @@
+
+QEMU_A32 = qemu-arm-static
+DIR=build
+
+$(info $(shell mkdir -p $(DIR)))
+
+TESTS = memaddr.asm exit.asm hello.asm fib.asm switch.asm
+
+
+TEST_INSTRUCTIONS = eefdbbc0 e12fff31 924aa001 ebffdc62 e8bd87f0 ecbd8b08 08bd81f0 e1920f9f 015461fa e3c70102 0
+
+tests: objdump_compat_test $(DIR)/disassembler_test \
+              $(DIR)/argv_test $(TESTS:%.asm=$(DIR)/%.test)
+	@echo "[OK PY CpuA32]"
+
+
+############################################################
+# Python Port
+############################################################
+$(DIR)/%.test : TestData/%.asm
+	echo "[integration $@]"
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
+	$(QEMU_A32) $@.exe > $@.actual.out
+	diff $@.actual.out $<.golden
+
+
+$(DIR)/argv_test: TestData/argv.asm
+	echo "[integration $@]"
+	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
+	$(QEMU_A32) $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
+	diff $@.actual.out $<.golden
+
+objdump_compat_test:
+	@echo "[$@]"
+	$(PYPY) ./opcode_test.py TestData/arm_test.dis
+
+
+$(DIR)/disassembler_test:
+	@echo "[$@]"
+	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
+	diff $@.actual.out TestData/disassembler_test.golden
+
+# dump opcode table
+opcodes:
+	$(PYPY) ./opcode_tab.py dist
+
+
+clean:
+	rm -f  $(DIR)/*
