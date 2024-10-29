@@ -162,38 +162,38 @@ add_library(ELF_LIB OBJECT
         BE/Elf/elf_unit.h)
 
 add_library(BASE_LIB OBJECT
-        Base/canonicalize.cc
-        Base/canonicalize.h
-        Base/cfg.cc
-        Base/cfg.h
-        Base/eval.cc
-        Base/eval.h
-        Base/ir.cc
-        Base/ir.h
-        Base/liveness.cc
-        Base/liveness.h
-        Base/lowering.cc
-        Base/lowering.h
-        Base/opcode_gen.cc
-        Base/opcode_gen.h
-        Base/sanity.cc
-        Base/sanity.h
-        Base/serialize.cc
-        Base/serialize.h
-        Base/reaching_defs.cc
-        Base/reaching_defs.h
-        Base/reg_stats.cc
-        Base/reg_stats.h
-        Base/reg_alloc.cc
-        Base/reg_alloc.h
-        Base/optimize.cc
-        Base/optimize.h
+        BE/Base/canonicalize.cc
+        BE/Base/canonicalize.h
+        BE/Base/cfg.cc
+        BE/Base/cfg.h
+        BE/Base/eval.cc
+        BE/Base/eval.h
+        BE/Base/ir.cc
+        BE/Base/ir.h
+        BE/Base/liveness.cc
+        BE/Base/liveness.h
+        BE/Base/lowering.cc
+        BE/Base/lowering.h
+        BE/Base/opcode_gen.cc
+        BE/Base/opcode_gen.h
+        BE/Base/sanity.cc
+        BE/Base/sanity.h
+        BE/Base/serialize.cc
+        BE/Base/serialize.h
+        BE/Base/reaching_defs.cc
+        BE/Base/reaching_defs.h
+        BE/Base/reg_stats.cc
+        BE/Base/reg_stats.h
+        BE/Base/reg_alloc.cc
+        BE/Base/reg_alloc.h
+        BE/Base/optimize.cc
+        BE/Base/optimize.h
 )
 
 add_executable(optimize_tool.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        Base/optimize_tool.cc
+        BE/Base/optimize_tool.cc
 )
 
 add_executable(elf_tool.exe

@@ -1,5 +1,5 @@
-#include "Base/ir.h"
-#include "Base/serialize.h"
+#include "BE/Base/ir.h"
+#include "BE/Base/serialize.h"
 #include "BE/CodeGenA32/codegen.h"
 #include "BE/CodeGenA32/regs.h"
 #include "BE/CpuA32/assembler.h"

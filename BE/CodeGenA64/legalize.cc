@@ -3,14 +3,14 @@
 #include <algorithm>
 #include <iomanip>
 
-#include "Base/canonicalize.h"
-#include "Base/cfg.h"
-#include "Base/liveness.h"
-#include "Base/lowering.h"
-#include "Base/optimize.h"
-#include "Base/reg_alloc.h"
-#include "Base/sanity.h"
-#include "Base/serialize.h"
+#include "BE/Base/canonicalize.h"
+#include "BE/Base/cfg.h"
+#include "BE/Base/liveness.h"
+#include "BE/Base/lowering.h"
+#include "BE/Base/optimize.h"
+#include "BE/Base/reg_alloc.h"
+#include "BE/Base/sanity.h"
+#include "BE/Base/serialize.h"
 #include "BE/CodeGenA64/isel_gen.h"
 #include "BE/CodeGenA64/regs.h"
 

@@ -2,7 +2,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include <iostream>
-#include "Base/ir.h"
+#include "BE/Base/ir.h"
 #include "BE/CpuX64/assembler.h"
 
 namespace cwerg::code_gen_x64 {

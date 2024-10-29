@@ -1,6 +1,6 @@
 #include "BE/CodeGenA32/regs.h"
-#include "Base/reg_alloc.h"
-#include "Base/serialize.h"
+#include "BE/Base/reg_alloc.h"
+#include "BE/Base/serialize.h"
 #include "BE/CodeGenA32/isel_gen.h"
 #include "Util/parse.h"
 

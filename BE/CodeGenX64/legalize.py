@@ -1,15 +1,15 @@
 import dataclasses
 from typing import List, Dict, Optional, Tuple
 
-from Base import canonicalize
-from Base import ir
-from Base import liveness
-from Base import lowering
-from Base import opcode_tab as o
-from Base import optimize
-from Base import reg_stats
-from Base import sanity
-from Base import serialize
+from BE.Base import canonicalize
+from BE.Base import ir
+from BE.Base import liveness
+from BE.Base import lowering
+from BE.Base import opcode_tab as o
+from BE.Base import optimize
+from BE.Base import reg_stats
+from BE.Base import sanity
+from BE.Base import serialize
 from BE.CodeGenX64 import isel_tab
 from BE.CodeGenX64 import regs
 

@@ -9,11 +9,11 @@ import stat
 import collections
 from typing import List, Dict
 
-from Base import cfg
-from Base import ir
-from Base import opcode_tab as o
-from Base import sanity
-from Base import serialize
+from BE.Base import cfg
+from BE.Base import ir
+from BE.Base import opcode_tab as o
+from BE.Base import sanity
+from BE.Base import serialize
 
 from BE.CpuA64 import opcode_tab as a64
 from BE.CpuA64 import symbolic

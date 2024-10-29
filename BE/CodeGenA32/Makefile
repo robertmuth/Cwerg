@@ -103,12 +103,12 @@ $(DIR)/nanojpeg:
 # Code Gen
 ############################################################
 
-isel_gen.cc: isel_tab.py ../../Base/opcode_tab.py
+isel_gen.cc: isel_tab.py ../Base/opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_c <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
-isel_gen.h: isel_tab.py ../../Base/opcode_tab.py
+isel_gen.h: isel_tab.py ../Base/opcode_tab.py
 	@echo "[$@]"
 	$(PYPY) ./isel_tab.py gen_h <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@

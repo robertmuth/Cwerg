@@ -5,10 +5,10 @@
 from typing import List
 import sys
 
-from Base import ir
-from Base import opcode_tab as o
-from Base import serialize
-from Base import sanity
+from BE.Base import ir
+from BE.Base import opcode_tab as o
+from BE.Base import serialize
+from BE.Base import sanity
 
 KIND_MAP = {
     o.DK.S8: "int8_t",

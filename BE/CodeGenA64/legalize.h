@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "Base/ir.h"
+#include "BE/Base/ir.h"
 #include "BE/CodeGenA64/regs.h"
 
 namespace cwerg::code_gen_a64 {

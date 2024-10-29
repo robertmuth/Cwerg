@@ -4,8 +4,8 @@
 from typing import Any
 import sys
 
-from Base import serialize
-from Base import ir
+from BE.Base import serialize
+from BE.Base import ir
 
 from BE.CpuA32 import opcode_tab as a32
 from BE.CpuA32 import symbolic

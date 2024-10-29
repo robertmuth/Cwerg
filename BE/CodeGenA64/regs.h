@@ -3,9 +3,9 @@
 
 #include <array>
 
-#include "Base/ir.h"
-#include "Base/lowering.h"
-#include "Base/reg_stats.h"
+#include "BE/Base/ir.h"
+#include "BE/Base/lowering.h"
+#include "BE/Base/reg_stats.h"
 #include "BE/CpuA64/opcode_gen.h"
 
 namespace cwerg::code_gen_a64 {

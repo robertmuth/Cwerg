@@ -4,8 +4,8 @@
 
 #include <cstdint>
 
-#include "Base/opcode_gen.h"
-#include "Base/ir.h"
+#include "BE/Base/opcode_gen.h"
+#include "BE/Base/ir.h"
 #include "BE/CpuA64/opcode_gen.h"
 #include "BE/CodeGenA64/regs.h"
 

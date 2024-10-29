@@ -2,8 +2,8 @@
 """Testing helper for table driven code selection"""
 
 from BE.CpuX64 import symbolic
-from Base import serialize
-from Base import ir
+from BE.Base import serialize
+from BE.Base import ir
 from BE.CodeGenX64 import isel_tab
 from BE.CodeGenX64 import regs
 

@@ -18,9 +18,9 @@ import difflib
 import http.server
 import json
 
-from Base import ir
-from Base import optimize
-from Base import serialize
+from BE.Base import ir
+from BE.Base import optimize
+from BE.Base import serialize
 
 if MODE == "a32":
     print("Selected mode X64")

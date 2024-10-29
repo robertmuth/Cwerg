@@ -1,9 +1,9 @@
-from Base import cfg
-from Base import ir
-from Base import liveness
-from Base import opcode_tab as o
-from Base import reg_alloc
-from Base import serialize
+from BE.Base import cfg
+from BE.Base import ir
+from BE.Base import liveness
+from BE.Base import opcode_tab as o
+from BE.Base import reg_alloc
+from BE.Base import serialize
 
 import dataclasses
 from typing import List, Optional, Tuple

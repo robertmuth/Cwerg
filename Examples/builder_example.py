@@ -4,10 +4,10 @@ from typing import Optional
 import argparse
 import http.server
 
-from Base import serialize
-from Base import ir
-from Base import opcode_tab as o
-from Base import optimize
+from BE.Base import serialize
+from BE.Base import ir
+from BE.Base import opcode_tab as o
+from BE.Base import optimize
 
 """
   The point of this example is to show how to programmatically build the IR

@@ -1,7 +1,7 @@
 #include "BE/CodeGenA64/regs.h"
-#include "Base/cfg.h"
-#include "Base/reg_alloc.h"
-#include "Base/serialize.h"
+#include "BE/Base/cfg.h"
+#include "BE/Base/reg_alloc.h"
+#include "BE/Base/serialize.h"
 #include "Util/parse.h"
 
 namespace cwerg::code_gen_a64 {

@@ -2,12 +2,12 @@ import dataclasses
 import enum
 from typing import List, Tuple
 
-from Base import ir
-from Base import liveness
-from Base import lowering
-from Base import opcode_tab as o
-from Base import reg_alloc
-from Base import serialize
+from BE.Base import ir
+from BE.Base import liveness
+from BE.Base import lowering
+from BE.Base import opcode_tab as o
+from BE.Base import reg_alloc
+from BE.Base import serialize
 
 
 # This must mimic the DK enum (0: invalid, no more than 255 entries)

@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <iomanip>
 
-#include "Base/canonicalize.h"
-#include "Base/liveness.h"
-#include "Base/lowering.h"
-#include "Base/optimize.h"
-#include "Base/reg_alloc.h"
-#include "Base/serialize.h"
+#include "BE/Base/canonicalize.h"
+#include "BE/Base/liveness.h"
+#include "BE/Base/lowering.h"
+#include "BE/Base/optimize.h"
+#include "BE/Base/reg_alloc.h"
+#include "BE/Base/serialize.h"
 #include "BE/CodeGenA32/isel_gen.h"
 #include "BE/CodeGenA32/regs.h"
 

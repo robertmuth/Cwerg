@@ -1,7 +1,7 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
-#include "Base/ir.h"
+#include "BE/Base/ir.h"
 #include "BE/CodeGenA32/regs.h"
 
 #include <iostream>

@@ -10,10 +10,10 @@ import dataclasses
 import struct
 from FrontEndWASM import opcode_tab as wasm_opc
 import FrontEndWASM.parser as wasm
-from Base import ir
-from Base import opcode_tab as o
-from Base import serialize
-from Base import sanity
+from BE.Base import ir
+from BE.Base import opcode_tab as o
+from BE.Base import serialize
+from BE.Base import sanity
 
 ZERO = ir.Const(o.DK.U32, 0)
 ONE = ir.Const(o.DK.U32, 1)

@@ -13,8 +13,8 @@
 //
 // Note: actual IR construction was moved to fib_ir.h
 
-#include "Base/ir.h"
-#include "Base/serialize.h"
+#include "BE/Base/ir.h"
+#include "BE/Base/serialize.h"
 #include "Util/breakpoint.h"
 #include "Util/webserver.h"
 

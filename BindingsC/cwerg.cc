@@ -1,7 +1,7 @@
 #include "BindingsC/cwerg.h"
 
-#include "Base/ir.h"
-#include "Base/serialize.h"
+#include "BE/Base/ir.h"
+#include "BE/Base/serialize.h"
 
 #include <cstdlib>
 

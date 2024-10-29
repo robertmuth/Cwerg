@@ -9,8 +9,8 @@ import collections
 from typing import List, Dict, Any, Set, Optional
 import enum
 
-from Base import ir
-from Base import opcode_tab as o
+from BE.Base import ir
+from BE.Base import opcode_tab as o
 from BE.CodeGenA32 import regs
 from BE.CpuA32 import opcode_tab as arm
 from BE.Elf import enum_tab

@@ -2,11 +2,11 @@
 
 #include "BE/CodeGenA32/codegen.h"
 
-#include "Base/cfg.h"
-#include "Base/ir.h"
-#include "Base/optimize.h"
-#include "Base/sanity.h"
-#include "Base/serialize.h"
+#include "BE/Base/cfg.h"
+#include "BE/Base/ir.h"
+#include "BE/Base/optimize.h"
+#include "BE/Base/sanity.h"
+#include "BE/Base/serialize.h"
 #include "BE/CodeGenA32/isel_gen.h"
 #include "BE/CodeGenA32/legalize.h"
 #include "BE/CodeGenA32/regs.h"
