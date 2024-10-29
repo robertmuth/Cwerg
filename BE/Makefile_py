@@ -10,4 +10,5 @@ tests:
 	cd CodeGenA64 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
 	cd CodeGenX64 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
 	cd Elf && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+    cd CodeGenC && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
 	@echo "BE PY OK"
