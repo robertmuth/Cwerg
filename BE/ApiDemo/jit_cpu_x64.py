@@ -8,8 +8,8 @@ import sys
 
 from typing import List
 
-from CpuX64 import symbolic as dis
-from CpuX64 import opcode_tab as x64
+from BE.CpuX64 import symbolic as dis
+from BE.CpuX64 import opcode_tab as x64
 
 
 class TestBuffer:

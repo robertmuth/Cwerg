@@ -314,8 +314,8 @@ add_executable(x64_codegen_tool.exe
 add_executable(builder_example.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        Examples/fib_ir.h
-        Examples/builder_example.cc
+        BE/ApiDemo/fib_ir.h
+        BE/ApiDemo/builder_example.cc
 )
 
 # this only works when (cross) compiled for a32
@@ -323,7 +323,7 @@ add_executable(jit_cpu_a32.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUA32_LIB>
-        Examples/jit_cpu_a32.cc
+        BE/ApiDemo/jit_cpu_a32.cc
 )
 
 # this only works when (cross) compiled for a32
@@ -333,8 +333,8 @@ add_executable(jit_ir_a32.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:CPUA32_LIB>
         $<TARGET_OBJECTS:CODEGENA32_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        Examples/fib_ir.h
-        Examples/jit_ir_a32.cc
+        BE/ApiDemo/fib_ir.h
+        BE/ApiDemo/jit_ir_a32.cc
 )
 
 # this only works when (cross) compiled for a64
@@ -342,7 +342,7 @@ add_executable(jit_cpu_a64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUA64_LIB>
-        Examples/jit_cpu_a64.cc
+        BE/ApiDemo/jit_cpu_a64.cc
 )
 
 # this only works when (cross) compiled for a64
@@ -352,8 +352,8 @@ add_executable(jit_ir_a64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:CPUA64_LIB>
         $<TARGET_OBJECTS:CODEGENA64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        Examples/fib_ir.h
-        Examples/jit_ir_a64.cc
+        BE/ApiDemo/fib_ir.h
+        BE/ApiDemo/jit_ir_a64.cc
 )
 
 # this only works when (cross) compiled for x64
@@ -361,7 +361,7 @@ add_executable(jit_cpu_x64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUX64_LIB>
-        Examples/jit_cpu_x64.cc
+        BE/ApiDemo/jit_cpu_x64.cc
 )
 
 # this only works when (cross) compiled for x64
@@ -371,8 +371,8 @@ add_executable(jit_ir_x64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:CPUX64_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        Examples/fib_ir.h
-        Examples/jit_ir_x64.cc
+        BE/ApiDemo/fib_ir.h
+        BE/ApiDemo/jit_ir_x64.cc
 )
 
 add_executable(example_c_fib

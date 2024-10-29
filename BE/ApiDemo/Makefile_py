@@ -1,0 +1,31 @@
+.SUFFIXES:  # no built-in rules
+
+DIR=build
+$(info $(shell mkdir -p $(DIR)))
+
+
+
+tests: $(DIR)/jit_cpu_a32_test $(DIR)/jit_cpu_x64_test
+	@echo "[OK PY ApiDemo]"
+
+# setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
+QEMUX64 =
+QEMUA64 = qemu-aarch64-static
+QEMUA32 = qemu-arm-static
+
+
+# note: this runs in dry run mode. On a proper A32 system
+# this needs to be run with an extra argument.
+$(DIR)/jit_cpu_a32_test:
+	@echo "[$@]"
+	$(PYPY) ./jit_cpu_a32.py > $@.actual.out
+	diff $@.actual.out TestData/jit_cpu_a32.golden
+
+# this assumes we are on an X86 system
+$(DIR)/jit_cpu_x64_test:
+	@echo "[$@]"
+	$(PYPY) ./jit_cpu_x64.py > $@.actual.out
+	diff $@.actual.out TestData/jit_cpu_x64.golden
+
+clean:
+	rm -rf $(DIR_A32)

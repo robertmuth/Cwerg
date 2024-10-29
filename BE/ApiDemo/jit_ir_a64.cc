@@ -11,7 +11,7 @@
 
 using namespace cwerg;
 
-#include "Examples/fib_ir.h"
+#include "BE/ApiDemo/fib_ir.h"
 
 using FunPtr = uint32_t (*)(uint32_t);
 
