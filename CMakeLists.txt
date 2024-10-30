@@ -381,7 +381,7 @@ add_executable(example_c_fib
         $<TARGET_OBJECTS:CPUX64_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
-        BindingsC/cwerg.h
-        BindingsC/cwerg.cc
-        BindingsC/example_fib.c
+        BE/BindingsC/cwerg.h
+        BE/BindingsC/cwerg.cc
+        BE/BindingsC/example_fib.c
 )
