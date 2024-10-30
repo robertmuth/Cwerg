@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 from typing import Optional
 import argparse

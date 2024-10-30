@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """ELF Enums - mostly lifted from pyelftools (public domain)
 

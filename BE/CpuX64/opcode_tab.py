@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """
 X64 64bit assembler + disassembler + side-effects table

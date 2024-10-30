@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 """Pretty printer (PP) for Cwerg AST to HTML
 
 """

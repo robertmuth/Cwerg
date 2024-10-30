@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 """
 Assembler produces A32 ELF executables
 """

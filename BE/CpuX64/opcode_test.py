@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """
 This test checks that we can assemble and disassemble all the instructions

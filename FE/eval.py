@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """Partial evaluator and value annotator for Cwerg AST
 

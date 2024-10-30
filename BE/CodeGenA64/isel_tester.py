@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 """Testing helper for table driven code selection"""
 
 from BE.CpuA64 import symbolic

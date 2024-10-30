@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """Code Generation (Instruction Selection) for  ARMv6T2 and above
 

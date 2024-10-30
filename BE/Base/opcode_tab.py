@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 # (c) Robert Muth - see LICENSE for more info
 
 from typing import List, Dict

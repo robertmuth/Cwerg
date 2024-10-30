@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 """
 Webserver for debugging/exploring register allocation
 

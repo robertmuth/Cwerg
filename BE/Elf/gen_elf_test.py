@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """
 Tests the creation of ELF executables for: a32, a64, x64

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 """Concrete Syntax Pretty printer (PP) for Cwerg AST to concrete syntax
 
 """

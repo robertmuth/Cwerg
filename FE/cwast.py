@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """AST Nodes and SExpr reader/writer for the Cwerg frontend"""
 from __future__ import annotations

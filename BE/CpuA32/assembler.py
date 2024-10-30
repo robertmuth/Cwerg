@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """
 This files contains ELF like abstraction to help build an assembler.

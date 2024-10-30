@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 """
 The Parser is recursice descent (RD) combined with Pratt Parsing for
 Expressions.

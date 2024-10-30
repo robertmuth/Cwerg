@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 """SEXPR Pretty printer (PP) for Cwerg AST to sexpr syntax
 
 """
