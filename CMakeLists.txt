@@ -375,7 +375,7 @@ add_executable(jit_ir_x64.exe EXCLUDE_FROM_ALL
         BE/ApiDemo/jit_ir_x64.cc
 )
 
-add_executable(example_c_fib
+add_executable(example_fib_c
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUX64_LIB>

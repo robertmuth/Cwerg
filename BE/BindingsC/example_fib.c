@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "BindingsC/cwerg.h"
+#include "BE/BindingsC/cwerg.h"
 
 const enum CW_DK args[] = {CW_U32};
 

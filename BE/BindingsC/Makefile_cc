@@ -1,0 +1,13 @@
+DIR=../../build
+
+
+tests:
+	cd $(DIR); VERBOSE=1 $(MAKE) -s example_fib_c
+
+cwerg.h: ../Base/opcode_tab.py
+	@echo "[$@]"
+	$(PYPY) ../Base/opcode_tab.py gen_c < cwerg.h > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+clean:
+	rm -rf $(DIR)/example_fib_c
