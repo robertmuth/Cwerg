@@ -28,7 +28,7 @@ namespace {
 using namespace cwerg;
 using namespace cwerg::base;
 
-#include "Examples/fib_ir.h"
+#include "BE/ApiDemo/fib_ir.h"
 
 // Below is boilerplate stuff that should go into its own library
 

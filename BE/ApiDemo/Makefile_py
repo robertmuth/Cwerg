@@ -5,7 +5,7 @@ $(info $(shell mkdir -p $(DIR)))
 
 
 
-tests: $(DIR)/jit_cpu_a32_test $(DIR)/jit_cpu_x64_test
+tests: $(DIR)/jit_cpu_a32_test $(DIR)/jit_cpu_x64_test builder
 	@echo "[OK PY ApiDemo]"
 
 # setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
@@ -13,6 +13,8 @@ QEMUX64 =
 QEMUA64 = qemu-aarch64-static
 QEMUA32 = qemu-arm-static
 
+builder:
+	./builder_example.py
 
 # note: this runs in dry run mode. On a proper A32 system
 # this needs to be run with an extra argument.

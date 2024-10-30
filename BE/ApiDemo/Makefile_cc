@@ -1,12 +1,9 @@
 .SUFFIXES:  # no built-in rules
 
-DIR=build
-$(info $(shell mkdir -p $(DIR)))
-
-
+DIR=../../build
 
 tests: jit_cpu_a32.test jit_cpu_a64.test jit_cpu_x64.test \
-         jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test
+         jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test builder
 	@echo "[OK C++ ApiDemo]"
 
 
@@ -14,6 +11,10 @@ tests: jit_cpu_a32.test jit_cpu_a64.test jit_cpu_x64.test \
 QEMUX64 =
 QEMUA64 = qemu-aarch64-static
 QEMUA32 = qemu-arm-static
+
+
+builder:
+	cd $(DIR); VERBOSE=1 $(MAKE) -s builder_example.exe
 
 ############################################################
 # A32
@@ -80,7 +81,6 @@ jit_ir_a64.test: setupa64
 	$(QEMUA64) $(DIR_A64)/jit_ir_a64.exe > $(DIR_A64)/$@.out
 	diff $(DIR_A64)/$@.out TestData/fib.golden
 
-# TODO: $(DIR)/jit_cpu_a64_pytest
 ############################################################
 # X64
 ############################################################
@@ -105,4 +105,4 @@ jit_ir_x64.test: setupx64
 	diff $(DIR_X64)/$@.out TestData/fib.golden
 
 clean:
-	rm -rf $(DIR_A32) $(DIR_A64) $(DIR_X64) ${DIR}
+	rm -rf $(DIR_A32) $(DIR_A64) $(DIR_X64)
