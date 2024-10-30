@@ -7,7 +7,7 @@
 [![Discord](https://img.shields.io/discord/1266057429091881011?logo=discord&style=flat)](https://discord.com/channels/1266057429091881011/)
 
 Cwerg aims to be a complete, compact and fast "from-scratch" compiler for a C-like language.
-It consists of the following components:
+It has no dependencies and consists of the following components:
 * **Frontend**: [Overview](FE/Docs/tutorial.md), [Additional Docs](FE/Docs/)
 
   A low-level C-like language with a Python inspired concrete syntax.
@@ -22,16 +22,17 @@ It consists of the following components:
 
   Defines an IR that serves as the interface between frontend and backend.
 
-* [Deprecated C Frontend](FrontEndC/)  (translates a subset of C to Cwerg IR)
-* [Deprecated WASM Frontend](FrontEndWASM/) (translates WASM/WASI coded to Cwerg IR)
+* [Deprecated WASM Frontend](FE_WASM/) (translates WASM/WASI coded to Cwerg IR)
+
+To get started hacking on Cwerg please read [getting_started.md](getting_started.md).
 
 
 Most components are implemented twice (see [rationale](BE/Docs/why_python.md)):
 1. spec/reference implementation: Python 3.9
 2. high performance implementation: C++17 (with limited STL usage)
 
-Re-implementations in other languages are explicitly encouraged. A lot of
-code is table driven to facilitate that.
+Re-implementations in other languages are explicitly encouraged.
+A lot of code is table driven to facilitate that.
 
 Cwerg de-emphasizes quality of the generated code (the hope is to come within 50%
 of state of the art compilers) in favor of a small code base that can be
@@ -39,7 +40,6 @@ understood by a single developer and very fast translation times.
 Explicit line number targets are in place to prevent feature creep:
 * frontend: 10kLOC
 * backend 10kLOC (target independent code) + 5kLOC (per target)
-
 
 
 ## Inspirations

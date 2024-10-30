@@ -1024,6 +1024,8 @@ def main() -> int:
     parser.add_argument("-shake_tree",
                         action="store_true", help='remove unreachable functions')
     parser.add_argument(
+        '-stdlib', help='path to stdlib directory', default="./Lib")
+    parser.add_argument(
         '-arch', help='architecture to generated IR for', default="x64")
     parser.add_argument(
         '-emit_ir', help='stop at the given stage and emit ir')
@@ -1034,8 +1036,7 @@ def main() -> int:
     logging.basicConfig(level=logging.WARN)
     # logger.setLevel(logging.INFO)
     logger.info("Start Parsing")
-    cwd = os.getcwd()
-    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
+    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(args.stdlib))
     assert len(args.files) == 1
     fn = args.files[0]
     fn, ext = os.path.splitext(fn)
