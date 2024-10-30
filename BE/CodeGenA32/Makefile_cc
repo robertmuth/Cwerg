@@ -89,6 +89,7 @@ $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 # called from toplevel
 benchmark: $(CODEGEN_TOOL)
 	@echo "[$@]"
+	wc TestData/benchmark.asm
 	time $(CODEGEN_TOOL) -mode binary TestData/benchmark.asm $(DIR)/$@.exe > $(DIR)/$@.out
 
 ############################################################
