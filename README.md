@@ -27,7 +27,7 @@ It has no dependencies and consists of the following components:
 To get started hacking on Cwerg please read [getting_started.md](getting_started.md).
 
 
-Most components are implemented twice (see [rationale](BE/Docs/why_python.md)):
+Most components are implemented twice (see [rationale](why_python.md)):
 1. spec/reference implementation: Python 3.9
 2. high performance implementation: C++17 (with limited STL usage)
 
