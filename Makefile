@@ -19,21 +19,16 @@ CWERG_LIBS = -lunwind -llzma
 CWERG_FLAGS = -DCWERG_ENABLE_UNWIND
 
 tests:
+	cd BE && $(MAKE) -f Makefile_py tests
 	@echo Build Native Exes
 	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(CWERG_FLAGS)" -DCWERG_LIBS="$(CWERG_LIBS)" .. && $(MAKE) -s
-	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
-	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CpuX64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CodeGenA32 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CodeGenA64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CodeGenX64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
-	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
+	cd BE &&  $(MAKE) -f Makefile_cc tests
 	cd Util && $(MAKE) -s tests && $(MAKE) -s clean
 	cd FE && $(MAKE) -s tests_py && $(MAKE) -s clean
-	cd FrontEndWASM && $(MAKE) -s tests && $(MAKE) -s clean
-	cd Examples && $(MAKE) -s tests && $(MAKE) -s clean
+	cd FE_WASM && $(MAKE) -s tests && $(MAKE) -s clean
+
+cmake_setup:
+	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(CWERG_FLAGS)" -DCWERG_LIBS="$(CWERG_LIBS)" ..
 
 show_versions:
 	@echo Tool Versions
@@ -44,34 +39,12 @@ show_versions:
 	clang++ -v
 
 
-# includes version dumping and frontend tests
-tests_github:
-	@echo Build Native Exes
-	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(DCWERG_FLAGS)" -DCWERG_LIBS="$(DCWERG_LIBS)" .. && $(MAKE) -s
-	@echo Run Tests
-	cd Base &&   $(MAKE) -s tests && $(MAKE) -s clean
-	cd CpuA32 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CpuA64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CpuX64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CodeGenA32 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CodeGenA64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CodeGenX64 && $(MAKE) -s tests && $(MAKE) -s clean
-	cd CodeGenC && $(MAKE) -s tests && $(MAKE) -s clean
-	cd Elf && $(MAKE) -s tests && $(MAKE) -s clean
-	cd Util && $(MAKE) -s tests_py && $(MAKE) -s clean
-	cd FE && $(MAKE) -s tests_py && $(MAKE) -s clean
-	cd FrontEndWASM && $(MAKE) -s tests && $(MAKE) -s clean
-	cd Examples && $(MAKE) -s tests && $(MAKE) -s clean
-
-
-
-
 test_cross_execution:
 	cd TestQemu && $(MAKE) -s tests_cross && $(MAKE)  -s clean
 
 
 benchmark:
-	cd CodeGenA32 && $(MAKE) -s benchmark && $(MAKE) -s clean
+	cd BE/CodeGenA32 && $(MAKE) -f Makefile_cc -s benchmark && $(MAKE)  -f Makefile_cc -s clean
 
 #@ presubmit - tests that should pass before any commit
 #@
@@ -138,10 +111,7 @@ TestData/nano_jpeg.32.asm::
 TestData/nano_jpeg.64.asm::
 	$(PYPY) FrontEndC/translate.py  --cpp_args=-IStdLib --mode=64  FrontEndC/TestData/nanojpeg.c > $@
 
-#@ opcodes - list opcodes and their fields
-#@
-opcodes:
-	Base/opcode_tab.py
+
 
 
 include_stats:

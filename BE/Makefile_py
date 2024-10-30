@@ -1,6 +1,7 @@
 MAKE_FLAGS = --warn-undefined-variables --file=Makefile_py
 
-
+#@  tests - backend tests
+#@
 tests:
 	cd Base && $(MAKE) $(MAKE_FLAGS) tests &&  $(MAKE) $(MAKE_FLAGS) clean
 	cd CpuA32 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
@@ -13,3 +14,8 @@ tests:
 	cd CodeGenC && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
 	cd ApiDemo && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
 	@echo "BE PY OK"
+
+#@ opcodes - list opcodes and their fields
+#@
+opcodes:
+	Base/opcode_tab.py

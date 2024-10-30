@@ -1,6 +1,7 @@
 MAKE_FLAGS = --warn-undefined-variables --file=Makefile_cc
 
-
+#@  tests - backend tests
+#@
 tests:
 	cd Base && $(MAKE) $(MAKE_FLAGS) tests &&  $(MAKE) $(MAKE_FLAGS) clean
 	cd CpuA32 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
@@ -11,4 +12,11 @@ tests:
 	cd CodeGenX64 && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
 	cd Elf && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
 	cd ApiDemo && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
+	cd BindingsC && $(MAKE) $(MAKE_FLAGS) tests && $(MAKE) $(MAKE_FLAGS) clean
 	@echo "BE C++ OK"
+
+
+#@ format - reformat python and c(++) files
+#@
+format:
+	clang-format -i --style=Chromium */*.cc */*.h

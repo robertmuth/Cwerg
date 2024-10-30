@@ -200,11 +200,6 @@ pp_test:
 cloc:
 	@cloc ${CLOC_FLAGS} --by-file '--match-f=[.](py|cc|h)$$' .
 
-reformat:
-	for f in TestData/*.cw ; do \
-		echo $$f ; ./pp_sexpr.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
-	done
-
 update_concrete_syntax:
 	for f in $(ALL_SOURCES) ; do  \
 	  $(PYPY) ./pp.py  $$f > ConcreteSyntax/$$f ; \

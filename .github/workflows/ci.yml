@@ -64,7 +64,7 @@ jobs:
         PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make show_versions
     - name: Run Tests
       run: |
-        PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make tests_github
+        PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make tests
     - name: Benchmark
       run: |
         PYPY=python3 CC=clang CXX=clang++ MAKESILENT= make benchmark
