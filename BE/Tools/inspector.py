@@ -24,15 +24,15 @@ from BE.Base import serialize
 
 if MODE == "a32":
     print("Selected mode X64")
-    import CpuA32.opcode_tab as cpu
+    import BE.CpuA32.opcode_tab as cpu
     from BE.CodeGenA32 import codegen
 if MODE == "a64":
     print("Selected mode A64")
-    import CpuA64.opcode_tab as cpu
+    import BE.CpuA64.opcode_tab as cpu
     from BE.CodeGenA64 import codegen
 if MODE == "x64":
     print("Selected mode X64")
-    import CpuX64.opcode_tab as cpu
+    import BE.CpuX64.opcode_tab as cpu
     from BE.CodeGenX64 import codegen
 
 # language=css
@@ -134,7 +134,7 @@ class DataStore {
             options += `<option value="${v}">${v}</option>`;
         }
         this.sel_obj.innerHTML = options;
-        
+
         for (const mv of VIEWERS) {
             mv.UpdateModList();
         }
@@ -148,7 +148,7 @@ class DataStore {
             mv.UpdateViewArea();
         }
     }
-    
+
     refresh() {
         HttpGetJSON("/GetModules", this.process.bind(this));
     }
@@ -295,7 +295,7 @@ GLOBAL-OBJ: <select class=global_sel_obj></select>
 ERROR_HTML = """<!DOCTYPE html>
 <html>
 <body>
-No handler for request: 
+No handler for request:
 <pre>
 %s
 </pre>
