@@ -26,6 +26,7 @@ It has no dependencies and consists of the following components:
 
 To get started hacking on Cwerg please read [getting_started.md](getting_started.md).
 
+## Philosophy
 
 Most components are implemented twice (see [rationale](why_python.md)):
 1. spec/reference implementation: Python 3.9
@@ -40,6 +41,40 @@ understood by a single developer and very fast translation times.
 Explicit line number targets are in place to prevent feature creep:
 * frontend: 10kLOC
 * backend 10kLOC (target independent code) + 5kLOC (per target)
+
+ ## Intentional Limitations
+
+  To keep the project lightweight the feature set must be curtailed.
+  Since the project is still evolving, the details are not entirely cast in stone but
+  **the following features are unlikely to be supported** (contact us before starting
+  any work on these):
+
+  * Instruction sets other than [little endian](https://en.wikipedia.org/wiki/Comparison_of_instructio  n_set_architectures) (host and target) with 2's complement integers and IEEE floats.
+  * Variable number of function parameters (var-args). Basically only used for
+    printf/scanf and responsible for a disproportionate amount of complexity in
+    ABIs. (Note, this precludes a proper C frontend.)
+  * Full-blown dwarf debug info. The standard is over 300 pages long and unlikely
+    to fit into the complexity budget. Line numbers will likely be supported.
+  * Exceptions. A lot of complexity especially at object level e.g. unwind tables.
+    Backtraces will be supported since they are crucial for debugging.
+  * Linking against code produced with other toolchains. There are currently no plans
+    to emit linkable object code. And there is no ABI compatibility except for simple cases and syscal  ls.
+  * Shared libs/dynamic linking adds complexity and slows programs down (both because
+    of slower code idioms and prevention of optimizations), not
+    to mention the DLL hell problem. (see also: https://drewdevault.com/dynlib,
+    https://www.kix.in/2008/06/19/an-alternative-to-shared-libraries/)
+    (Lack of shared lib support likely precludes Windows as a target platform.)
+  * Sophisticated instruction scheduling in the backend which is less important for memory
+    bound code and out-of-order CPUs.
+  * Sophisticated optimizations in the backend, like loop optimization.
+    These are best left to the frontend.
+  * Variable sized stack frames (alloca). This requires a frame pointer, wasting a register,
+    and makes it more difficult to reason about stack overflows.
+  * A large standard library with unicode and locale support. Those add a lot of
+    complexity and are better left to dedicated libraries.
+  * Sophisticated DSLs like LLVM's [Tablegen](https://llvm.org/docs/TableGen/).
+    DSLs increase cognitive load and require additional infrastructure like parsers
+    which eat into our size targets. Instead we leverage the expressiveness of Python.
 
 
 ## Inspirations
