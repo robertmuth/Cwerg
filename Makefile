@@ -39,7 +39,10 @@ show_versions:
 	clang++ -v
 
 
-test_cross_execution:
+test_setup:
+	@which cmake
+	@which c++
+	@which python3
 	cd TestQemu && $(MAKE) -s tests_cross && $(MAKE)  -s clean
 
 
