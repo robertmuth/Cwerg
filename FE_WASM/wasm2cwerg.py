@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """
 Convert WASM files to Cwerg
@@ -8,8 +8,8 @@ import logging
 import typing
 import dataclasses
 import struct
-from FrontEndWASM import opcode_tab as wasm_opc
-import FrontEndWASM.parser as wasm
+from FE_WASM import opcode_tab as wasm_opc
+import FE_WASM.parser as wasm
 from BE.Base import ir
 from BE.Base import opcode_tab as o
 from BE.Base import serialize

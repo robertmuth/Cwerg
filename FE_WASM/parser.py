@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/bin/env python3
 
 """
 Parser for WASM files
@@ -13,7 +13,7 @@ import io
 import typing
 import enum
 import dataclasses
-from FrontEndWASM.opcode_tab import Opcode, ARG_TYPE, FLAGS, OPC_KIND
+from FE_WASM.opcode_tab import Opcode, ARG_TYPE, FLAGS, OPC_KIND
 from Util import parse
 
 
