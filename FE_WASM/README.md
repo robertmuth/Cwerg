@@ -1,8 +1,8 @@
-## WASM Frontend (Deprecated)
+## WASM Frontend (DEDPRECATED)
 
 The WASM Frontend is primarily use to exercise the Cwerg backend with more
 realistic inputs. It consists of a transpiler that
-convert WASM into Cwerg IR and support libraries which will provide a WASI API.
+convert WASM/WASI into Cwerg IR and support libraries which will provide a WASI API.
 
 This component is unlikely to get much love in the foreseeable future and
 there will only be a Python implementation.
