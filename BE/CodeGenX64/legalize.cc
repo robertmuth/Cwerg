@@ -99,7 +99,7 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
           if (!IsOutOfBoundImmediate(InsOPC(ins), InsOperand(ins, pos), pos))
             continue;
           const DK kind = ConstKind(Const(InsOperand(ins, pos)));
-          if (kind == DK::F64 || kind == DK::F32) {
+          if (kind == DK::R64 || kind == DK::R32) {
             InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A64, DK::U32,
                                         inss);
           } else {

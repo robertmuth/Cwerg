@@ -32,7 +32,7 @@ Registers and constants are typed. Where a type is a tuple of `flavor` and `widt
 Currently, the `width` is one of 8, 16, 32, 64 bits and the `flavor` is one of:
 * **U** unsigned int (wrap around - no trap on overflow)
 * **S** signed int (2's complement, wrap around - no trap on overflow)
-* **F** floating point (ieee formats)
+* **R** real (floating point using ieee formats)
 * **A** data address
 * **C** code address (only function but not bbl addresses are currently exposed)
 
@@ -42,26 +42,26 @@ The declaration can happen in one of two ways:
 2. with a `colon-suffix` by the first instruction writing to it.
 
 ```
-.reg F32 [a b c]   # declares registers a, b, c to be 32 bit wide and of flavor F
+.reg R32 [a b c]   # declares registers a, b, c to be 32 bit wide and of flavor F
 add a b c
 ```
 is equivalent to
 ```
-.reg F32 [b c]
-add a:F32 b c
+.reg R32 [b c]
+add a:R32 b c
 ```
 
 A constant must also be typed using the `colon-suffix` unless the type can be deduced
 from the other operands which is usually the case.
 
 ```
-.reg F32 [a b]
-add a b 1.0:F32
+.reg R32 [a b]
+add a b 1.0:R32
 ```
 is equivalent to
 
 ```
-.reg F32 [a b]
+.reg R32 [a b]
 add a b 1.0
 ```
 
@@ -71,7 +71,7 @@ cannot be deduced and must always be provided:
 ```
 .reg A32 [a]
 ...
-st a 16 = 1.0:F32   # stores a 32 bit wide floating point constant
+st a 16 = 1.0:R32   # stores a 32 bit wide floating point constant
 st a 16 = 32:U8     # stores a 8 bit wide integer constant
 st a 16 = 0:A64     # stores a 64 bit wide null pointer
 push 0:C64          # pushes  a 64 bit wide code null pointer
@@ -223,23 +223,23 @@ Addition: `dst := src1 + src2`
 
 #### [11] sub *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Subtraction: `dst := src1 - src2`
-             
+
              Note: `sub dst = 0 src` can be used to emulate `neg` for integers.
                     (for floating point use `dat = mul src -1.0`)
-             
+
 
 #### [12] mul *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Multiplication: `dst := src1 * src2`
 
 #### [13] div *dst* <sub>[REG:NUM]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Division: `dst := src1 / src2` 
-             
-             Division by 0 and signed division of min_int by -1 are UB  
-             
+Division: `dst := src1 / src2`
+
+             Division by 0 and signed division of min_int by -1 are UB
+
 
 #### [18] xor *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Bitwise exclusive or: `dst := src1 ^ src2`
-             
+
              Note: `xor dst = src1  0b111...1` can be used to emulate `not`
 
 #### [19] and *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
@@ -250,29 +250,29 @@ Bitwise or: `dst := src1 \| src2`
 
 #### [1b] shl *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Shift left: `dst := src1 << src2`
-                           
+
              dst: = src1 << (src2 % bitwidth(src1))
 
 #### [1c] shr *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Shift right: `dst := src1 >> src2`
-                          
+
              dst: = src1 >> (src2 % bitwidth(src1))
 
 #### [1d] rem *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Modulo: `dst := src1 % src2`
-             
-              Modulo by 0 and signed modulo of min_int by -1 are UB  
-              
+
+              Modulo by 0 and signed modulo of min_int by -1 are UB
+
 
 #### [1e] clmul *dst* <sub>[REG:INT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 NYI: Carry-less multiplication
-             
+
              def clmul(src1: int, src2: int) -> int:
                  dst = 0
                  for i in range(bitwidth(src1)):
                      if (1 << i) & src1: dst ^= src2 << i
                  return dst
-             
+
 
 ## Conditional Branches
 
@@ -292,16 +292,16 @@ Conditional branch (if less or equal)
 
 #### [28] switch *index* <sub>[REG:UINT]</sub> *table* <sub>[JTB]</sub>
 Multi target computed jump
-                
+
                 The reg argument must be less than the jtb `size`.
-                
+
                 The jtb symbol must have been previously defined with the `.jtb` directive.
-                
+
 
 #### [29] bra *target_bbl* <sub>[BBL]</sub>
 Unconditional branch
 
-#### [2a] ret 
+#### [2a] ret
 Return from fun
 
 #### [2b] bsr *target_fun* <sub>[FUN]</sub>
@@ -309,65 +309,65 @@ Call fun (branch to subroutine)
 
 #### [2c] jsr *target_fun_addr* <sub>[REG:CODE]</sub> *target_fun_sig* <sub>[FUN]</sub>
 Call fun indirectly through reg (jump to subroutine)
-             
+
              Note: fun describes the signature which must have been previously defined with the `.fun` directive.
 
 #### [2d] syscall *target_fun_sig* <sub>[FUN]</sub> *syscall_no* <sub>[CONST:UINT]</sub>
-Syscall to `syscall_no` 
-                 
+Syscall to `syscall_no`
+
                  Note: fun describes the signature which must have been previously defined with the `.fun` directive.
 
-#### [2e] trap 
+#### [2e] trap
 Abort program
 
 ## Move/Conversion
 
 #### [30] pusharg *src* <sub>[REG/CONST:ANY]</sub>
-Push a call or return arg 
-                 
+Push a call or return arg
+
                  Note: must immediately precede bsr/jsr or ret.
 
 #### [31] poparg *dst* <sub>[REG:ANY]</sub> =
-Pop a call or return arg 
-                
+Pop a call or return arg
+
                 Note: must immediately follow fun entry or bsr/jsr.
 
 #### [32] conv *dst* <sub>[REG:NUM]</sub> = *src* <sub>[REG/CONST:NUM]</sub>
 Conversion of numerical regs
-              
+
               Note: regs do not have to be of same size. Bits may change.
               If the conversion involves both a widening and a change of type, the widening is performed
-              first. 
+              first.
 
 #### [33] bitcast *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_SIZE_AS_PREV]</sub>
 Cast between regs of same size
-                 
-                 Note: Bits will be re-interpreted but do not change. 
-                 This is useful for manipulating addresses in unusual ways or 
+
+                 Note: Bits will be re-interpreted but do not change.
+                 This is useful for manipulating addresses in unusual ways or
                  looking at the  binary representation of floats.
 
 #### [34] mov *dst* <sub>[REG:ANY]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Move between registers
-             
-             While a mov can be emulated via a `add dst = src 0`, 
-             having a dedicated instruction makes some optimizations easier to 
+
+             While a mov can be emulated via a `add dst = src 0`,
+             having a dedicated instruction makes some optimizations easier to
              implement when combined with a canonicalization.
 
 #### [35] cmpeq *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ANY]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Conditional move (if equal): `dst := (cmp1 == cmp2) ? src1 : src2`
-               
+
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
 #### [36] cmplt *dst* <sub>[REG:ANY]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub> *cmp1* <sub>[REG/CONST:ADDR_NUM]</sub> *cmp2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
-Conditional move (if less than): `dst := (cmp1 < cmp2) ? src1 : src2` 
-               
+Conditional move (if less than): `dst := (cmp1 < cmp2) ? src1 : src2`
+
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.
 
 ## Address Arithmetic
 
 #### [38] lea *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[REG/CONST:SAME_AS_PREV]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Load effective address: `dst  := base + offset`  
-             
+Load effective address: `dst  := base + offset`
+
              Note: dst and base are addresses but offset is not.
 
 #### [39] lea.mem *dst* <sub>[REG:ADDR]</sub> = *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
@@ -377,8 +377,8 @@ Load effective mem address with offset: `dst := base + offset`
 Load effective stk address with offset: `dst := base + offset`
 
 #### [3b] lea.fun *dst* <sub>[REG:CODE]</sub> = *base* <sub>[FUN]</sub>
-Load effective fun address: `dst := base` 
-                 
+Load effective fun address: `dst := base`
+
                  Note: no offset
 
 ## Load
@@ -404,28 +404,28 @@ Store to stk base with offset: `RAM[base + offset] := src`
 ## Store
 
 #### [48] cas *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[REG:ADDR]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Atomic Compare and Swap  
-                
-                addr = base + offset 
-                dst = RAM[addr] 
+Atomic Compare and Swap
+
+                addr = base + offset
+                dst = RAM[addr]
                 if dst == cmp: RAM[addr] = src
-             
+
 
 #### [49] cas.mem *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[MEM]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-Atomic Compare and Swap  
-                    
-                    addr = base + offset 
-                    dst = RAM[addr] 
+Atomic Compare and Swap
+
+                    addr = base + offset
+                    dst = RAM[addr]
                     if dst == cmp: RAM[addr] = src
-                 
+
 
 #### [4a] cas.stk *dst* <sub>[REG:ANY]</sub> *cmp* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src* <sub>[REG/CONST:SAME_AS_PREV]</sub> *base* <sub>[STK]</sub> *offset* <sub>[REG/CONST:OFFSET]</sub>
-AtomicCompare and Swap  
+AtomicCompare and Swap
 
-                    addr = base + offset 
-                    dst = RAM[addr] 
+                    addr = base + offset
+                    dst = RAM[addr]
                     if dst == cmp: RAM[addr] = src
-             
+
 
 ## Float ALU
 
@@ -446,7 +446,7 @@ Round float to integral (to nearest with ties to away)
 
 #### [54] copysign *dst* <sub>[REG:FLT]</sub> = *src1* <sub>[REG/CONST:SAME_AS_PREV]</sub> *src2* <sub>[REG/CONST:SAME_AS_PREV]</sub>
 Set the sign of src1 to match src2 (floating point only)
-                  
+
                   Note: `copysign dst src1 0.0` can be used to emulate `abs`
 
 #### [55] sqrt *dst* <sub>[REG:FLT]</sub> = *src* <sub>[REG/CONST:SAME_AS_PREV]</sub>
@@ -465,12 +465,12 @@ Count set bits (pop count)
 
 ## Annotation
 
-#### [70] nop 
+#### [70] nop
 nop - internal use
 
 #### [71] nop1 *src_and_dst* <sub>[REG:ANY]</sub> =
 nop with one reg - internal use
-              
+
               Note: Can be used to `reserve` a reg for code generation.
 
 #### [77] line *file* <sub>[BYTES]</sub> *line* <sub>[CONST:UINT]</sub>
@@ -481,13 +481,13 @@ Inject arbitrary target instructions bytes into instruction stream
 
 #### [79] getfp *dst* <sub>[REG:ADDR]</sub>
 Materialize the frame-pointer
-             
+
              Get the stack-pointer's value before the call. Used mainly to interface with
              the Linux execution environment at program startup.
 
 #### [7a] getsp *dst* <sub>[REG:ADDR]</sub>
 Materialize the stack-pointer
-             
+
              Get the current stack-pointer. Used mainly to interface with
              the Linux execution environment after a clone syscall.
 

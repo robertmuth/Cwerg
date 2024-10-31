@@ -30,4 +30,4 @@ $(DIR)/jit_cpu_x64_test:
 	diff $@.actual.out TestData/jit_cpu_x64.golden
 
 clean:
-	rm -rf $(DIR_A32)
+	rm -rf $(DIR)

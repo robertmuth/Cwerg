@@ -87,7 +87,7 @@ _IMM_KIND_STK: Set[IMM_CURB] = {
 def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     if opc is o.CNTPOP:
-        scratch = fun.GetScratchReg(o.DK.F64, "popcnt", False)
+        scratch = fun.GetScratchReg(o.DK.R64, "popcnt", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 
@@ -319,7 +319,7 @@ _ALLOWED_OPERAND_TYPES_REG = {
     o.DK.U32, o.DK.S32,
     o.DK.U8, o.DK.S8,
     o.DK.U16, o.DK.S16,
-    o.DK.F32, o.DK.F64,
+    o.DK.R32, o.DK.R64,
 }
 
 
@@ -604,7 +604,7 @@ def InitCondBra():
                     imm_curb0=IMM_CURB.IMM_SHIFTED_10_21_22)
 
     # * we do not have a story for the unordered case
-    for kind, a64_cmp in [(o.DK.F32, "fcmpe_s"), (o.DK.F64, "fcmpe_d")]:
+    for kind, a64_cmp in [(o.DK.R32, "fcmpe_s"), (o.DK.R64, "fcmpe_d")]:
         for opc, a64_bxx in [(o.BEQ, "b_eq"), (o.BNE, "b_ne"),
                              (o.BLT, "b_mi"), (o.BLE, "b_ls")]:
             Pattern(opc, [kind, kind, o.DK.INVALID],
@@ -717,31 +717,31 @@ def InitCmp():
                      InsTmpl(inv_csel, [PARAM.reg0, PARAM.reg1, PARAM.reg2])],
                     imm_curb3=IMM_CURB.IMM_SHIFTED_10_21_22)
     for kind in [o.DK.U32, o.DK.S32]:
-        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+        for cmp_kind, cmp in [(o.DK.R32, "fcmp_s"), (o.DK.R64, "fcmp_d")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("csel_w_mi", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
-        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+        for cmp_kind, cmp in [(o.DK.R32, "fcmp_s"), (o.DK.R64, "fcmp_d")]:
             Pattern(o.CMPEQ, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("csel_w_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
 
     for kind in [o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64]:
-        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+        for cmp_kind, cmp in [(o.DK.R32, "fcmp_s"), (o.DK.R64, "fcmp_d")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("csel_x_mi", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
-        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+        for cmp_kind, cmp in [(o.DK.R32, "fcmp_s"), (o.DK.R64, "fcmp_d")]:
             Pattern(o.CMPEQ, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("csel_x_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
 
-    for kind, sel in [(o.DK.F64, "fcsel_d"), (o.DK.F32, "fcsel_s")]:
-        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+    for kind, sel in [(o.DK.R64, "fcsel_d"), (o.DK.R32, "fcsel_s")]:
+        for cmp_kind, cmp in [(o.DK.R32, "fcmp_s"), (o.DK.R64, "fcmp_d")]:
             Pattern(o.CMPLT, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl(sel + "_mi", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
-        for cmp_kind, cmp in [(o.DK.F32, "fcmp_s"), (o.DK.F64, "fcmp_d")]:
+        for cmp_kind, cmp in [(o.DK.R32, "fcmp_s"), (o.DK.R64, "fcmp_d")]:
             Pattern(o.CMPEQ, [kind] * 3 + [cmp_kind] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl(sel + "_eq", [PARAM.reg0, PARAM.reg1, PARAM.reg2])])
@@ -867,7 +867,7 @@ def InitLoad():
                           (o.DK.U32, "ldr_w"), (o.DK.S32, "ldrsw"),
                           (o.DK.U16, "ldr_h"), (o.DK.S16, "ldrsh_x"),
                           (o.DK.U8, "ldr_b"), (o.DK.S8, "ldrsb_x"),
-                          (o.DK.F32, "fldr_s"), (o.DK.F64, "fldr_d")]:
+                          (o.DK.R32, "fldr_s"), (o.DK.R64, "fldr_d")]:
         for offset_kind in [o.DK.S64, o.DK.U64]:
             Pattern(o.LD, [dst_kind, o.DK.A64, offset_kind],
                     [InsTmpl(opc + "_reg_x",
@@ -897,8 +897,8 @@ def InitStackLoad():
         (o.DK.S16, "ldr_h_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
         (o.DK.U8, "ldr_b_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.S8, "ldrsb_x_imm", IMM_CURB.pos_stk_combo_10_21),
-        (o.DK.F32, "fldr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
-            (o.DK.F64, "fldr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
+        (o.DK.R32, "fldr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
+            (o.DK.R64, "fldr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
         # note: the first and second op are combined in the generated code
         # The offset_kind does not really matter, what matters is actual values
         for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
@@ -918,8 +918,8 @@ def InitStackLoad():
         (o.DK.S16, "ldr_h_reg_w"),
         (o.DK.U8, "ldr_b_reg_w"),
         (o.DK.S8, "ldrsb_x_reg_w"),
-        (o.DK.F32, "fldr_s_reg_w"),
-            (o.DK.F64, "fldr_d_reg_w")]:
+        (o.DK.R32, "fldr_s_reg_w"),
+            (o.DK.R64, "fldr_d_reg_w")]:
         # The offset_kind does not really matter, what matters is actual values
         for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
             Pattern(o.LD_STK, [dst_kind, o.DK.INVALID, offset_kind],
@@ -934,7 +934,7 @@ def InitStore():
                           (o.DK.U32, "str_w"), (o.DK.S32, "str_w"),
                           (o.DK.U16, "str_h"), (o.DK.S16, "str_h"),
                           (o.DK.U8, "str_b"), (o.DK.S8, "str_b"),
-                          (o.DK.F64, "fstr_d"), (o.DK.F32, "fstr_s")]:
+                          (o.DK.R64, "fstr_d"), (o.DK.R32, "fstr_s")]:
         for offset_kind in [o.DK.S64, o.DK.U64]:
             Pattern(o.ST, [o.DK.A64, offset_kind, src_kind],
                     [InsTmpl(opc + "_reg_x",
@@ -1024,8 +1024,8 @@ def InitStackStore():
         (o.DK.S16, "str_h_imm", IMM_CURB.pos_stk_combo_10_21_times_2),
         (o.DK.U8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21),
         (o.DK.S8, "str_b_imm", IMM_CURB.pos_stk_combo_10_21),
-        (o.DK.F32, "fstr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
-            (o.DK.F64, "fstr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
+        (o.DK.R32, "fstr_s_imm", IMM_CURB.pos_stk_combo_10_21_times_4),
+            (o.DK.R64, "fstr_d_imm", IMM_CURB.pos_stk_combo_10_21_times_8)]:
         # STACK VARIANTS: note we cover all reasonable offsets
         # note: the first and second op are combined in the generated code
         # The offset_kind does not really matter, what matters is actual values
@@ -1046,8 +1046,8 @@ def InitStackStore():
         (o.DK.S16, "str_h_reg_w"),
         (o.DK.U8, "str_b_reg_w"),
         (o.DK.S8, "str_b_reg_w"),
-        (o.DK.F32, "fstr_s_reg_w"),
-            (o.DK.F64, "fstr_d_reg_w")]:
+        (o.DK.R32, "fstr_s_reg_w"),
+            (o.DK.R64, "fstr_d_reg_w")]:
         # The offset_kind does not really matter, what matters is actual values
         for offset_kind in [o.DK.S64, o.DK.U64, o.DK.S32, o.DK.U32]:
             Pattern(o.ST_STK, [o.DK.INVALID, offset_kind, src_kind],
@@ -1183,10 +1183,10 @@ def InitConv():
     Pattern(o.CONV, [o.DK.S64, o.DK.S32],
             [InsTmpl("sbfm_x", [PARAM.reg0, PARAM.reg1, 0, 31])])
 
-    Pattern(o.CONV, [o.DK.F64, o.DK.F32],
+    Pattern(o.CONV, [o.DK.R64, o.DK.R32],
             [InsTmpl("fcvt_d_s", [PARAM.reg0, PARAM.reg1])])
 
-    Pattern(o.CONV, [o.DK.F32, o.DK.F64],
+    Pattern(o.CONV, [o.DK.R32, o.DK.R64],
             [InsTmpl("fcvt_s_d", [PARAM.reg0, PARAM.reg1])])
 
 
@@ -1220,7 +1220,7 @@ def InitMiscBra():
 
 
 def InitVFP():
-    for kind, suffix in [(o.DK.F32, "_s"), (o.DK.F64, "_d")]:
+    for kind, suffix in [(o.DK.R32, "_s"), (o.DK.R64, "_d")]:
         Pattern(o.MOV, [kind] * 2,
                 [InsTmpl("fmov" + suffix + "_reg", [PARAM.reg0, PARAM.reg1])])
         Pattern(o.FLOOR, [kind] * 2,
@@ -1247,46 +1247,46 @@ def InitVFP():
                 [InsTmpl("fabs" + suffix, [PARAM.reg0, PARAM.reg1])],
                 imm_curb2=IMM_CURB.ZERO)
 
-    Pattern(o.COPYSIGN, [o.DK.F32] * 3,
+    Pattern(o.COPYSIGN, [o.DK.R32] * 3,
             [InsTmpl("fmov_w_from_s", [PARAM.scratch_gpr, PARAM.reg2]),
              InsTmpl("fabs_s", [PARAM.reg0, PARAM.reg1]),
              InsTmpl("tbz", [PARAM.scratch_gpr, 31, 2]),
              InsTmpl("fneg_s", [PARAM.reg0, PARAM.reg0])])
 
-    Pattern(o.COPYSIGN, [o.DK.F64] * 3,
+    Pattern(o.COPYSIGN, [o.DK.R64] * 3,
             [InsTmpl("fmov_x_from_d", [PARAM.scratch_gpr, PARAM.reg2]),
              InsTmpl("fabs_d", [PARAM.reg0, PARAM.reg1]),
              InsTmpl("tbz", [PARAM.scratch_gpr, 63, 0]),
              InsTmpl("fneg_d", [PARAM.reg0, PARAM.reg0])])
 
-    for kind_dst, kind_src, a64_opc in [(o.DK.F64, o.DK.S32, "scvtf_d_from_w"),
-                                        (o.DK.F64, o.DK.U32, "ucvtf_d_from_w"),
-                                        (o.DK.F32, o.DK.S32, "scvtf_s_from_w"),
-                                        (o.DK.F32, o.DK.U32, "ucvtf_s_from_w"),
-                                        (o.DK.F64, o.DK.S64, "scvtf_d_from_x"),
-                                        (o.DK.F64, o.DK.U64, "ucvtf_d_from_x"),
-                                        (o.DK.F32, o.DK.S64, "scvtf_s_from_x"),
-                                        (o.DK.F32, o.DK.U64, "ucvtf_s_from_x"),
-                                        (o.DK.S32, o.DK.F32, "fcvtzs_w_s"),
-                                        (o.DK.S32, o.DK.F64, "fcvtzs_w_d"),
-                                        (o.DK.U32, o.DK.F32, "fcvtzu_w_s"),
-                                        (o.DK.U32, o.DK.F64, "fcvtzu_w_d"),
-                                        (o.DK.S64, o.DK.F32, "fcvtzs_x_s"),
-                                        (o.DK.S64, o.DK.F64, "fcvtzs_x_d"),
-                                        (o.DK.U64, o.DK.F32, "fcvtzu_x_s"),
-                                        (o.DK.U64, o.DK.F64, "fcvtzu_x_d"),
+    for kind_dst, kind_src, a64_opc in [(o.DK.R64, o.DK.S32, "scvtf_d_from_w"),
+                                        (o.DK.R64, o.DK.U32, "ucvtf_d_from_w"),
+                                        (o.DK.R32, o.DK.S32, "scvtf_s_from_w"),
+                                        (o.DK.R32, o.DK.U32, "ucvtf_s_from_w"),
+                                        (o.DK.R64, o.DK.S64, "scvtf_d_from_x"),
+                                        (o.DK.R64, o.DK.U64, "ucvtf_d_from_x"),
+                                        (o.DK.R32, o.DK.S64, "scvtf_s_from_x"),
+                                        (o.DK.R32, o.DK.U64, "ucvtf_s_from_x"),
+                                        (o.DK.S32, o.DK.R32, "fcvtzs_w_s"),
+                                        (o.DK.S32, o.DK.R64, "fcvtzs_w_d"),
+                                        (o.DK.U32, o.DK.R32, "fcvtzu_w_s"),
+                                        (o.DK.U32, o.DK.R64, "fcvtzu_w_d"),
+                                        (o.DK.S64, o.DK.R32, "fcvtzs_x_s"),
+                                        (o.DK.S64, o.DK.R64, "fcvtzs_x_d"),
+                                        (o.DK.U64, o.DK.R32, "fcvtzu_x_s"),
+                                        (o.DK.U64, o.DK.R64, "fcvtzu_x_d"),
                                         ]:
         Pattern(o.CONV, [kind_dst, kind_src],
                 [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1])])
 
-    for kind_dst, kind_src, a64_opc in [(o.DK.F64, o.DK.U64, "fmov_d_from_x"),
-                                        (o.DK.F64, o.DK.S64, "fmov_d_from_x"),
-                                        (o.DK.F32, o.DK.S32, "fmov_s_from_w"),
-                                        (o.DK.F32, o.DK.U32, "fmov_s_from_w"),
-                                        (o.DK.U64, o.DK.F64, "fmov_x_from_d"),
-                                        (o.DK.S64, o.DK.F64, "fmov_x_from_d"),
-                                        (o.DK.U32, o.DK.F32, "fmov_w_from_s"),
-                                        (o.DK.S32, o.DK.F32, "fmov_w_from_s")]:
+    for kind_dst, kind_src, a64_opc in [(o.DK.R64, o.DK.U64, "fmov_d_from_x"),
+                                        (o.DK.R64, o.DK.S64, "fmov_d_from_x"),
+                                        (o.DK.R32, o.DK.S32, "fmov_s_from_w"),
+                                        (o.DK.R32, o.DK.U32, "fmov_s_from_w"),
+                                        (o.DK.U64, o.DK.R64, "fmov_x_from_d"),
+                                        (o.DK.S64, o.DK.R64, "fmov_x_from_d"),
+                                        (o.DK.U32, o.DK.R32, "fmov_w_from_s"),
+                                        (o.DK.S32, o.DK.R32, "fmov_w_from_s")]:
         Pattern(o.BITCAST, [kind_dst, kind_src],
                 [InsTmpl(a64_opc, [PARAM.reg0, PARAM.reg1])])
 

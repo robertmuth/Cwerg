@@ -56,7 +56,7 @@ class TestRegPool(reg_alloc.RegPool):
             heapq.heappush(self.available[cpu_reg.kind], cpu_reg)
 
     def get_cpu_reg_family(self, kind: o.DK) -> int:
-        return FLT_NOT_LAC if kind.flavor() is o.DK_FLAVOR_F else GPR_NOT_LAC
+        return FLT_NOT_LAC if kind.flavor() is o.DK_FLAVOR_R else GPR_NOT_LAC
 
     def backtrack_reset(self, cpu_reg: ir.CpuReg):
         assert cpu_reg != ir.CPU_REG_SPILL
@@ -91,11 +91,11 @@ class TestRanges(unittest.TestCase):
 .fun main NORMAL [U32 U32 U32 U32] = [U32 U32 U32 U32]
 
 .bbl start
-    poparg w:U32 
-    poparg x:U32 
-    poparg y:U32 
-    poparg z:U32 
-    
+    poparg w:U32
+    poparg x:U32
+    poparg y:U32
+    poparg z:U32
+
     pusharg z
     pusharg y
     pusharg x
@@ -172,18 +172,18 @@ class TestRanges(unittest.TestCase):
 .fun main NORMAL [U32 U32 U32 U32] = [U32 U32 U32 U32]
 
 .bbl start
-    poparg w:U32 
-    poparg x:U32 
-    poparg y:U32 
-    poparg z:U32 
-    
+    poparg w:U32
+    poparg x:U32
+    poparg y:U32
+    poparg z:U32
+
     mov a:U32 1
     mov b:U32 2
     mov c:U32 3
     mov d:U32 4
-    
+
     cmpeq e:U32 a b c d
-    
+
     pusharg z
     pusharg y
     pusharg x

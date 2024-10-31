@@ -96,42 +96,42 @@ PAT: reg:[A64 A64 U32]  imm:[INVALID INVALID ZERO]
 INS: ret  []
     SPECIAL
 
-INS: cmplt d3@d0 0.0 d1@d1 d2@d2 0.0  [F64 F64 F64 F64 F64]
+INS: cmplt d3@d0 0.0 d1@d1 d2@d2 0.0  [R64 R64 R64 R64 R64]
     mismatches: 12
 
 INS: ret  []
     SPECIAL
 
-INS: copysign flt@d1 flt@d1 0.0  [F32 F32 F32]
-PAT: reg:[F32 F32 F32]  imm:[INVALID INVALID ZERO]
+INS: copysign flt@d1 flt@d1 0.0  [R32 R32 R32]
+PAT: reg:[R32 R32 R32]  imm:[INVALID INVALID ZERO]
     fabs_s s1 s1
 
-INS: copysign dbl@d2 dbl@d2 0.0  [F64 F64 F64]
-PAT: reg:[F64 F64 F64]  imm:[INVALID INVALID ZERO]
+INS: copysign dbl@d2 dbl@d2 0.0  [R64 R64 R64]
+PAT: reg:[R64 R64 R64]  imm:[INVALID INVALID ZERO]
     fabs_d d2 d2
 
-INS: st.stk buffer 0 dbl@d2  [_ U32 F64]
-PAT: reg:[INVALID U32 F64]  imm:[INVALID pos_stk_combo_10_21_times_8 INVALID]
+INS: st.stk buffer 0 dbl@d2  [_ U32 R64]
+PAT: reg:[INVALID U32 R64]  imm:[INVALID pos_stk_combo_10_21_times_8 INVALID]
     fstr_d_imm sp 0 d2
 
-INS: ld.stk flt@d1 buffer 0  [F32 _ U32]
-PAT: reg:[F32 INVALID U32]  imm:[INVALID INVALID pos_stk_combo_10_21_times_4]
+INS: ld.stk flt@d1 buffer 0  [R32 _ U32]
+PAT: reg:[R32 INVALID U32]  imm:[INVALID INVALID pos_stk_combo_10_21_times_4]
     fldr_s_imm s1 sp 0
 
-INS: beq dbl@d2 0.0 skip  [F64 F64 _]
-PAT: reg:[F64 F64 INVALID]  imm:[INVALID ZERO INVALID]
+INS: beq dbl@d2 0.0 skip  [R64 R64 _]
+PAT: reg:[R64 R64 INVALID]  imm:[INVALID ZERO INVALID]
     fcmpe_d_zero d2 0
     b_eq expr:condbr19:skip
 
-INS: copysign flt@d1 flt@d1 flt@d1  [F32 F32 F32]
-PAT: reg:[F32 F32 F32]  imm:[INVALID INVALID INVALID]
+INS: copysign flt@d1 flt@d1 flt@d1  [R32 R32 R32]
+PAT: reg:[R32 R32 R32]  imm:[INVALID INVALID INVALID]
     fmov_w_from_s w16 s1
     fabs_s s1 s1
     tbz x16 31 2
     fneg_s s1 s1
 
-INS: copysign dbl@d2 dbl@d2 dbl@d2  [F64 F64 F64]
-PAT: reg:[F64 F64 F64]  imm:[INVALID INVALID INVALID]
+INS: copysign dbl@d2 dbl@d2 dbl@d2  [R64 R64 R64]
+PAT: reg:[R64 R64 R64]  imm:[INVALID INVALID INVALID]
     fmov_x_from_d x16 d2
     fabs_d d2 d2
     tbz x16 63 0

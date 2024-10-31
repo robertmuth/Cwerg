@@ -33,7 +33,7 @@ _SUPPORTED_IN_ALL_WIDTHS = {
 def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
     if not isinstance(op, ir.Const):
         return False
-    if op.kind in {o.DK.F64, o.DK.F32}:
+    if op.kind in {o.DK.R64, o.DK.R32}:
         return True
     if opcode is o.MOV:
         return False
@@ -56,7 +56,7 @@ def _InsRewriteOutOfBoundsImmediates(
                            o.OPC_KIND.CONV, o.OPC_KIND.MOV}:
         for pos, op in enumerate(ins.operands):
             if IsOutOfBoundImmediate(ins.opcode, op, pos):
-                if op.kind in {o.DK.F32, o.DK.F64}:
+                if op.kind in {o.DK.R32, o.DK.R64}:
                     inss += lowering.InsEliminateImmediateViaMem(ins, pos, fun, unit,
                                                                  o.DK.A64, o.DK.U32)
                 else:
@@ -77,7 +77,7 @@ def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
 def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     ops = ins.operands
-    if opc is o.DIV and ops[0].kind.flavor() != o.DK_FLAVOR_F:
+    if opc is o.DIV and ops[0].kind.flavor() != o.DK_FLAVOR_R:
         # note: we could leave it to the register allocator to pick a CpuReg for ops[2]
         # but then we would somehow have to  ensure that the reg is NOT rdx.
         # By forcing rcx for ops[2] we sidestep the issue
@@ -88,7 +88,7 @@ def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins
                 ir.Ins(o.MOV, [rcx, ops[2]]),
                 ir.Ins(o.DIV, [rdx, rax, rcx]),  # note the notion of src/dst regs is murky here
                 ir.Ins(o.MOV, [ops[0], rax])]
-    elif opc is o.REM and ops[0].kind.flavor() != o.DK_FLAVOR_F:
+    elif opc is o.REM and ops[0].kind.flavor() != o.DK_FLAVOR_R:
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
         rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
@@ -128,7 +128,7 @@ def InsNeedsAABFormRewrite(ins: ir.Ins):
     ops = ins.operands
     if opc.kind not in {o.OPC_KIND.ALU, o.OPC_KIND.LEA}:
         return False
-    if opc in {o.DIV, o.REM} and ops[0].kind.flavor() != o.DK_FLAVOR_F:
+    if opc in {o.DIV, o.REM} and ops[0].kind.flavor() != o.DK_FLAVOR_R:
         return False
     if opc in {o.LEA_MEM, o.LEA_STK}:
         return False
@@ -486,7 +486,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
             if reg.IsSpilled() or reg.HasCpuReg():
                 continue
             elif "nop1" in reg.name:
-                reg.cpu_reg = regs.CPU_REGS_MAP["xmm1"] if reg.kind.flavor() == o.DK_FLAVOR_F else regs.CPU_REGS_MAP[
+                reg.cpu_reg = regs.CPU_REGS_MAP["xmm1"] if reg.kind.flavor() == o.DK_FLAVOR_R else regs.CPU_REGS_MAP[
                     "rsi"]
             else:
                 reg.cpu_reg = ir.StackSlot(0)

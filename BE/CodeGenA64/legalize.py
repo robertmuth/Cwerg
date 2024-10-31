@@ -32,7 +32,7 @@ def _InsRewriteOutOfBoundsImmediates(
     for pos in range(o.MAX_OPERANDS):
         if mismatches & (1 << pos) != 0:
             const_kind = ins.operands[pos].kind
-            if const_kind is o.DK.F32 or const_kind is o.DK.F64:
+            if const_kind is o.DK.R32 or const_kind is o.DK.R64:
                 inss += lowering.InsEliminateImmediateViaMem(
                     ins, pos, fun, unit, o.DK.A64, o.DK.U32)
             else:
@@ -203,7 +203,7 @@ def PhaseOptimize(fun: ir.Fun, unit: ir.Unit, opt_stats: Dict[str, int], fout):
 def PhaseLegalizationStep1(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fout):
     """this needs to happen for all funs BEFORE push arg conversions
 
-    Note that funs are not necessarily procesed in call graph 
+    Note that funs are not necessarily procesed in call graph
     topological order. If we do not do this ahead of time a call
     might processed seeing the wrong parameter types for the callee.
     """

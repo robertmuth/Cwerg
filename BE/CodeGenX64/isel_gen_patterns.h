@@ -18949,21 +18949,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[55], 1 },  // add [46]
   { {DK::S64, DK::S64, DK::S64}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[56], 1 },  // add [47]
-  { {DK::F32, DK::F32, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[57], 1 },  // add [48]
-  { {DK::F32, DK::F32, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[58], 1 },  // add [49]
-  { {DK::F32, DK::F32, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[59], 3 },  // add [50]
-  { {DK::F32, DK::F32, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[62], 3 },  // add [51]
-  { {DK::F64, DK::F64, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[65], 1 },  // add [52]
-  { {DK::F64, DK::F64, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[66], 1 },  // add [53]
-  { {DK::F64, DK::F64, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[67], 3 },  // add [54]
-  { {DK::F64, DK::F64, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[70], 3 },  // add [55]
   { {DK::U8, DK::U8, DK::U8}, {C::REG, C::REG, C::REG},
     &kInsTemplates[73], 1 },  // sub [56]
@@ -19061,21 +19061,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[127], 1 },  // sub [102]
   { {DK::S64, DK::S64, DK::S64}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[128], 1 },  // sub [103]
-  { {DK::F32, DK::F32, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[129], 1 },  // sub [104]
-  { {DK::F32, DK::F32, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[130], 1 },  // sub [105]
-  { {DK::F32, DK::F32, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[131], 3 },  // sub [106]
-  { {DK::F32, DK::F32, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[134], 3 },  // sub [107]
-  { {DK::F64, DK::F64, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[137], 1 },  // sub [108]
-  { {DK::F64, DK::F64, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[138], 1 },  // sub [109]
-  { {DK::F64, DK::F64, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[139], 3 },  // sub [110]
-  { {DK::F64, DK::F64, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[142], 3 },  // sub [111]
   { {DK::U16, DK::U16, DK::U16}, {C::REG, C::REG, C::REG},
     &kInsTemplates[145], 1 },  // mul [112]
@@ -19125,21 +19125,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[189], 1 },  // mul [134]
   { {DK::S64, DK::S64, DK::S64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[190], 3 },  // mul [135]
-  { {DK::F32, DK::F32, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[193], 1 },  // mul [136]
-  { {DK::F32, DK::F32, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[194], 1 },  // mul [137]
-  { {DK::F32, DK::F32, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[195], 3 },  // mul [138]
-  { {DK::F32, DK::F32, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[198], 3 },  // mul [139]
-  { {DK::F64, DK::F64, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[201], 1 },  // mul [140]
-  { {DK::F64, DK::F64, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[202], 1 },  // mul [141]
-  { {DK::F64, DK::F64, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[203], 3 },  // mul [142]
-  { {DK::F64, DK::F64, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[206], 3 },  // mul [143]
   { {DK::U16, DK::U16, DK::U16}, {C::REG_RDX, C::REG_RAX, C::REG},
     &kInsTemplates[209], 2 },  // div [144]
@@ -19153,21 +19153,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[217], 2 },  // div [148]
   { {DK::S64, DK::S64, DK::S64}, {C::REG_RDX, C::REG_RAX, C::REG},
     &kInsTemplates[219], 2 },  // div [149]
-  { {DK::F32, DK::F32, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[221], 1 },  // div [150]
-  { {DK::F32, DK::F32, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[222], 1 },  // div [151]
-  { {DK::F32, DK::F32, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[223], 3 },  // div [152]
-  { {DK::F32, DK::F32, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::R32, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[226], 3 },  // div [153]
-  { {DK::F64, DK::F64, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[229], 1 },  // div [154]
-  { {DK::F64, DK::F64, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[230], 1 },  // div [155]
-  { {DK::F64, DK::F64, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[231], 3 },  // div [156]
-  { {DK::F64, DK::F64, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::R64, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[234], 3 },  // div [157]
   { {DK::U8, DK::U8, DK::U8}, {C::REG, C::REG, C::REG},
     &kInsTemplates[237], 1 },  // xor [158]
@@ -19745,21 +19745,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[635], 2 },  // beq [444]
   { {DK::C64, DK::C64, DK::INVALID}, {C::SIMM32, C::SP_REG, C::INVALID},
     &kInsTemplates[637], 2 },  // beq [445]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::REG, C::REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[639], 2 },  // beq [446]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
     &kInsTemplates[641], 2 },  // beq [447]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
     &kInsTemplates[643], 2 },  // beq [448]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
     &kInsTemplates[645], 3 },  // beq [449]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::REG, C::REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[648], 2 },  // beq [450]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
     &kInsTemplates[650], 2 },  // beq [451]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
     &kInsTemplates[652], 2 },  // beq [452]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
     &kInsTemplates[654], 3 },  // beq [453]
   { {DK::U8, DK::U8, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[657], 2 },  // bne [454]
@@ -19921,21 +19921,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[823], 2 },  // bne [532]
   { {DK::C64, DK::C64, DK::INVALID}, {C::SIMM32, C::SP_REG, C::INVALID},
     &kInsTemplates[825], 2 },  // bne [533]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::REG, C::REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[827], 2 },  // bne [534]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
     &kInsTemplates[829], 2 },  // bne [535]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
     &kInsTemplates[831], 2 },  // bne [536]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
     &kInsTemplates[833], 3 },  // bne [537]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::REG, C::REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[836], 2 },  // bne [538]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
     &kInsTemplates[838], 2 },  // bne [539]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
     &kInsTemplates[840], 2 },  // bne [540]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
     &kInsTemplates[842], 3 },  // bne [541]
   { {DK::U8, DK::U8, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[845], 2 },  // blt [542]
@@ -20081,21 +20081,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[994], 2 },  // blt [612]
   { {DK::A64, DK::A64, DK::INVALID}, {C::SIMM32, C::SP_REG, C::INVALID},
     &kInsTemplates[996], 2 },  // blt [613]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::REG, C::REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[998], 2 },  // blt [614]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
     &kInsTemplates[1000], 2 },  // blt [615]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
     &kInsTemplates[1002], 2 },  // blt [616]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
     &kInsTemplates[1004], 3 },  // blt [617]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::REG, C::REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[1007], 2 },  // blt [618]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
     &kInsTemplates[1009], 2 },  // blt [619]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
     &kInsTemplates[1011], 2 },  // blt [620]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
     &kInsTemplates[1013], 3 },  // blt [621]
   { {DK::U8, DK::U8, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[1016], 2 },  // ble [622]
@@ -20241,21 +20241,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[1165], 2 },  // ble [692]
   { {DK::A64, DK::A64, DK::INVALID}, {C::SIMM32, C::SP_REG, C::INVALID},
     &kInsTemplates[1167], 2 },  // ble [693]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::REG, C::REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[1169], 2 },  // ble [694]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
     &kInsTemplates[1171], 2 },  // ble [695]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
     &kInsTemplates[1173], 2 },  // ble [696]
-  { {DK::F32, DK::F32, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
+  { {DK::R32, DK::R32, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
     &kInsTemplates[1175], 3 },  // ble [697]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::REG, C::REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::REG, C::REG, C::INVALID},
     &kInsTemplates[1178], 2 },  // ble [698]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::REG, C::SP_REG, C::INVALID},
     &kInsTemplates[1180], 2 },  // ble [699]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::SP_REG, C::REG, C::INVALID},
     &kInsTemplates[1182], 2 },  // ble [700]
-  { {DK::F64, DK::F64, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
+  { {DK::R64, DK::R64, DK::INVALID}, {C::SP_REG, C::SP_REG, C::INVALID},
     &kInsTemplates[1184], 3 },  // ble [701]
   { {DK::U8, DK::INVALID}, {C::REG, C::INVALID},
     &kInsTemplates[1187], 3 },  // switch [702]
@@ -20797,157 +20797,157 @@ const Pattern kPatterns[] = {
     &kInsTemplates[1580], 1 },  // conv [970]
   { {DK::S64, DK::S64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1581], 2 },  // conv [971]
-  { {DK::F32, DK::U8}, {C::REG, C::REG},
+  { {DK::R32, DK::U8}, {C::REG, C::REG},
     &kInsTemplates[1583], 2 },  // conv [972]
-  { {DK::F32, DK::U8}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::U8}, {C::REG, C::SP_REG},
     &kInsTemplates[1585], 2 },  // conv [973]
-  { {DK::U8, DK::F32}, {C::REG, C::REG},
+  { {DK::U8, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1587], 1 },  // conv [974]
-  { {DK::U8, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::U8, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1588], 1 },  // conv [975]
-  { {DK::U8, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::U8, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[1589], 2 },  // conv [976]
-  { {DK::U8, DK::F32}, {C::SP_REG, C::SP_REG},
+  { {DK::U8, DK::R32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1591], 2 },  // conv [977]
-  { {DK::F32, DK::S8}, {C::REG, C::REG},
+  { {DK::R32, DK::S8}, {C::REG, C::REG},
     &kInsTemplates[1593], 2 },  // conv [978]
-  { {DK::F32, DK::S8}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::S8}, {C::REG, C::SP_REG},
     &kInsTemplates[1595], 2 },  // conv [979]
-  { {DK::S8, DK::F32}, {C::REG, C::REG},
+  { {DK::S8, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1597], 1 },  // conv [980]
-  { {DK::S8, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::S8, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1598], 1 },  // conv [981]
-  { {DK::S8, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::S8, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[1599], 2 },  // conv [982]
-  { {DK::S8, DK::F32}, {C::SP_REG, C::SP_REG},
+  { {DK::S8, DK::R32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1601], 2 },  // conv [983]
-  { {DK::F32, DK::U16}, {C::REG, C::REG},
+  { {DK::R32, DK::U16}, {C::REG, C::REG},
     &kInsTemplates[1603], 2 },  // conv [984]
-  { {DK::F32, DK::U16}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::U16}, {C::REG, C::SP_REG},
     &kInsTemplates[1605], 2 },  // conv [985]
-  { {DK::U16, DK::F32}, {C::REG, C::REG},
+  { {DK::U16, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1607], 1 },  // conv [986]
-  { {DK::U16, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::U16, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1608], 1 },  // conv [987]
-  { {DK::U16, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::U16, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[1609], 2 },  // conv [988]
-  { {DK::U16, DK::F32}, {C::SP_REG, C::SP_REG},
+  { {DK::U16, DK::R32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1611], 2 },  // conv [989]
-  { {DK::F32, DK::S16}, {C::REG, C::REG},
+  { {DK::R32, DK::S16}, {C::REG, C::REG},
     &kInsTemplates[1613], 2 },  // conv [990]
-  { {DK::F32, DK::S16}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::S16}, {C::REG, C::SP_REG},
     &kInsTemplates[1615], 2 },  // conv [991]
-  { {DK::S16, DK::F32}, {C::REG, C::REG},
+  { {DK::S16, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1617], 1 },  // conv [992]
-  { {DK::S16, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::S16, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1618], 1 },  // conv [993]
-  { {DK::S16, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::S16, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[1619], 2 },  // conv [994]
-  { {DK::S16, DK::F32}, {C::SP_REG, C::SP_REG},
+  { {DK::S16, DK::R32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1621], 2 },  // conv [995]
-  { {DK::F32, DK::S32}, {C::REG, C::REG},
+  { {DK::R32, DK::S32}, {C::REG, C::REG},
     &kInsTemplates[1623], 1 },  // conv [996]
-  { {DK::F32, DK::S32}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::S32}, {C::REG, C::SP_REG},
     &kInsTemplates[1624], 2 },  // conv [997]
-  { {DK::S32, DK::F32}, {C::REG, C::REG},
+  { {DK::S32, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1626], 1 },  // conv [998]
-  { {DK::S32, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::S32, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1627], 1 },  // conv [999]
-  { {DK::S32, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::S32, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[1628], 2 },  // conv [1000]
-  { {DK::S32, DK::F32}, {C::SP_REG, C::SP_REG},
+  { {DK::S32, DK::R32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1630], 2 },  // conv [1001]
-  { {DK::F32, DK::U32}, {C::REG, C::REG},
+  { {DK::R32, DK::U32}, {C::REG, C::REG},
     &kInsTemplates[1632], 2 },  // conv [1002]
-  { {DK::F32, DK::U32}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::U32}, {C::REG, C::SP_REG},
     &kInsTemplates[1634], 2 },  // conv [1003]
-  { {DK::U32, DK::F32}, {C::REG, C::REG},
+  { {DK::U32, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1636], 1 },  // conv [1004]
-  { {DK::U32, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::U32, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1637], 1 },  // conv [1005]
-  { {DK::F32, DK::S64}, {C::REG, C::REG},
+  { {DK::R32, DK::S64}, {C::REG, C::REG},
     &kInsTemplates[1638], 1 },  // conv [1006]
-  { {DK::F32, DK::S64}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::S64}, {C::REG, C::SP_REG},
     &kInsTemplates[1639], 2 },  // conv [1007]
-  { {DK::S64, DK::F32}, {C::REG, C::REG},
+  { {DK::S64, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1641], 1 },  // conv [1008]
-  { {DK::S64, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::S64, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1642], 1 },  // conv [1009]
-  { {DK::F64, DK::U8}, {C::REG, C::REG},
+  { {DK::R64, DK::U8}, {C::REG, C::REG},
     &kInsTemplates[1643], 2 },  // conv [1010]
-  { {DK::F64, DK::U8}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::U8}, {C::REG, C::SP_REG},
     &kInsTemplates[1645], 2 },  // conv [1011]
-  { {DK::U8, DK::F64}, {C::REG, C::REG},
+  { {DK::U8, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1647], 1 },  // conv [1012]
-  { {DK::U8, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::U8, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1648], 1 },  // conv [1013]
-  { {DK::U8, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::U8, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[1649], 2 },  // conv [1014]
-  { {DK::U8, DK::F64}, {C::SP_REG, C::SP_REG},
+  { {DK::U8, DK::R64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1651], 2 },  // conv [1015]
-  { {DK::F64, DK::S8}, {C::REG, C::REG},
+  { {DK::R64, DK::S8}, {C::REG, C::REG},
     &kInsTemplates[1653], 2 },  // conv [1016]
-  { {DK::F64, DK::S8}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::S8}, {C::REG, C::SP_REG},
     &kInsTemplates[1655], 2 },  // conv [1017]
-  { {DK::S8, DK::F64}, {C::REG, C::REG},
+  { {DK::S8, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1657], 1 },  // conv [1018]
-  { {DK::S8, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::S8, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1658], 1 },  // conv [1019]
-  { {DK::S8, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::S8, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[1659], 2 },  // conv [1020]
-  { {DK::S8, DK::F64}, {C::SP_REG, C::SP_REG},
+  { {DK::S8, DK::R64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1661], 2 },  // conv [1021]
-  { {DK::F64, DK::U16}, {C::REG, C::REG},
+  { {DK::R64, DK::U16}, {C::REG, C::REG},
     &kInsTemplates[1663], 2 },  // conv [1022]
-  { {DK::F64, DK::U16}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::U16}, {C::REG, C::SP_REG},
     &kInsTemplates[1665], 2 },  // conv [1023]
-  { {DK::U16, DK::F64}, {C::REG, C::REG},
+  { {DK::U16, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1667], 1 },  // conv [1024]
-  { {DK::U16, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::U16, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1668], 1 },  // conv [1025]
-  { {DK::U16, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::U16, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[1669], 2 },  // conv [1026]
-  { {DK::U16, DK::F64}, {C::SP_REG, C::SP_REG},
+  { {DK::U16, DK::R64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1671], 2 },  // conv [1027]
-  { {DK::F64, DK::S16}, {C::REG, C::REG},
+  { {DK::R64, DK::S16}, {C::REG, C::REG},
     &kInsTemplates[1673], 2 },  // conv [1028]
-  { {DK::F64, DK::S16}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::S16}, {C::REG, C::SP_REG},
     &kInsTemplates[1675], 2 },  // conv [1029]
-  { {DK::S16, DK::F64}, {C::REG, C::REG},
+  { {DK::S16, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1677], 1 },  // conv [1030]
-  { {DK::S16, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::S16, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1678], 1 },  // conv [1031]
-  { {DK::S16, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::S16, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[1679], 2 },  // conv [1032]
-  { {DK::S16, DK::F64}, {C::SP_REG, C::SP_REG},
+  { {DK::S16, DK::R64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1681], 2 },  // conv [1033]
-  { {DK::F64, DK::S32}, {C::REG, C::REG},
+  { {DK::R64, DK::S32}, {C::REG, C::REG},
     &kInsTemplates[1683], 1 },  // conv [1034]
-  { {DK::F64, DK::S32}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::S32}, {C::REG, C::SP_REG},
     &kInsTemplates[1684], 2 },  // conv [1035]
-  { {DK::S32, DK::F64}, {C::REG, C::REG},
+  { {DK::S32, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1686], 1 },  // conv [1036]
-  { {DK::S32, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::S32, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1687], 1 },  // conv [1037]
-  { {DK::S32, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::S32, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[1688], 2 },  // conv [1038]
-  { {DK::S32, DK::F64}, {C::SP_REG, C::SP_REG},
+  { {DK::S32, DK::R64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1690], 2 },  // conv [1039]
-  { {DK::F64, DK::U32}, {C::REG, C::REG},
+  { {DK::R64, DK::U32}, {C::REG, C::REG},
     &kInsTemplates[1692], 2 },  // conv [1040]
-  { {DK::F64, DK::U32}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::U32}, {C::REG, C::SP_REG},
     &kInsTemplates[1694], 2 },  // conv [1041]
-  { {DK::U32, DK::F64}, {C::REG, C::REG},
+  { {DK::U32, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1696], 1 },  // conv [1042]
-  { {DK::U32, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::U32, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1697], 1 },  // conv [1043]
-  { {DK::F64, DK::S64}, {C::REG, C::REG},
+  { {DK::R64, DK::S64}, {C::REG, C::REG},
     &kInsTemplates[1698], 1 },  // conv [1044]
-  { {DK::F64, DK::S64}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::S64}, {C::REG, C::SP_REG},
     &kInsTemplates[1699], 2 },  // conv [1045]
-  { {DK::S64, DK::F64}, {C::REG, C::REG},
+  { {DK::S64, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1701], 1 },  // conv [1046]
-  { {DK::S64, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::S64, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1702], 1 },  // conv [1047]
   { {DK::U8, DK::S8}, {C::REG, C::REG},
     &kInsTemplates[1703], 1 },  // bitcast [1048]
@@ -21077,69 +21077,69 @@ const Pattern kPatterns[] = {
     &kInsTemplates[1780], 1 },  // bitcast [1110]
   { {DK::U64, DK::C64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1781], 2 },  // bitcast [1111]
-  { {DK::F32, DK::S32}, {C::REG, C::REG},
+  { {DK::R32, DK::S32}, {C::REG, C::REG},
     &kInsTemplates[1783], 1 },  // bitcast [1112]
-  { {DK::S32, DK::F32}, {C::REG, C::REG},
+  { {DK::S32, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1784], 1 },  // bitcast [1113]
-  { {DK::F32, DK::S32}, {C::SP_REG, C::REG},
+  { {DK::R32, DK::S32}, {C::SP_REG, C::REG},
     &kInsTemplates[1785], 1 },  // bitcast [1114]
-  { {DK::S32, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::S32, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[1786], 1 },  // bitcast [1115]
-  { {DK::F32, DK::S32}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::S32}, {C::REG, C::SP_REG},
     &kInsTemplates[1787], 1 },  // bitcast [1116]
-  { {DK::S32, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::S32, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1788], 1 },  // bitcast [1117]
-  { {DK::F32, DK::S32}, {C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::S32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1789], 2 },  // bitcast [1118]
-  { {DK::F32, DK::S32}, {C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::S32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1791], 2 },  // bitcast [1119]
-  { {DK::F32, DK::U32}, {C::REG, C::REG},
+  { {DK::R32, DK::U32}, {C::REG, C::REG},
     &kInsTemplates[1793], 1 },  // bitcast [1120]
-  { {DK::U32, DK::F32}, {C::REG, C::REG},
+  { {DK::U32, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1794], 1 },  // bitcast [1121]
-  { {DK::F32, DK::U32}, {C::SP_REG, C::REG},
+  { {DK::R32, DK::U32}, {C::SP_REG, C::REG},
     &kInsTemplates[1795], 1 },  // bitcast [1122]
-  { {DK::U32, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::U32, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[1796], 1 },  // bitcast [1123]
-  { {DK::F32, DK::U32}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::U32}, {C::REG, C::SP_REG},
     &kInsTemplates[1797], 1 },  // bitcast [1124]
-  { {DK::U32, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::U32, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1798], 1 },  // bitcast [1125]
-  { {DK::F32, DK::U32}, {C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::U32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1799], 2 },  // bitcast [1126]
-  { {DK::F32, DK::U32}, {C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::U32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1801], 2 },  // bitcast [1127]
-  { {DK::F64, DK::S64}, {C::REG, C::REG},
+  { {DK::R64, DK::S64}, {C::REG, C::REG},
     &kInsTemplates[1803], 1 },  // bitcast [1128]
-  { {DK::S64, DK::F64}, {C::REG, C::REG},
+  { {DK::S64, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1804], 1 },  // bitcast [1129]
-  { {DK::F64, DK::S64}, {C::SP_REG, C::REG},
+  { {DK::R64, DK::S64}, {C::SP_REG, C::REG},
     &kInsTemplates[1805], 1 },  // bitcast [1130]
-  { {DK::S64, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::S64, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[1806], 1 },  // bitcast [1131]
-  { {DK::F64, DK::S64}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::S64}, {C::REG, C::SP_REG},
     &kInsTemplates[1807], 1 },  // bitcast [1132]
-  { {DK::S64, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::S64, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1808], 1 },  // bitcast [1133]
-  { {DK::F64, DK::S64}, {C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::S64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1809], 2 },  // bitcast [1134]
-  { {DK::F64, DK::S64}, {C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::S64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1811], 2 },  // bitcast [1135]
-  { {DK::F64, DK::U64}, {C::REG, C::REG},
+  { {DK::R64, DK::U64}, {C::REG, C::REG},
     &kInsTemplates[1813], 1 },  // bitcast [1136]
-  { {DK::U64, DK::F64}, {C::REG, C::REG},
+  { {DK::U64, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1814], 1 },  // bitcast [1137]
-  { {DK::F64, DK::U64}, {C::SP_REG, C::REG},
+  { {DK::R64, DK::U64}, {C::SP_REG, C::REG},
     &kInsTemplates[1815], 1 },  // bitcast [1138]
-  { {DK::U64, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::U64, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[1816], 1 },  // bitcast [1139]
-  { {DK::F64, DK::U64}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::U64}, {C::REG, C::SP_REG},
     &kInsTemplates[1817], 1 },  // bitcast [1140]
-  { {DK::U64, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::U64, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1818], 1 },  // bitcast [1141]
-  { {DK::F64, DK::U64}, {C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::U64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1819], 2 },  // bitcast [1142]
-  { {DK::F64, DK::U64}, {C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::U64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1821], 2 },  // bitcast [1143]
   { {DK::U8, DK::U8}, {C::REG, C::REG},
     &kInsTemplates[1823], 1 },  // mov [1144]
@@ -21269,21 +21269,21 @@ const Pattern kPatterns[] = {
     &kInsTemplates[1898], 1 },  // mov [1206]
   { {DK::C64, DK::C64}, {C::SP_REG, C::SIMM64},
     &kInsTemplates[1899], 2 },  // mov [1207]
-  { {DK::F32, DK::F32}, {C::REG, C::REG},
+  { {DK::R32, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[1901], 1 },  // mov [1208]
-  { {DK::F32, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::R32, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[1902], 1 },  // mov [1209]
-  { {DK::F32, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[1903], 1 },  // mov [1210]
-  { {DK::F32, DK::F32}, {C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::R32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1904], 2 },  // mov [1211]
-  { {DK::F64, DK::F64}, {C::REG, C::REG},
+  { {DK::R64, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[1906], 1 },  // mov [1212]
-  { {DK::F64, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::R64, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[1907], 1 },  // mov [1213]
-  { {DK::F64, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[1908], 1 },  // mov [1214]
-  { {DK::F64, DK::F64}, {C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::R64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[1909], 2 },  // mov [1215]
   { {DK::A64, DK::A64, DK::U8}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[1911], 1 },  // lea [1216]
@@ -21753,53 +21753,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[2427], 3 },  // ld [1448]
   { {DK::C64, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2430], 4 },  // ld [1449]
-  { {DK::F32, DK::A64, DK::U8}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U8}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[2434], 1 },  // ld [1450]
-  { {DK::F32, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[2435], 2 },  // ld [1451]
-  { {DK::F32, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[2437], 2 },  // ld [1452]
-  { {DK::F32, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[2439], 3 },  // ld [1453]
-  { {DK::F32, DK::A64, DK::U8}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::U8}, {C::REG, C::REG, C::REG},
     &kInsTemplates[2442], 2 },  // ld [1454]
-  { {DK::F32, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[2444], 3 },  // ld [1455]
-  { {DK::F32, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[2447], 3 },  // ld [1456]
-  { {DK::F32, DK::A64, DK::U8}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U8}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[2450], 2 },  // ld [1457]
-  { {DK::F32, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[2452], 4 },  // ld [1458]
-  { {DK::F32, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[2456], 3 },  // ld [1459]
-  { {DK::F32, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2459], 3 },  // ld [1460]
-  { {DK::F32, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2462], 4 },  // ld [1461]
-  { {DK::F64, DK::A64, DK::U8}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U8}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[2466], 1 },  // ld [1462]
-  { {DK::F64, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[2467], 2 },  // ld [1463]
-  { {DK::F64, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[2469], 2 },  // ld [1464]
-  { {DK::F64, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[2471], 3 },  // ld [1465]
-  { {DK::F64, DK::A64, DK::U8}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::U8}, {C::REG, C::REG, C::REG},
     &kInsTemplates[2474], 2 },  // ld [1466]
-  { {DK::F64, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[2476], 3 },  // ld [1467]
-  { {DK::F64, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[2479], 3 },  // ld [1468]
-  { {DK::F64, DK::A64, DK::U8}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U8}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[2482], 2 },  // ld [1469]
-  { {DK::F64, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[2484], 4 },  // ld [1470]
-  { {DK::F64, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U8}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[2488], 3 },  // ld [1471]
-  { {DK::F64, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U8}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2491], 3 },  // ld [1472]
-  { {DK::F64, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U8}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2494], 4 },  // ld [1473]
   { {DK::U8, DK::A64, DK::S8}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[2498], 1 },  // ld [1474]
@@ -22041,53 +22041,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[2811], 3 },  // ld [1592]
   { {DK::C64, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2814], 4 },  // ld [1593]
-  { {DK::F32, DK::A64, DK::S8}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S8}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[2818], 1 },  // ld [1594]
-  { {DK::F32, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[2819], 2 },  // ld [1595]
-  { {DK::F32, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[2821], 2 },  // ld [1596]
-  { {DK::F32, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[2823], 3 },  // ld [1597]
-  { {DK::F32, DK::A64, DK::S8}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::S8}, {C::REG, C::REG, C::REG},
     &kInsTemplates[2826], 2 },  // ld [1598]
-  { {DK::F32, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[2828], 3 },  // ld [1599]
-  { {DK::F32, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[2831], 3 },  // ld [1600]
-  { {DK::F32, DK::A64, DK::S8}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S8}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[2834], 2 },  // ld [1601]
-  { {DK::F32, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[2836], 4 },  // ld [1602]
-  { {DK::F32, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[2840], 3 },  // ld [1603]
-  { {DK::F32, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2843], 3 },  // ld [1604]
-  { {DK::F32, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2846], 4 },  // ld [1605]
-  { {DK::F64, DK::A64, DK::S8}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S8}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[2850], 1 },  // ld [1606]
-  { {DK::F64, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[2851], 2 },  // ld [1607]
-  { {DK::F64, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[2853], 2 },  // ld [1608]
-  { {DK::F64, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[2855], 3 },  // ld [1609]
-  { {DK::F64, DK::A64, DK::S8}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::S8}, {C::REG, C::REG, C::REG},
     &kInsTemplates[2858], 2 },  // ld [1610]
-  { {DK::F64, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[2860], 3 },  // ld [1611]
-  { {DK::F64, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[2863], 3 },  // ld [1612]
-  { {DK::F64, DK::A64, DK::S8}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S8}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[2866], 2 },  // ld [1613]
-  { {DK::F64, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[2868], 4 },  // ld [1614]
-  { {DK::F64, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S8}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[2872], 3 },  // ld [1615]
-  { {DK::F64, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S8}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2875], 3 },  // ld [1616]
-  { {DK::F64, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S8}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[2878], 4 },  // ld [1617]
   { {DK::U8, DK::A64, DK::U16}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[2882], 1 },  // ld [1618]
@@ -22329,53 +22329,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[3195], 3 },  // ld [1736]
   { {DK::C64, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3198], 4 },  // ld [1737]
-  { {DK::F32, DK::A64, DK::U16}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U16}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[3202], 1 },  // ld [1738]
-  { {DK::F32, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[3203], 2 },  // ld [1739]
-  { {DK::F32, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3205], 2 },  // ld [1740]
-  { {DK::F32, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3207], 3 },  // ld [1741]
-  { {DK::F32, DK::A64, DK::U16}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::U16}, {C::REG, C::REG, C::REG},
     &kInsTemplates[3210], 2 },  // ld [1742]
-  { {DK::F32, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[3212], 3 },  // ld [1743]
-  { {DK::F32, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[3215], 3 },  // ld [1744]
-  { {DK::F32, DK::A64, DK::U16}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U16}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[3218], 2 },  // ld [1745]
-  { {DK::F32, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[3220], 4 },  // ld [1746]
-  { {DK::F32, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[3224], 3 },  // ld [1747]
-  { {DK::F32, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3227], 3 },  // ld [1748]
-  { {DK::F32, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3230], 4 },  // ld [1749]
-  { {DK::F64, DK::A64, DK::U16}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U16}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[3234], 1 },  // ld [1750]
-  { {DK::F64, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[3235], 2 },  // ld [1751]
-  { {DK::F64, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3237], 2 },  // ld [1752]
-  { {DK::F64, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3239], 3 },  // ld [1753]
-  { {DK::F64, DK::A64, DK::U16}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::U16}, {C::REG, C::REG, C::REG},
     &kInsTemplates[3242], 2 },  // ld [1754]
-  { {DK::F64, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[3244], 3 },  // ld [1755]
-  { {DK::F64, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[3247], 3 },  // ld [1756]
-  { {DK::F64, DK::A64, DK::U16}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U16}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[3250], 2 },  // ld [1757]
-  { {DK::F64, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[3252], 4 },  // ld [1758]
-  { {DK::F64, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U16}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[3256], 3 },  // ld [1759]
-  { {DK::F64, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U16}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3259], 3 },  // ld [1760]
-  { {DK::F64, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U16}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3262], 4 },  // ld [1761]
   { {DK::U8, DK::A64, DK::S16}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[3266], 1 },  // ld [1762]
@@ -22617,53 +22617,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[3579], 3 },  // ld [1880]
   { {DK::C64, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3582], 4 },  // ld [1881]
-  { {DK::F32, DK::A64, DK::S16}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S16}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[3586], 1 },  // ld [1882]
-  { {DK::F32, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[3587], 2 },  // ld [1883]
-  { {DK::F32, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3589], 2 },  // ld [1884]
-  { {DK::F32, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3591], 3 },  // ld [1885]
-  { {DK::F32, DK::A64, DK::S16}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::S16}, {C::REG, C::REG, C::REG},
     &kInsTemplates[3594], 2 },  // ld [1886]
-  { {DK::F32, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[3596], 3 },  // ld [1887]
-  { {DK::F32, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[3599], 3 },  // ld [1888]
-  { {DK::F32, DK::A64, DK::S16}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S16}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[3602], 2 },  // ld [1889]
-  { {DK::F32, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[3604], 4 },  // ld [1890]
-  { {DK::F32, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[3608], 3 },  // ld [1891]
-  { {DK::F32, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3611], 3 },  // ld [1892]
-  { {DK::F32, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3614], 4 },  // ld [1893]
-  { {DK::F64, DK::A64, DK::S16}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S16}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[3618], 1 },  // ld [1894]
-  { {DK::F64, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[3619], 2 },  // ld [1895]
-  { {DK::F64, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3621], 2 },  // ld [1896]
-  { {DK::F64, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3623], 3 },  // ld [1897]
-  { {DK::F64, DK::A64, DK::S16}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::S16}, {C::REG, C::REG, C::REG},
     &kInsTemplates[3626], 2 },  // ld [1898]
-  { {DK::F64, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[3628], 3 },  // ld [1899]
-  { {DK::F64, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[3631], 3 },  // ld [1900]
-  { {DK::F64, DK::A64, DK::S16}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S16}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[3634], 2 },  // ld [1901]
-  { {DK::F64, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[3636], 4 },  // ld [1902]
-  { {DK::F64, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S16}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[3640], 3 },  // ld [1903]
-  { {DK::F64, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S16}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3643], 3 },  // ld [1904]
-  { {DK::F64, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S16}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3646], 4 },  // ld [1905]
   { {DK::U8, DK::A64, DK::U32}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[3650], 1 },  // ld [1906]
@@ -22905,53 +22905,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[3963], 3 },  // ld [2024]
   { {DK::C64, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3966], 4 },  // ld [2025]
-  { {DK::F32, DK::A64, DK::U32}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U32}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[3970], 1 },  // ld [2026]
-  { {DK::F32, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[3971], 2 },  // ld [2027]
-  { {DK::F32, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3973], 2 },  // ld [2028]
-  { {DK::F32, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[3975], 3 },  // ld [2029]
-  { {DK::F32, DK::A64, DK::U32}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::U32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[3978], 2 },  // ld [2030]
-  { {DK::F32, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[3980], 3 },  // ld [2031]
-  { {DK::F32, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[3983], 3 },  // ld [2032]
-  { {DK::F32, DK::A64, DK::U32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[3986], 2 },  // ld [2033]
-  { {DK::F32, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[3988], 4 },  // ld [2034]
-  { {DK::F32, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[3992], 3 },  // ld [2035]
-  { {DK::F32, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3995], 3 },  // ld [2036]
-  { {DK::F32, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[3998], 4 },  // ld [2037]
-  { {DK::F64, DK::A64, DK::U32}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U32}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[4002], 1 },  // ld [2038]
-  { {DK::F64, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[4003], 2 },  // ld [2039]
-  { {DK::F64, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4005], 2 },  // ld [2040]
-  { {DK::F64, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4007], 3 },  // ld [2041]
-  { {DK::F64, DK::A64, DK::U32}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::U32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[4010], 2 },  // ld [2042]
-  { {DK::F64, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[4012], 3 },  // ld [2043]
-  { {DK::F64, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[4015], 3 },  // ld [2044]
-  { {DK::F64, DK::A64, DK::U32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[4018], 2 },  // ld [2045]
-  { {DK::F64, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[4020], 4 },  // ld [2046]
-  { {DK::F64, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[4024], 3 },  // ld [2047]
-  { {DK::F64, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4027], 3 },  // ld [2048]
-  { {DK::F64, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4030], 4 },  // ld [2049]
   { {DK::U8, DK::A64, DK::S32}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[4034], 1 },  // ld [2050]
@@ -23193,53 +23193,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[4347], 3 },  // ld [2168]
   { {DK::C64, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4350], 4 },  // ld [2169]
-  { {DK::F32, DK::A64, DK::S32}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S32}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[4354], 1 },  // ld [2170]
-  { {DK::F32, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[4355], 2 },  // ld [2171]
-  { {DK::F32, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4357], 2 },  // ld [2172]
-  { {DK::F32, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4359], 3 },  // ld [2173]
-  { {DK::F32, DK::A64, DK::S32}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::S32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[4362], 2 },  // ld [2174]
-  { {DK::F32, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[4364], 3 },  // ld [2175]
-  { {DK::F32, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[4367], 3 },  // ld [2176]
-  { {DK::F32, DK::A64, DK::S32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[4370], 2 },  // ld [2177]
-  { {DK::F32, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[4372], 4 },  // ld [2178]
-  { {DK::F32, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[4376], 3 },  // ld [2179]
-  { {DK::F32, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4379], 3 },  // ld [2180]
-  { {DK::F32, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4382], 4 },  // ld [2181]
-  { {DK::F64, DK::A64, DK::S32}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S32}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[4386], 1 },  // ld [2182]
-  { {DK::F64, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[4387], 2 },  // ld [2183]
-  { {DK::F64, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4389], 2 },  // ld [2184]
-  { {DK::F64, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4391], 3 },  // ld [2185]
-  { {DK::F64, DK::A64, DK::S32}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::S32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[4394], 2 },  // ld [2186]
-  { {DK::F64, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[4396], 3 },  // ld [2187]
-  { {DK::F64, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[4399], 3 },  // ld [2188]
-  { {DK::F64, DK::A64, DK::S32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[4402], 2 },  // ld [2189]
-  { {DK::F64, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[4404], 4 },  // ld [2190]
-  { {DK::F64, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[4408], 3 },  // ld [2191]
-  { {DK::F64, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4411], 3 },  // ld [2192]
-  { {DK::F64, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4414], 4 },  // ld [2193]
   { {DK::U8, DK::A64, DK::U64}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[4418], 1 },  // ld [2194]
@@ -23481,53 +23481,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[4691], 3 },  // ld [2312]
   { {DK::C64, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4694], 4 },  // ld [2313]
-  { {DK::F32, DK::A64, DK::U64}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U64}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[4698], 1 },  // ld [2314]
-  { {DK::F32, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[4699], 2 },  // ld [2315]
-  { {DK::F32, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4701], 2 },  // ld [2316]
-  { {DK::F32, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4703], 3 },  // ld [2317]
-  { {DK::F32, DK::A64, DK::U64}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::U64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[4706], 1 },  // ld [2318]
-  { {DK::F32, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[4707], 2 },  // ld [2319]
-  { {DK::F32, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[4709], 2 },  // ld [2320]
-  { {DK::F32, DK::A64, DK::U64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[4711], 2 },  // ld [2321]
-  { {DK::F32, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[4713], 3 },  // ld [2322]
-  { {DK::F32, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[4716], 3 },  // ld [2323]
-  { {DK::F32, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4719], 3 },  // ld [2324]
-  { {DK::F32, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4722], 4 },  // ld [2325]
-  { {DK::F64, DK::A64, DK::U64}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U64}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[4726], 1 },  // ld [2326]
-  { {DK::F64, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[4727], 2 },  // ld [2327]
-  { {DK::F64, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4729], 2 },  // ld [2328]
-  { {DK::F64, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[4731], 3 },  // ld [2329]
-  { {DK::F64, DK::A64, DK::U64}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::U64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[4734], 1 },  // ld [2330]
-  { {DK::F64, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[4735], 2 },  // ld [2331]
-  { {DK::F64, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[4737], 2 },  // ld [2332]
-  { {DK::F64, DK::A64, DK::U64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[4739], 2 },  // ld [2333]
-  { {DK::F64, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[4741], 3 },  // ld [2334]
-  { {DK::F64, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[4744], 3 },  // ld [2335]
-  { {DK::F64, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4747], 3 },  // ld [2336]
-  { {DK::F64, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::U64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[4750], 4 },  // ld [2337]
   { {DK::U8, DK::A64, DK::S64}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[4754], 1 },  // ld [2338]
@@ -23769,53 +23769,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5027], 3 },  // ld [2456]
   { {DK::C64, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[5030], 4 },  // ld [2457]
-  { {DK::F32, DK::A64, DK::S64}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S64}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[5034], 1 },  // ld [2458]
-  { {DK::F32, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[5035], 2 },  // ld [2459]
-  { {DK::F32, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[5037], 2 },  // ld [2460]
-  { {DK::F32, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R32, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[5039], 3 },  // ld [2461]
-  { {DK::F32, DK::A64, DK::S64}, {C::REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::S64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[5042], 1 },  // ld [2462]
-  { {DK::F32, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R32, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[5043], 2 },  // ld [2463]
-  { {DK::F32, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[5045], 2 },  // ld [2464]
-  { {DK::F32, DK::A64, DK::S64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[5047], 2 },  // ld [2465]
-  { {DK::F32, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R32, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[5049], 3 },  // ld [2466]
-  { {DK::F32, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[5052], 3 },  // ld [2467]
-  { {DK::F32, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[5055], 3 },  // ld [2468]
-  { {DK::F32, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[5058], 4 },  // ld [2469]
-  { {DK::F64, DK::A64, DK::S64}, {C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S64}, {C::REG, C::REG, C::SIMM32},
     &kInsTemplates[5062], 1 },  // ld [2470]
-  { {DK::F64, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::SIMM32},
     &kInsTemplates[5063], 2 },  // ld [2471]
-  { {DK::F64, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[5065], 2 },  // ld [2472]
-  { {DK::F64, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SIMM32},
+  { {DK::R64, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SIMM32},
     &kInsTemplates[5067], 3 },  // ld [2473]
-  { {DK::F64, DK::A64, DK::S64}, {C::REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::S64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[5070], 1 },  // ld [2474]
-  { {DK::F64, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::R64, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[5071], 2 },  // ld [2475]
-  { {DK::F64, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[5073], 2 },  // ld [2476]
-  { {DK::F64, DK::A64, DK::S64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[5075], 2 },  // ld [2477]
-  { {DK::F64, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::R64, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[5077], 3 },  // ld [2478]
-  { {DK::F64, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[5080], 3 },  // ld [2479]
-  { {DK::F64, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[5083], 3 },  // ld [2480]
-  { {DK::F64, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::A64, DK::S64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[5086], 4 },  // ld [2481]
   { {DK::U8, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5090], 1 },  // ld.mem [2482]
@@ -23857,13 +23857,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5117], 1 },  // ld.mem [2500]
   { {DK::C64, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5118], 2 },  // ld.mem [2501]
-  { {DK::F32, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5120], 1 },  // ld.mem [2502]
-  { {DK::F32, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5121], 2 },  // ld.mem [2503]
-  { {DK::F64, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5123], 1 },  // ld.mem [2504]
-  { {DK::F64, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5124], 2 },  // ld.mem [2505]
   { {DK::U8, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5126], 1 },  // ld.mem [2506]
@@ -23905,13 +23905,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5153], 1 },  // ld.mem [2524]
   { {DK::C64, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5154], 2 },  // ld.mem [2525]
-  { {DK::F32, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5156], 1 },  // ld.mem [2526]
-  { {DK::F32, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5157], 2 },  // ld.mem [2527]
-  { {DK::F64, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5159], 1 },  // ld.mem [2528]
-  { {DK::F64, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5160], 2 },  // ld.mem [2529]
   { {DK::U8, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5162], 1 },  // ld.mem [2530]
@@ -23953,13 +23953,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5189], 1 },  // ld.mem [2548]
   { {DK::C64, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5190], 2 },  // ld.mem [2549]
-  { {DK::F32, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5192], 1 },  // ld.mem [2550]
-  { {DK::F32, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5193], 2 },  // ld.mem [2551]
-  { {DK::F64, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5195], 1 },  // ld.mem [2552]
-  { {DK::F64, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5196], 2 },  // ld.mem [2553]
   { {DK::U8, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5198], 1 },  // ld.mem [2554]
@@ -24001,13 +24001,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5225], 1 },  // ld.mem [2572]
   { {DK::C64, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5226], 2 },  // ld.mem [2573]
-  { {DK::F32, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5228], 1 },  // ld.mem [2574]
-  { {DK::F32, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5229], 2 },  // ld.mem [2575]
-  { {DK::F64, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5231], 1 },  // ld.mem [2576]
-  { {DK::F64, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5232], 2 },  // ld.mem [2577]
   { {DK::U8, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5234], 1 },  // ld.mem [2578]
@@ -24049,13 +24049,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5261], 1 },  // ld.mem [2596]
   { {DK::C64, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5262], 2 },  // ld.mem [2597]
-  { {DK::F32, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5264], 1 },  // ld.mem [2598]
-  { {DK::F32, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5265], 2 },  // ld.mem [2599]
-  { {DK::F64, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5267], 1 },  // ld.mem [2600]
-  { {DK::F64, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5268], 2 },  // ld.mem [2601]
   { {DK::U8, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5270], 1 },  // ld.mem [2602]
@@ -24097,13 +24097,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5297], 1 },  // ld.mem [2620]
   { {DK::C64, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5298], 2 },  // ld.mem [2621]
-  { {DK::F32, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5300], 1 },  // ld.mem [2622]
-  { {DK::F32, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5301], 2 },  // ld.mem [2623]
-  { {DK::F64, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5303], 1 },  // ld.mem [2624]
-  { {DK::F64, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5304], 2 },  // ld.mem [2625]
   { {DK::U8, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5306], 1 },  // ld.mem [2626]
@@ -24145,13 +24145,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5333], 1 },  // ld.mem [2644]
   { {DK::C64, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5334], 2 },  // ld.mem [2645]
-  { {DK::F32, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5336], 1 },  // ld.mem [2646]
-  { {DK::F32, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5337], 2 },  // ld.mem [2647]
-  { {DK::F64, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5339], 1 },  // ld.mem [2648]
-  { {DK::F64, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5340], 2 },  // ld.mem [2649]
   { {DK::U8, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5342], 1 },  // ld.mem [2650]
@@ -24193,13 +24193,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5369], 1 },  // ld.mem [2668]
   { {DK::C64, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5370], 2 },  // ld.mem [2669]
-  { {DK::F32, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5372], 1 },  // ld.mem [2670]
-  { {DK::F32, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5373], 2 },  // ld.mem [2671]
-  { {DK::F64, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5375], 1 },  // ld.mem [2672]
-  { {DK::F64, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5376], 2 },  // ld.mem [2673]
   { {DK::U8, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5378], 1 },  // ld.stk [2674]
@@ -24241,13 +24241,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5405], 1 },  // ld.stk [2692]
   { {DK::C64, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5406], 2 },  // ld.stk [2693]
-  { {DK::F32, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5408], 1 },  // ld.stk [2694]
-  { {DK::F32, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5409], 2 },  // ld.stk [2695]
-  { {DK::F64, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5411], 1 },  // ld.stk [2696]
-  { {DK::F64, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5412], 2 },  // ld.stk [2697]
   { {DK::U8, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5414], 1 },  // ld.stk [2698]
@@ -24289,13 +24289,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5441], 1 },  // ld.stk [2716]
   { {DK::C64, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5442], 2 },  // ld.stk [2717]
-  { {DK::F32, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5444], 1 },  // ld.stk [2718]
-  { {DK::F32, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5445], 2 },  // ld.stk [2719]
-  { {DK::F64, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S8}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5447], 1 },  // ld.stk [2720]
-  { {DK::F64, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S8}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5448], 2 },  // ld.stk [2721]
   { {DK::U8, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5450], 1 },  // ld.stk [2722]
@@ -24337,13 +24337,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5477], 1 },  // ld.stk [2740]
   { {DK::C64, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5478], 2 },  // ld.stk [2741]
-  { {DK::F32, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5480], 1 },  // ld.stk [2742]
-  { {DK::F32, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5481], 2 },  // ld.stk [2743]
-  { {DK::F64, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5483], 1 },  // ld.stk [2744]
-  { {DK::F64, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5484], 2 },  // ld.stk [2745]
   { {DK::U8, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5486], 1 },  // ld.stk [2746]
@@ -24385,13 +24385,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5513], 1 },  // ld.stk [2764]
   { {DK::C64, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5514], 2 },  // ld.stk [2765]
-  { {DK::F32, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5516], 1 },  // ld.stk [2766]
-  { {DK::F32, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5517], 2 },  // ld.stk [2767]
-  { {DK::F64, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S16}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5519], 1 },  // ld.stk [2768]
-  { {DK::F64, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S16}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5520], 2 },  // ld.stk [2769]
   { {DK::U8, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5522], 1 },  // ld.stk [2770]
@@ -24433,13 +24433,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5549], 1 },  // ld.stk [2788]
   { {DK::C64, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5550], 2 },  // ld.stk [2789]
-  { {DK::F32, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5552], 1 },  // ld.stk [2790]
-  { {DK::F32, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5553], 2 },  // ld.stk [2791]
-  { {DK::F64, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5555], 1 },  // ld.stk [2792]
-  { {DK::F64, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5556], 2 },  // ld.stk [2793]
   { {DK::U8, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5558], 1 },  // ld.stk [2794]
@@ -24481,13 +24481,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5585], 1 },  // ld.stk [2812]
   { {DK::C64, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5586], 2 },  // ld.stk [2813]
-  { {DK::F32, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5588], 1 },  // ld.stk [2814]
-  { {DK::F32, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5589], 2 },  // ld.stk [2815]
-  { {DK::F64, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S32}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5591], 1 },  // ld.stk [2816]
-  { {DK::F64, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S32}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5592], 2 },  // ld.stk [2817]
   { {DK::U8, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5594], 1 },  // ld.stk [2818]
@@ -24529,13 +24529,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5621], 1 },  // ld.stk [2836]
   { {DK::C64, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5622], 2 },  // ld.stk [2837]
-  { {DK::F32, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5624], 1 },  // ld.stk [2838]
-  { {DK::F32, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5625], 2 },  // ld.stk [2839]
-  { {DK::F64, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5627], 1 },  // ld.stk [2840]
-  { {DK::F64, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::U64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5628], 2 },  // ld.stk [2841]
   { {DK::U8, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5630], 1 },  // ld.stk [2842]
@@ -24577,13 +24577,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5657], 1 },  // ld.stk [2860]
   { {DK::C64, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5658], 2 },  // ld.stk [2861]
-  { {DK::F32, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5660], 1 },  // ld.stk [2862]
-  { {DK::F32, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R32, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5661], 2 },  // ld.stk [2863]
-  { {DK::F64, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S64}, {C::REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5663], 1 },  // ld.stk [2864]
-  { {DK::F64, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
+  { {DK::R64, DK::INVALID, DK::S64}, {C::SP_REG, C::INVALID, C::SIMM32},
     &kInsTemplates[5664], 2 },  // ld.stk [2865]
   { {DK::A64, DK::U8, DK::U8}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[5666], 1 },  // st [2866]
@@ -24825,53 +24825,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[5969], 3 },  // st [2984]
   { {DK::A64, DK::U8, DK::C64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[5972], 4 },  // st [2985]
-  { {DK::A64, DK::U8, DK::F32}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[5976], 1 },  // st [2986]
-  { {DK::A64, DK::U8, DK::F32}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[5977], 2 },  // st [2987]
-  { {DK::A64, DK::U8, DK::F32}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[5979], 2 },  // st [2988]
-  { {DK::A64, DK::U8, DK::F32}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[5981], 3 },  // st [2989]
-  { {DK::A64, DK::U8, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[5984], 2 },  // st [2990]
-  { {DK::A64, DK::U8, DK::F32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[5986], 3 },  // st [2991]
-  { {DK::A64, DK::U8, DK::F32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[5989], 2 },  // st [2992]
-  { {DK::A64, DK::U8, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[5991], 2 },  // st [2993]
-  { {DK::A64, DK::U8, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[5993], 3 },  // st [2994]
-  { {DK::A64, DK::U8, DK::F32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[5996], 4 },  // st [2995]
-  { {DK::A64, DK::U8, DK::F32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6000], 3 },  // st [2996]
-  { {DK::A64, DK::U8, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6003], 4 },  // st [2997]
-  { {DK::A64, DK::U8, DK::F64}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[6007], 1 },  // st [2998]
-  { {DK::A64, DK::U8, DK::F64}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6008], 2 },  // st [2999]
-  { {DK::A64, DK::U8, DK::F64}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[6010], 2 },  // st [3000]
-  { {DK::A64, DK::U8, DK::F64}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6012], 3 },  // st [3001]
-  { {DK::A64, DK::U8, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[6015], 2 },  // st [3002]
-  { {DK::A64, DK::U8, DK::F64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[6017], 3 },  // st [3003]
-  { {DK::A64, DK::U8, DK::F64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[6020], 2 },  // st [3004]
-  { {DK::A64, DK::U8, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[6022], 2 },  // st [3005]
-  { {DK::A64, DK::U8, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[6024], 3 },  // st [3006]
-  { {DK::A64, DK::U8, DK::F64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[6027], 4 },  // st [3007]
-  { {DK::A64, DK::U8, DK::F64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6031], 3 },  // st [3008]
-  { {DK::A64, DK::U8, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U8, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6034], 4 },  // st [3009]
   { {DK::A64, DK::S8, DK::U8}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[6038], 1 },  // st [3010]
@@ -25113,53 +25113,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[6341], 3 },  // st [3128]
   { {DK::A64, DK::S8, DK::C64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6344], 4 },  // st [3129]
-  { {DK::A64, DK::S8, DK::F32}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[6348], 1 },  // st [3130]
-  { {DK::A64, DK::S8, DK::F32}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6349], 2 },  // st [3131]
-  { {DK::A64, DK::S8, DK::F32}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[6351], 2 },  // st [3132]
-  { {DK::A64, DK::S8, DK::F32}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6353], 3 },  // st [3133]
-  { {DK::A64, DK::S8, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[6356], 2 },  // st [3134]
-  { {DK::A64, DK::S8, DK::F32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[6358], 3 },  // st [3135]
-  { {DK::A64, DK::S8, DK::F32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[6361], 2 },  // st [3136]
-  { {DK::A64, DK::S8, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[6363], 2 },  // st [3137]
-  { {DK::A64, DK::S8, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[6365], 3 },  // st [3138]
-  { {DK::A64, DK::S8, DK::F32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[6368], 4 },  // st [3139]
-  { {DK::A64, DK::S8, DK::F32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6372], 3 },  // st [3140]
-  { {DK::A64, DK::S8, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6375], 4 },  // st [3141]
-  { {DK::A64, DK::S8, DK::F64}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[6379], 1 },  // st [3142]
-  { {DK::A64, DK::S8, DK::F64}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6380], 2 },  // st [3143]
-  { {DK::A64, DK::S8, DK::F64}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[6382], 2 },  // st [3144]
-  { {DK::A64, DK::S8, DK::F64}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6384], 3 },  // st [3145]
-  { {DK::A64, DK::S8, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[6387], 2 },  // st [3146]
-  { {DK::A64, DK::S8, DK::F64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[6389], 3 },  // st [3147]
-  { {DK::A64, DK::S8, DK::F64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[6392], 2 },  // st [3148]
-  { {DK::A64, DK::S8, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[6394], 2 },  // st [3149]
-  { {DK::A64, DK::S8, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[6396], 3 },  // st [3150]
-  { {DK::A64, DK::S8, DK::F64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[6399], 4 },  // st [3151]
-  { {DK::A64, DK::S8, DK::F64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6403], 3 },  // st [3152]
-  { {DK::A64, DK::S8, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S8, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6406], 4 },  // st [3153]
   { {DK::A64, DK::U16, DK::U8}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[6410], 1 },  // st [3154]
@@ -25401,53 +25401,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[6713], 3 },  // st [3272]
   { {DK::A64, DK::U16, DK::C64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6716], 4 },  // st [3273]
-  { {DK::A64, DK::U16, DK::F32}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[6720], 1 },  // st [3274]
-  { {DK::A64, DK::U16, DK::F32}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6721], 2 },  // st [3275]
-  { {DK::A64, DK::U16, DK::F32}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[6723], 2 },  // st [3276]
-  { {DK::A64, DK::U16, DK::F32}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6725], 3 },  // st [3277]
-  { {DK::A64, DK::U16, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[6728], 2 },  // st [3278]
-  { {DK::A64, DK::U16, DK::F32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[6730], 3 },  // st [3279]
-  { {DK::A64, DK::U16, DK::F32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[6733], 2 },  // st [3280]
-  { {DK::A64, DK::U16, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[6735], 2 },  // st [3281]
-  { {DK::A64, DK::U16, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[6737], 3 },  // st [3282]
-  { {DK::A64, DK::U16, DK::F32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[6740], 4 },  // st [3283]
-  { {DK::A64, DK::U16, DK::F32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6744], 3 },  // st [3284]
-  { {DK::A64, DK::U16, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6747], 4 },  // st [3285]
-  { {DK::A64, DK::U16, DK::F64}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[6751], 1 },  // st [3286]
-  { {DK::A64, DK::U16, DK::F64}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6752], 2 },  // st [3287]
-  { {DK::A64, DK::U16, DK::F64}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[6754], 2 },  // st [3288]
-  { {DK::A64, DK::U16, DK::F64}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[6756], 3 },  // st [3289]
-  { {DK::A64, DK::U16, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[6759], 2 },  // st [3290]
-  { {DK::A64, DK::U16, DK::F64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[6761], 3 },  // st [3291]
-  { {DK::A64, DK::U16, DK::F64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[6764], 2 },  // st [3292]
-  { {DK::A64, DK::U16, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[6766], 2 },  // st [3293]
-  { {DK::A64, DK::U16, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[6768], 3 },  // st [3294]
-  { {DK::A64, DK::U16, DK::F64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[6771], 4 },  // st [3295]
-  { {DK::A64, DK::U16, DK::F64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6775], 3 },  // st [3296]
-  { {DK::A64, DK::U16, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U16, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[6778], 4 },  // st [3297]
   { {DK::A64, DK::S16, DK::U8}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[6782], 1 },  // st [3298]
@@ -25689,53 +25689,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[7085], 3 },  // st [3416]
   { {DK::A64, DK::S16, DK::C64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7088], 4 },  // st [3417]
-  { {DK::A64, DK::S16, DK::F32}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7092], 1 },  // st [3418]
-  { {DK::A64, DK::S16, DK::F32}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7093], 2 },  // st [3419]
-  { {DK::A64, DK::S16, DK::F32}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[7095], 2 },  // st [3420]
-  { {DK::A64, DK::S16, DK::F32}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7097], 3 },  // st [3421]
-  { {DK::A64, DK::S16, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[7100], 2 },  // st [3422]
-  { {DK::A64, DK::S16, DK::F32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[7102], 3 },  // st [3423]
-  { {DK::A64, DK::S16, DK::F32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[7105], 2 },  // st [3424]
-  { {DK::A64, DK::S16, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[7107], 2 },  // st [3425]
-  { {DK::A64, DK::S16, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[7109], 3 },  // st [3426]
-  { {DK::A64, DK::S16, DK::F32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[7112], 4 },  // st [3427]
-  { {DK::A64, DK::S16, DK::F32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7116], 3 },  // st [3428]
-  { {DK::A64, DK::S16, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7119], 4 },  // st [3429]
-  { {DK::A64, DK::S16, DK::F64}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7123], 1 },  // st [3430]
-  { {DK::A64, DK::S16, DK::F64}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7124], 2 },  // st [3431]
-  { {DK::A64, DK::S16, DK::F64}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[7126], 2 },  // st [3432]
-  { {DK::A64, DK::S16, DK::F64}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7128], 3 },  // st [3433]
-  { {DK::A64, DK::S16, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[7131], 2 },  // st [3434]
-  { {DK::A64, DK::S16, DK::F64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[7133], 3 },  // st [3435]
-  { {DK::A64, DK::S16, DK::F64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[7136], 2 },  // st [3436]
-  { {DK::A64, DK::S16, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[7138], 2 },  // st [3437]
-  { {DK::A64, DK::S16, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[7140], 3 },  // st [3438]
-  { {DK::A64, DK::S16, DK::F64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[7143], 4 },  // st [3439]
-  { {DK::A64, DK::S16, DK::F64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7147], 3 },  // st [3440]
-  { {DK::A64, DK::S16, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S16, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7150], 4 },  // st [3441]
   { {DK::A64, DK::U32, DK::U8}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7154], 1 },  // st [3442]
@@ -25977,53 +25977,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[7457], 3 },  // st [3560]
   { {DK::A64, DK::U32, DK::C64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7460], 4 },  // st [3561]
-  { {DK::A64, DK::U32, DK::F32}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7464], 1 },  // st [3562]
-  { {DK::A64, DK::U32, DK::F32}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7465], 2 },  // st [3563]
-  { {DK::A64, DK::U32, DK::F32}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[7467], 2 },  // st [3564]
-  { {DK::A64, DK::U32, DK::F32}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7469], 3 },  // st [3565]
-  { {DK::A64, DK::U32, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[7472], 2 },  // st [3566]
-  { {DK::A64, DK::U32, DK::F32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[7474], 3 },  // st [3567]
-  { {DK::A64, DK::U32, DK::F32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[7477], 2 },  // st [3568]
-  { {DK::A64, DK::U32, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[7479], 2 },  // st [3569]
-  { {DK::A64, DK::U32, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[7481], 3 },  // st [3570]
-  { {DK::A64, DK::U32, DK::F32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[7484], 4 },  // st [3571]
-  { {DK::A64, DK::U32, DK::F32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7488], 3 },  // st [3572]
-  { {DK::A64, DK::U32, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7491], 4 },  // st [3573]
-  { {DK::A64, DK::U32, DK::F64}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7495], 1 },  // st [3574]
-  { {DK::A64, DK::U32, DK::F64}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7496], 2 },  // st [3575]
-  { {DK::A64, DK::U32, DK::F64}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[7498], 2 },  // st [3576]
-  { {DK::A64, DK::U32, DK::F64}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7500], 3 },  // st [3577]
-  { {DK::A64, DK::U32, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[7503], 2 },  // st [3578]
-  { {DK::A64, DK::U32, DK::F64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[7505], 3 },  // st [3579]
-  { {DK::A64, DK::U32, DK::F64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[7508], 2 },  // st [3580]
-  { {DK::A64, DK::U32, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[7510], 2 },  // st [3581]
-  { {DK::A64, DK::U32, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[7512], 3 },  // st [3582]
-  { {DK::A64, DK::U32, DK::F64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[7515], 4 },  // st [3583]
-  { {DK::A64, DK::U32, DK::F64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7519], 3 },  // st [3584]
-  { {DK::A64, DK::U32, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U32, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7522], 4 },  // st [3585]
   { {DK::A64, DK::S32, DK::U8}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7526], 1 },  // st [3586]
@@ -26265,53 +26265,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[7829], 3 },  // st [3704]
   { {DK::A64, DK::S32, DK::C64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7832], 4 },  // st [3705]
-  { {DK::A64, DK::S32, DK::F32}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7836], 1 },  // st [3706]
-  { {DK::A64, DK::S32, DK::F32}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7837], 2 },  // st [3707]
-  { {DK::A64, DK::S32, DK::F32}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[7839], 2 },  // st [3708]
-  { {DK::A64, DK::S32, DK::F32}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7841], 3 },  // st [3709]
-  { {DK::A64, DK::S32, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[7844], 2 },  // st [3710]
-  { {DK::A64, DK::S32, DK::F32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[7846], 3 },  // st [3711]
-  { {DK::A64, DK::S32, DK::F32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[7849], 2 },  // st [3712]
-  { {DK::A64, DK::S32, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[7851], 2 },  // st [3713]
-  { {DK::A64, DK::S32, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[7853], 3 },  // st [3714]
-  { {DK::A64, DK::S32, DK::F32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[7856], 4 },  // st [3715]
-  { {DK::A64, DK::S32, DK::F32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7860], 3 },  // st [3716]
-  { {DK::A64, DK::S32, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7863], 4 },  // st [3717]
-  { {DK::A64, DK::S32, DK::F64}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7867], 1 },  // st [3718]
-  { {DK::A64, DK::S32, DK::F64}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7868], 2 },  // st [3719]
-  { {DK::A64, DK::S32, DK::F64}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[7870], 2 },  // st [3720]
-  { {DK::A64, DK::S32, DK::F64}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[7872], 3 },  // st [3721]
-  { {DK::A64, DK::S32, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[7875], 2 },  // st [3722]
-  { {DK::A64, DK::S32, DK::F64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[7877], 3 },  // st [3723]
-  { {DK::A64, DK::S32, DK::F64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[7880], 2 },  // st [3724]
-  { {DK::A64, DK::S32, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[7882], 2 },  // st [3725]
-  { {DK::A64, DK::S32, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[7884], 3 },  // st [3726]
-  { {DK::A64, DK::S32, DK::F64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[7887], 4 },  // st [3727]
-  { {DK::A64, DK::S32, DK::F64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7891], 3 },  // st [3728]
-  { {DK::A64, DK::S32, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S32, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[7894], 4 },  // st [3729]
   { {DK::A64, DK::U64, DK::U8}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[7898], 1 },  // st [3730]
@@ -26553,53 +26553,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8171], 3 },  // st [3848]
   { {DK::A64, DK::U64, DK::C64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8174], 4 },  // st [3849]
-  { {DK::A64, DK::U64, DK::F32}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[8178], 1 },  // st [3850]
-  { {DK::A64, DK::U64, DK::F32}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[8179], 2 },  // st [3851]
-  { {DK::A64, DK::U64, DK::F32}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[8181], 2 },  // st [3852]
-  { {DK::A64, DK::U64, DK::F32}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[8183], 3 },  // st [3853]
-  { {DK::A64, DK::U64, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[8186], 1 },  // st [3854]
-  { {DK::A64, DK::U64, DK::F32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[8187], 2 },  // st [3855]
-  { {DK::A64, DK::U64, DK::F32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[8189], 2 },  // st [3856]
-  { {DK::A64, DK::U64, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[8191], 2 },  // st [3857]
-  { {DK::A64, DK::U64, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[8193], 3 },  // st [3858]
-  { {DK::A64, DK::U64, DK::F32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[8196], 3 },  // st [3859]
-  { {DK::A64, DK::U64, DK::F32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8199], 3 },  // st [3860]
-  { {DK::A64, DK::U64, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8202], 4 },  // st [3861]
-  { {DK::A64, DK::U64, DK::F64}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[8206], 1 },  // st [3862]
-  { {DK::A64, DK::U64, DK::F64}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[8207], 2 },  // st [3863]
-  { {DK::A64, DK::U64, DK::F64}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[8209], 2 },  // st [3864]
-  { {DK::A64, DK::U64, DK::F64}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[8211], 3 },  // st [3865]
-  { {DK::A64, DK::U64, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[8214], 1 },  // st [3866]
-  { {DK::A64, DK::U64, DK::F64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[8215], 2 },  // st [3867]
-  { {DK::A64, DK::U64, DK::F64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[8217], 2 },  // st [3868]
-  { {DK::A64, DK::U64, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[8219], 2 },  // st [3869]
-  { {DK::A64, DK::U64, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[8221], 3 },  // st [3870]
-  { {DK::A64, DK::U64, DK::F64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[8224], 3 },  // st [3871]
-  { {DK::A64, DK::U64, DK::F64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8227], 3 },  // st [3872]
-  { {DK::A64, DK::U64, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::U64, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8230], 4 },  // st [3873]
   { {DK::A64, DK::S64, DK::U8}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[8234], 1 },  // st [3874]
@@ -26841,53 +26841,53 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8507], 3 },  // st [3992]
   { {DK::A64, DK::S64, DK::C64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8510], 4 },  // st [3993]
-  { {DK::A64, DK::S64, DK::F32}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[8514], 1 },  // st [3994]
-  { {DK::A64, DK::S64, DK::F32}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[8515], 2 },  // st [3995]
-  { {DK::A64, DK::S64, DK::F32}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[8517], 2 },  // st [3996]
-  { {DK::A64, DK::S64, DK::F32}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[8519], 3 },  // st [3997]
-  { {DK::A64, DK::S64, DK::F32}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::REG, C::REG, C::REG},
     &kInsTemplates[8522], 1 },  // st [3998]
-  { {DK::A64, DK::S64, DK::F32}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[8523], 2 },  // st [3999]
-  { {DK::A64, DK::S64, DK::F32}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[8525], 2 },  // st [4000]
-  { {DK::A64, DK::S64, DK::F32}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[8527], 2 },  // st [4001]
-  { {DK::A64, DK::S64, DK::F32}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[8529], 3 },  // st [4002]
-  { {DK::A64, DK::S64, DK::F32}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[8532], 3 },  // st [4003]
-  { {DK::A64, DK::S64, DK::F32}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8535], 3 },  // st [4004]
-  { {DK::A64, DK::S64, DK::F32}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R32}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8538], 4 },  // st [4005]
-  { {DK::A64, DK::S64, DK::F64}, {C::REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::REG, C::SIMM32, C::REG},
     &kInsTemplates[8542], 1 },  // st [4006]
-  { {DK::A64, DK::S64, DK::F64}, {C::REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[8543], 2 },  // st [4007]
-  { {DK::A64, DK::S64, DK::F64}, {C::SP_REG, C::SIMM32, C::REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::SP_REG, C::SIMM32, C::REG},
     &kInsTemplates[8545], 2 },  // st [4008]
-  { {DK::A64, DK::S64, DK::F64}, {C::SP_REG, C::SIMM32, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::SP_REG, C::SIMM32, C::SP_REG},
     &kInsTemplates[8547], 3 },  // st [4009]
-  { {DK::A64, DK::S64, DK::F64}, {C::REG, C::REG, C::REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::REG, C::REG, C::REG},
     &kInsTemplates[8550], 1 },  // st [4010]
-  { {DK::A64, DK::S64, DK::F64}, {C::SP_REG, C::REG, C::REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::SP_REG, C::REG, C::REG},
     &kInsTemplates[8551], 2 },  // st [4011]
-  { {DK::A64, DK::S64, DK::F64}, {C::REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::REG, C::SP_REG, C::REG},
     &kInsTemplates[8553], 2 },  // st [4012]
-  { {DK::A64, DK::S64, DK::F64}, {C::REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::REG, C::REG, C::SP_REG},
     &kInsTemplates[8555], 2 },  // st [4013]
-  { {DK::A64, DK::S64, DK::F64}, {C::SP_REG, C::SP_REG, C::REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::SP_REG, C::SP_REG, C::REG},
     &kInsTemplates[8557], 3 },  // st [4014]
-  { {DK::A64, DK::S64, DK::F64}, {C::SP_REG, C::REG, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::SP_REG, C::REG, C::SP_REG},
     &kInsTemplates[8560], 3 },  // st [4015]
-  { {DK::A64, DK::S64, DK::F64}, {C::REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8563], 3 },  // st [4016]
-  { {DK::A64, DK::S64, DK::F64}, {C::SP_REG, C::SP_REG, C::SP_REG},
+  { {DK::A64, DK::S64, DK::R64}, {C::SP_REG, C::SP_REG, C::SP_REG},
     &kInsTemplates[8566], 4 },  // st [4017]
   { {DK::INVALID, DK::U8, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8570], 1 },  // st.mem [4018]
@@ -26929,13 +26929,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8597], 1 },  // st.mem [4036]
   { {DK::INVALID, DK::U8, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8598], 2 },  // st.mem [4037]
-  { {DK::INVALID, DK::U8, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U8, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8600], 1 },  // st.mem [4038]
-  { {DK::INVALID, DK::U8, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U8, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8601], 2 },  // st.mem [4039]
-  { {DK::INVALID, DK::U8, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U8, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8603], 1 },  // st.mem [4040]
-  { {DK::INVALID, DK::U8, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U8, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8604], 2 },  // st.mem [4041]
   { {DK::INVALID, DK::S8, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8606], 1 },  // st.mem [4042]
@@ -26977,13 +26977,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8633], 1 },  // st.mem [4060]
   { {DK::INVALID, DK::S8, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8634], 2 },  // st.mem [4061]
-  { {DK::INVALID, DK::S8, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S8, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8636], 1 },  // st.mem [4062]
-  { {DK::INVALID, DK::S8, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S8, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8637], 2 },  // st.mem [4063]
-  { {DK::INVALID, DK::S8, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S8, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8639], 1 },  // st.mem [4064]
-  { {DK::INVALID, DK::S8, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S8, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8640], 2 },  // st.mem [4065]
   { {DK::INVALID, DK::U16, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8642], 1 },  // st.mem [4066]
@@ -27025,13 +27025,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8669], 1 },  // st.mem [4084]
   { {DK::INVALID, DK::U16, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8670], 2 },  // st.mem [4085]
-  { {DK::INVALID, DK::U16, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U16, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8672], 1 },  // st.mem [4086]
-  { {DK::INVALID, DK::U16, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U16, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8673], 2 },  // st.mem [4087]
-  { {DK::INVALID, DK::U16, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U16, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8675], 1 },  // st.mem [4088]
-  { {DK::INVALID, DK::U16, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U16, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8676], 2 },  // st.mem [4089]
   { {DK::INVALID, DK::S16, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8678], 1 },  // st.mem [4090]
@@ -27073,13 +27073,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8705], 1 },  // st.mem [4108]
   { {DK::INVALID, DK::S16, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8706], 2 },  // st.mem [4109]
-  { {DK::INVALID, DK::S16, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S16, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8708], 1 },  // st.mem [4110]
-  { {DK::INVALID, DK::S16, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S16, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8709], 2 },  // st.mem [4111]
-  { {DK::INVALID, DK::S16, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S16, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8711], 1 },  // st.mem [4112]
-  { {DK::INVALID, DK::S16, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S16, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8712], 2 },  // st.mem [4113]
   { {DK::INVALID, DK::U32, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8714], 1 },  // st.mem [4114]
@@ -27121,13 +27121,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8741], 1 },  // st.mem [4132]
   { {DK::INVALID, DK::U32, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8742], 2 },  // st.mem [4133]
-  { {DK::INVALID, DK::U32, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U32, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8744], 1 },  // st.mem [4134]
-  { {DK::INVALID, DK::U32, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U32, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8745], 2 },  // st.mem [4135]
-  { {DK::INVALID, DK::U32, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U32, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8747], 1 },  // st.mem [4136]
-  { {DK::INVALID, DK::U32, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U32, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8748], 2 },  // st.mem [4137]
   { {DK::INVALID, DK::S32, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8750], 1 },  // st.mem [4138]
@@ -27169,13 +27169,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8777], 1 },  // st.mem [4156]
   { {DK::INVALID, DK::S32, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8778], 2 },  // st.mem [4157]
-  { {DK::INVALID, DK::S32, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S32, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8780], 1 },  // st.mem [4158]
-  { {DK::INVALID, DK::S32, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S32, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8781], 2 },  // st.mem [4159]
-  { {DK::INVALID, DK::S32, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S32, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8783], 1 },  // st.mem [4160]
-  { {DK::INVALID, DK::S32, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S32, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8784], 2 },  // st.mem [4161]
   { {DK::INVALID, DK::U64, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8786], 1 },  // st.mem [4162]
@@ -27217,13 +27217,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8813], 1 },  // st.mem [4180]
   { {DK::INVALID, DK::U64, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8814], 2 },  // st.mem [4181]
-  { {DK::INVALID, DK::U64, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U64, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8816], 1 },  // st.mem [4182]
-  { {DK::INVALID, DK::U64, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U64, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8817], 2 },  // st.mem [4183]
-  { {DK::INVALID, DK::U64, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U64, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8819], 1 },  // st.mem [4184]
-  { {DK::INVALID, DK::U64, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U64, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8820], 2 },  // st.mem [4185]
   { {DK::INVALID, DK::S64, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8822], 1 },  // st.mem [4186]
@@ -27265,13 +27265,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8849], 1 },  // st.mem [4204]
   { {DK::INVALID, DK::S64, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8850], 2 },  // st.mem [4205]
-  { {DK::INVALID, DK::S64, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S64, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8852], 1 },  // st.mem [4206]
-  { {DK::INVALID, DK::S64, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S64, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8853], 2 },  // st.mem [4207]
-  { {DK::INVALID, DK::S64, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S64, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8855], 1 },  // st.mem [4208]
-  { {DK::INVALID, DK::S64, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S64, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8856], 2 },  // st.mem [4209]
   { {DK::INVALID, DK::U8, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8858], 1 },  // st.stk [4210]
@@ -27313,13 +27313,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8885], 1 },  // st.stk [4228]
   { {DK::INVALID, DK::U8, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8886], 2 },  // st.stk [4229]
-  { {DK::INVALID, DK::U8, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U8, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8888], 1 },  // st.stk [4230]
-  { {DK::INVALID, DK::U8, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U8, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8889], 2 },  // st.stk [4231]
-  { {DK::INVALID, DK::U8, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U8, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8891], 1 },  // st.stk [4232]
-  { {DK::INVALID, DK::U8, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U8, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8892], 2 },  // st.stk [4233]
   { {DK::INVALID, DK::S8, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8894], 1 },  // st.stk [4234]
@@ -27361,13 +27361,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8921], 1 },  // st.stk [4252]
   { {DK::INVALID, DK::S8, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8922], 2 },  // st.stk [4253]
-  { {DK::INVALID, DK::S8, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S8, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8924], 1 },  // st.stk [4254]
-  { {DK::INVALID, DK::S8, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S8, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8925], 2 },  // st.stk [4255]
-  { {DK::INVALID, DK::S8, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S8, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8927], 1 },  // st.stk [4256]
-  { {DK::INVALID, DK::S8, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S8, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8928], 2 },  // st.stk [4257]
   { {DK::INVALID, DK::U16, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8930], 1 },  // st.stk [4258]
@@ -27409,13 +27409,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8957], 1 },  // st.stk [4276]
   { {DK::INVALID, DK::U16, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8958], 2 },  // st.stk [4277]
-  { {DK::INVALID, DK::U16, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U16, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8960], 1 },  // st.stk [4278]
-  { {DK::INVALID, DK::U16, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U16, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8961], 2 },  // st.stk [4279]
-  { {DK::INVALID, DK::U16, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U16, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8963], 1 },  // st.stk [4280]
-  { {DK::INVALID, DK::U16, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U16, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8964], 2 },  // st.stk [4281]
   { {DK::INVALID, DK::S16, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8966], 1 },  // st.stk [4282]
@@ -27457,13 +27457,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[8993], 1 },  // st.stk [4300]
   { {DK::INVALID, DK::S16, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8994], 2 },  // st.stk [4301]
-  { {DK::INVALID, DK::S16, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S16, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8996], 1 },  // st.stk [4302]
-  { {DK::INVALID, DK::S16, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S16, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[8997], 2 },  // st.stk [4303]
-  { {DK::INVALID, DK::S16, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S16, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[8999], 1 },  // st.stk [4304]
-  { {DK::INVALID, DK::S16, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S16, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9000], 2 },  // st.stk [4305]
   { {DK::INVALID, DK::U32, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9002], 1 },  // st.stk [4306]
@@ -27505,13 +27505,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9029], 1 },  // st.stk [4324]
   { {DK::INVALID, DK::U32, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9030], 2 },  // st.stk [4325]
-  { {DK::INVALID, DK::U32, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U32, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9032], 1 },  // st.stk [4326]
-  { {DK::INVALID, DK::U32, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U32, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9033], 2 },  // st.stk [4327]
-  { {DK::INVALID, DK::U32, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U32, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9035], 1 },  // st.stk [4328]
-  { {DK::INVALID, DK::U32, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U32, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9036], 2 },  // st.stk [4329]
   { {DK::INVALID, DK::S32, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9038], 1 },  // st.stk [4330]
@@ -27553,13 +27553,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9065], 1 },  // st.stk [4348]
   { {DK::INVALID, DK::S32, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9066], 2 },  // st.stk [4349]
-  { {DK::INVALID, DK::S32, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S32, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9068], 1 },  // st.stk [4350]
-  { {DK::INVALID, DK::S32, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S32, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9069], 2 },  // st.stk [4351]
-  { {DK::INVALID, DK::S32, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S32, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9071], 1 },  // st.stk [4352]
-  { {DK::INVALID, DK::S32, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S32, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9072], 2 },  // st.stk [4353]
   { {DK::INVALID, DK::U64, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9074], 1 },  // st.stk [4354]
@@ -27601,13 +27601,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9101], 1 },  // st.stk [4372]
   { {DK::INVALID, DK::U64, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9102], 2 },  // st.stk [4373]
-  { {DK::INVALID, DK::U64, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U64, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9104], 1 },  // st.stk [4374]
-  { {DK::INVALID, DK::U64, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U64, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9105], 2 },  // st.stk [4375]
-  { {DK::INVALID, DK::U64, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::U64, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9107], 1 },  // st.stk [4376]
-  { {DK::INVALID, DK::U64, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::U64, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9108], 2 },  // st.stk [4377]
   { {DK::INVALID, DK::S64, DK::U8}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9110], 1 },  // st.stk [4378]
@@ -27649,13 +27649,13 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9137], 1 },  // st.stk [4396]
   { {DK::INVALID, DK::S64, DK::C64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9138], 2 },  // st.stk [4397]
-  { {DK::INVALID, DK::S64, DK::F32}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S64, DK::R32}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9140], 1 },  // st.stk [4398]
-  { {DK::INVALID, DK::S64, DK::F32}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S64, DK::R32}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9141], 2 },  // st.stk [4399]
-  { {DK::INVALID, DK::S64, DK::F64}, {C::INVALID, C::SIMM32, C::REG},
+  { {DK::INVALID, DK::S64, DK::R64}, {C::INVALID, C::SIMM32, C::REG},
     &kInsTemplates[9143], 1 },  // st.stk [4400]
-  { {DK::INVALID, DK::S64, DK::F64}, {C::INVALID, C::SIMM32, C::SP_REG},
+  { {DK::INVALID, DK::S64, DK::R64}, {C::INVALID, C::SIMM32, C::SP_REG},
     &kInsTemplates[9144], 2 },  // st.stk [4401]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::U8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9146], 1 },  // cas [4402]
@@ -27677,9 +27677,9 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9154], 1 },  // cas [4410]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::U8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9155], 1 },  // cas [4411]
-  { {DK::F32, DK::F32, DK::F32, DK::A64, DK::U8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::R32, DK::R32, DK::A64, DK::U8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9156], 1 },  // cas [4412]
-  { {DK::F64, DK::F64, DK::F64, DK::A64, DK::U8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::R64, DK::R64, DK::A64, DK::U8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9157], 1 },  // cas [4413]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::S8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9158], 1 },  // cas [4414]
@@ -27701,9 +27701,9 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9166], 1 },  // cas [4422]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::S8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9167], 1 },  // cas [4423]
-  { {DK::F32, DK::F32, DK::F32, DK::A64, DK::S8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::R32, DK::R32, DK::A64, DK::S8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9168], 1 },  // cas [4424]
-  { {DK::F64, DK::F64, DK::F64, DK::A64, DK::S8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::R64, DK::R64, DK::A64, DK::S8}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9169], 1 },  // cas [4425]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::U16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9170], 1 },  // cas [4426]
@@ -27725,9 +27725,9 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9178], 1 },  // cas [4434]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::U16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9179], 1 },  // cas [4435]
-  { {DK::F32, DK::F32, DK::F32, DK::A64, DK::U16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::R32, DK::R32, DK::A64, DK::U16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9180], 1 },  // cas [4436]
-  { {DK::F64, DK::F64, DK::F64, DK::A64, DK::U16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::R64, DK::R64, DK::A64, DK::U16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9181], 1 },  // cas [4437]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::S16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9182], 1 },  // cas [4438]
@@ -27749,9 +27749,9 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9190], 1 },  // cas [4446]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::S16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9191], 1 },  // cas [4447]
-  { {DK::F32, DK::F32, DK::F32, DK::A64, DK::S16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::R32, DK::R32, DK::A64, DK::S16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9192], 1 },  // cas [4448]
-  { {DK::F64, DK::F64, DK::F64, DK::A64, DK::S16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::R64, DK::R64, DK::A64, DK::S16}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9193], 1 },  // cas [4449]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::U32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9194], 1 },  // cas [4450]
@@ -27773,9 +27773,9 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9202], 1 },  // cas [4458]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::U32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9203], 1 },  // cas [4459]
-  { {DK::F32, DK::F32, DK::F32, DK::A64, DK::U32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::R32, DK::R32, DK::A64, DK::U32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9204], 1 },  // cas [4460]
-  { {DK::F64, DK::F64, DK::F64, DK::A64, DK::U32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::R64, DK::R64, DK::A64, DK::U32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9205], 1 },  // cas [4461]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::S32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9206], 1 },  // cas [4462]
@@ -27797,9 +27797,9 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9214], 1 },  // cas [4470]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::S32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9215], 1 },  // cas [4471]
-  { {DK::F32, DK::F32, DK::F32, DK::A64, DK::S32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::R32, DK::R32, DK::A64, DK::S32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9216], 1 },  // cas [4472]
-  { {DK::F64, DK::F64, DK::F64, DK::A64, DK::S32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::R64, DK::R64, DK::A64, DK::S32}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9217], 1 },  // cas [4473]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::U64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9218], 1 },  // cas [4474]
@@ -27821,9 +27821,9 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9226], 1 },  // cas [4482]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::U64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9227], 1 },  // cas [4483]
-  { {DK::F32, DK::F32, DK::F32, DK::A64, DK::U64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::R32, DK::R32, DK::A64, DK::U64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9228], 1 },  // cas [4484]
-  { {DK::F64, DK::F64, DK::F64, DK::A64, DK::U64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::R64, DK::R64, DK::A64, DK::U64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9229], 1 },  // cas [4485]
   { {DK::U8, DK::U8, DK::U8, DK::A64, DK::S64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9230], 1 },  // cas [4486]
@@ -27845,25 +27845,25 @@ const Pattern kPatterns[] = {
     &kInsTemplates[9238], 1 },  // cas [4494]
   { {DK::C64, DK::C64, DK::C64, DK::A64, DK::S64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9239], 1 },  // cas [4495]
-  { {DK::F32, DK::F32, DK::F32, DK::A64, DK::S64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R32, DK::R32, DK::R32, DK::A64, DK::S64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9240], 1 },  // cas [4496]
-  { {DK::F64, DK::F64, DK::F64, DK::A64, DK::S64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
+  { {DK::R64, DK::R64, DK::R64, DK::A64, DK::S64}, {C::REG_RAX, C::REG_RAX, C::REG, C::REG, C::SIMM32},
     &kInsTemplates[9241], 1 },  // cas [4497]
-  { {DK::F32, DK::F32}, {C::REG, C::REG},
+  { {DK::R32, DK::R32}, {C::REG, C::REG},
     &kInsTemplates[9242], 1 },  // sqrt [4498]
-  { {DK::F32, DK::F32}, {C::REG, C::SP_REG},
+  { {DK::R32, DK::R32}, {C::REG, C::SP_REG},
     &kInsTemplates[9243], 1 },  // sqrt [4499]
-  { {DK::F32, DK::F32}, {C::SP_REG, C::REG},
+  { {DK::R32, DK::R32}, {C::SP_REG, C::REG},
     &kInsTemplates[9244], 2 },  // sqrt [4500]
-  { {DK::F32, DK::F32}, {C::SP_REG, C::SP_REG},
+  { {DK::R32, DK::R32}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[9246], 2 },  // sqrt [4501]
-  { {DK::F64, DK::F64}, {C::REG, C::REG},
+  { {DK::R64, DK::R64}, {C::REG, C::REG},
     &kInsTemplates[9248], 1 },  // sqrt [4502]
-  { {DK::F64, DK::F64}, {C::REG, C::SP_REG},
+  { {DK::R64, DK::R64}, {C::REG, C::SP_REG},
     &kInsTemplates[9249], 1 },  // sqrt [4503]
-  { {DK::F64, DK::F64}, {C::SP_REG, C::REG},
+  { {DK::R64, DK::R64}, {C::SP_REG, C::REG},
     &kInsTemplates[9250], 2 },  // sqrt [4504]
-  { {DK::F64, DK::F64}, {C::SP_REG, C::SP_REG},
+  { {DK::R64, DK::R64}, {C::SP_REG, C::SP_REG},
     &kInsTemplates[9252], 2 },  // sqrt [4505]
   { {DK::U16, DK::U16}, {C::REG, C::REG},
     &kInsTemplates[9254], 1 },  // cntlz [4506]

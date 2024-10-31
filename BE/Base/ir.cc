@@ -195,9 +195,9 @@ int64_t ConstValueInt64(Const num) {
 
 double ConstValueF(Const num) {
   switch (ConstKind(num)) {
-    case DK::F32:
+    case DK::R32:
       return ((ConstCore*)ConstantPool.Data(num.index()))->val_f32;
-    case DK::F64:
+    case DK::R64:
       return ((ConstCore*)ConstantPool.Data(num.index()))->val_f64;
     default:
       ASSERT(false, "unexpected");
@@ -215,10 +215,10 @@ DK ConstKind(Const num) {
 Const ConstNewF(DK kind, double v) {
   ConstCore num;
   num.kind = kind;
-  if (kind == DK::F32) {
+  if (kind == DK::R32) {
     num.val_f32 = v;
   } else {
-    ASSERT(kind == DK::F64, "");
+    ASSERT(kind == DK::R64, "");
     num.val_f64 = v;
   }
   return Const(ConstantPool.Intern(std::string_view((char*)&num, sizeof(num))));
@@ -344,8 +344,8 @@ bool ConstIsZero(Const num) {
     case DK::S32:
     case DK::S64:
       return ConstValueACS(num) == 0;
-    case DK::F32:
-    case DK::F64:
+    case DK::R32:
+    case DK::R64:
       return ConstValueF(num) == 0.0;
   }
 }
@@ -368,8 +368,8 @@ bool ConstIsOne(Const num) {
     case DK::S64:
       return ConstValueACS(num) == 1;
 
-    case DK::F32:
-    case DK::F64:
+    case DK::R32:
+    case DK::R64:
       return ConstValueF(num) == 1.0;
   }
 }

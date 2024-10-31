@@ -370,7 +370,7 @@ _ALLOWED_OPERAND_TYPES_REG = {
     o.DK.U32, o.DK.S32,
     o.DK.U8, o.DK.S8,
     o.DK.U16, o.DK.S16,
-    o.DK.F32, o.DK.F64,
+    o.DK.R32, o.DK.R64,
 }
 
 _ALLOWED_CURBS_REG = {C.REG, C.SP_REG, C.REG_RAX, C.REG_RCX, C.REG_RDX}
@@ -570,15 +570,15 @@ def Spilled(spill):
 
 
 def InsTmplStkSt(dk: o.DK, spill: P, src):
-    if dk.flavor() == o.DK_FLAVOR_F:
-        suffix = "s" if dk is o.DK.F32 else "d"
+    if dk.flavor() == o.DK_FLAVOR_R:
+        suffix = "s" if dk is o.DK.R32 else "d"
         return InsTmpl(f"movs{suffix}_mbis32_x", Spilled(spill) + [src])
     return InsTmpl(f"mov_{dk.bitwidth()}_mbis32_r", Spilled(spill) + [src])
 
 
 def InsTmplStkLd(dk: o.DK, dst, spill: P):
-    if dk.flavor() == o.DK_FLAVOR_F:
-        suffix = "s" if dk is o.DK.F32 else "d"
+    if dk.flavor() == o.DK_FLAVOR_R:
+        suffix = "s" if dk is o.DK.R32 else "d"
         return InsTmpl(f"movs{suffix}_x_mbis32", [dst] + Spilled(spill))
     return InsTmpl(f"mov_{dk.bitwidth()}_r_mbis32", [dst] + Spilled(spill))
 
@@ -849,7 +849,7 @@ def InitMovInt():
 
 
 def InitAluFlt():
-    for kind1, suffix in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
+    for kind1, suffix in [(o.DK.R32, "s"), (o.DK.R64, "d")]:
         for opc, x64_opc in [(o.ADD, "adds"),
                              (o.SUB, "subs"),
                              (o.MUL, "muls"),
@@ -889,7 +889,7 @@ def InitAluFlt():
 
 
 def InitMovFlt():
-    for kind1, suffix in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
+    for kind1, suffix in [(o.DK.R32, "s"), (o.DK.R64, "d")]:
         # mov dst_reg const does not need to be handled as we are rewriting those to loads from memory
         # mov dst_reg src_reg
         Pattern(o.MOV, [kind1] * 2,
@@ -992,7 +992,7 @@ def InitCondBraInt():
 
 
 def InitCondBraFlt():
-    for kind1, suffix in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
+    for kind1, suffix in [(o.DK.R32, "s"), (o.DK.R64, "d")]:
         for opc, x64_jmp, x64_jmp_swp in [(o.BEQ, "je", "je"),
                                           (o.BNE, "jne", "jne"),
                                           (o.BLT, "jb", "ja"),
@@ -1098,12 +1098,12 @@ def InitLoad():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
-                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64, o.DK.F32, o.DK.F64]:
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64, o.DK.R32, o.DK.R64]:
             bw = kind2.bitwidth()
-            if kind2 is o.DK.F32:
+            if kind2 is o.DK.R32:
                 def x64_ld(addr): return f"movss_x_{addr}"
                 tmp_reg = P.tmp_flt
-            elif kind2 is o.DK.F64:
+            elif kind2 is o.DK.R64:
                 def x64_ld(addr): return f"movsd_x_{addr}"
                 tmp_reg = P.tmp_flt
             else:
@@ -1194,12 +1194,12 @@ def InitStore():
     for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
-                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64, o.DK.F32, o.DK.F64]:
+                      o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64, o.DK.R32, o.DK.R64]:
             bw = kind2.bitwidth()
-            if kind2 is o.DK.F32:
+            if kind2 is o.DK.R32:
                 def x64_st(addr): return f"movss_{addr}_x"
                 tmp_reg = P.tmp_flt
-            elif kind2 is o.DK.F64:
+            elif kind2 is o.DK.R64:
                 def x64_st(addr): return f"movsd_{addr}_x"
                 tmp_reg = P.tmp_flt
             else:
@@ -1288,7 +1288,7 @@ def InitCAS():
                   o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64]:
         for kind2 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16,
                       o.DK.U32, o.DK.S32, o.DK.U64, o.DK.S64, o.DK.A64, o.DK.C64,
-                      o.DK.F32, o.DK.F64]:
+                      o.DK.R32, o.DK.R64]:
             bw = kind2.bitwidth()
             rax = {8: "al", 16: "ax", 32: "eax", 64: "rax"}[bw]
             # Careful: use of C.REG_RAX precludes use of P.tmp_gpr
@@ -1373,7 +1373,7 @@ def InitCONV():
                     [InsTmpl(conv_opc + "r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
                      InsTmpl(f"mov_{bw_dst}_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
 
-    for kind2, suffix2 in [(o.DK.F32, "s"), (o.DK.F64, "d")]:
+    for kind2, suffix2 in [(o.DK.R32, "s"), (o.DK.R64, "d")]:
         for kind1 in [o.DK.U8, o.DK.S8, o.DK.U16, o.DK.S16, o.DK.S32]:
             Pattern(o.CONV, [kind2, kind1],
                     [C.REG, C.REG],
@@ -1441,10 +1441,10 @@ def InitBITCAST():
                     [InsTmpl(f"mov_{bw}_r_mbis32", [P.tmp_gpr] + Spilled(P.spill1)),
                      InsTmpl(f"mov_{bw}_mbis32_r", Spilled(P.spill0) + [P.tmp_gpr])])
 
-    for kind_flt, kind_int, suffix, x64_opc in [(o.DK.F32, o.DK.S32, "s", "movd"),
-                                                (o.DK.F32, o.DK.U32, "s", "movd"),
-                                                (o.DK.F64, o.DK.S64, "d", "movq"),
-                                                (o.DK.F64, o.DK.U64, "d", "movq")]:
+    for kind_flt, kind_int, suffix, x64_opc in [(o.DK.R32, o.DK.S32, "s", "movd"),
+                                                (o.DK.R32, o.DK.U32, "s", "movd"),
+                                                (o.DK.R64, o.DK.S64, "d", "movq"),
+                                                (o.DK.R64, o.DK.U64, "d", "movq")]:
         bw_int = kind_int.bitwidth()
         Pattern(o.BITCAST, [kind_flt, kind_int], [C.REG, C.REG],
                 [InsTmpl(f"{x64_opc}_x_mr", [P.reg0, P.reg1])])

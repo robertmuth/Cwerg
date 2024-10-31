@@ -48,8 +48,8 @@ REG_KIND_TO_CPU_REG_FAMILY = {
     o.DK.A64: CpuRegKind.GPR,
     o.DK.C64: CpuRegKind.GPR,
     #
-    o.DK.F32: CpuRegKind.FLT,
-    o.DK.F64: CpuRegKind.FLT,
+    o.DK.R32: CpuRegKind.FLT,
+    o.DK.R64: CpuRegKind.FLT,
 }
 
 
@@ -94,8 +94,8 @@ _KIND_TO_CPU_REG_LIST = {
     o.DK.A64: _GPR_REGS,
     o.DK.C64: _GPR_REGS,
     #
-    o.DK.F32: _FLT_REGS,
-    o.DK.F64: _FLT_REGS,
+    o.DK.R32: _FLT_REGS,
+    o.DK.R64: _FLT_REGS,
 }
 
 
@@ -105,7 +105,7 @@ def _GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     next_flt = 0
     out = []
     for k in kinds:
-        if k in {o.DK.F32, o.DK.F64}:
+        if k in {o.DK.R32, o.DK.R64}:
             assert next_flt < len(
                 _FLT_PARAMETER_REGS), "too many flt arguments"
             cpu_reg = _FLT_PARAMETER_REGS[next_flt]
@@ -164,7 +164,7 @@ class CpuRegPool(reg_alloc.RegPool):
             reg_alloc.PreAllocation() for _ in range(len(_FLT_REGS))]
 
     def get_cpu_reg_family(self, kind: o.DK) -> int:
-        return CpuRegKind.FLT if kind in {o.DK.F64, o.DK.F32} else CpuRegKind.GPR
+        return CpuRegKind.FLT if kind in {o.DK.R64, o.DK.R32} else CpuRegKind.GPR
 
     def get_available(self, lac, is_gpr) -> int:
         # TODO: use lac as fallback if no not_lac is available
@@ -211,7 +211,7 @@ class CpuRegPool(reg_alloc.RegPool):
 
     def get_available_reg(self, lr: reg_alloc.LiveRange) -> ir.CpuReg:
         lac = liveness.LiveRangeFlag.LAC in lr.flags
-        is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_F
+        is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_R
         available = self.get_available(lac, is_gpr)
         # print(f"GET {lr} {self}  avail:{available:x}")
         if not is_gpr:

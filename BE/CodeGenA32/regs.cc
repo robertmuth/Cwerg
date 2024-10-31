@@ -52,7 +52,7 @@ class RegPoolArm : public RegPool {
         flt_available_not_lac_(flt_available_not_lac) {}
 
   uint8_t get_cpu_reg_family(DK dk) override {
-    return (dk == DK::F64 or dk == DK::F32) ? 2 : 1;
+    return (dk == DK::R64 or dk == DK::R32) ? 2 : 1;
   }
 
   CpuReg get_available_reg(const LiveRange& lr) override {
@@ -60,7 +60,7 @@ class RegPoolArm : public RegPool {
     const DK kind = RegKind(lr.reg);
     const bool is_gpr = DKFlavor(kind) != DK_FLAVOR_F;
     const uint32_t available = get_available(lac, is_gpr);
-    if (kind == DK::F64) {
+    if (kind == DK::R64) {
       for (unsigned n = 0; n < 32; n += 2) {
         const uint32_t mask = 3U << n;
         if ((mask & available) == mask) {
@@ -71,7 +71,7 @@ class RegPoolArm : public RegPool {
           }
         }
       }
-    } else if (kind == DK::F32) {
+    } else if (kind == DK::R32) {
       for (unsigned n = 0; n < 32; ++n) {
         const uint32_t mask = 1U << n;
         if ((mask & available) == mask) {
@@ -109,9 +109,9 @@ class RegPoolArm : public RegPool {
     const Reg reg = lr.reg;
     const CpuReg cpu_reg(RegCpuReg(reg));
     ASSERT(cpu_reg.kind() == RefKind::CPU_REG, "");
-    if (RegKind(reg) == DK::F32) {
+    if (RegKind(reg) == DK::R32) {
       flt_reserved_[CpuRegNo(cpu_reg)].add(&lr);
-    } else if (RegKind(reg) == DK::F64) {
+    } else if (RegKind(reg) == DK::R64) {
       flt_reserved_[CpuRegNo(cpu_reg) * 2 + 0].add(&lr);
       flt_reserved_[CpuRegNo(cpu_reg) * 2 + 1].add(&lr);
     } else {
@@ -322,12 +322,12 @@ void GetCpuRegsForSignature(unsigned count,
         out->push_back(GPR_PARAM_REGS[next_gpr]);
         ++next_gpr;
         break;
-      case DK::F32:
+      case DK::R32:
         ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
         out->push_back(FLT_PARAM_REGS[next_flt]);
         ++next_flt;
         break;
-      case DK::F64:
+      case DK::R64:
         if ((next_flt & 1U) == 1) ++next_flt;
         ASSERT(next_flt / 2 < DBL_PARAM_REGS.size(), "");
         out->push_back(DBL_PARAM_REGS[next_flt / 2]);
@@ -412,9 +412,9 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
       to_be_spilled->push_back(reg);
       continue;
     }
-    if (RegKind(reg) != DK::F64) {
+    if (RegKind(reg) != DK::R64) {
       while (((1U << pos) & cpu_reg_mask) == 0) ++pos;
-      if (RegKind(reg) == DK::F32) {
+      if (RegKind(reg) == DK::R32) {
         RegCpuReg(reg) = FLT_REGS[pos];
       } else {
         RegCpuReg(reg) = GPR_REGS[pos];
@@ -564,8 +564,8 @@ void InitCodeGenA32() {
   DK_TO_CPU_REG_KIND_MAP[+DK::U32] = +CPU_REG_KIND::GPR;
   DK_TO_CPU_REG_KIND_MAP[+DK::A32] = +CPU_REG_KIND::GPR;
   DK_TO_CPU_REG_KIND_MAP[+DK::C32] = +CPU_REG_KIND::GPR;
-  DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +CPU_REG_KIND::FLT;
-  DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +CPU_REG_KIND::DBL;
+  DK_TO_CPU_REG_KIND_MAP[+DK::R32] = +CPU_REG_KIND::FLT;
+  DK_TO_CPU_REG_KIND_MAP[+DK::R64] = +CPU_REG_KIND::DBL;
 }
 
 }  // namespace cwerg::code_gen_a32

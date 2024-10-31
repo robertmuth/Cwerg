@@ -42,7 +42,7 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
     for (Ins ins : BblInsIter(bbl)) {
       switch (InsOPC(ins)) {
         case OPC::CNTPOP:
-          tmp = FunGetScratchReg(fun, DK::F64, "popcnt", false);
+          tmp = FunGetScratchReg(fun, DK::R64, "popcnt", false);
           inss->push_back(InsNew(OPC::NOP1, tmp));
           inss->push_back(ins);
           dirty = true;
@@ -71,7 +71,7 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
           for (unsigned pos = 0; pos < a64::MAX_OPERANDS; ++pos) {
             if (mismatches & (1U << pos)) {
               const DK kind = ConstKind(Const(InsOperand(ins, pos)));
-              if (kind == DK::F64 || kind == DK::F32) {
+              if (kind == DK::R64 || kind == DK::R32) {
                 InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A64,
                                             DK::U32, inss);
               } else {

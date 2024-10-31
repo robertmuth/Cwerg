@@ -21,8 +21,8 @@ KIND_MAP = {
     o.DK.U32: "uint32_t",
     o.DK.U64: "uint64_t",
 
-    o.DK.F32: "float",
-    o.DK.F64: "double",
+    o.DK.R32: "float",
+    o.DK.R64: "double",
 
     o.DK.A32: "void*",  # hack
     o.DK.A64: "void*",  # hack
@@ -156,7 +156,7 @@ def Handle_ALU(fun, opcode, ops, _ctx):
     dst_flavor = ops[0].kind.flavor()
     if dst_flavor in {o.DK_FLAVOR_S, o.DK_FLAVOR_U}:
         expr = ALU_INT[opcode]
-    elif dst_flavor is o.DK_FLAVOR_F:
+    elif dst_flavor is o.DK_FLAVOR_R:
         expr = ALU_FLT[opcode]
     else:
         assert False, dst_flavor
@@ -188,7 +188,7 @@ def Handle_ALU1(fun, opcode, ops, _ctx):
     dst_flavor = ops[0].kind.flavor()
     if dst_flavor in {o.DK_FLAVOR_S, o.DK_FLAVOR_U}:
         expr = ALU1_INT[(opcode, ops[1].kind.bitwidth())]
-    elif dst_flavor is o.DK_FLAVOR_F:
+    elif dst_flavor is o.DK_FLAVOR_R:
         expr = ALU1_FLT[opcode]
     else:
         assert False, dst_flavor

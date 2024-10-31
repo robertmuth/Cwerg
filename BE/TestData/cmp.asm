@@ -43,44 +43,44 @@
     pusharg x
     ret
 
-## F32
-.fun cmplt_u32_f32 NORMAL [U32] = [U32 U32 F32 F32]
+## R32
+.fun cmplt_u32_f32 NORMAL [U32] = [U32 U32 R32 R32]
 .bbl start
     poparg op1:U32
     poparg op2:U32
-    poparg cmp1:F32
-    poparg cmp2:F32
+    poparg cmp1:R32
+    poparg cmp2:R32
     cmplt x:U32 op1 op2 cmp1 cmp2
     pusharg x
     ret
 
-.fun cmpeq_s32_f32 NORMAL [S32] = [S32 S32 F32 F32]
+.fun cmpeq_s32_f32 NORMAL [S32] = [S32 S32 R32 R32]
 .bbl start
     poparg op1:S32
     poparg op2:S32
-    poparg cmp1:F32
-    poparg cmp2:F32
+    poparg cmp1:R32
+    poparg cmp2:R32
     cmpeq x:S32 op1 op2 cmp1 cmp2
     pusharg x
     ret
 
-## F64
- .fun cmplt_u32_f64 NORMAL [U32] = [U32 U32 F64 F64]
+## R64
+ .fun cmplt_u32_f64 NORMAL [U32] = [U32 U32 R64 R64]
  .bbl start
      poparg op1:U32
      poparg op2:U32
-     poparg cmp1:F64
-     poparg cmp2:F64
+     poparg cmp1:R64
+     poparg cmp2:R64
      cmplt x:U32 op1 op2 cmp1 cmp2
      pusharg x
      ret
 
- .fun cmpeq_s32_f64 NORMAL [S32] = [S32 S32 F64 F64]
+ .fun cmpeq_s32_f64 NORMAL [S32] = [S32 S32 R64 R64]
  .bbl start
      poparg op1:S32
      poparg op2:S32
-     poparg cmp1:F64
-     poparg cmp2:F64
+     poparg cmp1:R64
+     poparg cmp2:R64
      cmpeq x:S32 op1 op2 cmp1 cmp2
      pusharg x
      ret
@@ -130,8 +130,8 @@
     bsr print_u_ln
 
     ## cmplt_u32_f32
-    pusharg 1:F32
-    pusharg 2:F32
+    pusharg 1:R32
+    pusharg 2:R32
     pusharg 555:U32
     pusharg 666:U32
     bsr cmplt_u32_f32
@@ -139,8 +139,8 @@
     pusharg u
     bsr print_u_ln
 
-    pusharg 2:F32
-    pusharg 1:F32
+    pusharg 2:R32
+    pusharg 1:R32
     pusharg 555:U32
     pusharg 666:U32
     bsr cmplt_u32_f32
@@ -149,8 +149,8 @@
     bsr print_u_ln
 
     ## cmplt_u32_f64
-    pusharg 1:F64
-    pusharg 2:F64
+    pusharg 1:R64
+    pusharg 2:R64
     pusharg 777:U32
     pusharg 888:U32
     bsr cmplt_u32_f64
@@ -158,8 +158,8 @@
     pusharg u
     bsr print_u_ln
 
-    pusharg 2:F64
-    pusharg 1:F64
+    pusharg 2:R64
+    pusharg 1:R64
     pusharg 777:U32
     pusharg 888:U32
     bsr cmplt_u32_f64
@@ -210,8 +210,8 @@
     bsr print_u_ln
 
     ## cmpeq_s32_f32
-    pusharg 1:F32
-    pusharg 2:F32
+    pusharg 1:R32
+    pusharg 2:R32
     pusharg 5555:S32
     pusharg 6666:S32
     bsr cmpeq_s32_f32
@@ -220,8 +220,8 @@
     pusharg u
     bsr print_u_ln
 
-    pusharg 2:F32
-    pusharg 2:F32
+    pusharg 2:R32
+    pusharg 2:R32
     pusharg 5555:S32
     pusharg 6666:S32
     bsr cmpeq_s32_f32
@@ -231,8 +231,8 @@
     bsr print_u_ln
 
     ## cmpeq_s32_f64
-    pusharg 1:F64
-    pusharg 2:F64
+    pusharg 1:R64
+    pusharg 2:R64
     pusharg 5555:S32
     pusharg 6666:S32
     bsr cmpeq_s32_f64
@@ -241,8 +241,8 @@
     pusharg u
     bsr print_u_ln
 
-    pusharg 2:F64
-    pusharg 2:F64
+    pusharg 2:R64
+    pusharg 2:R64
     pusharg 5555:S32
     pusharg 6666:S32
     bsr cmpeq_s32_f64

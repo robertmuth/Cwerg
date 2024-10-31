@@ -199,6 +199,8 @@ def is_mutable_array_or_span(node) -> bool:
         assert False
 
 
+# maps FE types to BE names.
+# Note: it would be cleaner to use the BE enum
 _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, list[str]] = {
     cwast.BASE_TYPE_KIND.SINT: ["S64"],
     cwast.BASE_TYPE_KIND.S8: ["S8"],
@@ -212,8 +214,8 @@ _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, list[str]] = {
     cwast.BASE_TYPE_KIND.U32: ["U32"],
     cwast.BASE_TYPE_KIND.U64: ["U64"],
     #
-    cwast.BASE_TYPE_KIND.R32: ["F32"],
-    cwast.BASE_TYPE_KIND.R64: ["F64"],
+    cwast.BASE_TYPE_KIND.R32: ["R32"],
+    cwast.BASE_TYPE_KIND.R64: ["R64"],
     #
     cwast.BASE_TYPE_KIND.BOOL: ["U8"],
     cwast.BASE_TYPE_KIND.TYPEID: ["U16"],

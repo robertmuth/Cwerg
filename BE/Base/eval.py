@@ -42,7 +42,7 @@ def SignedIntFromBits(data: int, n_bits: int) -> int:
 
 
 def _truncate(dk: o.DK, val):
-    if dk.flavor() == o.DK_FLAVOR_F:
+    if dk.flavor() == o.DK_FLAVOR_R:
         return val
     elif dk.flavor() == o.DK_FLAVOR_U:
         return val & ((1 << dk.bitwidth()) - 1)

@@ -33,7 +33,7 @@ def _InsRewriteOutOfBoundsImmediates(
         if mismatches & (1 << pos) != 0:
 
             const_kind = ins.operands[pos].kind
-            if const_kind is o.DK.F32 or const_kind is o.DK.F64:
+            if const_kind is o.DK.R32 or const_kind is o.DK.R64:
                 inss += lowering.InsEliminateImmediateViaMem(
                     ins, pos, fun, unit, o.DK.A32, o.DK.U32)
             else:
@@ -89,8 +89,8 @@ REG_KIND_TO_CPU_KIND: Dict[o.DK, int] = {
     o.DK.A32: regs.CpuRegKind.GPR.value,
     o.DK.C32: regs.CpuRegKind.GPR.value,
     #
-    o.DK.F32: regs.CpuRegKind.FLT.value,
-    o.DK.F64: regs.CpuRegKind.DBL.value,
+    o.DK.R32: regs.CpuRegKind.FLT.value,
+    o.DK.R64: regs.CpuRegKind.DBL.value,
 }
 
 
@@ -407,7 +407,7 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     # we inject some nop instructions that reserve a register that we
     # use as a scratch for the instruction immediately following the nop
     isel_tab.FunAddNop1ForCodeSel(fun)
-    
+
     regs.FunLocalRegAlloc(fun)
     fun.FinalizeStackSlots()
     # cleanup

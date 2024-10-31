@@ -63,6 +63,6 @@ PAT: reg:[U32 INVALID]  op:[REG INVALID]
     lea_64_r_mpc32 rax rip expr:loc_pcrel32:switch_tab
     jmp_64_mbis8 rax rax 3 0
 
-INS: add $f1@xmm0 $f1@xmm0 $f2@xmm1  [F32 F32 F32]
-PAT: reg:[F32 F32 F32]  op:[REG REG REG]
+INS: add $f1@xmm0 $f1@xmm0 $f2@xmm1  [R32 R32 R32]
+PAT: reg:[R32 R32 R32]  op:[REG REG REG]
     addss_x_mx xmm0 xmm1

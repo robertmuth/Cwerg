@@ -1,130 +1,130 @@
 # uses about 40 global regs
 
-.fun test NORMAL [F32] = [F32]
-.reg F32 [%out]
+.fun test NORMAL [R32] = [R32]
+.reg R32 [%out]
 
 .bbl %start
-  poparg ireg:F32
-  .reg F32 [ireg00]
-  add %F32_1:F32 = ireg 0
-  mov ireg00 = %F32_1
-  .reg F32 [ireg01]
-  add %F32_2:F32 = ireg 1
-  mov ireg01 = %F32_2
-  .reg F32 [ireg02]
-  add %F32_3:F32 = ireg 2
-  mov ireg02 = %F32_3
-  .reg F32 [ireg03]
-  add %F32_4:F32 = ireg 3
-  mov ireg03 = %F32_4
-  .reg F32 [ireg04]
-  add %F32_5:F32 = ireg 4
-  mov ireg04 = %F32_5
-  .reg F32 [ireg05]
-  add %F32_6:F32 = ireg 5
-  mov ireg05 = %F32_6
-  .reg F32 [ireg06]
-  add %F32_7:F32 = ireg 6
-  mov ireg06 = %F32_7
-  .reg F32 [ireg07]
-  add %F32_8:F32 = ireg 7
-  mov ireg07 = %F32_8
-  .reg F32 [ireg08]
-  add %F32_9:F32 = ireg 8
-  mov ireg08 = %F32_9
-  .reg F32 [ireg09]
-  add %F32_10:F32 = ireg 9
-  mov ireg09 = %F32_10
-  .reg F32 [ireg10]
-  add %F32_11:F32 = ireg 10
-  mov ireg10 = %F32_11
-  .reg F32 [ireg11]
-  add %F32_12:F32 = ireg 11
-  mov ireg11 = %F32_12
-  .reg F32 [ireg12]
-  add %F32_13:F32 = ireg 12
-  mov ireg12 = %F32_13
-  .reg F32 [ireg13]
-  add %F32_14:F32 = ireg 12
-  mov ireg13 = %F32_14
-  .reg F32 [ireg14]
-  add %F32_15:F32 = ireg 14
-  mov ireg14 = %F32_15
-  .reg F32 [ireg15]
-  add %F32_16:F32 = ireg 15
-  mov ireg15 = %F32_16
-  .reg F32 [ireg16]
-  add %F32_17:F32 = ireg 16
-  mov ireg16 = %F32_17
-  .reg F32 [ireg17]
-  add %F32_18:F32 = ireg 17
-  mov ireg17 = %F32_18
-  .reg F32 [ireg18]
-  add %F32_19:F32 = ireg 18
-  mov ireg18 = %F32_19
-  .reg F32 [ireg19]
-  add %F32_20:F32 = ireg 19
-  mov ireg19 = %F32_20
-  .reg F32 [ireg20]
-  add %F32_21:F32 = ireg 20
-  mov ireg20 = %F32_21
-  .reg F32 [ireg21]
-  add %F32_22:F32 = ireg 21
-  mov ireg21 = %F32_22
-  .reg F32 [ireg22]
-  add %F32_23:F32 = ireg 22
-  mov ireg22 = %F32_23
-  .reg F32 [ireg23]
-  add %F32_24:F32 = ireg 22
-  mov ireg23 = %F32_24
-  .reg F32 [ireg24]
-  add %F32_25:F32 = ireg 24
-  mov ireg24 = %F32_25
-  .reg F32 [ireg25]
-  add %F32_26:F32 = ireg 25
-  mov ireg25 = %F32_26
-  .reg F32 [ireg26]
-  add %F32_27:F32 = ireg 26
-  mov ireg26 = %F32_27
-  .reg F32 [ireg27]
-  add %F32_28:F32 = ireg 27
-  mov ireg27 = %F32_28
-  .reg F32 [ireg28]
-  add %F32_29:F32 = ireg 28
-  mov ireg28 = %F32_29
-  .reg F32 [ireg29]
-  add %F32_30:F32 = ireg 29
-  mov ireg29 = %F32_30
-  .reg F32 [ireg30]
-  add %F32_31:F32 = ireg 30
-  mov ireg30 = %F32_31
-  .reg F32 [ireg31]
-  add %F32_32:F32 = ireg 31
-  mov ireg31 = %F32_32
-  .reg F32 [ireg32]
-  add %F32_33:F32 = ireg 32
-  mov ireg32 = %F32_33
-  .reg F32 [ireg33]
-  add %F32_34:F32 = ireg 32
-  mov ireg33 = %F32_34
-  .reg F32 [ireg34]
-  add %F32_35:F32 = ireg 34
-  mov ireg34 = %F32_35
-  .reg F32 [ireg35]
-  add %F32_36:F32 = ireg 35
-  mov ireg35 = %F32_36
-  .reg F32 [ireg36]
-  add %F32_37:F32 = ireg 36
-  mov ireg36 = %F32_37
-  .reg F32 [ireg37]
-  add %F32_38:F32 = ireg 37
-  mov ireg37 = %F32_38
-  .reg F32 [ireg38]
-  add %F32_39:F32 = ireg 38
-  mov ireg38 = %F32_39
-  .reg F32 [ireg39]
-  add %F32_40:F32 = ireg 39
-  mov ireg39 = %F32_40
+  poparg ireg:R32
+  .reg R32 [ireg00]
+  add %R32_1:R32 = ireg 0
+  mov ireg00 = %R32_1
+  .reg R32 [ireg01]
+  add %R32_2:R32 = ireg 1
+  mov ireg01 = %R32_2
+  .reg R32 [ireg02]
+  add %R32_3:R32 = ireg 2
+  mov ireg02 = %R32_3
+  .reg R32 [ireg03]
+  add %R32_4:R32 = ireg 3
+  mov ireg03 = %R32_4
+  .reg R32 [ireg04]
+  add %R32_5:R32 = ireg 4
+  mov ireg04 = %R32_5
+  .reg R32 [ireg05]
+  add %R32_6:R32 = ireg 5
+  mov ireg05 = %R32_6
+  .reg R32 [ireg06]
+  add %R32_7:R32 = ireg 6
+  mov ireg06 = %R32_7
+  .reg R32 [ireg07]
+  add %R32_8:R32 = ireg 7
+  mov ireg07 = %R32_8
+  .reg R32 [ireg08]
+  add %R32_9:R32 = ireg 8
+  mov ireg08 = %R32_9
+  .reg R32 [ireg09]
+  add %R32_10:R32 = ireg 9
+  mov ireg09 = %R32_10
+  .reg R32 [ireg10]
+  add %R32_11:R32 = ireg 10
+  mov ireg10 = %R32_11
+  .reg R32 [ireg11]
+  add %R32_12:R32 = ireg 11
+  mov ireg11 = %R32_12
+  .reg R32 [ireg12]
+  add %R32_13:R32 = ireg 12
+  mov ireg12 = %R32_13
+  .reg R32 [ireg13]
+  add %R32_14:R32 = ireg 12
+  mov ireg13 = %R32_14
+  .reg R32 [ireg14]
+  add %R32_15:R32 = ireg 14
+  mov ireg14 = %R32_15
+  .reg R32 [ireg15]
+  add %R32_16:R32 = ireg 15
+  mov ireg15 = %R32_16
+  .reg R32 [ireg16]
+  add %R32_17:R32 = ireg 16
+  mov ireg16 = %R32_17
+  .reg R32 [ireg17]
+  add %R32_18:R32 = ireg 17
+  mov ireg17 = %R32_18
+  .reg R32 [ireg18]
+  add %R32_19:R32 = ireg 18
+  mov ireg18 = %R32_19
+  .reg R32 [ireg19]
+  add %R32_20:R32 = ireg 19
+  mov ireg19 = %R32_20
+  .reg R32 [ireg20]
+  add %R32_21:R32 = ireg 20
+  mov ireg20 = %R32_21
+  .reg R32 [ireg21]
+  add %R32_22:R32 = ireg 21
+  mov ireg21 = %R32_22
+  .reg R32 [ireg22]
+  add %R32_23:R32 = ireg 22
+  mov ireg22 = %R32_23
+  .reg R32 [ireg23]
+  add %R32_24:R32 = ireg 22
+  mov ireg23 = %R32_24
+  .reg R32 [ireg24]
+  add %R32_25:R32 = ireg 24
+  mov ireg24 = %R32_25
+  .reg R32 [ireg25]
+  add %R32_26:R32 = ireg 25
+  mov ireg25 = %R32_26
+  .reg R32 [ireg26]
+  add %R32_27:R32 = ireg 26
+  mov ireg26 = %R32_27
+  .reg R32 [ireg27]
+  add %R32_28:R32 = ireg 27
+  mov ireg27 = %R32_28
+  .reg R32 [ireg28]
+  add %R32_29:R32 = ireg 28
+  mov ireg28 = %R32_29
+  .reg R32 [ireg29]
+  add %R32_30:R32 = ireg 29
+  mov ireg29 = %R32_30
+  .reg R32 [ireg30]
+  add %R32_31:R32 = ireg 30
+  mov ireg30 = %R32_31
+  .reg R32 [ireg31]
+  add %R32_32:R32 = ireg 31
+  mov ireg31 = %R32_32
+  .reg R32 [ireg32]
+  add %R32_33:R32 = ireg 32
+  mov ireg32 = %R32_33
+  .reg R32 [ireg33]
+  add %R32_34:R32 = ireg 32
+  mov ireg33 = %R32_34
+  .reg R32 [ireg34]
+  add %R32_35:R32 = ireg 34
+  mov ireg34 = %R32_35
+  .reg R32 [ireg35]
+  add %R32_36:R32 = ireg 35
+  mov ireg35 = %R32_36
+  .reg R32 [ireg36]
+  add %R32_37:R32 = ireg 36
+  mov ireg36 = %R32_37
+  .reg R32 [ireg37]
+  add %R32_38:R32 = ireg 37
+  mov ireg37 = %R32_38
+  .reg R32 [ireg38]
+  add %R32_39:R32 = ireg 38
+  mov ireg38 = %R32_39
+  .reg R32 [ireg39]
+  add %R32_40:R32 = ireg 39
+  mov ireg39 = %R32_40
   .reg U32 [i]
   mov i = 0
   bra for_1_cond
@@ -134,7 +134,7 @@
   bra if_2_false
 
 .bbl if_2_true
-  .reg F32 [tmp]
+  .reg R32 [tmp]
   mov tmp = ireg00
   mov ireg00 = ireg01
   mov ireg01 = ireg02
@@ -179,7 +179,7 @@
   bra for_1_next
 
 .bbl if_2_false
-  .reg F32 [__local_4_tmp]
+  .reg R32 [__local_4_tmp]
   mov __local_4_tmp = ireg39
   mov ireg39 = ireg38
   mov ireg38 = ireg37
@@ -239,9 +239,9 @@
 .fun main NORMAL [S32] = []
 
 .bbl start
-    pusharg 10:F32
+    pusharg 10:R32
     bsr test
-    poparg y:F32
+    poparg y:R32
     conv z:U32 y
     pusharg z
     bsr print_u_ln

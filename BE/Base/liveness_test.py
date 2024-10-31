@@ -55,7 +55,7 @@ class TestRanges(unittest.TestCase):
 
 .fun main NORMAL [S32] = []
 .reg U32 [a s m d M x y out]
-.reg A64 [f] 
+.reg A64 [f]
 
 .bbl start
     mov x = 70
@@ -139,11 +139,11 @@ class TestRanges(unittest.TestCase):
   add x:S32 a 1
   blt argc 2 if_1_true
   bra if_1_end
-  
+
 .bbl if_1_true
    pusharg 1:S32
    ret
-   
+
 .bbl if_1_end
    pusharg 0:S32
    ret
@@ -255,19 +255,19 @@ class TestRanges(unittest.TestCase):
         code = io.StringIO(r"""
 
 
-.fun test NORMAL [F32 F32 F32 F32] = [F32 F32]
-.reg F32 [a b add sub mul div  $s0_F32  $s1_F32  $s2_F32  $s3_F32]
+.fun test NORMAL [R32 R32 R32 R32] = [R32 R32]
+.reg R32 [a b add sub mul div  $s0_R32  $s1_R32  $s2_R32  $s3_R32]
 .bbl start
-    mov a $s0_F32@s0
-    mov b $s1_F32@s1
+    mov a $s0_R32@s0
+    mov b $s1_R32@s1
     add add a b
     sub sub a b
     mul mul a b
     div div a b
-    mov $s3_F32@s3 div
-    mov $s2_F32@s2 mul
-    mov $s1_F32@s1 sub
-    mov $s0_F32@s0 add
+    mov $s3_R32@s3 div
+    mov $s2_R32@s2 mul
+    mov $s1_R32@s1 sub
+    mov $s0_R32@s0 add
     ret
 """)
         cpu_regs = {"s0": ir.CpuReg("s0", 0), "s1": ir.CpuReg("s1", 1),

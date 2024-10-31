@@ -103,7 +103,7 @@ class CpuRegPool : public RegPool {
     const Reg reg = lr.reg;
     const CpuReg cpu_reg(RegCpuReg(reg));
     ASSERT(cpu_reg.kind() == RefKind::CPU_REG, "");
-    if (RegKind(reg) == DK::F32 || RegKind(reg) == DK::F64) {
+    if (RegKind(reg) == DK::R32 || RegKind(reg) == DK::R64) {
       flt_reserved_[CpuRegNo(cpu_reg)].add(&lr);
     } else {
       gpr_reserved_[CpuRegNo(cpu_reg)].add(&lr);
@@ -323,12 +323,12 @@ void GetCpuRegsForSignature(unsigned count,
         out->push_back(GPR_PARAM_REGS[next_gpr]);
         ++next_gpr;
         break;
-      case DK::F32:
+      case DK::R32:
         ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
         out->push_back(FLT_PARAM_REGS[next_flt]);
         ++next_flt;
         break;
-      case DK::F64:
+      case DK::R64:
         ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
         out->push_back(FLT_PARAM_REGS[next_flt]);
         ++next_flt;
@@ -475,8 +475,8 @@ void InitCodeGenA64() {
   DK_TO_CPU_REG_KIND_MAP[+DK::A64] = +CPU_REG_KIND::GPR;
   DK_TO_CPU_REG_KIND_MAP[+DK::C64] = +CPU_REG_KIND::GPR;
   //
-  DK_TO_CPU_REG_KIND_MAP[+DK::F32] = +CPU_REG_KIND::FLT;
-  DK_TO_CPU_REG_KIND_MAP[+DK::F64] = +CPU_REG_KIND::FLT;
+  DK_TO_CPU_REG_KIND_MAP[+DK::R32] = +CPU_REG_KIND::FLT;
+  DK_TO_CPU_REG_KIND_MAP[+DK::R64] = +CPU_REG_KIND::FLT;
 }
 
 }  // namespace cwerg::code_gen_a64

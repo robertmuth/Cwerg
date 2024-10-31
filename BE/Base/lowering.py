@@ -188,7 +188,7 @@ def _InsEliminateRem(
     tmp_reg1 = fun.GetScratchReg(ops[0].kind, "elim_rem1", True)
     out.append(ir.Ins(o.DIV, [tmp_reg1, ops[1], ops[2]]))
     # NOTE: this implementation for floating mod may have precision issues.
-    if ops[0].kind.flavor() is o.DK_FLAVOR_F:
+    if ops[0].kind.flavor() is o.DK_FLAVOR_R:
         tmp_reg3 = fun.GetScratchReg(ops[0].kind, "elim_rem3", True)
         out.append(ir.Ins(o.TRUNC, [tmp_reg3, tmp_reg1]))
         tmp_reg1 = tmp_reg3
@@ -260,7 +260,7 @@ def _InsEliminateCopySign(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
         return None
     ops = ins.operands
     out = []
-    if ops[0].kind == o.DK.F32:
+    if ops[0].kind == o.DK.R32:
         kind = o.DK.U32
         sign = 1 << 31
     else:
@@ -569,7 +569,7 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
             elif ins.opcode in (o.CMPEQ, o.CMPLT):
                 _NarrowOperand(ops[1], fun, narrow_kind, inss)
                 _NarrowOperand(ops[2], fun, narrow_kind, inss)
-                inss.append(ins)              
+                inss.append(ins)
             else:
                 inss.append(ins)
 

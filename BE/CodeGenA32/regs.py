@@ -106,11 +106,11 @@ def _GetCpuRegsForSignature(kinds: List[o.DK]) -> List[ir.CpuReg]:
     flt = 0
     out = []
     for k in kinds:
-        if k == o.DK.F32:
+        if k == o.DK.R32:
             assert flt < len(FLT_PARAMETER_REGS)
             cpu_reg = FLT_PARAMETER_REGS[flt]
             flt += 1
-        elif k == o.DK.F64:
+        elif k == o.DK.R64:
             # we are wasting a reg here. Can be avoided by moving f64 before all f32 params
             if flt & 1 == 1:
                 flt += 1
@@ -206,7 +206,7 @@ class CpuRegPool(reg_alloc.RegPool):
             self._flt_reserved[cpu_reg.no * 2 + 1].add(lr)
 
     def get_cpu_reg_family(self, kind: o.DK) -> int:
-        return 2 if kind == o.DK.F64 or kind == o.DK.F32 else 1
+        return 2 if kind == o.DK.R64 or kind == o.DK.R32 else 1
 
     def backtrack_reset(self, cpu_reg: ir.CpuReg):
         self.give_back_available_reg(cpu_reg)
@@ -220,10 +220,10 @@ class CpuRegPool(reg_alloc.RegPool):
 
     def get_available_reg(self, lr: reg_alloc.LiveRange) -> ir.CpuReg:
         lac = liveness.LiveRangeFlag.LAC in lr.flags
-        is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_F
+        is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_R
         available = self.get_available(lac, is_gpr)
         # print(f"GET {lr} {self}  avail:{available:x}")
-        if lr.reg.kind == o.DK.F64:
+        if lr.reg.kind == o.DK.R64:
             for n in range(len(DBL_REGS)):
                 mask = 3 << (n * 2)  # two adjacent bit at an even bit pos
                 if available & mask == mask:
@@ -231,7 +231,7 @@ class CpuRegPool(reg_alloc.RegPool):
                             not self._flt_reserved[n * 2 + 1].has_conflict(lr)):
                         self.set_available(lac, is_gpr, available & ~mask)
                         return DBL_REGS[n]
-        elif lr.reg.kind == o.DK.F32:
+        elif lr.reg.kind == o.DK.R32:
             for n in range(len(FLT_REGS)):
                 mask = 1 << n
                 if available & mask == mask:
@@ -330,9 +330,9 @@ def _ComputeRegReserve(spilled_regs: List[ir.Reg], gpr_regs_not_lac, flt_regs_no
     gpr_not_lac_reserve = 0
     flt_not_lac_reserve = 0
     for reg in spilled_regs:
-        if reg.kind is o.DK.F64:
+        if reg.kind is o.DK.R64:
             flt_not_lac_reserve = 2
-        elif reg.kind is o.DK.F32:
+        elif reg.kind is o.DK.R32:
             if flt_not_lac_reserve == 0:
                 flt_not_lac_reserve = 1
         else:
@@ -444,11 +444,11 @@ def AssignCpuRegOrMarkForSpilling(assign_to: List[ir.Reg],
         if mask == 0:
             out.append(reg)
             continue
-        if reg.kind is not o.DK.F64:
+        if reg.kind is not o.DK.R64:
             while ((1 << pos) & mask) == 0:
                 pos += 1
             assert reg.cpu_reg is None
-            reg.cpu_reg = FLT_REGS[pos] if reg.kind is o.DK.F32 else GPR_REGS[pos]
+            reg.cpu_reg = FLT_REGS[pos] if reg.kind is o.DK.R32 else GPR_REGS[pos]
             mask &= ~(1 << pos)
             pos += 1
         else:

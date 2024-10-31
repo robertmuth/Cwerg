@@ -57,7 +57,7 @@ constexpr uint8_t StdDKMapping(uint8_t i) {
     return +DK::S32;
   } else if (rk == DK::S64 || rk == DK::U64 || rk == DK::A64 || rk == DK::C64) {
     return +DK::S64;
-  } else if (rk == DK::F32 || rk == DK::F64) {
+  } else if (rk == DK::R32 || rk == DK::R64) {
     return +rk;
   } else {
     return +DK::INVALID;

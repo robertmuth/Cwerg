@@ -65,14 +65,14 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
             int dst_fl = DKFlavor(dst_kind);
             if (src_fl == DK_FLAVOR_F &&
                 (dst_fl == DK_FLAVOR_S || dst_fl == DK_FLAVOR_U)) {
-              tmp = FunGetScratchReg(fun, DK::F32, "ftoi", false);
+              tmp = FunGetScratchReg(fun, DK::R32, "ftoi", false);
               inss->push_back(InsNew(OPC::NOP1, tmp));
               inss->push_back(ins);
               dirty = true;
               break;
             } else if ((src_fl == DK_FLAVOR_S || src_fl == DK_FLAVOR_U) &&
-                       dst_kind == DK::F64) {
-              tmp = FunGetScratchReg(fun, DK::F32, "itof", false);
+                       dst_kind == DK::R64) {
+              tmp = FunGetScratchReg(fun, DK::R32, "itof", false);
               inss->push_back(InsNew(OPC::NOP1, tmp));
               inss->push_back(ins);
               dirty = true;
@@ -104,7 +104,7 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
           for (unsigned pos = 0; pos < a32::MAX_OPERANDS; ++pos) {
             if (mismatches & (1U << pos)) {
               const DK kind = ConstKind(Const(InsOperand(ins, pos)));
-              if (kind == DK::F64 || kind == DK::F32) {
+              if (kind == DK::R64 || kind == DK::R32) {
                 InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A32,
                                             DK::U32, inss);
               } else {

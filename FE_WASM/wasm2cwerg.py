@@ -168,8 +168,8 @@ def GenerateInitDataFun(mod: wasm.Module, unit: ir.Unit,
 OPC_TYPE_TO_CWERG_TYPE = {
     "i32": o.DK.S32,
     "i64": o.DK.S64,
-    "f32": o.DK.F32,
-    "f64": o.DK.F64,
+    "f32": o.DK.R32,
+    "f64": o.DK.R64,
 }
 
 LOAD_TO_CWERG_TYPE = {
@@ -192,8 +192,8 @@ STORE_TO_CWERG_TYPE = {
 WASM_TYPE_TO_CWERG_TYPE = {
     wasm.VAL_TYPE.I32: o.DK.S32,
     wasm.VAL_TYPE.I64: o.DK.S64,
-    wasm.VAL_TYPE.F32: o.DK.F32,
-    wasm.VAL_TYPE.F64: o.DK.F64,
+    wasm.VAL_TYPE.F32: o.DK.R32,
+    wasm.VAL_TYPE.F64: o.DK.R64,
 }
 
 # value:  (br, swap, unsigned)

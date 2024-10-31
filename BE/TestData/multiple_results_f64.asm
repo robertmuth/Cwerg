@@ -2,15 +2,15 @@
 
 # ========================================
 # function with 5 return values
-.fun multi NORMAL [F64 F64 F64 F64] = [F64 F64]
+.fun multi NORMAL [R64 R64 R64 R64] = [R64 R64]
 .bbl start
-    poparg a:F64
-    poparg b:F64
-    add add:F64 = a b
-    sub sub:F64 = a b
-    mul mul:F64 = a b
-    div div:F64 = a b
-    # rem mod:F64 = a b
+    poparg a:R64
+    poparg b:R64
+    add add:R64 = a b
+    sub sub:R64 = a b
+    mul mul:R64 = a b
+    div div:R64 = a b
+    # rem mod:R64 = a b
     # pusharg mod
     pusharg div
     pusharg mul
@@ -21,8 +21,8 @@
 
 # ========================================
 .fun main NORMAL [S32] = []
-.reg F64 [a s m d M x y]
-.reg A64 [f] 
+.reg R64 [a s m d M x y]
+.reg A64 [f]
 .bbl start
     mov xi:S32 = 70
     mov yi:S32 = 6
@@ -61,8 +61,3 @@
 
     pusharg 0:S32
     ret
-
-
-
-
-

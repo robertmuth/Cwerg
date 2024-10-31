@@ -35,8 +35,8 @@ REG_KIND_MAP_TYPICAL: Dict[o.DK, int] = {
     o.DK.C32: o.DK.S32.value,
     o.DK.C64: o.DK.S64.value,
 
-    o.DK.F32: o.DK.F32.value,
-    o.DK.F64: o.DK.F64.value,
+    o.DK.R32: o.DK.R32.value,
+    o.DK.R64: o.DK.R64.value,
 }
 
 

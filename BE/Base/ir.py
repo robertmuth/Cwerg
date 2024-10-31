@@ -51,8 +51,8 @@ _NUM_CONVERSION_STR = {
     o.DK.U32: "I",
     o.DK.U64: "Q",
 
-    o.DK.F32: "f",
-    o.DK.F64: "d",
+    o.DK.R32: "f",
+    o.DK.R64: "d",
 }
 
 
@@ -97,7 +97,7 @@ class Const:
 
 def ParseConst(value_str: str, kind: o.DK) -> Const:
     flavor = kind.flavor()
-    if flavor is o.DK_FLAVOR_F:
+    if flavor is o.DK_FLAVOR_R:
         return Const(kind, float(value_str))
 
     bit_width = kind.bitwidth()

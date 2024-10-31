@@ -101,7 +101,7 @@ class DataStore {
         }
         this.elem_traces.innerHTML = rows.join("\n");
     }
-    
+
      redraw_live_ranges() {
         console.log("redraw_live_ranges");
         var rows = [];
@@ -110,7 +110,7 @@ class DataStore {
         }
         this.elem_live_ranges.innerHTML = rows.join("\n");
     }
-    
+
     redraw_pool() {
         console.log("redraw_pool");
         var rows = [];
@@ -119,18 +119,18 @@ class DataStore {
         }
         this.elem_pool.innerHTML = rows.join("\n");
     }
-        
+
     process(js) {
         console.log("processing");
         console.log(js);
-        this.traces = js[0];    
+        this.traces = js[0];
         this.live_ranges = js[1];
         this.redraw_traces()
         this.redraw_live_ranges()
         this.redraw_pool()
 
     }
-    
+
     refresh() {
         HttpGetJSON("/GetData", this.process.bind(this));
     }
@@ -163,7 +163,7 @@ Hello
 ERROR_HTML = """<!DOCTYPE html>
 <html>
 <body>
-No handler for request: 
+No handler for request:
 <pre>
 %s
 </pre>
@@ -214,7 +214,7 @@ def logger(lr: LiveRange, message: str):
     available = ""
     if not lr.is_use_lr():
         lac = liveness.LiveRangeFlag.LAC in lr.flags
-        is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_F
+        is_gpr = lr.reg.kind.flavor() != o.DK_FLAVOR_R
         available = POOL.render_available(lac, is_gpr)
     TRACES.append((str(lr), message, available))
     # print(m)

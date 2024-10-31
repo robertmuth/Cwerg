@@ -190,7 +190,7 @@ class TC(enum.Enum):
 
 DK_FLAVOR_S = 1 << 4   # signed int
 DK_FLAVOR_U = 2 << 4  # unsigned int
-DK_FLAVOR_F = 3 << 4  # ieee floating point
+DK_FLAVOR_R = 3 << 4  # ieee floating point
 DK_FLAVOR_A = 4 << 4  # data address
 DK_FLAVOR_C = 5 << 4  # code address
 
@@ -219,10 +219,10 @@ class DK(enum.Enum):
     U32 = DK_FLAVOR_U + _DK_WIDTH_32
     U64 = DK_FLAVOR_U + _DK_WIDTH_64
     # float
-    F8 = DK_FLAVOR_F + _DK_WIDTH_8
-    F16 = DK_FLAVOR_F + _DK_WIDTH_16
-    F32 = DK_FLAVOR_F + _DK_WIDTH_32
-    F64 = DK_FLAVOR_F + _DK_WIDTH_64
+    R8 = DK_FLAVOR_R + _DK_WIDTH_8
+    R16 = DK_FLAVOR_R + _DK_WIDTH_16
+    R32 = DK_FLAVOR_R + _DK_WIDTH_32
+    R64 = DK_FLAVOR_R + _DK_WIDTH_64
     # data address
     A32 = DK_FLAVOR_A + _DK_WIDTH_32
     A64 = DK_FLAVOR_A + _DK_WIDTH_64
@@ -235,10 +235,10 @@ class DK(enum.Enum):
 
     def bitwidth(self) -> int:
         return 8 << (self.value & 0x7)
-    
+
     def __str__(self):
         return self.name
-    
+
     def __repr__(self):
         return self.name
 
@@ -257,14 +257,14 @@ def RegIsInt(rk: DK):
 TC_TO_CHECKER = {
     TC.ANY: lambda x: True,
     TC.ADDR_NUM: lambda x: x.flavor() != DK_FLAVOR_C,
-    TC.NUM: lambda x: x.flavor() in {DK_FLAVOR_U, DK_FLAVOR_S, DK_FLAVOR_F},
+    TC.NUM: lambda x: x.flavor() in {DK_FLAVOR_U, DK_FLAVOR_S, DK_FLAVOR_R},
     TC.INT: lambda x: x.flavor() in {DK_FLAVOR_U, DK_FLAVOR_S},
     TC.ADDR: lambda x: x.flavor() == DK_FLAVOR_A,
     TC.CODE: lambda x: x.flavor() == DK_FLAVOR_C,
     TC.SINT: lambda x: x.flavor() == DK_FLAVOR_S,
     TC.UINT: lambda x: x.flavor() == DK_FLAVOR_U,
     TC.ADDR_INT: RegIsAddrInt,
-    TC.FLT: lambda x: x.flavor() == DK_FLAVOR_F,
+    TC.FLT: lambda x: x.flavor() == DK_FLAVOR_R,
     TC.OFFSET: lambda x: x.flavor() in {DK_FLAVOR_U, DK_FLAVOR_S},
     # maybe change this to just U or S
 }
@@ -462,7 +462,7 @@ SUB = Opcode(0x11, "sub", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Subtraction: `dst := src1 - src2`
-             
+
              Note: `sub dst = 0 src` can be used to emulate `neg` for integers.
                     (for floating point use `dat = mul src -1.0`)
              """)
@@ -477,9 +477,9 @@ MUL = Opcode(0x12, "mul", OPC_KIND.ALU,
 DIV = Opcode(0x13, "div", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.NUM, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
-             """Division: `dst := src1 / src2` 
-             
-             Division by 0 and signed division of min_int by -1 are UB  
+             """Division: `dst := src1 / src2`
+
+             Division by 0 and signed division of min_int by -1 are UB
              """)
 
 ############################################################
@@ -491,7 +491,7 @@ XOR = Opcode(0x18, "xor", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Bitwise exclusive or: `dst := src1 ^ src2`
-             
+
              Note: `xor dst = src1  0b111...1` can be used to emulate `not`""",
              OA.COMMUTATIVE)
 
@@ -518,29 +518,29 @@ SHL = Opcode(0x1b, "shl", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Shift left: `dst := src1 << src2`
-                           
+
              dst: = src1 << (src2 % bitwidth(src1))""")
 
 SHR = Opcode(0x1c, "shr", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Shift right: `dst := src1 >> src2`
-                          
+
              dst: = src1 >> (src2 % bitwidth(src1))""")
 
 REM = Opcode(0x1d, "rem", OPC_KIND.ALU,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Modulo: `dst := src1 % src2`
-             
-              Modulo by 0 and signed modulo of min_int by -1 are UB  
+
+              Modulo by 0 and signed modulo of min_int by -1 are UB
               """)
 
 CLMUL = Opcode(0x1e, "clmul", OPC_KIND.ALU,
                [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                [TC.INT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                """NYI: Carry-less multiplication
-             
+
              def clmul(src1: int, src2: int) -> int:
                  dst = 0
                  for i in range(bitwidth(src1)):
@@ -590,9 +590,9 @@ BLE = Opcode(0x23, "ble", OPC_KIND.COND_BRA,
 SWITCH = Opcode(0x28, "switch", OPC_KIND.SWITCH, [OP_KIND.REG, OP_KIND.JTB],
                 [TC.UINT, TC.INVALID], OPC_GENUS.BASE,
                 """Multi target computed jump
-                
+
                 The reg argument must be less than the jtb `size`.
-                
+
                 The jtb symbol must have been previously defined with the `.jtb` directive.
                 """,
                 OA.BBL_TERMINATOR | OA.NO_FALL_THROUGH)
@@ -611,15 +611,15 @@ BSR = Opcode(0x2b, "bsr", OPC_KIND.BSR, [OP_KIND.FUN],
 JSR = Opcode(0x2c, "jsr", OPC_KIND.JSR, [OP_KIND.REG, OP_KIND.FUN],
              [TC.CODE, TC.INVALID], OPC_GENUS.BASE,
              """Call fun indirectly through reg (jump to subroutine)
-             
+
              Note: fun describes the signature which must have been previously defined with the `.fun` directive.""",
              OA.CALL)
 
 SYSCALL = Opcode(0x2d, "syscall", OPC_KIND.SYSCALL,
                  [OP_KIND.FUN, OP_KIND.CONST],
                  [TC.INVALID, TC.UINT], OPC_GENUS.BASE,
-                 """Syscall to `syscall_no` 
-                 
+                 """Syscall to `syscall_no`
+
                  Note: fun describes the signature which must have been previously defined with the `.fun` directive.""",
                  OA.CALL)
 
@@ -633,15 +633,15 @@ TRAP = Opcode(0x2e, "trap", OPC_KIND.RET, [],
 
 PUSHARG = Opcode(0x30, "pusharg", OPC_KIND.PUSHARG, [OP_KIND.REG_OR_CONST],
                  [TC.ANY], OPC_GENUS.BASE,
-                 """Push a call or return arg 
-                 
+                 """Push a call or return arg
+
                  Note: must immediately precede bsr/jsr or ret.""",
                  OA.SPECIAL)
 
 POPARG = Opcode(0x31, "poparg", OPC_KIND.POPARG, [OP_KIND.REG],
                 [TC.ANY], OPC_GENUS.BASE,
-                """Pop a call or return arg 
-                
+                """Pop a call or return arg
+
                 Note: must immediately follow fun entry or bsr/jsr.""",
                 OA.SPECIAL)
 
@@ -649,7 +649,7 @@ CONV = Opcode(0x32, "conv", OPC_KIND.CONV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
               [TC.NUM, TC.NUM], OPC_GENUS.BASE,
               # TODO: specify rounding and overflow for float <-> int conversions
               """Conversion of numerical regs
-              
+
               Note: regs do not have to be of same size. Bits may change.
               If the conversion involves both a widening and a change of type, the widening is performed
               first. """)
@@ -658,17 +658,17 @@ BITCAST = Opcode(0x33, "bitcast", OPC_KIND.CONV,
                  [OP_KIND.REG, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_SIZE_AS_PREV], OPC_GENUS.BASE,
                  """Cast between regs of same size
-                 
-                 Note: Bits will be re-interpreted but do not change. 
-                 This is useful for manipulating addresses in unusual ways or 
+
+                 Note: Bits will be re-interpreted but do not change.
+                 This is useful for manipulating addresses in unusual ways or
                  looking at the  binary representation of floats.""")
 
 MOV = Opcode(0x34, "mov", OPC_KIND.MOV, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
              [TC.ANY, TC.SAME_AS_PREV], OPC_GENUS.BASE,
              """Move between registers
-             
-             While a mov can be emulated via a `add dst = src 0`, 
-             having a dedicated instruction makes some optimizations easier to 
+
+             While a mov can be emulated via a `add dst = src 0`,
+             having a dedicated instruction makes some optimizations easier to
              implement when combined with a canonicalization.""")
 
 CMPEQ = Opcode(0x35, "cmpeq", OPC_KIND.CMP,
@@ -678,7 +678,7 @@ CMPEQ = Opcode(0x35, "cmpeq", OPC_KIND.CMP,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
                """Conditional move (if equal): `dst := (cmp1 == cmp2) ? src1 : src2`
-               
+
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""",
                OA.COMMUTATIVE)
 
@@ -688,8 +688,8 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
                [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV, TC.ADDR_NUM,
                 TC.SAME_AS_PREV],
                OPC_GENUS.BASE,
-               """Conditional move (if less than): `dst := (cmp1 < cmp2) ? src1 : src2` 
-               
+               """Conditional move (if less than): `dst := (cmp1 < cmp2) ? src1 : src2`
+
                Note: dst/cmp1/cmp2 may be of a different type than src1/src2.""")
 
 
@@ -697,8 +697,8 @@ CMPLT = Opcode(0x36, "cmplt", OPC_KIND.CMP,
 LEA = Opcode(0x38, "lea", OPC_KIND.LEA,
              [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
              [TC.ADDR, TC.SAME_AS_PREV, TC.OFFSET], OPC_GENUS.BASE,
-             """Load effective address: `dst  := base + offset`  
-             
+             """Load effective address: `dst  := base + offset`
+
              Note: dst and base are addresses but offset is not.""")
 
 LEA_MEM = Opcode(0x39, "lea.mem", OPC_KIND.LEA,
@@ -713,8 +713,8 @@ LEA_STK = Opcode(0x3a, "lea.stk", OPC_KIND.LEA,
 
 LEA_FUN = Opcode(0x3b, "lea.fun", OPC_KIND.LEA1, [OP_KIND.REG, OP_KIND.FUN],
                  [TC.CODE, TC.INVALID], OPC_GENUS.BASE,
-                 """Load effective fun address: `dst := base` 
-                 
+                 """Load effective fun address: `dst := base`
+
                  Note: no offset""")
 
 ############################################################
@@ -767,10 +767,10 @@ CAS = Opcode(0x48, "cas", OPC_KIND.CAS,
                  OP_KIND.REG, OP_KIND.REG_OR_CONST],
              [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                  TC.ADDR, TC.OFFSET], OPC_GENUS.BASE,
-             """Atomic Compare and Swap  
-                
-                addr = base + offset 
-                dst = RAM[addr] 
+             """Atomic Compare and Swap
+
+                addr = base + offset
+                dst = RAM[addr]
                 if dst == cmp: RAM[addr] = src
              """,
              OA.MEM_WR)
@@ -780,10 +780,10 @@ CAS_MEM = Opcode(0x49, "cas.mem", OPC_KIND.CAS,
                      OP_KIND.MEM, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 """Atomic Compare and Swap  
-                    
-                    addr = base + offset 
-                    dst = RAM[addr] 
+                 """Atomic Compare and Swap
+
+                    addr = base + offset
+                    dst = RAM[addr]
                     if dst == cmp: RAM[addr] = src
                  """,
                  OA.MEM_WR)
@@ -793,10 +793,10 @@ CAS_STK = Opcode(0x4a, "cas.stk", OPC_KIND.CAS,
                      OP_KIND.STK, OP_KIND.REG_OR_CONST],
                  [TC.ANY, TC.SAME_AS_PREV, TC.SAME_AS_PREV,
                      TC.INVALID, TC.OFFSET], OPC_GENUS.BASE,
-                 """AtomicCompare and Swap  
+                 """AtomicCompare and Swap
 
-                    addr = base + offset 
-                    dst = RAM[addr] 
+                    addr = base + offset
+                    dst = RAM[addr]
                     if dst == cmp: RAM[addr] = src
              """,
                  OA.MEM_WR)
@@ -829,7 +829,7 @@ TRUNC = Opcode(0x53, "trunc", OPC_KIND.ALU1,
 COPYSIGN = Opcode(0x54, "copysign", OPC_KIND.ALU, [OP_KIND.REG, OP_KIND.REG_OR_CONST, OP_KIND.REG_OR_CONST],
                   [TC.FLT, TC.SAME_AS_PREV, TC.SAME_AS_PREV], OPC_GENUS.BASE,
                   """Set the sign of src1 to match src2 (floating point only)
-                  
+
                   Note: `copysign dst src1 0.0` can be used to emulate `abs`""")
 
 SQRT = Opcode(0x55, "sqrt", OPC_KIND.ALU1, [OP_KIND.REG, OP_KIND.REG_OR_CONST],
@@ -890,7 +890,7 @@ NOP = Opcode(0x70, "nop", OPC_KIND.NOP, [],
 NOP1 = Opcode(0x71, "nop1", OPC_KIND.NOP1, [OP_KIND.REG],
               [TC.ANY], OPC_GENUS.BASE,
               """nop with one reg - internal use
-              
+
               Note: Can be used to `reserve` a reg for code generation.""",
               OA.SPECIAL)
 
@@ -910,14 +910,14 @@ INLINE = Opcode(0x78, "inline", OPC_KIND.INLINE, [OP_KIND.BYTES],
 GETFP = Opcode(0x79, "getfp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
                [TC.ADDR], OPC_GENUS.BASE,
                """Materialize the frame-pointer
-             
+
              Get the stack-pointer's value before the call. Used mainly to interface with
              the Linux execution environment at program startup.""")
 
 GETSP = Opcode(0x7a, "getsp", OPC_KIND.GETSPECIAL, [OP_KIND.REG],
                [TC.ADDR], OPC_GENUS.BASE,
                """Materialize the stack-pointer
-             
+
              Get the current stack-pointer. Used mainly to interface with
              the Linux execution environment after a clone syscall.""")
 

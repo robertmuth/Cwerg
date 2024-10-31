@@ -94,16 +94,16 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
         scratch = fun.GetScratchReg(o.DK.U32, "cas", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     elif (opc is o.CONV and o.RegIsInt(ins.operands[0].kind) and
-          ins.operands[1].kind.flavor() == o.DK_FLAVOR_F):
+          ins.operands[1].kind.flavor() == o.DK_FLAVOR_R):
         # need scratch for intermediate ftl result
         # we know the result cannot be wider than 32bit for this CPU
-        scratch = fun.GetScratchReg(o.DK.F32, "ftoi", False)
+        scratch = fun.GetScratchReg(o.DK.R32, "ftoi", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     elif (opc is o.CONV and o.RegIsInt(ins.operands[1].kind) and
-          ins.operands[0].kind is o.DK.F64):
+          ins.operands[0].kind is o.DK.R64):
         # need scratch for intermediate ftl result
         # we know the result cannot be wider than 32bit for this CPU
-        scratch = fun.GetScratchReg(o.DK.F32, "itof", False)
+        scratch = fun.GetScratchReg(o.DK.R32, "itof", False)
         return [ir.Ins(o.NOP1, [scratch]), ins]
     return [ins]
 
@@ -367,7 +367,7 @@ _ALLOWED_OPERAND_TYPES_REG = {
     o.DK.U32, o.DK.S32, o.DK.A32, o.DK.C32,
     o.DK.U8, o.DK.S8,
     o.DK.U16, o.DK.S16,
-    o.DK.F32, o.DK.F64,
+    o.DK.R32, o.DK.R64,
 }
 
 
@@ -573,7 +573,7 @@ def InitCondBra():
 
     # * we do not have a story for the unordered case
     # * comparison against zero should be special cased
-    for kind, cmp in [(o.DK.F32, "vcmp_f32"), (o.DK.F64, "vcmp_f64")]:
+    for kind, cmp in [(o.DK.R32, "vcmp_f32"), (o.DK.R64, "vcmp_f64")]:
         for opc, pred in [(o.BEQ, arm.PRED.eq), (o.BNE, arm.PRED.ne),
                           (o.BLT, arm.PRED.mi), (o.BLE, arm.PRED.ls)]:
             Pattern(opc, [kind, kind, o.DK.INVALID],
@@ -657,7 +657,7 @@ def InitCmp():
                         imm_kind1=imm1, imm_kind2=imm2, imm_kind3=IMM_CURB.pos_8_bits_shifted)
 
     for kind in [o.DK.U32, o.DK.A32, o.DK.S32, o.DK.C32]:
-        for kind2, cmp in [(o.DK.F32, "vcmpe_f32"), (o.DK.F64, "vcmpe_f64")]:
+        for kind2, cmp in [(o.DK.R32, "vcmpe_f32"), (o.DK.R64, "vcmpe_f64")]:
             Pattern(o.CMPLT, [kind] * 3 + [kind2] * 2,
                     [InsTmpl(cmp, [PARAM.reg3, PARAM.reg4]),
                      InsTmpl("vmrs_APSR_nzcv_fpscr", []),
@@ -761,7 +761,7 @@ def InitLoad():
                              [PARAM.reg0, arm.REG.sp, PARAM.reg0, arm.SHIFT.lsl, 0])],
                     imm_kind2=IMM_CURB.any_32_bits)
 
-    for kind1, opc in [(o.DK.F32, "vldr_f32"), (o.DK.F64, "vldr_f64")]:
+    for kind1, opc in [(o.DK.R32, "vldr_f32"), (o.DK.R64, "vldr_f64")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.LD, [kind1, o.DK.A32, kind2],
                     [InsTmpl(opc + "_add", [PARAM.reg0, PARAM.reg1, PARAM.num2])],
@@ -852,7 +852,7 @@ def InitStore():
                                                 arm.SHIFT.lsl, 0, PARAM.reg2])],
                     imm_kind1=IMM_CURB.any_32_bits)
 
-    for kind1, opc in [(o.DK.F32, "vstr_f32"), (o.DK.F64, "vstr_f64")]:
+    for kind1, opc in [(o.DK.R32, "vstr_f32"), (o.DK.R64, "vstr_f64")]:
         for kind2 in [o.DK.U32, o.DK.S32]:
             Pattern(o.ST, [o.DK.A32, kind2, kind1],
                     [InsTmpl(opc + "_add", [PARAM.reg0, PARAM.num1, PARAM.reg2])],
@@ -1091,7 +1091,7 @@ def InitMiscBra():
 
 
 def InitVFP():
-    for kind, suffix in [(o.DK.F32, "_f32"), (o.DK.F64, "_f64")]:
+    for kind, suffix in [(o.DK.R32, "_f32"), (o.DK.R64, "_f64")]:
         Pattern(o.MOV, [kind] * 2,
                 [InsTmpl("vmov" + suffix, [PARAM.reg0, PARAM.reg1])])
         Pattern(o.ADD, [kind] * 3,
@@ -1115,21 +1115,21 @@ def InitVFP():
                 [InsTmpl("vcvt_u32" + suffix, [PARAM.scratch_flt, PARAM.reg1]),
                  InsTmpl("vmov_stoa", [PARAM.reg0, PARAM.scratch_flt])])
 
-    Pattern(o.CONV, [o.DK.F32, o.DK.S32],
+    Pattern(o.CONV, [o.DK.R32, o.DK.S32],
             [InsTmpl("vmov_atos", [PARAM.reg0, PARAM.reg1]),
              InsTmpl(f"vcvt_f32_s32", [PARAM.reg0, PARAM.reg0])])
 
-    Pattern(o.CONV, [o.DK.F32, o.DK.U32],
+    Pattern(o.CONV, [o.DK.R32, o.DK.U32],
             [InsTmpl("vmov_atos", [PARAM.reg0, PARAM.reg1]),
              InsTmpl(f"vcvt_f32_u32", [PARAM.reg0, PARAM.reg0])])
 
     # note, we could use a hack where d[x] is mapped to s[x*2] for scratch
     # but this would not work for d16-d31 should want to support them
-    Pattern(o.CONV, [o.DK.F64, o.DK.S32],
+    Pattern(o.CONV, [o.DK.R64, o.DK.S32],
             [InsTmpl("vmov_atos", [PARAM.scratch_flt, PARAM.reg1]),
              InsTmpl(f"vcvt_f64_s32", [PARAM.reg0, PARAM.scratch_flt])])
 
-    Pattern(o.CONV, [o.DK.F64, o.DK.U32],
+    Pattern(o.CONV, [o.DK.R64, o.DK.U32],
             [InsTmpl("vmov_atos", [PARAM.scratch_flt, PARAM.reg1]),
              InsTmpl(f"vcvt_f64_u32", [PARAM.reg0, PARAM.scratch_flt])])
 
