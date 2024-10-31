@@ -38,7 +38,9 @@ of state of the art compilers) in favor of a small code base that can be
 understood by a single developer and very fast translation times.
 Explicit line number targets are in place to prevent feature creep:
 * frontend: 10kLOC
-* backend 10kLOC (target independent code) + 5kLOC (per target)
+  ([current counts](FE/CLOC.md))
+* backend 10kLOC (target independent code) + 5kLOC(per target
+  ([current counts](BE/CLOC.md))
 
 
 ## Inspirations

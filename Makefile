@@ -60,46 +60,10 @@ lint:
 	mypy .
 
 
-# --by-file
-CLOC_FLAGS = -quiet --hide-rate --match-d='Base|CodeGenA32|CodeGen.*|Cpu.*|Elf|Tools|Util'
-
-#@ cloc - print lines of code stats
-#@
 cloc:
-	@echo
-	@echo "## Regular Code"
-	@echo
-	@cloc ${CLOC_FLAGS} '--match-f=[.](py|cc|h)$$' '--not-match-f=(_test|_tab|_gen.*)[.](py|h|cc)$$' .
-	@echo
-	@echo "## Tables"
-	@echo
-	@cloc ${CLOC_FLAGS} '--match-f=_tab[.](py|cc|h)$$' .
-	@echo
-	@echo "## Generated Code"
-	@echo
-	@cloc ${CLOC_FLAGS} '--match-f=_gen.*[.](py|cc|h)$$' .
-	@echo
-	@echo "## Testing Code"
-	@echo
-	@cloc ${CLOC_FLAGS} '--match-f=_test[.](py|cc|h)$$' .
-	@echo
-	@echo "## Breakdown: Table Files"
-	@echo
-	@cloc ${CLOC_FLAGS} --by-file  '--match-f=_tab[.](py|cc|h)$$' .
-	@echo
-	@echo "## Breakdown: Generated Files"
-	@echo
-	@cloc ${CLOC_FLAGS} --by-file  '--match-f=_gen.*[.](py|cc|h)$$' .
-	@echo
-	@echo "## Breakdown: Regular Files"
-	@echo
-	@cloc ${CLOC_FLAGS} --by-file '--match-f=[.](py|cc|h)$$' '--not-match-f=(_tab|_gen.*)[.](py|cc|h)$$' .
+	./cloc.sh frontend > FE/CLOC.md
+	./cloc.sh backend > BE/CLOC.md
 
-
-#@ CLOC.txt - update line count stats
-#@
-CLOC.txt:
-	make -s cloc | grep -v "github.com" > $@
 
 #@ format - reformat python and c(++) files
 #@
@@ -113,8 +77,6 @@ TestData/nano_jpeg.32.asm::
 
 TestData/nano_jpeg.64.asm::
 	$(PYPY) FrontEndC/translate.py  --cpp_args=-IStdLib --mode=64  FrontEndC/TestData/nanojpeg.c > $@
-
-
 
 
 include_stats:
