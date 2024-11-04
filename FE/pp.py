@@ -79,29 +79,37 @@ def _prec2(node: cwast.Expr2):
     return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind]
 
 
+_FUNCTIONAL_BINOPS = (cwast.BINARY_EXPR_KIND.MAX, cwast.BINARY_EXPR_KIND.MIN)
+_FUNCTIONAL_UNOPS = (cwast.UNARY_EXPR_KIND.ABS, cwast.UNARY_EXPR_KIND.SQRT)
+
+
 def NodeNeedsParen(node, parent, field: str):
     """Do we need to add parenthesese around an expression
     so that the (naive) concrete syntax emitter does not
     produce invalid code.
     """
     if isinstance(parent, cwast.Expr2):
+        if parent.binary_expr_kind in _FUNCTIONAL_BINOPS:
+            return False
         if field == "expr1":
             if isinstance(node, cwast.Expr2):
                # parent: (expr2 node ...)
                # BAD EXAMPLES:
                # (* (+ a b ) c) =>  a + b * c
-                return _prec2(node) < _prec2(parent)
+                return _prec2(node) < _prec2(parent) and node.binary_expr_kind not in _FUNCTIONAL_BINOPS
         if field == "expr2":
             if isinstance(node, cwast.Expr2):
                 # parent: (expr2 ... node)
                 # BAD EXAMPLES:
                 # (* c (+ a b)) =>  c * a + b
                 # (/ c (/ a b)) =>  c / a / b
-                return _prec2(node) <= _prec2(parent)
-    if isinstance(parent, cwast.Expr1) and parent.unary_expr_kind in cwast.UNARY_EXPR_SHORTCUT_CONCRETE:
+                return _prec2(node) <= _prec2(parent) and node.binary_expr_kind not in _FUNCTIONAL_BINOPS
+    elif isinstance(parent, cwast.Expr1):
+        if parent.unary_expr_kind in _FUNCTIONAL_UNOPS:
+            return False
         # BAD EXAMPLES:
         # (! (< a b)) => ! a < b
-        return isinstance(node, cwast.Expr2)
+        return isinstance(node, cwast.Expr2) and node.binary_expr_kind not in _FUNCTIONAL_BINOPS
 
     return False
 
@@ -555,6 +563,7 @@ def WithMut(name: str, mutable: bool) -> str:
 def KW(node) -> str:
     return node.ALIAS
 
+
 def TokensExpr1(ts: TS, node: cwast.Expr1):
     sym = cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV.get(node.unary_expr_kind)
     if sym:
@@ -562,6 +571,14 @@ def TokensExpr1(ts: TS, node: cwast.Expr1):
     else:
         sym = cwast.UNARY_EXPR_SHORTCUT_INV.get(node.unary_expr_kind)
         TokensFunctional(ts, sym, [node.expr]),
+
+
+def TokensExpr2(ts: TS, n: cwast.Expr2):
+    kind = n.binary_expr_kind
+    if kind in _FUNCTIONAL_BINOPS:
+        return TokensFunctional(ts, cwast.BINARY_EXPR_SHORTCUT_INV[kind], [n.expr1, n.expr2])
+    else:
+        return TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[kind], n.expr1, n.expr2, n)
 
 
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
@@ -606,6 +623,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
     cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
     cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
+    cwast.ExprSrcLoc: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
     cwast.ExprCall: lambda ts, n: TokensFunctional(ts, n.callee, n.args),
     cwast.ExprPointer: lambda ts, n: TokensFunctional(
         ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
@@ -613,8 +631,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
     #
     cwast.Expr1: TokensExpr1,
-    cwast.Expr2: lambda ts, n: TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[n.binary_expr_kind],
-                                                 n.expr1, n.expr2, n),
+    cwast.Expr2: TokensExpr2,
     cwast.Expr3: EmitExpr3,
     cwast.ExprIndex: TokensExprIndex,
     cwast.ExprField: lambda ts, n: TokensBinaryInfixNoSpace(ts, ".", n.container, n.field, n),
