@@ -87,7 +87,7 @@ _KEYWORDS_SIMPLE = [
                          #
                          cwast.ValUndef,
                          #
-                         cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden,
+                         cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden, cwast.ExprSrcLoc,
                          cwast.ExprBitCast, cwast.ExprUnsafeCast, cwast.ExprNarrow, cwast.ExprTypeId,
                          cwast.ExprOffsetof, cwast.ExprSizeof, cwast.ExprLen, cwast.ExprStringify]]
 
@@ -471,6 +471,7 @@ _FUN_LIKE = {
     cwast.ExprBitCast.ALIAS: (cwast.ExprBitCast, "ET"),
     #
     cwast.ExprStringify.ALIAS: (cwast.ExprStringify, "E"),
+    cwast.ExprSrcLoc.ALIAS: (cwast.ExprSrcLoc, "E"),
 }
 
 

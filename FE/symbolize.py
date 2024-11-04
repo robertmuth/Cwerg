@@ -194,7 +194,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
     while cwast.NF.TO_BE_EXPANDED in node.FLAGS:
         assert nesting < MAX_MACRO_NESTING
         if isinstance(node, cwast.ExprSrcLoc):
-            return cwast.ValString(f"{node.expr.x_srcloc}")
+            return cwast.ValString(f"{node.expr.x_srcloc}", x_srcloc=node.x_srcloc)
         elif isinstance(node, cwast.ExprStringify):
             # assert isinstance(node.expr, cwast.Id)
             return cwast.ValString(f'{node.expr}', strkind="raw", x_srcloc=node.x_srcloc)
