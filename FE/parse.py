@@ -1024,6 +1024,8 @@ def _ParseStatementList(inp: Lexer, outer_indent: int):
         tk = inp.peek()
         if tk.column < indent:
             break
+        if tk.column != indent:
+            cwast.CompilerError(tk.srcloc, "Bad indent")
         stmt = _ParseStatement(inp)
         logger.info("STATEMENT: %s", stmt)
         out.append(stmt)
