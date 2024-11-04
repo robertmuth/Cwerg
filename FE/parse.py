@@ -82,6 +82,8 @@ _KEYWORDS_SIMPLE = [
     #
     "abs",
     "sqrt",
+    "min",
+    "max",
 ] + [nt.ALIAS for nt in [cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta,
                          cwast.ExprUnionTag, cwast.ExprIs,
                          #
@@ -125,7 +127,9 @@ COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
 
-_operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT]
+_operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
+               if x not in ("max", "min")]
+
 
 _operators1 = [re.escape(x) for x in _OPERATORS_SIMPLE1]
 
@@ -442,7 +446,8 @@ def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
 _FUN_LIKE = {
     "abs": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.ABS, x, **kw), "E"),
     "sqrt": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.SQRT, x, **kw), "E"),
-
+    "max": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.MAX, x, y, **kw), "EE"),
+    "min": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.MIN, x, y, **kw), "EE"),
     cwast.ExprLen.ALIAS: (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),
@@ -738,6 +743,8 @@ _INFIX_EXPR_PARSERS = {
     #
     "<<": (pp.PREC2_SHIFT, _PParserInfixOp),
     ">>": (pp.PREC2_SHIFT, _PParserInfixOp),
+    "<<<": (pp.PREC2_SHIFT, _PParserInfixOp),
+    ">>>": (pp.PREC2_SHIFT, _PParserInfixOp),
     #
     "&-&": (10, _PParserInfixOp),
     #
@@ -745,8 +752,8 @@ _INFIX_EXPR_PARSERS = {
     "or": (pp.PREC2_ADD, _PParserInfixOp),
     "and": (pp.PREC2_MUL, _PParserInfixOp),
     #
-    "min": (pp.PREC2_MAX, _PParserInfixOp),
-    "max": (pp.PREC2_MAX, _PParserInfixOp),
+    # "min": (pp.PREC2_MAX, _PParserInfixOp),
+    # "max": (pp.PREC2_MAX, _PParserInfixOp),
 
     #
     "(": (20, _PParseFunctionCall),

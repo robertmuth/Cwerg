@@ -81,7 +81,7 @@ pub fun ends_with(haystack span(u8), needle span(u8)) bool:
 pub fun cmp(aslice span(u8), bslice span(u8)) sint:
     let alen uint = len(aslice)
     let blen uint = len(bslice)
-    let n uint = alen min blen
+    let n uint = min(alen, blen)
     let aptr ^u8 = front(aslice)
     let bptr ^u8 = front(bslice)
     let! i uint = 0

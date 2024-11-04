@@ -195,7 +195,7 @@ global test_image = x"""
 fun dump() void:
     let! data span(u8) = test_image
     while len(data) > 0:
-        let n uint = len(data) min 1024
+        let n uint = min(len(data), 1024)
         fmt::print#(span(front(data), n))
         set data = span(pinc(front(data), n), len(data) - n)
 

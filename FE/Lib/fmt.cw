@@ -27,7 +27,7 @@ pub rec SysFormatOptions:
 
 fun SysRender@(v bool, buffer span!(u8), options ^!SysFormatOptions) uint:
     let s = v ? as("true", span(u8)) : as("false", span(u8))
-    let n uint = len(buffer) min len(s)
+    let n uint = min(len(buffer), len(s))
     return mymemcpy(front!(buffer), front(s), n)
 
 pub fun str_to_u32(s span(u8)) u32:
@@ -57,11 +57,11 @@ fun SysRender@(v s32, out span!(u8), options ^!SysFormatOptions) uint:
     return fmt_int::FmtDec@(v, out)
 
 fun SysRender@(v span(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
-    let n uint = len(buffer) min len(v)
+    let n uint = min(len(buffer), len(v))
     return mymemcpy(front!(buffer), front(v), n)
 
 fun SysRender@(v span!(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
-    let n uint = len(buffer) min len(v)
+    let n uint = min(len(buffer), len(v))
     return mymemcpy(front!(buffer), front(v), n)
 
 pub wrapped type uint_hex = uint

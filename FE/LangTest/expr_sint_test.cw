@@ -6,8 +6,8 @@ import test
 fun test_s64(a s64, b s64) void:
     test::AssertEq#(a + b, 0x9999999999999999_s64)
     test::AssertEq#(a - b, 0x7530eca97530eca9_s64)
-    test::AssertEq#(a max b, 0x1234567812345678_s64)
-    test::AssertEq#(a min b, 0x8765432187654321_s64)
+    test::AssertEq#(max(a, b), 0x1234567812345678_s64)
+    test::AssertEq#(min(a, b), 0x8765432187654321_s64)
     test::AssertEq#(a or b, 0x9775577997755779_s64)
     test::AssertEq#(a and b, 0x0224422002244220_s64)
     test::AssertEq#(a xor b, 0x9551155995511559_s64)
@@ -41,8 +41,8 @@ fun test_s64(a s64, b s64) void:
 fun test_s32(a s32, b s32) void:
     test::AssertEq#(a + b, 0x99999999_s32)
     test::AssertEq#(a - b, 0x7530eca9_s32)
-    test::AssertEq#(a max b, 0x12345678_s32)
-    test::AssertEq#(a min b, 0x87654321_s32)
+    test::AssertEq#(max(a, b), 0x12345678_s32)
+    test::AssertEq#(min(a, b), 0x87654321_s32)
     test::AssertEq#(a or b, 0x97755779_s32)
     test::AssertEq#(a and b, 0x02244220_s32)
     test::AssertEq#(a xor b, 0x95511559_s32)
@@ -79,8 +79,8 @@ fun test_s32(a s32, b s32) void:
 fun test_s16(a s16, b s16) void:
     test::AssertEq#(a + b, 0x9999_s16)
     test::AssertEq#(a - b, 0x7531_s16)
-    test::AssertEq#(a max b, 0x1234_s16)
-    test::AssertEq#(a min b, 0x8765_s16)
+    test::AssertEq#(max(a, b), 0x1234_s16)
+    test::AssertEq#(min(a, b), 0x8765_s16)
     test::AssertEq#(a or b, 0x9775_s16)
     test::AssertEq#(a and b, 0x0224_s16)
     test::AssertEq#(a xor b, 0x9551_s16)
@@ -116,8 +116,8 @@ fun test_s16(a s16, b s16) void:
 fun test_s8(a s8, b s8) void:
     test::AssertEq#(a + b, 0xff_s8)
     test::AssertEq#(a - b, 0xf_s8)
-    test::AssertEq#(a max b, 0x78_s8)
-    test::AssertEq#(a min b, 0x87_s8)
+    test::AssertEq#(max(a, b), 0x78_s8)
+    test::AssertEq#(min(a, b), 0x87_s8)
     test::AssertEq#(a or b, 0xff_s8)
     test::AssertEq#(a and b, 0x0_s8)
     test::AssertEq#(a xor b, 0xff_s8)
