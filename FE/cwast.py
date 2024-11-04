@@ -174,7 +174,6 @@ class BINARY_EXPR_KIND(enum.Enum):
 
 
 BINARY_EXPR_SHORTCUT = {
-    # Note: order is lexer friendly - longest match first
     #
     "<<": BINARY_EXPR_KIND.SHL,
     ">>": BINARY_EXPR_KIND.SHR,
@@ -2967,6 +2966,8 @@ BINOP_OPS_HAVE_SAME_TYPE = {
     #
     BINARY_EXPR_KIND.SHL,
     BINARY_EXPR_KIND.SHR,
+    BINARY_EXPR_KIND.ROTL,
+    BINARY_EXPR_KIND.ROTR,
     #
     BINARY_EXPR_KIND.AND,
     BINARY_EXPR_KIND.OR,
