@@ -413,7 +413,7 @@ def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
                 ts.EmitSep(",")
         sep = True
         if isinstance(a, cwast.Id):
-            ts.EmitAttr(a.name)
+            ts.EmitAttr(a.FullName())
         elif isinstance(a, cwast.EphemeralList):
             if a.colon:
                 assert beg_invoke is not None
@@ -441,8 +441,10 @@ def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     """Handle Expression Macros"""
     if node.name == "^.":
         assert len(node.args) == 2
+        field_name = node.args[1]
+        assert isinstance(field_name, cwast.Id)
         TokensBinaryInfixNoSpace(
-            ts, "^.", node.args[0], node.args[1].name, node)
+            ts, "^.", node.args[0], field_name.GetBaseNameStrict(), node)
         return
     ts.EmitName(node.name)
     beg_paren = ts.EmitBegParen("(")
@@ -582,7 +584,7 @@ def TokensExpr2(ts: TS, n: cwast.Expr2):
 
 
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
-    cwast.Id: lambda ts, n:  (ts.EmitAttr(n.name)),
+    cwast.Id: lambda ts, n:  (ts.EmitAttr(n.FullName())),
     cwast.MacroId: lambda ts, n:  (ts.EmitAttr(n.name)),
     cwast.MacroInvoke: TokensExprMacroInvoke,
     #
@@ -612,7 +614,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
     cwast.ExprAs: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
     cwast.ExprIs: lambda ts, n: TokensFunctional(ts,  KW(n), [n.expr, n.type]),
-    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, cwast.Id(n.field)]),
+    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, cwast.Id.Make(n.field)]),
     cwast.ExprLen: lambda ts, n: TokensFunctional(ts, KW(n), [n.container]),
     cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
     cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
@@ -707,6 +709,14 @@ def _IsMacroWithBlock(node: cwast.MacroInvoke):
     return False
 
 
+def _GetOriginalVarName(node) -> str:
+    if isinstance(node, cwast.Id):
+        return node.FullName()
+    else:
+        assert isinstance(node, cwast.MacroId), f"{node}"
+        return node.name
+
+
 def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     """Handles Stmt Macros"""
     beg = ts.EmitStmtBeg(node.name)
@@ -716,8 +726,7 @@ def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
 
     args = node.args
     if node.name == "for":
-        assert isinstance(args[0], (cwast.Id, cwast.MacroId)), f"{args[0]}"
-        ts.EmitAttr(args[0].name)
+        ts.EmitAttr(_GetOriginalVarName(args[0]))
         args = args[1:]
         ts.EmitBinOp("=")
     elif node.name == "tryset":
@@ -725,8 +734,7 @@ def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         args = args[1:]
         ts.EmitBinOp("=")
     elif node.name == "trylet" or node.name == "trylet!":
-        assert isinstance(args[0], cwast.Id)
-        ts.EmitAttr(args[0].name)
+        ts.EmitAttr(_GetOriginalVarName(args[0]))
         EmitTokens(ts, args[1])
         args = args[2:]
         ts.EmitBinOp("=")

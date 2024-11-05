@@ -1190,6 +1190,10 @@ class Id:
             name += ":" + self.enum_name
         return name
 
+    def GetBaseNameStrict(self):
+        assert self.enum_name is None and self.mod_name is None
+        return self.base_name
+
     @staticmethod
     def Make(name: str, **kwargs):
         mod_name = None

@@ -88,8 +88,10 @@ class SymTab:
 
     def resolve_sym(self, ident: cwast.Id, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
+        # the mod_name has already been used to pick this SymTab
+        base_name = ident.base_name
         if ident.enum_name is not None:
-            s = self._syms.get(ident.base_name)
+            s = self._syms.get(base_name)
             if s:
                 assert isinstance(s, cwast.DefEnum)
                 if must_be_public:
@@ -98,11 +100,10 @@ class SymTab:
             cwast.CompilerError(
                 ident.x_srcloc, f"could not resolve enum base-name [{ident.enum_name}]")
 
-        out = self.resolve_sym_here(
-            ident.base_name, must_be_public, ident.x_srcloc)
+        out = self.resolve_sym_here(base_name, must_be_public, ident.x_srcloc)
         if not out:
             out = builtin_syms.resolve_sym_here(
-                ident.base_name, must_be_public, ident.x_srcloc)
+                base_name, must_be_public, ident.x_srcloc)
         return out
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke,
