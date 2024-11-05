@@ -230,7 +230,7 @@ def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
         if t[0] == "$":
             return cwast.MacroId(t, x_srcloc=srcloc)
         logger.info("ID %s at %s", t, srcloc)
-        return cwast.Id(t, x_srcloc=srcloc, **attr)
+        return cwast.Id.Make(t, x_srcloc=srcloc, **attr)
     elif len(t) >= 2 and t[0] == "'" and t[-1] == "'":
         logger.info("CHAR %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc, **attr)

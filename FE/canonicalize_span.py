@@ -71,7 +71,7 @@ def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.T
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
-    return cwast.Id(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec, x_srcloc=srcloc)
+    return cwast.Id.Make(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec, x_srcloc=srcloc)
 
 
 def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValRec:

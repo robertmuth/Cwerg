@@ -98,8 +98,8 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
             result_type: cwast.CanonType = result_param.type.x_type
             assert result_type.is_pointer()
             lhs = cwast.ExprDeref(
-                cwast.Id(result_param.name, x_srcloc=node.x_srcloc,
-                         x_type=result_type, x_symbol=result_param),
+                cwast.Id.Make(result_param.name, x_srcloc=node.x_srcloc,
+                              x_type=result_type, x_symbol=result_param),
                 x_srcloc=node.x_srcloc, x_type=result_type.underlying_pointer_type())
             assign = cwast.StmtAssignment(
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
@@ -153,8 +153,8 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                            call.args[n], ref=True,
                                            x_srcloc=call.x_srcloc)
                     expr_body.append(new_def)
-                    name = cwast.Id(new_def.name,
-                                    x_srcloc=call.x_srcloc, x_type=old, x_symbol=new_def)
+                    name = cwast.Id.Make(new_def.name,
+                                         x_srcloc=call.x_srcloc, x_type=old, x_symbol=new_def)
                     call.args[n] = cwast.ExprAddrOf(
                         name, x_srcloc=call.x_srcloc, x_type=new)
             if len(old_sig.parameter_types()) != len(new_sig.parameter_types()):
@@ -165,7 +165,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                        cwast.ValUndef(x_srcloc=call.x_srcloc),
                                        mut=True, ref=True,
                                        x_srcloc=call.x_srcloc)
-                name = cwast.Id(new_def.name, x_srcloc=call.x_srcloc,
+                name = cwast.Id.Make(new_def.name, x_srcloc=call.x_srcloc,
                                 x_type=old_sig.result_type(), x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.parameter_types()[-1]))

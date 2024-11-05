@@ -51,11 +51,12 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         assert node.name.startswith("$")
         kind, new_name = ctx.GetSymbol(node.name)
         assert kind is cwast.MACRO_PARAM_KIND.ID
+        # Why is this not a MacroVar
         assert isinstance(new_name, cwast.Id)
-        assert not new_name.name.startswith("$")
+        assert not new_name.base_name.startswith("$")
         type_or_auto = ExpandMacroRecursively(node.type_or_auto, ctx)
         initial = ExpandMacroRecursively(node.initial_or_undef_or_auto, ctx)
-        return cwast.DefVar(new_name.name, type_or_auto, initial,
+        return cwast.DefVar(new_name.base_name, type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
         assert node.name.startswith("$"), f" non macro name: {node}"
@@ -91,7 +92,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     elif isinstance(clone, (cwast.ExprField, cwast.ExprOffsetof)) and clone.field.startswith("$"):
         kind, arg = ctx.GetSymbol(clone.field)
         assert kind == cwast.MACRO_PARAM_KIND.FIELD, f"expexted id got {kind} {arg}"
-        clone.field = arg.name
+        clone.field = arg.base_name
 
     for c, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
@@ -147,7 +148,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
         assert gen_id.startswith("$")
         new_name = ctx.GenUniqueName(gen_id)
         ctx.RegisterSymbol(
-            gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, x_srcloc=macro.x_srcloc)))
+            gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id.Make(new_name, x_srcloc=macro.x_srcloc)))
     out = []
     for node in macro.body_macro:
         logger.debug("Expand macro body node: %s", node)

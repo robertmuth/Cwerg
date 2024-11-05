@@ -13,9 +13,6 @@ from typing import Optional, Union, Any, TypeAlias, NoReturn, Final
 logger = logging.getLogger(__name__)
 
 
-_ID_PATH_SEPARATOR = "::"
-
-
 MACRO_SUFFIX = "#"
 
 BUILT_IN_MACROS = set([
@@ -27,21 +24,6 @@ BUILT_IN_MACROS = set([
     "^.",
 ])
 
-
-def _GetQualifierIfPresent(name: str) -> Optional[str]:
-    tokens = name.split(_ID_PATH_SEPARATOR)
-    if len(tokens) == 2:
-        return tokens[0]
-    assert 1 == len(tokens)
-    return None
-
-
-def GetSymbolName(name: str) -> str:
-    return name.split(_ID_PATH_SEPARATOR)[-1]
-
-
-def IsQualifiedName(name: str) -> bool:
-    return _ID_PATH_SEPARATOR in name
 
 ############################################################
 # Enums
@@ -491,6 +473,9 @@ def _EnumValues(enum_class):
 ALL_FIELDS = [
     NfdStr("number", "a number"),
     NfdStr("name", "name of the object"),
+    NfdStr("mod_name", "name of the object"),
+    NfdStr("base_name", "name of the object"),
+    NfdStr("enum_name", "name of the object"),
 
     NfdStr("name_list", "name of the object list"),
 
@@ -995,7 +980,8 @@ class CanonType:
 
     def get_single_register_type(self) -> str:
         reg_type = self.register_types
-        assert reg_type is not None and len(reg_type) == 1, f"{self} {reg_type}"
+        assert reg_type is not None and len(reg_type) == 1, f"{
+            self} {reg_type}"
         return reg_type[0]
 
     def get_original_typeid(self):
@@ -1031,7 +1017,6 @@ class CanonType:
 
     def __str__(self):
         return self.name + ("☠" if self.replacement_type else " ")
-
 
 
 NO_TYPE = CanonType(None, "@invali@d")
@@ -1144,9 +1129,27 @@ class DefRec:
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name}"
 
+
 ############################################################
 # Identifier
 ############################################################
+_ID_PATH_SEPARATOR = "::"
+
+
+def _GetQualifierIfPresent(name: str) -> Optional[str]:
+    tokens = name.split(_ID_PATH_SEPARATOR)
+    if len(tokens) == 2:
+        return tokens[0]
+    assert 1 == len(tokens)
+    return None
+
+
+def GetSymbolName(name: str) -> str:
+    return name.split(_ID_PATH_SEPARATOR)[-1]
+
+
+def IsQualifiedName(name: str) -> bool:
+    return _ID_PATH_SEPARATOR in name
 
 
 @NodeCommon
@@ -1162,7 +1165,9 @@ class Id:
     GROUP = GROUP.Misc
     FLAGS = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
-    name: str          # id or mod::id or enum::id or mod::enum::id
+    mod_name: Optional[str]
+    base_name: str          # id or mod::id or enum::id or mod::enum:id
+    enum_name: Optional[str]
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1170,8 +1175,37 @@ class Id:
     x_symbol: Optional[Any] = None
     x_import: Import = INVALID_IMPORT  # which import the id is qualified with
 
+    def IsMacro(self):
+        return self.base_name.endswith("#")
+
+    def IsMacroVar(self):
+        return self.base_name.startswith("$")
+
+    def FullName(self):
+        name = ""
+        if self.mod_name:
+            name = self.mod_name + "::"
+        name += self.base_name
+        if self.enum_name:
+            name += ":" + self.enum_name
+        return name
+
+    @staticmethod
+    def Make(name: str, **kwargs):
+        mod_name = None
+        enum_name = None
+        pos = name.find(_ID_PATH_SEPARATOR)
+        if pos > 0:
+            mod_name = name[:pos]
+            name = name[pos + len(_ID_PATH_SEPARATOR):]
+        pos = name.find(":")
+        if pos > 0:
+            enum_name = name[pos + 1:]
+            name = name[:pos]
+        return Id(mod_name, name, enum_name, **kwargs)
+
     def __repr__(self):
-        return f"{NODE_NAME(self)} {self.name}"
+        return f"{NODE_NAME(self)} {self.FullName()}"
 
 
 @NodeCommon
@@ -1759,7 +1793,7 @@ class ExprCall:
     x_value: Optional[Any] = None
 
     def is_polymorphic(self) -> bool:
-        return isinstance(self.callee, Id) and self.callee.name.endswith("@")
+        return isinstance(self.callee, Id) and self.callee.base_name.endswith("@")
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.callee}"
@@ -3168,6 +3202,17 @@ def AnnotateImportsForQualifers(mod: DefMod):
     imports: dict[str, Import] = {}
     dummy_import = Import("$self", "", [], x_module=mod)
 
+    def annotate(node, q):
+        if q:
+            # only polymorphic functions may have qualifiers
+            if isinstance(node, DefFun):
+                assert node.is_polymorphic()
+            if q not in imports:
+                CompilerError(node.x_srcloc, f"unkown module {q}")
+            node.x_import = imports[q]
+        else:
+            node.x_import = dummy_import
+
     def visitor(node, _):
         nonlocal imports, dummy_import
         if isinstance(node, Import):
@@ -3175,17 +3220,10 @@ def AnnotateImportsForQualifers(mod: DefMod):
             if name in imports:
                 CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node
-        if isinstance(node, (Id, DefFun, MacroInvoke)):
-            q = _GetQualifierIfPresent(node.name)
-            if q:
-                # only polymorphic functions may have qualifiers
-                if isinstance(node, DefFun):
-                    assert node.is_polymorphic()
-                if q not in imports:
-                    CompilerError(node.x_srcloc, f"unkown module {q}")
-                node.x_import = imports[q]
-            else:
-                node.x_import = dummy_import
+        elif isinstance(node, (DefFun, MacroInvoke)):
+            annotate(node, _GetQualifierIfPresent(node.name))
+        elif isinstance(node, (Id, DefFun, MacroInvoke)):
+            annotate(node, node.mod_name)
 
     VisitAstRecursivelyPost(mod, visitor)
 
@@ -3304,7 +3342,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             if not pre_symbolize:
                 assert node.x_symbol is not None or isinstance(
                     node.x_import, Import), f"{node} without x_import"
-            if node.name.startswith("$"):
+            if node.IsMacroVar():
                 CompilerError(node.x_srcloc, f"{node} start with $")
         elif isinstance(node, MacroId):
             assert node.name.startswith("$")

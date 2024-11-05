@@ -26,7 +26,7 @@ SUM_FIELD_UNION = "union"
 
 
 def _MakeUnionReplacementStruct(union_type: cwast.CanonType,
-                              tc: type_corpus.TypeCorpus) -> cwast.DefRec:
+                                tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     assert not union_type.untagged
     fields = [
         (SUM_FIELD_TAG, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.TYPEID)),
@@ -81,8 +81,8 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
-    return cwast.Id(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec,
-                    x_srcloc=srcloc)
+    return cwast.Id.Make(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec,
+                         x_srcloc=srcloc)
 
 
 def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
@@ -117,16 +117,16 @@ def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.Canon
     value.type = cwast.TypeAuto(x_srcloc=srcloc, x_type=union_field.x_type)
 
     return _MakeValRecForUnion(sum_rec,
-                             _MakeTypeidVal(
-                                 value.expr.x_type.get_original_typeid(), srcloc, tag_field.x_type),
-                             value,
-                             srcloc)
+                               _MakeTypeidVal(
+                                   value.expr.x_type.get_original_typeid(), srcloc, tag_field.x_type),
+                               value,
+                               srcloc)
 
 
 def _CloneId(node: cwast.Id) -> cwast.Id:
     assert isinstance(node, cwast.Id)
-    return cwast.Id(node.name, x_symbol=node.x_symbol, x_type=node.x_type,
-                    x_srcloc=node.x_srcloc)
+    return cwast.Id.Make(node.FullName(), x_symbol=node.x_symbol, x_type=node.x_type,
+                         x_srcloc=node.x_srcloc)
 
 
 def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
@@ -185,8 +185,8 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.Cano
                                   x_type=dst_union_field.x_type)
 
     return _MakeValRecForUnion(dst_sum_rec,
-                             tag_value, union_value,
-                             srcloc)
+                               tag_value, union_value,
+                               srcloc)
 
 
 def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus.TypeCorpus):

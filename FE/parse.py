@@ -427,7 +427,7 @@ def _ParseExpr(inp: Lexer, precedence=0):
 def _PParseId(_inp: Lexer, tk: TK, _precedence) -> Any:
     if tk.text.startswith("$"):
         return cwast.MacroId(tk.text, x_srcloc=tk.srcloc)
-    return cwast.Id(tk.text, x_srcloc=tk.srcloc)
+    return cwast.Id.Make(tk.text, x_srcloc=tk.srcloc)
 
 
 def _PParseNum(_inp: Lexer, tk: TK, _precedence) -> Any:
@@ -502,9 +502,10 @@ def _ParseFunLike(inp: Lexer, name: TK) -> Any:
         if a == "E" or a == "e":
             params.append(_ParseExpr(inp))
         elif a == "S":
+            # used for field name
             f = _ParseExpr(inp)
             assert isinstance(f, cwast.Id)
-            params.append(f.name)
+            params.append(f.base_name)
         else:
             assert a == "T", f"unknown parameter [{a}]"
             params.append(_ParseTypeExpr(inp))
@@ -628,11 +629,12 @@ def _ParseMacroCallArgs(inp: Lexer, srloc) -> list[Any]:
 
 def _ParseExprMacro(name: cwast.Id, inp: Lexer):
     args = _ParseMacroCallArgs(inp, name.x_srcloc)
-    return cwast.MacroInvoke(name.name, args, x_srcloc=name.x_srcloc)
+    assert name.IsMacro()
+    return cwast.MacroInvoke(name.FullName(), args, x_srcloc=name.x_srcloc)
 
 
 def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
-    if isinstance(callee, cwast.Id) and callee.name.endswith("#"):
+    if isinstance(callee, cwast.Id) and callee.IsMacro():
         return _ParseExprMacro(callee, inp)
     assert tk.kind is TK_KIND.PAREN_OPEN
     args = []
@@ -661,7 +663,9 @@ def _ParseRecInit(inp: Lexer) -> Any:
     val = _ParseExpr(inp)
     if inp.match(TK_KIND.COLON):
         assert isinstance(val, cwast.Id)
-        field = val.name
+        assert val.mod_name is None
+        assert val.enum_name is None
+        field = val.base_name
         val = _ParseExpr(inp)
 
     else:
@@ -712,7 +716,7 @@ def _PParseFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
 
 def _PParseDerefFieldAccess(inp: Lexer, rec, tk: TK, _precedence) -> Any:
     field = inp.match_or_die(TK_KIND.ID)
-    return cwast.MacroInvoke("^.", [rec, cwast.Id(field.text, x_srcloc=field.srcloc)],
+    return cwast.MacroInvoke("^.", [rec, cwast.Id.Make(field.text, x_srcloc=field.srcloc)],
                              x_srcloc=tk.srcloc)
 
 
@@ -773,7 +777,7 @@ def _ParseTypeExpr(inp: Lexer):
     if tk.kind is TK_KIND.ID:
         if tk.text.startswith("$"):
             return cwast.MacroId(tk.text, **extra)
-        return cwast.Id(tk.text, **extra)
+        return cwast.Id.Make(tk.text, **extra)
     elif tk.kind is TK_KIND.KW:
         if tk.text == cwast.TypeAuto.ALIAS:
             return cwast.TypeAuto(**extra)
@@ -934,7 +938,7 @@ def _ParseStatement(inp: Lexer):
         name2 = inp.match_or_die(TK_KIND.ID)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
-                                 [cwast.Id(name.text, x_srcloc=name.srcloc), type, expr,  cwast.Id(name2.text, x_srcloc=name2.srcloc),
+                                 [cwast.Id.Make(name.text, x_srcloc=name.srcloc), type, expr,  cwast.Id.Make(name2.text, x_srcloc=name2.srcloc),
                                   cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
                                  **extra)
     elif kw.text == "tryset":
@@ -945,7 +949,7 @@ def _ParseStatement(inp: Lexer):
         name2 = inp.match_or_die(TK_KIND.ID)
         stmts = _ParseStatementList(inp, kw.column)
         return cwast.MacroInvoke(kw.text,
-                                 [lhs, expr,  cwast.Id(name2.text, x_srcloc=name2.srcloc),
+                                 [lhs, expr,  cwast.Id.Make(name2.text, x_srcloc=name2.srcloc),
                                   cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
                                  **extra)
     elif kw.text == "set":
@@ -969,7 +973,7 @@ def _ParseStatement(inp: Lexer):
         if name.text.startswith("$"):
             var = cwast.MacroId(name.text, x_srcloc=name.srcloc)
         else:
-            var = cwast.Id(name.text, x_srcloc=name.srcloc)
+            var = cwast.Id.Make(name.text, x_srcloc=name.srcloc)
         inp.match_or_die(TK_KIND.ASSIGN)
         start = _ParseExpr(inp)
         inp.match_or_die(TK_KIND.COMMA)

@@ -372,9 +372,9 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Type
         assert cond.x_type.is_bool()
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
         if invert:
-            print(f"{TAB}beq {cond.name} 0 {label_false}")
+            print(f"{TAB}beq {cond.FullName()} 0 {label_false}")
         else:
-            print(f"{TAB}bne {cond.name} 0 {label_false}")
+            print(f"{TAB}bne {cond.FullName()} 0 {label_false}")
     else:
         assert False, f"unexpected expression {cond}"
 

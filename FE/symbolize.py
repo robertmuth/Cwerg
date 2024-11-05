@@ -38,7 +38,7 @@ def _resolve_enum_item(node: cwast.DefEnum, entry_name, srcloc) -> cwast.EnumVal
 
 
 class SymTab:
-    """Symbol Table For Global and Local Symbols
+    """Symbol Table For Global and Local Symbols in one Mod
 
 
     """
@@ -88,26 +88,25 @@ class SymTab:
 
     def resolve_sym(self, ident: cwast.Id, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
-        name = cwast.GetSymbolName(ident.name)
-        if ":" in name:
-            enum_name, entry_name = name.split(":")
-            s = self._syms.get(enum_name)
+        if ident.enum_name is not None:
+            s = self._syms.get(ident.base_name)
             if s:
                 assert isinstance(s, cwast.DefEnum)
                 if must_be_public:
-                    assert s.pub, f"{name} must be public"
-                return _resolve_enum_item(s, entry_name, ident.x_srcloc)
+                    assert s.pub, f"{ident.FullName()} must be public"
+                return _resolve_enum_item(s, ident.enum_name, ident.x_srcloc)
             cwast.CompilerError(
-                ident.x_srcloc, f"could not resolve enum base-name [{enum_name}]")
+                ident.x_srcloc, f"could not resolve enum base-name [{ident.enum_name}]")
 
-        out = self.resolve_sym_here(name, must_be_public, ident.x_srcloc)
+        out = self.resolve_sym_here(
+            ident.base_name, must_be_public, ident.x_srcloc)
         if not out:
             out = builtin_syms.resolve_sym_here(
-                name, must_be_public, ident.x_srcloc)
+                ident.base_name, must_be_public, ident.x_srcloc)
         return out
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke,
-                      builtin_syms: "SymTab", _must_be_public) -> Optional[Any]:
+                      builtin_syms: "SymTab", must_be_public: bool) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
 
         name = cwast.GetSymbolName(macro_invoke.name)
@@ -115,6 +114,10 @@ class SymTab:
         out = self._syms.get(name)
         if not out:
             out = builtin_syms._syms.get(name)
+        if out:
+            assert isinstance(out, cwast.DefMacro)
+        if must_be_public:
+            assert out.pub, f"{out.name} must be public"
         return out
 
 
@@ -122,15 +125,15 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
     if node.x_symbol:
         # this happens for module parameter
         return
-
-    name = cwast.GetSymbolName(node.name)
-    is_qualified = cwast.IsQualifiedName(node.name)
-    if not is_qualified:
+    name = node.base_name
+    is_qualified = node.mod_name is not None
+    if not is_qualified and node.enum_name is None:
         for s in reversed(scopes):
             def_node = s.get(name)
             if def_node is not None:
                 AnnotateNodeSymbol(node, def_node)
                 return
+        # symbol is not a local symbol - so we fall through to looking in the global scope
     symtab: SymTab = node.x_import.x_module.x_symtab
     def_node = symtab.resolve_sym(node, builtin_syms, is_qualified)
     if def_node is None:
@@ -174,7 +177,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
                 return
             symtab = node.x_import.x_module.x_symtab
             def_node = symtab.resolve_sym(
-                node, builtin_syms, cwast.IsQualifiedName(node.name))
+                node, builtin_syms, (node.mod_name is not None))
             if def_node:
                 AnnotateNodeSymbol(node, def_node)
             else:
@@ -200,7 +203,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
             return cwast.ValString(f'{node.expr}', strkind="raw", x_srcloc=node.x_srcloc)
 
         assert isinstance(node, cwast.MacroInvoke)
-        symtab = node.x_import.x_module.x_symtab
+        symtab: SymTab = node.x_import.x_module.x_symtab
         macro = symtab.resolve_macro(
             node,  builtin_syms,  cwast.IsQualifiedName(node.name))
         if macro is None:
@@ -288,9 +291,9 @@ def ResolveSymbolsInsideFunctionsRecursively(
                     symtab.DelSym(name)
                 scopes.pop(-1)
 
-
     if isinstance(node, cwast.DefVar):
         record_local_sym(node)
+
 
 def _CheckAddressCanBeTaken(lhs):
     if isinstance(lhs, cwast.Id):
@@ -338,7 +341,7 @@ def VerifyASTSymbolsRecursively(node):
                 node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
-            assert not node.name.startswith("$"), f"{node.name}"
+            assert not node.IsMacroVar(), f"{node}"
             def_node = node.x_symbol
             is_type_node = field in (
                 "type", "types", "result", "type_or_auto", "subtrahend")
@@ -533,6 +536,9 @@ def AreEqualNormalizedModParam(a, b) -> bool:
     return False
 
 
+_GENERIC_DUMMY_MODULE = "GENERIC"
+
+
 def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
     assert len(mod.params_mod) == len(args)
     translation: dict[str, Any] = {}
@@ -540,11 +546,11 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
         sl = p.x_srcloc
         if isinstance(a, cwast.DefFun):
             assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
-            translation[p.name] = cwast.Id(
-                "GENERIC::" + a.name, x_symbol=a, x_srcloc=sl)
+            translation[p.name] = cwast.Id.Make(
+                _GENERIC_DUMMY_MODULE + "::" + a.name, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.DefRec, cwast.DefType)):
-            translation[p.name] = cwast.Id(
-                "GENERIC::" + a.name, x_symbol=a, x_srcloc=sl)
+            translation[p.name] = cwast.Id.Make(
+                _GENERIC_DUMMY_MODULE + "::" + a.name, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
             translation[p.name] = a
         else:
