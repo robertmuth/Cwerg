@@ -320,7 +320,7 @@ def ReplaceConstExpr(node):
             assert node.x_value is not None
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS or node.x_value is None:
             return None
-        if field in ("expr_lhs", "inits_vec", "inits_rec"):
+        if field in ("expr_lhs", "inits"):
             return
         if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal)):
             return
@@ -669,7 +669,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
         rhs = node.expr_rhs
         if isinstance(rhs, cwast.ValVec):
             extra = []
-            for i in rhs.inits_vec:
+            for i in rhs.inits:
                 if not _IsSimpleInitializer(i.value_or_undef):
                     srcloc = i.x_srcloc
                     def_tmp = cwast.DefVar(id_gen.NewName("val_array_tmp"),
@@ -685,7 +685,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
             return cwast.EphemeralList(extra)
         elif isinstance(rhs, cwast.ValRec):
             extra = []
-            for i in rhs.inits_rec:
+            for i in rhs.inits:
                 if not _IsSimpleInitializer(i.value_or_undef):
                     srcloc = i.x_srcloc
                     def_tmp = cwast.DefVar(id_gen.NewName("val_rec_tmp"),

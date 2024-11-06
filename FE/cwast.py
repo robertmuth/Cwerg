@@ -410,7 +410,7 @@ def NfdNodeList(name, doc, node_type, role):
 
 
 NODES_INITS_ARRAY_T: TypeAlias = "IndexVal"
-NODES_INITS_REC_T: TypeAlias = "FieldVal"
+NODES_INITS_REC_T: TypeAlias =  Union["FieldVal", "IndexVal"]
 NODES_FIELDS_T: TypeAlias = "RecField"
 NODES_CASES_T: TypeAlias = "Case"
 NODES_ITEMS_T: TypeAlias = "EnumVal"
@@ -554,10 +554,7 @@ ALL_FIELDS = [
                 MACRO_PARAM_KIND.INVALID),
     NfdNodeList("types", "union types", NODES_TYPES_T,
                 MACRO_PARAM_KIND.TYPE),
-    NfdNodeList("inits_vec",
-                "vec initializers and/or comments", NODES_INITS_ARRAY_T,
-                MACRO_PARAM_KIND.INVALID),
-    NfdNodeList("inits_rec",
+    NfdNodeList("inits",
                 "rec initializers and/or comments", NODES_INITS_REC_T,
                 MACRO_PARAM_KIND.INVALID),
     #
@@ -644,7 +641,7 @@ _OPTIONAL_FIELDS = {
     "initial_or_undef_or_auto": "@ValAuto",
     "init_index": "@ValAuto",
     "init_field": "",
-    "inits_vec": "@EmptyList",
+    "inits": "@EmptyList",
     "expr_bound_or_undef": "@ValUndef",
     "args_mod": "@EmptyList",
 }
@@ -1649,7 +1646,7 @@ class ValVec:
     FLAGS = NF_EXPR
     #
     type: NODES_TYPES_T
-    inits_vec: list[NODES_INITS_ARRAY_T]
+    inits: list[NODES_INITS_ARRAY_T]
     #
     doc: str = ""
     #
@@ -1719,7 +1716,7 @@ class ValRec:
     FLAGS = NF_EXPR
     #
     type: NODES_TYPES_T
-    inits_rec: list[NODES_INITS_REC_T]
+    inits: list[NODES_INITS_REC_T]
     #
     doc: str = ""
     #
@@ -1728,7 +1725,7 @@ class ValRec:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        t = [str(i) for i in self.inits_rec]
+        t = [str(i) for i in self.inits]
         return f"{NODE_NAME(self)} [{self.type}] {' '.join(t)}"
 
 

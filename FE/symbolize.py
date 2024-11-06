@@ -475,7 +475,7 @@ _UNDEF = cwast.ValUndef()
 
 def IterateValArray(val_array: cwast.ValVec, width):
     curr_val = 0
-    for init in val_array.inits_vec:
+    for init in val_array.inits:
         assert isinstance(init, cwast.IndexVal)
         if isinstance(init.init_index, cwast.ValAuto):
             yield curr_val, init

@@ -682,10 +682,10 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
     elif isinstance(init_node, cwast.ValRec):
         src_type = init_node.x_type
 
-        if not init_node.inits_rec:
+        if not init_node.inits:
             _EmitZero(dst, src_type.size, src_type.alignment, id_gen)
             return
-        for field, init in symbolize.IterateValRec(init_node.inits_rec, src_type):
+        for field, init in symbolize.IterateValRec(init_node.inits, src_type):
 
             if init is None:
                 _EmitZero(BaseOffset(dst.base, dst.offset+field.x_offset),
@@ -966,7 +966,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             print(f"# record: {ct.name}")
             rel_off = 0
             # note node.x_type may be compatible but not equal to ct
-            for f, i in symbolize.IterateValRec(node.inits_rec, node.x_type):
+            for f, i in symbolize.IterateValRec(node.inits, node.x_type):
                 if f.x_offset > rel_off:
                     rel_off += _EmitMem(_BYTE_PADDING *
                                         (f.x_offset - rel_off), f"{offset+rel_off} padding")

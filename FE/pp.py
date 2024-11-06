@@ -482,7 +482,7 @@ def TokensInitList(ts: TS, items):
 
 def TokensValRec(ts: TS, node: cwast.ValRec):
     EmitTokens(ts, node.type)
-    TokensInitList(ts, node.inits_rec)
+    TokensInitList(ts, node.inits)
 
 
 def TokensVecType(ts: TS, size, type):
@@ -494,7 +494,7 @@ def TokensVecType(ts: TS, size, type):
 
 def TokensValVec(ts: TS, node: cwast.ValVec):
     EmitTokens(ts, node.type)
-    TokensInitList(ts, node.inits_vec)
+    TokensInitList(ts, node.inits)
 
 
 def TokensParameterList(ts: TS, lst):
