@@ -91,8 +91,11 @@ tests_a32: $(TESTS_A32:%.cw=$(DIR)/%.a32.exe)
 
 
 # Special due to commandline args
-misc_test_x64:  $(DIR)/print_argv.x64.test $(DIR)/wordcount.x64.test
-misc_test_a64:  $(DIR)/print_argv.a64.test $(DIR)/wordcount.a64.test
+misc_test_x64:  $(DIR)/print_argv.x64.test $(DIR)/wordcount.x64.test $(DIR)/assert.x64.test
+	@echo "PASSED $@"
+
+misc_test_a64:  $(DIR)/print_argv.a64.test $(DIR)/wordcount.a64.test $(DIR)/assert.a64.test
+	@echo "PASSED $@"
 
 
 $(DIR)/%.cw.parse: %.cw
@@ -139,12 +142,12 @@ $(DIR)/%.a32.exe: %.cw
 	${QEMU} $@
 ## Compile only Tests
 
-$(DIR)/%.compile.x64.exe: TestData/%.cw
+$(DIR)/%.compile.x64.exe: %.cw
 	@echo "[run $@]"
 	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../BE/CodeGenX64/codegen.py -mode binary - $@ > $@.out
 
-$(DIR)/%.compile.a64.exe: TestData/%.cw
+$(DIR)/%.compile.a64.exe: %.cw
 	@echo "[run $@]"
 	$(PYPY) ./emit_ir.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../BE/CodeGenA64/codegen.py -mode binary - $@ > $@.out
@@ -158,33 +161,35 @@ $(DIR)/%.concrete: %.cws
 
 # Misc Tests
 
-$(DIR)/wordcount.x64.test: build/wordcount.compile.x64.exe
+$(DIR)/wordcount.x64.test: build/TestData/wordcount.compile.x64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
 
-$(DIR)/wordcount.a64.test: build/wordcount.compile.a64.exe
+$(DIR)/wordcount.a64.test: build/TestData/wordcount.compile.a64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
 
 
-$(DIR)/print_argv.x64.test: build/print_argv.compile.x64.exe
+$(DIR)/print_argv.x64.test: build/TestData/print_argv.compile.x64.exe
 	${QEMU} $< arg1 arg2 argc3
 
-$(DIR)/print_argv.a64.test: build/print_argv.compile.a64.exe
+$(DIR)/print_argv.a64.test: build/TestData/print_argv.compile.a64.exe
 	${QEMU} $< arg1 arg2 argc3
 
+
+$(DIR)/assert.x64.test: build/FailTest/assert.compile.x64.exe
+	-${QEMU} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
+	diff $@ FailTest/assert.golden
+
+$(DIR)/assert.a64.test: build/FailTest/assert.compile.a64.exe
+	${QEMU} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
+	diff $@ FailTest/assert.golden
 
 ## Manual tests
 
-$(DIR)/asciiquarium.x64.exe: TestData/asciiquarium.cw
-	$(PYPY) ./emit_ir.py $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../BE/CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ 128 48
+$(DIR)/asciiquarium.x64.exe: build/TestData/asciiquarium.compile.x64.exe
+	${QEMU} $< 128 48
 
-$(DIR)/asciiquarium.a64.exe: TestData/asciiquarium.cw
-	$(PYPY) ./emit_ir.py  $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../BE/CodeGenA64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ 128 48
-
-
+$(DIR)/asciiquarium.a64.exe: build/TestData/asciiquarium.compile.a64.exe
+	${QEMU} $< 128 48
 
 
 clean:
@@ -194,6 +199,7 @@ clean:
 	@mkdir -p  $(DIR)/Lib
 	@mkdir -p  $(DIR)/TestData
 	@mkdir -p  $(DIR)/LangTest
+	@mkdir -p  $(DIR)/FailTest
 
 pp_test:
 	$(PYPY) ./pp.py TestData/*.cw  Lib/*.cw  LangTest/*.cw
