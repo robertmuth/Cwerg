@@ -1648,7 +1648,6 @@ class ValVec:
     GROUP = GROUP.Value
     FLAGS = NF_EXPR
     #
-    expr_size: NODES_EXPR_OR_AUTO_T
     type: NODES_TYPES_T
     inits_vec: list[NODES_INITS_ARRAY_T]
     #

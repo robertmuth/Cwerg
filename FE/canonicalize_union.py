@@ -296,6 +296,7 @@ def ReplaceUnions(node):
             return None
         if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
                              cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
+                             cwast.TypeVec,
                              cwast.FunParam, cwast.ExprCall, cwast.RecField,
                              cwast.ExprField, cwast.FieldVal, cwast.IndexVal,
                              cwast.ValVec, cwast.TypePtr, cwast.ExprPointer,

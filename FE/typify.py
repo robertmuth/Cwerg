@@ -473,12 +473,9 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         for x in node.inits_vec:
             assert isinstance(x, cwast.IndexVal)
-            _TypifyNodeRecursively(x, tc, ct, ctx)
+            _TypifyNodeRecursively(x, tc, ct.underlying_vec_or_span_type(), ctx)
         #
-        uint_type = tc.get_uint_canon_type()
-        _TypifyNodeRecursively(node.expr_size, tc, uint_type, ctx)
-        dim = _ComputeArrayLength(node.expr_size, uint_type.base_type_kind)
-        return AnnotateNodeType(node, tc.insert_array_type(dim, ct))
+        return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ValRec):
         ct = _TypifyNodeRecursively(node.type, tc, target_type, ctx)
         assert ct.is_rec()
@@ -807,14 +804,15 @@ def CheckFieldValStrict(node: cwast.FieldVal, _tc: type_corpus.TypeCorpus):
             node, node.value_or_undef.x_type, node.x_type)
 
 
-def CheckValArray(node: cwast.ValVec, _tc: type_corpus.TypeCorpus):
-    cstr = node.type.x_type
+def CheckValVec(node: cwast.ValVec, _tc: type_corpus.TypeCorpus):
+    ct = node.type.x_type
+    assert ct.is_array()
     for x in node.inits_vec:
         assert isinstance(x, cwast.IndexVal), f"{x}"
         if not isinstance(x.init_index, cwast.ValAuto):
             assert x.init_index.x_type.is_int()
         # TODO: this should be  _CheckTypeCompatibleForAssignment
-        _CheckTypeSame(node,  x.x_type, cstr)
+        _CheckTypeSame(node,  x.x_type, ct.underlying_vec_or_span_type())
 
 
 def CheckExpr3(node: cwast.Expr3, _tc: type_corpus.TypeCorpus):
@@ -1113,7 +1111,7 @@ class TypeVerifier:
         # maps nodes
         self._map = {
             cwast.FieldVal: _CheckFieldVal,
-            cwast.ValVec: CheckValArray,
+            cwast.ValVec: CheckValVec,
             cwast.Expr1: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
 
             cwast.TypeOf: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),

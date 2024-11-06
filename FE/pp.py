@@ -493,7 +493,7 @@ def TokensVecType(ts: TS, size, type):
 
 
 def TokensValVec(ts: TS, node: cwast.ValVec):
-    TokensVecType(ts, node.expr_size, node.type)
+    EmitTokens(ts, node.type)
     TokensInitList(ts, node.inits_vec)
 
 

@@ -160,7 +160,7 @@ def ReplaceSpans(node):
                                      cwast.FunParam, cwast.RecField, cwast.ExprField,
                                      cwast.Expr3, cwast.ExprDeref, cwast.ExprNarrow,
                                      cwast.ExprAddrOf, cwast.ExprCall,
-                                     cwast.ValAuto,
+                                     cwast.ValAuto, cwast.TypeVec,
                                      cwast.FieldVal, cwast.IndexVal, cwast.ValVec)):
                     typify.UpdateNodeType(node, def_rec)
                     return None

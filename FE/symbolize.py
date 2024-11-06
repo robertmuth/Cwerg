@@ -184,7 +184,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
             else:
                 if must_resolve_all:
                     cwast.CompilerError(
-                        node.x_srcloc, f"cannot resolve symbol {node.name}")
+                        node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
 
     cwast.VisitAstRecursivelyPost(node, visitor)
 

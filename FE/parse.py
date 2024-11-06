@@ -693,7 +693,7 @@ def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
                 inp.match_or_die(TK_KIND.COMMA)
             first = False
             inits.append(_ParseArrayInit(inp))
-        return cwast.ValVec(type.size, type.type, inits, x_srcloc=tk.srcloc)
+        return cwast.ValVec(type, inits, x_srcloc=tk.srcloc)
 
 
 def _PParseIndex(inp: Lexer, array, tk: TK, _precedence) -> Any:
