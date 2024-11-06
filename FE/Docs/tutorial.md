@@ -564,6 +564,8 @@ Functions can only have one result.
 
 Function parameters are not mutable.
 
+Polymorphism is described [here](polymorphism.md)
+
 ### Enums, Types (Typedefs) and Recs (Structs)
 
 These were covered in the Type Section above

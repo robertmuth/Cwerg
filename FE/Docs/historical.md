@@ -1,24 +1,5 @@
-# Cwerg Language
+# Design Choices
 
-Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity.
-The hope is to reach a sweet spot *above* what C gives us today and make it convenient to write
-system software like operating systems and compilers in this language.
-
-
-Warning: This is still quite experimental. We expexct to gain some
-more insights about the design-space by bootstrapping the front- and backend.
-
-### Philosophy
-
-Above all Cwerg is meant to be a **small** language. Since small is subjective we have
-set a complexity budget for about 10kLOC for a compiler frontend with basic optimizations.
-
-All control flow and all memory allocation is explicit.
-
-Discouraged practices are possible but require explicit overrides, e.g.:
-uninitialized variables, global visibility, mutability, unchecked array accesses,
-untagged unions, ...
-...
 
 ## Syntax
 
@@ -30,25 +11,9 @@ Comments wil be explicit in the AST and cannot occur in arbitrary places.
 Similarly, parenthesis used to group expression will be modelled in the AST.
 
 * [List of S-Expression Nodes](../FrontEndDocs/ast.md)
-* [Macros](../FrontEndDocs/macros.md)
-* [Casting](../FrontEndDocs/casting.md)
 
 
-## Code Examples (using S-Expr Syntax)
 
-* [Print Argv](TestData/print_argv.cw)
-* [Heap Sort](TestData/heapsort.cw)
-* [Fizzbuzz](TestData/fizzbuzz.cw)
-* [Sieve](TestData/sieve.cw)
-* [Word Count](TestData/wordcount.cw)
-
-## Code Examples (using Concrete Syntax)
-
-* [Print Argv](ConcreteSyntax/TestData/print_argv.cw)
-* [Fizzbuzz](ConcreteSyntax/TestData/fizzbuzz.cw)
-* [Sieve](ConcreteSyntax/TestData/sieve.cw)
-* [Word Count](ConcreteSyntax/TestData/wordcount.cw)
-*
 ## Features Relative to C
 
 Added
