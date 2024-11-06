@@ -2,6 +2,8 @@
 
 [Language Overview](tutorial.md)
 
+[Design Choices](design_choices.md)
+
 [AST Node Description](ast.md)
 
 [Macro System](macros.md)

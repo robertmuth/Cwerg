@@ -3,21 +3,25 @@
 
 ## Syntax
 
-Source code will be stored as S-Expressions with tooling to
-convert back and forth to a yet to be defined concrete syntax.
+Intially the syntax for Cwerg was essetially s-expressions.
+The plan was to also use this as the on-disc format and to just concert
+back and forth to a concrete syntax on the fly - say in the IDE.
 
-The tooling will do most of the syntax and semantic checking.
-Comments wil be explicit in the AST and cannot occur in arbitrary places.
+However, currently we used the newer concrete syntax as the on-disc
+format. though all tools can read both representations.
+
+Comments are explicit in the AST and cannot occur in arbitrary places.
 Similarly, parenthesis used to group expression will be modelled in the AST.
 
-* [List of S-Expression Nodes](../FrontEndDocs/ast.md)
+* [List of S-Expression Nodes](ast.md)
 
 
 
 ## Features Relative to C
 
-Added
-* modules (with templates, not nestable)
+### Added
+
+* modules (optionally with parameters i.e. generics, not nestable)
 * enum namespaces
 * sum types (tagged unions, supporting nullable types and result types (error code + payload))
 * visibility control (default private)
@@ -34,7 +38,8 @@ Added
 * limited polymorphism (good enough to have generic and extensible print/log)
 * default iniitialization of all variable/datastructure (can manually overriden)
 
-Removed:
+### Removed
+
 * arrays decay to pointers
 * bitfields
 * separate compilation
@@ -47,7 +52,26 @@ Removed:
 * goto
 
 
+## Macros
 
+The initial plan was to not support macros because of the problems
+they cause in C.
+
+But macros have proven quite useful for two requirements:
+
+1. an efficient version `assert` / `logging`
+2. an extensible print(f) facility
+
+
+
+For `assert`s and `logging` macros provide a form of lazy evaluation.
+Example:
+```
+     LogInfo(["The value of expr is ", complicated_expression])
+```
+We only want to evaluate complicated_expression if the logging at the info level is enabled.
+
+TODO
 
 ## Discussion of Features
 

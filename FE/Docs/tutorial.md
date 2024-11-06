@@ -34,6 +34,10 @@ Since small is subjective we have set a complexity budget of about 10kLOC for a 
 * no cyclic dependencies between types (self-cycles are allowed)
 * all comments are on separate lines (no end of line comments)
 
+As with C, all control flow and all memory allocation is explicit.
+
+Discouraged practices are possible but require explicit overrides, e.g.:
+uninitialized variables, global visibility, mutability, unchecked array accesses, untagged unions, ...
 
 ## Syntax
 
