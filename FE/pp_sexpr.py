@@ -121,9 +121,7 @@ def _GuessNodeSize(v) -> int:
         return len(v.string) // 8
     elif isinstance(v, (cwast.FunParam, cwast.MacroParam, cwast.ValVec, cwast.ValRec)):
         return 3
-    elif isinstance(v, cwast.IndexVal):
-        return _GuessNodeSize(v.value_or_undef)
-    elif isinstance(v, cwast.FieldVal):
+    elif isinstance(v, cwast.PointVal):
         return _GuessNodeSize(v.value_or_undef)
     else:
         return 2
@@ -268,12 +266,10 @@ def _RenderRecursivelyToIR(node, out, indent: int):
         _RenderMacroInvoke(node, out, indent)
         return
 
-    if isinstance(node, cwast.IndexVal) and isinstance(node.init_index, cwast.ValAuto) and not node.doc:
+    if isinstance(node, cwast.PointVal) and isinstance(node.point, cwast.ValAuto) and not node.doc:
         _RenderRecursivelyToIR(node.value_or_undef, out, indent)
         return
-    if isinstance(node, cwast.FieldVal) and node.init_field == "" and not node.doc:
-        _RenderRecursivelyToIR(node.value_or_undef, out, indent)
-        return
+
     node_name, fields = GetNodeTypeAndFields(node)
     if isinstance(node, (cwast.DefGlobal, cwast.DefVar, cwast.DefGlobal,
                          cwast.TypePtr, cwast.TypeSpan, cwast.ExprAddrOf,

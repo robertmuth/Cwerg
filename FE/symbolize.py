@@ -166,7 +166,7 @@ def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
                                                         must_resolve_all: bool):
 
-    def visitor(node, _):
+    def visitor(node, field):
         nonlocal builtin_syms
         if isinstance(node, cwast.Id):
             if node.x_symbol:
@@ -182,7 +182,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
             if def_node:
                 AnnotateNodeSymbol(node, def_node)
             else:
-                if must_resolve_all:
+                if must_resolve_all and field != "point":
                     cwast.CompilerError(
                         node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
 
@@ -338,7 +338,7 @@ def VerifyASTSymbolsRecursively(node):
             return
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
-            assert node.x_symbol is not None, f"unresolved symbol {
+            assert field == "point" or node.x_symbol is not None, f"unresolved symbol {
                 node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
@@ -456,9 +456,9 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
         VerifyASTSymbolsRecursively(mod)
 
 
-def IterateValRec(inits_field: list[cwast.FieldVal], def_rec: cwast.CanonType):
+def IterateValRec(inits_field: list[cwast.PointVal], def_rec: cwast.CanonType):
     inits: dict[cwast.RecField,
-                cwast.FieldVal] = {i.x_field: i for i in inits_field}
+                cwast.PointVal] = {i.x_field: i for i in inits_field}
     used = 0
     assert isinstance(def_rec.ast_node, cwast.DefRec)
     for f in def_rec.ast_node.fields:
@@ -476,12 +476,12 @@ _UNDEF = cwast.ValUndef()
 def IterateValArray(val_array: cwast.ValVec, width):
     curr_val = 0
     for init in val_array.inits:
-        assert isinstance(init, cwast.IndexVal)
-        if isinstance(init.init_index, cwast.ValAuto):
+        assert isinstance(init, cwast.PointVal)
+        if isinstance(init.point, cwast.ValAuto):
             yield curr_val, init
             curr_val += 1
             continue
-        index = init.init_index.x_value
+        index = init.point.x_value
         assert isinstance(index, int)
         while curr_val < index:
             yield curr_val, None

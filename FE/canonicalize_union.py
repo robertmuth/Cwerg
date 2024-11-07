@@ -94,10 +94,10 @@ def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.Va
 def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc):
     tag_field, union_field = sum_rec.ast_node.fields
     return cwast.ValRec(_MakeIdForDefRec(sum_rec, srcloc), [
-        cwast.FieldVal(tag_value, "",
+        cwast.PointVal(tag_value, cwast.ValAuto(x_srcloc=srcloc),
                        x_field=tag_field, x_type=tag_field.x_type, x_srcloc=srcloc,
                        x_value=tag_value.x_value),
-        cwast.FieldVal(union_value, "",
+        cwast.PointVal(union_value, cwast.ValAuto(x_srcloc=srcloc),
                        x_field=union_field, x_type=union_field.x_type,
                        x_srcloc=srcloc, x_value=union_value.x_value)
 
@@ -298,7 +298,7 @@ def ReplaceUnions(node):
                              cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
                              cwast.TypeVec,
                              cwast.FunParam, cwast.ExprCall, cwast.RecField,
-                             cwast.ExprField, cwast.FieldVal, cwast.IndexVal,
+                             cwast.ExprField, cwast.PointVal,
                              cwast.ValVec, cwast.TypePtr, cwast.ExprPointer,
                              cwast.ExprFront, cwast.ExprDeref, cwast.ExprAddrOf)):
             typify.UpdateNodeType(node, new_ct)

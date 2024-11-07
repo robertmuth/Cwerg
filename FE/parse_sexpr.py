@@ -253,11 +253,12 @@ def ReadNodeList(stream: ReadTokens, parent_cls) -> list[Any]:
         attr.clear()
         # hack for simpler array val and rec val initializers: take the expr
         # from above and wrap it into a IndexVal or FieldVal
-        if parent_cls is cwast.ValVec and not isinstance(expr, cwast.IndexVal):
-            expr = cwast.IndexVal(expr, cwast.ValAuto(
+        if parent_cls is cwast.ValVec and not isinstance(expr, cwast.PointVal):
+            expr = cwast.PointVal(expr, cwast.ValAuto(
                 x_srcloc=expr.x_srcloc), x_srcloc=expr.x_srcloc)
-        elif parent_cls is cwast.ValRec and not isinstance(expr, cwast.FieldVal):
-            expr = cwast.FieldVal(expr, "", x_srcloc=expr.x_srcloc)
+        elif parent_cls is cwast.ValRec and not isinstance(expr, cwast.PointVal):
+            expr = cwast.PointVal(expr, cwast.ValAuto(
+                x_srcloc=expr.x_srcloc), x_srcloc=expr.x_srcloc)
         out.append(expr)
 
     return out
@@ -443,7 +444,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
                 # unknown node name - assume it is a macro
                 return ReadMacroInvocation(tag, stream, attr)
             else:
-                 cwast.CompilerError(stream.srcloc(), "Bad sexpr")
+                cwast.CompilerError(stream.srcloc(), "Bad sexpr")
 
         assert cls is not None, f"[{stream.line_no}] Non node: {tag}"
 

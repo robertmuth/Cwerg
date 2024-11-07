@@ -96,7 +96,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
     elif isinstance(node, cwast.ValVec):
         out = CONSTANT_KIND.PURE
         for index in node.inits:
-            if not isinstance(index.init_index, (cwast.ValAuto, cwast.ValNum)):
+            if not isinstance(index.point, (cwast.ValAuto, cwast.ValNum)):
                 return CONSTANT_KIND.NOT
             o = ValueConstKind(index.value_or_undef)
             if o is CONSTANT_KIND.NOT:
@@ -120,7 +120,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
 def _IdNodeFromDef(def_node: Union[cwast.DefVar, cwast.DefGlobal], x_srcloc) -> cwast.Id:
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id.Make(def_node.name, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
-                    x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
+                         x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
 
 
 class GlobalConstantPool:
@@ -249,6 +249,7 @@ _BASE_TYPE_TO_DEFAULT = {
     cwast.BASE_TYPE_KIND.BOOL: False,
 }
 
+
 def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
     if ct.is_base_type():
         return _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
@@ -270,6 +271,7 @@ def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
     else:
         assert False, f"{ct} {srcloc}"
 
+
 def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]:
     rec: dict[str, Any] = {}
     for field, init in symbolize.IterateValRec(inits, def_rec):
@@ -279,7 +281,7 @@ def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]
         if init is None:
             rec[field.name] = _GetDefaultForType(ct, srcloc)
         else:
-            assert isinstance(init, cwast.FieldVal), f"{init}"
+            assert isinstance(init, cwast.PointVal), f"{init}"
             if init.x_value is None:
                 return None
             rec[field.name] = init.x_value
@@ -291,9 +293,10 @@ def _EvalValArray(node: cwast.ValVec) -> bool:
     # first pass if we cannot evaluate everyting, we must give up
     # This could be relaxed if we allow None values in "out"
     for c in node.inits:
-        assert isinstance(c, cwast.IndexVal)
-        if not isinstance(c.init_index, cwast.ValAuto):
-            if c.init_index.x_value is None:
+        assert isinstance(c, cwast.PointVal)
+        index = c.point
+        if not isinstance(index, cwast.ValAuto):
+            if index.x_value is None:
                 has_unknown = True
                 break
         if not isinstance(c.value_or_undef, cwast.ValUndef):
@@ -447,7 +450,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     if isinstance(node, cwast.Id):
         # this case is why we need the sym_tab
         def_node = node.x_symbol
-        assert def_node is not None
+        assert def_node is not None, f"{node}"
         if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
             initial = def_node.initial_or_undef_or_auto
             if not def_node.mut and initial.x_value is not None:
@@ -478,18 +481,9 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         # we do not evaluate this during the recursion
         # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
         return False
-    elif isinstance(node, cwast.IndexVal):
-        if node.value_or_undef.x_value is None:
-            if (node.x_type.is_span() and node.value_or_undef.x_type.is_array() and
-                    IsGlobalSymId(node.value_or_undef)):
-                return _AssignValue(node, VAL_GLOBALSLICE)
-
-        else:
-            return _AssignValue(node, node.value_or_undef.x_value)
-        return False
     elif isinstance(node, cwast.ValVec):
         return _EvalValArray(node)
-    elif isinstance(node, cwast.FieldVal):
+    elif isinstance(node, cwast.PointVal):
         if node.value_or_undef.x_value is None:
             if (node.x_type.is_span() and node.value_or_undef.x_type.is_array() and
                     IsGlobalSymId(node.value_or_undef)):
@@ -618,10 +612,14 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         assert False, f"unexpected node {node}"
 
 
+def _ToBeIgnoredId(node: cwast.Id, parent, field) -> bool:
+    return field == "point" and isinstance(parent, cwast.PointVal) and parent.x_field
+
+
 def EvalRecursively(node) -> bool:
     seen_change = False
 
-    def visitor(node, _):
+    def visitor(node, parent, field):
         nonlocal seen_change
         if isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
             initial = node.initial_or_undef_or_auto
@@ -633,9 +631,12 @@ def EvalRecursively(node) -> bool:
             return
         if node.x_value is not None:
             return
+        if isinstance(node, cwast.Id) and _ToBeIgnoredId(node, parent, field):
+            return
+
         seen_change |= _EvalNode(node)
 
-    cwast.VisitAstRecursivelyPost(node, visitor)
+    cwast.VisitAstRecursivelyWithParentPost(node, visitor, None)
 
     if seen_change:
         logger.info("SEEN CHANGE %s", node)
@@ -666,6 +667,15 @@ def VerifyASTEvalsRecursively(node):
         if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum, cwast.ValString)):
             assert node.x_value is not None, f"{node}"
 
+        if isinstance(parent, cwast.PointVal) and field == "point":
+            if parent.x_field:
+                # this is just the id of the field name
+                return
+            else:
+                assert (node.x_value is not None or
+                    isinstance(node, cwast.ValAuto)), f"unevaluated ValArray init index: {node}"
+
+
         if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.Id):
                 def_node = node.x_symbol
@@ -693,16 +703,13 @@ def VerifyASTEvalsRecursively(node):
                     elif isinstance(node, cwast.ValRec):
                         # we still check that each field is const
                         pass
-                    elif isinstance(node, cwast.ValAuto) and field == "init_index":
+                    elif isinstance(node, cwast.ValAuto) and field == "point":
                         pass
                     else:
                         cwast.CompilerError(
                             node.x_srcloc, f"expected const node: {node} "
                             f"of type {node.x_type} inside {parent}")
 
-        if field == "init_index":
-            assert (node.x_value is not None or
-                    isinstance(node, cwast.ValAuto)), f"unevaluated ValArray init index: {node}"
 
         # Note: this info is currently filled in by the Type Decorator
         if isinstance(node, cwast.TypeVec):

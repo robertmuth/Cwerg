@@ -409,8 +409,7 @@ def NfdNodeList(name, doc, node_type, role):
     return NFD(NFK.LIST, name, doc, node_type=_ExtractTypes(node_type), role=role)
 
 
-NODES_INITS_ARRAY_T: TypeAlias = "IndexVal"
-NODES_INITS_REC_T: TypeAlias =  Union["FieldVal", "IndexVal"]
+NODES_INITS_T: TypeAlias = "PointVal"
 NODES_FIELDS_T: TypeAlias = "RecField"
 NODES_CASES_T: TypeAlias = "Case"
 NODES_ITEMS_T: TypeAlias = "EnumVal"
@@ -486,7 +485,6 @@ ALL_FIELDS = [
     NfdStr("label", "block  name (if not empty)"),
     NfdStr("target",
            "name of enclosing while/for/block to brach to (empty means nearest)"),
-    NfdStr("init_field", "initializer field or empty (empty means next field)"),
     NfdStr("path", "TBD"),
     NFD(NFK.STR_LIST, "gen_ids",
         "name placeholder ids to be generated at macro instantiation time"),
@@ -555,7 +553,7 @@ ALL_FIELDS = [
     NfdNodeList("types", "union types", NODES_TYPES_T,
                 MACRO_PARAM_KIND.TYPE),
     NfdNodeList("inits",
-                "rec initializers and/or comments", NODES_INITS_REC_T,
+                "rec initializers and/or comments", NODES_INITS_T,
                 MACRO_PARAM_KIND.INVALID),
     #
     NfdNodeList("body_mod",
@@ -578,8 +576,8 @@ ALL_FIELDS = [
                 MACRO_PARAM_KIND.STMT_LIST),
 
     #
-    NfdNode("init_index",
-            "initializer index or empty (empty mean next index)", NODES_EXPR_OR_AUTO_T, MACRO_PARAM_KIND.EXPR),
+    NfdNode("point",
+            "compound initializer index/field or auto (meaning next pos)", NODES_EXPR_OR_AUTO_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("type", "type expression", NODES_TYPES_T, MACRO_PARAM_KIND.TYPE),
     NfdNode("subtrahend", "type expression",
             NODES_TYPES_T, MACRO_PARAM_KIND.TYPE),
@@ -639,8 +637,7 @@ _OPTIONAL_FIELDS = {
     "path": "",
     "message": "",
     "initial_or_undef_or_auto": "@ValAuto",
-    "init_index": "@ValAuto",
-    "init_field": "",
+    "point": "@ValAuto",
     "inits": "@EmptyList",
     "expr_bound_or_undef": "@ValUndef",
     "args_mod": "@EmptyList",
@@ -1581,52 +1578,31 @@ class ValVoid:
 
 @NodeCommon
 @dataclasses.dataclass()
-class IndexVal:
-    """Part of an array literal
+class PointVal:
+    """Part of a compound literal
 
-    e.g. `.1 = 5`
-    If index is auto use `0` or `previous index + 1`.
-    """
-    ALIAS = "index_val"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
-    #
-    value_or_undef: NODES_EXPR_T
-    init_index: NODES_EXPR_OR_AUTO_T  # compile time constant
-    #
-    doc: str = ""
-    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    e.g. `1 = 5`
+    If point is auto use `0` or `previous point advance by one`.
 
-    def __repr__(self):
-        return f"{NODE_NAME(self)} [{self.init_index}] = {self.value_or_undef}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class FieldVal:
-    """Part of rec literal
 
     e.g. `.imag = 5`
     If field is empty use `first field` or `next field`.
     """
-    ALIAS = "field_val"
+    ALIAS = "point_val"
     GROUP = GROUP.Value
     FLAGS = NF_EXPR | NF.FIELD_ANNOTATED
     #
-    value_or_undef: "NODES_EXPR_T"
-    init_field: str
+    value_or_undef: NODES_EXPR_T
+    point: NODES_EXPR_OR_AUTO_T  # compile time constant
     #
     doc: str = ""
-    #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
     x_field: Optional["RecField"] = None
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} {self.init_field}"
+        return f"{NODE_NAME(self)} [{self.point}] = {self.value_or_undef}"
 
 
 @NodeCommon
@@ -1646,7 +1622,7 @@ class ValVec:
     FLAGS = NF_EXPR
     #
     type: NODES_TYPES_T
-    inits: list[NODES_INITS_ARRAY_T]
+    inits: list[NODES_INITS_T]
     #
     doc: str = ""
     #
@@ -1655,7 +1631,7 @@ class ValVec:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} type={self.type} size={self.expr_size}"
+        return f"{NODE_NAME(self)} type={self.type}"
 
 
 @NodeCommon
@@ -1716,7 +1692,7 @@ class ValRec:
     FLAGS = NF_EXPR
     #
     type: NODES_TYPES_T
-    inits: list[NODES_INITS_REC_T]
+    inits: list[NODES_INITS_T]
     #
     doc: str = ""
     #
@@ -3048,6 +3024,18 @@ def VisitAstRecursivelyPost(node, visitor, field=None):
                 VisitAstRecursivelyPost(child, visitor, f)
 
     visitor(node, field)
+
+
+def VisitAstRecursivelyWithParentPost(node, visitor, parent, field=None):
+    for f, nfd in node.__class__.FIELDS:
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            VisitAstRecursivelyWithParentPost(child, visitor, node, f)
+        elif nfd.kind is NFK.LIST:
+            for child in getattr(node, f):
+                VisitAstRecursivelyWithParentPost(child, visitor, node, f)
+
+    visitor(node, parent, field)
 
 
 def VisitAstRecursivelyWithAllParents(node, parents: list[Any], visitor):

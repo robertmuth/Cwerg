@@ -655,7 +655,7 @@ def _ParseArrayInit(inp: Lexer) -> Any:
         val = _ParseExpr(inp)
     else:
         index = cwast.ValAuto(x_srcloc=tk.srcloc)
-    return cwast.IndexVal(val, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
+    return cwast.PointVal(val, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
 
 
 def _ParseRecInit(inp: Lexer) -> Any:
@@ -665,12 +665,12 @@ def _ParseRecInit(inp: Lexer) -> Any:
         assert isinstance(val, cwast.Id)
         assert val.mod_name is None
         assert val.enum_name is None
-        field = val.base_name
+        field = val
         val = _ParseExpr(inp)
 
     else:
-        field = ""
-    return cwast.FieldVal(val, field, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
+        field = cwast.ValAuto(x_srcloc=tk.srcloc)
+    return cwast.PointVal(val, field, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
 
 
 def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:

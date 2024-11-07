@@ -951,7 +951,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                         count = _emit_recursively(
                             last, x_type, offset + n * stride)
                     else:
-                        assert isinstance(init, cwast.IndexVal)
+                        assert isinstance(init, cwast.PointVal)
                         last = init.value_or_undef
                         count = _emit_recursively(
                             last, x_type, offset + n * stride)
@@ -1142,7 +1142,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.TypeOf)
     eliminated_nodes.add(cwast.TypeUnionDelta)
     verifier.Replace(cwast.ExprNarrow, typify._CheckExprNarrowUnchecked)
-    verifier.Replace(cwast.FieldVal, typify.CheckFieldValStrict)
+    verifier.Replace(cwast.ValRec, typify.CheckValRecStrict)
     verifier.Replace(cwast.ExprCall, typify._CheckExprCallStrict)
     verifier.Replace(cwast.StmtAssignment, typify.CheckStmtAssignmentStrict)
     verifier.Replace(cwast.StmtReturn, typify._CheckStmtReturnStrict)

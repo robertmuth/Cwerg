@@ -462,14 +462,9 @@ def TokensInitList(ts: TS, items):
         sep = True
         TokensAnnotationsPre(ts, e)
         start = ts.Pos()
-        if isinstance(e, cwast.FieldVal):
-            if e.init_field:
-                ts.EmitAttr(e.init_field)
-                ts.EmitAttr(":")
-            EmitTokens(ts, e.value_or_undef)
-        elif isinstance(e, cwast.IndexVal):
-            if not isinstance(e.init_index, cwast.ValAuto):
-                EmitTokens(ts, e.init_index)
+        if isinstance(e, cwast.PointVal):
+            if not isinstance(e.point, cwast.ValAuto):
+                EmitTokens(ts, e.point)
                 ts.EmitAttr(":")
             EmitTokens(ts, e.value_or_undef)
         else:

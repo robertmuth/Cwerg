@@ -85,11 +85,11 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         return cwast.EphemeralList(out, colon=False)
 
     clone = dataclasses.replace(node)
-    if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
-        kind, arg = ctx.GetSymbol(clone.init_field)
-        assert kind == cwast.MACRO_PARAM_KIND.FIELD
-        clone.init_field = arg.name
-    elif isinstance(clone, (cwast.ExprField, cwast.ExprOffsetof)) and clone.field.startswith("$"):
+    #if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
+    #    kind, arg = ctx.GetSymbol(clone.init_field)
+    #    assert kind == cwast.MACRO_PARAM_KIND.FIELD
+    #    clone.init_field = arg.name
+    if isinstance(clone, (cwast.ExprField, cwast.ExprOffsetof)) and clone.field.startswith("$"):
         kind, arg = ctx.GetSymbol(clone.field)
         assert isinstance(arg, cwast.Id)
         assert kind == cwast.MACRO_PARAM_KIND.FIELD, f"expexted id got {kind} {arg}"
