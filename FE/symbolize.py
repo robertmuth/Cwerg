@@ -456,18 +456,27 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
         VerifyASTSymbolsRecursively(mod)
 
 
-def IterateValRec(inits_field: list[cwast.PointVal], def_rec: cwast.CanonType):
-    inits: dict[cwast.RecField,
-                cwast.PointVal] = {i.x_field: i for i in inits_field}
-    used = 0
+def IterateValRec(points: list[cwast.PointVal], def_rec: cwast.CanonType):
     assert isinstance(def_rec.ast_node, cwast.DefRec)
+    next_point = 0
     for f in def_rec.ast_node.fields:
-        assert isinstance(f, cwast.RecField)
-        i = inits.get(f)
-        if i is not None:
-            used += 1
-        yield f, i
-    assert used == len(inits)
+        if next_point < len(points):
+            p = points[next_point]
+            if isinstance(p.point, cwast.ValAuto):
+                yield f, p
+                next_point += 1
+                continue
+
+            assert isinstance(p.point, cwast.Id)
+            if p.point.GetBaseNameStrict() == f.name:
+                yield f, p
+                next_point += 1
+                continue
+
+        yield f, None
+    if next_point != len(points):
+        cwast.CompilerError(points[-1].x_srcloc,
+                            "bad initializer {points[-1]}")
 
 
 _UNDEF = cwast.ValUndef()
