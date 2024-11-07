@@ -475,7 +475,7 @@ def TokensInitList(ts: TS, items):
     ts.EmitEnd(beg)
 
 
-def TokensValRec(ts: TS, node: cwast.ValRec):
+def TokensValCompound(ts: TS, node: cwast.ValCompound):
     EmitTokens(ts, node.type)
     TokensInitList(ts, node.inits)
 
@@ -486,10 +486,6 @@ def TokensVecType(ts: TS, size, type):
     ts.EmitEnd(beg)
     EmitTokens(ts, type)
 
-
-def TokensValVec(ts: TS, node: cwast.ValVec):
-    EmitTokens(ts, node.type)
-    TokensInitList(ts, node.inits)
 
 
 def TokensParameterList(ts: TS, lst):
@@ -602,8 +598,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
     cwast.ValSpan: lambda ts, n: TokensFunctional(ts, "span", [n.pointer, n.expr_size]),
     cwast.ValString: TokensValString,
-    cwast.ValRec: TokensValRec,
-    cwast.ValVec: TokensValVec,
+    cwast.ValCompound: TokensValCompound,
     #
     cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut(KW(n), n.mut), [n.container]),
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),

@@ -253,10 +253,7 @@ def ReadNodeList(stream: ReadTokens, parent_cls) -> list[Any]:
         attr.clear()
         # hack for simpler array val and rec val initializers: take the expr
         # from above and wrap it into a IndexVal or FieldVal
-        if parent_cls is cwast.ValVec and not isinstance(expr, cwast.PointVal):
-            expr = cwast.PointVal(expr, cwast.ValAuto(
-                x_srcloc=expr.x_srcloc), x_srcloc=expr.x_srcloc)
-        elif parent_cls is cwast.ValRec and not isinstance(expr, cwast.PointVal):
+        if parent_cls is cwast.ValCompound and not isinstance(expr, cwast.PointVal):
             expr = cwast.PointVal(expr, cwast.ValAuto(
                 x_srcloc=expr.x_srcloc), x_srcloc=expr.x_srcloc)
         out.append(expr)

@@ -432,7 +432,7 @@ NODES_TYPES_T = Union["TypeBase", "TypeSpan", "TypeVec", "TypePtr", "TypeFun", "
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_T, "TypeAuto"]
 
 NODES_VAL_T = Union["ValFalse", "ValTrue", "ValNum",
-                    "ValVoid", "ValVec", "ValString", "ValRec", "ValSpan"]
+                    "ValVoid", "ValCompound", "ValString", "ValSpan"]
 
 NODES_EXPR_T = Union[NODES_VAL_T,
                      #
@@ -1607,8 +1607,8 @@ class PointVal:
 
 @NodeCommon
 @dataclasses.dataclass()
-class ValVec:
-    """An vec literal
+class ValCompound:
+    """An vec pr rec literal
 
     `[10]int{.1 = 5, .2 = 6, 77}`
 
@@ -1617,7 +1617,7 @@ class ValVec:
     Note, that it is NOT possible to use a type alias here.
     Both the element type and the dimension need to be specified.
     """
-    ALIAS = "vec_val"
+    ALIAS = "compound_val"
     GROUP = GROUP.Value
     FLAGS = NF_EXPR
     #
@@ -1678,31 +1678,6 @@ class ValString:
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.string}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class ValRec:
-    """A record literal
-
-    `E.g.: complex{.imag = 5, .real = 1}`
-    """
-    ALIAS = "rec_val"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
-    #
-    type: NODES_TYPES_T
-    inits: list[NODES_INITS_T]
-    #
-    doc: str = ""
-    #
-    x_srcloc: SrcLoc = SRCLOC_UNKNOWN
-    x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
-
-    def __repr__(self):
-        t = [str(i) for i in self.inits]
-        return f"{NODE_NAME(self)} [{self.type}] {' '.join(t)}"
 
 
 ############################################################

@@ -473,9 +473,9 @@ def IterateValRec(inits_field: list[cwast.PointVal], def_rec: cwast.CanonType):
 _UNDEF = cwast.ValUndef()
 
 
-def IterateValArray(val_array: cwast.ValVec, width):
+def IterateValArray(inits, width, srcloc):
     curr_val = 0
-    for init in val_array.inits:
+    for init in inits:
         assert isinstance(init, cwast.PointVal)
         if isinstance(init.point, cwast.ValAuto):
             yield curr_val, init
@@ -490,7 +490,7 @@ def IterateValArray(val_array: cwast.ValVec, width):
         curr_val += 1
     if curr_val > width:
         cwast.CompilerError(
-            val_array.x_srcloc, f"Out of bounds array access at {curr_val}. Array size is  {width}")
+            srcloc, f"Out of bounds array access at {curr_val}. Array size is  {width}")
     while curr_val < width:
         yield curr_val, None
         curr_val += 1

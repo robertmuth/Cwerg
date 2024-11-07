@@ -397,6 +397,58 @@ def _TypifyUntypedNodeRecursively(node, tc: type_corpus.TypeCorpus,
         assert False, f"unexpected node: {node}"
 
 
+def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
+                       target_type: cwast.CanonType,
+                       ctx: _TypeContext) -> cwast.CanonType:
+    ct = _TypifyNodeRecursively(node.type, tc, target_type, ctx)
+    if ct.is_array():
+        for point in node.inits:
+            assert isinstance(point, cwast.PointVal)
+            val = point.value_or_undef
+            if not isinstance(val, cwast.ValUndef):
+                _TypifyNodeRecursively(
+                    val, tc, ct.underlying_array_type(), ctx)
+            AnnotateNodeType(point, ct.underlying_array_type())
+            #
+            # TODO: for PointVals that represent record fields we may put
+            # a bogus type annotation for
+            index = point.point
+            uint_type = tc.get_uint_canon_type()
+            if isinstance(index, cwast.ValAuto):
+                AnnotateNodeType(index, uint_type)
+            else:
+                _TypifyNodeRecursively(index, tc, uint_type, ctx)
+    else:
+        assert ct.is_rec()
+        # note at this point we do not have x_field links, so we
+        # need to match fields ourselves
+        all_fields: list[cwast.RecField] = [f for f in ct.ast_node.fields]
+        for val in node.inits:
+            assert isinstance(val, cwast.PointVal)
+            field = val.point
+            if isinstance(field, cwast.Id):
+                while True:
+                    if not all_fields:
+                        cwast.CompilerError(
+                            node.x_srcloc, "too many fields for record literal")
+                    field_node = all_fields.pop(0)
+                    if field.GetBaseNameStrict() == field_node.name:
+                        break
+            else:
+                if not all_fields:
+                    cwast.CompilerError(
+                        val.x_srcloc, "too many rec initializers")
+                field_node = all_fields.pop(0)
+            # TODO: make sure this link is set
+            field_ct = field_node.x_type
+            AnnotateNodeField(val, field_node)
+            AnnotateNodeType(val, field_ct)
+            if not isinstance(val.value_or_undef, cwast.ValUndef):
+                _TypifyNodeRecursively(val.value_or_undef, tc, field_ct, ctx)
+        #
+    return AnnotateNodeType(node, ct)
+
+
 def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                            target_type: cwast.CanonType,
                            ctx: _TypeContext) -> cwast.CanonType:
@@ -459,56 +511,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValAuto):
         assert target_type is not cwast.NO_TYPE
         return AnnotateNodeType(node, target_type)
-    elif isinstance(node, cwast.ValVec):
-        ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        assert ct.is_array()
-        for point in node.inits:
-            assert isinstance(point, cwast.PointVal)
-            val = point.value_or_undef
-            if not isinstance(val, cwast.ValUndef):
-                _TypifyNodeRecursively(
-                    val, tc, ct.underlying_array_type(), ctx)
-            AnnotateNodeType(point, ct.underlying_array_type())
-            #
-            # TODO: for PointVals that represent record fields we may put
-            # a bogus type annotation for
-            index = point.point
-            uint_type = tc.get_uint_canon_type()
-            if isinstance(index, cwast.ValAuto):
-                AnnotateNodeType(index, uint_type)
-            else:
-                _TypifyNodeRecursively(index, tc, uint_type, ctx)
-        #
-        return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.ValRec):
-        ct = _TypifyNodeRecursively(node.type, tc, target_type, ctx)
-        assert ct.is_rec()
-        # note at this point we do not have x_field links, so we
-        # need to match fields ourselves
-        all_fields: list[cwast.RecField] = [f for f in ct.ast_node.fields]
-        for val in node.inits:
-            assert isinstance(val, cwast.PointVal)
-            field = val.point
-            if isinstance(field, cwast.Id):
-                while True:
-                    if not all_fields:
-                        cwast.CompilerError(
-                            node.x_srcloc, "too many fields for record literal")
-                    field_node = all_fields.pop(0)
-                    if field.GetBaseNameStrict() == field_node.name:
-                        break
-            else:
-                if not all_fields:
-                    cwast.CompilerError(
-                        val.x_srcloc, "too many rec initializers")
-                field_node = all_fields.pop(0)
-            # TODO: make sure this link is set
-            field_ct = field_node.x_type
-            AnnotateNodeField(val, field_node)
-            AnnotateNodeType(val, field_ct)
-            if not isinstance(val.value_or_undef, cwast.ValUndef):
-                _TypifyNodeRecursively(val.value_or_undef, tc, field_ct, ctx)
-        return AnnotateNodeType(node, ct)
+    elif isinstance(node, cwast.ValCompound):
+        return _TypifyValCompound(node, tc, target_type, ctx)
     elif isinstance(node, cwast.ValString):
         dim = ComputeStringSize(node.strkind, node.string)
         ct = tc.insert_array_type(
@@ -794,41 +798,45 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
         _CheckTypeSame(node, op2_type, result_type)
 
 
-def _CheckValRec(node: cwast.ValRec, _tc: type_corpus.TypeCorpus):
-    ct = node.type.x_type
-    assert ct.is_rec()
+def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
     for point in node.inits:
         assert isinstance(point, cwast.PointVal), f"{point}"
-        field_node: cwast.RecField = point.x_field
-        _CheckTypeSame(node, field_node.x_type, point.x_type)
-        if not isinstance(point.value_or_undef, cwast.ValUndef):
-            _CheckTypeCompatibleForAssignment(
-                point, point.value_or_undef.x_type, point.x_type, type_corpus.is_mutable_array(
-                    point.value_or_undef),
-                point.value_or_undef.x_srcloc)
-
-
-def CheckValRecStrict(node: cwast.ValRec, _tc: type_corpus.TypeCorpus):
-    ct = node.type.x_type
-    assert ct.is_rec()
-    for point in node.inits:
-        assert isinstance(point, cwast.PointVal), f"{point}"
-        field_node: cwast.RecField = point.x_field
-        _CheckTypeSame(point, field_node.x_type, point.x_type)
-        if not isinstance(point.value_or_undef, cwast.ValUndef):
-            _CheckTypeSameExceptMut(
-                point, point.value_or_undef.x_type, point.x_type)
-
-
-def _CheckValVec(node: cwast.ValVec, _tc: type_corpus.TypeCorpus):
-    ct = node.type.x_type
-    assert ct.is_array()
-    for point in node.inits:
-        assert isinstance(point, cwast.PointVal), f"{x}"
         if not isinstance(point.point, cwast.ValAuto):
             assert point.point.x_type.is_int()
         # TODO: this should be  _CheckTypeCompatibleForAssignment
-        _CheckTypeSame(point,  point.x_type, ct.underlying_vec_or_span_type())
+        _CheckTypeSame(point,  point.x_type, ct)
+
+
+def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
+    ct: cwast.CanonType = node.type.x_type
+    if ct.is_array():
+        _CheckValVec(node, ct.underlying_array_type())
+    else:
+        assert ct.is_rec()
+        for point in node.inits:
+            assert isinstance(point, cwast.PointVal), f"{point}"
+            field_node: cwast.RecField = point.x_field
+            _CheckTypeSame(node, field_node.x_type, point.x_type)
+            if not isinstance(point.value_or_undef, cwast.ValUndef):
+                _CheckTypeCompatibleForAssignment(
+                    point, point.value_or_undef.x_type, point.x_type, type_corpus.is_mutable_array(
+                        point.value_or_undef),
+                    point.value_or_undef.x_srcloc)
+
+
+def CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
+    ct: cwast.CanonType = node.type.x_type
+    if ct.is_array():
+        _CheckValVec(node, ct.underlying_array_type())
+    else:
+        assert ct.is_rec()
+        for point in node.inits:
+            assert isinstance(point, cwast.PointVal), f"{point}"
+            field_node: cwast.RecField = point.x_field
+            _CheckTypeSame(point, field_node.x_type, point.x_type)
+            if not isinstance(point.value_or_undef, cwast.ValUndef):
+                _CheckTypeSameExceptMut(
+                    point, point.value_or_undef.x_type, point.x_type)
 
 
 def CheckExpr3(node: cwast.Expr3, _tc: type_corpus.TypeCorpus):
@@ -1126,8 +1134,7 @@ class TypeVerifier:
     def __init__(self):
         # maps nodes
         self._map = {
-            cwast.ValRec: _CheckValRec,
-            cwast.ValVec: _CheckValVec,
+            cwast.ValCompound: _CheckValCompound,
             cwast.PointVal: _CheckNothing,
 
             cwast.Expr1: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),

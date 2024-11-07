@@ -74,7 +74,7 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
     return cwast.Id.Make(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec, x_srcloc=srcloc)
 
 
-def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValRec:
+def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValCompound:
     pointer_field, length_field = span_rec.ast_node.fields
     inits = [cwast.PointVal(pointer, cwast.ValAuto(x_srcloc=srcloc),
                             x_field=pointer_field, x_type=pointer_field.x_type,
@@ -82,22 +82,8 @@ def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cw
              cwast.PointVal(length, cwast.ValAuto(x_srcloc=srcloc),
                             x_field=length_field, x_type=length_field.x_type,
                             x_srcloc=srcloc, x_value=length.x_value)]
-    return cwast.ValRec(_MakeIdForDefRec(span_rec, srcloc), inits, x_srcloc=srcloc, x_type=span_rec)
+    return cwast.ValCompound(_MakeIdForDefRec(span_rec, srcloc), inits, x_srcloc=srcloc, x_type=span_rec)
 
-
-def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                         uint_type: cwast.CanonType) -> cwast.ValSpan:
-    p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_span_type())
-    value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
-        node) or isinstance(node, (cwast.ValVec, cwast.ValString)) else None
-    pointer = cwast.ExprFront(
-        node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=value)
-    width = node.x_type.array_dim()
-    length = cwast.ValNum(f"{width}", x_value=width,
-                          x_srcloc=node.x_srcloc, x_type=uint_type)
-    if value is not None:
-        value = eval.VAL_GLOBALSLICE
-    return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=value)
 
 
 def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
@@ -110,7 +96,7 @@ def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
             if (node.x_type != node.expr.x_type and
                 node.x_type.is_span() and
                     node.expr.x_type.is_array()):
-                return MakeValSpanFromArray(
+                return canonicalize.MakeValSpanFromArray(
                     node.expr, node.x_type, tc, uint_type)
         return None
 
@@ -161,7 +147,7 @@ def ReplaceSpans(node):
                                      cwast.Expr3, cwast.ExprDeref, cwast.ExprNarrow,
                                      cwast.ExprAddrOf, cwast.ExprCall,
                                      cwast.ValAuto, cwast.TypeVec,
-                                     cwast.PointVal, cwast.ValVec)):
+                                     cwast.PointVal, cwast.ValCompound)):
                     typify.UpdateNodeType(node, def_rec)
                     return None
                 elif isinstance(node, cwast.TypeSpan):

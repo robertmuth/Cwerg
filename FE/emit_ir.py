@@ -468,7 +468,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             return None
         else:
             res = id_gen.NewName("call")
-            print(f"{TAB}poparg {res}:{sig.result_type().get_single_register_type()}")
+            print(f"{TAB}poparg {res}:{
+                  sig.result_type().get_single_register_type()}")
             return res
     elif isinstance(node, cwast.ValNum):
         return f"{_FormatNumber(node)}:{node.x_type.get_single_register_type()}"
@@ -531,12 +532,12 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
     elif isinstance(node, cwast.ExprBitCast):
         res = id_gen.NewName("bitcast")
         expr = EmitIRExpr(node.expr, tc, id_gen)
-        src_reg_type  = node.expr.x_type.get_single_register_type()
+        src_reg_type = node.expr.x_type.get_single_register_type()
         dst_reg_type = node.type.x_type.get_single_register_type()
         if src_reg_type == dst_reg_type:
-            print( f"{TAB}mov {res}:{dst_reg_type} = {expr}")
+            print(f"{TAB}mov {res}:{dst_reg_type} = {expr}")
         else:
-            print( f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
+            print(f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
         return res
     elif isinstance(node, cwast.ExprUnsafeCast):
         return EmitIRExpr(node.expr, tc, id_gen)
@@ -562,7 +563,8 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         elif ct_src.is_pointer() and ct_dst.is_pointer():
             return EmitIRExpr(node.expr, tc, id_gen)
         else:
-            assert False, f"unsupported cast {node.expr} ({ct_src.name}) -> {ct_dst.name}"
+            assert False, f"unsupported cast {
+                node.expr} ({ct_src.name}) -> {ct_dst.name}"
     elif isinstance(node, (cwast.ExprWrap, cwast.ExprUnwrap)):
         return EmitIRExpr(node.expr, tc, id_gen)
     elif isinstance(node, cwast.ExprDeref):
@@ -679,33 +681,36 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         # TODO: check if auto is legit (maybe add a check for this in another phase)
         _EmitZero(dst, init_node.x_type.size,
                   init_node.x_type.alignment, id_gen)
-    elif isinstance(init_node, cwast.ValRec):
+    elif isinstance(init_node, cwast.ValCompound):
         src_type = init_node.x_type
+        if src_type.is_rec():
+            if not init_node.inits:
+                _EmitZero(dst, src_type.size, src_type.alignment, id_gen)
+                return
+            for field, init in symbolize.IterateValRec(init_node.inits, src_type):
 
-        if not init_node.inits:
-            _EmitZero(dst, src_type.size, src_type.alignment, id_gen)
-            return
-        for field, init in symbolize.IterateValRec(init_node.inits, src_type):
-
-            if init is None:
-                _EmitZero(BaseOffset(dst.base, dst.offset+field.x_offset),
-                          field.x_type.size, field.x_type.alignment, id_gen)
-            elif isinstance(init.value_or_undef, cwast.ValUndef):
-                pass
-            elif init.value_or_undef.x_type.size == 0:
-                pass
-            else:
-                EmitIRExprToMemory(init.value_or_undef, BaseOffset(
-                    dst.base, dst.offset+field.x_offset), tc, id_gen)
-    elif isinstance(init_node, cwast.ValVec):
-        element_size: int = init_node.x_type.array_element_size()
-        for index, c in symbolize.IterateValArray(init_node, init_node.x_type.array_dim()):
-            if c is None:
-                continue
-            if isinstance(c.value_or_undef, cwast.ValUndef):
-                continue
-            EmitIRExprToMemory(
-                c.value_or_undef, BaseOffset(dst.base, dst.offset + element_size * index), tc, id_gen)
+                if init is None:
+                    _EmitZero(BaseOffset(dst.base, dst.offset+field.x_offset),
+                              field.x_type.size, field.x_type.alignment, id_gen)
+                elif isinstance(init.value_or_undef, cwast.ValUndef):
+                    pass
+                elif init.value_or_undef.x_type.size == 0:
+                    pass
+                else:
+                    EmitIRExprToMemory(init.value_or_undef, BaseOffset(
+                        dst.base, dst.offset+field.x_offset), tc, id_gen)
+        else:
+            assert src_type.is_array()
+            element_size: int = src_type.array_element_size()
+            for index, c in symbolize.IterateValArray(init_node.inits,
+                                                      init_node.x_type.array_dim(),
+                                                      init_node.x_srcloc):
+                if c is None:
+                    continue
+                if isinstance(c.value_or_undef, cwast.ValUndef):
+                    continue
+                EmitIRExprToMemory(
+                    c.value_or_undef, BaseOffset(dst.base, dst.offset + element_size * index), tc, id_gen)
     else:
         assert False, f"NYI: {init_node}"
 
@@ -751,7 +756,8 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
                 EmitIRExpr(initial, tc, id_gen)
         elif _IsDefVarOnStack(node):
             assert def_type.size > 0
-            print(f"{TAB}.stk {node.name} {def_type.alignment} {def_type.size}")
+            print(f"{TAB}.stk {node.name} {
+                  def_type.alignment} {def_type.size}")
             if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
                 kind = tc.get_data_address_reg_type()
@@ -922,7 +928,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
         elif ct.is_array():
             assert isinstance(
-                node, (cwast.ValVec, cwast.ValString)), f"{node}"
+                node, (cwast.ValCompound, cwast.ValString)), f"{node}"
             print(f"# array: {ct.name}")
             width = ct.array_dim()
             x_type = ct.underlying_array_type()
@@ -942,11 +948,11 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                         out += _InitDataForBaseType(x_type, v)
                     return _EmitMem(out, ct.name)
             else:
-                assert isinstance(node, cwast.ValVec), f"{node}"
+                assert isinstance(node, cwast.ValCompound), f"{node}"
                 last = cwast.ValUndef()
                 stride = ct.size // width
                 assert stride * width == ct.size, f"{ct.size} {width}"
-                for n, init in symbolize.IterateValArray(node, width):
+                for n, init in symbolize.IterateValArray(node.inits, width, node.x_srcloc):
                     if init is None:
                         count = _emit_recursively(
                             last, x_type, offset + n * stride)
@@ -962,7 +968,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
         elif ct.is_rec():
             if isinstance(node, cwast.ValAuto):
                 return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
-            assert isinstance(node, cwast.ValRec), f"unexpected value {node}"
+            assert isinstance(node, cwast.ValCompound), f"unexpected value {node}"
             print(f"# record: {ct.name}")
             rel_off = 0
             # note node.x_type may be compatible but not equal to ct
@@ -1142,7 +1148,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.TypeOf)
     eliminated_nodes.add(cwast.TypeUnionDelta)
     verifier.Replace(cwast.ExprNarrow, typify._CheckExprNarrowUnchecked)
-    verifier.Replace(cwast.ValRec, typify.CheckValRecStrict)
+    verifier.Replace(cwast.ValCompound, typify.CheckValCompoundStrict)
     verifier.Replace(cwast.ExprCall, typify._CheckExprCallStrict)
     verifier.Replace(cwast.StmtAssignment, typify.CheckStmtAssignmentStrict)
     verifier.Replace(cwast.StmtReturn, typify._CheckStmtReturnStrict)
@@ -1217,7 +1223,8 @@ def main() -> int:
 
     for node in cwast.ALL_NODES:
         if cwast.NF.NON_CORE in node.FLAGS:
-            assert node in eliminated_nodes, f"node: {node} must be eliminated before codegen"
+            assert node in eliminated_nodes, f"node: {
+                node} must be eliminated before codegen"
 
     SanityCheckMods("after_canonicalization", args.emit_ir,
                     [mod_gen] + mod_topo_order, tc, verifier, eliminated_nodes)

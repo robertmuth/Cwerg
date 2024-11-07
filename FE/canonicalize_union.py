@@ -91,9 +91,9 @@ def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.Va
                         x_type=ct_typeid)
 
 
-def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc):
+def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc) -> cwast.ValCompound:
     tag_field, union_field = sum_rec.ast_node.fields
-    return cwast.ValRec(_MakeIdForDefRec(sum_rec, srcloc), [
+    return cwast.ValCompound(_MakeIdForDefRec(sum_rec, srcloc), [
         cwast.PointVal(tag_value, cwast.ValAuto(x_srcloc=srcloc),
                        x_field=tag_field, x_type=tag_field.x_type, x_srcloc=srcloc,
                        x_value=tag_value.x_value),
@@ -105,7 +105,7 @@ def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc
         x_type=sum_rec)
 
 
-def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.CanonType) -> cwast.ValRec:
+def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.CanonType) -> cwast.ValCompound:
     assert sum_rec.is_rec()
     assert value.x_type.is_tagged_union()
     assert not value.expr.x_type.is_union(
@@ -129,7 +129,7 @@ def _CloneId(node: cwast.Id) -> cwast.Id:
                          x_srcloc=node.x_srcloc)
 
 
-def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
+def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValCompound:
     assert dst_sum_rec.is_rec()
     dst_untagged_union_ct: cwast.CanonType = dst_sum_rec.ast_node.fields[1].x_type
     assert dst_untagged_union_ct.is_untagged_union()
@@ -159,7 +159,7 @@ def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) 
     return _MakeValRecForUnion(dst_sum_rec, src_tag, union_value, sl)
 
 
-def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.CanonType) -> cwast.ValRec:
+def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.CanonType) -> cwast.ValCompound:
     assert dst_sum_rec.is_rec()
     _, dst_union_field = dst_sum_rec.ast_node.fields
     src_sum_rec: cwast.CanonType = value.expr.x_type
@@ -299,7 +299,7 @@ def ReplaceUnions(node):
                              cwast.TypeVec,
                              cwast.FunParam, cwast.ExprCall, cwast.RecField,
                              cwast.ExprField, cwast.PointVal,
-                             cwast.ValVec, cwast.TypePtr, cwast.ExprPointer,
+                             cwast.ValCompound, cwast.TypePtr, cwast.ExprPointer,
                              cwast.ExprFront, cwast.ExprDeref, cwast.ExprAddrOf)):
             typify.UpdateNodeType(node, new_ct)
             return None

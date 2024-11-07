@@ -84,21 +84,13 @@ def ValueConstKind(node) -> CONSTANT_KIND:
         if not isinstance(node.expr_size, cwast.ValNum):
             return CONSTANT_KIND.NOT
         return ValueConstKind(node.pointer)
-    elif isinstance(node, cwast.ValRec):
+    elif isinstance(node, cwast.ValCompound):
         out = CONSTANT_KIND.PURE
         for field in node.inits:
+            if field.x_field is None:
+                if not isinstance(field.point, (cwast.ValAuto, cwast.ValNum)):
+                    return CONSTANT_KIND.NOT
             o = ValueConstKind(field.value_or_undef)
-            if o is CONSTANT_KIND.NOT:
-                return o
-            if o.value < out.value:
-                out = o
-        return out
-    elif isinstance(node, cwast.ValVec):
-        out = CONSTANT_KIND.PURE
-        for index in node.inits:
-            if not isinstance(index.point, (cwast.ValAuto, cwast.ValNum)):
-                return CONSTANT_KIND.NOT
-            o = ValueConstKind(index.value_or_undef)
             if o is CONSTANT_KIND.NOT:
                 return o
             if o.value < out.value:
@@ -153,8 +145,13 @@ class GlobalConstantPool:
     def _maybe_replace(self, node, parent, _field) -> Optional[Any]:
         if isinstance(parent, cwast.DefGlobal):
             return None
-        elif (isinstance(node, cwast.ValVec) and ValueConstKind(node) is not
-              CONSTANT_KIND.NOT and not isinstance(parent, cwast.DefVar)):
+        elif (isinstance(node, cwast.ValCompound) and
+              # also allow this for rec vals this currently breaks for one test case
+              # blocked on BUG(#40)
+              node.x_type.is_array() and
+              ValueConstKind(node) is not CONSTANT_KIND.NOT and
+              not isinstance(parent, cwast.DefVar)):
+            # TODO: this should also be done for recs
             def_node = self._add_def_global(node)
             # TODO: maybe update str_map for the CONSTANT_KIND.PURE case
             return _IdNodeFromDef(def_node, node.x_srcloc)
@@ -272,50 +269,50 @@ def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
         assert False, f"{ct} {srcloc}"
 
 
-def _EvalValRec(def_rec: cwast.CanonType, inits: list, srcloc) -> Optional[dict]:
-    rec: dict[str, Any] = {}
-    for field, init in symbolize.IterateValRec(inits, def_rec):
-        assert isinstance(field, cwast.RecField)
-        # print ("    ", field)
-        ct: cwast.CanonType = field.x_type
-        if init is None:
-            rec[field.name] = _GetDefaultForType(ct, srcloc)
-        else:
-            assert isinstance(init, cwast.PointVal), f"{init}"
-            if init.x_value is None:
+def _EvalValCompound(ct: cwast.CanonType, inits: list, srcloc) -> Optional[Any]:
+    if ct.is_rec():
+        rec: dict[str, Any] = {}
+        for field, init in symbolize.IterateValRec(inits, ct):
+            assert isinstance(field, cwast.RecField)
+            # print ("    ", field)
+            ct: cwast.CanonType = field.x_type
+            if init is None:
+                rec[field.name] = _GetDefaultForType(ct, srcloc)
+            else:
+                assert isinstance(init, cwast.PointVal), f"{init}"
+                if init.x_value is None:
+                    return None
+                rec[field.name] = init.x_value
+        return rec
+    else:
+        assert ct.is_array()
+        has_unknown = False
+        # first pass if we cannot evaluate everyting, we must give up
+        # This could be relaxed if we allow None values in "out"
+        for c in inits:
+            assert isinstance(c, cwast.PointVal)
+            index = c.point
+            if not isinstance(index, cwast.ValAuto):
+                if index.x_value is None:
+                    has_unknown = True
+                    break
+            if not isinstance(c.value_or_undef, cwast.ValUndef):
+                if c.value_or_undef.x_value is None:
+                    has_unknown = True
+                    break
+        if has_unknown:
+            return None
+        curr_val = VAL_UNDEF
+        array = []
+        for _, c in symbolize.IterateValArray(inits, ct.array_dim(), srcloc):
+            if c is None:
+                array.append(curr_val)
+                continue
+            curr_val = c.value_or_undef.x_value
+            if curr_val is None:
                 return None
-            rec[field.name] = init.x_value
-    return rec
-
-
-def _EvalValArray(node: cwast.ValVec) -> bool:
-    has_unknown = False
-    # first pass if we cannot evaluate everyting, we must give up
-    # This could be relaxed if we allow None values in "out"
-    for c in node.inits:
-        assert isinstance(c, cwast.PointVal)
-        index = c.point
-        if not isinstance(index, cwast.ValAuto):
-            if index.x_value is None:
-                has_unknown = True
-                break
-        if not isinstance(c.value_or_undef, cwast.ValUndef):
-            if c.value_or_undef.x_value is None:
-                has_unknown = True
-                break
-    if has_unknown:
-        return False
-    curr_val = VAL_UNDEF
-    array = []
-    for _, c in symbolize.IterateValArray(node, node.x_type.dim):
-        if c is None:
             array.append(curr_val)
-            continue
-        curr_val = c.value_or_undef.x_value
-        if curr_val is None:
-            return False
-        array.append(curr_val)
-    return _AssignValue(node, array)
+        return array
 
 
 def _eval_not(node) -> bool:
@@ -437,7 +434,7 @@ def _EvalAuto(node: cwast.ValAuto) -> bool:
         else:
             assert False
     elif ct.is_rec():
-        return _AssignValue(node, _EvalValRec(ct, [], node.x_srcloc))
+        return _AssignValue(node, _EvalValCompound(ct, [], node.x_srcloc))
     elif isinstance(node, cwast.TypePtr):
         assert False
     else:
@@ -481,8 +478,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         # we do not evaluate this during the recursion
         # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
         return False
-    elif isinstance(node, cwast.ValVec):
-        return _EvalValArray(node)
     elif isinstance(node, cwast.PointVal):
         if node.value_or_undef.x_value is None:
             if (node.x_type.is_span() and node.value_or_undef.x_type.is_array() and
@@ -491,8 +486,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         else:
             return _AssignValue(node, node.value_or_undef.x_value)
         return False
-    elif isinstance(node, cwast.ValRec):
-        return _AssignValue(node, _EvalValRec(node.x_type, node.inits, node.x_srcloc))
+    elif isinstance(node, cwast.ValCompound):
+        return _AssignValue(node, _EvalValCompound(node.x_type, node.inits, node.x_srcloc))
     elif isinstance(node, cwast.ValString):
         s = node.string
         if not all(ord(c) < 128 for c in s):
@@ -673,8 +668,7 @@ def VerifyASTEvalsRecursively(node):
                 return
             else:
                 assert (node.x_value is not None or
-                    isinstance(node, cwast.ValAuto)), f"unevaluated ValArray init index: {node}"
-
+                        isinstance(node, cwast.ValAuto)), f"unevaluated ValArray init index: {node}"
 
         if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.Id):
@@ -700,7 +694,7 @@ def VerifyASTEvalsRecursively(node):
                         # TODO: we do not track constant addresses yet
                         # for now assume they are constant
                         pass
-                    elif isinstance(node, cwast.ValRec):
+                    elif isinstance(node, cwast.ValCompound):
                         # we still check that each field is const
                         pass
                     elif isinstance(node, cwast.ValAuto) and field == "point":
@@ -709,7 +703,6 @@ def VerifyASTEvalsRecursively(node):
                         cwast.CompilerError(
                             node.x_srcloc, f"expected const node: {node} "
                             f"of type {node.x_type} inside {parent}")
-
 
         # Note: this info is currently filled in by the Type Decorator
         if isinstance(node, cwast.TypeVec):

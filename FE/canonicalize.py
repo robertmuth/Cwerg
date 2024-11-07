@@ -471,9 +471,10 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
 
 def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
                          uint_type: cwast.CanonType) -> cwast.ValSpan:
+    assert node.x_type.is_array()
     p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_span_type())
     value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
-        node) or isinstance(node, (cwast.ValVec, cwast.ValString)) else None
+        node) or isinstance(node, (cwast.ValCompound, cwast.ValString)) else None
     pointer = cwast.ExprFront(
         node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=value)
     width = node.x_type.array_dim()
@@ -667,28 +668,12 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
             return None
 
         rhs = node.expr_rhs
-        if isinstance(rhs, cwast.ValVec):
+        if isinstance(rhs, cwast.ValCompound):
             extra = []
             for i in rhs.inits:
                 if not _IsSimpleInitializer(i.value_or_undef):
                     srcloc = i.x_srcloc
                     def_tmp = cwast.DefVar(id_gen.NewName("val_array_tmp"),
-                                           cwast.TypeAuto(
-                        x_srcloc=srcloc, x_type=i.x_type), i.value_or_undef,
-                        x_srcloc=srcloc)
-                    extra.append(def_tmp)
-                    i.value_or_undef = _IdNodeFromDef(def_tmp, srcloc)
-                    # assert False, f"{i.value_or_undef} {i.x_type}"
-            if not extra:
-                return None
-            extra.append(node)
-            return cwast.EphemeralList(extra)
-        elif isinstance(rhs, cwast.ValRec):
-            extra = []
-            for i in rhs.inits:
-                if not _IsSimpleInitializer(i.value_or_undef):
-                    srcloc = i.x_srcloc
-                    def_tmp = cwast.DefVar(id_gen.NewName("val_rec_tmp"),
                                            cwast.TypeAuto(
                         x_srcloc=srcloc, x_type=i.x_type), i.value_or_undef,
                         x_srcloc=srcloc)
