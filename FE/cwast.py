@@ -1590,16 +1590,15 @@ class PointVal:
     """
     ALIAS = "point_val"
     GROUP = GROUP.Value
-    FLAGS = NF_EXPR | NF.FIELD_ANNOTATED
+    FLAGS = NF_EXPR
     #
     value_or_undef: NODES_EXPR_T
-    point: NODES_EXPR_OR_AUTO_T  # compile time constant
+    point: NODES_EXPR_OR_AUTO_T  # compile time constant index or field name
     #
     doc: str = ""
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
-    x_field: Optional["RecField"] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} [{self.point}] = {self.value_or_undef}"

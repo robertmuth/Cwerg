@@ -421,8 +421,12 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
         for field, point in symbolize.IterateValRec(node.inits, ct):
             if point:
                 field_ct =  field.x_type
-                AnnotateNodeField(point, field)
                 AnnotateNodeType(point, field_ct)
+                if isinstance(point.point, cwast.Id):
+                    # an over-eager symbolizer may have found
+                    # a variable name the matches the field name
+                    # an created a link between the two.
+                    point.point.x_symbol = None
                 if not isinstance(point.value_or_undef, cwast.ValUndef):
                     _TypifyNodeRecursively(point.value_or_undef, tc, field_ct, ctx)
 

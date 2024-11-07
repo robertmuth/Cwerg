@@ -86,8 +86,9 @@ def ValueConstKind(node) -> CONSTANT_KIND:
         return ValueConstKind(node.pointer)
     elif isinstance(node, cwast.ValCompound):
         out = CONSTANT_KIND.PURE
+        is_vec = node.x_type.is_array()
         for field in node.inits:
-            if field.x_field is None:
+            if is_vec:
                 if not isinstance(field.point, (cwast.ValAuto, cwast.ValNum)):
                     return CONSTANT_KIND.NOT
             o = ValueConstKind(field.value_or_undef)
@@ -607,10 +608,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         assert False, f"unexpected node {node}"
 
 
-def _ToBeIgnoredId(node: cwast.Id, parent, field) -> bool:
-    return field == "point" and isinstance(parent, cwast.PointVal) and parent.x_field
-
-
 def EvalRecursively(node) -> bool:
     seen_change = False
 
@@ -626,7 +623,9 @@ def EvalRecursively(node) -> bool:
             return
         if node.x_value is not None:
             return
-        if isinstance(node, cwast.Id) and _ToBeIgnoredId(node, parent, field):
+
+        if isinstance(node, cwast.Id) and node.x_symbol is None:
+            assert field == "point" and isinstance(parent, cwast.PointVal)
             return
 
         seen_change |= _EvalNode(node)
@@ -663,12 +662,10 @@ def VerifyASTEvalsRecursively(node):
             assert node.x_value is not None, f"{node}"
 
         if isinstance(parent, cwast.PointVal) and field == "point":
-            if parent.x_field:
-                # this is just the id of the field name
+            if isinstance(node, cwast.Id) and node.x_symbol is None:
                 return
-            else:
-                assert (node.x_value is not None or
-                        isinstance(node, cwast.ValAuto)), f"unevaluated ValArray init index: {node}"
+            if node.x_value is None:
+                assert isinstance(node, cwast.ValAuto), f"unevaluated ValArray init index: {node}"
 
         if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.Id):

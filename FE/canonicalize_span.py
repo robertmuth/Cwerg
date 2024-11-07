@@ -77,10 +77,10 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
 def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValCompound:
     pointer_field, length_field = span_rec.ast_node.fields
     inits = [cwast.PointVal(pointer, cwast.ValAuto(x_srcloc=srcloc),
-                            x_field=pointer_field, x_type=pointer_field.x_type,
+                            x_type=pointer_field.x_type,
                             x_srcloc=srcloc, x_value=pointer.x_value),
              cwast.PointVal(length, cwast.ValAuto(x_srcloc=srcloc),
-                            x_field=length_field, x_type=length_field.x_type,
+                            x_type=length_field.x_type,
                             x_srcloc=srcloc, x_value=length.x_value)]
     return cwast.ValCompound(_MakeIdForDefRec(span_rec, srcloc), inits, x_srcloc=srcloc, x_type=span_rec)
 
