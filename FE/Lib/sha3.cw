@@ -5,7 +5,7 @@ import fmt
 -- variants of sha3-512
 -- https://www.cybertest.com/blog/keccak-vs-sha3
 -- https://emn178.github.io/online-tools/sha3_512.html
--- 
+--
 pub rec StateKeccak:
     msglen uint
     x [25]u64
@@ -56,18 +56,18 @@ fun AddBlockAlignedLE(state ^!StateKeccak, data span(u64)) void:
         set state^.x[i] xor= data[i]
 
 global rconst = [24]u64{
-        0x0000000000000001, 0x0000000000008082, 0x800000000000808a, 0x8000000080008000, 
-        0x000000000000808b, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009, 
-        0x000000000000008a, 0x0000000000000088, 0x0000000080008009, 0x000000008000000a, 
-        0x000000008000808b, 0x800000000000008b, 0x8000000000008089, 0x8000000000008003, 
-        0x8000000000008002, 0x8000000000000080, 0x000000000000800a, 0x800000008000000a, 
+        0x0000000000000001, 0x0000000000008082, 0x800000000000808a, 0x8000000080008000,
+        0x000000000000808b, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009,
+        0x000000000000008a, 0x0000000000000088, 0x0000000080008009, 0x000000008000000a,
+        0x000000008000808b, 0x800000000000008b, 0x8000000000008089, 0x8000000000008003,
+        0x8000000000008002, 0x8000000000000080, 0x000000000000800a, 0x800000008000000a,
         0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008}
 
 macro XOR_5_EXPR# EXPR($x EXPR, $p1 EXPR, $p2 EXPR, $p3 EXPR, $p4 EXPR, $p5 EXPR)[
     ]:
-    $x^[$p1] xor $x^[$p2] xor $x^[$p3] xor $x^[$p4] xor $x^[$p5] 
+    $x^[$p1] xor $x^[$p2] xor $x^[$p3] xor $x^[$p4] xor $x^[$p5]
 
-macro XOR_1# STMT_LIST($x EXPR, $indices EXPR_LIST, $v EXPR)[]:
+macro XOR_1# STMT_LIST($x EXPR, $v EXPR, $indices EXPR_LIST_REST)[]:
     mfor $i $indices:
         set $x^[$i] xor= $v
 
@@ -92,17 +92,17 @@ fun KeccakF(x ^![25]u64) void:
         let! bc2 = XOR_5_EXPR#(x, 2, 7, 12, 17, 22)
         let! bc3 = XOR_5_EXPR#(x, 3, 8, 13, 18, 23)
         let! bc4 = XOR_5_EXPR#(x, 4, 9, 14, 19, 24)
-        -- 
+        --
         let! t0 = bc4 xor (bc1 << 1 or bc1 >> 63)
         let! t1 = bc0 xor (bc2 << 1 or bc2 >> 63)
         let! t2 = bc1 xor (bc3 << 1 or bc3 >> 63)
         let! t3 = bc2 xor (bc4 << 1 or bc4 >> 63)
         let! t4 = bc3 xor (bc0 << 1 or bc0 >> 63)
-        XOR_1#(x,{0, 5, 10, 15, 20}, t0)
-        XOR_1#(x,{1, 6, 11, 16, 21}, t1)
-        XOR_1#(x,{2, 7, 12, 17, 22}, t2)
-        XOR_1#(x,{3, 8, 13, 18, 23}, t3)
-        XOR_1#(x,{4, 9, 14, 19, 24}, t4)
+        XOR_1#(x, t0, 0, 5, 10, 15, 20)
+        XOR_1#(x, t1, 1, 6, 11, 16, 21)
+        XOR_1#(x, t2, 2, 7, 12, 17, 22)
+        XOR_1#(x, t3, 3, 8, 13, 18, 23)
+        XOR_1#(x, t4, 4, 9, 14, 19, 24)
         if false:
             do dumpA("theta", x)
         -- rho(x)
@@ -112,27 +112,27 @@ fun KeccakF(x ^![25]u64) void:
         UPDATE#(a, b, x, 7, 3)
         UPDATE#(a, b, x, 11, 6)
         UPDATE#(a, b, x, 17, 10)
-        -- 
+        --
         UPDATE#(a, b, x, 18, 15)
         UPDATE#(a, b, x, 3, 21)
         UPDATE#(a, b, x, 5, 28)
         UPDATE#(a, b, x, 16, 36)
-        -- 
+        --
         UPDATE#(a, b, x, 8, 45)
         UPDATE#(a, b, x, 21, 55)
         UPDATE#(a, b, x, 24, 2)
         UPDATE#(a, b, x, 4, 14)
-        -- 
+        --
         UPDATE#(a, b, x, 15, 27)
         UPDATE#(a, b, x, 23, 41)
         UPDATE#(a, b, x, 19, 56)
         UPDATE#(a, b, x, 13, 8)
-        -- 
+        --
         UPDATE#(a, b, x, 12, 25)
         UPDATE#(a, b, x, 2, 43)
         UPDATE#(a, b, x, 20, 62)
         UPDATE#(a, b, x, 14, 18)
-        -- 
+        --
         UPDATE#(a, b, x, 22, 39)
         UPDATE#(a, b, x, 9, 61)
         UPDATE#(a, b, x, 6, 20)

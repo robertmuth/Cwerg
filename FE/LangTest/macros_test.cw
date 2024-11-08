@@ -38,13 +38,13 @@ fun TestRecursiveMacro() u32:
     nested3#()
     return 0
 
-macro product# STMT_LIST($result ID, $factors STMT_LIST)[]:
+macro product# STMT_LIST($result ID, $factors EXPR_LIST_REST)[]:
     mfor $x $factors:
         set $result = $result * $x
 
 fun TestProductMacro() u32:
     let! result u32 = 1
-    product#(result,{111, 2 * 111, 333, 444, 555, 666})
+    product#(result, 111, 2 * 111, 333, 444, 555, 666)
     return result
 
 fun TestForMacroStringify() span(u8):
