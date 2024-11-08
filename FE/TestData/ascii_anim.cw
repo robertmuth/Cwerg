@@ -144,7 +144,7 @@ pub fun draw(window ^!Window, s ^!ObjectState) void:
             set x = as(s^.x_pos, s32)
             set left_side = true
             -- the end of the color row should have been reached already
-            fmt::assert#(!have_color,{"color failure\n"})
+            fmt::assert#(!have_color, "color failure\n")
             if cpos < len(color_map):
                 set have_color = true
             continue

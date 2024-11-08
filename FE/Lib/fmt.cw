@@ -142,15 +142,6 @@ pub macro print# STMT_LIST(
                 $i, span(pinc(front!($buffer), $curr), len($buffer) - $curr), &!$options)
     do os::write(unwrap(os::Stdout), front($buffer), $curr)
 
--- same as above but takes an EXPR_LIST - should only be used by other macros
-pub macro print_list# STMT_LIST($parts EXPR_LIST)[$buffer, $curr, $options]:
-    mlet! $buffer = [FORMATED_STRING_MAX_LEN]u8{}
-    mlet! $curr uint = 0
-    ref mlet! $options = SysFormatOptions{}
-    mfor $i $parts:
-        set $curr += SysRender@(
-                $i, span(pinc(front!($buffer), $curr), len($buffer) - $curr), &!$options)
-    do os::write(unwrap(os::Stdout), front($buffer), $curr)
 
 pub fun strz_to_slice(s ^u8) span(u8):
     let! i uint = 0
@@ -162,5 +153,5 @@ pub macro assert# STMT($cond EXPR, $parts EXPR_LIST_REST)[]:
     if $cond:
     else:
         print#(stringify($cond))
-        print_list#($parts)
+        print#($parts)
         trap
