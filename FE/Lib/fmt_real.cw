@@ -134,7 +134,6 @@ pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
         return 0
     if precision + 1 > len(buffer):
         return 0
-
     if num_real::r64_raw_exponent(val) == num_real::r64_raw_exponent_subnormal:
         if num_real::r64_raw_mantissa(val) == 0:
             set buffer[0] = '0'

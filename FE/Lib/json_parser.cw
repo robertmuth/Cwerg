@@ -32,7 +32,6 @@
 -- * ContGetKind()
 -- * ContGetFirst()
 -- * ContGetSize()
-
 module:
 
 import fmt
@@ -40,14 +39,16 @@ import fmt
 pub type Object = @untagged union(Cont, Item, Atom)
 
 pub wrapped type Success = void
+
 pub global SuccessVal = wrap_as(void, Success)
 
 pub wrapped type AllocError = void
+
 pub global AllocErrorVal = wrap_as(void, AllocError)
 
 pub wrapped type DataError = void
-pub global DataErrorVal = wrap_as(void, DataError)
 
+pub global DataErrorVal = wrap_as(void, DataError)
 
 pub enum ObjKind u32:
     Invalid 0
@@ -56,6 +57,7 @@ pub enum ObjKind u32:
     Atom 3
 
 wrapped type Index = u32
+
 pub global NullIndex = wrap_as(0, Index)
 
 fun MakeIndex(index u32, kind ObjKind) Index:
@@ -81,19 +83,17 @@ rec Atom:
     length u32
     kind AtomKind
 
-pub fun AtomGetKind(file ^File, index Index)  AtomKind:
+pub fun AtomGetKind(file ^File, index Index) AtomKind:
     if IndexGetKind(index) != ObjKind:Atom:
         trap
     let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Atom)
     return ptr^.kind
 
-pub fun AtomGetData(file ^File, index Index)  span(u8):
+pub fun AtomGetData(file ^File, index Index) span(u8):
     if IndexGetKind(index) != ObjKind:Atom:
         trap
     let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Atom)
-    return span(&file^.data[ptr^.offset] , as(ptr^.length, uint))
-
-
+    return span(&file^.data[ptr^.offset], as(ptr^.length, uint))
 
 -- Items make up the contents of Cont
 rec Item:
@@ -151,7 +151,6 @@ pub fun ContGetSize(file ^File, cont Index) u32:
         set out += 1
     return out
 
-
 fun spaneq(a span(u8), b span(u8)) bool:
     let a_len = len(a)
     let b_len = len(b)
@@ -172,7 +171,7 @@ pub fun ContGetItemForKey(file ^File, cont Index, key span(u8)) Index:
             let key_data = AtomGetData(file, key_atom)
             if spaneq(key_data, key):
                 return item
-        set item =  ItemGetNext(file, item)
+        set item = ItemGetNext(file, item)
     return NullIndex
 
 pub fun ContGetItemForIndex(file ^File, cont Index, index u32) Index:
@@ -181,7 +180,7 @@ pub fun ContGetItemForIndex(file ^File, cont Index, index u32) Index:
     let! n = 0_u32
     let! item = ContGetFirst(file, cont)
     while n < index && item != NullIndex:
-        set item =  ItemGetNext(file, item)
+        set item = ItemGetNext(file, item)
         set n += 1
     return item
 
@@ -197,11 +196,9 @@ pub rec File:
     -- index into  `data`. Only used during parsing
     next_byte u32
 
-
 fun IsEndOfNum(c u8) bool:
-    return c == ' ' || c == ']' || c == '}' || c == ',' ||
-           c == '\n' || c == ':' || c == '\t'
-
+    return c == ' ' || c == ']' || c == '}' || c == ',' || c == '\n' || c == ':' || 
+        c== '\t'
 
 fun MaybeConsume(file ^!File, c u8) bool:
     let! i = file^.next_byte
@@ -233,7 +230,6 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
     -- fmt::print#("ParseAtom ", file^.next_byte, "\n")
     trylet index u32 = AllocObj(file), err:
         return err
-
     let! start = file^.next_byte
     let length = as(len(file^.data), u32)
     if file^.data[start] == '"':
@@ -244,7 +240,8 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
         while end < length:
             let d = file^.data[end]
             if d == '"':
-                set file^.objects[index] = Atom{start, end - start, seen_esc ? AtomKind:EscStr : AtomKind:Str}
+                set file^.objects[index] = Atom{
+                        start, end - start, seen_esc ? AtomKind:EscStr : AtomKind:Str}
                 set file^.next_byte = end + 1
                 -- fmt::print#("ParseAtom End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
                 return MakeIndex(index, ObjKind:Atom)
@@ -266,18 +263,15 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
     set file^.next_byte = end
     return MakeIndex(index, ObjKind:Atom)
 
-
-
 fun ParseVec(file ^!File) union(Index, AllocError, DataError):
     -- fmt::print#("ParseVec ", file^.next_byte, "\n")
     let! first_entry = 0_u32
     let! last_entry = 0_u32
     let! last_val = NullIndex
-
     let! n = 0_u32
     while true:
         -- fmt::print#("ParseVec Loop ", file^.next_byte, " round=", n, "\n")
-        if  !SkipWS(file):
+        if !SkipWS(file):
             -- corrupted
             return DataErrorVal
         if MaybeConsume(file, ']'):
@@ -285,7 +279,8 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
             if n == 0:
                 return NullIndex
             else:
-                set file^.objects[last_entry] = Item{NullIndex, NullIndex, last_val}
+                set file^.objects[last_entry] = Item{
+                        NullIndex, NullIndex, last_val}
                 return MakeIndex(first_entry, ObjKind:Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
@@ -299,7 +294,8 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
             set first_entry = entry
         else:
             -- now that we know the next pointer, finalize the previous entry
-            set file^.objects[last_entry] = Item{MakeIndex(entry, ObjKind:Item), NullIndex, last_val}
+            set file^.objects[last_entry] = Item{
+                    MakeIndex(entry, ObjKind:Item), NullIndex, last_val}
         set last_entry = entry
         set last_val = val
         set n += 1
@@ -312,7 +308,6 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
     let! last_entry = 0_u32
     let! last_val = NullIndex
     let! last_key = NullIndex
-
     let! n = 0_u32
     while true:
         -- fmt::print#("ParseDict Loop ", file^.next_byte, " round=", n, "\n")
@@ -323,7 +318,8 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             if n == 0:
                 return NullIndex
             else:
-                set file^.objects[last_entry] = Item{NullIndex, last_key, last_val}
+                set file^.objects[last_entry] = Item{
+                        NullIndex, last_key, last_val}
                 return MakeIndex(first_entry, ObjKind:Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
@@ -333,7 +329,7 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             return err
         trylet key Index = ParseNext(file), err:
             return err
-        if  !SkipWS(file) || !MaybeConsume(file, ':') || !SkipWS(file):
+        if !SkipWS(file) || !MaybeConsume(file, ':') || !SkipWS(file):
             -- fmt::print#("colon corruption\n")
             return DataErrorVal
         trylet val Index = ParseNext(file), err:
@@ -342,7 +338,8 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             set first_entry = entry
         else:
             -- now that we know the next pointer, finalize the previous entry
-            set file^.objects[last_entry] = Item{MakeIndex(entry, ObjKind:Item), last_key, last_val}
+            set file^.objects[last_entry] = Item{
+                    MakeIndex(entry, ObjKind:Item), last_key, last_val}
         set last_entry = entry
         set last_key = key
         set last_val = val
@@ -369,7 +366,6 @@ fun ParseNext(file ^!File) union(Index, AllocError, DataError):
         return MakeIndex(container, ObjKind:Cont)
     return ParseAtom(file)
 
-
 pub fun Parse(file ^!File) union(Success, AllocError, DataError):
     -- fmt::print#("Parse ",  file^.next_byte,"\n")
     if !SkipWS(file):
@@ -382,7 +378,6 @@ pub fun Parse(file ^!File) union(Success, AllocError, DataError):
         -- garbage at end of file
         return DataErrorVal
     return SuccessVal
-
 
 enum State u8:
     invalid auto
@@ -417,7 +412,7 @@ pub fun NumJsonObjectsNeeded(raw span(u8)) u32:
                 if c == ':':
                     set n -= 1
                 continue
-            case c == '[' ||  c == '{':
+            case c == '[' || c == '{':
                 set n += n == 0 ? 1 : 2
             case c == '"':
                 set n += n == 0 ? 1 : 2

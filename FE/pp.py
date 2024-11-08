@@ -382,7 +382,10 @@ def TokensAnnotationsPre(ts: TS, node):
                 else:
                     val = val[1:-1]
                 for line in val.split("\n"):
-                    ts.EmitComment("-- " + line)
+                    if not line:
+                         ts.EmitComment("--")
+                    else:
+                        ts.EmitComment("-- " + line)
 
             else:
                 ts.EmitAnnotationLong(_ANNOTATION_PREFIX + field + "=" + val)
