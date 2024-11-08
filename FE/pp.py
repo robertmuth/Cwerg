@@ -158,7 +158,7 @@ class TK(enum.Enum):
 
     PAREN_BEG = 20  # white space after
     PAREN_BEG_EXPR = 21  # white space before and after
-    PAREN_BEG_VEC_TYPE = 22  # white space before and after
+    PAREN_BEG_VEC_TYPE = 22  # [12] as in "[12]int"
     PAREN_END = 23
 
 
@@ -418,6 +418,8 @@ def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
         if isinstance(a, cwast.Id):
             ts.EmitAttr(a.FullName())
         elif isinstance(a, cwast.EphemeralList):
+            assert False, "EphemeralList should not longer occur in code"
+            # if we reconsider this - we should use "{{ ... }}" notation
             if a.colon:
                 assert beg_invoke is not None
                 ts.EmitStmtEnd(beg_invoke)

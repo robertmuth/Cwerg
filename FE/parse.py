@@ -604,6 +604,9 @@ def _PParserInfixOp(inp: Lexer, lhs, tk: TK, precedence) -> Any:
 
 def _ParseMacroArg(inp: Lexer, srcloc) -> Any:
     if inp.match(TK_KIND.CURLY_OPEN):
+        assert False, "EphemeralList are no longer supported"
+        # if we decice to re-introduce them, we should use "{{ ... }}"
+        # notation to make them different from compound values
         args = []
         first = True
         while not inp.match(TK_KIND.CURLY_CLOSED):
