@@ -59,6 +59,11 @@ def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
                          x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
 
 
+def IdNodeFromRecField(recfield: cwast.RecField, srcloc):
+    return cwast.Id.Make(recfield.name, x_srcloc=srcloc, x_type=recfield.x_type,
+                         x_symbol=recfield)
+
+
 def _ShouldBeBoolExpanded(node, field):
     # these nodes do not represent a complex boolean expression
     if not isinstance(node, (cwast.Expr1, cwast.Expr2)):

@@ -142,12 +142,10 @@ def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) 
     sl = value.x_srcloc
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
 
-    src_tag = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_TAG,
-                              x_srcloc=sl, x_type=src_tag_field.x_type,
-                              x_field=src_tag_field)
-    src_union = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_UNION,
-                                x_srcloc=sl, x_type=src_union_field.x_type,
-                                x_field=src_union_field)
+    src_tag = cwast.ExprField(_CloneId(value.expr), canonicalize.IdNodeFromRecField(src_tag_field, sl),
+                              x_srcloc=sl, x_type=src_tag_field.x_type)
+    src_union = cwast.ExprField(_CloneId(value.expr), canonicalize.IdNodeFromRecField(src_union_field, sl),
+                                x_srcloc=sl, x_type=src_union_field.x_type)
     union_value = cwast.ExprNarrow(src_union,
                                    cwast.TypeAuto(x_srcloc=sl,
                                                   x_type=dst_untagged_union_ct),
@@ -168,25 +166,23 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.Cano
     src_tag_field, src_union_field = src_sum_rec.ast_node.fields
     # to drop this we would need to introduce a temporary since we access it more than once
     assert isinstance(value.expr, cwast.Id), f"{value.expr}"
-    srcloc = value.x_srcloc
+    sl = value.x_srcloc
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
 
-    tag_value = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_TAG,
-                                x_srcloc=srcloc, x_type=src_tag_field.x_type,
-                                x_field=src_tag_field)
-    union_field = cwast.ExprField(_CloneId(value.expr), SUM_FIELD_UNION,
-                                  x_srcloc=srcloc, x_type=src_union_field.x_type,
-                                  x_field=src_union_field)
+    tag_value = cwast.ExprField(_CloneId(value.expr), canonicalize.IdNodeFromRecField(src_tag_field, sl),
+                                x_srcloc=sl, x_type=src_tag_field.x_type)
+    union_field = cwast.ExprField(_CloneId(value.expr),  canonicalize.IdNodeFromRecField(src_union_field, sl),
+                                  x_srcloc=sl, x_type=src_union_field.x_type)
     union_value = cwast.ExprWiden(union_field,
-                                  cwast.TypeAuto(x_srcloc=srcloc,
-                                                 x_type=dst_union_field.x_type),
-                                  x_srcloc=srcloc,
+                                  cwast.TypeAuto(
+                                      x_srcloc=sl, x_type=dst_union_field.x_type),
+                                  x_srcloc=sl,
                                   x_value=value.x_value,
                                   x_type=dst_union_field.x_type)
 
     return _MakeValRecForUnion(dst_sum_rec,
                                tag_value, union_value,
-                               srcloc)
+                               sl)
 
 
 def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus.TypeCorpus):
@@ -263,7 +259,7 @@ def ReplaceUnions(node):
     Replaces all sum expressions with rec named tuple_sum<X>
     """
     def replacer(node, _parent, _field):
-
+        sl = node.x_srcloc
         if isinstance(node, cwast.ExprUnionTag):
             # get the tag field from the rec that now represents the union
             # because of the post-order traversal, node.expr has already been processed
@@ -273,9 +269,8 @@ def ReplaceUnions(node):
             assert new_ct.original_type.is_union()
             assert len(new_ct.ast_node.fields) == 2
             tag_field: cwast.RecField = new_ct.ast_node.fields[0]
-            return cwast.ExprField(node.expr, SUM_FIELD_TAG,
-                                   x_srcloc=node.x_srcloc, x_type=tag_field.x_type,
-                                   x_field=tag_field)
+            return cwast.ExprField(node.expr,  canonicalize.IdNodeFromRecField(tag_field, sl),
+                                   x_srcloc=sl, x_type=tag_field.x_type)
         elif isinstance(node, cwast.ExprUnionUntagged):
             # get the payload field from the rec that now represents the union
             new_ct = node.expr.x_type
@@ -283,11 +278,10 @@ def ReplaceUnions(node):
             assert new_ct.original_type is not None
             assert new_ct.original_type.is_union()
             assert len(new_ct.ast_node.fields) == 2
-            tag_field: cwast.RecField = new_ct.ast_node.fields[1]
-            return cwast.ExprField(node.expr, SUM_FIELD_UNION,
-                                   x_srcloc=node.x_srcloc,
-                                   x_type=tag_field.x_type,
-                                   x_field=tag_field)
+            union_field: cwast.RecField = new_ct.ast_node.fields[1]
+            return cwast.ExprField(node.expr, canonicalize.IdNodeFromRecField(union_field, sl),
+                                   x_srcloc=sl,
+                                   x_type=union_field.x_type)
         if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:
             return None
         # now deal with type/expression nodes whose type is changing
@@ -304,7 +298,7 @@ def ReplaceUnions(node):
             typify.UpdateNodeType(node, new_ct)
             return None
         elif isinstance(node, cwast.TypeUnion):
-            return _MakeIdForDefRec(new_ct, node.x_srcloc)
+            return _MakeIdForDefRec(new_ct, sl)
         elif isinstance(node, cwast.ExprWiden):
             ct_src: cwast.CanonType = node.expr.x_type
             if ct_src.original_type is not None and ct_src.original_type.is_tagged_union():

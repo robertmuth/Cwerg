@@ -169,6 +169,9 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
     def visitor(node, field):
         nonlocal builtin_syms
         if isinstance(node, cwast.Id):
+            if field == "field":
+                # must wait until type info is available
+                return
             if node.x_symbol:
                 return
             if not node.x_import.x_module:
@@ -272,8 +275,10 @@ def ResolveSymbolsInsideFunctionsRecursively(
             # polymorphic stuff can only be handled once we have types
             continue
         if nfd.kind is cwast.NFK.NODE:
-            ResolveSymbolsInsideFunctionsRecursively(
-                getattr(node, c), symtab, builtin_syms, scopes)
+            # the field member contains an Id that can only be resolved when we have type info
+            if nfd.name != "field":
+                ResolveSymbolsInsideFunctionsRecursively(
+                    getattr(node, c), symtab, builtin_syms, scopes)
         elif nfd.kind is cwast.NFK.LIST:
             # blocks introduce new scopes
             if c in cwast.NEW_SCOPE_FIELDS:
@@ -338,8 +343,8 @@ def VerifyASTSymbolsRecursively(node):
             return
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
-            assert field == "point" or node.x_symbol is not None, f"unresolved symbol {
-                node} {node.x_srcloc}"
+            if node.x_symbol is None:
+                assert field in ("point", "field"), f"unresolved symbol {node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
             assert not node.IsMacroVar(), f"{node}"

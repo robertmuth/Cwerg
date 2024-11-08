@@ -511,7 +511,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return False
     elif isinstance(node, cwast.ExprField):
         if node.container.x_value is not None:
-            field_val = node.container.x_value.get(node.field)
+            field_val = node.container.x_value.get(node.field.GetBaseNameStrict())
             assert field_val is not None
             assert not isinstance(
                 field_val, cwast.ValUndef), f"unevaluated field {node.field}: {node.container.x_value}"
@@ -584,7 +584,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return False
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0
-        return _AssignValue(node, node.x_field.x_offset)
+        return _AssignValue(node, node.field.x_symbol.x_offset)
     elif isinstance(node, cwast.ExprSizeof):
         return _AssignValue(node, node.type.x_type.size)
     elif isinstance(node, cwast.ExprDeref):

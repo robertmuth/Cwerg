@@ -2,12 +2,12 @@
 module:
 
 import test
+
 import fmt
 
-
 global MAX_LEN = 1000_uint
-global TEST_STRING = "abcdef"
 
+global TEST_STRING = "abcdef"
 
 -- pre-condition: len(tmp) >= len(a)
 -- tmp hold the current row of a len(a) x len(b) dynamic programming matrix mat
@@ -19,7 +19,7 @@ global TEST_STRING = "abcdef"
 --     mat[-1][-1] == 0
 --     mat[-1][bindex] = bindex + 1
 --     mat[aindex][-1] = aindex + 1
---
+-- 
 --  The value of mat[x][y] can be computed from
 --    ddist  mat[x-1][y-1]
 --    tdist  mat[x][y-1]
@@ -34,7 +34,6 @@ fun edit_distance(a span(u8), b span(u8), tmp span!(uint)) uint:
         return blen
     if blen == 0:
         return alen
-
     if front(a) == front(b) && alen == blen:
         return 0
     if len(tmp) < alen:
@@ -43,14 +42,13 @@ fun edit_distance(a span(u8), b span(u8), tmp span!(uint)) uint:
         set tmp[i] = i + 1
     -- contains the value of tmp[aindex - 1] from the current round
     let! ldist = 0_uint
-
-    for  bindex = 0, blen, 1:
+    for bindex = 0, blen, 1:
         let bchar = b[bindex]
         -- ldist = mat[-1][bindex]
         set ldist = bindex + 1
         -- ddist = mat[-1][bindex- 1]
         let! ddist = bindex
-        for  aindex = 0, alen, 1:
+        for aindex = 0, alen, 1:
             let tdist = tmp[aindex]
             -- fmt::print#(bindex, ":", aindex, " - ", ddist, " ", tdist, " ", ldist)
             if bchar == a[aindex]:
@@ -59,11 +57,9 @@ fun edit_distance(a span(u8), b span(u8), tmp span!(uint)) uint:
             else:
                 set ldist = 1 + min(ldist, min(tdist, ddist))
             -- fmt::print#(" -> ", ldist, "\n")
-
             set tmp[aindex] = ldist
             set ddist = tdist
     return ldist
-
 
 fun main(argc s32, argv ^^u8) s32:
     ref let! v = [MAX_LEN]uint{}

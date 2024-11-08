@@ -119,7 +119,7 @@ def _GuessNodeSize(v) -> int:
         if v.triplequoted:
             return 100
         return len(v.string) // 8
-    elif isinstance(v, (cwast.FunParam, cwast.MacroParam, cwast.ValVec, cwast.ValRec)):
+    elif isinstance(v, (cwast.FunParam, cwast.MacroParam, cwast.ValCompound)):
         return 3
     elif isinstance(v, cwast.PointVal):
         return _GuessNodeSize(v.value_or_undef)

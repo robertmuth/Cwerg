@@ -85,7 +85,6 @@ def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cw
     return cwast.ValCompound(_MakeIdForDefRec(span_rec, srcloc), inits, x_srcloc=srcloc, x_type=span_rec)
 
 
-
 def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
     """Eliminate Array to Span casts. """
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
@@ -117,25 +116,23 @@ def ReplaceSpans(node):
 
         # len of array is constant and should have already been eliminated
         if isinstance(node, cwast.ExprLen):
+            sl = node.x_srcloc
             def_rec = node.container.x_type
             if def_rec.is_rec():
                 assert def_rec.original_type is not None
                 assert def_rec.original_type.is_span()
-                assert len(def_rec.ast_node.fields) == 2
-                field = def_rec.ast_node.fields[1]
-                return cwast.ExprField(node.container, SLICE_FIELD_LENGTH,
-                                       x_srcloc=node.x_srcloc, x_type=field.x_type,
-                                       x_field=field)
+                _, len_field = def_rec.ast_node.fields
+                return cwast.ExprField(node.container, canonicalize.IdNodeFromRecField(len_field, sl),
+                                       x_srcloc=sl, x_type=len_field.x_type)
         elif isinstance(node, cwast.ExprFront):
+            sl = node.x_srcloc
             def_rec = node.container.x_type
             if def_rec.is_rec():
                 assert def_rec.original_type is not None
                 assert def_rec.original_type.is_span()
-                assert len(def_rec.ast_node.fields) == 2
-                field = def_rec.ast_node.fields[0]
-                return cwast.ExprField(node.container, SLICE_FIELD_POINTER,
-                                       x_srcloc=node.x_srcloc, x_type=field.x_type,
-                                       x_field=field)
+                pointer_field, _ = def_rec.ast_node.fields
+                return cwast.ExprField(node.container,  canonicalize.IdNodeFromRecField(pointer_field, sl),
+                                       x_srcloc=sl, x_type=pointer_field.x_type)
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
 

@@ -78,7 +78,6 @@ class NF(enum.Flag):
 
     TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
-    FIELD_ANNOTATED = enum.auto()  # node reference a struct field (x_field)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     # possibly uniquified name of module, use during code-gen
     MODNAME_ANNOTATED = enum.auto()
@@ -481,7 +480,6 @@ ALL_FIELDS = [
     NfdStr("string", "string literal"),
     NfdStr("comment", "comment"),
     NfdStr("message", "message for assert failures"),
-    NfdStr("field", "record field"),
     NfdStr("label", "block  name (if not empty)"),
     NfdStr("target",
            "name of enclosing while/for/block to brach to (empty means nearest)"),
@@ -576,6 +574,7 @@ ALL_FIELDS = [
                 MACRO_PARAM_KIND.STMT_LIST),
 
     #
+    NfdNode("field", "record field", "Id", MACRO_PARAM_KIND.ID),
     NfdNode("point",
             "compound initializer index/field or auto (meaning next pos)", NODES_EXPR_OR_AUTO_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("type", "type expression", NODES_TYPES_T, MACRO_PARAM_KIND.TYPE),
@@ -699,8 +698,6 @@ X_FIELDS = {
     # set by symbolize.py
     # linksbreak/continue/return nodes to enclosing node
     "x_target": NF.CONTROL_FLOW,
-    # set by typify.py
-    "x_field": NF.FIELD_ANNOTATED,
     "x_type": NF.TYPE_ANNOTATED,
     "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
     # set by eval.py
@@ -1169,6 +1166,10 @@ class Id:
     x_symbol: Optional[Any] = None
     x_import: Import = INVALID_IMPORT  # which import the id is qualified with
 
+    def GetRecFieldRef(self) -> RecField:
+        assert isinstance(self.x_symbol, RecField)
+        return self.x_symbol
+
     def IsMacro(self):
         return self.base_name.endswith("#")
 
@@ -1593,7 +1594,7 @@ class PointVal:
     FLAGS = NF_EXPR
     #
     value_or_undef: NODES_EXPR_T
-    point: NODES_EXPR_OR_AUTO_T  # compile time constant index or field name
+    point: NODES_EXPR_OR_AUTO_T  # compile time constant
     #
     doc: str = ""
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
@@ -1775,15 +1776,14 @@ class ExprField:
     """
     ALIAS = "."
     GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.FIELD_ANNOTATED | NF.MAY_BE_LHS
+    FLAGS = NF_EXPR | NF.MAY_BE_LHS
     #
     container: NODES_EXPR_T  # must be of type rec
-    field: str
+    field: Id
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
-    x_field: Optional["RecField"] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.container}  field:{self.field}"
@@ -2214,15 +2214,14 @@ class ExprOffsetof:
     Result has type `uint`"""
     ALIAS = "offset_of"
     GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.FIELD_ANNOTATED | NF.NON_CORE
+    FLAGS = NF_EXPR | NF.NON_CORE
     #
     type: NODES_TYPES_T  # must be rec
-    field: str
+    field: Id
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
-    x_field: Optional["RecField"] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.type} {self.field}"

@@ -238,7 +238,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
     elif isinstance(node, cwast.ExprField):
         base = _GetLValueAddress(node.container, tc, id_gen)
-        offset = node.x_field.x_offset
+        offset = node.field.GetRecFieldRef().x_offset
         return BaseOffset(base, offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
@@ -593,10 +593,11 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         assert node.container.x_type.is_array(), f"unexpected {node}"
         return _GetLValueAddress(node.container, tc, id_gen)
     elif isinstance(node, cwast.ExprField):
-        res = id_gen.NewName(f"field_{node.x_field.name}")
+        recfield: cwast.RecField = node.field.GetRecFieldRef()
+        res = id_gen.NewName(f"field_{recfield.name}")
         addr = _GetLValueAddress(node.container, tc, id_gen)
         print(
-            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {node.x_field.x_offset}")
+            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {recfield.x_offset}")
         return res
     elif isinstance(node, cwast.ExprWiden):
         # this should only happen for widening empty untagged unions

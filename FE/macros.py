@@ -64,6 +64,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         # We dont support `FIELD``
         assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
                         cwast.MACRO_PARAM_KIND.ID,
+                        cwast.MACRO_PARAM_KIND.FIELD,
                         cwast.MACRO_PARAM_KIND.TYPE,
                         cwast.MACRO_PARAM_KIND.EXPR_LIST,
                         cwast.MACRO_PARAM_KIND.EXPR_LIST_REST,
@@ -89,8 +90,8 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     #    kind, arg = ctx.GetSymbol(clone.init_field)
     #    assert kind == cwast.MACRO_PARAM_KIND.FIELD
     #    clone.init_field = arg.name
-    if isinstance(clone, (cwast.ExprField, cwast.ExprOffsetof)) and clone.field.startswith("$"):
-        kind, arg = ctx.GetSymbol(clone.field)
+    if isinstance(clone, (cwast.ExprField, cwast.ExprOffsetof)) and clone.field.name.startswith("$"):
+        kind, arg = ctx.GetSymbol(clone.field.name)
         assert isinstance(arg, cwast.Id)
         assert kind == cwast.MACRO_PARAM_KIND.FIELD, f"expexted id got {kind} {arg}"
         clone.field = arg.GetBaseNameStrict()

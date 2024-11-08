@@ -451,7 +451,7 @@ _FUN_LIKE = {
     cwast.ExprLen.ALIAS: (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),
-    cwast.ExprOffsetof.ALIAS: (cwast.ExprOffsetof, "TS"),
+    cwast.ExprOffsetof.ALIAS: (cwast.ExprOffsetof, "TE"),
     "span": (cwast.ValSpan, "EE"),
     "span!": (cwast.ValSpan, "EE"),
     cwast.ExprFront.ALIAS:  (cwast.ExprFront, "E"),
@@ -711,7 +711,7 @@ def _PParseDeref(_inp: Lexer, pointer, tk: TK, _precedence) -> Any:
 
 def _PParseFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
     field = inp.match_or_die(TK_KIND.ID)
-    return cwast.ExprField(rec, field.text, x_srcloc=field.srcloc)
+    return cwast.ExprField(rec, cwast.Id.Make(field.text, x_srcloc=field.srcloc), x_srcloc=field.srcloc)
 
 
 def _PParseDerefFieldAccess(inp: Lexer, rec, tk: TK, _precedence) -> Any:

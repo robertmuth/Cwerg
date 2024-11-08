@@ -242,11 +242,11 @@ def AnnotateNodeType(node, ct: cwast.CanonType):
     return UpdateNodeType(node, ct)
 
 
-def AnnotateNodeField(node, field_node: cwast.RecField):
-    assert isinstance(
-        node, (cwast.ExprField, cwast.PointVal, cwast.ExprOffsetof))
-    assert node.x_field is None
-    node.x_field = field_node
+def AnnotateFieldWithTypeAndSymbol(node, field_node: cwast.RecField):
+    assert isinstance(node, cwast.Id), f"{node}"
+    AnnotateNodeType(node, field_node.x_type)
+    assert node.x_symbol is None, f"Id already field annotate: {node}"
+    node.x_symbol = field_node
 
 
 def _GetExprStmtType(root: cwast.ExprStmt) -> cwast.CanonType:
@@ -420,7 +420,7 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
         assert ct.is_rec()
         for field, point in symbolize.IterateValRec(node.inits, ct):
             if point:
-                field_ct =  field.x_type
+                field_ct = field.x_type
                 AnnotateNodeType(point, field_ct)
                 if isinstance(point.point, cwast.Id):
                     # an over-eager symbolizer may have found
@@ -428,7 +428,8 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
                     # an created a link between the two.
                     point.point.x_symbol = None
                 if not isinstance(point.value_or_undef, cwast.ValUndef):
-                    _TypifyNodeRecursively(point.value_or_undef, tc, field_ct, ctx)
+                    _TypifyNodeRecursively(
+                        point.value_or_undef, tc, field_ct, ctx)
 
     return AnnotateNodeType(node, ct)
 
@@ -515,11 +516,11 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         if not ct.is_rec():
             cwast.CompilerError(
                 node.x_srcloc, f"container type is not record {node.container}")
-        field_node = tc.lookup_rec_field(ct, node.field)
+        field_node = tc.lookup_rec_field(ct, node.field.GetBaseNameStrict())
         if not field_node:
             cwast.CompilerError(
                 node.x_srcloc, f"unknown record field {node.field}")
-        AnnotateNodeField(node, field_node)
+        AnnotateFieldWithTypeAndSymbol(node.field, field_node)
         return AnnotateNodeType(node, field_node.x_type)
     elif isinstance(node, cwast.ExprDeref):
         ct = _TypifyNodeRecursively(node.expr, tc, cwast.NO_TYPE, ctx)
@@ -656,11 +657,11 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, tc.insert_ptr_type(node.mut, cstr_expr))
     elif isinstance(node, cwast.ExprOffsetof):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        field_node = tc.lookup_rec_field(ct, node.field)
+        field_node = tc.lookup_rec_field(ct, node.field.GetBaseNameStrict())
         if not field_node:
             cwast.CompilerError(
                 node.x_srcloc, f"unknown record field {node.field}")
-        AnnotateNodeField(node, field_node)
+        AnnotateFieldWithTypeAndSymbol(node.field, field_node)
         return AnnotateNodeType(node, tc.get_uint_canon_type())
     elif isinstance(node, cwast.ExprSizeof):
         _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
@@ -849,9 +850,10 @@ def CheckExprPointer(node: cwast.ExprPointer, _):
 
 
 def CheckExprField(node: cwast.ExprField, _):
+    recfield = node.field.GetRecFieldRef()
     # _CheckTypeSame(node,  node.x_field.x_type, ct)
-    assert node.x_type is node.x_field.x_type, f"field node {
-        node.container.x_type} type mismatch: {node.x_type} {node.x_field.x_type}"
+    assert node.x_type is recfield.x_type, f"field node {
+        node.container.x_type} type mismatch: {node.x_type} {recfield.x_type}"
 
 
 def CheckExprFront(node: cwast.ExprFront, _):
@@ -1232,15 +1234,6 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
 
         elif isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED):
             verifier.Verify(node, tc)
-
-        if cwast.NF.FIELD_ANNOTATED in node.FLAGS:
-            field = node.x_field
-            if field:
-                assert isinstance(field, cwast.RecField)
-            else:
-                # TODO: isinstance(node, cwast.PointVal) is too general
-                assert isinstance(node, cwast.PointVal), f"node without field annotation: {
-                    node.x_srcloc} {node}"
 
     cwast.VisitAstRecursivelyPost(node, visitor)
 

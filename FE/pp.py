@@ -347,7 +347,7 @@ def TokensBinaryInfixNoSpace(ts: TS, name: str, node1, node2, node):
     EmitTokens(ts, node1)
     TokensAnnotationsPre(ts, node)
     ts.EmitBinOpNoSpace(name)
-    ts.EmitAttr(node2)
+    EmitTokens(ts, node2)
 
 
 def TokensUnaryPrefix(ts: TS, name: str, node):
@@ -444,7 +444,7 @@ def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         field_name = node.args[1]
         assert isinstance(field_name, cwast.Id)
         TokensBinaryInfixNoSpace(
-            ts, "^.", node.args[0], field_name.GetBaseNameStrict(), node)
+            ts, "^.", node.args[0], field_name, node)
         return
     ts.EmitName(node.name)
     beg_paren = ts.EmitBegParen("(")
@@ -604,7 +604,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
     cwast.ExprAs: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
     cwast.ExprIs: lambda ts, n: TokensFunctional(ts,  KW(n), [n.expr, n.type]),
-    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, cwast.Id.Make(n.field)]),
+    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, n.field]),
     cwast.ExprLen: lambda ts, n: TokensFunctional(ts, KW(n), [n.container]),
     cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
     cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
