@@ -13,7 +13,12 @@ from typing import Optional, Union, Any, TypeAlias, NoReturn, Final
 logger = logging.getLogger(__name__)
 
 
-MACRO_SUFFIX = "#"
+MACRO_CALL_SUFFIX = "#"
+POLYMORPHISM_SUFFIX = "@"
+MUTABILITY_SUFFIX = "!"
+MACRO_VAR_PREFIX = "$"
+ANNOTATION_PREFIX = "@"
+ID_PATH_SEPARATOR = "::"
 
 BUILT_IN_MACROS = set([
     "while",
@@ -727,7 +732,7 @@ def _FLAGS(node):
     out = []
     for c, _ in node.__class__.ATTRS:
         if getattr(node, c):
-            out.append("@" + c)
+            out.append(ANNOTATION_PREFIX + c)
     outs = " ".join(out)
     return " " + outs if outs else outs
 
@@ -1124,11 +1129,10 @@ class DefRec:
 ############################################################
 # Identifier
 ############################################################
-_ID_PATH_SEPARATOR = "::"
 
 
 def _GetQualifierIfPresent(name: str) -> Optional[str]:
-    tokens = name.split(_ID_PATH_SEPARATOR)
+    tokens = name.split(ID_PATH_SEPARATOR)
     if len(tokens) == 2:
         return tokens[0]
     assert 1 == len(tokens)
@@ -1136,11 +1140,11 @@ def _GetQualifierIfPresent(name: str) -> Optional[str]:
 
 
 def GetSymbolName(name: str) -> str:
-    return name.split(_ID_PATH_SEPARATOR)[-1]
+    return name.split(ID_PATH_SEPARATOR)[-1]
 
 
 def IsQualifiedName(name: str) -> bool:
-    return _ID_PATH_SEPARATOR in name
+    return ID_PATH_SEPARATOR in name
 
 
 @NodeCommon
@@ -1170,11 +1174,14 @@ class Id:
         assert isinstance(self.x_symbol, RecField)
         return self.x_symbol
 
-    def IsMacro(self):
-        return self.base_name.endswith("#")
+    def IsMacroCall(self):
+        return self.base_name.endswith(MACRO_CALL_SUFFIX)
 
     def IsMacroVar(self):
-        return self.base_name.startswith("$")
+        return self.base_name.startswith(MACRO_VAR_PREFIX)
+
+    def IsPolymorphic(self):
+        return self.base_name.endswith(POLYMORPHISM_SUFFIX)
 
     def FullName(self):
         name = ""
@@ -1191,12 +1198,13 @@ class Id:
 
     @staticmethod
     def Make(name: str, **kwargs):
+        assert not name.startswith(MACRO_VAR_PREFIX)
         mod_name = None
         enum_name = None
-        pos = name.find(_ID_PATH_SEPARATOR)
+        pos = name.find(ID_PATH_SEPARATOR)
         if pos > 0:
             mod_name = name[:pos]
-            name = name[pos + len(_ID_PATH_SEPARATOR):]
+            name = name[pos + len(ID_PATH_SEPARATOR):]
         pos = name.find(":")
         if pos > 0:
             enum_name = name[pos + 1:]
@@ -1744,7 +1752,7 @@ class ExprCall:
     x_value: Optional[Any] = None
 
     def is_polymorphic(self) -> bool:
-        return isinstance(self.callee, Id) and self.callee.base_name.endswith("@")
+        return isinstance(self.callee, Id) and self.callee.IsPolymorphic()
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.callee}"
@@ -2682,7 +2690,7 @@ class DefFun:
     x_import: Import = INVALID_IMPORT  # only used for polymorphic function
 
     def is_polymorphic(self) -> bool:
-        return self.name.endswith("@")
+        return self.name.endswith(POLYMORPHISM_SUFFIX)
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params)
@@ -3224,7 +3232,7 @@ def CompilerError(srcloc, msg, kind='syntax') -> NoReturn:
 def _CheckMacroRecursively(node, seen_names: set[str]):
     def visitor(node, _):
         if isinstance(node, (MacroParam, MacroFor)):
-            assert node.name.startswith("$")
+            assert node.name.startswith(MACRO_VAR_PREFIX)
             assert node.name not in seen_names, f"duplicate name: {node.name}"
             seen_names.add(node.name)
     VisitAstRecursively(node, visitor)
@@ -3289,14 +3297,14 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             assert isinstance(
                 toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if isinstance(node, DefMacro):
-            if not node.name.endswith("#") and node.name not in BUILT_IN_MACROS:
+            if not node.name.endswith(MACRO_CALL_SUFFIX) and node.name not in BUILT_IN_MACROS:
                 CompilerError(
                     node.x_srcloc, f"macro name must end with `#`: {node.name}")
             for p in node.params_macro:
                 if isinstance(p, MacroParam):
-                    assert p.name.startswith("$")
+                    assert p.name.startswith(MACRO_VAR_PREFIX)
             for i in node.gen_ids:
-                assert i.startswith("$")
+                assert i.startswith(MACRO_VAR_PREFIX)
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
             # when we synthesize Ids later we do not bother with x_import anymore
@@ -3306,7 +3314,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             if node.IsMacroVar():
                 CompilerError(node.x_srcloc, f"{node} start with $")
         elif isinstance(node, MacroId):
-            assert node.name.startswith("$")
+            assert node.name.startswith(MACRO_VAR_PREFIX)
         elif isinstance(node, MacroInvoke):
             if not pre_symbolize:
                 assert isinstance(node.x_import, Import)

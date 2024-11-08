@@ -33,7 +33,7 @@ class MacroContext:
         pass
 
     def GenUniqueName(self, name: str):
-        assert name.startswith("$"), f"expected macro id {name}"
+        assert name.startswith(cwast.MACRO_VAR_PREFIX), f"expected macro id {name}"
         self._no += 1
         return f"{name[1:]}${self._no}"
 
@@ -48,7 +48,7 @@ class MacroContext:
 
 def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     if isinstance(node, cwast.MacroVar):
-        assert node.name.startswith("$")
+        assert node.name.startswith(cwast.MACRO_VAR_PREFIX)
         kind, new_name = ctx.GetSymbol(node.name)
         assert kind is cwast.MACRO_PARAM_KIND.ID
         # Why is this not a MacroVar
@@ -59,7 +59,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
-        assert node.name.startswith("$"), f" non macro name: {node}"
+        assert node.name.startswith(cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)
         # We dont support `FIELD``
         assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
@@ -71,7 +71,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
         return cwast.CloneNodeRecursively(arg, {}, {})
     elif isinstance(node, cwast.MacroFor):
-        assert node.name.startswith("$"), f" non macro name: {node}"
+        assert node.name.startswith(cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name_list)
         assert isinstance(arg, cwast.EphemeralList)
         out = []
@@ -86,15 +86,6 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         return cwast.EphemeralList(out, colon=False)
 
     clone = dataclasses.replace(node)
-    #if isinstance(clone, cwast.FieldVal) and clone.init_field.startswith("$"):
-    #    kind, arg = ctx.GetSymbol(clone.init_field)
-    #    assert kind == cwast.MACRO_PARAM_KIND.FIELD
-    #    clone.init_field = arg.name
-    if isinstance(clone, (cwast.ExprField, cwast.ExprOffsetof)) and clone.field.name.startswith("$"):
-        kind, arg = ctx.GetSymbol(clone.field.name)
-        assert isinstance(arg, cwast.Id)
-        assert kind == cwast.MACRO_PARAM_KIND.FIELD, f"expexted id got {kind} {arg}"
-        clone.field = arg.GetBaseNameStrict()
 
     for c, nfd in node.__class__.FIELDS:
         if nfd.kind is cwast.NFK.NODE:
@@ -127,7 +118,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     # pp_sexpr.PrettyPrint(macro)
     ctx.PushScope(invoke.x_srcloc)
     for p, a in zip(params, args):
-        assert p.name.startswith("$")
+        assert p.name.startswith(cwast.MACRO_VAR_PREFIX)
         kind = p.macro_param_kind
         if kind is cwast.MACRO_PARAM_KIND.EXPR:
             pass
@@ -147,7 +138,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
             assert False
         ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))
     for gen_id in macro.gen_ids:
-        assert gen_id.startswith("$")
+        assert gen_id.startswith(cwast.MACRO_VAR_PREFIX)
         new_name = ctx.GenUniqueName(gen_id)
         ctx.RegisterSymbol(
             gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id.Make(new_name, x_srcloc=macro.x_srcloc)))

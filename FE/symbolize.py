@@ -579,7 +579,7 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
         if not isinstance(node, cwast.MacroId):
             return None
         name = node.name
-        assert name.startswith("$"), f" non macro name: {node}"
+        assert name.startswith(cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
         t = translation[name]
 
         return cwast.CloneNodeRecursively(t, {}, {})

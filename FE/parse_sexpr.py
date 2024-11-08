@@ -418,7 +418,7 @@ def ReadRestAndMakeNode(cls, pieces: list[Any], fields: list[Tuple[str, cwast.NF
 def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
     """The leading '(' has already been consumed"""
     tag = ReadAttrs(next(stream), attr, stream)
-    if len(tag) > 1 and tag.endswith("!") and tag != "trylet!":
+    if len(tag) > 1 and tag.endswith(cwast.MUTABILITY_SUFFIX) and tag != "trylet!":
         tag = tag[:-1]
         attr["mut"] = True
 
@@ -437,7 +437,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
     else:
         cls = cwast.NODES_ALIASES.get(tag)
         if not cls:
-            if tag in cwast.BUILT_IN_MACROS or tag.endswith(cwast.MACRO_SUFFIX):
+            if tag in cwast.BUILT_IN_MACROS or tag.endswith(cwast.MACRO_CALL_SUFFIX):
                 # unknown node name - assume it is a macro
                 return ReadMacroInvocation(tag, stream, attr)
             else:

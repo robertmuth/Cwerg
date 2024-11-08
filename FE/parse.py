@@ -272,8 +272,8 @@ class LexerRaw:
             kind = KEYWORDS.get(token, TK_KIND.ID)
             if kind == TK_KIND.SPECIAL_MUT:
                 kind = TK_KIND.KW
-                if self._current_line.startswith("!", len(token)):
-                    token = token + "!"
+                if self._current_line.startswith(cwast.MUTABILITY_SUFFIX, len(token)):
+                    token = token + cwast.MUTABILITY_SUFFIX
             elif kind == TK_KIND.OP2:
                 # rewrite operartor with names like xor, etc.
                 kind = TK_KIND.KW
@@ -387,7 +387,7 @@ def _ExtractAnnotations(tk: TK) -> dict[str, str]:
             out["doc"] = f'"""{c}"""'
     for a in tk.annotations:
 
-        assert a.text.startswith("@")
+        assert a.text.startswith(cwast.ANNOTATION_PREFIX)
         out[a.text[1:]] = True
     return out
 
@@ -425,13 +425,13 @@ def _ParseExpr(inp: Lexer, precedence=0):
 
 
 def _PParseId(_inp: Lexer, tk: TK, _precedence) -> Any:
-    if tk.text.startswith("$"):
+    if tk.text.startswith(cwast.MACRO_VAR_PREFIX):
         return cwast.MacroId(tk.text, x_srcloc=tk.srcloc)
     return cwast.Id.Make(tk.text, x_srcloc=tk.srcloc)
 
 
 def _PParseNum(_inp: Lexer, tk: TK, _precedence) -> Any:
-    assert not tk.text.startswith("$")
+    assert not tk.text.startswith(cwast.MACRO_VAR_PREFIX)
     return cwast.ValNum(tk.text, x_srcloc=tk.srcloc)
 
 
@@ -487,7 +487,7 @@ def _ParseFunLike(inp: Lexer, name: TK) -> Any:
     params: list[Any] = []
     extra = _ExtractAnnotations(name)
     extra["x_srcloc"] = name.srcloc
-    if name.text.endswith("!"):
+    if name.text.endswith(cwast.MUTABILITY_SUFFIX):
         extra["mut"] = True
     for a in args:
         if inp.peek().kind is TK_KIND.PAREN_CLOSED and a == "e":
@@ -629,12 +629,12 @@ def _ParseMacroCallArgs(inp: Lexer, srloc) -> list[Any]:
 
 def _ParseExprMacro(name: cwast.Id, inp: Lexer):
     args = _ParseMacroCallArgs(inp, name.x_srcloc)
-    assert name.IsMacro()
+    assert name.IsMacroCall()
     return cwast.MacroInvoke(name.FullName(), args, x_srcloc=name.x_srcloc)
 
 
 def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
-    if isinstance(callee, cwast.Id) and callee.IsMacro():
+    if isinstance(callee, cwast.Id) and callee.IsMacroCall():
         return _ParseExprMacro(callee, inp)
     assert tk.kind is TK_KIND.PAREN_OPEN
     args = []
@@ -775,7 +775,7 @@ def _ParseTypeExpr(inp: Lexer):
     extra = _ExtractAnnotations(tk)
     extra["x_srcloc"] = tk.srcloc
     if tk.kind is TK_KIND.ID:
-        if tk.text.startswith("$"):
+        if tk.text.startswith(cwast.MACRO_VAR_PREFIX):
             return cwast.MacroId(tk.text, **extra)
         return cwast.Id.Make(tk.text, **extra)
     elif tk.kind is TK_KIND.KW:
@@ -789,7 +789,7 @@ def _ParseTypeExpr(inp: Lexer):
             inp.match_or_die(TK_KIND.PAREN_OPEN)
             type = _ParseTypeExpr(inp)
             inp.match_or_die(TK_KIND.PAREN_CLOSED)
-            return cwast.TypeSpan(type, mut=tk.text.endswith("!"), **extra)
+            return cwast.TypeSpan(type, mut=tk.text.endswith(cwast.MUTABILITY_SUFFIX), **extra)
         elif tk.text == cwast.TypeOf.ALIAS:
             return _ParseFunLike(inp, tk)
         elif tk.text == cwast.TypeUnionDelta.ALIAS:
@@ -853,7 +853,7 @@ def _ParseFormalParams(inp: Lexer):
 
 
 def _ParseStatementMacro(kw: TK, inp: Lexer):
-    assert kw.text.endswith("#"), f"{kw}"
+    assert kw.text.endswith(cwast.MACRO_CALL_SUFFIX), f"{kw}"
     args = []
     if inp.match(TK_KIND.PAREN_OPEN):
         args = _ParseMacroCallArgs(inp, kw.srcloc)
@@ -875,7 +875,10 @@ def _MaybeLabel(tk: TK, inp: Lexer):
 
 def _ParseOptionalLabel(inp: Lexer):
     p = inp.peek()
-    if p.kind is TK_KIND.ID and not p.text.startswith("$"):
+    if p.kind is TK_KIND.ID:
+        # this should be easy to support once we switched
+        # break/cont to using an Id for the label
+        assert not p.text.startswith(cwast.MACRO_VAR_PREFIX), f"{p.text}"
         inp.next()
         return p.text
     return ""
@@ -886,11 +889,11 @@ def _ParseStatement(inp: Lexer):
     extra = _ExtractAnnotations(kw)
     extra["x_srcloc"] = kw.srcloc
     if kw.kind is TK_KIND.ID:
-        if kw.text.endswith("#"):
+        if kw.text.endswith(cwast.MACRO_CALL_SUFFIX):
             return _ParseStatementMacro(kw, inp)
         else:
             # this happends inside a macro body
-            if not kw.text.startswith("$"):
+            if not kw.text.startswith(cwast.MACRO_VAR_PREFIX):
                 cwast.CompilerError(
                     kw.srcloc, f"expect macro var but got {kw.text}")
             return cwast.MacroId(kw.text, **extra)
@@ -909,10 +912,10 @@ def _ParseStatement(inp: Lexer):
             else:
                 init = cwast.ValAuto(x_srcloc=name.srcloc)
         if kw.text.startswith("m"):
-            return cwast.MacroVar(name.text, type, init, mut=kw.text.endswith("!"),
+            return cwast.MacroVar(name.text, type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
                                   **extra)
         else:
-            return cwast.DefVar(name.text, type, init, mut=kw.text.endswith("!"),
+            return cwast.DefVar(name.text, type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
                                 **extra)
 
     elif kw.text == "while":
@@ -970,7 +973,7 @@ def _ParseStatement(inp: Lexer):
         return cwast.StmtReturn(val, **extra)
     elif kw.text == "for":
         name = inp.match_or_die(TK_KIND.ID)
-        if name.text.startswith("$"):
+        if name.text.startswith(cwast.MACRO_VAR_PREFIX):
             var = cwast.MacroId(name.text, x_srcloc=name.srcloc)
         else:
             var = cwast.Id.Make(name.text, x_srcloc=name.srcloc)
@@ -1171,7 +1174,7 @@ def _ParseTopLevel(inp: Lexer):
                 init = _ParseExpr(inp)
             else:
                 init = cwast.ValAuto(x_srcloc=name.srcloc)
-        return cwast.DefGlobal(name.text, type, init, mut=kw.text.endswith("!"),
+        return cwast.DefGlobal(name.text, type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
                                **extra)
     elif kw.text == "macro":
         if inp.peek().kind is TK_KIND.KW:
@@ -1181,7 +1184,7 @@ def _ParseTopLevel(inp: Lexer):
             name = inp.next()
         else:
             name = inp.match_or_die(TK_KIND.ID)
-            assert name.text.endswith("#")
+            assert name.text.endswith(cwast.MACRO_CALL_SUFFIX)
         kind = inp.match_or_die(TK_KIND.ID)
         params = _ParseMacroParams(inp)
         gen_ids = _ParseMacroGenIds(inp)
