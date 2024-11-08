@@ -1,14 +1,14 @@
 module:
 
 -- supports retrieval of bitfields up to 32 bit wide from underlying slice
--- 
+--
 -- Bits will be streamed in a little endian fashion:
 -- Suppose the stream consists of 3 bytes [0b10101010, 0b11001100, 0b1111000]
 -- These will be treated like this bit stream:
 -- 0x11110000_11001100_10101010
 -- where bits are taken from the bottom/least signficant bits
 -- This is different from a jpeg bitstream is uses a big-endian flavor.
--- 
+--
 -- Not thread-safe
 pub rec Stream32:
     buf span(u8)
@@ -22,7 +22,7 @@ pub rec Stream32:
 
 -- n must be from [0, 32]
 -- may set eos
--- 
+--
 pub fun Stream32GetBits(bs ^!Stream32, bits_requested u8) u32:
     let! new_bits u32
     let! bits_count u8 = bs^.bits_count

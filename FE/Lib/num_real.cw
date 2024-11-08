@@ -6,7 +6,7 @@ module:
 -- https://randomascii.wordpress.com/2012/05/20/thats-not-normalthe-performance-of-odd-floats/
 -- x64 vs arm vs risc:
 -- https://www.chciken.com/risc-v/2023/08/06/evaluation-riscv-fd.html#:~:text=In%20RISC%2DV%2C%20the%20rounding,001%3A%20Round%20towards%20Zero
--- 
+--
 pub global r64_exponent_bits u32 = 11
 
 pub global r64_mantissa_bits u32 = 52

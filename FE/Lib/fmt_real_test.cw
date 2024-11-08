@@ -75,7 +75,7 @@ fun test_normal(is_neg bool, multiplier u32, exp10 s32, precision uint) void:
             front(actual), len_a))
 
 fun main(argc s32, argv ^^u8) s32:
-    -- 
+    --
     --     (fmt::print# (wrap_as (parse_r64 ["1.79769313486231570814e308"]) fmt::r64_hex) "\n")
     --     (fmt::print# (bitwise_as 0x0p0_r64 u64) "\n")
     --     

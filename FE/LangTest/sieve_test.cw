@@ -10,7 +10,7 @@ global EXPECTED uint = 148932
 -- The array is initialized to all true because the explicit
 -- value for the first element is replicated for the
 -- subsequent unspecified ones.
--- 
+--
 -- index i reprents number 3 + 2 * i
 global! is_prime = [SIZE]bool{true}
 

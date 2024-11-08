@@ -1,17 +1,17 @@
 -- canonical huffman tree decoder
--- 
+--
 -- https://datatracker.ietf.org/doc/html/rfc1951 Section 3.2
 -- https://en.wikipedia.org/wiki/Canonical_Huffman_code
--- 
--- 
+--
+--
 -- Usage:
--- 
+--
 -- Assumptions:
 -- * encoded was as set symbols numbered 0-MAX_SYMBOLS
 -- * for each symbol the width of the associated huffman code was recorded in a length slice
 -- * unused symbols have a widths of 0
 -- * we do not need to know the actual code for a symbol because we use canonical codes
--- 
+--
 module:
 
 import bitstream
@@ -23,16 +23,16 @@ pub global BAD_TREE_ENCODING u16 = 0xffff
 global MAX_SYMBOLS uint = 0xff00
 
 -- Decode the next symbol from a bitstream
--- 
+--
 -- This function has two failure modes:
 -- * the bitstream may run out of bits
 --   This must be checked by the caller
 -- * the retrieved bits are out of range
 --   This will result in BAD_SYMBOL to be returned
--- 
+--
 --   counts[i] contains the number of huffman code of 2^i
 --   Note counts[0] is not used
--- 
+--
 pub fun NextSymbol(bs ^!bitstream::Stream32, counts span(u16), symbols span(
         u16)) u16:
     let! offset u32 = 0
@@ -49,8 +49,8 @@ pub fun NextSymbol(bs ^!bitstream::Stream32, counts span(u16), symbols span(
     return BAD_SYMBOL
 
 -- Check that symbol count at a level can be encoded
--- 
--- 
+--
+--
 fun CountsAreFeasible(counts span(u16)) bool:
     let! available u16 = 2
     for level = 1, len(counts), 1:
@@ -61,21 +61,21 @@ fun CountsAreFeasible(counts span(u16)) bool:
             set available = (available - used) * 2
     return available == 0
 
--- 
+--
 -- Popoulates the counts and sybols from lengths
--- 
+--
 -- lengths[sym] contains the bitwidth of synbol sym.
--- 
+--
 -- Returns the number of elements in symbols populated which is usally
 -- the number of nonzero entries in lengths.
--- 
+--
 -- If lengths has exactly one non-zero elemenmt an extra dummy element
 -- will be inserted into symbols and 2 will be returned.
--- 
+--
 -- counts[width] contains the number of elments in lengths having value width.
 -- Note counts[0] is always 0
--- 
--- 
+--
+--
 pub fun ComputeCountsAndSymbolsFromLengths(
         lengths span(u16), counts span!(u16), symbols span!(u16)) u16:
     if len(lengths) > MAX_SYMBOLS:
@@ -121,10 +121,10 @@ pub fun ComputeCountsAndSymbolsFromLengths(
             set symbols[offset] = as(i, u16)
             set counts[bits - 1] += 1
     -- de-accumulate to get back original count
-    -- 
+    --
     --     at this point we have: counts_now[i] == sum(0<= x <= i + 1, counts_orig[x])
     --     we compute:  counts_orig[i] := counts_now[i - 1] -   counts_now[i - 2]
-    -- 
+    --
     --     n0 is the original value of the element at index i-2
     --     n1 is the original value of the element at index i-1
     let! n0 u16 = 0

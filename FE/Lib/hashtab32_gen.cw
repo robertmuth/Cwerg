@@ -1,11 +1,11 @@
 -- hashtab32
--- 
+--
 -- 32 refers to the width of the integer returned by the hash function.
 -- This also limits the max table size to (2^32 - 1).
--- 
+--
 -- The approach used is linear probing with separate arrays afor keys and values
 -- (and meta data) to improve reference locality.
--- 
+--
 module(
         -- the key type
         $ktype TYPE,
@@ -24,7 +24,7 @@ global DeletedEntry u8 = 0x01
 
 global UsedEntryMark u8 = 0x80
 
--- 
+--
 -- The Hashtable contains pointers to 3 arrays of size `size`:
 -- * meta: u8 entries with the following meaning:
 --   - FreeEntry (0):              entry is unused
@@ -32,8 +32,8 @@ global UsedEntryMark u8 = 0x80
 --   - Highbit (UsedEntryMark) set: entry is used and low 7 bits match key hash
 -- * keys: the keys
 -- * vals: the value
--- 
--- 
+--
+--
 pub rec HashTab32:
     meta ^!u8
     keys ^!$ktype

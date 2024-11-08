@@ -653,7 +653,7 @@ def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
 def _ParseArrayInit(inp: Lexer) -> Any:
     tk: TK = inp.peek()
     val = _ParseExpr(inp)
-    if inp.match(TK_KIND.COLON):
+    if inp.match(TK_KIND.ASSIGN):
         index = val
         val = _ParseExpr(inp)
     else:
@@ -664,7 +664,7 @@ def _ParseArrayInit(inp: Lexer) -> Any:
 def _ParseRecInit(inp: Lexer) -> Any:
     tk: TK = inp.peek()
     val = _ParseExpr(inp)
-    if inp.match(TK_KIND.COLON):
+    if inp.match(TK_KIND.ASSIGN):
         assert isinstance(val, cwast.Id)
         assert val.mod_name is None
         assert val.enum_name is None

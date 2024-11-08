@@ -9,7 +9,7 @@ fun assoc2(a u32, b u32, c u32, d u32) u32:
     return (a + b) * (c + d)
 
 fun assoc3(a u32, b u32, c u32, d u32) u32:
-    return max(min (a, b), min(c, d))
+    return max(min(a, b), min(c, d))
 
 fun sign1(x s32) s32:
     cond:

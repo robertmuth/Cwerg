@@ -418,14 +418,15 @@ def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
         if isinstance(a, cwast.Id):
             ts.EmitAttr(a.FullName())
         elif isinstance(a, cwast.EphemeralList):
-            assert False, "EphemeralList should not longer occur in code"
-            # if we reconsider this - we should use "{{ ... }}" notation
+
             if a.colon:
                 assert beg_invoke is not None
                 ts.EmitStmtEnd(beg_invoke)
                 had_colon = True
                 EmitTokensCodeBlock(ts, a.args)
             else:
+                assert False, "EphemeralList should not longer occur in code"
+                # if we reconsider this - we should use "{{ ... }}" notation
                 sep2 = False
                 beg = ts.EmitBegParen("{")
                 for e in a.args:
@@ -456,12 +457,15 @@ def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     TokensMacroInvokeArgs(ts, node.args, None)
     ts.EmitEnd(beg_paren)
 
-
-def TokensInitList(ts: TS, items):
+def TokensValCompound(ts: TS, node: cwast.ValCompound):
+    EmitTokens(ts, node.type)
     sizes = []
     beg = ts.EmitBegParen("{")
+    # if not isinstance(node.type, cwast.TypeAuto):
+    #    EmitTokens(ts, node.type)
+    # ts.EmitAttr(":")
     sep = False
-    for e in items:
+    for e in node.inits:
         if sep:
             ts.EmitSep(",")
         sep = True
@@ -470,7 +474,7 @@ def TokensInitList(ts: TS, items):
         if isinstance(e, cwast.PointVal):
             if not isinstance(e.point, cwast.ValAuto):
                 EmitTokens(ts, e.point)
-                ts.EmitAttr(":")
+                ts.EmitAttr("=")
             EmitTokens(ts, e.value_or_undef)
         else:
             assert False
@@ -478,11 +482,6 @@ def TokensInitList(ts: TS, items):
     if len(sizes) > 5 and max(sizes) < MAX_LINE_LEN:
         beg.long_array_val = True
     ts.EmitEnd(beg)
-
-
-def TokensValCompound(ts: TS, node: cwast.ValCompound):
-    EmitTokens(ts, node.type)
-    TokensInitList(ts, node.inits)
 
 
 def TokensVecType(ts: TS, size, type):
@@ -1117,6 +1116,7 @@ if __name__ == "__main__":
         mod = parse.ReadModFromStream(inp, "stdin")
         # cwast.AnnotateRoleForMacroInvoke(mod)
         # AddMissingParens(mod)
+        # cwast.EliminateEphemeralsRecursively(mod)
         PrettyPrint(mod, sys.stdout)
 
     def main():

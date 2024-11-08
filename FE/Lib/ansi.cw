@@ -45,11 +45,11 @@ pub global CURSOR_HIDE = "\x1b[?25l"
 pub global CURSOR_SHOW = "\x1b[?25h"
 
 pub macro POS# EXPR_LIST($x EXPR, $y EXPR)[]:
-    "\x1b["
-    $x
-    ";"
-    $y
-    "f"
+    "\x1b[" 
+    $x 
+    ";" 
+    $y 
+    "f" 
 
 -- Foreground Color
 pub global FG_COLOR_BLACK = "\x1b[38;2;0;0;0m"
@@ -69,13 +69,13 @@ pub global FG_COLOR_CYAN = "\x1b[38;2;0;205;205m"
 pub global FG_COLOR_WHITE = "\x1b[38;2;229;229;229m"
 
 macro FG_COLOR# EXPR_LIST($r EXPR, $g EXPR, $b EXPR)[]:
-    "\x1b[38;2;"
-    $r
-    ";"
-    $g
-    ";"
-    $b
-    "m"
+    "\x1b[38;2;" 
+    $r 
+    ";" 
+    $g 
+    ";" 
+    $b 
+    "m" 
 
 -- Background Color
 pub global BG_COLOR_BLACK = "\x1b[48;2;0;0;0m"
@@ -95,10 +95,10 @@ pub global BG_COLOR_CYAN = "\x1b[48;2;0;205;205m"
 pub global BG_COLOR_WHITE = "\x1b[48;2;229;229;229m"
 
 macro BG_COLOR# EXPR_LIST($r EXPR, $g EXPR, $b EXPR)[]:
-    "\x1b[48;2;"
-    $r
-    ";"
-    $g
-    ";"
-    $b
-    "m"
+    "\x1b[48;2;" 
+    $r 
+    ";" 
+    $g 
+    ";" 
+    $b 
+    "m" 

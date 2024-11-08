@@ -142,7 +142,6 @@ pub macro print# STMT_LIST(
                 $i, span(pinc(front!($buffer), $curr), len($buffer) - $curr), &!$options)
     do os::write(unwrap(os::Stdout), front($buffer), $curr)
 
-
 pub fun strz_to_slice(s ^u8) span(u8):
     let! i uint = 0
     while pinc(s, i)^ != 0:

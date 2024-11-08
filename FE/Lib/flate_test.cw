@@ -22,11 +22,11 @@ global! one_byte_output_buffer = [1]u8{0}
 
 global zeros = [1024]u8{0}
 
-global! special_2_1_0 = [32771]u8{2, 1, 0, 32768 : 2, 1, 0}
+global! special_2_1_0 = [32771]u8{2, 1, 0, 32768 = 2, 1, 0}
 
--- 
+--
 -- Many tests taken from https://github.com/jibsen/tinf/blob/master/test/test_tinf.c
--- 
+--
 global AllTestCases = [27]TestCase{
         TestCase{
             "generic: missing next block after final uncompressed block",

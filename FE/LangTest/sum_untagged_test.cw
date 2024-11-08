@@ -90,7 +90,7 @@ fun test_untagged_union() void:
     test::AssertEq#(rec2.t2, 0x12344321_u32)
     test::AssertEq#(narrow_as(rec2.t3, u32), 0x40000000_u32)
     test::AssertEq#(rec2.t4, true)
-    -- 
+    --
     set narrow_as(rec1.t3, [32]u8)[2] = 0x28_u8
     set narrow_as(rec1.t3, [32]u8)[3] = 0x42_u8
     test::AssertEq#(narrow_as(rec1.t3, u32), 0x42280000_u32)

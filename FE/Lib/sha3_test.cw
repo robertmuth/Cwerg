@@ -55,7 +55,7 @@ fun test_Sha3512() void:
             sha3::Sha3512(""))
 
 fun main(argc s32, argv ^^u8) s32:
-    -- 
+    --
     do test_Keccak512()
     do test_Sha3512()
     -- (let hash auto  (sha3::Keccak512 [limerick]))

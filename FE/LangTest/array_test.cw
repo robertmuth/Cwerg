@@ -38,12 +38,12 @@ pub rec type_rec3:
     u5 [10]u8
     u6 u64
 
-global! r1 = type_rec3{u5 : [10]u8{77, 88, 99}}
+global! r1 = type_rec3{u5 = [10]u8{77, 88, 99}}
 
 global! c4 = [10]u8{41, 51, 61}
 
 fun test_mixed_array() void:
-    -- 
+    --
     ref let! a = [10]u8{1, 2, 3}
     let pa = &a
     let pa_mut = &!a
@@ -61,7 +61,7 @@ fun test_mixed_array() void:
     test::AssertEq#(a[1], 111_u8)
 
 fun test_local_array() void:
-    -- 
+    --
     ref let! a = [10]u8{1, 2, 3}
     ref let b = [10]u8{4, 5, 6}
     let pa = &a

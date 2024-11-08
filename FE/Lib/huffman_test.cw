@@ -9,13 +9,13 @@ import huffman
 import bitstream
 
 -- Tree0
--- 
--- 
+--
+--
 -- B = 0
 -- A = 11
 -- C = 101
 -- D = 100
--- 
+--
 global Tree0Length = [4]u16{2, 1, 3, 3}
 
 global Tree0ExpectedSymbols = [4]u16{'B' - 'A', 'A' - 'A', 'C' - 'A', 'D' - 'A'}
@@ -33,8 +33,8 @@ fun test_tree0_decoding() void:
     test::AssertSliceEq#(counts, Tree0ExpectedCounts)
 
 -- Tree1
--- 
--- 
+--
+--
 --  0                        *
 --                          / \
 --                         /   \
@@ -65,7 +65,7 @@ fun test_tree0_decoding() void:
 -- 5                                               D  / \
 --                                                   *   *
 -- 6                                                 J   K
--- 
+--
 -- 5-F 000
 -- 4-E 010
 -- 6-G 011
@@ -77,7 +77,7 @@ fun test_tree0_decoding() void:
 -- 3-D 11110
 -- 9-J 111110
 -- 10-K 111111
--- 
+--
 global Tree1Length = [11]u16{4, 4, 4, 5, 3, 2, 3, 3, 3, 6, 6}
 
 global Tree1ExpectedSymbols = [11]u16{

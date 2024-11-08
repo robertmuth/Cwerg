@@ -19,7 +19,7 @@ global TEST_STRING = "abcdef"
 --     mat[-1][-1] == 0
 --     mat[-1][bindex] = bindex + 1
 --     mat[aindex][-1] = aindex + 1
--- 
+--
 --  The value of mat[x][y] can be computed from
 --    ddist  mat[x-1][y-1]
 --    tdist  mat[x][y-1]

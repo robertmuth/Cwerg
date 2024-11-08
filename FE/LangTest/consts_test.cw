@@ -83,7 +83,7 @@ global c41 = c32.s1
 static_assert c41 == 7
 
 -- array literal with explicit indices
-global c30 = [30]uint{1 : 0, 2 : 10, 3 : 20}
+global c30 = [30]uint{1 = 0, 2 = 10, 3 = 20}
 
 global c40 = c30[1]
 
@@ -106,7 +106,7 @@ pub rec type_rec2:
 global r01 = type_rec2{"aaa", 9, 7}
 
 -- rec literal
-global r02 = type_rec2{s2 : 9, 7}
+global r02 = type_rec2{s2 = 9, 7}
 
 static_assert len(r02.s1) == 0
 
