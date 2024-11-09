@@ -400,7 +400,7 @@ def _TypifyUntypedNodeRecursively(node, tc: type_corpus.TypeCorpus,
 def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
                        target_type: cwast.CanonType,
                        ctx: _TypeContext) -> cwast.CanonType:
-    ct = _TypifyNodeRecursively(node.type, tc, target_type, ctx)
+    ct = _TypifyNodeRecursively(node.type_or_auto, tc, target_type, ctx)
     if ct.is_array():
         for point in node.inits:
             assert isinstance(point, cwast.PointVal)
@@ -793,7 +793,7 @@ def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
 
 
 def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
-    ct: cwast.CanonType = node.type.x_type
+    ct: cwast.CanonType = node.type_or_auto.x_type
     if ct.is_array():
         _CheckValVec(node, ct.underlying_array_type())
     else:
@@ -809,7 +809,7 @@ def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
 
 
 def CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
-    ct: cwast.CanonType = node.type.x_type
+    ct: cwast.CanonType = node.type_or_auto.x_type
     if ct.is_array():
         _CheckValVec(node, ct.underlying_array_type())
     else:

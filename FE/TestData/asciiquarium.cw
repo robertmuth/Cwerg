@@ -22,7 +22,7 @@ fun main(argc s32, argv ^^u8) s32:
     let width s32 = as(fmt::str_to_u32(arg_w), s32)
     let height s32 = as(fmt::str_to_u32(arg_h), s32)
     -- 100ms per frame
-    ref let req os::TimeSpec = {os::TimeSpec : 0, 100000000}
+    ref let req = {os::TimeSpec : 0, 100000000}
     ref let! rem os::TimeSpec = undef
     ref let! window = {aanim::Window : width, height, undef, undef, undef}
     let! curr = front!(all_objects)

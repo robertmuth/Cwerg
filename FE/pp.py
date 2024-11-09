@@ -461,8 +461,8 @@ def TokensValCompound(ts: TS, node: cwast.ValCompound):
     # EmitTokens(ts, node.type)
     sizes = []
     beg = ts.EmitBegExprParen("{")
-    if not isinstance(node.type, cwast.TypeAuto):
-       EmitTokens(ts, node.type)
+    if not isinstance(node.type_or_auto, cwast.TypeAuto):
+       EmitTokens(ts, node.type_or_auto)
     ts.EmitAttr(":")
     sep = False
     for e in node.inits:

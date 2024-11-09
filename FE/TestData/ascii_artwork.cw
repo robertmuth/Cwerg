@@ -30,8 +30,7 @@ import aanim = "./ascii_anim"
 pub global RandomColor = "RcRyBgM"
 
 global CastleSprites = {
-        [1]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [1]aanim::Sprite : {: r"""
                 T~~
                 |
                /^\
@@ -65,8 +64,7 @@ global CastleSprites = {
 pub global Castle = {aanim::Object : "castle", CastleSprites, 'B', def_depth = 22}
 
 global SwanLSprites = {
-        [1]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [1]aanim::Sprite : {: r"""
  ___
 /,_ \    _,
 |/ )/   / |
@@ -82,12 +80,11 @@ yy
 """}}
 
 pub global SwanL = {
-        aanim::Object : "swan_l", SwanLSprites, 'W', def_depth = 3, def_x_speed = 
+        aanim::Object : "swan_l", SwanLSprites, 'W', def_depth = 3, def_x_speed =
         -1.0_r32}
 
 global SwanRSprites = {
-        [1]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [1]aanim::Sprite : {: r"""
         ___
  ,_    / _,\
  | \   \( \|
@@ -103,12 +100,11 @@ global SwanRSprites = {
 """}}
 
 pub global SwanR = {
-        aanim::Object : "swan_r", SwanRSprites, 'W', def_depth = 3, def_x_speed = 
+        aanim::Object : "swan_r", SwanRSprites, 'W', def_depth = 3, def_x_speed =
         -1.0_r32}
 
 global DucksRSprites = {
-        [3]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [3]aanim::Sprite : {: r"""
       _??????????_??????????_
 ,____(')=??,____(')=??,____(')<
  \~~= ')????\~~= ')????\~~= ')
@@ -118,8 +114,7 @@ global DucksRSprites = {
 wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
 """},
-        {
-            aanim::Sprite : r"""
+        {: r"""
       _??????????_??????????_
 ,____(')=??,____(')<??,____(')=
  \~~= ')????\~~= ')????\~~= ')
@@ -129,8 +124,7 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
  wwww Ww    wwww Ww    wwww Ww
 """},
-        {
-            aanim::Sprite : r"""
+        {: r"""
       _??????????_??????????_
 ,____(')<??,____(')=??,____(')=
  \~~= ')????\~~= ')????\~~= ')
@@ -142,12 +136,11 @@ wwwwwgcgy  wwwwwgcgy  wwwwwgcgy
 """}}
 
 pub global DuckR = {
-        aanim::Object : "duck_r1", DucksRSprites, 'W', def_depth = 3, transparent_char 
+        aanim::Object : "duck_r1", DucksRSprites, 'W', def_depth = 3, transparent_char
         ='?', def_x_speed = 1.0_r32}
 
 global DolphinRSprites = {
-        [2]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [2]aanim::Sprite : {: r"""
         ,
       __)\_
 (\_.-'    a`-.
@@ -158,8 +151,7 @@ global DolphinRSprites = {
 
           W
 """},
-        {
-            aanim::Sprite : r"""
+        {: r"""
         ,
 (\__  __)\_
 (/~.''    a`-.
@@ -172,12 +164,11 @@ global DolphinRSprites = {
 """}}
 
 pub global DolphinR = {
-        aanim::Object : "dolphin_r", DolphinRSprites, 'b', def_depth = 3, def_x_speed 
+        aanim::Object : "dolphin_r", DolphinRSprites, 'b', def_depth = 3, def_x_speed
         =1.0_r32}
 
 global DolphinLSprites = {
-        [2]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [2]aanim::Sprite : {: r"""
      ,
    _/(__
 .-'a    `-._/)
@@ -188,8 +179,7 @@ global DolphinLSprites = {
 
    W
 """},
-        {
-            aanim::Sprite : r"""
+        {: r"""
      ,
    _/(__  __/)
 .-'a    ``.~\)
@@ -209,8 +199,7 @@ pub global DolphinL = {
         def_x_speed = -1.0_r32}
 
 global BigFishRSprites = {
-        [1]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [1]aanim::Sprite : {: r"""
  ______
 `""-.  `````-----.....__
      `.  .      .       `-.
@@ -244,12 +233,11 @@ global BigFishRSprites = {
 """}}
 
 pub global BigFishR = {
-        aanim::Object : "bigfish_r", BigFishRSprites, 'Y', def_depth = 2, def_x_speed 
+        aanim::Object : "bigfish_r", BigFishRSprites, 'Y', def_depth = 2, def_x_speed
         =3.0_r32}
 
 global BigFishLSprites = {
-        [1]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [1]aanim::Sprite : {: r"""
                            ______
           __.....-----'''''  .-""'
        .-'       .      .  .'
@@ -283,12 +271,11 @@ global BigFishLSprites = {
 """}}
 
 pub global BigFishL = {
-        aanim::Object : "bigfish_l", BigFishLSprites, 'Y', def_depth = 2, def_x_speed 
+        aanim::Object : "bigfish_l", BigFishLSprites, 'Y', def_depth = 2, def_x_speed
         =3.0_r32}
 
 global MonsterRSprites = {
-        [4]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [4]aanim::Sprite : {: r"""
                                                           ____
             __??????????????????????????????????????????/   o  \
           /    \????????_?????????????????????_???????/     ____ >
@@ -302,8 +289,7 @@ global MonsterRSprites = {
 
 
 """},
-        {
-            aanim::Sprite : r"""
+        {: r"""
                                                           ____
                                              __?????????/   o  \
              _?????????????????????_???????/    \?????/     ____ >
@@ -317,8 +303,7 @@ global MonsterRSprites = {
 
 
 """},
-        {
-            aanim::Sprite : r"""
+        {: r"""
                                                           ____
                                   __????????????????????/   o  \
  _??????????????????????_???????/    \????????_???????/     ____ >
@@ -332,8 +317,7 @@ global MonsterRSprites = {
 
 
 """},
-        {
-            aanim::Sprite : r"""
+        {: r"""
                                                           ____
                        __???????????????????????????????/   o  \
   _??????????_???????/    \????????_??????????????????/     ____ >
@@ -349,12 +333,11 @@ global MonsterRSprites = {
 """}}
 
 pub global MonsterR = {
-        aanim::Object : "monster_r", MonsterRSprites, 'G', def_depth = 5, transparent_char 
+        aanim::Object : "monster_r", MonsterRSprites, 'G', def_depth = 5, transparent_char
         ='?', def_x_speed = 2.0_r32}
 
 global ShipRSprites = {
-        [1]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [1]aanim::Sprite : {: r"""
      |    |    |
     )_)  )_)  )_)
    )___))___))___)\
@@ -372,12 +355,11 @@ y                   y
 """}}
 
 pub global ShipR = {
-        aanim::Object : "ship_r", ShipRSprites, 'W', def_depth = 7, def_x_speed = 
+        aanim::Object : "ship_r", ShipRSprites, 'W', def_depth = 7, def_x_speed =
         1.0_r32}
 
 global SharkRSprites = {
-        [1]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [1]aanim::Sprite : {: r"""
                               __
                              ( `\
   ,??????????????????????????)   `\
@@ -403,12 +385,11 @@ global SharkRSprites = {
 """}}
 
 pub global SharkR = {
-        aanim::Object : "ship_r", SharkRSprites, 'C', def_depth = 2, transparent_char 
+        aanim::Object : "ship_r", SharkRSprites, 'C', def_depth = 2, transparent_char
         ='?', def_x_speed = 2.0_r32}
 
 global Fish1RSprites = {
-        [1]aanim::Sprite : {
-            aanim::Sprite : r"""
+        [1]aanim::Sprite : {: r"""
        \
      ...\..,
 \  /'       \

@@ -1629,7 +1629,7 @@ class ValCompound:
     GROUP = GROUP.Value
     FLAGS = NF_EXPR
     #
-    type: NODES_TYPES_T
+    type_or_auto: NODES_TYPES_OR_AUTO_T
     inits: list[NODES_INITS_T]
     #
     doc: str = ""
@@ -1639,7 +1639,7 @@ class ValCompound:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} type={self.type}"
+        return f"{NODE_NAME(self)} type={self.type_or_auto}"
 
 
 @NodeCommon
