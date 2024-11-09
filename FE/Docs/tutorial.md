@@ -48,9 +48,9 @@ We give some examples below to convey a general feeling for the language.
 The details should become clear after reading the rest of the tutorial.
 
 More examples can be found in
-*  https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/TestData
-*  https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/Lib
-*  https://github.com/robertmuth/Cwerg/tree/master/FrontEnd/LangTest
+*  [FE/TestData/](../TestData)
+*  [FE/Lib/](../Lib)
+*  [FE/LangTest/](../LangTest)
 
 
 ### Hello World (full example)
