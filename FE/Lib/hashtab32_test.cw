@@ -16,13 +16,14 @@ import hashtab = hashtab32_gen(u32, u32, hash_32, eq_32)
 
 global SIZE u32 = 32
 
-global! meta = [SIZE]u8{0}
+global! meta = {[SIZE]u8 : 0}
 
-global! keys = [SIZE]u32{0}
+global! keys = {[SIZE]u32 : 0}
 
-global! vals = [SIZE]u32{0}
+global! vals = {[SIZE]u32 : 0}
 
-global! ht = hashtab::HashTab32{front!(meta), front!(keys), front!(vals), SIZE, 0}
+global! ht = {hashtab::HashTab32 : front!(meta), front!(keys), front!(vals), SIZE, 
+    0}
 
 fun main(argc s32, argv ^^u8) s32:
     ref let! key u32 = 6

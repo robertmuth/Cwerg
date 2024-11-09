@@ -18,8 +18,8 @@ rec Pcg32State:
     state u64
     inc u64
 
-pub global Pcg32StateDefault = Pcg32State{
-        0x853c49e6748fea9b_u64, 0xda3e39cb94b95bdb_u64}
+pub global Pcg32StateDefault = {
+        Pcg32State : 0x853c49e6748fea9b_u64, 0xda3e39cb94b95bdb_u64}
 
 -- Generate a uniformly distributed 32-bit random number
 fun Pcg32GetRandom(state ^!Pcg32State) u32:

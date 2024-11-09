@@ -13,9 +13,9 @@ rec Disk:
     size s32
     next_in_pile s32
 
-global! all_disks = [NUM_DISKS]Disk{}
+global! all_disks = {[NUM_DISKS]Disk :}
 
-global! piles = [NUM_PILES]s32{NO_DISK}
+global! piles = {[NUM_PILES]s32 : NO_DISK}
 
 fun MoveTopDisk(src_pile u32, dst_pile u32) u32:
     -- pop top disk from src_pile

@@ -21,11 +21,12 @@ macro xdebug# STMT_LIST($parts EXPR_LIST_REST)[]:
 
 macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
 
-global WinogradMultipliers = [64]u8{
-        128, 178, 178, 167, 246, 167, 151, 232, 232, 151, 128, 209, 219, 209, 128, 
-        101, 178, 197, 197, 178, 101, 69, 139, 167, 177, 167, 139, 69, 35, 96, 131, 
-        151, 151, 131, 96, 35, 49, 91, 118, 128, 118, 91, 49, 46, 81, 101, 101, 81, 
-        46, 42, 69, 79, 69, 42, 35, 54, 54, 35, 28, 37, 28, 19, 19, 10}
+global WinogradMultipliers = {
+        [64]u8 : 128, 178, 178, 167, 246, 167, 151, 232, 232, 151, 128, 209, 219, 
+        209, 128, 101, 178, 197, 197, 178, 101, 69, 139, 167, 177, 167, 139, 69, 
+        35, 96, 131, 151, 151, 131, 96, 35, 49, 91, 118, 128, 118, 91, 49, 46, 81, 
+        101, 101, 81, 46, 42, 69, 79, 69, 42, 35, 54, 54, 35, 28, 37, 28, 19, 19, 
+        10}
 
 macro div_pow2_with_rounding# EXPR($x EXPR, $d EXPR)[]:
     ($x + (1 << ($d - 1))) >> $d 
@@ -486,11 +487,11 @@ fun DecodeScan(chunk span(u8), frame_info ^!FrameInfo) union(
     debug#(">>>>>>> ", data[0], "\n")
     return SuccessVal
 
-global ZigZagIndex = [8 * 8]u8{
-        0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 
-        48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 
-        29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 
-        54, 47, 55, 62, 63}
+global ZigZagIndex = {
+        [8 * 8]u8 : 0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 
+        26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 
+        50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 
+        53, 60, 61, 54, 47, 55, 62, 63}
 
 -- returns new dc value on success
 fun DecodeBlock(
@@ -532,8 +533,8 @@ fun DecodeMacroBlocksHuffman(
         out span!(u8)) union(
         uint, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("Decode blocks\n")
-    ref let! bs = BitStream{chunk}
-    let! dc_last = [3]s16{0, 0, 0}
+    ref let! bs = {BitStream : chunk}
+    let! dc_last = {[3]s16 : 0, 0, 0}
     ref let! buffer [8 * 8]s16 = undef
     let ncomp u32 = as(fi^.ncomp, u32)
     -- we assume ssx/ssy are 1

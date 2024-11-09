@@ -5,7 +5,7 @@ import test
 
 global! gIndex uint = 0
 
-global! gSequence = [10]u8{0}
+global! gSequence = {[10]u8 : 0}
 
 fun store(c u8) void:
     set gSequence[gIndex] = c

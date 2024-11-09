@@ -75,7 +75,7 @@ fun sum_priest_compensated(summands span(r64)) SumCompensation:
         let z = u + v
         set s = t + z
         set c = z - s - t
-    return SumCompensation{s, c}
+    return {SumCompensation : s, c}
 
 fun horner_sum(x r64, coeffs span(r64)) r64:
     let! s r64 = 0.0

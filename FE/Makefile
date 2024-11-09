@@ -230,6 +230,8 @@ check_conv:
 	done
 
 reformat:
+	set -o nounset ; \
+    set -o errexit ; \
 	for f in */*.cw ; do \
 		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
 	done

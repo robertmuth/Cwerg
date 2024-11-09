@@ -7,7 +7,7 @@ import fmt
 
 global SIZE uint = 20
 
-global! Data = [SIZE]r64{}
+global! Data = {[SIZE]r64 :}
 
 global NEWLINE = "\n"
 

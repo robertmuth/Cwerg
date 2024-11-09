@@ -458,12 +458,12 @@ def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     ts.EmitEnd(beg_paren)
 
 def TokensValCompound(ts: TS, node: cwast.ValCompound):
-    EmitTokens(ts, node.type)
+    # EmitTokens(ts, node.type)
     sizes = []
-    beg = ts.EmitBegParen("{")
-    # if not isinstance(node.type, cwast.TypeAuto):
-    #    EmitTokens(ts, node.type)
-    # ts.EmitAttr(":")
+    beg = ts.EmitBegExprParen("{")
+    if not isinstance(node.type, cwast.TypeAuto):
+       EmitTokens(ts, node.type)
+    ts.EmitAttr(":")
     sep = False
     for e in node.inits:
         if sep:

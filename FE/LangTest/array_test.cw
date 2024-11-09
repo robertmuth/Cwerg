@@ -6,9 +6,9 @@ type type_array = [3]bool
 
 type type_slice = span(s32)
 
-global c1 = [10]s32{1, 2, 3}
+global c1 = {[10]s32 : 1, 2, 3}
 
-global! c2 = [10]s32{1, 2, 3}
+global! c2 = {[10]s32 : 1, 2, 3}
 
 --  (let c20 auto (len c1)")
 --          "(let c21 auto (at c1 2))") 
@@ -38,13 +38,13 @@ pub rec type_rec3:
     u5 [10]u8
     u6 u64
 
-global! r1 = type_rec3{u5 = [10]u8{77, 88, 99}}
+global! r1 = {type_rec3 : u5 = {[10]u8 : 77, 88, 99}}
 
-global! c4 = [10]u8{41, 51, 61}
+global! c4 = {[10]u8 : 41, 51, 61}
 
 fun test_mixed_array() void:
     --
-    ref let! a = [10]u8{1, 2, 3}
+    ref let! a = {[10]u8 : 1, 2, 3}
     let pa = &a
     let pa_mut = &!a
     test::AssertEq#(c4[2], 61_u8)
@@ -62,8 +62,8 @@ fun test_mixed_array() void:
 
 fun test_local_array() void:
     --
-    ref let! a = [10]u8{1, 2, 3}
-    ref let b = [10]u8{4, 5, 6}
+    ref let! a = {[10]u8 : 1, 2, 3}
+    ref let b = {[10]u8 : 4, 5, 6}
     let pa = &a
     let pa_mut = &!a
     let pb = &b
@@ -83,19 +83,19 @@ fun test_local_array() void:
     test::AssertEq#(update_array(a, 0, 3), 2_u8)
     test::AssertEq#(update_array(pa_mut^, 0, 2), 3_u8)
 
-global d1 = [10]s32{11, 22, 33}
+global d1 = {[10]s32 : 11, 22, 33}
 
-global! d2 = [10]s32{111, 222, 333}
+global! d2 = {[10]s32 : 111, 222, 333}
 
-global! c3 = [10]u8{4, 5, 6}
+global! c3 = {[10]u8 : 4, 5, 6}
 
 global e1 span(s32) = d1
 
 global e2 span!(s32) = d2
 
-global e3 = [5]s32{0, 1, 2, 3, 4}
+global e3 = {[5]s32 : 0, 1, 2, 3, 4}
 
-global e4 = [2]span(s32){e1, e1}
+global e4 = {[2]span(s32) : e1, e1}
 
 -- ERROR
 --        (global e5 (span (span s32)) e4)

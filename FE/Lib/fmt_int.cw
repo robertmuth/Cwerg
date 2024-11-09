@@ -12,7 +12,7 @@ macro unsigned_to_str# EXPR(
     expr:
         -- unsigned to str with given base
         mlet! $v = $val
-        mlet! $tmp = [1024]u8{}
+        mlet! $tmp = {[1024]u8 :}
         mlet! $pos uint = $max_width
         mlet $out_eval = $out
         block _:

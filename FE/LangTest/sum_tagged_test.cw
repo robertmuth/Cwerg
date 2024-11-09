@@ -70,7 +70,7 @@ rec rec2:
     s1 Union1
     s2 Union2
 
-global global_rec1 = rec1{1_s8, 2_s8}
+global global_rec1 = {rec1 : 1_s8, 2_s8}
 
 --
 -- pub (type sum11_t (union [bool u16]))
@@ -138,7 +138,7 @@ fun test_tagged_union_narrowto() void:
     let! z = narrow_as(x, union(u8, bool))
 
 fun test_tagged_union_vec() void:
-    let array = [2]union(bool, u32, r32){true, 0_u32}
+    let array = {[2]union(bool, u32, r32) : true, 0_u32}
     test::AssertTrue#(is(array[0], bool))
     test::AssertTrue#(!is(array[0], u32))
     test::AssertTrue#(!is(array[1], bool))

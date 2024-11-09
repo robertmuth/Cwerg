@@ -17,7 +17,7 @@ rec TextStats:
 -- Returns either a TextStat or an Error
 fun WordCount(fd os::FD) union(TextStats, os::Error):
     -- note limited type inference in next two stmts
-    let! stats = TextStats{}
+    let! stats = {TextStats :}
     let! in_word = false
     -- do not initialize buf with zeros
     let! buf [1024]u8 = undef

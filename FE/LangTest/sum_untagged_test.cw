@@ -85,7 +85,7 @@ fun test_untagged_union() void:
     test::AssertEq#(narrow_as(rec1.t3, [32]u8)[2], 0_u8)
     test::AssertEq#(narrow_as(rec1.t3, [32]u8)[3], 0x40_u8)
     -- union embedded in record 2
-    let! rec2 = RecordWithUntaggedUnion{false, 0x12344321, 2.0_r32, true}
+    let! rec2 = {RecordWithUntaggedUnion : false, 0x12344321, 2.0_r32, true}
     test::AssertEq#(rec2.t1, false)
     test::AssertEq#(rec2.t2, 0x12344321_u32)
     test::AssertEq#(narrow_as(rec2.t3, u32), 0x40000000_u32)

@@ -25,8 +25,8 @@ rec Body:
     mass r64
 
 fun BodyCommon(x r64, y r64, z r64, vx r64, vy r64, vz r64, m r64) Body:
-    return Body{
-            x, y, z, vx * DAYS_PER_YEAR, vy * DAYS_PER_YEAR, vz * DAYS_PER_YEAR, 
+    return {
+            Body : x, y, z, vx * DAYS_PER_YEAR, vy * DAYS_PER_YEAR, vz * DAYS_PER_YEAR, 
             m* SOLAR_MASS}
 
 fun BodyJupiter() Body:
@@ -131,8 +131,9 @@ global DT = 0.01_r64
 global NUM_ITER = 250000_u32
 
 fun main(argc s32, argv ^^u8) s32:
-    ref let! bodies = [5]Body{
-            BodySun(), BodyJupiter(), BodySaturn(), BodyUranus(), BodyNeptune()}
+    ref let! bodies = {
+            [5]Body : BodySun(), BodyJupiter(), BodySaturn(), BodyUranus(), BodyNeptune(
+            )}
     do UpdateOffsetMomentum(&!bodies)
     -- do permute(&!v, DIM)
     -- DIM! = 5040

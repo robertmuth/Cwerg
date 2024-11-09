@@ -435,14 +435,6 @@ def _PParseNum(_inp: Lexer, tk: TK, _precedence) -> Any:
     return cwast.ValNum(tk.text, x_srcloc=tk.srcloc)
 
 
-def _PParseArrayType(inp: Lexer, tk: TK, _precedence) -> Any:
-    assert tk.kind is TK_KIND.SQUARE_OPEN
-    dim = _ParseExpr(inp)
-    inp.match_or_die(TK_KIND.SQUARE_CLOSED)
-    type = _ParseTypeExpr(inp)
-    return cwast.TypeVec(dim, type, x_srcloc=tk.srcloc)
-
-
 _FUN_LIKE = {
     "abs": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.ABS, x, **kw), "E"),
     "sqrt": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.SQRT, x, **kw), "E"),
@@ -584,16 +576,45 @@ def _PParseParenGroup(inp: Lexer, tk: TK, _precedence) -> Any:
     return cwast.ExprParen(inner, x_srcloc=tk.srcloc)
 
 
+def _ParseValPoint(inp: Lexer) -> Any:
+    tk: TK = inp.peek()
+    val = _ParseExpr(inp)
+    if inp.match(TK_KIND.ASSIGN):
+        index = val
+        val = _ParseExpr(inp)
+    else:
+        index = cwast.ValAuto(x_srcloc=tk.srcloc)
+    return cwast.PointVal(val, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
+
+
+def _PParseValCompound(inp: Lexer, tk: TK, _precedence) -> Any:
+    assert tk.kind is TK_KIND.CURLY_OPEN
+    if inp.match(TK_KIND.COLON):
+        type = cwast.TypeAuto(x_srcloc=tk.srcloc)
+    else:
+        type = _ParseTypeExpr(inp)
+        inp.match_or_die(TK_KIND.COLON)
+
+    inits = []
+    first = True
+    while not inp.match(TK_KIND.CURLY_CLOSED):
+        if not first:
+            inp.match_or_die(TK_KIND.COMMA)
+        first = False
+        inits.append(_ParseValPoint(inp))
+    return cwast.ValCompound(type, inits, x_srcloc=tk.srcloc)
+
+
 _PREFIX_EXPR_PARSERS = {
     TK_KIND.KW: (10, _PParseKeywordConstants),
     TK_KIND.OP1: (pp.PREC1_NOT, _PParsePrefix),
     TK_KIND.OP2: (10, _PParsePrefix),  # only used for "-"
     TK_KIND.ID: (10, _PParseId),
     TK_KIND.NUM: (10, _PParseNum),
-    TK_KIND.SQUARE_OPEN: (pp.PREC_INDEX, _PParseArrayType),
     TK_KIND.STR: (10, _PParseStr),
     TK_KIND.CHAR: (10, _PParseChar),
     TK_KIND.PAREN_OPEN: (10, _PParseParenGroup),
+    TK_KIND.CURLY_OPEN: (10, _PParseValCompound),
 }
 
 
@@ -648,55 +669,6 @@ def _PParseFunctionCall(inp: Lexer, callee, tk: TK, precedence) -> Any:
         first = False
         args.append(_ParseExpr(inp))
     return cwast.ExprCall(callee, args, x_srcloc=callee.x_srcloc, **_ExtractAnnotations(tk))
-
-
-def _ParseArrayInit(inp: Lexer) -> Any:
-    tk: TK = inp.peek()
-    val = _ParseExpr(inp)
-    if inp.match(TK_KIND.ASSIGN):
-        index = val
-        val = _ParseExpr(inp)
-    else:
-        index = cwast.ValAuto(x_srcloc=tk.srcloc)
-    return cwast.PointVal(val, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
-
-
-def _ParseRecInit(inp: Lexer) -> Any:
-    tk: TK = inp.peek()
-    val = _ParseExpr(inp)
-    if inp.match(TK_KIND.ASSIGN):
-        assert isinstance(val, cwast.Id)
-        assert val.mod_name is None
-        assert val.enum_name is None
-        field = val
-        val = _ParseExpr(inp)
-
-    else:
-        field = cwast.ValAuto(x_srcloc=tk.srcloc)
-    return cwast.PointVal(val, field, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
-
-
-def _PParseInitializer(inp: Lexer, type, tk: TK, _precedence) -> Any:
-    assert tk.kind is TK_KIND.CURLY_OPEN
-    if isinstance(type, cwast.Id):
-        inits = []
-        first = True
-        while not inp.match(TK_KIND.CURLY_CLOSED):
-            if not first:
-                inp.match_or_die(TK_KIND.COMMA)
-            first = False
-            inits.append(_ParseRecInit(inp))
-        return cwast.ValCompound(type, inits, x_srcloc=tk.srcloc)
-    else:
-        assert isinstance(type, cwast.TypeVec)
-        inits = []
-        first = True
-        while not inp.match(TK_KIND.CURLY_CLOSED):
-            if not first:
-                inp.match_or_die(TK_KIND.COMMA)
-            first = False
-            inits.append(_ParseArrayInit(inp))
-        return cwast.ValCompound(type, inits, x_srcloc=tk.srcloc)
 
 
 def _PParseIndex(inp: Lexer, array, tk: TK, _precedence) -> Any:
@@ -764,7 +736,6 @@ _INFIX_EXPR_PARSERS = {
 
     #
     "(": (20, _PParseFunctionCall),
-    "{": (10, _PParseInitializer),
     "[":  (pp.PREC_INDEX, _PParseIndex),
     "^": (pp.PREC_INDEX, _PParseDeref),
     ".": (pp.PREC_INDEX, _PParseFieldAccess),

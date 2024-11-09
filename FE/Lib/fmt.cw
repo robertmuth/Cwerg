@@ -134,9 +134,9 @@ fun SysRender@(v ^void, out span!(u8), options ^!SysFormatOptions) uint:
 pub macro print# STMT_LIST(
     -- list of items to be printed
     $parts EXPR_LIST_REST)[$buffer, $curr, $options]:
-    mlet! $buffer = [FORMATED_STRING_MAX_LEN]u8{}
+    mlet! $buffer = {[FORMATED_STRING_MAX_LEN]u8 :}
     mlet! $curr uint = 0
-    ref mlet! $options = SysFormatOptions{}
+    ref mlet! $options = {SysFormatOptions :}
     mfor $i $parts:
         set $curr += SysRender@(
                 $i, span(pinc(front!($buffer), $curr), len($buffer) - $curr), &!$options)
