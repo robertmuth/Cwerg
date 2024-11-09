@@ -413,7 +413,7 @@ def NfdNodeList(name, doc, node_type, role):
     return NFD(NFK.LIST, name, doc, node_type=_ExtractTypes(node_type), role=role)
 
 
-NODES_INITS_T: TypeAlias = "PointVal"
+NODES_INITS_T: TypeAlias = "ValPoint"
 NODES_FIELDS_T: TypeAlias = "RecField"
 NODES_CASES_T: TypeAlias = "Case"
 NODES_ITEMS_T: TypeAlias = "EnumVal"
@@ -1587,7 +1587,7 @@ class ValVoid:
 
 @NodeCommon
 @dataclasses.dataclass()
-class PointVal:
+class ValPoint:
     """Part of a compound literal
 
     e.g. `1 = 5`

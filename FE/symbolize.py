@@ -461,7 +461,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
         VerifyASTSymbolsRecursively(mod)
 
 
-def IterateValRec(points: list[cwast.PointVal], def_rec: cwast.CanonType):
+def IterateValRec(points: list[cwast.ValPoint], def_rec: cwast.CanonType):
     assert isinstance(def_rec.ast_node, cwast.DefRec)
     next_point = 0
     for f in def_rec.ast_node.fields:
@@ -490,7 +490,7 @@ _UNDEF = cwast.ValUndef()
 def IterateValArray(inits, width, srcloc):
     curr_val = 0
     for init in inits:
-        assert isinstance(init, cwast.PointVal)
+        assert isinstance(init, cwast.ValPoint)
         if isinstance(init.point, cwast.ValAuto):
             yield curr_val, init
             curr_val += 1

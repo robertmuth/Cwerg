@@ -471,7 +471,7 @@ def TokensValCompound(ts: TS, node: cwast.ValCompound):
         sep = True
         TokensAnnotationsPre(ts, e)
         start = ts.Pos()
-        if isinstance(e, cwast.PointVal):
+        if isinstance(e, cwast.ValPoint):
             if not isinstance(e.point, cwast.ValAuto):
                 EmitTokens(ts, e.point)
                 ts.EmitAttr("=")

@@ -280,7 +280,7 @@ def _EvalValCompound(ct: cwast.CanonType, inits: list, srcloc) -> Optional[Any]:
             if init is None:
                 rec[field.name] = _GetDefaultForType(ct, srcloc)
             else:
-                assert isinstance(init, cwast.PointVal), f"{init}"
+                assert isinstance(init, cwast.ValPoint), f"{init}"
                 if init.x_value is None:
                     return None
                 rec[field.name] = init.x_value
@@ -291,7 +291,7 @@ def _EvalValCompound(ct: cwast.CanonType, inits: list, srcloc) -> Optional[Any]:
         # first pass if we cannot evaluate everyting, we must give up
         # This could be relaxed if we allow None values in "out"
         for c in inits:
-            assert isinstance(c, cwast.PointVal)
+            assert isinstance(c, cwast.ValPoint)
             index = c.point
             if not isinstance(index, cwast.ValAuto):
                 if index.x_value is None:
@@ -479,7 +479,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         # we do not evaluate this during the recursion
         # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
         return False
-    elif isinstance(node, cwast.PointVal):
+    elif isinstance(node, cwast.ValPoint):
         if node.value_or_undef.x_value is None:
             if (node.x_type.is_span() and node.value_or_undef.x_type.is_array() and
                     IsGlobalSymId(node.value_or_undef)):
@@ -625,7 +625,7 @@ def EvalRecursively(node) -> bool:
             return
 
         if isinstance(node, cwast.Id) and node.x_symbol is None:
-            assert field == "point" and isinstance(parent, cwast.PointVal)
+            assert field == "point" and isinstance(parent, cwast.ValPoint)
             return
 
         seen_change |= _EvalNode(node)
@@ -661,7 +661,7 @@ def VerifyASTEvalsRecursively(node):
         if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum, cwast.ValString)):
             assert node.x_value is not None, f"{node}"
 
-        if isinstance(parent, cwast.PointVal) and field == "point":
+        if isinstance(parent, cwast.ValPoint) and field == "point":
             if isinstance(node, cwast.Id) and node.x_symbol is None:
                 return
             if node.x_value is None:

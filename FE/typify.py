@@ -403,7 +403,7 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
     ct = _TypifyNodeRecursively(node.type_or_auto, tc, target_type, ctx)
     if ct.is_array():
         for point in node.inits:
-            assert isinstance(point, cwast.PointVal)
+            assert isinstance(point, cwast.ValPoint)
             val = point.value_or_undef
             if not isinstance(val, cwast.ValUndef):
                 _TypifyNodeRecursively(
@@ -785,7 +785,7 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
 
 def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
     for point in node.inits:
-        assert isinstance(point, cwast.PointVal), f"{point}"
+        assert isinstance(point, cwast.ValPoint), f"{point}"
         if not isinstance(point.point, cwast.ValAuto):
             assert point.point.x_type.is_int()
         # TODO: this should be  _CheckTypeCompatibleForAssignment
@@ -1119,7 +1119,7 @@ class TypeVerifier:
         # maps nodes
         self._map = {
             cwast.ValCompound: _CheckValCompound,
-            cwast.PointVal: _CheckNothing,
+            cwast.ValPoint: _CheckNothing,
 
             cwast.Expr1: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
 

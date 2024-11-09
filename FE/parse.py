@@ -584,7 +584,7 @@ def _ParseValPoint(inp: Lexer) -> Any:
         val = _ParseExpr(inp)
     else:
         index = cwast.ValAuto(x_srcloc=tk.srcloc)
-    return cwast.PointVal(val, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
+    return cwast.ValPoint(val, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
 
 
 def _PParseValCompound(inp: Lexer, tk: TK, _precedence) -> Any:
