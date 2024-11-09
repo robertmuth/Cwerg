@@ -476,9 +476,9 @@ def _EnumValues(enum_class):
 ALL_FIELDS = [
     NfdStr("number", "a number"),
     NfdStr("name", "name of the object"),
-    NfdStr("mod_name", "name of the object"),
+    NfdStr("mod_name", "optional module qualifier"),
     NfdStr("base_name", "name of the object"),
-    NfdStr("enum_name", "name of the object"),
+    NfdStr("enum_name", "optional enum element name"),
 
     NfdStr("name_list", "name of the object list"),
 
@@ -1588,14 +1588,12 @@ class ValVoid:
 @NodeCommon
 @dataclasses.dataclass()
 class ValPoint:
-    """Part of a compound literal
+    """Component of a ValCompound
 
-    e.g. `1 = 5`
-    If point is auto use `0` or `previous point advance by one`.
-
-
-    e.g. `.imag = 5`
-    If field is empty use `first field` or `next field`.
+    The `point` is optional and `ValAuto` if not used.
+    It indicates which slot of the ValCompound is being initialized.
+    For Recs it represents a field name  for Vecs an index which must be
+    a compile-time constant
     """
     ALIAS = "point_val"
     GROUP = GROUP.Value
@@ -1616,14 +1614,11 @@ class ValPoint:
 @NodeCommon
 @dataclasses.dataclass()
 class ValCompound:
-    """An vec pr rec literal
-
-    `[10]int{.1 = 5, .2 = 6, 77}`
-
-    `expr_size` must be constant or auto
-
-    Note, that it is NOT possible to use a type alias here.
-    Both the element type and the dimension need to be specified.
+    """A compound (Rec or Vec) literal
+    e.g.
+    `{[10]int : 1 = 5, 2 = 6, 77}`
+    or
+    `{Point3 : x = 5, y = 8, z = 12}`
     """
     ALIAS = "compound_val"
     GROUP = GROUP.Value

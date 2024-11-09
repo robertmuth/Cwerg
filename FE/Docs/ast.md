@@ -30,10 +30,8 @@ Core nodes are the ones that are known to the code generator.
 [ExprUnwrap&nbsp;(unwrap)](#exprunwrap-unwrap) &ensp;
 [ExprWiden&nbsp;(widen_as)](#exprwiden-widen_as) &ensp;
 [ExprWrap&nbsp;(wrap_as)](#exprwrap-wrap_as) &ensp;
-[FieldVal&nbsp;(field_val)](#fieldval-field_val) &ensp;
 [FunParam&nbsp;(param)](#funparam-param) &ensp;
 [Id&nbsp;(id)](#id-id) &ensp;
-[IndexVal&nbsp;(index_val)](#indexval-index_val) &ensp;
 [RecField&nbsp;(field)](#recfield-field) &ensp;
 [StmtAssignment&nbsp;(=)](#stmtassignment-) &ensp;
 [StmtBlock&nbsp;(block)](#stmtblock-block) &ensp;
@@ -43,22 +41,22 @@ Core nodes are the ones that are known to the code generator.
 [StmtIf&nbsp;(if)](#stmtif-if) &ensp;
 [StmtReturn&nbsp;(return)](#stmtreturn-return) &ensp;
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
-[TypeArray&nbsp;(array)](#typearray-array) &ensp;
 [TypeAuto&nbsp;(auto)](#typeauto-auto) &ensp;
 [TypeBase](#typebase) &ensp;
 [TypeFun&nbsp;(sig)](#typefun-sig) &ensp;
 [TypePtr&nbsp;(ptr)](#typeptr-ptr) &ensp;
 [TypeUnion&nbsp;(union)](#typeunion-union) &ensp;
-[ValArray&nbsp;(array_val)](#valarray-array_val) &ensp;
+[TypeVec&nbsp;(vec)](#typevec-vec) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
+[ValCompound&nbsp;(compound_val)](#valcompound-compound_val) &ensp;
 [ValFalse&nbsp;(false)](#valfalse-false) &ensp;
-[ValNum&nbsp;(num)](#valnum-num) &ensp;
-[ValRec&nbsp;(rec_val)](#valrec-rec_val) &ensp;
+[ValNum](#valnum) &ensp;
+[ValPoint&nbsp;(point_val)](#valpoint-point_val) &ensp;
 [ValString](#valstring) &ensp;
 [ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
 [ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
-(52 nodes)
+(50 nodes)
 
 ## Node Overview (Non-Core)
 
@@ -75,7 +73,7 @@ code generation.
 [ExprOffsetof&nbsp;(offset_of)](#exproffsetof-offset_of) &ensp;
 [ExprParen&nbsp;(paren)](#exprparen-paren) &ensp;
 [ExprSizeof&nbsp;(size_of)](#exprsizeof-size_of) &ensp;
-[ExprSrcLoc&nbsp;(src_loc)](#exprsrcloc-src_loc) &ensp;
+[ExprSrcLoc&nbsp;(srcloc)](#exprsrcloc-srcloc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
 [ExprTypeId&nbsp;(typeid_of)](#exprtypeid-typeid_of) &ensp;
 [ExprUnionTag&nbsp;(union_tag)](#expruniontag-union_tag) &ensp;
@@ -92,9 +90,9 @@ code generation.
 [StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
 [StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
 [TypeOf&nbsp;(type_of)](#typeof-type_of) &ensp;
-[TypeSlice&nbsp;(slice)](#typeslice-slice) &ensp;
-[TypeUnionDelta&nbsp;(uniondelta)](#typeuniondelta-uniondelta) &ensp;
-[ValSlice&nbsp;(slice_val)](#valslice-slice_val) &ensp;
+[TypeSpan&nbsp;(span)](#typespan-span) &ensp;
+[TypeUnionDelta&nbsp;(union_delta)](#typeuniondelta-union_delta) &ensp;
+[ValSpan&nbsp;(span_val)](#valspan-span_val) &ensp;
 (30 nodes)
 
 ## Enum Overview
@@ -119,7 +117,9 @@ Refers to a type, variable, constant, function, module by name.
     
 
 Fields:
-* name [STR]: name of the object
+* mod_name [STR]: optional module qualifier
+* base_name [STR]: name of the object
+* enum_name [STR]: optional enum element name
 
 
 ## Type Node Details
@@ -196,16 +196,6 @@ Flags:
 * doc: possibly multi-line comment
 
 
-### TypeArray (array)
-An array of the given type and `size`
-
-    
-
-Fields:
-* size [NODE]: compile-time constant size
-* type [NODE]: type expression
-
-
 ### TypeAuto (auto)
 Placeholder for an unspecified (auto derived) type
 
@@ -237,7 +227,8 @@ Fields:
 
 
 ### TypeOf (type_of)
-Type of the expression
+(Static) type of the expression. Computed at compile-time.
+    The underlying expression is not evaluated.
     
 
 Fields:
@@ -255,8 +246,8 @@ Flags:
 * mut: is mutable
 
 
-### TypeSlice (slice)
-A view/slice of an array with compile-time unknown dimensions
+### TypeSpan (span)
+A span (view) of a vec with compile-time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
@@ -283,13 +274,23 @@ Flags:
 * untagged: union type is untagged
 
 
-### TypeUnionDelta (uniondelta)
+### TypeUnionDelta (union_delta)
 Type resulting from the difference of TypeUnion and a non-empty subset sets of its members
     
 
 Fields:
 * type [NODE]: type expression
 * subtrahend [NODE]: type expression
+
+
+### TypeVec (vec)
+An array of the given type and `size`
+
+    
+
+Fields:
+* size [NODE]: compile-time constant size
+* type [NODE]: type expression
 
 
 ## Statement Node Details
@@ -612,53 +613,6 @@ Flags:
 
 ## Value Node Details
 
-### FieldVal (field_val)
-Part of rec literal
-
-    e.g. `.imag = 5`
-    If field is empty use `first field` or `next field`.
-    
-
-Fields:
-* value_or_undef [NODE]: 
-* init_field [STR] (default ""): initializer field or empty (empty means next field)
-
-Flags:
-* doc: possibly multi-line comment
-
-
-### IndexVal (index_val)
-Part of an array literal
-
-    e.g. `.1 = 5`
-    If index is auto use `0` or `previous index + 1`.
-    
-
-Fields:
-* value_or_undef [NODE]: 
-* init_index [NODE] (default ValAuto): initializer index or empty (empty mean next index)
-
-Flags:
-* doc: possibly multi-line comment
-
-
-### ValArray (array_val)
-An array literal
-
-    `[10]int{.1 = 5, .2 = 6, 77}`
-
-    `expr_size` must be constant or auto
-    
-
-Fields:
-* expr_size [NODE]: expression determining the size or auto
-* type [NODE]: type expression
-* inits_array [LIST] (default list): array initializers and/or comments
-
-Flags:
-* doc: possibly multi-line comment
-
-
 ### ValAuto (auto_val)
 Placeholder for an unspecified (auto derived) value
 
@@ -668,13 +622,29 @@ Placeholder for an unspecified (auto derived) value
 Fields:
 
 
+### ValCompound (compound_val)
+A compound (Rec or Vec) literal
+    e.g.
+    `{[10]int : 1 = 5, 2 = 6, 77}`
+    or
+    `{Point3 : x = 5, y = 8, z = 12}`
+    
+
+Fields:
+* type_or_auto [NODE]: type expression
+* inits [LIST] (default list): rec initializers and/or comments
+
+Flags:
+* doc: possibly multi-line comment
+
+
 ### ValFalse (false)
 Bool constant `false`
 
 Fields:
 
 
-### ValNum (num)
+### ValNum
 Numeric constant (signed int, unsigned int, real
 
     Underscores in `number` are ignored. `number` can be explicitly typed via
@@ -685,33 +655,36 @@ Fields:
 * number [STR]: a number
 
 
-### ValRec (rec_val)
-A record literal
+### ValPoint (point_val)
+Component of a ValCompound
 
-    `E.g.: complex{.imag = 5, .real = 1}`
+    The `point` is optional and `ValAuto` if not used.
+    It indicates which slot of the ValCompound is being initialized.
+    For Recs it represents a field name  for Vecs an index which must be
+    a compile-time constant
     
 
 Fields:
-* type [NODE]: type expression
-* inits_field [LIST]: record initializers and/or comments
+* value_or_undef [NODE]: 
+* point [NODE] (default ValAuto): compound initializer index/field or auto (meaning next pos)
 
 Flags:
 * doc: possibly multi-line comment
 
 
-### ValSlice (slice_val)
-A slice value comprised of a pointer and length
+### ValSpan (span_val)
+A span value comprised of a pointer and length
 
     type and mutability is defined by the pointer
     
 
 Fields:
-* pointer [NODE]: pointer component of slice
+* pointer [NODE]: pointer component of span
 * expr_size [NODE]: expression determining the size or auto
 
 
 ### ValString
-An array value encoded as a string
+An vec_val encoded as a string
 
     type is `[strlen(string)]u8`. `string` may be escaped/raw
     
@@ -750,7 +723,7 @@ Fields:
 Unary expression.
 
 Fields:
-* unary_expr_kind [KIND]: one of: [NOT, MINUS](#expr1-kind)
+* unary_expr_kind [KIND]: one of: [NOT, MINUS, ABS, SQRT](#expr1-kind)
 * expr [NODE]: expression
 
 
@@ -807,8 +780,8 @@ Bit cast.
 
     s32,u32,f32 <-> s32,u32,f32
     s64,u64, f64 <-> s64,u64, f64
-    sint, uint <-> ptr
-
+    sint, uint <-> ptr(x)
+    ptr(a) <-> ptr(b)
     It is also ok to bitcase complex objects like recs
     
 
@@ -838,29 +811,29 @@ Access field in expression representing a record.
     
 
 Fields:
-* container [NODE]: array and slice
-* field [STR]: record field
+* container [NODE]: vec and span
+* field [NODE]: record field
 
 
 ### ExprFront (front)
-Address of the first element of an array or slice
+Address of the first element of an vec or span
 
     Similar to `(& (at container 0))` but will not fail if container has zero size
     
 
 Fields:
-* container [NODE]: array and slice
+* container [NODE]: vec and span
 
 Flags:
 * mut: is mutable
 
 
 ### ExprIndex (at)
-Optionally unchecked indexed access of array or slice
+Optionally unchecked indexed access of vec or span
     
 
 Fields:
-* container [NODE]: array and slice
+* container [NODE]: vec and span
 * expr_index [NODE]: expression determining the index to be accessed
 
 Flags:
@@ -882,13 +855,13 @@ Fields:
 
 
 ### ExprLen (len)
-Length of array or slice
+Length of vec or span
 
     Result type is `uint`.
     
 
 Fields:
-* container [NODE]: array and slice
+* container [NODE]: vec and span
 
 
 ### ExprNarrow (narrow_as)
@@ -912,7 +885,7 @@ Byte offset of field in record types
 
 Fields:
 * type [NODE]: type expression
-* field [STR]: record field
+* field [NODE]: record field
 
 
 ### ExprParen (paren)
@@ -942,10 +915,14 @@ Fields:
 * type [NODE]: type expression
 
 
-### ExprSrcLoc (src_loc)
-Source Location encoded as u32
+### ExprSrcLoc (srcloc)
+Source Location encoded as string
+
+    expr is not evaluated but just used for its x_srcloc
+    
 
 Fields:
+* expr [NODE]: expression
 
 
 ### ExprStmt (expr)
@@ -1124,6 +1101,8 @@ Flags:
 |----|------|
 |NOT       |!|
 |MINUS     |~|
+|ABS       |abs|
+|SQRT      |sqrt|
 
 ### Expr2 Kind
 
