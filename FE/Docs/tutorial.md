@@ -31,7 +31,7 @@ Since small is subjective we have set a complexity budget of about 10kLOC for a 
 * variables are immutable by default
 * no goto, no va-args, no bitfields
 * no cyclic dependencies between modules
-* no cyclic dependencies between types (self-cycles are allowed)
+* limited type inference 
 * all comments are on separate lines (no end of line comments)
 
 As with C, all control flow and all memory allocation is explicit.
