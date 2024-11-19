@@ -206,7 +206,7 @@ Cwerg's type system is similar to C's with the following differences
 * there are almost no implicit conversions
 * pointers cannot be null
 * there is a stronger emphasis on "const/mutability correctness"
-* vecs (arays) do not decay to to pointers
+* vecs (arrays) do not decay to to pointers
 * vecs of different sizes are different types
 * spans can be used where vec-like objects with variable length
   are required
