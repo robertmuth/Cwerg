@@ -11,7 +11,7 @@ It has no dependencies and consists of the following components:
 * **[Frontend FE/](FE/)**: [Overview](FE/Docs/tutorial.md), [Additional Docs](FE/Docs/)
 
   A low-level C-like language with a Python inspired concrete syntax.
-  Still actively development
+  Still under active development
 
 
 * **[Backend BE/](BE/)**: [Overview](BE/README.md),  [Backend IR](BE/Docs/opcodes.md), [Additional Docs](BE/Docs/)
