@@ -3113,7 +3113,10 @@ def CloneNodeRecursively(node, var_map, block_map):
     if NF.SYMBOL_ANNOTATED in clone.FLAGS:
         clone.x_symbol = var_map.get(clone.x_symbol, clone.x_symbol)
     if NF.CONTROL_FLOW in clone.FLAGS:
-        clone.x_taget = var_map.get(clone.x_target, clone.x_target)
+        old_target = clone.x_target
+        new_target = block_map.get(old_target, old_target)
+        clone.x_target = new_target
+
     for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             setattr(clone, f, CloneNodeRecursively(
@@ -3125,9 +3128,21 @@ def CloneNodeRecursively(node, var_map, block_map):
     return clone
 
 
+def NumberOfNodes(node) -> int:
+    n = 0
+
+    def visitor(node: Any, _field: str):
+        nonlocal n
+        n += 1
+
+    VisitAstRecursively(node, visitor)
+    return n
+
 ############################################################
 # Helpers
 ############################################################
+
+
 def AnnotateRoleForMacroInvoke(node, parent=None, field=""):
     """Some nodes can play multiple role. Determine which one.
 
