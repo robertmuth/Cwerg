@@ -525,7 +525,7 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
         body = _ParseStatementList(inp, 0)
         return cwast.ExprStmt(body, x_srcloc=tk.srcloc)
     else:
-        assert False, f"{tk}"
+        assert False, f"unexpected keyword {tk}"
 
 
 def _PParseStr(_inp: Lexer, tk: TK, _precedence) -> Any:
