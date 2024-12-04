@@ -40,7 +40,10 @@ def _DecorateNode(node_name, node):
         out += ["<span class=value title='",
                 str(node.x_value), "'>", _CircledLetterEntity("V"), "</span>"]
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
-        out += [_CircledLetterEntity("C")]
+        targets = [f"{node.x_target}"]
+
+        out += ["<span class=problems title='",
+                "\n".join(targets), "'>", _CircledLetterEntity("C"), "</span>"]
     if problems:
         out += ["<span class=problems title='",
                 "\n".join(problems), "'>", _CircledLetterEntity("X"), "</span>"]
