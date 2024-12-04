@@ -1216,7 +1216,7 @@ def main() -> int:
             canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, id_gen, tc)
-
+            canonicalize.FunCopyPropagation(fun)
     eliminated_nodes.add(cwast.StmtCompoundAssignment)
     eliminated_nodes.add(cwast.StmtCond)
     eliminated_nodes.add(cwast.Case)
