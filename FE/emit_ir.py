@@ -168,7 +168,7 @@ def _EmitFunctionHeader(name, kind, ct: cwast.CanonType):
 
 
 def _EmitFunctionProlog(fun: cwast.DefFun,
-                        id_gen: identifier.IdGen):
+                        id_gen: identifier.IdGenIR):
     print(f".bbl {id_gen.NewName('entry')}")
     for p in fun.params:
         # this uniquifies names
@@ -1217,7 +1217,7 @@ def main() -> int:
             canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, id_gen, tc)
-            optimize.FunCopyPropagation(fun)
+            optimize.FunOptimize(fun, id_gen)
     eliminated_nodes.add(cwast.StmtCompoundAssignment)
     eliminated_nodes.add(cwast.StmtCond)
     eliminated_nodes.add(cwast.Case)
