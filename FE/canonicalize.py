@@ -360,53 +360,6 @@ def FunCanonicalizeRemoveStmtCond(fun: cwast.DefFun):
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def _IsConstantSymbol(sym) -> bool:
-    if isinstance(sym, cwast.DefFun):
-        return True
-    elif isinstance(sym,  cwast.FunParam):
-        return True
-    elif isinstance(sym, (cwast.DefVar, cwast.DefGlobal)):
-        return not sym.mut
-    else:
-        assert False, f"{sym}"
-
-
-def FunCopyPropagation(fun: cwast.DefFun):
-    """ """
-    replacements: dict[Any, Any] = {}
-
-    def visit(node: Any, _field: str):
-        nonlocal replacements
-        if not isinstance(node, cwast.DefVar) or node.mut or not isinstance(node.initial_or_undef_or_auto, cwast.Id):
-            return None
-        id_node: cwast.Id = node.initial_or_undef_or_auto
-        sym = id_node.x_symbol
-        if not _IsConstantSymbol(sym):
-            return None
-        if isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and node.ref:
-            if not sym.ref:
-                return None
-
-        replacements[node] = sym
-        # print ("@@@@@@@@@@", node)
-
-    cwast.VisitAstRecursivelyPost(fun, visit)
-
-    def update(node, _field):
-        nonlocal replacements
-
-        if isinstance(node, cwast.Id):
-            r = replacements.get(node.x_symbol)
-            while r in replacements:
-                r = replacements.get(r)
-            if r is not None:
-                node.base_name = r.name
-                node.x_symbol = r
-                #print(f">>>>>>>> {node.FullName()} -> {r.name}")
-                # assert False
-    cwast.VisitAstRecursivelyPost(fun, update)
-
-
 def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     """Simplify If-statements where the conditional could be evaluated
 
@@ -565,7 +518,7 @@ def IsSameTypeExceptMut(src: cwast.CanonType, dst: cwast.CanonType) -> bool:
 def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
-    def visitor(node, _):
+    def visitor(node: Any, _):
         nonlocal tc, uint_type
 
         if isinstance(node, cwast.ValPoint):
@@ -615,7 +568,7 @@ def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpu
 
 
 def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
-    def make_cmp(cmp: cwast.Expr2, union, field):
+    def make_cmp(cmp: cwast.Expr2, union: Any, field: str):
         """
         (== tagged_union_val member_val)
 

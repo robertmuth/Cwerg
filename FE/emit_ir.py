@@ -28,6 +28,7 @@ from FE import identifier
 from FE import pp_html
 from FE import mod_pool
 from FE import dead_code
+from FE import optimize
 
 logger = logging.getLogger(__name__)
 
@@ -1216,7 +1217,7 @@ def main() -> int:
             canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, id_gen, tc)
-            canonicalize.FunCopyPropagation(fun)
+            optimize.FunCopyPropagation(fun)
     eliminated_nodes.add(cwast.StmtCompoundAssignment)
     eliminated_nodes.add(cwast.StmtCond)
     eliminated_nodes.add(cwast.Case)
@@ -1253,7 +1254,7 @@ def main() -> int:
     # for mod in mod_topo_order:
     #    print (f"# {mod.x_modname}")
 
-    sig_names: list[str] = set()
+    sig_names: set[str] = set()
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):

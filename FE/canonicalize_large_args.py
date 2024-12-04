@@ -166,7 +166,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                        mut=True, ref=True,
                                        x_srcloc=call.x_srcloc)
                 name = cwast.Id.Make(new_def.name, x_srcloc=call.x_srcloc,
-                                x_type=old_sig.result_type(), x_symbol=new_def)
+                                     x_type=old_sig.result_type(), x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.parameter_types()[-1]))
                 typify.UpdateNodeType(call, tc.get_void_canon_type())
