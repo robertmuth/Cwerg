@@ -457,30 +457,23 @@ def _TypifyId(node: cwast.Id, tc: type_corpus.TypeCorpus,
     # this case is why we need the sym_tab
     def_node = node.x_symbol
     assert cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS or cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS
-    # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
-    if isinstance(def_node, cwast.FunParam):
-        ct = def_node.x_type
-    elif isinstance(def_node, cwast.DefVar):
-        ct = def_node.x_type
+    ct = def_node.x_type
+    if isinstance(def_node, cwast.DefVar):
         if ct == cwast.NO_TYPE:
             _TypifyStatement(def_node, tc, target_type, ctx)
             ct = def_node.x_type
-    elif isinstance(def_node, cwast.DefRec):
-        ct = def_node.x_type
     elif isinstance(def_node, (cwast.DefType, cwast.DefFun, cwast.DefEnum, cwast.DefGlobal)):
-        ct = def_node.x_type
         if ct == cwast.NO_TYPE:
             _TypifyTopLevel(def_node, tc, ctx)
             ct = def_node.x_type
     elif isinstance(def_node, cwast.EnumVal):
-        ct = def_node.x_type
         # TODO: this assert can happen if we use an enum value at the top level
         #       before the Enum has been defined.
         #       What needs to happen is to typify the whole Enum which would require a
         #       some back reference from the EnumVal to the DefEnum
         assert ct != cwast.NO_TYPE
     else:
-        assert False,  f"{def_node}"
+        assert isinstance(def_node, (cwast.FunParam,  cwast.DefRec))
     assert ct != cwast.NO_TYPE
     return AnnotateNodeType(node, ct)
 
@@ -1121,21 +1114,24 @@ def _CheckStmtIfStmtCond(node, _):
 
 def _CheckDefVarDefGlobal(node, _):
     initial = node.initial_or_undef_or_auto
+    ct = node.type_or_auto.x_type
+
     if not isinstance(initial, cwast.ValUndef):
-        ct = node.type_or_auto.x_type
         _CheckTypeCompatibleForAssignment(
             node, initial.x_type, ct, type_corpus.is_mutable_array(
                 initial),
             initial.x_srcloc)
+    _CheckTypeSame(node, node.x_type, ct)
 
 
 def _CheckDefVarDefGlobalStrict(node, _):
     initial = node.initial_or_undef_or_auto
+    ct = node.type_or_auto.x_type
     if not isinstance(initial, cwast.ValUndef):
         ct = node.type_or_auto.x_type
         _CheckTypeSameExceptMut(
             node, initial.x_type, ct, initial.x_srcloc)
-
+    _CheckTypeSame(node, node.x_type, ct)
 
 def _CheckNothing(_, _2):
     pass
