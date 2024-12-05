@@ -59,12 +59,13 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
         assert new_sig.result_type().is_void()
         assert len(new_sig.parameter_types()) == 1 + \
             len(old_sig.parameter_types())
+        sl = fun.x_srcloc
         result_type = cwast.TypePtr(
-            fun.result, mut=True, x_srcloc=fun.x_srcloc, x_type=new_sig.parameter_types()[-1])
+            fun.result, mut=True, x_srcloc=sl, x_type=new_sig.parameter_types()[-1])
         result_param = cwast.FunParam(id_gen.NewName(
-            "result"), result_type, x_srcloc=fun.x_srcloc, res_ref=True)
+            "result"), result_type, x_srcloc=sl, x_type=result_type.x_type, res_ref=True)
         fun.params.append(result_param)
-        fun.result = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=fun.x_srcloc,
+        fun.result = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=sl,
                                     x_type=tc.get_void_canon_type())
     changing_params = {}
 

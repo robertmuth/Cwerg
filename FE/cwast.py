@@ -1244,7 +1244,7 @@ class FunParam:
     """
     ALIAS = "param"
     GROUP = GROUP.Type
-    FLAGS = NF.LOCAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     #
     name: str      # empty str means no var specified (fun proto type)
     type: NODES_TYPES_T
@@ -1254,6 +1254,7 @@ class FunParam:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
+    x_type: CanonType = NO_TYPE
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}: {self.type}"
