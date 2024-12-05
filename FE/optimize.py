@@ -31,7 +31,6 @@ def FunCopyPropagation(fun: cwast.DefFun):
                 return None
 
         replacements[node] = sym
-        # print ("@@@@@@@@@@", node)
 
     cwast.VisitAstRecursivelyPost(fun, visit)
 
@@ -45,8 +44,8 @@ def FunCopyPropagation(fun: cwast.DefFun):
             if r is not None:
                 node.base_name = r.name
                 node.x_symbol = r
-                # print(f">>>>>>>> {node.FullName()} -> {r.name}")
-                # assert False
+                node.x_type = r.x_type
+                # print(f">>>>>>>> {node.FullName()} {node.x_type}  <- {r.name} {r.x_srcloc}")
     cwast.VisitAstRecursivelyPost(fun, update)
 
 
@@ -63,10 +62,12 @@ def MakeExprStmtForCall(call: cwast.ExprCall, id_gen: identifier.IdGen) -> cwast
     var_map = {}
     for a, p in zip(call.args, fun_def.params):
         sl = a.x_srcloc
+        at = cwast.TypeAuto(x_srcloc=sl, x_type=p.type.x_type)
         t = cwast.DefVar(id_gen.NewName("inl_arg"),
-                         cwast.TypeAuto(x_srcloc=sl, x_type=p.type.x_type),
+                         at,
                          a,
-                         x_srcloc=sl)
+                         x_srcloc=sl,
+                         x_type=at.x_type)
         out.body.append(t)
         var_map[p] = t
     block_map = {fun_def: out}
@@ -78,34 +79,47 @@ def MakeExprStmtForCall(call: cwast.ExprCall, id_gen: identifier.IdGen) -> cwast
         if isinstance(c, cwast.StmtReturn):
             assert c.x_target is out
         out.body.append(c)
-
+    # pp_sexpr.PrettyPrint(out, sys.stdout)
     return out
 
 
-_INLINE_NODE_CUT_OFF = 5
+_INLINE_NODE_CUT_OFF = 10
+
 
 def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
     def replacer(call: Any, parent: Any, field: str):
         if not isinstance(call, cwast.ExprCall):
-            return
+            return None
         fun = call.callee
         if not isinstance(fun, cwast.Id):
-            return
+            return None
         fun_def = fun.x_symbol
         if not isinstance(fun_def, cwast.DefFun):
-            return
+            return None
         if fun_def.extern:
-            return
+            return None
         n = 0
         for s in fun_def.body:
             n += cwast.NumberOfNodes(s)
         if n > _INLINE_NODE_CUT_OFF:
-            return
-        # print ("@@@@@@@@ ", call, "    ->     ", fun_def)
+            return None
+        # print("@@@@@@@@ ", call, call.x_srcloc, "    ->     ", fun_def)
         return MakeExprStmtForCall(call, id_gen)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+
+
+def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
+    def replacer(node: Any, parent: Any, field: str):
+        if not isinstance(node, cwast.ExprStmt):
+            return None
+        if len(node.body) != 1 or not isinstance(node.body[0], cwast.StmtReturn):
+            return None
+        # assert False, f"{node.body}"
+        return node.body[0].expr_ret
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
 def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):
     FunInlineSmallFuns(fun, id_gen)
-    # FunCopyPropagation(fun)
+    FunCopyPropagation(fun)
+    FunRemoveSimpleExprStmts(fun)
