@@ -279,7 +279,8 @@ def _TypifyDefGlobalOrDefVar(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(
             node.type_or_auto, tc, cwast.NO_TYPE, ctx)
         if not isinstance(initial, cwast.ValUndef):
-            ct = _TypifyNodeRecursively(initial, tc, ct, ctx)
+            _TypifyNodeRecursively(initial, tc, ct, ctx)
+    AnnotateNodeType(node, ct)
 
 
 def _TypifyTypeFunOrDefFun(node, tc: type_corpus.TypeCorpus,
@@ -335,27 +336,51 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.TypeOf):
         ct = _TypifyNodeRecursively(node.expr, tc,  cwast.NO_TYPE, ctx)
         return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.DefType):
-        ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        if node.wrapped:
-            ct = tc.insert_wrapped_type(ct)
-        return AnnotateNodeType(node, ct)
-    elif isinstance(node, cwast.DefFun):
-        # note, this does not recurse into the function body
-        return _TypifyTypeFunOrDefFun(node, tc, ctx)
     else:
         assert False, f"{node}"
         return cwast.NO_TYPE
 
-# Note tt is used by return statements
+
+def _TypifyTopLevel(node, tc: type_corpus.TypeCorpus,
+                    ctx: _TypeContext):
+    if isinstance(node, cwast.Import):
+        return
+    elif isinstance(node, cwast.StmtStaticAssert):
+        _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
+        return
+
+    if node.x_type != cwast.NO_TYPE:
+        return
+
+    if isinstance(node, cwast.DefGlobal):
+        _TypifyDefGlobalOrDefVar(node, tc, ctx)
+    elif isinstance(node, cwast.DefType):
+        ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
+        if node.wrapped:
+            ct = tc.insert_wrapped_type(ct)
+        AnnotateNodeType(node, ct)
+    elif isinstance(node, cwast.DefFun):
+        # note, this does not recurse into the function body
+        _TypifyTypeFunOrDefFun(node, tc, ctx)
+    elif isinstance(node, cwast.DefEnum):
+        ct = tc.insert_enum_type(f"{ctx.mod_name}/{node.name}", node)
+        for f in node.items:
+            _TypifyNodeRecursively(f, tc, ct, ctx)
+        AnnotateNodeType(node, ct)
+
+    else:
+        assert False, f"unexpected Node {node}"
+
+
 def _TypifyStmtSeq(body: list[Any], tc: type_corpus.TypeCorpus, tt: cwast.CanonType, ctx: _TypeContext):
     for c in body:
-        _TypifyNodeRecursively(c, tc, tt, ctx)
+        _TypifyStatement(c, tc, tt, ctx)
 
 
-def _TypifyUntypedNodeRecursively(node, tc: type_corpus.TypeCorpus,
-                                  tt: cwast.CanonType,
-                                  ctx: _TypeContext):
+def _TypifyStatement(node, tc: type_corpus.TypeCorpus,
+                     tt: cwast.CanonType,
+                     ctx: _TypeContext):
+    # tt is used by cwast.StmtReturn
     if isinstance(node, cwast.StmtReturn):
         _TypifyNodeRecursively(node.expr_ret, tc, tt, ctx)
     elif isinstance(node, cwast.StmtIf):
@@ -371,22 +396,16 @@ def _TypifyUntypedNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.StmtBlock):
         _TypifyStmtSeq(node.body, tc, tt, ctx)
     elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue,
-                           cwast.StmtTrap, cwast.Import)):
+                           cwast.StmtTrap)):
         pass
     elif isinstance(node, cwast.StmtAssignment):
-        ct = _TypifyNodeRecursively(
-            node.lhs, tc, cwast.NO_TYPE, ctx)
+        ct = _TypifyNodeRecursively(node.lhs, tc, cwast.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr_rhs, tc, ct, ctx)
     elif isinstance(node, cwast.StmtCompoundAssignment):
-        ct = _TypifyNodeRecursively(
-            node.lhs, tc, cwast.NO_TYPE, ctx)
+        ct = _TypifyNodeRecursively(node.lhs, tc, cwast.NO_TYPE, ctx)
         _TypifyNodeRecursively(node.expr_rhs, tc, ct, ctx)
     elif isinstance(node, cwast.DefVar):
         _TypifyDefGlobalOrDefVar(node, tc, ctx)
-    elif isinstance(node, cwast.DefGlobal):
-        _TypifyDefGlobalOrDefVar(node, tc, ctx)
-    elif isinstance(node, (cwast.StmtStaticAssert)):
-        _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
     elif isinstance(node, cwast.StmtExpr):
         _TypifyNodeRecursively(node.expr, tc, cwast.NO_TYPE, ctx)
     elif isinstance(node, cwast.StmtDefer):
@@ -432,6 +451,40 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
     return AnnotateNodeType(node, ct)
 
 
+def _TypifyId(node: cwast.Id, tc: type_corpus.TypeCorpus,
+              target_type: cwast.CanonType,
+              ctx: _TypeContext) -> cwast.CanonType:
+    # this case is why we need the sym_tab
+    def_node = node.x_symbol
+    assert cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS or cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS
+    # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
+    if isinstance(def_node, cwast.FunParam):
+        ct = def_node.x_type
+    elif isinstance(def_node, cwast.DefVar):
+        ct = def_node.x_type
+        if ct == cwast.NO_TYPE:
+            _TypifyStatement(def_node, tc, target_type, ctx)
+            ct = def_node.x_type
+    elif isinstance(def_node, cwast.DefRec):
+        ct = def_node.x_type
+    elif isinstance(def_node, (cwast.DefType, cwast.DefFun, cwast.DefEnum, cwast.DefGlobal)):
+        ct = def_node.x_type
+        if ct == cwast.NO_TYPE:
+            _TypifyTopLevel(def_node, tc, ctx)
+            ct = def_node.x_type
+    elif isinstance(def_node, cwast.EnumVal):
+        ct = def_node.x_type
+        # TODO: this assert can happen if we use an enum value at the top level
+        #       before the Enum has been defined.
+        #       What needs to happen is to typify the whole Enum which would require a
+        #       some back reference from the EnumVal to the DefEnum
+        assert ct != cwast.NO_TYPE
+    else:
+        assert False,  f"{def_node}"
+    assert ct != cwast.NO_TYPE
+    return AnnotateNodeType(node, ct)
+
+
 def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                            target_type: cwast.CanonType,
                            ctx: _TypeContext) -> cwast.CanonType:
@@ -439,9 +492,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     extra = "" if target_type == cwast.NO_TYPE else f"[{target_type.name}]"
     logger.debug("TYPIFYING%s %s", extra, node)
 
-    if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:
-        _TypifyUntypedNodeRecursively(node, tc, target_type, ctx)
-        return cwast.NO_TYPE
+    assert cwast.NF.TYPE_ANNOTATED in node.FLAGS, f"unexpected node {node}"
 
     ct = node.x_type
     if ct is not cwast.NO_TYPE:
@@ -453,21 +504,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return _TypifyUnevaluableNodeRecursively(node, tc, target_type, ctx)
 
     if isinstance(node, cwast.Id):
-        # this case is why we need the sym_tab
-        def_node = node.x_symbol
-        assert cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS or cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS
-        # assert isinstance(def_node, cwast.DefType), f"unexpected node {def_node}"
-        _TypifyNodeRecursively(def_node, tc, target_type, ctx)
-        if isinstance(def_node, (cwast.DefType, cwast.DefFun, cwast.DefRec, cwast.EnumVal,
-                                 cwast.DefEnum)):
-            ct = def_node.x_type
-        elif isinstance(def_node, cwast.FunParam):
-            ct = def_node.type.x_type
-        else:
-            assert isinstance(
-                def_node, (cwast.DefVar, cwast.DefGlobal, cwast.FunParam)), f"{def_node}"
-            ct = def_node.type_or_auto.x_type
-        return AnnotateNodeType(node, ct)
+        return _TypifyId(node, tc, target_type, ctx)
     elif isinstance(node, cwast.EnumVal):
         if isinstance(node.value_or_auto, cwast.ValAuto):
             AnnotateNodeType(node.value_or_auto, target_type)
@@ -475,11 +512,6 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             ct = _TypifyNodeRecursively(
                 node.value_or_auto, tc, target_type, ctx)
         return AnnotateNodeType(node, target_type)
-    elif isinstance(node, cwast.DefEnum):
-        ct = tc.insert_enum_type(f"{ctx.mod_name}/{node.name}", node)
-        for f in node.items:
-            _TypifyNodeRecursively(f, tc, ct, ctx)
-        return AnnotateNodeType(node, ct)
     elif isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
         return AnnotateNodeType(node, tc.get_bool_canon_type())
     elif isinstance(node, cwast.ValVoid):
@@ -583,8 +615,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         _TypifyNodeRecursively(node.expr_f, tc, ct, ctx)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprStmt):
-        for c in node.body:
-            _TypifyNodeRecursively(c, tc, target_type, ctx)
+        _TypifyStmtSeq(node.body, tc, target_type, ctx)
         if target_type == cwast.NO_TYPE:
             target_type = _GetExprStmtType(node)
         return AnnotateNodeType(node, target_type)
@@ -1278,9 +1309,11 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
     for mod in mod_topo_order:
         ctx = _TypeContext(mod.x_modname, poly_map)
         for node in mod.body_mod:
-            # Note: _TypifyNodeRecursivel() does NOT recurse into function bodies
-            ct = _TypifyNodeRecursively(node, tc, cwast.NO_TYPE, ctx)
+            if not isinstance(node, cwast.DefRec):
+                # we already dealt with DefRecs
+                _TypifyTopLevel(node, tc, ctx)
             if isinstance(node, cwast.DefFun) and node.is_polymorphic():
+                ct = node.x_type
                 assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
                 poly_map.Register(node)
     # now typify function bodies
@@ -1289,7 +1322,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 for c in node.body:
-                    _TypifyUntypedNodeRecursively(
+                    _TypifyStatement(
                         c, tc, node.result.x_type, ctx)
 
 

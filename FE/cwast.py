@@ -2607,7 +2607,7 @@ class DefVar:
     """
     ALIAS = "let"
     GROUP = GROUP.Statement
-    FLAGS = NF.LOCAL_SYM_DEF
+    FLAGS =  NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     #
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
@@ -2618,6 +2618,7 @@ class DefVar:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
+    x_type: CanonType = NO_TYPE
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
@@ -2633,7 +2634,7 @@ class DefGlobal:
     """
     ALIAS = "global"
     GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     name: str
     type_or_auto: NODES_TYPES_OR_AUTO_T
@@ -2646,6 +2647,7 @@ class DefGlobal:
     doc: str = ""
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
+    x_type: CanonType = NO_TYPE
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"

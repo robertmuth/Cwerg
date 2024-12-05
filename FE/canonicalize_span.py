@@ -135,12 +135,12 @@ def ReplaceSpans(node):
                                        x_srcloc=sl, x_type=pointer_field.x_type)
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
-
             def_rec = node.x_type.replacement_type
             if def_rec is not None:
                 if isinstance(node, (cwast.TypeAuto, cwast.DefType, cwast.TypePtr,
                                      cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
-                                     cwast.FunParam, cwast.RecField, cwast.ExprField,
+                                     cwast.FunParam, cwast.DefVar, cwast.DefGlobal,
+                                     cwast.RecField, cwast.ExprField,
                                      cwast.Expr3, cwast.ExprDeref, cwast.ExprNarrow,
                                      cwast.ExprAddrOf, cwast.ExprCall,
                                      cwast.ValAuto, cwast.TypeVec,

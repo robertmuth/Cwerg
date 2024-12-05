@@ -139,7 +139,8 @@ class GlobalConstantPool:
                                    cwast.TypeAuto(
             x_srcloc=node.x_srcloc, x_type=node.x_type), node,
             pub=True,
-            x_srcloc=node.x_srcloc)
+            x_srcloc=node.x_srcloc,
+            x_type=node.x_type)
         self._all_globals.append(def_node)
         return def_node
 

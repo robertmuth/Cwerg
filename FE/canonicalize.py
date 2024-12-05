@@ -140,28 +140,29 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
     type inference, so instead we use this hardcoded rewrite"""
     def replacer(node, _parent, _field):
         if isinstance(node, cwast.Expr3):
-            srcloc = node.x_srcloc
+            sl = node.x_srcloc
             name_t = id_gen.NewName("op_t")
+            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
             def_t = cwast.DefVar(name_t,
-                                 cwast.TypeAuto(
-                                     x_srcloc=srcloc, x_type=node.x_type), node.expr_t,
-                                 x_srcloc=srcloc)
+                                 at, node.expr_t,
+                                 x_srcloc=sl, x_type=node.x_type)
             name_f = id_gen.NewName("op_f")
-            def_f = cwast.DefVar(name_f, cwast.TypeAuto(x_type=node.x_type, x_srcloc=srcloc),
-                                 node.expr_f, x_srcloc=srcloc)
+            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
+            def_f = cwast.DefVar(name_f, at,
+                                 node.expr_f, x_srcloc=sl, x_type=node.x_type)
 
-            expr = cwast.ExprStmt([], x_srcloc=srcloc,
+            expr = cwast.ExprStmt([], x_srcloc=sl,
                                   x_type=node.x_type, x_value=node.x_value)
             expr.body = [
                 def_t,
                 def_f,
                 cwast.StmtIf(node.cond, [
                     cwast.StmtReturn(_IdNodeFromDef(
-                        def_t, srcloc), x_srcloc=srcloc, x_target=expr)
+                        def_t, sl), x_srcloc=sl, x_target=expr)
                 ], [
                     cwast.StmtReturn(_IdNodeFromDef(
-                        def_f, srcloc), x_srcloc=srcloc, x_target=expr)
-                ],  x_srcloc=srcloc)
+                        def_f, sl), x_srcloc=sl, x_target=expr)
+                ],  x_srcloc=sl)
 
             ]
             return expr
@@ -197,12 +198,13 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], id_gen: iden
     elif isinstance(lhs, cwast.ExprDeref):
         if isinstance(lhs.expr, cwast.Id):
             return lhs
+        sl = lhs.x_srcloc
+        at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.expr.x_type)
         def_node = cwast.DefVar(id_gen.NewName("assign"),
-                                cwast.TypeAuto(x_srcloc=lhs.x_srcloc,
-                                               x_type=lhs.expr.x_type),
-                                lhs.expr, x_srcloc=lhs.x_srcloc)
+                                at,
+                                lhs.expr, x_srcloc=sl, x_type=at.x_type)
         stmts.append(def_node)
-        lhs.expr = _IdNodeFromDef(def_node, lhs.x_srcloc)
+        lhs.expr = _IdNodeFromDef(def_node, sl)
         return lhs
     elif isinstance(lhs, cwast.ExprField):
         lhs.container = MakeNodeCopyableWithoutRiskOfSideEffects(
@@ -213,10 +215,11 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], id_gen: iden
         # much earlier to a cwast.ExprDeref
         if is_lhs:
             assert False
+        sl = lhs.x_srcloc
+        at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.expr.x_type)
         def_node = cwast.DefVar(id_gen.NewName("assign"),
-                                cwast.TypeAuto(x_srcloc=lhs.x_srcloc,
-                                               x_type=lhs.x_type),
-                                lhs, x_srcloc=lhs.x_srcloc)
+                                at,
+                                lhs, x_srcloc=sl, x_type=at.x_type)
         stmts.append(def_node)
         return _IdNodeFromDef(def_node, lhs.x_srcloc)
 
@@ -245,10 +248,11 @@ def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
         if isinstance(node, cwast.ExprDeref):
             if isinstance(node.expr, cwast.Id):
                 return None
+            sl = node.x_srcloc
+            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.expr.x_type)
             def_node = cwast.DefVar(id_gen.NewName("assign"),
-                                    cwast.TypeAuto(x_srcloc=node.x_srcloc,
-                                                   x_type=node.expr.x_type),
-                                    node.expr, x_srcloc=node.x_srcloc)
+                                    at,
+                                    node.expr, x_srcloc=sl, x_type=at.x_type)
             node.expr = _IdNodeFromDef(def_node, node.x_srcloc)
             return cwast.EphemeralList([def_node, node])
         elif isinstance(node, cwast.ExprField):
@@ -677,13 +681,13 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
             extra = []
             for i in rhs.inits:
                 if not _IsSimpleInitializer(i.value_or_undef):
-                    srcloc = i.x_srcloc
+                    sl = i.x_srcloc
+                    at = cwast.TypeAuto(x_srcloc=sl, x_type=i.x_type)
                     def_tmp = cwast.DefVar(id_gen.NewName("val_array_tmp"),
-                                           cwast.TypeAuto(
-                        x_srcloc=srcloc, x_type=i.x_type), i.value_or_undef,
-                        x_srcloc=srcloc)
+                                           at, i.value_or_undef,
+                                           x_srcloc=sl, x_type=at.x_type)
                     extra.append(def_tmp)
-                    i.value_or_undef = _IdNodeFromDef(def_tmp, srcloc)
+                    i.value_or_undef = _IdNodeFromDef(def_tmp, sl)
                     # assert False, f"{i.value_or_undef} {i.x_type}"
             if not extra:
                 return None

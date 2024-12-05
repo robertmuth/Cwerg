@@ -138,6 +138,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
     """
     def replacer(call, _parent, _field) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
+            sl = call.x_srcloc
             old_sig: cwast.CanonType = call.callee.x_type
             new_sig: cwast.CanonType = fun_sigs_with_large_args[old_sig]
             typify.UpdateNodeType(call.callee, new_sig)
@@ -148,31 +149,34 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             for n, (old, new) in enumerate(zip(old_sig.parameter_types(),
                                                new_sig.parameter_types())):
                 if old != new:
+                    at = cwast.TypeAuto(x_srcloc=sl, x_type=old)
                     new_def = cwast.DefVar(id_gen.NewName(f"arg{n}"),
-                                           cwast.TypeAuto(
-                                               x_srcloc=call.x_srcloc, x_type=old),
+                                           at,
                                            call.args[n], ref=True,
-                                           x_srcloc=call.x_srcloc)
+                                           x_srcloc=sl,
+                                           x_type=old)
                     expr_body.append(new_def)
-                    name = cwast.Id.Make(new_def.name,
-                                         x_srcloc=call.x_srcloc, x_type=old, x_symbol=new_def)
+                    name = cwast.Id.Make(
+                        new_def.name, x_srcloc=sl, x_type=old, x_symbol=new_def)
                     call.args[n] = cwast.ExprAddrOf(
-                        name, x_srcloc=call.x_srcloc, x_type=new)
+                        name, x_srcloc=sl, x_type=new)
             if len(old_sig.parameter_types()) != len(new_sig.parameter_types()):
                 # the result is not a argument
+                at = cwast.TypeAuto(x_srcloc=sl, x_type=old_sig.result_type())
                 new_def = cwast.DefVar(id_gen.NewName("result"),
-                                       cwast.TypeAuto(x_srcloc=call.x_srcloc,
-                                                      x_type=old_sig.result_type()),
-                                       cwast.ValUndef(x_srcloc=call.x_srcloc),
+                                       at,
+                                       cwast.ValUndef(x_srcloc=sl),
                                        mut=True, ref=True,
-                                       x_srcloc=call.x_srcloc)
-                name = cwast.Id.Make(new_def.name, x_srcloc=call.x_srcloc,
+                                       x_srcloc=sl,
+                                       x_type=at.x_type)
+
+                name = cwast.Id.Make(new_def.name, x_srcloc=sl,
                                      x_type=old_sig.result_type(), x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.parameter_types()[-1]))
                 typify.UpdateNodeType(call, tc.get_void_canon_type())
                 expr_body.append(new_def)
-                expr_body.append(cwast.StmtExpr(call, x_srcloc=call.x_srcloc))
+                expr_body.append(cwast.StmtExpr(call, x_srcloc=sl))
                 expr_body.append(cwast.StmtReturn(
                     expr_ret=name, x_srcloc=call.x_srcloc, x_target=expr))
             else:
