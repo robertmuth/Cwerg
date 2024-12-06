@@ -10,7 +10,7 @@ import logging
 from typing import Any, Tuple
 
 from FE import cwast
-
+from FE import identifier
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 class MacroContext:
     """TBD"""
 
-    def __init__(self, no: int):
-        self._no: int = no
+    def __init__(self, id_gen: identifier.IdGen):
+        self._id_gen = id_gen
         # these need to become lists
         self.macro_parameter: dict[str, Tuple[cwast.MacroParam, Any]] = {}
         self.srcloc = None
@@ -33,9 +33,10 @@ class MacroContext:
         pass
 
     def GenUniqueName(self, name: str):
-        assert name.startswith(cwast.MACRO_VAR_PREFIX), f"expected macro id {name}"
-        self._no += 1
-        return f"{name[1:]}${self._no}"
+        # TODO: add
+        assert name.startswith(
+            cwast.MACRO_VAR_PREFIX), f"expected macro id {name}"
+        return self._id_gen.NewName(name[1:])
 
     def RegisterSymbol(self, name, value, check_clash=False):
         if check_clash:
@@ -59,7 +60,8 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
-        assert node.name.startswith(cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
+        assert node.name.startswith(
+            cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)
         # We dont support `FIELD``
         assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
@@ -71,7 +73,8 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
         return cwast.CloneNodeRecursively(arg, {}, {})
     elif isinstance(node, cwast.MacroFor):
-        assert node.name.startswith(cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
+        assert node.name.startswith(
+            cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name_list)
         assert isinstance(arg, cwast.EphemeralList)
         out = []

@@ -1348,7 +1348,8 @@ def main(argv):
     mod_topo_order = mp.ModulesInTopologicalOrder()
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
-    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
+    fun_id_gens = identifier.IdGenCache()
+    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, fun_id_gens)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
@@ -1366,6 +1367,7 @@ if __name__ == "__main__":
     import os
     import pathlib
     from FE import mod_pool
+    from FE import identifier
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.WARN)

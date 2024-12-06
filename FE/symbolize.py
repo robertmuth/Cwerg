@@ -12,6 +12,7 @@ from FE import pp_sexpr
 from FE import macros
 from FE import cwast
 from FE import canonicalize
+from FE import identifier
 
 logger = logging.getLogger(__name__)
 
@@ -344,7 +345,8 @@ def VerifyASTSymbolsRecursively(node):
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
             if node.x_symbol is None:
-                assert field in ("point", "field"), f"unresolved symbol {node} {node.x_srcloc}"
+                assert field in ("point", "field"), f"unresolved symbol {
+                    node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
             assert not node.IsMacroVar(), f"{node}"
@@ -418,7 +420,8 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[
                     node, builtin_syms, must_resolve_all)
 
 
-def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
+def MacroExpansionDecorateASTWithSymbols(
+    mod_topo_order: list[cwast.DefMod], fun_id_gens: identifier.IdGenCache):
     """
     At this point every DefMod has a symtable populated with the global symbols
     and the Imports. All Imports have a valid x_module field.
@@ -440,7 +443,7 @@ def MacroExpansionDecorateASTWithSymbols(mod_topo_order: list[cwast.DefMod]):
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node.name)
-                ctx = macros.MacroContext(1)
+                ctx = macros.MacroContext(fun_id_gens.Get(node))
                 FindAndExpandMacrosRecursively(node, builtin_syms, 0, ctx)
 
     for mod in mod_topo_order:
@@ -579,7 +582,8 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
         if not isinstance(node, cwast.MacroId):
             return None
         name = node.name
-        assert name.startswith(cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
+        assert name.startswith(
+            cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
         t = translation[name]
 
         return cwast.CloneNodeRecursively(t, {}, {})
