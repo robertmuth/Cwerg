@@ -1054,6 +1054,7 @@ def main() -> int:
 
     mod_topo_order = mp.ModulesInTopologicalOrder()
     main_entry_fun: cwast.DefFun = mp.MainEntryFun()
+    fun_id_gens = identifier.IdGenCache()
 
     # keeps track of those node classes which have been eliminated and hence must not
     # occur in the AST anymore
@@ -1110,16 +1111,10 @@ def main() -> int:
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod([], [],
                            x_srcloc=cwast.SRCLOC_GENERATED, x_modname="$generated")
-    id_gen_global = identifier.IdGen()
-    id_gens: dict[cwast.DefFun,  identifier.IdGen] = {}
+    global_id_gen = identifier.IdGen()
 
-    def GetIdGen(fun):
-        assert isinstance(fun, cwast.DefFun)
-        ig = id_gens.get(fun)
-        if ig is None:
-            ig = identifier.IdGen()
-            id_gens[fun] = ig
-        return ig
+
+
 
     # for key, val in fun_sigs_with_large_args.items():
     #    print (key.name, " -> ", val.name)
@@ -1134,7 +1129,7 @@ def main() -> int:
 
             if not isinstance(fun, cwast.DefFun):
                 continue
-            id_gen = GetIdGen(fun)
+            id_gen = fun_id_gens.Get(fun)
             # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
             canonicalize_union.SimplifyTaggedExprNarrow(fun, tc, id_gen)
             canonicalize.FunReplaceExprIs(fun, tc)
@@ -1160,7 +1155,7 @@ def main() -> int:
     SanityCheckMods("after_initial_lowering", args.emit_ir,
                     mod_topo_order, tc, verifier, eliminated_nodes)
 
-    constant_pool = eval.GlobalConstantPool(id_gen_global)
+    constant_pool = eval.GlobalConstantPool(global_id_gen)
 
     logger.info("Legalize 2")
     for mod in mod_topo_order:
@@ -1199,7 +1194,7 @@ def main() -> int:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
                 continue
-            id_gen = GetIdGen(fun)
+            id_gen = fun_id_gens.Get(fun)
             canonicalize_large_args.FunRewriteLargeArgsCallerSide(
                 fun, fun_sigs_with_large_args, tc, id_gen)
             if fun.x_type in fun_sigs_with_large_args:
@@ -1213,7 +1208,7 @@ def main() -> int:
             if not isinstance(fun, cwast.DefFun):
                 continue
 
-            id_gen = GetIdGen(fun)
+            id_gen = fun_id_gens.Get(fun)
             canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, id_gen, tc)
