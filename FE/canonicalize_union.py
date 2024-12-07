@@ -21,8 +21,8 @@ from FE import identifier
 #
 # sum[r64, bool, ...] -> struct {tag u16, union untagged-sum[r64, bool, ... ]}
 ############################################################
-SUM_FIELD_TAG = "tag"
-SUM_FIELD_UNION = "union"
+SUM_FIELD_TAG = cwast.NAME("tag", 0)
+SUM_FIELD_UNION = cwast.NAME("union", 0)
 
 
 def _MakeUnionReplacementStruct(union_type: cwast.CanonType,
@@ -81,7 +81,7 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
-    return cwast.Id.Make(def_rec.ast_node.name, x_symbol=def_rec.ast_node, x_type=def_rec,
+    return cwast.Id(None, def_rec.ast_node.name, None, x_symbol=def_rec.ast_node, x_type=def_rec,
                          x_srcloc=srcloc)
 
 

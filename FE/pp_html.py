@@ -85,6 +85,9 @@ def _RenderRecursivelyHTML(node, out, indent: int):
         elif field_kind is cwast.NFK.STR:
             line.append(
                 " " + str(val.replace("<", "&lt;").replace(">", "&gt;")))
+        elif field_kind is cwast.NFK.NAME:
+            line.append(
+                " " + str(str(val).replace("<", "&lt;").replace(">", "&gt;")))
         elif field_kind is cwast.NFK.KIND:
             line.append(" " + val.name)
         elif field_kind is cwast.NFK.NODE:

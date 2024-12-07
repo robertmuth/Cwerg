@@ -3352,6 +3352,13 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
         if NF.MACRO_BODY_ONLY in node.FLAGS:
             assert isinstance(
                 toplevel_node, DefMacro), f"only allowed in macros: {node}"
+
+        if NF.LOCAL_SYM_DEF in node.FLAGS:
+            assert isinstance(node.name, NAME), f"{node}"
+        if NF.GLOBAL_SYM_DEF in node.FLAGS:
+            if not isinstance(node, DefMod):
+                assert isinstance(node.name, NAME), f"{node}"
+
         if node.GROUP is GROUP.Ephemeral:
             assert isinstance(
                 toplevel_node, DefMacro), f"only allowed in macros: {node}"
@@ -3366,6 +3373,8 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 assert i.IsMacroVar()
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
+            assert isinstance(node.base_name, NAME), f"{
+                                node} {node.x_symbol}"
             # when we synthesize Ids later we do not bother with x_import anymore
             if not pre_symbolize:
                 assert node.x_symbol is not NO_SYMBOL or isinstance(

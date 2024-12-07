@@ -46,7 +46,7 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
         field_type = cwast.TypeAuto(x_srcloc=srcloc, x_type=field_ct)
         fields.append(cwast.RecField(
             field_name, field_type, x_srcloc=srcloc, x_type=field_ct))
-    rec = cwast.DefRec(name, fields, pub=True, x_srcloc=srcloc)
+    rec = cwast.DefRec(cwast.NAME(name, 0), fields, pub=True, x_srcloc=srcloc)
     rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
     typify.AnnotateNodeType(rec, rec_ct)
     tc.finalize_rec_type(rec_ct)
@@ -56,11 +56,11 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id(None, def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
-                         x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
+                    x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
 
 
 def IdNodeFromRecField(recfield: cwast.RecField, srcloc):
-    return cwast.Id.Make(recfield.name, x_srcloc=srcloc, x_type=recfield.x_type,
+    return cwast.Id(None, recfield.name, None, x_srcloc=srcloc, x_type=recfield.x_type,
                          x_symbol=recfield)
 
 

@@ -62,17 +62,27 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
         assert n.name not in names
 
 
+def _FunFixRenamedIdsBestEffort(fun: cwast.DefFun):
+    def visitor(n, _):
+        if isinstance(n, cwast.Id):
+            new_name = n.x_symbol.name
+            n.base_name = n.x_symbol.name
+
+    cwast.VisitAstRecursivelyPost(fun, visitor)
+
+
 def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> str:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
     # : is used for type annotations
-    suffix = ""
+    poly_suffix = ""
     if isinstance(node, (cwast.DefFun)) and node.is_polymorphic():
-        suffix = f"<{node.x_type.parameter_types()[0].name}>"
+        poly_suffix = f"<{node.x_type.parameter_types()[0].name}>"
+    n = node.name
     if is_cdecl:
-        return f"{node.name}{suffix}"
+        return cwast.NAME(f"{n.name}{poly_suffix}", n.seq)
     else:
-        return f"{mod.x_modname}/{node.name}{suffix}"
+        return cwast.NAME(f"{mod.x_modname}/{n.name}{poly_suffix}", n.seq)
 
 
 @enum.unique
@@ -1111,7 +1121,7 @@ def main() -> int:
 
     logger.info("Legalize 1")
     mod_gen = cwast.DefMod([], [],
-                           x_srcloc=cwast.SRCLOC_GENERATED, x_modname="$generated")
+                           x_srcloc=cwast.SRCLOC_GENERATED, x_modname="GeNeRaTeD")
     global_id_gen = identifier.IdGen()
 
     # for key, val in fun_sigs_with_large_args.items():
@@ -1240,12 +1250,12 @@ def main() -> int:
     #   for codegen without having to worry about name clashes
     for mod in mod_topo_order:
         for node in mod.body_mod:
-
-            if isinstance(node, cwast.DefFun):
-                _FunRenameLocalsToAvoidNameClashes(node)
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 node.name = _MangledGlobalName(
                     mod, node, node.cdecl or node == main_entry_fun)
+            if isinstance(node, cwast.DefFun):
+                _FunRenameLocalsToAvoidNameClashes(node)
+                _FunFixRenamedIdsBestEffort(node)
 
     SanityCheckMods("after_name_cleanup", args.emit_ir,
                     mod_topo_order, tc, verifier, eliminated_nodes)
