@@ -204,8 +204,6 @@ clean:
 pp_test:
 	$(PYPY) ./pp.py TestData/*.cw  Lib/*.cw  LangTest/*.cw
 
-cloc:
-	@cloc ${CLOC_FLAGS} --by-file '--match-f=[.](py|cc|h)$$' .
 
 update_concrete_syntax:
 	for f in $(ALL_SOURCES) ; do  \
