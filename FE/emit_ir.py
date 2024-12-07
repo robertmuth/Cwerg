@@ -40,8 +40,8 @@ ZEROS = [b"\0" * i for i in range(128)]
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
-def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
-    names: set[str] = set()
+def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun, id_gen: identifier.IdGen):
+    names: set[cwast.NAME] = set()
     clashes: set[Any] = set()
 
     def visitor(n, _):
@@ -53,13 +53,7 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
                 names.add(n.name)
     cwast.VisitAstRecursivelyPost(fun, visitor)
     for n in clashes:
-        assert "%" not in n.name
-        for i in range(1000000):
-            nn = f"{n.name}%{i+1}"
-            if nn not in names:
-                names.add(nn)
-                n.name = nn
-                break
+        n.name = id_gen.NewName(n.name.name)
 
 
 def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> str:
@@ -70,9 +64,9 @@ def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> str:
     if isinstance(node, (cwast.DefFun)) and node.is_polymorphic():
         suffix = f"<{node.x_type.parameter_types()[0].name}>"
     if is_cdecl:
-        return node.name + suffix
+        return f"{node.name}{suffix}"
     else:
-        return mod.x_modname + "/" + node.name + suffix
+        return f"{mod.x_modname}/{node.name}{suffix}"
 
 
 @enum.unique
@@ -172,7 +166,7 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
     print(f".bbl {id_gen.NewName('entry')}")
     for p in fun.params:
         # this uniquifies names
-        p.name = id_gen.NewName(p.name)
+        p.name = id_gen.NewName(str(p.name))
         reg_types = p.type.x_type.register_types
         if len(reg_types) == 1:
             print(f"{TAB}poparg {p.name}:{reg_types[0]}")
@@ -488,7 +482,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
                 f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
             return res
         elif isinstance(def_node, cwast.FunParam):
-            return node.x_symbol.name
+            return str(node.x_symbol.name)
         elif isinstance(def_node, cwast.DefFun):
             res = id_gen.NewName("funaddr")
             print(
@@ -500,7 +494,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
                 f"{TAB}ld.stk {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
             return res
         else:
-            return node.x_symbol.name
+            return str(node.x_symbol.name)
     elif isinstance(node, cwast.ExprAddrOf):
         return _GetLValueAddress(node.expr_lhs, tc, id_gen)
     elif isinstance(node, cwast.Expr1):
@@ -970,7 +964,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
         elif ct.is_rec():
             if isinstance(node, cwast.ValAuto):
                 return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
-            assert isinstance(node, cwast.ValCompound), f"unexpected value {node}"
+            assert isinstance(
+                node, cwast.ValCompound), f"unexpected value {node}"
             print(f"# record: {ct.name}")
             rel_off = 0
             # note node.x_type may be compatible but not equal to ct
@@ -1113,9 +1108,6 @@ def main() -> int:
                            x_srcloc=cwast.SRCLOC_GENERATED, x_modname="$generated")
     global_id_gen = identifier.IdGen()
 
-
-
-
     # for key, val in fun_sigs_with_large_args.items():
     #    print (key.name, " -> ", val.name)
     for mod in mod_topo_order:
@@ -1236,7 +1228,8 @@ def main() -> int:
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
-                _FunRenameLocalsToAvoidNameClashes(node)
+                id_gen = fun_id_gens.Get(fun)
+                _FunRenameLocalsToAvoidNameClashes(node, id_gen)
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 node.name = _MangledGlobalName(
                     mod, node, node.cdecl or node == main_entry_fun)

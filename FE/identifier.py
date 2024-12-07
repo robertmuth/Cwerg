@@ -1,5 +1,7 @@
 """Id Generator"""
 
+from typing import Any, Tuple, Union
+
 from FE import cwast
 
 
@@ -27,30 +29,28 @@ class IdGenIR:
 
 class IdGen:
     """This is used to generate new names for the AST.
-
-    This should be the only place that introduces "%" into
-    identifier names.
     """
 
     def __init__(self: "IdGen"):
         self._names: dict[str, int] = {}
 
     def RegisterExistingLocals(self, fun: cwast.DefFun):
-
-        def visitor(node, _f):
-            if isinstance(node, cwast.DefVar):
-                assert "%" not in node.name
-                self._names[node.name] = 0
-
+        # TODO: should we take global symbols into account?
+        # one could argue that the names do not matter anymore anyway,
+        # after symbol resolution only x_symbol links matter
+        def visitor(node: Any, _f: str):
+            if isinstance(node, (cwast.FunParam, cwast.DefVar)):
+                n: cwast.NAME = node.name
+                self._names[n.name] = max(n.seq, self._names.get(n.name, 0))
 
         cwast.VisitAstRecursively(fun, visitor)
 
-    def NewName(self, prefix: str) -> str:
-        assert "%" not in prefix
-        no = self._names.get(prefix, -1)
+    def NewName(self, prefix: str) -> cwast.NAME:
+        # TODO: 10 is arbitrary
+        no = self._names.get(prefix, 10)
         self._names[prefix] = no + 1
-        # return cwast.NAME(prefix,  no + 1)
-        return f"{prefix}%{no + 1}"
+        return cwast.NAME(prefix,  no + 1)
+
 
 class IdGenCache:
     def __init__(self: "IdGenCache"):

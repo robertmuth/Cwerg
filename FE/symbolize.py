@@ -53,7 +53,7 @@ class SymTab:
         prev = self._syms.get(name)
         if prev is not None:
             cwast.CompilerError(node.x_srcloc,
-                                f"Duplicate symbol name for {node} previously defined by {prev}")
+                                f"Duplicate symbol name [{name}] for\n {node}\npreviously defined by\n {prev}")
         self._syms[name] = node
 
     def AddTopLevelSym(self, node):
@@ -111,7 +111,8 @@ class SymTab:
                       builtin_syms: "SymTab", must_be_public: bool) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
 
-        name = cwast.GetSymbolName(macro_invoke.name)
+        # We are already in the "right" symtab
+        name = macro_invoke.name.GetSymbolNameWithoutQualifier()
         # TODO: pub check?
         out = self._syms.get(name)
         if not out:
@@ -210,7 +211,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
         assert isinstance(node, cwast.MacroInvoke)
         symtab: SymTab = node.x_import.x_module.x_symtab
         macro = symtab.resolve_macro(
-            node,  builtin_syms,  cwast.IsQualifiedName(node.name))
+            node,  builtin_syms,  node.name.IsQualifiedName())
         if macro is None:
             cwast.CompilerError(
                 node.x_srcloc, f"invocation of unknown macro `{node.name}`")
@@ -421,7 +422,7 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[
 
 
 def MacroExpansionDecorateASTWithSymbols(
-    mod_topo_order: list[cwast.DefMod], fun_id_gens: identifier.IdGenCache):
+        mod_topo_order: list[cwast.DefMod], fun_id_gens: identifier.IdGenCache):
     """
     At this point every DefMod has a symtable populated with the global symbols
     and the Imports. All Imports have a valid x_module field.
@@ -554,21 +555,21 @@ def AreEqualNormalizedModParam(a, b) -> bool:
     return False
 
 
-_GENERIC_DUMMY_MODULE = "GENERIC"
+_GENERIC_DUMMY_MODULE = cwast.NAME("GENERIC", 0)
 
 
 def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
     assert len(mod.params_mod) == len(args)
-    translation: dict[str, Any] = {}
+    translation: dict[cwast.NAME, Any] = {}
     for p, a in zip(mod.params_mod, args):
         sl = p.x_srcloc
         if isinstance(a, cwast.DefFun):
             assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
-            translation[p.name] = cwast.Id.Make(
-                _GENERIC_DUMMY_MODULE + "::" + a.name, x_symbol=a, x_srcloc=sl)
+            translation[p.name] = cwast.Id(
+                _GENERIC_DUMMY_MODULE, a.name, None, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.DefRec, cwast.DefType)):
-            translation[p.name] = cwast.Id.Make(
-                _GENERIC_DUMMY_MODULE + "::" + a.name, x_symbol=a, x_srcloc=sl)
+            translation[p.name] = cwast.Id(
+                _GENERIC_DUMMY_MODULE, a.name, None, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
             translation[p.name] = a
         else:
@@ -582,8 +583,7 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
         if not isinstance(node, cwast.MacroId):
             return None
         name = node.name
-        assert name.startswith(
-            cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
+        assert name.IsMacroVar(), f" non macro name: {node}"
         t = translation[name]
 
         return cwast.CloneNodeRecursively(t, {}, {})

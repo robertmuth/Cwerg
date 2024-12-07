@@ -30,6 +30,42 @@ BUILT_IN_MACROS = set([
 ])
 
 
+@dataclasses.dataclass(eq=True, frozen=True)
+class NAME:
+    name: str
+    seq: int
+
+    @classmethod
+    def FromStr(cls, s: str) -> "NAME":
+        pos = s.find("%")
+        if pos < 0:
+            return cls(s, 0)
+        return cls(s[:pos], int(s[pos+1:]))
+
+    def IsMacroCall(self):
+        return self.name.endswith(MACRO_CALL_SUFFIX)
+
+    def IsMacroVar(self):
+        return self.name.startswith(MACRO_VAR_PREFIX)
+
+    def IsPolymorphic(self):
+        return self.name.endswith(POLYMORPHISM_SUFFIX)
+
+    def GetSymbolNameWithoutQualifier(self) -> NAME:
+        pos = self.name.find(ID_PATH_SEPARATOR)
+        if pos < 0:
+            return self
+        return NAME(self.name[pos + len(ID_PATH_SEPARATOR):], self.seq)
+
+    def IsQualifiedName(self) -> bool:
+        return ID_PATH_SEPARATOR in self.name
+
+    def __str__(self):
+        if self.seq == 0:
+            return self.name
+        return f"{self.name}%{self.seq}"
+
+
 ############################################################
 # Enums
 ############################################################
@@ -360,6 +396,8 @@ class NFK(enum.Enum):
     """Node Field Descriptor Kind"""
     INVALID = 0
     STR = enum.auto()
+    NAME = enum.auto()
+
     ATTR_BOOL = enum.auto()  # usually specified via @XXX
     ATTR_STR = enum.auto()  # usually specified via @XXX=YYY
     KIND = enum.auto()  # some enum
@@ -367,7 +405,7 @@ class NFK(enum.Enum):
     INTERNAL_STR = enum.auto()  # like an ATTR_STR but handled internally
     NODE = enum.auto()
     LIST = enum.auto()
-    STR_LIST = enum.auto()
+    NAME_LIST = enum.auto()
 
 
 @dataclasses.dataclass()
@@ -383,6 +421,10 @@ class NFD:
 
 def NfdStr(name, doc):
     return NFD(NFK.STR, name, doc)
+
+
+def NfdName(name, doc):
+    return NFD(NFK.NAME, name, doc)
 
 
 def NfdAttrBool(name, doc):
@@ -475,10 +517,10 @@ def _EnumValues(enum_class):
 
 ALL_FIELDS = [
     NfdStr("number", "a number"),
-    NfdStr("name", "name of the object"),
-    NfdStr("mod_name", "optional module qualifier"),
-    NfdStr("base_name", "name of the object"),
-    NfdStr("enum_name", "optional enum element name"),
+    NfdName("name", "name of the object"),
+    NfdName("mod_name", "optional module qualifier"),
+    NfdName("base_name", "name of the object"),
+    NfdName("enum_name", "optional enum element name"),
 
     NfdStr("name_list", "name of the object list"),
 
@@ -489,7 +531,7 @@ ALL_FIELDS = [
     NfdStr("target",
            "name of enclosing while/for/block to brach to (empty means nearest)"),
     NfdStr("path", "TBD"),
-    NFD(NFK.STR_LIST, "gen_ids",
+    NFD(NFK.NAME_LIST, "gen_ids",
         "name placeholder ids to be generated at macro instantiation time"),
     #
     NfdAttrBool("pub", "has public visibility"),
@@ -1064,7 +1106,7 @@ class Import:
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE | NF.MODULE_ANNOTATED
     #
-    name: str
+    name: NAME
     path: str
     args_mod: list[NODES_EXPR_T]
     #
@@ -1074,10 +1116,10 @@ class Import:
     x_module: Optional[Any] = None
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} {self.name}"
+        return f"{NODE_NAME(self)} {self.name}  path={self.path}"
 
 
-INVALID_IMPORT = Import("$$INVALID", "", [])
+INVALID_IMPORT = Import(NAME("$$INVALID", 0), "", [])
 
 
 @NodeCommon
@@ -1092,7 +1134,7 @@ class RecField:  #
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
-    name: str
+    name: NAME
     type: NODES_TYPES_T
     #
     doc: str = ""
@@ -1113,7 +1155,7 @@ class DefRec:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
-    name: str
+    name: NAME
     fields: list[NODES_FIELDS_T]
     #
     pub:  bool = False
@@ -1131,20 +1173,12 @@ class DefRec:
 ############################################################
 
 
-def _GetQualifierIfPresent(name: str) -> Optional[str]:
+def _GetQualifierIfPresent(name: str) -> Optional[NAME]:
     tokens = name.split(ID_PATH_SEPARATOR)
     if len(tokens) == 2:
-        return tokens[0]
+        return NAME.FromStr(tokens[0])
     assert 1 == len(tokens)
     return None
-
-
-def GetSymbolName(name: str) -> str:
-    return name.split(ID_PATH_SEPARATOR)[-1]
-
-
-def IsQualifiedName(name: str) -> bool:
-    return ID_PATH_SEPARATOR in name
 
 
 @NodeCommon
@@ -1155,14 +1189,15 @@ class Id:
     Ids may contain a path component indicating which modules they reference.
     If the path component is missing the Id refers to the current module.
 
+    id or mod::id or enum::id or mod::enum:id
     """
     ALIAS = "id"
     GROUP = GROUP.Misc
     FLAGS = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
-    mod_name: Optional[str]
-    base_name: str          # id or mod::id or enum::id or mod::enum:id
-    enum_name: Optional[str]
+    mod_name: Optional[NAME]
+    base_name: NAME
+    enum_name: Optional[NAME]
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -1175,21 +1210,21 @@ class Id:
         return self.x_symbol
 
     def IsMacroCall(self):
-        return self.base_name.endswith(MACRO_CALL_SUFFIX)
+        return self.base_name.IsMacroCall()
 
     def IsMacroVar(self):
-        return self.base_name.startswith(MACRO_VAR_PREFIX)
+        return self.base_name.IsMacroVar()
 
     def IsPolymorphic(self):
-        return self.base_name.endswith(POLYMORPHISM_SUFFIX)
+        return self.base_name.IsPolymorphic()
 
     def FullName(self):
         name = ""
         if self.mod_name:
-            name = self.mod_name + "::"
-        name += self.base_name
+            name = f"{self.mod_name}::"
+        name += str(self.base_name)
         if self.enum_name:
-            name += ":" + self.enum_name
+            name += f":{self.enum_name}"
         return name
 
     def GetBaseNameStrict(self):
@@ -1203,13 +1238,13 @@ class Id:
         enum_name = None
         pos = name.find(ID_PATH_SEPARATOR)
         if pos > 0:
-            mod_name = name[:pos]
+            mod_name = NAME.FromStr(name[:pos])
             name = name[pos + len(ID_PATH_SEPARATOR):]
         pos = name.find(":")
         if pos > 0:
-            enum_name = name[pos + 1:]
+            enum_name = NAME.FromStr(name[pos + 1:])
             name = name[:pos]
-        return Id(mod_name, name, enum_name, **kwargs)
+        return Id(mod_name, NAME.FromStr(name), enum_name, **kwargs)
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.FullName()}"
@@ -1246,7 +1281,7 @@ class FunParam:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     #
-    name: str      # empty str means no var specified (fun proto type)
+    name: NAME
     type: NODES_TYPES_T
     #
     arg_ref: bool = False
@@ -2533,7 +2568,7 @@ class EnumVal:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.GLOBAL_SYM_DEF
     #
-    name: str
+    name: NAME
     value_or_auto: Union["ValNum", ValAuto]
     #
     doc: str = ""
@@ -2554,7 +2589,7 @@ class DefEnum:
     GROUP = GROUP.Type
     FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
     #
-    name: str
+    name: NAME
     base_type_kind: BASE_TYPE_KIND   # must be integer
     items: list[NODES_ITEMS_T]
     #
@@ -2581,7 +2616,7 @@ class DefType:
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
-    name: str
+    name: NAME
     type: NODES_TYPES_T
     #
     pub:  bool = False
@@ -2607,9 +2642,9 @@ class DefVar:
     """
     ALIAS = "let"
     GROUP = GROUP.Statement
-    FLAGS =  NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
+    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     #
-    name: str
+    name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
     initial_or_undef_or_auto: NODES_EXPR_T
     #
@@ -2636,7 +2671,7 @@ class DefGlobal:
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
-    name: str
+    name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
     initial_or_undef_or_auto: NODES_EXPR_T
     #
@@ -2670,7 +2705,7 @@ class DefFun:
     GROUP = GROUP.Statement
     FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.IMPORT_ANNOTATED
     #
-    name: str
+    name: NAME   # may contain qualifier (in case of polymorphic funs)
     params: list[NODES_PARAMS_T]
     result: NODES_TYPES_T
     body: list[NODES_BODY_T]  # new scope
@@ -2688,7 +2723,7 @@ class DefFun:
     x_import: Import = INVALID_IMPORT  # only used for polymorphic function
 
     def is_polymorphic(self) -> bool:
-        return self.name.endswith(POLYMORPHISM_SUFFIX)
+        return self.name.IsPolymorphic()
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params)
@@ -2703,7 +2738,7 @@ class ModParam:
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE
     #
-    name: str
+    name: NAME
     mod_param_kind: MOD_PARAM_KIND
     #
     doc: str = ""
@@ -2795,7 +2830,7 @@ class MacroId:
     GROUP = GROUP.Macro
     FLAGS = NF.NON_CORE | NF.ROLE_ANNOTATED
     #
-    name: str
+    name: NAME
 
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
@@ -2817,7 +2852,7 @@ class MacroVar:
     GROUP = GROUP.Macro
     FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
-    name: str
+    name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
     initial_or_undef_or_auto: NODES_EXPR_T
     #
@@ -2843,8 +2878,8 @@ class MacroFor:
     GROUP = GROUP.Macro
     FLAGS = NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
-    name: str
-    name_list: str
+    name: NAME
+    name_list: NAME  # a macro variable holding a list
     body_for: list[Any]
     #
     doc: str = ""
@@ -2860,7 +2895,7 @@ class MacroParam:
     GROUP = GROUP.Macro
     FLAGS = NF.LOCAL_SYM_DEF | NF.NON_CORE
     #
-    name: str
+    name: NAME
     macro_param_kind: MACRO_PARAM_KIND
     #
     doc: str = ""
@@ -2879,7 +2914,7 @@ class MacroInvoke:
     GROUP = GROUP.Macro
     FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED | NF.ROLE_ANNOTATED
     #
-    name: str
+    name: NAME   # may contain qualifiers
     args: list[NODES_EXPR_T]
     #
     doc: str = ""
@@ -2908,10 +2943,10 @@ class DefMacro:
     GROUP = GROUP.Statement
     FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.NON_CORE
     #
-    name: str
+    name: NAME
     macro_result_kind: MACRO_PARAM_KIND
     params_macro: list[NODES_PARAMS_MACRO_T]
-    gen_ids: list[str]
+    gen_ids: list[NAME]
     body_macro: list[Any]  # new scope
     #
     pub: bool = False
@@ -3181,8 +3216,8 @@ def AnnotateImportsForQualifers(mod: DefMod):
     This is important for macros whose
     syntax tree might get copied into a different from where it originated.
     """
-    imports: dict[str, Import] = {}
-    dummy_import = Import("$self", "", [], x_module=mod)
+    imports: dict[NAME, Import] = {}
+    dummy_import = Import(NAME("$self", 0), "", [], x_module=mod)
 
     def annotate(node, q):
         if q:
@@ -3190,7 +3225,7 @@ def AnnotateImportsForQualifers(mod: DefMod):
             if isinstance(node, DefFun):
                 assert node.is_polymorphic()
             if q not in imports:
-                CompilerError(node.x_srcloc, f"unkown module {q}")
+                CompilerError(node.x_srcloc, f"unkown module {repr(q)}")
             node.x_import = imports[q]
         else:
             node.x_import = dummy_import
@@ -3202,9 +3237,11 @@ def AnnotateImportsForQualifers(mod: DefMod):
             if name in imports:
                 CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node
-        elif isinstance(node, (DefFun, MacroInvoke)):
-            annotate(node, _GetQualifierIfPresent(node.name))
-        elif isinstance(node, (Id, DefFun, MacroInvoke)):
+        elif isinstance(node, DefFun):
+            annotate(node, _GetQualifierIfPresent(node.name.name))
+        elif isinstance(node, MacroInvoke):
+            annotate(node, _GetQualifierIfPresent(node.name.name))
+        elif isinstance(node, Id):
             annotate(node, node.mod_name)
 
     VisitAstRecursivelyPost(mod, visitor)
@@ -3245,7 +3282,7 @@ def CompilerError(srcloc, msg, kind='syntax') -> NoReturn:
 def _CheckMacroRecursively(node, seen_names: set[str]):
     def visitor(node, _):
         if isinstance(node, (MacroParam, MacroFor)):
-            assert node.name.startswith(MACRO_VAR_PREFIX)
+            assert node.name.IsMacroVar()
             assert node.name not in seen_names, f"duplicate name: {node.name}"
             seen_names.add(node.name)
     VisitAstRecursively(node, visitor)
@@ -3289,7 +3326,6 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
         nonlocal toplevel_node
         nonlocal node_mod
         nonlocal pre_symbolize
-        # print (f"@@@@ field={field}: {node.__class__.__name__}")
 
         if type(node) in disallowed_nodes:
             CompilerError(
@@ -3310,14 +3346,14 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             assert isinstance(
                 toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if isinstance(node, DefMacro):
-            if not node.name.endswith(MACRO_CALL_SUFFIX) and node.name not in BUILT_IN_MACROS:
+            if not node.name.IsMacroCall() and node.name.name not in BUILT_IN_MACROS:
                 CompilerError(
                     node.x_srcloc, f"macro name must end with `#`: {node.name}")
             for p in node.params_macro:
                 if isinstance(p, MacroParam):
-                    assert p.name.startswith(MACRO_VAR_PREFIX)
+                    assert p.name.IsMacroVar()
             for i in node.gen_ids:
-                assert i.startswith(MACRO_VAR_PREFIX)
+                assert i.IsMacroVar()
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
             # when we synthesize Ids later we do not bother with x_import anymore
@@ -3327,7 +3363,9 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             if node.IsMacroVar():
                 CompilerError(node.x_srcloc, f"{node} start with $")
         elif isinstance(node, MacroId):
-            assert node.name.startswith(MACRO_VAR_PREFIX)
+            assert node.name.IsMacroVar()
+        elif isinstance(node, StmtBlock):
+            assert isinstance(node.label, str), f"{node} {node.x_srcloc}"
         elif isinstance(node, MacroInvoke):
             if not pre_symbolize:
                 assert isinstance(node.x_import, Import)

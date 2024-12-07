@@ -121,6 +121,7 @@ def _ModUniquePathName(root: pathlib.PurePath,
         return (root / pathname).resolve()
 
 
+_MAIN_FUN_NAME = cwast.NAME("main", 0)
 
 class ModPoolBase:
     """
@@ -188,7 +189,7 @@ class ModPoolBase:
     def MainEntryFun(self) -> cwast.DefFun:
         assert self._main_mod
         for fun in self._main_mod.body_mod:
-            if isinstance(fun, cwast.DefFun) and fun.name == "main":
+            if isinstance(fun, cwast.DefFun) and fun.name == _MAIN_FUN_NAME:
                 return fun
         assert False
 
@@ -225,7 +226,7 @@ class ModPoolBase:
                 for import_node, normalized_args in mod_info.imports:
                     if import_node.x_module:
                         continue
-                    path = import_node.path if import_node.path else import_node.name
+                    path = import_node.path if import_node.path else str(import_node.name)
                     if import_node.args_mod:
                         done = _TryToNormalizeModArgs(
                             import_node.args_mod, normalized_args)

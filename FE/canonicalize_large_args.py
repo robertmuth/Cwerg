@@ -99,8 +99,8 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
             result_type: cwast.CanonType = result_param.type.x_type
             assert result_type.is_pointer()
             lhs = cwast.ExprDeref(
-                cwast.Id.Make(result_param.name, x_srcloc=node.x_srcloc,
-                              x_type=result_type, x_symbol=result_param),
+                cwast.Id(None, result_param.name, None, x_srcloc=node.x_srcloc,
+                         x_type=result_type, x_symbol=result_param),
                 x_srcloc=node.x_srcloc, x_type=result_type.underlying_pointer_type())
             assign = cwast.StmtAssignment(
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
@@ -156,8 +156,8 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                            x_srcloc=sl,
                                            x_type=old)
                     expr_body.append(new_def)
-                    name = cwast.Id.Make(
-                        new_def.name, x_srcloc=sl, x_type=old, x_symbol=new_def)
+                    name = cwast.Id(None,
+                                    new_def.name, None, x_srcloc=sl, x_type=old, x_symbol=new_def)
                     call.args[n] = cwast.ExprAddrOf(
                         name, x_srcloc=sl, x_type=new)
             if len(old_sig.parameter_types()) != len(new_sig.parameter_types()):
@@ -170,8 +170,8 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                        x_srcloc=sl,
                                        x_type=at.x_type)
 
-                name = cwast.Id.Make(new_def.name, x_srcloc=sl,
-                                     x_type=old_sig.result_type(), x_symbol=new_def)
+                name = cwast.Id(None, new_def.name, None, x_srcloc=sl,
+                                x_type=old_sig.result_type(), x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.parameter_types()[-1]))
                 typify.UpdateNodeType(call, tc.get_void_canon_type())

@@ -102,7 +102,7 @@ def _RenderRecursivelyHTML(node, out, indent: int):
                 if field == "body_mod":
                     out.append(_RenderIndent(indent))
                 out[-1].append("]")
-        elif field_kind is cwast.NFK.STR_LIST:
+        elif field_kind is cwast.NFK.NAME_LIST:
             line.append(f" [{' '.join(val)}]")
         else:
             assert False, f"{node_name} {nfd}"

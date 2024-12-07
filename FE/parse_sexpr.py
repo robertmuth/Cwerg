@@ -228,7 +228,7 @@ def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
         # if t in cwast.NODES_ALIASES:
         #    cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
         if t[0] == "$":
-            return cwast.MacroId(t, x_srcloc=srcloc)
+            return cwast.MacroId(cwast.NAME.FromStr(t), x_srcloc=srcloc)
         logger.info("ID %s at %s", t, srcloc)
         return cwast.Id.Make(t, x_srcloc=srcloc, **attr)
     elif len(t) >= 2 and t[0] == "'" and t[-1] == "'":
@@ -285,18 +285,18 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
     return out
 
 
-def ReadStrList(stream: ReadTokens) -> list[str]:
+def ReadNameList(stream: ReadTokens) -> list[str]:
     out = []
     while True:
         token = next(stream)
         if token == "]":
             break
         else:
-            out.append(token)
+            out.append(cwast.NAME.FromStr(token))
     return out
 
 
-def ReadStrColonList(stream: ReadTokens) -> list[str]:
+def ReadNameColonList(stream: ReadTokens) -> list[str]:
     out = []
     while True:
         token = next(stream)
@@ -304,7 +304,7 @@ def ReadStrColonList(stream: ReadTokens) -> list[str]:
             stream.pushback(token)
             break
         else:
-            out.append(token)
+            out.append(cwast.NAME.FromStr(token))
     return out
 
 
@@ -315,6 +315,9 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
         return bool(token)
     elif nfd.kind is cwast.NFK.STR:
         return token
+    elif nfd.kind is cwast.NFK.NAME:
+        return cwast.NAME.FromStr(token)
+
     elif nfd.kind is cwast.NFK.KIND:
         assert nfd.enum_kind is not None, f"{field} {token}"
         try:
@@ -332,11 +335,11 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
             cwast.CompilerError(
                 stream.srcloc(), f"Cannot expand {token} for {field}")
         return out
-    elif nfd.kind is cwast.NFK.STR_LIST:
+    elif nfd.kind is cwast.NFK.NAME_LIST:
         if token == "[":
-            return ReadStrList(stream)
+            return ReadNameList(stream)
         elif token == ":":
-            return ReadStrColonList(stream)
+            return ReadNameColonList(stream)
         else:
             assert False, f"expected list start for: {field} {token}"
 
@@ -362,7 +365,7 @@ def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: dict[str, Any]):
     while True:
         token = next(stream)
         if token == ")":
-            return cwast.MacroInvoke(tag, args, x_srcloc=srcloc, **attr)
+            return cwast.MacroInvoke(cwast.NAME.FromStr(tag), args, x_srcloc=srcloc, **attr)
         sub_attr: dict[str, Any] = {}
         token = ReadAttrs(token, sub_attr, stream)
         if token == "(":

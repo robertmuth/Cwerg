@@ -308,7 +308,7 @@ def _RenderRecursivelyToIR(node, out, indent: int):
                 _RenderColonList(val, field, out, indent)
             else:
                 _RenderList(val, field, out, indent)
-        elif field_kind is cwast.NFK.STR_LIST:
+        elif field_kind is cwast.NFK.NAME_LIST:
             line.append(f"[{' '.join(val)}]")
         else:
             assert False, f"unexpected field {field}"

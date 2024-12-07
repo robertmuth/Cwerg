@@ -21,7 +21,7 @@ class MacroContext:
     def __init__(self, id_gen: identifier.IdGen):
         self._id_gen = id_gen
         # these need to become lists
-        self.macro_parameter: dict[str, Tuple[cwast.MacroParam, Any]] = {}
+        self.macro_parameter: dict[cwast.NAME, Tuple[cwast.MacroParam, Any]] = {}
         self.srcloc = None
 
     def PushScope(self, srcloc):
@@ -32,24 +32,23 @@ class MacroContext:
         # TBD
         pass
 
-    def GenUniqueName(self, name: str):
-        # TODO: add
-        assert name.startswith(
-            cwast.MACRO_VAR_PREFIX), f"expected macro id {name}"
-        return self._id_gen.NewName(name[1:])
+    def GenUniqueName(self, name: cwast.NAME) -> cwast.NAME:
+        assert name.IsMacroVar(), f"expected macro id {name}"
+        # print (f"@@@@@@@@@@@@@@@ {name}")
+        return self._id_gen.NewName(name.name[1:])
 
-    def RegisterSymbol(self, name, value, check_clash=False):
+    def RegisterSymbol(self, name: cwast.NAME, value, check_clash=False):
         if check_clash:
             assert name not in self.macro_parameter
         self.macro_parameter[name] = value
 
-    def GetSymbol(self, name) -> Tuple[cwast.MacroParam, Any]:
+    def GetSymbol(self: Any, name: cwast.NAME) -> Tuple[cwast.MacroParam, Any]:
+        assert name.IsMacroVar()
         return self.macro_parameter[name]
 
 
 def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     if isinstance(node, cwast.MacroVar):
-        assert node.name.startswith(cwast.MACRO_VAR_PREFIX)
         kind, new_name = ctx.GetSymbol(node.name)
         assert kind is cwast.MACRO_PARAM_KIND.ID
         # Why is this not a MacroVar
@@ -60,8 +59,6 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
-        assert node.name.startswith(
-            cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name)
         # We dont support `FIELD``
         assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
@@ -73,8 +70,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
                         cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
         return cwast.CloneNodeRecursively(arg, {}, {})
     elif isinstance(node, cwast.MacroFor):
-        assert node.name.startswith(
-            cwast.MACRO_VAR_PREFIX), f" non macro name: {node}"
+        assert node.name.IsMacroVar(), f" non macro name: {node}"
         kind, arg = ctx.GetSymbol(node.name_list)
         assert isinstance(arg, cwast.EphemeralList)
         out = []
@@ -121,7 +117,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     # pp_sexpr.PrettyPrint(macro)
     ctx.PushScope(invoke.x_srcloc)
     for p, a in zip(params, args):
-        assert p.name.startswith(cwast.MACRO_VAR_PREFIX)
+        assert p.name.IsMacroVar()
         kind = p.macro_param_kind
         if kind is cwast.MACRO_PARAM_KIND.EXPR:
             pass
@@ -141,10 +137,10 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
             assert False
         ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))
     for gen_id in macro.gen_ids:
-        assert gen_id.startswith(cwast.MACRO_VAR_PREFIX)
+        assert gen_id.IsMacroVar()
         new_name = ctx.GenUniqueName(gen_id)
         ctx.RegisterSymbol(
-            gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id.Make(new_name, x_srcloc=macro.x_srcloc)))
+            gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(None, new_name, None, x_srcloc=macro.x_srcloc)))
     out = []
     for node in macro.body_macro:
         logger.debug("Expand macro body node: %s", node)
