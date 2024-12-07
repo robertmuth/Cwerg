@@ -1088,7 +1088,7 @@ class EphemeralList:
     GROUP = GROUP.Macro
     FLAGS = NF.NON_CORE
     #
-    args: list[NODES_EXPR_T]
+    args: list[Any]
     #
     colon: bool = False  # colon style list
     #
@@ -2646,7 +2646,7 @@ class DefVar:
     #
     name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
-    initial_or_undef_or_auto: NODES_EXPR_T
+    initial_or_undef_or_auto: NODES_EXPR_OR_UNDEF_OR_AUTO_T
     #
     mut: bool = False
     ref: bool = False

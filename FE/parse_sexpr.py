@@ -285,7 +285,7 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
     return out
 
 
-def ReadNameList(stream: ReadTokens) -> list[str]:
+def ReadNameList(stream: ReadTokens) -> list[cwast.NAME]:
     out = []
     while True:
         token = next(stream)
@@ -466,7 +466,7 @@ def ReadModFromStream(fp, fn) -> cwast.DefMod:
     failure = False
     try:
         while True:
-            attr = {}
+            attr: dict[str, Any] = {}
             t = ReadAttrs(next(stream), attr, stream)
             failure = True
             if t != "(":

@@ -61,6 +61,7 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
         n.name = id_gen.NewName(n.name.name)
         assert n.name not in names
 
+
 def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> str:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
