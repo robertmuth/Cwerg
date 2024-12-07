@@ -40,21 +40,26 @@ ZEROS = [b"\0" * i for i in range(128)]
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
-def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun, id_gen: identifier.IdGen):
+def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
     names: set[cwast.NAME] = set()
     clashes: set[Any] = set()
 
     def visitor(n, _):
         nonlocal names, clashes
-        if isinstance(n, cwast.DefVar):
+        if isinstance(n, (cwast.DefVar, cwast.FunParam)):
             if n.name in names:
                 clashes.add(n)
             else:
                 names.add(n.name)
     cwast.VisitAstRecursivelyPost(fun, visitor)
+    if not clashes:
+        return
+    id_gen = identifier.IdGen()
+    id_gen.RegisterExistingLocals(fun)
+
     for n in clashes:
         n.name = id_gen.NewName(n.name.name)
-
+        assert n.name not in names
 
 def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> str:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
@@ -1204,11 +1209,19 @@ def main() -> int:
             canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, id_gen, tc)
-            optimize.FunOptimize(fun, id_gen)
     eliminated_nodes.add(cwast.StmtCompoundAssignment)
     eliminated_nodes.add(cwast.StmtCond)
     eliminated_nodes.add(cwast.Case)
     eliminated_nodes.add(cwast.ExprTypeId)
+
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if not isinstance(fun, cwast.DefFun):
+                continue
+            id_gen = fun_id_gens.Get(fun)
+            # Note, the inlining inside FunOptimize will invalidate id_gen
+            optimize.FunOptimize(fun, id_gen)
+    fun_id_gens = identifier.IdGenCache()
 
     for node in cwast.ALL_NODES:
         if cwast.NF.NON_CORE in node.FLAGS:
@@ -1228,8 +1241,7 @@ def main() -> int:
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
-                id_gen = fun_id_gens.Get(fun)
-                _FunRenameLocalsToAvoidNameClashes(node, id_gen)
+                _FunRenameLocalsToAvoidNameClashes(node)
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 node.name = _MangledGlobalName(
                     mod, node, node.cdecl or node == main_entry_fun)

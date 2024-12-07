@@ -83,17 +83,18 @@ def MakeExprStmtForCall(call: cwast.ExprCall, id_gen: identifier.IdGen) -> cwast
     return out
 
 
-_INLINE_NODE_CUT_OFF = 10
+# TODO 20 fails for make clean build/TestData/fibonacci.x64.exe
+_INLINE_NODE_CUT_OFF = 15
 
 
 def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
     def replacer(call: Any, parent: Any, field: str):
+        nonlocal fun
         if not isinstance(call, cwast.ExprCall):
             return None
-        fun = call.callee
-        if not isinstance(fun, cwast.Id):
+        if not isinstance(call.callee, cwast.Id):
             return None
-        fun_def = fun.x_symbol
+        fun_def = call.callee.x_symbol
         if not isinstance(fun_def, cwast.DefFun):
             return None
         if fun_def.extern:
@@ -103,7 +104,9 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
             n += cwast.NumberOfNodes(s)
         if n > _INLINE_NODE_CUT_OFF:
             return None
-        # print("@@@@@@@@ ", call, call.x_srcloc, "    ->     ", fun_def)
+        if fun is fun_def: # no inlining of recursions
+            return None
+        # print("INLINING ", call, call.x_srcloc, "    ->     ", fun_def)
         return MakeExprStmtForCall(call, id_gen)
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
