@@ -21,7 +21,8 @@ class MacroContext:
     def __init__(self, id_gen: identifier.IdGen):
         self._id_gen = id_gen
         # these need to become lists
-        self.macro_parameter: dict[cwast.NAME, Tuple[cwast.MacroParam, Any]] = {}
+        self.macro_parameter: dict[cwast.NAME,
+                                   Tuple[cwast.MacroParam, Any]] = {}
         self.srcloc = None
 
     def PushScope(self, srcloc):

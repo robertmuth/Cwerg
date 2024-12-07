@@ -8,7 +8,9 @@ from FE import cwast
 
 logger = logging.getLogger(__name__)
 
-_Hell = cwast.DefFun("hell", [], cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID), [])
+
+_Hell = cwast.DefFun(cwast.NAME("hell", 0), [],
+                     cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID), [])
 
 
 def ShakeTree(mods: List[cwast.DefMod], entry_fun: cwast.DefFun):
@@ -59,5 +61,6 @@ def ShakeTree(mods: List[cwast.DefMod], entry_fun: cwast.DefFun):
     for fun in cg:
         logging.info(f"@@@ ALIVE: {fun.name}")
     for m in mods:
-        new_body = [f for f in m.body_mod if not isinstance(f, cwast.DefFun) or f in cg]
+        new_body = [f for f in m.body_mod if not isinstance(
+            f, cwast.DefFun) or f in cg]
         m.body_mod = new_body

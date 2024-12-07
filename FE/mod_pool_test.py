@@ -10,24 +10,27 @@ from FE import symbolize
 logger = logging.getLogger(__name__)
 
 _test_mods_std = {
-    "builtin": cwast.DefMod("builtin", [], []),
-    "os": cwast.DefMod("os", [], []),
-    "math": cwast.DefMod("math", [], []),
-    "std":  cwast.DefMod("std", [], []),
+    "builtin": cwast.DefMod([], []),
+    "os": cwast.DefMod([], []),
+    "math": cwast.DefMod([], []),
+    "std":  cwast.DefMod([], []),
 }
 _test_mods_local = {
-    "helper": cwast.DefMod("helper", [], [cwast.Import("os", "", [])]),
-    "math":  cwast.DefMod("math", [], [cwast.Import("std", "", [])]),
-    "main": cwast.DefMod("main", [], [cwast.Import("std", "", []),
-                                      cwast.Import("math", "", []),
-                                      # cwast.Import("./math", "", []),
-                                      cwast.Import("./helper", "", [])])
+    "helper": cwast.DefMod([],
+                           [cwast.Import(cwast.NAME("os", 0), "", [])]),
+    "math":  cwast.DefMod([],
+                          [cwast.Import(cwast.NAME("std", 0), "", [])]),
+    "main": cwast.DefMod([],
+                         [cwast.Import(cwast.NAME("std", 0), "", []),
+                          cwast.Import(cwast.NAME("math", 0), "", []),
+                          # cwast.Import(cwast.NAME("./math", 0), "", []),
+                          cwast.Import(cwast.NAME("./helper", 0), "", [])])
 }
 
 
 class ModPoolForTest(mod_pool.ModPoolBase):
 
-    def _ReadMod(self, mid: mod_pool.ModId) -> cwast.DefMod:
+    def _ReadMod(self: "ModPoolForTest", mid: mod_pool.ModId) -> cwast.DefMod:
         handle = mid[0]
         name = handle.name
         dir = handle.parent.name
@@ -36,12 +39,13 @@ class ModPoolForTest(mod_pool.ModPoolBase):
         mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return mod
 
+
 def tests(cwd: str):
 
     pool = ModPoolForTest(pathlib.Path(cwd) / "Lib")
     logger.info("Pool %s", pool)
     pool.ReadModulesRecursively(["builtin",
-                                 str(pathlib.Path("./main").resolve())])
+                                 str(pathlib.Path("./main").resolve())], False)
     print([m.name for m in pool.ModulesInTopologicalOrder()])
     print("OK")
 

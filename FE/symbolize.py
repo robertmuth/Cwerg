@@ -26,7 +26,7 @@ def AnnotateNodeSymbol(id_node, def_node):
     assert cwast.NF.SYMBOL_ANNOTATED in id_node.FLAGS
     assert (cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS or
             cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS), f"unpexpected node: {def_node}"
-    assert id_node.x_symbol is None
+    assert id_node.x_symbol is cwast.NO_SYMBOL
     id_node.x_symbol = def_node
 
 
@@ -44,8 +44,8 @@ class SymTab:
 
     """
 
-    def __init__(self):
-        self._imports: dict[str, cwast.DefMod] = {}
+    def __init__(self: Any):
+        self._imports: dict[cwast.NAME, cwast.DefMod] = {}
         self._syms: dict[str, Any] = {}
 
     def AddLocalSym(self, name, node):

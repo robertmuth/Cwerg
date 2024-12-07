@@ -402,8 +402,8 @@ PAREN_VALUE = {
 }
 
 
-_PREFIX_EXPR_PARSERS = {}
-_INFIX_EXPR_PARSERS = {}
+_PREFIX_EXPR_PARSERS: dict[TK_KIND, tuple[int, Any]] = {}
+_INFIX_EXPR_PARSERS: dict[str, tuple[int, Any]] = {}
 
 
 def _ParseExpr(inp: Lexer, precedence=0):
@@ -744,7 +744,7 @@ _INFIX_EXPR_PARSERS = {
 }
 
 
-def _ParseTypeExpr(inp: Lexer):
+def _ParseTypeExpr(inp: Lexer) -> Any:
     tk = inp.next()
     extra = _ExtractAnnotations(tk)
     extra["x_srcloc"] = tk.srcloc
@@ -948,7 +948,8 @@ def _ParseStatement(inp: Lexer):
     elif kw.text == "for":
         name = inp.match_or_die(TK_KIND.ID)
         if name.text.startswith(cwast.MACRO_VAR_PREFIX):
-            var = cwast.MacroId(cwast.NAME.FromStr(name.text), x_srcloc=name.srcloc)
+            var = cwast.MacroId(cwast.NAME.FromStr(
+                name.text), x_srcloc=name.srcloc)
         else:
             var = cwast.Id.Make(name.text, x_srcloc=name.srcloc)
         inp.match_or_die(TK_KIND.ASSIGN)

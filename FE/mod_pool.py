@@ -123,6 +123,7 @@ def _ModUniquePathName(root: pathlib.PurePath,
 
 _MAIN_FUN_NAME = cwast.NAME("main", 0)
 
+
 class ModPoolBase:
     """
     Will set the following fields:
@@ -146,7 +147,7 @@ class ModPoolBase:
 
     def _AddModInfoCommon(self, mid: ModId, mod: cwast.DefMod) -> ModInfo:
         mod_info = ModInfo(mid, mod)
-        #print("Adding new mod: ", mid[0].name, mid[1:])
+        # print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
         self._all_mods[mid] = mod_info
         name = mid[0].name
@@ -206,7 +207,7 @@ class ModPoolBase:
             assert self._FindModInfo(uid) is None, f"duplicate module {uid}"
             mod_info = self._AddModInfoSimple(uid)
             if not self._main_mod:
-                self._main_mod =  mod_info.mod
+                self._main_mod = mod_info.mod
             active.append(mod_info)
 
         buitin_syms = symbolize.GetSymTabForBuiltInOrEmpty(
@@ -226,7 +227,8 @@ class ModPoolBase:
                 for import_node, normalized_args in mod_info.imports:
                     if import_node.x_module:
                         continue
-                    path = import_node.path if import_node.path else str(import_node.name)
+                    path = import_node.path if import_node.path else str(
+                        import_node.name)
                     if import_node.args_mod:
                         done = _TryToNormalizeModArgs(
                             import_node.args_mod, normalized_args)

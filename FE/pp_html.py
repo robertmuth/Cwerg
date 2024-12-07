@@ -140,6 +140,7 @@ if __name__ == "__main__":
     from FE import symbolize
     from FE import typify
     from FE import eval
+    from FE import identifier
 
     def main() -> int:
         parser = argparse.ArgumentParser(description='pretty_printer')
@@ -157,7 +158,9 @@ if __name__ == "__main__":
         main = str(pathlib.Path(args.files[0][:-3]).resolve())
         mp.ReadModulesRecursively([main], add_builtin=True)
         mod_topo_order = mp.ModulesInTopologicalOrder()
-        symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order)
+        fun_id_gens = identifier.IdGenCache()
+        symbolize.MacroExpansionDecorateASTWithSymbols(
+            mod_topo_order, fun_id_gens)
         for mod in mod_topo_order:
             cwast.StripFromListRecursively(mod, cwast.DefMacro)
         tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)

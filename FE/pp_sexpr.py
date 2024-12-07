@@ -23,7 +23,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.Id):
         return node.FullName()
     elif isinstance(node, cwast.MacroId):
-        return node.name
+        return str(node.name)
     elif isinstance(node, cwast.ValTrue):
         return "true"
     elif isinstance(node, cwast.ValFalse):
@@ -184,7 +184,7 @@ def _RenderList(val: list, field: str, out, indent: int):
 
 def _RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: int):
     line = out[-1]
-    line.append("(" + node.name)
+    line.append(f"({node.name}")
     for a in node.args:
         line = out[-1]
         if isinstance(a, cwast.EphemeralList):

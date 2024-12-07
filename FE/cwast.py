@@ -510,6 +510,10 @@ NODES_COND_T = Union["ValFalse", "ValTrue",
 
 NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "ExprParen"]
 
+NODES_SYMBOLS_T = Union["DefEnum", "EnumVal", "DefType", "DefVar", "DefGlobal", "DefFun",
+                        "FunParam", "ModParam",
+                        "DefMod", "MacroVar", "MacroParam", "DefMacro", "Import", "DefRec"]
+
 
 def _EnumValues(enum_class):
     return ", ".join(x.name for x in enum_class if x.value != 0)
@@ -1181,6 +1185,9 @@ def _GetQualifierIfPresent(name: str) -> Optional[NAME]:
     return None
 
 
+NO_SYMBOL = None  # forward declaration
+
+
 @NodeCommon
 @dataclasses.dataclass()
 class Id:
@@ -1202,7 +1209,7 @@ class Id:
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
-    x_symbol: Optional[Any] = None
+    x_symbol: NODES_SYMBOLS_T = NO_SYMBOL
     x_import: Import = INVALID_IMPORT  # which import the id is qualified with
 
     def GetRecFieldRef(self) -> RecField:
@@ -2998,10 +3005,13 @@ BINOP_OPS_HAVE_SAME_TYPE = {
     BINARY_EXPR_KIND.XOR,
 }
 
+# NO_SYMBOL = DefType(NAME("", 0), TypeBase(BASE_TYPE_KIND.BOOL))
 
 ############################################################
 #
 ############################################################
+
+
 def VisitAstRecursively(node, visitor, field=None):
     if visitor(node, field):
         return
@@ -3358,7 +3368,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
         elif isinstance(node, Id):
             # when we synthesize Ids later we do not bother with x_import anymore
             if not pre_symbolize:
-                assert node.x_symbol is not None or isinstance(
+                assert node.x_symbol is not NO_SYMBOL or isinstance(
                     node.x_import, Import), f"{node} without x_import"
             if node.IsMacroVar():
                 CompilerError(node.x_srcloc, f"{node} start with $")
