@@ -127,7 +127,7 @@ class ReturnResultLocation:
     Otherwise the result is to be copied into the memory location provided.
     """
     dst: Union[str, BaseOffset]
-
+    end_label: str
 
 def _InitDataForBaseType(x_type: cwast.CanonType, x_value) -> bytes:
     assert x_type.is_base_or_enum_type()
@@ -591,8 +591,10 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             result = id_gen.NewName("expr")
             print(
                 f"{TAB}.reg {node.x_type.get_single_register_type()} [{result}]")
+        end_label = id_gen.NewName("end_expr")
         for c in node.body:
-            EmitIRStmt(c, ReturnResultLocation(result), tc, id_gen)
+            EmitIRStmt(c, ReturnResultLocation(result, end_label), tc, id_gen)
+        print(f".bbl {end_label}  # block end")
         return result
     elif isinstance(node, cwast.ExprIndex):
         src = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
@@ -685,8 +687,10 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
 
             src_base, 0), src_type.size, src_type.alignment, id_gen)
     elif isinstance(init_node, cwast.ExprStmt):
+        end_label = id_gen.NewName("end_expr")
         for c in init_node.body:
-            EmitIRStmt(c, ReturnResultLocation(dst), tc, id_gen)
+            EmitIRStmt(c, ReturnResultLocation(dst, end_label), tc, id_gen)
+        print(f".bbl {end_label}  # block end")
     elif isinstance(init_node, cwast.ValString):
         assert False, f"NYI {init_node}"
     elif isinstance(init_node, cwast.ValAuto):
@@ -796,15 +800,20 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
         print(f".bbl {break_label}  # block end")
     elif isinstance(node, cwast.StmtReturn):
         if isinstance(node.x_target, cwast.ExprStmt):
+            assert result is not None
+
+            # for this kind of return we need to save the computed value
+            # and the branch to the end of the ExprStmt
             if not node.expr_ret.x_type.is_void_or_wrapped_void():
-                assert result is not None
                 if isinstance(result.dst, str):
                     out = EmitIRExpr(node.expr_ret, tc, id_gen)
                     print(f"{TAB}mov {result.dst} {out}")
                 else:
                     EmitIRExprToMemory(node.expr_ret, result.dst, tc, id_gen)
             else:
+                # nothing to save here
                 EmitIRExpr(node.expr_ret, tc, id_gen)
+            print(f"{TAB}bra {result.end_label}  # end of expr")
         else:
             out = EmitIRExpr(node.expr_ret, tc, id_gen)
             if not node.expr_ret.x_type.is_void_or_wrapped_void():
