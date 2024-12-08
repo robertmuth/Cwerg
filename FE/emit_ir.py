@@ -1022,6 +1022,7 @@ def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
     if args.emit_stats == phase_name:
         node_histo = stats.ComputeNodeHistogram(mods)
         stats.DumpCounter(node_histo)
+        stats.DumpStats()
 
     if args.emit_ir == phase_name:
         for mod in mods:

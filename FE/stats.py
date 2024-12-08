@@ -23,4 +23,18 @@ def ComputeNodeHistogram(nodes: Iterable[Any]) -> collections.defaultdict:
 
 def DumpCounter(counters: collections.defaultdict):
     for kv in reversed(sorted(counters.items(), key=lambda x: x[1])):
-        print (f"{kv[1]:-5} {kv[0]}")
+        print(f"{kv[1]:-5} {kv[0]}")
+
+
+_Counters: collections.defaultdict[tuple[str,
+                                         str], int] = collections.defaultdict(int)
+
+
+def IncCounter(family: str, metric: str, val: int):
+    _Counters[(family, metric)] += val
+
+
+def DumpStats():
+    for kv in sorted(_Counters.items(), key=lambda x: x[0]):
+        [family, metric], val = kv
+        print(f"{family:10}{metric:10} {val:-5}")

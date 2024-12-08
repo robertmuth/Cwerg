@@ -1,6 +1,7 @@
 from typing import Any
 from FE import cwast
 from FE import identifier
+from FE import stats
 
 
 def _IsConstantSymbol(sym) -> bool:
@@ -56,6 +57,7 @@ def FunRemoveUnusedDefVar(fun: cwast.DefFun):
 
         if isinstance(node, cwast.DefVar):
             if node not in used and not MayHaveSideEffects(node.initial_or_undef_or_auto):
+                stats.IncCounter("Removed", "DefVar", 1)
                 return cwast.EphemeralList([])
         return None
     cwast.MaybeReplaceAstRecursively(fun, update)
@@ -89,6 +91,7 @@ def FunCopyPropagation(fun: cwast.DefFun):
             while r in replacements:
                 r = replacements.get(r)
             if r is not None:
+                stats.IncCounter("CopyProp", "Id", 1)
                 node.base_name = r.name
                 node.x_symbol = r
                 node.x_type = r.x_type
@@ -154,6 +157,9 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
         if fun is fun_def:  # no inlining of recursions
             return None
         # print("INLINING ", call, call.x_srcloc, "    ->     ", fun_def)
+        stats.IncCounter("Inlining", "Calls", 1)
+        stats.IncCounter("Inlining", "Nodes", n)
+
         return MakeExprStmtForCall(call, id_gen)
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
@@ -165,6 +171,7 @@ def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
         if len(node.body) != 1 or not isinstance(node.body[0], cwast.StmtReturn):
             return None
         # assert False, f"{node.body}"
+        stats.IncCounter("Removed", "ExprStmt", 1)
         return node.body[0].expr_ret
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 

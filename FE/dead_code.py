@@ -4,7 +4,7 @@ import collections
 from typing import Set, Dict, List
 
 from FE import cwast
-
+from FE import stats
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,8 @@ def ShakeTree(mods: List[cwast.DefMod], entry_fun: cwast.DefFun):
                     break
             if not has_live_caller:
                 logging.info(f"@@@ DEAD: {fun.name}")
+                stats.IncCounter("Dead", "Funs", 1)
+                stats.IncCounter("Dead", "Nodes", cwast.NumberOfNodes(fun))
                 dead_funs.append(fun)
         for d in dead_funs:
             del cg[d]
