@@ -3151,29 +3151,47 @@ def EliminateEphemeralsRecursively(node):
                 EliminateEphemeralsRecursively(child)
 
 
-def CloneNodeRecursively(node, var_map, block_map):
+def CloneNodeRecursively(node, symbol_map, target_map):
     clone = dataclasses.replace(node)
     if isinstance(clone, DefVar):
-        var_map[node] = clone
+        symbol_map[node] = clone
     elif isinstance(clone, (StmtBlock, ExprStmt)):
-        block_map[node] = clone
+        target_map[node] = clone
 
     if NF.SYMBOL_ANNOTATED in clone.FLAGS:
-        clone.x_symbol = var_map.get(clone.x_symbol, clone.x_symbol)
+        clone.x_symbol = symbol_map.get(clone.x_symbol, clone.x_symbol)
     if NF.CONTROL_FLOW in clone.FLAGS:
         old_target = clone.x_target
-        new_target = block_map.get(old_target, old_target)
+        new_target = target_map.get(old_target, old_target)
         clone.x_target = new_target
 
     for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
             setattr(clone, f, CloneNodeRecursively(
-                getattr(node, f), var_map, block_map))
+                getattr(node, f), symbol_map, target_map))
         elif nfd.kind is NFK.LIST:
-            out = [CloneNodeRecursively(cc, var_map, block_map)
+            out = [CloneNodeRecursively(cc, symbol_map, target_map)
                    for cc in getattr(node, f)]
             setattr(clone, f, out)
     return clone
+
+
+def UpdateSymbolAndTargetLinks(node, symbol_map, target_map):
+    """Similar to CloneNodeRecursively if you do not need to clone but can update the AST in-place"""
+    if NF.SYMBOL_ANNOTATED in node.FLAGS:
+        node.x_symbol = symbol_map.get(node.x_symbol, node.x_symbol)
+    if NF.CONTROL_FLOW in node.FLAGS:
+        old_target = node.x_target
+        new_target = target_map.get(old_target, old_target)
+        node.x_target = new_target
+
+    for f, nfd in node.__class__.FIELDS:
+        if nfd.kind is NFK.NODE:
+            UpdateSymbolAndTargetLinks(getattr(node, f), symbol_map, target_map)
+        elif nfd.kind is NFK.LIST:
+            for cc in getattr(node, f):
+                UpdateSymbolAndTargetLinks(cc, symbol_map, target_map)
+    return node
 
 
 def NumberOfNodes(node) -> int:

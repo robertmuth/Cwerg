@@ -177,14 +177,20 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
 
 
 def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
-    def replacer(node: Any, parent: Any, field: str):
-        if not isinstance(node, cwast.ExprStmt):
-            return None
-        if len(node.body) != 1 or not isinstance(node.body[0], cwast.StmtReturn):
-            return None
-        # assert False, f"{node.body}"
-        stats.IncCounter("Removed", "ExprStmt", 1)
-        return node.body[0].expr_ret
+    # deal with common simple cases until we have something more general in place
+
+    def replacer(node: Any, _parent: Any, _field: str):
+        if isinstance(node, cwast.StmtReturn) and isinstance(node.expr_ret, cwast.ExprStmt):
+            target_map = {node.expr_ret: node.x_target}
+            cwast.UpdateSymbolAndTargetLinks(node.expr_ret, {}, target_map)
+            stats.IncCounter("Removed", "ExprStmt.1", 1)
+            return cwast.EphemeralList(node.expr_ret.body, colon=True)
+        if isinstance(node, cwast.ExprStmt) and len(node.body) == 1 and isinstance(node.body[0], cwast.StmtReturn):
+            # assert False, f"{node.body}"
+            stats.IncCounter("Removed", "ExprStmt.2", 1)
+            return node.body[0].expr_ret
+        return None
+
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
@@ -195,3 +201,4 @@ def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):
     cwast.EliminateEphemeralsRecursively(fun)
     FunPeepholeOpts(fun)
     FunRemoveSimpleExprStmts(fun)
+    cwast.EliminateEphemeralsRecursively(fun)
