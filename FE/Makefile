@@ -185,6 +185,8 @@ $(DIR)/assert.a64.test: build/FailTest/assert.compile.a64.exe
 
 ## Manual tests
 
+manual: $(DIR)/asciiquarium.x64.exe $(DIR)/asciiquarium.a64.exe
+
 $(DIR)/asciiquarium.x64.exe: build/TestData/asciiquarium.compile.x64.exe
 	${QEMU} $< 128 48
 
