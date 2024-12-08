@@ -14,6 +14,53 @@ def _IsConstantSymbol(sym) -> bool:
         assert False, f"{sym}"
 
 
+def MayHaveSideEffects(n: Any):
+    # we could try harder but it is probably not worth it.
+    if isinstance(n, (cwast.ExprCall, cwast.ExprStmt)):
+        return True
+    elif isinstance(n, (cwast.Id, cwast.ValAuto, cwast.ValTrue, cwast.ValFalse, cwast.ValUndef, cwast.ValNum)):
+        return False
+    elif isinstance(n, (cwast.ExprAddrOf)):
+        return MayHaveSideEffects(n.expr_lhs)
+    elif isinstance(n, (cwast.ExprDeref, cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast,
+                        cwast.ExprWiden, cwast.ExprNarrow)):
+        return MayHaveSideEffects(n.expr)
+    elif isinstance(n, (cwast.ExprFront, cwast.ExprField)):
+        return MayHaveSideEffects(n.container)
+    elif isinstance(n, (cwast.Expr2)):
+        return MayHaveSideEffects(n.expr1) or MayHaveSideEffects(n.expr2)
+    elif isinstance(n, (cwast.ExprPointer)):
+        return MayHaveSideEffects(n.expr1) or MayHaveSideEffects(n.expr2) or MayHaveSideEffects(n.expr_bound_or_undef)
+    elif isinstance(n, (cwast.ValCompound)):
+        for item in n.inits:
+            if MayHaveSideEffects(item.point) or MayHaveSideEffects(item.value_or_undef):
+                return True
+        return False
+    else:
+        assert False, f"unexpecte {n} in {n.x_srcloc}"
+
+
+def FunRemoveUnusedDefVar(fun: cwast.DefFun):
+    """ """
+    used: set[Any] = set()
+
+    def visit(node: Any,  _field: str):
+        nonlocal used
+        if isinstance(node, cwast.Id):
+            used.add(node.x_symbol)
+
+    cwast.VisitAstRecursivelyPost(fun, visit)
+
+    def update(node,  _parent, _field):
+        nonlocal used
+
+        if isinstance(node, cwast.DefVar):
+            if node not in used and not MayHaveSideEffects(node.initial_or_undef_or_auto):
+                return cwast.EphemeralList([])
+        return None
+    cwast.MaybeReplaceAstRecursively(fun, update)
+
+
 def FunCopyPropagation(fun: cwast.DefFun):
     """ """
     replacements: dict[Any, Any] = {}
@@ -125,4 +172,6 @@ def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
 def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):
     FunInlineSmallFuns(fun, id_gen)
     FunCopyPropagation(fun)
+    FunRemoveUnusedDefVar(fun)
+    cwast.EliminateEphemeralsRecursively(fun)
     FunRemoveSimpleExprStmts(fun)
