@@ -29,6 +29,7 @@ from FE import pp_html
 from FE import mod_pool
 from FE import dead_code
 from FE import optimize
+from FE import stats
 
 logger = logging.getLogger(__name__)
 
@@ -1014,21 +1015,28 @@ def EmitIRDefFun(node: cwast.DefFun, tc: type_corpus.TypeCorpus, id_gen: identif
             EmitIRStmt(c, None, tc, id_gen)
 
 
-def SanityCheckMods(phase_name: str, emit_ir: str, mods: list[cwast.DefMod], tc,
+def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
                     verifier: typify.TypeVerifier,
                     eliminated_node_types, allow_type_auto=True):
     logger.info(phase_name)
-    if emit_ir == phase_name:
+    if args.emit_stats == phase_name:
+        node_histo = stats.ComputeNodeHistogram(mods)
+        stats.DumpCounter(node_histo)
+
+    if args.emit_ir == phase_name:
         for mod in mods:
             pp_html.PrettyPrintHTML(mod)
             # pp_sexpr.PrettyPrint(mod)
+
+    if args.emit_ir == phase_name or args.stop == phase_name:
         exit(0)
 
     for mod in mods:
         cwast.CheckAST(mod, eliminated_node_types, allow_type_auto)
-        symbolize.VerifyASTSymbolsRecursively(mod)
-        typify.VerifyTypesRecursively(mod, tc, verifier)
-        eval.VerifyASTEvalsRecursively(mod)
+        if verifier:
+            symbolize.VerifyASTSymbolsRecursively(mod)
+            typify.VerifyTypesRecursively(mod, tc, verifier)
+            eval.VerifyASTEvalsRecursively(mod)
 
 
 _ARCH_MAP = {
@@ -1048,6 +1056,10 @@ def main() -> int:
         '-arch', help='architecture to generated IR for', default="x64")
     parser.add_argument(
         '-emit_ir', help='stop at the given stage and emit ir')
+    parser.add_argument(
+        '-stop', help='stop at the given stage')
+    parser.add_argument(
+        '-emit_stats', help='stop at the given stage and emit stats')
     parser.add_argument('files', metavar='F', type=str, nargs='+',
                         help='an input source file')
     args = parser.parse_args()
@@ -1067,15 +1079,15 @@ def main() -> int:
     main_entry_fun: cwast.DefFun = mp.MainEntryFun()
     fun_id_gens = identifier.IdGenCache()
 
+    eliminated_nodes: set[Any] = set()
+    SanityCheckMods("after_parsing", args, mod_topo_order, None, None, eliminated_nodes,
+                    allow_type_auto=False)
+
     # keeps track of those node classes which have been eliminated and hence must not
     # occur in the AST anymore
-    eliminated_nodes: set[Any] = set()
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
-
-    for mod in mod_topo_order:
-        cwast.CheckAST(mod, eliminated_nodes)
 
     logger.info("Expand macros and link most IDs to their definition")
     symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, fun_id_gens)
@@ -1094,8 +1106,8 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprStringify)
     eliminated_nodes.add(cwast.EphemeralList)
     eliminated_nodes.add(cwast.ModParam)
-    for mod in mod_topo_order:
-        cwast.CheckAST(mod, eliminated_nodes)
+    SanityCheckMods("after_symbolizing", args, mod_topo_order, None, None, eliminated_nodes,
+                    allow_type_auto=False)
 
     logger.info("Typify the nodes")
     tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(_ARCH_MAP[args.arch])
@@ -1115,7 +1127,7 @@ def main() -> int:
 
     eliminated_nodes.add(cwast.StmtStaticAssert)
 
-    SanityCheckMods("after_partial_eval", args.emit_ir,
+    SanityCheckMods("after_partial_eval", args,
                     mod_topo_order, tc, verifier, eliminated_nodes,
                     allow_type_auto=False)
 
@@ -1160,7 +1172,7 @@ def main() -> int:
     verifier.Replace(cwast.DefGlobal, typify._CheckDefVarDefGlobalStrict)
     verifier.Replace(cwast.DefVar, typify._CheckDefVarDefGlobalStrict)
 
-    SanityCheckMods("after_initial_lowering", args.emit_ir,
+    SanityCheckMods("after_initial_lowering", args,
                     mod_topo_order, tc, verifier, eliminated_nodes)
 
     constant_pool = eval.GlobalConstantPool(global_id_gen)
@@ -1193,7 +1205,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprUnionTag)
     eliminated_nodes.add(cwast.ExprUnionUntagged)
 
-    SanityCheckMods("after_span_elimination", args.emit_ir,
+    SanityCheckMods("after_span_elimination", args,
                     [mod_gen] + mod_topo_order, tc, verifier, eliminated_nodes)
 
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
@@ -1209,7 +1221,7 @@ def main() -> int:
                 canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
 
-    SanityCheckMods("after_large_arg_conversion", args.emit_ir,
+    SanityCheckMods("after_large_arg_conversion", args,
                     mod_topo_order, tc, verifier, eliminated_nodes)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
@@ -1239,7 +1251,7 @@ def main() -> int:
             assert node in eliminated_nodes, f"node: {
                 node} must be eliminated before codegen"
 
-    SanityCheckMods("after_canonicalization", args.emit_ir,
+    SanityCheckMods("after_canonicalization", args,
                     [mod_gen] + mod_topo_order, tc, verifier, eliminated_nodes)
 
     mod_topo_order = [mod_gen] + mod_topo_order
@@ -1257,7 +1269,7 @@ def main() -> int:
                 _FunRenameLocalsToAvoidNameClashes(node)
                 _FunFixRenamedIdsBestEffort(node)
 
-    SanityCheckMods("after_name_cleanup", args.emit_ir,
+    SanityCheckMods("after_name_cleanup", args,
                     mod_topo_order, tc, verifier, eliminated_nodes)
 
     # Emit Cwert IR
