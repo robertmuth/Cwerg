@@ -141,22 +141,24 @@ def MakeExprStmtForCall(call: cwast.ExprCall, id_gen: identifier.IdGen) -> cwast
         if isinstance(c, cwast.StmtReturn):
             assert c.x_target is out
         out.body.append(c)
-    # pp_sexpr.PrettyPrint(out, sys.stdout)
     return out
 
 
-# TODO 20 fails for make clean build/TestData/fibonacci.x64.exe
-_INLINE_NODE_CUT_OFF = 15
+_INLINE_NODE_CUT_OFF = 20
 
 
 def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
-    def replacer(call: Any, parent: Any, field: str):
+
+    def replacer(call: Any, _parent: Any, _field: str):
         nonlocal fun
         if not isinstance(call, cwast.ExprCall):
             return None
         if not isinstance(call.callee, cwast.Id):
             return None
-        fun_def = call.callee.x_symbol
+        fun_def: cwast.DefFun = call.callee.x_symbol
+        # TODO
+        if fun_def.name.name != "fib":
+            return None
         if not isinstance(fun_def, cwast.DefFun):
             return None
         if fun_def.extern:
@@ -168,10 +170,11 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
             return None
         if fun is fun_def:  # no inlining of recursions
             return None
-        # print("INLINING ", call, call.x_srcloc, "    ->     ", fun_def)
+
         stats.IncCounter("Inlining", "Calls", 1)
         stats.IncCounter("Inlining", "Nodes", n)
-
+        # print("INLINING ", call, call.x_srcloc,
+        #      "    ->     ", f"{repr(fun_def.name)}", fun_def)
         return MakeExprStmtForCall(call, id_gen)
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
