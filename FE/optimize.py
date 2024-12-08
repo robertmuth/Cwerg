@@ -24,7 +24,7 @@ def MayHaveSideEffects(n: Any):
     elif isinstance(n, (cwast.ExprAddrOf)):
         return MayHaveSideEffects(n.expr_lhs)
     elif isinstance(n, (cwast.ExprDeref, cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast,
-                        cwast.ExprWiden, cwast.ExprNarrow)):
+                        cwast.ExprWiden, cwast.ExprNarrow, cwast.ExprUnionUntagged)):
         return MayHaveSideEffects(n.expr)
     elif isinstance(n, (cwast.ExprFront, cwast.ExprField)):
         return MayHaveSideEffects(n.container)
@@ -38,7 +38,7 @@ def MayHaveSideEffects(n: Any):
                 return True
         return False
     else:
-        assert False, f"unexpecte {n} in {n.x_srcloc}"
+        assert False, f"unexpected {n} in {n.x_srcloc}"
 
 
 def FunRemoveUnusedDefVar(fun: cwast.DefFun):
@@ -61,6 +61,18 @@ def FunRemoveUnusedDefVar(fun: cwast.DefFun):
                 return cwast.EphemeralList([])
         return None
     cwast.MaybeReplaceAstRecursively(fun, update)
+
+
+def FunPeepholeOpts(fun: cwast.DefFun):
+    """Misc Peephole Opts"""
+
+    def update(node,  _parent, _field):
+        if isinstance(node, cwast.ExprDeref) and isinstance(node.expr, cwast.ExprAddrOf):
+            stats.IncCounter("Peephole", "DerefAddrOf", 1)
+            return node.expr.expr_lhs
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyPost(fun, update)
 
 
 def FunCopyPropagation(fun: cwast.DefFun):
@@ -181,4 +193,5 @@ def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):
     FunCopyPropagation(fun)
     FunRemoveUnusedDefVar(fun)
     cwast.EliminateEphemeralsRecursively(fun)
+    FunPeepholeOpts(fun)
     FunRemoveSimpleExprStmts(fun)

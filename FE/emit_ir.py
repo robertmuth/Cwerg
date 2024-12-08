@@ -66,7 +66,6 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
 def _FunFixRenamedIdsBestEffort(fun: cwast.DefFun):
     def visitor(n, _):
         if isinstance(n, cwast.Id):
-            new_name = n.x_symbol.name
             n.base_name = n.x_symbol.name
 
     cwast.VisitAstRecursivelyPost(fun, visitor)
@@ -1033,7 +1032,8 @@ def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
         exit(0)
 
     for mod in mods:
-        cwast.CheckAST(mod, eliminated_node_types, allow_type_auto, pre_symbolize=pre_symbolize)
+        cwast.CheckAST(mod, eliminated_node_types,
+                       allow_type_auto, pre_symbolize=pre_symbolize)
         if verifier:
             symbolize.VerifyASTSymbolsRecursively(mod)
             typify.VerifyTypesRecursively(mod, tc, verifier)
@@ -1191,6 +1191,16 @@ def main() -> int:
                 canonicalize.FunAddMissingReturnStmts(node)
 
     eliminated_nodes.add(cwast.Expr3)
+
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if isinstance(fun, cwast.DefFun):
+                id_gen = fun_id_gens.Get(fun)
+                # Note, the inlining inside FunOptimize will invalidate id_gen
+                optimize.FunOptimize(fun, id_gen)
+    fun_id_gens = identifier.IdGenCache()
+
+
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
     canonicalize_span.MakeAndRegisterSpanTypeReplacements(mod_gen, tc)
@@ -1241,11 +1251,10 @@ def main() -> int:
 
     for mod in mod_topo_order:
         for fun in mod.body_mod:
-            if not isinstance(fun, cwast.DefFun):
-                continue
-            id_gen = fun_id_gens.Get(fun)
-            # Note, the inlining inside FunOptimize will invalidate id_gen
-            optimize.FunOptimize(fun, id_gen)
+            if isinstance(fun, cwast.DefFun):
+                id_gen = fun_id_gens.Get(fun)
+                # Note, the inlining inside FunOptimize will invalidate id_gen
+                optimize.FunOptimize(fun, id_gen)
     fun_id_gens = identifier.IdGenCache()
 
     for node in cwast.ALL_NODES:

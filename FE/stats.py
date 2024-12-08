@@ -22,9 +22,13 @@ def ComputeNodeHistogram(nodes: Iterable[Any]) -> collections.defaultdict:
 
 
 def DumpCounter(counters: collections.defaultdict):
+    total = 0
     for kv in reversed(sorted(counters.items(), key=lambda x: x[1])):
-        print(f"{kv[1]:-5} {kv[0]}")
+        kind, count = kv
+        total += count
+        print(f"{count:-7} {kind}")
 
+    print(f"{total:-7} TOTAL")
 
 _Counters: collections.defaultdict[tuple[str,
                                          str], int] = collections.defaultdict(int)
