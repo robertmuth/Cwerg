@@ -298,6 +298,8 @@ def _RenderRecursivelyToIR(node, out, indent: int):
 
         if field_kind is cwast.NFK.STR:
             line.append(str(val))
+        elif field_kind is cwast.NFK.NAME:
+            line.append(str(val))
         elif field_kind is cwast.NFK.KIND:
             line.append(val.name)
         elif field_kind is cwast.NFK.NODE:
