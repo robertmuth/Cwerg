@@ -663,7 +663,7 @@ def VerifyASTEvalsRecursively(node):
             assert node.x_value is not None, f"{node}"
 
         if isinstance(parent, cwast.ValPoint) and field == "point":
-            if isinstance(node, cwast.Id) and node.x_symbol is None:
+            if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.RecField):
                 return
             if node.x_value is None:
                 assert isinstance(node, cwast.ValAuto), f"unevaluated ValArray init index: {node}"

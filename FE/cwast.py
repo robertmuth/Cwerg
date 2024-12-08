@@ -3373,21 +3373,16 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 assert i.IsMacroVar()
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
-            assert isinstance(node.base_name, NAME), f"{
-                                node} {node.x_symbol}"
-            # when we synthesize Ids later we do not bother with x_import anymore
+            assert isinstance(node.base_name, NAME), f"{node} {node.x_symbol}"
             if not pre_symbolize:
-                assert node.x_symbol is not NO_SYMBOL or isinstance(
-                    node.x_import, Import), f"{node} without x_import"
+                assert node.x_symbol is not NO_SYMBOL, f"{
+                    node} without valid x_symbol {node.x_srcloc}"
             if node.IsMacroVar():
                 CompilerError(node.x_srcloc, f"{node} start with $")
         elif isinstance(node, MacroId):
             assert node.name.IsMacroVar()
         elif isinstance(node, StmtBlock):
             assert isinstance(node.label, str), f"{node} {node.x_srcloc}"
-        elif isinstance(node, MacroInvoke):
-            if not pre_symbolize:
-                assert isinstance(node.x_import, Import)
         elif isinstance(node, Import):
             if not pre_symbolize:
                 assert isinstance(node.x_module, DefMod)

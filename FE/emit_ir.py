@@ -1017,7 +1017,7 @@ def EmitIRDefFun(node: cwast.DefFun, tc: type_corpus.TypeCorpus, id_gen: identif
 
 def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
                     verifier: typify.TypeVerifier,
-                    eliminated_node_types, allow_type_auto=True):
+                    eliminated_node_types, allow_type_auto=True, pre_symbolize=False):
     logger.info(phase_name)
     if args.emit_stats == phase_name:
         node_histo = stats.ComputeNodeHistogram(mods)
@@ -1032,7 +1032,7 @@ def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
         exit(0)
 
     for mod in mods:
-        cwast.CheckAST(mod, eliminated_node_types, allow_type_auto)
+        cwast.CheckAST(mod, eliminated_node_types, allow_type_auto, pre_symbolize=pre_symbolize)
         if verifier:
             symbolize.VerifyASTSymbolsRecursively(mod)
             typify.VerifyTypesRecursively(mod, tc, verifier)
@@ -1081,7 +1081,7 @@ def main() -> int:
 
     eliminated_nodes: set[Any] = set()
     SanityCheckMods("after_parsing", args, mod_topo_order, None, None, eliminated_nodes,
-                    allow_type_auto=False)
+                    allow_type_auto=False, pre_symbolize=True)
 
     # keeps track of those node classes which have been eliminated and hence must not
     # occur in the AST anymore
@@ -1106,8 +1106,9 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprStringify)
     eliminated_nodes.add(cwast.EphemeralList)
     eliminated_nodes.add(cwast.ModParam)
+    # Before Typing we cannot set the symbol links for rec fields
     SanityCheckMods("after_symbolizing", args, mod_topo_order, None, None, eliminated_nodes,
-                    allow_type_auto=False)
+                    allow_type_auto=False, pre_symbolize=True)
 
     logger.info("Typify the nodes")
     tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(_ARCH_MAP[args.arch])
