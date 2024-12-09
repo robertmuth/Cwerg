@@ -31,7 +31,7 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
                 actual.is_mutable() or not expected.is_mutable()):
             return True
 
-    if actual.is_array() and expected.is_span():
+    if actual.is_vec() and expected.is_span():
         # TODO: check "ref"
         return actual.underlying_array_type() == expected.underlying_span_type() and (not expected.is_mutable() or actual_is_lvalue)
 
@@ -95,7 +95,7 @@ def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bo
         if ct_dst.is_int() or ct_dst.is_real():
             return True
 
-    if ct_src.is_array() and ct_dst.is_span():
+    if ct_src.is_vec() and ct_dst.is_span():
         # TODO: check "ref"
         return ct_src.underlying_array_type() == ct_dst.underlying_span_type()
     return False
@@ -138,7 +138,7 @@ def is_compatible_for_wrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> 
         wrapped_type = ct_dst.underlying_wrapped_type()
         if wrapped_type in (ct_src, ct_src.original_type):
             return True
-        if ct_src.is_array() and wrapped_type.is_span():
+        if ct_src.is_vec() and wrapped_type.is_span():
             return ct_src.underlying_array_type() == wrapped_type.underlying_span_type() and not ct_dst.is_mutable()
 
     return False
@@ -166,7 +166,7 @@ def is_proper_lhs(node) -> bool:
         if container_ct.is_span():
             return container_ct.mut
         else:
-            assert container_ct.is_array()
+            assert container_ct.is_vec()
             return is_proper_lhs(node.container)
     elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow)):
         # this assert is necessary to satisfy the mypy type checker
@@ -182,7 +182,7 @@ def is_proper_lhs(node) -> bool:
 
 def is_mutable_array(node) -> bool:
     """"""
-    if not node.x_type.is_array():
+    if not node.x_type.is_vec():
         return False
 
     return is_proper_lhs(node)
@@ -193,7 +193,7 @@ def is_mutable_array_or_span(node) -> bool:
     ct: cwast.CanonType = node.x_type
     if ct.is_span():
         return ct.mut
-    elif ct.is_array():
+    elif ct.is_vec():
         return is_proper_lhs(node)
     else:
         assert False

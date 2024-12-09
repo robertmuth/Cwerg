@@ -186,7 +186,7 @@ class _PolyMap:
         if out:
             return out
         # TODO: why do we need this - seems unsafe:
-        if first_param_type.is_array():
+        if first_param_type.is_vec():
             span_type = self._type_corpus. insert_span_type(
                 False, first_param_type.underlying_array_type())
             type_name = span_type.name
@@ -418,7 +418,7 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
                        target_type: cwast.CanonType,
                        ctx: _TypeContext) -> cwast.CanonType:
     ct = _TypifyNodeRecursively(node.type_or_auto, tc, target_type, ctx)
-    if ct.is_array():
+    if ct.is_vec():
         for point in node.inits:
             assert isinstance(point, cwast.ValPoint)
             val = point.value_or_undef
@@ -598,7 +598,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprFront):
         ct = _TypifyNodeRecursively(
             node.container, tc, cwast.NO_TYPE, ctx)
-        if not ct.is_span() and not ct.is_array():
+        if not ct.is_span() and not ct.is_vec():
             cwast.CompilerError(
                 node.x_srcloc, "expected container in front expression")
         p_type = tc.insert_ptr_type(
@@ -818,7 +818,7 @@ def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
 
 def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
     ct: cwast.CanonType = node.type_or_auto.x_type
-    if ct.is_array():
+    if ct.is_vec():
         _CheckValVec(node, ct.underlying_array_type())
     else:
         assert ct.is_rec()
@@ -834,7 +834,7 @@ def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
 
 def CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
     ct: cwast.CanonType = node.type_or_auto.x_type
-    if ct.is_array():
+    if ct.is_vec():
         _CheckValVec(node, ct.underlying_array_type())
     else:
         assert ct.is_rec()
@@ -889,7 +889,7 @@ def CheckExprFront(node: cwast.ExprFront, _):
             cwast.CompilerError(
                 node.x_srcloc, f"container not mutable: {node} {node.container}")
 
-    if node.container.x_type.is_array():
+    if node.container.x_type.is_vec():
         # TODO: check if address can be taken
         pass
 

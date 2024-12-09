@@ -65,7 +65,7 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
             replacement = ct.underlying_pointer_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.insert_ptr_type(ct.mut, replacement))
-        elif ct.is_array():
+        elif ct.is_vec():
             replacement = ct.underlying_array_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.insert_array_type(

@@ -63,7 +63,7 @@ def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.T
             replacement = ct.underlying_pointer_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.insert_ptr_type(ct.mut, replacement))
-        elif ct.is_array():
+        elif ct.is_vec():
             replacement = ct.underlying_array_type().replacement_type
             if replacement is not None:
                 add_replacement(ct,  tc.insert_array_type(
@@ -94,7 +94,7 @@ def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
         if isinstance(node, cwast.ExprAs):
             if (node.x_type != node.expr.x_type and
                 node.x_type.is_span() and
-                    node.expr.x_type.is_array()):
+                    node.expr.x_type.is_vec()):
                 return canonicalize.MakeValSpanFromArray(
                     node.expr, node.x_type, tc, uint_type)
         return None

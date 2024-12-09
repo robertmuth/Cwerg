@@ -385,7 +385,7 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
     container_type: cwast.CanonType = node.container.x_type
     bound = None
     mut = False
-    if container_type.is_array():
+    if container_type.is_vec():
         bound = container_type.dim
         mut = type_corpus.is_mutable_array(node.container)
     else:
@@ -480,7 +480,7 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
 
 def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
                          uint_type: cwast.CanonType) -> cwast.ValSpan:
-    assert node.x_type.is_array()
+    assert node.x_type.is_vec()
     p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_span_type())
     value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
         node) or isinstance(node, (cwast.ValCompound, cwast.ValString)) else None
@@ -495,7 +495,7 @@ def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCo
 
 
 def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
-    if orig_node.x_type.is_array() and target_type.is_span():
+    if orig_node.x_type.is_vec() and target_type.is_span():
         return MakeValSpanFromArray(
             orig_node, target_type, tc, uint_type)
     elif target_type.is_union():

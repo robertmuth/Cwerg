@@ -968,7 +968,7 @@ class CanonType:
         assert self.is_union()
         return self.children
 
-    def is_array(self) -> bool:
+    def is_vec(self) -> bool:
         return self.node is TypeVec
 
     def is_void_or_wrapped_void(self) -> bool:
@@ -985,14 +985,14 @@ class CanonType:
         return self.children[0]
 
     def underlying_array_type(self) -> "CanonType":
-        assert self.is_array()
+        assert self.is_vec()
         return self.children[0]
 
     def is_vec_or_span(self) -> bool:
         return self.node is TypeVec or self.node is TypeSpan
 
     def underlying_vec_or_span_type(self) -> "CanonType":
-        assert self.is_array() or self.is_span()
+        assert self.is_vec() or self.is_span()
         return self.children[0]
 
     def contained_type(self) -> "CanonType":
@@ -1006,11 +1006,11 @@ class CanonType:
         return align(self.size, self.alignment)
 
     def array_dim(self):
-        assert self.is_array()
+        assert self.is_vec()
         return self.dim
 
     def array_element_size(self):
-        assert self.is_array()
+        assert self.is_vec()
         return self.size // self.dim
 
     def is_mutable(self) -> bool:

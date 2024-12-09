@@ -239,7 +239,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
                                   id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type: cwast.CanonType = node.container.x_type
-        assert x_type.is_array(), f"{x_type}"
+        assert x_type.is_vec(), f"{x_type}"
         base = _GetLValueAddress(node.container, tc, id_gen)
         offset = OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size,
                                      tc, id_gen)
@@ -603,7 +603,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {src.base} {src.offset}")
         return res
     elif isinstance(node, cwast.ExprFront):
-        assert node.container.x_type.is_array(), f"unexpected {node}"
+        assert node.container.x_type.is_vec(), f"unexpected {node}"
         return _GetLValueAddress(node.container, tc, id_gen)
     elif isinstance(node, cwast.ExprField):
         recfield: cwast.RecField = node.field.GetRecFieldRef()
@@ -716,7 +716,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                     EmitIRExprToMemory(init.value_or_undef, BaseOffset(
                         dst.base, dst.offset+field.x_offset), tc, id_gen)
         else:
-            assert src_type.is_array()
+            assert src_type.is_vec()
             element_size: int = src_type.array_element_size()
             for index, c in symbolize.IterateValArray(init_node.inits,
                                                       init_node.x_type.array_dim(),
@@ -947,7 +947,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
 
         if ct.is_base_or_enum_type():
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
-        elif ct.is_array():
+        elif ct.is_vec():
             assert isinstance(
                 node, (cwast.ValCompound, cwast.ValString)), f"{node}"
             print(f"# array: {ct.name}")
