@@ -4,7 +4,7 @@ module:
 
 import fmt
 
-import vecx
+import vecx = vec_gen(r64)
 
 fun main(argc s32, argv ^^u8) s32:
     -- if argc < 3:
@@ -14,8 +14,8 @@ fun main(argc s32, argv ^^u8) s32:
     -- let arg_h span(u8) = fmt::strz_to_slice(pinc(argv, 2)^)
     -- let width u32 = fmt::str_to_u32(arg_w)
     -- let height u32 = fmt::str_to_u32(arg_h)
-    let v1 = {vecx::vec3_r64: 1.0, 2.0, 3.0}
-    let v2 = {vecx::vec3_r64: 1.0, 2.0, 3.0}
+    let v1 = {vecx::vec3: 1.0, 2.0, 3.0}
+    let v2 = {vecx::vec3: 1.0, 2.0, 3.0}
 
     fmt::print#(v1, "\n")
     fmt::print#(v2, "\n")
