@@ -9,7 +9,19 @@ pub type vec3 = [3]$T
 
 pub type vec4 = [4]$T
 
+pub type mat2 = [2][2]$T
 
+pub type mat3 = [3][3]$T
+
+pub type mat4 = [4][4]$T
+
+pub global zero_vec2 vec2
+pub global zero_vec3 vec3
+pub global zero_vec4 vec4
+
+pub global zero_mat2 mat2
+pub global zero_mat3 mat3
+pub global zero_mat4 mat4
 --
 fun add@(a vec2, b vec2) vec2:
     return {: a[0] + b[0], a[1] + b[1]}
@@ -20,6 +32,11 @@ fun add@(a vec3, b vec3) vec3:
 fun add@(a vec4, b vec4) vec4:
     return {: a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]}
 
+fun add@(a mat2, b mat2) mat2:
+    return {:
+    {: a[0][0] +  b[0][0], a[0][1] +  b[0][1] },
+    {: a[1][0] +  b[1][0], a[1][1] +  b[1][1] }
+    }
 --
 fun dot@(a vec2, b vec2) $T:
     return a[0] * b[0] + a[1] * b[1]
