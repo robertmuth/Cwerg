@@ -948,6 +948,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
         if ct.is_base_or_enum_type():
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
         elif ct.is_vec():
+            if isinstance(node, cwast.ValAuto):
+                return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
             assert isinstance(
                 node, (cwast.ValCompound, cwast.ValString)), f"{node}"
             print(f"# array: {ct.name}")
