@@ -49,7 +49,7 @@ pub fun FmtDec@(v s16, out span!(u8)) uint:
     if v < 0:
         let v_unsigned = 0_s16 - v
         set out[0] = '-'
-        return 1 + FmtDec@(v_unsigned, span_inc_or_die#(out, 1))
+        return 1 + FmtDec@(v_unsigned, span_inc#(out, 1))
     else:
         return FmtDec@(as(v, u16), out)
 
@@ -59,7 +59,7 @@ pub fun FmtDec@(v s32, out span!(u8)) uint:
     if v < 0:
         set out[0] = '-'
         let v_unsigned = as(0_s32 - v, u32)
-        return 1 + FmtDec@(v_unsigned, span_inc_or_die#(out, 1))
+        return 1 + FmtDec@(v_unsigned, span_inc#(out, 1))
     else:
         return FmtDec@(as(v, u32), out)
 

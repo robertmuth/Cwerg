@@ -88,7 +88,7 @@ The type of the loop variable is determined by $end"""
 
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
-@pub (macro span_inc_or_die# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
+@pub (macro span_inc# EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
     (expr :
         (mlet $orig_slice auto (as $slice (span! (type_of (^ (front $slice))))))
         (mlet $orig_len auto (len $orig_slice))
