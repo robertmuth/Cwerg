@@ -129,6 +129,7 @@ class ReturnResultLocation:
     dst: Union[str, BaseOffset]
     end_label: str
 
+
 def _InitDataForBaseType(x_type: cwast.CanonType, x_value) -> bytes:
     assert x_type.is_base_or_enum_type()
     byte_width = x_type.size
@@ -404,12 +405,21 @@ _BIN_OP_MAP = {
 }
 
 
-def _EmitExpr2(kind: cwast.BINARY_EXPR_KIND, res, ct: cwast.CanonType, op1, op2):
+def _EmitExpr2( node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
+    kind = node.binary_expr_kind
+    ct = node.x_type
     res_type = ct.get_single_register_type()
     op = _BIN_OP_MAP.get(kind)
     if op is not None:
-        print(
-            f"{TAB}{op} {res}:{res_type} = {op1} {op2}")
+        print(f"{TAB}{op} {res}:{res_type} = {op1} {op2}")
+    elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
+        conv_op1 = id_gen.NewName("pdelta1")
+        conv_op2 = id_gen.NewName("pdelta2")
+        print(f"{TAB}bitcast {conv_op1}:{res_type} = {op1}")
+        print(f"{TAB}bitcast {conv_op2}:{res_type} = {op2}")
+
+        print(f"{TAB}sub {res}:{res_type} = {conv_op1} {conv_op2}")
+        print(f"{TAB}div {res} = {res} {node.expr1.x_type.underlying_pointer_type().aligned_size()}")
     elif kind is cwast.BINARY_EXPR_KIND.MAX:
         print(
             f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op2} {op1}")
@@ -522,7 +532,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
         op1 = EmitIRExpr(node.expr1, tc, id_gen)
         op2 = EmitIRExpr(node.expr2, tc, id_gen)
         res = id_gen.NewName("expr2")
-        _EmitExpr2(node.binary_expr_kind, res, node.x_type, op1, op2)
+        _EmitExpr2(node, res, op1, op2, id_gen)
         return res
     elif isinstance(node, cwast.ExprPointer):
         base = EmitIRExpr(node.expr1, tc, id_gen)
@@ -1210,7 +1220,6 @@ def main() -> int:
                 # Note, the inlining inside FunOptimize will invalidate id_gen
                 optimize.FunOptimize(fun, id_gen)
     fun_id_gens = identifier.IdGenCache()
-
 
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
