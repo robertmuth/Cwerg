@@ -541,6 +541,7 @@ ALL_FIELDS = [
     NfdAttrBool("pub", "has public visibility"),
     NfdAttrBool("extern", "is external function (empty body)"),
     NfdAttrBool("mut", "is mutable"),
+    NfdAttrBool("preserve_mut", "result type is mutable if underlying type is"),
     NfdAttrBool("ref", "address may be taken"),
     NfdAttrBool("colon", "colon style list"),
     NfdAttrBool("cdecl", "use c-linkage (no module prefix)"),
@@ -1976,6 +1977,7 @@ class ExprFront:
     container: NODES_EXPR_T   # must be of type span or vec
     #
     mut: bool = False
+    preserve_mut: bool = False
     #
     x_srcloc: SrcLoc = SRCLOC_UNKNOWN
     x_type: CanonType = NO_TYPE
@@ -2155,7 +2157,7 @@ class ExprBitCast:
     s64,u64, f64 <-> s64,u64, f64
     sint, uint <-> ptr(x)
     ptr(a) <-> ptr(b)
-    It is also ok to bitcase complex objects like recs
+    (Probably not true anymore: It is also ok to bitcast complex objects like recs
     """
     ALIAS = "bitwise_as"
     GROUP = GROUP.Expression
@@ -3187,7 +3189,8 @@ def UpdateSymbolAndTargetLinks(node, symbol_map, target_map):
 
     for f, nfd in node.__class__.FIELDS:
         if nfd.kind is NFK.NODE:
-            UpdateSymbolAndTargetLinks(getattr(node, f), symbol_map, target_map)
+            UpdateSymbolAndTargetLinks(
+                getattr(node, f), symbol_map, target_map)
         elif nfd.kind is NFK.LIST:
             for cc in getattr(node, f):
                 UpdateSymbolAndTargetLinks(cc, symbol_map, target_map)

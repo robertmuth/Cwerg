@@ -601,8 +601,10 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         if not ct.is_span() and not ct.is_vec():
             cwast.CompilerError(
                 node.x_srcloc, "expected container in front expression")
-        p_type = tc.insert_ptr_type(
-            node.mut, ct.underlying_vec_or_span_type())
+        mut = node.mut
+        if node.preserve_mut and ct.is_span() and ct.mut:
+            mut = True
+        p_type = tc.insert_ptr_type(mut, ct.underlying_vec_or_span_type())
         return AnnotateNodeType(node, p_type)
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
@@ -678,7 +680,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprAddrOf):
         cstr_expr = _TypifyNodeRecursively(
             node.expr_lhs, tc, cwast.NO_TYPE, ctx)
-        return AnnotateNodeType(node, tc.insert_ptr_type(node.mut, cstr_expr))
+        mut = node.mut
+        return AnnotateNodeType(node, tc.insert_ptr_type(mut, cstr_expr))
     elif isinstance(node, cwast.ExprOffsetof):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         field_node = tc.lookup_rec_field(ct, node.field.GetBaseNameStrict())
@@ -884,7 +887,8 @@ def CheckExprFront(node: cwast.ExprFront, _):
 
     assert node.container.x_type.is_vec_or_span(
     ), f"unpected front expr {node.container.x_type}"
-    if node.mut:
+    mut = node.x_type.mut
+    if mut:
         if not type_corpus.is_mutable_array_or_span(node.container):
             cwast.CompilerError(
                 node.x_srcloc, f"container not mutable: {node} {node.container}")

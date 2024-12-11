@@ -19,14 +19,9 @@ pub fun Skip(buffer ^!span(u8), n uint) union(void, OutOfBoundsError):
     do SkipUnchecked(buffer, n)
 
 --
-fun IncSliceOrDie(buffer ^!span(u8), n uint) void:
-    let length uint = len(buffer^)
-    set buffer^ = span(pinc(front(buffer^), n, length), length - n)
-
---
 pub fun FrontSliceOrDie(buffer ^!span(u8), n uint) span(u8):
     let out = span(front(buffer^), n)
-    do IncSliceOrDie(buffer, n)
+    set buffer^ = span_inc#(buffer^, n)
     return out
 
 --
