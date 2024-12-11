@@ -158,7 +158,7 @@ pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
         set t -= 1
         set mantissa *= 10
         set mantissa >>= as(52_s32 - exponent, u64)
-    let num_digits uint = fmt_int::FmtDec@(mantissa, as(buffer, span!(u8)))
+    let num_digits uint = fmt_int::FmtDec@(mantissa, span(front!(buffer), len(buffer)))
     -- decimal rounding if we drop digits
     if num_digits > precision + 1 && buffer[precision + 2] >= '5':
         set t += RoundDigitsUp(span(front!(buffer), precision + 1))
