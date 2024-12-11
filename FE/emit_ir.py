@@ -467,7 +467,7 @@ def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> 
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
     assert ct_dst.is_void_or_wrapped_void(
-    ) or ct_dst.fits_in_register(), f"{node} {ct_dst}"
+    ) or ct_dst.fits_in_register(), f"{node} ct={ct_dst}"
     if isinstance(node, cwast.ExprCall):
         sig: cwast.CanonType = node.callee.x_type
         assert sig.is_fun()
@@ -659,14 +659,21 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
                               cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
                               cwast.Expr1, cwast.Expr2,
-                              cwast.ExprPointer, cwast.ExprBitCast,
-                              cwast.ExprFront, cwast.ExprBitCast)):
+                              cwast.ExprPointer, cwast.ExprFront)):
         reg = EmitIRExpr(init_node, tc, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+    elif isinstance(init_node, (cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+        # both imply scalar and both do not change the bits
+        reg = EmitIRExpr(init_node.expr, tc, id_gen)
+        print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, (cwast.ExprWrap, cwast.ExprUnwrap)):
+        # these do NOT imply scalars
         EmitIRExprToMemory(init_node.expr, dst, tc, id_gen)
     elif isinstance(init_node, cwast.ExprAs):
-        # same as above
+        # this implies scalar
+        # TODO: add the actual conversion step using IR opcode `conv`
+        #       bools may need special treatment
+        assert init_node.x_type == init_node.type.x_type, f"ExprAs {init_node.type.x_type} ->  {init_node.x_type}"
         assert init_node.x_type.fits_in_register(
         ), f"{init_node} {init_node.x_type}"
         reg = EmitIRExpr(init_node, tc, id_gen)
