@@ -73,6 +73,7 @@ def is_compatible_for_eq(actual: cwast.CanonType, expected: cwast.CanonType) -> 
 
 def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
     if ct_src is ct_dst:
+        # TODO: get rid of this
         # this happens in certain macros
         return True
 
@@ -84,21 +85,19 @@ def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bo
         if ct_dst.is_int() or ct_dst.is_real():
             return True
 
-    if ct_src.is_pointer() and ct_dst.is_pointer():
-        # TODO: check "ref"
-        if ct_src.underlying_pointer_type() == ct_dst.underlying_pointer_type():
-            return not ct_dst.is_mutable()
-        else:
-            return ct_dst.is_mutable() == ct_src.is_mutable()
-
     if ct_src.is_bool():
         if ct_dst.is_int() or ct_dst.is_real():
             return True
 
-    if ct_src.is_vec() and ct_dst.is_span():
-        # TODO: check "ref"
-        return ct_src.underlying_array_type() == ct_dst.underlying_span_type()
     return False
+
+
+def is_compatible_for_bitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if not ct_src.is_base_or_enum_type() and not ct_src.is_pointer():
+        return False
+    if not ct_dst.is_base_or_enum_type() and not ct_dst.is_pointer():
+        return False
+    return ct_src.aligned_size() == ct_dst.aligned_size()
 
 
 def is_compatible_for_widen(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:

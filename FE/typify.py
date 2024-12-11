@@ -898,14 +898,6 @@ def CheckExprFront(node: cwast.ExprFront, _):
                    node.container.x_type.underlying_vec_or_span_type())
 
 
-def CheckExprAs(node: cwast.ExprAs, _):
-    ct_src = node.expr.x_type
-    ct_dst = node.type.x_type
-    if not type_corpus.is_compatible_for_as(ct_src, ct_dst):
-        cwast.CompilerError(
-            node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
-
-
 def _CheckExprWiden(node: cwast.ExprWiden, _):
     ct_src: cwast.CanonType = node.expr.x_type
     if ct_src.original_type:
@@ -1135,6 +1127,29 @@ def _CheckDefVarDefGlobalStrict(node, _):
             node, initial.x_type, ct, initial.x_srcloc)
     _CheckTypeSame(node, node.x_type, ct)
 
+
+def CheckExprAs(node: cwast.ExprAs, _):
+    ct_src = node.expr.x_type
+    ct_dst = node.type.x_type
+    if not type_corpus.is_compatible_for_as(ct_src, ct_dst):
+        cwast.CompilerError(
+            node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
+
+
+def _CheckExprUnsafeCast(node: cwast.ExprUnsafeCast,  tc: type_corpus.TypeCorpus):
+    if not node.x_type.is_pointer() or not node.expr.x_type.is_pointer():
+        cwast.CompilerError(
+            node.x_srcloc, f"unsafe_cast must convert pointer to pointer")
+
+
+def _CheckExprBitCast(node: cwast.ExprAs, _):
+    ct_src = node.expr.x_type
+    ct_dst = node.type.x_type
+    if not type_corpus.is_compatible_for_bitcast(ct_src, ct_dst):
+        cwast.CompilerError(
+            node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
+
+
 def _CheckNothing(_, _2):
     pass
 
@@ -1159,7 +1174,6 @@ class TypeVerifier:
             cwast.ExprIndex: _CheckExprIndex,
             cwast.ExprField: CheckExprField,
             cwast.ExprFront: CheckExprFront,
-            cwast.ExprAs: CheckExprAs,
             cwast.ExprWiden: _CheckExprWiden,
             cwast.ExprNarrow: _CheckExprNarrow,
             cwast.ExprAddrOf: _CheckExprAddrOf,
@@ -1211,17 +1225,10 @@ class TypeVerifier:
             # minuned = node.type.x_type
             #  subtrahend = node.subtrahend.x_type
             # TODO: need to use original types if available
-            cwast.ExprUnsafeCast: _CheckNothing,
-            # src = node.expr.x_type
-            # dst = node.type.x_type
-            # TODO
-            # assert is_compatible_for_as(src, dst)
-            cwast.ExprBitCast: _CheckNothing,
-            # src = node.expr.x_type
-            # dst = node.type.x_type
-            # TODO
-            # assert is_compatible_for_as(src, dst)
-            #
+            cwast.ExprUnsafeCast: _CheckExprUnsafeCast,
+            cwast.ExprAs: CheckExprAs,
+            cwast.ExprBitCast: _CheckExprBitCast,
+
             # Statements
             cwast.StmtIf: _CheckStmtIfStmtCond,
             cwast.StmtCond: _CheckStmtIfStmtCond,
