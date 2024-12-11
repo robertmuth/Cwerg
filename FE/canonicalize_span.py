@@ -160,12 +160,13 @@ def ReplaceSpans(node):
                         symbolize.AnnotateNodeSymbol(node, def_rec)
                     typify.UpdateNodeType(node, def_rec)
                     return None
-                elif isinstance(node, (cwast.ExprAs, cwast.ExprUnwrap)):
+                elif isinstance(node, (cwast.ExprUnwrap)):
                     ct_src = node.expr.x_type
                     ct_dst = node.x_type
-                    if ct_src.is_wrapped() and ct_src.underlying_wrapped_type() == ct_dst:
-                        typify.UpdateNodeType(node, def_rec)
-                        return None
+                    assert ct_src.is_wrapped() and ct_src.underlying_wrapped_type() == ct_dst
+                    typify.UpdateNodeType(node, def_rec)
+                    return None
+
 
                 cwast.CompilerError(
                     node.x_srcloc, "do not know how to convert span related node " +
