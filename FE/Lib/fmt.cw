@@ -139,12 +139,11 @@ pub macro print# STMT_LIST(
     -- list of items to be printed
     $parts EXPR_LIST_REST)[$buffer, $curr, $options]:
     mlet! $buffer = {[FORMATED_STRING_MAX_LEN]u8 :}
-    mlet! $curr uint = 0
+    mlet! $curr span!(u8) = $buffer
     ref mlet! $options = {SysFormatOptions :}
     mfor $i $parts:
-        set $curr += SysRender@(
-                $i, span(pinc(front!($buffer), $curr), len($buffer) - $curr), &!$options)
-    do os::write(unwrap(os::Stdout), front($buffer), $curr)
+        set $curr = span_inc#($curr, SysRender@($i, $curr, &!$options))
+    do os::write(unwrap(os::Stdout), front($buffer), len($buffer) - len($curr))
 
 pub fun strz_to_slice(s ^u8) span(u8):
     let! i uint = 0
