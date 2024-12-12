@@ -53,8 +53,7 @@ fun make_expected(is_neg bool, integer u32, exp10 s32, precision uint, out span!
     set out[2] = '.'
     for j = 0, precision, 1:
         set out[j + 3] = '0'
-    let! n uint = fmt_real::FmtExponentE(
-            exp10, span_inc(out, precision + 3))
+    let! n uint = fmt_real::FmtExponentE(exp10, span_inc(out, precision + 3))
     set n += precision
     set n += 3
     return n

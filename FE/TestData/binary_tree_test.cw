@@ -12,7 +12,7 @@ import bt = "./binary_tree_gen"(u32, lt)
 
 global N u32 = 64
 
-global! NodePool = {[N]bt::Node :}
+global! NodePool = {[N]bt::Node:}
 
 global! NodePoolFreeIndex uint = 0
 

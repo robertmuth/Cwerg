@@ -27,7 +27,7 @@ fun SumPayload(root MaybeNode) u32:
 
 global N uint = 100
 
-global! NodePool = {[N]LinkedListNode :}
+global! NodePool = {[N]LinkedListNode:}
 
 -- currently (* N 24) but should be (* N 16) on 64 bit system with union optimization
 static_assert size_of(type_of(NodePool)) == N * 3 * size_of(^!LinkedListNode)

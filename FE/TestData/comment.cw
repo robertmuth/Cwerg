@@ -8,7 +8,7 @@ pub rec type_rec2:
     s3 s32
 
 -- global with rec literal
-global r02 = {type_rec2 : s2 = 9, 
+global r02 = {type_rec2: s2 = 9, 
     -- field_val comment
     7}
 
@@ -20,7 +20,7 @@ enum type_enum s32:
     e3 19
     e4 auto
 
-global c31 = {[30]uint : 10, 
+global c31 = {[30]uint: 10, 
     -- index_val
     20, 30}
 
@@ -28,10 +28,10 @@ global c31 = {[30]uint : 10,
 fun main(argc s32, 
     -- param
     argv ^^u8) s32:
-    let! loc11 = {[30]uint : 10, 
+    let! loc11 = {[30]uint: 10, 
         -- index_val
         20, 30}
-    let! loc22 = {type_rec2 : s2 = 9, 
+    let! loc22 = {type_rec2: s2 = 9, 
         -- field_val comment
         7}
     -- cond

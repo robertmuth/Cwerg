@@ -16,11 +16,11 @@ import bitstream
 -- C = 101
 -- D = 100
 --
-global Tree0Length = {[4]u16 : 2, 1, 3, 3}
+global Tree0Length = {[4]u16: 2, 1, 3, 3}
 
-global Tree0ExpectedSymbols = {[4]u16 : 'B' - 'A', 'A' - 'A', 'C' - 'A', 'D' - 'A'}
+global Tree0ExpectedSymbols = {[4]u16: 'B' - 'A', 'A' - 'A', 'C' - 'A', 'D' - 'A'}
 
-global Tree0ExpectedCounts = {[4]u16 : 0, 1, 1, 2}
+global Tree0ExpectedCounts = {[4]u16: 0, 1, 1, 2}
 
 fun test_tree0_decoding() void:
     let! counts [4]u16
@@ -78,13 +78,13 @@ fun test_tree0_decoding() void:
 -- 9-J 111110
 -- 10-K 111111
 --
-global Tree1Length = {[11]u16 : 4, 4, 4, 5, 3, 2, 3, 3, 3, 6, 6}
+global Tree1Length = {[11]u16: 4, 4, 4, 5, 3, 2, 3, 3, 3, 6, 6}
 
 global Tree1ExpectedSymbols = {
-        [11]u16 : 'F' - 'A', 'E' - 'A', 'G' - 'A', 'H' - 'A', 'I' - 'A', 'A' - 'A', 
+        [11]u16: 'F' - 'A', 'E' - 'A', 'G' - 'A', 'H' - 'A', 'I' - 'A', 'A' - 'A', 
         'B'- 'A', 'C' - 'A', 'D' - 'A', 'J' - 'A', 'K' - 'A'}
 
-global Tree1ExpectedCounts = {[7]u16 : 0, 0, 1, 4, 3, 1, 2}
+global Tree1ExpectedCounts = {[7]u16: 0, 0, 1, 4, 3, 1, 2}
 
 fun test_tree1_decoding() void:
     let! counts [7]u16
@@ -103,8 +103,8 @@ fun test_tree1_bitstream_decoding() void:
             huffman::ComputeCountsAndSymbolsFromLengths(
                 Tree1Length, counts, symbols),
             11_u16)
-    let data = {[8]u8 : 0b11111100, 0b01001001, 0b1, 0, 0, 0, 0, 0}
-    ref let! bs = {bitstream::Stream32 : data}
+    let data = {[8]u8: 0b11111100, 0b01001001, 0b1, 0, 0, 0, 0, 0}
+    ref let! bs = {bitstream::Stream32: data}
     test::AssertEq#(5_u16, huffman::NextSymbol(&!bs, counts, symbols))
     test::AssertEq#(10_u16, huffman::NextSymbol(&!bs, counts, symbols))
     test::AssertEq#(7_u16, huffman::NextSymbol(&!bs, counts, symbols))

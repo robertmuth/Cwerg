@@ -10,24 +10,24 @@ global! Crc32Tab checksum::CrcTab = undef
 
 global! Crc32cTab checksum::CrcTab = undef
 
-global Data00k = {[1024]u8 : 0x00}
+global Data00k = {[1024]u8: 0x00}
 
-global Data55k = {[1024]u8 : 0x55}
+global Data55k = {[1024]u8: 0x55}
 
-global DataAAk = {[1024]u8 : 0xaa}
+global DataAAk = {[1024]u8: 0xaa}
 
-global DataFFk = {[1024]u8 : 0xff}
+global DataFFk = {[1024]u8: 0xff}
 
-global Data00m = {[1024 * 1024]u8 : 0x00}
+global Data00m = {[1024 * 1024]u8: 0x00}
 
-global Data55m = {[1024 * 1024]u8 : 0x55}
+global Data55m = {[1024 * 1024]u8: 0x55}
 
-global DataAAm = {[1024 * 1024]u8 : 0xaa}
+global DataAAm = {[1024 * 1024]u8: 0xaa}
 
-global DataFFm = {[1024 * 1024]u8 : 0xff}
+global DataFFm = {[1024 * 1024]u8: 0xff}
 
 global DataInc = {
-        [64]u8 : 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
+        [64]u8: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
         19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 
         38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 
         57, 58, 59, 60, 61, 62, 63}

@@ -158,7 +158,8 @@ pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
         set t -= 1
         set mantissa *= 10
         set mantissa >>= as(52_s32 - exponent, u64)
-    let num_digits uint = fmt_int::FmtDec@(mantissa, span(front!(buffer), len(buffer)))
+    let num_digits uint = fmt_int::FmtDec@(
+            mantissa, span(front!(buffer), len(buffer)))
     -- decimal rounding if we drop digits
     if num_digits > precision + 1 && buffer[precision + 2] >= '5':
         set t += RoundDigitsUp(span(front!(buffer), precision + 1))
@@ -217,9 +218,7 @@ pub fun FmtHex@(val r64, out span!(u8)) uint:
         set out[i] = '-'
         set i += 1
     set i += FmtMantissaHex(
-            frac_bits,
-            raw_exponent == num_real::r64_raw_exponent_subnormal,
-            span_inc(out, i))
-    set i += FmtExponentHex(raw_exponent, frac_bits == 0, span_inc(
-            out, i))
+            frac_bits, raw_exponent == num_real::r64_raw_exponent_subnormal, span_inc(
+                out, i))
+    set i += FmtExponentHex(raw_exponent, frac_bits == 0, span_inc(out, i))
     return i

@@ -241,7 +241,7 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
             let d = file^.data[end]
             if d == '"':
                 set file^.objects[index] = {
-                        Atom : start, end - start, seen_esc ? AtomKind:EscStr : AtomKind:Str}
+                        Atom: start, end - start, seen_esc ? AtomKind:EscStr : AtomKind:Str}
                 set file^.next_byte = end + 1
                 -- fmt::print#("ParseAtom End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
                 return MakeIndex(index, ObjKind:Atom)
@@ -258,7 +258,7 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
         if IsEndOfNum(file^.data[end]):
             break
         set end += 1
-    set file^.objects[index] = {Atom : start, end - start, AtomKind:Num}
+    set file^.objects[index] = {Atom: start, end - start, AtomKind:Num}
     -- fmt::print#("ParseAtom End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
     set file^.next_byte = end
     return MakeIndex(index, ObjKind:Atom)
@@ -280,7 +280,7 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
                 return NullIndex
             else:
                 set file^.objects[last_entry] = {
-                        Item : NullIndex, NullIndex, last_val}
+                        Item: NullIndex, NullIndex, last_val}
                 return MakeIndex(first_entry, ObjKind:Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
@@ -295,7 +295,7 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
         else:
             -- now that we know the next pointer, finalize the previous entry
             set file^.objects[last_entry] = {
-                    Item : MakeIndex(entry, ObjKind:Item), NullIndex, last_val}
+                    Item: MakeIndex(entry, ObjKind:Item), NullIndex, last_val}
         set last_entry = entry
         set last_val = val
         set n += 1
@@ -319,7 +319,7 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
                 return NullIndex
             else:
                 set file^.objects[last_entry] = {
-                        Item : NullIndex, last_key, last_val}
+                        Item: NullIndex, last_key, last_val}
                 return MakeIndex(first_entry, ObjKind:Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
@@ -339,7 +339,7 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
         else:
             -- now that we know the next pointer, finalize the previous entry
             set file^.objects[last_entry] = {
-                    Item : MakeIndex(entry, ObjKind:Item), last_key, last_val}
+                    Item: MakeIndex(entry, ObjKind:Item), last_key, last_val}
         set last_entry = entry
         set last_key = key
         set last_val = val
@@ -355,14 +355,14 @@ fun ParseNext(file ^!File) union(Index, AllocError, DataError):
             return err
         trylet first Index = ParseDict(file), err:
             return err
-        set file^.objects[container] = {Cont : first, ContKind:Dict}
+        set file^.objects[container] = {Cont: first, ContKind:Dict}
         return MakeIndex(container, ObjKind:Cont)
     if MaybeConsume(file, '['):
         trylet container u32 = AllocObj(file), err:
             return err
         trylet first Index = ParseVec(file), err:
             return err
-        set file^.objects[container] = {Cont : first, ContKind:Vec}
+        set file^.objects[container] = {Cont: first, ContKind:Vec}
         return MakeIndex(container, ObjKind:Cont)
     return ParseAtom(file)
 

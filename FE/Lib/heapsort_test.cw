@@ -14,7 +14,7 @@ import rhs = heapsort_gen(real64, cmp_r64_lt)
 
 global SIZE uint = 20
 
-global! Data = {[SIZE]r64 :}
+global! Data = {[SIZE]r64:}
 
 global NEWLINE = "\n"
 

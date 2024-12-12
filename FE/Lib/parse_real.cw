@@ -25,7 +25,7 @@ fun dec_digit_val(c u8) u8:
 -- this macros capture i,n,s from the environment
 macro next_char# STMT_LIST($c ID, $body STMT_LIST)[]:
     if i >= n:
-        $body
+        $body 
 
     set $c = s[i]
     set i += 1

@@ -25,8 +25,8 @@ pub rec SysFormatOptions:
     show_sign bool
     left_justify bool
 
-
 global TRUE_STR span(u8) = "true"
+
 global FALSE_STR span(u8) = "false"
 
 fun SysRender@(v bool, buffer span!(u8), options ^!SysFormatOptions) uint:
@@ -138,9 +138,9 @@ fun SysRender@(v ^void, out span!(u8), options ^!SysFormatOptions) uint:
 pub macro print# STMT_LIST(
     -- list of items to be printed
     $parts EXPR_LIST_REST)[$buffer, $curr, $options]:
-    mlet! $buffer = {[FORMATED_STRING_MAX_LEN]u8 :}
+    mlet! $buffer = {[FORMATED_STRING_MAX_LEN]u8:}
     mlet! $curr span!(u8) = $buffer
-    ref mlet! $options = {SysFormatOptions :}
+    ref mlet! $options = {SysFormatOptions:}
     mfor $i $parts:
         set $curr = span_inc($curr, SysRender@($i, $curr, &!$options))
     do os::write(unwrap(os::Stdout), front($buffer), len($buffer) - len($curr))

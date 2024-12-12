@@ -62,7 +62,7 @@ fun edit_distance(a span(u8), b span(u8), tmp span!(uint)) uint:
     return ldist
 
 fun main(argc s32, argv ^^u8) s32:
-    ref let! v = {[MAX_LEN]uint :}
+    ref let! v = {[MAX_LEN]uint:}
     test::AssertEq#(edit_distance("", "", v), 0_uint)
     test::AssertEq#(edit_distance(TEST_STRING, TEST_STRING, v), 0_uint)
     test::AssertEq#(edit_distance("", "abc", v), 3_uint)

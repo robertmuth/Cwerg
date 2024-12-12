@@ -40,31 +40,31 @@ global g0 type_rec1 = undef
 
 global g1 [5]type_rec1 = undef
 
-global g2 = {type_rec2 : true, u0}
+global g2 = {type_rec2: true, u0}
 
-global! g3 = {type_rec3 : 0x1234, 0x4321, g2, {[13]u16 : 0x11, undef, 0x12}}
+global! g3 = {type_rec3: 0x1234, 0x4321, g2, {[13]u16: 0x11, undef, 0x12}}
 
-global! g3_alt = {type_rec3 : 0x1234, 0x4321, g2, {[13]u16 : 0x11, undef, 0x12}}
+global! g3_alt = {type_rec3: 0x1234, 0x4321, g2, {[13]u16: 0x11, undef, 0x12}}
 
 -- BROKEN init
-global g4 = {[4]type_rec2 : undef, g2}
+global g4 = {[4]type_rec2: undef, g2}
 
 pub rec type_rec5:
     t1 u64
     t2 span!(u8)
     t5 bool
 
-global! buffer = {[3]u8 : 0, 0, 0}
+global! buffer = {[3]u8: 0, 0, 0}
 
 global g5 type_rec5 = undef
 
-global g6 type_rec5 = {type_rec5 : 0, buffer, false}
+global g6 type_rec5 = {type_rec5: 0, buffer, false}
 
-global g7 = {[1]type_rec5 : {type_rec5 : 0, buffer, false}}
+global g7 = {[1]type_rec5: {type_rec5: 0, buffer, false}}
 
 fun main(argc s32, argv ^^u8) s32:
     -- LOCAL
-    let! v1 = {type_rec3 :}
+    let! v1 = {type_rec3:}
     set v1.u2 = 102
     set v1.u3 = 103
     set v1.u6 = 106
