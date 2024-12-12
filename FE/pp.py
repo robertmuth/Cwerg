@@ -228,7 +228,7 @@ class TS:
     def Pos(self) -> int:
         return self._count
 
-    def EmitToken(self, kind: TK, tag="", beg=None):
+    def EmitToken(self, kind: TK, tag: str = "", beg=None):
         if tag == "(" or tag == "[":
             assert kind in (TK.PAREN_BEG, TK.PAREN_BEG_EXPR,
                             TK.PAREN_BEG_VEC_TYPE)
@@ -402,7 +402,7 @@ def TokensAnnotationsPre(ts: TS, node):
             ts.EmitAnnotationShort(field)
 
 
-def TokensAnnotationsPost(ts: TS, node):
+def TokensAnnotationsPost(_ts: TS, _node):
     pass
 
 
@@ -463,7 +463,8 @@ def TokensValCompound(ts: TS, node: cwast.ValCompound):
     beg = ts.EmitBegExprParen("{")
     if not isinstance(node.type_or_auto, cwast.TypeAuto):
         EmitTokens(ts, node.type_or_auto)
-    ts.EmitAttr(":")
+    ts.EmitToken(TK.UNOP_SUFFIX, ":")
+
     sep = False
     for e in node.inits:
         if sep:
@@ -579,7 +580,7 @@ def TokensExpr2(ts: TS, n: cwast.Expr2):
 
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.Id: lambda ts, n:  (ts.EmitAttr(n.FullName())),
-    cwast.MacroId: lambda ts, n:  (ts.EmitAttr(n.name)),
+    cwast.MacroId: lambda ts, n:  (ts.EmitAttr(str(n.name))),
     cwast.MacroInvoke: TokensExprMacroInvoke,
     #
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr(KW(n)),
@@ -718,15 +719,16 @@ def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         beg_paren = ts.EmitBegParen("(")
 
     args = node.args
-    if node.name == "for":
+    name = node.name.name
+    if name == "for":
         ts.EmitAttr(_GetOriginalVarName(args[0]))
         args = args[1:]
         ts.EmitBinOp("=")
-    elif node.name == "tryset":
+    elif name == "tryset":
         EmitTokens(ts, args[0])
         args = args[1:]
         ts.EmitBinOp("=")
-    elif node.name == "trylet" or node.name == "trylet!":
+    elif name == "trylet" or name == "trylet!":
         ts.EmitAttr(_GetOriginalVarName(args[0]))
         EmitTokens(ts, args[1])
         args = args[2:]
