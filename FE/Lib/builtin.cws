@@ -113,8 +113,8 @@ The type of the loop variable is determined by $end"""
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
 @pub (macro span_append_or_die# EXPR [(mparam $slice EXPR) (mparam $out EXPR)] [$e_slice $e_out] :
     (expr :
-        (mlet $e_slice auto  $slice)
-        (mlet $e_out auto (as $out (span! (type_of (^ (front $out))))))
+        (mlet $e_slice (span (type_of (^ (front $slice)))) $slice)
+        (mlet! $e_out (span! (type_of (^ (front $out)))) $out)
         (if (> (len $e_slice) (len $e_out)) :
             (trap)
          :)
