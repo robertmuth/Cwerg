@@ -51,11 +51,11 @@ fun FmtNan(val r64, out span!(u8)) uint:
     set out[0] = is_negative ? '-' : '+'
     cond:
         case mantissa == num_real::r64_mantissa_infinity:
-            return 1 + span_append_or_die#("inf", span_inc#(out, 1))
+            return 1 + span_append_or_die#("inf", span_inc(out, 1))
         case mantissa == num_real::r64_mantissa_qnan:
-            return 1 + span_append_or_die#("nan", span_inc#(out, 1))
+            return 1 + span_append_or_die#("nan", span_inc(out, 1))
         case mantissa == num_real::r64_mantissa_snan:
-            return 1 + span_append_or_die#("snan", span_inc#(out, 1))
+            return 1 + span_append_or_die#("snan", span_inc(out, 1))
     return 0
 
 -- for a given float val we want to find a decomposition
@@ -81,13 +81,13 @@ pub fun FmtExponentE(exp s32, out span!(u8)) uint:
         if exp >= -9:
             set out[2] = '0'
             set i += 1
-        return i + fmt_int::FmtDec@(-exp, span_inc#(out, i))
+        return i + fmt_int::FmtDec@(-exp, span_inc(out, i))
     else:
         set out[1] = '+'
         if exp <= 9:
             set out[2] = '0'
             set i += 1
-        return i + fmt_int::FmtDec@(exp, span_inc#(out, i))
+        return i + fmt_int::FmtDec@(exp, span_inc(out, i))
 
 fun FmtSign(is_negative bool, force_sign bool, out span!(u8)) uint:
     cond:
@@ -140,8 +140,8 @@ pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
             let! i = 0_uint
             set i += FmtSign(is_negative, force_sign, out)
             set i += FmtMantissaE(
-                    span(front(buffer), 1), precision, span_inc#(out, i))
-            set i += FmtExponentE(0, span_inc#(out, i))
+                    span(front(buffer), 1), precision, span_inc(out, i))
+            set i += FmtExponentE(0, span_inc(out, i))
             return i
         return 0
     if num_real::r64_raw_exponent(val) == num_real::r64_raw_exponent_nan:
@@ -166,8 +166,8 @@ pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
     let! i = 0_uint
     set i += FmtSign(is_negative, force_sign, out)
     set i += FmtMantissaE(
-            span(front(buffer), num_digits), precision, span_inc#(out, i))
-    set i += FmtExponentE(t, span_inc#(out, i))
+            span(front(buffer), num_digits), precision, span_inc(out, i))
+    set i += FmtExponentE(t, span_inc(out, i))
     -- fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")
     return i
 
@@ -200,7 +200,7 @@ fun FmtExponentHex(raw_exponent s32, is_potential_zero bool, out span!(u8)) uint
         set exp = -exp
     else:
         set out[1] = '+'
-    return 2 + fmt_int::FmtDec@(as(exp, u32), span_inc#(out, 2))
+    return 2 + fmt_int::FmtDec@(as(exp, u32), span_inc(out, 2))
 
 -- r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
 --         exponentiation bias is 1023
@@ -219,7 +219,7 @@ pub fun FmtHex@(val r64, out span!(u8)) uint:
     set i += FmtMantissaHex(
             frac_bits,
             raw_exponent == num_real::r64_raw_exponent_subnormal,
-            span_inc#(out, i))
-    set i += FmtExponentHex(raw_exponent, frac_bits == 0, span_inc#(
+            span_inc(out, i))
+    set i += FmtExponentHex(raw_exponent, frac_bits == 0, span_inc(
             out, i))
     return i

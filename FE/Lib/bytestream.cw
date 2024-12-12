@@ -9,7 +9,7 @@ pub global OutOfBoundsErrorVal = wrap_as(void, OutOfBoundsError)
 
 --
 pub fun SkipUnchecked(buffer ^!span(u8), n uint) void:
-    set buffer^ = span_inc#(buffer^, n)
+    set buffer^ = span_inc(buffer^, n)
 
 --
 pub fun Skip(buffer ^!span(u8), n uint) union(void, OutOfBoundsError):
@@ -20,7 +20,7 @@ pub fun Skip(buffer ^!span(u8), n uint) union(void, OutOfBoundsError):
 --
 pub fun FrontSliceOrDie(buffer ^!span(u8), n uint) span(u8):
     let out = span(front(buffer^), n)
-    set buffer^ = span_inc#(buffer^, n)
+    set buffer^ = span_inc(buffer^, n)
     return out
 
 --

@@ -21,9 +21,9 @@ pub rec ic32:
 fun fmt::SysRender@(v ic32, s span!(u8), opt ^!fmt::SysFormatOptions) uint:
     let! n uint = 0
     set n = fmt::SysRender@(v.real, s, opt)
-    set n += fmt::SysRender@("+", span_inc#(s, n), opt)
-    set n += fmt::SysRender@(v.imag, span_inc#(s, n), opt)
-    set n += fmt::SysRender@("i", span_inc#(s, n), opt)
+    set n += fmt::SysRender@("+", span_inc(s, n), opt)
+    set n += fmt::SysRender@(v.imag, span_inc(s, n), opt)
+    set n += fmt::SysRender@("i", span_inc(s, n), opt)
     return n
 
 global test_string span(u8) = "qwerty_1234"

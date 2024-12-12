@@ -14,7 +14,7 @@ from FE import cwast
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_MACROS = ["for", "while", "tryset", "trylet", "trylet!"]
+BUILTIN_MACROS = ["for", "while", "tryset", "trylet", "trylet!", "span_inc"]
 
 _OPS_PRECENDENCE = {
     # "->": 10,

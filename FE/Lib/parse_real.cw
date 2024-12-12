@@ -174,7 +174,7 @@ pub fun parse_r64_hex(s span(u8)) union(ParseError, r64):
     if s[i] != '0' || s[i + 1] != 'x':
         return ParseErrorVal
     set i += 2
-    return parse_r64_hex_helper(span_inc#(s, i), negative)
+    return parse_r64_hex_helper(span_inc(s, i), negative)
 
 fun r64_dec_fast_helper(mant_orig u64, exp_orig s32, negative bool) r64:
     let! exp = exp_orig
@@ -218,7 +218,7 @@ pub fun parse_r64(s span(u8)) union(ParseError, r64):
         return ParseErrorVal
     if c == '0' && i <= n && s[i] == 'x':
         set i += 1
-        return parse_r64_hex_helper(span_inc#(s, i), negative)
+        return parse_r64_hex_helper(span_inc(s, i), negative)
     let! mant = 0_u64
     let! exp_adjustments = 0_s32
     let! exp = 0_s32

@@ -80,6 +80,8 @@ _KEYWORDS_SIMPLE = [
     "pinc",
     "pdec",
     #
+    "span_inc",
+    #
     "abs",
     "sqrt",
     "min",
@@ -517,6 +519,10 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
         return cwast.ValAuto(x_srcloc=tk.srcloc)
     elif tk.text == "undef":
         return cwast.ValUndef(x_srcloc=tk.srcloc)
+    elif tk.text == "span_inc":
+        inp.match_or_die(TK_KIND.PAREN_OPEN)
+        args = _ParseMacroCallArgs(inp, tk.srcloc)
+        return cwast.MacroInvoke(cwast.NAME.FromStr(tk.text), args, x_srcloc=tk.srcloc)
     elif tk.text in _FUN_LIKE:
         return _ParseFunLike(inp, tk)
     elif tk.text == "expr":

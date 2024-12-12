@@ -27,6 +27,7 @@ BUILT_IN_MACROS = set([
     "trylet!",
     "tryset",
     "^.",
+    "span_inc",
 ])
 
 
