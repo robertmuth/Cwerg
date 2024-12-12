@@ -25,7 +25,7 @@ fun dec_digit_val(c u8) u8:
 -- this macros capture i,n,s from the environment
 macro next_char# STMT_LIST($c ID, $body STMT_LIST)[]:
     if i >= n:
-        $body 
+        $body
 
     set $c = s[i]
     set i += 1
@@ -162,8 +162,7 @@ fun parse_r64_hex_helper(s span(u8), negative bool) union(ParseError, r64):
     return num_real::make_r64(negative, exp_u64, mant)
 
 pub fun parse_r64_hex(s span(u8)) union(ParseError, r64):
-    let! n = len(s)
-    if n < 5:
+    if len(s) < 5:
         return ParseErrorVal
     let! i uint = 0
     let! c u8 = s[i]
@@ -175,7 +174,7 @@ pub fun parse_r64_hex(s span(u8)) union(ParseError, r64):
     if s[i] != '0' || s[i + 1] != 'x':
         return ParseErrorVal
     set i += 2
-    return parse_r64_hex_helper(span(pinc(front(s), i), n - i), negative)
+    return parse_r64_hex_helper(span_inc#(s, i), negative)
 
 fun r64_dec_fast_helper(mant_orig u64, exp_orig s32, negative bool) r64:
     let! exp = exp_orig
@@ -199,7 +198,7 @@ fun r64_dec_fast_helper(mant_orig u64, exp_orig s32, negative bool) r64:
 pub fun parse_r64(s span(u8)) union(ParseError, r64):
     -- index of next char to read
     let! i uint = 0
-    let! n = len(s)
+    let n = len(s)
     let! c u8
     next_char# c:
         return ParseErrorVal
@@ -219,7 +218,7 @@ pub fun parse_r64(s span(u8)) union(ParseError, r64):
         return ParseErrorVal
     if c == '0' && i <= n && s[i] == 'x':
         set i += 1
-        return parse_r64_hex_helper(span(pinc(front(s), i), n - i), negative)
+        return parse_r64_hex_helper(span_inc#(s, i), negative)
     let! mant = 0_u64
     let! exp_adjustments = 0_s32
     let! exp = 0_s32
