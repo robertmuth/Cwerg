@@ -216,7 +216,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], id_gen: iden
         if is_lhs:
             assert False
         sl = lhs.x_srcloc
-        at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.expr.x_type)
+        at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.x_type)
         def_node = cwast.DefVar(id_gen.NewName("assign"),
                                 at,
                                 lhs, x_srcloc=sl, x_type=at.x_type)
