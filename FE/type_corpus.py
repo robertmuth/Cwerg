@@ -72,24 +72,14 @@ def is_compatible_for_eq(actual: cwast.CanonType, expected: cwast.CanonType) -> 
 
 
 def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
-    if ct_src is ct_dst:
-        # TODO: get rid of this
-        # this happens in certain macros
-        return True
 
-    if ct_src.is_int():
-        if ct_dst.is_int() or ct_dst.is_real() or ct_dst.is_bool():
-            return True
+    if not ct_src.is_int() and not ct_src.is_real() and not ct_src.is_bool():
+        return False
 
-    if ct_src.is_real():
-        if ct_dst.is_int() or ct_dst.is_real():
-            return True
+    if not ct_dst.is_int() and not ct_dst.is_real() and not ct_dst.is_bool():
+        return False
 
-    if ct_src.is_bool():
-        if ct_dst.is_int() or ct_dst.is_real():
-            return True
-
-    return False
+    return True
 
 
 def is_compatible_for_bitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
