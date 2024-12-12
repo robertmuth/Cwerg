@@ -123,11 +123,6 @@ The type of the loop variable is determined by $end"""
         (return (len $e_slice))))
 
 
-@doc "macro for c-style -> operator"
-@pub (macro ^. EXPR [(mparam $pointer EXPR) (mparam $field FIELD)] [] :
-    (. (paren (^ $pointer)) $field))
-
-
 @pub @extern @cdecl (fun print_ln [(param s (ptr u8)) (param size uint)] void :)
 
 

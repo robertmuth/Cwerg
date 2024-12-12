@@ -14,7 +14,6 @@ from FE import cwast
 
 logger = logging.getLogger(__name__)
 
-BUILTIN_MACROS = ["for", "while", "tryset", "trylet", "trylet!", "span_inc"]
 
 _OPS_PRECENDENCE = {
     # "->": 10,
@@ -93,9 +92,9 @@ def NodeNeedsParen(node, parent, field: str):
             return False
         if field == "expr1":
             if isinstance(node, cwast.Expr2):
-               # parent: (expr2 node ...)
-               # BAD EXAMPLES:
-               # (* (+ a b ) c) =>  a + b * c
+                # parent: (expr2 node ...)
+                # BAD EXAMPLES:
+                # (* (+ a b ) c) =>  a + b * c
                 return _prec2(node) < _prec2(parent) and node.binary_expr_kind not in _FUNCTIONAL_BINOPS
         if field == "expr2":
             if isinstance(node, cwast.Expr2):
@@ -383,7 +382,7 @@ def TokensAnnotationsPre(ts: TS, node):
                     val = val[1:-1]
                 for line in val.split("\n"):
                     if not line:
-                         ts.EmitComment("--")
+                        ts.EmitComment("--")
                     else:
                         ts.EmitComment("-- " + line)
 
@@ -452,17 +451,18 @@ def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         TokensBinaryInfixNoSpace(
             ts, "^.", node.args[0], field_name, node)
         return
-    ts.EmitName(node.name)
+    ts.EmitName(str(node.name))
     beg_paren = ts.EmitBegParen("(")
     TokensMacroInvokeArgs(ts, node.args, None)
     ts.EmitEnd(beg_paren)
+
 
 def TokensValCompound(ts: TS, node: cwast.ValCompound):
     # EmitTokens(ts, node.type)
     sizes = []
     beg = ts.EmitBegExprParen("{")
     if not isinstance(node.type_or_auto, cwast.TypeAuto):
-       EmitTokens(ts, node.type_or_auto)
+        EmitTokens(ts, node.type_or_auto)
     ts.EmitAttr(":")
     sep = False
     for e in node.inits:
@@ -491,7 +491,6 @@ def TokensVecType(ts: TS, size, type):
     EmitTokens(ts, type)
 
 
-
 def TokensParameterList(ts: TS, lst):
     sep = False
     beg = ts.EmitBegParen("(")
@@ -501,13 +500,13 @@ def TokensParameterList(ts: TS, lst):
         sep = True
         TokensAnnotationsPre(ts, param)
         if isinstance(param, cwast.FunParam):
-            ts.EmitName(param.name)
+            ts.EmitName(str(param.name))
             EmitTokens(ts, param.type)
         elif isinstance(param, cwast.ModParam):
-            ts.EmitName(param.name)
+            ts.EmitName(str(param.name))
             ts.EmitAttr(param.mod_param_kind.name)
         elif isinstance(param, cwast.MacroParam):
-            ts.EmitName(param.name)
+            ts.EmitName(str(param.name))
             ts.EmitAttr(param.macro_param_kind.name)
         else:
             assert False
@@ -694,7 +693,7 @@ def _TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
 
 
 def _IsMacroWithBlock(node: cwast.MacroInvoke):
-    if node.name in BUILTIN_MACROS:
+    if node.name in cwast.BUILT_IN_STMT_MACROS:
         return True
     if node.args:
         last = node.args[-1]
@@ -708,12 +707,12 @@ def _GetOriginalVarName(node) -> str:
         return node.FullName()
     else:
         assert isinstance(node, cwast.MacroId), f"{node}"
-        return node.name
+        return str(node.name)
 
 
 def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     """Handles Stmt Macros"""
-    beg = ts.EmitStmtBeg(node.name)
+    beg = ts.EmitStmtBeg(str(node.name))
     is_block_like = _IsMacroWithBlock(node)
     if not is_block_like:
         beg_paren = ts.EmitBegParen("(")
@@ -767,10 +766,10 @@ def EmitTokensStatement(ts: TS, n):
     elif isinstance(n, cwast.StmtAssignment):
         _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.DefVar):
-        _TokensStmtLet(ts, WithMut("let", n.mut), n.name,
+        _TokensStmtLet(ts, WithMut("let", n.mut), str(n.name),
                        n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.MacroVar):
-        _TokensStmtLet(ts, WithMut("mlet", n.mut), n.name,
+        _TokensStmtLet(ts, WithMut("mlet", n.mut), str(n.name),
                        n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.StmtIf):
         _TokensStmtBlock(ts, "if", n.cond, n.body_t)
@@ -778,8 +777,8 @@ def EmitTokensStatement(ts: TS, n):
             _TokensStmtBlock(ts, "else", "", n.body_f)
     elif isinstance(n, cwast.MacroFor):
         beg = ts.EmitStmtBeg("mfor")
-        ts.EmitAttr(n.name)
-        ts.EmitAttr(n.name_list)
+        ts.EmitAttr(str(n.name))
+        ts.EmitAttr(str(n.name_list))
         ts.EmitStmtEnd(beg)
         # we now the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
@@ -787,7 +786,7 @@ def EmitTokensStatement(ts: TS, n):
     elif isinstance(n, cwast.MacroInvoke):
         _TokensStmtMacroInvoke(ts, n)
     elif isinstance(n, cwast.MacroId):
-        ts.EmitAttr(n.name)
+        ts.EmitAttr(str(n.name))
         ts.EmitNewline()
     else:
         assert False, f"unexpected stmt node {n}"
@@ -814,7 +813,7 @@ def _EmitTokensToplevel(ts: TS, node):
     TokensAnnotationsPre(ts, node)
     if isinstance(node, cwast.DefGlobal):
         beg = ts.EmitStmtBeg(WithMut("global", node.mut))
-        ts.EmitName(node.name)
+        ts.EmitName(str(node.name))
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             EmitTokens(ts, node.type_or_auto)
         if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
@@ -823,7 +822,7 @@ def _EmitTokensToplevel(ts: TS, node):
         ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.Import):
         beg = ts.EmitStmtBeg("import")
-        ts.EmitName(node.name)
+        ts.EmitName(str(node.name))
         path = node.path
         if path:
             ts.EmitBinOp("=")
@@ -835,19 +834,19 @@ def _EmitTokensToplevel(ts: TS, node):
         ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.DefType):
         beg = ts.EmitStmtBeg("type")
-        ts.EmitName(node.name)
+        ts.EmitName(str(node.name))
         ts.EmitBinOp("=")
         EmitTokens(ts, node.type)
         ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.DefRec):
         beg = ts.EmitStmtBeg("rec")
-        ts.EmitName(node.name)
+        ts.EmitName(str(node.name))
         ts.EmitStmtEnd(beg)
         #
         beg_colon = ts.EmitColonBeg()
         for f in node.fields:
             TokensAnnotationsPre(ts, f)
-            beg = ts.EmitStmtBeg(f.name)
+            beg = ts.EmitStmtBeg(str(f.name))
             EmitTokens(ts, f.type)
             ts.EmitStmtEnd(beg)
             ts.EmitNewline()
@@ -858,22 +857,22 @@ def _EmitTokensToplevel(ts: TS, node):
         ts.EmitStmtEnd(beg)
     elif isinstance(node, cwast.DefEnum):
         beg = ts.EmitStmtBeg("enum")
-        ts.EmitName(node.name)
+        ts.EmitName(str(node.name))
         ts.EmitAttr(node.base_type_kind.name.lower())
         ts.EmitStmtEnd(beg)
         #
         beg_colon = ts.EmitColonBeg()
-        for f in node.items:
-            TokensAnnotationsPre(ts, f)
-            beg = ts.EmitStmtBeg(f.name)
-            EmitTokens(ts, f.value_or_auto)
+        for ef in node.items:
+            TokensAnnotationsPre(ts, ef)
+            beg = ts.EmitStmtBeg(str(ef.name))
+            EmitTokens(ts, ef.value_or_auto)
             ts.EmitStmtEnd(beg)
             ts.EmitNewline()
 
         ts.EmitColonEnd(beg_colon)
     elif isinstance(node, cwast.DefFun):
         beg = ts.EmitStmtBeg("fun")
-        ts.EmitName(node.name)
+        ts.EmitName(str(node.name))
         TokensParameterList(ts, node.params)
         EmitTokens(ts, node.result)
         ts.EmitStmtEnd(beg)
@@ -881,7 +880,7 @@ def _EmitTokensToplevel(ts: TS, node):
         EmitTokensCodeBlock(ts, node.body)
     elif isinstance(node, cwast.DefMacro):
         beg = ts.EmitStmtBeg("macro")
-        ts.EmitName(node.name)
+        ts.EmitName(str(node.name))
         ts.EmitAttr(node.macro_result_kind.name)
         TokensParameterList(ts, node.params_macro)
         #
@@ -891,7 +890,7 @@ def _EmitTokensToplevel(ts: TS, node):
             if sep:
                 ts.EmitSep(",")
             sep = True
-            ts.EmitAttr(gen_id)
+            ts.EmitAttr(str(gen_id))
         ts.EmitEnd(beg_paren)
         ts.EmitStmtEnd(beg)
         #

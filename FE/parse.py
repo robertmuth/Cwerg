@@ -39,7 +39,6 @@ class TK_KIND(enum.Enum):
     COMMA = enum.auto()
     COLON = enum.auto()
     QUESTION_MARK = enum.auto()
-    DEREFDOT = enum.auto()
     DOT = enum.auto()
     EOL = enum.auto()
     WS = enum.auto()
@@ -150,7 +149,6 @@ _token_spec = [
     (TK_KIND.COMMENT.name, COMMENT_RE),  # remark
     (TK_KIND.NUM.name, parse_sexpr.RE_STR_NUM),
     (TK_KIND.QUESTION_MARK.name, r"\?"),
-    (TK_KIND.DEREFDOT.name, r"\^\."),
     (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
@@ -519,7 +517,7 @@ def _PParseKeywordConstants(inp: Lexer, tk: TK, _precedence) -> Any:
         return cwast.ValAuto(x_srcloc=tk.srcloc)
     elif tk.text == "undef":
         return cwast.ValUndef(x_srcloc=tk.srcloc)
-    elif tk.text == "span_inc":
+    elif tk.text in cwast.BUILT_IN_EXPR_MACROS:
         inp.match_or_die(TK_KIND.PAREN_OPEN)
         args = _ParseMacroCallArgs(inp, tk.srcloc)
         return cwast.MacroInvoke(cwast.NAME.FromStr(tk.text), args, x_srcloc=tk.srcloc)
@@ -695,12 +693,6 @@ def _PParseFieldAccess(inp: Lexer, rec, _tk: TK, _precedence) -> Any:
     return cwast.ExprField(rec, cwast.Id.Make(field.text, x_srcloc=field.srcloc), x_srcloc=field.srcloc)
 
 
-def _PParseDerefFieldAccess(inp: Lexer, rec, tk: TK, _precedence) -> Any:
-    field = inp.match_or_die(TK_KIND.ID)
-    return cwast.MacroInvoke(cwast.NAME.FromStr("^."), [rec, cwast.Id.Make(field.text, x_srcloc=field.srcloc)],
-                             x_srcloc=tk.srcloc)
-
-
 def _PParseTernary(inp: Lexer, cond, tk: TK, _precedence) -> Any:
     expr_t = _ParseExpr(inp)
     inp.match_or_die(TK_KIND.COLON)
@@ -745,7 +737,6 @@ _INFIX_EXPR_PARSERS = {
     "[":  (pp.PREC_INDEX, _PParseIndex),
     "^": (pp.PREC_INDEX, _PParseDeref),
     ".": (pp.PREC_INDEX, _PParseFieldAccess),
-    "^.": (pp.PREC_INDEX, _PParseDerefFieldAccess),
     "?": (6, _PParseTernary),
 }
 
@@ -1161,8 +1152,6 @@ def _ParseTopLevel(inp: Lexer):
         if inp.peek().kind is TK_KIND.KW:
             name = inp.next()
             assert name.text in pp.BUILTIN_MACROS, f"{name}"
-        elif inp.peek().text == "^.":
-            name = inp.next()
         else:
             name = inp.match_or_die(TK_KIND.ID)
             assert name.text.endswith(cwast.MACRO_CALL_SUFFIX)

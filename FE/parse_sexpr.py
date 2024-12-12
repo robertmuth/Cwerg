@@ -440,7 +440,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
     else:
         cls = cwast.NODES_ALIASES.get(tag)
         if not cls:
-            if tag in cwast.BUILT_IN_MACROS or tag.endswith(cwast.MACRO_CALL_SUFFIX):
+            if tag in cwast.ALL_BUILT_IN_MACROS or tag.endswith(cwast.MACRO_CALL_SUFFIX):
                 # unknown node name - assume it is a macro
                 return ReadMacroInvocation(tag, stream, attr)
             else:

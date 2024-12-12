@@ -20,15 +20,19 @@ MACRO_VAR_PREFIX = "$"
 ANNOTATION_PREFIX = "@"
 ID_PATH_SEPARATOR = "::"
 
-BUILT_IN_MACROS = set([
+BUILT_IN_STMT_MACROS = set([
     "while",
     "for",
     "trylet",
     "trylet!",
     "tryset",
-    "^.",
+])
+
+BUILT_IN_EXPR_MACROS = set([
     "span_inc",
 ])
+
+ALL_BUILT_IN_MACROS = BUILT_IN_STMT_MACROS | BUILT_IN_EXPR_MACROS
 
 
 @dataclasses.dataclass(eq=True, frozen=True)
@@ -3385,7 +3389,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             assert isinstance(
                 toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if isinstance(node, DefMacro):
-            if not node.name.IsMacroCall() and node.name.name not in BUILT_IN_MACROS:
+            if not node.name.IsMacroCall() and node.name.name not in ALL_BUILT_IN_MACROS:
                 CompilerError(
                     node.x_srcloc, f"macro name must end with `#`: {node.name}")
             for p in node.params_macro:
