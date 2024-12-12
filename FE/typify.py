@@ -163,7 +163,7 @@ class _PolyMap:
     """Polymorphism map"""
 
     def __init__(self, tc: type_corpus.TypeCorpus):
-        self._map: dict[Tuple[cwast.DefMod, str, str], cwast.DefFun] = {}
+        self._map: dict[Tuple[cwast.DefMod, cwast.NAME, str], cwast.DefFun] = {}
         self._type_corpus = tc
 
     def Register(self, fun: cwast.DefFun):

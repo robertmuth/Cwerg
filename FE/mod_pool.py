@@ -225,7 +225,7 @@ class ModPoolBase:
                 logger.info("start resolving imports for %s", mod_info)
                 num_unresolved = 0
                 for import_node, normalized_args in mod_info.imports:
-                    if import_node.x_module:
+                    if import_node.x_module != cwast.INVALID_MOD:
                         continue
                     path = import_node.path if import_node.path else str(
                         import_node.name)

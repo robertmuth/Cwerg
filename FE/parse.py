@@ -260,7 +260,7 @@ class LexerRaw:
             self._col_no = 0
             self._current_line = self._fill_line()
         if not self._current_line:
-            return TK(TK_KIND.SPECIAL_EOF, cwast.SRCLOC_UNKNOWN, "", 0)
+            return TK(TK_KIND.SPECIAL_EOF, cwast.INVALID_SRCLOC, "", 0)
         m = TOKEN_RE.match(self._current_line)
         if not m:
             cwast.CompilerError(
@@ -366,7 +366,7 @@ class Lexer:
         return self.next()
 
 
-def _ExtractAnnotations(tk: TK) -> dict[str, str]:
+def _ExtractAnnotations(tk: TK) -> dict[str, Any]:
     out: dict[str, Any] = {}
     # print ("@@@@",tk)
     comments = []

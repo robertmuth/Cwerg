@@ -26,7 +26,7 @@ def AnnotateNodeSymbol(id_node, def_node):
     assert cwast.NF.SYMBOL_ANNOTATED in id_node.FLAGS
     assert (cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS or
             cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS), f"unpexpected node: {def_node}"
-    assert id_node.x_symbol is cwast.NO_SYMBOL
+    assert id_node.x_symbol is cwast.INVALID_SYMBOL
     id_node.x_symbol = def_node
 
 
@@ -46,7 +46,7 @@ class SymTab:
 
     def __init__(self: Any):
         self._imports: dict[cwast.NAME, cwast.DefMod] = {}
-        self._syms: dict[str, Any] = {}
+        self._syms: dict[cwast.NAME, Any] = {}
 
     def AddLocalSym(self, name, node):
         assert isinstance(node, (cwast.DefVar, cwast.FunParam)), f"{node}"
@@ -71,7 +71,7 @@ class SymTab:
         name = node.name
         if name in self._imports:
             cwast.CompilerError(node.x_srcloc, f"dup import {name}")
-        assert isinstance(node.x_module, cwast.DefMod)
+        assert node.x_module != cwast.INVALID_MOD
         self._imports[name] = node.x_module
 
     def DelSym(self, name):
@@ -176,7 +176,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
                 return
             if node.x_symbol:
                 return
-            if not node.x_import.x_module:
+            if node.x_import.x_module == cwast.INVALID_MOD:
                 if must_resolve_all:
                     cwast.CompilerError(
                         node.x_srcloc, f"import of {node.name} not resolved")
@@ -607,7 +607,8 @@ def main(argv):
     mod_topo_order = mp.ModulesInTopologicalOrder()
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
-    MacroExpansionDecorateASTWithSymbols(mod_topo_order)
+    fun_id_gens = identifier.IdGenCache()
+    MacroExpansionDecorateASTWithSymbols(mod_topo_order, fun_id_gens)
     for ast in mod_topo_order:
         cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
