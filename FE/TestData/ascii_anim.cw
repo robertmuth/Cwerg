@@ -62,8 +62,7 @@ fun tolower(c u8) u8:
     return c or 0x20
 
 fun get_style(attr u8) span(u8):
-    return attr < 'a' ? as(ansi::SET_MODE_BOLD, span(u8)) : as(
-            ansi::RESET_MODE_BOLD_OR_DIM, span(u8))
+    return attr < 'a' ? ansi::SET_MODE_BOLD : ansi::RESET_MODE_BOLD_OR_DIM
 
 fun get_fg_color(attr u8) span(u8):
     let col u8 = tolower(attr)
