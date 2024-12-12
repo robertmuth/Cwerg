@@ -8,7 +8,7 @@ import dataclasses
 import logging
 import enum
 
-from typing import Optional, Union, Any, TypeAlias, NoReturn, Final
+from typing import Optional, Union, Any, TypeAlias, NoReturn, Final, ClassVar
 
 logger = logging.getLogger(__name__)
 
@@ -808,6 +808,8 @@ def _CheckNodeFieldOrder(cls):
     flags = 0
     xs = 0
     for field, node_type in cls.__annotations__.items():
+        if field in ('ALIAS', 'GROUP', 'FLAGS'):
+            continue
         if field.startswith("x_"):
             assert field in X_FIELDS, f"unexpected x-field: {
                 field} in node {node_type}"
@@ -847,13 +849,13 @@ def NodeCommon(cls):
         NODES_ALIASES[cls.ALIAS] = cls
     cls.FIELDS = []
     cls.ATTRS = []
-    cls.ATTRS_MAP = {}
     for field, _ in cls.__annotations__.items():
+        if field in ('ALIAS', 'GROUP', 'FLAGS'):
+            continue
         if not field.startswith("x_"):
             nfd = ALL_FIELDS_MAP[field]
             if nfd.kind is NFK.ATTR_BOOL or nfd.kind is NFK.ATTR_STR:
                 cls.ATTRS.append((field, nfd))
-                cls.ATTRS_MAP[field] = nfd
             else:
                 cls.FIELDS.append((field, nfd))
     return cls
@@ -1094,9 +1096,9 @@ class EphemeralList:
 
     will removed (flattened) in the next cleanup list
     """
-    ALIAS = None
-    GROUP = GROUP.Macro
-    FLAGS = NF.NON_CORE
+    ALIAS: ClassVar = None
+    GROUP: ClassVar = GROUP.Macro
+    FLAGS: ClassVar = NF.NON_CORE
     #
     args: list[Any]
     #
@@ -1113,9 +1115,9 @@ class EphemeralList:
 @dataclasses.dataclass()
 class ModParam:
     """Module Parameters"""
-    ALIAS = "modparam"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE
+    ALIAS: ClassVar = "modparam"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.NON_CORE
     #
     name: NAME
     mod_param_kind: MOD_PARAM_KIND
@@ -1137,9 +1139,9 @@ class DefMod:
 
     ordering is used to put the modules in a deterministic order
     """
-    ALIAS = "module"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.MODNAME_ANNOTATED | NF.SYMTAB
+    ALIAS: ClassVar = "module"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.MODNAME_ANNOTATED | NF.SYMTAB
     #
     params_mod: list[NODES_PARAMS_MOD_T]
     body_mod: list[NODES_BODY_MOD_T]
@@ -1166,9 +1168,9 @@ INVALID_MOD = DefMod([], [])
 @dataclasses.dataclass()
 class Import:
     """Import another Module from `path` as `name`"""
-    ALIAS = "import"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.NON_CORE | NF.MODULE_ANNOTATED
+    ALIAS: ClassVar = "import"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.NON_CORE | NF.MODULE_ANNOTATED
     #
     name: NAME
     path: str
@@ -1194,9 +1196,9 @@ class RecField:  #
     All fields must be explicitly initialized. Use `ValUndef` in performance
     sensitive situations.
     """
-    ALIAS = "field"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    ALIAS: ClassVar = "field"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     name: NAME
     type: NODES_TYPES_T
@@ -1215,9 +1217,9 @@ class RecField:  #
 @dataclasses.dataclass()
 class DefRec:
     """Record definition"""
-    ALIAS = "defrec"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    ALIAS: ClassVar = "defrec"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     name: NAME
     fields: list[NODES_FIELDS_T]
@@ -1258,9 +1260,9 @@ class Id:
 
     id or mod::id or enum::id or mod::enum:id
     """
-    ALIAS = "id"
-    GROUP = GROUP.Misc
-    FLAGS = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
+    ALIAS: ClassVar = "id"
+    GROUP: ClassVar = GROUP.Misc
+    FLAGS: ClassVar = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
     mod_name: Optional[NAME]
     base_name: NAME
@@ -1324,9 +1326,9 @@ class TypeAuto:
 
     My only occur where explicitly allowed.
     """
-    ALIAS = "auto"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED
+    ALIAS: ClassVar = "auto"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
@@ -1344,9 +1346,9 @@ class FunParam:
     """Function parameter
 
     """
-    ALIAS = "param"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
+    ALIAS: ClassVar = "param"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     #
     name: NAME
     type: NODES_TYPES_T
@@ -1415,9 +1417,9 @@ class TypeBase:
 
     One of: void, bool, r32, r64, u8, u16, u32, u64, s8, s16, s32, s64
     """
-    ALIAS = None
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    ALIAS: ClassVar = None
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     base_type_kind: BASE_TYPE_KIND
     #
@@ -1433,9 +1435,9 @@ class TypeBase:
 class TypePtr:
     """Pointer type
     """
-    ALIAS = "ptr"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    ALIAS: ClassVar = "ptr"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     type: NODES_TYPES_T
     #
@@ -1456,9 +1458,9 @@ class TypeSpan:
     Internally, this is tuple of `start` and `length`
     (mutable/non-mutable)
     """
-    ALIAS = "span"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
+    ALIAS: ClassVar = "span"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
     type: NODES_TYPES_T
     #
@@ -1478,9 +1480,9 @@ class TypeVec:
     """An array of the given type and `size`
 
     """
-    ALIAS = "vec"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    ALIAS: ClassVar = "vec"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     size: "NODES_EXPR_T"      # must be const and unsigned
     type: NODES_TYPES_T
@@ -1499,9 +1501,9 @@ class TypeFun:
 
     The `FunParam.name` field is ignored and should be `_`
     """
-    ALIAS = "sig"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    ALIAS: ClassVar = "sig"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     params: list[NODES_PARAMS_T]
     result: NODES_TYPES_T
@@ -1522,9 +1524,9 @@ class TypeUnion:
     Unions are "auto flattening", e.g.
     Union(a, Union(b,c), Union(a, d)) = Union(a, b, c, d)
     """
-    ALIAS = "union"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    ALIAS: ClassVar = "union"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     types: list[NODES_TYPES_T]
     #
@@ -1544,9 +1546,9 @@ class TypeUnion:
 class TypeUnionDelta:
     """Type resulting from the difference of TypeUnion and a non-empty subset sets of its members
     """
-    ALIAS = "union_delta"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.NON_CORE
+    ALIAS: ClassVar = "union_delta"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.NON_CORE
     #
     type: NODES_TYPES_T
     subtrahend: NODES_TYPES_T
@@ -1564,9 +1566,9 @@ class TypeOf:
     """(Static) type of the expression. Computed at compile-time.
     The underlying expression is not evaluated.
     """
-    ALIAS = "type_of"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.NON_CORE
+    ALIAS: ClassVar = "type_of"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #
@@ -1587,9 +1589,9 @@ class ValAuto:
 
     Used for: array dimensions, enum values, chap and range
     """
-    ALIAS = "auto_val"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "auto_val"
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
@@ -1603,9 +1605,9 @@ class ValAuto:
 @dataclasses.dataclass()
 class ValTrue:
     """Bool constant `true`"""
-    ALIAS = "true"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "true"
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
@@ -1619,9 +1621,9 @@ class ValTrue:
 @dataclasses.dataclass()
 class ValFalse:
     """Bool constant `false`"""
-    ALIAS = "false"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "false"
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR
     #
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
@@ -1639,9 +1641,9 @@ class ValNum:
     Underscores in `number` are ignored. `number` can be explicitly typed via
     suffices like `_u64`, `_s16`, `_r32`.
     """
-    ALIAS = ""
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = ""
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR
     #
     number: str   # maybe a (unicode) character as well
     #
@@ -1658,9 +1660,9 @@ class ValNum:
 class ValUndef:
     """Special constant to indiciate *no default value*
     """
-    ALIAS = "undef"
-    GROUP = GROUP.Value
-    FLAGS = NF.VALUE_ANNOTATED
+    ALIAS: ClassVar = "undef"
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF.VALUE_ANNOTATED
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_value: Optional[Any] = None    # this is always a ValUndef() object
@@ -1676,9 +1678,9 @@ class ValVoid:
 
     It can be used to model *null* in nullable pointers via a union type.
      """
-    ALIAS = "void_val"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "void_val"
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
@@ -1698,9 +1700,9 @@ class ValPoint:
     For Recs it represents a field name  for Vecs an index which must be
     a compile-time constant
     """
-    ALIAS = "point_val"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "point_val"
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR
     #
     value_or_undef: NODES_EXPR_T
     point: NODES_EXPR_OR_AUTO_T  # compile time constant
@@ -1723,9 +1725,9 @@ class ValCompound:
     or
     `{Point3 : x = 5, y = 8, z = 12}`
     """
-    ALIAS = "compound_val"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "compound_val"
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR
     #
     type_or_auto: NODES_TYPES_OR_AUTO_T
     inits: list[NODES_INITS_T]
@@ -1747,9 +1749,9 @@ class ValSpan:
 
     type and mutability is defined by the pointer
     """
-    ALIAS = "span_val"
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "span_val"
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     pointer: "NODES_EXPR_T"
     expr_size: "NODES_EXPR_T"
@@ -1769,9 +1771,9 @@ class ValString:
 
     type is `[strlen(string)]u8`. `string` may be escaped/raw
     """
-    ALIAS = None
-    GROUP = GROUP.Value
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = None
+    GROUP: ClassVar = GROUP.Value
+    FLAGS: ClassVar = NF_EXPR
     #
     string: str
     #
@@ -1795,9 +1797,9 @@ class ValString:
 @dataclasses.dataclass()
 class ExprDeref:
     """Dereference a pointer represented by `expr`"""
-    ALIAS = "^"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.MAY_BE_LHS
+    ALIAS: ClassVar = "^"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.MAY_BE_LHS
     #
     expr: NODES_EXPR_T  # must be of type AddrOf
     #
@@ -1817,9 +1819,9 @@ class ExprAddrOf:
     Pointer can optionally point to a mutable object if the
     pointee is mutable.
     """
-    ALIAS = "&"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "&"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     expr_lhs: NODES_EXPR_T
     #
@@ -1838,9 +1840,9 @@ class ExprAddrOf:
 class ExprCall:
     """Function call expression.
     """
-    ALIAS = "call"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "call"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     callee: NODES_EXPR_T
     args: list[NODES_EXPR_T]
@@ -1861,9 +1863,9 @@ class ExprCall:
 class ExprParen:
     """Used for preserving parenthesis in the source
     """
-    ALIAS = "paren"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "paren"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #
@@ -1880,9 +1882,9 @@ class ExprParen:
 class ExprField:
     """Access field in expression representing a record.
     """
-    ALIAS = "."
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.MAY_BE_LHS
+    ALIAS: ClassVar = "."
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.MAY_BE_LHS
     #
     container: NODES_EXPR_T  # must be of type rec
     field: Id
@@ -1899,9 +1901,9 @@ class ExprField:
 @dataclasses.dataclass()
 class Expr1:
     """Unary expression."""
-    ALIAS = None
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = None
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     unary_expr_kind: UNARY_EXPR_KIND
     expr: NODES_EXPR_T
@@ -1918,9 +1920,9 @@ class Expr1:
 @dataclasses.dataclass()
 class ExprPointer:
     """Pointer arithmetic expression - optionally bound checked.."""
-    ALIAS = None
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = None
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     pointer_expr_kind: POINTER_EXPR_KIND
     expr1: NODES_EXPR_T
@@ -1939,9 +1941,9 @@ class ExprPointer:
 @dataclasses.dataclass()
 class Expr2:
     """Binary expression."""
-    ALIAS = None
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = None
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     binary_expr_kind: BINARY_EXPR_KIND
     expr1: NODES_EXPR_T
@@ -1960,9 +1962,9 @@ class Expr2:
 class Expr3:
     """Tertiary expression (like C's `? :`)
     """
-    ALIAS = "?"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "?"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     cond: NODES_EXPR_T  # must be of type  bool
     expr_t: NODES_EXPR_T
@@ -1983,9 +1985,9 @@ class Expr3:
 class ExprIndex:
     """Optionally unchecked indexed access of vec or span
     """
-    ALIAS = "at"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.MAY_BE_LHS | NF.NON_CORE
+    ALIAS: ClassVar = "at"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.MAY_BE_LHS | NF.NON_CORE
     #
     container: NODES_EXPR_T  # must be of type span or vec
     expr_index: NODES_EXPR_T  # must be of int type
@@ -2007,9 +2009,9 @@ class ExprLen:
 
     Result type is `uint`.
     """
-    ALIAS = "len"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "len"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     container: NODES_EXPR_T   # must be of type span or vec
     #
@@ -2029,9 +2031,9 @@ class ExprFront:
 
     Similar to `(& (at container 0))` but will not fail if container has zero size
     """
-    ALIAS = "front"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "front"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     container: NODES_EXPR_T   # must be of type span or vec
     #
@@ -2057,9 +2059,9 @@ class ExprIs:
 
     `type` can be a tagged union itself.
     """
-    ALIAS = "is"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "is"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2077,9 +2079,9 @@ class ExprIs:
 class ExprWrap:
     """Cast: underlying type -> enum/wrapped
     """
-    ALIAS = "wrap_as"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "wrap_as"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2097,9 +2099,9 @@ class ExprWrap:
 class ExprUnwrap:
     """Cast: enum/wrapped -> underlying type
     """
-    ALIAS = "unwrap"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "unwrap"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     expr: NODES_EXPR_T
     #
@@ -2120,9 +2122,9 @@ class ExprAs:
     u8-u64, s8-s64 <-> u8-u64, s8-s64
     u8-u64, s8-s64 -> r32-r64  (note: one way only)
     """
-    ALIAS = "as"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "as"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2142,9 +2144,9 @@ class ExprNarrow:
 
     optionally unchecked
     """
-    ALIAS = "narrow_as"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "narrow_as"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2166,9 +2168,9 @@ class ExprWiden:
 
     Usually this is implicit
     """
-    ALIAS = "widen_as"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "widen_as"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2190,9 +2192,9 @@ class ExprUnsafeCast:
     ptr a <-> ptr b
 
     """
-    ALIAS = "unsafe_as"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "unsafe_as"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2218,9 +2220,9 @@ class ExprBitCast:
     ptr(a) <-> ptr(b)
     (Probably not true anymore: It is also ok to bitcast complex objects like recs
     """
-    ALIAS = "bitwise_as"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "bitwise_as"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     expr: NODES_EXPR_T
     type: NODES_TYPES_T
@@ -2239,9 +2241,9 @@ class ExprTypeId:
     """TypeId of type
 
     Result has type is `typeid`"""
-    ALIAS = "typeid_of"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "typeid_of"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     type: NODES_TYPES_T
     #
@@ -2259,9 +2261,9 @@ class ExprUnionTag:
     """Typetag of tagged union type
 
     result has type is `typeid`"""
-    ALIAS = "union_tag"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "union_tag"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #
@@ -2279,9 +2281,9 @@ class ExprUnionUntagged:
     """Untagged union portion of tagged union type
 
     Result has type untagged union"""
-    ALIAS = "union_untagged"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "union_untagged"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     expr: NODES_EXPR_T
     #
@@ -2299,9 +2301,9 @@ class ExprSizeof:
     """Byte size of type
 
     Result has type is `uint`"""
-    ALIAS = "size_of"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "size_of"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     type: NODES_TYPES_T
     #
@@ -2319,9 +2321,9 @@ class ExprOffsetof:
     """Byte offset of field in record types
 
     Result has type `uint`"""
-    ALIAS = "offset_of"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR | NF.NON_CORE
+    ALIAS: ClassVar = "offset_of"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
     type: NODES_TYPES_T  # must be rec
     field: Id
@@ -2341,9 +2343,9 @@ class ExprStmt:
 
     The body statements must be terminated by a StmtReturn
     """
-    ALIAS = "expr"
-    GROUP = GROUP.Expression
-    FLAGS = NF_EXPR
+    ALIAS: ClassVar = "expr"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF_EXPR
     #
     body: list[NODES_BODY_T]  # new scope
     #
@@ -2365,9 +2367,9 @@ class StmtBlock:
 
     if `label` is non-empty, nested break/continue statements can target this `block`.
     """
-    ALIAS = "block"
-    GROUP = GROUP.Statement
-    FLAGS = NF(0)
+    ALIAS: ClassVar = "block"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF(0)
     #
     label: str
     body: list[NODES_BODY_T]  # new scope
@@ -2388,9 +2390,9 @@ class StmtDefer:
     Note: defer body's containing return statments have
     non-straightforward semantics.
     """
-    ALIAS = "defer"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NON_CORE
+    ALIAS: ClassVar = "defer"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.NON_CORE
     #
     body:  list[NODES_BODY_T]  # new scope, must NOT contain RETURN
     #
@@ -2406,9 +2408,9 @@ class StmtDefer:
 @dataclasses.dataclass()
 class StmtIf:
     """If statement"""
-    ALIAS = "if"
-    GROUP = GROUP.Statement
-    FLAGS = NF(0)
+    ALIAS: ClassVar = "if"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF(0)
     #
     cond: NODES_EXPR_T        # must be of type bool
     body_t: list[NODES_BODY_T]  # new scope
@@ -2426,9 +2428,9 @@ class StmtIf:
 @dataclasses.dataclass()
 class Case:
     """Single case of a Cond statement"""
-    ALIAS = "case"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NON_CORE
+    ALIAS: ClassVar = "case"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.NON_CORE
     #
     cond: NODES_EXPR_T        # must be of type bool
     body: list[NODES_BODY_T]  # new scope
@@ -2445,9 +2447,9 @@ class Case:
 @dataclasses.dataclass()
 class StmtCond:
     """Multicase if-elif-else statement"""
-    ALIAS = "cond"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NON_CORE
+    ALIAS: ClassVar = "cond"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.NON_CORE
     #
     cases: list[NODES_CASES_T]
     #
@@ -2465,9 +2467,9 @@ class StmtBreak:
     """Break statement
 
     use "" if the target is the nearest for/while/block """
-    ALIAS = "break"
-    GROUP = GROUP.Statement
-    FLAGS = NF.CONTROL_FLOW
+    ALIAS: ClassVar = "break"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.CONTROL_FLOW
     #
     target: str  # use "" for no value
     #
@@ -2486,9 +2488,9 @@ class StmtContinue:
     """Continue statement
 
     use "" if the target is the nearest for/while/block """
-    ALIAS = "continue"
-    GROUP = GROUP.Statement
-    FLAGS = NF.CONTROL_FLOW
+    ALIAS: ClassVar = "continue"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.CONTROL_FLOW
     #
     target: str  # use "" for no value
     #
@@ -2509,9 +2511,9 @@ class StmtReturn:
     Returns from the first enclosing ExprStmt node or the enclosing DefFun node.
     Uses void_val if the DefFun's return type is void
     """
-    ALIAS = "return"
-    GROUP = GROUP.Statement
-    FLAGS = NF.CONTROL_FLOW
+    ALIAS: ClassVar = "return"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.CONTROL_FLOW
     #
     expr_ret: NODES_EXPR_T
     #
@@ -2530,9 +2532,9 @@ class StmtExpr:
 
     Turns an expression (typically a call) into a statement
     """
-    ALIAS = "do"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
+    ALIAS: ClassVar = "do"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.NONE
     #
     expr: ExprCall
     #
@@ -2548,9 +2550,9 @@ class StmtExpr:
 @dataclasses.dataclass()
 class StmtStaticAssert:
     """Static assert statement (must evaluate to true at compile-time"""
-    ALIAS = "static_assert"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TOP_LEVEL | NF.NON_CORE
+    ALIAS: ClassVar = "static_assert"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.TOP_LEVEL | NF.NON_CORE
     #
     cond: NODES_EXPR_T  # must be of type bool
     message: str     # should this be an expression?
@@ -2567,9 +2569,9 @@ class StmtStaticAssert:
 @dataclasses.dataclass()
 class StmtTrap:
     """Trap statement"""
-    ALIAS = "trap"
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
+    ALIAS: ClassVar = "trap"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.NONE
     #
     doc: str = ""
     #
@@ -2586,9 +2588,9 @@ class StmtCompoundAssignment:
 
     Note: this does not support pointer inc/dec
     """
-    ALIAS = None
-    GROUP = GROUP.Statement
-    FLAGS = NF.NON_CORE
+    ALIAS: ClassVar = None
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.NON_CORE
     #
     assignment_kind: ASSIGNMENT_KIND
     lhs: NODES_LHS_T
@@ -2606,9 +2608,9 @@ class StmtCompoundAssignment:
 @dataclasses.dataclass()
 class StmtAssignment:
     """Assignment statement"""
-    ALIAS = "="
-    GROUP = GROUP.Statement
-    FLAGS = NF.NONE
+    ALIAS: ClassVar = "="
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.NONE
     #
     lhs: NODES_LHS_T
     expr_rhs: NODES_EXPR_T
@@ -2632,9 +2634,9 @@ class EnumVal:
     """ Enum element.
 
      `value: ValAuto` means previous value + 1"""
-    ALIAS = "entry"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.GLOBAL_SYM_DEF
+    ALIAS: ClassVar = "entry"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.GLOBAL_SYM_DEF
     #
     name: NAME
     value_or_auto: Union["ValNum", ValAuto]
@@ -2653,9 +2655,9 @@ class EnumVal:
 @dataclasses.dataclass()
 class DefEnum:
     """Enum definition"""
-    ALIAS = "enum"
-    GROUP = GROUP.Type
-    FLAGS = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
+    ALIAS: ClassVar = "enum"
+    GROUP: ClassVar = GROUP.Type
+    FLAGS: ClassVar = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
     #
     name: NAME
     base_type_kind: BASE_TYPE_KIND   # must be integer
@@ -2680,9 +2682,9 @@ class DefType:
     A `wrapped` gives the underlying type a new name that is not type compatible.
     To convert between the two use an `as` cast expression.
     """
-    ALIAS = "type"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    ALIAS: ClassVar = "type"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     name: NAME
     type: NODES_TYPES_T
@@ -2708,9 +2710,9 @@ class DefVar:
     `ref` allows the address of the  variable to be taken and prevents register allocation.
 
     """
-    ALIAS = "let"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
+    ALIAS: ClassVar = "let"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     #
     name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
@@ -2735,9 +2737,9 @@ class DefGlobal:
     Allocates space in static memory and initializes it with `initial_or_undef`.
     `mut` makes the allocated space read/write otherwise it is readonly.
     """
-    ALIAS = "global"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    ALIAS: ClassVar = "global"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
@@ -2769,9 +2771,9 @@ class DefFun:
 
     `ref`  fun may be assigned to a variable (i.e. its address may be taken)
      """
-    ALIAS = "fun"
-    GROUP = GROUP.Statement
-    FLAGS = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.IMPORT_ANNOTATED
+    ALIAS: ClassVar = "fun"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.IMPORT_ANNOTATED
     #
     name: NAME   # may contain qualifier (in case of polymorphic funs)
     params: list[NODES_PARAMS_T]
@@ -2810,9 +2812,9 @@ class ExprSrcLoc:
 
     expr is not evaluated but just used for its x_srcloc
     """
-    ALIAS = "srcloc"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF_EXPR
+    ALIAS: ClassVar = "srcloc"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF_EXPR
     #
     expr: NODES_EXPR_T
     #
@@ -2826,9 +2828,9 @@ class ExprStringify:
 
     This is useful to implement for assert like features
     """
-    ALIAS = "stringify"
-    GROUP = GROUP.Expression
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF_EXPR
+    ALIAS: ClassVar = "stringify"
+    GROUP: ClassVar = GROUP.Expression
+    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF_EXPR
     #
     expr:  NODES_EXPR_T
     # the next two are not really used since node gets replaced with string
@@ -2849,9 +2851,9 @@ class MacroId:
 
     This node will be expanded with the actual argument
     """
-    ALIAS = "macro_id"
-    GROUP = GROUP.Macro
-    FLAGS = NF.NON_CORE | NF.ROLE_ANNOTATED
+    ALIAS: ClassVar = "macro_id"
+    GROUP: ClassVar = GROUP.Macro
+    FLAGS: ClassVar = NF.NON_CORE | NF.ROLE_ANNOTATED
     #
     name: NAME
 
@@ -2871,9 +2873,9 @@ class MacroVar:
     `name` must start with a `$`.
 
     """
-    ALIAS = "mlet"
-    GROUP = GROUP.Macro
-    FLAGS = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
+    ALIAS: ClassVar = "mlet"
+    GROUP: ClassVar = GROUP.Macro
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
     name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
@@ -2897,9 +2899,9 @@ class MacroFor:
     loops over the macro parameter `name_list` which must be a list and
     binds each list element to `name` while expanding the AST nodes in `body_for`.
     """
-    ALIAS = "mfor"
-    GROUP = GROUP.Macro
-    FLAGS = NF.MACRO_BODY_ONLY | NF.NON_CORE
+    ALIAS: ClassVar = "mfor"
+    GROUP: ClassVar = GROUP.Macro
+    FLAGS: ClassVar = NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
     name: NAME
     name_list: NAME  # a macro variable holding a list
@@ -2914,9 +2916,9 @@ class MacroFor:
 @dataclasses.dataclass()
 class MacroParam:
     """Macro Parameter"""
-    ALIAS = "mparam"
-    GROUP = GROUP.Macro
-    FLAGS = NF.LOCAL_SYM_DEF | NF.NON_CORE
+    ALIAS: ClassVar = "mparam"
+    GROUP: ClassVar = GROUP.Macro
+    FLAGS: ClassVar = NF.LOCAL_SYM_DEF | NF.NON_CORE
     #
     name: NAME
     macro_param_kind: MACRO_PARAM_KIND
@@ -2933,9 +2935,9 @@ class MacroParam:
 @dataclasses.dataclass()
 class MacroInvoke:
     """Macro Invocation"""
-    ALIAS = "macro_invoke"
-    GROUP = GROUP.Macro
-    FLAGS = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED | NF.ROLE_ANNOTATED
+    ALIAS: ClassVar = "macro_invoke"
+    GROUP: ClassVar = GROUP.Macro
+    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED | NF.ROLE_ANNOTATED
     #
     name: NAME   # may contain qualifiers
     args: list[NODES_EXPR_T]
@@ -2962,9 +2964,9 @@ class DefMacro:
     * a list of additional identifiers used by the macro (also starimg with '$')
     * a body containing both regular and macro specific AST node serving as a template
     """
-    ALIAS = "macro"
-    GROUP = GROUP.Statement
-    FLAGS = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.NON_CORE
+    ALIAS: ClassVar = "macro"
+    GROUP: ClassVar = GROUP.Statement
+    FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.NON_CORE
     #
     name: NAME
     macro_result_kind: MACRO_PARAM_KIND
