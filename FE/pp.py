@@ -1113,7 +1113,7 @@ if __name__ == "__main__":
 
     from FE import parse
 
-    def process_file(inp, outp):
+    def process_file(inp, _outp):
         mod = parse.ReadModFromStream(inp, "stdin")
         # cwast.AnnotateRoleForMacroInvoke(mod)
         # AddMissingParens(mod)

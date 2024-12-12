@@ -183,6 +183,7 @@ class ModPoolBase:
 
     def _ReadMod(self, _handle: pathlib.PurePath) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
+        return cwast.INVALID_MOD
 
     def AllModInfos(self) -> Sequence[ModInfo]:
         return self._all_mods.values()

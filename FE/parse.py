@@ -12,7 +12,7 @@ https://github.com/feroldi/pratt-parser-in-python
 
 
 import re
-
+import io
 import logging
 import enum
 import dataclasses
@@ -72,9 +72,6 @@ _KEYWORDS_SIMPLE = [
     "front",
     "funtype",
     "else",
-    "pub",
-    "wrapped",
-    "ref",
     #
     "pinc",
     "pdec",
@@ -95,22 +92,21 @@ _KEYWORDS_SIMPLE = [
                          cwast.ExprOffsetof, cwast.ExprSizeof, cwast.ExprLen, cwast.ExprStringify]]
 
 
-KEYWORDS: Dict[str, TK_KIND] = {}
-for k in _KEYWORDS_SIMPLE:
-    KEYWORDS[k] = TK_KIND.KW
-for k in pp.KEYWORDS:
-    KEYWORDS[k] = TK_KIND.KW
-for kind in cwast.BASE_TYPE_KIND:
-    if kind is not cwast.BASE_TYPE_KIND.INVALID:
-        KEYWORDS[cwast.BaseTypeKindToKeyword(kind)] = TK_KIND.KW
-for k in pp.KEYWORDS_WITH_EXCL_SUFFIX:
-    KEYWORDS[k] = TK_KIND.SPECIAL_MUT
-# some operators are textual (xor, max, etc.)
-for k in cwast.BINARY_EXPR_SHORTCUT:
-    KEYWORDS[k] = TK_KIND.OP2
-KEYWORDS["pub"] = TK_KIND.SPECIAL_ANNOTATION
-KEYWORDS["ref"] = TK_KIND.SPECIAL_ANNOTATION
-KEYWORDS["wrapped"] = TK_KIND.SPECIAL_ANNOTATION
+KEYWORDS: Dict[str, TK_KIND] = ({
+    "pub": TK_KIND.SPECIAL_ANNOTATION,
+    "ref": TK_KIND.SPECIAL_ANNOTATION,
+    "wrapped": TK_KIND.SPECIAL_ANNOTATION
+}
+    | {k: TK_KIND.KW for k in _KEYWORDS_SIMPLE}
+    | {k: TK_KIND.KW for k in pp.KEYWORDS}
+    | {k: TK_KIND.SPECIAL_MUT for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
+    # some operators are textual (xor, max, etc.)
+    | {k: TK_KIND.OP2 for k in cwast.BINARY_EXPR_SHORTCUT}
+    | {k: TK_KIND.SPECIAL_MUT for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
+    | {cwast.BaseTypeKindToKeyword(k): TK_KIND.KW for k in cwast.BASE_TYPE_KIND
+       if k is not cwast.BASE_TYPE_KIND.INVALID}
+)
+
 
 _OPERATORS_SIMPLE1 = [
     "-",  # note, also in binops
@@ -222,7 +218,7 @@ class TK:
 class LexerRaw:
     """ """
 
-    def __init__(self, filename, fp):
+    def __init__(self: Any, filename: str, fp: io.TextIOWrapper):
         self._fileamame: str = filename
         self._fp = fp
         self._line_no = 0

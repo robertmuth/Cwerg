@@ -7,6 +7,7 @@
 
 import re
 import logging
+import io
 
 from typing import Any, Tuple, Union
 
@@ -103,7 +104,7 @@ _MULTI_LINE_END_RE = {
 class ReadTokens:
     """Reader for Lexical tokens implemented as a generator"""
 
-    def __init__(self, fp, filename):
+    def __init__(self: Any, fp: io.TextIOWrapper, filename: str):
         self._fp = fp
         self.line_no = 0
         self._filename = filename
@@ -296,7 +297,7 @@ def ReadNameList(stream: ReadTokens) -> list[cwast.NAME]:
     return out
 
 
-def ReadNameColonList(stream: ReadTokens) -> list[str]:
+def ReadNameColonList(stream: ReadTokens) -> list[cwast.NAME]:
     out = []
     while True:
         token = next(stream)
