@@ -251,8 +251,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
     elif isinstance(node, cwast.ExprField):
         base = _GetLValueAddress(node.container, tc, id_gen)
-        offset = node.field.GetRecFieldRef().x_offset
-        return BaseOffset(base, offset)
+        return BaseOffset(base, node.field.GetRecFieldRef().x_offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
         base = id_gen.NewName(f"lhsaddr_{name}")
@@ -406,7 +405,7 @@ _BIN_OP_MAP = {
 }
 
 
-def _EmitExpr2( node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
+def _EmitExpr2(node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
     kind = node.binary_expr_kind
     ct = node.x_type
     res_type = ct.get_single_register_type()
@@ -420,7 +419,8 @@ def _EmitExpr2( node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
         print(f"{TAB}bitcast {conv_op2}:{res_type} = {op2}")
 
         print(f"{TAB}sub {res}:{res_type} = {conv_op1} {conv_op2}")
-        print(f"{TAB}div {res} = {res} {node.expr1.x_type.underlying_pointer_type().aligned_size()}")
+        print(f"{TAB}div {res} = {res} {
+              node.expr1.x_type.underlying_pointer_type().aligned_size()}")
     elif kind is cwast.BINARY_EXPR_KIND.MAX:
         print(
             f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op2} {op1}")
@@ -674,7 +674,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         # this implies scalar
         # TODO: add the actual conversion step using IR opcode `conv`
         #       bools may need special treatment
-        assert init_node.x_type == init_node.type.x_type, f"ExprAs {init_node.type.x_type} ->  {init_node.x_type}"
+        assert init_node.x_type == init_node.type.x_type, f"ExprAs {
+            init_node.type.x_type} ->  {init_node.x_type}"
         assert init_node.x_type.fits_in_register(
         ), f"{init_node} {init_node.x_type}"
         reg = EmitIRExpr(init_node, tc, id_gen)

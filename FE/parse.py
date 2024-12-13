@@ -18,6 +18,7 @@ import enum
 import dataclasses
 
 from typing import Any, Optional, Dict
+from collections.abc import Callable
 
 from FE import cwast
 from FE import parse_sexpr
@@ -431,7 +432,7 @@ def _PParseNum(_inp: Lexer, tk: TK, _precedence) -> Any:
     return cwast.ValNum(tk.text, x_srcloc=tk.srcloc)
 
 
-_FUN_LIKE = {
+_FUN_LIKE: dict[str, tuple[Callable, str]] = {
     "abs": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.ABS, x, **kw), "E"),
     "sqrt": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.SQRT, x, **kw), "E"),
     "max": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.MAX, x, y, **kw), "EE"),
