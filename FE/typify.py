@@ -163,7 +163,8 @@ class _PolyMap:
     """Polymorphism map"""
 
     def __init__(self, tc: type_corpus.TypeCorpus):
-        self._map: dict[Tuple[cwast.DefMod, cwast.NAME, str], cwast.DefFun] = {}
+        self._map: dict[Tuple[cwast.DefMod,
+                              cwast.NAME, str], cwast.DefFun] = {}
         self._type_corpus = tc
 
     def Register(self, fun: cwast.DefFun):
@@ -245,7 +246,8 @@ def AnnotateNodeType(node, ct: cwast.CanonType):
 def AnnotateFieldWithTypeAndSymbol(node, field_node: cwast.RecField):
     assert isinstance(node, cwast.Id), f"{node}"
     AnnotateNodeType(node, field_node.x_type)
-    assert node.x_symbol is None, f"Id already field annotate: {node}"
+    assert node.x_symbol is cwast.INVALID_SYMBOL, f"Id already field annotate: {
+        node}"
     node.x_symbol = field_node
 
 
@@ -444,7 +446,7 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
                     # a variable name the matches the field name
                     # an created a link between the two.
                     # we overwrite it here again
-                    point.point.x_symbol = None
+                    point.point.x_symbol = cwast.INVALID_SYMBOL
                     AnnotateFieldWithTypeAndSymbol(point.point, field)
                 if not isinstance(point.value_or_undef, cwast.ValUndef):
                     _TypifyNodeRecursively(
@@ -1143,7 +1145,7 @@ def CheckExprAs(node: cwast.ExprAs, _):
 def _CheckExprUnsafeCast(node: cwast.ExprUnsafeCast,  tc: type_corpus.TypeCorpus):
     if not node.x_type.is_pointer() or not node.expr.x_type.is_pointer():
         cwast.CompilerError(
-            node.x_srcloc, f"unsafe_cast must convert pointer to pointer")
+            node.x_srcloc, "unsafe_cast must convert pointer to pointer")
 
 
 def _CheckExprBitCast(node: cwast.ExprAs, _):

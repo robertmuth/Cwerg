@@ -71,7 +71,7 @@ def _FunFixRenamedIdsBestEffort(fun: cwast.DefFun):
     cwast.VisitAstRecursivelyPost(fun, visitor)
 
 
-def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> str:
+def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> cwast.NAME:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
     # : is used for type annotations
@@ -182,6 +182,7 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
                         id_gen: identifier.IdGenIR):
     print(f".bbl {id_gen.NewName('entry')}")
     for p in fun.params:
+        # TODO: NewName returns a str but p.name is really a NAME
         # this uniquifies names
         p.name = id_gen.NewName(str(p.name))
         reg_types = p.type.x_type.register_types

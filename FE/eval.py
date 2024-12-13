@@ -273,7 +273,7 @@ def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
 
 def _EvalValCompound(ct: cwast.CanonType, inits: list, srcloc) -> Optional[Any]:
     if ct.is_rec():
-        rec: dict[str, Any] = {}
+        rec: dict[cwast.NAME, Any] = {}
         for field, init in symbolize.IterateValRec(inits, ct):
             assert isinstance(field, cwast.RecField)
             # print ("    ", field)

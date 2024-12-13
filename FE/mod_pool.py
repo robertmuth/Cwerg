@@ -296,14 +296,14 @@ if __name__ == "__main__":
     import os
     import sys
 
-    def main(argv):
+    def main(argv: list[str]):
         assert len(argv) == 1
         assert argv[0].endswith(EXTENSION_CW)
 
         cwd = os.getcwd()
         mp: ModPool = ModPool(pathlib.Path(cwd) / "Lib")
         mp.ReadModulesRecursively(
-            ["builtin", str(pathlib.Path(argv[0][:-3]).resolve())])
+            ["builtin", str(pathlib.Path(argv[0][:-3]).resolve())], False)
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)

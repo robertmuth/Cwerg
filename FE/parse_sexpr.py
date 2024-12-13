@@ -10,6 +10,7 @@ import logging
 import io
 
 from typing import Any, Tuple, Union
+from collections.abc import Callable
 
 from FE import cwast
 from FE import string_re
@@ -161,7 +162,7 @@ def _MakeTypeBaseLambda(kind: cwast.BASE_TYPE_KIND):
 
 
 # maps "atoms" to the nodes they will be expanded to
-_SHORT_HAND_NODES = {
+_SHORT_HAND_NODES: dict[str, Callable] = {
     "auto": cwast.TypeAuto,
     #
     "auto_val": cwast.ValAuto,

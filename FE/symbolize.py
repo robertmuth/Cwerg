@@ -113,12 +113,12 @@ class SymTab:
 
         # We are already in the "right" symtab
         name = macro_invoke.name.GetSymbolNameWithoutQualifier()
-        # TODO: pub check?
         out = self._syms.get(name)
         if not out:
             out = builtin_syms._syms.get(name)
-        if out:
-            assert isinstance(out, cwast.DefMacro)
+        if not out:
+            return out
+        assert isinstance(out, cwast.DefMacro)
         if must_be_public:
             assert out.pub, f"{out.name} must be public"
         return out
@@ -595,7 +595,7 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
 ############################################################
 
 
-def main(argv):
+def main(argv: list[str]):
     assert len(argv) == 1
     fn = argv[0]
     fn, ext = os.path.splitext(fn)

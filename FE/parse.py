@@ -1147,7 +1147,7 @@ def _ParseTopLevel(inp: Lexer):
     elif kw.text == "macro":
         if inp.peek().kind is TK_KIND.KW:
             name = inp.next()
-            assert name.text in pp.BUILTIN_MACROS, f"{name}"
+            assert name.text in cwast.ALL_BUILT_IN_MACROS, f"{name}"
         else:
             name = inp.match_or_die(TK_KIND.ID)
             assert name.text.endswith(cwast.MACRO_CALL_SUFFIX)

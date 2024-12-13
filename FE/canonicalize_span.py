@@ -167,7 +167,6 @@ def ReplaceSpans(node):
                     typify.UpdateNodeType(node, def_rec)
                     return None
 
-
                 cwast.CompilerError(
                     node.x_srcloc, "do not know how to convert span related node " +
                     f"[{def_rec.name}]: {type(node)} of type {node.x_type}")
