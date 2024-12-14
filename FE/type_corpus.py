@@ -104,12 +104,13 @@ def is_compatible_for_widen(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) ->
     return False
 
 
-def is_compatible_for_narrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+def is_compatible_for_narrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, sl: cwast.SrcLoc) -> bool:
+
     if ct_src.original_type is not None:
         ct_src = ct_src.original_type
     if ct_dst.original_type is not None:
         ct_dst = ct_dst.original_type
-    assert ct_src.is_union(), F"{ct_src} VS {ct_dst}"
+    assert ct_src.is_union(), F"{ct_src} VS {ct_dst} {sl}"
     src_children = set([x.name for x in ct_src.union_member_types()])
     if ct_dst.is_union():
         if ct_dst.untagged != ct_src.untagged:
