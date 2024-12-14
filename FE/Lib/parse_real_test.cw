@@ -14,7 +14,9 @@ global u32_max = 0_u32 - 1
 
 -- This asumes that there will be no error during the parse
 fun parse_r64(s span(u8)) r64:
-    return narrow_as(parse_real::parse_r64(s), r64)
+    let x = parse_real::parse_r64(s)
+    assert#(x.length == len(s), "s was not completely consumed")
+    return x.value
 
 fun test_nan() void:
     -- sanity checks for NANs

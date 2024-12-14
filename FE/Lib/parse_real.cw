@@ -6,9 +6,12 @@ import num_real
 
 import fmt
 
-pub wrapped type ParseError = void
+rec ResultR64:
+    value r64
+    length uint
 
-pub global ParseErrorVal = wrap_as(void, ParseError)
+
+pub global ParseError ResultR64
 
 fun is_hex_digit(c u8) bool:
     return c >= '0' && c <= '9' || c >= 'a' && c <= 'f'
@@ -23,12 +26,13 @@ fun dec_digit_val(c u8) u8:
     return c - '0'
 
 -- this macros capture i,n,s from the environment
-macro next_char# STMT_LIST($c ID, $body STMT_LIST)[]:
+macro next_char# STMT_LIST($c ID, $error_body STMT_LIST)[]:
     if i >= n:
-        $body 
+        $error_body
 
     set $c = s[i]
     set i += 1
+
 
 -- if we have too many digits we drop the one after the dot but
 -- adjust must adjust the exponent for the one before
@@ -69,7 +73,7 @@ macro read_dec_mantissa# STMT_LIST(
         -- ignore leading zeros
         while $c == '0':
             next_char# $c:
-            break end_of_input
+                break end_of_input
         while is_dec_digit($c):
             if $digits == 0:
                 if $c != '0':
@@ -103,7 +107,7 @@ macro read_dec_exponent# STMT_LIST($c ID, $exp ID)[$negative]:
         if $c == '-':
             set $negative = true
         next_char# $c:
-            return ParseErrorVal
+            return ParseError
     while is_dec_digit($c):
         set $exp *= 10
         set $exp += as(dec_digit_val($c), s32)
@@ -116,12 +120,13 @@ macro read_dec_exponent# STMT_LIST($c ID, $exp ID)[$negative]:
 -- note. this code does not perform
 -- * denormalization - this is not supported by Cwerg
 -- * rounding - the whole point of hex float is to control the mantissa exactly
-fun parse_r64_hex_helper(s span(u8), negative bool) union(ParseError, r64):
-    let! i uint = 0
+fun parse_r64_hex_helper(s span(u8), negative bool, offset uint) ResultR64:
+    -- note, thaty besides s we define our own i and n here for next_char#
+    let! i uint = offset
     let n = len(s)
     let! c u8
     next_char# c:
-        return ParseErrorVal
+        return ParseError
     let! mant = 0_u64
     let! exp_adjustments = 0_s32
     let! exp = 0_s32
@@ -129,15 +134,15 @@ fun parse_r64_hex_helper(s span(u8), negative bool) union(ParseError, r64):
     read_hex_mantissa#(c, num_real::r64_mantissa_bits / 4 + 2, mant, exp_adjustments)
     if c == 'p':
         next_char# c:
-            return ParseErrorVal
+            return ParseError
         read_dec_exponent#(c, exp)
     -- TODO: check that we have consumed all chars
     -- early out for simple corner case
     if mant == 0:
-        return negative ? -0_r64 : +0_r64
+        return negative ? {: -0_r64, i} : {: +0_r64, i}
     set exp += exp_adjustments * 4
     set exp += as(num_real::r64_mantissa_bits, s32)
-    -- gitfmt::print# ("BEFORE mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
+    -- fmt::print# ("BEFORE mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
     -- we want the highest set bit to be at position num_real::r64_mantissa_bits + 1
     -- replace both while loops utilizing "count leading zeros"
     while mant >> as(num_real::r64_mantissa_bits, u64) == 0:
@@ -149,21 +154,21 @@ fun parse_r64_hex_helper(s span(u8), negative bool) union(ParseError, r64):
         set exp += 1
     if exp > num_real::r64_exponent_max:
         -- maybe return inf
-        return ParseErrorVal
+        return ParseError
     if exp < num_real::r64_exponent_min:
         -- we do not support denormalization
         -- maybe return 0.0
-        return ParseErrorVal
+        return ParseError
     set exp += num_real::r64_raw_exponent_bias
     -- fmt::print# ("AFTER mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
     -- final touches
     let exp_u64 = as(exp, u64) and num_real::r64_exponent_mask
     set mant and= num_real::r64_mantissa_mask
-    return num_real::make_r64(negative, exp_u64, mant)
+    return {ResultR64: num_real::make_r64(negative, exp_u64, mant), i}
 
-pub fun parse_r64_hex(s span(u8)) union(ParseError, r64):
+pub fun parse_r64_hex(s span(u8)) ResultR64:
     if len(s) < 5:
-        return ParseErrorVal
+        return ParseError
     let! i uint = 0
     let! c u8 = s[i]
     let! negative = false
@@ -172,9 +177,9 @@ pub fun parse_r64_hex(s span(u8)) union(ParseError, r64):
         if c == '-':
             set negative = true
     if s[i] != '0' || s[i + 1] != 'x':
-        return ParseErrorVal
+        return ParseError
     set i += 2
-    return parse_r64_hex_helper(span_inc(s, i), negative)
+    return parse_r64_hex_helper(span_inc(s, i), negative, i)
 
 fun r64_dec_fast_helper(mant_orig u64, exp_orig s32, negative bool) r64:
     let! exp = exp_orig
@@ -195,44 +200,45 @@ fun r64_dec_fast_helper(mant_orig u64, exp_orig s32, negative bool) r64:
     else:
         return out / num_real::powers_of_ten[-exp]
 
-pub fun parse_r64(s span(u8)) union(ParseError, r64):
+pub fun parse_r64(s span(u8)) ResultR64:
     -- index of next char to read
     let! i uint = 0
     let n = len(s)
     let! c u8
     next_char# c:
-        return ParseErrorVal
+        return ParseError
     let! negative = false
     if c == '-' || c == '+':
         if c == '-':
             set negative = true
         next_char# c:
-            return ParseErrorVal
+            return ParseError
     if c == 'i':
-        if i + 2 != n || s[1] != 'n' || s[2] != 'f':
-            return negative ? -inf_r64 : +inf_r64
-        return ParseErrorVal
+        if i + 2 > n || s[i] != 'n' || s[i + 1] != 'f':
+            return ParseError
+        return negative ? {: -inf_r64, i + 2} : {: +inf_r64, i + 2}
     if c == 'n':
-        if i + 2 != n || s[1] != 'a' || s[2] != 'n':
-            return negative ? -nan_r64 : +nan_r64
-        return ParseErrorVal
+        if i + 2 > n || s[i] != 'a' || s[i + 1] != 'n':
+            return ParseError
+        return negative ? {: -nan_r64, i + 2} : {: +nan_r64, i + 2}
     if c == '0' && i <= n && s[i] == 'x':
         set i += 1
-        return parse_r64_hex_helper(span_inc(s, i), negative)
+        return parse_r64_hex_helper(s, negative, i)
     let! mant = 0_u64
     let! exp_adjustments = 0_s32
     let! exp = 0_s32
     let! imprecise = false
+    -- note, this is macro
     -- log2(10^19) == 63.11
     read_dec_mantissa#(c, 19_s32, mant, exp_adjustments, imprecise)
     if c == 'e':
         next_char# c:
-            return ParseErrorVal
+            return ParseError
         read_dec_exponent#(c, exp)
     -- TODO: check that we have consumed all chars
     -- early out for simple corner case
     if mant == 0:
-        return negative ? -0_r64 : +0_r64
+        return negative ? {: -0_r64, i} : {: +0_r64, i}
     set exp += exp_adjustments
     -- try making mantissa smaller, this is a common case, e.g.
     -- 555.0000 and helps preserve accuracy
@@ -245,4 +251,4 @@ pub fun parse_r64(s span(u8)) union(ParseError, r64):
     -- https://github.com/ziglang/zig/blob/master/lib/std/fmt/parse_float.zig
     -- https://github.com/c3lang/c3c/blob/master/lib/std/core/string_to_real.c3
     -- https://github.com/oridb/mc/blob/master/lib/std/fltparse.myr
-    return r64_dec_fast_helper(mant, exp, negative)
+    return {ResultR64: r64_dec_fast_helper(mant, exp, negative), i}
