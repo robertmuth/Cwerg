@@ -3,6 +3,7 @@
 module:
 
 import fmt
+import string
 import parse_real
 
 import v64 = vec_gen(r64)
@@ -45,9 +46,29 @@ rec Material:
 rec Sphere:
     pos v64::vec3
     rad r64
+    mat Material
+
+rec Plane:
+    pos v64::vec3
+    mat Material
+    norm v64::vec3
+
+rec Light:
+    pos v64::vec3
+
+rec Camera:
+    pos v64::vec3
+    fov r64
+    target v64::vec3
 
 rec Scene:
-    pos v64::vec3
+    camera Camera
+    lights [10]Light
+    num_lights uint
+    spheres [100]Sphere
+    num_spheres uint
+    planes [100]Plane
+    num_planes uint
 
 global KIND_S u8 = 's'
 
@@ -111,6 +132,7 @@ macro read_vec3# STMT_LIST($dst EXPR)[$tx, $ty, $tz]:
 fun ParseLine(line span(u8)) LineObj:
     let! s = line
     let! out LineObj
+    --
     set out.kind = s[0]
     set s = span_inc(s, 1)
     --
@@ -122,11 +144,42 @@ fun ParseLine(line span(u8)) LineObj:
     read_vec3#(out.v3)
     return out
 
-fun ParseScene(scene span(u8)) Scene:
-    let! s = scene
-    let out Scene
+fun ParseScene(scene_str span(u8)) Scene:
+    let! s = scene_str
+    let! out Scene
     while len(s) > 0:
-        set s = s
+        let! eol = string::find(s, "\n")
+        if eol == string::NOT_FOUND:
+            set eol = len(s) - 1
+        let! line = span(front(s), eol + 1)
+        set s = span_inc(s, eol + 1)
+        set line = span_inc(line, skip_white_space(line))
+        if len(line) == 0 || line[0] == '#':
+            continue
+        fmt::print#(line)
+        let! num_cameras = 0_uint
+        let obj = ParseLine(line)
+        cond:
+            case obj.kind == 's':
+                set out.spheres[out.num_spheres] =
+                {: obj.v1, obj.s1, {: obj.v2, obj.s2, obj.s3}}
+                set out.num_spheres += 1
+            case obj.kind == 'p':
+                set out.planes[out.num_planes] =
+                    {: obj.v1, {: obj.v2, obj.s2, obj.s3}, obj.v3}
+                set out.num_planes += 1
+            case obj.kind == 'l':
+                set out.lights[out.num_lights] = {: obj.v1}
+                set out.num_lights += 1
+            case obj.kind == 'c':
+                if num_cameras != 0:
+                    fmt::print#("more than one camera\n")
+                    trap
+                set out.camera = {: obj.v1, obj.s1, obj.v2}
+                set num_cameras += 1
+
+
+
     return out
 
 fun main(argc s32, argv ^^u8) s32:
@@ -137,13 +190,5 @@ fun main(argc s32, argv ^^u8) s32:
     -- let arg_h span(u8) = fmt::strz_to_slice(pinc(argv, 2)^)
     -- let width u32 = fmt::str_to_u32(arg_w)
     -- let height u32 = fmt::str_to_u32(arg_h)
-    let v1 v64::vec3 = {: 1.0, 2.0, 3.0}
-    let v2 v64::vec3 = {: 1.0, 2.0, 3.0}
-    let m1 v64::mat3 = {: {: 1.0, 0.0, 0.0}, {: 0.0, 1.0, 0.0}, {: 0.0, 0.0, 1.0}}
-    fmt::print#(v1, "\n")
-    fmt::print#(v2, "\n")
-    fmt::print#(v64::zero_vec4, "\n")
-    fmt::print#(v64::add@(v1, v2), "\n")
-    fmt::print#(v64::zero_mat2, "\n")
-    fmt::print#(v64::id_mat4, "\n")
+    let scene = ParseScene(gScene)
     return 0
