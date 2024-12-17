@@ -2,13 +2,16 @@ module($T TYPE):
 
 import fmt
 
---
+-- vecX may be interpreted as row or column vectors
 pub type vec2 = [2]$T
 
 pub type vec3 = [3]$T
 
 pub type vec4 = [4]$T
 
+-- matX is organized in row major form
+-- https://en.wikipedia.org/wiki/Row-_and_column-major_order
+-- matX[i] denotes the row vector of row i
 pub type mat2 = [2][2]$T
 
 pub type mat3 = [3][3]$T
@@ -35,6 +38,36 @@ pub global id_mat3 mat3 = {: {: 1.0, 0.0, 0.0}, {: 0.0, 1.0, 0.0}, {
 pub global id_mat4 mat4 = {
         : {: 1.0, 0.0, 0.0, 0.0}, {: 0.0, 1.0, 0.0, 0.0}, {: 0.0, 0.0, 1.0, 0.0}, {
             : 0.0, 0.0, 0.0, 1.0}}
+
+--
+fun eq@(a vec2, b vec2) bool:
+    return a[0] == b[0] && a[1] == b[1]
+
+fun eq@(a vec3, b vec3) bool:
+    return a[0] == b[0] && a[1] == b[1] && a[2] == b[2]
+
+fun eq@(a vec4, b vec4) bool:
+    return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3]
+
+fun eq@(a mat2, b mat2) bool:
+    return a[0][0] == b[0][0] && a[0][1] == b[0][1] &&
+           a[1][0] == b[1][0] && a[1][1] == b[1][1]
+
+fun eq@(a mat3, b mat3) bool:
+    return a[0][0] == b[0][0] && a[0][1] == b[0][1] && a[0][2] == b[0][2] &&
+           a[1][0] == b[1][0] && a[1][1] == b[1][1] && a[1][2] == b[1][2] &&
+           a[2][0] == b[2][0] && a[2][1] == b[2][1] && a[2][2] == b[2][2]
+
+fun eq@(a mat4, b mat4) bool:
+    return a[0][0] == b[0][0] && a[0][1] == b[0][1] &&
+           a[0][2] == b[0][2] && a[0][3] == b[0][3] &&
+           a[1][0] == b[1][0] && a[1][1] == b[1][1] &&
+           a[1][2] == b[1][2] && a[1][3] == b[1][3] &&
+           a[2][0] == b[2][0] && a[2][1] == b[2][1] &&
+           a[2][2] == b[2][2] && a[2][3] == b[2][3] &&
+           a[3][0] == b[3][0] && a[3][1] == b[3][1] &&
+           a[3][2] == b[3][2] && a[3][3] == b[3][3]
+
 
 --
 fun add@(a vec2, b vec2) vec2:
@@ -104,6 +137,31 @@ fun dot@(a vec3, b vec3) $T:
 fun dot@(a vec4, b vec4) $T:
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
 
+-- b is interpreted as a column vec and the result is a column vec
+fun mulmv@(a mat3, b vec3) vec3:
+    return {: a[0][0] * b[0] +  a[0][1] * b[1] + a[0][2] * b[2],
+              a[1][0] * b[0] +  a[1][1] * b[1] + a[1][2] * b[2],
+              a[2][0] * b[0] +  a[2][1] * b[1] + a[2][2] * b[2]}
+
+-- a is interpreted as a row vec and the result is a row vec
+fun mulvm@(b vec3, a mat3) vec3:
+    return {: a[0][0] * b[0] +  a[1][0] * b[1] + a[2][0] * b[2],
+              a[0][1] * b[0] +  a[1][1] * b[1] + a[2][1] * b[2],
+              a[0][2] * b[0] +  a[1][2] * b[1] + a[2][2] * b[2]}
+
+
+fun mulmm@(a mat3, b mat3) mat3:
+    return {:
+        {: a[0][0] * b[0][0] +  a[0][1] * b[1][0] + a[0][2] * b[2][0],
+           a[0][0] * b[0][1] +  a[0][1] * b[1][1] + a[0][2] * b[2][1],
+           a[0][0] * b[0][2] +  a[0][1] * b[2][2] + a[0][2] * b[2][2]},
+        {: a[1][0] * b[0][0] +  a[1][1] * b[1][0] + a[1][2] * b[2][0],
+           a[1][0] * b[0][1] +  a[1][1] * b[1][1] + a[1][2] * b[2][1],
+           a[1][0] * b[0][2] +  a[1][1] * b[2][2] + a[1][2] * b[2][2]},
+        {: a[2][0] * b[0][0] +  a[2][1] * b[1][0] + a[2][2] * b[2][0],
+           a[2][0] * b[0][1] +  a[2][1] * b[1][1] + a[2][2] * b[2][1],
+           a[2][0] * b[0][2] +  a[2][1] * b[2][2] + a[2][2] * b[2][2]}
+    }
 --
 fun sub@(a vec2, b vec2) vec2:
     return {: a[0] - b[0], a[1] - b[1]}

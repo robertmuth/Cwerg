@@ -181,11 +181,42 @@ fun init_vrand_urand() void:
     for i = 0, len(urand), 1:
         set irand[i] = random::Pcg32GetRandomU32(&!state) % as(len(urand), u32)
 
-fun get_xy_noise(w u32, h u32, x u32, y u32, r u32) v64::vec2:
-    let! out  v64::vec2
-    return out
+fun get_jitter(x u32, y u32, s u32) v64::vec2:
+    let a =  irand[(x + s) % as(len(irand), u32)]
+    let aa =  (x + (y << 2) + a) % as(len(urand), u32)
+    let b =  irand[(y + s) % as(len(irand), u32)]
+    let bb =  (y + (x << 2) + b) % as(len(urand), u32)
+    return {:  urand[aa][0],  urand[bb][1]}
 
--- fun get_primary_ray() Ray:
+
+fun get_sample_pos(w u32, h u32, x u32, y u32, s u32) v64::vec2:
+    let wr = as(w, r64)
+    let hr = as(h, r64)
+    let xr = as(x, r64)
+    let yr = as(y, r64)
+    let! px = (xr / wr - 0.5) * 2.0 * wr / hr
+    let! py = (0.5_r64 - yr) / hr * 2.0
+    if s > 0:
+        let jitter = get_jitter(x, y, s)
+        let sf r64 =  1.5 / wr
+        set px += jitter[0] * sf
+        set py += jitter[1] * sf
+    return {: px, py}
+
+fun get_primry_ray(cam ^Camera, pos v64::vec2) Ray:
+    let orig = cam^.pos
+    let! dir =  {v64::vec3: }
+
+    let k = v64::sub@(cam^.target, cam^.pos)
+    let i =  v64::cross@({v64::vec3: 0, 1, 0}, k)
+    let j =  v64::cross@(k, i)
+
+    let m = {v64::mat3: i, j, k}
+
+    set dir = v64::add@(dir,  orig)
+    return {: orig, dir}
+
+
 fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
     let color_scaler = 255.0_r64 / as(rays_per_pixel, r64)
     let lo = {v64::vec3: 0.0, 0.0, 0.0}
@@ -195,7 +226,8 @@ fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
         for x = 0, w, 1:
             let! rgb v64::vec3
             for r = 0, rays_per_pixel, 1:
-                let noise = get_xy_noise(w, h, x, y, r)
+                let pos = get_sample_pos(w, h, x, y, r)
+                let ray = get_primry_ray(&scene^.camera, pos)
                 -- let ray = get_primary_ray()
                 set rgb = v64::add@(rgb, rgb)
             set rgb = v64::scaled@(rgb, color_scaler)
