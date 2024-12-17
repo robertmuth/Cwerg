@@ -62,11 +62,11 @@ fun add@(a mat4, b mat4) mat4:
             : {
                 : a[0][0] + b[0][0], a[0][1] + b[0][1], a[0][2] + b[0][2], a[0][
                     3] + b[0][3]},
-            {: a[1][0] + b[1][0], a[1][1] + b[1][1], a[1][2] + b[1][2], a[1][3] + 
+            {: a[1][0] + b[1][0], a[1][1] + b[1][1], a[1][2] + b[1][2], a[1][3] +
             b[1][3]},
-            {: a[2][0] + b[2][0], a[2][1] + b[2][1], a[2][2] + b[2][2], a[2][3] + 
+            {: a[2][0] + b[2][0], a[2][1] + b[2][1], a[2][2] + b[2][2], a[2][3] +
             b[2][3]},
-            {: a[3][0] + b[3][0], a[3][1] + b[3][1], a[3][2] + b[3][2], a[3][3] + 
+            {: a[3][0] + b[3][0], a[3][1] + b[3][1], a[3][2] + b[3][2], a[3][3] +
             b[3][3]}}
 
 --
@@ -105,33 +105,55 @@ fun sub@(a mat4, b mat4) mat4:
             : {
                 : a[0][0] - b[0][0], a[0][1] - b[0][1], a[0][2] - b[0][2], a[0][
                     3] - b[0][3]},
-            {: a[1][0] - b[1][0], a[1][1] - b[1][1], a[1][2] - b[1][2], a[1][3] - 
+            {: a[1][0] - b[1][0], a[1][1] - b[1][1], a[1][2] - b[1][2], a[1][3] -
             b[1][3]},
-            {: a[2][0] - b[2][0], a[2][1] - b[2][1], a[2][2] - b[2][2], a[2][3] - 
+            {: a[2][0] - b[2][0], a[2][1] - b[2][1], a[2][2] - b[2][2], a[2][3] -
             b[2][3]},
-            {: a[3][0] - b[3][0], a[3][1] - b[3][1], a[3][2] - b[3][2], a[3][3] - 
+            {: a[3][0] - b[3][0], a[3][1] - b[3][1], a[3][2] - b[3][2], a[3][3] -
             b[3][3]}}
-
 --
-fun scale@(b vec2, a $T) vec2:
+fun normalized@(a vec2) vec2:
+    let x = a[0]
+    let y = a[1]
+    let li $T = 1.0 / sqrt(x * x + y * y)
+    return {: x * li , y * li}
+
+fun normalized@(a vec3) vec3:
+    let x = a[0]
+    let y = a[1]
+    let z = a[2]
+
+    let li $T = 1.0 / sqrt(x * x + y * y + z * z)
+    return {: x * li , y * li, z * li}
+
+fun normalized@(a vec4) vec4:
+    let x = a[0]
+    let y = a[1]
+    let z = a[2]
+    let w = a[3]
+
+    let li $T = 1.0 / sqrt(x * x + y * y + z * z + w * w)
+    return {: x * li , y * li, z * li, w * li}
+--
+fun scaled@(b vec2, a $T) vec2:
     return {: a * b[0], a * b[1]}
 
-fun scale@(b vec3, a $T) vec3:
+fun scaled@(b vec3, a $T) vec3:
     return {: a * b[0], a * b[1], a * b[2]}
 
-fun scale@(b vec4, a $T) vec4:
+fun scaled@(b vec4, a $T) vec4:
     return {: a * b[0], a * b[1], a * b[2], a * b[3]}
 
-fun scale@(b mat2, a $T) mat2:
+fun scaled@(b mat2, a $T) mat2:
     return {: {: a * b[0][0], a * b[0][1]}, {: a * b[1][0], a * b[1][1]}}
 
-fun scale@(b mat3, a $T) mat3:
+fun scaled@(b mat3, a $T) mat3:
     return {
             : {: a * b[0][0], a * b[0][1], a * b[0][2]},
             {: a * b[1][0], a * b[1][1], a * b[1][2]},
             {: a * b[2][0], a * b[2][1], a * b[2][2]}}
 
-fun scale@(b mat4, a $T) mat4:
+fun scaled@(b mat4, a $T) mat4:
     return {
             : {: a * b[0][0], a * b[0][1], a * b[0][2], a * b[0][3]},
             {: a * b[1][0], a * b[1][1], a * b[1][2], a * b[1][3]},

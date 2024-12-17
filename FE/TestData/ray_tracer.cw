@@ -8,33 +8,6 @@ import parse_real
 
 import v64 = vec_gen(r64)
 
-global gScene = """
-# spheres
-#	position		radius	color			shininess	reflectivity
-s	-1.5 -0.3 -1	0.7		1.0 0.2 0.05		50.0	0.3
-s	1.5 -0.4 0		0.6		0.1 0.85 1.0		50.0	0.4
-
-# walls
-#s	0 -1000 2		999		0.1 0.2 0.6			80.0	0.8
-
-#   position		junk										normal
-p	0 -1 0			0		0.1 0.2 0.4			80.0	0.8		0 1 0
-p	3 0 1			0		0.2 0.5 0.3			0		0.2		-1 0 -0.3
-p	1 -1 4			0		0.1 0.1 0.1			60.0	0.5		0.3 0 -1
-p	-100 0 0		0		0.7 0.6 0.5			50.0	0		1 0 0
-p	1 -1 -100		0		0.1 0.1 0.1			60.0	0		0.3 0 1
-
-# bouncing ball
-s	0 0 2			1		1.0 0.5 0.1			60.0	0.7
-
-# lights...
-l	-50 100 -50
-l	40 40 150
-
-# camera (there can be only one!)
-#	position	FOV		target
-c	0 3 -8		45		0 0 0
-"""
 
 rec Material:
     col v64::vec3
@@ -161,14 +134,24 @@ fun ParseScene(scene_str span(u8)) Scene:
         let obj = ParseLine(line)
         cond:
             case obj.kind == 's':
+                if out.num_spheres >= len( out.spheres):
+                    fmt::print#("too many spheres\n")
+                    trap
                 set out.spheres[out.num_spheres] =
                 {: obj.v1, obj.s1, {: obj.v2, obj.s2, obj.s3}}
                 set out.num_spheres += 1
             case obj.kind == 'p':
+                if out.num_planes >= len( out.planes):
+                    fmt::print#("too many planes\n")
+                    trap
                 set out.planes[out.num_planes] =
-                    {: obj.v1, {: obj.v2, obj.s2, obj.s3}, obj.v3}
+                    {: obj.v1, {: obj.v2, obj.s2, obj.s3},
+                       v64::normalized@(obj.v3)}
                 set out.num_planes += 1
             case obj.kind == 'l':
+                if out.num_lights >= len( out.lights):
+                    fmt::print#("too many lights\n")
+                    trap
                 set out.lights[out.num_lights] = {: obj.v1}
                 set out.num_lights += 1
             case obj.kind == 'c':
@@ -177,10 +160,57 @@ fun ParseScene(scene_str span(u8)) Scene:
                     trap
                 set out.camera = {: obj.v1, obj.s1, obj.v2}
                 set num_cameras += 1
-
-
-
     return out
+
+fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
+    let rpp_inc = 1.0_r64 / as(rays_per_pixel, r64)
+    for y = 0, h, 1:
+        for x = 0, w, 1:
+            let! rgb v64::vec3
+            for r = 0, rays_per_pixel, 1:
+                set rgb = v64::add@(rgb, rgb)
+            set rgb = v64::scaled@(rgb, rpp_inc)
+            let ri u8 = as(min(rgb[0], 1.0), u8)
+            let rg u8 = as(min(rgb[1], 1.0), u8)
+            let rb u8 = as(min(rgb[2], 1.0), u8)
+            let color = as(ri, u32) << 16 +  as(rg, u32) << 8 + as(rb, u32)
+            set fb[y * w + x] = color
+    return
+
+
+
+
+global gSceneStr = """
+# spheres
+#	position		radius	color			shininess	reflectivity
+s	-1.5 -0.3 -1	0.7		1.0 0.2 0.05		50.0	0.3
+s	1.5 -0.4 0		0.6		0.1 0.85 1.0		50.0	0.4
+
+# walls
+#s	0 -1000 2		999		0.1 0.2 0.6			80.0	0.8
+
+#   position		junk										normal
+p	0 -1 0			0		0.1 0.2 0.4			80.0	0.8		0 1 0
+p	3 0 1			0		0.2 0.5 0.3			0		0.2		-1 0 -0.3
+p	1 -1 4			0		0.1 0.1 0.1			60.0	0.5		0.3 0 -1
+p	-100 0 0		0		0.7 0.6 0.5			50.0	0		1 0 0
+p	1 -1 -100		0		0.1 0.1 0.1			60.0	0		0.3 0 1
+
+# bouncing ball
+s	0 0 2			1		1.0 0.5 0.1			60.0	0.7
+
+# lights...
+l	-50 100 -50
+l	40 40 150
+
+# camera (there can be only one!)
+#	position	FOV		target
+c	0 3 -8		45		0 0 0
+"""
+-- we support up to 4k - which is too large for the stack
+-- global gPixels [3840 * 2160]u32
+
+ref global! gPixels [640 * 480]u32
 
 fun main(argc s32, argv ^^u8) s32:
     -- if argc < 3:
@@ -190,5 +220,9 @@ fun main(argc s32, argv ^^u8) s32:
     -- let arg_h span(u8) = fmt::strz_to_slice(pinc(argv, 2)^)
     -- let width u32 = fmt::str_to_u32(arg_w)
     -- let height u32 = fmt::str_to_u32(arg_h)
-    let scene = ParseScene(gScene)
+    let w u32 = 640_u32
+    let h u32 = 480_u32
+    let rays_per_pixel = 1_u32
+    ref let scene = ParseScene(gSceneStr)
+    do Render(w, h, rays_per_pixel, span(front!(gPixels), as(w * h, uint)),  &scene)
     return 0

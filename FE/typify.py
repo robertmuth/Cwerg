@@ -436,7 +436,7 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
             else:
                 _TypifyNodeRecursively(index, tc, uint_type, ctx)
     else:
-        assert ct.is_rec()
+        assert ct.is_rec(), f"expected rec got {ct} in {node.x_srcloc}"
         for field, point in symbolize.IterateValRec(node.inits, ct):
             if point:
                 field_ct = field.x_type
