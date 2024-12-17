@@ -175,7 +175,9 @@ class _PolyMap:
         logger.info("Register polymorphic fun %s::%s: %s",
                     mod.x_modname, name, first_param_type)
         # TODO: Should this work with parameterized volumes
-        self._map[(mod, name, first_param_type)] = fun
+        key = (mod, name, first_param_type)
+        assert key not in self._map, f"duplicate poly def {fun.x_srcloc}"
+        self._map[key] = fun
 
     def Resolve(self, callee: cwast.Id, first_param_type: cwast.CanonType) -> cwast.DefFun:
         # TODO: why are we not using the mod_name here?
@@ -304,7 +306,7 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
                                       ctx: _TypeContext) -> cwast.CanonType:
 
     if isinstance(node, cwast.TypeAuto):
-        assert target_type is not cwast.NO_TYPE
+        assert target_type is not cwast.NO_TYPE, f"cannot typify auto in {node.x_srcloc}"
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.TypeBase):
         return AnnotateNodeType(node, tc.get_base_canon_type(node.base_type_kind))
