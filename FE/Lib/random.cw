@@ -22,9 +22,14 @@ pub global Pcg32StateDefault = {
         Pcg32State: 0x853c49e6748fea9b_u64, 0xda3e39cb94b95bdb_u64}
 
 -- Generate a uniformly distributed 32-bit random number
-fun Pcg32GetRandom(state ^!Pcg32State) u32:
+pub fun Pcg32GetRandomU32(state ^!Pcg32State) u32:
     let oldstate u64 = state^.state
     set state^.state = oldstate * 6364136223846793005_u64 + state^.inc
     let xorshifted u32 = as((oldstate >> 18 xor oldstate) >> 27, u32)
     let rot u32 = as(oldstate >> 59, u32)
     return xorshifted >> rot or xorshifted << ((0 - rot) and 31)
+
+-- Generate a r64 number between 0.0 and 1.0
+pub fun Pcg32GetRandomR64(state ^!Pcg32State) r64:
+    let v = Pcg32GetRandomU32(state)
+    return as(v, r64) / 4294967295

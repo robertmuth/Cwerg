@@ -70,6 +70,31 @@ fun add@(a mat4, b mat4) mat4:
             b[3][3]}}
 
 --
+fun max@(a vec2, b vec2) vec2:
+    return {: max(a[0], b[0]), max(a[1], b[1])}
+
+fun max@(a vec3, b vec3) vec3:
+    return {: max(a[0], b[0]), max(a[1], b[1]), max(a[2], b[2])}
+
+fun max@(a vec4, b vec4) vec4:
+    return {: max(a[0], b[0]), max(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3])}
+
+--
+fun min@(a vec2, b vec2) vec2:
+    return {: min(a[0], b[0]), min(a[1], b[1])}
+
+fun min@(a vec3, b vec3) vec3:
+    return {: min(a[0], b[0]), min(a[1], b[1]), min(a[2], b[2])}
+
+fun min@(a vec4, b vec4) vec4:
+    return {: min(a[0], b[0]), min(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3])}
+--
+
+fun cross@(a vec3, b vec3) vec3:
+    return {: a[1] * b[2] - a[2] * b[1],
+              a[2] * b[0] - a[0] * b[2],
+              a[0] * b[1] - a[1] * b[0]}
+--
 fun dot@(a vec2, b vec2) $T:
     return a[0] * b[0] + a[1] * b[1]
 

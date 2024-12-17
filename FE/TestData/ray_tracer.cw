@@ -5,6 +5,7 @@ module:
 import fmt
 import string
 import parse_real
+import random
 
 import v64 = vec_gen(r64)
 
@@ -42,6 +43,10 @@ rec Scene:
     num_spheres uint
     planes [100]Plane
     num_planes uint
+
+rec Ray:
+    orig v64::vec3
+    dir v64::vec3
 
 global KIND_S u8 = 's'
 
@@ -162,19 +167,41 @@ fun ParseScene(scene_str span(u8)) Scene:
                 set num_cameras += 1
     return out
 
+
+global! urand [1024]v64::vec2
+global! irand [1024]u32
+
+
+fun init_vrand_urand() void:
+    ref let! state = random::Pcg32StateDefault
+    for i = 0, len(urand), 1:
+        set urand[i][0] = random::Pcg32GetRandomR64(&!state) - 0.5
+    for i = 0, len(urand), 1:
+        set urand[i][1] = random::Pcg32GetRandomR64(&!state) - 0.5
+    for i = 0, len(urand), 1:
+        set irand[i] = random::Pcg32GetRandomU32(&!state) % as(len(urand), u32)
+
+fun get_xy_noise(w u32, h u32, x u32, y u32, r u32) v64::vec2:
+    let! out  v64::vec2
+    return out
+
+-- fun get_primary_ray() Ray:
 fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
-    let rpp_inc = 1.0_r64 / as(rays_per_pixel, r64)
+    let color_scaler = 255.0_r64 / as(rays_per_pixel, r64)
+    let lo = {v64::vec3: 0.0, 0.0, 0.0}
+    let hi = {v64::vec3: 255.0, 255.0, 255.0}
+
     for y = 0, h, 1:
         for x = 0, w, 1:
             let! rgb v64::vec3
             for r = 0, rays_per_pixel, 1:
+                let noise = get_xy_noise(w, h, x, y, r)
+                -- let ray = get_primary_ray()
                 set rgb = v64::add@(rgb, rgb)
-            set rgb = v64::scaled@(rgb, rpp_inc)
-            let ri u8 = as(min(rgb[0], 1.0), u8)
-            let rg u8 = as(min(rgb[1], 1.0), u8)
-            let rb u8 = as(min(rgb[2], 1.0), u8)
-            let color = as(ri, u32) << 16 +  as(rg, u32) << 8 + as(rb, u32)
-            set fb[y * w + x] = color
+            set rgb = v64::scaled@(rgb, color_scaler)
+            set rgb = v64::min@(hi, v64::max@(lo, rgb))
+            let color = as(rgb[0], s32) << 16 +  as(rgb[1], s32) << 8 + as(rgb[2], s32)
+            set fb[y * w + x] = as(color, u32)
     return
 
 
@@ -223,6 +250,7 @@ fun main(argc s32, argv ^^u8) s32:
     let w u32 = 640_u32
     let h u32 = 480_u32
     let rays_per_pixel = 1_u32
+    do init_vrand_urand()
     ref let scene = ParseScene(gSceneStr)
     do Render(w, h, rays_per_pixel, span(front!(gPixels), as(w * h, uint)),  &scene)
     return 0
