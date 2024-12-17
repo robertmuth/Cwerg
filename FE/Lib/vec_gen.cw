@@ -18,24 +18,37 @@ pub type mat3 = [3][3]$T
 
 pub type mat4 = [4][4]$T
 
-pub global zero_vec2 vec2
+pub global ZERO_vec2 = {vec2:  0, 0}
+pub global ONES_vec2 = {vec2:  1, 1}
+pub global X_vec2 = {vec2:  1, 0}
+pub global Y_vec2 = {vec2:  0, 1}
 
-pub global zero_vec3 vec3
+pub global ZERO_vec3 = {vec3:  0, 0, 0}
+pub global ONES_vec3 = {vec3:  1, 1, 1}
 
-pub global zero_vec4 vec4
+pub global X_vec3 = {vec3:  1, 0, 0}
+pub global Y_vec3 = {vec3:  0, 1, 0}
+pub global Z_vec3 = {vec3:  0, 0, 1}
 
-pub global zero_mat2 mat2
+pub global ZERO_vec4 = {vec4:  0, 0, 0, 0}
+pub global ONES_vec4 = {vec4:  1, 1, 1, 1}
+pub global X_vec4 = {vec4:  1, 0, 0, 0}
+pub global Y_vec4 = {vec4:  0, 1, 0, 0}
+pub global Z_vec4 = {vec4:  0, 0, 1, 0}
+pub global W_vec4 = {vec4:  0, 0, 0, 1}
 
-pub global zero_mat3 mat3
+pub global ZERO_mat2 mat2
 
-pub global zero_mat4 mat4
+pub global ZERO_mat3 mat3
 
-pub global id_mat2 mat2 = {: {: 1.0, 0.0}, {: 0.0, 1.0}}
+pub global ZERO_mat4 mat4
 
-pub global id_mat3 mat3 = {: {: 1.0, 0.0, 0.0}, {: 0.0, 1.0, 0.0}, {
+pub global ID_mat2 = {mat2: {: 1.0, 0.0}, {: 0.0, 1.0}}
+
+pub global ID_mat3 = {mat3: {: 1.0, 0.0, 0.0}, {: 0.0, 1.0, 0.0}, {
         : 0.0, 0.0, 1.0}}
 
-pub global id_mat4 mat4 = {
+pub global ID_mat4 mat4 = {
         : {: 1.0, 0.0, 0.0, 0.0}, {: 0.0, 1.0, 0.0, 0.0}, {: 0.0, 0.0, 1.0, 0.0}, {
             : 0.0, 0.0, 0.0, 1.0}}
 
@@ -138,6 +151,22 @@ fun dot@(a vec4, b vec4) $T:
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
 
 -- b is interpreted as a column vec and the result is a column vec
+fun mulmv@(a mat2, b vec2) vec2:
+    return {: a[0][0] * b[0] +  a[0][1] * b[1],
+              a[1][0] * b[0] +  a[1][1] * b[1]}
+
+-- a is interpreted as a row vec and the result is a row vec
+fun mulvm@(b vec2, a mat2) vec2:
+    return {: a[0][0] * b[0] +  a[1][0] * b[1],
+              a[0][1] * b[0] +  a[1][1] * b[1]}
+
+fun mulmm@(a mat2, b mat2) mat2:
+    return {:
+        {: a[0][0] * b[0][0] +  a[0][1] * b[1][0],
+           a[0][0] * b[0][1] +  a[0][1] * b[1][1]},
+        {: a[1][0] * b[0][0] +  a[1][1] * b[1][0],
+           a[1][0] * b[0][1] +  a[1][1] * b[1][1]}}
+
 fun mulmv@(a mat3, b vec3) vec3:
     return {: a[0][0] * b[0] +  a[0][1] * b[1] + a[0][2] * b[2],
               a[1][0] * b[0] +  a[1][1] * b[1] + a[1][2] * b[2],
@@ -184,16 +213,15 @@ fun sub@(a mat3, b mat3) mat3:
             {: a[2][0] - b[2][0], a[2][1] - b[2][1], a[2][2] - b[2][2]}}
 
 fun sub@(a mat4, b mat4) mat4:
-    return {
-            : {
-                : a[0][0] - b[0][0], a[0][1] - b[0][1], a[0][2] - b[0][2], a[0][
-                    3] - b[0][3]},
-            {: a[1][0] - b[1][0], a[1][1] - b[1][1], a[1][2] - b[1][2], a[1][3] -
-            b[1][3]},
-            {: a[2][0] - b[2][0], a[2][1] - b[2][1], a[2][2] - b[2][2], a[2][3] -
-            b[2][3]},
-            {: a[3][0] - b[3][0], a[3][1] - b[3][1], a[3][2] - b[3][2], a[3][3] -
-            b[3][3]}}
+    return {:
+      {: a[0][0] - b[0][0], a[0][1] - b[0][1],
+         a[0][2] - b[0][2], a[0][3] - b[0][3]},
+      {: a[1][0] - b[1][0], a[1][1] - b[1][1],
+         a[1][2] - b[1][2], a[1][3] - b[1][3]},
+      {: a[2][0] - b[2][0], a[2][1] - b[2][1],
+         a[2][2] - b[2][2], a[2][3] - b[2][3]},
+      {: a[3][0] - b[3][0], a[3][1] - b[3][1],
+         a[3][2] - b[3][2], a[3][3] - b[3][3]}}
 --
 fun normalized@(a vec2) vec2:
     let x = a[0]
