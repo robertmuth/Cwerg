@@ -24,6 +24,8 @@ macro AssertCommon# STMT_LIST($name EXPR, $e_expr EXPR, $a_expr EXPR)[
     SysPrint#(stringify($e_expr))
     SysPrint#(" VS ")
     SysPrint#(stringify($a_expr))
+    SysPrint#(" at ")
+    SysPrint#(srcloc($e_expr))
     SysPrint#("\n")
     trap
 
@@ -96,6 +98,8 @@ pub macro AssertTrue# STMT_LIST($e_expr EXPR)[]:
     else:
         SysPrint#("AssertTrue failed: ")
         SysPrint#(stringify($e_expr))
+        SysPrint#(" at ")
+        SysPrint#(srcloc($e_expr))
         SysPrint#("\n")
         trap
 
@@ -104,6 +108,8 @@ pub macro AssertFalse# STMT_LIST($e_expr EXPR)[]:
     if $e_expr:
         SysPrint#("AssertFalse failed: ")
         SysPrint#(stringify($e_expr))
+        SysPrint#(" at ")
+        SysPrint#(srcloc($e_expr))
         SysPrint#("\n")
         trap
 
