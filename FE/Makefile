@@ -17,7 +17,8 @@ TEST_TESTS := \
 	TestData/fibonacci.cw \
     TestData/fizzbuzz.cw \
     TestData/hello_world.cw \
-    TestData/nqueens.cw
+    TestData/nqueens.cw \
+    TestData/ray_tracer.cw
 
 # excludes 64bit tests
 TESTS_A32 := \
