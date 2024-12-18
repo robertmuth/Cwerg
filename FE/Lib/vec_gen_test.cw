@@ -100,7 +100,6 @@ fun Test_Dim3() void:
     test::AssertTrue#(v64::eq@(
         v64::Z_vec3, v64::mulvm@(v64::X_vec3, m_1)))
 
-
     -- row major
     test::AssertEq#(1_r64, m_2[0][0])
     test::AssertEq#(3_r64, m_2[0][1])
@@ -118,6 +117,10 @@ fun Test_Dim3() void:
     test::AssertTrue#(v64::eq@(m_2, v64::mulmm@(v64::ID_mat3, m_2)))
     test::AssertTrue#(v64::eq@(m_3, v64::mulmm@(m_1, m_2)))
     test::AssertTrue#(v64::eq@(m_4, v64::mulmm@(m_2, m_1)))
+    --
+    test::AssertTrue#(v64::eq@(v64::Z_vec3, v64::cross@(v64::X_vec3, v64::Y_vec3)))
+    test::AssertTrue#(v64::eq@(v64::scaled@(v64::Z_vec3, -1), v64::cross@(v64::Y_vec3, v64::X_vec3)))
+
 
 fun main(argc s32, argv ^^u8) s32:
     do Test_Dim2()
