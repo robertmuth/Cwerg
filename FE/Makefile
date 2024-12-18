@@ -178,10 +178,12 @@ $(DIR)/print_argv.a64.test: build/TestData/print_argv.compile.a64.exe
 
 $(DIR)/assert.x64.test: build/FailTest/assert.compile.x64.exe
 	-${QEMU} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
+	sed -i "s| at.*||" $@
 	diff $@ FailTest/assert.golden
 
 $(DIR)/assert.a64.test: build/FailTest/assert.compile.a64.exe
 	${QEMU} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
+	sed -i "s| at.*||" $@
 	diff $@ FailTest/assert.golden
 
 ## Manual tests
