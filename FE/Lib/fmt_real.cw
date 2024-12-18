@@ -81,13 +81,13 @@ pub fun FmtExponentE(exp s32, out span!(u8)) uint:
         if exp >= -9:
             set out[2] = '0'
             set i += 1
-        return i + fmt_int::FmtDec@(-exp, span_inc(out, i))
+        return i + fmt_int::FmtDec(-exp, span_inc(out, i))
     else:
         set out[1] = '+'
         if exp <= 9:
             set out[2] = '0'
             set i += 1
-        return i + fmt_int::FmtDec@(exp, span_inc(out, i))
+        return i + fmt_int::FmtDec(exp, span_inc(out, i))
 
 fun FmtSign(is_negative bool, force_sign bool, out span!(u8)) uint:
     cond:
@@ -126,7 +126,7 @@ fun RoundDigitsUp(digits span!(u8)) s32:
     set digits[0] = '1'
     return 1
 
-pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
+pub poly fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
     -- worst case -x.[precision]e-xxx
     let is_negative = num_real::r64_is_negative(val)
     let! buffer [32]u8 = undef
@@ -158,7 +158,7 @@ pub fun FmtE@(val r64, precision uint, force_sign bool, out span!(u8)) uint:
         set t -= 1
         set mantissa *= 10
         set mantissa >>= as(52_s32 - exponent, u64)
-    let num_digits uint = fmt_int::FmtDec@(
+    let num_digits uint = fmt_int::FmtDec(
             mantissa, span(front!(buffer), len(buffer)))
     -- decimal rounding if we drop digits
     if num_digits > precision + 1 && buffer[precision + 2] >= '5':
@@ -201,13 +201,13 @@ fun FmtExponentHex(raw_exponent s32, is_potential_zero bool, out span!(u8)) uint
         set exp = -exp
     else:
         set out[1] = '+'
-    return 2 + fmt_int::FmtDec@(as(exp, u32), span_inc(out, 2))
+    return 2 + fmt_int::FmtDec(as(exp, u32), span_inc(out, 2))
 
 -- r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
 --         exponentiation bias is 1023
 --         https://en.wikipedia.org/wiki/Double-precision_floating-point_format
 --         https://observablehq.com/@jrus/hexfloat
-pub fun FmtHex@(val r64, out span!(u8)) uint:
+pub poly fun FmtHex(val r64, out span!(u8)) uint:
     let! frac_bits = num_real::r64_raw_mantissa(val)
     let is_negative = num_real::r64_is_negative(val)
     let raw_exponent = num_real::r64_raw_exponent(val)

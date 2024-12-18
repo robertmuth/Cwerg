@@ -397,7 +397,7 @@ def TokensAnnotationsPre(ts: TS, node):
 
         val = getattr(node, field)
         if val:
-            if field not in ("pub", "wrapped", "ref"):
+            if field not in ("pub", "wrapped", "ref", "poly"):
                 field = _ANNOTATION_PREFIX + field
             ts.EmitAnnotationShort(field)
 

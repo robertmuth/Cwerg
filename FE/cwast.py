@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 MACRO_CALL_SUFFIX = "#"
-POLYMORPHISM_SUFFIX = "@"
 MUTABILITY_SUFFIX = "!"
 MACRO_VAR_PREFIX = "$"
 ANNOTATION_PREFIX = "@"
@@ -52,9 +51,6 @@ class NAME:
 
     def IsMacroVar(self):
         return self.name.startswith(MACRO_VAR_PREFIX)
-
-    def IsPolymorphic(self):
-        return self.name.endswith(POLYMORPHISM_SUFFIX)
 
     def GetSymbolNameWithoutQualifier(self) -> NAME:
         pos = self.name.find(ID_PATH_SEPARATOR)
@@ -545,6 +541,7 @@ ALL_FIELDS = [
     #
     NfdAttrBool("pub", "has public visibility"),
     NfdAttrBool("extern", "is external function (empty body)"),
+    NfdAttrBool("poly", "is polymorphic function"),
     NfdAttrBool("mut", "is mutable"),
     NfdAttrBool("preserve_mut", "result type is mutable if underlying type is"),
     NfdAttrBool("ref", "address may be taken"),
@@ -1851,9 +1848,6 @@ class ExprCall:
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
-    def is_polymorphic(self) -> bool:
-        return isinstance(self.callee, Id) and self.callee.IsPolymorphic()
-
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.callee}"
 
@@ -2784,6 +2778,7 @@ class DefFun:
     fini: bool = False
     pub: bool = False
     ref: bool = False
+    poly: bool = False
     extern: bool = False
     cdecl: bool = False
     doc: str = ""
@@ -2791,9 +2786,6 @@ class DefFun:
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
     x_import: Import = INVALID_IMPORT  # only used for polymorphic function
-
-    def is_polymorphic(self) -> bool:
-        return self.name.IsPolymorphic()
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params)
@@ -3270,7 +3262,7 @@ def AnnotateImportsForQualifers(mod: DefMod):
         if q:
             # only polymorphic functions may have qualifiers
             if isinstance(node, DefFun):
-                assert node.is_polymorphic()
+                assert node.poly
             if q not in imports:
                 CompilerError(node.x_srcloc, f"unkown module {repr(q)}")
             node.x_import = imports[q]

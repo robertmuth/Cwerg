@@ -33,8 +33,8 @@ def AnnotateNodeSymbol(id_node: cwast.Id, def_node: Any):
 def UpdateNodeSymbolForPolyCall(id_node: cwast.Id, new_def_node: cwast.DefFun):
     old_def_node = id_node.x_symbol
     assert isinstance(
-        old_def_node, cwast.DefFun) and old_def_node.is_polymorphic()
-    assert new_def_node.is_polymorphic()
+        old_def_node, cwast.DefFun) and old_def_node.poly
+    assert new_def_node.poly
     id_node.x_symbol = new_def_node
 
 
@@ -73,7 +73,7 @@ class SymTab:
         name: cwast.NAME = node.name
         # we only recored the first occurrence of a poly functions which is why
         # only that function's visibility setting matters
-        if isinstance(node, cwast.DefFun) and node.is_polymorphic():
+        if isinstance(node, cwast.DefFun) and node.poly:
             if name.IsQualifiedName() or name in self._syms:
                 return
 

@@ -30,7 +30,7 @@ global TRUE_STR span(u8) = "true"
 global FALSE_STR span(u8) = "false"
 
 -- only need to mark the first poly as pub
-pub fun SysRender@(v bool, buffer span!(u8), options ^!SysFormatOptions) uint:
+pub poly fun SysRender(v bool, buffer span!(u8), options ^!SysFormatOptions) uint:
     let s = v ? TRUE_STR : FALSE_STR
     let n uint = min(len(buffer), len(s))
     return mymemcpy(front!(buffer), front(s), n)
@@ -43,29 +43,29 @@ pub fun str_to_u32(s span(u8)) u32:
         set x += as(c - '0', u32)
     return x
 
-fun SysRender@(v u8, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec@(v, out)
+ poly fun SysRender(v u8, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtDec(v, out)
 
-fun SysRender@(v u16, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec@(v, out)
+ poly fun SysRender(v u16, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtDec(v, out)
 
-fun SysRender@(v u32, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec@(v, out)
+ poly fun SysRender(v u32, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtDec(v, out)
 
-fun SysRender@(v u64, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec@(v, out)
+ poly fun SysRender(v u64, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtDec(v, out)
 
-fun SysRender@(v s16, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec@(v, out)
+ poly fun SysRender(v s16, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtDec(v, out)
 
-fun SysRender@(v s32, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec@(v, out)
+ poly fun SysRender(v s32, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtDec(v, out)
 
-fun SysRender@(v span(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
+ poly fun SysRender(v span(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
     let n uint = min(len(buffer), len(v))
     return mymemcpy(front!(buffer), front(v), n)
 
-fun SysRender@(v span!(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
+ poly fun SysRender(v span!(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
     let n uint = min(len(buffer), len(v))
     return mymemcpy(front!(buffer), front(v), n)
 
@@ -79,24 +79,24 @@ pub wrapped type u16_hex = u16
 
 pub wrapped type u8_hex = u8
 
-fun SysRender@(v uint_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex@(unwrap(v), out)
+ poly fun SysRender(v uint_hex, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtHex(unwrap(v), out)
 
-fun SysRender@(v u64_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex@(unwrap(v), out)
+ poly fun SysRender(v u64_hex, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtHex(unwrap(v), out)
 
-fun SysRender@(v u32_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex@(unwrap(v), out)
+ poly fun SysRender(v u32_hex, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtHex(unwrap(v), out)
 
-fun SysRender@(v u16_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex@(unwrap(v), out)
+ poly fun SysRender(v u16_hex, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtHex(unwrap(v), out)
 
-fun SysRender@(v u8_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex@(unwrap(v), out)
+ poly fun SysRender(v u8_hex, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_int::FmtHex(unwrap(v), out)
 
 pub wrapped type rune = u8
 
-fun SysRender@(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
+ poly fun SysRender(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
     if len(buffer) == 0:
         return 0
     else:
@@ -105,18 +105,18 @@ fun SysRender@(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
 
 pub wrapped type r64_hex = r64
 
-fun SysRender@(v r64_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_real::FmtHex@(unwrap(v), out)
+ poly fun SysRender(v r64_hex, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_real::FmtHex(unwrap(v), out)
 
-fun SysRender@(v r64, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_real::FmtE@(v, 6, false, out)
+ poly fun SysRender(v r64, out span!(u8), options ^!SysFormatOptions) uint:
+    return fmt_real::FmtE(v, 6, false, out)
 
 pub wrapped type str_hex = span(u8)
 
 fun to_hex_digit(digit u8) u8:
     return digit <= 9 ? digit + '0' : digit + ('a' - 10)
 
-fun SysRender@(v str_hex, out span!(u8), options ^!SysFormatOptions) uint:
+ poly fun SysRender(v str_hex, out span!(u8), options ^!SysFormatOptions) uint:
     let v_str span(u8) = unwrap(v)
     let dst_len = len(v_str)
     if dst_len <= len(out):
@@ -132,9 +132,9 @@ fun SysRender@(v str_hex, out span!(u8), options ^!SysFormatOptions) uint:
             set out[i] = '.'
         return 0
 
-fun SysRender@(v ^void, out span!(u8), options ^!SysFormatOptions) uint:
+ poly fun SysRender(v ^void, out span!(u8), options ^!SysFormatOptions) uint:
     let h = wrap_as(bitwise_as(v, uint), uint_hex)
-    return SysRender@(h, out, options)
+    return SysRender(h, out, options)
 
 pub macro print# STMT_LIST(
     -- list of items to be printed
@@ -143,7 +143,7 @@ pub macro print# STMT_LIST(
     mlet! $curr span!(u8) = $buffer
     ref mlet! $options = {SysFormatOptions:}
     mfor $i $parts:
-        set $curr = span_inc($curr, SysRender@($i, $curr, &!$options))
+        set $curr = span_inc($curr, SysRender($i, $curr, &!$options))
     do os::write(unwrap(os::Stdout), front($buffer), len($buffer) - len($curr))
 
 pub fun strz_to_slice(s ^u8) span(u8):

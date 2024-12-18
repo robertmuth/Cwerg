@@ -151,7 +151,7 @@ fun ParseScene(scene_str span(u8)) Scene:
                     trap
                 set out.planes[out.num_planes] =
                     {: obj.v1, {: obj.v2, obj.s2, obj.s3},
-                       v64::normalized@(obj.v3)}
+                       v64::normalized(obj.v3)}
                 set out.num_planes += 1
             case obj.kind == 'l':
                 if out.num_lights >= len( out.lights):
@@ -207,13 +207,13 @@ fun get_primry_ray(cam ^Camera, pos v64::vec2) Ray:
     let orig = cam^.pos
     let! dir =  {v64::vec3: }
 
-    let k = v64::sub@(cam^.target, cam^.pos)
-    let i =  v64::cross@({v64::vec3: 0, 1, 0}, k)
-    let j =  v64::cross@(k, i)
+    let k = v64::sub(cam^.target, cam^.pos)
+    let i =  v64::cross({v64::vec3: 0, 1, 0}, k)
+    let j =  v64::cross(k, i)
 
     let m = {v64::mat3: i, j, k}
 
-    set dir = v64::add@(dir,  orig)
+    set dir = v64::add(dir,  orig)
     return {: orig, dir}
 
 
@@ -229,9 +229,9 @@ fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
                 let pos = get_sample_pos(w, h, x, y, r)
                 let ray = get_primry_ray(&scene^.camera, pos)
                 -- let ray = get_primary_ray()
-                set rgb = v64::add@(rgb, rgb)
-            set rgb = v64::scaled@(rgb, color_scaler)
-            set rgb = v64::min@(hi, v64::max@(lo, rgb))
+                set rgb = v64::add(rgb, rgb)
+            set rgb = v64::scaled(rgb, color_scaler)
+            set rgb = v64::pmin(hi, v64::pmax(lo, rgb))
             let color = as(rgb[0], s32) << 16 +  as(rgb[1], s32) << 8 + as(rgb[2], s32)
             set fb[y * w + x] = as(color, u32)
     return

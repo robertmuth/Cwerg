@@ -9,7 +9,7 @@ pub global PolyCrc32LE u32 = 0xedb88320
 -- 0x82f63b78 is reversed 0x1EDC6F41
 pub global PolyCrc32cLE u32 = 0x82f63b78
 
-pub fun InitCrcTab(poly u32, tab ^!CrcTab) void:
+pub fun InitCrcTab(polynomial u32, tab ^!CrcTab) void:
     for i = 0, 256_u32, 1:
         let! crc u32 = i
         for j = 0, 8_u32, 1:
@@ -17,7 +17,7 @@ pub fun InitCrcTab(poly u32, tab ^!CrcTab) void:
                 set crc = crc >> 1
             else:
                 set crc = crc >> 1
-                set crc = crc xor poly
+                set crc = crc xor polynomial
         set tab^[i] = crc
 
 -- start crc is 0

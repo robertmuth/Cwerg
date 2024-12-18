@@ -60,7 +60,7 @@ class TK_KIND(enum.Enum):
     CURLY_CLOSED = enum.auto()
     # SPECIAL_xxx will be rewritten to one of the ones above
     SPECIAL_MUT = enum.auto()   # keyword with ! suffix
-    SPECIAL_ANNOTATION = enum.auto()  # pub
+    SPECIAL_ANNOTATION = enum.auto()  # pub, ref, poly
     SPECIAL_EOF = enum.auto()
 
 
@@ -96,6 +96,8 @@ _KEYWORDS_SIMPLE = [
 KEYWORDS: Dict[str, TK_KIND] = ({
     "pub": TK_KIND.SPECIAL_ANNOTATION,
     "ref": TK_KIND.SPECIAL_ANNOTATION,
+    "poly": TK_KIND.SPECIAL_ANNOTATION,
+
     "wrapped": TK_KIND.SPECIAL_ANNOTATION
 }
     | {k: TK_KIND.KW for k in _KEYWORDS_SIMPLE}
@@ -120,7 +122,7 @@ _OPERATORS_SIMPLE1 = [
 
 
 ANNOTATION_RE = r"@[a-zA-Z]+"
-ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#@]?"
+ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 

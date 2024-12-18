@@ -12,35 +12,35 @@ fun test_special() void:
     -- sanity checks for NANs
     let! actual [1024]u8 = undef
     block _:
-        let len_a = fmt_real::FmtE@(num_real::r64_zero_pos, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::r64_zero_pos, 1, true, actual)
         test::AssertSliceEq#("+0.0e+00", span(front(actual), len_a))
     block _:
-        let len_a = fmt_real::FmtE@(num_real::r64_zero_neg, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::r64_zero_neg, 1, true, actual)
         test::AssertSliceEq#("-0.0e+00", span(front(actual), len_a))
     block _:
-        let len_a = fmt_real::FmtE@(num_real::r64_inf_pos, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::r64_inf_pos, 1, true, actual)
         test::AssertSliceEq#("+inf", span(front(actual), len_a))
     block _:
-        let len_a = fmt_real::FmtE@(num_real::r64_inf_neg, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::r64_inf_neg, 1, true, actual)
         test::AssertSliceEq#("-inf", span(front(actual), len_a))
     block _:
-        let len_a = fmt_real::FmtE@(num_real::r64_nan_pos, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::r64_nan_pos, 1, true, actual)
         test::AssertSliceEq#("+nan", span(front(actual), len_a))
     block _:
-        let len_a = fmt_real::FmtE@(num_real::r64_nan_neg, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::r64_nan_neg, 1, true, actual)
         test::AssertSliceEq#("-nan", span(front(actual), len_a))
 
 -- python3 -c 'print(0.0).hex())'
 fun test_hex() void:
     let! actual [1024]u8 = undef
     block _:
-        let len_a = fmt_real::FmtHex@(+0.5_r64, actual)
+        let len_a = fmt_real::FmtHex(+0.5_r64, actual)
         test::AssertSliceEq#("0x1.p-1", span(front(actual), len_a))
     block _:
-        let len_a = fmt_real::FmtHex@(+2.0_r64, actual)
+        let len_a = fmt_real::FmtHex(+2.0_r64, actual)
         test::AssertSliceEq#("0x1.p+1", span(front(actual), len_a))
     block _:
-        let len_a = fmt_real::FmtHex@(+0.0_r64, actual)
+        let len_a = fmt_real::FmtHex(+0.0_r64, actual)
         -- (fmt::print# actual " BBBB\n")
         test::AssertSliceEq#("0x0.p+0", span(front(actual), len_a))
 
@@ -68,7 +68,7 @@ fun test_normal(is_neg bool, multiplier u32, exp10 s32, precision uint) void:
         set val *= num_real::powers_of_ten[exp10]
     if is_neg:
         set val *= -1.0
-    let len_a uint = fmt_real::FmtE@(val, PRECISION, true, actual)
+    let len_a uint = fmt_real::FmtE(val, PRECISION, true, actual)
     let len_e uint = make_expected(is_neg, multiplier, exp10, precision, expected)
     test::AssertSliceEq#(span(front(expected), len_e), span(
             front(actual), len_a))

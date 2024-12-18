@@ -76,7 +76,7 @@ def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> cwast.NA
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
     # : is used for type annotations
     poly_suffix = ""
-    if isinstance(node, (cwast.DefFun)) and node.is_polymorphic():
+    if isinstance(node, (cwast.DefFun)) and node.poly:
         poly_suffix = f"<{node.x_type.parameter_types()[0].name}>"
     n = node.name
     if is_cdecl:
@@ -1338,6 +1338,15 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    # import cProfile
-    # cProfile.run('main()')
-    exit(main())
+    if 0:
+        # consider using:
+        # python -m cProfile -o output.pstats path/to/your/script arg1 arg2
+        # gprof2dot.py -f pstats output.pstats | dot -Tpng -o output.png
+        from cProfile import Profile
+        from pstats import SortKey, Stats
+        with Profile() as profile:
+            ret = main()
+            Stats(profile).strip_dirs().sort_stats(SortKey.CALLS).print_stats()
+            exit(ret)
+    else:
+        exit(main())

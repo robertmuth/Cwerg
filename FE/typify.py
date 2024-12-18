@@ -483,6 +483,13 @@ def _TypifyId(node: cwast.Id, tc: type_corpus.TypeCorpus,
     assert ct != cwast.NO_TYPE
     return AnnotateNodeType(node, ct)
 
+def _IsPolymorphicCall(call: cwast.ExprCall) -> bool:
+    if not isinstance(call.callee, cwast.Id):
+        return False
+    def_sym = call.callee.x_symbol
+    if not isinstance(def_sym, cwast.DefFun):
+        return False
+    return def_sym.poly
 
 def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                            target_type: cwast.CanonType,
@@ -622,7 +629,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ExprCall):
         callee = node.callee
-        if node.is_polymorphic():
+        if _IsPolymorphicCall(node):
             assert len(node.args) > 0
             assert isinstance(callee, cwast.Id)
             t = _TypifyNodeRecursively(
@@ -1325,7 +1332,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
             if not isinstance(node, cwast.DefRec):
                 # we already dealt with DefRecs
                 _TypifyTopLevel(node, tc, ctx)
-            if isinstance(node, cwast.DefFun) and node.is_polymorphic():
+            if isinstance(node, cwast.DefFun) and node.poly:
                 ct = node.x_type
                 assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
                 poly_map.Register(node)

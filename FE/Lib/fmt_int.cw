@@ -6,7 +6,7 @@ fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
     return size
 
 macro unsigned_to_str# EXPR(
-        $val EXPR, $base EXPR, $max_width EXPR, 
+        $val EXPR, $base EXPR, $max_width EXPR,
         -- a slice for the output string
         $out EXPR)[$v, $out_eval, $tmp, $pos]:
     expr:
@@ -31,49 +31,49 @@ macro unsigned_to_str# EXPR(
 -- Why the polymorphism?
 --         It makes shorter names and avoids the need for separate
 --         uint and sint handling
-pub fun FmtDec@(v u8, out span!(u8)) uint:
+pub poly fun FmtDec(v u8, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
-pub fun FmtDec@(v u16, out span!(u8)) uint:
+pub poly fun FmtDec(v u16, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
-pub fun FmtDec@(v u32, out span!(u8)) uint:
+pub poly fun FmtDec(v u32, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
-pub fun FmtDec@(v u64, out span!(u8)) uint:
+pub poly fun FmtDec(v u64, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
-pub fun FmtDec@(v s16, out span!(u8)) uint:
+pub poly fun FmtDec(v s16, out span!(u8)) uint:
     if len(out) == 0:
         return 0
     if v < 0:
         let v_unsigned = 0_s16 - v
         set out[0] = '-'
-        return 1 + FmtDec@(v_unsigned, span_inc(out, 1))
+        return 1 + FmtDec(v_unsigned, span_inc(out, 1))
     else:
-        return FmtDec@(as(v, u16), out)
+        return FmtDec(as(v, u16), out)
 
-pub fun FmtDec@(v s32, out span!(u8)) uint:
+pub poly fun FmtDec(v s32, out span!(u8)) uint:
     if len(out) == 0:
         return 0
     if v < 0:
         set out[0] = '-'
         let v_unsigned = as(0_s32 - v, u32)
-        return 1 + FmtDec@(v_unsigned, span_inc(out, 1))
+        return 1 + FmtDec(v_unsigned, span_inc(out, 1))
     else:
-        return FmtDec@(as(v, u32), out)
+        return FmtDec(as(v, u32), out)
 
 -- Why the polymorphism?
 --         It makes shorter names and avoids the need for separate
 --         uint and sint handling
-pub fun FmtHex@(v u64, out span!(u8)) uint:
+pub poly fun FmtHex(v u64, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 64_uint, out)
 
-pub fun FmtHex@(v u32, out span!(u8)) uint:
+pub poly fun FmtHex(v u32, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 32_uint, out)
 
-pub fun FmtHex@(v u16, out span!(u8)) uint:
+pub poly fun FmtHex(v u16, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 32_uint, out)
 
-pub fun FmtHex@(v u8, out span!(u8)) uint:
+pub poly fun FmtHex(v u8, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 32_uint, out)
