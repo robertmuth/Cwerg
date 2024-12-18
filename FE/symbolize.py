@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 _BUILT_IN_PLACE_HOLDER = None
 
 
-def AnnotateNodeSymbol(id_node, def_node):
+def AnnotateNodeSymbol(id_node: cwast.Id, def_node: Any):
     """Sets the x_symol field to a node like DefGlobal, DefVar, DefFun, DefRec, etc ."""
     logger.debug("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
     assert cwast.NF.SYMBOL_ANNOTATED in id_node.FLAGS
@@ -28,6 +28,14 @@ def AnnotateNodeSymbol(id_node, def_node):
             cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS), f"unpexpected node: {def_node}"
     assert id_node.x_symbol is cwast.INVALID_SYMBOL
     id_node.x_symbol = def_node
+
+
+def UpdateNodeSymbolForPolyCall(id_node: cwast.Id, new_def_node: cwast.DefFun):
+    old_def_node = id_node.x_symbol
+    assert isinstance(
+        old_def_node, cwast.DefFun) and old_def_node.is_polymorphic()
+    assert new_def_node.is_polymorphic()
+    id_node.x_symbol = new_def_node
 
 
 def _resolve_enum_item(node: cwast.DefEnum, entry_name, srcloc) -> cwast.EnumVal:
@@ -56,13 +64,19 @@ class SymTab:
                                 f"Duplicate symbol name [{name}] for\n {node}\npreviously defined by\n {prev}")
         self._syms[name] = node
 
-    def AddTopLevelSym(self, node):
+    def AddTopLevelSym(self: "SymTab", node: Any):
         logger.info("recording global symbol: %s", node)
         if not isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.DefGlobal,
                                  cwast.DefRec, cwast.DefEnum, cwast.DefType)):
             cwast.CompilerError(
                 node.x_srcloc, f"Unexpected toplevel node {node}")
-        name = node.name
+        name: cwast.NAME = node.name
+        # we only recored the first occurrence of a poly functions which is why
+        # only that function's visibility setting matters
+        if isinstance(node, cwast.DefFun) and node.is_polymorphic():
+            if name.IsQualifiedName() or name in self._syms:
+                return
+
         if name in self._syms:
             cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
         self._syms[name] = node
@@ -152,10 +166,6 @@ def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
     # pass 1: get all the top level symbols
     for node in mod.body_mod:
         if isinstance(node, cwast.StmtStaticAssert):
-            continue
-        if isinstance(node, cwast.DefFun) and node.is_polymorphic():
-            # symbol resolution for these can only be handled when we have
-            # types so we skip them here
             continue
         elif isinstance(node, cwast.Import):
             # these will be processed during the recursive module reading
@@ -273,9 +283,6 @@ def ResolveSymbolsInsideFunctionsRecursively(
 
     # recurse using a little bit of introspection
     for c, nfd in node.__class__.FIELDS:
-        if isinstance(node, cwast.ExprCall) and node.is_polymorphic() and c == "callee":
-            # polymorphic stuff can only be handled once we have types
-            continue
         if nfd.kind is cwast.NFK.NODE:
             # the field member contains an Id that can only be resolved when we have type info
             if nfd.name != "field":
@@ -341,8 +348,6 @@ def VerifyASTSymbolsRecursively(node):
         if in_def_macro:
             return
 
-        if field == "callee" and isinstance(parent, cwast.ExprCall) and parent.is_polymorphic():
-            return
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
             if node.x_symbol is None:

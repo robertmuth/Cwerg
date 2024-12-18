@@ -628,7 +628,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             t = _TypifyNodeRecursively(
                 node.args[0], tc, cwast.NO_TYPE, ctx)
             called_fun = ctx.poly_map.Resolve(callee, t)
-            symbolize.AnnotateNodeSymbol(callee, called_fun)
+            symbolize.UpdateNodeSymbolForPolyCall(callee, called_fun)
             AnnotateNodeType(callee, called_fun.x_type)
             ct_callee: cwast.CanonType = called_fun.x_type
             assert ct_callee.is_fun(), f"{ct}"
