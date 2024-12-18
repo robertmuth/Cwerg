@@ -29,7 +29,8 @@ global TRUE_STR span(u8) = "true"
 
 global FALSE_STR span(u8) = "false"
 
-fun SysRender@(v bool, buffer span!(u8), options ^!SysFormatOptions) uint:
+-- only need to mark the first poly as pub
+pub fun SysRender@(v bool, buffer span!(u8), options ^!SysFormatOptions) uint:
     let s = v ? TRUE_STR : FALSE_STR
     let n uint = min(len(buffer), len(s))
     return mymemcpy(front!(buffer), front(s), n)
