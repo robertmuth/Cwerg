@@ -513,6 +513,177 @@ def _ParseOptionalLabel(inp: lexer.Lexer):
     return ""
 
 
+def _ParseStmtLetLike(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    name = inp.match_or_die(lexer.TK_KIND.ID)
+    if inp.match(lexer.TK_KIND.ASSIGN):
+        type = cwast.TypeAuto(x_srcloc=name.srcloc)
+        init = _ParseExpr(inp)
+    else:
+        type = _ParseTypeExpr(inp)
+        if inp.match(lexer.TK_KIND.ASSIGN):
+            init = _ParseExpr(inp)
+        else:
+            init = cwast.ValAuto(x_srcloc=name.srcloc)
+    if kw.text.startswith("m"):
+        return cwast.MacroVar(cwast.NAME.FromStr(name.text), type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
+                              **extra)
+    else:
+        return cwast.DefVar(cwast.NAME.FromStr(name.text), type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
+                            **extra)
+
+
+def _ParseStmtWhile(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    cond = _ParseExpr(inp)
+    stmts = _ParseStatementList(inp, kw.column)
+    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text), [cond, cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
+                             **extra)
+
+
+def _ParseStmtIf(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    cond = _ParseExpr(inp)
+    stmts_t = _ParseStatementList(inp, kw.column)
+    stmts_f = []
+    p = inp.peek()
+    if p.column == kw.column and p.text == "else":
+        inp.next()
+        stmts_f = _ParseStatementList(inp, kw.column)
+    return cwast.StmtIf(cond, stmts_t, stmts_f,  x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
+
+
+def _ParseStmtTryLet(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    name = inp.match_or_die(lexer.TK_KIND.ID)
+    type = _ParseTypeExpr(inp)
+    inp.match_or_die(lexer.TK_KIND.ASSIGN)
+    expr = _ParseExpr(inp)
+    inp.match_or_die(lexer.TK_KIND.COMMA)
+    name2 = inp.match_or_die(lexer.TK_KIND.ID)
+    stmts = _ParseStatementList(inp, kw.column)
+    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
+                             [cwast.Id.Make(name.text, x_srcloc=name.srcloc), type, expr,  cwast.Id.Make(name2.text, x_srcloc=name2.srcloc),
+                              cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
+                             **extra)
+
+
+def _ParseStmtTrySet(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    lhs = _ParseExpr(inp)
+    inp.match_or_die(lexer.TK_KIND.ASSIGN)
+    expr = _ParseExpr(inp)
+    inp.match_or_die(lexer.TK_KIND.COMMA)
+    name2 = inp.match_or_die(lexer.TK_KIND.ID)
+    stmts = _ParseStatementList(inp, kw.column)
+    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
+                             [lhs, expr,  cwast.Id.Make(name2.text, x_srcloc=name2.srcloc),
+                              cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
+                             **extra)
+
+
+def _ParseStmtSet(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    lhs = _ParseExpr(inp)
+    kind = inp.next()
+    rhs = _ParseExpr(inp)
+    if kind.kind is lexer.TK_KIND.ASSIGN:
+        return cwast.StmtAssignment(lhs, rhs, **extra)
+    else:
+        assert kind.kind is lexer.TK_KIND.COMPOUND_ASSIGN, f"{kind}"
+        op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
+        return cwast.StmtCompoundAssignment(op, lhs, rhs, **extra)
+
+
+def _ParseStmReturn(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    if inp.peek().srcloc.lineno == kw.srcloc.lineno:
+        val = _ParseExpr(inp)
+    else:
+        val = cwast.ValVoid(kw.srcloc)
+    return cwast.StmtReturn(val, **extra)
+
+
+def _ParseStmtFor(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    name = inp.match_or_die(lexer.TK_KIND.ID)
+    if name.text.startswith(cwast.MACRO_VAR_PREFIX):
+        var = cwast.MacroId(cwast.NAME.FromStr(
+            name.text), x_srcloc=name.srcloc)
+    else:
+        var = cwast.Id.Make(name.text, x_srcloc=name.srcloc)
+    inp.match_or_die(lexer.TK_KIND.ASSIGN)
+    start = _ParseExpr(inp)
+    inp.match_or_die(lexer.TK_KIND.COMMA)
+    end = _ParseExpr(inp)
+    inp.match_or_die(lexer.TK_KIND.COMMA)
+    step = _ParseExpr(inp)
+    stmts = _ParseStatementList(inp, kw.column)
+    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
+                             [var, start, end, step,
+                              cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
+                             **extra)
+
+
+def _ParseStmtBreak(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    label = ""
+    if inp.peek().srcloc.lineno == kw.srcloc.lineno:
+        label = _ParseOptionalLabel(inp)
+    return cwast.StmtBreak(label, **extra)
+
+
+def _ParseStmtContinue(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    label = ""
+    if inp.peek().srcloc.lineno == kw.srcloc.lineno:
+        label = _ParseOptionalLabel(inp)
+    return cwast.StmtContinue(label, **extra)
+
+
+def _ParseStmtBlock(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    label = _ParseOptionalLabel(inp)
+    stmts = _ParseStatementList(inp, kw.column)
+    return cwast.StmtBlock(label, stmts, **extra)
+
+
+def _ParseStmtCond(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    inp.match_or_die(lexer.TK_KIND.COLON)
+    indent = inp.peek().column
+    cases = []
+    while True:
+        tk = inp.peek()
+        if tk.column < indent:
+            break
+        case = inp.match_or_die(lexer.TK_KIND.KW, "case")
+        cond = _ParseExpr(inp)
+        stmts = _ParseStatementList(inp, case.column)
+        cases.append(cwast.Case(
+            cond, stmts, x_srcloc=cond.x_srcloc, **_ExtractAnnotations(case)))
+    return cwast.StmtCond(cases, **extra)
+
+
+def _ParseStmtMfor(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
+    var = inp.match_or_die(lexer.TK_KIND.ID)
+    container = inp.match_or_die(lexer.TK_KIND.ID)
+    stmts = _ParseStatementList(inp, kw.column)
+    return cwast.MacroFor(cwast.NAME.FromStr(var.text), cwast.NAME.FromStr(container.text), stmts, **extra)
+
+
+_STMT_HANDLERS = {
+    "let": _ParseStmtLetLike,
+    "let!": _ParseStmtLetLike,
+    "mlet": _ParseStmtLetLike,
+    "mlet!": _ParseStmtLetLike,
+    "while": _ParseStmtWhile,
+    "if": _ParseStmtIf,
+    "trylet": _ParseStmtTryLet,
+    "trylet!": _ParseStmtTryLet,
+    "tryset": _ParseStmtTrySet,
+    "set": _ParseStmtSet,
+    "return": _ParseStmReturn,
+    "for": _ParseStmtFor,
+    "break": _ParseStmtBreak,
+    "continue": _ParseStmtContinue,
+    "block": _ParseStmtBlock,
+    "cond": _ParseStmtCond,
+    "mfor": _ParseStmtMfor,
+    "do": lambda inp, kw, extra: cwast.StmtExpr(_ParseExpr(inp), **extra),
+    "trap": lambda inp, kw, extra: cwast.StmtTrap(**extra),
+    "defer": lambda inp, kw, extra: cwast.StmtDefer(_ParseStatementList(inp, kw.column), **extra),
+}
+
+
 def _ParseStatement(inp: lexer.Lexer):
     kw = inp.next()
     extra = _ExtractAnnotations(kw)
@@ -529,126 +700,12 @@ def _ParseStatement(inp: lexer.Lexer):
     if kw.kind is not lexer.TK_KIND.KW:
         cwast.CompilerError(
             kw.srcloc, f"expected statement keyword but got: {kw}")
-    if kw.text in ("let", "let!", "mlet", "mlet!"):
-        name = inp.match_or_die(lexer.TK_KIND.ID)
-        if inp.match(lexer.TK_KIND.ASSIGN):
-            type = cwast.TypeAuto(x_srcloc=name.srcloc)
-            init = _ParseExpr(inp)
-        else:
-            type = _ParseTypeExpr(inp)
-            if inp.match(lexer.TK_KIND.ASSIGN):
-                init = _ParseExpr(inp)
-            else:
-                init = cwast.ValAuto(x_srcloc=name.srcloc)
-        if kw.text.startswith("m"):
-            return cwast.MacroVar(cwast.NAME.FromStr(name.text), type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
-                                  **extra)
-        else:
-            return cwast.DefVar(cwast.NAME.FromStr(name.text), type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
-                                **extra)
 
-    elif kw.text == "while":
-        cond = _ParseExpr(inp)
-        stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text), [cond, cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
-                                 **extra)
-    elif kw.text == "if":
-        cond = _ParseExpr(inp)
-        stmts_t = _ParseStatementList(inp, kw.column)
-        stmts_f = []
-        p = inp.peek()
-        if p.column == kw.column and p.text == "else":
-            inp.next()
-            stmts_f = _ParseStatementList(inp, kw.column)
-        return cwast.StmtIf(cond, stmts_t, stmts_f,  x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
-    elif kw.text in ("trylet", "trylet!"):
-        name = inp.match_or_die(lexer.TK_KIND.ID)
-        type = _ParseTypeExpr(inp)
-        inp.match_or_die(lexer.TK_KIND.ASSIGN)
-        expr = _ParseExpr(inp)
-        inp.match_or_die(lexer.TK_KIND.COMMA)
-        name2 = inp.match_or_die(lexer.TK_KIND.ID)
-        stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
-                                 [cwast.Id.Make(name.text, x_srcloc=name.srcloc), type, expr,  cwast.Id.Make(name2.text, x_srcloc=name2.srcloc),
-                                  cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
-                                 **extra)
-    elif kw.text == "tryset":
-        lhs = _ParseExpr(inp)
-        inp.match_or_die(lexer.TK_KIND.ASSIGN)
-        expr = _ParseExpr(inp)
-        inp.match_or_die(lexer.TK_KIND.COMMA)
-        name2 = inp.match_or_die(lexer.TK_KIND.ID)
-        stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
-                                 [lhs, expr,  cwast.Id.Make(name2.text, x_srcloc=name2.srcloc),
-                                  cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
-                                 **extra)
-    elif kw.text == "set":
-        lhs = _ParseExpr(inp)
-        kind = inp.next()
-        rhs = _ParseExpr(inp)
-        if kind.kind is lexer.TK_KIND.ASSIGN:
-            return cwast.StmtAssignment(lhs, rhs, **extra)
-        else:
-            assert kind.kind is lexer.TK_KIND.COMPOUND_ASSIGN, f"{kind}"
-            op = cwast.ASSIGNMENT_SHORTCUT[kind.text]
-            return cwast.StmtCompoundAssignment(op, lhs, rhs, **extra)
-    elif kw.text == "return":
-        if inp.peek().srcloc.lineno == kw.srcloc.lineno:
-            val = _ParseExpr(inp)
-        else:
-            val = cwast.ValVoid(kw.srcloc)
-        return cwast.StmtReturn(val, **extra)
-    elif kw.text == "for":
-        name = inp.match_or_die(lexer.TK_KIND.ID)
-        if name.text.startswith(cwast.MACRO_VAR_PREFIX):
-            var = cwast.MacroId(cwast.NAME.FromStr(
-                name.text), x_srcloc=name.srcloc)
-        else:
-            var = cwast.Id.Make(name.text, x_srcloc=name.srcloc)
-        inp.match_or_die(lexer.TK_KIND.ASSIGN)
-        start = _ParseExpr(inp)
-        inp.match_or_die(lexer.TK_KIND.COMMA)
-        end = _ParseExpr(inp)
-        inp.match_or_die(lexer.TK_KIND.COMMA)
-        step = _ParseExpr(inp)
-        stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
-                                 [var, start, end, step,
-                                  cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
-                                 **extra)
-    elif kw.text == "break":
-        label = ""
-        if inp.peek().srcloc.lineno == kw.srcloc.lineno:
-            label = _ParseOptionalLabel(inp)
-        return cwast.StmtBreak(label, **extra)
-    elif kw.text == "continue":
-        label = ""
-        if inp.peek().srcloc.lineno == kw.srcloc.lineno:
-            label = _ParseOptionalLabel(inp)
-        return cwast.StmtContinue(label, **extra)
-    elif kw.text == "block":
-        label = _ParseOptionalLabel(inp)
-        stmts = _ParseStatementList(inp, kw.column)
-        return cwast.StmtBlock(label, stmts, **extra)
-    elif kw.text == "cond":
-        return _ParseCondList(kw, inp)
-    elif kw.text == "mfor":
-        var = inp.match_or_die(lexer.TK_KIND.ID)
-        container = inp.match_or_die(lexer.TK_KIND.ID)
-        stmts = _ParseStatementList(inp, kw.column)
-        return cwast.MacroFor(cwast.NAME.FromStr(var.text), cwast.NAME.FromStr(container.text), stmts, **extra)
-    elif kw.text == "do":
-        expr = _ParseExpr(inp)
-        return cwast.StmtExpr(expr, **extra)
-    elif kw.text == "trap":
-        return cwast.StmtTrap(**extra)
-    elif kw.text == "defer":
-        body = _ParseStatementList(inp, kw.column)
-        return cwast.StmtDefer(body, **extra)
-    else:
-        assert False, f"{kw}"
+    handler = _STMT_HANDLERS.get(kw.text)
+    if not handler:
+        cwast.CompilerError(kw.srcloc, f"unexpected keyword {
+                            kw} at statement position")
+    return handler(inp, kw, extra)
 
 
 def _ParseStatementList(inp: lexer.Lexer, outer_indent: int):
@@ -681,22 +738,6 @@ def _ParseExprList(inp: lexer.Lexer, outer_indent):
             break
         out.append(_ParseExpr(inp))
     return out
-
-
-def _ParseCondList(kw: lexer.TK, inp: lexer.Lexer):
-    inp.match_or_die(lexer.TK_KIND.COLON)
-    indent = inp.peek().column
-    cases = []
-    while True:
-        tk = inp.peek()
-        if tk.column < indent:
-            break
-        case = inp.match_or_die(lexer.TK_KIND.KW, "case")
-        cond = _ParseExpr(inp)
-        stmts = _ParseStatementList(inp, case.column)
-        cases.append(cwast.Case(
-            cond, stmts, x_srcloc=cond.x_srcloc, **_ExtractAnnotations(case)))
-    return cwast.StmtCond(cases, x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
 
 
 def _ParseFieldList(inp: lexer.Lexer):
