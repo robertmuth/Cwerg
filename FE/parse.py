@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def _ExtractAnnotations(tk: lexer.TK) -> dict[str, Any]:
-    out: dict[str, Any] = {}
+    out: dict[str, Any] = {"x_srcloc": tk.srcloc}
     # print ("@@@@",tk)
     comments = []
     for c in tk.comments:
@@ -136,7 +136,6 @@ def _ParseFunLike(inp: lexer.Lexer, name: lexer.TK) -> Any:
     first = True
     params: list[Any] = []
     extra = _ExtractAnnotations(name)
-    extra["x_srcloc"] = name.srcloc
     if name.text.endswith(cwast.MUTABILITY_SUFFIX):
         extra["mut"] = True
     for a in args:
@@ -246,7 +245,7 @@ def _ParseValPoint(inp: lexer.Lexer) -> Any:
         val = _ParseExpr(inp)
     else:
         index = cwast.ValAuto(x_srcloc=tk.srcloc)
-    return cwast.ValPoint(val, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
+    return cwast.ValPoint(val, index, **_ExtractAnnotations(tk))
 
 
 def _PParseValCompound(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
@@ -330,7 +329,7 @@ def _PParseFunctionCall(inp: lexer.Lexer, callee, tk: lexer.TK, precedence) -> A
             inp.match_or_die(lexer.TK_KIND.COMMA)
         first = False
         args.append(_ParseExpr(inp))
-    return cwast.ExprCall(callee, args, x_srcloc=callee.x_srcloc, **_ExtractAnnotations(tk))
+    return cwast.ExprCall(callee, args, **_ExtractAnnotations(tk))
 
 
 def _PParseIndex(inp: lexer.Lexer, array, tk: lexer.TK, _precedence) -> Any:
@@ -339,7 +338,7 @@ def _PParseIndex(inp: lexer.Lexer, array, tk: lexer.TK, _precedence) -> Any:
     index = _ParseExpr(inp)
     inp.match_or_die(lexer.TK_KIND.SQUARE_CLOSED)
     # TODO: handle unchecked
-    return cwast.ExprIndex(array, index, x_srcloc=tk.srcloc, **_ExtractAnnotations(tk))
+    return cwast.ExprIndex(array, index, **_ExtractAnnotations(tk))
 
 
 def _PParseDeref(_inp: lexer.Lexer, pointer, tk: lexer.TK, _precedence) -> Any:
@@ -402,7 +401,6 @@ _INFIX_EXPR_PARSERS = {
 def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
     tk = inp.next()
     extra = _ExtractAnnotations(tk)
-    extra["x_srcloc"] = tk.srcloc
     if tk.kind is lexer.TK_KIND.ID:
         if tk.text.startswith(cwast.MACRO_VAR_PREFIX):
             return cwast.MacroId(cwast.NAME.FromStr(tk.text), **extra)
@@ -477,7 +475,7 @@ def _ParseFormalParams(inp: lexer.Lexer):
         name = inp.match_or_die(lexer.TK_KIND.ID)
         type = _ParseTypeExpr(inp)
         out.append(cwast.FunParam(cwast.NAME.FromStr(name.text), type,
-                   x_srcloc=name.srcloc, **_ExtractAnnotations(name)))
+                                  **_ExtractAnnotations(name)))
     return out
 
 
@@ -493,7 +491,7 @@ def _ParseStatementMacro(kw: lexer.TK, inp: lexer.Lexer):
                 break
         stmts = _ParseStatementList(inp, kw.column)
         args.append(cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc))
-    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text), args, x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
+    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text), args, **_ExtractAnnotations(kw))
 
 
 def _MaybeLabel(tk: lexer.TK, inp: lexer.Lexer):
@@ -547,7 +545,7 @@ def _ParseStmtIf(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     if p.column == kw.column and p.text == "else":
         inp.next()
         stmts_f = _ParseStatementList(inp, kw.column)
-    return cwast.StmtIf(cond, stmts_t, stmts_f,  x_srcloc=kw.srcloc, **_ExtractAnnotations(kw))
+    return cwast.StmtIf(cond, stmts_t, stmts_f, **_ExtractAnnotations(kw))
 
 
 def _ParseStmtTryLet(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
@@ -649,7 +647,7 @@ def _ParseStmtCond(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
         cond = _ParseExpr(inp)
         stmts = _ParseStatementList(inp, case.column)
         cases.append(cwast.Case(
-            cond, stmts, x_srcloc=cond.x_srcloc, **_ExtractAnnotations(case)))
+            cond, stmts, **_ExtractAnnotations(case)))
     return cwast.StmtCond(cases, **extra)
 
 
@@ -687,7 +685,6 @@ _STMT_HANDLERS = {
 def _ParseStatement(inp: lexer.Lexer):
     kw = inp.next()
     extra = _ExtractAnnotations(kw)
-    extra["x_srcloc"] = kw.srcloc
     if kw.kind is lexer.TK_KIND.ID:
         if kw.text.endswith(cwast.MACRO_CALL_SUFFIX):
             return _ParseStatementMacro(kw, inp)
@@ -751,7 +748,7 @@ def _ParseFieldList(inp: lexer.Lexer):
         name = inp.match_or_die(lexer.TK_KIND.ID)
         type = _ParseTypeExpr(inp)
         out.append(cwast.RecField(cwast.NAME.FromStr(name.text), type,
-                   x_srcloc=tk.srcloc, **_ExtractAnnotations(name)))
+                   **_ExtractAnnotations(name)))
     return out
 
 
@@ -768,7 +765,7 @@ def _ParseEnumList(inp: lexer.Lexer, outer_indent):
         name = inp.match_or_die(lexer.TK_KIND.ID)
         val = _ParseExpr(inp)
         out.append(cwast.EnumVal(cwast.NAME.FromStr(name.text), val,
-                   x_srcloc=tk.srcloc, **_ExtractAnnotations(name)))
+                   **_ExtractAnnotations(name)))
     return out
 
 
@@ -784,7 +781,6 @@ def _ParseMacroParams(inp: lexer.Lexer):
         kind = inp.match_or_die(lexer.TK_KIND.ID)
         out.append(cwast.MacroParam(
             cwast.NAME.FromStr(name.text), cwast.MACRO_PARAM_KIND[kind.text],
-            x_srcloc=name.srcloc,
             **_ExtractAnnotations(name)))
     return out
 
@@ -805,7 +801,6 @@ def _ParseMacroGenIds(inp: lexer.Lexer):
 def _ParseTopLevel(inp: lexer.Lexer):
     kw = inp.next()
     extra = _ExtractAnnotations(kw)
-    extra["x_srcloc"] = kw.srcloc
     alias = ""
     if kw.text == "import":
         name = inp.match_or_die(lexer.TK_KIND.ID)
@@ -896,11 +891,9 @@ def _ParseModule(inp: lexer.Lexer):
             pkind = inp.match_or_die(lexer.TK_KIND.ID)
             params.append(cwast.ModParam(cwast.NAME.FromStr(pname.text),
                                          cwast.MOD_PARAM_KIND[pkind.text],
-                                         x_srcloc=pname.srcloc,
                                          **_ExtractAnnotations(pname)))
     inp.match_or_die(lexer.TK_KIND.COLON)
-    out = cwast.DefMod(params, [], x_srcloc=kw.srcloc,
-                       **_ExtractAnnotations(kw))
+    out = cwast.DefMod(params, [], **_ExtractAnnotations(kw))
 
     while True:
         if inp.peek().kind is lexer.TK_KIND.SPECIAL_EOF:
