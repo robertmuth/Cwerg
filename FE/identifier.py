@@ -1,5 +1,7 @@
 """Id Generator"""
 
+import sys
+
 from typing import Any
 
 from FE import cwast
@@ -49,7 +51,7 @@ class IdGen:
         # TODO: 10 is arbitrary
         no = self._names.get(prefix, 1)
         self._names[prefix] = no + 1
-        return cwast.NAME(prefix,  no + 1)
+        return cwast.NAME(sys.intern(prefix),  no + 1)
 
 
 class IdGenCache:

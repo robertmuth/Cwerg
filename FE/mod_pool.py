@@ -121,7 +121,7 @@ def _ModUniquePathName(root: pathlib.PurePath,
         return (root / pathname).resolve()
 
 
-_MAIN_FUN_NAME = cwast.NAME("main", 0)
+_MAIN_FUN_NAME = cwast.NAME.FromStr("main")
 
 
 class ModPoolBase:

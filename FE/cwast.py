@@ -43,8 +43,8 @@ class NAME:
     def FromStr(cls, s: str) -> "NAME":
         pos = s.find("%")
         if pos < 0:
-            return cls(s, 0)
-        return cls(s[:pos], int(s[pos+1:]))
+            return cls(sys.intern(s), 0)
+        return cls(sys.intern(s[:pos]), int(s[pos+1:]))
 
     def IsMacroCall(self):
         return self.name.endswith(MACRO_CALL_SUFFIX)
@@ -56,7 +56,7 @@ class NAME:
         pos = self.name.find(ID_PATH_SEPARATOR)
         if pos < 0:
             return self
-        return NAME(self.name[pos + len(ID_PATH_SEPARATOR):], self.seq)
+        return NAME(sys.intern(self.name[pos + len(ID_PATH_SEPARATOR):]), self.seq)
 
     def IsQualifiedName(self) -> bool:
         return ID_PATH_SEPARATOR in self.name

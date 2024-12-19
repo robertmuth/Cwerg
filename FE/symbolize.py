@@ -560,7 +560,7 @@ def AreEqualNormalizedModParam(a, b) -> bool:
     return False
 
 
-_GENERIC_DUMMY_MODULE = cwast.NAME("GENERIC", 0)
+_GENERIC_DUMMY_MODULE = cwast.NAME.FromStr("GENERIC")
 
 
 def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:

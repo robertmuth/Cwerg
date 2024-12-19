@@ -3,6 +3,7 @@ import io
 import logging
 import enum
 import dataclasses
+import sys
 
 from typing import Any, Optional
 
@@ -206,7 +207,7 @@ class LexerRaw:
     """ """
 
     def __init__(self: Any, filename: str, fp: io.TextIOWrapper):
-        self._fileamame: str = filename
+        self._fileamame: str = sys.intern(filename)
         self._fp = fp
         self._line_no = 0
         self._col_no = 0
@@ -266,7 +267,7 @@ class LexerRaw:
 
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]
-        return TK(kind, self._GetSrcLoc(), token,  col)
+        return TK(kind, self._GetSrcLoc(), sys.intern(token),  col)
 
 
 _MSTR_TERMINATION_REGEX = {
