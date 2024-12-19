@@ -121,10 +121,36 @@ fun Test_Dim3() void:
     test::AssertTrue#(v64::eq(v64::Z_vec3, v64::cross(v64::X_vec3, v64::Y_vec3)))
     test::AssertTrue#(v64::eq(v64::scaled(v64::Z_vec3, -1), v64::cross(v64::Y_vec3, v64::X_vec3)))
 
+fun Test_HitDim3() void:
+    ref let! hit v64::HitInfo
+    let ray_orig = {v64::vec3: 1, 1, 1}
+    let ray_dir = {v64::vec3: 0, 1, 0}
+    let epsilon r64 = 0.000000001
+
+    -- inside
+    test::AssertTrue#(v64::CheckRayHitsSphere(
+        ray_orig, ray_dir, {: 2, 1, 1}, 2, epsilon, &!hit))
+    test::AssertApproxEq#(hit.distance * hit.distance, 3_r64, epsilon)
+
+    if false:
+        test::AssertTrue#(v64::CheckRayHitsSphere(
+           ray_orig, ray_dir, {: 2.5, 4.5, 1}, 2, epsilon, &!hit))
+    if false:
+
+        -- test::AssertTrue#(v64::CheckRayHitsSphere(
+        --      ray_orig, ray_dir, {: 0, 5, 1}, 1, epsilon, &!hit))
+        fmt::print#(hit, "\n")
+    if false:
+        test::AssertFalse#(v64::CheckRayHitsSphere(
+            ray_orig, ray_dir, {: -2.5, 1, 1}, 1, epsilon, &!hit))
+        test::AssertFalse#(v64::CheckRayHitsSphere(
+            ray_orig, ray_dir, {: 1, -1, 1}, 1, epsilon, &!hit))
 
 fun main(argc s32, argv ^^u8) s32:
     do Test_Dim2()
     do Test_Dim3()
+    do Test_HitDim3()
+
     -- test end
     test::Success#()
     return 0

@@ -273,11 +273,73 @@ poly fun scaled(b mat4, a $T) mat4:
 --
 pub global NO_HIT $T = -1
 
-pub fun HitDistanceRaySphere(ray_origin vec3, ray_direction vec3,
-                         sphere_center vec3, sphere_radius $T) $T:
-    let r2 = sphere_radius * sphere_radius
-    let l = sub(sphere_center, ray_origin)
-    let l2 = dot(l, l)
+pub rec HitInfo:
+    -- distance of hit from ray_origin
+    distance $T
+    -- position of hit
+    position vec3
+    -- normal at hit
+    normal vec3
+
+poly fun fmt::SysRender(v HitInfo, out span!(u8), opt ^!fmt::SysFormatOptions) uint:
+    let! t = out
+    set t = span_inc(t, fmt::SysRender("{", t, opt))
+    set t = span_inc(t, fmt::SysRender(v.distance, t, opt))
+    set t = span_inc(t, fmt::SysRender(",", t, opt))
+    set t = span_inc(t, fmt::SysRender(v.position, t, opt))
+    set t = span_inc(t, fmt::SysRender(",", t, opt))
+    set t = span_inc(t, fmt::SysRender(v.normal, t, opt))
+    set t = span_inc(t, fmt::SysRender("}", t, opt))
+    return as(front(t) &-& front(out), uint)
+
+-- returns true if the ray hits the sphere, also fills in out if we have hit
+pub fun CheckRayHitsSphere(ray_origin vec3, ray_direction vec3,
+                         sphere_center vec3, sphere_radius $T, epsilon $T, out ^!HitInfo) bool:
+    let sr2 = sphere_radius * sphere_radius
+    let ro2 = dot(ray_origin, ray_origin)
+    let rd2 = dot(ray_direction, ray_direction)
+    let sc2 = dot(sphere_center, sphere_center)
+    -- vector from ray_origin to sphere_center
+    let l = sub(ray_origin, sphere_center)
+
+    let a = rd2
+    let b = dot(ray_direction, l) * 2.0
+    let c = sc2 + ro2 - sr2 - 2.0 * dot(sphere_center, ray_origin)
+    let d = b * b - 4.0 * a * c
+
+    if d < 0.0:
+        return false
+    let sqrt_d = sqrt(d)
+    let t1 = (-b + sqrt_d) / 2.0 / a
+    let t2 = (-b - sqrt_d) / 2.0 / a
+    if t1 < epsilon && t2 < epsilon || t1 > 1.0 && t2 > 1.0:
+        -- fmt::print#("EPS ", t1, " ", t2, "\n")
+        return false
+    let dist $T = expr:
+        cond:
+            case t1 < epsilon:
+                 return t2
+            case t2 < epsilon:
+                 return t1
+            case true:
+                return min(t1, t2)
+
+    -- TODO: maybe handle inside as negative dist
+    set out^.distance = dist
+    set out^.position = add(ray_origin, scaled(ray_direction, dist))
+    set out^.normal = scaled(sub(out^.position, sphere_center),
+                      1.0 / sphere_radius)
+
+    return true
+
+pub fun CheckRayHitsSphere2(ray_origin vec3, ray_direction vec3,
+                         sphere_center vec3, sphere_radius $T, epsilon $T, out ^!HitInfo) bool:
+    return true
+
+
+pub fun CheckHitRayPlane(ray_origin vec3, ray_direction vec3,
+                         plane_point vec3, plane_normal vec3, epsilon $T, out ^HitInfo) bool:
+    return true
 
 
 --
