@@ -1196,13 +1196,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprIs)
     eliminated_nodes.add(cwast.TypeOf)
     eliminated_nodes.add(cwast.TypeUnionDelta)
-    verifier.Replace(cwast.ExprNarrow, typify._CheckExprNarrowUnchecked)
-    verifier.Replace(cwast.ValCompound, typify.CheckValCompoundStrict)
-    verifier.Replace(cwast.ExprCall, typify._CheckExprCallStrict)
-    verifier.Replace(cwast.StmtAssignment, typify.CheckStmtAssignmentStrict)
-    verifier.Replace(cwast.StmtReturn, typify._CheckStmtReturnStrict)
-    verifier.Replace(cwast.DefGlobal, typify._CheckDefVarDefGlobalStrict)
-    verifier.Replace(cwast.DefVar, typify._CheckDefVarDefGlobalStrict)
+    verifier.ActivateStricterChecks()
 
     SanityCheckMods("after_initial_lowering", args,
                     mod_topo_order, tc, verifier, eliminated_nodes)

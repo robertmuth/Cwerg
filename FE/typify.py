@@ -306,7 +306,8 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
                                       ctx: _TypeContext) -> cwast.CanonType:
 
     if isinstance(node, cwast.TypeAuto):
-        assert target_type is not cwast.NO_TYPE, f"cannot typify auto in {node.x_srcloc}"
+        assert target_type is not cwast.NO_TYPE, f"cannot typify auto in {
+            node.x_srcloc}"
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.TypeBase):
         return AnnotateNodeType(node, tc.get_base_canon_type(node.base_type_kind))
@@ -483,6 +484,7 @@ def _TypifyId(node: cwast.Id, tc: type_corpus.TypeCorpus,
     assert ct != cwast.NO_TYPE
     return AnnotateNodeType(node, ct)
 
+
 def _IsPolymorphicCall(call: cwast.ExprCall) -> bool:
     if not isinstance(call.callee, cwast.Id):
         return False
@@ -490,6 +492,7 @@ def _IsPolymorphicCall(call: cwast.ExprCall) -> bool:
     if not isinstance(def_sym, cwast.DefFun):
         return False
     return def_sym.poly
+
 
 def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
                            target_type: cwast.CanonType,
@@ -846,7 +849,8 @@ def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
                         point.value_or_undef.x_srcloc)
 
 
-def CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
+def _CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
+    """Same as above but we no longer permit implicit conversions """
     ct: cwast.CanonType = node.type_or_auto.x_type
     if ct.is_vec():
         _CheckValVec(node, ct.underlying_array_type())
@@ -976,6 +980,7 @@ def _CheckExprCall(node: cwast.ExprCall,  _):
 
 
 def _CheckExprCallStrict(node: cwast.ExprCall,  _):
+    """Same as above but we no longer permit implicit conversions """
     fun_sig: cwast.CanonType = node.callee.x_type
     assert fun_sig.is_fun(), f"{fun_sig}"
     assert fun_sig.result_type(
@@ -1084,7 +1089,8 @@ def _CheckStmtAssignment(node: cwast.StmtAssignment, _):
             node.x_srcloc, f"cannot assign to readonly data: {node}")
 
 
-def CheckStmtAssignmentStrict(node: cwast.StmtAssignment, _):
+def _CheckStmtAssignmentStrict(node: cwast.StmtAssignment, _):
+    """Same as above but we no longer permit implicit conversions """
     var_ct = node.lhs.x_type
     expr_ct = node.expr_rhs.x_type
 
@@ -1107,6 +1113,7 @@ def _CheckStmtReturn(node: cwast.StmtReturn, _):
 
 
 def _CheckStmtReturnStrict(node: cwast.StmtReturn, _):
+    """Same as above but we no longer permit implicit conversions """
     target = node.x_target
     actual = node.expr_ret.x_type
     if isinstance(target, cwast.DefFun):
@@ -1134,6 +1141,7 @@ def _CheckDefVarDefGlobal(node, _):
 
 
 def _CheckDefVarDefGlobalStrict(node, _):
+    """Same as above but we no longer permit implicit conversions """
     initial = node.initial_or_undef_or_auto
     ct = node.type_or_auto.x_type
     if not isinstance(initial, cwast.ValUndef):
@@ -1169,98 +1177,110 @@ def _CheckNothing(_, _2):
     pass
 
 
+VERIFIERS = {
+    cwast.ValCompound: _CheckValCompound,
+    cwast.ValPoint: _CheckNothing,
+
+    cwast.Expr1: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
+
+    cwast.TypeOf: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
+    cwast.Expr2: lambda node, tc:  _CheckExpr2Types(node, node.x_type,  node.expr1.x_type,
+                                                    node.expr2.x_type, node.binary_expr_kind, tc),
+    cwast.Expr3: CheckExpr3,
+    cwast.ExprDeref: CheckExprDeref,
+    cwast.ExprPointer: CheckExprPointer,
+    cwast.ExprIndex: _CheckExprIndex,
+    cwast.ExprField: CheckExprField,
+    cwast.ExprFront: CheckExprFront,
+    cwast.ExprWiden: _CheckExprWiden,
+    cwast.ExprNarrow: _CheckExprNarrow,
+    cwast.ExprAddrOf: _CheckExprAddrOf,
+    cwast.ExprUnionTag: _CheckExprUnionTag,
+    cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
+    cwast.ExprWrap: _CheckExprWrap,
+    cwast.ExprUnwrap: _CheckExprUnwrap,
+    cwast.ExprCall: _CheckExprCall,
+
+    cwast.Id: CheckId,
+    #
+    cwast.TypeUnion: lambda node, tc: node.x_type.is_union(),
+    cwast.TypeFun: _CheckDefFunTypeFun,
+    #
+    cwast.DefRec: _CheckDefRecDefEnum,
+    cwast.DefEnum: _CheckDefRecDefEnum,
+    #
+    cwast.DefFun: _CheckDefFunTypeFun,
+    #
+    cwast.ValSpan: _CheckValSpan,
+    #
+    cwast.ValNum: _CheckValNum,
+    #
+    cwast.ExprIs: _CheckIsBool,
+    cwast.ValTrue: _CheckIsBool,
+    cwast.ValFalse: _CheckIsBool,
+    #
+    cwast.ValVoid: _CheckIsVoid,
+    #
+    cwast.ExprTypeId: _CheckIsTypeId,
+    #
+    cwast.ExprOffsetof: _CheckIsUint,
+    cwast.ExprSizeof:  _CheckIsUint,
+    cwast.ExprLen: _CheckIsUint,
+    #
+    cwast.DefType: _CheckNothing,
+    cwast.TypeBase: _CheckNothing,
+    cwast.TypeSpan: _CheckNothing,
+    cwast.TypeVec: _CheckNothing,
+    cwast.TypeAuto: _CheckNothing,
+    cwast.TypePtr: _CheckNothing,
+    cwast.FunParam: _CheckNothing,
+    cwast.EnumVal: _CheckNothing,
+    cwast.ValAuto: _CheckNothing,
+    cwast.ValString: _CheckNothing,
+    cwast.ExprStmt: _CheckNothing,
+    cwast.RecField: _CheckNothing,
+    cwast.TypeUnionDelta:  _CheckNothing,
+    # minuned = node.type.x_type
+    #  subtrahend = node.subtrahend.x_type
+    # TODO: need to use original types if available
+    cwast.ExprUnsafeCast: _CheckExprUnsafeCast,
+    cwast.ExprAs: CheckExprAs,
+    cwast.ExprBitCast: _CheckExprBitCast,
+
+    # Statements
+    cwast.StmtIf: _CheckStmtIfStmtCond,
+    cwast.StmtCond: _CheckStmtIfStmtCond,
+    cwast.StmtExpr:  _CheckNothing,
+    cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
+    cwast.StmtAssignment: _CheckStmtAssignment,
+    cwast.StmtReturn: _CheckStmtReturn,
+    cwast.DefVar: _CheckDefVarDefGlobal,
+    cwast.DefGlobal: _CheckDefVarDefGlobal,
+    cwast.ExprParen: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
+}
+
+VERIFIERS_STRICT = VERIFIERS | {
+    cwast.ExprNarrow: _CheckExprNarrowUnchecked,
+    cwast.ValCompound: _CheckValCompoundStrict,
+    cwast.ExprCall: _CheckExprCallStrict,
+    cwast.StmtAssignment: _CheckStmtAssignmentStrict,
+    cwast.StmtReturn: _CheckStmtReturnStrict,
+    cwast.DefGlobal: _CheckDefVarDefGlobalStrict,
+    cwast.DefVar: _CheckDefVarDefGlobalStrict,
+}
+
+
 class TypeVerifier:
     """"This class allows us to switch out per node checkers as we modify the AST"""
 
     def __init__(self):
-        # maps nodes
-        self._map = {
-            cwast.ValCompound: _CheckValCompound,
-            cwast.ValPoint: _CheckNothing,
+        self._map = VERIFIERS
 
-            cwast.Expr1: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
-
-            cwast.TypeOf: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
-            cwast.Expr2: lambda node, tc:  _CheckExpr2Types(node, node.x_type,  node.expr1.x_type,
-                                                            node.expr2.x_type, node.binary_expr_kind, tc),
-            cwast.Expr3: CheckExpr3,
-            cwast.ExprDeref: CheckExprDeref,
-            cwast.ExprPointer: CheckExprPointer,
-            cwast.ExprIndex: _CheckExprIndex,
-            cwast.ExprField: CheckExprField,
-            cwast.ExprFront: CheckExprFront,
-            cwast.ExprWiden: _CheckExprWiden,
-            cwast.ExprNarrow: _CheckExprNarrow,
-            cwast.ExprAddrOf: _CheckExprAddrOf,
-            cwast.ExprUnionTag: _CheckExprUnionTag,
-            cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
-            cwast.ExprWrap: _CheckExprWrap,
-            cwast.ExprUnwrap: _CheckExprUnwrap,
-            cwast.ExprCall: _CheckExprCall,
-
-            cwast.Id: CheckId,
-            #
-            cwast.TypeUnion: lambda node, tc: node.x_type.is_union(),
-            cwast.TypeFun: _CheckDefFunTypeFun,
-            #
-            cwast.DefRec: _CheckDefRecDefEnum,
-            cwast.DefEnum: _CheckDefRecDefEnum,
-            #
-            cwast.DefFun: _CheckDefFunTypeFun,
-            #
-            cwast.ValSpan: _CheckValSpan,
-            #
-            cwast.ValNum: _CheckValNum,
-            #
-            cwast.ExprIs: _CheckIsBool,
-            cwast.ValTrue: _CheckIsBool,
-            cwast.ValFalse: _CheckIsBool,
-            #
-            cwast.ValVoid: _CheckIsVoid,
-            #
-            cwast.ExprTypeId: _CheckIsTypeId,
-            #
-            cwast.ExprOffsetof: _CheckIsUint,
-            cwast.ExprSizeof:  _CheckIsUint,
-            cwast.ExprLen: _CheckIsUint,
-            #
-            cwast.DefType: _CheckNothing,
-            cwast.TypeBase: _CheckNothing,
-            cwast.TypeSpan: _CheckNothing,
-            cwast.TypeVec: _CheckNothing,
-            cwast.TypeAuto: _CheckNothing,
-            cwast.TypePtr: _CheckNothing,
-            cwast.FunParam: _CheckNothing,
-            cwast.EnumVal: _CheckNothing,
-            cwast.ValAuto: _CheckNothing,
-            cwast.ValString: _CheckNothing,
-            cwast.ExprStmt: _CheckNothing,
-            cwast.RecField: _CheckNothing,
-            cwast.TypeUnionDelta:  _CheckNothing,
-            # minuned = node.type.x_type
-            #  subtrahend = node.subtrahend.x_type
-            # TODO: need to use original types if available
-            cwast.ExprUnsafeCast: _CheckExprUnsafeCast,
-            cwast.ExprAs: CheckExprAs,
-            cwast.ExprBitCast: _CheckExprBitCast,
-
-            # Statements
-            cwast.StmtIf: _CheckStmtIfStmtCond,
-            cwast.StmtCond: _CheckStmtIfStmtCond,
-            cwast.StmtExpr:  _CheckNothing,
-            cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
-            cwast.StmtAssignment: _CheckStmtAssignment,
-            cwast.StmtReturn: _CheckStmtReturn,
-            cwast.DefVar: _CheckDefVarDefGlobal,
-            cwast.DefGlobal: _CheckDefVarDefGlobal,
-            cwast.ExprParen: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
-        }
-
-    def Verify(self, node: cwast.ALL_NODES, tc: type_corpus.TypeCorpus):
+    def Verify(self, node: Any, tc: type_corpus.TypeCorpus):
         self._map[type(node)](node, tc)
 
-    def Replace(self, node_type, checker):
-        self._map[node_type] = checker
+    def ActivateStricterChecks(self):
+        self._map = VERIFIERS_STRICT
 
 
 def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
