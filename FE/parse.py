@@ -380,7 +380,7 @@ _INFIX_EXPR_PARSERS = {
     "<<<": (pp.PREC2_SHIFT, _PParserInfixOp),
     ">>>": (pp.PREC2_SHIFT, _PParserInfixOp),
     #
-    "&-&": (10, _PParserInfixOp),
+    # "ptr_diff": (10, _PParserInfixOp),
     #
     "xor": (pp.PREC2_ADD, _PParserInfixOp),
     "or": (pp.PREC2_ADD, _PParserInfixOp),

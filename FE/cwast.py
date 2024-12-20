@@ -29,6 +29,7 @@ BUILT_IN_STMT_MACROS = set([
 
 BUILT_IN_EXPR_MACROS = set([
     "span_inc",
+    "span_diff",
 ])
 
 ALL_BUILT_IN_MACROS = BUILT_IN_STMT_MACROS | BUILT_IN_EXPR_MACROS
@@ -227,7 +228,7 @@ BINARY_EXPR_SHORTCUT = {
     "or": BINARY_EXPR_KIND.OR,
     "xor": BINARY_EXPR_KIND.XOR,
     #
-    "&-&": BINARY_EXPR_KIND.PDELTA,
+    "ptr_diff": BINARY_EXPR_KIND.PDELTA,
 }
 
 BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
@@ -1281,7 +1282,7 @@ class Id:
         return self.x_symbol
 
     def IsMacroCall(self):
-        return self.base_name.IsMacroCall()
+        return self.base_name.IsMacroCall() or self.base_name.name in BUILT_IN_EXPR_MACROS
 
     def IsMacroVar(self):
         return self.base_name.IsMacroVar()
