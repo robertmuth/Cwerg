@@ -843,12 +843,9 @@ def _ParseTopLevel(inp: lexer.Lexer):
         return cwast.DefGlobal(cwast.NAME.FromStr(name.text), type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
                                **extra)
     elif kw.text == "macro":
-        if inp.peek().kind is lexer.TK_KIND.KW:
-            name = inp.next()
-            assert name.text in cwast.ALL_BUILT_IN_MACROS, f"{name}"
-        else:
-            name = inp.match_or_die(lexer.TK_KIND.ID)
-            assert name.text.endswith(cwast.MACRO_CALL_SUFFIX)
+        name = inp.next()
+        if not name.text.endswith(cwast.MACRO_CALL_SUFFIX):
+            assert "builtin" in extra, f"bad macro name: {name}"
         kind = inp.match_or_die(lexer.TK_KIND.ID)
         params = _ParseMacroParams(inp)
         gen_ids = _ParseMacroGenIds(inp)

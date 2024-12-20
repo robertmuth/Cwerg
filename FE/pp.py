@@ -444,13 +444,6 @@ def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
 
 def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     """Handle Expression Macros"""
-    if node.name == "^.":
-        assert len(node.args) == 2
-        field_name = node.args[1]
-        assert isinstance(field_name, cwast.Id)
-        TokensBinaryInfixNoSpace(
-            ts, "^.", node.args[0], field_name, node)
-        return
     ts.EmitName(str(node.name))
     beg_paren = ts.EmitBegParen("(")
     TokensMacroInvokeArgs(ts, node.args, None)
