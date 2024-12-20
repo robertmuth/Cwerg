@@ -436,13 +436,13 @@ def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
     if cwast.NF.CONTROL_FLOW in fun.FLAGS:
         return cwast.EphemeralList(handle_cfg(fun.x_target) + [fun], colon=False)
 
-    for field, nfd in fun.__class__.FIELDS:
+    for field, nfd in fun.__class__.NODE_FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(fun, field)
             new_child = FunCanonicalizeDefer(child, scopes)
             if new_child:
                 setattr(fun, child, new_child)
-        elif nfd.kind is cwast.NFK.LIST:
+        else:
             if field in cwast.NEW_SCOPE_FIELDS:
                 scopes.append((fun, []))
             children = getattr(fun, field)

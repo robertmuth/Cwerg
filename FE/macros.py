@@ -87,11 +87,11 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
 
     clone = dataclasses.replace(node)
 
-    for c, nfd in node.__class__.FIELDS:
+    for c, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             replacement = ExpandMacroRecursively(getattr(node, c), ctx)
             setattr(clone, c, replacement)
-        elif nfd.kind is cwast.NFK.LIST:
+        else:
             out = []
             for cc in getattr(node, c):
                 exp = ExpandMacroRecursively(cc, ctx)

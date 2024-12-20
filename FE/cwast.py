@@ -846,15 +846,20 @@ def NodeCommon(cls):
         NODES_ALIASES[cls.ALIAS] = cls
     cls.FIELDS = []
     cls.ATTRS = []
+    cls.NODE_FIELDS = []
     for field, _ in cls.__annotations__.items():
         if field in ('ALIAS', 'GROUP', 'FLAGS'):
             continue
-        if not field.startswith("x_"):
-            nfd = ALL_FIELDS_MAP[field]
-            if nfd.kind is NFK.ATTR_BOOL or nfd.kind is NFK.ATTR_STR:
-                cls.ATTRS.append((field, nfd))
-            else:
-                cls.FIELDS.append((field, nfd))
+        if field.startswith("x_"):
+            continue
+        nfd = ALL_FIELDS_MAP[field]
+        kind  = nfd.kind
+        if kind is NFK.ATTR_BOOL or kind is NFK.ATTR_STR:
+            cls.ATTRS.append((field, nfd))
+        else:
+            cls.FIELDS.append((field, nfd))
+            if kind is NFK.NODE or kind is NFK.LIST:
+                cls.NODE_FIELDS.append((field, nfd))
     return cls
 
 ############################################################
@@ -3026,11 +3031,11 @@ def VisitAstRecursively(node, visitor, field=None):
     if visitor(node, field):
         return
 
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursively(child, visitor, f)
-        elif nfd.kind is NFK.LIST:
+        else:
             for child in getattr(node, f):
                 VisitAstRecursively(child, visitor, f)
 
@@ -3039,21 +3044,21 @@ def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
     if visitor(node, parent, field):
         return
 
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyWithParent(child, visitor, node, f)
-        elif nfd.kind is NFK.LIST:
+        else:
             for child in getattr(node, f):
                 VisitAstRecursivelyWithParent(child, visitor, node, f)
 
 
 def VisitAstRecursivelyPost(node, visitor, field=None):
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyPost(child, visitor, f)
-        elif nfd.kind is NFK.LIST:
+        else:
             for child in getattr(node, f):
                 VisitAstRecursivelyPost(child, visitor, f)
 
@@ -3061,11 +3066,11 @@ def VisitAstRecursivelyPost(node, visitor, field=None):
 
 
 def VisitAstRecursivelyWithParentPost(node, visitor, parent, field=None):
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyWithParentPost(child, visitor, node, f)
-        elif nfd.kind is NFK.LIST:
+        else:
             for child in getattr(node, f):
                 VisitAstRecursivelyWithParentPost(child, visitor, node, f)
 
@@ -3076,11 +3081,11 @@ def VisitAstRecursivelyWithAllParents(node, parents: list[Any], visitor):
     if visitor(node, parents):
         return
     parents.append(node)
-    for c, nfd in node.__class__.FIELDS:
+    for c, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             VisitAstRecursivelyWithAllParents(
                 getattr(node, c), parents, visitor)
-        elif nfd.kind is NFK.LIST:
+        else:
             for child in getattr(node, c):
                 VisitAstRecursivelyWithAllParents(child, parents, visitor)
     parents.pop(-1)
@@ -3088,7 +3093,7 @@ def VisitAstRecursivelyWithAllParents(node, parents: list[Any], visitor):
 
 def MaybeReplaceAstRecursively(node, replacer):
     """Note: the root node will not be replaced"""
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             new_child = replacer(child, node, f)
@@ -3096,7 +3101,7 @@ def MaybeReplaceAstRecursively(node, replacer):
                 setattr(node, f, new_child)
             else:
                 MaybeReplaceAstRecursively(child, replacer)
-        elif nfd.kind is NFK.LIST:
+        else:
             children = getattr(node, f)
             for n, child in enumerate(children):
                 new_child = replacer(child, node, f)
@@ -3108,7 +3113,7 @@ def MaybeReplaceAstRecursively(node, replacer):
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
     """Note: the root node will not be replaced"""
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         # print ("replace: ", node.__class__.__name__, c)
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
@@ -3116,7 +3121,7 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
             new_child = replacer(child, node, f)
             if new_child:
                 setattr(node, f, new_child)
-        elif nfd.kind is NFK.LIST:
+        else:
             children = getattr(node, f)
             for n, child in enumerate(children):
                 MaybeReplaceAstRecursivelyPost(child, replacer)
@@ -3143,7 +3148,7 @@ def _MaybeFlattenEphemeralList(nodes: list[Any]):
 
 
 def EliminateEphemeralsRecursively(node):
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             if isinstance(child, EphemeralList):
@@ -3152,7 +3157,7 @@ def EliminateEphemeralsRecursively(node):
                     new_child) == 1, f"{f} {node.__class__} {len(new_child)}"
                 setattr(node, f, new_child[0])
             EliminateEphemeralsRecursively(child)
-        elif nfd.kind is NFK.LIST:
+        else:
             children = getattr(node, f)
             new_children = _MaybeFlattenEphemeralList(children)
             if new_children is not children:
@@ -3175,11 +3180,11 @@ def CloneNodeRecursively(node, symbol_map, target_map):
         new_target = target_map.get(old_target, old_target)
         clone.x_target = new_target
 
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             setattr(clone, f, CloneNodeRecursively(
                 getattr(node, f), symbol_map, target_map))
-        elif nfd.kind is NFK.LIST:
+        else:
             out = [CloneNodeRecursively(cc, symbol_map, target_map)
                    for cc in getattr(node, f)]
             setattr(clone, f, out)
@@ -3195,11 +3200,11 @@ def UpdateSymbolAndTargetLinks(node, symbol_map, target_map):
         new_target = target_map.get(old_target, old_target)
         node.x_target = new_target
 
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             UpdateSymbolAndTargetLinks(
                 getattr(node, f), symbol_map, target_map)
-        elif nfd.kind is NFK.LIST:
+        else:
             for cc in getattr(node, f):
                 UpdateSymbolAndTargetLinks(cc, symbol_map, target_map)
     return node
@@ -3287,11 +3292,11 @@ def AnnotateImportsForQualifers(mod: DefMod):
 
 
 def StripFromListRecursively(node, cls):
-    for f, nfd in node.__class__.FIELDS:
+    for f, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             StripFromListRecursively(child, cls)
-        elif nfd.kind is NFK.LIST:
+        else:
             children = getattr(node, f)
             for child in children:
                 StripFromListRecursively(child, cls)

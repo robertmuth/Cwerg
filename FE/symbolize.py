@@ -236,7 +236,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
 
 
 def FindAndExpandMacrosRecursively(node, builtin_syms, nesting: int, ctx: macros.MacroContext):
-    for c, nfd in node.__class__.FIELDS:
+    for c, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
             FindAndExpandMacrosRecursively(child, builtin_syms, nesting, ctx)
@@ -246,7 +246,7 @@ def FindAndExpandMacrosRecursively(node, builtin_syms, nesting: int, ctx: macros
                 assert not isinstance(new_child, cwast.EphemeralList)
                 setattr(node, c, new_child)
 
-        elif nfd.kind is cwast.NFK.LIST:
+        else:
             children = getattr(node, c)
             new_children = []
             for child in children:
@@ -282,13 +282,13 @@ def ResolveSymbolsInsideFunctionsRecursively(
         return
 
     # recurse using a little bit of introspection
-    for c, nfd in node.__class__.FIELDS:
+    for c, nfd in node.__class__.NODE_FIELDS:
         if nfd.kind is cwast.NFK.NODE:
             # the field member contains an Id that can only be resolved when we have type info
             if nfd.name != "field":
                 ResolveSymbolsInsideFunctionsRecursively(
                     getattr(node, c), symtab, builtin_syms, scopes)
-        elif nfd.kind is cwast.NFK.LIST:
+        else:
             # blocks introduce new scopes
             if c in cwast.NEW_SCOPE_FIELDS:
                 logger.debug("push scope for %s: %s", node, c)
