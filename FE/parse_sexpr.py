@@ -427,8 +427,8 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
         tag = tag[:-1]
         attr["mut"] = True
 
-    if tag in cwast.UNARY_EXPR_SHORTCUT:
-        return ReadRestAndMakeNode(cwast.Expr1, [cwast.UNARY_EXPR_SHORTCUT[tag]],
+    if tag in cwast.UNARY_EXPR_SHORTCUT_SEXPR:
+        return ReadRestAndMakeNode(cwast.Expr1, [cwast.UNARY_EXPR_SHORTCUT_SEXPR[tag]],
                                    cwast.Expr1.FIELDS[1:], attr, stream)
     elif tag in cwast.BINARY_EXPR_SHORTCUT:
         return ReadRestAndMakeNode(cwast.Expr2, [cwast.BINARY_EXPR_SHORTCUT[tag]],

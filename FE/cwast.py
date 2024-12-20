@@ -327,19 +327,17 @@ class UNARY_EXPR_KIND(enum.Enum):
     SQRT = 4
 
 
-UNARY_EXPR_SHORTCUT = {
+UNARY_EXPR_SHORTCUT_SEXPR = {
     "!": UNARY_EXPR_KIND.NOT,
+    # this is used for sexpr so we can distinguish it from binary minus
     "~": UNARY_EXPR_KIND.MINUS,
     "abs": UNARY_EXPR_KIND.ABS,
     "sqrt": UNARY_EXPR_KIND.SQRT,
 }
 
-UNARY_EXPR_SHORTCUT_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT.items()}
+UNARY_EXPR_SHORTCUT_SEXPR_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT_SEXPR.items()}
 
-UNARY_EXPR_SHORTCUT_CONCRETE = {
-    "!": UNARY_EXPR_KIND.NOT,
-    "-": UNARY_EXPR_KIND.MINUS,
-}
+UNARY_EXPR_SHORTCUT_CONCRETE =  UNARY_EXPR_SHORTCUT_SEXPR | {"-": UNARY_EXPR_KIND.MINUS}
 
 UNARY_EXPR_SHORTCUT_CONCRETE_INV = {
     v: k for k, v in UNARY_EXPR_SHORTCUT_CONCRETE.items()}
@@ -3565,7 +3563,7 @@ Misc enums used inside of nodes.
     print("## Enum Details",  file=fout)
 
     _RenderKind(Expr1.__name__,  UNARY_EXPR_KIND,
-                UNARY_EXPR_SHORTCUT_INV, fout)
+                UNARY_EXPR_SHORTCUT_SEXPR_INV, fout)
     _RenderKind(Expr2.__name__,  BINARY_EXPR_KIND,
                 BINARY_EXPR_SHORTCUT_INV, fout)
     _RenderKind(ExprPointer.__name__, POINTER_EXPR_KIND,

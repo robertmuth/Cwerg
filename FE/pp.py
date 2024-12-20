@@ -561,7 +561,7 @@ def TokensExpr1(ts: TS, node: cwast.Expr1):
     if sym:
         TokensUnaryPrefix(ts, sym, node.expr)
     else:
-        sym = cwast.UNARY_EXPR_SHORTCUT_INV.get(node.unary_expr_kind)
+        sym = cwast.UNARY_EXPR_SHORTCUT_SEXPR_INV.get(node.unary_expr_kind)
         TokensFunctional(ts, sym, [node.expr]),
 
 

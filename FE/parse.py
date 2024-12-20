@@ -227,7 +227,7 @@ def _PParsePrefix(inp: lexer.Lexer, tk: lexer.TK, precedence) -> Any:
     elif tk.text.startswith("&"):
         return cwast.ExprAddrOf(rhs, mut=tk.text == "&!", x_srcloc=tk.srcloc)
     else:
-        kind = cwast.UNARY_EXPR_SHORTCUT[tk.text]
+        kind = cwast.UNARY_EXPR_SHORTCUT_SEXPR[tk.text]
     return cwast.Expr1(kind, rhs, x_srcloc=tk.srcloc)
 
 

@@ -50,34 +50,26 @@ class TK_KIND(enum.Enum):
     SPECIAL_EOF = enum.auto()
 
 
-_KEYWORDS_SIMPLE = [
-    "auto",    # type/val
-    "span",
-    "vec",
-    "true",
-    "false",
-    "front",
-    "funtype",
-    "else",
-    #
-    "ptr_inc",
-    "ptr_dec",
-    #
-    "span_inc",
-    #
-    "abs",
-    "sqrt",
-    "min",
-    "max",
-] + [nt.ALIAS for nt in [cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta,
-                         cwast.ExprUnionTag, cwast.ExprIs,
-                         #
-                         cwast.ValUndef,
-                         #
-                         cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden, cwast.ExprSrcLoc,
-                         cwast.ExprBitCast, cwast.ExprUnsafeCast, cwast.ExprNarrow, cwast.ExprTypeId,
-                         cwast.ExprOffsetof, cwast.ExprSizeof, cwast.ExprLen, cwast.ExprStringify]]
 
+_KEYWORDS_NODES = [nt.ALIAS for nt in [
+    cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta, cwast.TypeVec, cwast.TypeSpan,
+    cwast.TypeAuto,  # also used for ValAuto
+    cwast.ExprUnionTag, cwast.ExprIs, cwast.ExprFront,
+    #
+    cwast.ValUndef, cwast.ValTrue, cwast.ValFalse,
+    #
+    cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden, cwast.ExprSrcLoc,
+    cwast.ExprBitCast, cwast.ExprUnsafeCast, cwast.ExprNarrow, cwast.ExprTypeId,
+    cwast.ExprOffsetof, cwast.ExprSizeof, cwast.ExprLen, cwast.ExprStringify]]
+
+_NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
+
+_KEYWORDS_OP = (
+    [o for o in cwast.POINTER_EXPR_SHORTCUT.keys() if _NAMED_OP_RE.fullmatch(o)] +
+    [o for o in cwast.UNARY_EXPR_SHORTCUT_SEXPR.keys() if _NAMED_OP_RE.fullmatch(o)])
+
+_KEYWORDS_SIMPLE = [
+    "funtype", "else", "min", "max",] + _KEYWORDS_OP + _KEYWORDS_NODES
 
 KEYWORDS: dict[str, TK_KIND] = ({
     "pub": TK_KIND.SPECIAL_ANNOTATION,
