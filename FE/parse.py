@@ -98,6 +98,7 @@ _FUN_LIKE: dict[str, tuple[Callable, str]] = {
     "sqrt": (lambda x, **kw: cwast.Expr1(cwast.UNARY_EXPR_KIND.SQRT, x, **kw), "E"),
     "max": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.MAX, x, y, **kw), "EE"),
     "min": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.MIN, x, y, **kw), "EE"),
+    "ptr_diff": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.PDELTA, x, y, **kw), "EE"),
     cwast.ExprLen.ALIAS: (cwast.ExprLen, "E"),
     "pinc": (cwast.ExprPointer, "pEEe"),
     "pdec": (cwast.ExprPointer, "pEEe"),

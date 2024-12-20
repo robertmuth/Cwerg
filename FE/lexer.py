@@ -107,7 +107,7 @@ _OPERATORS_SIMPLE1 = [
 ]
 
 
-ANNOTATION_RE = r"@[a-zA-Z]+"
+ANNOTATION_RE = r"@[_a-zA-Z]+"
 ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"

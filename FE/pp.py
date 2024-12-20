@@ -78,7 +78,9 @@ def _prec2(node: cwast.Expr2):
     return _OPS_PRECENDENCE_EXPR2[node.binary_expr_kind]
 
 
-_FUNCTIONAL_BINOPS = (cwast.BINARY_EXPR_KIND.MAX, cwast.BINARY_EXPR_KIND.MIN)
+_FUNCTIONAL_BINOPS = (cwast.BINARY_EXPR_KIND.MAX,
+                      cwast.BINARY_EXPR_KIND.MIN,
+                      cwast.BINARY_EXPR_KIND.PDELTA)
 _FUNCTIONAL_UNOPS = (cwast.UNARY_EXPR_KIND.ABS, cwast.UNARY_EXPR_KIND.SQRT)
 
 
