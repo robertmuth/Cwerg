@@ -10,7 +10,6 @@ rec ResultR64:
     value r64
     length uint
 
-
 pub global ParseError ResultR64
 
 fun is_hex_digit(c u8) bool:
@@ -28,11 +27,10 @@ fun dec_digit_val(c u8) u8:
 -- this macros capture i,n,s from the environment
 macro next_char# STMT_LIST($c ID, $error_body STMT_LIST)[]:
     if i >= n:
-        $error_body
+        $error_body 
 
     set $c = s[i]
     set i += 1
-
 
 -- if we have too many digits we drop the one after the dot but
 -- adjust must adjust the exponent for the one before

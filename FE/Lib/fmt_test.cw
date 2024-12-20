@@ -11,14 +11,15 @@ pub enum color s32:
     green 3
     red 4
 
- poly fun fmt::SysRender(v color, out span!(u8), options ^!fmt::SysFormatOptions) uint:
+poly fun fmt::SysRender(v color, out span!(u8), options ^!fmt::SysFormatOptions) 
+    uint:
     return fmt::SysRender(unwrap(v), out, options)
 
 pub rec ic32:
     real s32
     imag s32
 
- poly fun fmt::SysRender(v ic32, s span!(u8), opt ^!fmt::SysFormatOptions) uint:
+poly fun fmt::SysRender(v ic32, s span!(u8), opt ^!fmt::SysFormatOptions) uint:
     let! n uint = 0
     set n = fmt::SysRender(v.real, s, opt)
     set n += fmt::SysRender("+", span_inc(s, n), opt)
