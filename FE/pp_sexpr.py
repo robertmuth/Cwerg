@@ -217,6 +217,8 @@ _ATTR_MODE = {
     "unchecked": "after",
     "wrapped": "after",
     "untagged": "after",
+    "poly": "before",
+    "preserve_mut": "before",
 }
 
 
@@ -248,7 +250,8 @@ def _RenderAttr(node, out, indent, before_paren: bool):
         if isinstance(val, bool):
             out[-1].append(f"@{field} ")
         else:
-            assert False, f"in node {node} unknown attribute [{field}]: [{val}]"
+            assert False, f"in node {
+                node} unknown attribute [{field}]: [{val}]"
             out.append(f"@{field} {val} ")
 
 
@@ -311,6 +314,7 @@ def _RenderRecursivelyToIR(node, out, indent: int):
             else:
                 _RenderList(val, field, out, indent)
         elif field_kind is cwast.NFK.NAME_LIST:
+            val = [v.name for v in val]
             line.append(f"[{' '.join(val)}]")
         else:
             assert False, f"unexpected field {field}"
