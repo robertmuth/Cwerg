@@ -1,7 +1,7 @@
 @builtin (module [] :
 
 @doc "macro for while-loop"
-@pub (macro while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
+@builtin @pub (macro while STMT [(mparam $cond EXPR) (mparam $body STMT_LIST)] [] :
     (block _ :
         (if $cond :
          :
@@ -13,7 +13,7 @@
 @doc """macro for number range for-loop,
 
 The type of the loop variable is determined by $end"""
-@pub (macro for STMT_LIST [
+@builtin @pub (macro for STMT_LIST [
         (mparam $index ID)
         (mparam $start EXPR)
         (mparam $end EXPR)
@@ -37,7 +37,7 @@ The type of the loop variable is determined by $end"""
         (continue)))
 
 
-@pub (macro trylet STMT_LIST [
+@builtin @pub (macro trylet STMT_LIST [
         (mparam $name ID)
         (mparam $type EXPR)
         (mparam $expr EXPR)
@@ -52,7 +52,7 @@ The type of the loop variable is determined by $end"""
     (mlet $name $type (@unchecked narrow_as $eval $type)))
 
 
-@pub (macro trylet! STMT_LIST [
+@builtin @pub (macro trylet! STMT_LIST [
         (mparam $name ID)
         (mparam $type EXPR)
         (mparam $expr EXPR)
@@ -67,7 +67,7 @@ The type of the loop variable is determined by $end"""
     (mlet! $name $type (@unchecked narrow_as $eval $type)))
 
 
-@pub (macro tryset STMT_LIST [
+@builtin @pub (macro tryset STMT_LIST [
         (mparam $lhs EXPR)
         (mparam $expr EXPR)
         (mparam $catch_name ID)
@@ -88,7 +88,7 @@ The type of the loop variable is determined by $end"""
 
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
-@pub (macro span_inc EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
+@builtin @pub (macro span_inc EXPR [(mparam $slice EXPR) (mparam $size EXPR)] [$orig_size $orig_len $orig_slice] :
     (expr :
         (mlet $orig_slice auto $slice)
         (mlet $orig_len auto (len $orig_slice))
@@ -98,7 +98,7 @@ The type of the loop variable is determined by $end"""
          :)
         (return (span_val (pinc (@preserve_mut front $orig_slice) $orig_size) (- $orig_len $orig_size)))))
 
-@pub (macro span_diff EXPR [(mparam $a EXPR) (mparam $b EXPR)] [] :
+@builtin @pub (macro span_diff EXPR [(mparam $a EXPR) (mparam $b EXPR)] [] :
    (ptr_diff (front $a) (front $b)))
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
