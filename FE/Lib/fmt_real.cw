@@ -17,7 +17,7 @@ global target_range_lo = as(1_u64 << 53, r64) / 10.0
 
 pub fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
     for i = 0, size, 1:
-        set pinc(dst, i)^ = pinc(src, i)^
+        set ptr_inc(dst, i)^ = ptr_inc(src, i)^
     return size
 
 fun div_by_power_of_10(val r64, pow10 s32) r64:

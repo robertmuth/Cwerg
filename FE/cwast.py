@@ -244,8 +244,8 @@ class POINTER_EXPR_KIND(enum.Enum):
 
 POINTER_EXPR_SHORTCUT = {
     #
-    "pinc": POINTER_EXPR_KIND.INCP,
-    "pdec": POINTER_EXPR_KIND.DECP,
+    "ptr_inc": POINTER_EXPR_KIND.INCP,
+    "ptr_dec": POINTER_EXPR_KIND.DECP,
 }
 
 POINTER_EXPR_SHORTCUT_INV = {v: k for k, v in POINTER_EXPR_SHORTCUT.items()}
@@ -854,7 +854,7 @@ def NodeCommon(cls):
         if field.startswith("x_"):
             continue
         nfd = ALL_FIELDS_MAP[field]
-        kind  = nfd.kind
+        kind = nfd.kind
         if kind is NFK.ATTR_BOOL or kind is NFK.ATTR_STR:
             cls.ATTRS.append((field, nfd))
         else:
@@ -2973,7 +2973,7 @@ class DefMacro:
     body_macro: list[Any]  # new scope
     #
     pub: bool = False
-    builtin: bool = False # only used by some macros from buildin.cw
+    builtin: bool = False  # only used by some macros from buildin.cw
     doc: str = ""
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC

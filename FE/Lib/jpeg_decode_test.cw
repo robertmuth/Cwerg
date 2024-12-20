@@ -197,7 +197,7 @@ fun dump() void:
     while len(data) > 0:
         let n uint = min(len(data), 1024)
         fmt::print#(span(front(data), n))
-        set data = span(pinc(front(data), n), len(data) - n)
+        set data = span(ptr_inc(front(data), n), len(data) - n)
 
 ref global! gByteBuffer [1024 * 1024]u8 = undef
 

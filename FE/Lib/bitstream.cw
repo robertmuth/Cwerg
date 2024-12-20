@@ -72,7 +72,7 @@ pub fun Stream32GetByteSlice(bs ^!Stream32, n uint) span(u8):
         return span(f, 0)
     else:
         set bs^.offset = offset + n
-        return span(pinc(f, offset), n)
+        return span(ptr_inc(f, offset), n)
 
 -- rounds down - bits_cache treated as consumed/empty
 pub fun Stream32BytesLeft(bs ^Stream32) uint:

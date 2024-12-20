@@ -165,23 +165,23 @@ pub fun KeccakAdd(state ^!StateKeccak, tail span!(u64), data span(u8)) void:
     if tail_use > 0:
         if tail_use + len(data) < block_size:
             for i = 0, len(data), 1:
-                set pinc(tail_u8, tail_use + i)^ = data[i]
+                set ptr_inc(tail_u8, tail_use + i)^ = data[i]
             set state^.msglen += len(data)
             return
         else:
             set offset = block_size - tail_use
             for i = 0, offset, 1:
-                set pinc(tail_u8, tail_use + i)^ = data[i]
+                set ptr_inc(tail_u8, tail_use + i)^ = data[i]
             do AddBlockAlignedLE(state, tail)
             do KeccakF(&!state^.x)
     while len(data) - offset >= block_size:
         for i = 0, block_size, 1:
-            set pinc(tail_u8, i)^ = data[offset]
+            set ptr_inc(tail_u8, i)^ = data[offset]
             set offset += 1
         do AddBlockAlignedLE(state, tail)
         do KeccakF(&!state^.x)
     for i = 0, len(data) - offset, 1:
-        set pinc(tail_u8, i)^ = data[offset]
+        set ptr_inc(tail_u8, i)^ = data[offset]
         set offset += 1
     set state^.msglen += len(data)
 
@@ -190,9 +190,9 @@ pub fun KeccakFinalize(state ^!StateKeccak, tail span!(u64), padding u8) void:
     let block_size = len(tail) * 8
     let padding_start uint = state^.msglen % block_size
     for i = padding_start, block_size, 1:
-        set pinc(tail_u8, i)^ = 0
-    set pinc(tail_u8, padding_start)^ or= padding
-    set pinc(tail_u8, block_size - 1)^ or= 0x80
+        set ptr_inc(tail_u8, i)^ = 0
+    set ptr_inc(tail_u8, padding_start)^ or= padding
+    set ptr_inc(tail_u8, block_size - 1)^ or= 0x80
     do AddBlockAlignedLE(state, tail)
     do KeccakF(&!state^.x)
 

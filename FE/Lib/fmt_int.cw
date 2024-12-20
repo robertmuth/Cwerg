@@ -2,7 +2,7 @@ module:
 
 fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
     for i = 0, size, 1:
-        set pinc(dst, i)^ = pinc(src, i)^
+        set ptr_inc(dst, i)^ = ptr_inc(src, i)^
     return size
 
 macro unsigned_to_str# EXPR(
@@ -25,7 +25,7 @@ macro unsigned_to_str# EXPR(
             if $v != 0:
                 continue
         let n uint = $max_width - min($pos, len($out_eval))
-        return mymemcpy(front!($out_eval), pinc(front($tmp), $pos), n)
+        return mymemcpy(front!($out_eval), ptr_inc(front($tmp), $pos), n)
 
 
 -- Why the polymorphism?

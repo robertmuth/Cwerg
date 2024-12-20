@@ -12,7 +12,7 @@ pub global FORMATED_STRING_MAX_LEN uint = 4096
 
 pub fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
     for i = 0, size, 1:
-        set pinc(dst, i)^ = pinc(src, i)^
+        set ptr_inc(dst, i)^ = ptr_inc(src, i)^
     return size
 
 -- This gets passed to the actual formatters which decide how to interpret the options.
@@ -148,7 +148,7 @@ pub macro print# STMT_LIST(
 
 pub fun strz_to_slice(s ^u8) span(u8):
     let! i uint = 0
-    while pinc(s, i)^ != 0:
+    while ptr_inc(s, i)^ != 0:
         set i += 1
     return span(s, i)
 

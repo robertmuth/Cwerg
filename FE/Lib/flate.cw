@@ -240,7 +240,7 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8)) un
     let! dist_counts [MAX_HUFFMAN_BITS + 1]u16
     block _:
         let dist_lengths = span(
-                pinc(front!(lit_dist_lengths), lit_num_syms), dist_num_syms)
+                ptr_inc(front!(lit_dist_lengths), lit_num_syms), dist_num_syms)
         let dist_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
                 dist_lengths, dist_counts, dist_symbols)
         if dist_last_symbol == huffman::BAD_TREE_ENCODING:

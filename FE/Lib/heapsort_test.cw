@@ -23,7 +23,7 @@ global ERROR = "ERROR\n"
 fun dump_array(size uint, data ^r64) void:
     ref let! buf [32]u8 = undef
     for i = 0, size, 1:
-        let v = pinc(data, i)^
+        let v = ptr_inc(data, i)^
         fmt::print#(wrap_as(v, fmt::r64_hex), NEWLINE)
     return
 

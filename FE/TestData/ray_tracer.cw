@@ -275,8 +275,8 @@ fun main(argc s32, argv ^^u8) s32:
     -- if argc < 3:
     --     fmt::print#("Not enough arguments, need width and height\n")
     --     return 0
-    -- let arg_w span(u8) = fmt::strz_to_slice(pinc(argv, 1)^)
-    -- let arg_h span(u8) = fmt::strz_to_slice(pinc(argv, 2)^)
+    -- let arg_w span(u8) = fmt::strz_to_slice(ptr_inc(argv, 1)^)
+    -- let arg_h span(u8) = fmt::strz_to_slice(ptr_inc(argv, 2)^)
     -- let width u32 = fmt::str_to_u32(arg_w)
     -- let height u32 = fmt::str_to_u32(arg_h)
     let w u32 = 640_u32

@@ -25,32 +25,32 @@ fun heap_sort(sdata span!(r64)) void:
     while true:
         if l > 1:
             set l -= 1
-            set rdata = pinc(data, l)^
+            set rdata = ptr_inc(data, l)^
         else:
-            set rdata = pinc(data, ir)^
-            set pinc(data, ir)^ = pinc(data, 1_uint)^
+            set rdata = ptr_inc(data, ir)^
+            set ptr_inc(data, ir)^ = ptr_inc(data, 1_uint)^
             set ir -= 1
             if ir == 1:
-                set pinc(data, ir)^ = rdata
+                set ptr_inc(data, ir)^ = rdata
                 return
         let! i = l
         let! j = l << 1
         while j <= ir:
-            if j < ir && cmp_lt(pinc(data, j), pinc(data, j + 1)):
+            if j < ir && cmp_lt(ptr_inc(data, j), ptr_inc(data, j + 1)):
                 set j += 1
-            if rdata < pinc(data, j)^:
-                set pinc(data, i)^ = pinc(data, j)^
+            if rdata < ptr_inc(data, j)^:
+                set ptr_inc(data, i)^ = ptr_inc(data, j)^
                 set i = j
                 set j += i
             else:
                 set j = ir + 1
-        set pinc(data, i)^ = rdata
+        set ptr_inc(data, i)^ = rdata
     return
 
 fun dump_array(size uint, data ^r64) void:
     ref let! buf [32]u8 = undef
     for i = 0, size, 1:
-        let v = pinc(data, i)^
+        let v = ptr_inc(data, i)^
         fmt::print#(wrap_as(v, fmt::r64_hex), NEWLINE)
     return
 

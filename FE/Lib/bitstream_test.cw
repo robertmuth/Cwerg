@@ -31,7 +31,7 @@ fun test1() void:
     test::AssertEq#(bitstream::Stream32BytesLeft(&bs), 1011_uint)
     test::AssertEq#(
             front(bitstream::Stream32GetByteSlice(&!bs, 1000_uint)),
-            pinc(front(DataFF), 13))
+            ptr_inc(front(DataFF), 13))
     test::AssertEq#(bitstream::Stream32BytesLeft(&bs), 11_uint)
     test::AssertFalse#(bs.eos)
 

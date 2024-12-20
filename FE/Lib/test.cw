@@ -60,7 +60,7 @@ pub macro AssertSliceEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[
     mlet $a_val = $a_expr
     AssertEq#(len($e_val), len($a_val))
     for $i = 0, len($a_val), 1:
-        AssertEq#(pinc(front($e_val), $i)^, pinc(front($a_val), $i)^)
+        AssertEq#(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^)
 
 -- The first two arguments must derivable types as we use `auto`
 pub macro AssertApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EXPR)[
@@ -90,7 +90,7 @@ pub macro AssertSliceApproxEq# STMT_LIST($e_expr EXPR, $a_expr EXPR, $epsilon EX
     AssertEq#(len($e_val), len($a_val))
     for $i = 0, len($a_val), 1:
         AssertApproxEq#(
-                pinc(front($e_val), $i)^, pinc(front($a_val), $i)^, $epsilon)
+                ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^, $epsilon)
 
 --
 pub macro AssertTrue# STMT_LIST($e_expr EXPR)[]:

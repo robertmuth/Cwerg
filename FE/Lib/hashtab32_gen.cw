@@ -50,12 +50,12 @@ pub fun Lookup(ht ^HashTab32, key ^$ktype) union(void, ^!$vtype):
     let size = ht^.size
     let! i = h % size
     while true:
-        let m = pinc(meta, i)^
+        let m = ptr_inc(meta, i)^
         if m == FreeEntry:
             fmt::print#("Not Found\n")
             return
-        if m == filter && $keq(key, pinc(keys, i)):
-            return pinc(vals, i)
+        if m == filter && $keq(key, ptr_inc(keys, i)):
+            return ptr_inc(vals, i)
         set i += 1
         if i >= size:
             set i -= size
@@ -70,17 +70,17 @@ pub fun InsertOrUpdate(ht ^!HashTab32, key ^$ktype, val ^$vtype) bool:
     let! seen_deleted = false
     let! first_deleted u32 = 0
     while true:
-        let m = pinc(meta, i)^
+        let m = ptr_inc(meta, i)^
         if m == FreeEntry:
             if !seen_deleted:
                 set first_deleted = i
-            set pinc(meta, first_deleted)^ = filter
-            set pinc(keys, first_deleted)^ = key^
-            set pinc(ht^.vals, first_deleted)^ = val^
+            set ptr_inc(meta, first_deleted)^ = filter
+            set ptr_inc(keys, first_deleted)^ = key^
+            set ptr_inc(ht^.vals, first_deleted)^ = val^
             set ht^.used += 1
             return true
-        if m == filter && $keq(key, pinc(keys, i)):
-            set pinc(ht^.vals, i)^ = val^
+        if m == filter && $keq(key, ptr_inc(keys, i)):
+            set ptr_inc(ht^.vals, i)^ = val^
             return false
         if !seen_deleted && m == DeletedEntry:
             set seen_deleted = true
@@ -97,11 +97,11 @@ pub fun DeleteIfPresent(ht ^!HashTab32, key ^$ktype) bool:
     let size = ht^.size
     let! i = h % size
     while true:
-        let m = pinc(meta, i)^
+        let m = ptr_inc(meta, i)^
         if m == FreeEntry:
             return false
-        if m == filter && $keq(key, pinc(keys, i)):
-            set pinc(meta, i)^ = DeletedEntry
+        if m == filter && $keq(key, ptr_inc(keys, i)):
+            set ptr_inc(meta, i)^ = DeletedEntry
             set ht^.used -= 1
             return true
         set i += 1
@@ -114,12 +114,12 @@ pub fun DebugDump(ht ^HashTab32) void:
     let vals = ht^.vals
     for i = 0, ht^.size, 1:
         fmt::print#(i, " ")
-        let m = pinc(meta, i)^
+        let m = ptr_inc(meta, i)^
         cond:
             case m == DeletedEntry:
                 fmt::print#("DELETED")
             case m == FreeEntry:
                 fmt::print#("FREE")
             case true:
-                fmt::print#(m, " ", pinc(keys, i)^, " ", pinc(vals, i)^)
+                fmt::print#(m, " ", ptr_inc(keys, i)^, " ", ptr_inc(vals, i)^)
         fmt::print#("\n")

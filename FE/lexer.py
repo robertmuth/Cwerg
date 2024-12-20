@@ -60,8 +60,8 @@ _KEYWORDS_SIMPLE = [
     "funtype",
     "else",
     #
-    "pinc",
-    "pdec",
+    "ptr_inc",
+    "ptr_dec",
     #
     "span_inc",
     #

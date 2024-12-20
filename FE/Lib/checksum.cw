@@ -54,6 +54,6 @@ pub fun Adler32(buf span(u8), start_crc u32) u32:
     while start < len(buf):
         let end = min(start + Adler32MaxLen, len(buf))
         set crc = Adler32ShortSliceHelper(
-                span(pinc(front(buf), start), end - start), crc)
+                span(ptr_inc(front(buf), start), end - start), crc)
         set start = end
     return crc
