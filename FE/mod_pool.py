@@ -141,6 +141,10 @@ class ModPoolBase:
         self._main_mod: Optional[cwast.DefMod] = None
         self._taken_names: set[str] = set()
         self._raw_generic: dict[pathlib.PurePath, cwast.DefMod] = {}
+        #
+        self._builtin_mod: Optional[cwast.DefMod] = None
+        self.builtin_macros: set[str] = set()
+        self.builtin_symtab: symbolize.SymTab =  symbolize.SymTab()
 
     def __str__(self):
         return f"root={self._root}"
@@ -200,7 +204,11 @@ class ModPoolBase:
         if add_builtin:
             uid = (_ModUniquePathName(self._root, None, "builtin"),)
             mod_info = self._AddModInfoSimple(uid)
+            assert mod_info.mod.builtin
             active.append(mod_info)
+            assert not self._builtin_mod
+            self._builtin_mod = mod_info.mod
+            self.builtin_symtab = mod_info.mod.x_symtab
 
         for pathname in seed_modules:
             assert not pathname.startswith(".")
@@ -210,9 +218,8 @@ class ModPoolBase:
             if not self._main_mod:
                 self._main_mod = mod_info.mod
             active.append(mod_info)
+            assert not mod_info.mod.builtin
 
-        buitin_syms = symbolize.GetSymTabForBuiltInOrEmpty(
-            [m.mod for m in self.AllModInfos()])
 
         # fix point computation for resolving imports
         while active:
@@ -220,7 +227,7 @@ class ModPoolBase:
             seen_change = False
             # this probably needs to be a fix point computation as well
             symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                [m.mod for m in self.AllModInfos()], buitin_syms, False)
+                [m.mod for m in self.AllModInfos()], self.builtin_symtab, False)
             for mod_info in active:
                 assert isinstance(mod_info, ModInfo), mod_info
                 logger.info("start resolving imports for %s", mod_info)

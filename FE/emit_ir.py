@@ -1121,7 +1121,8 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     logger.info("Expand macros and link most IDs to their definition")
-    symbolize.MacroExpansionDecorateASTWithSymbols(mod_topo_order, fun_id_gens)
+    symbolize.MacroExpansionDecorateASTWithSymbols(
+        mod_topo_order, mp.builtin_symtab, fun_id_gens)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         cwast.StripFromListRecursively(mod, cwast.Import)

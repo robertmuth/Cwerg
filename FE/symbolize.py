@@ -406,15 +406,6 @@ def _SetTargetFieldRecursively(node):
     cwast.VisitAstRecursivelyWithAllParents(node, [], visitor)
 
 
-def GetSymTabForBuiltInOrEmpty(mod_topo_order: list[cwast.DefMod]) -> SymTab:
-    builtin_syms = None
-    for mod in mod_topo_order:
-        if mod.builtin:
-            assert builtin_syms is None
-            builtin_syms = mod.x_symtab
-    return builtin_syms if builtin_syms else SymTab()
-
-
 def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[cwast.DefMod],
                                                        builtin_syms: SymTab,
                                                        must_resolve_all):
@@ -427,7 +418,7 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[
 
 
 def MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order: list[cwast.DefMod], fun_id_gens: identifier.IdGenCache):
+        mod_topo_order: list[cwast.DefMod], builtin_symtab: SymTab, fun_id_gens: identifier.IdGenCache):
     """
     At this point every DefMod has a symtable populated with the global symbols
     and the Imports. All Imports have a valid x_module field.
@@ -436,21 +427,20 @@ def MacroExpansionDecorateASTWithSymbols(
     * expand macros recursively (macros are global symbols)
     * reolve symbols within functions (= setting x_symbol)
     """
-    builtin_syms = GetSymTabForBuiltInOrEmpty(mod_topo_order)
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
                 logger.info("Resolving global object: %s", node)
                 _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    node, builtin_syms, True)
+                    node, builtin_symtab, True)
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node.name)
                 ctx = macros.MacroContext(fun_id_gens.Get(node))
-                FindAndExpandMacrosRecursively(node, builtin_syms, 0, ctx)
+                FindAndExpandMacrosRecursively(node, builtin_symtab, 0, ctx)
 
     for mod in mod_topo_order:
         logger.info("Resolving symbols inside module: %s", mod.x_modname)
@@ -463,7 +453,7 @@ def MacroExpansionDecorateASTWithSymbols(
                 logger.info("Resolving symbols inside fun: %s", node.name)
                 scopes: list[dict] = []
                 ResolveSymbolsInsideFunctionsRecursively(
-                    node, symtab, builtin_syms, scopes)
+                    node, symtab, builtin_symtab, scopes)
                 assert not scopes
 
     for mod in mod_topo_order:
@@ -613,7 +603,8 @@ def main(argv: list[str]):
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
-    MacroExpansionDecorateASTWithSymbols(mod_topo_order, fun_id_gens)
+    MacroExpansionDecorateASTWithSymbols(
+        mod_topo_order, mp.builtin_symtab, fun_id_gens)
     for ast in mod_topo_order:
         cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
