@@ -1045,7 +1045,7 @@ def EmitIRDefFun(node: cwast.DefFun, tc: type_corpus.TypeCorpus, id_gen: identif
 
 
 def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
-                    verifier: typify.TypeVerifier,
+                    verifier,
                     eliminated_node_types, allow_type_auto=True, pre_symbolize=False):
     logger.info(phase_name)
     if args.emit_stats == phase_name:
@@ -1144,9 +1144,8 @@ def main() -> int:
     logger.info("Typify the nodes")
     tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(_ARCH_MAP[args.arch])
     typify.DecorateASTWithTypes(mod_topo_order, tc)
-    verifier = typify.TypeVerifier()
     for mod in mod_topo_order:
-        typify.VerifyTypesRecursively(mod, tc, verifier)
+        typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
 
     if args.shake_tree:
         dead_code.ShakeTree(mod_topo_order, main_entry_fun)
@@ -1160,7 +1159,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.StmtStaticAssert)
 
     SanityCheckMods("after_partial_eval", args,
-                    mod_topo_order, tc, verifier, eliminated_nodes,
+                    mod_topo_order, tc, typify.VERIFIERS_WEAK, eliminated_nodes,
                     allow_type_auto=False)
 
     logger.info("Legalize 1")
@@ -1196,10 +1195,9 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprIs)
     eliminated_nodes.add(cwast.TypeOf)
     eliminated_nodes.add(cwast.TypeUnionDelta)
-    verifier.ActivateStricterChecks()
 
     SanityCheckMods("after_initial_lowering", args,
-                    mod_topo_order, tc, verifier, eliminated_nodes)
+                    mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
 
     constant_pool = eval.GlobalConstantPool(global_id_gen)
 
@@ -1241,7 +1239,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprUnionUntagged)
 
     SanityCheckMods("after_span_elimination", args,
-                    [mod_gen] + mod_topo_order, tc, verifier, eliminated_nodes)
+                    [mod_gen] + mod_topo_order, tc, typify.VERIFIERS, eliminated_nodes)
 
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
@@ -1257,7 +1255,7 @@ def main() -> int:
                     fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
 
     SanityCheckMods("after_large_arg_conversion", args,
-                    mod_topo_order, tc, verifier, eliminated_nodes)
+                    mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
@@ -1286,7 +1284,7 @@ def main() -> int:
                 node} must be eliminated before codegen"
 
     SanityCheckMods("after_canonicalization", args,
-                    [mod_gen] + mod_topo_order, tc, verifier, eliminated_nodes)
+                    [mod_gen] + mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
@@ -1304,7 +1302,7 @@ def main() -> int:
                 _FunFixRenamedIdsBestEffort(node)
 
     SanityCheckMods("after_name_cleanup", args,
-                    mod_topo_order, tc, verifier, eliminated_nodes)
+                    mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
 
     # Emit Cwert IR
     # print ("# TOPO-ORDER")

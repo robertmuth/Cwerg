@@ -733,11 +733,6 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         assert False, f"unexpected node {node}"
 
 
-UNTYPED_NODES_TO_BE_TYPECHECKED = (
-    cwast.StmtReturn, cwast.StmtIf, cwast.DefVar, cwast.DefGlobal,
-    cwast.StmtAssignment, cwast.StmtCompoundAssignment, cwast.StmtExpr)
-
-
 def _CheckTypeUint(node, actual: cwast.CanonType):
     if not actual.is_uint():
         cwast.CompilerError(node.x_srcloc,
@@ -864,7 +859,7 @@ def _CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus
                         point, point.value_or_undef.x_type, point.x_type)
 
 
-def CheckExpr3(node: cwast.Expr3, _tc: type_corpus.TypeCorpus):
+def _CheckExpr3(node: cwast.Expr3, _tc: type_corpus.TypeCorpus):
     ct = node.x_type
     t_ct = node.expr_t.x_type
     f_ct = node.expr_f.x_type
@@ -874,13 +869,13 @@ def CheckExpr3(node: cwast.Expr3, _tc: type_corpus.TypeCorpus):
     assert cond_ct.is_bool()
 
 
-def CheckExprDeref(node: cwast.ExprDeref, _):
+def _CheckExprDeref(node: cwast.ExprDeref, _):
     expr_type: cwast.CanonType = node.expr.x_type
     assert expr_type.is_pointer()
     _CheckTypeSame(node, node.x_type, expr_type.underlying_pointer_type())
 
 
-def CheckExprPointer(node: cwast.ExprPointer, _):
+def _CheckExprPointer(node: cwast.ExprPointer, _):
     if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
         _CheckTypeUint(node, node.expr_bound_or_undef.x_type)
     ct: cwast.CanonType = node.expr1.x_type
@@ -891,14 +886,14 @@ def CheckExprPointer(node: cwast.ExprPointer, _):
     _CheckTypeSame(node, node.expr1.x_type, node.x_type)
 
 
-def CheckExprField(node: cwast.ExprField, _):
+def _CheckExprField(node: cwast.ExprField, _):
     recfield = node.field.GetRecFieldRef()
     # _CheckTypeSame(node,  node.x_field.x_type, ct)
     assert node.x_type is recfield.x_type, f"field node {
         node.container.x_type} type mismatch: {node.x_type} {recfield.x_type}"
 
 
-def CheckExprFront(node: cwast.ExprFront, _):
+def _CheckExprFront(node: cwast.ExprFront, _):
 
     assert node.container.x_type.is_vec_or_span(
     ), f"unpected front expr {node.container.x_type}"
@@ -1124,10 +1119,6 @@ def _CheckStmtReturnStrict(node: cwast.StmtReturn, _):
     _CheckTypeSameExceptMut(node,  actual, expected)
 
 
-def _CheckStmtIfStmtCond(node, _):
-    assert node.cond.x_type.is_bool()
-
-
 def _CheckDefVarDefGlobal(node, _):
     initial = node.initial_or_undef_or_auto
     ct = node.type_or_auto.x_type
@@ -1151,7 +1142,7 @@ def _CheckDefVarDefGlobalStrict(node, _):
     _CheckTypeSame(node, node.x_type, ct)
 
 
-def CheckExprAs(node: cwast.ExprAs, _):
+def _CheckExprAs(node: cwast.ExprAs, _):
     ct_src = node.expr.x_type
     ct_dst = node.type.x_type
     if not type_corpus.is_compatible_for_as(ct_src, ct_dst):
@@ -1177,7 +1168,7 @@ def _CheckNothing(_, _2):
     pass
 
 
-VERIFIERS = {
+VERIFIERS_WEAK = {
     cwast.ValCompound: _CheckValCompound,
     cwast.ValPoint: _CheckNothing,
 
@@ -1186,12 +1177,12 @@ VERIFIERS = {
     cwast.TypeOf: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
     cwast.Expr2: lambda node, tc:  _CheckExpr2Types(node, node.x_type,  node.expr1.x_type,
                                                     node.expr2.x_type, node.binary_expr_kind, tc),
-    cwast.Expr3: CheckExpr3,
-    cwast.ExprDeref: CheckExprDeref,
-    cwast.ExprPointer: CheckExprPointer,
+    cwast.Expr3: _CheckExpr3,
+    cwast.ExprDeref: _CheckExprDeref,
+    cwast.ExprPointer: _CheckExprPointer,
     cwast.ExprIndex: _CheckExprIndex,
-    cwast.ExprField: CheckExprField,
-    cwast.ExprFront: CheckExprFront,
+    cwast.ExprField: _CheckExprField,
+    cwast.ExprFront: _CheckExprFront,
     cwast.ExprWiden: _CheckExprWiden,
     cwast.ExprNarrow: _CheckExprNarrow,
     cwast.ExprAddrOf: _CheckExprAddrOf,
@@ -1244,22 +1235,22 @@ VERIFIERS = {
     #  subtrahend = node.subtrahend.x_type
     # TODO: need to use original types if available
     cwast.ExprUnsafeCast: _CheckExprUnsafeCast,
-    cwast.ExprAs: CheckExprAs,
+    cwast.ExprAs: _CheckExprAs,
     cwast.ExprBitCast: _CheckExprBitCast,
-
+    cwast.ExprParen: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
+    # Typed Statements:
+    cwast.DefVar: _CheckDefVarDefGlobal,
+    cwast.DefGlobal: _CheckDefVarDefGlobal,
     # Statements
-    cwast.StmtIf: _CheckStmtIfStmtCond,
-    cwast.StmtCond: _CheckStmtIfStmtCond,
+    cwast.StmtIf: lambda n, tc: _CheckIsBool(n.cond, tc),
+    cwast.Case: lambda n, tc: _CheckIsBool(n.cond, tc),
     cwast.StmtExpr:  _CheckNothing,
     cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
     cwast.StmtAssignment: _CheckStmtAssignment,
     cwast.StmtReturn: _CheckStmtReturn,
-    cwast.DefVar: _CheckDefVarDefGlobal,
-    cwast.DefGlobal: _CheckDefVarDefGlobal,
-    cwast.ExprParen: lambda node, tc: _CheckTypeSame(node, node.x_type, node.expr.x_type),
 }
 
-VERIFIERS_STRICT = VERIFIERS | {
+VERIFIERS = VERIFIERS_WEAK | {
     cwast.ExprNarrow: _CheckExprNarrowUnchecked,
     cwast.ValCompound: _CheckValCompoundStrict,
     cwast.ExprCall: _CheckExprCallStrict,
@@ -1270,23 +1261,9 @@ VERIFIERS_STRICT = VERIFIERS | {
 }
 
 
-class TypeVerifier:
-    """"This class allows us to switch out per node checkers as we modify the AST"""
-
-    def __init__(self):
-        self._map = VERIFIERS
-
-    def Verify(self, node: Any, tc: type_corpus.TypeCorpus):
-        self._map[type(node)](node, tc)
-
-    def ActivateStricterChecks(self):
-        self._map = VERIFIERS_STRICT
-
-
-def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
-                           verifier: TypeVerifier):
+def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
     def visitor(node, field):
-        nonlocal verifier
+        nonlocal verifier_table
         if cwast.NF.TOP_LEVEL in node.FLAGS:
             logger.info("TYPE-VERIFYING %s", node)
 
@@ -1299,10 +1276,13 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus,
                 assert ct.name in tc.corpus, f"bad type annotation for {
                     node}: {node.x_type}"
                 assert ct.replacement_type is None
-                verifier.Verify(node, tc)
 
-        elif isinstance(node, UNTYPED_NODES_TO_BE_TYPECHECKED):
-            verifier.Verify(node, tc)
+                verifier_table[type(node)](node, tc)
+
+        else:
+            handler = verifier_table.get(type(node))
+            if handler:
+                handler(node, tc)
 
     cwast.VisitAstRecursivelyPost(node, visitor)
 
@@ -1398,9 +1378,8 @@ def main(argv):
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
     DecorateASTWithTypes(mod_topo_order, tc)
-    verifier = TypeVerifier()
     for mod in mod_topo_order:
-        VerifyTypesRecursively(mod, tc, verifier)
+        VerifyTypesRecursively(mod, tc, VERIFIERS_WEAK)
 
     for t, n in tc.corpus.items():
         logger.info("%s %s %d %d", t, n.register_types, n.size, n.alignment)
