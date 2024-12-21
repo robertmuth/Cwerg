@@ -52,7 +52,6 @@ class TK_KIND(enum.Enum):
     SPECIAL_EOF = enum.auto()
 
 
-
 _KEYWORDS_NODES = [nt.ALIAS for nt in [
     cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta, cwast.TypeVec, cwast.TypeSpan,
     cwast.TypeAuto,  # also used for ValAuto
@@ -67,11 +66,12 @@ _KEYWORDS_NODES = [nt.ALIAS for nt in [
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
 _KEYWORDS_OP = (
-    [o for o in cwast.POINTER_EXPR_SHORTCUT.keys() if _NAMED_OP_RE.fullmatch(o)] +
-    [o for o in cwast.UNARY_EXPR_SHORTCUT_SEXPR.keys() if _NAMED_OP_RE.fullmatch(o)])
+    [o for o in cwast.POINTER_EXPR_SHORTCUT if _NAMED_OP_RE.fullmatch(o)] +
+    [o for o in cwast.BINARY_EXPR_SHORTCUT if _NAMED_OP_RE.fullmatch(o)] +
+    [o for o in cwast.UNARY_EXPR_SHORTCUT_SEXPR if _NAMED_OP_RE.fullmatch(o)])
 
 _KEYWORDS_SIMPLE = [
-    "funtype", "else", "min", "max",] + _KEYWORDS_OP + _KEYWORDS_NODES
+    "funtype", "else"] + _KEYWORDS_OP + _KEYWORDS_NODES
 
 KEYWORDS: dict[str, TK_KIND] = ({
     "pub": TK_KIND.SPECIAL_ANNOTATION,
@@ -108,7 +108,7 @@ CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
 
 _operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
-               if x not in ("max", "min")]
+               if not _NAMED_OP_RE.fullmatch(x)]
 
 
 _operators1 = [re.escape(x) for x in _OPERATORS_SIMPLE1]

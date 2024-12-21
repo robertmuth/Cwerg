@@ -381,7 +381,7 @@ _INFIX_EXPR_PARSERS = {
     #
     # "ptr_diff": (10, _PParserInfixOp),
     #
-    "xor": (pp.PREC2_ADD, _PParserInfixOp),
+    "~": (pp.PREC2_ADD, _PParserInfixOp),
     "|": (pp.PREC2_ADD, _PParserInfixOp),
     "&": (pp.PREC2_MUL, _PParserInfixOp),
     #

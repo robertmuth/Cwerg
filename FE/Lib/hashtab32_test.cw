@@ -7,7 +7,7 @@ import test
 
 fun hash_32(xx ^u32) u32:
     let x u32 = xx^
-    return x << 16_u32 xor x * 123456789
+    return x << 16_u32 ~ x * 123456789
 
 fun eq_32(a ^u32, b ^u32) bool:
     return a^ == b^

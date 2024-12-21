@@ -17,16 +17,16 @@ pub fun InitCrcTab(polynomial u32, tab ^!CrcTab) void:
                 set crc = crc >> 1
             else:
                 set crc = crc >> 1
-                set crc = crc xor polynomial
+                set crc = crc ~ polynomial
         set tab^[i] = crc
 
 -- start crc is 0
 pub fun CalcCrc(buf span(u8), start_crc u32, tab ^CrcTab) u32:
-    let! crc u32 = start_crc xor 0xffffffff
+    let! crc u32 = start_crc ~ 0xffffffff
     for i = 0, len(buf), 1:
-        let index u8 = as(crc & 0xff, u8) xor buf[i]
-        set crc = tab^[index] xor crc >> 8
-    return crc xor 0xffffffff
+        let index u8 = as(crc & 0xff, u8) ~ buf[i]
+        set crc = tab^[index] ~ crc >> 8
+    return crc ~ 0xffffffff
 
 global Adler32Mod u32 = 65521
 

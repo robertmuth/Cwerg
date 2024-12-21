@@ -41,19 +41,19 @@ pub rec StateKeccak224:
 -- only valid len for data are 9, 13, 17, 18
 fun AddBlockAlignedLE(state ^!StateKeccak, data span(u64)) void:
     for i = 0, 9_uint, 1:
-        set state^.x[i] xor= data[i]
+        set state^.x[i] ~= data[i]
     if len(data) == 9:
         return
     for i = 9, 13_uint, 1:
-        set state^.x[i] xor= data[i]
+        set state^.x[i] ~= data[i]
     if len(data) == 13:
         return
     for i = 13, 17_uint, 1:
-        set state^.x[i] xor= data[i]
+        set state^.x[i] ~= data[i]
     if len(data) == 17:
         return
     for i = 17, 18_uint, 1:
-        set state^.x[i] xor= data[i]
+        set state^.x[i] ~= data[i]
 
 global rconst = {
         [24]u64: 0x0000000000000001, 0x0000000000008082, 0x800000000000808a, 0x8000000080008000,
@@ -65,11 +65,11 @@ global rconst = {
 
 macro XOR_5_EXPR# EXPR($x EXPR, $p1 EXPR, $p2 EXPR, $p3 EXPR, $p4 EXPR, $p5 EXPR)[
     ]:
-    $x^[$p1] xor $x^[$p2] xor $x^[$p3] xor $x^[$p4] xor $x^[$p5]
+    $x^[$p1] ~ $x^[$p2] ~ $x^[$p3] ~ $x^[$p4] ~ $x^[$p5]
 
 macro XOR_1# STMT_LIST($x EXPR, $v EXPR, $indices EXPR_LIST_REST)[]:
     mfor $i $indices:
-        set $x^[$i] xor= $v
+        set $x^[$i] ~= $v
 
 macro UPDATE# STMT_LIST($a EXPR, $b EXPR, $x EXPR, $i EXPR, $bitpos EXPR)[]:
     set $b = $x^[$i]
@@ -93,11 +93,11 @@ fun KeccakF(x ^![25]u64) void:
         let! bc3 = XOR_5_EXPR#(x, 3, 8, 13, 18, 23)
         let! bc4 = XOR_5_EXPR#(x, 4, 9, 14, 19, 24)
         --
-        let! t0 = bc4 xor (bc1 << 1 | bc1 >> 63)
-        let! t1 = bc0 xor (bc2 << 1 | bc2 >> 63)
-        let! t2 = bc1 xor (bc3 << 1 | bc3 >> 63)
-        let! t3 = bc2 xor (bc4 << 1 | bc4 >> 63)
-        let! t4 = bc3 xor (bc0 << 1 | bc0 >> 63)
+        let! t0 = bc4 ~ (bc1 << 1 | bc1 >> 63)
+        let! t1 = bc0 ~ (bc2 << 1 | bc2 >> 63)
+        let! t2 = bc1 ~ (bc3 << 1 | bc3 >> 63)
+        let! t3 = bc2 ~ (bc4 << 1 | bc4 >> 63)
+        let! t4 = bc3 ~ (bc0 << 1 | bc0 >> 63)
         XOR_1#(x, t0, 0, 5, 10, 15, 20)
         XOR_1#(x, t1, 1, 6, 11, 16, 21)
         XOR_1#(x, t2, 2, 7, 12, 17, 22)
@@ -146,15 +146,15 @@ fun KeccakF(x ^![25]u64) void:
             set bc2 = x^[i + 2]
             set bc3 = x^[i + 3]
             set bc4 = x^[i + 4]
-            set x^[i + 0] xor= !bc1 & bc2
-            set x^[i + 1] xor= !bc2 & bc3
-            set x^[i + 2] xor= !bc3 & bc4
-            set x^[i + 3] xor= !bc4 & bc0
-            set x^[i + 4] xor= !bc0 & bc1
+            set x^[i + 0] ~= !bc1 & bc2
+            set x^[i + 1] ~= !bc2 & bc3
+            set x^[i + 2] ~= !bc3 & bc4
+            set x^[i + 3] ~= !bc4 & bc0
+            set x^[i + 4] ~= !bc0 & bc1
         if false:
             do dumpA("chi", x)
         -- iota
-        set x^[0] xor= rconst[round]
+        set x^[0] ~= rconst[round]
 
 pub fun KeccakAdd(state ^!StateKeccak, tail span!(u64), data span(u8)) void:
     -- (fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")

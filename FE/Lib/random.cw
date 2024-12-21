@@ -25,7 +25,7 @@ pub global Pcg32StateDefault = {
 pub fun Pcg32GetRandomU32(state ^!Pcg32State) u32:
     let oldstate u64 = state^.state
     set state^.state = oldstate * 6364136223846793005_u64 + state^.inc
-    let xorshifted u32 = as((oldstate >> 18 xor oldstate) >> 27, u32)
+    let xorshifted u32 = as((oldstate >> 18 ~ oldstate) >> 27, u32)
     let rot u32 = as(oldstate >> 59, u32)
     return xorshifted >> rot | xorshifted << ((0 - rot) & 31)
 

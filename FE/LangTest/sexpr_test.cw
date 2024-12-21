@@ -51,7 +51,7 @@ fun foo3(a bool, b bool, c s32) bool:
     if a & b:
         return a
     else:
-        return a xor b
+        return a ~ b
     if a <= b:
     return a == b
 
