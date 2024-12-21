@@ -434,7 +434,7 @@ def _EmitExpr2(node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
 def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
     res_type = ct.get_single_register_type()
     ff = (1 << (8 * cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind])) - 1
-    if kind is cwast.UNARY_EXPR_KIND.MINUS:
+    if kind is cwast.UNARY_EXPR_KIND.NEG:
         print(f"{TAB}sub {res}:{res_type} = 0 {op}")
     elif kind is cwast.UNARY_EXPR_KIND.NOT:
         print(f"{TAB}xor {res}:{res_type} = 0x{ff:x} {op}")

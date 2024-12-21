@@ -330,7 +330,7 @@ def _eval_minus(node) -> Any:
 
 _EVAL1 = {
     cwast.UNARY_EXPR_KIND.NOT: _eval_not,
-    cwast.UNARY_EXPR_KIND.MINUS: _eval_minus,
+    cwast.UNARY_EXPR_KIND.NEG: _eval_minus,
 }
 
 

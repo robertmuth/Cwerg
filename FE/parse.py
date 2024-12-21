@@ -221,7 +221,7 @@ def _PParseChar(_inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
 def _PParsePrefix(inp: lexer.Lexer, tk: lexer.TK, precedence) -> Any:
     rhs = _ParseExpr(inp, precedence)
     if tk.text.startswith("-"):
-        kind = cwast.UNARY_EXPR_KIND.MINUS
+        kind = cwast.UNARY_EXPR_KIND.NEG
     elif tk.text.startswith("@"):
         return cwast.ExprAddrOf(rhs, mut=tk.text == "@!", x_srcloc=tk.srcloc)
     else:
