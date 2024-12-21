@@ -215,6 +215,7 @@ class Token:
 _MATCHING_CLOSING_BRACE = {
     "(": ")",
     "[": "]",
+    "[!": "]",
     "{": "}",
 }
 
