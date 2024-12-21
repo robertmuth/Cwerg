@@ -36,7 +36,7 @@ module:
 
 import fmt
 
-pub type Object = {{untagged}} union(Cont, Item, Atom)
+pub type Object = union!(Cont, Item, Atom)
 
 pub wrapped type Success = void
 

@@ -420,7 +420,7 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
             return _ParseFunLike(inp, tk)
         elif tk.text == cwast.TypeUnionDelta.ALIAS:
             return _ParseFunLike(inp, tk)
-        elif tk.text == cwast.TypeUnion.ALIAS:
+        elif tk.text in ("union", "union!"):
             inp.match_or_die(lexer.TK_KIND.PAREN_OPEN)
             members = []
             first = True
@@ -429,7 +429,7 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
                     inp.match_or_die(lexer.TK_KIND.COMMA)
                 first = False
                 members.append(_ParseTypeExpr(inp))
-            return cwast.TypeUnion(members, **extra)
+            return cwast.TypeUnion(members, untagged=tk.text.endswith(cwast.MUTABILITY_SUFFIX), **extra)
         kind = cwast.KeywordToBaseTypeKind(tk.text)
         assert kind is not cwast.BASE_TYPE_KIND.INVALID, f"{tk}"
         return cwast.TypeBase(kind, **extra)

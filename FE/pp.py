@@ -175,7 +175,7 @@ KEYWORDS = [
 ] + KEYWORDS_TOPLEVEL
 
 KEYWORDS_WITH_EXCL_SUFFIX = [
-    "trylet", "mlet", "span", "let", "global", "front"]
+    "trylet", "mlet", "span", "let", "global", "front", "union"]
 
 BEG_TOKENS = set(KEYWORDS + KEYWORDS_WITH_EXCL_SUFFIX + [
     k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
@@ -547,7 +547,7 @@ def TokensValString(ts: TS, node: cwast.ValString):
     ts.EmitAttr(f'{prefix}{quotes}{node.string}{quotes}'),
 
 
-def WithMut(name: str, mutable: bool) -> str:
+def WithExcl(name: str, mutable: bool) -> str:
     return name + "!" if mutable else name
 
 
@@ -581,10 +581,10 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.TypeAuto: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.TypeBase: lambda ts, n: ts.EmitAttr(cwast.BaseTypeKindToKeyword(n.base_type_kind)),
     #
-    cwast.TypeSpan: lambda ts, n: TokensFunctional(ts, WithMut("span", n.mut), [n.type]),
+    cwast.TypeSpan: lambda ts, n: TokensFunctional(ts, WithExcl("span", n.mut), [n.type]),
     cwast.TypeOf: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
-    cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, KW(n), n.types),
-    cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithMut("^", n.mut), n.type),
+    cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, WithExcl("union", n.untagged), n.types),
+    cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithExcl("^", n.mut), n.type),
     cwast.TypeVec: lambda ts, n: TokensVecType(ts, n.size, n.type),
     cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, n.subtrahend]),
     cwast.TypeFun:  TokensTypeFun,
@@ -599,7 +599,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ValString: TokensValString,
     cwast.ValCompound: TokensValCompound,
     #
-    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithMut(KW(n), n.mut), [n.container]),
+    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithExcl(KW(n), n.mut), [n.container]),
     cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
     cwast.ExprAs: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
     cwast.ExprIs: lambda ts, n: TokensFunctional(ts,  KW(n), [n.expr, n.type]),
@@ -627,7 +627,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ExprIndex: TokensExprIndex,
     cwast.ExprField: lambda ts, n: TokensBinaryInfixNoSpace(ts, ".", n.container, n.field, n),
     cwast.ExprDeref: lambda ts, n: TokensUnarySuffix(ts, "^", n.expr),
-    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithMut(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
+    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithExcl(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
     cwast.ExprStmt: lambda ts, n: _TokensStmtBlock(ts, "expr", "", n.body),
     cwast.ExprParen: lambda ts, n: TokensParenGrouping(ts, n.expr),
 }
@@ -763,10 +763,10 @@ def EmitTokensStatement(ts: TS, n):
     elif isinstance(n, cwast.StmtAssignment):
         _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.DefVar):
-        _TokensStmtLet(ts, WithMut("let", n.mut), str(n.name),
+        _TokensStmtLet(ts, WithExcl("let", n.mut), str(n.name),
                        n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.MacroVar):
-        _TokensStmtLet(ts, WithMut("mlet", n.mut), str(n.name),
+        _TokensStmtLet(ts, WithExcl("mlet", n.mut), str(n.name),
                        n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.StmtIf):
         _TokensStmtBlock(ts, "if", n.cond, n.body_t)
@@ -809,7 +809,7 @@ def _EmitTokensToplevel(ts: TS, node):
 
     TokensAnnotationsPre(ts, node)
     if isinstance(node, cwast.DefGlobal):
-        beg = ts.EmitStmtBeg(WithMut("global", node.mut))
+        beg = ts.EmitStmtBeg(WithExcl("global", node.mut))
         ts.EmitName(str(node.name))
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
             EmitTokens(ts, node.type_or_auto)
