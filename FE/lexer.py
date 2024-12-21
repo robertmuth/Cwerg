@@ -44,9 +44,7 @@ class TK_KIND(enum.Enum):
     CURLY_OPEN = enum.auto()
     CURLY_CLOSED = enum.auto()
     # SPECIAL_xxx will be rewritten to one of the ones above
-    SPECIAL_MUT = enum.auto()   # keyword with ! suffix
     ANNOTATION = enum.auto()
-    SPECIAL_ANNOTATION = enum.auto()  # pub, ref, poly
     NEW_ANNOTATION = enum.auto()  # pub, ref, poly
 
     SPECIAL_EOF = enum.auto()
@@ -67,8 +65,8 @@ _KEYWORDS_NODES = [nt.ALIAS for nt in [
     cwast.StmtStaticAssert,  cwast.DefMacro, cwast.DefGlobal,
     #
     cwast.StmtIf, cwast.StmtDefer, cwast.StmtBlock, cwast.StmtBreak, cwast.StmtContinue,
-    cwast.StmtCond, cwast.Case, cwast.StmtExpr,  cwast.StmtReturn,
-    cwast.StmtTrap, cwast.MacroFor
+    cwast.StmtCond, cwast.Case, cwast.StmtExpr,  cwast.StmtReturn, cwast.StmtTrap,
+    cwast.MacroFor
 ]]
 
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
@@ -79,18 +77,18 @@ _KEYWORDS_OP = (
     [o for o in cwast.UNARY_EXPR_SHORTCUT_SEXPR if _NAMED_OP_RE.fullmatch(o)])
 
 
+# The RawLexer at first does not distinguish between keywords and identifiers.
+# This mapping is used to rewrite keywords to their proper kind.
 KEYWORDS: dict[str, TK_KIND] = (
     #
     {}
-    | {k: TK_KIND.SPECIAL_ANNOTATION for k in ["pub", "ref", "poly", "wrapped"]}
+    | {k: TK_KIND.ANNOTATION for k in ["pub", "ref", "poly", "wrapped"]}
     | {k: TK_KIND.KW for k in _KEYWORDS_NODES}
     | {k: TK_KIND.KW for k in _KEYWORDS_OP}
     #
     | {k: TK_KIND.KW for k in ["funtype", "else", "set", "for", "while", "tryset"]}
-    # | {k: TK_KIND.KW for k in pp.KEYWORDS}
-    | {k: TK_KIND.SPECIAL_MUT for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
-    # some operators are textual (ptr_inc, max, etc.)
-    | {k: TK_KIND.OP2 for k in cwast.BINARY_EXPR_SHORTCUT}
+    | {k: TK_KIND.KW for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
+    | {k + cwast.MUTABILITY_SUFFIX: TK_KIND.KW for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
     | {cwast.BaseTypeKindToKeyword(k): TK_KIND.KW for k in cwast.BASE_TYPE_KIND
        if k is not cwast.BASE_TYPE_KIND.INVALID}
 )
@@ -107,7 +105,7 @@ _OPERATORS_SIMPLE1 = [
 
 
 ANNOTATION_NEW_RE = r"\{\{[_a-zA-Z]+\}\}"
-ID_OR_KW_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?"
+ID_OR_KW_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?[!]?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
@@ -252,23 +250,12 @@ class LexerRaw:
         token = m.group(0)
         col = self._col_no
         self._col_no += len(token)
-        consumed = len(token)
+        self._current_line = self._current_line[len(token):]
         if kind == TK_KIND.ID:
             kind = KEYWORDS.get(token, TK_KIND.ID)
-            if kind == TK_KIND.SPECIAL_MUT:
-                kind = TK_KIND.KW
-                if self._current_line.startswith(cwast.MUTABILITY_SUFFIX, len(token)):
-                    token = token + cwast.MUTABILITY_SUFFIX
-                    consumed += 1
-            elif kind == TK_KIND.OP2:
-                # rewrite operartor with names like xor, etc.
-                kind = TK_KIND.KW
-            elif kind == TK_KIND.SPECIAL_ANNOTATION:
-                kind = TK_KIND.ANNOTATION
         elif kind == TK_KIND.NEW_ANNOTATION:
             kind = TK_KIND.ANNOTATION
             token = token[2:-2]
-        self._current_line = self._current_line[consumed:]
         return TK(kind, self._GetSrcLoc(), sys.intern(token),  col)
 
 
