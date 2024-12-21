@@ -6,7 +6,7 @@ import fmt_int
 
 import fmt_real
 
-pub @extern fun memcpy(dst ^!u8, src ^u8, size uint) ^!u8:
+pub {{extern}} fun memcpy(dst ^!u8, src ^u8, size uint) ^!u8:
 
 pub global FORMATED_STRING_MAX_LEN uint = 4096
 

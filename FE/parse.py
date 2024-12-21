@@ -44,9 +44,7 @@ def _ExtractAnnotations(tk: lexer.TK) -> dict[str, Any]:
             c = '\n'.join(comments)
             out["doc"] = f'"""{c}"""'
     for a in tk.annotations:
-
-        assert a.text.startswith(cwast.ANNOTATION_PREFIX)
-        out[a.text[1:]] = True
+        out[a.text] = True
     return out
 
 

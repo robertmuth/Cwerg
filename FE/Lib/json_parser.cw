@@ -36,7 +36,7 @@ module:
 
 import fmt
 
-pub type Object = @untagged union(Cont, Item, Atom)
+pub type Object = {{untagged}} union(Cont, Item, Atom)
 
 pub wrapped type Success = void
 
@@ -157,7 +157,7 @@ fun spaneq(a span(u8), b span(u8)) bool:
     if a_len != b_len:
         return false
     for i = 0, a_len, 1:
-        if a[@unchecked i] != b[@unchecked i]:
+        if a[{{unchecked}} i] != b[{{unchecked}} i]:
             return false
     return true
 
@@ -197,7 +197,7 @@ pub rec File:
     next_byte u32
 
 fun IsEndOfNum(c u8) bool:
-    return c == ' ' || c == ']' || c == '}' || c == ',' || c == '\n' || c == ':' || 
+    return c == ' ' || c == ']' || c == '}' || c == ',' || c == '\n' || c == ':' ||
         c== '\t'
 
 fun MaybeConsume(file ^!File, c u8) bool:

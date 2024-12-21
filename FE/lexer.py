@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 class TK_KIND(enum.Enum):
     INVALID = 0
     KW = enum.auto()
-    ANNOTATION = enum.auto()
     COMMENT = enum.auto()
     OP1 = enum.auto()
     OP2 = enum.auto()
@@ -46,7 +45,10 @@ class TK_KIND(enum.Enum):
     CURLY_CLOSED = enum.auto()
     # SPECIAL_xxx will be rewritten to one of the ones above
     SPECIAL_MUT = enum.auto()   # keyword with ! suffix
+    ANNOTATION = enum.auto()
     SPECIAL_ANNOTATION = enum.auto()  # pub, ref, poly
+    NEW_ANNOTATION = enum.auto()  # pub, ref, poly
+
     SPECIAL_EOF = enum.auto()
 
 
@@ -99,7 +101,7 @@ _OPERATORS_SIMPLE1 = [
 ]
 
 
-ANNOTATION_RE = r"@[_a-zA-Z]+"
+ANNOTATION_NEW_RE = r"\{\{[_a-zA-Z]+\}\}"
 ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
@@ -114,7 +116,7 @@ _operators1 = [re.escape(x) for x in _OPERATORS_SIMPLE1]
 _compound_assignment = [re.escape(x) for x in cwast.ASSIGNMENT_SHORTCUT]
 
 _token_spec = [
-    (TK_KIND.ANNOTATION.name, ANNOTATION_RE),
+    (TK_KIND.NEW_ANNOTATION.name, ANNOTATION_NEW_RE),
     (TK_KIND.COLON.name, ":"),
     (TK_KIND.COMMA.name, ","),
     (TK_KIND.PAREN_OPEN.name, "[(]"),
@@ -244,21 +246,24 @@ class LexerRaw:
         kind = TK_KIND[m.lastgroup]
         token = m.group(0)
         col = self._col_no
+        self._col_no += len(token)
+        consumed = len(token)
         if kind == TK_KIND.ID:
             kind = KEYWORDS.get(token, TK_KIND.ID)
             if kind == TK_KIND.SPECIAL_MUT:
                 kind = TK_KIND.KW
                 if self._current_line.startswith(cwast.MUTABILITY_SUFFIX, len(token)):
                     token = token + cwast.MUTABILITY_SUFFIX
+                    consumed += 1
             elif kind == TK_KIND.OP2:
                 # rewrite operartor with names like xor, etc.
                 kind = TK_KIND.KW
             elif kind == TK_KIND.SPECIAL_ANNOTATION:
                 kind = TK_KIND.ANNOTATION
-                token = "@" + token
-
-        self._col_no += len(token)
-        self._current_line = self._current_line[len(token):]
+        elif kind == TK_KIND.NEW_ANNOTATION:
+            kind = TK_KIND.ANNOTATION
+            token = token[2:-2]
+        self._current_line = self._current_line[consumed:]
         return TK(kind, self._GetSrcLoc(), sys.intern(token),  col)
 
 

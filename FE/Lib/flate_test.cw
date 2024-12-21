@@ -236,7 +236,7 @@ fun test_all() void:
         if is(res, uint):
             test::AssertSliceEq#(
                     tc^.expected_output, span(
-                        front(tc^.output), @unchecked narrow_as(res, uint)))
+                        front(tc^.output), {{unchecked}} narrow_as(res, uint)))
 
 fun main(argc s32, argv ^^u8) s32:
     do test_all()
