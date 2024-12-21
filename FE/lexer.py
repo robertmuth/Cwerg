@@ -95,8 +95,8 @@ _OPERATORS_SIMPLE1 = [
     "-",  # note, also in binops
     "^!",
     "^",
-    "&!",
-    "&",
+    "@!",
+    "@",
     "!",
 ]
 

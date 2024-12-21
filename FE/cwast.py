@@ -1820,7 +1820,7 @@ class ExprAddrOf:
     Pointer can optionally point to a mutable object if the
     pointee is mutable.
     """
-    ALIAS: ClassVar = "&"
+    ALIAS: ClassVar = "@"
     GROUP: ClassVar = GROUP.Expression
     FLAGS: ClassVar = NF_EXPR
     #

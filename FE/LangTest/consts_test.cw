@@ -134,9 +134,9 @@ static_assert is(a8, bool) == true
 
 global! Real r32
 
-global p1 ^r32 = &Real
+global p1 ^r32 = @Real
 
-global p2 ^!r32 = &!Real
+global p2 ^!r32 = @!Real
 
 static_assert is(p1, bool) == false
 

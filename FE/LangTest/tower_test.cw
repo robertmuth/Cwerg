@@ -38,7 +38,7 @@ fun MoveDisks(disks s32, src_pile u32, dst_pile u32) u32:
 fun CreateTower(n s32) s32:
     let! last = NO_DISK
     for size = n, 0_s32, -1:
-        let d = &!all_disks[n - 1]
+        let d = @!all_disks[n - 1]
         set d^.size = size
         set d^.next_in_pile = last
         set last = n - 1

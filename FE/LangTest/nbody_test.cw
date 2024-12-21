@@ -77,20 +77,20 @@ fun UpdateOffsetMomentum(bodies ^![5]Body) void:
     let! py = 0.0_r64
     let! pz = 0.0_r64
     for i = 0, len(bodies^), 1:
-        let b = &!bodies^[i]
+        let b = @!bodies^[i]
         set px += b^.vx * b^.mass
         set py += b^.vy * b^.mass
         set pz += b^.vz * b^.mass
-    let s = &!bodies^[0]
+    let s = @!bodies^[0]
     set s^.vx = -(px / SOLAR_MASS)
     set s^.vy = -(py / SOLAR_MASS)
     set s^.vz = -(pz / SOLAR_MASS)
 
 fun Advance(bodies ^![5]Body, dt r64) void:
     for i = 0, len(bodies^), 1:
-        let bi = &!bodies^[i]
+        let bi = @!bodies^[i]
         for j = i + 1, len(bodies^), 1:
-            let bj = &!bodies^[j]
+            let bj = @!bodies^[j]
             let dx = bi^.x - bj^.x
             let dy = bi^.y - bj^.y
             let dz = bi^.z - bj^.z
@@ -106,7 +106,7 @@ fun Advance(bodies ^![5]Body, dt r64) void:
             set bj^.vy += dy * mi
             set bj^.vz += dz * mi
     for i = 0, len(bodies^), 1:
-        let bi = &!bodies^[i]
+        let bi = @!bodies^[i]
         set bi^.x += dt * bi^.vx
         set bi^.y += dt * bi^.vy
         set bi^.z += dt * bi^.vz
@@ -114,11 +114,11 @@ fun Advance(bodies ^![5]Body, dt r64) void:
 fun Energy(bodies ^[5]Body) r64:
     let! e = 0.0_r64
     for i = 0, len(bodies^), 1:
-        let bi = &bodies^[i]
+        let bi = @bodies^[i]
         set e += 0.5 * bi^.mass * (bi^.vx * bi^.vx + bi^.vy * bi^.vy + bi^.vz * bi^.
             vz)
         for j = i + 1, len(bodies^), 1:
-            let bj = &bodies^[j]
+            let bj = @bodies^[j]
             let dx = bi^.x - bj^.x
             let dy = bi^.y - bj^.y
             let dz = bi^.z - bj^.z
@@ -134,20 +134,20 @@ fun main(argc s32, argv ^^u8) s32:
     ref let! bodies = {
             [5]Body: BodySun(), BodyJupiter(), BodySaturn(), BodyUranus(), BodyNeptune(
             )}
-    do UpdateOffsetMomentum(&!bodies)
-    -- do permute(&!v, DIM)
+    do UpdateOffsetMomentum(@!bodies)
+    -- do permute(@!v, DIM)
     -- DIM! = 5040
     -- test::AssertEq#(COUNT, 5040_u32)
     if true:
         -- sanity test with one iteration
-        do Advance(&!bodies, DT)
-        let e = Energy(&bodies)
+        do Advance(@!bodies, DT)
+        let e = Energy(@bodies)
         -- fmt::print#(wrap_as(e, fmt::r64_hex), " ", e, "\n")
         test::AssertApproxEq#(e, -0.16907495402506745_r64, EPSILON)
     else:
         for i = 0, NUM_ITER, 1:
-            do Advance(&!bodies, DT)
-        let e = Energy(&bodies)
+            do Advance(@!bodies, DT)
+        let e = Energy(@bodies)
         -- fmt::print#(wrap_as(e, fmt::r64_hex), " ", e,  "\n")
         test::AssertApproxEq#(e, -0.1690859889909308_r64, EPSILON)
     test::Success#()

@@ -7,7 +7,7 @@ pub fun foo1(a s32, b s32, c s32) s32:
 
 pub global! v1 = 7_u64
 
-pub global v1a = &!v1
+pub global v1a = @!v1
 
 fun foo2(a s32, b s32, c s32) s32:
     if a <= b:

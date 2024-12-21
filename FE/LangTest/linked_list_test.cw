@@ -49,7 +49,7 @@ fun main(argc s32, argv ^^u8) s32:
         if i == N - 1:
             set NodePool[i].next = None
         else:
-            set NodePool[i].next = &!NodePool[i + 1]
+            set NodePool[i].next = @!NodePool[i + 1]
     --
     --     (for i 0 N 1 :
     --        (do (DumpNode [i])))

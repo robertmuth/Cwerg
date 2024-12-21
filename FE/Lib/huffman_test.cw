@@ -105,11 +105,11 @@ fun test_tree1_bitstream_decoding() void:
             11_u16)
     let data = {[8]u8: 0b11111100, 0b01001001, 0b1, 0, 0, 0, 0, 0}
     ref let! bs = {bitstream::Stream32: data}
-    test::AssertEq#(5_u16, huffman::NextSymbol(&!bs, counts, symbols))
-    test::AssertEq#(10_u16, huffman::NextSymbol(&!bs, counts, symbols))
-    test::AssertEq#(7_u16, huffman::NextSymbol(&!bs, counts, symbols))
-    test::AssertEq#(7_u16, huffman::NextSymbol(&!bs, counts, symbols))
-    test::AssertEq#(8_u16, huffman::NextSymbol(&!bs, counts, symbols))
+    test::AssertEq#(5_u16, huffman::NextSymbol(@!bs, counts, symbols))
+    test::AssertEq#(10_u16, huffman::NextSymbol(@!bs, counts, symbols))
+    test::AssertEq#(7_u16, huffman::NextSymbol(@!bs, counts, symbols))
+    test::AssertEq#(7_u16, huffman::NextSymbol(@!bs, counts, symbols))
+    test::AssertEq#(8_u16, huffman::NextSymbol(@!bs, counts, symbols))
 
 fun test_helper() void:
     let! lengths [285]u16

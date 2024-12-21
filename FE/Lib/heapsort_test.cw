@@ -31,12 +31,12 @@ fun main(argc s32, argv ^^u8) s32:
     for i = 0, SIZE, 1:
         let v = random::get_random(1000)
         set Data[i + 1] = v
-    do dump_array(SIZE, &Data[1])
+    do dump_array(SIZE, @Data[1])
     fmt::print#(NEWLINE)
     fmt::print#(SIZE, NEWLINE)
     do rhs::sort(Data)
     fmt::print#(NEWLINE)
-    do dump_array(SIZE, &Data[1])
+    do dump_array(SIZE, @Data[1])
     fmt::print#(NEWLINE)
     for i = 1, SIZE, 1:
         if Data[i] > Data[i + 1]:

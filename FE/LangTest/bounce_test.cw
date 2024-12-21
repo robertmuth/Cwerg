@@ -62,11 +62,11 @@ fun main(argc s32, argv ^^u8) s32:
     do RngReset()
     ref let! balls = {[NUM_BALLS]Ball:}
     for i = 0, NUM_BALLS, 1:
-        do BallInit(&!balls[i])
+        do BallInit(@!balls[i])
     let! num_bounces = 0_u32
     for n = 0, NUM_ITERS, 1:
         for i = 0, NUM_BALLS, 1:
-            if BallBounce(&!balls[i]):
+            if BallBounce(@!balls[i]):
                 set num_bounces += 1
     test::AssertEq#(num_bounces, 1331_u32)
     test::Success#()

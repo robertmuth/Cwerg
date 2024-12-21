@@ -42,7 +42,7 @@ fun Solve(board ^!Board, row s32) uint:
 fun main(argc s32, argv ^^u8) s32:
     -- initialized to false
     ref let! board = {[DIM][DIM]bool:}
-    let n = Solve(&!board, 0)
+    let n = Solve(@!board, 0)
     fmt::print#(n, "\n")
     test::AssertEq#(n, 724_uint)
     test::Success#()

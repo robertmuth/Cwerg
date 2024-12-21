@@ -16,8 +16,8 @@ global dim = 5_u16
 
 fun foo(a [10]u8, b [dim]u64) u8:
     let v2 = c1[0]
-    let v3 = &c1[0]
-    let v4 = &!c2[0]
+    let v3 = @c1[0]
+    let v4 = @!c2[0]
     set c2[0] = 666
     return 66
 
@@ -45,8 +45,8 @@ global! c4 = {[10]u8: 41, 51, 61}
 fun test_mixed_array() void:
     --
     ref let! a = {[10]u8: 1, 2, 3}
-    let pa = &a
-    let pa_mut = &!a
+    let pa = @a
+    let pa_mut = @!a
     test::AssertEq#(c4[2], 61_u8)
     set c4 = a
     test::AssertEq#(c4[2], 3_u8)
@@ -64,9 +64,9 @@ fun test_local_array() void:
     --
     ref let! a = {[10]u8: 1, 2, 3}
     ref let b = {[10]u8: 4, 5, 6}
-    let pa = &a
-    let pa_mut = &!a
-    let pb = &b
+    let pa = @a
+    let pa_mut = @!a
+    let pb = @b
     test::AssertEq#(a[0], 1_u8)
     test::AssertEq#(b[2], 6_u8)
     set a[0] = 6

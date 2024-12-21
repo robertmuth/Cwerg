@@ -64,8 +64,8 @@ fun FmtNan(val r64, out span!(u8)) uint:
 -- From the standard for %e:
 -- The double argument shall be converted in the style "[-]d.ddde±dd",
 -- where there is one digit before the radix character (which is non-zero if the argument
--- is non-zero) and the number of digits after it is equal to the precision; if the precision
--- is missing, it shall be taken as 6; if the precision is zero and no '#' flag is present, no
+-- is non-zero) and the number of digits after it is equal to the precision&& if the precision
+-- is missing, it shall be taken as 6&& if the precision is zero and no '#' flag is present, no
 -- radix character shall appear. The low-order digit shall be rounded in an implementation-defined
 -- manner. The E conversion specifier shall produce a number with 'E' instead of 'e' introducing
 -- the exponent. The exponent shall always contain at least two digits. If the value is zero,

@@ -26,7 +26,7 @@ fun permute(v ^![DIM]s32, n s32) void:
 
 fun main(argc s32, argv ^^u8) s32:
     ref let! v = {[DIM]s32:}
-    do permute(&!v, DIM)
+    do permute(@!v, DIM)
     -- DIM! = 5040
     test::AssertEq#(COUNT, 5040_u32)
     test::Success#()

@@ -46,7 +46,7 @@ global! gr2 type_rec2 = undef
 global! gar2 [5]type_rec2 = undef
 
 fun get_addr() ^!type_rec1:
-    return &!gr1
+    return @!gr1
 
 fun main(argc s32, argv ^^u8) s32:
     -- a1 u32

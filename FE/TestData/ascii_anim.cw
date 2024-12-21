@@ -112,7 +112,7 @@ pub fun draw(window ^!Window, s ^!ObjectState) void:
     let width = window^.width
     let height = window^.height
     let obj = s^.obj
-    let sprite = &obj^.sprites[s^.frame]
+    let sprite = @obj^.sprites[s^.frame]
     let image_map = sprite^.image_map
     let color_map = sprite^.color_map
     let def_attr = s^.def_attr
@@ -149,7 +149,7 @@ pub fun draw(window ^!Window, s ^!ObjectState) void:
             continue
         if c != ' ':
             set left_side = false
-        if x < width && y < height && (x >= 0 && y >= 0):
+        if x < width && y < height && (x >= 0 @@ y >= 0):
             set s^.visible = true
             let index = y * width + x
             if 0_u8 != window^.depth_map[index]:

@@ -19,7 +19,7 @@
 --
 -- Next parse the json inside the File:
 --
--- let result = jp::Parse(&!file)
+-- let result = jp::Parse(@!file)
 --
 -- Finally walk the json starting with the root in file.root
 -- Thw following helpers are avaiable:
@@ -86,14 +86,14 @@ rec Atom:
 pub fun AtomGetKind(file ^File, index Index) AtomKind:
     if IndexGetKind(index) != ObjKind:Atom:
         trap
-    let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Atom)
+    let ptr = bitwise_as(@file^.objects[IndexGetValue(index)], ^Atom)
     return ptr^.kind
 
 pub fun AtomGetData(file ^File, index Index) span(u8):
     if IndexGetKind(index) != ObjKind:Atom:
         trap
-    let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Atom)
-    return span(&file^.data[ptr^.offset], as(ptr^.length, uint))
+    let ptr = bitwise_as(@file^.objects[IndexGetValue(index)], ^Atom)
+    return span(@file^.data[ptr^.offset], as(ptr^.length, uint))
 
 -- Items make up the contents of Cont
 rec Item:
@@ -106,19 +106,19 @@ rec Item:
 pub fun ItemGetNext(file ^File, item Index) Index:
     if IndexGetKind(item) != ObjKind:Item:
         trap
-    let ptr = bitwise_as(&file^.objects[IndexGetValue(item)], ^Item)
+    let ptr = bitwise_as(@file^.objects[IndexGetValue(item)], ^Item)
     return ptr^.next
 
 pub fun ItemGeKey(file ^File, item Index) Index:
     if IndexGetKind(item) != ObjKind:Item:
         trap
-    let ptr = bitwise_as(&file^.objects[IndexGetValue(item)], ^Item)
+    let ptr = bitwise_as(@file^.objects[IndexGetValue(item)], ^Item)
     return ptr^.key
 
 pub fun ItemGetVal(file ^File, item Index) Index:
     if IndexGetKind(item) != ObjKind:Item:
         trap
-    let ptr = bitwise_as(&file^.objects[IndexGetValue(item)], ^Item)
+    let ptr = bitwise_as(@file^.objects[IndexGetValue(item)], ^Item)
     return ptr^.val
 
 pub enum ContKind u8:
@@ -134,13 +134,13 @@ rec Cont:
 pub fun ContGetKind(file ^File, index Index) ContKind:
     if IndexGetKind(index) != ObjKind:Cont:
         trap
-    let ptr = bitwise_as(&file^.objects[IndexGetValue(index)], ^Cont)
+    let ptr = bitwise_as(@file^.objects[IndexGetValue(index)], ^Cont)
     return ptr^.kind
 
 pub fun ContGetFirst(file ^File, cont Index) Index:
     if IndexGetKind(cont) != ObjKind:Cont:
         trap
-    let ptr = bitwise_as(&file^.objects[IndexGetValue(cont)], ^Cont)
+    let ptr = bitwise_as(@file^.objects[IndexGetValue(cont)], ^Cont)
     return ptr^.first
 
 pub fun ContGetSize(file ^File, cont Index) u32:
@@ -243,7 +243,7 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
                 set file^.objects[index] = {
                         Atom: start, end - start, seen_esc ? AtomKind:EscStr : AtomKind:Str}
                 set file^.next_byte = end + 1
-                -- fmt::print#("ParseAtom End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
+                -- fmt::print#("ParseAtom End: [", span(@file^.data[start], as(end - start, uint)), "]\n")
                 return MakeIndex(index, ObjKind:Atom)
             if d == '\\':
                 set seen_esc = true
@@ -259,7 +259,7 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
             break
         set end += 1
     set file^.objects[index] = {Atom: start, end - start, AtomKind:Num}
-    -- fmt::print#("ParseAtom End: [", span(&file^.data[start], as(end - start, uint)), "]\n")
+    -- fmt::print#("ParseAtom End: [", span(@file^.data[start], as(end - start, uint)), "]\n")
     set file^.next_byte = end
     return MakeIndex(index, ObjKind:Atom)
 

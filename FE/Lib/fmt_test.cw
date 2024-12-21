@@ -35,10 +35,10 @@ fun test_custom() void:
     ref let! s span!(u8) = buffer
     let! n uint = 0
     -- complex
-    set n = fmt::SysRender({ic32: 111, 222}, s, &!opt)
+    set n = fmt::SysRender({ic32: 111, 222}, s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "111+222i")
     -- enum
-    set n = fmt::SysRender(color:blue, s, &!opt)
+    set n = fmt::SysRender(color:blue, s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "2")
 
 fun test_int() void:
@@ -46,11 +46,11 @@ fun test_int() void:
     let! buffer = {[fmt::FORMATED_STRING_MAX_LEN]u8:}
     ref let! s span!(u8) = buffer
     let! n uint = 0
-    set n = fmt::SysRender(666_uint, s, &!opt)
+    set n = fmt::SysRender(666_uint, s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "666")
-    set n = fmt::SysRender(69_u16, s, &!opt)
+    set n = fmt::SysRender(69_u16, s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "69")
-    set n = fmt::SysRender(-69_s32, s, &!opt)
+    set n = fmt::SysRender(-69_s32, s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "-69")
 
 fun test_real() void:
@@ -58,10 +58,10 @@ fun test_real() void:
     let! buffer = {[fmt::FORMATED_STRING_MAX_LEN]u8:}
     ref let! s span!(u8) = buffer
     let! n uint = 0
-    set n = fmt::SysRender(wrap_as(2, fmt::r64_hex), s, &!opt)
+    set n = fmt::SysRender(wrap_as(2, fmt::r64_hex), s, @!opt)
     -- (fmt::print# s " \n")
     test::AssertSliceEq#(span(front(s), n), "0x1.p+1")
-    set n = fmt::SysRender(666e+20_r64, s, &!opt)
+    set n = fmt::SysRender(666e+20_r64, s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "6.660000e+22")
 
 fun test_misc() void:
@@ -69,11 +69,11 @@ fun test_misc() void:
     let! buffer = {[fmt::FORMATED_STRING_MAX_LEN]u8:}
     ref let! s span!(u8) = buffer
     let! n uint = 0
-    set n = fmt::SysRender(true, s, &!opt)
+    set n = fmt::SysRender(true, s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "true")
-    set n = fmt::SysRender(wrap_as(120, fmt::rune), s, &!opt)
+    set n = fmt::SysRender(wrap_as(120, fmt::rune), s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "x")
-    set n = fmt::SysRender(wrap_as(test_string, fmt::str_hex), s, &!opt)
+    set n = fmt::SysRender(wrap_as(test_string, fmt::str_hex), s, @!opt)
     test::AssertSliceEq#(span(front(s), n), "7177657274795f31323334")
 
 fun main(argc s32, argv ^^u8) s32:

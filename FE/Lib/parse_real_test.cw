@@ -67,8 +67,8 @@ fun test_dec() void:
 
 fun test_hex() void:
     --
-    --     try testing.expectEqual(try parseFloat(f64, "0x1.fffffffffffffp+1023"), math.floatMax(f64));
-    --     try testing.expectEqual(try parseFloat(f64, "-0x1.fffffffffffffp1023"), -math.floatMax(f64));
+    --     try testing.expectEqual(try parseFloat(f64, "0x1.fffffffffffffp+1023"), math.floatMax(f64))&&
+    --     try testing.expectEqual(try parseFloat(f64, "-0x1.fffffffffffffp1023"), -math.floatMax(f64))&&
     --
     test::AssertEqR64#(0.0, parse_r64("0x0"))
     test::AssertEqR64#(0.0, parse_r64("0x.0"))

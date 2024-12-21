@@ -175,11 +175,11 @@ global! irand [1024]u32
 fun init_vrand_urand() void:
     ref let! state = random::Pcg32StateDefault
     for i = 0, len(urand), 1:
-        set urand[i][0] = random::Pcg32GetRandomR64(&!state) - 0.5
+        set urand[i][0] = random::Pcg32GetRandomR64(@!state) - 0.5
     for i = 0, len(urand), 1:
-        set urand[i][1] = random::Pcg32GetRandomR64(&!state) - 0.5
+        set urand[i][1] = random::Pcg32GetRandomR64(@!state) - 0.5
     for i = 0, len(urand), 1:
-        set irand[i] = random::Pcg32GetRandomU32(&!state) % as(len(urand), u32)
+        set irand[i] = random::Pcg32GetRandomU32(@!state) % as(len(urand), u32)
 
 fun get_jitter(x u32, y u32, s u32) v64::vec2:
     let a =  irand[(x + s) % as(len(irand), u32)]
@@ -227,7 +227,7 @@ fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
             let! rgb v64::vec3
             for r = 0, rays_per_pixel, 1:
                 let pos = get_sample_pos(w, h, x, y, r)
-                let ray = get_primry_ray(&scene^.camera, pos)
+                let ray = get_primry_ray(@scene^.camera, pos)
                 -- let ray = get_primary_ray()
                 set rgb = v64::add(rgb, rgb)
             set rgb = v64::scaled(rgb, color_scaler)
@@ -284,5 +284,5 @@ fun main(argc s32, argv ^^u8) s32:
     let rays_per_pixel = 1_u32
     do init_vrand_urand()
     ref let scene = ParseScene(gSceneStr)
-    do Render(w, h, rays_per_pixel, span(front!(gPixels), as(w * h, uint)),  &scene)
+    do Render(w, h, rays_per_pixel, span(front!(gPixels), as(w * h, uint)),  @scene)
     return 0

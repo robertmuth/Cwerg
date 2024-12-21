@@ -17,7 +17,7 @@ global! NodePool = {[N]bt::Node:}
 global! NodePoolFreeIndex uint = 0
 
 fun alloc(p u32) ^!bt::Node:
-    let out = &!NodePool[NodePoolFreeIndex]
+    let out = @!NodePool[NodePoolFreeIndex]
     set NodePoolFreeIndex += 1
     set out^.payload = p
     return out

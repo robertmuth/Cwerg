@@ -173,13 +173,13 @@ pub fun KeccakAdd(state ^!StateKeccak, tail span!(u64), data span(u8)) void:
             for i = 0, offset, 1:
                 set ptr_inc(tail_u8, tail_use + i)^ = data[i]
             do AddBlockAlignedLE(state, tail)
-            do KeccakF(&!state^.x)
+            do KeccakF(@!state^.x)
     while len(data) - offset >= block_size:
         for i = 0, block_size, 1:
             set ptr_inc(tail_u8, i)^ = data[offset]
             set offset += 1
         do AddBlockAlignedLE(state, tail)
-        do KeccakF(&!state^.x)
+        do KeccakF(@!state^.x)
     for i = 0, len(data) - offset, 1:
         set ptr_inc(tail_u8, i)^ = data[offset]
         set offset += 1
@@ -194,18 +194,18 @@ pub fun KeccakFinalize(state ^!StateKeccak, tail span!(u64), padding u8) void:
     set ptr_inc(tail_u8, padding_start)^ or= padding
     set ptr_inc(tail_u8, block_size - 1)^ or= 0x80
     do AddBlockAlignedLE(state, tail)
-    do KeccakF(&!state^.x)
+    do KeccakF(@!state^.x)
 
 -- returns 512 bit cryptographic hash of data
 pub fun Keccak512(data span(u8)) [64]u8:
     ref let! state = {StateKeccak512:}
-    do KeccakAdd(&!state.base, state.tail, data)
-    do KeccakFinalize(&!state.base, state.tail, KeccakPadding)
-    return unsafe_as(&state.base.x, ^[64]u8)^
+    do KeccakAdd(@!state.base, state.tail, data)
+    do KeccakFinalize(@!state.base, state.tail, KeccakPadding)
+    return unsafe_as(@state.base.x, ^[64]u8)^
 
 -- returns 512 bit cryptographic hash of data
 pub fun Sha3512(data span(u8)) [64]u8:
     ref let! state = {StateKeccak512:}
-    do KeccakAdd(&!state.base, state.tail, data)
-    do KeccakFinalize(&!state.base, state.tail, Sha3Padding)
-    return unsafe_as(&state.base.x, ^[64]u8)^
+    do KeccakAdd(@!state.base, state.tail, data)
+    do KeccakFinalize(@!state.base, state.tail, Sha3Padding)
+    return unsafe_as(@state.base.x, ^[64]u8)^

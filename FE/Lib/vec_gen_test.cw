@@ -129,22 +129,22 @@ fun Test_HitDim3() void:
 
     -- inside
     test::AssertTrue#(v64::CheckRayHitsSphere(
-        ray_orig, ray_dir, {: 2, 1, 1}, 2, epsilon, &!hit))
+        ray_orig, ray_dir, {: 2, 1, 1}, 2, epsilon, @!hit))
     test::AssertApproxEq#(hit.distance * hit.distance, 3_r64, epsilon)
 
     if false:
         test::AssertTrue#(v64::CheckRayHitsSphere(
-           ray_orig, ray_dir, {: 2.5, 4.5, 1}, 2, epsilon, &!hit))
+           ray_orig, ray_dir, {: 2.5, 4.5, 1}, 2, epsilon, @!hit))
     if false:
 
         -- test::AssertTrue#(v64::CheckRayHitsSphere(
-        --      ray_orig, ray_dir, {: 0, 5, 1}, 1, epsilon, &!hit))
+        --      ray_orig, ray_dir, {: 0, 5, 1}, 1, epsilon, @!hit))
         fmt::print#(hit, "\n")
     if false:
         test::AssertFalse#(v64::CheckRayHitsSphere(
-            ray_orig, ray_dir, {: -2.5, 1, 1}, 1, epsilon, &!hit))
+            ray_orig, ray_dir, {: -2.5, 1, 1}, 1, epsilon, @!hit))
         test::AssertFalse#(v64::CheckRayHitsSphere(
-            ray_orig, ray_dir, {: 1, -1, 1}, 1, epsilon, &!hit))
+            ray_orig, ray_dir, {: 1, -1, 1}, 1, epsilon, @!hit))
 
 fun main(argc s32, argv ^^u8) s32:
     do Test_Dim2()

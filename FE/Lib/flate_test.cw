@@ -228,10 +228,10 @@ global AllTestCases = {
 
 fun test_all() void:
     for i = 0, len(AllTestCases), 1:
-        let tc ^TestCase = &AllTestCases[i]
+        let tc ^TestCase = @AllTestCases[i]
         fmt::print#("TEST - ", tc^.description, "\n")
         ref let! bs = {bitstream::Stream32: tc^.input}
-        let res = flate::uncompress(&!bs, tc^.output)
+        let res = flate::uncompress(@!bs, tc^.output)
         test::AssertEq#(union_tag(res), union_tag(tc^.expected_result))
         if is(res, uint):
             test::AssertSliceEq#(
