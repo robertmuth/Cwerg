@@ -40,6 +40,7 @@ class TK_KIND(enum.Enum):
     PAREN_OPEN = enum.auto()
     PAREN_CLOSED = enum.auto()
     SQUARE_OPEN = enum.auto()
+    SQUARE_OPEN_EXCL = enum.auto()
     SQUARE_CLOSED = enum.auto()
     CURLY_OPEN = enum.auto()
     CURLY_CLOSED = enum.auto()
@@ -106,7 +107,7 @@ _operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
 
 _operators1a = [re.escape(x) for x in cwast.UNARY_EXPR_SHORTCUT_CONCRETE
                if not _NAMED_OP_RE.fullmatch(x)]
-_operators1b = [re.escape(x) for x in ["^!", "^", "@!", "@"]]
+_operators1b = [re.escape(x) for x in ["^!", "^", "@!", "@"]] # order important!
 
 _compound_assignment = [re.escape(x) for x in cwast.ASSIGNMENT_SHORTCUT]
 
@@ -118,6 +119,7 @@ _token_spec = [
     (TK_KIND.PAREN_CLOSED.name, "[)]"),
     (TK_KIND.CURLY_OPEN.name, "[{]"),
     (TK_KIND.CURLY_CLOSED.name, "[}]"),
+    (TK_KIND.SQUARE_OPEN_EXCL.name, r"\[!"),
     (TK_KIND.SQUARE_OPEN.name, r"\["),
     (TK_KIND.SQUARE_CLOSED.name, r"\]"),
     (TK_KIND.COMMENT.name, COMMENT_RE),  # remark

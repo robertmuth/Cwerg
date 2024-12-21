@@ -39,7 +39,7 @@ pub fun FrontSlice(buffer ^!span(u8), n uint) union(span(u8), OutOfBoundsError):
 
 --
 pub fun FrontU8Unchecked(buffer ^!span(u8)) u8:
-    let out u8 = buffer^[{{unchecked}} 0]
+    let out u8 = buffer^[! 0]
     do SkipUnchecked(buffer, 1)
     return out
 
@@ -57,8 +57,8 @@ pub fun FrontU8(buffer ^!span(u8)) union(u8, OutOfBoundsError):
 
 --
 pub fun FrontLeU16Unchecked(buffer ^!span(u8)) u16:
-    let out0 = as(buffer^[{{unchecked}} 0], u16)
-    let out1 = as(buffer^[{{unchecked}} 1], u16)
+    let out0 = as(buffer^[! 0], u16)
+    let out1 = as(buffer^[! 1], u16)
     do SkipUnchecked(buffer, 2)
     return out0 + out1 << 8
 
@@ -76,8 +76,8 @@ pub fun FrontLeU16(buffer ^!span(u8)) union(u16, OutOfBoundsError):
 
 --
 pub fun FrontBeU16Unchecked(buffer ^!span(u8)) u16:
-    let out0 = as(buffer^[{{unchecked}} 0], u16)
-    let out1 = as(buffer^[{{unchecked}} 1], u16)
+    let out0 = as(buffer^[! 0], u16)
+    let out1 = as(buffer^[! 1], u16)
     do SkipUnchecked(buffer, 2)
     return out1 + out0 << 8
 
@@ -89,10 +89,10 @@ pub fun FrontBeU16(buffer ^!span(u8)) union(u16, OutOfBoundsError):
 
 --
 pub fun FrontLeU32Unchecked(buffer ^!span(u8)) u32:
-    let out0 = as(buffer^[{{unchecked}} 0], u32)
-    let out1 = as(buffer^[{{unchecked}} 1], u32)
-    let out2 = as(buffer^[{{unchecked}} 2], u32)
-    let out3 = as(buffer^[{{unchecked}} 3], u32)
+    let out0 = as(buffer^[! 0], u32)
+    let out1 = as(buffer^[! 1], u32)
+    let out2 = as(buffer^[! 2], u32)
+    let out3 = as(buffer^[! 3], u32)
     do SkipUnchecked(buffer, 4)
     return out0 + out1 << 8 + out2 << 16 + out3 << 24
 

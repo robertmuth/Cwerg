@@ -333,12 +333,14 @@ def _PParseFunctionCall(inp: lexer.Lexer, callee, tk: lexer.TK, precedence) -> A
 
 
 def _PParseIndex(inp: lexer.Lexer, array, tk: lexer.TK, _precedence) -> Any:
-    assert tk.kind is lexer.TK_KIND.SQUARE_OPEN
+    assert tk.kind in (lexer.TK_KIND.SQUARE_OPEN, lexer.TK_KIND.SQUARE_OPEN_EXCL)
     tk = inp.peek()
     index = _ParseExpr(inp)
     inp.match_or_die(lexer.TK_KIND.SQUARE_CLOSED)
-    # TODO: handle unchecked
-    return cwast.ExprIndex(array, index, **_ExtractAnnotations(tk))
+    extra = _ExtractAnnotations(tk)
+    if tk.kind is lexer.TK_KIND.SQUARE_OPEN_EXCL:
+        extra["unchecked"] = True
+    return cwast.ExprIndex(array, index, **extra)
 
 
 def _PParseDeref(_inp: lexer.Lexer, pointer, tk: lexer.TK, _precedence) -> Any:
@@ -392,6 +394,7 @@ _INFIX_EXPR_PARSERS = {
     #
     "(": (20, _PParseFunctionCall),
     "[":  (pp.PREC_INDEX, _PParseIndex),
+    "[!":  (pp.PREC_INDEX, _PParseIndex),
     "^": (pp.PREC_INDEX, _PParseDeref),
     ".": (pp.PREC_INDEX, _PParseFieldAccess),
     "?": (6, _PParseTernary),

@@ -401,10 +401,11 @@ def TokensAnnotationsPre(ts: TS, node):
 
     # next handle non-docs
     for field, nfd in node.ATTRS:
-        # mut is handled directly with the "!" suffix
-        if nfd.kind is not cwast.NFK.ATTR_BOOL or field in ("untagged", "mut"):
+        if nfd.kind is not cwast.NFK.ATTR_BOOL:
             continue
-
+        if field in ("untagged", "mut", "unchecked"):
+            # these are handled by the ! suffix
+            continue
         val = getattr(node, field)
         if val:
             if field not in ("pub", "wrapped", "ref", "poly"):
@@ -532,9 +533,7 @@ def EmitTokensCodeBlock(ts: TS, stmts):
 
 def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
     EmitTokens(ts, node.container)
-    beg_paren = ts.EmitBegParen("[")
-    if node.unchecked:
-        ts.EmitAnnotationShort("{{unchecked}}")
+    beg_paren = ts.EmitBegParen("[!" if node.unchecked else "[")
     EmitTokens(ts, node.expr_index)
     ts.EmitEnd(beg_paren)
 

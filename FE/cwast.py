@@ -1522,7 +1522,9 @@ class TypeUnion:
     """Union types (tagged unions)
 
     Unions are "auto flattening", e.g.
-    Union(a, Union(b,c), Union(a, d)) = Union(a, b, c, d)
+    union(a, union(b,c), union(a, d)) == union(a, b, c, d)
+
+    union! indicates an untagged union
     """
     ALIAS: ClassVar = "union"
     GROUP: ClassVar = GROUP.Type
@@ -1817,7 +1819,7 @@ class ExprAddrOf:
     """Create a pointer to object represented by `expr`
 
     Pointer can optionally point to a mutable object if the
-    pointee is mutable.
+    pointee is mutable. This is indicated using `@!`.
     """
     ALIAS: ClassVar = "@"
     GROUP: ClassVar = GROUP.Expression
@@ -2026,7 +2028,9 @@ class ExprLen:
 class ExprFront:
     """Address of the first element of an vec or span
 
-    Similar to `(& (at container 0))` but will not fail if container has zero size
+    Similar to `@container[0]` but will not fail if container has zero size
+    If the underlying container is mutable, then `front!` can be  used to
+    obtain a mutable pointer.
     """
     ALIAS: ClassVar = "front"
     GROUP: ClassVar = GROUP.Expression
@@ -2139,7 +2143,7 @@ class ExprAs:
 class ExprNarrow:
     """Narrowing Cast (for unions)
 
-    optionally unchecked
+    `narrow_as!` forces an unchecked narrowing
     """
     ALIAS: ClassVar = "narrow_as"
     GROUP: ClassVar = GROUP.Expression
@@ -2703,8 +2707,8 @@ class DefVar:
     """Variable definition at local scope (DefGlobal is used for global scope)
 
     Allocates space on stack (or in a register) and initializes it with `initial_or_undef_or_auto`.
-    `mut` makes the allocated space read/write otherwise it is readonly.
-    `ref` allows the address of the  variable to be taken and prevents register allocation.
+    `let!` makes the allocated space read/write otherwise it is readonly.
+    The attribute `ref` allows the address of the variable to be taken and prevents register allocation.
 
     """
     ALIAS: ClassVar = "let"
@@ -2732,7 +2736,8 @@ class DefGlobal:
     """Variable definition at global scope (DefVar is used for local scope)
 
     Allocates space in static memory and initializes it with `initial_or_undef`.
-    `mut` makes the allocated space read/write otherwise it is readonly.
+    `let!` makes the allocated space read/write otherwise it is readonly.
+    The attribute `ref` allows the address of the variable to be taken and prevents register allocation.
     """
     ALIAS: ClassVar = "global"
     GROUP: ClassVar = GROUP.Statement
@@ -2866,6 +2871,8 @@ class MacroVar:
     """Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
 
     `name` must start with a `$`.
+
+    `mlet!` makes the allocated space read/write otherwise it is readonly.
 
     """
     ALIAS: ClassVar = "mlet"
