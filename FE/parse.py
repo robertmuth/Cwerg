@@ -102,41 +102,42 @@ _FUN_LIKE: dict[str, tuple[Callable, str]] = {
     "ptr_dec": (cwast.ExprPointer, "pEEe"),
     cwast.ExprOffsetof.ALIAS: (cwast.ExprOffsetof, "TE"),
     "span": (cwast.ValSpan, "EE"),
-    "span!": (cwast.ValSpan, "EE"),
     cwast.ExprFront.ALIAS:  (cwast.ExprFront, "E"),
     cwast.ExprFront.ALIAS + "!":  (cwast.ExprFront, "E"),
     cwast.ExprUnwrap.ALIAS: (cwast.ExprUnwrap, "E"),
     cwast.ExprUnionTag.ALIAS: (cwast.ExprUnionTag, "E"),
     #
-    cwast.TypeOf.ALIAS: (cwast.TypeOf, "E"),
     #
     cwast.ExprSizeof.ALIAS: (cwast.ExprSizeof, "T"),
     cwast.ExprTypeId.ALIAS: (cwast.ExprTypeId, "T"),
     #
-    cwast.TypeUnionDelta.ALIAS: (cwast.TypeUnionDelta, "TT"),
     # mixing expression and types
     cwast.ExprAs.ALIAS: (cwast.ExprAs, "ET"),
     cwast.ExprWrap.ALIAS: (cwast.ExprWrap, "ET"),
     cwast.ExprIs.ALIAS: (cwast.ExprIs, "ET"),
-    # TODO: handle unchecked
     cwast.ExprNarrow.ALIAS: (cwast.ExprNarrow, "ET"),
+    cwast.ExprNarrow.ALIAS + "!": (cwast.ExprNarrow, "ET"),
     cwast.ExprWiden.ALIAS: (cwast.ExprWiden, "ET"),
     cwast.ExprUnsafeCast.ALIAS: (cwast.ExprUnsafeCast, "ET"),
     cwast.ExprBitCast.ALIAS: (cwast.ExprBitCast, "ET"),
     #
     cwast.ExprStringify.ALIAS: (cwast.ExprStringify, "E"),
     cwast.ExprSrcLoc.ALIAS: (cwast.ExprSrcLoc, "E"),
+    # Type related
+    cwast.TypeOf.ALIAS: (cwast.TypeOf, "E"),
+    cwast.TypeUnionDelta.ALIAS: (cwast.TypeUnionDelta, "TT"),
 }
 
 
 def _ParseFunLike(inp: lexer.Lexer, name: lexer.TK) -> Any:
-    ctor, args = _FUN_LIKE[name.text]
+    fun_name = name.text
+    ctor, args = _FUN_LIKE[fun_name]
     inp.match_or_die(lexer.TK_KIND.PAREN_OPEN)
     first = True
     params: list[Any] = []
     extra = _ExtractAnnotations(name)
     if name.text.endswith(cwast.MUTABILITY_SUFFIX):
-        extra["mut"] = True
+        extra[pp.KEYWORDS_WITH_EXCL_SUFFIX[fun_name[:-1]]] = True
     for a in args:
         if inp.peek().kind is lexer.TK_KIND.PAREN_CLOSED and a == "e":
             params.append(cwast.ValUndef(x_srcloc=name.srcloc))

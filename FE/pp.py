@@ -162,23 +162,32 @@ class TK(enum.Enum):
     PAREN_END = 23
 
 
-KEYWORDS_TOPLEVEL = [
+_KEYWORDS = [
     "enum", "fun", "import", "rec", "static_assert", "type",
-]
 
-KEYWORDS = [
     "module", "defer", "block", "expr",
     "break", "continue",  "cond", "type", "if",
     "do", "case", "set", "for", "macro",
     "while", "tryset", "trap", "return",
-    "mfor", "swap", "else",
-] + KEYWORDS_TOPLEVEL
+    "mfor", "else",
+]
 
-KEYWORDS_WITH_EXCL_SUFFIX = [
-    "trylet", "mlet", "span", "let", "global", "front", "union"]
+KEYWORDS_WITH_EXCL_SUFFIX = {
+    # Statements
+    "trylet": "mut",
+    "mlet": "mut",
+    "let": "mut",
+    "global": "mut",
+    # Expressions
+    "span": "mut",
+    "front": "mut",
+    "union": "untagged",
+    "narrow_as": "unchecked"
+}
 
-BEG_TOKENS = set(KEYWORDS + KEYWORDS_WITH_EXCL_SUFFIX + [
-    k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
+BEG_TOKENS = set(_KEYWORDS +
+                 [k for k in KEYWORDS_WITH_EXCL_SUFFIX] +
+                 [k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
 
 MAX_LINE_LEN = 80
 
@@ -393,7 +402,7 @@ def TokensAnnotationsPre(ts: TS, node):
     # next handle non-docs
     for field, nfd in node.ATTRS:
         # mut is handled directly with the "!" suffix
-        if nfd.kind is not cwast.NFK.ATTR_BOOL or field == "mut":
+        if nfd.kind is not cwast.NFK.ATTR_BOOL or field in ("untagged", "mut"):
             continue
 
         val = getattr(node, field)
@@ -609,7 +618,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
     cwast.ExprUnsafeCast: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
     cwast.ExprBitCast: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
-    cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
+    cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, WithExcl(KW(n), n.unchecked), [n.expr, n.type]),
     cwast.ExprWiden: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
     cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
     cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
