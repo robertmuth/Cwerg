@@ -27,8 +27,8 @@ fun reverse_bits(bits u32, width u32) u32:
     let! out u32 = 0
     for i = 0, width, 1:
         set out <<= 1
-        if x and 1 == 0:
-            set out or= 1
+        if x & 1 == 0:
+            set out |= 1
         set x >>= 1
     return out
 

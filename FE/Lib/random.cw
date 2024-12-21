@@ -27,7 +27,7 @@ pub fun Pcg32GetRandomU32(state ^!Pcg32State) u32:
     set state^.state = oldstate * 6364136223846793005_u64 + state^.inc
     let xorshifted u32 = as((oldstate >> 18 xor oldstate) >> 27, u32)
     let rot u32 = as(oldstate >> 59, u32)
-    return xorshifted >> rot or xorshifted << ((0 - rot) and 31)
+    return xorshifted >> rot | xorshifted << ((0 - rot) & 31)
 
 -- Generate a r64 number between 0.0 and 1.0
 pub fun Pcg32GetRandomR64(state ^!Pcg32State) r64:

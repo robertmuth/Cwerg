@@ -22,14 +22,14 @@ macro xdebug# STMT_LIST($parts EXPR_LIST_REST)[]:
 macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
 
 global WinogradMultipliers = {
-        [64]u8: 128, 178, 178, 167, 246, 167, 151, 232, 232, 151, 128, 209, 219, 
-        209, 128, 101, 178, 197, 197, 178, 101, 69, 139, 167, 177, 167, 139, 69, 
-        35, 96, 131, 151, 151, 131, 96, 35, 49, 91, 118, 128, 118, 91, 49, 46, 81, 
-        101, 101, 81, 46, 42, 69, 79, 69, 42, 35, 54, 54, 35, 28, 37, 28, 19, 19, 
+        [64]u8: 128, 178, 178, 167, 246, 167, 151, 232, 232, 151, 128, 209, 219,
+        209, 128, 101, 178, 197, 197, 178, 101, 69, 139, 167, 177, 167, 139, 69,
+        35, 96, 131, 151, 151, 131, 96, 35, 49, 91, 118, 128, 118, 91, 49, 46, 81,
+        101, 101, 81, 46, 42, 69, 79, 69, 42, 35, 54, 54, 35, 28, 37, 28, 19, 19,
         10}
 
 macro div_pow2_with_rounding# EXPR($x EXPR, $d EXPR)[]:
-    ($x + (1 << ($d - 1))) >> $d 
+    ($x + (1 << ($d - 1))) >> $d
 
 fun ApplyWindogradMulipliers(qt_tab ^![64]s16) void:
     let c s32 = (1 << (10 - 7 - 1))
@@ -93,14 +93,14 @@ fun RowIDCT(blk ^![8 * 8]s16) void:
         let src4 = blk^[o + 5]
         let src3 = blk^[o + 6]
         let src6 = blk^[o + 7]
-        if (src1 or src2 or src3 or src4 or src5 or src6 or src7) == 0:
+        if (src1 | src2 | src3 | src4 | src5 | src6 | src7) == 0:
             debug#("idc-row shortcicuit ", src0, "\n")
             for i = 0, 8_uint, 1:
                 set blk^[o + i] = src0
             continue
         CommonIDCT#()
         debug#(
-                "idc-row out ", x40 + x17, " ", x41 + tmp2, " ", x42 + tmp3, " ", 
+                "idc-row out ", x40 + x17, " ", x41 + tmp2, " ", x42 + tmp3, " ",
                 x43- x44, "\n")
         set blk^[o + 0] = x40 + x17
         set blk^[o + 1] = x41 + tmp2
@@ -134,7 +134,7 @@ fun ColIDCT(blk ^![8 * 8]s16) void:
         let src4 = blk^[o + 8 * 5]
         let src3 = blk^[o + 8 * 6]
         let src6 = blk^[o + 8 * 7]
-        if (src1 or src2 or src3 or src4 or src5 or src6 or src7) == 0:
+        if (src1 | src2 | src3 | src4 | src5 | src6 | src7) == 0:
             debug#("idc-col shortcicuit ", o, " ", src0, "\n")
             let t = clamp8(descale(src0))
             for i = 0, len(blk^), 8:
@@ -196,7 +196,7 @@ pub fun GetNextBit(bs ^!BitStream) u16:
             set bs^.offset += 1
         set bs^.bits_cache = bits_cache
     set bits_count -= 1
-    let out = as((bits_cache >> bits_count) and 1, u16)
+    let out = as((bits_cache >> bits_count) & 1, u16)
     set bs^.bits_count = bits_count
     return out
 
@@ -235,7 +235,7 @@ fun GetVal(bs ^!BitStream, num_bits u16) s16:
     let! out s32 = 0
     for i = 0, bits, 1:
         set out <<= 1
-        set out or= as(GetNextBit(bs), s32)
+        set out |= as(GetNextBit(bs), s32)
     -- note: signed shift
     if out < 1 << (bits - 1):
         set out += ((-1) << bits) + 1
@@ -297,13 +297,13 @@ fun DecodeHufmanTable(chunk span(u8), huffman_trees ^![2][2]HuffmanTree) union(
         Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     ref let! data = chunk
     let kind = BS::FrontU8Unchecked(@!data)
-    if kind and 0xec != 0:
+    if kind & 0xec != 0:
         return CorruptionErrorVal
-    let pos = kind and 3
+    let pos = kind & 3
     if pos > 1:
         return UnsupportedErrorVal
     -- 0 means dc
-    let is_ac = (kind and 0x10) >> 4
+    let is_ac = (kind & 0x10) >> 4
     let ht ^!HuffmanTree = @!huffman_trees^[is_ac][pos]
     let counts = BS::FrontSliceUnchecked(@!data, 16)
     let! total = 0_uint
@@ -342,10 +342,10 @@ fun DecodeQuantizationTable(chunk span(u8), qt_tabs ^![4][64]s16) union(
     let! qt_avail u8 = 0
     while len(data) >= 65:
         let t = data[0]
-        if t and 0xfc != 0:
+        if t & 0xfc != 0:
             return CorruptionErrorVal
         debug#("processing qt: ", t, "\n")
-        set qt_avail or= 1 << t
+        set qt_avail |= 1 << t
         let qt_tab = @!qt_tabs^[t]
         for i = 0, 64_u32, 1:
             set qt_tab^[i] = as(data[i + 1], s16)
@@ -414,9 +414,9 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo) union(
         trylet ss u8 = BS::FrontU8(@!data), err:
             return err
         let ssx = as(ss >> 4, u32)
-        let ssy = as(ss and 0xf, u32)
+        let ssy = as(ss & 0xf, u32)
         -- ssy must be a power of two
-        if ssx == 0 || ssy == 0 || ssy and (ssy - 1) != 0:
+        if ssx == 0 || ssy == 0 || ssy & (ssy - 1) != 0:
             debug#("bad ss: ", ssx, "x", ssy, "\n")
             return CorruptionErrorVal
         -- for now we only support YH1V1
@@ -429,7 +429,7 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo) union(
         set ssymax max= ssy
         trylet! qt_tab u8 = BS::FrontU8(@!data), err:
             return err
-        if qt_tab and 0xfc != 0:
+        if qt_tab & 0xfc != 0:
             debug#("bad qt_tab: ", qt_tab, "\n")
             return CorruptionErrorVal
         set comp^.qt_tab = qt_tab
@@ -473,10 +473,10 @@ fun DecodeScan(chunk span(u8), frame_info ^!FrameInfo) union(
         if data[0] != comp^.cid:
             return CorruptionErrorVal
         let tabsel = data[1]
-        if tabsel and 0xee != 0:
+        if tabsel & 0xee != 0:
             return CorruptionErrorVal
-        set comp^.dc_tab = (tabsel >> 4) and 1
-        set comp^.ac_tab = tabsel and 1
+        set comp^.dc_tab = (tabsel >> 4) & 1
+        set comp^.ac_tab = tabsel & 1
         debug#("tabsel[", comp^.cid, "]: ", comp^.dc_tab, ".", comp^.ac_tab, "\n")
         do BS::SkipUnchecked(@!data, 2)
         if len(data) < 3:
@@ -488,9 +488,9 @@ fun DecodeScan(chunk span(u8), frame_info ^!FrameInfo) union(
     return SuccessVal
 
 global ZigZagIndex = {
-        [8 * 8]u8: 0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 
-        26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 
-        50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 
+        [8 * 8]u8: 0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19,
+        26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57,
+        50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46,
         53, 60, 61, 54, 47, 55, 62, 63}
 
 -- returns new dc value on success
@@ -505,7 +505,7 @@ fun DecodeBlock(
     for i = 0, len(out^), 1:
         set out^[i] = 0
     let dc_code = NextSymbol(bs, dc_tab)
-    let dc_val s16 = last_dc + GetVal(bs, dc_code and 0xf)
+    let dc_val s16 = last_dc + GetVal(bs, dc_code & 0xf)
     debug#("dc=", dc_val * qt_tab^[0], "\n")
     set out^[0] = dc_val * qt_tab^[0]
     let! coeff u16 = 0
@@ -513,7 +513,7 @@ fun DecodeBlock(
         let ac_code = NextSymbol(bs, ac_tab)
         if ac_code == 0:
             break
-        let extra_bits = ac_code and 0xf
+        let extra_bits = ac_code & 0xf
         let skip = (ac_code >> 4)
         if extra_bits == 0 && skip != 15:
             return CorruptionErrorVal
@@ -635,7 +635,7 @@ pub fun DecodeImage(a_data span(u8), out span!(u8)) union(
         trylet chunk_length u16 = BS::FrontBeU16(@!data), err:
             return err
         debug#(
-                "CHUNK: ", wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length, 
+                "CHUNK: ", wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length,
                 "\n")
         trylet chunk_slice span(u8) = BS::FrontSlice(
                 @!data, as(chunk_length - 2, uint)), err:
@@ -665,13 +665,13 @@ pub fun DecodeImage(a_data span(u8), out span!(u8)) union(
                 trylet dummy Success = DecodeScan(chunk_slice, @!frame_info), err:
                     return err
                 trylet bytes_consumed uint = DecodeMacroBlocksHuffman(
-                        data, @frame_info, @huffman_trees, @quantization_tab, out), 
+                        data, @frame_info, @huffman_trees, @quantization_tab, out),
                     err:
                     return err
                 do BS::SkipUnchecked(@!data, bytes_consumed)
             case chunk_kind == 0xfffe:
                 debug#("chunk ignored\n")
-            case chunk_kind and 0xfff0 == 0xffe0:
+            case chunk_kind & 0xfff0 == 0xffe0:
                 debug#("chunk ignored\n")
             case true:
                 return UnsupportedErrorVal

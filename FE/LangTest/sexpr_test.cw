@@ -48,7 +48,7 @@ type type_ptr = ^!s32
 pub type type_union = union(s32, void, type_ptr)
 
 fun foo3(a bool, b bool, c s32) bool:
-    if a and b:
+    if a & b:
         return a
     else:
         return a xor b

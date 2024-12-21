@@ -35,11 +35,11 @@ pub fun Stream32GetBits(bs ^!Stream32, bits_requested u8) u32:
             return 0
         set new_bits = as(bs^.buf[bs^.offset], u32)
         set bs^.offset += 1
-        set bits_cache or= new_bits << as(bits_count, u32)
+        set bits_cache |= new_bits << as(bits_count, u32)
         set bits_count += 8
     let! out u32
     if bits_requested < 32:
-        set out = bits_cache and (1_u32 << as(bits_requested, u32) - 1)
+        set out = bits_cache & (1_u32 << as(bits_requested, u32) - 1)
         set bits_cache >>= as(bits_requested, u32)
     else:
         -- bits_requested == 32
@@ -48,7 +48,7 @@ pub fun Stream32GetBits(bs ^!Stream32, bits_requested u8) u32:
     if bits_count >= 32:
         set new_bits >>= 40_u32 - as(bits_count, u32)
         set new_bits <<= 32_u32 - as(bits_requested, u32)
-        set bits_cache or= new_bits
+        set bits_cache |= new_bits
     set bits_count -= bits_requested
     set bs^.bits_count = bits_count
     set bs^.bits_cache = as(bits_cache, u8)

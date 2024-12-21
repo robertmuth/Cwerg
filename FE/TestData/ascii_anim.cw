@@ -59,7 +59,7 @@ pub fun SetBasics(s ^!ObjectState, start_time r32, x_pos r32, y_pos r32) void:
     set s^.y_pos = y_pos
 
 fun tolower(c u8) u8:
-    return c or 0x20
+    return c | 0x20
 
 fun get_style(attr u8) span(u8):
     return attr < 'a' ? ansi::SET_MODE_BOLD : ansi::RESET_MODE_BOLD_OR_DIM

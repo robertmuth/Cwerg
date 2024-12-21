@@ -28,4 +28,4 @@ pub fun mul_u64_by_u64_to_b_u128(x u64, y u64) b_u128:
     let middle0 = p10 + p00 >> 32 + as(as(p01, u32), u64)
     -- add missing component after shifting to right
     let middle1 = middle0 >> 32 + p01 >> 32
-    return {: as(as(p00, u32), u64) or middle0 << 32, p11 + middle1}
+    return {: as(as(p00, u32), u64) | middle0 << 32, p11 + middle1}

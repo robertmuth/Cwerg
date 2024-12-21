@@ -63,13 +63,13 @@ pub global NullIndex = wrap_as(0, Index)
 fun MakeIndex(index u32, kind ObjKind) Index:
     if index >= 1_u32 << 30:
         trap
-    return wrap_as(unwrap(kind) << 30 or index, Index)
+    return wrap_as(unwrap(kind) << 30 | index, Index)
 
 pub fun IndexGetKind(index Index) ObjKind:
     return wrap_as(unwrap(index) >> 30, ObjKind)
 
 fun IndexGetValue(index Index) u32:
-    return unwrap(index) and ((1_u32 << 30) - 1)
+    return unwrap(index) & ((1_u32 << 30) - 1)
 
 pub enum AtomKind u8:
     Invalid 0

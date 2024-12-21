@@ -224,8 +224,8 @@ BINARY_EXPR_SHORTCUT = {
     "||": BINARY_EXPR_KIND.ORSC,
 
     #
-    "and": BINARY_EXPR_KIND.AND,
-    "or": BINARY_EXPR_KIND.OR,
+    "&": BINARY_EXPR_KIND.AND,
+    "|": BINARY_EXPR_KIND.OR,
     "xor": BINARY_EXPR_KIND.XOR,
     #
     "ptr_diff": BINARY_EXPR_KIND.PDELTA,
@@ -284,8 +284,8 @@ ASSIGNMENT_SHORTCUT = {
     "min=": ASSIGNMENT_KIND.MIN,
     "max=": ASSIGNMENT_KIND.MAX,
     #
-    "and=": ASSIGNMENT_KIND.AND,
-    "or=": ASSIGNMENT_KIND.OR,
+    "&=": ASSIGNMENT_KIND.AND,
+    "|=": ASSIGNMENT_KIND.OR,
     "xor=": ASSIGNMENT_KIND.XOR,
     #
     "<<=": ASSIGNMENT_KIND.SHL,

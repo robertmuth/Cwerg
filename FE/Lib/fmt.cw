@@ -125,7 +125,7 @@ poly fun SysRender(v str_hex, out span!(u8), options ^!SysFormatOptions) uint:
             let o1 uint = i * 2
             let o2 uint = o1 + 1
             set out[o1] = to_hex_digit(c >> 4)
-            set out[o2] = to_hex_digit(c and 15)
+            set out[o2] = to_hex_digit(c & 15)
         return dst_len * 2
     else:
         for i = 0, len(out), 1:

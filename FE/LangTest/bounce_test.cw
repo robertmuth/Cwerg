@@ -11,7 +11,7 @@ fun RngReset() void:
     set rng_state = RANDOM_SEED
 
 fun RngNext() s32:
-    set rng_state = ((rng_state * 1309) + 13849) and 65535
+    set rng_state = ((rng_state * 1309) + 13849) & 65535
     return rng_state
 
 global X_LIMIT = 500_s32

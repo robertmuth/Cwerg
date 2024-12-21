@@ -27,7 +27,7 @@ fun dec_digit_val(c u8) u8:
 -- this macros capture i,n,s from the environment
 macro next_char# STMT_LIST($c ID, $error_body STMT_LIST)[]:
     if i >= n:
-        $error_body 
+        $error_body
 
     set $c = s[i]
     set i += 1
@@ -160,8 +160,8 @@ fun parse_r64_hex_helper(s span(u8), negative bool, offset uint) ResultR64:
     set exp += num_real::r64_raw_exponent_bias
     -- fmt::print# ("AFTER mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
     -- final touches
-    let exp_u64 = as(exp, u64) and num_real::r64_exponent_mask
-    set mant and= num_real::r64_mantissa_mask
+    let exp_u64 = as(exp, u64) & num_real::r64_exponent_mask
+    set mant &= num_real::r64_mantissa_mask
     return {ResultR64: num_real::make_r64(negative, exp_u64, mant), i}
 
 pub fun parse_r64_hex(s span(u8)) ResultR64:

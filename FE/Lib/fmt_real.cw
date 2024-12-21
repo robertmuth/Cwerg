@@ -185,7 +185,7 @@ fun FmtMantissaHex(frac_bits u64, is_denorm bool, out span!(u8)) uint:
     while bits != 0:
         set out[i] = to_hex_digit(as(bits >> 48, u8))
         set i += 1
-        set bits and= 0xffff_ffff_ffff
+        set bits &= 0xffff_ffff_ffff
         set bits <<= 4
     return i
 

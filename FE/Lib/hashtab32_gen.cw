@@ -43,7 +43,7 @@ pub rec HashTab32:
 
 pub fun Lookup(ht ^HashTab32, key ^$ktype) union(void, ^!$vtype):
     let h u32 = $khash(key)
-    let filter u8 = as(h, u8) or UsedEntryMark
+    let filter u8 = as(h, u8) | UsedEntryMark
     let meta = ht^.meta
     let keys = ht^.keys
     let vals = ht^.vals
@@ -62,7 +62,7 @@ pub fun Lookup(ht ^HashTab32, key ^$ktype) union(void, ^!$vtype):
 
 pub fun InsertOrUpdate(ht ^!HashTab32, key ^$ktype, val ^$vtype) bool:
     let h u32 = $khash(key)
-    let filter u8 = as(h, u8) or UsedEntryMark
+    let filter u8 = as(h, u8) | UsedEntryMark
     let meta = ht^.meta
     let keys = ht^.keys
     let size = ht^.size
@@ -91,7 +91,7 @@ pub fun InsertOrUpdate(ht ^!HashTab32, key ^$ktype, val ^$vtype) bool:
 
 pub fun DeleteIfPresent(ht ^!HashTab32, key ^$ktype) bool:
     let h u32 = $khash(key)
-    let filter u8 = as(h, u8) or UsedEntryMark
+    let filter u8 = as(h, u8) | UsedEntryMark
     let meta = ht^.meta
     let keys = ht^.keys
     let size = ht^.size
