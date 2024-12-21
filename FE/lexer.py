@@ -55,13 +55,21 @@ class TK_KIND(enum.Enum):
 _KEYWORDS_NODES = [nt.ALIAS for nt in [
     cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta, cwast.TypeVec, cwast.TypeSpan,
     cwast.TypeAuto,  # also used for ValAuto
-    cwast.ExprUnionTag, cwast.ExprIs, cwast.ExprFront,
     #
     cwast.ValUndef, cwast.ValTrue, cwast.ValFalse,
     #
+    cwast.ExprUnionTag, cwast.ExprIs, cwast.ExprFront, cwast.ExprStmt,
     cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden, cwast.ExprSrcLoc,
     cwast.ExprBitCast, cwast.ExprUnsafeCast, cwast.ExprNarrow, cwast.ExprTypeId,
-    cwast.ExprOffsetof, cwast.ExprSizeof, cwast.ExprLen, cwast.ExprStringify]]
+    cwast.ExprOffsetof, cwast.ExprSizeof, cwast.ExprLen, cwast.ExprStringify,
+    #
+    cwast.DefMod, cwast.DefEnum, cwast.DefFun, cwast.Import, cwast.DefRec, cwast.DefType,
+    cwast.StmtStaticAssert,  cwast.DefMacro, cwast.DefGlobal,
+    #
+    cwast.StmtIf, cwast.StmtDefer, cwast.StmtBlock, cwast.StmtBreak, cwast.StmtContinue,
+    cwast.StmtCond, cwast.Case, cwast.StmtExpr,  cwast.StmtReturn,
+    cwast.StmtTrap, cwast.MacroFor
+]]
 
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
@@ -70,22 +78,19 @@ _KEYWORDS_OP = (
     [o for o in cwast.BINARY_EXPR_SHORTCUT if _NAMED_OP_RE.fullmatch(o)] +
     [o for o in cwast.UNARY_EXPR_SHORTCUT_SEXPR if _NAMED_OP_RE.fullmatch(o)])
 
-_KEYWORDS_SIMPLE = [
-    "funtype", "else"] + _KEYWORDS_OP + _KEYWORDS_NODES
 
-KEYWORDS: dict[str, TK_KIND] = ({
-    "pub": TK_KIND.SPECIAL_ANNOTATION,
-    "ref": TK_KIND.SPECIAL_ANNOTATION,
-    "poly": TK_KIND.SPECIAL_ANNOTATION,
-
-    "wrapped": TK_KIND.SPECIAL_ANNOTATION
-}
-    | {k: TK_KIND.KW for k in _KEYWORDS_SIMPLE}
-    | {k: TK_KIND.KW for k in pp.KEYWORDS}
+KEYWORDS: dict[str, TK_KIND] = (
+    #
+    {}
+    | {k: TK_KIND.SPECIAL_ANNOTATION for k in ["pub", "ref", "poly", "wrapped"]}
+    | {k: TK_KIND.KW for k in _KEYWORDS_NODES}
+    | {k: TK_KIND.KW for k in _KEYWORDS_OP}
+    #
+    | {k: TK_KIND.KW for k in ["funtype", "else", "set", "for", "while", "tryset"]}
+    # | {k: TK_KIND.KW for k in pp.KEYWORDS}
     | {k: TK_KIND.SPECIAL_MUT for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
-    # some operators are textual (xor, max, etc.)
+    # some operators are textual (ptr_inc, max, etc.)
     | {k: TK_KIND.OP2 for k in cwast.BINARY_EXPR_SHORTCUT}
-    | {k: TK_KIND.SPECIAL_MUT for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
     | {cwast.BaseTypeKindToKeyword(k): TK_KIND.KW for k in cwast.BASE_TYPE_KIND
        if k is not cwast.BASE_TYPE_KIND.INVALID}
 )
@@ -102,7 +107,7 @@ _OPERATORS_SIMPLE1 = [
 
 
 ANNOTATION_NEW_RE = r"\{\{[_a-zA-Z]+\}\}"
-ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?"
+ID_OR_KW_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
@@ -136,7 +141,7 @@ _token_spec = [
     (TK_KIND.XMSTR.name,  string_re.MULTI_START_X),
     (TK_KIND.COMPOUND_ASSIGN.name,
      "(?:" + "|".join(_compound_assignment) + r")(?=\s|$)"),
-    (TK_KIND.ID.name, ID_RE),
+    (TK_KIND.ID.name, ID_OR_KW_RE),
     # require binary ops to be followed by whitespace, this helps with
     # disambiguating unary +/-
     (TK_KIND.OP2.name, "(?:" + "|".join(_operators2) + r")(?=\s|$)"),

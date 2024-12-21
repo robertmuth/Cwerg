@@ -547,7 +547,6 @@ ALL_FIELDS = [
     NfdAttrBool("colon", "colon style list"),
     NfdAttrBool("cdecl", "use c-linkage (no module prefix)"),
     NfdAttrBool("wrapped", "is wrapped type (forces type equivalence by name)"),
-    NfdAttrBool("discard", "ignore non-void expression"),
     NfdAttrBool("init", "run function at startup"),
     NfdAttrBool("fini", "run function at shutdown"),
     NfdAttrBool("unchecked", "array acces is not checked"),

@@ -170,7 +170,7 @@ KEYWORDS_TOPLEVEL = [
 KEYWORDS = [
     "module", "defer", "block", "expr",
     "break", "continue",  "cond", "type", "if",
-    "do", "discard", "case", "set", "for", "macro",
+    "do", "case", "set", "for", "macro",
     "while", "tryset", "trap", "return",
     "mfor", "swap", "else",
 ] + KEYWORDS_TOPLEVEL
