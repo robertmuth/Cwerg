@@ -163,17 +163,18 @@ def _ParseFunLike(inp: lexer.Lexer, name: lexer.TK) -> Any:
     return ctor(*params, **extra)
 
 
+_SIMPLE_VAL_NODES: dict[str, Callable] = {
+    "true": cwast.ValTrue,
+    "false": cwast.ValFalse,
+    "void": cwast.ValVoid,
+    "auto": cwast.ValAuto,
+    "undef": cwast.ValUndef
+}
+
+
 def _PParseKeywordConstants(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
-    if tk.text == "true":
-        return cwast.ValTrue(x_srcloc=tk.srcloc)
-    elif tk.text == "false":
-        return cwast.ValFalse(x_srcloc=tk.srcloc)
-    elif tk.text == "void":
-        return cwast.ValVoid(x_srcloc=tk.srcloc)
-    elif tk.text == "auto":
-        return cwast.ValAuto(x_srcloc=tk.srcloc)
-    elif tk.text == "undef":
-        return cwast.ValUndef(x_srcloc=tk.srcloc)
+    if tk.text in _SIMPLE_VAL_NODES:
+        return _SIMPLE_VAL_NODES[tk.text](x_srcloc=tk.srcloc)
     elif tk.text in cwast.BUILT_IN_EXPR_MACROS:
         inp.match_or_die(lexer.TK_KIND.PAREN_OPEN)
         args = _ParseMacroCallArgs(inp, tk.srcloc)
@@ -333,7 +334,8 @@ def _PParseFunctionCall(inp: lexer.Lexer, callee, tk: lexer.TK, precedence) -> A
 
 
 def _PParseIndex(inp: lexer.Lexer, array, tk: lexer.TK, _precedence) -> Any:
-    assert tk.kind in (lexer.TK_KIND.SQUARE_OPEN, lexer.TK_KIND.SQUARE_OPEN_EXCL)
+    assert tk.kind in (lexer.TK_KIND.SQUARE_OPEN,
+                       lexer.TK_KIND.SQUARE_OPEN_EXCL)
     is_unchecked = tk.kind is lexer.TK_KIND.SQUARE_OPEN_EXCL
     tk = inp.peek()
     index = _ParseExpr(inp)
