@@ -27,9 +27,8 @@ _OPS_PRECENDENCE = {
     cwast.ExprIs: 50,
 }
 
-_ANNOTATION_PREFIX = "@"
 _DEREFERENCE_OP = "^"
-_ADDRESS_OF_OP = "&"
+_ADDRESS_OF_OP = "@"
 
 PREC2_ORSC = 5
 PREC2_ANDSC = 6
@@ -389,7 +388,7 @@ def TokensAnnotationsPre(ts: TS, node):
                         ts.EmitComment("-- " + line)
 
             else:
-                ts.EmitAnnotationLong(_ANNOTATION_PREFIX + field + "=" + val)
+                ts.EmitAnnotationLong("{{" + field + "=" + val + "}}")
 
     # next handle non-docs
     for field, nfd in node.ATTRS:
@@ -400,7 +399,7 @@ def TokensAnnotationsPre(ts: TS, node):
         val = getattr(node, field)
         if val:
             if field not in ("pub", "wrapped", "ref", "poly"):
-                field = _ANNOTATION_PREFIX + field
+                field = "{{" + field + "}}"
             ts.EmitAnnotationShort(field)
 
 
@@ -526,7 +525,7 @@ def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
     EmitTokens(ts, node.container)
     beg_paren = ts.EmitBegParen("[")
     if node.unchecked:
-        ts.EmitAttr("@unchecked")
+        ts.EmitAnnotationShort("{{unchecked}}")
     EmitTokens(ts, node.expr_index)
     ts.EmitEnd(beg_paren)
 
@@ -557,20 +556,21 @@ def KW(node) -> str:
 
 
 def TokensExpr1(ts: TS, node: cwast.Expr1):
-    sym = cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV.get(node.unary_expr_kind)
-    if sym:
-        TokensUnaryPrefix(ts, sym, node.expr)
+    kind = node.unary_expr_kind
+    sym = cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[kind]
+    if kind in _FUNCTIONAL_UNOPS:
+        TokensFunctional(ts, sym, [node.expr])
     else:
-        sym = cwast.UNARY_EXPR_SHORTCUT_SEXPR_INV.get(node.unary_expr_kind)
-        TokensFunctional(ts, sym, [node.expr]),
+        TokensUnaryPrefix(ts, sym, node.expr)
 
 
 def TokensExpr2(ts: TS, n: cwast.Expr2):
     kind = n.binary_expr_kind
+    sym = cwast.BINARY_EXPR_SHORTCUT_INV[kind]
     if kind in _FUNCTIONAL_BINOPS:
-        return TokensFunctional(ts, cwast.BINARY_EXPR_SHORTCUT_INV[kind], [n.expr1, n.expr2])
+        return TokensFunctional(ts, sym, [n.expr1, n.expr2])
     else:
-        return TokensBinaryInfix(ts, cwast.BINARY_EXPR_SHORTCUT_INV[kind], n.expr1, n.expr2, n)
+        return TokensBinaryInfix(ts, sym, n.expr1, n.expr2, n)
 
 
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {

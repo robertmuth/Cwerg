@@ -94,16 +94,6 @@ KEYWORDS: dict[str, TK_KIND] = (
 )
 
 
-_OPERATORS_SIMPLE1 = [
-    "-",  # note, also in binops
-    "^!",
-    "^",
-    "@!",
-    "@",
-    "!",
-]
-
-
 ANNOTATION_NEW_RE = r"\{\{[_a-zA-Z]+\}\}"
 ID_OR_KW_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?[!]?"
 COMMENT_RE = r"--.*[\n]"
@@ -114,7 +104,9 @@ _operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
                if not _NAMED_OP_RE.fullmatch(x)]
 
 
-_operators1 = [re.escape(x) for x in _OPERATORS_SIMPLE1]
+_operators1a = [re.escape(x) for x in cwast.UNARY_EXPR_SHORTCUT_CONCRETE
+               if not _NAMED_OP_RE.fullmatch(x)]
+_operators1b = [re.escape(x) for x in ["^!", "^", "@!", "@"]]
 
 _compound_assignment = [re.escape(x) for x in cwast.ASSIGNMENT_SHORTCUT]
 
@@ -144,7 +136,7 @@ _token_spec = [
     # disambiguating unary +/-
     (TK_KIND.OP2.name, "(?:" + "|".join(_operators2) + r")(?=\s|$)"),
     # OP1 must follow OP2 and NUM because of matching overlap
-    (TK_KIND.OP1.name, "|".join(_operators1)),
+    (TK_KIND.OP1.name, "|".join(_operators1a + _operators1b)),
     (TK_KIND.STR.name, "(?:" + string_re.START + \
      "|" + string_re.R_START + ")" + string_re.END),
     (TK_KIND.CHAR.name, CHAR_RE),
