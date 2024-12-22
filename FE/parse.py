@@ -101,7 +101,7 @@ _FUN_LIKE: dict[str, tuple[Callable, str]] = {
     "ptr_inc": (cwast.ExprPointer, "pEEe"),
     "ptr_dec": (cwast.ExprPointer, "pEEe"),
     cwast.ExprOffsetof.ALIAS: (cwast.ExprOffsetof, "TE"),
-    "span": (cwast.ValSpan, "EE"),
+    "make_span": (cwast.ValSpan, "EE"),
     cwast.ExprFront.ALIAS:  (cwast.ExprFront, "E"),
     cwast.ExprFront.ALIAS + "!":  (cwast.ExprFront, "E"),
     cwast.ExprUnwrap.ALIAS: (cwast.ExprUnwrap, "E"),
@@ -286,20 +286,7 @@ def _PParserInfixOp(inp: lexer.Lexer, lhs, tk: lexer.TK, precedence) -> Any:
 
 
 def _ParseMacroArg(inp: lexer.Lexer, srcloc) -> Any:
-    if inp.match(lexer.TK_KIND.CURLY_OPEN):
-        assert False, "EphemeralList are no longer supported"
-        # if we decice to re-introduce them, we should use "{{ ... }}"
-        # notation to make them different from compound values
-        args = []
-        first = True
-        while not inp.match(lexer.TK_KIND.CURLY_CLOSED):
-            if not first:
-                inp.match_or_die(lexer.TK_KIND.COMMA)
-            first = False
-            args.append(_ParseMacroArg(inp, srcloc))
-        return cwast.EphemeralList(args, x_srcloc=srcloc)
-    else:
-        return _ParseExpr(inp)
+    return _ParseExpr(inp)
 
 
 def _ParseMacroCallArgs(inp: lexer.Lexer, srloc) -> list[Any]:

@@ -140,7 +140,7 @@ pub poly fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
             let! i = 0_uint
             set i += FmtSign(is_negative, force_sign, out)
             set i += FmtMantissaE(
-                    span(front(buffer), 1), precision, span_inc(out, i))
+                    make_span(front(buffer), 1), precision, span_inc(out, i))
             set i += FmtExponentE(0, span_inc(out, i))
             return i
         return 0
@@ -159,15 +159,15 @@ pub poly fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
         set mantissa *= 10
         set mantissa >>= as(52_s32 - exponent, u64)
     let num_digits uint = fmt_int::FmtDec(
-            mantissa, span(front!(buffer), len(buffer)))
+            mantissa, make_span(front!(buffer), len(buffer)))
     -- decimal rounding if we drop digits
     if num_digits > precision + 1 && buffer[precision + 2] >= '5':
-        set t += RoundDigitsUp(span(front!(buffer), precision + 1))
+        set t += RoundDigitsUp(make_span(front!(buffer), precision + 1))
     set t += as(num_digits - 1, s32)
     let! i = 0_uint
     set i += FmtSign(is_negative, force_sign, out)
     set i += FmtMantissaE(
-            span(front(buffer), num_digits), precision, span_inc(out, i))
+            make_span(front(buffer), num_digits), precision, span_inc(out, i))
     set i += FmtExponentE(t, span_inc(out, i))
     -- fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")
     return i

@@ -159,7 +159,7 @@ global AllTestCases = {
                 [15]u8: 0xe5, 0xc0, 0x81, 0x00, 0x00, 0x00, 0x00, 0x80, 0xa0, 0xfc,
                 0xa9, 0x07, 0x39, 0x73, 0x01},
             256_uint,
-            span(front(zeros), 256),
+            make_span(front(zeros), 256),
             large_output_buffer},
         {
             TestCase: "dynamic huffman:  empty (no distance only literal tree)",
@@ -178,7 +178,7 @@ global AllTestCases = {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x00, 0x02},
             256_uint,
-            span(front(zeros), 256),
+            make_span(front(zeros), 256),
             large_output_buffer},
         {
             TestCase: "dynamic huffman:  259 zero bytes compressed using literal/length code 285 (len 258)",
@@ -186,7 +186,7 @@ global AllTestCases = {
                 [15]u8: 0xed, 0xcc, 0x81, 0x00, 0x00, 0x00, 0x00, 0x80, 0xa0, 0xfc,
                 0xa9, 0x17, 0xb9, 0x00, 0x2c},
             259_uint,
-            span(front(zeros), 259),
+            make_span(front(zeros), 259),
             large_output_buffer},
         {
             TestCase: "dynamic huffman: 259 zero bytes compressed using literal/length code 284 + 31 (len 258)",
@@ -194,7 +194,7 @@ global AllTestCases = {
                 [16]u8: 0xe5, 0xcc, 0x81, 0x00, 0x00, 0x00, 0x00, 0x80, 0xa0, 0xfc,
                 0xa9, 0x07, 0xb9, 0x00, 0xfc, 0x05},
             259_uint,
-            span(front(zeros), 259),
+            make_span(front(zeros), 259),
             large_output_buffer},
         {
             TestCase: "dynamic huffman:  copy of 3 bytes with a distance of 32768 ",
@@ -213,7 +213,7 @@ global AllTestCases = {
                 [15]u8: 0x0d, 0xc3, 0x37, 0x01, 0x00, 0x00, 0x00, 0x80, 0x20, 0xfa,
                 0x77, 0x1e, 0xca, 0x61, 0x01},
             4_uint,
-            span(front(zeros), 4),
+            make_span(front(zeros), 4),
             large_output_buffer},
         {
             TestCase: "dynamic huffman:  15 zero bytes - use all codeword lengths including 15",
@@ -236,7 +236,7 @@ fun test_all() void:
         if is(res, uint):
             test::AssertSliceEq#(
                     tc^.expected_output,
-                    span(front(tc^.output), narrow_as!(res, uint)))
+                    make_span(front(tc^.output), narrow_as!(res, uint)))
 
 fun main(argc s32, argv ^^u8) s32:
     do test_all()

@@ -220,17 +220,17 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8)) un
             return CorruptionErrorVal
         if dist_num_syms > 30:
             return CorruptionErrorVal
-        let lit_dist_slice = span(
+        let lit_dist_slice = make_span(
                 front!(lit_dist_lengths), lit_num_syms + dist_num_syms)
         trylet x Success = read_lit_dist_lengths(
                 bs, cl_counts, cl_symbols, lit_dist_slice), err:
             return err
     dump_slice#(
-            "combo: ", span(front(lit_dist_lengths), lit_num_syms + dist_num_syms))
+            "combo: ", make_span(front(lit_dist_lengths), lit_num_syms + dist_num_syms))
     let! lit_symbols [MAX_LIT_SYMS]u16
     let! lit_counts [MAX_HUFFMAN_BITS + 1]u16
     block _:
-        let lit_lengths = span(front!(lit_dist_lengths), lit_num_syms)
+        let lit_lengths = make_span(front!(lit_dist_lengths), lit_num_syms)
         let lit_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
                 lit_lengths, lit_counts, lit_symbols)
         if lit_last_symbol == huffman::BAD_TREE_ENCODING:
@@ -239,7 +239,7 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8)) un
     let! dist_symbols [MAX_DIST_SYMS]u16
     let! dist_counts [MAX_HUFFMAN_BITS + 1]u16
     block _:
-        let dist_lengths = span(
+        let dist_lengths = make_span(
                 ptr_inc(front!(lit_dist_lengths), lit_num_syms), dist_num_syms)
         let dist_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
                 dist_lengths, dist_counts, dist_symbols)
@@ -250,9 +250,9 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8)) un
     return handle_huffman_common(
             bs,
             lit_counts,
-            span(front(lit_symbols), lit_num_syms),
+            make_span(front(lit_symbols), lit_num_syms),
             dist_counts,
-            span(front(dist_symbols), dist_num_syms),
+            make_span(front(dist_symbols), dist_num_syms),
             pos,
             dst)
 

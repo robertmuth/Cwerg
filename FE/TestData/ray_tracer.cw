@@ -129,7 +129,7 @@ fun ParseScene(scene_str span(u8)) Scene:
         let! eol = string::find(s, "\n")
         if eol == string::NOT_FOUND:
             set eol = len(s) - 1
-        let! line = span(front(s), eol + 1)
+        let! line = make_span(front(s), eol + 1)
         set s = span_inc(s, eol + 1)
         set line = span_inc(line, skip_white_space(line))
         if len(line) == 0 || line[0] == '#':
@@ -284,5 +284,5 @@ fun main(argc s32, argv ^^u8) s32:
     let rays_per_pixel = 1_u32
     do init_vrand_urand()
     ref let scene = ParseScene(gSceneStr)
-    do Render(w, h, rays_per_pixel, span(front!(gPixels), as(w * h, uint)),  @scene)
+    do Render(w, h, rays_per_pixel, make_span(front!(gPixels), as(w * h, uint)),  @scene)
     return 0

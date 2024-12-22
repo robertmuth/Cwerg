@@ -1751,7 +1751,7 @@ class ValSpan:
 
     type and mutability is defined by the pointer
     """
-    ALIAS: ClassVar = "span_val"
+    ALIAS: ClassVar = "make_span"
     GROUP: ClassVar = GROUP.Value
     FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #

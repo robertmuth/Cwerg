@@ -150,7 +150,7 @@ pub fun strz_to_slice(s ^u8) span(u8):
     let! i uint = 0
     while ptr_inc(s, i)^ != 0:
         set i += 1
-    return span(s, i)
+    return make_span(s, i)
 
 pub macro assert# STMT($cond EXPR, $parts EXPR_LIST_REST)[]:
     if $cond:

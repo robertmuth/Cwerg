@@ -3,6 +3,7 @@ module:
 
 import test
 
+import cmp
 import fmt
 
 import fmt_real
@@ -26,7 +27,7 @@ rec Body:
 
 fun BodyCommon(x r64, y r64, z r64, vx r64, vy r64, vz r64, m r64) Body:
     return {
-            Body: x, y, z, vx * DAYS_PER_YEAR, vy * DAYS_PER_YEAR, vz * DAYS_PER_YEAR, 
+            Body: x, y, z, vx * DAYS_PER_YEAR, vy * DAYS_PER_YEAR, vz * DAYS_PER_YEAR,
             m* SOLAR_MASS}
 
 fun BodyJupiter() Body:
@@ -143,7 +144,7 @@ fun main(argc s32, argv ^^u8) s32:
         do Advance(@!bodies, DT)
         let e = Energy(@bodies)
         -- fmt::print#(wrap_as(e, fmt::r64_hex), " ", e, "\n")
-        test::AssertApproxEq#(e, -0.16907495402506745_r64, EPSILON)
+        test::AssertGenericEq#({cmp::r64r: -0.16907495402506745, EPSILON}, {cmp::r64r: e})
     else:
         for i = 0, NUM_ITER, 1:
             do Advance(@!bodies, DT)

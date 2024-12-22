@@ -55,7 +55,7 @@ _KEYWORDS_NODES = [nt.ALIAS for nt in [
     cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta, cwast.TypeVec, cwast.TypeSpan,
     cwast.TypeAuto,  # also used for ValAuto
     #
-    cwast.ValUndef, cwast.ValTrue, cwast.ValFalse,
+    cwast.ValUndef, cwast.ValTrue, cwast.ValFalse, cwast.ValSpan,
     #
     cwast.ExprUnionTag, cwast.ExprIs, cwast.ExprFront, cwast.ExprStmt,
     cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden, cwast.ExprSrcLoc,
@@ -128,9 +128,9 @@ _token_spec = [
     (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
-    (TK_KIND.MSTR.name,  string_re.MULTI_START),
+    (TK_KIND.MSTR.name, string_re.MULTI_START),
     (TK_KIND.RMSTR.name, string_re.MULTI_START_R),
-    (TK_KIND.XMSTR.name,  string_re.MULTI_START_X),
+    (TK_KIND.XMSTR.name, string_re.MULTI_START_X),
     (TK_KIND.COMPOUND_ASSIGN.name,
      "(?:" + "|".join(_compound_assignment) + r")(?=\s|$)"),
     (TK_KIND.ID.name, ID_OR_KW_RE),

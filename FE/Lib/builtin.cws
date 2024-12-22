@@ -96,7 +96,7 @@ The type of the loop variable is determined by $end"""
         (if (> $orig_size $orig_len) :
             (trap)
          :)
-        (return (span_val (ptr_inc (@preserve_mut front $orig_slice) $orig_size) (- $orig_len $orig_size)))))
+        (return (make_span (ptr_inc (@preserve_mut front $orig_slice) $orig_size) (- $orig_len $orig_size)))))
 
 @builtin @pub (macro span_diff EXPR [(mparam $a EXPR) (mparam $b EXPR)] [] :
    (ptr_diff (front $a) (front $b)))
@@ -110,7 +110,7 @@ The type of the loop variable is determined by $end"""
         (if (> $orig_size $orig_len) :
             (trap)
          :)
-        (return (span_val (front! $orig_slice) $orig_size))))
+        (return (make_span (front! $orig_slice) $orig_size))))
 
 
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."

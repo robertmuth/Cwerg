@@ -19,13 +19,13 @@ pub fun Skip(buffer ^!span(u8), n uint) union(void, OutOfBoundsError):
 
 --
 pub fun FrontSliceOrDie(buffer ^!span(u8), n uint) span(u8):
-    let out = span(front(buffer^), n)
+    let out = make_span(front(buffer^), n)
     set buffer^ = span_inc(buffer^, n)
     return out
 
 --
 pub fun FrontSliceUnchecked(buffer ^!span(u8), n uint) span(u8):
-    let out = span(front(buffer^), n)
+    let out = make_span(front(buffer^), n)
     do SkipUnchecked(buffer, n)
     return out
 
@@ -33,7 +33,7 @@ pub fun FrontSliceUnchecked(buffer ^!span(u8), n uint) span(u8):
 pub fun FrontSlice(buffer ^!span(u8), n uint) union(span(u8), OutOfBoundsError):
     if len(buffer^) <= n:
         return OutOfBoundsErrorVal
-    let out span(u8) = span(front(buffer^), n)
+    let out span(u8) = make_span(front(buffer^), n)
     do SkipUnchecked(buffer, n)
     return out
 

@@ -7,6 +7,7 @@
 module:
 
 import os
+import cmp
 
 macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
     mlet $msg_eval span(u8) = $msg
@@ -32,6 +33,12 @@ macro AssertCommon# STMT_LIST($name EXPR, $e_expr EXPR, $a_expr EXPR)[
 -- The two scalar arguments must be the same
 --
 -- Both must have derivable types as we use `auto`
+pub macro AssertGenericEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
+    mlet $e_val = $e_expr
+    mlet $a_val = $a_expr
+    if !cmp::eq($e_val, $a_val):
+        AssertCommon#("AssertEq", $e_expr, $a_expr)
+
 pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
@@ -41,6 +48,12 @@ pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
 -- The two scalar arguments must be the same
 --
 -- Both must have derivable types as we use `auto`
+pub macro AssertGenericNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
+    mlet $e_val = $e_expr
+    mlet $a_val = $a_expr
+    if cmp::eq($e_val, $a_val):
+        AssertCommon#("AssertNe", $e_expr, $a_expr)
+
 pub macro AssertNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr

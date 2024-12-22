@@ -93,7 +93,7 @@ pub fun AtomGetData(file ^File, index Index) span(u8):
     if IndexGetKind(index) != ObjKind:Atom:
         trap
     let ptr = bitwise_as(@file^.objects[IndexGetValue(index)], ^Atom)
-    return span(@file^.data[ptr^.offset], as(ptr^.length, uint))
+    return make_span(@file^.data[ptr^.offset], as(ptr^.length, uint))
 
 -- Items make up the contents of Cont
 rec Item:
@@ -243,7 +243,7 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
                 set file^.objects[index] = {
                         Atom: start, end - start, seen_esc ? AtomKind:EscStr : AtomKind:Str}
                 set file^.next_byte = end + 1
-                -- fmt::print#("ParseAtom End: [", span(@file^.data[start], as(end - start, uint)), "]\n")
+                -- fmt::print#("ParseAtom End: [", make_span(@file^.data[start], as(end - start, uint)), "]\n")
                 return MakeIndex(index, ObjKind:Atom)
             if d == '\\':
                 set seen_esc = true
@@ -259,7 +259,7 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
             break
         set end += 1
     set file^.objects[index] = {Atom: start, end - start, AtomKind:Num}
-    -- fmt::print#("ParseAtom End: [", span(@file^.data[start], as(end - start, uint)), "]\n")
+    -- fmt::print#("ParseAtom End: [", make_span(@file^.data[start], as(end - start, uint)), "]\n")
     set file^.next_byte = end
     return MakeIndex(index, ObjKind:Atom)
 
