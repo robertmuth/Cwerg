@@ -1,5 +1,7 @@
 module:
 
+import cmp
+
 import fmt
 
 import test
@@ -27,7 +29,7 @@ fun test_nan() void:
     test::AssertEqR64#(+inf_r64, parse_r64("+inf"))
     test::AssertEqR64#(-inf_r64, parse_r64("-inf"))
 
-global epsilon1 r64 = 0.5e-15
+global REL_ERR1 r64 = 0.5e-15
 
 fun test_dec() void:
     -- zero tests
@@ -43,8 +45,8 @@ fun test_dec() void:
     test::AssertEqR64#(0.0_r64, parse_r64("000000.00000"))
     test::AssertEqR64#(0.0_r64, parse_r64("000000.00000"))
     -- largest value (2^53 -1) * 2^(1023 - 52)
-    --     (test::AssertApproxEq# 0x1.fffffffffffffp1023_r64
-    --                             (parse_r64 ["1.79769313486231570814e308"]) epsilon1)
+    --     (test::AssertGenericEq# 0x1.fffffffffffffp1023_r64
+    --                             (parse_r64 ["1.79769313486231570814e308"]) REL_ERR1)
     --
     test::AssertEqR64#(1.0_r64, parse_r64("1"))
     test::AssertEqR64#(1.0_r64, parse_r64(".1e1"))
@@ -56,14 +58,11 @@ fun test_dec() void:
     test::AssertEqR64#(+inf_r64, parse_r64("1e+500"))
     test::AssertEqR64#(-inf_r64, parse_r64("-1e+500"))
     -- this are slightly less accurate on x86-64 than on arm
-    test::AssertApproxEq#(
-            3.141592653589793238462643_r64,
-            parse_r64("3.141592653589793238462643"),
-            epsilon1)
-    test::AssertApproxEq#(
-            2.718281828459045235360287_r64,
-            parse_r64("2.718281828459045235360287"),
-            epsilon1)
+    test::AssertGenericEq#({cmp::r64r: 3.141592653589793238462643, REL_ERR1},
+            {cmp::r64r: parse_r64("3.141592653589793238462643")})
+    test::AssertGenericEq#(
+            {cmp::r64r: 2.718281828459045235360287, REL_ERR1},
+            {cmp::r64r: parse_r64("2.718281828459045235360287")})
 
 fun test_hex() void:
     --

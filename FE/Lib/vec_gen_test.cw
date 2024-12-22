@@ -1,5 +1,6 @@
 module:
 
+import cmp
 import fmt
 import string
 import parse_real
@@ -125,26 +126,26 @@ fun Test_HitDim3() void:
     ref let! hit v64::HitInfo
     let ray_orig = {v64::vec3: 1, 1, 1}
     let ray_dir = {v64::vec3: 0, 1, 0}
-    let epsilon r64 = 0.000000001
+    let REL_ERR r64 = 0.000000001
 
     -- inside
     test::AssertTrue#(v64::CheckRayHitsSphere(
-        ray_orig, ray_dir, {: 2, 1, 1}, 2, epsilon, @!hit))
-    test::AssertApproxEq#(hit.distance * hit.distance, 3_r64, epsilon)
+        ray_orig, ray_dir, {: 2, 1, 1}, 2, REL_ERR, @!hit))
+    test::AssertGenericEq#({cmp::r64r: hit.distance * hit.distance}, {cmp::r64r:  3, REL_ERR})
 
     if false:
         test::AssertTrue#(v64::CheckRayHitsSphere(
-           ray_orig, ray_dir, {: 2.5, 4.5, 1}, 2, epsilon, @!hit))
+           ray_orig, ray_dir, {: 2.5, 4.5, 1}, 2, REL_ERR, @!hit))
     if false:
 
         -- test::AssertTrue#(v64::CheckRayHitsSphere(
-        --      ray_orig, ray_dir, {: 0, 5, 1}, 1, epsilon, @!hit))
+        --      ray_orig, ray_dir, {: 0, 5, 1}, 1, REL_ERR, @!hit))
         fmt::print#(hit, "\n")
     if false:
         test::AssertFalse#(v64::CheckRayHitsSphere(
-            ray_orig, ray_dir, {: -2.5, 1, 1}, 1, epsilon, @!hit))
+            ray_orig, ray_dir, {: -2.5, 1, 1}, 1, REL_ERR, @!hit))
         test::AssertFalse#(v64::CheckRayHitsSphere(
-            ray_orig, ray_dir, {: 1, -1, 1}, 1, epsilon, @!hit))
+            ray_orig, ray_dir, {: 1, -1, 1}, 1, REL_ERR, @!hit))
 
 fun main(argc s32, argv ^^u8) s32:
     do Test_Dim2()

@@ -14,7 +14,7 @@ global SOLAR_MASS = PI * PI * 4.0
 
 global DAYS_PER_YEAR = 365.24_r64
 
-global EPSILON = 5e-13_r64
+global REL_ERR = 1e-13_r64
 
 rec Body:
     x r64
@@ -144,12 +144,12 @@ fun main(argc s32, argv ^^u8) s32:
         do Advance(@!bodies, DT)
         let e = Energy(@bodies)
         -- fmt::print#(wrap_as(e, fmt::r64_hex), " ", e, "\n")
-        test::AssertGenericEq#({cmp::r64r: -0.16907495402506745, EPSILON}, {cmp::r64r: e})
+        test::AssertGenericEq#({cmp::r64r: -0.16907495402506745, REL_ERR}, {cmp::r64r: e})
     else:
         for i = 0, NUM_ITER, 1:
             do Advance(@!bodies, DT)
         let e = Energy(@bodies)
         -- fmt::print#(wrap_as(e, fmt::r64_hex), " ", e,  "\n")
-        test::AssertApproxEq#(e, -0.1690859889909308_r64, EPSILON)
+        test::AssertGenericEq#({cmp::r64r: -0.1690859889909308, REL_ERR}, {cmp::r64r: e})
     test::Success#()
     return 0
