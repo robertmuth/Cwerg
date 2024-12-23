@@ -4,9 +4,10 @@ Cwerg tries to find the right balance between language expressiveness and compil
 The hope is to reach a sweet spot above what C gives us today:
 A small language that can be maintained by a single person and which is
 convenient for writing system software like operating systems and compilers.
+
 As with C, all control flow and all memory allocation is explicit.
 
-Discouraged practices are possible but require explicit overrides, e.g.:
+Discouraged/unsafe practices are possible but require explicit overrides, e.g.:
 uninitialized variables, global visibility, mutability, unchecked array accesses, untagged unions, ...
 
 Since small is subjective we have set a complexity budget of about 10kLOC
@@ -14,7 +15,7 @@ for a compiler frontend with basic optimizations
 (there is a comparable complexity budget for the backend).
 
  Cwerg is also meant to be a fast language focussing on whole program compilation. We target a compilation speed
- of at least a million lines per second and up to 10 million line programs.
+ of at least a million LOC per second and programs of up to 10 million LOC.
 
 ## Highlights
 
@@ -39,6 +40,7 @@ for a compiler frontend with basic optimizations
 * no goto, no va-args, no bitfields
 * no cyclic dependencies between modules
 * limited type inference
+* order of function definitions does not matter
 * all comments are on separate lines (no end of line comments)
 
 ## Syntax
@@ -114,7 +116,7 @@ module(
         -- the less-than function ($type x $type) -> bool
         $lt CONST_EXPR):
 
-pub global Leaf = void
+pub global Leaf = void_val
 
 pub rec Node:
     left union(void, ^!Node)
@@ -395,9 +397,9 @@ type t1 = funtype(x u8, y u8) u1
 
 This is strictly an abbreviation, the lhs and the rhs can be used interchangeably in the code.
 
-To force by name type equivalence use the `@wrapped` annotation like so
+To force by name type equivalence use the `wrapped` modifier like so
 ```
-@wrapped type t1 = funtype(x u8, y u8) u1
+wrapped type t1 = funtype(x u8, y u8) u1
 ```
 The type `t1` is said to be a wrapped type.
 
@@ -415,7 +417,7 @@ Tagged unions can be declared like so:
 Note, that there are no names - only types. In case that the same type is
 needed twice in a single union, wrapped types can be used.
 
-The annotation `@untagged` changes a union to untagged.
+Using the exclamation mark suffix as in `union!` changes the union to be untagged.
 
 Unions are:
 *  order independent
@@ -557,7 +559,7 @@ and must be have one of the following kinds:
 ## Top Level Declarations
 
 By default all top level declarations are module private.
-The `pub` annotation will export the declaration and thereby make it
+The `pub` modifier will export the declaration and thereby make it
 visible to the importing module.
 
 Note, the declarations listed here can only appear at the top
@@ -885,7 +887,6 @@ The expression will usually be a function call with a side-effect.
 | SHL    | <<       |                           |
 | ROTR   | >>>      | bitwise rotate right      |
 | ROTL   | <<<      | bitwise rotate left       |
-| PDELTA | ptr_diff | pointer difference        |
 
 
 +, -, *, /. % for signed and unsigned integers have wrap-around
