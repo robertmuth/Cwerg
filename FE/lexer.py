@@ -53,7 +53,7 @@ class TK_KIND(enum.Enum):
 
 _KEYWORDS_NODES = [nt.ALIAS for nt in [
     cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta, cwast.TypeVec, cwast.TypeSpan,
-    cwast.TypeAuto,  # also used for ValAuto
+    cwast.TypeAuto, cwast.TypeFun, # also used for ValAuto
     #
     cwast.ValUndef, cwast.ValTrue, cwast.ValFalse, cwast.ValSpan,
     #
@@ -87,7 +87,7 @@ KEYWORDS: dict[str, TK_KIND] = (
     | {k: TK_KIND.KW for k in _KEYWORDS_NODES}
     | {k: TK_KIND.KW for k in _KEYWORDS_OP}
     #
-    | {k: TK_KIND.KW for k in ["funtype", "else", "set", "for", "while", "tryset"]}
+    | {k: TK_KIND.KW for k in ["else", "set", "for", "while", "tryset"]}
     | {k: TK_KIND.KW for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
     | {k + cwast.MUTABILITY_SUFFIX: TK_KIND.KW for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
     | {cwast.BaseTypeKindToKeyword(k): TK_KIND.KW for k in cwast.BASE_TYPE_KIND

@@ -1197,7 +1197,7 @@ class RecField:  #
     sensitive situations.
     """
     ALIAS: ClassVar = "field"
-    GROUP: ClassVar = GROUP.Type
+    GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
     name: NAME
@@ -1218,7 +1218,7 @@ class RecField:  #
 class DefRec:
     """Record definition"""
     ALIAS: ClassVar = "defrec"
-    GROUP: ClassVar = GROUP.Type
+    GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     name: NAME
@@ -1501,7 +1501,7 @@ class TypeFun:
 
     The `FunParam.name` field is ignored and should be `_`
     """
-    ALIAS: ClassVar = "sig"
+    ALIAS: ClassVar = "funtype"
     GROUP: ClassVar = GROUP.Type
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
@@ -2636,7 +2636,7 @@ class EnumVal:
 
      `value: ValAuto` means previous value + 1"""
     ALIAS: ClassVar = "entry"
-    GROUP: ClassVar = GROUP.Type
+    GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.GLOBAL_SYM_DEF
     #
     name: NAME
@@ -2657,7 +2657,7 @@ class EnumVal:
 class DefEnum:
     """Enum definition"""
     ALIAS: ClassVar = "enum"
-    GROUP: ClassVar = GROUP.Type
+    GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
     #
     name: NAME
@@ -2876,7 +2876,7 @@ class MacroVar:
 
     """
     ALIAS: ClassVar = "mlet"
-    GROUP: ClassVar = GROUP.Macro
+    GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
     name: NAME
@@ -2902,7 +2902,7 @@ class MacroFor:
     binds each list element to `name` while expanding the AST nodes in `body_for`.
     """
     ALIAS: ClassVar = "mfor"
-    GROUP: ClassVar = GROUP.Macro
+    GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.MACRO_BODY_ONLY | NF.NON_CORE
     #
     name: NAME

@@ -177,7 +177,7 @@ def _PParseKeywordConstants(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
         return _SIMPLE_VAL_NODES[tk.text](x_srcloc=tk.srcloc)
     elif tk.text in cwast.BUILT_IN_EXPR_MACROS:
         inp.match_or_die(lexer.TK_KIND.PAREN_OPEN)
-        args = _ParseMacroCallArgs(inp, tk.srcloc)
+        args = _ParseMacroCallArgs(inp)
         return cwast.MacroInvoke(cwast.NAME.FromStr(tk.text), args, x_srcloc=tk.srcloc)
     elif tk.text in _FUN_LIKE:
         return _ParseFunLike(inp, tk)
@@ -285,23 +285,19 @@ def _PParserInfixOp(inp: lexer.Lexer, lhs, tk: lexer.TK, precedence) -> Any:
     return cwast.Expr2(cwast.BINARY_EXPR_SHORTCUT[tk.text], lhs, rhs, x_srcloc=tk.srcloc)
 
 
-def _ParseMacroArg(inp: lexer.Lexer, srcloc) -> Any:
-    return _ParseExpr(inp)
-
-
-def _ParseMacroCallArgs(inp: lexer.Lexer, srloc) -> list[Any]:
+def _ParseMacroCallArgs(inp: lexer.Lexer) -> list[Any]:
     args = []
     first = True
     while not inp.match(lexer.TK_KIND.PAREN_CLOSED):
         if not first:
             inp.match_or_die(lexer.TK_KIND.COMMA)
         first = False
-        args.append(_ParseMacroArg(inp, srloc))
+        args.append(_ParseTypeExprOrExpr(inp))
     return args
 
 
 def _ParseExprMacro(name: cwast.Id, inp: lexer.Lexer):
-    args = _ParseMacroCallArgs(inp, name.x_srcloc)
+    args = _ParseMacroCallArgs(inp)
     assert name.IsMacroCall()
     return cwast.MacroInvoke(cwast.NAME.FromStr(name.FullName()), args, x_srcloc=name.x_srcloc)
 
@@ -401,7 +397,7 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
     elif tk.kind is lexer.TK_KIND.KW:
         if tk.text == cwast.TypeAuto.ALIAS:
             return cwast.TypeAuto(**extra)
-        elif tk.text == "funtype":
+        elif tk.text == cwast.TypeFun.ALIAS:
             params = _ParseFormalParams(inp)
             result = _ParseTypeExpr(inp)
             return cwast.TypeFun(params, result, **extra)
@@ -442,7 +438,7 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
         assert False, f"unexpected token {tk}"
 
 
-_TYPE_START_KW = set([cwast.TypeAuto.ALIAS, "funtype", "span", "span!", cwast.TypeOf.ALIAS,
+_TYPE_START_KW = set([cwast.TypeAuto.ALIAS, cwast.TypeFun.ALIAS, "span", "span!", cwast.TypeOf.ALIAS,
                      cwast.TypeUnionDelta.ALIAS, cwast.TypeUnion.ALIAS, "[", "^", "^!"])
 
 
@@ -476,7 +472,7 @@ def _ParseStatementMacro(kw: lexer.TK, inp: lexer.Lexer):
     assert kw.text.endswith(cwast.MACRO_CALL_SUFFIX), f"{kw}"
     args = []
     if inp.match(lexer.TK_KIND.PAREN_OPEN):
-        args = _ParseMacroCallArgs(inp, kw.srcloc)
+        args = _ParseMacroCallArgs(inp)
     else:
         while inp.peek().kind is not lexer.TK_KIND.COLON:
             args.append(_ParseExpr(inp))
