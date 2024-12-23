@@ -55,7 +55,7 @@ _KEYWORDS_NODES = [nt.ALIAS for nt in [
     cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta, cwast.TypeVec, cwast.TypeSpan,
     cwast.TypeAuto, cwast.TypeFun, # also used for ValAuto
     #
-    cwast.ValUndef, cwast.ValTrue, cwast.ValFalse, cwast.ValSpan,
+    cwast.ValUndef, cwast.ValTrue, cwast.ValFalse, cwast.ValSpan, cwast.ValVoid,
     #
     cwast.ExprUnionTag, cwast.ExprIs, cwast.ExprFront, cwast.ExprStmt,
     cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden, cwast.ExprSrcLoc,

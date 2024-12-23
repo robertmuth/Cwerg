@@ -7,7 +7,7 @@ import fmt
 
 wrapped type NoneType = void
 
-pub global None = wrap_as(void, NoneType)
+pub global None = wrap_as(void_val, NoneType)
 
 pub rec LinkedListNode:
     next union(NoneType, ^!LinkedListNode)
@@ -53,7 +53,7 @@ fun main(argc s32, argv ^^u8) s32:
     --
     --     (for i 0 N 1 :
     --        (do (DumpNode [i])))
-    --     
+    --
     test::AssertEq#(SumPayload(front!(NodePool)), 4950_u32)
     test::Success#()
     return 0

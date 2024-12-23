@@ -5,7 +5,7 @@ module(
         -- the less-than function ($type x $type) -> bool
         $lt CONST_EXPR):
 
-pub global Leaf = void
+pub global Leaf = void_val
 
 pub rec Node:
     left union(void, ^!Node)

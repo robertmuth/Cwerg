@@ -5,7 +5,7 @@ import fmt
 -- the input bitstream was corrupted
 pub wrapped type OutOfBoundsError = void
 
-pub global OutOfBoundsErrorVal = wrap_as(void, OutOfBoundsError)
+pub global OutOfBoundsErrorVal = wrap_as(void_val, OutOfBoundsError)
 
 --
 pub fun SkipUnchecked(buffer ^!span(u8), n uint) void:

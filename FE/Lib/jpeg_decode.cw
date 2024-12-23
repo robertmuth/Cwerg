@@ -280,15 +280,15 @@ pub rec FrameInfo:
 
 pub wrapped type Success = void
 
-pub global SuccessVal = wrap_as(void, Success)
+pub global SuccessVal = wrap_as(void_val, Success)
 
 pub wrapped type CorruptionError = void
 
-pub global CorruptionErrorVal = wrap_as(void, CorruptionError)
+pub global CorruptionErrorVal = wrap_as(void_val, CorruptionError)
 
 pub wrapped type UnsupportedError = void
 
-pub global UnsupportedErrorVal = wrap_as(void, UnsupportedError)
+pub global UnsupportedErrorVal = wrap_as(void_val, UnsupportedError)
 
 fun div_roundup(a u32, b u32) u32:
     return (a + b - 1) / b

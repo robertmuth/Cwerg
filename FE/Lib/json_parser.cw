@@ -40,15 +40,15 @@ pub type Object = union!(Cont, Item, Atom)
 
 pub wrapped type Success = void
 
-pub global SuccessVal = wrap_as(void, Success)
+pub global SuccessVal = wrap_as(void_val, Success)
 
 pub wrapped type AllocError = void
 
-pub global AllocErrorVal = wrap_as(void, AllocError)
+pub global AllocErrorVal = wrap_as(void_val, AllocError)
 
 pub wrapped type DataError = void
 
-pub global DataErrorVal = wrap_as(void, DataError)
+pub global DataErrorVal = wrap_as(void_val, DataError)
 
 pub enum ObjKind u32:
     Invalid 0

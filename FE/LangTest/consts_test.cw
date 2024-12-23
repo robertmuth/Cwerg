@@ -34,7 +34,7 @@ global a8 bool
 
 static_assert a8 == false
 
-global c0 void = void
+global c0 void = void_val
 
 global c1 = 7_u32
 

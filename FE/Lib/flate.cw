@@ -22,21 +22,21 @@ macro dump_slice# STMT_LIST($prefix EXPR, $slice EXPR)[$s, $i]:
 -- the input bitstream was corrupted
 pub wrapped type CorruptionError = void
 
-pub global CorruptionErrorVal = wrap_as(void, CorruptionError)
+pub global CorruptionErrorVal = wrap_as(void_val, CorruptionError)
 
 -- the input bitstream was truncated
 pub wrapped type TruncationError = void
 
-pub global TruncationErrorVal = wrap_as(void, TruncationError)
+pub global TruncationErrorVal = wrap_as(void_val, TruncationError)
 
 -- the provided output buffer was not large enough
 pub wrapped type NoSpaceError = void
 
-pub global NoSpaceErrorVal = wrap_as(void, NoSpaceError)
+pub global NoSpaceErrorVal = wrap_as(void_val, NoSpaceError)
 
 pub wrapped type Success = void
 
-pub global SuccessVal = wrap_as(void, Success)
+pub global SuccessVal = wrap_as(void_val, Success)
 
 global MAX_HUFFMAN_BITS u16 = 15
 

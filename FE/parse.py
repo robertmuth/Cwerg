@@ -166,7 +166,7 @@ def _ParseFunLike(inp: lexer.Lexer, name: lexer.TK) -> Any:
 _SIMPLE_VAL_NODES: dict[str, Callable] = {
     "true": cwast.ValTrue,
     "false": cwast.ValFalse,
-    "void": cwast.ValVoid,
+    "void_val": cwast.ValVoid,
     "auto": cwast.ValAuto,
     "undef": cwast.ValUndef
 }

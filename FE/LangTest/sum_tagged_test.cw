@@ -4,15 +4,15 @@ import test
 
 wrapped type void_t1 = void
 
-global void_t1_val = wrap_as(void, void_t1)
+global void_t1_val = wrap_as(void_val, void_t1)
 
 wrapped type void_t2 = void
 
-global void_t2_val = wrap_as(void, void_t2)
+global void_t2_val = wrap_as(void_val, void_t2)
 
 wrapped type void_t3 = void
 
-global void_t3_val = wrap_as(void, void_t3)
+global void_t3_val = wrap_as(void_val, void_t3)
 
 static_assert size_of(union(void_t1, void_t2)) == size_of(typeid)
 
@@ -97,7 +97,7 @@ fun test_tagged_union_basic() void:
 pub type UnionVoid = union(void, void_t2, void_t3)
 
 fun test_tagged_union_void() void:
-    let! x012 union(void, void_t1, void_t2) = void
+    let! x012 union(void, void_t1, void_t2) = void_val
     let! x123 union(void_t1, void_t2, void_t3) = void_t3_val
     let! x12 union(void_t1, void_t2) = void_t1_val
     set x012 = x12
