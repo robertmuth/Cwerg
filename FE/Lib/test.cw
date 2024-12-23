@@ -75,6 +75,14 @@ pub macro AssertSliceEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[
     for $i = 0, len($a_val), 1:
         AssertEq#(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^)
 
+pub macro AssertGenericSliceEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[
+        $e_val, $a_val, $i]:
+    mlet $e_val = $e_expr
+    mlet $a_val = $a_expr
+    AssertEq#(len($e_val), len($a_val))
+    for $i = 0, len($a_val), 1:
+        AssertGenericEq#(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^)
+
 pub macro AssertEqR64# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val r64 = $e_expr
     mlet $a_val r64 = $a_expr
