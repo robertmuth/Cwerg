@@ -40,33 +40,33 @@ Note:
 
 `(ptr t)` or `(ptr @mut t)`
 
-### Arrays
+### vecs
 
-`(array dim t)`
+`(vec dim t)`
 
 Note the dimesion is part of the type.
 
 `(len array)` will return the dimension of the array
 which is a compile time constant.
 
-`(front array)`  or  `(front @mut array)`  will return
-a pointer to the first element of the array.
+`(front vec)`  or  `(front @mut vec)`  will return
+a pointer to the first element of the vec.
 
 
 
-### Slices
+### spans
 
-`(slice t)`
-`(slice @mut t)`
+`(span t)`
+`(span @mut t)`
 
 
-`(len slice)` will return the length of the slice.
-`(front slice)`  or  `(front @mut slice)`  will return
-a pointer to the first element of the slice.
+`(len span)` will return the length of the span.
+`(front span)`  or  `(front @mut span)`  will return
+a pointer to the first element of the span.
 
-`(front @mut slice)`  can only be applied to `(slice @mut t)`.
+`(front @mut span)`  can only be applied to `(span @mut t)`.
 
-Slices are essentially records of the form
+spans are essentially records of the form
 
 `((ptr  t), uint)`
 `((ptr  @mut t), uint)`

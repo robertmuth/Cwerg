@@ -1,13 +1,20 @@
 # Cwerg Language Overview
 
-Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity. The hope is to reach a sweet spot above what C gives us today:
-A small language that can be maintained by a single person and which is convenient for writing system software like operating systems and compilers.
+Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity.
+The hope is to reach a sweet spot above what C gives us today:
+A small language that can be maintained by a single person and which is
+convenient for writing system software like operating systems and compilers.
+As with C, all control flow and all memory allocation is explicit.
 
-Since small is subjective we have set a complexity budget of about 10kLOC for a compiler frontend with basic optimizations
+Discouraged practices are possible but require explicit overrides, e.g.:
+uninitialized variables, global visibility, mutability, unchecked array accesses, untagged unions, ...
+
+Since small is subjective we have set a complexity budget of about 10kLOC
+for a compiler frontend with basic optimizations
 (there is a comparable complexity budget for the backend).
 
- Cwerg is also meant to be a fast language enabling whole program compilation. We target a compilation speed
- of at least a million lines per second.
+ Cwerg is also meant to be a fast language focussing on whole program compilation. We target a compilation speed
+ of at least a million lines per second and up to 10 million line programs.
 
 ## Highlights
 
@@ -19,7 +26,7 @@ Since small is subjective we have set a complexity budget of about 10kLOC for a 
 * generics via generic modules
 * simple hygienic macro system
 * limited polymorphism
-* polymorphism and generics replace printf and enable custom formatters
+* printf like functionality with custom formatters (enabled my polymorphism and generics)
 * vecs (arrays) do not decay to pointers
 * vec indexing is checked by default
 * spans (views on vecs)
@@ -31,18 +38,14 @@ Since small is subjective we have set a complexity budget of about 10kLOC for a 
 * variables are immutable by default
 * no goto, no va-args, no bitfields
 * no cyclic dependencies between modules
-* limited type inference 
+* limited type inference
 * all comments are on separate lines (no end of line comments)
-
-As with C, all control flow and all memory allocation is explicit.
-
-Discouraged practices are possible but require explicit overrides, e.g.:
-uninitialized variables, global visibility, mutability, unchecked array accesses, untagged unions, ...
 
 ## Syntax
 
-Cwerg use a Python inspired syntax where the indentation level
-is significant.
+Cwerg uses a Python inspired syntax where the indentation level
+is significant. Operators are C style except for pointers, address taking and dereferncing
+which are Pascal style.
 
 We give some examples below to convey a general feeling for the language.
 The details should become clear after reading the rest of the tutorial.
@@ -99,7 +102,8 @@ fun sieve() uint:
     return count
 ```
 
-Exclamation marks at the end of keywords indicate mutability.
+Exclamation marks at the end of keywords indicate mutability
+or potentially unsafe behavior.
 
 ## Binary Tree (parameterized/generic module)
 
@@ -127,7 +131,7 @@ pub fun InorderTraversal(root MaybeNode, visitor Visitor) void:
     trylet node ^!Node = root, _:
         return
     do InorderTraversal(node^.left, visitor)
-    do visitor(&node^.payload)
+    do visitor(@node^.payload)
     do InorderTraversal(node^.right, visitor)
 
 -- returns the new root
@@ -136,7 +140,7 @@ pub fun Insert(root MaybeNode, node ^!Node) ^!Node:
     set node^.right = Leaf
     trylet curr ^!Node = root, _:
         return node
-    if $lt(&node^.payload, &curr^.payload):
+    if $lt(@node^.payload, @curr^.payload):
         set curr^.left = Insert(curr^.left, node)
     else:
         set curr^.right = Insert(curr^.right, node)
@@ -231,15 +235,21 @@ The caret goes in front of type.
 
 ```
 -- pointer to a u32
-^u32
+let p_normal ^u32 = ...
 
 -- pointer to a mutable u32
-^!u32
+let p_mutable ^!u32 = ...
+
+
+-- address of operator
+let p = @...
+
 ```
+
 
 ### Vecs (Arrays)
 
-Array dimension go in front of the element type:
+Vec dimension go in front of the element type:
 
 ```
     -- 10 element vec of element type u32
@@ -271,37 +281,59 @@ Accessing the address of the first element of a vec:
     ... = front!(mutable_vec)
 ```
 
-Note: vec literals are readonly.
+
+Note: vec literals are immutable but you can use them to initialize
+a mutable variable like so:
+```
+let! buffer = {[10]u16: 0 = 666, 1 = 66, 3 = 6}
+
+
+```
 
 ### Spans
 
-Spans are essentially fat pointers consisting of pointer to the first element of a vec
-and a length.
+Spans are essentially fat pointers consisting of a pointer to the first element
+of a vec and a length.
 
+Type declations:
 ```
     -- regular span with elements of type `u32`
-    span(u32)
+    let s_normal span(u32) = ...
 
     -- mutable span with elements of type `u32`
-    span!(u32)
+    let s_mutable span!(u32) = ...
 ```
 
 The length and address of the first element of a span can be accessed
 with the same syntax as for vec:
 ```
-    -- returns a readonly pointer to the first element of the slice
+    -- returns a readonly pointer to the first element of the span
 
-    ... = front(readomly_or_mutable_slice)
+    ... = front(readomly_or_mutable_span)
 
-    -- returns a mutable pointer to the first element of the mutable slice
+    -- returns a mutable pointer to the first element of the mutable span
 
-    ... = front!(mutable_slice)
+    ... = front!(mutable_span)
 
-    -- returns a `uint` with the length of the slice.
+    -- returns a `uint` with the length of the span.
 
-    ... = len(a_slice)
+    ... = len(a_span)
 
 ```
+
+Creation:
+```
+    -- create a span from a pointer and length.
+    -- the mutability of the span is determined by the pointer.
+    let a = {[1024]u8: 0, 1, 2, 3}
+    let s_mutable = make_span(front!(a), len(a))
+
+    -- conversion from vecs to non-mutable span is one of the few
+    -- implicit conversions supported by Cwerg:
+    let s_normal span(u8) = a
+```
+
+
 
 ### Function types
 
@@ -445,27 +477,33 @@ For hexadecimal numbers only the lower case letters (a-f) are valid.
 
 ### Vec (Array) Literals
 
+
 Vec literals are declared like so:
 ```
-    [5]s32{1, 2, 3}
+    {[5]s32: 1, 2, 3}
 ```
-If there are fewer initializers than the vec size, the last value will
+If there are fewer initializers than the vec size, the previous value will
 repeated. So this is equivalent to:
 ```
-    [5]s32{1, 2, 3, 3, 3}
+    {[5]s32: 1, 2, 3, 3, 3}
 ```
 
 If no initializer is provided, zero will be used.
+
 initializers for specific indices can declared like so:
 ```
-   [5]s32{1:6, 3:9}
+   {[5]s32: 1 = 6, 3 = 9}
 ```
 This is equivalent to:
 ```
-[5]s32{0, 6, 6, 9, 9}
+{[5]s32: 0, 6, 6, 9, 9}
 ```
 
 ### Rec (Struct) Literals
+
+
+Literals:
+
 Assuming this rec:
 ```
 rec Date:
@@ -480,7 +518,7 @@ rec Date:
 Rec literals are declared like so:
 
 ```
-    Date{2000, 1, 12}
+    {Date: 2000, 1, 12}
 ```
 
 If no initializer is provided, zero will be used.
@@ -489,7 +527,7 @@ Initializers for specific fields can be declared like so:
 
 
 ```
-    Date{year:2000, month:1, day:12}
+    {Date: year =2000, month = 1, day = 12}
 ```
 
 The initializer may skip fields but must be in rec order.
@@ -832,9 +870,9 @@ The expression will usually be a function call with a side-effect.
 | MOD    | %        |                           |
 | MIN    | min      |                           |
 | MAX    | max      |                           |
-| AND    | and      | bitwise and               |
-| OR     | or       | bitwise or                |
-| XOR    | xor      | bitwise xor               |
+| AND    | &        | bitwise and               |
+| OR     | \|       | bitwise or                |
+| XOR    | ~        | bitwise xor               |
 | EQ     | ==       |                           |
 | NE     | !=       |                           |
 | LT     | <        |                           |
@@ -847,7 +885,7 @@ The expression will usually be a function call with a side-effect.
 | SHL    | <<       |                           |
 | ROTR   | >>>      | bitwise rotate right      |
 | ROTL   | <<<      | bitwise rotate left       |
-| PDELTA | &-&      | pointer difference        |
+| PDELTA | ptr_diff | pointer difference        |
 
 
 +, -, *, /. % for signed and unsigned integers have wrap-around
@@ -862,29 +900,29 @@ Note, operator precedence has yet to be finalized
 
 #### Expression centric
 
-| Notation                | Description                                            |
-| ----------------------- | ------------------------------------------------------ |
-| len(E) -> uint          | length of an vec or span                            |
-| front(E) -> P           | pointer to first element of vec or span             |
-| front!(E) -> P          | mutable pointer to first element of vec or span     |
-| span(P, E) -> S        | make a span from a pointer and length                 |
-| span!(P, E) -> S       | make a mutable span from a mutable pointer and length |
-| pinc(P, E [, E]) -> P   | increment pointer with optional bounds check           |
-| pdec(P, E [, E]) -> P   | decrement pointer with optional bounds check           |
-| stringify(E) -> []u8    | convert an expression to a textual representation      |
+| Notation                 | Description                                       |
+| ------------------------ | ------------------------------------------------- |
+| len(E) -> uint           | length of an vec or span                          |
+| front(E) -> P            | pointer to first element of vec or span           |
+| front!(E) -> P           | mutable pointer to first element of vec or span   |
+| make_span(P, E) -> S     | make a span from a pointer and a length           |
+| ptr_inc(P, E [, E]) -> P | increment pointer with optional bounds check      |
+| ptr_dec(P, E [, E]) -> P | decrement pointer with optional bounds check      |
+| ptr_diff(P, P) -> sint   | pointer difference (C semantics)                  |
+| stringify(E) -> []u8     | convert an expression to a textual representation |
 
 
 #### Type centric
 
-| Notation               | Description                                       |
-| ---------------------- | ------------------------------------------------- |
-| is(E, T) -> bool       | check if union expression is of given type        |
-| type(E) -> T           | type of expression                                |
-| typeid_of(T) -> typeid | typeid of a type                                  |
-| type_of(E) -> T        | type of an expression                             |
-| union_delta(T, T) -> T  | type delta of two union type expressions          |
-| offset_of(R, F) -> uint | offset of field in record                              |
-| size_of(T) -> uint      | size of a type                                         |
+| Notation                | Description                                |
+| ----------------------- | ------------------------------------------ |
+| is(E, T) -> bool        | check if union expression is of given type |
+| type(E) -> T            | type of expression                         |
+| typeid_of(T) -> typeid  | typeid of a type                           |
+| type_of(E) -> T         | type of an expression                      |
+| union_delta(T, T) -> T  | type delta of two union type expressions   |
+| offset_of(R, F) -> uint | offset of field in record                  |
+| size_of(T) -> uint      | size of a type                             |
 
 
 #### Casts
@@ -894,6 +932,7 @@ Note, operator precedence has yet to be finalized
 | wrap_as(E, T) -> E    | convert value to enum or wrapped type                                |
 | unwrap(E) -> E        | convert  enum or wrapped type to underlying type                     |
 | narrow_as(E, T) -> E  | convert union value to actual type                                   |
+| narrow_as!(E, T) -> E | same as above but unchecked                                          |
 | widen_as(E, T) -> E   | convert value to union                                               |
 | as(E, T) -> E         | converts between  numerical types                                    |
 | bitwise_as(E, T) -> E | convert expression to a type of same width, including int to pointer |
@@ -908,7 +947,7 @@ Also see [Casting](casting.md)
 * T: record type
 * P: pointer value
 * F: record field name
-* S: slice
+* S: span
 
 ### Expression Statements
 
