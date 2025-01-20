@@ -496,9 +496,9 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         if not all(ord(c) < 128 for c in s):
             cwast.CompilerError(
                 node, "non-ascii chars currently not supported")
-        if node.strkind == "raw":
+        if node.str_kind is cwast.STR_KIND.RAW:
             return _AssignValue(node, bytes(s, encoding="ascii"))
-        elif node.strkind == "hex":
+        elif node.str_kind is cwast.STR_KIND.HEX:
             return _AssignValue(node, HexStringToBytes(s))
         return _AssignValue(node, EscapedStringToBytes(s))
     elif isinstance(node, cwast.ExprIndex):

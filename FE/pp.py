@@ -547,13 +547,7 @@ _INFIX_OPS = set([
 
 
 def TokensValString(ts: TS, node: cwast.ValString):
-    quotes = '"""' if node.triplequoted else '"'
-    prefix = ""
-    if node.strkind == "raw":
-        prefix = "r"
-    elif node.strkind == "hex":
-        prefix = "x"
-    ts.EmitAttr(f'{prefix}{quotes}{node.string}{quotes}'),
+    ts.EmitAttr(node.render()),
 
 
 def WithExcl(name: str, mutable: bool) -> str:

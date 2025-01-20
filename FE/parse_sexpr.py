@@ -182,19 +182,6 @@ for basic_type in cwast.BASE_TYPE_KIND:
         _SHORT_HAND_NODES[name] = _MakeTypeBaseLambda(basic_type)
 
 
-def IsWellFormedStringLiteral(t: str):
-    if t.endswith('"""'):
-        return (len(t) >= 6 and t.startswith('"""') or
-                len(t) >= 7 and t.startswith('r"""') or
-                len(t) >= 7 and t.startswith('x"""'))
-    elif t.endswith('"'):
-        return (len(t) >= 2 and t.startswith('"') or
-                len(t) >= 3 and t.startswith('r"') or
-                len(t) >= 3 and t.startswith('x"'))
-    else:
-        return False
-
-
 def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
     """Expands atoms, ids, and numbers to proper nodes"""
     x = _SHORT_HAND_NODES.get(t)
@@ -202,27 +189,8 @@ def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
         node = x(x_srcloc=srcloc, **attr)
         return node
 
-    if IsWellFormedStringLiteral(t):
-        logger.info("STRING %s at %s", t, srcloc)
-        strkind = ""
-        if t.startswith("r"):
-            strkind = "raw"
-            t = t[1:]
-        elif t.startswith("x"):
-            strkind = "hex"
-            t = t[1:]
-
-        triplequoted = False
-        if t.startswith('"""'):
-            triplequoted = True
-            t = t[3:]
-            assert t.endswith('"""')
-            t = t[:-3]
-        else:
-            t = t[1:-1]
-
-        return cwast.ValString(t, x_srcloc=srcloc, strkind=strkind,
-                               triplequoted=triplequoted,    **attr)
+    if cwast.IsWellFormedStringLiteral(t):
+        return cwast.MakeValString(t,  **attr)
     elif RE_TOKEN_NUM.fullmatch(t):
         logger.info("NUM %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc, **attr)

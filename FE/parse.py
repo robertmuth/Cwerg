@@ -191,29 +191,7 @@ def _PParseKeywordConstants(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
 
 
 def _PParseStr(_inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
-    t = tk.text
-    strkind = ""
-    tq = False
-    if t.startswith('"""'):
-        assert t.endswith('"""')
-        t = t[3:-3]
-        tq = True
-    elif t.startswith('r"""'):
-        assert t.endswith('"""')
-        t = t[4:-3]
-        tq = True
-        strkind = "raw"
-    elif t.startswith('x"""'):
-        assert t.endswith('"""')
-        t = t[4:-3]
-        tq = True
-        strkind = "hex"
-    elif t.startswith('"'):
-        assert t.endswith('"')
-        t = t[1:-1]
-    else:
-        assert False, f"unexpected string [{t}]"
-    return cwast.ValString(t, triplequoted=tq, strkind=strkind, x_srcloc=tk.srcloc)
+    return cwast.MakeValString(tk.text, tk.srcloc)
 
 
 def _PParseChar(_inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:

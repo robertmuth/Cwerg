@@ -59,36 +59,6 @@ def address_can_be_taken(node) -> bool:
             address_can_be_taken(node.container))
 
 
-def ComputeStringSize(strkind: str, string: str) -> int:
-    n = len(string)
-    if strkind == "raw":
-        return n
-    if strkind == "hex":
-        n = 0
-        last = None
-        for c in string:
-            if c in " \t\n":
-                continue
-            if last:
-                last = None
-            else:
-                last = c
-                n += 1
-        assert last is None
-        return n
-    esc = False
-    for c in string:
-        if esc:
-            esc = False
-            if c == "x":
-                n -= 3
-            else:
-                n -= 1
-        elif c == "\\":
-            esc = True
-    return n
-
-
 def _NumCleanupAndTypeExtraction(num: str) -> tuple[str, cwast.BASE_TYPE_KIND]:
     num = num.replace("_", "")
     suffix = ""
@@ -538,7 +508,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValCompound):
         return _TypifyValCompound(node, tc, target_type, ctx)
     elif isinstance(node, cwast.ValString):
-        dim = ComputeStringSize(node.strkind, node.string)
+        dim = cwast.ComputeStringSize(node.str_kind, node.string)
         ct = tc.insert_array_type(
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
         return AnnotateNodeType(node, ct)

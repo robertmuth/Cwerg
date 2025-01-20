@@ -334,10 +334,13 @@ UNARY_EXPR_SHORTCUT_COMMON = {
 }
 
 # for sexpr we need to distinguish unary and binary minus
-UNARY_EXPR_SHORTCUT_SEXPR =  UNARY_EXPR_SHORTCUT_COMMON | {"neg": UNARY_EXPR_KIND.NEG}
-UNARY_EXPR_SHORTCUT_CONCRETE =  UNARY_EXPR_SHORTCUT_COMMON | {"-": UNARY_EXPR_KIND.NEG}
+UNARY_EXPR_SHORTCUT_SEXPR = UNARY_EXPR_SHORTCUT_COMMON | {
+    "neg": UNARY_EXPR_KIND.NEG}
+UNARY_EXPR_SHORTCUT_CONCRETE = UNARY_EXPR_SHORTCUT_COMMON | {
+    "-": UNARY_EXPR_KIND.NEG}
 
-UNARY_EXPR_SHORTCUT_SEXPR_INV = {v: k for k, v in UNARY_EXPR_SHORTCUT_SEXPR.items()}
+UNARY_EXPR_SHORTCUT_SEXPR_INV = {v: k for k,
+                                 v in UNARY_EXPR_SHORTCUT_SEXPR.items()}
 
 UNARY_EXPR_SHORTCUT_CONCRETE_INV = {
     v: k for k, v in UNARY_EXPR_SHORTCUT_CONCRETE.items()}
@@ -363,6 +366,15 @@ class MACRO_PARAM_KIND(enum.Enum):
     FIELD = 6
     TYPE = 7
     EXPR_LIST_REST = 8   # must be last
+
+
+@enum.unique
+class STR_KIND(enum.Enum):
+    """same type two operand expressions"""
+    INVALID = 0
+    NORMAL = 1
+    RAW = 2
+    HEX = 3
 
 ############################################################
 # Field attributes of Nodes
@@ -402,7 +414,6 @@ class NFK(enum.Enum):
     ATTR_STR = enum.auto()  # usually specified via @XXX=YYY
     KIND = enum.auto()  # some enum
     INTERNAL_BOOL = enum.auto()  # like ATTR_BOOL but handled internally
-    INTERNAL_STR = enum.auto()  # like an ATTR_STR but handled internally
     NODE = enum.auto()
     LIST = enum.auto()
     NAME_LIST = enum.auto()
@@ -556,7 +567,6 @@ ALL_FIELDS = [
     NfdAttrBool("builtin", "module is the builtin module"),
     NfdAttrStr("doc", "possibly multi-line comment"),
     NFD(NFK.INTERNAL_BOOL, "triplequoted", "string is using 3 double quotes"),
-    NFD(NFK.INTERNAL_STR, "strkind", "raw: ignore escape sequences in string, hex:"),
 
     #
     NfdKind("unary_expr_kind",
@@ -584,6 +594,9 @@ ALL_FIELDS = [
     NfdKind("pointer_expr_kind",
             f"one of: [{_EnumValues(POINTER_EXPR_KIND)}](#pointerop-kind)",
             POINTER_EXPR_KIND),
+    NfdKind("str_kind",   f"one of: [{_EnumValues(STR_KIND)}](#pointerop-kind)",
+            STR_KIND),
+
     #
     # TODO: fix all the None below
     NfdNodeList("params", "function parameters and/or comments", NODES_PARAMS_T,
@@ -1779,15 +1792,96 @@ class ValString:
     #
     string: str
     #
-    strkind: str = ""   # or raw or hex
-    triplequoted: bool = False
+    str_kind: STR_KIND
+    triplequoted: bool
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
+    def render(this):
+        quotes = '"""' if this.triplequoted else '"'
+        prefix = ""
+        if this.str_kind == STR_KIND.RAW:
+            prefix = "r"
+        elif this.str_kind == STR_KIND.HEX:
+            prefix = "x"
+        return f'{prefix}{quotes}{this.string}{quotes}'
+
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.string}"
+
+
+def IsWellFormedStringLiteral(t: str):
+    if t.endswith('"""'):
+        return (len(t) >= 6 and t.startswith('"""') or
+                len(t) >= 7 and t.startswith('r"""') or
+                len(t) >= 7 and t.startswith('x"""'))
+    elif t.endswith('"'):
+        return (len(t) >= 2 and t.startswith('"') or
+                len(t) >= 3 and t.startswith('r"') or
+                len(t) >= 3 and t.startswith('x"'))
+    else:
+        return False
+
+
+def ComputeStringSize(strkind: STR_KIND, string: str) -> int:
+    n = len(string)
+    if strkind is STR_KIND.RAW:
+        return n
+    if strkind is STR_KIND.HEX:
+        n = 0
+        last = None
+        for c in string:
+            if c in " \t\n":
+                continue
+            if last:
+                last = None
+            else:
+                last = c
+                n += 1
+        assert last is None
+        return n
+    assert strkind is STR_KIND.NORMAL
+    esc = False
+    for c in string:
+        if esc:
+            esc = False
+            if c == "x":
+                n -= 3
+            else:
+                n -= 1
+        elif c == "\\":
+            esc = True
+    return n
+
+
+def MakeValString(t: str, sl: SrcLoc) -> ValString:
+    strkind = STR_KIND.INVALID
+    tq = False
+    if t.startswith('"""'):
+        assert t.endswith('"""')
+        strkind = STR_KIND.NORMAL
+        t = t[3:-3]
+        tq = True
+    elif t.startswith('r"""'):
+        assert t.endswith('"""')
+        t = t[4:-3]
+        tq = True
+        strkind = STR_KIND.RAW
+    elif t.startswith('x"""'):
+        assert t.endswith('"""')
+        t = t[4:-3]
+        tq = True
+        strkind = STR_KIND.HEX
+    elif t.startswith('"'):
+        assert t.endswith('"')
+        t = t[1:-1]
+        tq = False
+        strkind = STR_KIND.NORMAL
+    else:
+        assert False, f"unexpected string [{t}] at {sl}"
+    return ValString(t, triplequoted=tq, str_kind=strkind, x_srcloc=sl)
 
 
 ############################################################
@@ -3584,8 +3678,49 @@ Misc enums used inside of nodes.
                       MACRO_PARAM_KIND, fout)
 
 
+_NFK_KIND_2_SIZE = {
+    NFK.NAME: 32,
+    NFK.NODE: 32,
+    NFK.STR: 32,
+    NFK.LIST: 32,
+    NFK.KIND: 8,
+    NFK.NAME_LIST: 32,
+    NFK.ATTR_BOOL: 1,
+    NFK.ATTR_STR: 32,
+
+}
+
+
+def GetSize(kind):
+    return _NFK_KIND_2_SIZE.get(kind, -1)
+
+
+def GenerateCodeCpp(fout):
+
+    nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
+    for group, name, cls in nodes:
+        print(f"TYPE {name}")
+        for field, nfd in cls.FIELDS:
+
+            print(f"    FIELD: {field} {nfd.kind} {GetSize(nfd.kind)}")
+
+        for field, nfd in cls.ATTRS:
+            # print(f"    ATTR: {field} {nfd.kind} {GetSize(nfd.kind)}")
+            assert nfd.kind is NFK.ATTR_BOOL or field == "doc"
+
+
 ##########################################################################################
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
-    GenerateDocumentation(sys.stdout)
+    if len(sys.argv) <= 1:
+        print("no mode given")
+        exit(1)
+    mode = sys.argv[1]
+    if mode == "doc":
+        GenerateDocumentation(sys.stdout)
+    elif mode == "cpp":
+        GenerateCodeCpp(sys.stdout)
+    else:
+        print(f"unknown mode: {mode}")
+        exit(1)
