@@ -371,10 +371,12 @@ class MACRO_PARAM_KIND(enum.Enum):
 @enum.unique
 class STR_KIND(enum.Enum):
     """same type two operand expressions"""
-    INVALID = 0
-    NORMAL = 1
+    NORMAL = 0
+    NORMAL_TRIPLE = 1
     RAW = 2
-    HEX = 3
+    RAW_TRIPLE = 3
+    HEX = 4
+    HEX_TRIPLE = 5
 
 ############################################################
 # Field attributes of Nodes
@@ -413,10 +415,9 @@ class NFK(enum.Enum):
     ATTR_BOOL = enum.auto()  # usually specified via @XXX
     ATTR_STR = enum.auto()  # usually specified via @XXX=YYY
     KIND = enum.auto()  # some enum
-    INTERNAL_BOOL = enum.auto()  # like ATTR_BOOL but handled internally
     NODE = enum.auto()
     LIST = enum.auto()
-    NAME_LIST = enum.auto()
+    NAME_LIST = enum.auto()  # only used by DefMacro
 
 
 @dataclasses.dataclass()
@@ -566,7 +567,6 @@ ALL_FIELDS = [
     NfdAttrBool("res_ref", "in parameter was converted for by-val to pointer"),
     NfdAttrBool("builtin", "module is the builtin module"),
     NfdAttrStr("doc", "possibly multi-line comment"),
-    NFD(NFK.INTERNAL_BOOL, "triplequoted", "string is using 3 double quotes"),
 
     #
     NfdKind("unary_expr_kind",
@@ -1793,19 +1793,21 @@ class ValString:
     string: str
     #
     str_kind: STR_KIND
-    triplequoted: bool
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
     def render(this):
-        quotes = '"""' if this.triplequoted else '"'
+        tq = this.str_kind & 1
+        kind =  this.str_kind & 0xfe
+        quotes = '"""' if tq else '"'
         prefix = ""
-        if this.str_kind == STR_KIND.RAW:
+        if kind == STR_KIND.RAW:
             prefix = "r"
-        elif this.str_kind == STR_KIND.HEX:
+        elif kind == STR_KIND.HEX:
             prefix = "x"
+        assert kind == STR.NORMAL
         return f'{prefix}{quotes}{this.string}{quotes}'
 
     def __repr__(self):
@@ -1825,11 +1827,12 @@ def IsWellFormedStringLiteral(t: str):
         return False
 
 
-def ComputeStringSize(strkind: STR_KIND, string: str) -> int:
+def ComputeStringSize(str_kind: STR_KIND, string: str) -> int:
+    kind = STR_KIND(str_kind.value & 0xfe)
     n = len(string)
-    if strkind is STR_KIND.RAW:
+    if kind == STR_KIND.RAW:
         return n
-    if strkind is STR_KIND.HEX:
+    if kind == STR_KIND.HEX:
         n = 0
         last = None
         for c in string:
@@ -1842,7 +1845,7 @@ def ComputeStringSize(strkind: STR_KIND, string: str) -> int:
                 n += 1
         assert last is None
         return n
-    assert strkind is STR_KIND.NORMAL
+    assert kind == STR_KIND.NORMAL
     esc = False
     for c in string:
         if esc:
@@ -1857,31 +1860,31 @@ def ComputeStringSize(strkind: STR_KIND, string: str) -> int:
 
 
 def MakeValString(t: str, sl: SrcLoc) -> ValString:
-    strkind = STR_KIND.INVALID
-    tq = False
+    kind = STR_KIND.NORMAL
+    tq = 0
     if t.startswith('"""'):
         assert t.endswith('"""')
-        strkind = STR_KIND.NORMAL
+        kind = STR_KIND.NORMAL
         t = t[3:-3]
-        tq = True
+        tq = 1
     elif t.startswith('r"""'):
         assert t.endswith('"""')
         t = t[4:-3]
-        tq = True
-        strkind = STR_KIND.RAW
+        tq = 1
+        kind = STR_KIND.RAW
     elif t.startswith('x"""'):
         assert t.endswith('"""')
         t = t[4:-3]
-        tq = True
-        strkind = STR_KIND.HEX
+        tq = 1
+        kind = STR_KIND.HEX
     elif t.startswith('"'):
         assert t.endswith('"')
         t = t[1:-1]
-        tq = False
-        strkind = STR_KIND.NORMAL
+        tq = 0
+        kind = STR_KIND.NORMAL
     else:
         assert False, f"unexpected string [{t}] at {sl}"
-    return ValString(t, triplequoted=tq, str_kind=strkind, x_srcloc=sl)
+    return ValString(t, STR_KIND(kind.value + tq), x_srcloc=sl)
 
 
 ############################################################
@@ -3699,15 +3702,28 @@ def GenerateCodeCpp(fout):
 
     nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
     for group, name, cls in nodes:
-        print(f"TYPE {name}")
+        print(f"struct {name} {{")
         for field, nfd in cls.FIELDS:
-
-            print(f"    FIELD: {field} {nfd.kind} {GetSize(nfd.kind)}")
+            if nfd.kind is NFK.KIND:
+                print(f"    {nfd.enum_kind.__name__} {field};")
 
         for field, nfd in cls.ATTRS:
             # print(f"    ATTR: {field} {nfd.kind} {GetSize(nfd.kind)}")
             assert nfd.kind is NFK.ATTR_BOOL or field == "doc"
-
+        for field, nfd in cls.FIELDS:
+            if nfd.kind is NFK.KIND:
+                continue
+            elif nfd.kind is NFK.NODE:
+                print(f"    NODE {field};")
+            elif nfd.kind is NFK.LIST:
+                print(f"    NODE {field};  // List")
+            elif nfd.kind is NFK.NAME:
+                print(f"    NAME {field};")
+            elif nfd.kind is NFK.NAME_LIST:
+                print(f"    NAME {field}; // List")
+            elif nfd.kind is NFK.STR:
+                print(f"    STR {field};")
+        print ("};")
 
 ##########################################################################################
 if __name__ == "__main__":

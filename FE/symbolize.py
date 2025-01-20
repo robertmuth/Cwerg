@@ -213,10 +213,10 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
     while cwast.NF.TO_BE_EXPANDED in node.FLAGS:
         assert nesting < MAX_MACRO_NESTING
         if isinstance(node, cwast.ExprSrcLoc):
-            return cwast.ValString(f"{node.expr.x_srcloc}", cwast.STR_KIND.RAW, False, x_srcloc=node.x_srcloc)
+            return cwast.ValString(f"{node.expr.x_srcloc}", cwast.STR_KIND.RAW, x_srcloc=node.x_srcloc)
         elif isinstance(node, cwast.ExprStringify):
             # assert isinstance(node.expr, cwast.Id)
-            return cwast.ValString(f'{node.expr}', cwast.STR_KIND.RAW, False, x_srcloc=node.x_srcloc)
+            return cwast.ValString(f'{node.expr}', cwast.STR_KIND.RAW, x_srcloc=node.x_srcloc)
 
         assert isinstance(node, cwast.MacroInvoke)
         symtab: SymTab = node.x_import.x_module.x_symtab
