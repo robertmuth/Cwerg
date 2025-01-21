@@ -761,7 +761,7 @@ def _ParseMacroGenIds(inp: lexer.Lexer):
             inp.match_or_die(lexer.TK_KIND.COMMA)
         first = False
         name = inp.match_or_die(lexer.TK_KIND.ID)
-        out.append(cwast.NAME.FromStr(name.text))
+        out.append(cwast.MacroId(cwast.NAME.FromStr(name.text), name.srcloc))
     return out
 
 

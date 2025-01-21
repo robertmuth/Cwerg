@@ -255,29 +255,6 @@ def ReadNodeColonList(stream: ReadTokens, parent_cls):
     return out
 
 
-def ReadNameList(stream: ReadTokens) -> list[cwast.NAME]:
-    out = []
-    while True:
-        token = next(stream)
-        if token == "]":
-            break
-        else:
-            out.append(cwast.NAME.FromStr(token))
-    return out
-
-
-def ReadNameColonList(stream: ReadTokens) -> list[cwast.NAME]:
-    out = []
-    while True:
-        token = next(stream)
-        if token == ")" or token == ":" or token == "[":
-            stream.pushback(token)
-            break
-        else:
-            out.append(cwast.NAME.FromStr(token))
-    return out
-
-
 def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
     """Read a single component of an SExpr including lists."""
     nfd = cwast. ALL_FIELDS_MAP[field]
@@ -305,13 +282,6 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
             cwast.CompilerError(
                 stream.srcloc(), f"Cannot expand {token} for {field}")
         return out
-    elif nfd.kind is cwast.NFK.NAME_LIST:
-        if token == "[":
-            return ReadNameList(stream)
-        elif token == ":":
-            return ReadNameColonList(stream)
-        else:
-            assert False, f"expected list start for: {field} {token}"
 
     elif nfd.kind is cwast.NFK.LIST:
         if token == "[":

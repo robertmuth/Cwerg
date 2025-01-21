@@ -417,7 +417,6 @@ class NFK(enum.Enum):
     KIND = enum.auto()  # some enum
     NODE = enum.auto()
     LIST = enum.auto()
-    NAME_LIST = enum.auto()  # only used by DefMacro
 
 
 @dataclasses.dataclass()
@@ -547,8 +546,7 @@ ALL_FIELDS = [
     NfdStr("target",
            "name of enclosing while/for/block to brach to (empty means nearest)"),
     NfdStr("path", "TBD"),
-    NFD(NFK.NAME_LIST, "gen_ids",
-        "name placeholder ids to be generated at macro instantiation time"),
+
     #
     NfdAttrBool("pub", "has public visibility"),
     NfdAttrBool("extern", "is external function (empty body)"),
@@ -618,6 +616,10 @@ ALL_FIELDS = [
     NfdNodeList("inits",
                 "rec initializers and/or comments", NODES_INITS_T,
                 MACRO_PARAM_KIND.INVALID),
+    NfdNodeList("gen_ids",
+                "name placeholder ids to be generated at macro instantiation time",
+                "MacroId", MACRO_PARAM_KIND.INVALID),
+
     #
     NfdNodeList("body_mod",
                 "toplevel module definitions and/or comments", NODES_BODY_MOD_T,
@@ -3070,7 +3072,7 @@ class DefMacro:
     name: NAME
     macro_result_kind: MACRO_PARAM_KIND
     params_macro: list[NODES_PARAMS_MACRO_T]
-    gen_ids: list[NAME]
+    gen_ids: list[MacroId]
     body_macro: list[Any]  # new scope
     #
     pub: bool = False
@@ -3507,7 +3509,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 if isinstance(p, MacroParam):
                     assert p.name.IsMacroVar()
             for i in node.gen_ids:
-                assert i.IsMacroVar()
+                assert isinstance(i, MacroId)
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
             assert isinstance(node.base_name, NAME), f"{node} {node.x_symbol}"
@@ -3687,7 +3689,6 @@ _NFK_KIND_2_SIZE = {
     NFK.STR: 32,
     NFK.LIST: 32,
     NFK.KIND: 8,
-    NFK.NAME_LIST: 32,
     NFK.ATTR_BOOL: 1,
     NFK.ATTR_STR: 32,
 
@@ -3719,8 +3720,6 @@ def GenerateCodeCpp(fout):
                 print(f"    NODE {field};  // List")
             elif nfd.kind is NFK.NAME:
                 print(f"    NAME {field};")
-            elif nfd.kind is NFK.NAME_LIST:
-                print(f"    NAME {field}; // List")
             elif nfd.kind is NFK.STR:
                 print(f"    STR {field};")
         print ("};")

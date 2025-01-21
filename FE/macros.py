@@ -138,10 +138,10 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
             assert False
         ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))
     for gen_id in macro.gen_ids:
-        assert gen_id.IsMacroVar()
-        new_name = ctx.GenUniqueName(gen_id)
+        assert isinstance(gen_id, cwast.MacroId)
+        new_name = ctx.GenUniqueName(gen_id.name)
         ctx.RegisterSymbol(
-            gen_id, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(None, new_name, None, x_srcloc=macro.x_srcloc)))
+            gen_id.name, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(None, new_name, None, x_srcloc=macro.x_srcloc)))
     out = []
     for node in macro.body_macro:
         logger.debug("Expand macro body node: %s", node)
