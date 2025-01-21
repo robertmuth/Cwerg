@@ -19,7 +19,7 @@ def ShakeTree(mods: List[cwast.DefMod], entry_fun: cwast.DefFun):
     cg[_Hell].add(_Hell)  # force hell to be alive
     caller = None
 
-    def visitor(call, _):
+    def visitor(call):
         nonlocal cg, caller
         if isinstance(call, cwast.ExprCall):
             if isinstance(call.callee, cwast.Id):

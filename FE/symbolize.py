@@ -201,7 +201,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
                     cwast.CompilerError(
                         node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
 
-    cwast.VisitAstRecursivelyPost(node, visitor)
+    cwast.VisitAstRecursivelyWithFieldPost(node, visitor)
 
 
 MAX_MACRO_NESTING = 8

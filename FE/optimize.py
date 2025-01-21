@@ -45,7 +45,7 @@ def FunRemoveUnusedDefVar(fun: cwast.DefFun):
     """ """
     used: set[Any] = set()
 
-    def visit(node: Any,  _field: str):
+    def visit(node: Any):
         nonlocal used
         if isinstance(node, cwast.Id):
             used.add(node.x_symbol)
@@ -79,7 +79,7 @@ def FunCopyPropagation(fun: cwast.DefFun):
     """ """
     replacements: dict[Any, Any] = {}
 
-    def visit(node: Any, _field: str):
+    def visit(node: Any):
         nonlocal replacements
         if not isinstance(node, cwast.DefVar) or node.mut or not isinstance(node.initial_or_undef_or_auto, cwast.Id):
             return None
@@ -95,7 +95,7 @@ def FunCopyPropagation(fun: cwast.DefFun):
 
     cwast.VisitAstRecursivelyPost(fun, visit)
 
-    def update(node, _field):
+    def update(node: Any):
         nonlocal replacements
 
         if isinstance(node, cwast.Id):

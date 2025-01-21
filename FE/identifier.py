@@ -40,7 +40,7 @@ class IdGen:
         # TODO: should we take global symbols into account?
         # one could argue that the names do not matter anymore anyway,
         # after symbol resolution only x_symbol links matter
-        def visitor(node: Any, _f: str):
+        def visitor(node: Any):
             if isinstance(node, (cwast.FunParam, cwast.DefVar)):
                 n: cwast.NAME = node.name
                 self._names[n.name] = max(n.seq, self._names.get(n.name, 0))

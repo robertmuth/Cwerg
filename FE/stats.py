@@ -7,7 +7,7 @@ from FE import cwast
 
 def UpdateNodeHistogram(node: Any, counters: collections.defaultdict):
 
-    def visitor(node, _field):
+    def visitor(node):
         nonlocal counters
         counters[node.__class__.__name__] += 1
 

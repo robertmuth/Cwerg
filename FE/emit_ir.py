@@ -45,7 +45,7 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
     names: set[cwast.NAME] = set()
     clashes: set[Any] = set()
 
-    def visitor(n, _):
+    def visitor(n):
         nonlocal names, clashes
         if isinstance(n, (cwast.DefVar, cwast.FunParam)):
             if n.name in names:
@@ -64,7 +64,7 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
 
 
 def _FunFixRenamedIdsBestEffort(fun: cwast.DefFun):
-    def visitor(n, _):
+    def visitor(n):
         if isinstance(n, cwast.Id):
             n.base_name = n.x_symbol.name
 

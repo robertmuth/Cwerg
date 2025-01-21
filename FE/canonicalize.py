@@ -369,7 +369,7 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
 
     TODO: add check for side-effects
     """
-    def visit(node, _field):
+    def visit(node):
         if isinstance(node, cwast.StmtIf):
             if isinstance(node.cond, cwast.ValTrue):
                 node.body_f.clear()
@@ -525,7 +525,7 @@ def IsSameTypeExceptMut(src: cwast.CanonType, dst: cwast.CanonType) -> bool:
 def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
-    def visitor(node: Any, _):
+    def visitor(node: Any):
         nonlocal tc, uint_type
 
         if isinstance(node, cwast.ValPoint):

@@ -3135,7 +3135,21 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 ############################################################
 
 
-def VisitAstRecursively(node, visitor, field=None):
+def VisitAstRecursively(node, visitor):
+    if visitor(node):
+        return
+
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            VisitAstRecursively(child, visitor)
+        else:
+            for child in getattr(node, f):
+                VisitAstRecursively(child, visitor)
+
+
+def VisitAstRecursivelyWithField(node, visitor, field=None):
     if visitor(node, field):
         return
 
@@ -3143,10 +3157,10 @@ def VisitAstRecursively(node, visitor, field=None):
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            VisitAstRecursively(child, visitor, f)
+            VisitAstRecursivelyWithField(child, visitor, f)
         else:
             for child in getattr(node, f):
-                VisitAstRecursively(child, visitor, f)
+                VisitAstRecursivelyWithField(child, visitor, f)
 
 
 def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post, field=None):
@@ -3180,15 +3194,28 @@ def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
                 VisitAstRecursivelyWithParent(child, visitor, node, f)
 
 
-def VisitAstRecursivelyPost(node, visitor, field=None):
+def VisitAstRecursivelyPost(node, visitor):
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            VisitAstRecursivelyPost(child, visitor, f)
+            VisitAstRecursivelyPost(child, visitor)
         else:
             for child in getattr(node, f):
-                VisitAstRecursivelyPost(child, visitor, f)
+                VisitAstRecursivelyPost(child, visitor)
+
+    visitor(node)
+
+
+def VisitAstRecursivelyWithFieldPost(node, visitor, field=None):
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            VisitAstRecursivelyWithFieldPost(child, visitor, f)
+        else:
+            for child in getattr(node, f):
+                VisitAstRecursivelyWithFieldPost(child, visitor, f)
 
     visitor(node, field)
 
@@ -3333,7 +3360,7 @@ def UpdateSymbolAndTargetLinks(node, symbol_map, target_map):
 def NumberOfNodes(node) -> int:
     n = 0
 
-    def visitor(_node: Any, _field: str):
+    def visitor(_node: Any):
         nonlocal n
         n += 1
 
@@ -3394,7 +3421,7 @@ def AnnotateImportsForQualifers(mod: DefMod):
         else:
             node.x_import = dummy_import
 
-    def visitor(node, _):
+    def visitor(node: Any):
         nonlocal imports, dummy_import
         if isinstance(node, Import):
             name = node.name
@@ -3445,7 +3472,7 @@ def CompilerError(srcloc, msg, kind='syntax') -> NoReturn:
 
 
 def _CheckMacroRecursively(node, seen_names: set[str]):
-    def visitor(node, _):
+    def visitor(node):
         if isinstance(node, (MacroParam, MacroFor)):
             assert node.name.IsMacroVar()
             assert node.name not in seen_names, f"duplicate name: {node.name}"
@@ -3751,14 +3778,15 @@ def GenerateCodeCpp(fout):
     histo = collections.defaultdict(int)
 
     for group, name, cls in nodes:
-        slots : list[Optional[NFD]] = [None, None, None, None]
+        slots: list[Optional[NFD]] = [None, None, None, None]
         kind_slot: Optional[NFD] = None
         for nfd in cls.FIELDS:
             field = nfd.name
             histo[nfd.name] += 1
             if field in _FIELD_2_SLOT:
                 slot = _FIELD_2_SLOT[field]
-                assert slots[slot] is None, f"slot {slot} already used {slots[slot].name} {field}"
+                assert slots[slot] is None, f"slot {
+                    slot} already used {slots[slot].name} {field}"
                 slots[slot] = nfd
         for nfd in cls.FIELDS:
             field = nfd.name
@@ -3790,7 +3818,6 @@ def GenerateCodeCpp(fout):
         print("};")
 
     print(f"# accessors {len(histo)}")
-
 
 
 ##########################################################################################

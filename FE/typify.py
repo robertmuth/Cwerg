@@ -226,7 +226,7 @@ def AnnotateFieldWithTypeAndSymbol(node, field_node: cwast.RecField):
 def _GetExprStmtType(root: cwast.ExprStmt) -> cwast.CanonType:
     result: Optional[cwast.CanonType] = None
 
-    def visitor(node, _):
+    def visitor(node):
         nonlocal result, root
         if node != root and isinstance(node, cwast.ExprStmt):
             return VerifyTypesRecursively
@@ -1254,7 +1254,7 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
             if handler:
                 handler(node, tc)
 
-    cwast.VisitAstRecursivelyPost(node, visitor)
+    cwast.VisitAstRecursivelyWithFieldPost(node, visitor)
 
 
 def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
