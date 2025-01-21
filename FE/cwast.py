@@ -7,6 +7,7 @@ import sys
 import dataclasses
 import logging
 import enum
+import collections
 
 from typing import Optional, Union, Any, TypeAlias, NoReturn, Final, ClassVar
 
@@ -841,7 +842,7 @@ def _CheckNodeFieldOrder(cls):
             assert optionals + flags + xs == 0
 
 
-def NodeCommon(cls):
+def NodeCommon(cls: Any):
     cls.__eq__ = lambda a, b: id(a) == id(b)
     cls.__hash__ = lambda a: id(a)
 
@@ -865,14 +866,16 @@ def NodeCommon(cls):
             continue
         if field.startswith("x_"):
             continue
-        nfd = ALL_FIELDS_MAP[field]
+        nfd: NFD = ALL_FIELDS_MAP[field]
+        assert nfd.name == field
+
         kind = nfd.kind
         if kind is NFK.ATTR_BOOL or kind is NFK.ATTR_STR:
-            cls.ATTRS.append((field, nfd))
+            cls.ATTRS.append(nfd)
         else:
-            cls.FIELDS.append((field, nfd))
+            cls.FIELDS.append(nfd)
             if kind is NFK.NODE or kind is NFK.LIST:
-                cls.NODE_FIELDS.append((field, nfd))
+                cls.NODE_FIELDS.append(nfd)
     return cls
 
 ############################################################
@@ -1802,7 +1805,7 @@ class ValString:
 
     def render(this):
         tq = this.str_kind & 1
-        kind =  this.str_kind & 0xfe
+        kind = this.str_kind & 0xfe
         quotes = '"""' if tq else '"'
         prefix = ""
         if kind == STR_KIND.RAW:
@@ -3136,7 +3139,8 @@ def VisitAstRecursively(node, visitor, field=None):
     if visitor(node, field):
         return
 
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursively(child, visitor, f)
@@ -3144,25 +3148,30 @@ def VisitAstRecursively(node, visitor, field=None):
             for child in getattr(node, f):
                 VisitAstRecursively(child, visitor, f)
 
+
 def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post, field=None):
     if visitor_pre(node, field):
         return
 
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyPreAndPost(child, visitor_pre, visitor_post, f)
         else:
             for child in getattr(node, f):
-                VisitAstRecursivelyPreAndPost(child, visitor_pre, visitor_post, f)
+                VisitAstRecursivelyPreAndPost(
+                    child, visitor_pre, visitor_post, f)
 
     visitor_post(node, field)
+
 
 def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
     if visitor(node, parent, field):
         return
 
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyWithParent(child, visitor, node, f)
@@ -3172,7 +3181,8 @@ def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
 
 
 def VisitAstRecursivelyPost(node, visitor, field=None):
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyPost(child, visitor, f)
@@ -3184,7 +3194,8 @@ def VisitAstRecursivelyPost(node, visitor, field=None):
 
 
 def VisitAstRecursivelyWithParentPost(node, visitor, parent, field=None):
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyWithParentPost(child, visitor, node, f)
@@ -3197,7 +3208,8 @@ def VisitAstRecursivelyWithParentPost(node, visitor, parent, field=None):
 
 def MaybeReplaceAstRecursively(node, replacer):
     """Note: the root node will not be replaced"""
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             new_child = replacer(child, node, f)
@@ -3217,7 +3229,8 @@ def MaybeReplaceAstRecursively(node, replacer):
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
     """Note: the root node will not be replaced"""
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         # print ("replace: ", node.__class__.__name__, c)
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
@@ -3252,7 +3265,8 @@ def _MaybeFlattenEphemeralList(nodes: list[Any]):
 
 
 def EliminateEphemeralsRecursively(node):
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             if isinstance(child, EphemeralList):
@@ -3284,7 +3298,8 @@ def CloneNodeRecursively(node, symbol_map, target_map):
         new_target = target_map.get(old_target, old_target)
         clone.x_target = new_target
 
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             setattr(clone, f, CloneNodeRecursively(
                 getattr(node, f), symbol_map, target_map))
@@ -3304,7 +3319,8 @@ def UpdateSymbolAndTargetLinks(node, symbol_map, target_map):
         new_target = target_map.get(old_target, old_target)
         node.x_target = new_target
 
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             UpdateSymbolAndTargetLinks(
                 getattr(node, f), symbol_map, target_map)
@@ -3396,7 +3412,8 @@ def AnnotateImportsForQualifers(mod: DefMod):
 
 
 def StripFromListRecursively(node, cls):
-    for f, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             StripFromListRecursively(child, cls)
@@ -3645,7 +3662,8 @@ Misc enums used inside of nodes.
             print("", file=fout)
             print("Fields:",  file=fout)
 
-            for field, nfd in cls.FIELDS:
+            for nfd in cls.FIELDS:
+                field = nfd.name
                 kind = nfd.kind
                 extra = ""
                 optional_val = GetOptional(field, 0)
@@ -3694,6 +3712,27 @@ _NFK_KIND_2_SIZE = {
 }
 
 
+_FIELD_2_SLOT = {
+    "type": 1,
+    "type_or_auto": 1,
+    "name": 0,
+    "expr": 0,
+    "expr1": 0,
+    "expr2": 1,
+    "body": 3,
+    "cond": 1,
+    "container": 0,
+    "params": 1,
+    "result": 2,
+    "initial_or_undef_or_auto": 2,
+    "lhs": 0,
+    "expr_rhs": 1,
+    "target": 0,
+    "args": 1,
+    "fields": 1,
+}
+
+
 def GetSize(kind):
     return _NFK_KIND_2_SIZE.get(kind, -1)
 
@@ -3701,27 +3740,58 @@ def GetSize(kind):
 def GenerateCodeCpp(fout):
 
     nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
+    print(f"#include <cstdint>")
+
+    print(f"enum class NT : uint8_t {{")
+    print(f"    Invalid = 0,")
     for group, name, cls in nodes:
-        print(f"struct {name} {{")
-        for field, nfd in cls.FIELDS:
+        print(f"    {cls.__name__},")
+    print("};")
+
+    histo = collections.defaultdict(int)
+
+    for group, name, cls in nodes:
+        slots : list[Optional[NFD]] = [None, None, None, None]
+        kind_slot: Optional[NFD] = None
+        for nfd in cls.FIELDS:
+            field = nfd.name
+            histo[nfd.name] += 1
+            if field in _FIELD_2_SLOT:
+                slot = _FIELD_2_SLOT[field]
+                assert slots[slot] is None, f"slot {slot} already used {slots[slot].name} {field}"
+                slots[slot] = nfd
+        for nfd in cls.FIELDS:
+            field = nfd.name
+
+            if field in _FIELD_2_SLOT:
+                continue
             if nfd.kind is NFK.KIND:
-                print(f"    {nfd.enum_kind.__name__} {field};")
+                assert kind_slot is None
+                kind_slot = nfd
+            else:
+                for i in range(4):
+                    if slots[i] is None:
+                        slots[i] = nfd
+                        break
+                else:
+                    assert False
 
         for field, nfd in cls.ATTRS:
-            # print(f"    ATTR: {field} {nfd.kind} {GetSize(nfd.kind)}")
             assert nfd.kind is NFK.ATTR_BOOL or field == "doc"
-        for field, nfd in cls.FIELDS:
-            if nfd.kind is NFK.KIND:
-                continue
-            elif nfd.kind is NFK.NODE:
-                print(f"    NODE {field};")
-            elif nfd.kind is NFK.LIST:
-                print(f"    NODE {field};  // List")
-            elif nfd.kind is NFK.NAME:
-                print(f"    NAME {field};")
-            elif nfd.kind is NFK.STR:
-                print(f"    STR {field};")
-        print ("};")
+
+        print(f"struct {name} {{")
+
+        if kind_slot:
+            print(f"    {kind_slot.enum_kind} {kind_slot.name};")
+        for i in range(4):
+            nfd = slots[i]
+            if nfd:
+                print(f"    {nfd.kind} {nfd.name}; # {i}")
+        print("};")
+
+    print(f"# accessors {len(histo)}")
+
+
 
 ##########################################################################################
 if __name__ == "__main__":

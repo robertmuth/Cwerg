@@ -236,7 +236,8 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
 
 
 def FindAndExpandMacrosRecursively(node, builtin_syms, nesting: int, ctx: macros.MacroContext):
-    for c, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        c = nfd.name
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, c)
             FindAndExpandMacrosRecursively(child, builtin_syms, nesting, ctx)
@@ -281,11 +282,13 @@ def ResolveSymbolsInsideFunctionsRecursively(
         _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
         return
 
+    # TODO: try converting this to VisitAstRecursivelyPreAndPost
     # recurse using a little bit of introspection
-    for c, nfd in node.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
+        c = nfd.name
         if nfd.kind is cwast.NFK.NODE:
             # the field member contains an Id that can only be resolved when we have type info
-            if nfd.name != "field":
+            if c != "field":
                 ResolveSymbolsInsideFunctionsRecursively(
                     getattr(node, c), symtab, builtin_syms, scopes)
         else:

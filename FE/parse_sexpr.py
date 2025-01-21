@@ -326,7 +326,7 @@ def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: dict[str, Any]):
     return args
 
 
-def ReadRestAndMakeNode(cls, pieces: list[Any], fields: list[Tuple[str, cwast.NFD]], attr: dict[str, Any], stream: ReadTokens):
+def ReadRestAndMakeNode(cls, pieces: list[Any], fields: list[cwast.NFD], attr: dict[str, Any], stream: ReadTokens):
     """Read the remaining componts of an SExpr (after the tag and attr).
 
     Can handle optional bools at the beginning and an optional 'tail'
@@ -335,7 +335,8 @@ def ReadRestAndMakeNode(cls, pieces: list[Any], fields: list[Tuple[str, cwast.NF
     logger.info("Readding TAG %s at %s", cls.__name__, srcloc)
     token = next(stream)
     try:
-        for field, _ in fields:
+        for nfd in fields:
+            field = nfd.name
             if token == ")":
                 # we have reached the end before all the fields were processed
                 # fill in default values
