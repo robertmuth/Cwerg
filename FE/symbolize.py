@@ -178,10 +178,10 @@ def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
                                                         must_resolve_all: bool):
 
-    def visitor(node, field):
+    def visitor(node: Any, field: cwast.NFD):
         nonlocal builtin_syms
         if isinstance(node, cwast.Id):
-            if field == "field":
+            if field.name == "field":
                 # must wait until type info is available
                 return
             if node.x_symbol:
@@ -197,7 +197,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
             if def_node:
                 AnnotateNodeSymbol(node, def_node)
             else:
-                if must_resolve_all and field != "point":
+                if must_resolve_all and field.name != "point":
                     cwast.CompilerError(
                         node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
 
@@ -342,7 +342,7 @@ def _CheckAddressCanBeTaken(lhs):
 def VerifyASTSymbolsRecursively(node):
     in_def_macro = False
 
-    def visitor(node, parent, field):
+    def visitor(node: Any, nfd: cwast.NFD):
         nonlocal in_def_macro
 
         if cwast.NF.TOP_LEVEL in node.FLAGS:
@@ -354,17 +354,16 @@ def VerifyASTSymbolsRecursively(node):
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
             if node.x_symbol is None:
-                assert field in ("point", "field"), f"unresolved symbol {
+                assert nfd.name in ("point", "field"), f"unresolved symbol {
                     node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved
             assert not node.IsMacroVar(), f"{node}"
             def_node = node.x_symbol
-            is_type_node = field in (
-                "type", "types", "result", "type_or_auto", "subtrahend")
+            is_type_node = nfd.name in cwast.TYPE_FIELDS
             if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeUnion, cwast.DefEnum)):
                 cwast.CompilerError(
-                    node.x_srcloc, f"unexpected id {node.FullName()}: {type(def_node)} {field}")
+                    node.x_srcloc, f"unexpected id {node.FullName()}: {type(def_node)} {field.name}")
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             assert isinstance(
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"
@@ -372,17 +371,17 @@ def VerifyASTSymbolsRecursively(node):
             assert isinstance(node.x_target, (cwast.DefFun, cwast.ExprStmt))
         elif isinstance(node, cwast.DefRec):
             seen = set()
-            for field in node.fields:
-                if isinstance(field, cwast.RecField):
-                    if field.name in seen:
+            for f in node.fields:
+                if isinstance(f, cwast.RecField):
+                    if f.name in seen:
                         cwast.CompilerError(
-                            field.x_srcloc, f"duplicate record field: {field.name}")
-                    seen.add(field.name)
+                            f.x_srcloc, f"duplicate record field: {f.name}")
+                    seen.add(f.name)
 
         if isinstance(node, cwast.ExprAddrOf):
             _CheckAddressCanBeTaken(node.expr_lhs)
 
-    cwast.VisitAstRecursivelyWithParent(node, visitor, None, None)
+    cwast.VisitAstRecursivelyWithField(node, visitor, None)
 
 
 def _SetTargetFieldRecursively(node):

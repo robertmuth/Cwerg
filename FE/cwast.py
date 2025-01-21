@@ -693,6 +693,8 @@ ALL_FIELDS = [
 
 NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 
+TYPE_FIELDS = set(["type", "types", "result", "type_or_auto", "subtrahend"])
+
 ALL_FIELDS_MAP: dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
 
@@ -3149,22 +3151,22 @@ def VisitAstRecursively(node, visitor):
                 VisitAstRecursively(child, visitor)
 
 
-def VisitAstRecursivelyWithField(node, visitor, field=None):
-    if visitor(node, field):
+def VisitAstRecursivelyWithField(node, visitor, nfd=None):
+    if visitor(node, nfd):
         return
 
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            VisitAstRecursivelyWithField(child, visitor, f)
+            VisitAstRecursivelyWithField(child, visitor, nfd)
         else:
             for child in getattr(node, f):
-                VisitAstRecursivelyWithField(child, visitor, f)
+                VisitAstRecursivelyWithField(child, visitor, nfd)
 
 
-def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post, field=None):
-    if visitor_pre(node, field):
+def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post, nfd=None):
+    if visitor_pre(node, nfd):
         return
 
     for nfd in node.__class__.NODE_FIELDS:
@@ -3177,21 +3179,21 @@ def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post, field=None):
                 VisitAstRecursivelyPreAndPost(
                     child, visitor_pre, visitor_post, f)
 
-    visitor_post(node, field)
+    visitor_post(node, nfd)
 
 
-def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
-    if visitor(node, parent, field):
+def VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd=None):
+    if visitor(node, parent, nfd):
         return
 
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            VisitAstRecursivelyWithParent(child, visitor, node, f)
+            VisitAstRecursivelyWithParentAndField(child, visitor, node, nfd)
         else:
             for child in getattr(node, f):
-                VisitAstRecursivelyWithParent(child, visitor, node, f)
+                VisitAstRecursivelyWithParentAndField(child, visitor, node, nfd)
 
 
 def VisitAstRecursivelyPost(node, visitor):
@@ -3212,25 +3214,12 @@ def VisitAstRecursivelyWithFieldPost(node, visitor, field=None):
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            VisitAstRecursivelyWithFieldPost(child, visitor, f)
+            VisitAstRecursivelyWithFieldPost(child, visitor, nfd)
         else:
             for child in getattr(node, f):
-                VisitAstRecursivelyWithFieldPost(child, visitor, f)
+                VisitAstRecursivelyWithFieldPost(child, visitor, nfd)
 
     visitor(node, field)
-
-
-def VisitAstRecursivelyWithParentPost(node, visitor, parent, field=None):
-    for nfd in node.__class__.NODE_FIELDS:
-        f = nfd.name
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, f)
-            VisitAstRecursivelyWithParentPost(child, visitor, node, f)
-        else:
-            for child in getattr(node, f):
-                VisitAstRecursivelyWithParentPost(child, visitor, node, f)
-
-    visitor(node, parent, field)
 
 
 def MaybeReplaceAstRecursively(node, replacer):
@@ -3372,14 +3361,14 @@ def NumberOfNodes(node) -> int:
 ############################################################
 
 
-def AnnotateRoleForMacroInvoke(node, parent=None, field=""):
+def AnnotateRoleForMacroInvoke(node, parent=None, nfd=None):
     """Some nodes can play multiple role. Determine which one.
 
     This is useful if we do not have symbol information (x_symbol)
     but want to pretty print the code
     """
 
-    def visitor(node, parent, field: str):
+    def visitor(node, parent, nfd: NFD):
         if not isinstance(node, (MacroInvoke, MacroId)):
             return
         if isinstance(parent, EphemeralList):
@@ -3388,7 +3377,6 @@ def AnnotateRoleForMacroInvoke(node, parent=None, field=""):
             else:
                 node.x_role = MACRO_PARAM_KIND.EXPR
         else:
-            nfd = ALL_FIELDS_MAP[field]
             assert nfd.kind in (NFK.NODE, NFK.LIST)
             if nfd.role is MACRO_PARAM_KIND.STMT_LIST:
                 node.x_role = MACRO_PARAM_KIND.STMT
@@ -3397,7 +3385,7 @@ def AnnotateRoleForMacroInvoke(node, parent=None, field=""):
             else:
                 node.x_role = MACRO_PARAM_KIND.EXPR
 
-    VisitAstRecursivelyWithParent(node, visitor, parent, field)
+    VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd)
 
 
 def AnnotateImportsForQualifers(mod: DefMod):
@@ -3513,7 +3501,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
     # this only works with pre-order traversal
     toplevel_node = None
 
-    def visitor(node, parent, field):
+    def visitor(node: Any, parent: Any, field: NFD):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
         nonlocal node_mod
@@ -3527,9 +3515,9 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             node.x_srcloc, SrcLoc) and node.x_srcloc != INVALID_SRCLOC, f"Node without srcloc node {node} for parent={parent} field={field} {node.x_srcloc}"
 
         if NF.TOP_LEVEL in node.FLAGS:
-            if field != "body_mod":
+            if field.name != "body_mod":
                 CompilerError(
-                    node.x_srcloc, f"only allowed at toplevel [{field}]: {node}")
+                    node.x_srcloc, f"only allowed at toplevel [{field.name}]: {node}")
             toplevel_node = node
         if NF.MACRO_BODY_ONLY in node.FLAGS:
             assert isinstance(
@@ -3572,14 +3560,13 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             if not pre_symbolize:
                 assert node.x_modname, f"missing x_modname {node}"
         if field is not None:
-            nfd = ALL_FIELDS_MAP[field]
-            if not _IsPermittedNode(node, nfd.node_type, parent, toplevel_node,
+            if not _IsPermittedNode(node, field.node_type, parent, toplevel_node,
                                     node_mod,
                                     allow_type_auto):
                 CompilerError(
-                    node.x_srcloc, f"unexpected node for field={field}: {node.__class__.__name__}")
+                    node.x_srcloc, f"unexpected node for field={field.name}: {node.__class__.__name__}")
 
-    VisitAstRecursivelyWithParent(node_mod, visitor, None)
+    VisitAstRecursivelyWithParentAndField(node_mod, visitor, None)
 
 
 ##########################################################################################
