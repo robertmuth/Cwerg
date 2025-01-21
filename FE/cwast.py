@@ -3144,6 +3144,19 @@ def VisitAstRecursively(node, visitor, field=None):
             for child in getattr(node, f):
                 VisitAstRecursively(child, visitor, f)
 
+def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post, field=None):
+    if visitor_pre(node, field):
+        return
+
+    for f, nfd in node.__class__.NODE_FIELDS:
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            VisitAstRecursivelyPreAndPost(child, visitor_pre, visitor_post, f)
+        else:
+            for child in getattr(node, f):
+                VisitAstRecursivelyPreAndPost(child, visitor_pre, visitor_post, f)
+
+    visitor_post(node, field)
 
 def VisitAstRecursivelyWithParent(node, visitor, parent, field=None):
     if visitor(node, parent, field):
@@ -3180,20 +3193,6 @@ def VisitAstRecursivelyWithParentPost(node, visitor, parent, field=None):
                 VisitAstRecursivelyWithParentPost(child, visitor, node, f)
 
     visitor(node, parent, field)
-
-
-def VisitAstRecursivelyWithAllParents(node, parents: list[Any], visitor):
-    if visitor(node, parents):
-        return
-    parents.append(node)
-    for c, nfd in node.__class__.NODE_FIELDS:
-        if nfd.kind is NFK.NODE:
-            VisitAstRecursivelyWithAllParents(
-                getattr(node, c), parents, visitor)
-        else:
-            for child in getattr(node, c):
-                VisitAstRecursivelyWithAllParents(child, parents, visitor)
-    parents.pop(-1)
 
 
 def MaybeReplaceAstRecursively(node, replacer):

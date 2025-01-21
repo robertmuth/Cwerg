@@ -383,9 +383,15 @@ def VerifyASTSymbolsRecursively(node):
 
 
 def _SetTargetFieldRecursively(node):
-    def visitor(node, parents):
+    parents = []
+
+    def visitor_pre(node, _):
+        nonlocal parents
         if isinstance(node, cwast.DefMacro):
             return True
+
+        parents.append(node)
+
         if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             target = node.target
             for p in reversed(parents):
@@ -403,7 +409,13 @@ def _SetTargetFieldRecursively(node):
             else:
                 assert False, f"{
                     node} --- {[p.__class__.__name__ for p in parents]}"
-    cwast.VisitAstRecursivelyWithAllParents(node, [], visitor)
+
+    def visitor_post(node, _):
+        nonlocal parents
+        parents.pop(-1)
+
+    cwast.VisitAstRecursivelyPreAndPost(
+        node, visitor_pre, visitor_post)
 
 
 def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[cwast.DefMod],
