@@ -17,15 +17,15 @@ def ShakeTree(mods: List[cwast.DefMod], entry_fun: cwast.DefFun):
     # callgraph - map fun to its callers
     cg: Dict[cwast.DefFun, Set[cwast.DefFun]] = collections.defaultdict(set)
     cg[_Hell].add(_Hell)  # force hell to be alive
+    caller = None
 
-    def visitor(call, parents):
-        nonlocal cg
+    def visitor(call, _):
+        nonlocal cg, caller
         if isinstance(call, cwast.ExprCall):
             if isinstance(call.callee, cwast.Id):
                 callee = call.callee.x_symbol
                 assert isinstance(
                     callee, cwast.DefFun), f"expected fun: {call} {callee}"
-                caller = parents[0]
                 if caller is not callee:
                     logging.info(f"@@@@ {caller.name} -> {callee.name}")
                     cg[callee].add(caller)
@@ -40,7 +40,8 @@ def ShakeTree(mods: List[cwast.DefMod], entry_fun: cwast.DefFun):
             else:
                 # make sure the function is recorded
                 _ = cg[fun]
-            cwast.VisitAstRecursivelyWithAllParents(fun, [], visitor)
+            caller = fun
+            cwast.VisitAstRecursively(fun, visitor)
 
     # compute dead functions
     change = True
