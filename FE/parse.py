@@ -871,9 +871,9 @@ def _ParseModule(inp: lexer.Lexer):
 def RemoveRedundantParens(node):
     """Remove Parens which would be re-added by AddMissingParens."""
 
-    def replacer(node, parent, field: str):
+    def replacer(node, parent, nfd: cwast.NFD):
         if isinstance(node, cwast.ExprParen):
-            if pp.NodeNeedsParen(node.expr, parent, field):
+            if pp.NodeNeedsParen(node.expr, parent, nfd):
                 return node.expr
         return None
 

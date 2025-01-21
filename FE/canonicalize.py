@@ -46,7 +46,8 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
         field_type = cwast.TypeAuto(x_srcloc=srcloc, x_type=field_ct)
         fields.append(cwast.RecField(
             field_name, field_type, x_srcloc=srcloc, x_type=field_ct))
-    rec = cwast.DefRec(cwast.NAME.FromStr(name), fields, pub=True, x_srcloc=srcloc)
+    rec = cwast.DefRec(cwast.NAME.FromStr(
+        name), fields, pub=True, x_srcloc=srcloc)
     rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
     typify.AnnotateNodeType(rec, rec_ct)
     tc.finalize_rec_type(rec_ct)
@@ -61,17 +62,17 @@ def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
 
 def IdNodeFromRecField(recfield: cwast.RecField, srcloc):
     return cwast.Id(None, recfield.name, None, x_srcloc=srcloc, x_type=recfield.x_type,
-                         x_symbol=recfield)
+                    x_symbol=recfield)
 
 
-def _ShouldBeBoolExpanded(node, field):
+def _ShouldBeBoolExpanded(node, nfd: cwast.NFD):
     # these nodes do not represent a complex boolean expression
     if not isinstance(node, (cwast.Expr1, cwast.Expr2)):
         return False
     # the field condition ensures that the node
     # * is not part of a conditional
     # * has a x_type
-    return field in (
+    return nfd.name in (
         "args", "expr_ret", "expr_rhs", "initial_or_undef_or_auto", "value",
         "value_or_undef") and node.x_type.is_bool()
 
@@ -82,8 +83,8 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
     This will make it eligible for CanonicalizeTernaryOp which is the only way currently
     to materialize boolean values
      """
-    def replacer(node, _parent, field):
-        if not _ShouldBeBoolExpanded(node, field):
+    def replacer(node, _parent, nfd: cwast.NFD):
+        if not _ShouldBeBoolExpanded(node, nfd):
             return None
         cstr_bool = tc.get_bool_canon_type()
         return cwast.Expr3(node,
@@ -324,12 +325,12 @@ def ReplaceConstExpr(node):
     """
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
-    def replacer(node, _parent, field):
+    def replacer(node, _parent, nfd: cwast.NFD):
         if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
             assert node.x_value is not None
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS or node.x_value is None:
             return None
-        if field in ("expr_lhs", "inits"):
+        if nfd.name in ("expr_lhs", "inits"):
             return
         if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal)):
             return
@@ -435,7 +436,6 @@ def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
 
     if cwast.NF.CONTROL_FLOW in fun.FLAGS:
         return cwast.EphemeralList(handle_cfg(fun.x_target) + [fun], colon=False)
-
 
     # TODO: try converting this to VisitAstRecursivelyPreAndPost
     for nfd in fun.__class__.NODE_FIELDS:

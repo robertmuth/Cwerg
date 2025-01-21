@@ -112,7 +112,7 @@ def ReplaceSpans(node):
      TODO: see unused _ConvertMutSpanValRecToSpanValRec helper
      `span<u8> = span-mut<u8>` is ok before the change to structs but not afterwards
     """
-    def replacer(node, _parent, field):
+    def replacer(node, _parent, _field):
 
         # len of array is constant and should have already been eliminated
         if isinstance(node, cwast.ExprLen):
