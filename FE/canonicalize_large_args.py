@@ -109,7 +109,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
             return cwast.EphemeralList([assign, node], x_srcloc=node.x_srcloc)
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
     cwast.EliminateEphemeralsRecursively(fun)
 
 
@@ -184,4 +184,4 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                     expr_ret=call, x_srcloc=call.x_srcloc, x_target=expr))
             return expr
         return None
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)

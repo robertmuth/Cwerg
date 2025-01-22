@@ -1324,7 +1324,7 @@ def RemoveUselessCast(node, tc: type_corpus.TypeCorpus):
                 return node.expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
 ############################################################
 #
 ############################################################

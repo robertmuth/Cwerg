@@ -92,7 +92,7 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
                                x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=False),
                            x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
@@ -129,7 +129,7 @@ def FunReplaceExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
         if isinstance(node, cwast.ExprIs):
             return _RewriteExprIs(node, tc)
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
@@ -167,7 +167,7 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
             return expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 ############################################################
@@ -271,7 +271,7 @@ def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
             assert not isinstance(node, cwast.ExprIndex)
             return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
     cwast.EliminateEphemeralsRecursively(fun)
 
 
@@ -360,7 +360,7 @@ def FunCanonicalizeRemoveStmtCond(fun: cwast.DefFun):
                 out], x_srcloc=case.x_srcloc)
         return out
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def FunOptimizeKnownConditionals(fun: cwast.DefFun):
@@ -412,7 +412,7 @@ def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
 
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
@@ -623,7 +623,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
         if node.expr2.x_type.is_tagged_union():
             return make_cmp(node, node.expr2, node.expr1)
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def FunReplaceTypeOfAndTypeUnionDelta(fun: cwast.DefFun):
@@ -632,7 +632,7 @@ def FunReplaceTypeOfAndTypeUnionDelta(fun: cwast.DefFun):
             return None
         return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def _IsSimpleInitializer(expr) -> bool:
@@ -697,7 +697,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
         else:
             return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
     cwast.EliminateEphemeralsRecursively(fun)
 
 
@@ -707,4 +707,4 @@ def FunRemoveParentheses(fun: cwast.DefFun):
             return node.expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)

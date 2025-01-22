@@ -251,7 +251,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
             return expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def ReplaceUnions(node):
@@ -327,4 +327,4 @@ def ReplaceUnions(node):
             assert False, f"do not know how to convert sum node [{
                 new_ct.name}]:\n {node} {node.x_srcloc}"
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)

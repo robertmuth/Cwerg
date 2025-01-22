@@ -236,34 +236,13 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
 
 
 def FindAndExpandMacrosRecursively(node, builtin_syms, nesting: int, ctx: macros.MacroContext):
-    for nfd in node.__class__.NODE_FIELDS:
-        c = nfd.name
-        if nfd.kind is cwast.NFK.NODE:
-            child = getattr(node, c)
-            FindAndExpandMacrosRecursively(child, builtin_syms, nesting, ctx)
-            if cwast.NF.TO_BE_EXPANDED in child.FLAGS:
-                new_child = ExpandMacroOrMacroLike(
-                    child, builtin_syms, nesting, ctx)
-                assert not isinstance(new_child, cwast.EphemeralList)
-                setattr(node, c, new_child)
 
-        else:
-            children = getattr(node, c)
-            new_children = []
-            for child in children:
-                FindAndExpandMacrosRecursively(
-                    child, builtin_syms, nesting, ctx)
-                if cwast.NF.TO_BE_EXPANDED not in child.FLAGS:
-                    new_children.append(child)
-                else:
-                    exp = ExpandMacroOrMacroLike(
-                        child, builtin_syms, nesting, ctx)
-                    if isinstance(exp, cwast.EphemeralList):
-                        for a in exp.args:
-                            new_children.append(a)
-                    else:
-                        new_children.append(exp)
-            setattr(node, c, new_children)
+    def replacer(node: Any):
+        nonlocal builtin_syms, nesting, ctx
+        if cwast.NF.TO_BE_EXPANDED in node.FLAGS:
+            return ExpandMacroOrMacroLike(node, builtin_syms, nesting, ctx)
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
 
 
 def ResolveSymbolsInsideFunctionsRecursively(
@@ -278,39 +257,31 @@ def ResolveSymbolsInsideFunctionsRecursively(
         scopes[-1][name] = node
         symtab.AddLocalSym(name, node)
 
-    if isinstance(node, cwast.Id):
-        _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
-        return
+    def visitor(node: Any, nfd: cwast.NFD):
+        nonlocal builtin_syms, scopes
+        if isinstance(node, cwast.Id) and nfd.name != "field":
+            _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
+        if isinstance(node, cwast.DefVar):
+            record_local_sym(node)
 
-    # TODO: try converting this to VisitAstRecursivelyPreAndPost
-    # recurse using a little bit of introspection
-    for nfd in node.__class__.NODE_FIELDS:
-        c = nfd.name
-        if nfd.kind is cwast.NFK.NODE:
-            # the field member contains an Id that can only be resolved when we have type info
-            if c != "field":
-                ResolveSymbolsInsideFunctionsRecursively(
-                    getattr(node, c), symtab, builtin_syms, scopes)
-        else:
-            # blocks introduce new scopes
-            if c in cwast.NEW_SCOPE_FIELDS:
-                logger.debug("push scope for %s: %s", node, c)
-                scopes.append({})
-                if isinstance(node, cwast.DefFun):
-                    for p in node.params:
-                        if isinstance(p, cwast.FunParam):
-                            record_local_sym(p)
-            for cc in getattr(node, c):
-                ResolveSymbolsInsideFunctionsRecursively(
-                    cc, symtab, builtin_syms, scopes)
-            if c in cwast.NEW_SCOPE_FIELDS:
-                logger.debug("pop scope for if block: %s", c)
-                for name in scopes[-1].keys():
-                    symtab.DelSym(name)
-                scopes.pop(-1)
+    def scope_enter(node: Any, nfd: cwast.NFD):
+        nonlocal scopes
+        logger.debug("push scope for %s: %s", node, nfd.name)
+        scopes.append({})
+        if isinstance(node, cwast.DefFun):
+            for p in node.params:
+                if isinstance(p, cwast.FunParam):
+                    record_local_sym(p)
 
-    if isinstance(node, cwast.DefVar):
-        record_local_sym(node)
+    def scope_exit(node: Any, nfd: cwast.NFD):
+        nonlocal scopes, symtab
+        logger.debug("pop scope for %s: %s", node, nfd.name)
+        for name in scopes[-1].keys():
+            symtab.DelSym(name)
+        scopes.pop(-1)
+
+    cwast.VisitAstRecursivelyWithScopeTracking(
+        node, visitor, scope_enter, scope_exit)
 
 
 def _CheckAddressCanBeTaken(lhs):
@@ -597,7 +568,7 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
 
         return cwast.CloneNodeRecursively(t, {}, {})
 
-    cwast.MaybeReplaceAstRecursivelyPost(mod, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(mod, replacer)
     return mod
 ############################################################
 #

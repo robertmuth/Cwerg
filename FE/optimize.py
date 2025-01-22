@@ -72,7 +72,7 @@ def FunPeepholeOpts(fun: cwast.DefFun):
             return node.expr.expr_lhs
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, update)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, update)
 
 
 def FunCopyPropagation(fun: cwast.DefFun):
@@ -176,7 +176,7 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
         # print("INLINING ", call, call.x_srcloc,
         #      "    ->     ", f"{repr(fun_def.name)}", fun_def)
         return MakeExprStmtForCall(call, id_gen)
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
@@ -194,7 +194,7 @@ def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
             return node.body[0].expr_ret
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
 def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):

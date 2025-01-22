@@ -122,7 +122,7 @@ def AddMissingParens(node):
 
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
 
 ############################################################
 # Token

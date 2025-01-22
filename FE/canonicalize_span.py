@@ -99,7 +99,7 @@ def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
                     node.expr, node.x_type, tc, uint_type)
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
 
 
 def ReplaceSpans(node):
@@ -172,4 +172,4 @@ def ReplaceSpans(node):
                     f"[{def_rec.name}]: {type(node)} of type {node.x_type}")
         return None
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)

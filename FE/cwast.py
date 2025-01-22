@@ -3158,6 +3158,26 @@ def VisitAstRecursively(node, visitor):
                 VisitAstRecursively(child, visitor)
 
 
+def VisitAstRecursivelyWithScopeTracking(node, visitor, scope_enter, scope_exit, nfd=None):
+    if visitor(node, nfd):
+        return
+
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            VisitAstRecursivelyWithScopeTracking(
+                child, visitor, scope_enter, scope_exit, nfd)
+        else:
+            if nfd.name in NEW_SCOPE_FIELDS:
+                scope_enter(node, nfd)
+            for child in getattr(node, f):
+                VisitAstRecursivelyWithScopeTracking(
+                    child, visitor, scope_enter, scope_exit, nfd)
+            if nfd.name in NEW_SCOPE_FIELDS:
+                scope_exit(node, nfd)
+
+
 def VisitAstRecursivelyWithField(node, visitor, nfd=None):
     if visitor(node, nfd):
         return
@@ -3252,20 +3272,45 @@ def MaybeReplaceAstRecursively(node, replacer):
 
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            MaybeReplaceAstRecursivelyPost(child, replacer)
+            new_child = replacer(child)
+            assert not isinstance(new_child, EphemeralList)
+            if new_child is not None:
+                setattr(node, f, new_child)
+        else:
+            children = getattr(node, f)
+            new_children = []
+            for n, child in enumerate(children):
+                MaybeReplaceAstRecursivelyPost(child, replacer)
+                new_child = replacer(child)
+                if new_child is None:
+                    new_children.append(child)
+                elif isinstance(new_child, EphemeralList):
+                    new_children += new_child.args
+                else:
+                    new_children.append(new_child)
+            setattr(node, f, new_children)
+
+
+def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
     """Note: the root node will not be replaced"""
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         # print ("replace: ", node.__class__.__name__, c)
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            MaybeReplaceAstRecursivelyPost(child, replacer)
+            MaybeReplaceAstRecursivelyWithParentPost(child, replacer)
             new_child = replacer(child, node, nfd)
             if new_child:
                 setattr(node, f, new_child)
         else:
             children = getattr(node, f)
             for n, child in enumerate(children):
-                MaybeReplaceAstRecursivelyPost(child, replacer)
+                MaybeReplaceAstRecursivelyWithParentPost(child, replacer)
                 new_child = replacer(child, node, nfd)
                 if new_child:
                     children[n] = new_child
