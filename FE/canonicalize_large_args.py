@@ -86,7 +86,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
 
     # print([k.name for k, v in changing_params.items()], result_changes)
 
-    def replacer(node, _parent, _field) -> Optional[Any]:
+    def replacer(node) -> Optional[Any]:
 
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
             new_node = cwast.ExprDeref(
@@ -109,9 +109,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
             return cwast.EphemeralList([assign, node], x_srcloc=node.x_srcloc)
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
-    cwast.EliminateEphemeralsRecursively(fun)
-
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                   tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):

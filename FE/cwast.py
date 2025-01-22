@@ -541,7 +541,6 @@ ALL_FIELDS = [
     NfdStr("name_list", "name of the object list"),
 
     NfdStr("string", "string literal"),
-    NfdStr("comment", "comment"),
     NfdStr("message", "message for assert failures"),
     NfdStr("label", "block  name (if not empty)"),
     NfdStr("target",
@@ -680,7 +679,6 @@ ALL_FIELDS = [
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("callee", "expression evaluating to the function to be called",
             NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("value", "", NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("value_or_auto", "enum constant or auto",
             NODES_EXPR_OR_AUTO_T, MACRO_PARAM_KIND.EXPR),
     NfdNode("value_or_undef", "", NODES_EXPR_OR_UNDEF_T, MACRO_PARAM_KIND.EXPR),
@@ -3781,6 +3779,7 @@ _NFK_KIND_2_SIZE = {
 }
 
 
+# this covers all fields which occur more than once
 _FIELD_2_SLOT = {
     "type": 1,
     "type_or_auto": 1,
@@ -3798,24 +3797,83 @@ _FIELD_2_SLOT = {
     "expr_rhs": 1,
     "target": 0,
     "args": 1,
-    "fields": 1,
+    "field": 2,
 }
+
 
 
 def GetSize(kind):
     return _NFK_KIND_2_SIZE.get(kind, -1)
 
 
-def GenerateCodeCpp(fout: Any):
+MAX_SLOTS = 4
 
-    nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
+def _ComputeRemainingSlotsForFields():
+    for cls in ALL_NODES:
+        slots: list[Optional[NFD]] = [None] * MAX_SLOTS
+        for nfd in cls.FIELDS:
+            if nfd.kind not in (NFK.NODE, NFK.LIST, NFK.STR, NFK.NAME):
+                continue
+            field = nfd.name
+            if field in _FIELD_2_SLOT:
+                slot = _FIELD_2_SLOT[field]
+                assert slots[slot] is None, f"[{cls.__name__}] slot {
+                    slot} already used for [{slots[slot].name}] trying for [{field}]"
+                slots[slot] = nfd
+            else:
+                for i in range(4):
+                    if slots[i] is None:
+                        slots[i] = nfd
+                        _FIELD_2_SLOT[field] = i
+                        break
+                else:
+                    assert False, f"slot clash"
+
+
+def GenerateCodeCpp(fout: Any):
+    _ComputeRemainingSlotsForFields()
+    _fields_by_kind = collections.defaultdict(list)
+    for nfd in ALL_FIELDS:
+        _fields_by_kind[nfd.kind].append(nfd)
     print(f"#include <cstdint>")
 
-    print(f"enum class NT : uint8_t {{")
-    print(f"    Invalid = 0,")
-    for group, name, cls in nodes:
-        print(f"    {cls.__name__},")
+    print(f"enum class NFD_NODE_FIELD : uint8_t {{")
+    print(f"    invalid = 0,")
+    for n, nfd in enumerate(_fields_by_kind[NFK.NODE] + _fields_by_kind[NFK.LIST]):
+        print (f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
     print("};")
+
+    print(f"enum class NFD_NAME_FIELD : uint8_t {{")
+    print(f"    invalid = 0,")
+    for n, nfd in enumerate(_fields_by_kind[NFK.NAME]):
+        print (f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
+    print("};")
+
+    print(f"enum class NFD_STR_FIELD : uint8_t {{")
+    print(f"    invalid = 0,")
+    for n, nfd in enumerate(_fields_by_kind[NFK.STR]):
+        print (f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
+    print("};")
+
+    print(f"enum class NT : uint8_t {{")
+    print(f"    invalid = 0,")
+    for n, cls in enumerate(ALL_NODES):
+        print(f"    {cls.__name__} = {n+1},")
+    print("};")
+
+    print ("""struct Node {
+    NT kind kind;
+    uint8_t other_kind;
+    uint16_t bits;
+    NodeHandle children[4];
+    NodeHandle next;
+}""")
+
+    exit(1)
+    print(f"// {nfd.name} {nfd.kind} {GetSize(nfd.kind)}", file=fout)
+    nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
+
+
 
     histo = collections.defaultdict(int)
 

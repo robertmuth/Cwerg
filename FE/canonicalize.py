@@ -243,7 +243,7 @@ def IsNodeCopyableWithoutRiskOfSideEffects(node) -> bool:
 
 def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
         fun: cwast.DefFun, id_gen: identifier.IdGen):
-    def replacer(node, _parent, _field):
+    def replacer(node):
         if isinstance(node, cwast.ExprDeref):
             if isinstance(node.expr, cwast.Id):
                 return None
@@ -271,8 +271,7 @@ def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
             assert not isinstance(node, cwast.ExprIndex)
             return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
-    cwast.EliminateEphemeralsRecursively(fun)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
 def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
@@ -301,7 +300,7 @@ def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
 
 def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen):
     """Convert StmtCompoundAssignment to StmtAssignment"""
-    def replacer(node, _parent, _field):
+    def replacer(node):
         if isinstance(node, cwast.StmtCompoundAssignment):
             stmts = []
             new_lhs = MakeNodeCopyableWithoutRiskOfSideEffects(
@@ -315,8 +314,7 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun, id_gen: identifier.IdG
             stmts.append(assignment)
             return cwast.EphemeralList(stmts, colon=True)
 
-    cwast.MaybeReplaceAstRecursively(fun, replacer)
-    cwast.EliminateEphemeralsRecursively(fun)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
 def ReplaceConstExpr(node):
@@ -673,7 +671,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
 
     We reject this approach because it forces another stack variable: tmp.
     """
-    def replacer(node, _parent, _field):
+    def replacer(node):
         if not isinstance(node, cwast.StmtAssignment):
             return None
 
@@ -697,8 +695,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
         else:
             return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
-    cwast.EliminateEphemeralsRecursively(fun)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
 def FunRemoveParentheses(fun: cwast.DefFun):

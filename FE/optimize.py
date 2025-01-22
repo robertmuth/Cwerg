@@ -66,13 +66,13 @@ def FunRemoveUnusedDefVar(fun: cwast.DefFun):
 def FunPeepholeOpts(fun: cwast.DefFun):
     """Misc Peephole Opts"""
 
-    def update(node,  _parent, _field):
+    def replace(node):
         if isinstance(node, cwast.ExprDeref) and isinstance(node.expr, cwast.ExprAddrOf):
             stats.IncCounter("Peephole", "DerefAddrOf", 1)
             return node.expr.expr_lhs
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, update)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replace)
 
 
 def FunCopyPropagation(fun: cwast.DefFun):
@@ -182,7 +182,7 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
 def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
     # deal with common simple cases until we have something more general in place
 
-    def replacer(node: Any, _parent: Any, _field: str):
+    def replacer(node: Any):
         if isinstance(node, cwast.StmtReturn) and isinstance(node.expr_ret, cwast.ExprStmt):
             target_map = {node.expr_ret: node.x_target}
             cwast.UpdateSymbolAndTargetLinks(node.expr_ret, {}, target_map)
@@ -194,7 +194,7 @@ def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
             return node.body[0].expr_ret
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
 def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):
@@ -204,4 +204,3 @@ def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):
     cwast.EliminateEphemeralsRecursively(fun)
     FunPeepholeOpts(fun)
     FunRemoveSimpleExprStmts(fun)
-    cwast.EliminateEphemeralsRecursively(fun)
