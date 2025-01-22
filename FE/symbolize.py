@@ -178,10 +178,10 @@ def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
                                                         must_resolve_all: bool):
 
-    def visitor(node: Any, field: cwast.NFD):
+    def visitor(node: Any, nfd: cwast.NFD):
         nonlocal builtin_syms
         if isinstance(node, cwast.Id):
-            if field.name == "field":
+            if nfd.name == "field":
                 # must wait until type info is available
                 return
             if node.x_symbol:
@@ -197,7 +197,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
             if def_node:
                 AnnotateNodeSymbol(node, def_node)
             else:
-                if must_resolve_all and field.name != "point":
+                if must_resolve_all and nfd.name != "point":
                     cwast.CompilerError(
                         node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
 
@@ -354,7 +354,7 @@ def VerifyASTSymbolsRecursively(node):
         assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, f"{node}"
         if cwast.NF.SYMBOL_ANNOTATED in node.FLAGS:
             if node.x_symbol is None:
-                assert nfd.name in ("point", "field"), f"unresolved symbol {
+                assert nfd.name in cwast.FIELD_NAME_FIELDS, f"unresolved symbol {
                     node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             # all macros should have been resolved

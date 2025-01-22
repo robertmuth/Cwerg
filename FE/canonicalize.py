@@ -72,9 +72,7 @@ def _ShouldBeBoolExpanded(node, nfd: cwast.NFD):
     # the field condition ensures that the node
     # * is not part of a conditional
     # * has a x_type
-    return nfd.name in (
-        "args", "expr_ret", "expr_rhs", "initial_or_undef_or_auto", "value",
-        "value_or_undef") and node.x_type.is_bool()
+    return node.x_type.is_bool() and nfd.name in cwast.TOP_LEVEL_EXPRESSION_FIELDS
 
 
 def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):

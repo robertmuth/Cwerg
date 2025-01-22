@@ -695,6 +695,13 @@ NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 
 TYPE_FIELDS = set(["type", "types", "result", "type_or_auto", "subtrahend"])
 
+# parent is not also an expression
+TOP_LEVEL_EXPRESSION_FIELDS = set([
+    "args", "expr_ret", "expr_rhs", "initial_or_undef_or_auto", "value",
+    "value_or_undef"])
+
+FIELD_NAME_FIELDS = set(["point", "field"])
+
 ALL_FIELDS_MAP: dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
 
@@ -3193,7 +3200,8 @@ def VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd=None):
             VisitAstRecursivelyWithParentAndField(child, visitor, node, nfd)
         else:
             for child in getattr(node, f):
-                VisitAstRecursivelyWithParentAndField(child, visitor, node, nfd)
+                VisitAstRecursivelyWithParentAndField(
+                    child, visitor, node, nfd)
 
 
 def VisitAstRecursivelyPost(node, visitor):
@@ -3501,7 +3509,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
     # this only works with pre-order traversal
     toplevel_node = None
 
-    def visitor(node: Any, parent: Any, field: NFD):
+    def visitor(node: Any, parent: Any, nfd: NFD):
         nonlocal disallowed_nodes
         nonlocal toplevel_node
         nonlocal node_mod
@@ -3512,12 +3520,12 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
 
         assert isinstance(
-            node.x_srcloc, SrcLoc) and node.x_srcloc != INVALID_SRCLOC, f"Node without srcloc node {node} for parent={parent} field={field} {node.x_srcloc}"
+            node.x_srcloc, SrcLoc) and node.x_srcloc != INVALID_SRCLOC, f"Node without srcloc node {node} for parent={parent} field={nfd} {node.x_srcloc}"
 
         if NF.TOP_LEVEL in node.FLAGS:
-            if field.name != "body_mod":
+            if nfd.name != "body_mod":
                 CompilerError(
-                    node.x_srcloc, f"only allowed at toplevel [{field.name}]: {node}")
+                    node.x_srcloc, f"only allowed at toplevel [{nfd.name}]: {node}")
             toplevel_node = node
         if NF.MACRO_BODY_ONLY in node.FLAGS:
             assert isinstance(
@@ -3559,12 +3567,12 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
         elif isinstance(node, DefMod):
             if not pre_symbolize:
                 assert node.x_modname, f"missing x_modname {node}"
-        if field is not None:
-            if not _IsPermittedNode(node, field.node_type, parent, toplevel_node,
+        if nfd is not None:
+            if not _IsPermittedNode(node, nfd.node_type, parent, toplevel_node,
                                     node_mod,
                                     allow_type_auto):
                 CompilerError(
-                    node.x_srcloc, f"unexpected node for field={field.name}: {node.__class__.__name__}")
+                    node.x_srcloc, f"unexpected node for field={nfd.name}: {node.__class__.__name__}")
 
     VisitAstRecursivelyWithParentAndField(node_mod, visitor, None)
 
