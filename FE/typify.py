@@ -1330,7 +1330,7 @@ def RemoveUselessCast(node, tc: type_corpus.TypeCorpus):
 ############################################################
 
 
-def main(argv):
+def main(argv: list[str]):
     assert len(argv) == 1
     fn = argv[0]
     fn, ext = os.path.splitext(fn)

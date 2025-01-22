@@ -728,7 +728,7 @@ def DecorateASTWithPartialEvaluation(mod_topo_order: list[cwast.DefMod]):
         VerifyASTEvalsRecursively(mod)
 
 
-def main(argv):
+def main(argv: list[str]):
     cwast.ASSERT_AFTER_ERROR = False
     assert len(argv) == 1
     fn = argv[0]

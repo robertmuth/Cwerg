@@ -15,7 +15,7 @@ def UpdateNodeHistogram(node: Any, counters: collections.defaultdict):
 
 
 def ComputeNodeHistogram(nodes: Iterable[Any]) -> collections.defaultdict:
-    counters = collections.defaultdict(int)
+    counters: collections.defaultdict = collections.defaultdict(int)
     for n in nodes:
         UpdateNodeHistogram(n, counters)
     return counters
@@ -29,6 +29,7 @@ def DumpCounter(counters: collections.defaultdict):
         print(f"{count:-7} {kind}")
 
     print(f"{total:-7} TOTAL")
+
 
 _Counters: collections.defaultdict[tuple[str,
                                          str], int] = collections.defaultdict(int)

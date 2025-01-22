@@ -9,7 +9,7 @@ import re
 import logging
 import io
 
-from typing import Any, Tuple, Union
+from typing import Any, Union
 from collections.abc import Callable
 
 from FE import cwast
@@ -121,7 +121,7 @@ class ReadTokens:
         # TODO: line number fix up in rare cases
         self._tokens.append(token)
 
-    def __next__(self):
+    def __next__(self: "ReadTokens"):
         while not self._tokens:
             self._tokens = re.findall(_RE_TOKENS_ALL, next(self._fp))
             self._tokens.reverse()

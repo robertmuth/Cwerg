@@ -768,7 +768,6 @@ def _ParseMacroGenIds(inp: lexer.Lexer):
 def _ParseTopLevel(inp: lexer.Lexer):
     kw = inp.next()
     extra = _ExtractAnnotations(kw)
-    alias = ""
     if kw.text == "import":
         name = inp.match_or_die(lexer.TK_KIND.ID)
         path = ""

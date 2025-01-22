@@ -189,7 +189,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
             if node.x_import.x_module == cwast.INVALID_MOD:
                 if must_resolve_all:
                     cwast.CompilerError(
-                        node.x_srcloc, f"import of {node.name} not resolved")
+                        node.x_srcloc, f"import of {node.base_name} not resolved")
                 return
             symtab = node.x_import.x_module.x_symtab
             def_node = symtab.resolve_sym(
@@ -334,7 +334,7 @@ def VerifyASTSymbolsRecursively(node):
             is_type_node = nfd.name in cwast.TYPE_FIELDS
             if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeUnion, cwast.DefEnum)):
                 cwast.CompilerError(
-                    node.x_srcloc, f"unexpected id {node.FullName()}: {type(def_node)} {field.name}")
+                    node.x_srcloc, f"unexpected id {node.FullName()}: {type(def_node)}")
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             assert isinstance(
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"

@@ -3290,6 +3290,8 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
                 if new_child is None:
                     new_children.append(child)
                 elif isinstance(new_child, EphemeralList):
+                    for x in new_child.args:
+                        assert not isinstance(x, EphemeralList)
                     new_children += new_child.args
                 else:
                     new_children.append(new_child)
@@ -3804,7 +3806,7 @@ def GetSize(kind):
     return _NFK_KIND_2_SIZE.get(kind, -1)
 
 
-def GenerateCodeCpp(fout):
+def GenerateCodeCpp(fout: Any):
 
     nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
     print(f"#include <cstdint>")

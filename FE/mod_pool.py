@@ -144,7 +144,7 @@ class ModPoolBase:
         #
         self._builtin_mod: Optional[cwast.DefMod] = None
         self.builtin_macros: set[str] = set()
-        self.builtin_symtab: symbolize.SymTab =  symbolize.SymTab()
+        self.builtin_symtab: symbolize.SymTab = symbolize.SymTab()
 
     def __str__(self):
         return f"root={self._root}"
@@ -220,7 +220,6 @@ class ModPoolBase:
             active.append(mod_info)
             assert not mod_info.mod.builtin
 
-
         # fix point computation for resolving imports
         while active:
             new_active: list[ModInfo] = []
@@ -238,6 +237,7 @@ class ModPoolBase:
                     path = import_node.path if import_node.path else str(
                         import_node.name)
                     if import_node.args_mod:
+                        # import of generic module
                         done = _TryToNormalizeModArgs(
                             import_node.args_mod, normalized_args)
                         args_strs = [f"{_FormatModArg(a)}->{_FormatModArg(n)}"
