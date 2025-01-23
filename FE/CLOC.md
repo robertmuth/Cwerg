@@ -3,34 +3,34 @@
 ```
 File                                         blank        comment           code
 --------------------------------------------------------------------------------
-FE/emit_ir.py                                  154             72           1119
-FE/typify.py                                   209             93           1066
-FE/parse.py                                    138             38            725
-FE/eval.py                                     102             67            595
-FE/canonicalize.py                             120             94            493
-FE/symbolize.py                                113             35            461
-FE/type_corpus.py                               88             41            423
-FE/pp.py                                       190            564            371
-FE/parse_sexpr.py                               69             70            298
-FE/pp_sexpr.py                                  63             14            293
-FE/mod_pool.py                                  52             32            234
-FE/canonicalize_union.py                        52             53            225
-FE/lexer.py                                     48             82            203
-FE/optimize.py                                  36             13            157
-FE/pp_html.py                                   30             13            132
-FE/macros.py                                    20             13            126
-FE/canonicalize_large_args.py                   24             39            122
-FE/canonicalize_span.py                         27             29            119
+FE/emit_ir.py                                  154             53           1138
+FE/typify.py                                   209             58           1101
+FE/pp.py                                       190             69            866
+FE/parse.py                                    138             29            734
+FE/eval.py                                     102             46            616
+FE/canonicalize.py                             120             38            549
+FE/symbolize.py                                113             20            476
+FE/type_corpus.py                               88             21            443
+FE/parse_sexpr.py                               69             36            332
+FE/pp_sexpr.py                                  63             12            295
+FE/lexer.py                                     48             17            268
+FE/canonicalize_union.py                        52             24            254
+FE/mod_pool.py                                  52             12            254
+FE/optimize.py                                  36              7            163
+FE/canonicalize_large_args.py                   24              8            153
+FE/pp_html.py                                   30              7            138
+FE/canonicalize_span.py                         27             13            135
+FE/macros.py                                    20             10            129
 FE/dead_code.py                                 10              4             55
 FE/fmt_real.py                                  15              5             51
-FE/identifier.py                                17             13             37
+FE/identifier.py                                17              4             46
 FE/stats.py                                     16              0             29
+FE/cws2cw.py                                     9              0             14
+FE/cw2cws.py                                     9              1             13
 FE/xdump.py                                      5              0             13
-FE/cws2cw.py                                     9              2             12
-FE/cw2cws.py                                     9              3             11
-FE/string_re.py                                  4              4             10
+FE/string_re.py                                  4              3             11
 --------------------------------------------------------------------------------
-SUM:                                          1620           1393           7380
+SUM:                                          1620            497           8276
 --------------------------------------------------------------------------------
 ```
 
@@ -39,7 +39,7 @@ SUM:                                          1620           1393           7380
 ```
 File                             blank        comment           code
 -------------------------------------------------------------------------------
-FE/cwast.py                        700           1922           1368
+FE/cwast.py                        700            353           2937
 -------------------------------------------------------------------------------
 ```
 ### Regular Code (C++)

@@ -4,22 +4,22 @@
 ```
 File                                    blank        comment           code
 --------------------------------------------------------------------------------------
-BE/Elf/elfhelper.py                       154             96            871
-BE/Base/ir.py                             162             82            504
-BE/Base/lowering.py                       115            143            428
-BE/Base/serialize.py                       78             22            422
-BE/Base/reaching_defs.py                   81            108            343
-BE/Base/liveness.py                        70             83            296
-BE/Base/cfg.py                             43             37            244
-BE/Base/reg_stats.py                       46             51            189
-BE/Base/reg_alloc.py                       49             65            180
-BE/Base/optimize.py                        48             26            177
-BE/Base/sanity.py                          28             29            170
-BE/Elf/elf_unit.py                         21             17             97
-BE/Base/eval.py                            26              7             84
-BE/Base/canonicalize.py                     5              4             26
+BE/Elf/elfhelper.py                       154             44            923
+BE/Base/ir.py                             162             40            546
+BE/Base/lowering.py                       115             25            546
+BE/Base/serialize.py                       78             17            427
+BE/Base/reaching_defs.py                   81             62            389
+BE/Base/liveness.py                        70             48            331
+BE/Base/cfg.py                             43             16            265
+BE/Base/reg_stats.py                       46             17            223
+BE/Base/reg_alloc.py                       49             32            213
+BE/Base/sanity.py                          28              5            194
+BE/Base/optimize.py                        48             13            190
+BE/Elf/elf_unit.py                         21              4            110
+BE/Base/eval.py                            26              3             88
+BE/Base/canonicalize.py                     5              1             29
 --------------------------------------------------------------------------------------
-SUM:                                      926            770           4031
+SUM:                                      926            327           4474
 --------------------------------------------------------------------------------------
 ```
 
@@ -28,10 +28,10 @@ SUM:                                      926            770           4031
 ```
 File                                 blank        comment           code
 -----------------------------------------------------------------------------------
-BE/Elf/enum_tab.py                      93             41           1031
-BE/Base/opcode_tab.py                  237            210            773
+BE/Elf/enum_tab.py                      93             21           1051
+BE/Base/opcode_tab.py                  237            144            839
 -----------------------------------------------------------------------------------
-SUM:                                   330            251           1804
+SUM:                                   330            165           1890
 -----------------------------------------------------------------------------------
 ```
 ### Regular Code (C++)
@@ -92,16 +92,16 @@ SUM:                                   134             16           3838
 ```
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
-BE/CodeGenA32/regs.py                            83             67            377
-BE/CodeGenA32/legalize.py                        73             78            263
-BE/CodeGenA32/codegen.py                         59             19            228
-BE/CpuA32/assembler.py                           42             12            180
-BE/CpuA32/symbolic.py                            25             29            101
-BE/CodeGenA32/isel_tester.py                     14              1             56
+BE/CodeGenA32/regs.py                            83             43            401
+BE/CodeGenA32/legalize.py                        73             41            300
+BE/CodeGenA32/codegen.py                         59             15            232
+BE/CpuA32/assembler.py                           42              9            183
+BE/CpuA32/symbolic.py                            25             11            119
+BE/CodeGenA32/isel_tester.py                     14              0             57
+BE/CpuA32/assembler_tool.py                      14              9             42
 BE/CpuA32/disassembler_tool.py                    9              0             41
-BE/CpuA32/assembler_tool.py                      14             12             39
 ---------------------------------------------------------------------------------
-SUM:                                            319            218           1285
+SUM:                                            319            128           1375
 ---------------------------------------------------------------------------------
 ```
 
@@ -110,10 +110,10 @@ SUM:                                            319            218           128
 ```
 File                                     blank        comment           code
 ---------------------------------------------------------------------------------------
-BE/CpuA32/opcode_tab.py                    237            144           1089
-BE/CodeGenA32/isel_tab.py                  145            115           1042
+BE/CpuA32/opcode_tab.py                    237             82           1151
+BE/CodeGenA32/isel_tab.py                  145             80           1077
 ---------------------------------------------------------------------------------------
-SUM:                                       382            259           2131
+SUM:                                       382            162           2228
 ---------------------------------------------------------------------------------------
 ```
 ### Regular Code (C++)
@@ -159,16 +159,16 @@ SUM:                                       129            318           9406
 ```
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
-BE/CodeGenA64/regs.py                            71             71            318
-BE/CodeGenA64/codegen.py                         61             26            240
-BE/CodeGenA64/legalize.py                        78             78            232
-BE/CpuA64/assembler.py                           45             17            189
-BE/CpuA64/symbolic.py                            18             23             97
-BE/CodeGenA64/isel_tester.py                     13              1             54
-BE/CpuA64/assembler_tool.py                      17             12             42
+BE/CodeGenA64/regs.py                            71             56            333
+BE/CodeGenA64/legalize.py                        78             36            274
+BE/CodeGenA64/codegen.py                         61             22            244
+BE/CpuA64/assembler.py                           45             14            192
+BE/CpuA64/symbolic.py                            18             12            108
+BE/CodeGenA64/isel_tester.py                     13              0             55
+BE/CpuA64/assembler_tool.py                      17              9             45
 BE/CpuA64/disassembler_tool.py                    9              1             41
 ---------------------------------------------------------------------------------
-SUM:                                            312            229           1213
+SUM:                                            312            150           1292
 ---------------------------------------------------------------------------------
 ```
 
@@ -177,10 +177,10 @@ SUM:                                            312            229           121
 ```
 File                                     blank        comment           code
 ---------------------------------------------------------------------------------------
-BE/CpuA64/opcode_tab.py                    260            177           1353
-BE/CodeGenA64/isel_tab.py                  165            125           1183
+BE/CpuA64/opcode_tab.py                    260            133           1397
+BE/CodeGenA64/isel_tab.py                  165             66           1242
 ---------------------------------------------------------------------------------------
-SUM:                                       425            302           2536
+SUM:                                       425            199           2639
 ---------------------------------------------------------------------------------------
 ```
 ### Regular Code (C++)
@@ -226,17 +226,17 @@ SUM:                                       387            334          12906
 ```
 File                                                 blank        comment           code
 ----------------------------------------------------------------------------------------
-BE/CodeGenX64/regs.py                                   69             54            327
-BE/CodeGenX64/legalize.py                               89             86            323
-BE/CodeGenX64/codegen.py                                60             23            240
-BE/CpuX64/assembler.py                                  43             17            193
-BE/CpuX64/symbolic.py                                   26              9            126
+BE/CodeGenX64/legalize.py                               89             47            362
+BE/CodeGenX64/regs.py                                   69             41            340
+BE/CodeGenX64/codegen.py                                60             19            244
+BE/CpuX64/assembler.py                                  43              9            201
+BE/CpuX64/symbolic.py                                   26              4            131
 BE/CpuX64/disassembler_tool.py                          13              0             53
-BE/CpuX64/assembler_tool.py                             16             12             42
-BE/CodeGenX64/isel_tester.py                            13              1             41
+BE/CpuX64/assembler_tool.py                             16              9             45
+BE/CodeGenX64/isel_tester.py                            13              0             42
 BE/CpuX64/TestData/objdump_extract.py                    6              1             23
 ----------------------------------------------------------------------------------------
-SUM:                                                   335            203           1368
+SUM:                                                   335            130           1441
 ----------------------------------------------------------------------------------------
 ```
 
@@ -245,10 +245,10 @@ SUM:                                                   335            203       
 ```
 File                                     blank        comment           code
 ---------------------------------------------------------------------------------------
-BE/CodeGenX64/isel_tab.py                  150            121           1359
-BE/CpuX64/opcode_tab.py                    180            104           1268
+BE/CodeGenX64/isel_tab.py                  150             85           1395
+BE/CpuX64/opcode_tab.py                    180             79           1293
 ---------------------------------------------------------------------------------------
-SUM:                                       330            225           2627
+SUM:                                       330            164           2688
 ---------------------------------------------------------------------------------------
 ```
 ### Regular Code (C++)

@@ -3,7 +3,8 @@
 set -o nounset
 set -o errexit
 
-readonly CLOC_FLAGS="-quiet --hide-rate"
+# --docstring-as-code:  https://github.com/AlDanial/cloc/issues/375 
+readonly CLOC_FLAGS="-quiet --hide-rate --docstring-as-code"
 
 
 
