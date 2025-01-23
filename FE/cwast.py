@@ -420,7 +420,7 @@ class NFK(enum.Enum):
     LIST = enum.auto()
 
 
-@dataclasses.dataclass()
+@dataclasses.dataclass(frozen=True)
 class NFD:
     """Node Field Descriptor"""
     kind: NFK
@@ -532,14 +532,13 @@ def _EnumValues(enum_class):
 
 
 ALL_FIELDS = [
-    NfdStr("number", "a number"),
     NfdName("name", "name of the object"),
     NfdName("mod_name", "optional module qualifier"),
     NfdName("base_name", "name of the object"),
     NfdName("enum_name", "optional enum element name"),
 
+    NfdStr("number", "a number"),
     NfdStr("name_list", "name of the object list"),
-
     NfdStr("string", "string literal"),
     NfdStr("message", "message for assert failures"),
     NfdStr("label", "block  name (if not empty)"),
@@ -3801,12 +3800,12 @@ _FIELD_2_SLOT = {
 }
 
 
-
 def GetSize(kind):
     return _NFK_KIND_2_SIZE.get(kind, -1)
 
 
 MAX_SLOTS = 4
+
 
 def _ComputeRemainingSlotsForFields():
     for cls in ALL_NODES:
@@ -3830,29 +3829,93 @@ def _ComputeRemainingSlotsForFields():
                     assert False, f"slot clash"
 
 
-def GenerateCodeCpp(fout: Any):
-    _ComputeRemainingSlotsForFields()
-    _fields_by_kind = collections.defaultdict(list)
+_KIND_TO_HANDLE = {
+    NFK.NODE: "NodeHandle",
+    NFK.LIST: "NodeHandle",
+    NFK.NAME: "NameHandle",
+    NFK.STR: "StrHandle",
+}
+
+
+def GenerateAccessors():
+    last = None
     for nfd in ALL_FIELDS:
-        _fields_by_kind[nfd.kind].append(nfd)
+        k = nfd.kind
+        if k not in _KIND_TO_HANDLE:
+            continue
+        if k != last:
+            print(f"// {k}")
+            last = k
+
+        print(f"inline {_KIND_TO_HANDLE[k]}& Node_{
+                  nfd.name}(Node& n) {{ return n.children[{_FIELD_2_SLOT[nfd.name]}]; }}")
+
+
+def GenerateInits():
+    for cls in ALL_NODES:
+
+        other_kind = None
+        nfds = []
+        slots = [None] * MAX_SLOTS
+
+        for nfd in cls.FIELDS:
+            if nfd.kind in (NFK.NODE, NFK.LIST, NFK.NAME, NFK.STR):
+                nfds.append(nfd)
+                slots[_FIELD_2_SLOT[nfd.name]] = nfd
+            elif nfd.kind == NFK.KIND:
+                other_kind = nfd
+                nfds.append(nfd)
+
+        print(f"inline void Init{cls.__name__}(Node& node", end="")
+        for nfd in nfds:
+            k = nfd.kind
+            if k == NFK.NODE or k == NFK.LIST:
+                print(f", NodeHandle {nfd.name}", end="")
+            elif k == NFK.NAME:
+                print(f", NameHandle {nfd.name}", end="")
+            elif k == NFK.STR:
+                print(f", StrHandle {nfd.name}", end="")
+            elif k == NFK.KIND:
+                print(f", {other_kind.enum_kind.__name__} {nfd.name}", end="")
+        print(") {")
+        print(f"   node.kind = NT::{cls.__name__};")
+        if other_kind is not None:
+
+            print(f"   node.other_kind = {other_kind.name};")
+        children = []
+        for i in range(MAX_SLOTS):
+            if slots[i] is None:
+                children.append("INVALID_HANDLE")
+            else:
+                children.append(slots[i].name)
+        ccc = "{" + ", ".join(children) + "}"
+        print(f"   node.children = {ccc};")
+        print(f"   node.next = INVALID_HANDLE;")
+
+        print("}\n")
+
+
+def GenerateCodeH(fout: Any):
+    _ComputeRemainingSlotsForFields()
+
     print(f"#include <cstdint>")
+    fields_by_kind = collections.defaultdict(list)
+    for nfd in ALL_FIELDS:
+        fields_by_kind[nfd.kind].append(nfd)
+
+
 
     print(f"enum class NFD_NODE_FIELD : uint8_t {{")
     print(f"    invalid = 0,")
-    for n, nfd in enumerate(_fields_by_kind[NFK.NODE] + _fields_by_kind[NFK.LIST]):
-        print (f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
+    for n, nfd in enumerate(fields_by_kind[NFK.NODE] + fields_by_kind[NFK.LIST]):
+        print(f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
     print("};")
 
-    print(f"enum class NFD_NAME_FIELD : uint8_t {{")
+    nfd_to_enum_string = {}
+    print(f"enum class NFD_STRING_FIELD : uint8_t {{")
     print(f"    invalid = 0,")
-    for n, nfd in enumerate(_fields_by_kind[NFK.NAME]):
-        print (f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
-    print("};")
-
-    print(f"enum class NFD_STR_FIELD : uint8_t {{")
-    print(f"    invalid = 0,")
-    for n, nfd in enumerate(_fields_by_kind[NFK.STR]):
-        print (f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
+    for n, nfd in enumerate(fields_by_kind[NFK.NAME] + fields_by_kind[NFK.STR]):
+        print(f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
     print("};")
 
     print(f"enum class NT : uint8_t {{")
@@ -3861,64 +3924,52 @@ def GenerateCodeCpp(fout: Any):
         print(f"    {cls.__name__} = {n+1},")
     print("};")
 
-    print ("""struct Node {
+    print("""struct NodeDesc{
+    uint64_t node_field_bits;
+    uint64_t string_field_bits;
+ }""")
+    print("extern NodeDesc GlobalNodeDescs[];")
+
+
+
+    print("""struct Node {
     NT kind kind;
     uint8_t other_kind;
     uint16_t bits;
-    NodeHandle children[4];
+    Handle children[4];
     NodeHandle next;
 }""")
 
-    exit(1)
-    print(f"// {nfd.name} {nfd.kind} {GetSize(nfd.kind)}", file=fout)
-    nodes = sorted((node.GROUP, node.__name__, node) for node in ALL_NODES)
+    GenerateAccessors()
+    GenerateInits()
 
+def GenerateCodeCC(fout: Any):
+    fields_by_kind = collections.defaultdict(list)
+    for nfd in ALL_FIELDS:
+        fields_by_kind[nfd.kind].append(nfd)
 
+    nfd_to_enum_node = {}
+    for n, nfd in enumerate(fields_by_kind[NFK.NODE] + fields_by_kind[NFK.LIST]):
+        nfd_to_enum_node[nfd] = n+1
 
-    histo = collections.defaultdict(int)
+    nfd_to_enum_string = {}
+    for n, nfd in enumerate(fields_by_kind[NFK.NAME] + fields_by_kind[NFK.STR]):
+        nfd_to_enum_string[nfd] = n+1
+    print("NodeDesc GlobalNodeDescs[] = {")
+    print("    {}, // invalid")
 
-    for group, name, cls in nodes:
-        slots: list[Optional[NFD]] = [None, None, None, None]
-        kind_slot: Optional[NFD] = None
+    for cls in ALL_NODES:
+        node_field_bits = 0
+        string_field_bits = 0
         for nfd in cls.FIELDS:
-            field = nfd.name
-            histo[nfd.name] += 1
-            if field in _FIELD_2_SLOT:
-                slot = _FIELD_2_SLOT[field]
-                assert slots[slot] is None, f"slot {
-                    slot} already used {slots[slot].name} {field}"
-                slots[slot] = nfd
-        for nfd in cls.FIELDS:
-            field = nfd.name
-
-            if field in _FIELD_2_SLOT:
-                continue
-            if nfd.kind is NFK.KIND:
-                assert kind_slot is None
-                kind_slot = nfd
-            else:
-                for i in range(4):
-                    if slots[i] is None:
-                        slots[i] = nfd
-                        break
-                else:
-                    assert False
-
-        for field, nfd in cls.ATTRS:
-            assert nfd.kind is NFK.ATTR_BOOL or field == "doc"
-
-        print(f"struct {name} {{")
-
-        if kind_slot:
-            print(f"    {kind_slot.enum_kind} {kind_slot.name};")
-        for i in range(4):
-            nfd = slots[i]
-            if nfd:
-                print(f"    {nfd.kind} {nfd.name}; # {i}")
-        print("};")
-
-    print(f"# accessors {len(histo)}")
-
+            k = nfd.kind
+            if k == NFK.NODE or k == NFK.LIST:
+                node_field_bits |= 1 << nfd_to_enum_node[nfd]
+            if k == NFK.NAME or k == NFK.STR:
+                string_field_bits |= 1 << nfd_to_enum_string[nfd]
+        print(f"    {{ 0x{node_field_bits:x} , 0x{
+              string_field_bits:x} }}, // {cls.__name__}")
+    print("};")
 
 ##########################################################################################
 if __name__ == "__main__":
@@ -3930,8 +3981,10 @@ if __name__ == "__main__":
     mode = sys.argv[1]
     if mode == "doc":
         GenerateDocumentation(sys.stdout)
-    elif mode == "cpp":
-        GenerateCodeCpp(sys.stdout)
+    elif mode == "gen_h":
+        GenerateCodeH(sys.stdout)
+    elif mode == "gen_cc":
+        GenerateCodeCC(sys.stdout)
     else:
         print(f"unknown mode: {mode}")
         exit(1)

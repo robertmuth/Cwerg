@@ -238,3 +238,10 @@ reformat:
 	for f in */*.cw ; do \
 		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
 	done
+
+
+cwast_gen.h: cwast.py
+	$(PYPY) ./cwast.py gen_h > $@
+
+cwast_gen.cc: cwast.py
+	$(PYPY) ./cwast.py gen_cc > $@
