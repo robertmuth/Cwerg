@@ -59,7 +59,7 @@ bool OPCNopIfSrc1One(OPC opc) {
 bool InsIsNop1(Ins ins) {
   Handle src2 = InsOperand(ins, 2);
   OPC opc = InsOPC(ins);
-  if (src2.kind() != RefKind::CONST) return false;
+  if (Kind(src2) != RefKind::CONST) return false;
   return (OPCNopIfSrc2Zero(opc) && ConstIsZero(Const(src2))) ||
          (OPCNopIfSrc2One(opc) && ConstIsOne(Const(src2)));
 }
@@ -67,7 +67,7 @@ bool InsIsNop1(Ins ins) {
 bool InsIsNop2(Ins ins) {
   Const src1 = Const(InsOperand(ins, 1));
   OPC opc = InsOPC(ins);
-  if (src1.kind() != RefKind::CONST) return false;
+  if (Kind(src1) != RefKind::CONST) return false;
   return (OPCNopIfSrc1Zero(opc) && ConstIsZero(src1)) ||
          (OPCNopIfSrc1One(opc) && ConstIsOne(src1));
 }
@@ -130,9 +130,9 @@ bool InsIsZero(Ins ins) {
   Const src1 = Const(InsOperand(ins, 1));
   Const src2 = Const(InsOperand(ins, 2));
   return (OPCZeroIfOpsSame(opc) && src1 == src2) ||
-         (OPCZeroIfSrc1Zero(opc) && src1.kind() == RefKind::CONST &&
+         (OPCZeroIfSrc1Zero(opc) && Kind(src1) == RefKind::CONST &&
           ConstIsZero(src1)) ||
-         (OPCZeroIfSrc2Zero(opc) && src2.kind() == RefKind::CONST &&
+         (OPCZeroIfSrc2Zero(opc) && Kind(src2) == RefKind::CONST &&
           ConstIsZero(src2));
 }
 
@@ -140,7 +140,7 @@ bool InsStrengthReduction(Ins ins) {
   // limit shifts to [0, bitwidth -1]
   if (InsOPC(ins) == OPC::SHL || InsOPC(ins) == OPC::SHR) {
     const Const num2 = Const(InsOperand(ins, 2));
-    if (num2.kind() == RefKind::CONST) {
+    if (Kind(num2) == RefKind::CONST) {
       const DK dk = ConstKind(num2);
       uint64_t mask = DKBitWidth(dk) - 1;
       if (DKFlavor(dk) == DK_FLAVOR_U) {
@@ -169,7 +169,7 @@ bool InsStrengthReduction(Ins ins) {
   } else if (InsOPC(ins) == OPC::MUL) {
     // MUL -> SHIFT
     const Const num1 = Const(InsOperand(ins, 1));
-    if (num1.kind() == RefKind::CONST) {
+    if (Kind(num1) == RefKind::CONST) {
       const Const bin_log = ConstTryApplyingBinaryLog(num1);
       if (!bin_log.isnull()) {
         InsOPC(ins) = OPC::SHL;
@@ -180,7 +180,7 @@ bool InsStrengthReduction(Ins ins) {
     }
 
     const Const num2 = Const(InsOperand(ins, 2));
-    if (num2.kind() == RefKind::CONST) {
+    if (Kind(num2) == RefKind::CONST) {
       const Const bin_log = ConstTryApplyingBinaryLog(num2);
       if (!bin_log.isnull()) {
         InsOPC(ins) = OPC::SHL;
@@ -227,7 +227,7 @@ int FunMoveElimination(Fun fun, std::vector<Ins>* to_delete) {
 
 Handle NarrowOperand(Handle op, Fun fun, DK narrow_kind,
                      std::vector<Ins>* inss) {
-  if (op.kind() == RefKind::CONST) {
+  if (Kind(op) == RefKind::CONST) {
     Const c(op);
     if (DKFlavor(narrow_kind) == DK_FLAVOR_U) {
       uint64_t mask = (1 << DKBitWidth(narrow_kind)) - 1;
@@ -240,7 +240,7 @@ Handle NarrowOperand(Handle op, Fun fun, DK narrow_kind,
                          SignedIntFromBits(v, DKBitWidth(narrow_kind)));
     }
   } else {
-    ASSERT(op.kind() == RefKind::REG, "");
+    ASSERT(Kind(op) == RefKind::REG, "");
     Reg reg(op);
     Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
     RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
@@ -278,7 +278,7 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
       bool change = false;
       for (int i = 0; i < num_ops; ++i) {
         Handle op = InsOperand(ins, i);
-        switch (op.kind()) {
+        switch (Kind(op)) {
           default:  // we only care about REG and CONST operands
             break;
           case RefKind::REG:
@@ -351,7 +351,7 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
         }
       } else if (kind == OPC_KIND::ST) {
         const Reg reg = Reg(InsOperand(ins, 2));
-        if (reg.kind() == RefKind::REG && RegKind(reg) == narrow_kind) {
+        if (Kind(reg) == RefKind::REG && RegKind(reg) == narrow_kind) {
           Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
           RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
           Ins conv = InsNew(OPC::CONV, tmp_reg, reg);
@@ -408,19 +408,19 @@ void FunEliminateStkLoadStoreWithRegOffset(Fun fun, DK base_kind,
     bool dirty = false;
     for (Ins ins : BblInsIter(bbl)) {
       const OPC opc = InsOPC(ins);
-      if (opc == OPC::ST_STK && InsOperand(ins, 1).kind() == RefKind::REG) {
+      if (opc == OPC::ST_STK && Kind(InsOperand(ins, 1)) == RefKind::REG) {
         dirty = true;
         Reg tmp = add_lea_stk(InsOperand(ins, 0));
         inss->push_back(
             InsInit(ins, OPC::ST, tmp, InsOperand(ins, 1), InsOperand(ins, 2)));
       } else if (opc == OPC::LD_STK &&
-                 InsOperand(ins, 2).kind() == RefKind::REG) {
+                 Kind(InsOperand(ins, 2)) == RefKind::REG) {
         dirty = true;
         Reg tmp = add_lea_stk(InsOperand(ins, 1));
         inss->push_back(
             InsInit(ins, OPC::LD, InsOperand(ins, 0), tmp, InsOperand(ins, 2)));
       } else if (opc == OPC::LEA_STK &&
-                 InsOperand(ins, 2).kind() == RefKind::REG) {
+                 Kind(InsOperand(ins, 2)) == RefKind::REG) {
         dirty = true;
         Reg tmp = add_lea_stk(InsOperand(ins, 1));
         inss->push_back(InsInit(ins, OPC::LEA, InsOperand(ins, 0), tmp,
@@ -451,7 +451,7 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
         Handle lea_offset = ConstNewU(offset_kind, 0);
         // TODO: small st_offset/ld_offset should probably stay with the
         // `st`
-        if (st_offset.kind() == RefKind::CONST)
+        if (Kind(st_offset) == RefKind::CONST)
           std::swap(st_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 0), lea_offset);
         inss->push_back(
@@ -460,7 +460,7 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
       } else if (opc == OPC::LD_MEM) {
         Handle ld_offset = InsOperand(ins, 2);
         Handle lea_offset = ConstNewU(offset_kind, 0);
-        if (ld_offset.kind() == RefKind::CONST)
+        if (Kind(ld_offset) == RefKind::CONST)
           std::swap(ld_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 1), lea_offset);
         inss->push_back(
@@ -469,7 +469,7 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
       } else if (opc == OPC::CAS_MEM) {
         Handle cas_offset = InsOperand(ins, 4);
         Handle lea_offset = ConstNewU(offset_kind, 0);
-        if (cas_offset.kind() == RefKind::CONST)
+        if (Kind(cas_offset) == RefKind::CONST)
           std::swap(cas_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 3), lea_offset);
         inss->push_back(InsInit(ins, OPC::CAS, InsOperand(ins, 0),
@@ -477,7 +477,7 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
                                 cas_offset));
         dirty = true;
       } else if (opc == OPC::LEA_MEM &&
-                 InsOperand(ins, 2).kind() == RefKind::REG) {
+                 Kind(InsOperand(ins, 2)) == RefKind::REG) {
         dirty = true;
         Reg tmp = add_lea_mem(InsOperand(ins, 1), ConstNewU(offset_kind, 0));
         inss->push_back(InsInit(ins, OPC::LEA, InsOperand(ins, 0), tmp,
@@ -644,7 +644,7 @@ void FunEliminateCopySign(Fun fun, std::vector<Ins>* inss) {
 void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun,
                                  std::vector<Ins>* inss) {
   Const num = Const(InsOperand(ins, pos));
-  ASSERT(num.kind() == RefKind::CONST, "");
+  ASSERT(Kind(num) == RefKind::CONST, "");
   Reg tmp = FunGetScratchReg(fun, ConstKind(num), "imm", true);
   InsOperand(ins, pos) = tmp;
   inss->push_back(InsNew(OPC::MOV, tmp, num));
@@ -654,7 +654,7 @@ void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun, Unit unit,
                                  DK addr_kind, DK offset_kind,
                                  std::vector<Ins>* inss) {
   Const num = Const(InsOperand(ins, pos));
-  ASSERT(num.kind() == RefKind::CONST, "");
+  ASSERT(Kind(num) == RefKind::CONST, "");
   Mem mem = UnitFindOrAddConstMem(unit, num);
   Reg tmp_addr = FunGetScratchReg(fun, addr_kind, "mem_const_addr", true);
   inss->push_back(
@@ -667,7 +667,7 @@ void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun, Unit unit,
 bool InsLimtiShiftAmounts(Ins ins, Fun fun, int width, std::vector<Ins>* inss) {
   const DK dk = RegKind(Reg(InsOperand(ins, 0)));
   Handle amount = InsOperand(ins, 2);
-  if (amount.kind() == RefKind::CONST) {
+  if (Kind(amount) == RefKind::CONST) {
     inss->push_back(ins);
     if (DKFlavor(dk) == DK_FLAVOR_U) {
       uint64_t a = ConstValueU(Const(amount));

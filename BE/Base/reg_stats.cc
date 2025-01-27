@@ -175,7 +175,7 @@ void FunComputeRegStatsExceptLAC(Fun fun) {
       }
       for (unsigned i = num_defs; i < num_ops; ++i) {
         Reg reg = Reg(InsOperand(ins, i));
-        if (reg.kind() != RefKind::REG) continue;
+        if (Kind(reg) != RefKind::REG) continue;
         if (RegHasFlag(reg, REG_FLAG::IS_READ)) {
           RegFlags(reg) |= +REG_FLAG::MULTI_READ;
         } else {
@@ -216,7 +216,7 @@ void FunComputeRegStatsLAC(Fun fun) {
 
       for (unsigned i = num_defs; i < num_ops; ++i) {
         const Reg reg = Reg(InsOperand(ins, i));
-        if (reg.kind() != RefKind::REG) continue;
+        if (Kind(reg) != RefKind::REG) continue;
         live.BitSet(RegNo(reg));
       }
     }
@@ -320,7 +320,7 @@ int FunSeparateLocalRegUsage(Fun fun) {
 DK_LAC_COUNTS FunGlobalRegStats(Fun fun, const DK_MAP& rk_map) {
   DK_LAC_COUNTS out;
   for (Reg reg : FunRegIter(fun)) {
-    if (RegCpuReg(reg).kind() == RefKind::CPU_REG ||
+    if (Kind(RegCpuReg(reg)) == RefKind::CPU_REG ||
         !RegHasFlag(reg, REG_FLAG::GLOBAL)) {
       continue;
     }

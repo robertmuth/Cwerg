@@ -106,7 +106,7 @@ void MemCodeGen(Mem mem, std::ostream* output) {
     uint32_t size = DataSize(data);
     Handle target = DataTarget(data);
     int32_t extra = DataExtra(data);
-    if (target.kind() == RefKind::STR) {
+    if (Kind(target) == RefKind::STR) {
       size_t len = size;
       char buffer[4096];
       if (len > 0) {
@@ -114,10 +114,10 @@ void MemCodeGen(Mem mem, std::ostream* output) {
       }
       buffer[len] = 0;
       *output << "    .data " << extra << " \"" << buffer << "\"\n";
-    } else if (target.kind() == RefKind::FUN) {
+    } else if (Kind(target) == RefKind::FUN) {
       *output << "    .addr.fun " << size << " " << Name(Fun(target)) << "\n";
     } else {
-      ASSERT(target.kind() == RefKind::MEM, "");
+      ASSERT(Kind(target) == RefKind::MEM, "");
       *output << "    .addr.mem " << size << " " << Name(Mem(target))
               << std::hex << " 0x" << extra << std::dec << "\n";
     }
@@ -151,13 +151,13 @@ a64::A64Unit EmitUnitAsBinary(base::Unit unit) {
       uint32_t size = DataSize(data);
       Handle target = DataTarget(data);
       int32_t extra = DataExtra(data);
-      if (target.kind() == RefKind::STR) {
+      if (Kind(target) == RefKind::STR) {
         out.AddData(extra, StrData(Str(target)), size);
-      } else if (target.kind() == RefKind::FUN) {
+      } else if (Kind(target) == RefKind::FUN) {
         out.AddFunAddr(size, +elf::RELOC_TYPE_AARCH64::ABS64,
                        StrData(Name(Fun(target))));
       } else {
-        ASSERT(target.kind() == RefKind::MEM, "");
+        ASSERT(Kind(target) == RefKind::MEM, "");
         out.AddMemAddr(size, +elf::RELOC_TYPE_AARCH64::ABS64,
                        StrData(Name(Mem(target))), extra);
       }

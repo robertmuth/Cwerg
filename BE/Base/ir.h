@@ -21,6 +21,31 @@ All the basic abstractions and their stripes.
 
 namespace cwerg::base {
 
+enum class RefKind : uint8_t {
+  INVALID,
+  //
+  INS,   // Instruction
+  EDG,   // CFG Edge
+  BBL,   // Basic block
+  FUN,   // Function
+  UNIT,  // Compilation Unit
+  //
+  STR,  // Interned string or Bytes
+  CONST,
+  REG,         // Register
+  STK,         // Stack region
+  MEM,         // Global memory region
+  DATA,        // Data (section within a MEM)
+  JTB,         // Jump table
+  JEN,         // Jump entry
+  CPU_REG,     // Machine Register
+  STACK_SLOT,  // StackSlot for Register (only used by x86-64)
+};
+
+extern const char* EnumToString(RefKind x);
+
+inline RefKind Kind(Handle h) { return RefKind(h.raw_kind()); }
+
 const unsigned kMaxIdLength = 1024;
 
 // A Handle is the common base class for all Operand types.
@@ -40,86 +65,97 @@ const unsigned kMaxIdLength = 1024;
 //   into the Handle index. This is indicated by setting the highest bit in the
 //   index.
 struct Ins : public Handle {
-  explicit constexpr Ins(uint32_t index = 0) : Handle(index, RefKind::INS) {}
+  explicit constexpr Ins(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::INS)) {}
   explicit constexpr Ins(Handle ref) : Handle(ref.value) {}
 };
 
 struct Edg : public Handle {
-  explicit constexpr Edg(uint32_t index = 0) : Handle(index, RefKind::EDG) {}
+  explicit constexpr Edg(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::EDG)) {}
   explicit constexpr Edg(Handle ref) : Handle(ref.value) {}
 };
 
 struct Bbl : public Handle {
-  explicit constexpr Bbl(uint32_t index = 0) : Handle(index, RefKind::BBL) {}
+  explicit constexpr Bbl(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::BBL)) {}
   explicit constexpr Bbl(Handle ref) : Handle(ref.value) {}
 };
 
 struct Fun : public Handle {
-  explicit constexpr Fun(uint32_t index = 0) : Handle(index, RefKind::FUN) {}
+  explicit constexpr Fun(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::FUN)) {}
   explicit constexpr Fun(Handle ref) : Handle(ref.value) {}
 };
 
 struct Unit : public Handle {
-  explicit constexpr Unit(uint32_t index = 0) : Handle(index, RefKind::UNIT) {}
+  explicit constexpr Unit(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::UNIT)) {}
   explicit constexpr Unit(Handle ref) : Handle(ref.value) {}
 };
 
 struct Reg : public Handle {
-  explicit constexpr Reg(uint32_t index = 0) : Handle(index, RefKind::REG) {}
+  explicit constexpr Reg(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::REG)) {}
   explicit constexpr Reg(Handle ref) : Handle(ref.value) {}
 };
 
 struct CpuReg : public Handle {
   explicit constexpr CpuReg(uint32_t index = 0)
-      : Handle(index, RefKind::CPU_REG) {}
+      : Handle(index, uint8_t(RefKind::CPU_REG)) {}
   explicit constexpr CpuReg(Handle ref) : Handle(ref.value) {}
 };
 
 struct Stk : public Handle {
-  explicit constexpr Stk(uint32_t index = 0) : Handle(index, RefKind::STK) {}
+  explicit constexpr Stk(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::STK)) {}
   explicit constexpr Stk(Handle ref) : Handle(ref.value) {}
 };
 
 struct Mem : public Handle {
-  explicit constexpr Mem(uint32_t index = 0) : Handle(index, RefKind::MEM) {}
+  explicit constexpr Mem(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::MEM)) {}
   explicit constexpr Mem(Handle ref) : Handle(ref.value) {}
 };
 
 struct Data : public Handle {
-  explicit constexpr Data(uint32_t index = 0) : Handle(index, RefKind::DATA) {}
+  explicit constexpr Data(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::DATA)) {}
   explicit constexpr Data(Handle ref) : Handle(ref.value) {}
 };
 
 struct Jtb : public Handle {
-  explicit constexpr Jtb(uint32_t index = 0) : Handle(index, RefKind::JTB) {}
+  explicit constexpr Jtb(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::JTB)) {}
   explicit constexpr Jtb(Handle ref) : Handle(ref.value) {}
 };
 
 struct Jen : public Handle {
-  explicit constexpr Jen(uint32_t index = 0) : Handle(index, RefKind::JEN) {}
+  explicit constexpr Jen(uint32_t index = 0)
+      : Handle(index, uint8_t(RefKind::JEN)) {}
   explicit constexpr Jen(Handle ref) : Handle(ref.value) {}
 };
 
 struct StackSlot : public Handle {
   explicit constexpr StackSlot(uint32_t index = 0)
-      : Handle(index, RefKind::STACK_SLOT) {}
+      : Handle(index, uint8_t(RefKind::STACK_SLOT)) {}
   explicit constexpr StackSlot(Handle ref) : Handle(ref.value) {}
 };
 
 struct Const : public Handle {
   explicit constexpr Const(uint32_t index = 0)
-      : Handle(index, RefKind::CONST) {}
+      : Handle(index, uint8_t(RefKind::CONST)) {}
   explicit constexpr Const(Handle ref) : Handle(ref.value) {}
 };
 
 struct Str : public Handle {
-  explicit Str(uint32_t index = 0) : Handle(index, RefKind::STR) {}
+  explicit Str(uint32_t index = 0) : Handle(index, uint8_t(RefKind::STR)) {}
   explicit Str(Handle ref) : Handle(ref.value) {}
 };
 
 // Special Handles.
-constexpr const Handle UnlinkedRef(0, RefKind::INVALID);
-constexpr const Handle HandleInvalid(0, RefKind::INVALID);
+constexpr const Handle UnlinkedRef(0, uint8_t(RefKind::INVALID));
+constexpr const Handle HandleInvalid(0, uint8_t(RefKind::INVALID));
 
 // =======================================
 // Data (chunk of pre-allocated (neither heap nor stack) data)
@@ -185,7 +221,7 @@ inline uint32_t& MemAlignment(Mem mem) { return gMemCore[mem].alignment; }
 struct MemDataList {
   using ITEM = Data;
   using CONT = Mem;
-  static bool IsSentinel(ITEM x) { return x.kind() == RefKind::MEM; }
+  static bool IsSentinel(ITEM x) { return Kind(x) == RefKind::MEM; }
   static ITEM MakeSentinel(CONT y) { return ITEM(y); }
   static ITEM& Next(ITEM x) { return gDataCore[x].next; }
   static ITEM& Prev(ITEM x) { return gDataCore[x].prev; }
@@ -204,7 +240,7 @@ inline uint32_t MemSize(Mem mem) {
   uint32_t out = 0;
   for (Data data : MemDataIter(mem)) {
     unsigned repeats =
-        (DataTarget(data).kind() == RefKind::STR) ? DataExtra(data) : 1;
+        (Kind(DataTarget(data)) == RefKind::STR) ? DataExtra(data) : 1;
     out += DataSize(data) * repeats;
   }
   return out;
@@ -245,7 +281,7 @@ inline std::ostream& operator<<(std::ostream& os, Str str) {
 
 inline StackSlot StackSlotNew(uint32_t offset) {
   ASSERT(offset <= (1 << 24U), "");
-  return StackSlot(Handle(offset, RefKind::STACK_SLOT));
+  return StackSlot(Handle(offset, uint8_t(RefKind::STACK_SLOT)));
 }
 
 inline uint32_t StackSlotOffset(StackSlot slot) { return slot.index(); }
@@ -446,8 +482,8 @@ inline Reg RegNew(DK kind, Str name, Handle cpu_reg = HandleInvalid) {
 inline void RegDel(Reg reg) { gStripeGroupReg.Del(reg); }
 
 inline DK RegOrConstKind(Handle op) {
-  if (op.kind() == RefKind::REG) return RegKind(Reg(op));
-  ASSERT(op.kind() == RefKind::CONST, "");
+  if (Kind(op) == RefKind::REG) return RegKind(Reg(op));
+  ASSERT(Kind(op) == RefKind::CONST, "");
   return ConstKind(Const(op));
 }
 // =======================================
@@ -655,7 +691,7 @@ extern void DelBblContent(Bbl bbl);
 struct BblInsList {
   using ITEM = Ins;
   using CONT = Bbl;
-  static bool IsSentinel(ITEM x) { return x.kind() == RefKind::BBL; }
+  static bool IsSentinel(ITEM x) { return Kind(x) == RefKind::BBL; }
   static ITEM MakeSentinel(CONT y) { return ITEM(y); }
   static ITEM& Next(ITEM x) { return gInsCore[x].next; }
   static ITEM& Prev(ITEM x) { return gInsCore[x].prev; }
@@ -680,7 +716,7 @@ inline Ins BblInsAdd(Bbl bbl, Ins ins) {
 struct BblSuccEdgList {
   using ITEM = Edg;
   using CONT = Bbl;
-  static bool IsSentinel(ITEM x) { return x.kind() == RefKind::BBL; }
+  static bool IsSentinel(ITEM x) { return Kind(x) == RefKind::BBL; }
   static ITEM MakeSentinel(CONT y) { return ITEM(y); }
   static ITEM& Next(ITEM x) { return gEdgCore[x].succ_next; }
   static ITEM& Prev(ITEM x) { return gEdgCore[x].succ_prev; }
@@ -696,7 +732,7 @@ struct BblSuccEdgList {
 struct BblPredEdgList {
   using ITEM = Edg;
   using CONT = Bbl;
-  static bool IsSentinel(ITEM x) { return x.kind() == RefKind::BBL; }
+  static bool IsSentinel(ITEM x) { return Kind(x) == RefKind::BBL; }
   static ITEM MakeSentinel(CONT y) { return ITEM(y); }
   static ITEM& Next(ITEM x) { return gEdgCore[x].pred_next; }
   static ITEM& Prev(ITEM x) { return gEdgCore[x].pred_prev; }
@@ -932,7 +968,7 @@ struct FunBblBst {
 struct FunBblList {
   using ITEM = Bbl;
   using CONT = Fun;
-  static bool IsSentinel(ITEM x) { return x.kind() == RefKind::FUN; }
+  static bool IsSentinel(ITEM x) { return Kind(x) == RefKind::FUN; }
   static ITEM MakeSentinel(CONT y) { return ITEM(y); }
   static ITEM& Next(ITEM x) { return gBblCore[x].next; }
   static ITEM& Prev(ITEM x) { return gBblCore[x].prev; }
@@ -1005,7 +1041,7 @@ struct UnitFunBst {
 struct UnitFunList {
   using ITEM = Fun;
   using CONT = Unit;
-  static bool IsSentinel(ITEM x) { return x.kind() == RefKind::UNIT; }
+  static bool IsSentinel(ITEM x) { return Kind(x) == RefKind::UNIT; }
   static ITEM MakeSentinel(CONT y) { return ITEM(y); }
   static ITEM& Next(ITEM x) { return gFunCore[x].next; }
   static ITEM& Prev(ITEM x) { return gFunCore[x].prev; }
@@ -1046,7 +1082,7 @@ struct UnitMemBst {
 struct UnitMemList {
   using ITEM = Mem;
   using CONT = Unit;
-  static bool IsSentinel(ITEM x) { return x.kind() == RefKind::UNIT; }
+  static bool IsSentinel(ITEM x) { return Kind(x) == RefKind::UNIT; }
   static ITEM MakeSentinel(CONT y) { return ITEM(y); }
   static ITEM& Next(ITEM x) { return gMemCore[x].next; }
   static ITEM& Prev(ITEM x) { return gMemCore[x].prev; }

@@ -66,6 +66,7 @@ struct StripeGroup {
   // Will call Reserve if necessary.
   Handle New();
 
+  // Delete handle and add it to the free list.
   void Del(Handle ref);
 
 
@@ -77,12 +78,12 @@ struct StripeGroup {
   // vec must have >=  MaxInstances() bits. A bit will be set if
   // the instance with the corresponding number is on the free list.
   void SetBitVecOfFreeInstances(uint8_t* vec) const;
-  
+
   static void DumpAllGroups(std::ostream& os);
 
  private:
   uint32_t max_instances_;
-  Handle first_free_ = Handle(0, RefKind::FREE);
+  Handle first_free_ = Handle(0, kKindFree);
   uint32_t num_dels_ = 0;
   uint32_t num_news_ = 0;
   const char* const name_;

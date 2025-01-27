@@ -10,12 +10,12 @@
 namespace cwerg {
 
 struct Bbl : public Handle {
-  Bbl(uint32_t index = 0) : Handle(index, RefKind::BBL) {}
+  Bbl(uint32_t index = 0) : Handle(index, 11) {}
   explicit Bbl(Handle ref) : Handle(ref.value) {}
 };
 
 struct Fun : public Handle {
-  Fun(uint32_t index = 0) : Handle(index, RefKind::FUN) {}
+  Fun(uint32_t index = 0) : Handle(index, 22) {}
   explicit Fun(Handle ref) : Handle(ref.value) {}
 };
 
@@ -56,7 +56,7 @@ int& Name(Bbl bbl) { return gBblBst[bbl].name; }
 struct FunBblList {
   using ITEM = Bbl;
   using CONT = Fun;
-  static bool IsSentinel(Bbl bbl) { return bbl.kind() == RefKind::FUN; }
+  static bool IsSentinel(Bbl bbl) { return bbl.raw_kind() == 22; }
   static Bbl MakeSentinel(Fun fun) { return Bbl(fun); }
   static Bbl& Next(Bbl bbl) { return gBblList[bbl].next; }
   static Bbl& Prev(Bbl bbl) { return gBblList[bbl].prev; }

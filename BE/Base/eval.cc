@@ -92,7 +92,7 @@ bool EvaluateCondBra(OPC opc, Const a, Const b) {
 }
 
 Const EvaluateALU(OPC opc, Const a, Const b) {
-  ASSERT(a.kind() == b.kind(), "");
+  ASSERT(Kind(a) == Kind(b), "");
   if (DKFlavor(ConstKind(a)) == DK_FLAVOR_U) {
     return ConstNewU(ConstKind(a),
                      GenericEvaluateALU<uint64_t>(

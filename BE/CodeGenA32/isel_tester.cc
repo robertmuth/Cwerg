@@ -14,7 +14,7 @@ using namespace cwerg;
 using namespace cwerg::base;
 
 const char* OpTypeString(Handle op) {
-  switch (op.kind()) {
+  switch (Kind(op)) {
     default:
       return "_";
     case RefKind::CONST:

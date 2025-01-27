@@ -435,7 +435,7 @@ void UnitRemoveUnreachableCode(Unit unit, const std::vector<Fun>& seeds) {
   std::vector<Fun> reachable = seeds;
   for (Mem mem : UnitMemIter(unit)) {
     for (Data data : MemDataIter(mem)) {
-      if (DataTarget(data).kind() == RefKind::FUN) {
+      if (Kind(DataTarget(data)) == RefKind::FUN) {
         reachable.push_back(Fun(DataTarget(data)));
       }
     }
@@ -455,7 +455,7 @@ void UnitRemoveUnreachableCode(Unit unit, const std::vector<Fun>& seeds) {
           continue;
         for (unsigned i = 0; i < InsOpcode(ins).num_operands; ++i) {
           Fun fun = Fun(InsOperand(ins, i));
-          if (fun.kind() == RefKind::FUN &&
+          if (Kind(fun) == RefKind::FUN &&
               !FunHasFlag(fun, FUN_FLAG::REACHABLE)) {
             reachable.push_back(fun);
           }

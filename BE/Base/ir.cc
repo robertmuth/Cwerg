@@ -14,6 +14,33 @@
 #include "Util/parse.h"
 
 namespace cwerg::base {
+
+namespace {
+
+constexpr const char* kRefKindNames[] = {
+    "INVALID",  //
+    "FREE",     //
+    "INS",      //
+    "EDG",      //
+    "BBL",      //
+    "FUN",      //
+    "UNIT",     //
+    "STR",      //
+    "CONST"     //
+    "REG",      //
+    "STK",      //
+    "MEM",      //
+    "DATA",     //
+    "JTB",      //
+    "JEN",      //
+    "CPU_REG",  //
+    "STACK_SLOT",
+};
+
+}  // namespace
+
+const char* EnumToString(RefKind x) { return kRefKindNames[unsigned(x)]; }
+
 // =======================================
 // All Stripes
 // =======================================
@@ -157,8 +184,8 @@ int64_t ConstValueACS(Const num) {
 }
 
 int32_t ConstValueInt32(Const num) {
-  ASSERT(num.kind() == RefKind::CONST,
-         "not a const " << EnumToString(num.kind()));
+  ASSERT(Kind(num) == RefKind::CONST,
+         "not a const " << EnumToString(Kind(num)));
   int32_t val;
   switch (DKFlavor(ConstKind(num))) {
     case DK_FLAVOR_U:
@@ -178,8 +205,8 @@ int32_t ConstValueInt32(Const num) {
 }
 
 int64_t ConstValueInt64(Const num) {
-  ASSERT(num.kind() == RefKind::CONST,
-         "not a const " << EnumToString(num.kind()));
+  ASSERT(Kind(num) == RefKind::CONST,
+         "not a const " << EnumToString(Kind(num)));
   switch (DKFlavor(ConstKind(num))) {
     case DK_FLAVOR_U:
       return ConstValueU(num);
@@ -226,8 +253,8 @@ Const ConstNewF(DK kind, double v) {
 
 Const ConstNewU(DK kind, uint64_t v) {
   if (v < (1U << 15U)) {
-    return Const(
-        Handle(1U << 23U | (v << 8U) | uint32_t(kind), RefKind::CONST));
+    return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind),
+                        uint8_t(RefKind::CONST)));
   }
   ConstCore num;
   num.kind = kind;
@@ -237,8 +264,8 @@ Const ConstNewU(DK kind, uint64_t v) {
 
 Const ConstNewACS(DK kind, int64_t v) {
   if (-(1U << 14U) <= v && v < (1U << 14U)) {
-    return Const(
-        Handle(1U << 23U | (v << 8U) | uint32_t(kind), RefKind::CONST));
+    return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind),
+                        uint8_t(RefKind::CONST)));
   }
   ConstCore num;
   num.kind = kind;
@@ -407,8 +434,7 @@ std::string_view MaybeSkipCountPrefix(std::string_view s) {
   const char* cp = s.data();
   if (*cp == '$') {
     ++cp;
-    while (*cp++ != '_')
-      ;
+    while (*cp++ != '_');
   }
   return {cp, size_t(s.data() + s.size() - cp)};
 }
@@ -458,7 +484,7 @@ Bbl FunBblFindOrForwardDeclare(Fun fun, Str bbl_name) {
 void FunFinalizeStackSlots(Fun fun) {
   std::vector<Reg> spilled_regs;
   for (Reg reg : FunRegIter(fun)) {
-    if (RegCpuReg(reg).kind() == RefKind::STACK_SLOT) {
+    if (Kind(RegCpuReg(reg)) == RefKind::STACK_SLOT) {
       spilled_regs.push_back(reg);
     }
   }
@@ -489,7 +515,6 @@ void FunFinalizeStackSlots(Fun fun) {
   FunStackSize(fun) = slot;
 }
 
-
 bool FunIsLeaf(Fun fun) {
   for (Bbl bbl : FunBblIter(fun)) {
     for (Ins ins : BblInsIter(bbl)) {
@@ -513,14 +538,14 @@ void FunDelContent(Fun fun) {
 
   Reg last_reg = Reg(0);
   for (Reg reg : FunRegIter(fun)) {
-     if (!last_reg.isnull()) RegDel(last_reg);
+    if (!last_reg.isnull()) RegDel(last_reg);
     last_reg = reg;
   }
   if (!last_reg.isnull()) RegDel(last_reg);
 
   Stk last_stk = Stk(0);
   for (Stk stk : FunStkIter(fun)) {
-     if (!last_stk.isnull()) StkDel(last_stk);
+    if (!last_stk.isnull()) StkDel(last_stk);
     last_stk = stk;
   }
   if (!last_stk.isnull()) StkDel(last_stk);
@@ -528,10 +553,10 @@ void FunDelContent(Fun fun) {
   for (Jtb jtb : FunJtbIter(fun)) {
     JtbDelContent(jtb);
   }
-  
+
   Jtb last_jtb = Jtb(0);
   for (Jtb jtb : FunJtbIter(fun)) {
-     if (!last_jtb.isnull()) JtbDel(last_jtb);
+    if (!last_jtb.isnull()) JtbDel(last_jtb);
     last_jtb = jtb;
   }
   if (!last_jtb.isnull()) JtbDel(last_jtb);

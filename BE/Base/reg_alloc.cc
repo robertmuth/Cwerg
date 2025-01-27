@@ -212,7 +212,7 @@ void BblSpillRegs(Bbl bbl, Fun fun, DK offset, std::vector<Ins>* inss) {
     // Note: backwards iteration (uses before defs)
     for (int i = InsOpcode(ins).num_operands - 1; i >= 0; --i) {
       const Reg reg = Reg(InsOperand(ins, i));
-      if (reg.kind() != RefKind::REG) continue;
+      if (Kind(reg) != RefKind::REG) continue;
       const Stk stk = RegSpillSlot(reg);
       if (stk.isnull()) continue;
       dirty = true;

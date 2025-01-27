@@ -97,7 +97,7 @@ int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
       if (opc == OPC::MOV) {
         Reg dst(InsOperand(ins, 0));
         Reg src(InsOperand(ins, 1));
-        if (src.kind() == RefKind::REG && RegCpuReg(src) == RegCpuReg(dst)) {
+        if (Kind(src) == RefKind::REG && RegCpuReg(src) == RegCpuReg(dst)) {
           to_delete->push_back(ins);
         }
       }
@@ -262,7 +262,7 @@ void GlobalRegAllocOneKind(Fun fun, CPU_REG_KIND kind,
   uint32_t pre_alloced = 0;
   for (Reg reg : FunRegIter(fun)) {
     CpuReg cpu_reg(RegCpuReg(reg));
-    if (cpu_reg.kind() != RefKind::CPU_REG) continue;
+    if (Kind(cpu_reg) != RefKind::CPU_REG) continue;
     if (CPU_REG_KIND(CpuRegKind(cpu_reg)) == kind) {
       pre_alloced |= CpuRegToAllocMask(cpu_reg);
     }

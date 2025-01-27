@@ -42,7 +42,7 @@ void StripeGroup::SetBitVecOfFreeInstances(uint8_t* vec) const {
        r = *static_cast<Handle*>(sb->element(r.index()))) {
        uint32_t index = r.index();
         vec[index >> 3] |= 1 << (index & 7);
-  } 
+  }
 }
 
 uintptr_t Align(uintptr_t x, uint32_t alignment) {
@@ -111,12 +111,12 @@ void StripeGroup::AllocateAllStripes(uint32_t multiplier) {
   for (StripeGroup* sg = StripeGroup::root; sg != nullptr; sg = sg->next) {
     StripeBase* sb = sg->stripes_[0];
     // we do not use the zeroest element!
-    sg->first_free_ = Handle(1, RefKind::FREE);
+    sg->first_free_ = Handle(1, kKindFree);
     for (unsigned i = 1; i < sg->max_instances_ - 1; i++) {
-      *static_cast<Handle*>(sb->element(i)) = Handle(i + 1, RefKind::FREE);
+      *static_cast<Handle*>(sb->element(i)) = Handle(i + 1, kKindFree);
     }
     *static_cast<Handle*>(sb->element(sg->max_instances_ - 1)) =
-        Handle(0, RefKind::FREE);
+        Handle(0, kKindFree);
   }
 }
 

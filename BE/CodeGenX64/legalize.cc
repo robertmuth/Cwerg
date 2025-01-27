@@ -27,7 +27,7 @@ constexpr auto operator+(T e) noexcept
 }
 
 bool IsOutOfBoundImmediate(OPC opc, Handle op, unsigned pos) {
-  if (op.kind() != RefKind::CONST) return false;
+  if (Kind(op) != RefKind::CONST) return false;
   const DK dk = ConstKind(Const(op));
   if (DKFlavor(dk) == DK_FLAVOR_F) return true;
   switch (opc) {
@@ -168,7 +168,7 @@ void FunRewriteDivRemShiftsCAS(Fun fun, Unit unit, std::vector<Ins>* inss) {
               const unsigned bw = DKBitWidth(dk);
               const unsigned mask = bw - 1;
 
-              if (InsOperand(ins, 2).kind() == RefKind::REG) {
+              if (Kind(InsOperand(ins, 2)) == RefKind::REG) {
                 Const const_mask = DKFlavor(dk) == DK_FLAVOR_U
                                        ? ConstNewU(dk, mask)
                                        : ConstNewACS(dk, mask);
@@ -180,7 +180,7 @@ void FunRewriteDivRemShiftsCAS(Fun fun, Unit unit, std::vector<Ins>* inss) {
                 InsOperand(ins, 2) = rcx;
               } else {
                 Const op_shift = Const(InsOperand(ins, 2));
-                ASSERT(op_shift.kind() == RefKind::CONST, "");
+                ASSERT(Kind(op_shift) == RefKind::CONST, "");
                 if (DKFlavor(dk) == DK_FLAVOR_U) {
                   InsOperand(ins, 2) =
                       ConstNewU(dk, ConstValueU(op_shift) & mask);
@@ -213,7 +213,7 @@ int FunMoveEliminationCpu(Fun fun, std::vector<Ins>* to_delete) {
       if (opc == OPC::MOV) {
         Reg dst(InsOperand(ins, 0));
         Reg src(InsOperand(ins, 1));
-        if (src.kind() == RefKind::REG && RegCpuReg(src) == RegCpuReg(dst)) {
+        if (Kind(src) == RefKind::REG && RegCpuReg(src) == RegCpuReg(dst)) {
           to_delete->push_back(ins);
         }
       }
@@ -432,7 +432,7 @@ void GlobalRegAllocOneKind(Fun fun, CPU_REG_KIND kind,
   uint32_t pre_alloced = 0;
   for (Reg reg : FunRegIter(fun)) {
     CpuReg cpu_reg(RegCpuReg(reg));
-    if (cpu_reg.kind() != RefKind::CPU_REG) continue;
+    if (Kind(cpu_reg) != RefKind::CPU_REG) continue;
     if (CPU_REG_KIND(CpuRegKind(cpu_reg)) == kind) {
       pre_alloced |= CpuRegToAllocMask(cpu_reg);
     }

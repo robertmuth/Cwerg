@@ -472,7 +472,7 @@ bool GetAllInsOperands(const Opcode& opcode,
       op = GetRegOrConstInsOperand(ok, opcode.constraints[i], op_str, fun,
                                    last_type, cpu_reg_map);
       last_type =
-          op.kind() == RefKind::REG ? RegKind(Reg(op)) : ConstKind(Const(op));
+          Kind(op) == RefKind::REG ? RegKind(Reg(op)) : ConstKind(Const(op));
     } else {
       op = GetOtherInsOperand(ok, op_str, mod, fun);
     }
@@ -519,13 +519,13 @@ void InsRenderToAsm(Ins ins, std::ostream* output) {
   const unsigned num_ops = opcode.num_operands;
   for (unsigned i = 0; i < num_ops; ++i) {
     const Handle op = InsOperand(ins, i);
-    switch (op.kind()) {
+    switch (Kind(op)) {
       case RefKind::REG: {
         *output << " " << Name(Reg(op));
         Handle cpu_reg = RegCpuReg(Reg(op));
-        if (cpu_reg.kind() == RefKind::CPU_REG) {
+        if (Kind(cpu_reg) == RefKind::CPU_REG) {
           *output << "@" << Name(CpuReg(cpu_reg));
-        } else if (cpu_reg.kind() == RefKind::STACK_SLOT) {
+        } else if (Kind(cpu_reg) == RefKind::STACK_SLOT) {
           *output << "@STK";
         }
         break;
@@ -556,7 +556,7 @@ void InsRenderToAsm(Ins ins, std::ostream* output) {
         *output << " \"" << StrData(Str(op)) << "\"";
         break;
       default:
-        ASSERT(false, "unsupported operand kind " << int(op.kind()));
+        ASSERT(false, "unsupported operand kind " << int(Kind(op)));
         break;
     }
   }
@@ -704,9 +704,9 @@ void FunRenderToAsm(Fun fun, std::ostream* output, bool number) {
     for (const Reg reg : val) {
       *output << sep << Name(reg);
       Handle cpu_reg = RegCpuReg(reg);
-      if (cpu_reg.kind() == RefKind::CPU_REG) {
+      if (Kind(cpu_reg) == RefKind::CPU_REG) {
         *output << "@" << Name(CpuReg(cpu_reg));
-      } else if (cpu_reg.kind() == RefKind::STACK_SLOT) {
+      } else if (Kind(cpu_reg) == RefKind::STACK_SLOT) {
         *output << "@STK";
       }
       sep = " ";
@@ -745,7 +745,7 @@ void MemRenderToAsm(Mem mem, std::ostream* output) {
     const uint32_t size = DataSize(data);
     const int32_t extra = DataExtra(data);
     Handle target = DataTarget(data);
-    switch (target.kind()) {
+    switch (Kind(target)) {
       case RefKind::STR: {
         uint32_t len = size;
         char buffer[4096];
@@ -763,7 +763,7 @@ void MemRenderToAsm(Mem mem, std::ostream* output) {
         *output << "    .addr.fun " << size << " " << Name(Fun(target)) << "\n";
         break;
       default:
-        ASSERT(false, "unsupported target for data " << int(target.kind()));
+        ASSERT(false, "unsupported target for data " << int(Kind(target)));
         break;
     }
   }

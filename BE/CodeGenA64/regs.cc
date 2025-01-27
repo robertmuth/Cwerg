@@ -102,7 +102,7 @@ class CpuRegPool : public RegPool {
   void add_reserved_range(const LiveRange& lr) {
     const Reg reg = lr.reg;
     const CpuReg cpu_reg(RegCpuReg(reg));
-    ASSERT(cpu_reg.kind() == RefKind::CPU_REG, "");
+    ASSERT(Kind(cpu_reg) == RefKind::CPU_REG, "");
     if (RegKind(reg) == DK::R32 || RegKind(reg) == DK::R64) {
       flt_reserved_[CpuRegNo(cpu_reg)].add(&lr);
     } else {
@@ -278,9 +278,9 @@ CpuRegMasks FunCpuRegStats(Fun fun) {
       const uint32_t num_ops = InsOpcode(ins).num_operands;
       for (unsigned i = 0; i < num_ops; ++i) {
         const Reg reg(InsOperand(ins, i));
-        if (reg.kind() != RefKind::REG) continue;
+        if (Kind(reg) != RefKind::REG) continue;
         const CpuReg cpu_reg(RegCpuReg(reg));
-        if (cpu_reg.kind() != RefKind::CPU_REG) {
+        if (Kind(cpu_reg) != RefKind::CPU_REG) {
           BblRenderToAsm(bbl, fun, &std::cout);
           ASSERT(false,
                  "found unallocated reg " << Name(reg) << " in " << Name(fun));

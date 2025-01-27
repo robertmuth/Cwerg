@@ -45,50 +45,50 @@ bool MatchUnsignedRange(uint64_t hi, Const num) {
 bool MatchesOpCurb(C curb, Handle op) {
   switch (curb) {
     case C::INVALID:
-      ASSERT(op.kind() != RefKind::REG && op.kind() != RefKind::CONST, "");
+      ASSERT(Kind(op) != RefKind::REG && Kind(op) != RefKind::CONST, "");
       return true;
     case C::REG:
-      return op.kind() == RefKind::REG &&
-             RegCpuReg(Reg(op)).kind() != RefKind::STACK_SLOT;
+      return Kind(op) == RefKind::REG &&
+             Kind(RegCpuReg(Reg(op))) != RefKind::STACK_SLOT;
     case C::SP_REG:
-      return op.kind() == RefKind::REG &&
-             RegCpuReg(Reg(op)).kind() == RefKind::STACK_SLOT;
+      return Kind(op) == RefKind::REG &&
+             Kind(RegCpuReg(Reg(op))) == RefKind::STACK_SLOT;
     case C::ANY:
     case C::ZERO:
       ASSERT(false, "NYI " << EnumToString(curb));
       return true;
     case C::REG_RAX:
-      return op.kind() == RefKind::REG &&
+      return Kind(op) == RefKind::REG &&
              CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 0;
     case C::REG_RCX:
-      return op.kind() == RefKind::REG &&
+      return Kind(op) == RefKind::REG &&
              CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 1;
     case C::REG_RDX:
-      return op.kind() == RefKind::REG &&
+      return Kind(op) == RefKind::REG &&
              CpuRegNo(CpuReg(RegCpuReg(Reg(op)))) == 2;
     case C::SIMM8:
-      return op.kind() == RefKind::CONST &&
+      return Kind(op) == RefKind::CONST &&
              MatchSignedRange((1LL << 7) - 1, Const(op));
     case C::SIMM16:
-      return op.kind() == RefKind::CONST &&
+      return Kind(op) == RefKind::CONST &&
              MatchSignedRange((1LL << 15) - 1, Const(op));
     case C::SIMM32:
-      return op.kind() == RefKind::CONST &&
+      return Kind(op) == RefKind::CONST &&
              MatchSignedRange((1LL << 31) - 1, Const(op));
     case C::SIMM64:
-      return op.kind() == RefKind::CONST &&
+      return Kind(op) == RefKind::CONST &&
              MatchSignedRange(0x7fff'ffff'ffff'ffff, Const(op));
     case C::UIMM8:
-      return op.kind() == RefKind::CONST &&
+      return Kind(op) == RefKind::CONST &&
              MatchUnsignedRange((1ULL << 8) - 1, Const(op));
     case C::UIMM16:
-      return op.kind() == RefKind::CONST &&
+      return Kind(op) == RefKind::CONST &&
              MatchUnsignedRange((1ULL << 16) - 1, Const(op));
     case C::UIMM32:
-      return op.kind() == RefKind::CONST &&
+      return Kind(op) == RefKind::CONST &&
              MatchUnsignedRange((1ULL << 32) - 1, Const(op));
     case C::UIMM64:
-      return op.kind() == RefKind::CONST &&
+      return Kind(op) == RefKind::CONST &&
              MatchUnsignedRange(0xffff'ffff'ffff'ffff, Const(op));
   }
   ASSERT(false, "unexpected C " << EnumToString(curb));
@@ -100,9 +100,9 @@ uint64_t ExtractTypeMaskForPattern(Ins ins) {
   unsigned num_ops = InsOpcode(ins).num_operands;
   for (unsigned i = 0; i < num_ops; ++i) {
     const Handle h = InsOperand(ins, i);
-    if (h.kind() == RefKind::REG) {
+    if (Kind(h) == RefKind::REG) {
       reg_matcher |= uint64_t(RegKind(Reg(h))) << 8 * i;
-    } else if (h.kind() == RefKind::CONST) {
+    } else if (Kind(h) == RefKind::CONST) {
       reg_matcher |= uint64_t(ConstKind(Const(h))) << 8 * i;
     }
   }
@@ -126,102 +126,101 @@ bool PatternMatchesOpCurbs(const Pattern& pat, Ins ins) {
 /* @AUTOGEN-START@ */
 
 enum F {
-    NO_INDEX = 4,
-    NO_BASE = 4,
-    RIP = 0,
-    SCALE1 = 0,
-    SCALE2 = 1,
-    SCALE4 = 2,
-    SCALE8 = 3,
-    RAX = 0,
-    RCX = 1,
-    RDX = 2,
-    RBX = 3,
-    RSP = 4,
-    RBP = 5,
-    RSI = 6,
-    RDI = 7,
-    R8 = 8,
-    R9 = 9,
-    R10 = 10,
-    R11 = 11,
-    R12 = 12,
-    R13 = 13,
-    R14 = 14,
-    R15 = 15,
-    XMM0 = 0,
-    XMM1 = 1,
-    XMM2 = 2,
-    XMM3 = 3,
-    XMM4 = 4,
-    XMM5 = 5,
-    XMM6 = 6,
-    XMM7 = 7,
-    XMM8 = 8,
-    XMM9 = 9,
-    XMM10 = 10,
-    XMM11 = 11,
-    XMM12 = 12,
-    XMM13 = 13,
-    XMM14 = 14,
-    XMM15 = 15,
+  NO_INDEX = 4,
+  NO_BASE = 4,
+  RIP = 0,
+  SCALE1 = 0,
+  SCALE2 = 1,
+  SCALE4 = 2,
+  SCALE8 = 3,
+  RAX = 0,
+  RCX = 1,
+  RDX = 2,
+  RBX = 3,
+  RSP = 4,
+  RBP = 5,
+  RSI = 6,
+  RDI = 7,
+  R8 = 8,
+  R9 = 9,
+  R10 = 10,
+  R11 = 11,
+  R12 = 12,
+  R13 = 13,
+  R14 = 14,
+  R15 = 15,
+  XMM0 = 0,
+  XMM1 = 1,
+  XMM2 = 2,
+  XMM3 = 3,
+  XMM4 = 4,
+  XMM5 = 5,
+  XMM6 = 6,
+  XMM7 = 7,
+  XMM8 = 8,
+  XMM9 = 9,
+  XMM10 = 10,
+  XMM11 = 11,
+  XMM12 = 12,
+  XMM13 = 13,
+  XMM14 = 14,
+  XMM15 = 15,
 };
 
 const char* const C_ToStringMap[] = {
-    "INVALID", // 0
-    "ZERO", // 1
-    "ANY", // 2
-    "REG", // 3
-    "SP_REG", // 4
-    "SIMM8", // 5
-    "SIMM16", // 6
-    "SIMM32", // 7
-    "SIMM64", // 8
-    "UIMM8", // 9
-    "UIMM16", // 10
-    "UIMM32", // 11
-    "UIMM64", // 12
-    "REG_RAX", // 13
-    "REG_RCX", // 14
-    "REG_RDX", // 15
-    "ZZZ", // 16
+    "INVALID",  // 0
+    "ZERO",     // 1
+    "ANY",      // 2
+    "REG",      // 3
+    "SP_REG",   // 4
+    "SIMM8",    // 5
+    "SIMM16",   // 6
+    "SIMM32",   // 7
+    "SIMM64",   // 8
+    "UIMM8",    // 9
+    "UIMM16",   // 10
+    "UIMM32",   // 11
+    "UIMM64",   // 12
+    "REG_RAX",  // 13
+    "REG_RCX",  // 14
+    "REG_RDX",  // 15
+    "ZZZ",      // 16
 };
 const char* EnumToString(C x) { return C_ToStringMap[unsigned(x)]; }
 
-
 const char* const P_ToStringMap[] = {
-    "invalid", // 0
-    "reg01", // 1
-    "reg0", // 2
-    "reg1", // 3
-    "reg2", // 4
-    "reg3", // 5
-    "reg4", // 6
-    "tmp_gpr", // 7
-    "tmp_flt", // 8
-    "scratch_gpr", // 9
-    "num0", // 10
-    "num1", // 11
-    "num2", // 12
-    "num3", // 13
-    "num4", // 14
-    "spill01", // 15
-    "spill0", // 16
-    "spill1", // 17
-    "spill2", // 18
-    "stk1_offset2", // 19
-    "stk0_offset1", // 20
-    "stk1", // 21
-    "bbl0", // 22
-    "bbl1", // 23
-    "bbl2", // 24
-    "fun0", // 25
-    "mem0_num1_prel", // 26
-    "mem1_num2_prel", // 27
-    "fun1_prel", // 28
-    "jtb1_prel", // 29
-    "frame_size", // 30
-    "ZZZ", // 31
+    "invalid",         // 0
+    "reg01",           // 1
+    "reg0",            // 2
+    "reg1",            // 3
+    "reg2",            // 4
+    "reg3",            // 5
+    "reg4",            // 6
+    "tmp_gpr",         // 7
+    "tmp_flt",         // 8
+    "scratch_gpr",     // 9
+    "num0",            // 10
+    "num1",            // 11
+    "num2",            // 12
+    "num3",            // 13
+    "num4",            // 14
+    "spill01",         // 15
+    "spill0",          // 16
+    "spill1",          // 17
+    "spill2",          // 18
+    "stk1_offset2",    // 19
+    "stk0_offset1",    // 20
+    "stk1",            // 21
+    "bbl0",            // 22
+    "bbl1",            // 23
+    "bbl2",            // 24
+    "fun0",            // 25
+    "mem0_num1_prel",  // 26
+    "mem1_num2_prel",  // 27
+    "fun1_prel",       // 28
+    "jtb1_prel",       // 29
+    "frame_size",      // 30
+    "ZZZ",             // 31
 };
 const char* EnumToString(P x) { return P_ToStringMap[unsigned(x)]; }
 
@@ -247,28 +246,28 @@ const Pattern* FindMatchingPattern(Ins ins) {
 }
 
 int64_t ExtractReg(Reg reg) {
-  ASSERT(reg.kind() == RefKind::REG, "not a reg " << EnumToString(reg.kind()));
+  ASSERT(Kind(reg) == RefKind::REG, "not a reg " << EnumToString(Kind(reg)));
   CpuReg cpu_reg(RegCpuReg(reg));
-  ASSERT(cpu_reg.kind() == RefKind::CPU_REG, "");
+  ASSERT(Kind(cpu_reg) == RefKind::CPU_REG, "");
   return CpuRegNo(cpu_reg);
 }
 
 int64_t ExtractSpilledReg(Reg reg) {
-  ASSERT(reg.kind() == RefKind::REG, "not a reg " << EnumToString(reg.kind()));
+  ASSERT(Kind(reg) == RefKind::REG, "not a reg " << EnumToString(Kind(reg)));
   StackSlot slot(RegCpuReg(reg));
-  ASSERT(slot.kind() == RefKind::STACK_SLOT, "");
+  ASSERT(Kind(slot) == RefKind::STACK_SLOT, "");
   return StackSlotOffset(slot);
 }
 
 // TODO: should this return an uint32_t
 int32_t GetStackOffset(Handle stk, Handle num) {
-  ASSERT(stk.kind() == RefKind::STK, "");
-  ASSERT(num.kind() == RefKind::CONST, "");
+  ASSERT(Kind(stk) == RefKind::STK, "");
+  ASSERT(Kind(num) == RefKind::CONST, "");
   return StkSlot(Stk(stk)) + ConstValueInt32(Const(num));
 }
 
 int64_t GetStackOffset(Stk stk, Const offset) {
-  ASSERT(stk.kind() == RefKind::STK && offset.kind() == RefKind::CONST, "");
+  ASSERT(Kind(stk) == RefKind::STK && Kind(offset) == RefKind::CONST, "");
   return StkSlot(stk) + ConstValueInt64(offset);
 }
 
@@ -291,7 +290,7 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
       return +F::XMM0;
     case P::scratch_gpr: {
       CpuReg cpu_reg = ctx.scratch_cpu_reg;
-      ASSERT(cpu_reg.kind() == RefKind::CPU_REG &&
+      ASSERT(Kind(cpu_reg) == RefKind::CPU_REG &&
                  CpuRegKind(cpu_reg) == +CPU_REG_KIND::GPR,
              "");
       return CpuRegNo(cpu_reg);
@@ -311,9 +310,9 @@ int64_t ExtractTmplArgOP(Ins ins, P arg, const EmitContext& ctx) {
     case P::spill2: {
       unsigned no = arg == P::spill01 ? 0 : +arg - +P::spill0;
       const Reg reg = Reg(InsOperand(ins, no));
-      ASSERT(reg.kind() == RefKind::REG, "");
+      ASSERT(Kind(reg) == RefKind::REG, "");
       const StackSlot slot(RegCpuReg(reg));
-      ASSERT(slot.kind() == RefKind::STACK_SLOT, "");
+      ASSERT(Kind(slot) == RefKind::STACK_SLOT, "");
       return StackSlotOffset(slot);
     }
     case P::stk1_offset2:
