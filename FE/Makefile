@@ -240,8 +240,18 @@ reformat:
 	done
 
 
-cwast_gen.h: cwast.py
-	$(PYPY) ./cwast.py gen_h > $@
+############################################################
+# Code Gen
+############################################################
 
 cwast_gen.cc: cwast.py
-	$(PYPY) ./cwast.py gen_cc > $@
+	@echo "[$@]"
+	$(PYPY) ./cwast.py gen_cc <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+cwast_gen.h: cwast.py
+	@echo "[$@]"
+	$(PYPY) ./cwast.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+GENERATED = cwast_gen.cc cwast_gen.h

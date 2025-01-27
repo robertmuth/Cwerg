@@ -9,6 +9,8 @@ import logging
 import enum
 import collections
 
+from Util import cgen
+
 from typing import Optional, Union, Any, TypeAlias, NoReturn, Final, ClassVar
 
 logger = logging.getLogger(__name__)
@@ -3830,10 +3832,10 @@ def _ComputeRemainingSlotsForFields():
 
 
 _KIND_TO_HANDLE = {
-    NFK.NODE: "NodeHandle",
-    NFK.LIST: "NodeHandle",
-    NFK.NAME: "NameHandle",
-    NFK.STR: "StrHandle",
+    NFK.NODE: "Node",
+    NFK.LIST: "Node",
+    NFK.NAME: "Name",
+    NFK.STR: "Str",
 }
 
 
@@ -3847,8 +3849,10 @@ def GenerateAccessors():
             print(f"// {k}")
             last = k
 
-        print(f"inline {_KIND_TO_HANDLE[k]}& Node_{
-                  nfd.name}(Node& n) {{ return n.children[{_FIELD_2_SLOT[nfd.name]}]; }}")
+        dst = _KIND_TO_HANDLE[k]
+        print(f"inline {dst} Node_{
+
+                  nfd.name}(NodeCore& n) {{ return {dst}(n.children[{_FIELD_2_SLOT[nfd.name]}]); }}")
 
 
 def GenerateInits():
@@ -3866,15 +3870,15 @@ def GenerateInits():
                 other_kind = nfd
                 nfds.append(nfd)
 
-        print(f"inline void Init{cls.__name__}(Node& node", end="")
+        print(f"inline void Init{cls.__name__}(NodeCore& node", end="")
         for nfd in nfds:
             k = nfd.kind
             if k == NFK.NODE or k == NFK.LIST:
-                print(f", NodeHandle {nfd.name}", end="")
+                print(f", Node {nfd.name}", end="")
             elif k == NFK.NAME:
-                print(f", NameHandle {nfd.name}", end="")
+                print(f", Name {nfd.name}", end="")
             elif k == NFK.STR:
-                print(f", StrHandle {nfd.name}", end="")
+                print(f", Str {nfd.name}", end="")
             elif k == NFK.KIND:
                 print(f", {other_kind.enum_kind.__name__} {nfd.name}", end="")
         print(") {")
@@ -3882,15 +3886,12 @@ def GenerateInits():
         if other_kind is not None:
 
             print(f"   node.other_kind = {other_kind.name};")
-        children = []
         for i in range(MAX_SLOTS):
-            if slots[i] is None:
-                children.append("INVALID_HANDLE")
-            else:
-                children.append(slots[i].name)
-        ccc = "{" + ", ".join(children) + "}"
-        print(f"   node.children = {ccc};")
-        print(f"   node.next = INVALID_HANDLE;")
+            x = "HandleInvalid";
+            if slots[i] is not None:
+                x = slots[i].name
+            print(f"   node.children[{i}] = {x};")
+        print(f"   node.next = HandleInvalid;")
 
         print("}\n")
 
@@ -3898,7 +3899,6 @@ def GenerateInits():
 def GenerateCodeH(fout: Any):
     _ComputeRemainingSlotsForFields()
 
-    print(f"#include <cstdint>")
     fields_by_kind = collections.defaultdict(list)
     for nfd in ALL_FIELDS:
         fields_by_kind[nfd.kind].append(nfd)
@@ -3920,25 +3920,12 @@ def GenerateCodeH(fout: Any):
 
     print(f"enum class NT : uint8_t {{")
     print(f"    invalid = 0,")
-    for n, cls in enumerate(ALL_NODES):
+    for n, cls in enumerate(sorted(ALL_NODES, key=lambda x: x.__name__)):
         print(f"    {cls.__name__} = {n+1},")
     print("};")
 
-    print("""struct NodeDesc{
-    uint64_t node_field_bits;
-    uint64_t string_field_bits;
- }""")
-    print("extern NodeDesc GlobalNodeDescs[];")
 
 
-
-    print("""struct Node {
-    NT kind kind;
-    uint8_t other_kind;
-    uint16_t bits;
-    Handle children[4];
-    NodeHandle next;
-}""")
 
     GenerateAccessors()
     GenerateInits()
@@ -3982,9 +3969,9 @@ if __name__ == "__main__":
     if mode == "doc":
         GenerateDocumentation(sys.stdout)
     elif mode == "gen_h":
-        GenerateCodeH(sys.stdout)
+        cgen.ReplaceContent(GenerateCodeH, sys.stdin, sys.stdout)
     elif mode == "gen_cc":
-        GenerateCodeCC(sys.stdout)
+        cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)
     else:
         print(f"unknown mode: {mode}")
         exit(1)
