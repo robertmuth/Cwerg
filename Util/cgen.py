@@ -12,6 +12,14 @@ def RenderEnum(cls, name, fout, prefix=""):
             print(f"    {prefix}{name} = 0x{value:x},", file=fout)
     print("};", file=fout)
 
+def RenderEnumClass(cls, name, fout, prefix=""):
+    print(f"\nenum class {name} : uint8_t {{", file=fout)
+    for name, value in cls:
+        if value <= 255:
+            print(f"    {prefix}{name} = {value},", file=fout)
+        else:
+            print(f"    {prefix}{name} = 0x{value:x},", file=fout)
+    print("};", file=fout)
 
 def RenderEnumToStringMap(cls, name, fout, initial=0):
     print(f"\nconst char* const {name}_ToStringMap[] = {{", file=fout)

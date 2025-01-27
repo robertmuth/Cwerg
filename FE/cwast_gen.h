@@ -40,6 +40,16 @@ struct NodeCore {
   Handle next;
 };
 
+inline void InitNode(NodeCore& node, NT kind, Handle child0, Handle child1, Handle child2, Handle child3, uint8_t other_kind) {
+   node.kind = kind;
+   node.other_kind = other_kind;
+   node.children[0] = child0;
+   node.children[1] = child1;
+   node.children[2] = child2;
+   node.children[3] = child3;
+   node.next = HandleInvalid;
+}
+
 /* @AUTOGEN-START@ */
 enum class NFD_NODE_FIELD : uint8_t {
     invalid = 0,
@@ -184,6 +194,112 @@ enum class NT : uint8_t {
     ValUndef = 79,
     ValVoid = 80,
 };
+
+enum class BINARY_EXPR_KIND : uint8_t {
+    INVALID = 0,
+    ADD = 1,
+    SUB = 2,
+    DIV = 3,
+    MUL = 4,
+    MOD = 5,
+    MIN = 6,
+    MAX = 7,
+    AND = 10,
+    OR = 11,
+    XOR = 12,
+    EQ = 20,
+    NE = 21,
+    LT = 22,
+    LE = 23,
+    GT = 24,
+    GE = 25,
+    ANDSC = 30,
+    ORSC = 31,
+    SHR = 40,
+    SHL = 41,
+    ROTR = 42,
+    ROTL = 43,
+    PDELTA = 52,
+};
+
+enum class UNARY_EXPR_KIND : uint8_t {
+    INVALID = 0,
+    NOT = 1,
+    NEG = 2,
+    ABS = 3,
+    SQRT = 4,
+};
+
+enum class POINTER_EXPR_KIND : uint8_t {
+    INVALID = 0,
+    INCP = 1,
+    DECP = 2,
+};
+
+enum class BASE_TYPE_KIND : uint8_t {
+    INVALID = 0,
+    SINT = 10,
+    S8 = 11,
+    S16 = 12,
+    S32 = 13,
+    S64 = 14,
+    UINT = 20,
+    U8 = 21,
+    U16 = 22,
+    U32 = 23,
+    U64 = 24,
+    R32 = 30,
+    R64 = 31,
+    VOID = 40,
+    NORET = 41,
+    BOOL = 42,
+    TYPEID = 43,
+};
+
+enum class STR_KIND : uint8_t {
+    NORMAL = 0,
+    NORMAL_TRIPLE = 1,
+    RAW = 2,
+    RAW_TRIPLE = 3,
+    HEX = 4,
+    HEX_TRIPLE = 5,
+};
+
+enum class MACRO_PARAM_KIND : uint8_t {
+    INVALID = 0,
+    ID = 1,
+    STMT_LIST = 2,
+    EXPR_LIST = 3,
+    EXPR = 4,
+    STMT = 5,
+    FIELD = 6,
+    TYPE = 7,
+    EXPR_LIST_REST = 8,
+};
+
+enum class MOD_PARAM_KIND : uint8_t {
+    INVALID = 0,
+    CONST_EXPR = 1,
+    TYPE = 2,
+};
+
+enum class ASSIGNMENT_KIND : uint8_t {
+    INVALID = 0,
+    ADD = 1,
+    SUB = 2,
+    DIV = 3,
+    MUL = 4,
+    MOD = 5,
+    MIN = 6,
+    MAX = 7,
+    AND = 10,
+    OR = 11,
+    XOR = 12,
+    SHR = 40,
+    SHL = 41,
+    ROTR = 42,
+    ROTL = 43,
+};
 // NFK.NAME
 inline Name Node_name(NodeCore& n) { return Name(n.children[0]); }
 inline Name Node_mod_name(NodeCore& n) { return Name(n.children[0]); }
@@ -242,734 +358,324 @@ inline Node Node_value_or_undef(NodeCore& n) { return Node(n.children[0]); }
 inline Node Node_lhs(NodeCore& n) { return Node(n.children[0]); }
 inline Node Node_expr_lhs(NodeCore& n) { return Node(n.children[0]); }
 inline Node Node_initial_or_undef_or_auto(NodeCore& n) { return Node(n.children[2]); }
-inline void InitExprWiden(NodeCore& node, Node expr, Node type) {
-   node.kind = NT::ExprWiden;
-   node.children[0] = expr;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypeVec(NodeCore& node, Node size, Node type) {
-   node.kind = NT::TypeVec;
-   node.children[0] = size;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExpr1(NodeCore& node, UNARY_EXPR_KIND unary_expr_kind, Node expr) {
-   node.kind = NT::Expr1;
-   node.other_kind = unary_expr_kind;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitMacroInvoke(NodeCore& node, Name name, Node args) {
-   node.kind = NT::MacroInvoke;
-   node.children[0] = name;
-   node.children[1] = args;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprCall(NodeCore& node, Node callee, Node args) {
-   node.kind = NT::ExprCall;
-   node.children[0] = callee;
-   node.children[1] = args;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypeSpan(NodeCore& node, Node type) {
-   node.kind = NT::TypeSpan;
-   node.children[0] = HandleInvalid;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprSrcLoc(NodeCore& node, Node expr) {
-   node.kind = NT::ExprSrcLoc;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtReturn(NodeCore& node, Node expr_ret) {
-   node.kind = NT::StmtReturn;
-   node.children[0] = expr_ret;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitValAuto(NodeCore& node) {
-   node.kind = NT::ValAuto;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitDefGlobal(NodeCore& node, Name name, Node type_or_auto, Node initial_or_undef_or_auto) {
-   node.kind = NT::DefGlobal;
-   node.children[0] = name;
-   node.children[1] = type_or_auto;
-   node.children[2] = initial_or_undef_or_auto;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypeOf(NodeCore& node, Node expr) {
-   node.kind = NT::TypeOf;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExpr3(NodeCore& node, Node cond, Node expr_t, Node expr_f) {
-   node.kind = NT::Expr3;
-   node.children[0] = expr_t;
-   node.children[1] = cond;
-   node.children[2] = expr_f;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+inline void InitCase(NodeCore& node, Node cond, Node body) {
+    InitNode(node, NT::Case, HandleInvalid, cond, HandleInvalid, body, 0);
 }
 
 inline void InitDefEnum(NodeCore& node, Name name, BASE_TYPE_KIND base_type_kind, Node items) {
-   node.kind = NT::DefEnum;
-   node.other_kind = base_type_kind;
-   node.children[0] = name;
-   node.children[1] = items;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitMacroId(NodeCore& node, Name name) {
-   node.kind = NT::MacroId;
-   node.children[0] = name;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprUnwrap(NodeCore& node, Node expr) {
-   node.kind = NT::ExprUnwrap;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtCond(NodeCore& node, Node cases) {
-   node.kind = NT::StmtCond;
-   node.children[0] = cases;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprStringify(NodeCore& node, Node expr) {
-   node.kind = NT::ExprStringify;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitDefMod(NodeCore& node, Node params_mod, Node body_mod) {
-   node.kind = NT::DefMod;
-   node.children[0] = params_mod;
-   node.children[1] = body_mod;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprUnionUntagged(NodeCore& node, Node expr) {
-   node.kind = NT::ExprUnionUntagged;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtBlock(NodeCore& node, Str label, Node body) {
-   node.kind = NT::StmtBlock;
-   node.children[0] = label;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = body;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprPointer(NodeCore& node, POINTER_EXPR_KIND pointer_expr_kind, Node expr1, Node expr2, Node expr_bound_or_undef) {
-   node.kind = NT::ExprPointer;
-   node.other_kind = pointer_expr_kind;
-   node.children[0] = expr1;
-   node.children[1] = expr2;
-   node.children[2] = expr_bound_or_undef;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitDefMacro(NodeCore& node, Name name, MACRO_PARAM_KIND macro_result_kind, Node params_macro, Node gen_ids, Node body_macro) {
-   node.kind = NT::DefMacro;
-   node.other_kind = macro_result_kind;
-   node.children[0] = name;
-   node.children[1] = params_macro;
-   node.children[2] = gen_ids;
-   node.children[3] = body_macro;
-   node.next = HandleInvalid;
-}
-
-inline void InitValCompound(NodeCore& node, Node type_or_auto, Node inits) {
-   node.kind = NT::ValCompound;
-   node.children[0] = inits;
-   node.children[1] = type_or_auto;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitDefRec(NodeCore& node, Name name, Node fields) {
-   node.kind = NT::DefRec;
-   node.children[0] = name;
-   node.children[1] = fields;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprLen(NodeCore& node, Node container) {
-   node.kind = NT::ExprLen;
-   node.children[0] = container;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtTrap(NodeCore& node) {
-   node.kind = NT::StmtTrap;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypeUnion(NodeCore& node, Node types) {
-   node.kind = NT::TypeUnion;
-   node.children[0] = types;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitImport(NodeCore& node, Name name, Str path, Node args_mod) {
-   node.kind = NT::Import;
-   node.children[0] = name;
-   node.children[1] = path;
-   node.children[2] = args_mod;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprUnsafeCast(NodeCore& node, Node expr, Node type) {
-   node.kind = NT::ExprUnsafeCast;
-   node.children[0] = expr;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitValNum(NodeCore& node, Str number) {
-   node.kind = NT::ValNum;
-   node.children[0] = number;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprParen(NodeCore& node, Node expr) {
-   node.kind = NT::ExprParen;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtExpr(NodeCore& node, Node expr) {
-   node.kind = NT::StmtExpr;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtBreak(NodeCore& node, Str target) {
-   node.kind = NT::StmtBreak;
-   node.children[0] = target;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitValFalse(NodeCore& node) {
-   node.kind = NT::ValFalse;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+    InitNode(node, NT::DefEnum, name, items, HandleInvalid, HandleInvalid, uint8_t(base_type_kind));
 }
 
 inline void InitDefFun(NodeCore& node, Name name, Node params, Node result, Node body) {
-   node.kind = NT::DefFun;
-   node.children[0] = name;
-   node.children[1] = params;
-   node.children[2] = result;
-   node.children[3] = body;
-   node.next = HandleInvalid;
+    InitNode(node, NT::DefFun, name, params, result, body, 0);
 }
 
-inline void InitExprIndex(NodeCore& node, Node container, Node expr_index) {
-   node.kind = NT::ExprIndex;
-   node.children[0] = container;
-   node.children[1] = expr_index;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+inline void InitDefGlobal(NodeCore& node, Name name, Node type_or_auto, Node initial_or_undef_or_auto) {
+    InitNode(node, NT::DefGlobal, name, type_or_auto, initial_or_undef_or_auto, HandleInvalid, 0);
+}
+
+inline void InitDefMacro(NodeCore& node, Name name, MACRO_PARAM_KIND macro_result_kind, Node params_macro, Node gen_ids, Node body_macro) {
+    InitNode(node, NT::DefMacro, name, params_macro, gen_ids, body_macro, uint8_t(macro_result_kind));
+}
+
+inline void InitDefMod(NodeCore& node, Node params_mod, Node body_mod) {
+    InitNode(node, NT::DefMod, params_mod, body_mod, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitDefRec(NodeCore& node, Name name, Node fields) {
+    InitNode(node, NT::DefRec, name, fields, HandleInvalid, HandleInvalid, 0);
 }
 
 inline void InitDefType(NodeCore& node, Name name, Node type) {
-   node.kind = NT::DefType;
-   node.children[0] = name;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitEphemeralList(NodeCore& node, Node args) {
-   node.kind = NT::EphemeralList;
-   node.children[0] = HandleInvalid;
-   node.children[1] = args;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtDefer(NodeCore& node, Node body) {
-   node.kind = NT::StmtDefer;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = body;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprAs(NodeCore& node, Node expr, Node type) {
-   node.kind = NT::ExprAs;
-   node.children[0] = expr;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprSizeof(NodeCore& node, Node type) {
-   node.kind = NT::ExprSizeof;
-   node.children[0] = HandleInvalid;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtCompoundAssignment(NodeCore& node, ASSIGNMENT_KIND assignment_kind, Node lhs, Node expr_rhs) {
-   node.kind = NT::StmtCompoundAssignment;
-   node.other_kind = assignment_kind;
-   node.children[0] = lhs;
-   node.children[1] = expr_rhs;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitValString(NodeCore& node, Str string, STR_KIND str_kind) {
-   node.kind = NT::ValString;
-   node.other_kind = str_kind;
-   node.children[0] = string;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitModParam(NodeCore& node, Name name, MOD_PARAM_KIND mod_param_kind) {
-   node.kind = NT::ModParam;
-   node.other_kind = mod_param_kind;
-   node.children[0] = name;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitId(NodeCore& node, Name mod_name, Name base_name, Name enum_name) {
-   node.kind = NT::Id;
-   node.children[0] = mod_name;
-   node.children[1] = base_name;
-   node.children[2] = enum_name;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprFront(NodeCore& node, Node container) {
-   node.kind = NT::ExprFront;
-   node.children[0] = container;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtStaticAssert(NodeCore& node, Node cond, Str message) {
-   node.kind = NT::StmtStaticAssert;
-   node.children[0] = message;
-   node.children[1] = cond;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypeAuto(NodeCore& node) {
-   node.kind = NT::TypeAuto;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprAddrOf(NodeCore& node, Node expr_lhs) {
-   node.kind = NT::ExprAddrOf;
-   node.children[0] = expr_lhs;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypeBase(NodeCore& node, BASE_TYPE_KIND base_type_kind) {
-   node.kind = NT::TypeBase;
-   node.other_kind = base_type_kind;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExpr2(NodeCore& node, BINARY_EXPR_KIND binary_expr_kind, Node expr1, Node expr2) {
-   node.kind = NT::Expr2;
-   node.other_kind = binary_expr_kind;
-   node.children[0] = expr1;
-   node.children[1] = expr2;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitValUndef(NodeCore& node) {
-   node.kind = NT::ValUndef;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprField(NodeCore& node, Node container, Node field) {
-   node.kind = NT::ExprField;
-   node.children[0] = container;
-   node.children[1] = HandleInvalid;
-   node.children[2] = field;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprBitCast(NodeCore& node, Node expr, Node type) {
-   node.kind = NT::ExprBitCast;
-   node.children[0] = expr;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprNarrow(NodeCore& node, Node expr, Node type) {
-   node.kind = NT::ExprNarrow;
-   node.children[0] = expr;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitValPoint(NodeCore& node, Node value_or_undef, Node point) {
-   node.kind = NT::ValPoint;
-   node.children[0] = value_or_undef;
-   node.children[1] = point;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitFunParam(NodeCore& node, Name name, Node type) {
-   node.kind = NT::FunParam;
-   node.children[0] = name;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtIf(NodeCore& node, Node cond, Node body_t, Node body_f) {
-   node.kind = NT::StmtIf;
-   node.children[0] = body_t;
-   node.children[1] = cond;
-   node.children[2] = body_f;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitRecField(NodeCore& node, Name name, Node type) {
-   node.kind = NT::RecField;
-   node.children[0] = name;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypeFun(NodeCore& node, Node params, Node result) {
-   node.kind = NT::TypeFun;
-   node.children[0] = HandleInvalid;
-   node.children[1] = params;
-   node.children[2] = result;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtContinue(NodeCore& node, Str target) {
-   node.kind = NT::StmtContinue;
-   node.children[0] = target;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypeUnionDelta(NodeCore& node, Node type, Node subtrahend) {
-   node.kind = NT::TypeUnionDelta;
-   node.children[0] = subtrahend;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitValSpan(NodeCore& node, Node pointer, Node expr_size) {
-   node.kind = NT::ValSpan;
-   node.children[0] = pointer;
-   node.children[1] = expr_size;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitMacroFor(NodeCore& node, Name name, Str name_list, Node body_for) {
-   node.kind = NT::MacroFor;
-   node.children[0] = name;
-   node.children[1] = name_list;
-   node.children[2] = body_for;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitEnumVal(NodeCore& node, Name name, Node value_or_auto) {
-   node.kind = NT::EnumVal;
-   node.children[0] = name;
-   node.children[1] = value_or_auto;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprOffsetof(NodeCore& node, Node type, Node field) {
-   node.kind = NT::ExprOffsetof;
-   node.children[0] = HandleInvalid;
-   node.children[1] = type;
-   node.children[2] = field;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitStmtAssignment(NodeCore& node, Node lhs, Node expr_rhs) {
-   node.kind = NT::StmtAssignment;
-   node.children[0] = lhs;
-   node.children[1] = expr_rhs;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitTypePtr(NodeCore& node, Node type) {
-   node.kind = NT::TypePtr;
-   node.children[0] = HandleInvalid;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprWrap(NodeCore& node, Node expr, Node type) {
-   node.kind = NT::ExprWrap;
-   node.children[0] = expr;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitValVoid(NodeCore& node) {
-   node.kind = NT::ValVoid;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprDeref(NodeCore& node, Node expr) {
-   node.kind = NT::ExprDeref;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
-}
-
-inline void InitExprUnionTag(NodeCore& node, Node expr) {
-   node.kind = NT::ExprUnionTag;
-   node.children[0] = expr;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+    InitNode(node, NT::DefType, name, type, HandleInvalid, HandleInvalid, 0);
 }
 
 inline void InitDefVar(NodeCore& node, Name name, Node type_or_auto, Node initial_or_undef_or_auto) {
-   node.kind = NT::DefVar;
-   node.children[0] = name;
-   node.children[1] = type_or_auto;
-   node.children[2] = initial_or_undef_or_auto;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+    InitNode(node, NT::DefVar, name, type_or_auto, initial_or_undef_or_auto, HandleInvalid, 0);
+}
+
+inline void InitEnumVal(NodeCore& node, Name name, Node value_or_auto) {
+    InitNode(node, NT::EnumVal, name, value_or_auto, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitEphemeralList(NodeCore& node, Node args) {
+    InitNode(node, NT::EphemeralList, HandleInvalid, args, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExpr1(NodeCore& node, UNARY_EXPR_KIND unary_expr_kind, Node expr) {
+    InitNode(node, NT::Expr1, expr, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(unary_expr_kind));
+}
+
+inline void InitExpr2(NodeCore& node, BINARY_EXPR_KIND binary_expr_kind, Node expr1, Node expr2) {
+    InitNode(node, NT::Expr2, expr1, expr2, HandleInvalid, HandleInvalid, uint8_t(binary_expr_kind));
+}
+
+inline void InitExpr3(NodeCore& node, Node cond, Node expr_t, Node expr_f) {
+    InitNode(node, NT::Expr3, expr_t, cond, expr_f, HandleInvalid, 0);
+}
+
+inline void InitExprAddrOf(NodeCore& node, Node expr_lhs) {
+    InitNode(node, NT::ExprAddrOf, expr_lhs, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprAs(NodeCore& node, Node expr, Node type) {
+    InitNode(node, NT::ExprAs, expr, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprBitCast(NodeCore& node, Node expr, Node type) {
+    InitNode(node, NT::ExprBitCast, expr, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprCall(NodeCore& node, Node callee, Node args) {
+    InitNode(node, NT::ExprCall, callee, args, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprDeref(NodeCore& node, Node expr) {
+    InitNode(node, NT::ExprDeref, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprField(NodeCore& node, Node container, Node field) {
+    InitNode(node, NT::ExprField, container, HandleInvalid, field, HandleInvalid, 0);
+}
+
+inline void InitExprFront(NodeCore& node, Node container) {
+    InitNode(node, NT::ExprFront, container, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprIndex(NodeCore& node, Node container, Node expr_index) {
+    InitNode(node, NT::ExprIndex, container, expr_index, HandleInvalid, HandleInvalid, 0);
 }
 
 inline void InitExprIs(NodeCore& node, Node expr, Node type) {
-   node.kind = NT::ExprIs;
-   node.children[0] = expr;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+    InitNode(node, NT::ExprIs, expr, type, HandleInvalid, HandleInvalid, 0);
 }
 
-inline void InitValTrue(NodeCore& node) {
-   node.kind = NT::ValTrue;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+inline void InitExprLen(NodeCore& node, Node container) {
+    InitNode(node, NT::ExprLen, container, HandleInvalid, HandleInvalid, HandleInvalid, 0);
 }
 
-inline void InitMacroVar(NodeCore& node, Name name, Node type_or_auto, Node initial_or_undef_or_auto) {
-   node.kind = NT::MacroVar;
-   node.children[0] = name;
-   node.children[1] = type_or_auto;
-   node.children[2] = initial_or_undef_or_auto;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+inline void InitExprNarrow(NodeCore& node, Node expr, Node type) {
+    InitNode(node, NT::ExprNarrow, expr, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprOffsetof(NodeCore& node, Node type, Node field) {
+    InitNode(node, NT::ExprOffsetof, HandleInvalid, type, field, HandleInvalid, 0);
+}
+
+inline void InitExprParen(NodeCore& node, Node expr) {
+    InitNode(node, NT::ExprParen, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprPointer(NodeCore& node, POINTER_EXPR_KIND pointer_expr_kind, Node expr1, Node expr2, Node expr_bound_or_undef) {
+    InitNode(node, NT::ExprPointer, expr1, expr2, expr_bound_or_undef, HandleInvalid, uint8_t(pointer_expr_kind));
+}
+
+inline void InitExprSizeof(NodeCore& node, Node type) {
+    InitNode(node, NT::ExprSizeof, HandleInvalid, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprSrcLoc(NodeCore& node, Node expr) {
+    InitNode(node, NT::ExprSrcLoc, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
 }
 
 inline void InitExprStmt(NodeCore& node, Node body) {
-   node.kind = NT::ExprStmt;
-   node.children[0] = HandleInvalid;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = body;
-   node.next = HandleInvalid;
+    InitNode(node, NT::ExprStmt, HandleInvalid, HandleInvalid, HandleInvalid, body, 0);
+}
+
+inline void InitExprStringify(NodeCore& node, Node expr) {
+    InitNode(node, NT::ExprStringify, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
 }
 
 inline void InitExprTypeId(NodeCore& node, Node type) {
-   node.kind = NT::ExprTypeId;
-   node.children[0] = HandleInvalid;
-   node.children[1] = type;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+    InitNode(node, NT::ExprTypeId, HandleInvalid, type, HandleInvalid, HandleInvalid, 0);
 }
 
-inline void InitCase(NodeCore& node, Node cond, Node body) {
-   node.kind = NT::Case;
-   node.children[0] = HandleInvalid;
-   node.children[1] = cond;
-   node.children[2] = HandleInvalid;
-   node.children[3] = body;
-   node.next = HandleInvalid;
+inline void InitExprUnionTag(NodeCore& node, Node expr) {
+    InitNode(node, NT::ExprUnionTag, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprUnionUntagged(NodeCore& node, Node expr) {
+    InitNode(node, NT::ExprUnionUntagged, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprUnsafeCast(NodeCore& node, Node expr, Node type) {
+    InitNode(node, NT::ExprUnsafeCast, expr, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprUnwrap(NodeCore& node, Node expr) {
+    InitNode(node, NT::ExprUnwrap, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprWiden(NodeCore& node, Node expr, Node type) {
+    InitNode(node, NT::ExprWiden, expr, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitExprWrap(NodeCore& node, Node expr, Node type) {
+    InitNode(node, NT::ExprWrap, expr, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitFunParam(NodeCore& node, Name name, Node type) {
+    InitNode(node, NT::FunParam, name, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitId(NodeCore& node, Name mod_name, Name base_name, Name enum_name) {
+    InitNode(node, NT::Id, mod_name, base_name, enum_name, HandleInvalid, 0);
+}
+
+inline void InitImport(NodeCore& node, Name name, Str path, Node args_mod) {
+    InitNode(node, NT::Import, name, path, args_mod, HandleInvalid, 0);
+}
+
+inline void InitMacroFor(NodeCore& node, Name name, Str name_list, Node body_for) {
+    InitNode(node, NT::MacroFor, name, name_list, body_for, HandleInvalid, 0);
+}
+
+inline void InitMacroId(NodeCore& node, Name name) {
+    InitNode(node, NT::MacroId, name, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitMacroInvoke(NodeCore& node, Name name, Node args) {
+    InitNode(node, NT::MacroInvoke, name, args, HandleInvalid, HandleInvalid, 0);
 }
 
 inline void InitMacroParam(NodeCore& node, Name name, MACRO_PARAM_KIND macro_param_kind) {
-   node.kind = NT::MacroParam;
-   node.other_kind = macro_param_kind;
-   node.children[0] = name;
-   node.children[1] = HandleInvalid;
-   node.children[2] = HandleInvalid;
-   node.children[3] = HandleInvalid;
-   node.next = HandleInvalid;
+    InitNode(node, NT::MacroParam, name, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(macro_param_kind));
+}
+
+inline void InitMacroVar(NodeCore& node, Name name, Node type_or_auto, Node initial_or_undef_or_auto) {
+    InitNode(node, NT::MacroVar, name, type_or_auto, initial_or_undef_or_auto, HandleInvalid, 0);
+}
+
+inline void InitModParam(NodeCore& node, Name name, MOD_PARAM_KIND mod_param_kind) {
+    InitNode(node, NT::ModParam, name, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(mod_param_kind));
+}
+
+inline void InitRecField(NodeCore& node, Name name, Node type) {
+    InitNode(node, NT::RecField, name, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitStmtAssignment(NodeCore& node, Node lhs, Node expr_rhs) {
+    InitNode(node, NT::StmtAssignment, lhs, expr_rhs, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitStmtBlock(NodeCore& node, Str label, Node body) {
+    InitNode(node, NT::StmtBlock, label, HandleInvalid, HandleInvalid, body, 0);
+}
+
+inline void InitStmtBreak(NodeCore& node, Str target) {
+    InitNode(node, NT::StmtBreak, target, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitStmtCompoundAssignment(NodeCore& node, ASSIGNMENT_KIND assignment_kind, Node lhs, Node expr_rhs) {
+    InitNode(node, NT::StmtCompoundAssignment, lhs, expr_rhs, HandleInvalid, HandleInvalid, uint8_t(assignment_kind));
+}
+
+inline void InitStmtCond(NodeCore& node, Node cases) {
+    InitNode(node, NT::StmtCond, cases, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitStmtContinue(NodeCore& node, Str target) {
+    InitNode(node, NT::StmtContinue, target, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitStmtDefer(NodeCore& node, Node body) {
+    InitNode(node, NT::StmtDefer, HandleInvalid, HandleInvalid, HandleInvalid, body, 0);
+}
+
+inline void InitStmtExpr(NodeCore& node, Node expr) {
+    InitNode(node, NT::StmtExpr, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitStmtIf(NodeCore& node, Node cond, Node body_t, Node body_f) {
+    InitNode(node, NT::StmtIf, body_t, cond, body_f, HandleInvalid, 0);
+}
+
+inline void InitStmtReturn(NodeCore& node, Node expr_ret) {
+    InitNode(node, NT::StmtReturn, expr_ret, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitStmtStaticAssert(NodeCore& node, Node cond, Str message) {
+    InitNode(node, NT::StmtStaticAssert, message, cond, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitStmtTrap(NodeCore& node) {
+    InitNode(node, NT::StmtTrap, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitTypeAuto(NodeCore& node) {
+    InitNode(node, NT::TypeAuto, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitTypeBase(NodeCore& node, BASE_TYPE_KIND base_type_kind) {
+    InitNode(node, NT::TypeBase, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(base_type_kind));
+}
+
+inline void InitTypeFun(NodeCore& node, Node params, Node result) {
+    InitNode(node, NT::TypeFun, HandleInvalid, params, result, HandleInvalid, 0);
+}
+
+inline void InitTypeOf(NodeCore& node, Node expr) {
+    InitNode(node, NT::TypeOf, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitTypePtr(NodeCore& node, Node type) {
+    InitNode(node, NT::TypePtr, HandleInvalid, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitTypeSpan(NodeCore& node, Node type) {
+    InitNode(node, NT::TypeSpan, HandleInvalid, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitTypeUnion(NodeCore& node, Node types) {
+    InitNode(node, NT::TypeUnion, types, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitTypeUnionDelta(NodeCore& node, Node type, Node subtrahend) {
+    InitNode(node, NT::TypeUnionDelta, subtrahend, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitTypeVec(NodeCore& node, Node size, Node type) {
+    InitNode(node, NT::TypeVec, size, type, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValAuto(NodeCore& node) {
+    InitNode(node, NT::ValAuto, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValCompound(NodeCore& node, Node type_or_auto, Node inits) {
+    InitNode(node, NT::ValCompound, inits, type_or_auto, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValFalse(NodeCore& node) {
+    InitNode(node, NT::ValFalse, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValNum(NodeCore& node, Str number) {
+    InitNode(node, NT::ValNum, number, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValPoint(NodeCore& node, Node value_or_undef, Node point) {
+    InitNode(node, NT::ValPoint, value_or_undef, point, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValSpan(NodeCore& node, Node pointer, Node expr_size) {
+    InitNode(node, NT::ValSpan, pointer, expr_size, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValString(NodeCore& node, Str string, STR_KIND str_kind) {
+    InitNode(node, NT::ValString, string, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(str_kind));
+}
+
+inline void InitValTrue(NodeCore& node) {
+    InitNode(node, NT::ValTrue, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValUndef(NodeCore& node) {
+    InitNode(node, NT::ValUndef, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0);
+}
+
+inline void InitValVoid(NodeCore& node) {
+    InitNode(node, NT::ValVoid, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0);
 }
 
 /* @AUTOGEN-END@ */

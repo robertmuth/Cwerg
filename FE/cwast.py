@@ -3852,11 +3852,11 @@ def GenerateAccessors():
         dst = _KIND_TO_HANDLE[k]
         print(f"inline {dst} Node_{
 
-                  nfd.name}(NodeCore& n) {{ return {dst}(n.children[{_FIELD_2_SLOT[nfd.name]}]); }}")
+            nfd.name}(NodeCore& n) {{ return {dst}(n.children[{_FIELD_2_SLOT[nfd.name]}]); }}")
 
 
 def GenerateInits():
-    for cls in ALL_NODES:
+    for cls in sorted(ALL_NODES, key=lambda x: x.__name__):
 
         other_kind = None
         nfds = []
@@ -3882,17 +3882,17 @@ def GenerateInits():
             elif k == NFK.KIND:
                 print(f", {other_kind.enum_kind.__name__} {nfd.name}", end="")
         print(") {")
-        print(f"   node.kind = NT::{cls.__name__};")
-        if other_kind is not None:
-
-            print(f"   node.other_kind = {other_kind.name};")
+        args = ["node", f"NT::{cls.__name__}"]
         for i in range(MAX_SLOTS):
-            x = "HandleInvalid";
-            if slots[i] is not None:
-                x = slots[i].name
-            print(f"   node.children[{i}] = {x};")
-        print(f"   node.next = HandleInvalid;")
-
+            if slots[i] is None:
+                args.append("HandleInvalid")
+            else:
+                args.append(slots[i].name)
+        if other_kind is None:
+            args.append("0")
+        else:
+            args.append(f"uint8_t({other_kind.name})")
+        print(f"    InitNode({', '.join(args)});")
         print("}\n")
 
 
@@ -3902,8 +3902,6 @@ def GenerateCodeH(fout: Any):
     fields_by_kind = collections.defaultdict(list)
     for nfd in ALL_FIELDS:
         fields_by_kind[nfd.kind].append(nfd)
-
-
 
     print(f"enum class NFD_NODE_FIELD : uint8_t {{")
     print(f"    invalid = 0,")
@@ -3924,11 +3922,26 @@ def GenerateCodeH(fout: Any):
         print(f"    {cls.__name__} = {n+1},")
     print("};")
 
+    cgen.RenderEnumClass(cgen.NameValues(
+        BINARY_EXPR_KIND), "BINARY_EXPR_KIND", fout)
+    cgen.RenderEnumClass(cgen.NameValues(
+        UNARY_EXPR_KIND), "UNARY_EXPR_KIND", fout)
+    cgen.RenderEnumClass(cgen.NameValues(
+        POINTER_EXPR_KIND), "POINTER_EXPR_KIND", fout)
 
-
+    cgen.RenderEnumClass(cgen.NameValues(
+        BASE_TYPE_KIND), "BASE_TYPE_KIND", fout)
+    cgen.RenderEnumClass(cgen.NameValues(STR_KIND), "STR_KIND", fout)
+    cgen.RenderEnumClass(cgen.NameValues(
+        MACRO_PARAM_KIND), "MACRO_PARAM_KIND", fout)
+    cgen.RenderEnumClass(cgen.NameValues(
+        MOD_PARAM_KIND), "MOD_PARAM_KIND", fout)
+    cgen.RenderEnumClass(cgen.NameValues(
+        ASSIGNMENT_KIND), "ASSIGNMENT_KIND", fout)
 
     GenerateAccessors()
     GenerateInits()
+
 
 def GenerateCodeCC(fout: Any):
     fields_by_kind = collections.defaultdict(list)
@@ -3957,6 +3970,7 @@ def GenerateCodeCC(fout: Any):
         print(f"    {{ 0x{node_field_bits:x} , 0x{
               string_field_bits:x} }}, // {cls.__name__}")
     print("};")
+
 
 ##########################################################################################
 if __name__ == "__main__":
