@@ -26,8 +26,8 @@ class TK_KIND(enum.Enum):
     COLON = enum.auto()
     QUESTION_MARK = enum.auto()
     DOT = enum.auto()
-    EOL = enum.auto()
-    WS = enum.auto()
+    EOL = enum.auto()   # not used by parser
+    WS = enum.auto()    # not used by parser
     ID = enum.auto()
     NUM = enum.auto()
     CHAR = enum.auto()
@@ -51,25 +51,8 @@ class TK_KIND(enum.Enum):
     SPECIAL_EOF = enum.auto()
 
 
-_KEYWORDS_NODES = [nt.ALIAS for nt in [
-    cwast.TypeOf, cwast.TypeUnion, cwast.TypeUnionDelta, cwast.TypeVec, cwast.TypeSpan,
-    cwast.TypeAuto, cwast.TypeFun, # also used for ValAuto
-    #
-    cwast.ValUndef, cwast.ValTrue, cwast.ValFalse, cwast.ValSpan, cwast.ValVoid,
-    #
-    cwast.ExprUnionTag, cwast.ExprIs, cwast.ExprFront, cwast.ExprStmt,
-    cwast.ExprAs, cwast.ExprWrap, cwast.ExprUnwrap, cwast.ExprWiden, cwast.ExprSrcLoc,
-    cwast.ExprBitCast, cwast.ExprUnsafeCast, cwast.ExprNarrow, cwast.ExprTypeId,
-    cwast.ExprOffsetof, cwast.ExprSizeof, cwast.ExprLen, cwast.ExprStringify,
-    #
-    cwast.DefMod, cwast.DefEnum, cwast.DefFun, cwast.Import, cwast.DefRec, cwast.DefType,
-    cwast.StmtStaticAssert,  cwast.DefMacro, cwast.DefGlobal,
-    #
-    cwast.StmtIf, cwast.StmtDefer, cwast.StmtBlock, cwast.StmtBreak, cwast.StmtContinue,
-    cwast.StmtCond, cwast.Case, cwast.StmtExpr,  cwast.StmtReturn, cwast.StmtTrap,
-    cwast.MacroFor
-]]
-
+_KEYWORDS_NODES = cwast.KeyWordsForConcreteSyntax()
+_KEYWOEDS_EXTRA = ["else", "set", "for", "while", "tryset", "trylet", "trylet!"]
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
 _KEYWORDS_OP = (
@@ -106,8 +89,9 @@ _operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
 
 
 _operators1a = [re.escape(x) for x in cwast.UNARY_EXPR_SHORTCUT_CONCRETE
-               if not _NAMED_OP_RE.fullmatch(x)]
-_operators1b = [re.escape(x) for x in ["^!", "^", "@!", "@"]] # order important!
+                if not _NAMED_OP_RE.fullmatch(x)]
+_operators1b = [re.escape(x)
+                for x in ["^!", "^", "@!", "@"]]  # order important!
 
 _compound_assignment = [re.escape(x) for x in cwast.ASSIGNMENT_SHORTCUT]
 

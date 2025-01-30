@@ -1141,7 +1141,7 @@ class EphemeralList:
 @dataclasses.dataclass()
 class ModParam:
     """Module Parameters"""
-    ALIAS: ClassVar = "modparam"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.NON_CORE
     #
@@ -1222,7 +1222,7 @@ class RecField:  #
     All fields must be explicitly initialized. Use `ValUndef` in performance
     sensitive situations.
     """
-    ALIAS: ClassVar = "field"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
@@ -1286,7 +1286,7 @@ class Id:
 
     id or mod::id or enum::id or mod::enum:id
     """
-    ALIAS: ClassVar = "id"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Misc
     FLAGS: ClassVar = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
@@ -1372,7 +1372,7 @@ class FunParam:
     """Function parameter
 
     """
-    ALIAS: ClassVar = "param"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Type
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF
     #
@@ -1461,7 +1461,7 @@ class TypeBase:
 class TypePtr:
     """Pointer type
     """
-    ALIAS: ClassVar = "ptr"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Type
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
     #
@@ -1482,7 +1482,7 @@ class TypeSpan:
     """A span (view) of a vec with compile-time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
-    (mutable/non-mutable)
+    (mutable/non-mutable)"union
     """
     ALIAS: ClassVar = "span"
     GROUP: ClassVar = GROUP.Type
@@ -1617,7 +1617,7 @@ class ValAuto:
 
     Used for: array dimensions, enum values, chap and range
     """
-    ALIAS: ClassVar = "auto_val"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Value
     FLAGS: ClassVar = NF_EXPR
     #
@@ -1669,7 +1669,7 @@ class ValNum:
     Underscores in `number` are ignored. `number` can be explicitly typed via
     suffices like `_u64`, `_s16`, `_r32`.
     """
-    ALIAS: ClassVar = ""
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Value
     FLAGS: ClassVar = NF_EXPR
     #
@@ -1728,7 +1728,7 @@ class ValPoint:
     For Recs it represents a field name  for Vecs an index which must be
     a compile-time constant
     """
-    ALIAS: ClassVar = "point_val"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Value
     FLAGS: ClassVar = NF_EXPR
     #
@@ -1753,7 +1753,7 @@ class ValCompound:
     or
     `{Point3 : x = 5, y = 8, z = 12}`
     """
-    ALIAS: ClassVar = "compound_val"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Value
     FLAGS: ClassVar = NF_EXPR
     #
@@ -1952,7 +1952,7 @@ class ExprAddrOf:
 class ExprCall:
     """Function call expression.
     """
-    ALIAS: ClassVar = "call"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Expression
     FLAGS: ClassVar = NF_EXPR
     #
@@ -1972,7 +1972,7 @@ class ExprCall:
 class ExprParen:
     """Used for preserving parenthesis in the source
     """
-    ALIAS: ClassVar = "paren"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Expression
     FLAGS: ClassVar = NF_EXPR | NF.NON_CORE
     #
@@ -2745,7 +2745,7 @@ class EnumVal:
     """ Enum element.
 
      `value: ValAuto` means previous value + 1"""
-    ALIAS: ClassVar = "entry"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.GLOBAL_SYM_DEF
     #
@@ -2961,7 +2961,7 @@ class MacroId:
 
     This node will be expanded with the actual argument
     """
-    ALIAS: ClassVar = "macro_id"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Macro
     FLAGS: ClassVar = NF.NON_CORE | NF.ROLE_ANNOTATED
     #
@@ -3028,7 +3028,7 @@ class MacroFor:
 @dataclasses.dataclass()
 class MacroParam:
     """Macro Parameter"""
-    ALIAS: ClassVar = "mparam"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Macro
     FLAGS: ClassVar = NF.LOCAL_SYM_DEF | NF.NON_CORE
     #
@@ -3047,7 +3047,7 @@ class MacroParam:
 @dataclasses.dataclass()
 class MacroInvoke:
     """Macro Invocation"""
-    ALIAS: ClassVar = "macro_invoke"
+    ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Macro
     FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED | NF.ROLE_ANNOTATED
     #
@@ -3508,7 +3508,7 @@ def CompilerError(srcloc, msg, kind='syntax') -> NoReturn:
     global ASSERT_AFTER_ERROR
     print(f"{srcloc}: error {kind}: {msg}", file=sys.stdout)
     if ASSERT_AFTER_ERROR:
-        # this will enit a stack trace which is the main purpose
+        # this will emit a stack trace which is the main purpose
         assert False
     exit(1)
 
@@ -3972,6 +3972,19 @@ def GenerateCodeCC(fout: Any):
     print("};")
 
 
+def KeyWordsForConcreteSyntax():
+    out = []
+    for x in ALL_NODES:
+        alias = x.ALIAS
+        if alias and alias not in "^.?=@at":
+            out.append(alias)
+            for f in x.ATTRS:
+                if f.name in ("mut", "untagged", "unchecked"):
+                    out.append(alias + "!")
+                    break
+    return out
+
+
 ##########################################################################################
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
@@ -3986,6 +3999,9 @@ if __name__ == "__main__":
         cgen.ReplaceContent(GenerateCodeH, sys.stdin, sys.stdout)
     elif mode == "gen_cc":
         cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)
+    elif mode == "kw":
+        for kw in  sorted(KeyWordsForConcreteSyntax()):
+            print(kw)
     else:
         print(f"unknown mode: {mode}")
         exit(1)
