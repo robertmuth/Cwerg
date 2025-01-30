@@ -8,6 +8,7 @@ import dataclasses
 import logging
 import enum
 import collections
+import re
 
 from Util import cgen
 
@@ -3972,6 +3973,9 @@ def GenerateCodeCC(fout: Any):
     print("};")
 
 
+_NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
+
+
 def KeyWordsForConcreteSyntax():
     out = []
     for x in ALL_NODES:
@@ -3985,6 +3989,15 @@ def KeyWordsForConcreteSyntax():
     for k in BASE_TYPE_KIND:
         if k != BASE_TYPE_KIND.INVALID:
             out.append(BaseTypeKindToKeyword(k))
+    for k in POINTER_EXPR_SHORTCUT:
+        if _NAMED_OP_RE.fullmatch(k):
+            out.append(k)
+    for k in BINARY_EXPR_SHORTCUT:
+        if _NAMED_OP_RE.fullmatch(k):
+            out.append(k)
+    for k in UNARY_EXPR_SHORTCUT_CONCRETE:
+        if _NAMED_OP_RE.fullmatch(k):
+            out.append(k)
     return out
 
 

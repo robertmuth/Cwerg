@@ -54,23 +54,6 @@ _KEYWORDS_EXTRA = ["else", "set", "for",
                    "while", "tryset", "trylet", "trylet!"]
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
-_KEYWORDS_OP = (
-    [o for o in cwast.POINTER_EXPR_SHORTCUT if _NAMED_OP_RE.fullmatch(o)] +
-    [o for o in cwast.BINARY_EXPR_SHORTCUT if _NAMED_OP_RE.fullmatch(o)] +
-    [o for o in cwast.UNARY_EXPR_SHORTCUT_SEXPR if _NAMED_OP_RE.fullmatch(o)])
-
-
-# The RawLexer at first does not distinguish between keywords and identifiers.
-# This mapping is used to rewrite keywords to their proper kind.
-KEYWORDS: dict[str, TK_KIND] = (
-    #
-    {}
-    | {k: TK_KIND.ANNOTATION for k in ["pub", "ref", "poly", "wrapped"]}
-    | {k: TK_KIND.KW for k in _KEYWORDS_NODES}
-    | {k: TK_KIND.KW for k in _KEYWORDS_EXTRA}
-    | {k: TK_KIND.KW for k in _KEYWORDS_OP}
-)
-
 
 _GENERIC_ANNOTATION_RE = r"\{\{[_a-zA-Z]+\}\}"
 ID_OR_KW_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?[!]?"
@@ -78,19 +61,32 @@ COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
 
-_operators2a = [re.escape("."), re.escape("?")]
-_operators2b = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
+_operators2a = [".", "?"]
+_operators2b = [x for x in cwast.BINARY_EXPR_SHORTCUT
                 if not _NAMED_OP_RE.fullmatch(x)]
 
-_operators1a = [re.escape(x) for x in cwast.UNARY_EXPR_SHORTCUT_CONCRETE
+_operators1a = [x for x in cwast.UNARY_EXPR_SHORTCUT_CONCRETE
                 if not _NAMED_OP_RE.fullmatch(x)]
-_operators1b = [re.escape(x)
-                for x in ["^!", "^", "@!", "@"]]  # order important!
+_operators1b = [x for x in ["^!", "^", "@!", "@"]]  # order important!
 
-_compound_assignment = [re.escape(x) for x in cwast.ASSIGNMENT_SHORTCUT]
+_compound_assignment = [x for x in cwast.ASSIGNMENT_SHORTCUT]
+
+
+def _EscapeAndConcat(lst) -> str:
+    return "(?:" + "|".join(re.escape(x) for x in lst) + r")"
+
+
+_FOLLOWED_BY_WS = r"(?=\s|$)"
+_FOLLOWED_BY_NON_ID_CHAR = r"(?=[^_a-zA-Z0-9]|$)"
 
 _token_spec = [
     (TK_KIND.GENERIC_ANNOTATION.name, _GENERIC_ANNOTATION_RE),
+    (TK_KIND.ANNOTATION.name, _EscapeAndConcat(
+        ["pub", "ref", "poly", "wrapped"]) + _FOLLOWED_BY_NON_ID_CHAR),
+    (TK_KIND.COMPOUND_ASSIGN.name,
+     _EscapeAndConcat(_compound_assignment) + _FOLLOWED_BY_WS),
+    (TK_KIND.KW.name, _EscapeAndConcat(reversed(
+        sorted(_KEYWORDS_NODES + _KEYWORDS_EXTRA))) + _FOLLOWED_BY_NON_ID_CHAR),
     (TK_KIND.COLON.name, ":"),
     (TK_KIND.COMMA.name, ","),
     (TK_KIND.PAREN_OPEN.name, "[(]"),
@@ -107,16 +103,15 @@ _token_spec = [
     (TK_KIND.MSTR.name, string_re.MULTI_START),
     (TK_KIND.RMSTR.name, string_re.MULTI_START_R),
     (TK_KIND.XMSTR.name, string_re.MULTI_START_X),
-    (TK_KIND.COMPOUND_ASSIGN.name,
-     "(?:" + "|".join(_compound_assignment) + r")(?=\s|$)"),
+
     (TK_KIND.ID.name, ID_OR_KW_RE),
     # require most binary ops to be followed by whitespace, this helps with
     # disambiguating unary +/-
-    (TK_KIND.OTHER_OP_WS.name, "(?:" + "|".join(_operators2b) + r")(?=\s|$)"),
+    (TK_KIND.OTHER_OP_WS.name, _EscapeAndConcat(_operators2b) + _FOLLOWED_BY_WS),
     # no ws requirements
-    (TK_KIND.OTHER_OP.name, "(?:" + "|".join(_operators2a) + r")"),
+    (TK_KIND.OTHER_OP.name, _EscapeAndConcat(_operators2a)),
     # OP1 must follow OP2 and NUM because of matching overlap
-    (TK_KIND.PREFIX_OP.name, "|".join(_operators1a + _operators1b)),
+    (TK_KIND.PREFIX_OP.name, _EscapeAndConcat(_operators1a + _operators1b)),
     (TK_KIND.STR.name, "(?:" + string_re.START + \
      "|" + string_re.R_START + ")" + string_re.END),
     (TK_KIND.CHAR.name, CHAR_RE),
@@ -153,7 +148,7 @@ assert_match('''x"""aa"""''')
 # print(TOKEN_RE.findall("zzzzz+aa*7u8 <<<<"))
 
 
-@dataclasses.dataclass()
+@ dataclasses.dataclass()
 class TK:
     kind: TK_KIND
     srcloc: cwast.SrcLoc
@@ -228,9 +223,7 @@ class LexerRaw:
 
         sl = self._GetSrcLoc()
 
-        if kind == TK_KIND.ID:
-            kind = KEYWORDS.get(token, TK_KIND.ID)
-        elif kind == TK_KIND.GENERIC_ANNOTATION:
+        if kind == TK_KIND.GENERIC_ANNOTATION:
             kind = TK_KIND.ANNOTATION
             # remove curlies
             token = token[2:-2]
