@@ -175,7 +175,7 @@ class TK:
 
 
 class LexerRaw:
-    """ """
+    """ No Peek ability"""
 
     def __init__(self: Any, filename: str, fp: io.TextIOWrapper):
         self._fileamame: str = sys.intern(filename)
@@ -192,7 +192,7 @@ class LexerRaw:
         line = self._fp.readline()
         return line
 
-    def get_lines_until_match(self, regex) -> list[str]:
+    def _get_lines_until_match(self, regex) -> list[str]:
         """use for multiline strings"""
         assert not self._current_line
         out = []
@@ -226,7 +226,9 @@ class LexerRaw:
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]
         sl = self._GetSrcLoc()
-        if kind == TK_KIND.ID:
+        if kind in (TK_KIND.WS, TK_KIND.EOL):
+            return self.next_token()
+        elif kind == TK_KIND.ID:
             kind = KEYWORDS.get(token, TK_KIND.ID)
         elif kind == TK_KIND.GENERIC_ANNOTATION:
             kind = TK_KIND.ANNOTATION
@@ -234,7 +236,7 @@ class LexerRaw:
             token = token[2:-2]
         elif kind in (TK_KIND.MSTR, TK_KIND.RMSTR, TK_KIND.XMSTR):
             if not token.endswith('"""'):
-                rest = self.get_lines_until_match(
+                rest = self._get_lines_until_match(
                     _MSTR_TERMINATION_REGEX[kind])
                 token += "".join(rest)
             kind = TK_KIND.STR
@@ -254,26 +256,20 @@ class Lexer:
         self._lexer: LexerRaw = lexer
         self._peek_cache: Optional[TK] = None
 
-    def _next_skip_space(self) -> TK:
-        tk = self._lexer.next_token()
-        while tk.kind in (TK_KIND.WS, TK_KIND.EOL):
-            tk = self._lexer.next_token()
-        return tk
-
     def next(self) -> TK:
         if self._peek_cache:
             out = self._peek_cache
             self._peek_cache = None
             return out
-        tk: TK = self._next_skip_space()
+        tk: TK = self._lexer.next_token()
         comments = []
         while tk.kind is TK_KIND.COMMENT:
             comments.append(tk)
-            tk = self._next_skip_space()
+            tk = self._lexer.next_token()
         annotations = []
         while tk.kind is TK_KIND.ANNOTATION:
             annotations.append(tk)
-            tk = self._next_skip_space()
+            tk = self._lexer.next_token()
         out: TK = tk
         out.comments = comments
         out.annotations = annotations
