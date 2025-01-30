@@ -21,10 +21,10 @@ class TK_KIND(enum.Enum):
     KW = enum.auto()
     COMMENT = enum.auto()
     PREFIX_OP = enum.auto()
+    OTHER_OP_WS = enum.auto()
     OTHER_OP = enum.auto()
     COMMA = enum.auto()
     COLON = enum.auto()
-    DOT = enum.auto()
     EOL = enum.auto()   # not used by parser
     WS = enum.auto()    # not used by parser
     ID = enum.auto()
@@ -78,8 +78,9 @@ COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
 
-_operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
-               if not _NAMED_OP_RE.fullmatch(x)] + [re.escape("?"), re.escape(".")]
+_operators2a = [re.escape("."), re.escape("?")]
+_operators2b = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
+                if not _NAMED_OP_RE.fullmatch(x)]
 
 _operators1a = [re.escape(x) for x in cwast.UNARY_EXPR_SHORTCUT_CONCRETE
                 if not _NAMED_OP_RE.fullmatch(x)]
@@ -101,7 +102,6 @@ _token_spec = [
     (TK_KIND.SQUARE_CLOSED.name, r"\]"),
     (TK_KIND.COMMENT.name, COMMENT_RE),  # remark
     (TK_KIND.NUM.name, parse_sexpr.RE_STR_NUM),
-    (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
     (TK_KIND.MSTR.name, string_re.MULTI_START),
@@ -110,9 +110,11 @@ _token_spec = [
     (TK_KIND.COMPOUND_ASSIGN.name,
      "(?:" + "|".join(_compound_assignment) + r")(?=\s|$)"),
     (TK_KIND.ID.name, ID_OR_KW_RE),
-    # require binary ops to be followed by whitespace, this helps with
+    # require most binary ops to be followed by whitespace, this helps with
     # disambiguating unary +/-
-    (TK_KIND.OTHER_OP.name, "(?:" + "|".join(_operators2) + r")(?=\s|$)"),
+    (TK_KIND.OTHER_OP_WS.name, "(?:" + "|".join(_operators2b) + r")(?=\s|$)"),
+    # no ws requirements
+    (TK_KIND.OTHER_OP.name, "(?:" + "|".join(_operators2a) + r")"),
     # OP1 must follow OP2 and NUM because of matching overlap
     (TK_KIND.PREFIX_OP.name, "|".join(_operators1a + _operators1b)),
     (TK_KIND.STR.name, "(?:" + string_re.START + \
