@@ -20,11 +20,10 @@ class TK_KIND(enum.Enum):
     INVALID = 0
     KW = enum.auto()
     COMMENT = enum.auto()
-    OP1 = enum.auto()
-    OP2 = enum.auto()
+    PREFIX_OP = enum.auto()
+    OTHER_OP = enum.auto()
     COMMA = enum.auto()
     COLON = enum.auto()
-    QUESTION_MARK = enum.auto()
     DOT = enum.auto()
     EOL = enum.auto()   # not used by parser
     WS = enum.auto()    # not used by parser
@@ -44,7 +43,6 @@ class TK_KIND(enum.Enum):
     SQUARE_CLOSED = enum.auto()
     CURLY_OPEN = enum.auto()
     CURLY_CLOSED = enum.auto()
-    # SPECIAL_xxx will be rewritten to one of the ones above
     ANNOTATION = enum.auto()
     GENERIC_ANNOTATION = enum.auto()  # pub, ref, poly
 
@@ -81,8 +79,7 @@ CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
 
 _operators2 = [re.escape(x) for x in cwast.BINARY_EXPR_SHORTCUT
-               if not _NAMED_OP_RE.fullmatch(x)]
-
+               if not _NAMED_OP_RE.fullmatch(x)] + [re.escape("?"), re.escape(".")]
 
 _operators1a = [re.escape(x) for x in cwast.UNARY_EXPR_SHORTCUT_CONCRETE
                 if not _NAMED_OP_RE.fullmatch(x)]
@@ -104,7 +101,6 @@ _token_spec = [
     (TK_KIND.SQUARE_CLOSED.name, r"\]"),
     (TK_KIND.COMMENT.name, COMMENT_RE),  # remark
     (TK_KIND.NUM.name, parse_sexpr.RE_STR_NUM),
-    (TK_KIND.QUESTION_MARK.name, r"\?"),
     (TK_KIND.DOT.name, r"\."),
     (TK_KIND.EOL.name, "\n"),
     (TK_KIND.WS.name, "[ \t]+"),
@@ -116,9 +112,9 @@ _token_spec = [
     (TK_KIND.ID.name, ID_OR_KW_RE),
     # require binary ops to be followed by whitespace, this helps with
     # disambiguating unary +/-
-    (TK_KIND.OP2.name, "(?:" + "|".join(_operators2) + r")(?=\s|$)"),
+    (TK_KIND.OTHER_OP.name, "(?:" + "|".join(_operators2) + r")(?=\s|$)"),
     # OP1 must follow OP2 and NUM because of matching overlap
-    (TK_KIND.OP1.name, "|".join(_operators1a + _operators1b)),
+    (TK_KIND.PREFIX_OP.name, "|".join(_operators1a + _operators1b)),
     (TK_KIND.STR.name, "(?:" + string_re.START + \
      "|" + string_re.R_START + ")" + string_re.END),
     (TK_KIND.CHAR.name, CHAR_RE),
@@ -225,10 +221,12 @@ class LexerRaw:
         col = self._col_no
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]
-        sl = self._GetSrcLoc()
         if kind in (TK_KIND.WS, TK_KIND.EOL):
             return self.next_token()
-        elif kind == TK_KIND.ID:
+
+        sl = self._GetSrcLoc()
+
+        if kind == TK_KIND.ID:
             kind = KEYWORDS.get(token, TK_KIND.ID)
         elif kind == TK_KIND.GENERIC_ANNOTATION:
             kind = TK_KIND.ANNOTATION
