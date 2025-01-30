@@ -52,7 +52,8 @@ class TK_KIND(enum.Enum):
 
 
 _KEYWORDS_NODES = cwast.KeyWordsForConcreteSyntax()
-_KEYWOEDS_EXTRA = ["else", "set", "for", "while", "tryset", "trylet", "trylet!"]
+_KEYWORDS_EXTRA = ["else", "set", "for",
+                   "while", "tryset", "trylet", "trylet!"]
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
 _KEYWORDS_OP = (
@@ -68,13 +69,8 @@ KEYWORDS: dict[str, TK_KIND] = (
     {}
     | {k: TK_KIND.ANNOTATION for k in ["pub", "ref", "poly", "wrapped"]}
     | {k: TK_KIND.KW for k in _KEYWORDS_NODES}
+    | {k: TK_KIND.KW for k in _KEYWORDS_EXTRA}
     | {k: TK_KIND.KW for k in _KEYWORDS_OP}
-    #
-    | {k: TK_KIND.KW for k in ["else", "set", "for", "while", "tryset"]}
-    | {k: TK_KIND.KW for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
-    | {k + cwast.MUTABILITY_SUFFIX: TK_KIND.KW for k in pp.KEYWORDS_WITH_EXCL_SUFFIX}
-    | {cwast.BaseTypeKindToKeyword(k): TK_KIND.KW for k in cwast.BASE_TYPE_KIND
-       if k is not cwast.BASE_TYPE_KIND.INVALID}
 )
 
 

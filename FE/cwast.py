@@ -3980,8 +3980,11 @@ def KeyWordsForConcreteSyntax():
             out.append(alias)
             for f in x.ATTRS:
                 if f.name in ("mut", "untagged", "unchecked"):
-                    out.append(alias + "!")
+                    out.append(alias + MUTABILITY_SUFFIX)
                     break
+    for k in BASE_TYPE_KIND:
+        if k != BASE_TYPE_KIND.INVALID:
+            out.append(BaseTypeKindToKeyword(k))
     return out
 
 
@@ -4000,7 +4003,7 @@ if __name__ == "__main__":
     elif mode == "gen_cc":
         cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)
     elif mode == "kw":
-        for kw in  sorted(KeyWordsForConcreteSyntax()):
+        for kw in sorted(KeyWordsForConcreteSyntax()):
             print(kw)
     else:
         print(f"unknown mode: {mode}")
