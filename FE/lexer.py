@@ -46,7 +46,7 @@ class TK_KIND(enum.Enum):
     CURLY_CLOSED = enum.auto()
     # SPECIAL_xxx will be rewritten to one of the ones above
     ANNOTATION = enum.auto()
-    NEW_ANNOTATION = enum.auto()  # pub, ref, poly
+    GENERIC_ANNOTATION = enum.auto()  # pub, ref, poly
 
     SPECIAL_EOF = enum.auto()
 
@@ -74,7 +74,7 @@ KEYWORDS: dict[str, TK_KIND] = (
 )
 
 
-ANNOTATION_NEW_RE = r"\{\{[_a-zA-Z]+\}\}"
+_GENERIC_ANNOTATION_RE = r"\{\{[_a-zA-Z]+\}\}"
 ID_OR_KW_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?[!]?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
@@ -92,7 +92,7 @@ _operators1b = [re.escape(x)
 _compound_assignment = [re.escape(x) for x in cwast.ASSIGNMENT_SHORTCUT]
 
 _token_spec = [
-    (TK_KIND.NEW_ANNOTATION.name, ANNOTATION_NEW_RE),
+    (TK_KIND.GENERIC_ANNOTATION.name, _GENERIC_ANNOTATION_RE),
     (TK_KIND.COLON.name, ":"),
     (TK_KIND.COMMA.name, ","),
     (TK_KIND.PAREN_OPEN.name, "[(]"),
@@ -225,12 +225,20 @@ class LexerRaw:
         col = self._col_no
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]
+        sl = self._GetSrcLoc()
         if kind == TK_KIND.ID:
             kind = KEYWORDS.get(token, TK_KIND.ID)
-        elif kind == TK_KIND.NEW_ANNOTATION:
+        elif kind == TK_KIND.GENERIC_ANNOTATION:
             kind = TK_KIND.ANNOTATION
+            # remove curlies
             token = token[2:-2]
-        return TK(kind, self._GetSrcLoc(), sys.intern(token),  col)
+        elif kind in (TK_KIND.MSTR, TK_KIND.RMSTR, TK_KIND.XMSTR):
+            if not token.endswith('"""'):
+                rest = self.get_lines_until_match(
+                    _MSTR_TERMINATION_REGEX[kind])
+                token += "".join(rest)
+            kind = TK_KIND.STR
+        return TK(kind, sl, sys.intern(token),  col)
 
 
 _MSTR_TERMINATION_REGEX = {
@@ -244,15 +252,10 @@ class Lexer:
 
     def __init__(self, lexer: LexerRaw):
         self._lexer: LexerRaw = lexer
-        self._peek_cache_small: Optional[TK] = None
         self._peek_cache: Optional[TK] = None
 
     def _next_skip_space(self) -> TK:
-        if self._peek_cache_small:
-            tk = self._peek_cache_small
-            self._peek_cache_small = None
-        else:
-            tk = self._lexer.next_token()
+        tk = self._lexer.next_token()
         while tk.kind in (TK_KIND.WS, TK_KIND.EOL):
             tk = self._lexer.next_token()
         return tk
@@ -271,21 +274,9 @@ class Lexer:
         while tk.kind is TK_KIND.ANNOTATION:
             annotations.append(tk)
             tk = self._next_skip_space()
-        if tk.kind in (TK_KIND.MSTR, TK_KIND.RMSTR, TK_KIND.XMSTR):
-            if not tk.text.endswith('"""'):
-                rest = self._lexer.get_lines_until_match(
-                    _MSTR_TERMINATION_REGEX[tk.kind])
-                tk.text += "".join(rest)
-            tk.kind = TK_KIND.STR
         out: TK = tk
         out.comments = comments
         out.annotations = annotations
-        tk = self._next_skip_space()
-        if tk.kind is TK_KIND.COMMENT and tk.srcloc.lineno == out.srcloc.lineno:
-            out.comments.append(tk)
-        else:
-            self._peek_cache_small = tk
-        # print(out)
         # if we have annotations the node starts at the first one
         for a in annotations:
             if a.srcloc.lineno == out.srcloc.lineno:
