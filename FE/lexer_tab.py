@@ -20,11 +20,16 @@ TRIE = list[list[int]]
 
 TAG_KW = 2000
 TAG_KW_SENTINEL = 2001
-TAG_CA = 2004
-TAG_CA_SENTINEL = 2005
-TAG_BIN = 2008
-TAG_BIN_SENTINEL = 2009
-
+TAG_COMPOUND = 2002
+TAG_COMPOUND_SENTINEL = 2003
+TAG_BINARY = 2004
+TAG_BINARY_SENTINEL = 2005
+TAG_UNARY = 2006
+TAG_UNARY_SENTINEL = 2007
+TAG_ANNOTATION = 2008
+TAG_ANNOTATION_SENTINEL = 2009
+TAG_ASSIGN = 2010
+TAG_ASSIGN_SENTINEL = 2011
 
 def IsEmptyNode(n: NODE):
     for x in n:
@@ -93,14 +98,8 @@ def VerifyTrie(trie: TRIE, KWs):
     print("\nVERIFY")
     for kw, tag in sorted(KWs):
         # print (kw, tag)
-        kw = kw + "\x01"
-        node = trie[0]
-        for n, cc in enumerate(kw):
-            x = node[ord(cc)]
-            if x == tag:
-                break
-            assert x != -1, f"{kw} {n} {cc}"
-            node = trie[x]
+        res_len, res_tag = FindInTrie(trie, kw + "\x01")
+        assert res_tag == tag
 
 
 def DumpStats(trie: TRIE):
@@ -127,16 +126,15 @@ def MakeTrieForKW():
 
     def add_kw_simple(kw, tag):
         last = ord(kw[-1])
-        kw = kw[:-1]
         node = trie[0]
-        for cc in kw:
+        for cc in kw[:-1]:
             c = ord(cc)
             if node[c] == -1:
                 node[c] = add_node()
             # no kw can be prefix of another
             assert node[c] < len(trie), f"{kw} -- {node[c]}"
             node = trie[node[c]]
-        assert node[last] == -1, f"{kw}"
+        assert node[last] == -1, f"[{kw}] {node[last]} {node is trie[0]}"
         node[last] = tag
 
     def add_kw(kw, tag, non_succ):
@@ -163,12 +161,19 @@ def MakeTrieForKW():
         for i in range(len(node)):
             if i not in non_succ:
                 if node[i] == -1:
-                    node[i] = tag
+                    node[i] = tag + 1
 
     KWs = []
     KWs += [(kw, TAG_KW) for kw in cwast.KeyWordsForConcreteSyntax()]
-    KWs += [(kw, TAG_CA) for kw in cwast.ASSIGNMENT_SHORTCUT]
-    KWs += [(kw, TAG_BIN) for kw in cwast.BinaryOpsForConcreteSyntax()]
+    KWs += [(kw, TAG_COMPOUND) for kw in cwast.ASSIGNMENT_SHORTCUT]
+    KWs += [(kw, TAG_BINARY) for kw in cwast.BinaryOpsForConcreteSyntax()]
+    KWs += [(kw, TAG_UNARY) for kw in cwast.UnaryOpsForConcreteSyntax()]
+    KWs += [(kw, TAG_KW) for kw in ["pub", "ref", "poly", "wrapped"]]
+    KWs += [(kw, TAG_KW) for kw in ["else", "set", "for",
+                                    "while", "tryset", "trylet", "trylet!"]]
+    KWs += [("=", TAG_ASSIGN)]
+
+
     # KWs = list(sorted(KWs))[0:1]
 
     print("\nCREATE")
@@ -180,16 +185,19 @@ def MakeTrieForKW():
                 add_kw_simple(kw, tag)
             else:
                 add_kw(kw, tag, _ID_CHARS)
-        elif tag == TAG_CA:
+        elif tag == TAG_COMPOUND:
             add_kw_simple(kw, tag)
-        elif tag == TAG_BIN:
+        elif tag == TAG_ASSIGN:
+            add_kw(kw, tag, set([ord("=")]))
+        elif tag == TAG_BINARY or tag == TAG_UNARY:
             add_kw(kw, tag, set())
     #
     VerifyTrie(trie, KWs)
     #
     DumpStats(trie)
 
-    while True:
+    for i in range(1000):
+        print(f"Optimization round {i}")
         old_len = len(trie)
         trie = OptimizeTrie(trie)
         if len(trie) == old_len:
