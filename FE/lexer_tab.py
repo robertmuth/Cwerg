@@ -28,6 +28,13 @@ TAG_ANNOTATION = 1004
 TAG_ASSIGN = 1005
 TAG_COLON = 1006
 TAG_COMMA = 1007
+TAG_PAREN_OPEN = 1008
+TAG_PAREN_CLOSED = 1009
+TAG_CURLY_OPEN = 1010
+TAG_CURLY_CLOSED = 1011
+TAG_SQUARE_OPEN = 1012
+TAG_SQUARE_OPEN_EXCL = 1013
+TAG_SQUARE_CLOSED = 1014
 
 
 def IsEmptyNode(n: NODE):
@@ -121,15 +128,31 @@ def GetAllKWAndOps():
     KWs += [("=", TAG_ASSIGN)]
     KWs += [(",", TAG_COMMA)]
     KWs += [(":", TAG_COLON)]
-
+    #
+    KWs += [("(", TAG_PAREN_OPEN)]
+    KWs += [(")", TAG_PAREN_CLOSED)]
+    # KWs += [("{", TAG_CURLY_OPEN)]
+    KWs += [("}", TAG_CURLY_CLOSED)]
+    KWs += [("[", TAG_SQUARE_OPEN)]
+    KWs += [("[!", TAG_SQUARE_OPEN_EXCL)]
+    KWs += [("]", TAG_SQUARE_CLOSED)]
     return KWs
 
+SIMPLE_TAGS = set([
+    TAG_COMPOUND_ASSIGN, TAG_COLON, TAG_COMMA, TAG_PAREN_OPEN,
+    TAG_PAREN_CLOSED, TAG_CURLY_CLOSED, TAG_SQUARE_CLOSED,
+    TAG_SQUARE_OPEN_EXCL,
+])
+
+MAY_BE_PREFIX_TAGS = set([
+    TAG_OTHER_OP, TAG_PREFIX_OP, TAG_ASSIGN, TAG_SQUARE_OPEN,
+])
 
 def MakeInitialTrie(KWs):
     trie = []
 
     def add_node():
-        l = [-1] * 256
+        l = [-1] * 129
         trie.append(l)
         return len(trie) - 1
 
@@ -186,11 +209,9 @@ def MakeInitialTrie(KWs):
                 add_kw_simple(kw, tag)
             else:
                 add_kw(kw, tag, _ID_CHARS)
-        elif tag in (TAG_COMPOUND_ASSIGN, TAG_COLON, TAG_COMMA):
+        elif tag in SIMPLE_TAGS:
             add_kw_simple(kw, tag)
-        elif tag == TAG_ASSIGN:
-            add_kw(kw, tag, set([ord("=")]))
-        elif tag == TAG_OTHER_OP or tag == TAG_PREFIX_OP:
+        elif tag in MAY_BE_PREFIX_TAGS:
             add_kw(kw, tag, set())
         else:
             assert False
@@ -229,8 +250,8 @@ def GenerateCodeCC(fout):
     assert len(trie) < 240
     print("int KeywordAndOpRecognizer[128][] = {", file=fout)
 
+    print("}", file=fout)
 
-    print ("}", file=fout)
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
