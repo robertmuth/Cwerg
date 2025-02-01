@@ -70,6 +70,7 @@ def _EscapeAndConcat(lst) -> str:
 _FOLLOWED_BY_WS = r"(?=\s|$)"
 _FOLLOWED_BY_NON_ID_CHAR = r"(?=[^_a-zA-Z0-9]|$)"
 
+
 _token_spec = [
     (TK_KIND.GENERIC_ANNOTATION.name, _GENERIC_ANNOTATION_RE),
     (TK_KIND.ANNOTATION.name, _EscapeAndConcat(
@@ -93,17 +94,15 @@ _token_spec = [
     (TK_KIND.MSTR.name, string_re.MULTI_START),
     (TK_KIND.RMSTR.name, string_re.MULTI_START_R),
     (TK_KIND.XMSTR.name, string_re.MULTI_START_X),
-
     (TK_KIND.ID.name, ID_RE),
-
     (TK_KIND.OTHER_OP.name, _EscapeAndConcat(_BINARY_OPS)),
     # OP1 must follow OP2 and NUM because of matching overlap involving "!"
     # dealing with unary +/- is done explicitly
     (TK_KIND.PREFIX_OP.name, _EscapeAndConcat(_UNARY_OPS)),
+    (TK_KIND.ASSIGN.name, "="),
     (TK_KIND.STR.name, "(?:" + string_re.START + \
      "|" + string_re.R_START + ")" + string_re.END),
     (TK_KIND.CHAR.name, CHAR_RE),
-    (TK_KIND.ASSIGN.name, "="),
 ]
 
 
