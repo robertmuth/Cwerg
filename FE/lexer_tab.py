@@ -35,6 +35,12 @@ TAG_CURLY_CLOSED = 1011
 TAG_SQUARE_OPEN = 1012
 TAG_SQUARE_OPEN_EXCL = 1013
 TAG_SQUARE_CLOSED = 1014
+# These just match the prefix  of the lexeme
+TAG_COMMENT = 1015
+TAG_GENERIC_ANNOTATION = 1016
+TAG_CHAR = 1017
+TAG_STR = 1018
+TAG_MSTR = 1019
 
 
 def IsEmptyNode(n: NODE):
@@ -131,22 +137,28 @@ def GetAllKWAndOps():
     #
     KWs += [("(", TAG_PAREN_OPEN)]
     KWs += [(")", TAG_PAREN_CLOSED)]
-    # KWs += [("{", TAG_CURLY_OPEN)]
+    KWs += [("{{", TAG_GENERIC_ANNOTATION)]
+    KWs += [("{", TAG_CURLY_OPEN)]
     KWs += [("}", TAG_CURLY_CLOSED)]
     KWs += [("[", TAG_SQUARE_OPEN)]
     KWs += [("[!", TAG_SQUARE_OPEN_EXCL)]
     KWs += [("]", TAG_SQUARE_CLOSED)]
+    KWs += [(";", TAG_COMMENT)]
     return KWs
+
 
 SIMPLE_TAGS = set([
     TAG_COMPOUND_ASSIGN, TAG_COLON, TAG_COMMA, TAG_PAREN_OPEN,
     TAG_PAREN_CLOSED, TAG_CURLY_CLOSED, TAG_SQUARE_CLOSED,
-    TAG_SQUARE_OPEN_EXCL,
+    TAG_SQUARE_OPEN_EXCL, TAG_COMMENT,
 ])
 
 MAY_BE_PREFIX_TAGS = set([
     TAG_OTHER_OP, TAG_PREFIX_OP, TAG_ASSIGN, TAG_SQUARE_OPEN,
+    TAG_CURLY_OPEN,    TAG_GENERIC_ANNOTATION,
+
 ])
+
 
 def MakeInitialTrie(KWs):
     trie = []
