@@ -1,4 +1,4 @@
--- fizzbuzz
+; fizzbuzz
 module:
 
 import fmt

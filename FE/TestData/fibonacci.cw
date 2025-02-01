@@ -1,4 +1,4 @@
--- fibonacci
+; fibonacci
 module:
 
 import test

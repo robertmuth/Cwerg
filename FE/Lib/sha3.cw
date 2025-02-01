@@ -2,10 +2,10 @@ module:
 
 import fmt
 
--- variants of sha3-512
--- https://www.cybertest.com/blog/keccak-vs-sha3
--- https://emn178.github.io/online-tools/sha3_512.html
---
+; variants of sha3-512
+; https://www.cybertest.com/blog/keccak-vs-sha3
+; https://emn178.github.io/online-tools/sha3_512.html
+;
 pub rec StateKeccak:
     msglen uint
     x [25]u64
@@ -38,7 +38,7 @@ pub rec StateKeccak224:
     base StateKeccak
     tail [BlockSize224 / 8]u64
 
--- only valid len for data are 9, 13, 17, 18
+; only valid len for data are 9, 13, 17, 18
 fun AddBlockAlignedLE(state ^!StateKeccak, data span(u64)) void:
     for i = 0, 9_uint, 1:
         set state^.x[i] ~= data[i]
@@ -56,16 +56,16 @@ fun AddBlockAlignedLE(state ^!StateKeccak, data span(u64)) void:
         set state^.x[i] ~= data[i]
 
 global rconst = {
-        [24]u64: 0x0000000000000001, 0x0000000000008082, 0x800000000000808a, 0x8000000080008000,
-        0x000000000000808b, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009,
-        0x000000000000008a, 0x0000000000000088, 0x0000000080008009, 0x000000008000000a,
-        0x000000008000808b, 0x800000000000008b, 0x8000000000008089, 0x8000000000008003,
-        0x8000000000008002, 0x8000000000000080, 0x000000000000800a, 0x800000008000000a,
+        [24]u64: 0x0000000000000001, 0x0000000000008082, 0x800000000000808a, 0x8000000080008000, 
+        0x000000000000808b, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009, 
+        0x000000000000008a, 0x0000000000000088, 0x0000000080008009, 0x000000008000000a, 
+        0x000000008000808b, 0x800000000000008b, 0x8000000000008089, 0x8000000000008003, 
+        0x8000000000008002, 0x8000000000000080, 0x000000000000800a, 0x800000008000000a, 
         0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008}
 
 macro XOR_5_EXPR# EXPR($x EXPR, $p1 EXPR, $p2 EXPR, $p3 EXPR, $p4 EXPR, $p5 EXPR)[
     ]:
-    $x^[$p1] ~ $x^[$p2] ~ $x^[$p3] ~ $x^[$p4] ~ $x^[$p5]
+    $x^[$p1] ~ $x^[$p2] ~ $x^[$p3] ~ $x^[$p4] ~ $x^[$p5] 
 
 macro XOR_1# STMT_LIST($x EXPR, $v EXPR, $indices EXPR_LIST_REST)[]:
     mfor $i $indices:
@@ -84,15 +84,15 @@ fun dumpA(tag span(u8), x ^[25]u64) void:
         fmt::print#("\n")
 
 fun KeccakF(x ^![25]u64) void:
-    -- (do (dumpA ["KeccakF:" x]))
+    ; (do (dumpA ["KeccakF:" x]))
     for round = 0, 24_uint, 1:
-        -- theta(x)
+        ; theta(x)
         let! bc0 = XOR_5_EXPR#(x, 0, 5, 10, 15, 20)
         let! bc1 = XOR_5_EXPR#(x, 1, 6, 11, 16, 21)
         let! bc2 = XOR_5_EXPR#(x, 2, 7, 12, 17, 22)
         let! bc3 = XOR_5_EXPR#(x, 3, 8, 13, 18, 23)
         let! bc4 = XOR_5_EXPR#(x, 4, 9, 14, 19, 24)
-        --
+        ;
         let! t0 = bc4 ~ (bc1 << 1 | bc1 >> 63)
         let! t1 = bc0 ~ (bc2 << 1 | bc2 >> 63)
         let! t2 = bc1 ~ (bc3 << 1 | bc3 >> 63)
@@ -105,41 +105,41 @@ fun KeccakF(x ^![25]u64) void:
         XOR_1#(x, t4, 4, 9, 14, 19, 24)
         if false:
             do dumpA("theta", x)
-        -- rho(x)
+        ; rho(x)
         let! a u64 = x^[1]
         let! b u64
         UPDATE#(a, b, x, 10, 1)
         UPDATE#(a, b, x, 7, 3)
         UPDATE#(a, b, x, 11, 6)
         UPDATE#(a, b, x, 17, 10)
-        --
+        ;
         UPDATE#(a, b, x, 18, 15)
         UPDATE#(a, b, x, 3, 21)
         UPDATE#(a, b, x, 5, 28)
         UPDATE#(a, b, x, 16, 36)
-        --
+        ;
         UPDATE#(a, b, x, 8, 45)
         UPDATE#(a, b, x, 21, 55)
         UPDATE#(a, b, x, 24, 2)
         UPDATE#(a, b, x, 4, 14)
-        --
+        ;
         UPDATE#(a, b, x, 15, 27)
         UPDATE#(a, b, x, 23, 41)
         UPDATE#(a, b, x, 19, 56)
         UPDATE#(a, b, x, 13, 8)
-        --
+        ;
         UPDATE#(a, b, x, 12, 25)
         UPDATE#(a, b, x, 2, 43)
         UPDATE#(a, b, x, 20, 62)
         UPDATE#(a, b, x, 14, 18)
-        --
+        ;
         UPDATE#(a, b, x, 22, 39)
         UPDATE#(a, b, x, 9, 61)
         UPDATE#(a, b, x, 6, 20)
         UPDATE#(a, b, x, 1, 44)
         if false:
             do dumpA("rho", x)
-        -- chi
+        ; chi
         for i = 0, 25_uint, 5:
             set bc0 = x^[i + 0]
             set bc1 = x^[i + 1]
@@ -153,11 +153,11 @@ fun KeccakF(x ^![25]u64) void:
             set x^[i + 4] ~= !bc0 & bc1
         if false:
             do dumpA("chi", x)
-        -- iota
+        ; iota
         set x^[0] ~= rconst[round]
 
 pub fun KeccakAdd(state ^!StateKeccak, tail span!(u64), data span(u8)) void:
-    -- (fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")
+    ; (fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")
     let tail_u8 = unsafe_as(front!(tail), ^!u8)
     let block_size uint = len(tail) * 8
     let tail_use uint = state^.msglen % block_size
@@ -196,14 +196,14 @@ pub fun KeccakFinalize(state ^!StateKeccak, tail span!(u64), padding u8) void:
     do AddBlockAlignedLE(state, tail)
     do KeccakF(@!state^.x)
 
--- returns 512 bit cryptographic hash of data
+; returns 512 bit cryptographic hash of data
 pub fun Keccak512(data span(u8)) [64]u8:
     ref let! state = {StateKeccak512:}
     do KeccakAdd(@!state.base, state.tail, data)
     do KeccakFinalize(@!state.base, state.tail, KeccakPadding)
     return unsafe_as(@state.base.x, ^[64]u8)^
 
--- returns 512 bit cryptographic hash of data
+; returns 512 bit cryptographic hash of data
 pub fun Sha3512(data span(u8)) [64]u8:
     ref let! state = {StateKeccak512:}
     do KeccakAdd(@!state.base, state.tail, data)

@@ -1,4 +1,4 @@
--- heapsort
+; heapsort
 module:
 
 import random

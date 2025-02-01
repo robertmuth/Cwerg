@@ -7,10 +7,10 @@ fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
 
 macro unsigned_to_str# EXPR(
         $val EXPR, $base EXPR, $max_width EXPR, 
-        -- a slice for the output string
+        ; a slice for the output string
         $out EXPR)[$v, $out_eval, $tmp, $pos]:
     expr:
-        -- unsigned to str with given base
+        ; unsigned to str with given base
         mlet! $v = $val
         mlet! $tmp = {[1024]u8:}
         mlet! $pos uint = $max_width
@@ -28,9 +28,9 @@ macro unsigned_to_str# EXPR(
         return mymemcpy(front!($out_eval), ptr_inc(front($tmp), $pos), n)
 
 
--- Why the polymorphism?
---         It makes shorter names and avoids the need for separate
---         uint and sint handling
+; Why the polymorphism?
+;         It makes shorter names and avoids the need for separate
+;         uint and sint handling
 pub poly fun FmtDec(v u8, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
@@ -63,9 +63,9 @@ pub poly fun FmtDec(v s32, out span!(u8)) uint:
     else:
         return FmtDec(as(v, u32), out)
 
--- Why the polymorphism?
---         It makes shorter names and avoids the need for separate
---         uint and sint handling
+; Why the polymorphism?
+;         It makes shorter names and avoids the need for separate
+;         uint and sint handling
 pub poly fun FmtHex(v u64, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 64_uint, out)
 

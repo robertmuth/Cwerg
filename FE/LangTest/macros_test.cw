@@ -1,4 +1,4 @@
--- Macro Examples
+; Macro Examples
 module:
 
 pub rec MyRec:
@@ -53,6 +53,6 @@ fun TestForMacroStringify() span(u8):
 fun TestSwap(array span!(u8)) void:
     swap#(array[1], array[2])
 
--- just a compilation test
+; just a compilation test
 fun main(argc s32, argv ^^u8) s32:
     return 0

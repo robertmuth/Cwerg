@@ -1,4 +1,4 @@
--- main module with program entry point `main`
+; main module with program entry point `main`
 module:
 
 import fmt

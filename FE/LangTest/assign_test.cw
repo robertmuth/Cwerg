@@ -3,7 +3,7 @@ module:
 import test
 
 pub rec type_rec1:
-    -- this is a comment with \" with quotes \t 
+    ; this is a comment with \" with quotes \t 
     i1 s64
     i2 u64
     i3 s32
@@ -49,37 +49,37 @@ fun get_addr() ^!type_rec1:
     return @!gr1
 
 fun main(argc s32, argv ^^u8) s32:
-    -- a1 u32
+    ; a1 u32
     set ga1[3] = 0x8765432187654321
     test::AssertEq#(ga1[3], 0x8765432187654321_s64)
     set ga1[3] += 0x1
     test::AssertEq#(ga1[3], 0x8765432187654322_s64)
-    -- gr1 s64
+    ; gr1 s64
     set gr1.i1 = 0x8765432187654321
     test::AssertEq#(gr1.i1, 0x8765432187654321_s64)
     set gr1.i1 += 0x1
     test::AssertEq#(gr1.i1, 0x8765432187654322_s64)
-    -- gr1 u64
+    ; gr1 u64
     set gr1.i2 = 0x1234567812345678
     test::AssertEq#(gr1.i2, 0x1234567812345678_u64)
     set gr1.i2 -= 0x1
     test::AssertEq#(gr1.i2, 0x1234567812345677_u64)
-    -- gr1 u64 via pointer
+    ; gr1 u64 via pointer
     set get_addr()^.i2 = 0x1234567812345678
     test::AssertEq#(get_addr()^.i2, 0x1234567812345678_u64)
     set get_addr()^.i2 -= 0x1
     test::AssertEq#(get_addr()^.i2, 0x1234567812345677_u64)
-    -- gar1 s64
+    ; gar1 s64
     set gar1[3].i1 = 0x8765432187654321
     test::AssertEq#(gar1[3].i1, 0x8765432187654321_s64)
-    -- gr2 s64
+    ; gr2 s64
     set gr2.t3.i1 = 0x8765432187654321
     test::AssertEq#(gr2.t3.i1, 0x8765432187654321_s64)
     set gr2.t3.i1 += 0x1
     test::AssertEq#(gr2.t3.i1, 0x8765432187654322_s64)
-    -- gr2 u64
+    ; gr2 u64
     set gr2.t3.i2 = 0x1234567812345678
     test::AssertEq#(gr2.t3.i2, 0x1234567812345678_u64)
-    -- test end
+    ; test end
     test::Success#()
     return 0

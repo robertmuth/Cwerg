@@ -33,18 +33,17 @@ poly fun eq(a r32, b r32) bool:
 pub poly fun eq(a r64, b r64) bool:
     return a == b
 
--- r32 range, represents [val - err, val + err]
+; r32 range, represents [val - err, val + err]
 pub rec r32r:
-   val r32
-   -- must be >= 0
-   err r32
+    val r32
+    ; must be >= 0
+    err r32
 
--- r64 range, represents [val - err, val + err]
+; r64 range, represents [val - err, val + err]
 pub rec r64r:
-   val r64
-   -- must be >= 0
-   err r64
-
+    val r64
+    ; must be >= 0
+    err r64
 
 pub poly fun eq(a r64r, b r64r) bool:
     return a.val + a.err >= b.val - b.err && a.val - a.err <= b.val + b.err

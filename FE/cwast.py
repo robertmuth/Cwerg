@@ -1812,15 +1812,16 @@ class ValString:
     x_value: Optional[Any] = None
 
     def render(this):
-        tq = this.str_kind & 1
-        kind = this.str_kind & 0xfe
+        tq = this.str_kind.value & 1
+        kind = STR_KIND(this.str_kind.value & 0xfe)
         quotes = '"""' if tq else '"'
         prefix = ""
         if kind == STR_KIND.RAW:
             prefix = "r"
         elif kind == STR_KIND.HEX:
             prefix = "x"
-        assert kind == STR.NORMAL
+        else:
+            assert kind == STR_KIND.NORMAL, f"{kind}"
         return f'{prefix}{quotes}{this.string}{quotes}'
 
     def __repr__(self):

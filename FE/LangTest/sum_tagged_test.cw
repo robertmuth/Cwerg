@@ -72,9 +72,9 @@ rec rec2:
 
 global global_rec1 = {rec1: 1_s8, 2_s8}
 
---
--- pub (type sum11_t (union [bool u16]))
--- pub (type sum12_t (union [type_ptr u16]))
+;
+; pub (type sum11_t (union [bool u16]))
+; pub (type sum12_t (union [type_ptr u16]))
 fun test_tagged_union_basic() void:
     let! x Union3 = true
     let! y Union3 = undef
@@ -151,6 +151,6 @@ fun main(argc s32, argv ^^u8) s32:
     do test_tagged_union_parameter()
     do test_tagged_union_narrowto()
     do test_tagged_union_narrowto()
-    -- test end
+    ; test end
     test::Success#()
     return 0

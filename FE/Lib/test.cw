@@ -1,12 +1,13 @@
--- test helpers macros
---
--- This intentionally does not import the fmt module to keep
--- the footprint/dependencies small.
--- (We may change our mind on this.)
---
+; test helpers macros
+;
+; This intentionally does not import the fmt module to keep
+; the footprint/dependencies small.
+; (We may change our mind on this.)
+;
 module:
 
 import os
+
 import cmp
 
 macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
@@ -30,9 +31,9 @@ macro AssertCommon# STMT_LIST($name EXPR, $e_expr EXPR, $a_expr EXPR)[
     SysPrint#("\n")
     trap
 
--- The two scalar arguments must be the same
---
--- Both must have derivable types as we use `auto`
+; The two scalar arguments must be the same
+;
+; Both must have derivable types as we use `auto`
 pub macro AssertGenericEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
@@ -45,9 +46,9 @@ pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     if $e_val != $a_val:
         AssertCommon#("AssertEq", $e_expr, $a_expr)
 
--- The two scalar arguments must be the same
---
--- Both must have derivable types as we use `auto`
+; The two scalar arguments must be the same
+;
+; Both must have derivable types as we use `auto`
 pub macro AssertGenericNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     mlet $e_val = $e_expr
     mlet $a_val = $a_expr
@@ -60,13 +61,13 @@ pub macro AssertNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     if $e_val == $a_val:
         AssertCommon#("AssertNe", $e_expr, $a_expr)
 
--- First argument must have the type denoted by the second
+; First argument must have the type denoted by the second
 pub macro AssertIs# STMT_LIST($expr EXPR, $type TYPE)[]:
     if is($expr, $type):
     else:
         AssertCommon#("AssertIs", $expr, $type)
 
--- The two arguments must type derivable
+; The two arguments must type derivable
 pub macro AssertSliceEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[
         $e_val, $a_val, $i]:
     mlet $e_val = $e_expr
@@ -95,7 +96,7 @@ pub macro AssertNeR64# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
     if bitwise_as($e_val, u64) == bitwise_as($a_val, u64):
         AssertCommon#("AssertNeR64", $e_expr, $a_expr)
 
---
+;
 pub macro AssertTrue# STMT_LIST($e_expr EXPR)[]:
     if $e_expr:
     else:
@@ -106,7 +107,7 @@ pub macro AssertTrue# STMT_LIST($e_expr EXPR)[]:
         SysPrint#("\n")
         trap
 
---
+;
 pub macro AssertFalse# STMT_LIST($e_expr EXPR)[]:
     if $e_expr:
         SysPrint#("AssertFalse failed: ")
@@ -116,7 +117,7 @@ pub macro AssertFalse# STMT_LIST($e_expr EXPR)[]:
         SysPrint#("\n")
         trap
 
---
+;
 pub macro AssertUnreachable# STMT_LIST()[]:
     SysPrint#("AssertUnreachable\n")
     trap

@@ -9,7 +9,7 @@ import fmt_real
 import num_real
 
 fun test_special() void:
-    -- sanity checks for NANs
+    ; sanity checks for NANs
     let! actual [1024]u8 = undef
     block _:
         let len_a = fmt_real::FmtE(num_real::r64_zero_pos, 1, true, actual)
@@ -30,7 +30,7 @@ fun test_special() void:
         let len_a = fmt_real::FmtE(num_real::r64_nan_neg, 1, true, actual)
         test::AssertSliceEq#("-nan", make_span(front(actual), len_a))
 
--- python3 -c 'print(0.0).hex())'
+; python3 -c 'print(0.0).hex())'
 fun test_hex() void:
     let! actual [1024]u8 = undef
     block _:
@@ -41,7 +41,7 @@ fun test_hex() void:
         test::AssertSliceEq#("0x1.p+1", make_span(front(actual), len_a))
     block _:
         let len_a = fmt_real::FmtHex(+0.0_r64, actual)
-        -- (fmt::print# actual " BBBB\n")
+        ; (fmt::print# actual " BBBB\n")
         test::AssertSliceEq#("0x0.p+0", make_span(front(actual), len_a))
 
 global PRECISION uint = 8
@@ -70,17 +70,17 @@ fun test_normal(is_neg bool, multiplier u32, exp10 s32, precision uint) void:
         set val *= -1.0
     let len_a uint = fmt_real::FmtE(val, PRECISION, true, actual)
     let len_e uint = make_expected(is_neg, multiplier, exp10, precision, expected)
-    test::AssertSliceEq#(make_span(front(expected), len_e), make_span(
-            front(actual), len_a))
+    test::AssertSliceEq#(
+            make_span(front(expected), len_e), make_span(front(actual), len_a))
 
 fun main(argc s32, argv ^^u8) s32:
-    --
-    --     (fmt::print# (wrap_as (parse_r64 ["1.79769313486231570814e308"]) fmt::r64_hex) "\n")
-    --     (fmt::print# (bitwise_as 0x0p0_r64 u64) "\n")
-    --
+    ;
+    ;     (fmt::print# (wrap_as (parse_r64 ["1.79769313486231570814e308"]) fmt::r64_hex) "\n")
+    ;     (fmt::print# (bitwise_as 0x0p0_r64 u64) "\n")
+    ;
     do test_special()
     do test_hex()
-    -- null:
+    ; null:
     do test_normal(false, 0, 0, PRECISION)
     do test_normal(true, 0, 0, PRECISION)
     for i = 0, 294_s32, 1:

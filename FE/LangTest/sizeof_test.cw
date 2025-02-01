@@ -8,7 +8,7 @@ static_assert size_of(r32) == 4
 
 static_assert size_of(r64) == 8
 
--- assuming 64 bit pointers
+; assuming 64 bit pointers
 static_assert size_of(^u8) == 8
 
 static_assert size_of(^r64) == 8
@@ -66,18 +66,18 @@ static_assert size_of(sum3) == 3
 
 pub type sum4 = union(ptr1, w3)
 
--- 8 with union optimization
+; 8 with union optimization
 static_assert size_of(sum4) == 16
 
 pub type sum5 = union(ptr1, w2, w3)
 
--- 8 with union optimization
+; 8 with union optimization
 static_assert size_of(sum5) == 16
 
 pub type sum6 = union(ptr1, w1, w2, w3)
 
 static_assert size_of(sum6) == 16
 
--- just a compilation test
+; just a compilation test
 fun main(argc s32, argv ^^u8) s32:
     return 0

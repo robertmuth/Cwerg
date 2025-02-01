@@ -48,6 +48,6 @@ fun test_bs() void:
 fun main(argc s32, argv ^^u8) s32:
     do test_bs_or_die()
     do test_bs()
-    -- test end
+    ; test end
     test::Success#()
     return 0

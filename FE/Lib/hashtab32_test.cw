@@ -1,4 +1,4 @@
--- hash_test
+; hash_test
 module:
 
 import fmt
@@ -39,9 +39,9 @@ fun main(argc s32, argv ^^u8) s32:
         let v_expected = !i
         trylet pval ^!u32 = hashtab::Lookup(@!ht, @key), err:
         test::AssertEq#(pval^, v_expected)
-    -- if we delete one element and re-insert, it should
-    --     end up in the same spit
-    --     
+    ; if we delete one element and re-insert, it should
+    ;     end up in the same spit
+    ;     
     set key = 6
     trylet lookup1 ^!u32 = hashtab::Lookup(@!ht, @key), err:
     test::AssertTrue#(hashtab::DeleteIfPresent(@!ht, @key))

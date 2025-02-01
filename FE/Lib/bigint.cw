@@ -1,4 +1,4 @@
--- BigInts: fixed with and eventually variable widths
+; BigInts: fixed with and eventually variable widths
 module:
 
 pub global CLEAR_ALL = "\x1b[2J"
@@ -22,10 +22,10 @@ pub fun mul_u64_by_u64_to_b_u128(x u64, y u64) b_u128:
     let p01 = x0 * y1
     let p10 = x1 * y0
     let p11 = x1 * y1
-    -- we would like to use
-    -- middle =  p10 + p00 >> 32 +  p10
-    -- but this might cause an overflow in the high bits
+    ; we would like to use
+    ; middle =  p10 + p00 >> 32 +  p10
+    ; but this might cause an overflow in the high bits
     let middle0 = p10 + p00 >> 32 + as(as(p01, u32), u64)
-    -- add missing component after shifting to right
+    ; add missing component after shifting to right
     let middle1 = middle0 >> 32 + p01 >> 32
     return {: as(as(p00, u32), u64) | middle0 << 32, p11 + middle1}

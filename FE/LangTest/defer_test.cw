@@ -1,4 +1,4 @@
--- defer
+; defer
 module:
 
 import test
@@ -29,6 +29,6 @@ fun foo() void:
 fun main(argc s32, argv ^^u8) s32:
     do foo()
     test::AssertSliceEq#(make_span(front(gSequence), gIndex), "abcdefgh")
-    -- test end
+    ; test end
     test::Success#()
     return 0

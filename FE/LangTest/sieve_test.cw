@@ -1,4 +1,4 @@
--- prime number sieve
+; prime number sieve
 module:
 
 import test
@@ -7,18 +7,18 @@ global SIZE uint = 1000000
 
 global EXPECTED uint = 148932
 
--- The array is initialized to all true because the explicit
--- value for the first element is replicated for the
--- subsequent unspecified ones.
---
--- index i reprents number 3 + 2 * i
+; The array is initialized to all true because the explicit
+; value for the first element is replicated for the
+; subsequent unspecified ones.
+;
+; index i reprents number 3 + 2 * i
 global! is_prime = {[SIZE]bool: true}
 
--- the actual sieve function
+; the actual sieve function
 fun sieve() uint:
-    -- mutable local variable
+    ; mutable local variable
     let! count uint = 0
-    -- the type of loop variable `i`  is determined by `N`
+    ; the type of loop variable `i`  is determined by `N`
     for i = 0, SIZE, 1:
         if is_prime[i]:
             set count += 1

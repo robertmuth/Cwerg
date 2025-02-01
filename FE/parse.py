@@ -30,9 +30,9 @@ def _ExtractAnnotations(tk: lexer.TK) -> dict[str, Any]:
     comments = []
     for c in tk.comments:
         com = c.text
-        if com == "--\n":
+        if com == ";\n":
             com = ""
-        elif com.startswith("-- "):
+        elif com.startswith("; "):
             com = com[3:-1]
         else:
             cwast.CompilerError(tk.srcloc, f"expected comment got: [{com}]")
@@ -71,7 +71,6 @@ def _ParseExpr(inp: lexer.Lexer, precedence=0):
     lhs = parser(inp, tk, prec)
     while True:
         tk = inp.peek()
-
         prec, parser = _INFIX_EXPR_PARSERS.get(tk.text, (0, None))
         if precedence >= prec:
             break

@@ -1,4 +1,4 @@
--- String Library
+; String Library
 module:
 
 pub global NOT_FOUND uint = !0
@@ -23,7 +23,7 @@ pub fun find(haystack span(u8), needle span(u8)) uint:
         return 0
     if hlen < nlen:
         return NOT_FOUND
-    -- at this point we know that both slices have len > 0
+    ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let nptr ^u8 = front(needle)
     let n uint = hlen - nlen
@@ -44,7 +44,7 @@ pub fun rfind(haystack span(u8), needle span(u8)) uint:
         return 0
     if hlen < nlen:
         return NOT_FOUND
-    -- at this point we know that both slices have len > 0
+    ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let nptr ^u8 = front(needle)
     let! i uint = hlen - nlen
@@ -63,7 +63,7 @@ pub fun starts_with(haystack span(u8), needle span(u8)) bool:
         return true
     if hlen < nlen:
         return false
-    -- at this point we know that both slices have len > 0
+    ; at this point we know that both slices have len > 0
     return are_two_non_empty_strings_the_same(
             front(haystack), front(needle), nlen)
 
@@ -74,7 +74,7 @@ pub fun ends_with(haystack span(u8), needle span(u8)) bool:
         return true
     if hlen < nlen:
         return false
-    -- at this point we know that both slices have len > 0
+    ; at this point we know that both slices have len > 0
     return are_two_non_empty_strings_the_same(
             ptr_inc(front(haystack), hlen - nlen), front(needle), nlen)
 
@@ -99,7 +99,7 @@ pub fun cmp(aslice span(u8), bslice span(u8)) sint:
                 return 1
         set i += 1
         continue
-    -- the common prefix is the same
+    ; the common prefix is the same
     cond:
         case alen == blen:
             return 0
@@ -109,7 +109,7 @@ pub fun cmp(aslice span(u8), bslice span(u8)) sint:
             return 1
 
 fun contains_char(haystack span(u8), needle u8) bool:
-    -- assumes that haystack is not empty
+    ; assumes that haystack is not empty
     let n uint = len(haystack)
     let hptr ^u8 = front(haystack)
     let! i uint = 0
@@ -129,7 +129,7 @@ pub fun find_first_of(haystack span(u8), needle span(u8)) uint:
         return NOT_FOUND
     if nlen == 0:
         return NOT_FOUND
-    -- at this point we know that both slices have len > 0
+    ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let! i uint = 0
     block _:
@@ -148,7 +148,7 @@ pub fun find_first_not_of(haystack span(u8), needle span(u8)) uint:
         return NOT_FOUND
     if nlen == 0:
         return 0
-    -- at this point we know that both slices have len > 0
+    ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let! i uint = 0
     block _:
@@ -168,7 +168,7 @@ pub fun find_last_of(haystack span(u8), needle span(u8)) uint:
         return NOT_FOUND
     if nlen == 0:
         return NOT_FOUND
-    -- at this point we know that both slices have len > 0
+    ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let! i uint = hlen
     block _:
@@ -186,7 +186,7 @@ pub fun find_last_not_of(haystack span(u8), needle span(u8)) uint:
         return NOT_FOUND
     if nlen == 0:
         return hlen - 1
-    -- at this point we know that both slices have len > 0
+    ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let! i uint = hlen
     block _:

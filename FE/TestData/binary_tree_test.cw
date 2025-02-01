@@ -1,4 +1,4 @@
--- Binary Tree Example
+; Binary Tree Example
 module:
 
 import test
@@ -39,7 +39,7 @@ fun main(argc s32, argv ^^u8) s32:
     let! root bt::MaybeNode = bt::Leaf
     for i = 0, N, 1:
         let node = alloc(reverse_bits(i, 6))
-        -- (fmt::print# "before insert " i "\n")
+        ; (fmt::print# "before insert " i "\n")
         let x = bt::Insert(root, node)
         set root = x
     do bt::InorderTraversal(root, DumpNode)

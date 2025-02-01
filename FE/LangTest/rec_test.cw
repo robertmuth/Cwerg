@@ -3,11 +3,11 @@ module:
 import test
 
 pub rec type_rec1:
-    -- this is a comment with \" with quotes \t 
+    ; this is a comment with \" with quotes \t 
     s1 s32
-    -- s2 comment 
+    ; s2 comment 
     s2 s32
-    -- s3 is ...
+    ; s3 is ...
     s3 s32
     s4 bool
     s5 u64
@@ -35,7 +35,7 @@ pub rec type_rec4:
 
 global u0 u32 = 0x12345678
 
--- g0 is i mportant
+; g0 is i mportant
 global g0 type_rec1 = undef
 
 global g1 [5]type_rec1 = undef
@@ -46,7 +46,7 @@ global! g3 = {type_rec3: 0x1234, 0x4321, g2, {[13]u16: 0x11, undef, 0x12}}
 
 global! g3_alt = {type_rec3: 0x1234, 0x4321, g2, {[13]u16: 0x11, undef, 0x12}}
 
--- BROKEN init
+; BROKEN init
 global g4 = {[4]type_rec2: undef, g2}
 
 pub rec type_rec5:
@@ -63,7 +63,7 @@ global g6 type_rec5 = {type_rec5: 0, buffer, false}
 global g7 = {[1]type_rec5: {type_rec5: 0, buffer, false}}
 
 fun main(argc s32, argv ^^u8) s32:
-    -- LOCAL
+    ; LOCAL
     let! v1 = {type_rec3:}
     set v1.u2 = 102
     set v1.u3 = 103
@@ -81,14 +81,14 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(v1.u5[2], 502_u16)
     test::AssertEq#(v1.u5[3], 503_u16)
     test::AssertEq#(v1.u5[10], 510_u16)
-    -- GLOBAL ALT
+    ; GLOBAL ALT
     test::AssertEq#(g3_alt.u2, 0x1234_u16)
     test::AssertEq#(g3_alt.u3, 0x4321_u64)
     test::AssertEq#(g3_alt.u4.t1, true)
     test::AssertEq#(g3_alt.u4.t2, 0x12345678_u32)
     test::AssertEq#(g3_alt.u5[0], 0x11_u16)
     test::AssertEq#(g3_alt.u5[2], 0x12_u16)
-    -- GLOBAL
+    ; GLOBAL
     test::AssertEq#(g3.u2, 0x1234_u16)
     test::AssertEq#(g3.u3, 0x4321_u64)
     test::AssertEq#(g3.u4.t1, true)
@@ -111,7 +111,7 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(g3.u5[2], 502_u16)
     test::AssertEq#(g3.u5[3], 503_u16)
     test::AssertEq#(g3.u5[10], 510_u16)
-    -- test end
+    ; test end
     test::Success#()
-    -- return
+    ; return
     return 0

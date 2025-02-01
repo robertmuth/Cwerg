@@ -1,4 +1,4 @@
--- union
+; union
 module:
 
 import test
@@ -15,8 +15,7 @@ type UntaggedUnion1 = union!(s32, void, type_ptr)
 
 static_assert size_of(UntaggedUnion1) == 8
 
-type UntaggedUnion2 = union!(
-        s32, void, union!(UntaggedUnion1, u8))
+type UntaggedUnion2 = union!(s32, void, union!(UntaggedUnion1, u8))
 
 static_assert size_of(UntaggedUnion2) == 8
 
@@ -57,7 +56,7 @@ fun with_union_result(a bool, b u32, c r32) UntaggedUnion:
     return out
 
 fun test_untagged_union() void:
-    -- straight up union
+    ; straight up union
     let! u1 UntaggedUnion
     let! u2 UntaggedUnion = undef
     let! u3 UntaggedUnion = 2.0_r32
@@ -76,7 +75,7 @@ fun test_untagged_union() void:
     test::AssertEq#(narrow_as(u3, u64), 0x4000000000000000_u64)
     test::AssertEq#(narrow_as(u3, [32]u8)[3], 0_u8)
     test::AssertEq#(narrow_as(u3, [32]u8)[7], 0x40_u8)
-    -- union embedded in record
+    ; union embedded in record
     let! rec1 RecordWithUntaggedUnion = undef
     set rec1.t3 = 2.0_r32
     test::AssertEq#(narrow_as(rec1.t3, u32), 0x40000000_u32)
@@ -84,13 +83,13 @@ fun test_untagged_union() void:
     test::AssertEq#(narrow_as(rec1.t3, [32]u8)[1], 0_u8)
     test::AssertEq#(narrow_as(rec1.t3, [32]u8)[2], 0_u8)
     test::AssertEq#(narrow_as(rec1.t3, [32]u8)[3], 0x40_u8)
-    -- union embedded in record 2
+    ; union embedded in record 2
     let! rec2 = {RecordWithUntaggedUnion: false, 0x12344321, 2.0_r32, true}
     test::AssertEq#(rec2.t1, false)
     test::AssertEq#(rec2.t2, 0x12344321_u32)
     test::AssertEq#(narrow_as(rec2.t3, u32), 0x40000000_u32)
     test::AssertEq#(rec2.t4, true)
-    --
+    ;
     set narrow_as(rec1.t3, [32]u8)[2] = 0x28_u8
     set narrow_as(rec1.t3, [32]u8)[3] = 0x42_u8
     test::AssertEq#(narrow_as(rec1.t3, u32), 0x42280000_u32)
@@ -99,7 +98,7 @@ fun test_untagged_union() void:
     test::AssertEq#(narrow_as(rec1.t3, u64), 0x4000000000000000_u64)
     test::AssertEq#(narrow_as(rec1.t3, [32]u8)[3], 0_u8)
     test::AssertEq#(narrow_as(rec1.t3, [32]u8)[7], 0x40_u8)
-    -- array of union
+    ; array of union
     let! array1 [16]UntaggedUnion = undef
     set array1[13] = 2.0_r32
     test::AssertEq#(narrow_as(array1[13], u32), 0x40000000_u32)
@@ -122,6 +121,6 @@ fun test_untagged_union() void:
 
 fun main(argc s32, argv ^^u8) s32:
     do test_untagged_union()
-    -- test end
+    ; test end
     test::Success#()
     return 0

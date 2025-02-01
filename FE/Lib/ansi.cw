@@ -1,8 +1,8 @@
--- Ansi Escape Sequences for Terminal Emulation
---
--- * https://www.xfree86.org/current/ctlseqs.html")
--- * https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
---
+; Ansi Escape Sequences for Terminal Emulation
+;
+; * https://www.xfree86.org/current/ctlseqs.html")
+; * https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+;
 module:
 
 pub global CLEAR_ALL span(u8) = "\x1b[2J"
@@ -23,7 +23,7 @@ pub global SET_MODE_HIDDEN span(u8) = "\x1b[7m"
 
 pub global SET_MODE_STRIKE_THROUGH span(u8) = "\x1b[8m"
 
--- also clears color settings
+; also clears color settings
 pub global RESET_MODE_ALL span(u8) = "\x1b[0m"
 
 pub global RESET_MODE_BOLD_OR_DIM span(u8) = "\x1b[22m"
@@ -45,13 +45,13 @@ pub global CURSOR_HIDE span(u8) = "\x1b[?25l"
 pub global CURSOR_SHOW span(u8) = "\x1b[?25h"
 
 pub macro POS# EXPR_LIST($x EXPR, $y EXPR)[]:
-    "\x1b["
-    $x
-    ";"
-    $y
-    "f"
+    "\x1b[" 
+    $x 
+    ";" 
+    $y 
+    "f" 
 
--- Foreground Color
+; Foreground Color
 pub global FG_COLOR_BLACK span(u8) = "\x1b[38;2;0;0;0m"
 
 pub global FG_COLOR_RED span(u8) = "\x1b[38;2;205;0;0m"
@@ -69,15 +69,15 @@ pub global FG_COLOR_CYAN span(u8) = "\x1b[38;2;0;205;205m"
 pub global FG_COLOR_WHITE span(u8) = "\x1b[38;2;229;229;229m"
 
 macro FG_COLOR# EXPR_LIST($r EXPR, $g EXPR, $b EXPR)[]:
-    "\x1b[38;2;"
-    $r
-    ";"
-    $g
-    ";"
-    $b
-    "m"
+    "\x1b[38;2;" 
+    $r 
+    ";" 
+    $g 
+    ";" 
+    $b 
+    "m" 
 
--- Background Color
+; Background Color
 pub global BG_COLOR_BLACK span(u8) = "\x1b[48;2;0;0;0m"
 
 pub global BG_COLOR_RED span(u8) = "\x1b[48;2;205;0;0m"
@@ -95,10 +95,10 @@ pub global BG_COLOR_CYAN span(u8) = "\x1b[48;2;0;205;205m"
 pub global BG_COLOR_WHITE span(u8) = "\x1b[48;2;229;229;229m"
 
 macro BG_COLOR# EXPR_LIST($r EXPR, $g EXPR, $b EXPR)[]:
-    "\x1b[48;2;"
-    $r
-    ";"
-    $g
-    ";"
-    $b
-    "m"
+    "\x1b[48;2;" 
+    $r 
+    ";" 
+    $g 
+    ";" 
+    $b 
+    "m" 

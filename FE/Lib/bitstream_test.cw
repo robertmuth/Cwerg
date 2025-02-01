@@ -51,6 +51,6 @@ fun test2() void:
 fun main(argc s32, argv ^^u8) s32:
     do test1()
     do test2()
-    -- test end
+    ; test end
     test::Success#()
     return 0

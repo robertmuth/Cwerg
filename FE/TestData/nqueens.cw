@@ -1,4 +1,4 @@
--- nqueens
+; nqueens
 module:
 
 import fmt
@@ -29,7 +29,7 @@ fun HasConflict(board ^Board, row s32, col s32) bool:
 
 fun Solve(board ^!Board, row s32) uint:
     if row >= DIM:
-        -- (do (DumpBoard [board]))
+        ; (do (DumpBoard [board]))
         return 1
     let! n = 0_uint
     for i = 0, DIM, 1:
@@ -40,7 +40,7 @@ fun Solve(board ^!Board, row s32) uint:
     return n
 
 fun main(argc s32, argv ^^u8) s32:
-    -- initialized to false
+    ; initialized to false
     ref let! board = {[DIM][DIM]bool:}
     let n = Solve(@!board, 0)
     fmt::print#(n, "\n")

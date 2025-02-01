@@ -1,12 +1,12 @@
--- Checksums
+; Checksums
 module:
 
 pub type CrcTab = [256]u32
 
--- 0xedb88320 is reversed 0x04c11db7
+; 0xedb88320 is reversed 0x04c11db7
 pub global PolyCrc32LE u32 = 0xedb88320
 
--- 0x82f63b78 is reversed 0x1EDC6F41
+; 0x82f63b78 is reversed 0x1EDC6F41
 pub global PolyCrc32cLE u32 = 0x82f63b78
 
 pub fun InitCrcTab(polynomial u32, tab ^!CrcTab) void:
@@ -20,7 +20,7 @@ pub fun InitCrcTab(polynomial u32, tab ^!CrcTab) void:
                 set crc = crc ~ polynomial
         set tab^[i] = crc
 
--- start crc is 0
+; start crc is 0
 pub fun CalcCrc(buf span(u8), start_crc u32, tab ^CrcTab) u32:
     let! crc u32 = start_crc ~ 0xffffffff
     for i = 0, len(buf), 1:
@@ -30,10 +30,10 @@ pub fun CalcCrc(buf span(u8), start_crc u32, tab ^CrcTab) u32:
 
 global Adler32Mod u32 = 65521
 
--- largest n before we have to do a modulo operation on b
+; largest n before we have to do a modulo operation on b
 global Adler32MaxLen uint = 5552
 
--- only use expensive modulo when absolutely needed
+; only use expensive modulo when absolutely needed
 pub fun Adler32ShortSliceHelper(buf span(u8), start_crc u32) u32:
     let! a u32 = start_crc & 0xffff
     let! b u32 = start_crc >> 16 & 0xffff
@@ -44,10 +44,10 @@ pub fun Adler32ShortSliceHelper(buf span(u8), start_crc u32) u32:
     set b %= Adler32Mod
     return a | b << 16
 
--- crc to be passed to Adler32 for the first invocation
+; crc to be passed to Adler32 for the first invocation
 pub global Adler32SeedCrc u32 = 1
 
--- start crc is 1
+; start crc is 1
 pub fun Adler32(buf span(u8), start_crc u32) u32:
     let! crc u32 = start_crc
     let! start uint = 0

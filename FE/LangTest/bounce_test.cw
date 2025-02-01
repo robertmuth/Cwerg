@@ -1,4 +1,4 @@
--- bounce benchmark adapted from https://github.com/smarr/are-we-fast-yet/
+; bounce benchmark adapted from https://github.com/smarr/are-we-fast-yet/
 module:
 
 import test
@@ -33,7 +33,7 @@ fun BallInit(b ^!Ball) void:
     set b^.y = RngNext() % Y_LIMIT
     set b^.xVel = RngNext() % 300 - 150
     set b^.yVel = RngNext() % 300 - 150
-    -- fmt::print#(b^.x, " ",b^.y, "  ", b^.xVel, " ",  b^.yVel,  "\n")
+    ; fmt::print#(b^.x, " ",b^.y, "  ", b^.xVel, " ",  b^.yVel,  "\n")
     let dummy = 0_u32
 
 fun BallBounce(b ^!Ball) bool:

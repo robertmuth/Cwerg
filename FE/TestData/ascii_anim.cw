@@ -1,11 +1,11 @@
--- Ascii Art Animation Module
+; Ascii Art Animation Module
 module:
 
 import ansi
 
 import fmt
 
--- arbitrary bounds so we can statically allocate maps
+; arbitrary bounds so we can statically allocate maps
 global MAX_DIM s32 = 1024
 
 pub global DEF_ATTR_LOOKUP = "RcRyBgM"
@@ -41,7 +41,7 @@ pub rec ObjectState:
     y_speed r32
     attr_lookup span(u8)
     def_attr u8
-    -- updated by draw
+    ; updated by draw
     visible bool
 
 pub fun InitObjectState(s ^!ObjectState, o ^Object) void:
@@ -123,7 +123,7 @@ pub fun draw(window ^!Window, s ^!ObjectState) void:
     let! have_color = true
     let! cpos uint = 0
     for ipos = 0, len(image_map), 1:
-        -- determine attribute
+        ; determine attribute
         let! a u8 = def_attr
         if have_color:
             let cc u8 = color_map[cpos]
@@ -136,13 +136,13 @@ pub fun draw(window ^!Window, s ^!ObjectState) void:
                     set a = s^.attr_lookup[cc - '1']
                 case true:
                     set a = cc
-        -- determine character
+        ; determine character
         let c u8 = image_map[ipos]
         if c == '\n':
             set y += 1
             set x = as(s^.x_pos, s32)
             set left_side = true
-            -- the end of the color row should have been reached already
+            ; the end of the color row should have been reached already
             fmt::assert#(!have_color, "color failure\n")
             if cpos < len(color_map):
                 set have_color = true
@@ -162,7 +162,7 @@ pub fun window_draw(obj ^Window, bg_col u8) void:
     fmt::print#(get_bg_color(bg_col), ansi::CLEAR_ALL)
     let w = obj^.width
     let h = obj^.height
-    -- @ is an invalid attrib
+    ; @ is an invalid attrib
     let! last_attr u8 = '@'
     for x = 0, w, 1:
         let! last_x = MAX_DIM

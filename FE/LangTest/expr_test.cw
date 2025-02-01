@@ -45,18 +45,18 @@ fun sign3(x s32) s32:
 
 fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(assoc3(5, 7, 1, 2), 5_u32)
-    --
+    ;
     test::AssertEq#(sign1(20), 1_s32)
     test::AssertEq#(sign2(20), 1_s32)
     test::AssertEq#(sign3(20), 1_s32)
-    --
+    ;
     test::AssertEq#(sign1(0), 0_s32)
     test::AssertEq#(sign2(0), 0_s32)
     test::AssertEq#(sign3(0), 0_s32)
-    --
+    ;
     test::AssertEq#(sign1(-20), -1_s32)
     test::AssertEq#(sign2(-20), -1_s32)
     test::AssertEq#(sign3(-20), -1_s32)
-    -- test end
+    ; test end
     test::Success#()
     return 0

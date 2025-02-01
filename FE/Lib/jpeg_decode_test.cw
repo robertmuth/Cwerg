@@ -205,7 +205,7 @@ global! Crc32Tab checksum::CrcTab = undef
 
 fun main(argc s32, argv ^^u8) s32:
     do checksum::InitCrcTab(checksum::PolyCrc32LE, @!Crc32Tab)
-    -- (do (dump []))
+    ; (do (dump []))
     fmt::print#("image byte size: ", len(test_image), "\n")
     trylet fi JD::FrameInfo = JD::DecodeFrameInfo(test_image), err:
         return 1
@@ -245,12 +245,12 @@ fun main(argc s32, argv ^^u8) s32:
                 "\n")
     do JD::DecodeImage(test_image, gByteBuffer)
     test::AssertEq#(
-            394850026_u32, checksum::CalcCrc(
-                make_span(front(gByteBuffer), 151776), 0, @Crc32Tab))
+            394850026_u32,
+            checksum::CalcCrc(make_span(front(gByteBuffer), 151776), 0, @Crc32Tab))
     do JD::ConvertYH1V1ToRGB(gByteBuffer)
     test::AssertEq#(
             1970744859_u32,
             checksum::CalcCrc(make_span(front(gByteBuffer), 151776), 0, @Crc32Tab))
-    -- test end
+    ; test end
     test::Success#()
     return 0

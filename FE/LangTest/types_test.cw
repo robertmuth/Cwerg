@@ -7,7 +7,7 @@ wrapped type t2 = void
 wrapped type t3 = void
 
 pub rec type_rec:
-    -- this is a comment with \" with quotes \t
+    ; this is a comment with \" with quotes \t
     s1 s32
     s2 s32
     s3 s32
@@ -17,11 +17,11 @@ pub rec type_rec:
     u2 u64
 
 pub rec linked_list:
-    -- this is a comment with \" with quotes \t
+    ; this is a comment with \" with quotes \t
     s1 union(void, ^linked_list)
 
 pub enum type_enum s32:
-    -- this is a comment with \" with quotes \t
+    ; this is a comment with \" with quotes \t
     s1 auto
     s2 auto
     s3 auto
@@ -42,6 +42,6 @@ type type_fun = funtype(a bool, b bool, c s32) s32
 fun funx(a type_union) s32:
     return narrow_as(a, union_delta(type_union, union(void, type_ptr)))
 
--- just a compilation test
+; just a compilation test
 fun main(argc s32, argv ^^u8) s32:
     return 0

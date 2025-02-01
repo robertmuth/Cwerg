@@ -380,30 +380,31 @@ def EmitExpr3(ts: TS, node: cwast.Expr3):
 
 def TokensAnnotationsPre(ts: TS, node):
     # handle docs first
-    for field, nfd in node.ATTRS:
+    for nfd in node.ATTRS:
         # these attributes will be rendered directly
         if nfd.kind is not cwast.NFK.ATTR_STR:
             continue
-        val = getattr(node, field)
+        val = getattr(node, nfd.name)
         if val:
-            if field == "doc":
+            if nfd.name == "doc":
                 if val.startswith('"""'):
                     val = val[3:-3]
                 else:
                     val = val[1:-1]
                 for line in val.split("\n"):
                     if not line:
-                        ts.EmitComment("--")
+                        ts.EmitComment(";")
                     else:
-                        ts.EmitComment("-- " + line)
+                        ts.EmitComment("; " + line)
 
             else:
-                ts.EmitAnnotationLong("{{" + field + "=" + val + "}}")
+                ts.EmitAnnotationLong("{{" + nfd.name + "=" + val + "}}")
 
     # next handle non-docs
-    for field, nfd in node.ATTRS:
+    for nfd in node.ATTRS:
         if nfd.kind is not cwast.NFK.ATTR_BOOL:
             continue
+        field = nfd.name
         if field in ("untagged", "mut", "unchecked"):
             # these are handled by the ! suffix
             continue
@@ -596,9 +597,9 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ValTrue: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.ValFalse: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.ValUndef: lambda ts, n: ts.EmitAttr(KW(n)),
-    cwast.ValVoid: lambda ts, n: ts.EmitAttr("void"),
+    cwast.ValVoid: lambda ts, n: ts.EmitAttr(KW(n)),
     cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
-    cwast.ValSpan: lambda ts, n: TokensFunctional(ts, "span", [n.pointer, n.expr_size]),
+    cwast.ValSpan: lambda ts, n: TokensFunctional(ts, "make_span", [n.pointer, n.expr_size]),
     cwast.ValString: TokensValString,
     cwast.ValCompound: TokensValCompound,
     #
@@ -887,10 +888,12 @@ def _EmitTokensToplevel(ts: TS, node):
         beg_paren = ts.EmitBegParen("[")
         sep = False
         for gen_id in node.gen_ids:
+            assert isinstance(gen_id, cwast.MacroId)
+
             if sep:
                 ts.EmitSep(",")
             sep = True
-            ts.EmitAttr(str(gen_id))
+            ts.EmitAttr(gen_id.name.name)
         ts.EmitEnd(beg_paren)
         ts.EmitStmtEnd(beg)
         #

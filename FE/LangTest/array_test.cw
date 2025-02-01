@@ -10,8 +10,8 @@ global c1 = {[10]s32: 1, 2, 3}
 
 global! c2 = {[10]s32: 1, 2, 3}
 
---  (let c20 auto (len c1)")
---          "(let c21 auto (at c1 2))") 
+;  (let c20 auto (len c1)")
+;          "(let c21 auto (at c1 2))") 
 global dim = 5_u16
 
 fun foo(a [10]u8, b [dim]u64) u8:
@@ -26,9 +26,9 @@ fun update_array(s span!(u8), pos uint, new u8) u8:
     set s[pos] = new
     return old
 
--- ERROR: (let f4 (span mut s32) e1)
+; ERROR: (let f4 (span mut s32) e1)
 fun baz() void:
-    -- ERROR: (= (at c1 5) 0)
+    ; ERROR: (= (at c1 5) 0)
     let pc1 ^s32 = front(c1)
     set c2[5] = 0
 
@@ -43,7 +43,7 @@ global! r1 = {type_rec3: u5 = {[10]u8: 77, 88, 99}}
 global! c4 = {[10]u8: 41, 51, 61}
 
 fun test_mixed_array() void:
-    --
+    ;
     ref let! a = {[10]u8: 1, 2, 3}
     let pa = @a
     let pa_mut = @!a
@@ -61,7 +61,7 @@ fun test_mixed_array() void:
     test::AssertEq#(a[1], 111_u8)
 
 fun test_local_array() void:
-    --
+    ;
     ref let! a = {[10]u8: 1, 2, 3}
     ref let b = {[10]u8: 4, 5, 6}
     let pa = @a
@@ -97,9 +97,9 @@ global e3 = {[5]s32: 0, 1, 2, 3, 4}
 
 global e4 = {[2]span(s32): e1, e1}
 
--- ERROR
---        (global e5 (span (span s32)) e4)
---        (global e3 (span mut s32) d2)
+; ERROR
+;        (global e5 (span (span s32)) e4)
+;        (global e3 (span mut s32) d2)
 global f1 span(s32) = e1
 
 global f3 span(s32) = e2
@@ -107,7 +107,7 @@ global f3 span(s32) = e2
 global f2 span!(s32) = e2
 
 fun test_global_array() void:
-    -- basic
+    ; basic
     test::AssertEq#(c1[1], 2_s32)
     test::AssertEq#(c2[2], 3_s32)
     test::AssertEq#(e1[1], 22_s32)
@@ -115,7 +115,7 @@ fun test_global_array() void:
     test::AssertEq#(f1[1], 22_s32)
     test::AssertEq#(f2[2], 333_s32)
     test::AssertEq#(f3[0], 111_s32)
-    -- basic
+    ; basic
     test::AssertEq#(c3[0], 4_u8)
     test::AssertEq#(update_array(c3, 0, 77), 4_u8)
     test::AssertEq#(update_array(c3, 0, 5), 77_u8)
@@ -125,6 +125,6 @@ fun main(argc s32, argv ^^u8) s32:
     do test_global_array()
     do test_local_array()
     do test_mixed_array()
-    -- test end
+    ; test end
     test::Success#()
     return 0

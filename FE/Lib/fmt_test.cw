@@ -11,7 +11,7 @@ pub enum color s32:
     green 3
     red 4
 
-poly fun fmt::SysRender(v color, out span!(u8), options ^!fmt::SysFormatOptions)
+poly fun fmt::SysRender(v color, out span!(u8), options ^!fmt::SysFormatOptions) 
     uint:
     return fmt::SysRender(unwrap(v), out, options)
 
@@ -34,10 +34,10 @@ fun test_custom() void:
     let! buffer = {[fmt::FORMATED_STRING_MAX_LEN]u8:}
     ref let! s span!(u8) = buffer
     let! n uint = 0
-    -- complex
+    ; complex
     set n = fmt::SysRender({ic32: 111, 222}, s, @!opt)
     test::AssertSliceEq#(make_span(front(s), n), "111+222i")
-    -- enum
+    ; enum
     set n = fmt::SysRender(color:blue, s, @!opt)
     test::AssertSliceEq#(make_span(front(s), n), "2")
 
@@ -59,7 +59,7 @@ fun test_real() void:
     ref let! s span!(u8) = buffer
     let! n uint = 0
     set n = fmt::SysRender(wrap_as(2, fmt::r64_hex), s, @!opt)
-    -- (fmt::print# s " \n")
+    ; (fmt::print# s " \n")
     test::AssertSliceEq#(make_span(front(s), n), "0x1.p+1")
     set n = fmt::SysRender(666e+20_r64, s, @!opt)
     test::AssertSliceEq#(make_span(front(s), n), "6.660000e+22")
@@ -81,6 +81,6 @@ fun main(argc s32, argv ^^u8) s32:
     do test_misc()
     do test_custom()
     do test_real()
-    -- test end
+    ; test end
     test::Success#()
     return 0

@@ -1,4 +1,4 @@
--- heapsort
+; heapsort
 module($type TYPE, $cmp_lt CONST_EXPR):
 
 pub fun sort(sdata span!($type)) void:

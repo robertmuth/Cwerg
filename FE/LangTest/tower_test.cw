@@ -1,4 +1,4 @@
--- towers of hanoi
+; towers of hanoi
 module:
 
 import test
@@ -18,10 +18,10 @@ global! all_disks = {[NUM_DISKS]Disk:}
 global! piles = {[NUM_PILES]s32: NO_DISK}
 
 fun MoveTopDisk(src_pile u32, dst_pile u32) u32:
-    -- pop top disk from src_pile
+    ; pop top disk from src_pile
     let d = piles[src_pile]
     set piles[src_pile] = all_disks[d].next_in_pile
-    -- push disk on dst_pile
+    ; push disk on dst_pile
     set all_disks[d].next_in_pile = piles[dst_pile]
     set piles[dst_pile] = d
     return 1

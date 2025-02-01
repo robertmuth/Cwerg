@@ -15,9 +15,9 @@ pub fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
         set ptr_inc(dst, i)^ = ptr_inc(src, i)^
     return size
 
--- This gets passed to the actual formatters which decide how to interpret the options.
+; This gets passed to the actual formatters which decide how to interpret the options.
 pub rec SysFormatOptions:
-    -- min width
+    ; min width
     witdh u8
     precission u8
     padding u8
@@ -29,7 +29,7 @@ global TRUE_STR span(u8) = "true"
 
 global FALSE_STR span(u8) = "false"
 
--- only need to mark the first poly as pub
+; only need to mark the first poly as pub
 pub poly fun SysRender(v bool, buffer span!(u8), options ^!SysFormatOptions) uint:
     let s = v ? TRUE_STR : FALSE_STR
     let n uint = min(len(buffer), len(s))
@@ -137,7 +137,7 @@ poly fun SysRender(v ^void, out span!(u8), options ^!SysFormatOptions) uint:
     return SysRender(h, out, options)
 
 pub macro print# STMT_LIST(
-    -- list of items to be printed
+    ; list of items to be printed
     $parts EXPR_LIST_REST)[$buffer, $curr, $options]:
     mlet! $buffer = {[FORMATED_STRING_MAX_LEN]u8:}
     mlet! $curr span!(u8) = $buffer

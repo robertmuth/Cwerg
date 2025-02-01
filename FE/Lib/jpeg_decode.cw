@@ -1,35 +1,35 @@
--- Simple JPEG Decoder loosely based on
--- https://github.com/richgel999/picojpeg
--- More on jpeg
--- https://github.com/corkami/formats/blob/master/image/jpeg.md
--- https://www.youtube.com/watch?v=CPT4FSkFUgs
--- More on Huffman codes
--- https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
--- on fast idct transforms:
--- Feig, E.&& Winograd, S. (September 1992b). "Fast algorithms for the discrete cosine transform".
---                   IEEE Transactions on Signal Processing. 40 (9): 2174–2193
+; Simple JPEG Decoder loosely based on
+; https://github.com/richgel999/picojpeg
+; More on jpeg
+; https://github.com/corkami/formats/blob/master/image/jpeg.md
+; https://www.youtube.com/watch?v=CPT4FSkFUgs
+; More on Huffman codes
+; https://www.ece.ucdavis.edu/cerl/wp-content/uploads/sites/14/2015/09/GenHuffCodes.pdf
+; on fast idct transforms:
+; Feig, E.&& Winograd, S. (September 1992b). "Fast algorithms for the discrete cosine transform".
+;                   IEEE Transactions on Signal Processing. 40 (9): 2174–2193
 module:
 
 import BS = bytestream
 
 import fmt
 
--- To enable debug logging make sure the next macro is called `debug#`
--- To enable debug logging make sure the second macro is called `debug#`
+; To enable debug logging make sure the next macro is called `debug#`
+; To enable debug logging make sure the second macro is called `debug#`
 macro xdebug# STMT_LIST($parts EXPR_LIST_REST)[]:
     fmt::print#($parts)
 
 macro debug# STMT_LIST($parts EXPR_LIST_REST)[]:
 
 global WinogradMultipliers = {
-        [64]u8: 128, 178, 178, 167, 246, 167, 151, 232, 232, 151, 128, 209, 219,
-        209, 128, 101, 178, 197, 197, 178, 101, 69, 139, 167, 177, 167, 139, 69,
-        35, 96, 131, 151, 151, 131, 96, 35, 49, 91, 118, 128, 118, 91, 49, 46, 81,
-        101, 101, 81, 46, 42, 69, 79, 69, 42, 35, 54, 54, 35, 28, 37, 28, 19, 19,
+        [64]u8: 128, 178, 178, 167, 246, 167, 151, 232, 232, 151, 128, 209, 219, 
+        209, 128, 101, 178, 197, 197, 178, 101, 69, 139, 167, 177, 167, 139, 69, 
+        35, 96, 131, 151, 151, 131, 96, 35, 49, 91, 118, 128, 118, 91, 49, 46, 81, 
+        101, 101, 81, 46, 42, 69, 79, 69, 42, 35, 54, 54, 35, 28, 37, 28, 19, 19, 
         10}
 
 macro div_pow2_with_rounding# EXPR($x EXPR, $d EXPR)[]:
-    ($x + (1 << ($d - 1))) >> $d
+    ($x + (1 << ($d - 1))) >> $d 
 
 fun ApplyWindogradMulipliers(qt_tab ^![64]s16) void:
     let c s32 = (1 << (10 - 7 - 1))
@@ -37,22 +37,22 @@ fun ApplyWindogradMulipliers(qt_tab ^![64]s16) void:
         let! x s32 = as(qt_tab^[i], s32)
         let y = x
         set x *= as(WinogradMultipliers[i], s32)
-        -- divide by 2^3 with rouding
+        ; divide by 2^3 with rouding
         set x = div_pow2_with_rounding#(x, 10 - 7)
         debug#("apply: ", i, " ", y, " ", x, "\n")
         set qt_tab^[i] = as(x, s16)
 
--- multiply helper functions are the 4 types of signed multiplies needed by the Winograd IDCT.
--- 1 / cos(4 * pi/16)   362, 256+106
+; multiply helper functions are the 4 types of signed multiplies needed by the Winograd IDCT.
+; 1 / cos(4 * pi/16)   362, 256+106
 global c_b1_b3 s32 = 362
 
--- 1 / cos(6*pi/16) 669,  256+256+157
+; 1 / cos(6*pi/16) 669,  256+256+157
 global c_b2 s32 = 669
 
--- 1 / cos(2*pi/16)  277, 256+21
+; 1 / cos(2*pi/16)  277, 256+21
 global c_b4 s32 = 277
 
--- 1 / (cos(2*pi/16) + cos(6*pi/16))  196, 196
+; 1 / (cos(2*pi/16) + cos(6*pi/16))  196, 196
 global c_b5 s32 = 196
 
 fun imul(w s16, c s32) s16:
@@ -82,7 +82,7 @@ macro CommonIDCT# STMT_LIST()[]:
     let x41 = x31 + x32
     let x42 = x31 - x32
 
--- updates blk in place
+; updates blk in place
 fun RowIDCT(blk ^![8 * 8]s16) void:
     for o = 0, len(blk^), 8:
         let src0 = blk^[o + 0]
@@ -100,7 +100,7 @@ fun RowIDCT(blk ^![8 * 8]s16) void:
             continue
         CommonIDCT#()
         debug#(
-                "idc-row out ", x40 + x17, " ", x41 + tmp2, " ", x42 + tmp3, " ",
+                "idc-row out ", x40 + x17, " ", x41 + tmp2, " ", x42 + tmp3, " ", 
                 x43- x44, "\n")
         set blk^[o + 0] = x40 + x17
         set blk^[o + 1] = x41 + tmp2
@@ -120,7 +120,7 @@ fun clamp8(x s16) s16:
         case true:
             return x
 
--- descale
+; descale
 fun descale(xx s16) s16:
     return div_pow2_with_rounding#(xx, 7) + 128
 
@@ -160,15 +160,15 @@ fun ColIDCT(blk ^![8 * 8]s16) void:
         set blk^[o + 8 * 6] = clamp8(descale(x41 - tmp2))
         set blk^[o + 8 * 7] = clamp8(descale(x40 - x17))
 
--- for huffman decoding
+; for huffman decoding
 rec BitStream:
     buf span(u8)
     offset uint
-    -- contains the next up to 8 bits from the stream
-    -- the exact number is bits_count
+    ; contains the next up to 8 bits from the stream
+    ; the exact number is bits_count
     bits_cache u8
     bits_count u8
-    -- end-of-stream flag - once set it will not be cleared
+    ; end-of-stream flag - once set it will not be cleared
     eos bool
 
 pub fun GetBytesConsumed(bs ^BitStream) uint:
@@ -182,7 +182,7 @@ pub fun GetNextBit(bs ^!BitStream) u16:
             set bs^.eos = true
             return 0
         set bits_cache = bs^.buf[bs^.offset]
-        -- debug#("new cache: ", wrap_as(bits_cache, fmt::u8_hex), "\n")
+        ; debug#("new cache: ", wrap_as(bits_cache, fmt::u8_hex), "\n")
         set bs^.offset += 1
         set bits_count = 8
         if bits_cache == 0xff:
@@ -229,14 +229,14 @@ fun NextSymbol(bs ^!BitStream, ht ^HuffmanTree) u16:
         set offset += GetNextBit(bs)
     return BAD_SYMBOL
 
--- not we rely on wrap around arithmetic
+; not we rely on wrap around arithmetic
 fun GetVal(bs ^!BitStream, num_bits u16) s16:
     let bits = as(num_bits, s32)
     let! out s32 = 0
     for i = 0, bits, 1:
         set out <<= 1
         set out |= as(GetNextBit(bs), s32)
-    -- note: signed shift
+    ; note: signed shift
     if out < 1 << (bits - 1):
         set out += ((-1) << bits) + 1
     return as(out, s16)
@@ -254,15 +254,15 @@ pub rec Component:
     cid u8
     ssx u32
     ssy u32
-    -- quantization table index:  0-3
+    ; quantization table index:  0-3
     qt_tab u8
-    -- image dimensions in pixels
+    ; image dimensions in pixels
     width u32
     height u32
     stride u32
-    -- huffman table index for dc decoding: 0-1
+    ; huffman table index for dc decoding: 0-1
     dc_tab u8
-    -- huffman table index for ac decoding: 0-1
+    ; huffman table index for ac decoding: 0-1
     ac_tab u8
 
 pub rec FrameInfo:
@@ -270,10 +270,10 @@ pub rec FrameInfo:
     height u32
     ncomp u8
     format u8
-    -- macro block dimensions in pixels (e.g. 8x8)
+    ; macro block dimensions in pixels (e.g. 8x8)
     mbsizex u32
     mbsizey u32
-    -- image dimension measure in macro blocks
+    ; image dimension measure in macro blocks
     mbwidth u32
     mbheight u32
     comp [3]Component
@@ -302,7 +302,7 @@ fun DecodeHufmanTable(chunk span(u8), huffman_trees ^![2][2]HuffmanTree) union(
     let pos = kind & 3
     if pos > 1:
         return UnsupportedErrorVal
-    -- 0 means dc
+    ; 0 means dc
     let is_ac = (kind & 0x10) >> 4
     let ht ^!HuffmanTree = @!huffman_trees^[is_ac][pos]
     let counts = BS::FrontSliceUnchecked(@!data, 16)
@@ -404,7 +404,7 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo) union(
     if ncomp != 1 && ncomp != 3:
         debug#("unsupported ncomp: ", ncomp, "\n")
         return UnsupportedErrorVal
-    -- debug#("frame: ", width, "x", height, " ncomp: ", ncomp, "\n")
+    ; debug#("frame: ", width, "x", height, " ncomp: ", ncomp, "\n")
     let! ssxmax u32 = 0
     let! ssymax u32 = 0
     for i = 0, ncomp, 1:
@@ -415,14 +415,14 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo) union(
             return err
         let ssx = as(ss >> 4, u32)
         let ssy = as(ss & 0xf, u32)
-        -- ssy must be a power of two
+        ; ssy must be a power of two
         if ssx == 0 || ssy == 0 || ssy & (ssy - 1) != 0:
             debug#("bad ss: ", ssx, "x", ssy, "\n")
             return CorruptionErrorVal
-        -- for now we only support YH1V1
+        ; for now we only support YH1V1
         if ssx != 1 || ssy != 1:
             return UnsupportedErrorVal
-        -- debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")
+        ; debug#("comp: ", i, " ", comp^.cid, " ", ssx, "x", ssy, "\n")
         set comp^.ssx = ssx
         set comp^.ssy = ssy
         set ssxmax max= ssx
@@ -444,7 +444,7 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo) union(
     set out^.mbsizey = mbsizey
     set out^.mbwidth = div_roundup(out^.width, mbsizex)
     set out^.mbheight = div_roundup(out^.height, mbsizey)
-    -- debug#("mbsize: ", mbsizex, "x", mbsizey,  " mbdim: ", out^.mbwidth, "x", out^.mbheight, "\n")
+    ; debug#("mbsize: ", mbsizex, "x", mbsizey,  " mbdim: ", out^.mbwidth, "x", out^.mbheight, "\n")
     for i = 0, ncomp, 1:
         let comp ^!Component = @!(out^.comp[i])
         set comp^.width = div_roundup(out^.width * comp^.ssx, ssxmax)
@@ -456,7 +456,7 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo) union(
         if comp^.height < 3 && comp^.ssy != ssymax:
             debug#("bad height: ", comp^.height, "\n")
             return CorruptionErrorVal
-    -- debug#("comp: ", i, " ", comp^.width, "x", comp^.height, " stride:", comp^.stride, "\n")
+    ; debug#("comp: ", i, " ", comp^.width, "x", comp^.height, " stride:", comp^.stride, "\n")
     return SuccessVal
 
 fun DecodeScan(chunk span(u8), frame_info ^!FrameInfo) union(
@@ -488,12 +488,12 @@ fun DecodeScan(chunk span(u8), frame_info ^!FrameInfo) union(
     return SuccessVal
 
 global ZigZagIndex = {
-        [8 * 8]u8: 0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19,
-        26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57,
-        50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46,
+        [8 * 8]u8: 0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 
+        26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 
+        50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 
         53, 60, 61, 54, 47, 55, 62, 63}
 
--- returns new dc value on success
+; returns new dc value on success
 fun DecodeBlock(
         bs ^!BitStream,
         dc_tab ^HuffmanTree,
@@ -537,7 +537,7 @@ fun DecodeMacroBlocksHuffman(
     let! dc_last = {[3]s16: 0, 0, 0}
     ref let! buffer [8 * 8]s16 = undef
     let ncomp u32 = as(fi^.ncomp, u32)
-    -- we assume ssx/ssy are 1
+    ; we assume ssx/ssy are 1
     let byte_stride = fi^.mbwidth * 8 * ncomp
     for my = 0, fi^.mbheight * 8, 8:
         for mx = 0, fi^.mbwidth * 8, 8:
@@ -546,7 +546,7 @@ fun DecodeMacroBlocksHuffman(
                 let dc_tab ^HuffmanTree = @huffman_trees^[0][comp^.dc_tab]
                 let ac_tab ^HuffmanTree = @huffman_trees^[1][comp^.ac_tab]
                 let qt_tab ^[64]s16 = @quantization_tab^[comp^.qt_tab]
-                -- debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
+                ; debug#("Block: ", m, " comp=", c, " x=", x, " y=", y, "\n")
                 debug#("Block ===================\n")
                 tryset dc_last[c] = DecodeBlock(
                         @!bs, dc_tab, ac_tab, qt_tab, @!buffer, dc_last[c]), err:
@@ -597,18 +597,18 @@ pub fun ConvertYH1V1ToRGB(out span!(u8)) void:
         let Y = as(out[i], s32)
         let Cb = as(out[i + 1], s32)
         let Cr = as(out[i + 2], s32)
-        --  R = Y + 1.402 (Cr-128)
-        -- 0.402 = 103/256
+        ;  R = Y + 1.402 (Cr-128)
+        ; 0.402 = 103/256
         let crR = Cr + ((Cr * 103) >> 8) - 179
         set out[i] = as(clamp8b(Y + crR), u8)
-        -- G = Y - 0.34414 (Cb-128) - 0.71414 (Cr-128)
-        -- 0.344 = 88/256
-        -- 0.714 = 183/256
+        ; G = Y - 0.34414 (Cb-128) - 0.71414 (Cr-128)
+        ; 0.344 = 88/256
+        ; 0.714 = 183/256
         let cbG = ((Cb * 88) >> 8) - 44
         let crG = ((Cr * 183) >> 8) - 91
         set out[i + 1] = as(clamp8b(clamp8b(Y - cbG) - crG), u8)
-        -- B = Y + 1.772 (Cb-128)
-        -- 0.772 = 198/256
+        ; B = Y + 1.772 (Cb-128)
+        ; 0.772 = 198/256
         let cbB = Cb + ((Cb * 198) >> 8) - 227
         set out[i + 2] = as(clamp8b(Y + cbB), u8)
 
@@ -635,7 +635,7 @@ pub fun DecodeImage(a_data span(u8), out span!(u8)) union(
         trylet chunk_length u16 = BS::FrontBeU16(@!data), err:
             return err
         debug#(
-                "CHUNK: ", wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length,
+                "CHUNK: ", wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length, 
                 "\n")
         trylet chunk_slice span(u8) = BS::FrontSlice(
                 @!data, as(chunk_length - 2, uint)), err:
@@ -657,15 +657,15 @@ pub fun DecodeImage(a_data span(u8), out span!(u8)) union(
                         chunk_slice, @!quantization_tab), err:
                     return err
             case chunk_kind == 0xffdd:
-                -- tryset restart_interval = DecodeRestartInterval(chunk_slice), err:
-                --    return err
+                ; tryset restart_interval = DecodeRestartInterval(chunk_slice), err:
+                ;    return err
                 return UnsupportedErrorVal
             case chunk_kind == 0xffda:
-                -- start of scan chunk, huffman encoded image data follows
+                ; start of scan chunk, huffman encoded image data follows
                 trylet dummy Success = DecodeScan(chunk_slice, @!frame_info), err:
                     return err
                 trylet bytes_consumed uint = DecodeMacroBlocksHuffman(
-                        data, @frame_info, @huffman_trees, @quantization_tab, out),
+                        data, @frame_info, @huffman_trees, @quantization_tab, out), 
                     err:
                     return err
                 do BS::SkipUnchecked(@!data, bytes_consumed)

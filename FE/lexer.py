@@ -59,7 +59,7 @@ _BINARY_OPS = reversed(sorted(cwast.BinaryOpsForConcreteSyntax()))
 
 _GENERIC_ANNOTATION_RE = r"\{\{[_a-zA-Z]+\}\}"
 ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?"
-COMMENT_RE = r"--.*[\n]"
+COMMENT_RE = r";.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
 
 

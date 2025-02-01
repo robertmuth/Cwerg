@@ -1,32 +1,32 @@
---
--- * https://github.com/cmatsuoka/asciiquarium
--- * https://robobunny.com/projects/asciiquarium/
--- * Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
+;
+; * https://github.com/cmatsuoka/asciiquarium
+; * https://robobunny.com/projects/asciiquarium/
+; * Artwork by Joan Stark: http://www.geocities.com/SoHo/7373/ (see archive.org copy)
 module:
 
 import aanim = "./ascii_anim"
 
--- Color codes and xterm rgb values:
--- k  black    0,0,0
--- r  red      205,0, 0
--- g  green    0,205,0
--- y  yellow   205,205,0
--- b  blue     0,0,238
--- m  magenta  205,0,205
--- c  cyan     0,205,205
--- w  white    229,229,229
--- t  translucent
---
---
--- Fish body parts:
--- 1: body
--- 2: dorsal fin
--- 3: flippers
--- 4: eye
--- 5: mouth
--- 6: tailfin
--- 7: gills
---
+; Color codes and xterm rgb values:
+; k  black    0,0,0
+; r  red      205,0, 0
+; g  green    0,205,0
+; y  yellow   205,205,0
+; b  blue     0,0,238
+; m  magenta  205,0,205
+; c  cyan     0,205,205
+; w  white    229,229,229
+; t  translucent
+;
+;
+; Fish body parts:
+; 1: body
+; 2: dorsal fin
+; 3: flippers
+; 4: eye
+; 5: mouth
+; 6: tailfin
+; 7: gills
+;
 pub global RandomColor = "RcRyBgM"
 
 global CastleSprites = {
