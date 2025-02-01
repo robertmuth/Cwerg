@@ -28,8 +28,10 @@ TAG_BIN_SENTINEL = 2009
 
 def IsEmptyNode(n: NODE):
     for x in n:
-        if x != -1: return False
+        if x != -1:
+            return False
     return True
+
 
 def OptimizeTrie(trie: TRIE) -> TRIE:
 
@@ -42,7 +44,7 @@ def OptimizeTrie(trie: TRIE) -> TRIE:
     for i in range(1, len(nodes)):
         curr = nodes[i]
         if last[0] == curr[0]:
-            #print("@@", curr[1], "->", last[1], last[2])
+            # print("@@", curr[1], "->", last[1], last[2])
             trans[curr[1]] = last[1]
         else:
             last = curr
@@ -57,20 +59,34 @@ def OptimizeTrie(trie: TRIE) -> TRIE:
             # this node will be dropped
             new_indices.append(-1)
 
-
     def rewrite(t: NODE) -> NODE:
-         for n, c in enumerate(t):
-             if c == -1 or c > len(trie):
-                 continue
-             if trans[c] != -1:
-                 c = trans[c]
-             t[n] = new_indices[c]
+        for n, c in enumerate(t):
+            if c == -1 or c > len(trie):
+                continue
+            if trans[c] != -1:
+                c = trans[c]
+            t[n] = new_indices[c]
     out = []
     for n, t in enumerate(trie):
         if new_indices[n] != -1:
             rewrite(t)
             out.append(t)
     return out
+
+
+def FindInTrie(trie: TRIE, s: str) -> tuple[int, int]:
+    node = trie[0]
+    for n, cc in enumerate(s):
+        x = node[ord(cc)]
+        if x == -1:
+            return 0, 0
+        if x >= len(trie):
+            if x & 1:
+                return n, x ^ 1
+            else:
+                return n + 1, x
+        node = trie[x]
+    return 0, 0
 
 
 def VerifyTrie(trie: TRIE, KWs):
@@ -86,6 +102,7 @@ def VerifyTrie(trie: TRIE, KWs):
             assert x != -1, f"{kw} {n} {cc}"
             node = trie[x]
 
+
 def DumpStats(trie: TRIE):
     print("TRIE ANALYSIS")
     print(f"Nodes: {len(trie)}")
@@ -95,6 +112,7 @@ def DumpStats(trie: TRIE):
         histo[non_null] += 1
     for k, v in sorted(histo.items()):
         print(k, v)
+
 
 def MakeTrieForKW():
     trie = []
@@ -107,11 +125,9 @@ def MakeTrieForKW():
     # root node
     add_node()
 
-    def add_kw(kw, tag, non_succ):
-        last = None
-        if non_succ is None:
-            last = ord(kw[-1])
-            kw = kw[:-1]
+    def add_kw_simple(kw, tag):
+        last = ord(kw[-1])
+        kw = kw[:-1]
         node = trie[0]
         for cc in kw:
             c = ord(cc)
@@ -120,16 +136,34 @@ def MakeTrieForKW():
             # no kw can be prefix of another
             assert node[c] < len(trie), f"{kw} -- {node[c]}"
             node = trie[node[c]]
+        assert node[last] == -1, f"{kw}"
+        node[last] = tag
+
+    def add_kw(kw, tag, non_succ):
+        # keyword is only valid if not followed by char in non_succ
+        # E.g.
+        # if is a keyword but ifoo is not
+        # simarly
+        # >> is an operator(-keyword) for most subsequent chars
+        # except >>> and >>=
+        # Not that >>> and >>=  will have been processeed earlier
+        node = trie[0]
+        for n, cc in enumerate(kw):
+            c = ord(cc)
+            if node[c] == -1:
+                if n == len(kw) - 1 and non_succ == set():
+                    node[c] = tag
+                    return
+                node[c] = add_node()
+            # no kw can be prefix of another
+            assert node[c] < len(trie), f"{kw} -- {node[c]}"
+            node = trie[node[c]]
 
         # handle terminators
-        if last:
-            assert node[last] == -1, f"{kw}"
-            node[last] = tag
-        else:
-            for i in range(len(node)):
-                if i not in non_succ:
-                    if node[i] == -1:
-                        node[i] = tag
+        for i in range(len(node)):
+            if i not in non_succ:
+                if node[i] == -1:
+                    node[i] = tag
 
     KWs = []
     KWs += [(kw, TAG_KW) for kw in cwast.KeyWordsForConcreteSyntax()]
@@ -138,15 +172,16 @@ def MakeTrieForKW():
     # KWs = list(sorted(KWs))[0:1]
 
     print("\nCREATE")
+    # the sortorder ensures that a prefixes are procressed later
     for kw, tag in reversed(sorted(KWs)):
         # print (kw, tag)
         if tag == TAG_KW:
             if kw.endswith("!"):
-                add_kw(kw, tag, None)
+                add_kw_simple(kw, tag)
             else:
                 add_kw(kw, tag, _ID_CHARS)
         elif tag == TAG_CA:
-            add_kw(kw, tag, None)
+            add_kw_simple(kw, tag)
         elif tag == TAG_BIN:
             add_kw(kw, tag, set())
     #
@@ -161,6 +196,7 @@ def MakeTrieForKW():
             break
         DumpStats(trie)
         VerifyTrie(trie, KWs)
+
 
 if __name__ == "__main__":
     MakeTrieForKW()
