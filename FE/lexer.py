@@ -21,7 +21,6 @@ class TK_KIND(enum.Enum):
     KW = enum.auto()
     COMMENT = enum.auto()
     PREFIX_OP = enum.auto()
-    OTHER_OP_WS = enum.auto()
     OTHER_OP = enum.auto()
     COMMA = enum.auto()
     COLON = enum.auto()
@@ -49,27 +48,19 @@ class TK_KIND(enum.Enum):
     SPECIAL_EOF = enum.auto()
 
 
-_KEYWORDS_NODES = cwast.KeyWordsForConcreteSyntax()
-_KEYWORDS_EXTRA = ["else", "set", "for",
-                   "while", "tryset", "trylet", "trylet!"]
-_NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
+# reversing makes sure that  "trylet!" is checked before "trylet"
+_KEYWORDS_ALL = reversed(sorted(
+    (cwast.KeyWordsForConcreteSyntax() +
+     ["else", "set", "for",
+      "while", "tryset", "trylet", "trylet!"])))
+_UNARY_OPS = reversed(sorted(cwast.UnaryOpsForConcreteSyntax()))
+_BINARY_OPS = reversed(sorted(cwast.BinaryOpsForConcreteSyntax()))
 
 
 _GENERIC_ANNOTATION_RE = r"\{\{[_a-zA-Z]+\}\}"
-ID_OR_KW_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?[!]?"
+ID_RE = r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?"
 COMMENT_RE = r"--.*[\n]"
 CHAR_RE = r"['](?:[^'\\]|[\\].)*(?:[']|$)"
-
-
-_operators2a = [".", "?"]
-_operators2b = [x for x in cwast.BINARY_EXPR_SHORTCUT
-                if not _NAMED_OP_RE.fullmatch(x)]
-
-_operators1a = [x for x in cwast.UNARY_EXPR_SHORTCUT_CONCRETE
-                if not _NAMED_OP_RE.fullmatch(x)]
-_operators1b = [x for x in ["^!", "^", "@!", "@"]]  # order important!
-
-_compound_assignment = [x for x in cwast.ASSIGNMENT_SHORTCUT]
 
 
 def _EscapeAndConcat(lst) -> str:
@@ -84,9 +75,8 @@ _token_spec = [
     (TK_KIND.ANNOTATION.name, _EscapeAndConcat(
         ["pub", "ref", "poly", "wrapped"]) + _FOLLOWED_BY_NON_ID_CHAR),
     (TK_KIND.COMPOUND_ASSIGN.name,
-     _EscapeAndConcat(_compound_assignment) + _FOLLOWED_BY_WS),
-    (TK_KIND.KW.name, _EscapeAndConcat(reversed(
-        sorted(_KEYWORDS_NODES + _KEYWORDS_EXTRA))) + _FOLLOWED_BY_NON_ID_CHAR),
+     _EscapeAndConcat(cwast.ASSIGNMENT_SHORTCUT.keys()) + _FOLLOWED_BY_WS),
+    (TK_KIND.KW.name, _EscapeAndConcat(_KEYWORDS_ALL) + _FOLLOWED_BY_NON_ID_CHAR),
     (TK_KIND.COLON.name, ":"),
     (TK_KIND.COMMA.name, ","),
     (TK_KIND.PAREN_OPEN.name, "[(]"),
@@ -104,14 +94,12 @@ _token_spec = [
     (TK_KIND.RMSTR.name, string_re.MULTI_START_R),
     (TK_KIND.XMSTR.name, string_re.MULTI_START_X),
 
-    (TK_KIND.ID.name, ID_OR_KW_RE),
-    # require most binary ops to be followed by whitespace, this helps with
-    # disambiguating unary +/-
-    (TK_KIND.OTHER_OP_WS.name, _EscapeAndConcat(_operators2b) + _FOLLOWED_BY_WS),
-    # no ws requirements
-    (TK_KIND.OTHER_OP.name, _EscapeAndConcat(_operators2a)),
-    # OP1 must follow OP2 and NUM because of matching overlap
-    (TK_KIND.PREFIX_OP.name, _EscapeAndConcat(_operators1a + _operators1b)),
+    (TK_KIND.ID.name, ID_RE),
+
+    (TK_KIND.OTHER_OP.name, _EscapeAndConcat(_BINARY_OPS)),
+    # OP1 must follow OP2 and NUM because of matching overlap involving "!"
+    # dealing with unary +/- is done explicitly
+    (TK_KIND.PREFIX_OP.name, _EscapeAndConcat(_UNARY_OPS)),
     (TK_KIND.STR.name, "(?:" + string_re.START + \
      "|" + string_re.R_START + ")" + string_re.END),
     (TK_KIND.CHAR.name, CHAR_RE),

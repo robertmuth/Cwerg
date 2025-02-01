@@ -7,7 +7,6 @@ import sys
 import dataclasses
 import logging
 import enum
-import collections
 import re
 
 from Util import cgen
@@ -4001,6 +4000,20 @@ def KeyWordsForConcreteSyntax():
     return out
 
 
+def UnaryOpsForConcreteSyntax():
+    return [x for x in UNARY_EXPR_SHORTCUT_CONCRETE
+            if not _NAMED_OP_RE.fullmatch(x)] + [
+        ExprDeref.ALIAS,
+        ExprDeref.ALIAS + MUTABILITY_SUFFIX,
+        ExprAddrOf.ALIAS,
+        ExprAddrOf.ALIAS + MUTABILITY_SUFFIX,
+    ]
+
+
+def BinaryOpsForConcreteSyntax():
+    return [x for x in BINARY_EXPR_SHORTCUT
+            if not _NAMED_OP_RE.fullmatch(x)] + [ExprField.ALIAS, Expr3.ALIAS]
+
 ##########################################################################################
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
@@ -4017,6 +4030,16 @@ if __name__ == "__main__":
         cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)
     elif mode == "kw":
         for kw in sorted(KeyWordsForConcreteSyntax()):
+            print(kw)
+    elif mode == "op":
+        print("UNARY")
+        for kw in sorted(UnaryOpsForConcreteSyntax()):
+            print(kw)
+        print("BINARY")
+        for kw in sorted(BinaryOpsForConcreteSyntax()):
+            print(kw)
+        print("COMPOUND")
+        for kw in sorted(ASSIGNMENT_SHORTCUT.keys()):
             print(kw)
     else:
         print(f"unknown mode: {mode}")
