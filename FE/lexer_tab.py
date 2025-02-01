@@ -1,7 +1,14 @@
 #!/bin/env python3
 
 import collections
+import enum
 import sys
+import io
+
+import dataclasses
+
+from typing import Any, Optional
+
 from FE import cwast
 from Util import cgen
 
@@ -19,28 +26,29 @@ NODE_NULL = -1
 NODE = list[int]
 TRIE = list[list[int]]
 
-
-TAG_KW = 1000
-TAG_COMPOUND_ASSIGN = 1001
-TAG_OTHER_OP = 1002
-TAG_PREFIX_OP = 1003
-TAG_ANNOTATION = 1004
-TAG_ASSIGN = 1005
-TAG_COLON = 1006
-TAG_COMMA = 1007
-TAG_PAREN_OPEN = 1008
-TAG_PAREN_CLOSED = 1009
-TAG_CURLY_OPEN = 1010
-TAG_CURLY_CLOSED = 1011
-TAG_SQUARE_OPEN = 1012
-TAG_SQUARE_OPEN_EXCL = 1013
-TAG_SQUARE_CLOSED = 1014
-# These just match the prefix  of the lexeme
-TAG_COMMENT = 1015
-TAG_GENERIC_ANNOTATION = 1016
-TAG_CHAR = 1017
-TAG_STR = 1018
-TAG_MSTR = 1019
+@enum.unique
+class TAG(enum.Enum):
+    KW = 1000
+    COMPOUND_ASSIGN = 1001
+    OTHER_OP = 1002
+    PREFIX_OP = 1003
+    ANNOTATION = 1004
+    ASSIGN = 1005
+    COLON = 1006
+    COMMA = 1007
+    PAREN_OPEN = 1008
+    PAREN_CLOSED = 1009
+    CURLY_OPEN = 1010
+    CURLY_CLOSED = 1011
+    SQUARE_OPEN = 1012
+    SQUARE_OPEN_EXCL = 1013
+    SQUARE_CLOSED = 1014
+    # These just match the prefix  of the lexeme
+    COMMENT = 1015
+    GENERIC_ANNOTATION = 1016
+    CHAR = 1017
+    STR = 1018
+    EOF = 1019
 
 
 def IsEmptyNode(n: NODE):
@@ -97,9 +105,9 @@ def FindInTrie(trie: TRIE, s: str) -> tuple[int, int]:
             return 0, 0
         if x >= len(trie):
             if x & 1:
-                return n, x >> 1
+                return n, TAG(x >> 1)
             else:
-                return n + 1, x >> 1
+                return n + 1, TAG(x >> 1)
         node = trie[x]
     return 0, 0
 
@@ -124,38 +132,44 @@ def DumpStats(trie: TRIE):
 
 def GetAllKWAndOps():
     KWs = []
-    KWs += [(kw, TAG_KW) for kw in cwast.KeyWordsForConcreteSyntax()]
-    KWs += [(kw, TAG_COMPOUND_ASSIGN) for kw in cwast.ASSIGNMENT_SHORTCUT]
-    KWs += [(kw, TAG_OTHER_OP) for kw in cwast.BinaryOpsForConcreteSyntax()]
-    KWs += [(kw, TAG_PREFIX_OP) for kw in cwast.UnaryOpsForConcreteSyntax()]
-    KWs += [(kw, TAG_KW) for kw in ["pub", "ref", "poly", "wrapped"]]
-    KWs += [(kw, TAG_KW) for kw in ["else", "set", "for",
-                                    "while", "tryset", "trylet", "trylet!"]]
-    KWs += [("=", TAG_ASSIGN)]
-    KWs += [(",", TAG_COMMA)]
-    KWs += [(":", TAG_COLON)]
+    KWs += [(kw, TAG.KW) for kw in cwast.KeyWordsForConcreteSyntax()]
+    KWs += [(kw, TAG.COMPOUND_ASSIGN) for kw in cwast.ASSIGNMENT_SHORTCUT]
+    KWs += [(kw, TAG.OTHER_OP) for kw in cwast.BinaryOpsForConcreteSyntax()]
+    KWs += [(kw, TAG.PREFIX_OP) for kw in cwast.UnaryOpsForConcreteSyntax()]
+    KWs += [(kw, TAG.KW) for kw in ["pub", "ref", "poly", "wrapped"]]
+    KWs += [(kw, TAG.KW) for kw in ["else", "set", "for", "while",
+                                    "tryset", "trylet", "trylet!"]]
+    KWs += [("=", TAG.ASSIGN)]
+    KWs += [(",", TAG.COMMA)]
+    KWs += [(":", TAG.COLON)]
     #
-    KWs += [("(", TAG_PAREN_OPEN)]
-    KWs += [(")", TAG_PAREN_CLOSED)]
-    KWs += [("{{", TAG_GENERIC_ANNOTATION)]
-    KWs += [("{", TAG_CURLY_OPEN)]
-    KWs += [("}", TAG_CURLY_CLOSED)]
-    KWs += [("[", TAG_SQUARE_OPEN)]
-    KWs += [("[!", TAG_SQUARE_OPEN_EXCL)]
-    KWs += [("]", TAG_SQUARE_CLOSED)]
-    KWs += [(";", TAG_COMMENT)]
+    KWs += [("(", TAG.PAREN_OPEN)]
+    KWs += [(")", TAG.PAREN_CLOSED)]
+    KWs += [("{", TAG.CURLY_OPEN)]
+    KWs += [("}", TAG.CURLY_CLOSED)]
+    KWs += [("[", TAG.SQUARE_OPEN)]
+    KWs += [("[!", TAG.SQUARE_OPEN_EXCL)]
+    KWs += [("]", TAG.SQUARE_CLOSED)]
+    #
+    KWs += [(";", TAG.COMMENT)]
+    KWs += [("'", TAG.CHAR)]
+    KWs += [("{{", TAG.GENERIC_ANNOTATION)]
+    KWs += [('"', TAG.STR)]
+    KWs += [('x"', TAG.STR)]
+    KWs += [('r"', TAG.STR)]
+
     return KWs
 
 
 SIMPLE_TAGS = set([
-    TAG_COMPOUND_ASSIGN, TAG_COLON, TAG_COMMA, TAG_PAREN_OPEN,
-    TAG_PAREN_CLOSED, TAG_CURLY_CLOSED, TAG_SQUARE_CLOSED,
-    TAG_SQUARE_OPEN_EXCL, TAG_COMMENT,
+    TAG.COMPOUND_ASSIGN, TAG.COLON, TAG.COMMA, TAG.PAREN_OPEN,
+    TAG.PAREN_CLOSED, TAG.CURLY_CLOSED, TAG.SQUARE_CLOSED,
+    TAG.SQUARE_OPEN_EXCL, TAG.COMMENT, TAG.CHAR, TAG.STR,
 ])
 
 MAY_BE_PREFIX_TAGS = set([
-    TAG_OTHER_OP, TAG_PREFIX_OP, TAG_ASSIGN, TAG_SQUARE_OPEN,
-    TAG_CURLY_OPEN,    TAG_GENERIC_ANNOTATION,
+    TAG.OTHER_OP, TAG.PREFIX_OP, TAG.ASSIGN, TAG.SQUARE_OPEN,
+    TAG.CURLY_OPEN,  TAG.GENERIC_ANNOTATION,
 
 ])
 
@@ -182,7 +196,7 @@ def MakeInitialTrie(KWs):
             assert node[c] < len(trie), f"{kw} -- {node[c]}"
             node = trie[node[c]]
         assert node[last] == -1, f"[{kw}] {node[last]} {node is trie[0]}"
-        node[last] = tag << 1
+        node[last] = tag.value << 1
 
     def add_kw(kw, tag, non_succ):
         # keyword is only valid if not followed by char in non_succ
@@ -197,7 +211,7 @@ def MakeInitialTrie(KWs):
             c = ord(cc)
             if node[c] == -1:
                 if n == len(kw) - 1 and non_succ == set():
-                    node[c] = tag << 1
+                    node[c] = tag.value << 1
                     return
                 node[c] = add_node()
             # no kw can be prefix of another
@@ -208,7 +222,7 @@ def MakeInitialTrie(KWs):
         for i in range(len(node)):
             if i not in non_succ:
                 if node[i] == -1:
-                    node[i] = (tag << 1) + 1
+                    node[i] = (tag.value << 1) + 1
 
     # KWs = list(sorted(KWs))[0:1]
 
@@ -216,7 +230,7 @@ def MakeInitialTrie(KWs):
     # the sortorder ensures that a prefixes are procressed later
     for kw, tag in reversed(sorted(KWs)):
         # print (kw, tag)
-        if tag == TAG_KW:
+        if tag == TAG.KW:
             if kw.endswith("!"):
                 add_kw_simple(kw, tag)
             else:
@@ -264,6 +278,95 @@ def GenerateCodeCC(fout):
 
     print("}", file=fout)
 
+
+@dataclasses.dataclass()
+class TK:
+    kind: TAG
+    srcloc: cwast.SrcLoc
+    text: str
+    column: int
+    comments: list = dataclasses.field(default_factory=list)
+    annotations: list = dataclasses.field(default_factory=list)
+
+    def has_annotation(self, a: str) -> bool:
+        for x in self.annotations:
+            if x.text == a:
+                return True
+        return False
+
+    def __repr__(self):
+        return f"{self.srcloc}:{self.column} {self.text} [{self.kind.name}]"
+
+
+class LexerRaw:
+    """ No Peek ability"""
+
+    def __init__(self: Any, filename: str, fp: io.TextIOWrapper):
+        self._fileamame: str = sys.intern(filename)
+        self._fp = fp
+        self._line_no = 0
+        self._col_no = 0
+        self._current_line = ""
+
+    def _GetSrcLoc(self) -> cwast.SrcLoc:
+        return cwast.SrcLoc(self._fileamame, self._line_no)
+
+    def _fill_line(self):
+        self._line_no += 1
+        line = self._fp.readline()
+        return line
+
+    def _get_lines_until_match(self, regex) -> list[str]:
+        """use for multiline strings"""
+        assert not self._current_line
+        out = []
+        while True:
+            self._current_line = self._fill_line()
+            if not self._current_line:
+                cwast.CompilerError("", "unterminated string")
+            m = regex.match(self._current_line)
+            if m and m.group(0).endswith('"""'):
+                token = m.group(0)
+                self._col_no += len(token)
+                self._current_line = self._current_line[len(token):]
+                out.append(token)
+                break
+            out.append(self._current_line)
+        return out
+
+
+    def next_token(self) -> TK:
+        if not self._current_line:
+            self._col_no = 0
+            self._current_line = self._fill_line()
+        if not self._current_line:
+            return TK(TAG.SPECIAL_EOF, cwast.INVALID_SRCLOC, "", 0)
+        if False:
+            m = TOKEN_RE.match(self._current_line)
+            if not m:
+                cwast.CompilerError(
+                    self._GetSrcLoc(), f"bad line or character: [{self._current_line}]")
+            kind = TK_KIND[m.lastgroup]
+            token = m.group(0)
+            col = self._col_no
+            self._col_no += len(token)
+            self._current_line = self._current_line[len(token):]
+            if kind in (TK_KIND.WS, TK_KIND.EOL):
+                return self.next_token()
+
+            sl = self._GetSrcLoc()
+
+            if kind == TK_KIND.GENERIC_ANNOTATION:
+                kind = TK_KIND.ANNOTATION
+                # remove curlies
+                token = token[2:-2]
+            elif kind in (TK_KIND.MSTR, TK_KIND.RMSTR, TK_KIND.XMSTR):
+                if not token.endswith('"""'):
+                    rest = self._get_lines_until_match(
+                        _MSTR_TERMINATION_REGEX[kind])
+                    token += "".join(rest)
+                kind = TK_KIND.STR
+            return TK(kind, sl, sys.intern(token),  col)
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
