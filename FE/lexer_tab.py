@@ -14,8 +14,24 @@ _ALL_CHARS = set(range(256))
 
 NODE_NULL = -1
 
+NODE = list[int]
+TRIE = list[list[int]]
 
-def OptimizeTrie(trie):
+
+TAG_KW = 2000
+TAG_KW_SENTINEL = 2001
+TAG_CA = 2004
+TAG_CA_SENTINEL = 2005
+TAG_BIN = 2008
+TAG_BIN_SENTINEL = 2009
+
+
+def IsEmptyNode(n: NODE):
+    for x in n:
+        if x != -1: return False
+    return True
+
+def OptimizeTrie(trie: TRIE) -> TRIE:
 
     print("Optimize")
     nodes = list(sorted((b, a, len(b) - b.count(-1))
@@ -30,7 +46,7 @@ def OptimizeTrie(trie):
             trans[curr[1]] = last[1]
         else:
             last = curr
-    print(trans)
+    # print(trans)
     new_indices = []
     n = 0
     for t in trans:
@@ -42,7 +58,7 @@ def OptimizeTrie(trie):
             new_indices.append(-1)
 
 
-    def rewrite(t):
+    def rewrite(t: NODE) -> NODE:
          for n, c in enumerate(t):
              if c == -1 or c > len(trie):
                  continue
@@ -57,7 +73,7 @@ def OptimizeTrie(trie):
     return out
 
 
-def VerifyTrie(trie, KWs):
+def VerifyTrie(trie: TRIE, KWs):
     print("\nVERIFY")
     for kw, tag in sorted(KWs):
         # print (kw, tag)
@@ -70,8 +86,8 @@ def VerifyTrie(trie, KWs):
             assert x != -1, f"{kw} {n} {cc}"
             node = trie[x]
 
-def DumpStats(trie):
-    print("\nTRIE ANALYSIS")
+def DumpStats(trie: TRIE):
+    print("TRIE ANALYSIS")
     print(f"Nodes: {len(trie)}")
     histo = collections.defaultdict(int)
     for t in trie:
@@ -116,22 +132,22 @@ def MakeTrieForKW():
                         node[i] = tag
 
     KWs = []
-    KWs += [(kw, 1001) for kw in cwast.KeyWordsForConcreteSyntax()]
-    KWs += [(kw, 1002) for kw in cwast.ASSIGNMENT_SHORTCUT]
-    KWs += [(kw, 1003) for kw in cwast.BinaryOpsForConcreteSyntax()]
+    KWs += [(kw, TAG_KW) for kw in cwast.KeyWordsForConcreteSyntax()]
+    KWs += [(kw, TAG_CA) for kw in cwast.ASSIGNMENT_SHORTCUT]
+    KWs += [(kw, TAG_BIN) for kw in cwast.BinaryOpsForConcreteSyntax()]
     # KWs = list(sorted(KWs))[0:1]
 
     print("\nCREATE")
     for kw, tag in reversed(sorted(KWs)):
         # print (kw, tag)
-        if tag == 1001:
+        if tag == TAG_KW:
             if kw.endswith("!"):
                 add_kw(kw, tag, None)
             else:
                 add_kw(kw, tag, _ID_CHARS)
-        elif tag == 1002:
+        elif tag == TAG_CA:
             add_kw(kw, tag, None)
-        elif tag == 1003:
+        elif tag == TAG_BIN:
             add_kw(kw, tag, set())
     #
     VerifyTrie(trie, KWs)
