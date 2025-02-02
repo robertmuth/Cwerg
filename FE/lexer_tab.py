@@ -143,7 +143,8 @@ def GetAllKWAndOps():
             for kw in cwast.BinaryOpsForConcreteSyntax()]
     KWs += [(kw, TK_KIND.PREFIX_OP)
             for kw in cwast.UnaryOpsForConcreteSyntax()]
-    KWs += [(kw, TK_KIND.KW) for kw in ["pub", "ref", "poly", "wrapped"]]
+    KWs += [(kw, TK_KIND.ANNOTATION)
+            for kw in ["pub", "ref", "poly", "wrapped"]]
     KWs += [(kw, TK_KIND.KW) for kw in ["else", "set", "for", "while",
                                         "tryset", "trylet", "trylet!"]]
     KWs += [("=", TK_KIND.ASSIGN)]
@@ -235,7 +236,7 @@ def MakeInitialTrie(KWs):
     # the sortorder ensures that a prefixes are procressed later
     for kw, tag in reversed(sorted(KWs)):
         # print (kw, tag)
-        if tag == TK_KIND.KW:
+        if tag in (TK_KIND.KW, TK_KIND.ANNOTATION):
             if kw.endswith("!"):
                 add_kw_simple(kw, tag)
             else:
@@ -356,7 +357,6 @@ class LexerRaw:
         line = self._fp.readline()
         return line
 
-
     def _SkipWS(self):
         while True:
             for n, c in enumerate(self._current_line):
@@ -393,7 +393,6 @@ class LexerRaw:
         self._current_line = self._current_line[size:]
         return TK(TK_KIND.STR, sl, sys.intern(data),  col)
 
-
     def next_token(self) -> TK:
         self._SkipWS()
         if not self._current_line:
@@ -403,12 +402,12 @@ class LexerRaw:
         if size == 0:
             first = self._current_line[0]
             # we must be dealing with an ID or NUM
-            if first  <= "9" and first != '$':
+            if first <= "9" and first != '$':
                 kind = TK_KIND.NUM
                 # what we are really trying todo is testing membership in "+-.0123456789"
                 m = NUM_RE.search(self._current_line)
             else:
-                kind = TK_KIND.NUM
+                kind = TK_KIND.ID
                 m = ID_RE.search(self._current_line)
             assert m, f"{repr(self._current_line)}"
             size = m.end()
