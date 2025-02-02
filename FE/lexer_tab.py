@@ -309,6 +309,7 @@ class TK:
     def __repr__(self):
         return f"{self.srcloc}:{self.column} {self.text} [{self.kind.name}]"
 
+GENERIC_ANNOTATION_RE = re.compile(r"^\{\{[_a-zA-Z]+\}\}")
 
 ID_RE = re.compile(
     "^" + r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?")
@@ -409,16 +410,12 @@ class LexerRaw:
             else:
                 kind = TK_KIND.ID
                 m = ID_RE.search(self._current_line)
-            assert m, f"{repr(self._current_line)}"
             size = m.end()
-            assert size > 0, f"{repr(self._current_line)}"
         if kind == TK_KIND.COMMENT:
             size = len(self._current_line)
         elif kind == TK_KIND.CHAR:
             m = CHAR_RE.search(self._current_line)
-            assert m, f"{repr(self._current_line)}"
             size = m.end()
-            assert size > 0, f"{repr(self._current_line)}"
         elif kind == TK_KIND.STR:
             first = self._current_line[0]
             if first == '"':
@@ -429,9 +426,10 @@ class LexerRaw:
                 return self._HandleTripleQuotedStrings(*ALL_MSTR_RE[first])
             else:
                 m = ALL_STR_RE[first].search(self._current_line)
-                assert m, f"{repr(self._current_line)}"
                 size = m.end()
-                assert size > 0, f"{repr(self._current_line)}"
+        elif kind == TK_KIND.GENERIC_ANNOTATION:
+            m = GENERIC_ANNOTATION_RE.search(self._current_line)
+            size = m.end()
         token = self._current_line[:size]
         col = self._col_no
         self._col_no += len(token)
@@ -441,6 +439,56 @@ class LexerRaw:
             # remove curlies
             token = token[2:-2]
         return TK(kind, sl, sys.intern(token),  col)
+
+
+class Lexer:
+
+    def __init__(self, lexer: LexerRaw):
+        self._lexer: LexerRaw = lexer
+        self._peek_cache: Optional[TK] = None
+
+    def next(self) -> TK:
+        if self._peek_cache:
+            out = self._peek_cache
+            self._peek_cache = None
+            return out
+        tk: TK = self._lexer.next_token()
+        comments = []
+        while tk.kind is TK_KIND.COMMENT:
+            comments.append(tk)
+            tk = self._lexer.next_token()
+        annotations = []
+        while tk.kind is TK_KIND.ANNOTATION:
+            annotations.append(tk)
+            tk = self._lexer.next_token()
+        out: TK = tk
+        out.comments = comments
+        out.annotations = annotations
+        # if we have annotations the node starts at the first one
+        for a in annotations:
+            if a.srcloc.lineno == out.srcloc.lineno:
+                out.column = a.column
+                break
+        return out
+
+    def peek(self) -> TK:
+        if not self._peek_cache:
+            self._peek_cache = self.next()
+        return self._peek_cache
+
+    def match(self, kind: TK_KIND, text=None) -> bool:
+        tk = self.peek()
+        if tk.kind != kind or text is not None and tk.text != text:
+            return False
+        self.next()
+        return True
+
+    def match_or_die(self, kind: TK_KIND, text=None):
+        tk = self.peek()
+        if tk.kind != kind or text is not None and tk.text != text:
+            cwast.CompilerError(
+                tk.srcloc, f"Expected {kind} [{text}], got {tk.kind} [{tk.text}]")
+        return self.next()
 
 
 if __name__ == "__main__":
