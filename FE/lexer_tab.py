@@ -4,30 +4,32 @@ import collections
 import enum
 import sys
 import io
-
+import re
 import dataclasses
 
 from typing import Any, Optional
 
 from FE import cwast
 from Util import cgen
+from FE import parse_sexpr
 
 
 _DIGITS = "0123456789"
 _LOWER = "abcdefghijklmnopqrstuvwxyz"
 _UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-_ID_CHARS = set(ord(c) for c in "_" + _DIGITS + _LOWER + _UPPER)
-_ALL_CHARS = set(range(256))
-
+_ID_CHARS = set(ord(c) for c in "_$" + _DIGITS + _LOWER + _UPPER)
+_NUM_CHARS = set(ord(c) for c in ".01234567890")
+_NO_CHARS = set()
 
 NODE_NULL = -1
 
 NODE = list[int]
 TRIE = list[list[int]]
 
+
 @enum.unique
-class TAG(enum.Enum):
+class TK_KIND(enum.Enum):
     KW = 1000
     COMPOUND_ASSIGN = 1001
     OTHER_OP = 1002
@@ -48,7 +50,9 @@ class TAG(enum.Enum):
     GENERIC_ANNOTATION = 1016
     CHAR = 1017
     STR = 1018
-    EOF = 1019
+    NUM = 1020
+    ID = 1021
+    SPECIAL_EOF = 1022
 
 
 def IsEmptyNode(n: NODE):
@@ -105,9 +109,9 @@ def FindInTrie(trie: TRIE, s: str) -> tuple[int, int]:
             return 0, 0
         if x >= len(trie):
             if x & 1:
-                return n, TAG(x >> 1)
+                return n, TK_KIND(x >> 1)
             else:
-                return n + 1, TAG(x >> 1)
+                return n + 1, TK_KIND(x >> 1)
         node = trie[x]
     return 0, 0
 
@@ -132,44 +136,43 @@ def DumpStats(trie: TRIE):
 
 def GetAllKWAndOps():
     KWs = []
-    KWs += [(kw, TAG.KW) for kw in cwast.KeyWordsForConcreteSyntax()]
-    KWs += [(kw, TAG.COMPOUND_ASSIGN) for kw in cwast.ASSIGNMENT_SHORTCUT]
-    KWs += [(kw, TAG.OTHER_OP) for kw in cwast.BinaryOpsForConcreteSyntax()]
-    KWs += [(kw, TAG.PREFIX_OP) for kw in cwast.UnaryOpsForConcreteSyntax()]
-    KWs += [(kw, TAG.KW) for kw in ["pub", "ref", "poly", "wrapped"]]
-    KWs += [(kw, TAG.KW) for kw in ["else", "set", "for", "while",
+    KWs += [(kw, TK_KIND.KW) for kw in cwast.KeyWordsForConcreteSyntax()]
+    KWs += [(kw, TK_KIND.COMPOUND_ASSIGN) for kw in cwast.ASSIGNMENT_SHORTCUT]
+    KWs += [(kw, TK_KIND.OTHER_OP) for kw in cwast.BinaryOpsForConcreteSyntax()]
+    KWs += [(kw, TK_KIND.PREFIX_OP) for kw in cwast.UnaryOpsForConcreteSyntax()]
+    KWs += [(kw, TK_KIND.KW) for kw in ["pub", "ref", "poly", "wrapped"]]
+    KWs += [(kw, TK_KIND.KW) for kw in ["else", "set", "for", "while",
                                     "tryset", "trylet", "trylet!"]]
-    KWs += [("=", TAG.ASSIGN)]
-    KWs += [(",", TAG.COMMA)]
-    KWs += [(":", TAG.COLON)]
+    KWs += [("=", TK_KIND.ASSIGN)]
+    KWs += [(",", TK_KIND.COMMA)]
+    KWs += [(":", TK_KIND.COLON)]
     #
-    KWs += [("(", TAG.PAREN_OPEN)]
-    KWs += [(")", TAG.PAREN_CLOSED)]
-    KWs += [("{", TAG.CURLY_OPEN)]
-    KWs += [("}", TAG.CURLY_CLOSED)]
-    KWs += [("[", TAG.SQUARE_OPEN)]
-    KWs += [("[!", TAG.SQUARE_OPEN_EXCL)]
-    KWs += [("]", TAG.SQUARE_CLOSED)]
+    KWs += [("(", TK_KIND.PAREN_OPEN)]
+    KWs += [(")", TK_KIND.PAREN_CLOSED)]
+    KWs += [("{", TK_KIND.CURLY_OPEN)]
+    KWs += [("}", TK_KIND.CURLY_CLOSED)]
+    KWs += [("[", TK_KIND.SQUARE_OPEN)]
+    KWs += [("[!", TK_KIND.SQUARE_OPEN_EXCL)]
+    KWs += [("]", TK_KIND.SQUARE_CLOSED)]
     #
-    KWs += [(";", TAG.COMMENT)]
-    KWs += [("'", TAG.CHAR)]
-    KWs += [("{{", TAG.GENERIC_ANNOTATION)]
-    KWs += [('"', TAG.STR)]
-    KWs += [('x"', TAG.STR)]
-    KWs += [('r"', TAG.STR)]
-
+    KWs += [(";", TK_KIND.COMMENT)]
+    KWs += [("'", TK_KIND.CHAR)]
+    KWs += [("{{", TK_KIND.GENERIC_ANNOTATION)]
+    KWs += [('"', TK_KIND.STR)]
+    KWs += [('x"', TK_KIND.STR)]
+    KWs += [('r"', TK_KIND.STR)]
     return KWs
 
 
 SIMPLE_TAGS = set([
-    TAG.COMPOUND_ASSIGN, TAG.COLON, TAG.COMMA, TAG.PAREN_OPEN,
-    TAG.PAREN_CLOSED, TAG.CURLY_CLOSED, TAG.SQUARE_CLOSED,
-    TAG.SQUARE_OPEN_EXCL, TAG.COMMENT, TAG.CHAR, TAG.STR,
+    TK_KIND.COMPOUND_ASSIGN, TK_KIND.COLON, TK_KIND.COMMA, TK_KIND.PAREN_OPEN,
+    TK_KIND.PAREN_CLOSED, TK_KIND.CURLY_CLOSED, TK_KIND.SQUARE_CLOSED,
+    TK_KIND.SQUARE_OPEN_EXCL, TK_KIND.COMMENT, TK_KIND.CHAR, TK_KIND.STR,
 ])
 
 MAY_BE_PREFIX_TAGS = set([
-    TAG.OTHER_OP, TAG.PREFIX_OP, TAG.ASSIGN, TAG.SQUARE_OPEN,
-    TAG.CURLY_OPEN,  TAG.GENERIC_ANNOTATION,
+    TK_KIND.OTHER_OP, TK_KIND.PREFIX_OP, TK_KIND.ASSIGN, TK_KIND.SQUARE_OPEN,
+    TK_KIND.CURLY_OPEN,  TK_KIND.GENERIC_ANNOTATION,
 
 ])
 
@@ -226,11 +229,10 @@ def MakeInitialTrie(KWs):
 
     # KWs = list(sorted(KWs))[0:1]
 
-    print("\nCREATE")
     # the sortorder ensures that a prefixes are procressed later
     for kw, tag in reversed(sorted(KWs)):
         # print (kw, tag)
-        if tag == TAG.KW:
+        if tag == TK_KIND.KW:
             if kw.endswith("!"):
                 add_kw_simple(kw, tag)
             else:
@@ -238,7 +240,8 @@ def MakeInitialTrie(KWs):
         elif tag in SIMPLE_TAGS:
             add_kw_simple(kw, tag)
         elif tag in MAY_BE_PREFIX_TAGS:
-            add_kw(kw, tag, set())
+            excl = _NUM_CHARS if kw in ("+", "-") else _NO_CHARS
+            add_kw(kw, tag, excl)
         else:
             assert False
     #
@@ -246,7 +249,7 @@ def MakeInitialTrie(KWs):
     return trie
 
 
-def MakeTrieForKW():
+def MakeTrieNoisy():
     KWs = GetAllKWAndOps()
     trie = MakeInitialTrie(KWs)
     #
@@ -260,9 +263,9 @@ def MakeTrieForKW():
             break
         DumpStats(trie)
         VerifyTrie(trie, KWs)
+    return trie
 
-
-def GenerateCodeCC(fout):
+def MakeTrie():
     KWs = GetAllKWAndOps()
     trie = MakeInitialTrie(KWs)
     for i in range(1000):
@@ -270,8 +273,11 @@ def GenerateCodeCC(fout):
         trie = OptimizeTrie(trie)
         if len(trie) == old_len:
             break
+    return trie
 
-        VerifyTrie(trie, KWs)
+def GenerateCodeCC(fout):
+    trie = MakeTrie()
+
     # we reserver a few bytes for terminal markers
     assert len(trie) < 240
     print("int KeywordAndOpRecognizer[128][] = {", file=fout)
@@ -281,7 +287,7 @@ def GenerateCodeCC(fout):
 
 @dataclasses.dataclass()
 class TK:
-    kind: TAG
+    kind: TK_KIND
     srcloc: cwast.SrcLoc
     text: str
     column: int
@@ -297,6 +303,8 @@ class TK:
     def __repr__(self):
         return f"{self.srcloc}:{self.column} {self.text} [{self.kind.name}]"
 
+ID_RE = re.compile("^" + r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?")
+NUM_RE = re.compile("^" + parse_sexpr.RE_STR_NUM)
 
 class LexerRaw:
     """ No Peek ability"""
@@ -307,6 +315,7 @@ class LexerRaw:
         self._line_no = 0
         self._col_no = 0
         self._current_line = ""
+        self._trie: TRIE = MakeTrie()
 
     def _GetSrcLoc(self) -> cwast.SrcLoc:
         return cwast.SrcLoc(self._fileamame, self._line_no)
@@ -334,42 +343,55 @@ class LexerRaw:
             out.append(self._current_line)
         return out
 
+    def _SkipWS(self):
+        while True:
+            for n, c in enumerate(self._current_line):
+                if c not in (' ', '\t', '\n'):
+                    self._col_no += n
+                    self._current_line = self._current_line[n:]
+                    return
+            else:
+                self._col_no = 0
+                self._current_line = self._fill_line()
+                if not self._current_line:
+                    # eof
+                    return
 
     def next_token(self) -> TK:
+        self._SkipWS()
         if not self._current_line:
-            self._col_no = 0
-            self._current_line = self._fill_line()
-        if not self._current_line:
-            return TK(TAG.SPECIAL_EOF, cwast.INVALID_SRCLOC, "", 0)
-        if False:
-            m = TOKEN_RE.match(self._current_line)
-            if not m:
-                cwast.CompilerError(
-                    self._GetSrcLoc(), f"bad line or character: [{self._current_line}]")
-            kind = TK_KIND[m.lastgroup]
-            token = m.group(0)
-            col = self._col_no
-            self._col_no += len(token)
-            self._current_line = self._current_line[len(token):]
-            if kind in (TK_KIND.WS, TK_KIND.EOL):
-                return self.next_token()
-
-            sl = self._GetSrcLoc()
-
-            if kind == TK_KIND.GENERIC_ANNOTATION:
+            return TK(TK_KIND.SPECIAL_EOF, cwast.INVALID_SRCLOC, "", 0)
+        sl = self._GetSrcLoc()
+        size, kind = FindInTrie(self._trie, self._current_line)
+        if size == 0:
+            # we must be dealing with an ID or NUM
+            if self._current_line[0] <= "9":
+                kind = TK_KIND.NUM
+                # what we are really trying todo is testing membership in "+-.0123456789"
+                m = NUM_RE.search(self._current_line)
+            else:
+                kind = TK_KIND.NUM
+                m = ID_RE.search(self._current_line)
+            assert m, f"{repr(self._current_line)}"
+            size = m.end()
+            assert size > 0, f"{repr(self._current_line)}"
+        if kind == TK_KIND.COMMENT:
+            size = len(self._current_line)
+        elif kind == TK_KIND.STR:
+            assert False
+        token = self._current_line[:size]
+        col = self._col_no
+        self._col_no += len(token)
+        self._current_line = self._current_line[len(token):]
+        if kind ==  TK_KIND.GENERIC_ANNOTATION:
                 kind = TK_KIND.ANNOTATION
                 # remove curlies
                 token = token[2:-2]
-            elif kind in (TK_KIND.MSTR, TK_KIND.RMSTR, TK_KIND.XMSTR):
-                if not token.endswith('"""'):
-                    rest = self._get_lines_until_match(
-                        _MSTR_TERMINATION_REGEX[kind])
-                    token += "".join(rest)
-                kind = TK_KIND.STR
-            return TK(kind, sl, sys.intern(token),  col)
+        return TK(kind, sl, sys.intern(token),  col)
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        MakeTrieForKW()
+        MakeTrieNoisy()
     elif sys.argv[1] == "gen_cc":
         cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)

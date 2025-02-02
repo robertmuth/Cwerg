@@ -2,8 +2,8 @@
 
 import sys
 
-from FE import lexer
-
+# from FE import lexer
+from FE import lexer_tab as lexer
 
 def Run():
     inp = lexer.LexerRaw("stdin", sys.stdin)
