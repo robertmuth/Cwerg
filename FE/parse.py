@@ -19,7 +19,7 @@ from collections.abc import Callable
 from FE import cwast
 from FE import pp
 from FE import pp_sexpr
-from FE import lexer
+from FE import lexer_tab as lexer
 
 logger = logging.getLogger(__name__)
 
