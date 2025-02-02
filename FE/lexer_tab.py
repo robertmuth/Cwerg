@@ -23,7 +23,7 @@ _ID_CHARS: set[int] = set(ord(c) for c in "_$" + _DIGITS + _LOWER + _UPPER)
 _NUM_CHARS: set[int] = set(ord(c) for c in ".01234567890")
 _NO_CHARS: set[int] = set()
 
-NODE_NULL = -1
+NODE_NULL = 0
 
 NODE = list[int]
 TRIE = list[list[int]]
@@ -106,7 +106,7 @@ def FindInTrie(trie: TRIE, s: str) -> tuple[int, int]:
     node = trie[0]
     for n, cc in enumerate(s):
         x = node[ord(cc)]
-        if x == -1:
+        if x == NODE_NULL:
             return 0, 0
         if x >= len(trie):
             if x & 1:
@@ -185,7 +185,7 @@ def MakeInitialTrie(KWs):
     trie = []
 
     def add_node():
-        node = [-1] * 129
+        node = [NODE_NULL] * 129
         trie.append(node)
         return len(trie) - 1
 
@@ -197,12 +197,12 @@ def MakeInitialTrie(KWs):
         node = trie[0]
         for cc in kw[:-1]:
             c = ord(cc)
-            if node[c] == -1:
+            if node[c] == NODE_NULL:
                 node[c] = add_node()
             # no kw can be prefix of another
             assert node[c] < len(trie), f"{kw} -- {node[c]}"
             node = trie[node[c]]
-        assert node[last] == -1, f"[{kw}] {node[last]} {node is trie[0]}"
+        assert node[last] == NODE_NULL, f"[{kw}] {node[last]} {node is trie[0]}"
         node[last] = tag.value << 1
 
     def add_kw(kw, tag, non_succ):
@@ -216,7 +216,7 @@ def MakeInitialTrie(KWs):
         node = trie[0]
         for n, cc in enumerate(kw):
             c = ord(cc)
-            if node[c] == -1:
+            if node[c] == NODE_NULL:
                 if n == len(kw) - 1 and non_succ == set():
                     node[c] = tag.value << 1
                     return
@@ -228,7 +228,7 @@ def MakeInitialTrie(KWs):
         # handle terminators
         for i in range(len(node)):
             if i not in non_succ:
-                if node[i] == -1:
+                if node[i] == NODE_NULL:
                     node[i] = (tag.value << 1) + 1
 
     # KWs = list(sorted(KWs))[0:1]
@@ -270,14 +270,15 @@ def MakeTrieNoisy():
     return trie
 
 
-def MakeTrie():
+def MakeTrie(optimize):
     KWs = GetAllKWAndOps()
     trie = MakeInitialTrie(KWs)
-    for i in range(1000):
-        old_len = len(trie)
-        trie = OptimizeTrie(trie)
-        if len(trie) == old_len:
-            break
+    if optimize:
+        for i in range(1000):
+            old_len = len(trie)
+            trie = OptimizeTrie(trie)
+            if len(trie) == old_len:
+                break
     return trie
 
 
@@ -348,7 +349,7 @@ class LexerRaw:
         self._line_no = 0
         self._col_no = 0
         self._current_line = ""
-        self._trie: TRIE = MakeTrie()
+        self._trie: TRIE = MakeTrie(False)
 
     def _GetSrcLoc(self) -> cwast.SrcLoc:
         return cwast.SrcLoc(self._fileamame, self._line_no)

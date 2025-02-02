@@ -2,8 +2,8 @@
 
 import sys
 
-#from FE import lexer
 from FE import lexer_tab as lexer
+
 
 def Run():
     inp = lexer.LexerRaw("stdin", sys.stdin)
@@ -12,6 +12,16 @@ def Run():
         kind = tk.kind
         if kind is lexer.TK_KIND.SPECIAL_EOF:
             break
-        print (f"{kind.name}")
+        print(f"{kind.name} {tk.srcloc.lineno} {tk.column} {tk.text}")
+
+
 if __name__ == "__main__":
-    Run()
+    if 0:
+        from cProfile import Profile
+        from pstats import SortKey, Stats
+        with Profile() as profile:
+            ret = Run()
+            Stats(profile).strip_dirs().sort_stats(SortKey.CALLS).print_stats()
+            exit(ret)
+    else:
+        Run()
