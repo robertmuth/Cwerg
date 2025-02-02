@@ -12,6 +12,7 @@ from typing import Any, Optional
 from FE import cwast
 from Util import cgen
 from FE import parse_sexpr
+from FE import string_re
 
 
 _DIGITS = "0123456789"
@@ -138,11 +139,13 @@ def GetAllKWAndOps():
     KWs = []
     KWs += [(kw, TK_KIND.KW) for kw in cwast.KeyWordsForConcreteSyntax()]
     KWs += [(kw, TK_KIND.COMPOUND_ASSIGN) for kw in cwast.ASSIGNMENT_SHORTCUT]
-    KWs += [(kw, TK_KIND.OTHER_OP) for kw in cwast.BinaryOpsForConcreteSyntax()]
-    KWs += [(kw, TK_KIND.PREFIX_OP) for kw in cwast.UnaryOpsForConcreteSyntax()]
+    KWs += [(kw, TK_KIND.OTHER_OP)
+            for kw in cwast.BinaryOpsForConcreteSyntax()]
+    KWs += [(kw, TK_KIND.PREFIX_OP)
+            for kw in cwast.UnaryOpsForConcreteSyntax()]
     KWs += [(kw, TK_KIND.KW) for kw in ["pub", "ref", "poly", "wrapped"]]
     KWs += [(kw, TK_KIND.KW) for kw in ["else", "set", "for", "while",
-                                    "tryset", "trylet", "trylet!"]]
+                                        "tryset", "trylet", "trylet!"]]
     KWs += [("=", TK_KIND.ASSIGN)]
     KWs += [(",", TK_KIND.COMMA)]
     KWs += [(":", TK_KIND.COLON)]
@@ -265,6 +268,7 @@ def MakeTrieNoisy():
         VerifyTrie(trie, KWs)
     return trie
 
+
 def MakeTrie():
     KWs = GetAllKWAndOps()
     trie = MakeInitialTrie(KWs)
@@ -274,6 +278,7 @@ def MakeTrie():
         if len(trie) == old_len:
             break
     return trie
+
 
 def GenerateCodeCC(fout):
     trie = MakeTrie()
@@ -303,8 +308,15 @@ class TK:
     def __repr__(self):
         return f"{self.srcloc}:{self.column} {self.text} [{self.kind.name}]"
 
-ID_RE = re.compile("^" + r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?")
+
+ID_RE = re.compile(
+    "^" + r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?")
 NUM_RE = re.compile("^" + parse_sexpr.RE_STR_NUM)
+STR_RE = re.compile("^" + string_re.START + string_re.END)
+X_STR_RE = re.compile("^" + string_re.START + string_re.END)
+R_STR_RE = re.compile("^" + string_re.R_START + string_re.END)
+CHAR_RE = re.compile(r"^['](?:[^'\\]|[\\].)*(?:[']|$)")
+
 
 class LexerRaw:
     """ No Peek ability"""
@@ -357,6 +369,9 @@ class LexerRaw:
                     # eof
                     return
 
+    def _HandleTripleQuotedStrings(self, first):
+        assert False
+
     def next_token(self) -> TK:
         self._SkipWS()
         if not self._current_line:
@@ -377,16 +392,38 @@ class LexerRaw:
             assert size > 0, f"{repr(self._current_line)}"
         if kind == TK_KIND.COMMENT:
             size = len(self._current_line)
+        elif kind == TK_KIND.CHAR:
+            m = CHAR_RE.search(self._current_line)
+            assert m, f"{repr(self._current_line)}"
+            size = m.end()
+            assert size > 0, f"{repr(self._current_line)}"
         elif kind == TK_KIND.STR:
-            assert False
+            c = self._current_line[0]
+            if c == '"':
+                triple = self._current_line.startswith('"""')
+            else:
+                triple = self._current_line[1:].startswith('"""')
+            if triple:
+                return self._HandleTripleQuotedStrings(c)
+            else:
+                if c == '"':
+                    m = STR_RE.search(self._current_line)
+                elif c == 'x':
+                    m = X_STR_RE.search(self._current_line)
+                else:
+                    assert c == 'r'
+                    m = R_STR_RE.search(self._current_line)
+                assert m, f"{repr(self._current_line)}"
+                size = m.end()
+                assert size > 0, f"{repr(self._current_line)}"
         token = self._current_line[:size]
         col = self._col_no
         self._col_no += len(token)
         self._current_line = self._current_line[len(token):]
-        if kind ==  TK_KIND.GENERIC_ANNOTATION:
-                kind = TK_KIND.ANNOTATION
-                # remove curlies
-                token = token[2:-2]
+        if kind == TK_KIND.GENERIC_ANNOTATION:
+            kind = TK_KIND.ANNOTATION
+            # remove curlies
+            token = token[2:-2]
         return TK(kind, sl, sys.intern(token),  col)
 
 
