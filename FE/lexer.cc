@@ -23,9 +23,6 @@ void InitLexer() {
   for (uint8_t c : " \t\n") {
     CType[c] |= kCTypeWhitespace;
   }
-  for (uint8_t c : "<>=!*/+-%&|~:.?,") {
-    CType[c] |= kCTypeOperator;
-  }
   CType['_'] |= kCTypeNameStart | kCTypeNameRest;
   for (uint8_t x = 0; x < 26; x++) {
     CType['a' + x] |= kCTypeNameStart | kCTypeNameRest;
@@ -87,46 +84,9 @@ LexerRaw::LexerRaw(std::string_view input, uint32_t file)
   srcloc_.file = file;
 }
 
-#if 0
-TK_RAW HandleComment(uint32_t start_pos) {
-  while (input_[pos_] != '\n' && input_[pos_] != '\0') {
-    pos_++;
-    col_++;
-  }
-  if (input_[pos_] != '\n') {
-    pos_++;
-    col_ = 0;
-    line_++;
-  }
-  return {TK_KIND::COMMENT, start_pos, pos_ - start_pos};
-}
+uint32_t LexerRaw::HandleNum() { return 0; }
 
-TK_RAW HandleNumber(uint32_t start_pos) {
-  while (IsNumberRest(input_[pos_])) {
-    pos_++;
-    col_++;
-  }
-  return {TK_KIND::NUM, start_pos, pos_ - start_pos};
-}
-
-TK_RAW HandleName(uint32_t start_pos) {
-  bool seen_single_colon = false;
-  bool seen_double_colon = false;
-  uint8_t c;
-  while (IsNameRest(c = input_[pos_])) {
-    pos_++;
-    col_++;
-  }
-  if (c != ':') {
-    return {TK_KIND::ID, start_pos, pos_ - start_pos};
-  }
-}
-
-TK_RAW HandleCharConstant(uint32_t start_pos) {}
-
-TK_RAW HandleStringConstant(uint32_t start_pos) {}
-
-#endif
+uint32_t LexerRaw::HandleId() { return 0; }
 
 TK_RAW LexerRaw::Next() {
   uint8_t c;
@@ -141,12 +101,20 @@ TK_RAW LexerRaw::Next() {
       line_no_++;
     }
   }
+  // freeze SrcLoc
   srcloc_.col = col_no_;
   srcloc_.line = line_no_;
-  const uint32_t start_pos = pos_;
+  //
   Result result = trie_->Find(input_.substr(pos_));
   if (result.size == 0) {
-    ASSERT(false, "");
+    uint8_t c = input_[i];
+    if (IsNumberStart(c)) {
+      result.kind = TK_KIND::NUM;
+      result.size = HandleNum();
+    } else {
+      result.kind = TK_KIND::ID;
+      result.size = HandleId();
+    }
   }
   if (result.kind == TK_KIND::COMMENT) {
     result.size = end_ - pos_;
@@ -172,44 +140,25 @@ TK_RAW LexerRaw::Next() {
         ASSERT(c != '\n', "");
       }
     }
-  }
-
-  return TK_RAW{TK_KIND::SPECIAL_EOF};
-
-#if 0
-  if (c == '\0') {
-    return {TK_KIND::SPECIAL_EOF, std::string_view()};
-  }
-
-  if (c == '\'') {
-    return HandleCharConstant(start_pos);
-  }
-
-  if (c == '-' && input_[pos_ + 1] == '-') {
-    return HandleComment(start_pos);
-  }
-  if (c == '-' || c == '+') {
-    if (IsNumberStart(input_[pos_ + 1])) {
-      pos_ += 2;
-      col_ += 2;
-      return HandleNumber(start_pos);
+  } else if (result.kind == TK_KIND::GENERIC_ANNOTATION) {
+    for (uint32_t i = pos_ + 2; i < end_; i++) {
+      uint8_t c = input_[i];
+      if (c == '}') {
+        ASSERT(input_[i + 1] != '}', "");
+        result.size = i + 2 - pos_;
+        break;
+      }
+      ASSERT(c != '\n', "");
     }
   }
-  if (IsNumberStart(c)) {
-    pos_++;
-    col_++;
-    return HandleNumber(start_pos);
+  std::string_view token = input_.substr(result.size);
+  col_no_ += result.size;
+  pos_ += result.size;
+  if (result.kind == TK_KIND::GENERIC_ANNOTATION) {
+    result.kind = TK_KIND::ANNOTATION;
+    token = token.substr(2, token.size() - 4);
   }
-
-  if (IsNameStart(c)) {
-    pos_++;
-    col_++;
-    return HandleName(start_pos);
-  }
-
-  if (IsOperator(c)) {
-  }
-#endif
+  return TK_RAW{result.kind, token};
 }
 
 }  // namespace cwerg::fe

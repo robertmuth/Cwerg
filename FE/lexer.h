@@ -57,6 +57,9 @@ class LexerRaw {
   // hide implementation
   Trie* const trie_;
 
+  uint32 HandleId();
+  uint32 HandleNum();
+
  public:
   LexerRaw(std::string_view input, uint32_t file_id);
 
