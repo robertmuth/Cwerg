@@ -19,9 +19,9 @@ _DIGITS = "0123456789"
 _LOWER = "abcdefghijklmnopqrstuvwxyz"
 _UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-_ID_CHARS = set(ord(c) for c in "_$" + _DIGITS + _LOWER + _UPPER)
-_NUM_CHARS = set(ord(c) for c in ".01234567890")
-_NO_CHARS = set()
+_ID_CHARS: set[int] = set(ord(c) for c in "_$" + _DIGITS + _LOWER + _UPPER)
+_NUM_CHARS: set[int] = set(ord(c) for c in ".01234567890")
+_NO_CHARS: set[int] = set()
 
 NODE_NULL = -1
 
@@ -87,7 +87,7 @@ def OptimizeTrie(trie: TRIE) -> TRIE:
             # this node will be dropped
             new_indices.append(-1)
 
-    def rewrite(t: NODE) -> NODE:
+    def rewrite(t: NODE):
         for n, c in enumerate(t):
             if c == -1 or c > len(trie):
                 continue
@@ -184,8 +184,8 @@ def MakeInitialTrie(KWs):
     trie = []
 
     def add_node():
-        l = [-1] * 129
-        trie.append(l)
+        node = [-1] * 129
+        trie.append(node)
         return len(trie) - 1
 
     # root node
@@ -312,10 +312,29 @@ class TK:
 ID_RE = re.compile(
     "^" + r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?")
 NUM_RE = re.compile("^" + parse_sexpr.RE_STR_NUM)
+CHAR_RE = re.compile(r"^['](?:[^'\\]|[\\].)*(?:[']|$)")
+#
 STR_RE = re.compile("^" + string_re.START + string_re.END)
 X_STR_RE = re.compile("^" + string_re.START + string_re.END)
 R_STR_RE = re.compile("^" + string_re.R_START + string_re.END)
-CHAR_RE = re.compile(r"^['](?:[^'\\]|[\\].)*(?:[']|$)")
+ALL_STR_RE = {
+    '"': STR_RE,
+    'x': X_STR_RE,
+    'r': R_STR_RE,
+
+}
+#
+MSTR_START_RE = re.compile("^" + string_re.MULTI_START)
+X_MSTR_START_RE = re.compile("^" + string_re.MULTI_START_X)
+R_MSTR_START_RE = re.compile("^" + string_re.MULTI_START_R)
+MSTR_END_RE = re.compile("^" + string_re.MULTI_END)
+X_MSTR_END_RE = re.compile("^" + string_re.MULTI_END_X)
+R_MSTR_END_RE = re.compile("^" + string_re.MULTI_END_R)
+ALL_MSTR_RE = {
+    '"': (MSTR_START_RE, MSTR_END_RE),
+    'x': (X_MSTR_START_RE, X_MSTR_END_RE),
+    'r': (R_MSTR_START_RE, R_MSTR_END_RE),
+}
 
 
 class LexerRaw:
@@ -337,23 +356,6 @@ class LexerRaw:
         line = self._fp.readline()
         return line
 
-    def _get_lines_until_match(self, regex) -> list[str]:
-        """use for multiline strings"""
-        assert not self._current_line
-        out = []
-        while True:
-            self._current_line = self._fill_line()
-            if not self._current_line:
-                cwast.CompilerError("", "unterminated string")
-            m = regex.match(self._current_line)
-            if m and m.group(0).endswith('"""'):
-                token = m.group(0)
-                self._col_no += len(token)
-                self._current_line = self._current_line[len(token):]
-                out.append(token)
-                break
-            out.append(self._current_line)
-        return out
 
     def _SkipWS(self):
         while True:
@@ -369,8 +371,28 @@ class LexerRaw:
                     # eof
                     return
 
-    def _HandleTripleQuotedStrings(self, first):
-        assert False
+    def _HandleTripleQuotedStrings(self, start_re, end_re):
+        col = self._col_no
+        sl = self._GetSrcLoc()
+        m = start_re.search(self._current_line)
+        data = m.group(0)
+        if not data.endswith('"""'):
+            while True:
+                self._current_line = self._fill_line()
+                self._col_no = 0
+                if not self._current_line:
+                    cwast.CompilerError("", "unterminated string")
+                    m = end_re.search(self._current_line)
+                m = end_re.search(self._current_line)
+                if m:
+                    data += m.group(0)
+                    break
+                data += self._current_line
+        size = m.end()
+        self._col_no += size
+        self._current_line = self._current_line[size:]
+        return TK(TK_KIND.STR, sl, sys.intern(data),  col)
+
 
     def next_token(self) -> TK:
         self._SkipWS()
@@ -379,8 +401,9 @@ class LexerRaw:
         sl = self._GetSrcLoc()
         size, kind = FindInTrie(self._trie, self._current_line)
         if size == 0:
+            first = self._current_line[0]
             # we must be dealing with an ID or NUM
-            if self._current_line[0] <= "9":
+            if first  <= "9" and first != '$':
                 kind = TK_KIND.NUM
                 # what we are really trying todo is testing membership in "+-.0123456789"
                 m = NUM_RE.search(self._current_line)
@@ -398,21 +421,15 @@ class LexerRaw:
             size = m.end()
             assert size > 0, f"{repr(self._current_line)}"
         elif kind == TK_KIND.STR:
-            c = self._current_line[0]
-            if c == '"':
+            first = self._current_line[0]
+            if first == '"':
                 triple = self._current_line.startswith('"""')
             else:
                 triple = self._current_line[1:].startswith('"""')
             if triple:
-                return self._HandleTripleQuotedStrings(c)
+                return self._HandleTripleQuotedStrings(*ALL_MSTR_RE[first])
             else:
-                if c == '"':
-                    m = STR_RE.search(self._current_line)
-                elif c == 'x':
-                    m = X_STR_RE.search(self._current_line)
-                else:
-                    assert c == 'r'
-                    m = R_STR_RE.search(self._current_line)
+                m = ALL_STR_RE[first].search(self._current_line)
                 assert m, f"{repr(self._current_line)}"
                 size = m.end()
                 assert size > 0, f"{repr(self._current_line)}"
