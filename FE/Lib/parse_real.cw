@@ -27,7 +27,7 @@ fun dec_digit_val(c u8) u8:
 ; this macros capture i,n,s from the environment
 macro next_char# STMT_LIST($c ID, $error_body STMT_LIST)[]:
     if i >= n:
-        $error_body 
+        $error_body
 
     set $c = s[i]
     set i += 1
@@ -186,7 +186,7 @@ fun r64_dec_fast_helper(mant_orig u64, exp_orig s32, negative bool) r64:
         set mant /= 10
         set exp += 1
     if exp >= 309:
-        return negative ? -inf_r64 : +inf_r64
+        return negative ? -.inf_r64 : +.inf_r64
     if exp <= -309:
         return negative ? -0_r64 : +0_r64
     ; on x86-64 there is not conversion instruction from u64->r64
@@ -214,11 +214,11 @@ pub fun parse_r64(s span(u8)) ResultR64:
     if c == 'i':
         if i + 2 > n || s[i] != 'n' || s[i + 1] != 'f':
             return ParseError
-        return negative ? {: -inf_r64, i + 2} : {: +inf_r64, i + 2}
+        return negative ? {: -.inf_r64, i + 2} : {: +.inf_r64, i + 2}
     if c == 'n':
         if i + 2 > n || s[i] != 'a' || s[i + 1] != 'n':
             return ParseError
-        return negative ? {: -nan_r64, i + 2} : {: +nan_r64, i + 2}
+        return negative ? {: -.nan_r64, i + 2} : {: +.nan_r64, i + 2}
     if c == '0' && i <= n && s[i] == 'x':
         set i += 1
         return parse_r64_hex_helper(s, negative, i)

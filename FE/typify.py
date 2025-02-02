@@ -60,7 +60,7 @@ def address_can_be_taken(node) -> bool:
 
 
 def _NumCleanupAndTypeExtraction(num: str) -> tuple[str, cwast.BASE_TYPE_KIND]:
-    num = num.replace("_", "")
+    num = num.replace("_", "").replace(".nan", "nan").replace(".inf", "inf")
     suffix = ""
     if num[-4:] in ("uint", "sint"):
         suffix = num[-4:]

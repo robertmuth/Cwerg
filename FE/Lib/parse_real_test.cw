@@ -22,12 +22,12 @@ fun parse_r64(s span(u8)) r64:
 
 fun test_nan() void:
     ; sanity checks for NANs
-    test::AssertNeR64#(+inf_r64, -inf_r64)
-    test::AssertNeR64#(+nan_r64, -nan_r64)
-    test::AssertEqR64#(-nan_r64, parse_r64("-nan"))
-    test::AssertEqR64#(+nan_r64, parse_r64("+nan"))
-    test::AssertEqR64#(+inf_r64, parse_r64("+inf"))
-    test::AssertEqR64#(-inf_r64, parse_r64("-inf"))
+    test::AssertNeR64#(+.inf_r64, -.inf_r64)
+    test::AssertNeR64#(+.nan_r64, -.nan_r64)
+    test::AssertEqR64#(-.nan_r64, parse_r64("-nan"))
+    test::AssertEqR64#(+.nan_r64, parse_r64("+nan"))
+    test::AssertEqR64#(+.inf_r64, parse_r64("+inf"))
+    test::AssertEqR64#(-.inf_r64, parse_r64("-inf"))
 
 global REL_ERR1 r64 = 0.5e-15
 
@@ -55,8 +55,8 @@ fun test_dec() void:
     test::AssertEqR64#(666_r64, parse_r64("666.00000"))
     test::AssertEqR64#(0_r64, parse_r64("1e-500"))
     test::AssertEqR64#(-0_r64, parse_r64("-1e-500"))
-    test::AssertEqR64#(+inf_r64, parse_r64("1e+500"))
-    test::AssertEqR64#(-inf_r64, parse_r64("-1e+500"))
+    test::AssertEqR64#(+.inf_r64, parse_r64("1e+500"))
+    test::AssertEqR64#(-.inf_r64, parse_r64("-1e+500"))
     ; this are slightly less accurate on x86-64 than on arm
     test::AssertGenericEq#(
             {cmp::r64r: 3.141592653589793238462643, REL_ERR1},
