@@ -305,7 +305,11 @@ class TK:
 GENERIC_ANNOTATION_RE = re.compile(r"^\{\{[_a-zA-Z]+\}\}")
 
 ID_RE = re.compile(
-    "^" + r"[$_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?")
+    "^" + r"[_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?(?::[_a-zA-Z0-9]+)?[#]?")
+
+MACRO_ID_RE = re.compile(
+    "^" + r"[$][_a-zA-Z][_a-zA-Z0-9]*")
+
 NUM_RE = re.compile("^" + parse_sexpr.RE_STR_NUM)
 CHAR_RE = re.compile(r"^['](?:[^'\\]|[\\].)*(?:[']|$)")
 #
@@ -400,6 +404,9 @@ class LexerRaw:
                 kind = TK_KIND.NUM
                 # what we are really trying todo is testing membership in "+-.0123456789"
                 m = NUM_RE.search(self._current_line)
+            elif first == "$":
+                kind = TK_KIND.ID
+                m = MACRO_ID_RE.search(self._current_line)
             else:
                 kind = TK_KIND.ID
                 m = ID_RE.search(self._current_line)

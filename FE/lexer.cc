@@ -55,7 +55,6 @@ void InitLexer() {
   }
   //
   CType['_'] |= kCTypeNameStart | kCTypeNameRest;
-  CType['$'] |= kCTypeNameStart;
 
   for (uint8_t x = 0; x < 26; x++) {
     CType['a' + x] |= kCTypeNameStart | kCTypeNameRest;
@@ -128,7 +127,93 @@ LexerRaw::LexerRaw(std::string_view input, uint32_t file)
 
 uint32_t LexerRaw::HandleNum() { return 0; }
 
-uint32_t LexerRaw::HandleId() { return 0; }
+#define HANDLE_ID_COMPONENT              \
+  if (!IsNameStart(input_[i])) return 0; \
+  i++;                                   \
+  while (IsNameRest(input_[i])) {        \
+    i++;                                 \
+  }
+
+uint32_t LexerRaw::HandleMacroId() {
+  uint32_t i = pos_;
+  if (input_[i] != '$') return 0;
+  i++;
+  HANDLE_ID_COMPONENT
+  return i;
+}
+
+// examples
+// a
+// a#
+// a::b
+// a:b
+// a::b:c
+uint32_t LexerRaw::HandleId() {
+  bool seen_single_colon = false;
+
+  uint32_t i = pos_;
+
+  HANDLE_ID_COMPONENT
+  const uint8_t c = input_[i];
+  if (c == '#') return i + 1 - pos_;
+  if (c != ':') return i - pos_;
+  // no out-of- bound access assuming zero or newline padding
+  const uint8_t d = input_[i + 1];
+  if (d == ':') {
+    i += 2;
+  } else if (IsNameStart(d)) {
+    seen_single_colon = true;
+    i += 1;
+  } else {
+    return i - pos_;
+  }
+
+  // middle component
+  HANDLE_ID_COMPONENT
+
+  if (c == '#') return i + 1 - pos_;
+  if (c != ':') return i - pos_;
+  if (seen_single_colon) return i;
+  i++;
+  HANDLE_ID_COMPONENT
+  return i - pos_;
+}
+
+uint32_t LexerRaw::HandleChar() {
+  bool skip_next = false;
+  for (uint32_t i = pos_ + 1; i < end_; i++) {
+    if (skip_next) {
+      skip_next = false;
+    } else {
+      uint8_t c = input_[i];
+      if (c == '\\') {
+        skip_next = true;
+      } else if (c == '\'') {
+        return i + 1 - pos_;
+        break;
+      }
+      ASSERT(c != '\n', "");
+    }
+  }
+  ASSERT(false, "");
+  return 0;
+}
+
+#if 0
+      uint32_t i = pos_;
+      uint8_t first = input_[i];
+      i++;
+      if (first == 'r' || first == 'x') {
+        i++;
+      }
+      bool skip_next = false;
+      for (; i < end_; i++) {
+        if (skip_next) {
+          skip_next = false;
+        } else {
+          uint8_t c = input_[i];
+        }
+#endif
 
 TK_RAW LexerRaw::Next() {
   uint8_t c;
@@ -148,16 +233,17 @@ TK_RAW LexerRaw::Next() {
   srcloc_.line = line_no_;
   //
   Result result = FindInTrie(input_.substr(pos_));
+  // std::cout << "Trie search result " << result.size << "\n";
 
   if (result.size == 0) {
-    ASSERT(false, "NYI");
     uint8_t c = input_[pos_];
     if (IsNumberStart(c)) {
+      ASSERT(false, "NYI NUM");
       result.kind = TK_KIND::NUM;
       result.size = HandleNum();
     } else {
       result.kind = TK_KIND::ID;
-      result.size = HandleId();
+      result.size = (c == '$') ? HandleMacroId() : HandleId();
     }
   } else {
     if (result.kind == TK_KIND::COMMENT) {
@@ -169,24 +255,9 @@ TK_RAW LexerRaw::Next() {
         }
       }
     } else if (result.kind == TK_KIND::STR) {
-      ASSERT(false, "");
-
+      ASSERT(false, "NYI STR");
     } else if (result.kind == TK_KIND::CHAR) {
-      bool skip_next = false;
-      for (uint32_t i = pos_ + 1; i < end_; i++) {
-        if (skip_next) {
-          skip_next = false;
-        } else {
-          uint8_t c = input_[i];
-          if (c == '\\') {
-            skip_next = true;
-          } else if (c == '\'') {
-            result.size = i + 1 - pos_;
-            break;
-          }
-          ASSERT(c != '\n', "");
-        }
-      }
+      result.size = HandleChar();
     } else if (result.kind == TK_KIND::GENERIC_ANNOTATION) {
       for (uint32_t i = pos_ + 2; i < end_; i++) {
         uint8_t c = input_[i];

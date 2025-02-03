@@ -57,7 +57,10 @@ class LexerRaw {
   const uint32_t end_;
 
   uint32_t HandleId();
+  uint32_t HandleMacroId();
   uint32_t HandleNum();
+  uint32_t HandleSimpleStr();
+  uint32_t HandleChar();
 
  public:
   LexerRaw(std::string_view input, uint32_t file_id);
