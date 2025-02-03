@@ -254,4 +254,9 @@ cwast_gen.h: cwast.py
 	$(PYPY) ./cwast.py gen_h <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
-GENERATED = cwast_gen.cc cwast_gen.h
+lexer_gen.cc: lexer_tab.py
+	@echo "[$@]"
+	$(PYPY) ./lexer_tab.py gen_cc <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc

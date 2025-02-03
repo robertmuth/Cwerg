@@ -124,7 +124,7 @@ def VerifyTrie(trie: TRIE, KWs):
         assert res_tag == tag
 
 
-def DumpStats(trie: TRIE):
+def DumpTrieStats(trie: TRIE):
     print("TRIE ANALYSIS")
     print(f"Nodes: {len(trie)}")
     histo = collections.defaultdict(int)
@@ -258,7 +258,7 @@ def MakeTrieNoisy():
     KWs = GetAllKWAndOps()
     trie = MakeInitialTrie(KWs)
     #
-    DumpStats(trie)
+    DumpTrieStats(trie)
 
     for i in range(1000):
         print(f"Optimization round {i}")
@@ -266,7 +266,7 @@ def MakeTrieNoisy():
         trie = OptimizeTrie(trie)
         if len(trie) == old_len:
             break
-        DumpStats(trie)
+        DumpTrieStats(trie)
         VerifyTrie(trie, KWs)
     return trie
 
@@ -514,10 +514,11 @@ def GenerateCodeCC(fout, max_items_per_row=16):
             if count < 3:
                 count = 1
             lst = lst[count:]
+            val = render_val(first)
             if count == 1:
-                print(f"{sep}{render_val(x)}", end="", file=fout)
+                print(f"{sep}{val}", end="", file=fout)
             else:
-                print(f"{sep}REP{count}({render_val(x)})", end="", file=fout)
+                print(f"{sep}REP{count}({val})", end="", file=fout)
             sep = ", "
 
     print(f"#define VAL(x) {len(trie)} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
@@ -525,7 +526,7 @@ def GenerateCodeCC(fout, max_items_per_row=16):
 
     print(f"uint8_t TrieNodeCount = {len(trie)};\n", file=fout)
 
-    print(f"int KeywordAndOpRecognizer[{len(trie)}][128] = {{", file=fout)
+    print(f"uint8_t KeywordAndOpRecognizer[{len(trie)}][128] = {{", file=fout)
     for n in trie:
         sep = "    {"
         for i in range(0, len(n), max_items_per_row):
@@ -533,7 +534,7 @@ def GenerateCodeCC(fout, max_items_per_row=16):
             sep = ",\n     "
             stripe = n[i:i+max_items_per_row]
             render_strip(stripe)
-        print("},", file=fout)
+        print("},\n", file=fout)
 
     print("};", file=fout)
 
