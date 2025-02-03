@@ -62,6 +62,7 @@ class LexerRaw {
   uint32_t HandleSimpleStr();
   uint32_t HandleChar();
   uint32_t HandleGenericAnnotation();
+  TK_RAW HandleMultiStr();
 
  public:
   LexerRaw(std::string_view input, uint32_t file_id);

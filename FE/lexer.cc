@@ -129,6 +129,9 @@ LexerRaw::LexerRaw(std::string_view input, uint32_t file)
   srcloc_.file = file;
 }
 
+// Below is bunch of adhoc lexer helpers
+// These are quite horrible and the only excuse for them
+// is that they let us do without a depenency on a lexer library,
 uint32_t LexerRaw::HandleNum() {
   uint32_t i = pos_;
   if (!IsNumberStart(input_[i])) return 0;
@@ -186,7 +189,7 @@ uint32_t LexerRaw::HandleId() {
 
   if (c == '#') return i + 1 - pos_;
   if (c != ':') return i - pos_;
-  if (seen_single_colon) return i;
+  if (seen_single_colon) return i - pos_;
   i++;
   if (!IsNameStart(input_[i])) return i - 1 - pos_;
   HANDLE_ID_COMPONENT
@@ -253,6 +256,41 @@ uint32_t LexerRaw::HandleGenericAnnotation() {
   return i + 2 - pos_;
 }
 
+TK_RAW LexerRaw::HandleMultiStr() {
+  uint32_t i = pos_;
+  uint8_t first = input_[i];
+  i += 3 + (first != '"');
+  uint32_t quotes_in_row = 0;
+  bool skip_next = false;
+  while (i < end_) {
+    uint8_t c = input_[i];
+    i++;
+    col_no_++;
+    if (skip_next) {
+      continue;
+    }
+    if (c == '\n') {
+      quotes_in_row = 0;
+      line_no_++;
+      col_no_ = 0;
+    } else if (c == '"') {
+      quotes_in_row++;
+      if (quotes_in_row == 3) {
+        std::string_view token = input_.substr(pos_, i - pos_);
+        pos_ = i;
+        return TK_RAW{TK_KIND::STR, token};
+      }
+    } else {
+      quotes_in_row = 0;
+      if (first == '"' && c == '\\') {
+        skip_next = true;
+      }
+    }
+  }
+  ASSERT(false, "");
+  return TK_RAW{TK_KIND::INVALID};
+}
+
 TK_RAW LexerRaw::Next() {
   uint8_t c;
   while (IsWhitespace(c = input_[pos_])) {
@@ -297,7 +335,7 @@ TK_RAW LexerRaw::Next() {
       bool triple =
           input_[i] == '"' && input_[i + 1] == '"' && input_[i + 2] == '"';
       if (triple) {
-        ASSERT(false, "");
+        return HandleMultiStr();
       }
       result.size = HandleSimpleStr();
     } else if (result.kind == TK_KIND::CHAR) {
