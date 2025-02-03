@@ -102,6 +102,9 @@ Result FindInTrie(std::string_view needle) {
     }
 
     uint8_t x = KeywordAndOpRecognizer[node_no][c];
+
+    // std::cout << "Find [" << i << "] [" << c << "] -> " << int(x) << "\n";
+
     if (x == 0) {
       return Result();
     } else if (x < TrieNodeCount) {
@@ -128,7 +131,6 @@ uint32_t LexerRaw::HandleNum() { return 0; }
 uint32_t LexerRaw::HandleId() { return 0; }
 
 TK_RAW LexerRaw::Next() {
-  std::cout << "Next at " << pos_ << "\n";
   uint8_t c;
   while (IsWhitespace(c = input_[pos_])) {
     pos_++;
@@ -141,13 +143,11 @@ TK_RAW LexerRaw::Next() {
       line_no_++;
     }
   }
-  std::cout << "Non WS [" << c << "] at " << pos_ << "\n";
   // freeze SrcLoc
   srcloc_.col = col_no_;
   srcloc_.line = line_no_;
   //
   Result result = FindInTrie(input_.substr(pos_));
-  std::cout << "Trie search result " << result.size << "\n";
 
   if (result.size == 0) {
     ASSERT(false, "NYI");
@@ -202,7 +202,10 @@ TK_RAW LexerRaw::Next() {
   std::string_view token = input_.substr(pos_, result.size);
   col_no_ += result.size;
   pos_ += result.size;
-  if (result.kind == TK_KIND::GENERIC_ANNOTATION) {
+  if (result.kind == TK_KIND::COMMENT) {
+    col_no_ = 0;
+    line_no_++;
+  } else if (result.kind == TK_KIND::GENERIC_ANNOTATION) {
     result.kind = TK_KIND::ANNOTATION;
     token = token.substr(2, token.size() - 4);
   }
