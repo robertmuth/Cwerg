@@ -15,9 +15,16 @@ namespace cwerg::fe {
 #define REP13(a) a, a, a, a, a, a, a, a, a, a, a, a, a
 #define REP14(a) a, a, a, a, a, a, a, a, a, a, a, a, a, a
 #define REP15(a) a, a, a, a, a, a, a, a, a, a, a, a, a, a, a
+#define REP16(a) a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a
 
 /* @AUTOGEN-START@ */
-int KeywordAndOpRecognizer[128][] = {
+#define VAL(x) 200 + (uint8_t(TK_KIND::x) << 1)
+
+#define VALX(x) 201 + (uint8_t(TK_KIND::x) << 1)
+
+const uint8_t TrieNodeCount = 200;
+
+int KeywordAndOpRecognizer[200][128] = {
     {REP16(0),
      REP16(0),
      199, VAL(STR), 0, 1, 1, 198, VAL(CHAR), VAL(PAREN_OPEN), VAL(PAREN_CLOSED), 1, 197, VAL(COMMA), 197, VAL(OTHER_OP), 1, 1,
@@ -1618,7 +1625,7 @@ int KeywordAndOpRecognizer[128][] = {
      REP16(VALX(PREFIX_OP)),
      REP16(VALX(PREFIX_OP)),
      REP16(VALX(PREFIX_OP))},
-}
+};
 /* @AUTOGEN-END@ */
 
 }  // namespace cwerg::fe

@@ -501,7 +501,6 @@ def GenerateCodeCC(fout, max_items_per_row=16):
             else:
                 return f"VAL({kind.name})"
 
-
     def render_strip(lst: list[int]):
         sep = ""
         while lst:
@@ -521,7 +520,12 @@ def GenerateCodeCC(fout, max_items_per_row=16):
                 print(f"{sep}REP{count}({render_val(x)})", end="", file=fout)
             sep = ", "
 
-    print("int KeywordAndOpRecognizer[128][] = {", file=fout)
+    print(f"#define VAL(x) {len(trie)} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
+    print(f"#define VALX(x) {len(trie)+1} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
+
+    print(f"const uint8_t TrieNodeCount = {len(trie)};\n", file=fout)
+
+    print(f"int KeywordAndOpRecognizer[{len(trie)}][128] = {{", file=fout)
     for n in trie:
         sep = "    {"
         for i in range(0, len(n), max_items_per_row):
@@ -531,7 +535,7 @@ def GenerateCodeCC(fout, max_items_per_row=16):
             render_strip(stripe)
         print("},", file=fout)
 
-    print("}", file=fout)
+    print("};", file=fout)
 
 
 if __name__ == "__main__":
