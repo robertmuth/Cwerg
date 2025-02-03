@@ -185,7 +185,7 @@ def MakeInitialTrie(KWs):
     trie = []
 
     def add_node():
-        node = [NODE_NULL] * 129
+        node = [NODE_NULL] * 128
         trie.append(node)
         return len(trie) - 1
 
@@ -202,7 +202,8 @@ def MakeInitialTrie(KWs):
             # no kw can be prefix of another
             assert node[c] < len(trie), f"{kw} -- {node[c]}"
             node = trie[node[c]]
-        assert node[last] == NODE_NULL, f"[{kw}] {node[last]} {node is trie[0]}"
+        assert node[last] == NODE_NULL, f"[{kw}] {
+            node[last]} {node is trie[0]}"
         node[last] = tag.value << 1
 
     def add_kw(kw, tag, non_succ):
@@ -282,16 +283,6 @@ def MakeTrie(optimize):
     return trie
 
 
-def GenerateCodeCC(fout):
-    trie = MakeTrie()
-
-    # we reserver a few bytes for terminal markers
-    assert len(trie) < 240
-    print("int KeywordAndOpRecognizer[128][] = {", file=fout)
-
-    print("}", file=fout)
-
-
 @dataclasses.dataclass()
 class TK:
     kind: TK_KIND
@@ -309,6 +300,7 @@ class TK:
 
     def __repr__(self):
         return f"{self.srcloc}:{self.column} {self.text} [{self.kind.name}]"
+
 
 GENERIC_ANNOTATION_RE = re.compile(r"^\{\{[_a-zA-Z]+\}\}")
 
@@ -462,7 +454,7 @@ class Lexer:
         while tk.kind is TK_KIND.ANNOTATION:
             annotations.append(tk)
             tk = self._lexer.next_token()
-        out: TK = tk
+        out = tk
         out.comments = comments
         out.annotations = annotations
         # if we have annotations the node starts at the first one
@@ -492,8 +484,60 @@ class Lexer:
         return self.next()
 
 
+def GenerateCodeCC(fout, max_items_per_row=16):
+    trie = MakeTrie(True)
+
+    # we reserver a few bytes for terminal markers
+    assert len(trie) < 240
+    num_nodes = len(trie)
+
+    def render_val(x):
+        if x < num_nodes:
+            return f"{x}"
+        else:
+            kind = TK_KIND(x >> 1)
+            if x & 1:
+                return f"VALX({kind.name})"
+            else:
+                return f"VAL({kind.name})"
+
+
+    def render_strip(lst: list[int]):
+        sep = ""
+        while lst:
+            first = lst[0]
+            count = 1
+            for x in lst[1:]:
+                if x == first:
+                    count += 1
+                else:
+                    break
+            if count < 3:
+                count = 1
+            lst = lst[count:]
+            if count == 1:
+                print(f"{sep}{render_val(x)}", end="", file=fout)
+            else:
+                print(f"{sep}REP{count}({render_val(x)})", end="", file=fout)
+            sep = ", "
+
+    print("int KeywordAndOpRecognizer[128][] = {", file=fout)
+    for n in trie:
+        sep = "    {"
+        for i in range(0, len(n), max_items_per_row):
+            print(sep, end="", file=fout)
+            sep = ",\n     "
+            stripe = n[i:i+max_items_per_row]
+            render_strip(stripe)
+        print("},", file=fout)
+
+    print("}", file=fout)
+
+
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         MakeTrieNoisy()
     elif sys.argv[1] == "gen_cc":
         cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)
+    else:
+        assert False
