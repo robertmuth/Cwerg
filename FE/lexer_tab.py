@@ -523,7 +523,7 @@ def GenerateCodeCC(fout, max_items_per_row=16):
     print(f"#define VAL(x) {len(trie)} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
     print(f"#define VALX(x) {len(trie)+1} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
 
-    print(f"const uint8_t TrieNodeCount = {len(trie)};\n", file=fout)
+    print(f"uint8_t TrieNodeCount = {len(trie)};\n", file=fout)
 
     print(f"int KeywordAndOpRecognizer[{len(trie)}][128] = {{", file=fout)
     for n in trie:

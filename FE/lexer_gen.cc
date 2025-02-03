@@ -22,7 +22,7 @@ namespace cwerg::fe {
 
 #define VALX(x) 201 + (uint8_t(TK_KIND::x) << 1)
 
-const uint8_t TrieNodeCount = 200;
+uint8_t TrieNodeCount = 200;
 
 int KeywordAndOpRecognizer[200][128] = {
     {REP16(0),

@@ -1,10 +1,11 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 #include <cstdint>
-
 #include <string_view>
 
 namespace cwerg::fe {
+
+void InitLexer();
 
 struct SrcLoc {
   uint32_t line;
@@ -39,26 +40,24 @@ enum class TK_KIND : uint8_t {
   SPECIAL_EOF,
 };
 
+extern const char* EnumToString(TK_KIND x);
+
 struct TK_RAW {
   TK_KIND kind;
   std::string_view text = std::string_view();
 };
 
-class Trie;  // internal
-
 class LexerRaw {
  private:
   SrcLoc srcloc_;
   std::string_view input_;
-  uint32_t line_no_;
-  uint32_t col_no_;
-  uint32_t pos_;
+  uint32_t line_no_ = 0;
+  uint32_t col_no_ = 0;
+  uint32_t pos_ = 0;
   const uint32_t end_;
-  // hide implementation
-  Trie* const trie_;
 
-  uint32 HandleId();
-  uint32 HandleNum();
+  uint32_t HandleId();
+  uint32_t HandleNum();
 
  public:
   LexerRaw(std::string_view input, uint32_t file_id);
