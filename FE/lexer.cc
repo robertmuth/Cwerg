@@ -139,7 +139,7 @@ uint32_t LexerRaw::HandleMacroId() {
   if (input_[i] != '$') return 0;
   i++;
   HANDLE_ID_COMPONENT
-  return i;
+  return i - pos_;
 }
 
 // examples
@@ -199,21 +199,36 @@ uint32_t LexerRaw::HandleChar() {
   return 0;
 }
 
-#if 0
-      uint32_t i = pos_;
-      uint8_t first = input_[i];
+uint32_t LexerRaw::HandleSimpleStr() {
+  uint32_t i = pos_;
+  uint8_t first = input_[i];
+  i++;
+  if (first == 'r' || first == 'x') {
+    i++;
+    while (input_[i] != '"') {
       i++;
-      if (first == 'r' || first == 'x') {
-        i++;
-      }
-      bool skip_next = false;
-      for (; i < end_; i++) {
-        if (skip_next) {
-          skip_next = false;
-        } else {
-          uint8_t c = input_[i];
+    }
+    return i + 1 - pos_;
+  } else {
+    bool skip_next = false;
+    for (; i < end_; i++) {
+      if (skip_next) {
+        skip_next = false;
+      } else {
+        uint8_t c = input_[i];
+        if (c == '\\') {
+          skip_next = true;
+        } else if (c == '"') {
+          return i + 1 - pos_;
+          break;
         }
-#endif
+        ASSERT(c != '\n', "");
+      }
+    }
+  }
+  ASSERT(false, "");
+  return 0;
+}
 
 TK_RAW LexerRaw::Next() {
   uint8_t c;
@@ -255,7 +270,14 @@ TK_RAW LexerRaw::Next() {
         }
       }
     } else if (result.kind == TK_KIND::STR) {
-      ASSERT(false, "NYI STR");
+      uint8_t first = input_[pos_];
+      uint32_t i = first = '"' ? pos_ : pos_ + 1;
+      bool triple =
+          input_[i] == '"' && input_[i + 1] == '"' && input_[i + 2] == '"';
+      if (triple) {
+        ASSERT(false, "");
+      }
+      result.size = HandleSimpleStr();
     } else if (result.kind == TK_KIND::CHAR) {
       result.size = HandleChar();
     } else if (result.kind == TK_KIND::GENERIC_ANNOTATION) {
