@@ -65,8 +65,12 @@ void InitLexer() {
   }
   // Number
   for (uint8_t c : ".-+01234567890") {
-    CType[c] |= kCTypeNumberStart;
+    CType[c] |= kCTypeNumberStart | kCTypeNumberRest;
   }
+  for (uint8_t c : "xpabcdef_rstuin") {
+    CType[c] |= kCTypeNumberRest;
+  }
+
   //
 }
 
@@ -125,7 +129,15 @@ LexerRaw::LexerRaw(std::string_view input, uint32_t file)
   srcloc_.file = file;
 }
 
-uint32_t LexerRaw::HandleNum() { return 0; }
+uint32_t LexerRaw::HandleNum() {
+  uint32_t i = pos_;
+  if (!IsNumberStart(input_[i])) return 0;
+  i++;
+  while (IsNumberRest(input_[i])) {
+    i++;
+  }
+  return i - pos_;
+}
 
 #define HANDLE_ID_COMPONENT              \
   if (!IsNameStart(input_[i])) return 0; \
@@ -154,11 +166,11 @@ uint32_t LexerRaw::HandleId() {
   uint32_t i = pos_;
 
   HANDLE_ID_COMPONENT
-  const uint8_t c = input_[i];
+  uint8_t c = input_[i];
   if (c == '#') return i + 1 - pos_;
   if (c != ':') return i - pos_;
   // no out-of- bound access assuming zero or newline padding
-  const uint8_t d = input_[i + 1];
+  uint8_t d = input_[i + 1];
   if (d == ':') {
     i += 2;
   } else if (IsNameStart(d)) {
@@ -170,11 +182,13 @@ uint32_t LexerRaw::HandleId() {
 
   // middle component
   HANDLE_ID_COMPONENT
+  c = input_[i];
 
   if (c == '#') return i + 1 - pos_;
   if (c != ':') return i - pos_;
   if (seen_single_colon) return i;
   i++;
+  if (!IsNameStart(input_[i])) return i - 1 - pos_;
   HANDLE_ID_COMPONENT
   return i - pos_;
 }
@@ -230,6 +244,15 @@ uint32_t LexerRaw::HandleSimpleStr() {
   return 0;
 }
 
+uint32_t LexerRaw::HandleGenericAnnotation() {
+  uint32_t i = pos_ + 2;
+  while (input_[i] != '}') {
+    i++;
+  }
+  ASSERT(input_[i + 1] == '}', "");
+  return i + 2 - pos_;
+}
+
 TK_RAW LexerRaw::Next() {
   uint8_t c;
   while (IsWhitespace(c = input_[pos_])) {
@@ -253,7 +276,6 @@ TK_RAW LexerRaw::Next() {
   if (result.size == 0) {
     uint8_t c = input_[pos_];
     if (IsNumberStart(c)) {
-      ASSERT(false, "NYI NUM");
       result.kind = TK_KIND::NUM;
       result.size = HandleNum();
     } else {
@@ -271,7 +293,7 @@ TK_RAW LexerRaw::Next() {
       }
     } else if (result.kind == TK_KIND::STR) {
       uint8_t first = input_[pos_];
-      uint32_t i = first = '"' ? pos_ : pos_ + 1;
+      uint32_t i = first == '"' ? pos_ : pos_ + 1;
       bool triple =
           input_[i] == '"' && input_[i + 1] == '"' && input_[i + 2] == '"';
       if (triple) {
@@ -281,15 +303,7 @@ TK_RAW LexerRaw::Next() {
     } else if (result.kind == TK_KIND::CHAR) {
       result.size = HandleChar();
     } else if (result.kind == TK_KIND::GENERIC_ANNOTATION) {
-      for (uint32_t i = pos_ + 2; i < end_; i++) {
-        uint8_t c = input_[i];
-        if (c == '}') {
-          ASSERT(input_[i + 1] != '}', "");
-          result.size = i + 2 - pos_;
-          break;
-        }
-        ASSERT(c != '\n', "");
-      }
+      result.size = HandleGenericAnnotation();
     }
   }
   std::string_view token = input_.substr(pos_, result.size);
