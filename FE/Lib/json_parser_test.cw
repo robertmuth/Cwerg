@@ -54,7 +54,7 @@ fun test_simple() void:
             file.used_objects, jp::NumJsonObjectsNeeded(test_val_str_esc))
     test::AssertEq#(jp::IndexGetKind(file.root), jp::ObjKind:Atom)
     test::AssertEq#(jp::AtomGetKind(@file, file.root), jp::AtomKind:EscStr)
-    test::AssertSliceEq#(jp::AtomGetData(@file, file.root), r"""str\"""")
+    test::AssertSliceEq#(jp::AtomGetData(@file, file.root), "str\\\"")
 
 global test_dict_empty = """{}"""
 
