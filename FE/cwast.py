@@ -539,9 +539,9 @@ ALL_FIELDS = [
     NfdName("mod_name", "optional module qualifier"),
     NfdName("base_name", "name of the object"),
     NfdName("enum_name", "optional enum element name"),
+    NfdName("name_list", "name of the object list"),
 
     NfdStr("number", "a number"),
-    NfdStr("name_list", "name of the object list"),
     NfdStr("string", "string literal"),
     NfdStr("message", "message for assert failures"),
     NfdStr("label", "block  name (if not empty)"),
