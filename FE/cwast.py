@@ -8,6 +8,7 @@ import dataclasses
 import logging
 import enum
 import re
+import collections
 
 from Util import cgen
 
@@ -3906,15 +3907,26 @@ def GenerateCodeH(fout: Any):
 
     print(f"enum class NFD_NODE_FIELD : uint8_t {{")
     print(f"    invalid = 0,")
-    for n, nfd in enumerate(fields_by_kind[NFK.NODE] + fields_by_kind[NFK.LIST]):
-        print(f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
+    fields = sorted(f.name for f in (
+        fields_by_kind[NFK.NODE] + fields_by_kind[NFK.LIST]))
+    for n, name in enumerate(fields):
+        print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
     print("};")
 
-    nfd_to_enum_string = {}
     print(f"enum class NFD_STRING_FIELD : uint8_t {{")
     print(f"    invalid = 0,")
-    for n, nfd in enumerate(fields_by_kind[NFK.NAME] + fields_by_kind[NFK.STR]):
-        print(f"    {nfd.name} = {n+1},  // slot: {_FIELD_2_SLOT[nfd.name]}")
+    fields = sorted(f.name for f in (
+        fields_by_kind[NFK.NAME] + fields_by_kind[NFK.STR]))
+    for n, name in enumerate(fields):
+        print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
+    print("};")
+
+    print(f"enum class NFD_BOOL_FIELD : uint8_t {{")
+    print(f"    invalid = 0,")
+    fields = sorted(f.name for f in fields_by_kind[NFK.ATTR_BOOL])
+    for n, name in enumerate(fields):
+        name = name.replace("extern", "externx")
+        print(f"    {name} = {n+1}, ")
     print("};")
 
     print(f"enum class NT : uint8_t {{")
@@ -3948,21 +3960,38 @@ def GenerateCodeCC(fout: Any):
     print("NodeDesc GlobalNodeDescs[] = {")
     print("    {}, // invalid")
 
-
-    for cls in sorted(ALL_NODES,key= lambda n: n.__name__):
+    for cls in sorted(ALL_NODES, key=lambda n: n.__name__):
         node_fields = []
         string_fields = []
+        bool_fields = []
         for nfd in cls.FIELDS:
             k = nfd.kind
             if k == NFK.NODE or k == NFK.LIST:
-                node_fields.append(f"BIT_NODE({nfd.name})")
+                node_fields.append(f"BIT_N({nfd.name})")
             if k == NFK.NAME or k == NFK.STR:
-                string_fields.append(f"BIT_STRING({nfd.name})")
-        if not node_fields:
-            node_fields.append("0")
-        if not string_fields:
-            string_fields.append("0")
-        print(f"    {{ {'| '.join(node_fields)}, {'| '.join(string_fields)} }}, // {cls.__name__}")
+                string_fields.append(f"BIT_S({nfd.name})")
+        for nfd in cls.ATTRS:
+            k = nfd.kind
+            if k == NFK.ATTR_BOOL:
+                bool_fields.append(
+                    f"BIT_B({nfd.name.replace('extern', 'externx')})")
+        if node_fields:
+            node_fields = '| '.join(node_fields)
+        else:
+            node_fields = "0"
+        #
+        if string_fields:
+            string_fields = '| '.join(string_fields)
+        else:
+            string_fields = "0"
+        #
+        if bool_fields:
+            bool_fields = '| '.join(bool_fields)
+        else:
+            bool_fields = "0"
+
+        print(f"    {{ {node_fields}, {string_fields}, {
+              bool_fields} }}, // {cls.__name__}")
     print("};")
 
 
@@ -4010,6 +4039,7 @@ def UnaryOpsForConcreteSyntax():
 def BinaryOpsForConcreteSyntax():
     return [x for x in BINARY_EXPR_SHORTCUT
             if not _NAMED_OP_RE.fullmatch(x)] + [ExprField.ALIAS, Expr3.ALIAS]
+
 
 ##########################################################################################
 if __name__ == "__main__":
