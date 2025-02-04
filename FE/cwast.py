@@ -3863,7 +3863,7 @@ def GenerateInits():
         other_kind = None
         nfds = []
         slots = [None] * MAX_SLOTS
-
+        has_bits = False
         for nfd in cls.FIELDS:
             if nfd.kind in (NFK.NODE, NFK.LIST, NFK.NAME, NFK.STR):
                 nfds.append(nfd)
@@ -3871,6 +3871,9 @@ def GenerateInits():
             elif nfd.kind == NFK.KIND:
                 other_kind = nfd
                 nfds.append(nfd)
+        for nfd in cls.ATTRS:
+            if nfd.kind == NFK.ATTR_BOOL:
+                has_bits = True
 
         print(f"inline void Init{cls.__name__}(NodeCore& node", end="")
         for nfd in nfds:
@@ -3883,6 +3886,8 @@ def GenerateInits():
                 print(f", Str {nfd.name}", end="")
             elif k == NFK.KIND:
                 print(f", {other_kind.enum_kind.__name__} {nfd.name}", end="")
+        if has_bits:
+            print(", uint16_t bits", end="")
         print(") {")
         args = ["node", f"NT::{cls.__name__}"]
         for i in range(MAX_SLOTS):
@@ -3894,6 +3899,10 @@ def GenerateInits():
             args.append("0")
         else:
             args.append(f"uint8_t({other_kind.name})")
+        if has_bits:
+            args.append("bits")
+        else:
+            args.append("0")
         print(f"    InitNode({', '.join(args)});")
         print("}\n")
 
