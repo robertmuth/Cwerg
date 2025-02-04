@@ -93,15 +93,15 @@ class Lexer {
   Lexer(std::string_view input, uint32_t file_id)
       : lexer_raw_(input, file_id) {}
 
-  const TK& peek() {
+  const TK& Peek() {
     if (peek_cached_.kind == TK_KIND::INVALID) {
-      peek_cached_ = next();
+      peek_cached_ = Next();
     }
     return peek_cached_;
   }
 
-  bool match(TK_KIND kind, std::string_view text) {
-    peek();
+  bool Match(TK_KIND kind, std::string_view text) {
+    Peek();
     if (kind == peek_cached_.kind &&
         (text.empty() || text == peek_cached_.text)) {
       peek_cached_.kind = TK_KIND::INVALID;
@@ -110,8 +110,8 @@ class Lexer {
     return false;
   }
 
-  bool match_or_die(TK_KIND kind, std::string_view text) {
-    peek();
+  bool MatchOrDie(TK_KIND kind, std::string_view text) {
+    Peek();
     if (kind == peek_cached_.kind &&
         (text.empty() || text == peek_cached_.text)) {
       peek_cached_.kind = TK_KIND::INVALID;
@@ -121,7 +121,7 @@ class Lexer {
     return false;
   }
 
-  const TK& next() {
+  const TK& Next() {
     if (peek_cached_.kind != TK_KIND::INVALID) {
       current_ = peek_cached_;
       peek_cached_.kind = TK_KIND::INVALID;

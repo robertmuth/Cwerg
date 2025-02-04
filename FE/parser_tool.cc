@@ -42,16 +42,15 @@ int main(int argc, const char* argv[]) {
   std::istream* fin = &std::cin;
 
   std::vector<char> data = SlurpDataFromStream(fin);
-  LexerRaw lexer(
+  Lexer lexer(
       std::string_view(reinterpret_cast<char*>(data.data()), data.size()), 555);
   // std::cout << "loaded " << data.size() << " bytes\n";
 
   while (true) {
-    TK_RAW tk = lexer.Next();
+    const TK& tk = lexer.Next();
     if (tk.kind == TK_KIND::SPECIAL_EOF) break;
-    const SrcLoc& sl = lexer.GetSrcLoc();
     if (verbose) {
-      std::cout << EnumToString(tk.kind) << " " << sl.line + 1 << " " << sl.col
+      std::cout << EnumToString(tk.kind) << " " << tk.sl.line + 1 << " " << tk.sl.col
                 << " " << tk.text << "\n";
     }
   }
