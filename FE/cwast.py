@@ -3945,31 +3945,24 @@ def GenerateCodeH(fout: Any):
 
 
 def GenerateCodeCC(fout: Any):
-    fields_by_kind = collections.defaultdict(list)
-    for nfd in ALL_FIELDS:
-        fields_by_kind[nfd.kind].append(nfd)
-
-    nfd_to_enum_node = {}
-    for n, nfd in enumerate(fields_by_kind[NFK.NODE] + fields_by_kind[NFK.LIST]):
-        nfd_to_enum_node[nfd] = n+1
-
-    nfd_to_enum_string = {}
-    for n, nfd in enumerate(fields_by_kind[NFK.NAME] + fields_by_kind[NFK.STR]):
-        nfd_to_enum_string[nfd] = n+1
     print("NodeDesc GlobalNodeDescs[] = {")
     print("    {}, // invalid")
 
-    for cls in ALL_NODES:
-        node_field_bits = 0
-        string_field_bits = 0
+
+    for cls in sorted(ALL_NODES,key= lambda n: n.__name__):
+        node_fields = []
+        string_fields = []
         for nfd in cls.FIELDS:
             k = nfd.kind
             if k == NFK.NODE or k == NFK.LIST:
-                node_field_bits |= 1 << nfd_to_enum_node[nfd]
+                node_fields.append(f"BIT_NODE({nfd.name})")
             if k == NFK.NAME or k == NFK.STR:
-                string_field_bits |= 1 << nfd_to_enum_string[nfd]
-        print(f"    {{ 0x{node_field_bits:x} , 0x{
-              string_field_bits:x} }}, // {cls.__name__}")
+                string_fields.append(f"BIT_STRING({nfd.name})")
+        if not node_fields:
+            node_fields.append("0")
+        if not string_fields:
+            string_fields.append("0")
+        print(f"    {{ {'| '.join(node_fields)}, {'| '.join(string_fields)} }}, // {cls.__name__}")
     print("};")
 
 

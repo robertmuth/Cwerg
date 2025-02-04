@@ -4,90 +4,93 @@
 
 namespace cwerg::fe {
 
-/* @AUTOGEN-START@ */
 
+#define BIT_NODE(x) 1ull << uint64_t(NFD_NODE_FIELD::x)
+#define BIT_STRING(x) 1ull << uint64_t(NFD_STRING_FIELD::x)
+
+/* @AUTOGEN-START@ */
 NodeDesc GlobalNodeDescs[] = {
     {}, // invalid
-    { 0x41020000000 , 0x2 }, // DefMacro
-    { 0x2010000000 , 0x0 }, // DefMod
-    { 0x400000000 , 0x0 }, // TypeUnion
-    { 0x800 , 0x100 }, // StmtStaticAssert
-    { 0x800004 , 0x0 }, // ValPoint
-    { 0x8 , 0x0 }, // TypeSpan
-    { 0x100002 , 0x0 }, // ExprField
-    { 0x8 , 0x0 }, // ExprSizeof
-    { 0x0 , 0x0 }, // ValTrue
-    { 0x400 , 0x0 }, // ExprDeref
-    { 0x1020000 , 0x0 }, // StmtCompoundAssignment
-    { 0x3800 , 0x0 }, // Expr3
-    { 0x80000000 , 0x802 }, // Import
-    { 0x400 , 0x0 }, // ExprUnwrap
-    { 0x4000000800 , 0x0 }, // Case
-    { 0x0 , 0x0 }, // TypeAuto
-    { 0x100000 , 0x0 }, // ExprFront
-    { 0x4000020 , 0x2 }, // DefVar
-    { 0x0 , 0x2 }, // MacroParam
-    { 0x0 , 0x0 }, // StmtTrap
-    { 0x800000020 , 0x0 }, // ValCompound
-    { 0x40000000 , 0x0 }, // EphemeralList
-    { 0x408 , 0x0 }, // ExprUnsafeCast
-    { 0xa , 0x0 }, // ExprOffsetof
-    { 0x1020000 , 0x0 }, // StmtAssignment
-    { 0x200000000 , 0x2 }, // DefRec
-    { 0x400 , 0x0 }, // Expr1
-    { 0x80000000000 , 0x0 }, // StmtCond
-    { 0x0 , 0x2 }, // ModParam
-    { 0x0 , 0x2 }, // MacroId
-    { 0x0 , 0x0 }, // ValUndef
-    { 0x2000000 , 0x0 }, // ExprAddrOf
-    { 0x40200000 , 0x0 }, // ExprCall
-    { 0x100200 , 0x0 }, // ExprIndex
-    { 0x408 , 0x0 }, // ExprAs
-    { 0x88 , 0x0 }, // TypeVec
-    { 0x8 , 0x0 }, // ExprTypeId
-    { 0x400000 , 0x2 }, // EnumVal
-    { 0x400 , 0x0 }, // ExprSrcLoc
-    { 0x0 , 0x0 }, // ValFalse
-    { 0x4000020 , 0x2 }, // MacroVar
-    { 0x408 , 0x0 }, // ExprIs
-    { 0x18 , 0x0 }, // TypeUnionDelta
-    { 0x8 , 0x2 }, // RecField
-    { 0x80100 , 0x0 }, // ValSpan
-    { 0x0 , 0x400 }, // StmtBreak
-    { 0x4000020 , 0x2 }, // DefGlobal
-    { 0x4000000000 , 0x0 }, // ExprStmt
-    { 0x20000000000 , 0x42 }, // MacroFor
-    { 0x0 , 0x0 }, // ValVoid
-    { 0x8 , 0x2 }, // FunParam
-    { 0x4008000040 , 0x2 }, // DefFun
-    { 0x0 , 0x1c }, // Id
-    { 0x408 , 0x0 }, // ExprNarrow
-    { 0x400 , 0x0 }, // TypeOf
-    { 0x1c000 , 0x0 }, // ExprPointer
-    { 0x40000 , 0x0 }, // StmtReturn
-    { 0x100000000 , 0x2 }, // DefEnum
-    { 0x0 , 0x20 }, // ValNum
-    { 0x4000000000 , 0x0 }, // StmtDefer
-    { 0x8 , 0x0 }, // TypePtr
-    { 0x400 , 0x0 }, // ExprParen
-    { 0x400 , 0x0 }, // ExprUnionTag
-    { 0x400 , 0x0 }, // StmtExpr
-    { 0x100000 , 0x0 }, // ExprLen
-    { 0x400 , 0x0 }, // ExprUnionUntagged
-    { 0x40000000 , 0x2 }, // MacroInvoke
-    { 0x8000040 , 0x0 }, // TypeFun
-    { 0x408 , 0x0 }, // ExprWrap
-    { 0x408 , 0x0 }, // ExprBitCast
-    { 0x0 , 0x0 }, // TypeBase
-    { 0x400 , 0x0 }, // ExprStringify
-    { 0x0 , 0x0 }, // ValAuto
-    { 0x0 , 0x80 }, // ValString
-    { 0x0 , 0x400 }, // StmtContinue
-    { 0xc000 , 0x0 }, // Expr2
-    { 0x18000000800 , 0x0 }, // StmtIf
-    { 0x4000000000 , 0x200 }, // StmtBlock
-    { 0x408 , 0x0 }, // ExprWiden
-    { 0x8 , 0x2 }, // DefType
+    { BIT_NODE(cond)| BIT_NODE(body) , 0 }, // Case
+    { BIT_NODE(items) , BIT_STRING(name) }, // DefEnum
+    { BIT_NODE(params)| BIT_NODE(result)| BIT_NODE(body) , BIT_STRING(name) }, // DefFun
+    { BIT_NODE(type_or_auto)| BIT_NODE(initial_or_undef_or_auto) , BIT_STRING(name) }, // DefGlobal
+    { BIT_NODE(params_macro)| BIT_NODE(gen_ids)| BIT_NODE(body_macro) , BIT_STRING(name) }, // DefMacro
+    { BIT_NODE(params_mod)| BIT_NODE(body_mod) , 0 }, // DefMod
+    { BIT_NODE(fields) , BIT_STRING(name) }, // DefRec
+    { BIT_NODE(type) , BIT_STRING(name) }, // DefType
+    { BIT_NODE(type_or_auto)| BIT_NODE(initial_or_undef_or_auto) , BIT_STRING(name) }, // DefVar
+    { BIT_NODE(value_or_auto) , BIT_STRING(name) }, // EnumVal
+    { BIT_NODE(args) , 0 }, // EphemeralList
+    { BIT_NODE(expr) , 0 }, // Expr1
+    { BIT_NODE(expr1)| BIT_NODE(expr2) , 0 }, // Expr2
+    { BIT_NODE(cond)| BIT_NODE(expr_t)| BIT_NODE(expr_f) , 0 }, // Expr3
+    { BIT_NODE(expr_lhs) , 0 }, // ExprAddrOf
+    { BIT_NODE(expr)| BIT_NODE(type) , 0 }, // ExprAs
+    { BIT_NODE(expr)| BIT_NODE(type) , 0 }, // ExprBitCast
+    { BIT_NODE(callee)| BIT_NODE(args) , 0 }, // ExprCall
+    { BIT_NODE(expr) , 0 }, // ExprDeref
+    { BIT_NODE(container)| BIT_NODE(field) , 0 }, // ExprField
+    { BIT_NODE(container) , 0 }, // ExprFront
+    { BIT_NODE(container)| BIT_NODE(expr_index) , 0 }, // ExprIndex
+    { BIT_NODE(expr)| BIT_NODE(type) , 0 }, // ExprIs
+    { BIT_NODE(container) , 0 }, // ExprLen
+    { BIT_NODE(expr)| BIT_NODE(type) , 0 }, // ExprNarrow
+    { BIT_NODE(type)| BIT_NODE(field) , 0 }, // ExprOffsetof
+    { BIT_NODE(expr) , 0 }, // ExprParen
+    { BIT_NODE(expr1)| BIT_NODE(expr2)| BIT_NODE(expr_bound_or_undef) , 0 }, // ExprPointer
+    { BIT_NODE(type) , 0 }, // ExprSizeof
+    { BIT_NODE(expr) , 0 }, // ExprSrcLoc
+    { BIT_NODE(body) , 0 }, // ExprStmt
+    { BIT_NODE(expr) , 0 }, // ExprStringify
+    { BIT_NODE(type) , 0 }, // ExprTypeId
+    { BIT_NODE(expr) , 0 }, // ExprUnionTag
+    { BIT_NODE(expr) , 0 }, // ExprUnionUntagged
+    { BIT_NODE(expr)| BIT_NODE(type) , 0 }, // ExprUnsafeCast
+    { BIT_NODE(expr) , 0 }, // ExprUnwrap
+    { BIT_NODE(expr)| BIT_NODE(type) , 0 }, // ExprWiden
+    { BIT_NODE(expr)| BIT_NODE(type) , 0 }, // ExprWrap
+    { BIT_NODE(type) , BIT_STRING(name) }, // FunParam
+    { 0 , BIT_STRING(mod_name)| BIT_STRING(base_name)| BIT_STRING(enum_name) }, // Id
+    { BIT_NODE(args_mod) , BIT_STRING(name)| BIT_STRING(path) }, // Import
+    { BIT_NODE(body_for) , BIT_STRING(name)| BIT_STRING(name_list) }, // MacroFor
+    { 0 , BIT_STRING(name) }, // MacroId
+    { BIT_NODE(args) , BIT_STRING(name) }, // MacroInvoke
+    { 0 , BIT_STRING(name) }, // MacroParam
+    { BIT_NODE(type_or_auto)| BIT_NODE(initial_or_undef_or_auto) , BIT_STRING(name) }, // MacroVar
+    { 0 , BIT_STRING(name) }, // ModParam
+    { BIT_NODE(type) , BIT_STRING(name) }, // RecField
+    { BIT_NODE(lhs)| BIT_NODE(expr_rhs) , 0 }, // StmtAssignment
+    { BIT_NODE(body) , BIT_STRING(label) }, // StmtBlock
+    { 0 , BIT_STRING(target) }, // StmtBreak
+    { BIT_NODE(lhs)| BIT_NODE(expr_rhs) , 0 }, // StmtCompoundAssignment
+    { BIT_NODE(cases) , 0 }, // StmtCond
+    { 0 , BIT_STRING(target) }, // StmtContinue
+    { BIT_NODE(body) , 0 }, // StmtDefer
+    { BIT_NODE(expr) , 0 }, // StmtExpr
+    { BIT_NODE(cond)| BIT_NODE(body_t)| BIT_NODE(body_f) , 0 }, // StmtIf
+    { BIT_NODE(expr_ret) , 0 }, // StmtReturn
+    { BIT_NODE(cond) , BIT_STRING(message) }, // StmtStaticAssert
+    { 0 , 0 }, // StmtTrap
+    { 0 , 0 }, // TypeAuto
+    { 0 , 0 }, // TypeBase
+    { BIT_NODE(params)| BIT_NODE(result) , 0 }, // TypeFun
+    { BIT_NODE(expr) , 0 }, // TypeOf
+    { BIT_NODE(type) , 0 }, // TypePtr
+    { BIT_NODE(type) , 0 }, // TypeSpan
+    { BIT_NODE(types) , 0 }, // TypeUnion
+    { BIT_NODE(type)| BIT_NODE(subtrahend) , 0 }, // TypeUnionDelta
+    { BIT_NODE(size)| BIT_NODE(type) , 0 }, // TypeVec
+    { 0 , 0 }, // ValAuto
+    { BIT_NODE(type_or_auto)| BIT_NODE(inits) , 0 }, // ValCompound
+    { 0 , 0 }, // ValFalse
+    { 0 , BIT_STRING(number) }, // ValNum
+    { BIT_NODE(value_or_undef)| BIT_NODE(point) , 0 }, // ValPoint
+    { BIT_NODE(pointer)| BIT_NODE(expr_size) , 0 }, // ValSpan
+    { 0 , BIT_STRING(string) }, // ValString
+    { 0 , 0 }, // ValTrue
+    { 0 , 0 }, // ValUndef
+    { 0 , 0 }, // ValVoid
 };
 /* @AUTOGEN-END@ */
 }  // namespace cwerg::fe
