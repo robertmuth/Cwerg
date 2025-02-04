@@ -1,3 +1,11 @@
+#include <cstdint>
+
+#include "FE/cwast_gen.h"
+
+namespace cwerg::fe {
+
+/* @AUTOGEN-START@ */
+
 NodeDesc GlobalNodeDescs[] = {
     {}, // invalid
     { 0x41020000000 , 0x2 }, // DefMacro
@@ -81,3 +89,5 @@ NodeDesc GlobalNodeDescs[] = {
     { 0x408 , 0x0 }, // ExprWiden
     { 0x8 , 0x2 }, // DefType
 };
+/* @AUTOGEN-END@ */
+}  // namespace cwerg::fe
