@@ -2,6 +2,8 @@
 DIR := build
 QEMU :=
 
+$(info $(shell mkdir -p $(DIR)))
+
 TEST_SOURCES := $(wildcard TestData/*.cw)
 TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cws))
 
@@ -260,3 +262,16 @@ lexer_gen.cc: lexer_tab.py
 	@mv $(DIR)/$@.tmp $@
 
 GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc
+
+############################################################
+# C++
+############################################################
+BUILD_DIR=../build
+LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
+
+$(LEXER_BENCH)::
+	@cd $(BUILD_DIR); $(MAKE) -s lexer_bench.exe
+
+
+run_lexer_bench: $(LEXER_BENCH)
+	/bin/time -p cat Lib/*cw TestData/*cw  LangTest/*cw | $(LEXER_BENCH) > /dev/null

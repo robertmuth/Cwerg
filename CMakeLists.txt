@@ -385,3 +385,16 @@ add_executable(example_fib_c
         BE/BindingsC/cwerg.cc
         BE/BindingsC/example_fib.c
 )
+
+#
+
+add_library(LEXER_LIB OBJECT
+        FE/lexer.cc
+        FE/lexer_gen.cc
+)
+
+add_executable(lexer_bench.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:LEXER_LIB>
+        FE/lexer_bench.cc
+)
