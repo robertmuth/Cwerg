@@ -107,20 +107,20 @@ inline Name NameNew(std::string_view s, uint32_t seq) {
 // =======================================
 extern ImmutablePool gStringPool;
 
-extern Str StrNew(std::string_view s) {
+inline Str StrNew(std::string_view s) {
   // we want a null byte at the end
   return Str(gStringPool.Intern(s, 1));
 }
 
 // Pointer returned by StrData is only valid until another string is interned.
-const char* StrData(Str str) { return gStringPool.Data(str.index()); }
+inline const char* StrData(Str str) { return gStringPool.Data(str.index()); }
 
-int StrCmp(Str a, Str b) {
+inline int StrCmp(Str a, Str b) {
   if (a == b) return 0;
   return strcmp(gStringPool.Data(a.index()), gStringPool.Data(b.index()));
 }
 
-bool StrCmpLt(Str a, Str b) {
+inline bool StrCmpLt(Str a, Str b) {
   if (a == b) return 0;
   return strcmp(gStringPool.Data(a.index()), gStringPool.Data(b.index())) < 0;
 }

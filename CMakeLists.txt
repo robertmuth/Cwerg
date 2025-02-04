@@ -391,10 +391,24 @@ add_executable(example_fib_c
 add_library(LEXER_LIB OBJECT
         FE/lexer.cc
         FE/lexer_gen.cc
+
 )
+
+
+add_library(FE_CORE_LIB OBJECT
+        FE/cwast_gen.cc
+)
+
 
 add_executable(lexer_bench.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:LEXER_LIB>
         FE/lexer_bench.cc
+)
+
+add_executable(parser_tool.exe
+        $<TARGET_OBJECTS:UTIL_LIB>
+        $<TARGET_OBJECTS:LEXER_LIB>
+        $<TARGET_OBJECTS:FE_CORE_LIB>
+        FE/parser_tool.cc
 )
