@@ -143,9 +143,9 @@ uint32_t LexerRaw::HandleNum() {
 }
 
 #define HANDLE_ID_COMPONENT              \
-  if (!IsNameStart(input_[i])) return 0; \
+  if (!IsNameStart(c = input_[i])) return 0; \
   i++;                                   \
-  while (IsNameRest(input_[i])) {        \
+  while (IsNameRest(c = input_[i])) {        \
     i++;                                 \
   }
 
@@ -153,6 +153,7 @@ uint32_t LexerRaw::HandleMacroId() {
   uint32_t i = pos_;
   if (input_[i] != '$') return 0;
   i++;
+  uint8_t c;
   HANDLE_ID_COMPONENT
   return i - pos_;
 }
@@ -167,16 +168,15 @@ uint32_t LexerRaw::HandleId() {
   bool seen_single_colon = false;
 
   uint32_t i = pos_;
-
+  uint8_t c;
   HANDLE_ID_COMPONENT
-  uint8_t c = input_[i];
   if (c == '#') return i + 1 - pos_;
   if (c != ':') return i - pos_;
   // no out-of- bound access assuming zero or newline padding
-  uint8_t d = input_[i + 1];
-  if (d == ':') {
+  c = input_[i + 1];
+  if (c == ':') {
     i += 2;
-  } else if (IsNameStart(d)) {
+  } else if (IsNameStart(c)) {
     seen_single_colon = true;
     i += 1;
   } else {
@@ -185,7 +185,6 @@ uint32_t LexerRaw::HandleId() {
 
   // middle component
   HANDLE_ID_COMPONENT
-  c = input_[i];
 
   if (c == '#') return i + 1 - pos_;
   if (c != ':') return i - pos_;
