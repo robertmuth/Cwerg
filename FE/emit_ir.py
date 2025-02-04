@@ -809,8 +809,8 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Typ
                 print(
                     f"{TAB}mov {node.name}:{def_type.get_single_register_type()} = {out}")
     elif isinstance(node, cwast.StmtBlock):
-        continue_label = id_gen.NewName(node.label)
-        break_label = id_gen.NewName(node.label)
+        continue_label = id_gen.NewName(str(node.label))
+        break_label = id_gen.NewName(str(node.label))
         node.label = (continue_label, break_label)
 
         print(f".bbl {continue_label}  # block start")

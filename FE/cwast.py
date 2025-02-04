@@ -51,6 +51,10 @@ class NAME:
             return cls(sys.intern(s), 0)
         return cls(sys.intern(s[:pos]), int(s[pos+1:]))
 
+    @classmethod
+    def Empty(cls) -> "NAME":
+        return cls("", 0)
+
     def IsMacroCall(self):
         return self.name.endswith(MACRO_CALL_SUFFIX)
 
@@ -65,6 +69,9 @@ class NAME:
 
     def IsQualifiedName(self) -> bool:
         return ID_PATH_SEPARATOR in self.name
+
+    def IsEmpty(self):
+        return self.name == ""
 
     def __str__(self):
         if self.seq == 0:
@@ -540,13 +547,14 @@ ALL_FIELDS = [
     NfdName("base_name", "name of the object"),
     NfdName("enum_name", "optional enum element name"),
     NfdName("name_list", "name of the object list"),
+    NfdName("label", "block  name (if not empty)"),
+    NfdName("target",
+           "name of enclosing while/for/block to brach to (empty means nearest)"),
 
     NfdStr("number", "a number"),
     NfdStr("string", "string literal"),
     NfdStr("message", "message for assert failures"),
-    NfdStr("label", "block  name (if not empty)"),
-    NfdStr("target",
-           "name of enclosing while/for/block to brach to (empty means nearest)"),
+
     NfdStr("path", "TBD"),
 
     #
@@ -709,7 +717,7 @@ ALL_FIELDS_MAP: dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 _OPTIONAL_FIELDS = {
     "expr_ret": "@ValVoid",
     "value_or_auto": "@ValAuto",
-    "target": "",
+    "target": "@EmptyName",
     "path": "",
     "message": "",
     "initial_or_undef_or_auto": "@ValAuto",
@@ -736,6 +744,8 @@ def GetOptional(field: str, srcloc):
         return ValAuto(x_srcloc=srcloc)
     elif e == "@ValUndef":
         return ValUndef(x_srcloc=srcloc)
+    elif e == "@EmptyName":
+        return NAME.Empty()
     else:
         assert False
 
@@ -756,6 +766,8 @@ def IsFieldWithDefaultValue(field, val):
         return isinstance(val, ValAuto)
     elif e == "@ValUndef":
         return isinstance(val, ValUndef)
+    elif e == "@EmptyName":
+        return val.name == ""
     else:
         assert False
 
@@ -2484,7 +2496,7 @@ class StmtBlock:
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF(0)
     #
-    label: str
+    label: NAME
     body: list[NODES_BODY_T]  # new scope
     #
     doc: str = ""
@@ -2584,7 +2596,7 @@ class StmtBreak:
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.CONTROL_FLOW
     #
-    target: str  # use "" for no value
+    target: NAME  # use "" for no value
     #
     doc: str = ""
     #
@@ -2605,7 +2617,7 @@ class StmtContinue:
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.CONTROL_FLOW
     #
-    target: str  # use "" for no value
+    target: NAME  # use "" for no value
     #
     doc: str = ""
     #
@@ -3608,7 +3620,11 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
         elif isinstance(node, MacroId):
             assert node.name.IsMacroVar()
         elif isinstance(node, StmtBlock):
-            assert isinstance(node.label, str), f"{node} {node.x_srcloc}"
+            assert isinstance(node.label, NAME), f"{node} {node.x_srcloc}"
+        elif isinstance(node, StmtBreak):
+            assert isinstance(node.target, NAME), f"{node} {node.x_srcloc}"
+        elif isinstance(node, StmtContinue):
+            assert isinstance(node.target, NAME), f"{node} {node.x_srcloc}"
         elif isinstance(node, Import):
             if not pre_symbolize:
                 assert node.x_module != INVALID_MOD

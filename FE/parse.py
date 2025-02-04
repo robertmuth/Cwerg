@@ -468,15 +468,15 @@ def _MaybeLabel(tk: lexer.TK, inp: lexer.Lexer):
         tk = inp.next()
 
 
-def _ParseOptionalLabel(inp: lexer.Lexer):
+def _ParseOptionalLabel(inp: lexer.Lexer) -> cwast.NAME:
     p = inp.peek()
     if p.kind is lexer.TK_KIND.ID:
         # this should be easy to support once we switched
         # break/cont to using an Id for the label
         assert not p.text.startswith(cwast.MACRO_VAR_PREFIX), f"{p.text}"
         inp.next()
-        return p.text
-    return ""
+        return cwast.NAME.FromStr(p.text)
+    return cwast.NAME.Empty()
 
 
 def _ParseStmtLetLike(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
@@ -584,14 +584,14 @@ def _ParseStmtFor(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
 
 
 def _ParseStmtBreak(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
-    label = ""
+    label = cwast.NAME.Empty()
     if inp.peek().srcloc.lineno == kw.srcloc.lineno:
         label = _ParseOptionalLabel(inp)
     return cwast.StmtBreak(label, **extra)
 
 
 def _ParseStmtContinue(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
-    label = ""
+    label = cwast.NAME.Empty()
     if inp.peek().srcloc.lineno == kw.srcloc.lineno:
         label = _ParseOptionalLabel(inp)
     return cwast.StmtContinue(label, **extra)

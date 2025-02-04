@@ -369,7 +369,7 @@ def _SetTargetFieldRecursively(node):
             target = node.target
             for p in reversed(parents):
                 if isinstance(p, cwast.StmtBlock):
-                    if p.label == target or target == "":
+                    if p.label == target or target.IsEmpty():
                         node.x_target = p
                         break
             else:
