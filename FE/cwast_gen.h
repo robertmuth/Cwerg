@@ -190,22 +190,22 @@ enum class NFD_STRING_FIELD : uint8_t {
 };
 enum class NFD_BOOL_FIELD : uint8_t {
     invalid = 0,
-    arg_ref = 1, 
-    builtin = 2, 
-    cdecl = 3, 
-    colon = 4, 
-    externx = 5, 
-    fini = 6, 
-    init = 7, 
-    mut = 8, 
-    poly = 9, 
-    preserve_mut = 10, 
-    pub = 11, 
-    ref = 12, 
-    res_ref = 13, 
-    unchecked = 14, 
-    untagged = 15, 
-    wrapped = 16, 
+    arg_ref = 1,
+    builtin = 2,
+    cdecl = 3,
+    colon = 4,
+    externx = 5,
+    fini = 6,
+    init = 7,
+    mut = 8,
+    poly = 9,
+    preserve_mut = 10,
+    pub = 11,
+    ref = 12,
+    res_ref = 13,
+    unchecked = 14,
+    untagged = 15,
+    wrapped = 16,
 };
 enum class NT : uint8_t {
     invalid = 0,
@@ -793,5 +793,8 @@ MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name);
 
 // default is MOD_PARAM_KIND::INVALID
 MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name);
+
+// default is BASE_TYPE_KIND::INVALID
+BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name);
 
 }  // namespace cwerg::fe

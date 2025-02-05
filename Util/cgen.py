@@ -1,6 +1,6 @@
 # for use with @num classes
-def NameValues(cls):
-    return [(x.name, x.value) for x in cls]
+def NameValues(cls, lower=False):
+    return [(x.name.lower() if lower else x.name, x.value) for x in cls]
 
 
 def RenderEnum(cls, name, fout, prefix=""):
@@ -12,6 +12,7 @@ def RenderEnum(cls, name, fout, prefix=""):
             print(f"    {prefix}{name} = 0x{value:x},", file=fout)
     print("};", file=fout)
 
+
 def RenderEnumClass(cls, name, fout, prefix=""):
     print(f"\nenum class {name} : uint8_t {{", file=fout)
     for name, value in cls:
@@ -21,10 +22,13 @@ def RenderEnumClass(cls, name, fout, prefix=""):
             print(f"    {prefix}{name} = 0x{value:x},", file=fout)
     print("};", file=fout)
 
-def RenderEnumToStringMap(cls, name, fout, initial=0):
+
+def RenderEnumToStringMap(cls, name, fout, initial=0, lower=False):
     print(f"\nconst char* const {name}_ToStringMap[] = {{", file=fout)
     last = initial  # this should really be called `next`
     for name, value in cls:
+        if lower:
+            name = name.lower()
         while last != value:
             print(f'    "", // {last}', file=fout)
             last += 1
@@ -40,7 +44,8 @@ def RenderEnumToStringMapFlag(cls, name, fout):
     last = 0
     print(f"\nconst char* const {name}_ToStringMap[] = {{", file=fout)
     for name, value in cls:
-        assert value & (value - 1) == 0, f"value 0x{value:x} must have one bit set"
+        assert value & (
+            value - 1) == 0, f"value 0x{value:x} must have one bit set"
         while last != 0 and last != value:
             print(f'    "", // {last}', file=fout)
             last *= 2
@@ -52,7 +57,7 @@ def RenderEnumToStringMapFlag(cls, name, fout):
     print("};", file=fout)
 
 
-def RenderStringToEnumMap(cls, map_name, jumper_name, fout):
+def RenderStringToEnumMap(cls, map_name, jumper_name, fout, lower=False):
     print(f"\nconst struct StringKind {map_name}[] = {{", file=fout)
 
     jumper = {}
@@ -69,6 +74,8 @@ def RenderStringToEnumMap(cls, map_name, jumper_name, fout):
     print(f"\nconst uint8_t {jumper_name}[128] = {{", file=fout)
     for i in range(128):
         print(" %d," % jumper.get(chr(i), 255), end="", file=fout)
+        if i % 16 == 15:
+            print("", file=fout)
     print("};", file=fout)
 
 

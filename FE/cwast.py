@@ -3983,17 +3983,19 @@ def GenerateCodeH(fout: Any):
 
 
 def EnumStrintConversions(fout: Any):
-    def render(cls, both_ways=True):
+    def render(cls, both_ways=True, lower=False):
         prefix = cls.__name__
-        cgen.RenderEnumToStringMap(cgen.NameValues(cls), prefix, fout)
+        cgen.RenderEnumToStringMap(
+            cgen.NameValues(cls), prefix, fout, lower=lower)
         cgen.RenderEnumToStringFun(prefix, fout)
         if both_ways:
-            cgen.RenderStringToEnumMap(cgen.NameValues(cls),
+            cgen.RenderStringToEnumMap(cgen.NameValues(cls, lower=lower),
                                        prefix + "_FromStringMap",
-                                       prefix + "_Jumper", fout)
+                                       prefix + "_Jumper", fout, lower=lower)
     render(MOD_PARAM_KIND)
     render(MACRO_PARAM_KIND)
     render(STR_KIND)
+    render(BASE_TYPE_KIND, lower=True)
 
 
 def EmitNodeDesc(fout: Any):
@@ -4034,6 +4036,7 @@ def EmitNodeDesc(fout: Any):
               bool_fields} }}, // {cls.__name__}")
     print("};")
 
+
 def GenerateCodeCC(fout: Any):
     EmitNodeDesc(fout)
     EnumStrintConversions(fout)
@@ -4070,6 +4073,7 @@ def KeywordsBaseTypes():
         if k != BASE_TYPE_KIND.INVALID:
             out.append(BaseTypeKindToKeyword(k))
     return out
+
 
 def UnaryOpsForConcreteSyntax():
     # note, this excludes the "-" operator.

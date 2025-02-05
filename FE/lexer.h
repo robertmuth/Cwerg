@@ -19,6 +19,7 @@ struct SrcLoc {
 enum class TK_KIND : uint8_t {
   INVALID = 0,
   KW,
+  BASE_TYPE,
   COMPOUND_ASSIGN,
   OTHER_OP,
   PREFIX_OP,

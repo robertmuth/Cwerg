@@ -49,6 +49,13 @@ Node ParseModParamList(Lexer* lexer, bool want_comma) {
 }
 
 Node ParseTypeExpr(Lexer* lexer) {
+  const TK tk = lexer->Next();
+  if (tk.kind == TK_KIND::BASE_TYPE) {
+    Node out = NodeNew(NT::TypeBase);
+    InitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text));
+    return out;
+  }
+
   ASSERT(false, "NYI TypeExpr");
   return Node(HandleInvalid);
 }
