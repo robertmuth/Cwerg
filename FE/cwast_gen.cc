@@ -2,12 +2,20 @@
 
 #include <cstdint>
 
+#include "Util/assert.h"
+
 namespace cwerg::fe {
 
 #define BIT_N(x) 1ull << uint64_t(NFD_NODE_FIELD::x)
 #define BIT_S(x) 1ull << uint64_t(NFD_STRING_FIELD::x)
 #define BIT_B(x) 1ull << uint64_t(NFD_BOOL_FIELD::x)
 
+struct StringKind {
+  const char* name;
+  uint8_t kind;
+};
+
+// clang-format off
 /* @AUTOGEN-START@ */
 NodeDesc GlobalNodeDescs[] = {
     {},                                       // invalid
@@ -99,7 +107,98 @@ NodeDesc GlobalNodeDescs[] = {
     {0, 0, 0},                                            // ValUndef
     {0, 0, 0},                                            // ValVoid
 };
+
+const char* const MOD_PARAM_KIND_ToStringMap[] = {
+    "INVALID",     // 0
+    "CONST_EXPR",  // 1
+    "TYPE",        // 2
+};
+const char* EnumToString(MOD_PARAM_KIND x) {
+  return MOD_PARAM_KIND_ToStringMap[unsigned(x)];
+}
+
+const struct StringKind MOD_PARAM_KIND_FromStringMap[] = {
+    {"CONST_EXPR", 1},
+    {"INVALID", 0},
+    {"TYPE", 2},
+    {"ZZZ", 0},
+};
+
+const uint8_t MOD_PARAM_KIND_Jumper[128] = {
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 0,   255, 255, 255, 255, 255, 1,   255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 2,   255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255,
+};
+
+const char* const MACRO_PARAM_KIND_ToStringMap[] = {
+    "INVALID",         // 0
+    "ID",              // 1
+    "STMT_LIST",       // 2
+    "EXPR_LIST",       // 3
+    "EXPR",            // 4
+    "STMT",            // 5
+    "FIELD",           // 6
+    "TYPE",            // 7
+    "EXPR_LIST_REST",  // 8
+};
+const char* EnumToString(MACRO_PARAM_KIND x) {
+  return MACRO_PARAM_KIND_ToStringMap[unsigned(x)];
+}
+
+const struct StringKind MACRO_PARAM_KIND_FromStringMap[] = {
+    {"EXPR", 4}, {"EXPR_LIST", 3}, {"EXPR_LIST_REST", 8}, {"FIELD", 6},
+    {"ID", 1},   {"INVALID", 0},   {"STMT", 5},           {"STMT_LIST", 2},
+    {"TYPE", 7}, {"ZZZ", 0},
+};
+
+const uint8_t MACRO_PARAM_KIND_Jumper[128] = {
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 0,   3,   255, 255, 4,   255,
+    255, 255, 255, 255, 255, 255, 255, 255, 6,   8,   255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255,
+};
+
+const char* const STR_KIND_ToStringMap[] = {
+    "NORMAL",         // 0
+    "NORMAL_TRIPLE",  // 1
+    "RAW",            // 2
+    "RAW_TRIPLE",     // 3
+    "HEX",            // 4
+    "HEX_TRIPLE",     // 5
+};
+const char* EnumToString(STR_KIND x) {
+  return STR_KIND_ToStringMap[unsigned(x)];
+}
+
+const struct StringKind STR_KIND_FromStringMap[] = {
+    {"HEX", 4}, {"HEX_TRIPLE", 5}, {"NORMAL", 0}, {"NORMAL_TRIPLE", 1},
+    {"RAW", 2}, {"RAW_TRIPLE", 3}, {"ZZZ", 0},
+};
+
+const uint8_t STR_KIND_Jumper[128] = {
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0,   255, 255,
+    255, 255, 255, 2,   255, 255, 255, 4,   255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    255, 255, 255, 255, 255, 255, 255, 255,
+};
 /* @AUTOGEN-END@ */
+// clang-format on
 
 // =======================================
 // Str Helpers
@@ -111,7 +210,6 @@ ImmutablePool gStringPool(4);
 // Name Helpers
 // =======================================
 ImmutablePool gNamePool(4);
-
 
 // =======================================
 // All Stripes
@@ -125,4 +223,37 @@ struct StripeGroup gStripeGroupNode("Node", gAllStripesNode, 256 * 1024);
 struct Stripe<NameCore, Name> gNameCore("NameCore");
 StripeBase* const gAllStripesName[] = {&gNameCore, nullptr};
 struct StripeGroup gStripeGroupName("Name", gAllStripesName, 256 * 1024);
+
+int string_view_cmp(const char* a, std::string_view b) {
+  int x = strncmp(a, b.data(), b.size());
+  if (x == 0 && a[b.size()] != 0) return 1;
+  return x;
+}
+
+static uint8_t LinearSearch(const StringKind* table, const uint8_t* jumper,
+                            std::string_view sym, uint8_t def_val) {
+  ASSERT(sym[0] <= 127, "");
+  uint8_t start = jumper[uint8_t(sym[0])];
+  if (start == 255) return def_val;
+  while (true) {
+    int cmp = string_view_cmp(table[start].name, sym);
+    if (cmp == 0) {
+      return table[start].kind;
+    }
+    ++start;
+    if (cmp > 0) break;
+  }
+  return def_val;
+}
+
+MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name) {
+  return MACRO_PARAM_KIND(LinearSearch(MACRO_PARAM_KIND_FromStringMap,
+                                       MACRO_PARAM_KIND_Jumper, name, 0));
+}
+
+MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name) {
+  return MOD_PARAM_KIND(LinearSearch(MOD_PARAM_KIND_FromStringMap,
+                                     MOD_PARAM_KIND_Jumper, name, 0));
+}
+
 }  // namespace cwerg::fe

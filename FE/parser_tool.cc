@@ -30,8 +30,68 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
   return out;
 }
 
+Node ParseModParamList(Lexer* lexer, bool want_comma) {
+  if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
+    return Node(HandleInvalid);
+  }
+  if (want_comma) {
+    lexer->Match(TK_KIND::COMMA);
+  }
+  TK param_name = lexer->MatchOrDie(TK_KIND::ID);
+  TK param_kind = lexer->MatchOrDie(TK_KIND::ID);
+  Node param = NodeNew(NT::ModParam);
+  InitModParam(param, NameNew(param_name.text),
+               MOD_PARAM_KIND_FromString(param_kind.text));
+  Node next = ParseModParamList(lexer, true);
+  Node_next(param) = next;
+  return param;
+}
+
+Node ParseTopLevel(Lexer* lexer) {
+  const TK& tk = lexer->Next();
+  if (tk.text == "fun") {
+    ASSERT(false, "NYI DefFun");
+  } else if (tk.text == "rec") {
+    ASSERT(false, "NYI DefRec");
+  } else if (tk.text == "import") {
+    ASSERT(false, "NYI Import");
+  } else if (tk.text == "type") {
+    ASSERT(false, "NYI DefType");
+  } else {
+    ASSERT(false, "");
+  }
+  return Node(HandleInvalid);
+}
+
+Node ParseModBodyList(Lexer* lexer, uint32_t column) {
+  const TK& tk = lexer->Peek();
+  if (tk.kind != TK_KIND::KW) {
+    return Node(HandleInvalid);
+  }
+
+  Node top = ParseTopLevel(lexer);
+  Node next = ParseModBodyList(lexer, column);
+  Node_next(top) = next;
+  return top;
+}
+
+uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
+
+Node ParseDefMod(Lexer* lexer) {
+  const TK& tk = lexer->MatchOrDie(TK_KIND::KW, "module");
+  //
+  Node def_mod = NodeNew(NT::DefMod);
+  Node params = Node(HandleInvalid);
+  if (lexer->Match(TK_KIND::PAREN_OPEN)) {
+    params = ParseModParamList(lexer, false);
+  }
+  lexer->MatchOrDie(TK_KIND::COLON);
+  Node body = ParseModBodyList(lexer, 0);
+  InitDefMod(def_mod, params, body, BitsFromAnnotation(tk));
+  return def_mod;
+}
+
 int main(int argc, const char* argv[]) {
-  bool verbose = true;
   InitLexer();
   InitStripes(sw_multiplier.Value());
 
@@ -46,13 +106,6 @@ int main(int argc, const char* argv[]) {
       std::string_view(reinterpret_cast<char*>(data.data()), data.size()), 555);
   // std::cout << "loaded " << data.size() << " bytes\n";
 
-  while (true) {
-    const TK& tk = lexer.Next();
-    if (tk.kind == TK_KIND::SPECIAL_EOF) break;
-    if (verbose) {
-      std::cout << EnumToString(tk.kind) << " " << tk.sl.line + 1 << " " << tk.sl.col
-                << " " << tk.text << "\n";
-    }
-  }
+  ParseDefMod(&lexer);
   return 0;
 }

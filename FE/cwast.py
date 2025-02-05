@@ -549,26 +549,27 @@ ALL_FIELDS = [
     NfdName("name_list", "name of the object list"),
     NfdName("label", "block  name (if not empty)"),
     NfdName("target",
-           "name of enclosing while/for/block to brach to (empty means nearest)"),
+            "name of enclosing while/for/block to brach to (empty means nearest)"),
 
     NfdStr("number", "a number"),
     NfdStr("string", "string literal"),
     NfdStr("message", "message for assert failures"),
 
     NfdStr("path", "TBD"),
-
     #
-    NfdAttrBool("pub", "has public visibility"),
+    NfdAttrBool("init", "run function at startup"),
+    NfdAttrBool("fini", "run function at shutdown"),
     NfdAttrBool("extern", "is external function (empty body)"),
     NfdAttrBool("poly", "is polymorphic function"),
+    #
+    NfdAttrBool("pub", "has public visibility"),
     NfdAttrBool("mut", "is mutable"),
     NfdAttrBool("preserve_mut", "result type is mutable if underlying type is"),
     NfdAttrBool("ref", "address may be taken"),
     NfdAttrBool("colon", "colon style list"),
     NfdAttrBool("cdecl", "use c-linkage (no module prefix)"),
     NfdAttrBool("wrapped", "is wrapped type (forces type equivalence by name)"),
-    NfdAttrBool("init", "run function at startup"),
-    NfdAttrBool("fini", "run function at shutdown"),
+
     NfdAttrBool("unchecked", "array acces is not checked"),
     NfdAttrBool("untagged", "union type is untagged"),
     NfdAttrBool("arg_ref", "in parameter was converted for by-val to pointer"),
@@ -3870,7 +3871,7 @@ def GenerateAccessors():
         dst = _KIND_TO_HANDLE[k]
         print(f"inline {dst} Node_{
 
-            nfd.name}(NodeCore& n) {{ return {dst}(n.children[{_FIELD_2_SLOT[nfd.name]}]); }}")
+            nfd.name}(Node n) {{ return {dst}(gNodeCore[n].children[{_FIELD_2_SLOT[nfd.name]}]); }}")
 
 
 def GenerateInits():
@@ -3891,7 +3892,7 @@ def GenerateInits():
             if nfd.kind == NFK.ATTR_BOOL:
                 has_bits = True
 
-        print(f"inline void Init{cls.__name__}(NodeCore& node", end="")
+        print(f"inline void Init{cls.__name__}(Node node", end="")
         for nfd in nfds:
             k = nfd.kind
             if k == NFK.NODE or k == NFK.LIST:
@@ -3919,7 +3920,7 @@ def GenerateInits():
             args.append("bits")
         else:
             args.append("0")
-        print(f"    InitNode({', '.join(args)});")
+        print(f"    NodeInit({', '.join(args)});")
         print("}\n")
 
 
@@ -3981,7 +3982,21 @@ def GenerateCodeH(fout: Any):
     GenerateInits()
 
 
-def GenerateCodeCC(fout: Any):
+def EnumStrintConversions(fout: Any):
+    def render(cls, both_ways=True):
+        prefix = cls.__name__
+        cgen.RenderEnumToStringMap(cgen.NameValues(cls), prefix, fout)
+        cgen.RenderEnumToStringFun(prefix, fout)
+        if both_ways:
+            cgen.RenderStringToEnumMap(cgen.NameValues(cls),
+                                       prefix + "_FromStringMap",
+                                       prefix + "_Jumper", fout)
+    render(MOD_PARAM_KIND)
+    render(MACRO_PARAM_KIND)
+    render(STR_KIND)
+
+
+def EmitNodeDesc(fout: Any):
     print("NodeDesc GlobalNodeDescs[] = {")
     print("    {}, // invalid")
 
@@ -4018,6 +4033,10 @@ def GenerateCodeCC(fout: Any):
         print(f"    {{ {node_fields}, {string_fields}, {
               bool_fields} }}, // {cls.__name__}")
     print("};")
+
+def GenerateCodeCC(fout: Any):
+    EmitNodeDesc(fout)
+    EnumStrintConversions(fout)
 
 
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")

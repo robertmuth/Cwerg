@@ -100,7 +100,7 @@ class Lexer {
     return peek_cached_;
   }
 
-  bool Match(TK_KIND kind, std::string_view text) {
+  bool Match(TK_KIND kind, std::string_view text = std::string_view()) {
     Peek();
     if (kind == peek_cached_.kind &&
         (text.empty() || text == peek_cached_.text)) {
@@ -110,15 +110,16 @@ class Lexer {
     return false;
   }
 
-  bool MatchOrDie(TK_KIND kind, std::string_view text) {
+  TK MatchOrDie(TK_KIND kind, std::string_view text = std::string_view()) {
     Peek();
     if (kind == peek_cached_.kind &&
         (text.empty() || text == peek_cached_.text)) {
+      current_ = peek_cached_;
       peek_cached_.kind = TK_KIND::INVALID;
-      return true;
+      return current_;
     }
     ASSERT(false, "");
-    return false;
+    return current_;
   }
 
   const TK& Next() {
