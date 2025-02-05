@@ -373,6 +373,10 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
         if tk.text.startswith(cwast.MACRO_VAR_PREFIX):
             return cwast.MacroId(cwast.NAME.FromStr(tk.text), **extra)
         return cwast.Id.Make(tk.text, **extra)
+    elif tk.kind is lexer.TK_KIND.BASE_TYPE:
+        kind = cwast.KeywordToBaseTypeKind(tk.text)
+        assert kind is not cwast.BASE_TYPE_KIND.INVALID, f"{tk}"
+        return cwast.TypeBase(kind, **extra)
     elif tk.kind is lexer.TK_KIND.KW:
         if tk.text == cwast.TypeAuto.ALIAS:
             return cwast.TypeAuto(**extra)
@@ -399,9 +403,8 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
                 first = False
                 members.append(_ParseTypeExpr(inp))
             return cwast.TypeUnion(members, untagged=tk.text.endswith(cwast.MUTABILITY_SUFFIX), **extra)
-        kind = cwast.KeywordToBaseTypeKind(tk.text)
-        assert kind is not cwast.BASE_TYPE_KIND.INVALID, f"{tk}"
-        return cwast.TypeBase(kind, **extra)
+        else:
+            assert False, "Not Reachable"
     elif tk.text == '[':
         dim = _ParseExpr(inp)
         inp.match_or_die(lexer.TK_KIND.SQUARE_CLOSED)
@@ -829,7 +832,7 @@ def _ParseTopLevel(inp: lexer.Lexer):
         return cwast.DefType(cwast.NAME.FromStr(name.text), type, **extra)
     elif kw.text == "enum":
         name = inp.match_or_die(lexer.TK_KIND.ID)
-        base_type = inp.match_or_die(lexer.TK_KIND.KW)
+        base_type = inp.match_or_die(lexer.TK_KIND.BASE_TYPE)
         entries = _ParseEnumList(inp, kw.column)
         return cwast.DefEnum(cwast.NAME.FromStr(name.text), cwast.KeywordToBaseTypeKind(base_type.text),
                              entries, **extra)
@@ -840,7 +843,7 @@ def _ParseTopLevel(inp: lexer.Lexer):
         assert False, f"unexpected topelevel [{kw}]"
 
 
-def _ParseModule(inp: lexer.Lexer):
+def _ParseDefMod(inp: lexer.Lexer):
     # comments, annotations = _ParseOptionalCommentsAttributes(inp)
     # print(comments, annotations)
     kw = inp.match_or_die(lexer.TK_KIND.KW, "module")
@@ -882,7 +885,7 @@ def RemoveRedundantParens(node):
 
 def ReadModFromStream(fp, fn) -> cwast.DefMod:
     inp = lexer.Lexer(lexer.LexerRaw(fn, fp))
-    return _ParseModule(inp)
+    return _ParseDefMod(inp)
 
 
 ############################################################
@@ -895,7 +898,7 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.WARNING)
         logger.setLevel(logging.WARNING)
         inp = lexer.Lexer(lexer.LexerRaw("stdin", sys.stdin))
-        mod = _ParseModule(inp)
+        mod = _ParseDefMod(inp)
         RemoveRedundantParens(mod)
         pp_sexpr.PrettyPrint(mod)
 

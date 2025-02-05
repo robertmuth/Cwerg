@@ -51,6 +51,7 @@ class TK_KIND(enum.Enum):
     GENERIC_ANNOTATION = 1016
     CHAR = 1017
     STR = 1018
+    BASE_TYPE = 1019
     NUM = 1020
     ID = 1021
     SPECIAL_EOF = 1022
@@ -138,6 +139,8 @@ def DumpTrieStats(trie: TRIE):
 def GetAllKWAndOps():
     KWs = []
     KWs += [(kw, TK_KIND.KW) for kw in cwast.KeyWordsForConcreteSyntax()]
+    KWs += [(kw, TK_KIND.BASE_TYPE) for kw in cwast.KeywordsBaseTypes()]
+
     KWs += [(kw, TK_KIND.COMPOUND_ASSIGN) for kw in cwast.ASSIGNMENT_SHORTCUT]
     KWs += [(kw, TK_KIND.OTHER_OP)
             for kw in cwast.BinaryOpsForConcreteSyntax()]
@@ -237,7 +240,7 @@ def MakeInitialTrie(KWs):
     # the sortorder ensures that a prefixes are procressed later
     for kw, tag in reversed(sorted(KWs)):
         # print (kw, tag)
-        if tag in (TK_KIND.KW, TK_KIND.ANNOTATION):
+        if tag in (TK_KIND.KW, TK_KIND.ANNOTATION, TK_KIND.BASE_TYPE):
             if kw.endswith("!"):
                 add_kw_simple(kw, tag)
             else:

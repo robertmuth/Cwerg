@@ -4052,9 +4052,6 @@ def KeyWordsForConcreteSyntax():
                 if f.name in ("mut", "untagged", "unchecked"):
                     out.append(alias + MUTABILITY_SUFFIX)
                     break
-    for k in BASE_TYPE_KIND:
-        if k != BASE_TYPE_KIND.INVALID:
-            out.append(BaseTypeKindToKeyword(k))
     for k in POINTER_EXPR_SHORTCUT:
         if _NAMED_OP_RE.fullmatch(k):
             out.append(k)
@@ -4066,6 +4063,13 @@ def KeyWordsForConcreteSyntax():
             out.append(k)
     return out
 
+
+def KeywordsBaseTypes():
+    out = []
+    for k in BASE_TYPE_KIND:
+        if k != BASE_TYPE_KIND.INVALID:
+            out.append(BaseTypeKindToKeyword(k))
+    return out
 
 def UnaryOpsForConcreteSyntax():
     # note, this excludes the "-" operator.
