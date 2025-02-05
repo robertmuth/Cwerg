@@ -14,6 +14,15 @@ using namespace cwerg;
 SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
 
+bool ends_with(std::string_view str, std::string_view suffix) {
+  return str.size() >= suffix.size() &&
+         str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+bool starts_with(std::string_view str, std::string_view prefix) {
+  return str.size() >= prefix.size() &&
+         str.compare(0, prefix.size(), prefix) == 0;
+}
 std::vector<char> SlurpDataFromStream(std::istream* fin) {
   size_t num_bytes_per_read = 1024 * 1024;
   size_t current_offset = 0U;
@@ -32,6 +41,46 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
 
 uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
+Node ParseTypeExpr(Lexer* lexer) {
+  const TK tk = lexer->Next();
+  std::cout << "Parsiing TYpeExpr " << tk.text << "\n";
+
+  if (tk.kind == TK_KIND::BASE_TYPE) {
+    Node out = NodeNew(NT::TypeBase);
+    InitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text));
+    return out;
+  } else if (tk.kind == TK_KIND::PREFIX_OP) {
+    ASSERT(tk.text == "^" || tk.text == "^!", "");
+    Node out = NodeNew(NT::TypePtr);
+    Node pointee = ParseTypeExpr(lexer);
+    uint16_t bits = tk.text.size() == 1 ? 0 : 1 << int(NFD_BOOL_FIELD::mut);
+    InitTypePtr(out, pointee, bits);
+    return out;
+  }
+
+  ASSERT(false, "NYI TypeExpr");
+  return Node(HandleInvalid);
+}
+
+Node ParseAnyExpr(Lexer* lexer) {
+  ASSERT(false, "NYI AnyExpr");
+  return Node(HandleInvalid);
+}
+
+Node ParseMacroArgList(Lexer* lexer, bool want_comma) {
+  if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
+    return Node(HandleInvalid);
+  }
+  if (want_comma) {
+    lexer->Match(TK_KIND::COMMA);
+  }
+  Node out = ParseAnyExpr(lexer);
+
+  Node next = ParseMacroArgList(lexer, true);
+  Node_next(out) = next;
+  return out;
+}
+
 Node ParseModParamList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
     return Node(HandleInvalid);
@@ -48,18 +97,6 @@ Node ParseModParamList(Lexer* lexer, bool want_comma) {
   return out;
 }
 
-Node ParseTypeExpr(Lexer* lexer) {
-  const TK tk = lexer->Next();
-  if (tk.kind == TK_KIND::BASE_TYPE) {
-    Node out = NodeNew(NT::TypeBase);
-    InitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text));
-    return out;
-  }
-
-  ASSERT(false, "NYI TypeExpr");
-  return Node(HandleInvalid);
-}
-
 Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
     return Node(HandleInvalid);
@@ -72,7 +109,7 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   Node out = NodeNew(NT::ModParam);
 
   InitFunParam(out, NameNew(name.text), type, BitsFromAnnotation(name));
-  Node next = ParseModParamList(lexer, true);
+  Node next = ParseFunParamList(lexer, true);
   Node_next(out) = next;
   return out;
 }
@@ -83,10 +120,21 @@ Node ParseStmt(Lexer* lexer) {
 }
 
 Node ParseStmtBodyList(Lexer* lexer, uint32_t column) {
-  const TK& tk = lexer->Peek();
-  if (tk.kind != TK_KIND::KW) {
-    return Node(HandleInvalid);
+  const TK tk = lexer->Peek();
+  if (tk.kind == TK_KIND::ID) {
+    ASSERT(ends_with(tk.text, "#"), "");
+    if (lexer->Match(TK_KIND::PAREN_OPEN)) {
+    } else {
+      ASSERT(false, "NYI StmtBodyList");
+    }
+
+    Node args = ParseMacroArgList(lexer, false);
+    Node out = NodeNew(NT::MacroInvoke);
+    InitMacroInvoke(out, NameNew(tk.text), args);
+    return out;
   }
+
+  ASSERT(tk.kind == TK_KIND::KW, "");
 
   Node stmt = ParseStmt(lexer);
   Node next = ParseStmtBodyList(lexer, column);
