@@ -30,6 +30,8 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
   return out;
 }
 
+uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
+
 Node ParseModParamList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
     return Node(HandleInvalid);
@@ -37,24 +39,90 @@ Node ParseModParamList(Lexer* lexer, bool want_comma) {
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
-  TK param_name = lexer->MatchOrDie(TK_KIND::ID);
-  TK param_kind = lexer->MatchOrDie(TK_KIND::ID);
-  Node param = NodeNew(NT::ModParam);
-  InitModParam(param, NameNew(param_name.text),
-               MOD_PARAM_KIND_FromString(param_kind.text));
+  TK name = lexer->MatchOrDie(TK_KIND::ID);
+  TK kind = lexer->MatchOrDie(TK_KIND::ID);
+  Node out = NodeNew(NT::ModParam);
+  InitModParam(out, NameNew(name.text), MOD_PARAM_KIND_FromString(kind.text));
   Node next = ParseModParamList(lexer, true);
-  Node_next(param) = next;
-  return param;
+  Node_next(out) = next;
+  return out;
+}
+
+Node ParseTypeExpr(Lexer* lexer) {
+  ASSERT(false, "NYI TypeExpr");
+  return Node(HandleInvalid);
+}
+
+Node ParseFunParamList(Lexer* lexer, bool want_comma) {
+  if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
+    return Node(HandleInvalid);
+  }
+  if (want_comma) {
+    lexer->Match(TK_KIND::COMMA);
+  }
+  TK name = lexer->MatchOrDie(TK_KIND::ID);
+  Node type = ParseTypeExpr(lexer);
+  Node out = NodeNew(NT::ModParam);
+
+  InitFunParam(out, NameNew(name.text), type, BitsFromAnnotation(name));
+  Node next = ParseModParamList(lexer, true);
+  Node_next(out) = next;
+  return out;
+}
+
+Node ParseStmt(Lexer* lexer) {
+  ASSERT(false, "STMT");
+  return Node(HandleInvalid);
+}
+
+Node ParseStmtBodyList(Lexer* lexer, uint32_t column) {
+  const TK& tk = lexer->Peek();
+  if (tk.kind != TK_KIND::KW) {
+    return Node(HandleInvalid);
+  }
+
+  Node stmt = ParseStmt(lexer);
+  Node next = ParseStmtBodyList(lexer, column);
+  Node_next(stmt) = next;
+  return stmt;
 }
 
 Node ParseTopLevel(Lexer* lexer) {
   const TK& tk = lexer->Next();
   if (tk.text == "fun") {
-    ASSERT(false, "NYI DefFun");
+    Node out = NodeNew(NT::DefFun);
+    TK name = lexer->MatchOrDie(TK_KIND::ID);
+    lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
+    Node params = ParseFunParamList(lexer, false);
+    Node result = Node(HandleInvalid);
+    if (lexer->Match(TK_KIND::COLON)) {
+      ASSERT(false, "");
+    } else {
+      result = ParseTypeExpr(lexer);
+      lexer->MatchOrDie(TK_KIND::COLON);
+    }
+    const TK& tk = lexer->Peek();
+    Node body = ParseStmtBodyList(lexer, tk.sl.col);
+    InitDefFun(out, NameNew(name.text), params, result, body,
+               BitsFromAnnotation(name));
+    return out;
   } else if (tk.text == "rec") {
     ASSERT(false, "NYI DefRec");
   } else if (tk.text == "import") {
-    ASSERT(false, "NYI Import");
+    TK name = lexer->MatchOrDie(TK_KIND::ID);
+    Node args = Node(HandleInvalid);
+    std::string_view path = std::string_view();
+    if (lexer->Match(TK_KIND::ASSIGN)) {
+      const TK& tk = lexer->Next();
+      path = tk.text;
+    }
+    if (lexer->Match(TK_KIND::PAREN_OPEN)) {
+      ASSERT(false, "NYI Import With Params");
+    }
+    Node out = NodeNew(NT::Import);
+    InitImport(out, NameNew(name.text), StrNew(path), args);
+    return out;
+
   } else if (tk.text == "type") {
     ASSERT(false, "NYI DefType");
   } else {
@@ -74,8 +142,6 @@ Node ParseModBodyList(Lexer* lexer, uint32_t column) {
   Node_next(top) = next;
   return top;
 }
-
-uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
 Node ParseDefMod(Lexer* lexer) {
   const TK& tk = lexer->MatchOrDie(TK_KIND::KW, "module");
