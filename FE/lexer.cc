@@ -18,35 +18,6 @@ const int kCTypeNumberRest = 8;
 const int kCTypeNameStart = 16;
 const int kCTypeNameRest = 32;
 
-const char* const TK_KIND_TO_STR[] = {
-    "INVALID",
-    "KW",
-    "COMPOUND_ASSIGN",
-    "OTHER_OP",
-    "PREFIX_OP",
-    "ANNOTATION",
-    "ASSIGN",
-    "COLON",
-    "COMMA",
-    "PAREN_OPEN",
-    "PAREN_CLOSED",
-    "CURLY_OPEN",
-    "CURLY_CLOSED",
-    "SQUARE_OPEN",
-    "SQUARE_OPEN_EXCL",
-    "SQUARE_CLOSED",
-    // These just match the prefix of the lexeme
-    "COMMENT",
-    "GENERIC_ANNOTATION",
-    "CHAR",
-    "STR",
-    "NUM",
-    "ID",
-    "SPECIAL_EOF",
-};
-
-const char* EnumToString(TK_KIND x) { return TK_KIND_TO_STR[int(x)]; }
-
 uint8_t CType[256];
 
 void InitLexer() {
@@ -142,11 +113,11 @@ uint32_t LexerRaw::HandleNum() {
   return i - pos_;
 }
 
-#define HANDLE_ID_COMPONENT              \
+#define HANDLE_ID_COMPONENT                  \
   if (!IsNameStart(c = input_[i])) return 0; \
-  i++;                                   \
+  i++;                                       \
   while (IsNameRest(c = input_[i])) {        \
-    i++;                                 \
+    i++;                                     \
   }
 
 uint32_t LexerRaw::HandleMacroId() {
