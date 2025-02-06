@@ -43,7 +43,6 @@ uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
 Node ParseTypeExpr(Lexer* lexer) {
   const TK tk = lexer->Next();
-  std::cout << "Parsiing TYpeExpr " << tk.text << "\n";
 
   if (tk.kind == TK_KIND::BASE_TYPE) {
     Node out = NodeNew(NT::TypeBase);
@@ -62,8 +61,73 @@ Node ParseTypeExpr(Lexer* lexer) {
   return Node(HandleInvalid);
 }
 
-Node ParseAnyExpr(Lexer* lexer) {
-  ASSERT(false, "NYI AnyExpr");
+Node MakeValStr(std::string_view s) {
+  STR_KIND sk = STR_KIND::NORMAL;
+  uint32_t offset = 0;
+  if (s[0] == '"') {
+    sk = STR_KIND::NORMAL;
+    offset = 0;
+  } else if (s[0] == 'r') {
+    sk = STR_KIND::RAW;
+    offset = 1;
+  } else if (s[0] == 'x') {
+    sk = STR_KIND::HEX;
+    offset = 1;
+  } else {
+    ASSERT(false, "");
+  }
+
+  if (starts_with(s.substr(1), "\"\"\"")) {
+    s = s.substr(offset + 3, s.size() - offset - 6);
+    sk = STR_KIND(1 + uint8_t(sk));
+  } else {
+    s = s.substr(offset + 1, s.size() - offset - 2);
+  }
+
+  Node out = NodeNew(NT::ValString);
+  InitValString(out, StrNew(s), sk);
+  return out;
+}
+
+Node ParseExpr(Lexer* lexer) {
+  const TK tk = lexer->Next();
+  if (tk.kind == TK_KIND::STR) {
+    return MakeValStr(tk.text);
+  } else if (tk.kind == TK_KIND::NUM) {
+    Node out = NodeNew(NT::ValNum);
+    InitValNum(out, StrNew(tk.text));
+    return out;
+  } else {
+    std::cout << "@@@@ " << tk.text << "\n";
+    ASSERT(false, "NYI AnyExpr");
+    return Node(HandleInvalid);
+  }
+}
+
+bool MaybeTypeExprStart(const TK& tk) {
+  switch (tk.kind) {
+    case TK_KIND::BASE_TYPE:
+      return true;
+    case TK_KIND::PREFIX_OP:
+      return tk.text == "^" || tk.text == "^!";
+    case TK_KIND::SQUARE_OPEN:
+      return true;
+    case TK_KIND::KW:
+      return tk.text == "auto" || tk.text == "funtype" ||
+             tk.text == "type_of" || tk.text == "union" ||
+             tk.text == "union_delta";
+    default:
+      return false;
+  }
+}
+
+Node ParseTypeExprOrExpr(Lexer* lexer) {
+  const TK& tk = lexer->Peek();
+  if (MaybeTypeExprStart(tk)) {
+    return ParseTypeExpr(lexer);
+  } else {
+    return ParseExpr(lexer);
+  }
   return Node(HandleInvalid);
 }
 
@@ -74,7 +138,7 @@ Node ParseMacroArgList(Lexer* lexer, bool want_comma) {
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
-  Node out = ParseAnyExpr(lexer);
+  Node out = ParseTypeExprOrExpr(lexer);
 
   Node next = ParseMacroArgList(lexer, true);
   Node_next(out) = next;
@@ -115,31 +179,44 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
 }
 
 Node ParseStmt(Lexer* lexer) {
-  ASSERT(false, "STMT");
-  return Node(HandleInvalid);
+  const TK tk = lexer->Next();
+  if (tk.text == "return") {
+    Node expr = ParseExpr(lexer);
+    Node out = NodeNew(NT::StmtReturn);
+    InitStmtReturn(out, expr);
+    return out;
+  } else {
+    ASSERT(false, "STMT");
+    return Node(HandleInvalid);
+  }
 }
 
 Node ParseStmtBodyList(Lexer* lexer, uint32_t column) {
   const TK tk = lexer->Peek();
+  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.sl.col < column) {
+    return Node(HandleInvalid);
+  }
+  std::cout << "@@ BODY " << tk.text << "\n";
+  Node out = Node(HandleInvalid);
   if (tk.kind == TK_KIND::ID) {
+    lexer->Next();
     ASSERT(ends_with(tk.text, "#"), "");
+    Node args = Node(HandleInvalid);
     if (lexer->Match(TK_KIND::PAREN_OPEN)) {
+      args = ParseMacroArgList(lexer, false);
     } else {
       ASSERT(false, "NYI StmtBodyList");
     }
 
-    Node args = ParseMacroArgList(lexer, false);
-    Node out = NodeNew(NT::MacroInvoke);
+    out = NodeNew(NT::MacroInvoke);
     InitMacroInvoke(out, NameNew(tk.text), args);
-    return out;
+  } else {
+    ASSERT(tk.kind == TK_KIND::KW, "NYI");
+    out = ParseStmt(lexer);
   }
-
-  ASSERT(tk.kind == TK_KIND::KW, "");
-
-  Node stmt = ParseStmt(lexer);
   Node next = ParseStmtBodyList(lexer, column);
-  Node_next(stmt) = next;
-  return stmt;
+  Node_next(out) = next;
+  return out;
 }
 
 Node ParseTopLevel(Lexer* lexer) {
@@ -181,6 +258,7 @@ Node ParseTopLevel(Lexer* lexer) {
   } else if (tk.text == "type") {
     ASSERT(false, "NYI DefType");
   } else {
+    std::cout << "#### " << tk.text << "\n";
     ASSERT(false, "");
   }
   return Node(HandleInvalid);

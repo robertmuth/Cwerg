@@ -1889,30 +1889,26 @@ def ComputeStringSize(str_kind: STR_KIND, string: str) -> int:
 
 def MakeValString(t: str, sl: SrcLoc) -> ValString:
     kind = STR_KIND.NORMAL
+    offset = 0
     tq = 0
-    if t.startswith('"""'):
-        assert t.endswith('"""')
+    if t.startswith('"'):
         kind = STR_KIND.NORMAL
-        t = t[3:-3]
-        tq = 1
-    elif t.startswith('r"""'):
-        assert t.endswith('"""')
-        t = t[4:-3]
-        tq = 1
+        offset = 0
+    elif t.startswith('r'):
         kind = STR_KIND.RAW
-    elif t.startswith('x"""'):
-        assert t.endswith('"""')
-        t = t[4:-3]
-        tq = 1
+        offset = 1
+    elif t.startswith('x'):
         kind = STR_KIND.HEX
-    elif t.startswith('"'):
-        assert t.endswith('"')
-        t = t[1:-1]
-        tq = 0
-        kind = STR_KIND.NORMAL
+        offset = 1
     else:
         assert False, f"unexpected string [{t}] at {sl}"
-    return ValString(t, STR_KIND(kind.value + tq), x_srcloc=sl)
+
+    quotes = 3 if t[offset:].startswith('"""') else 1
+    t = t[offset + quotes: - quotes]
+    if quotes == 3:
+        kind = STR_KIND(kind.value + 1)
+
+    return ValString(t, kind, x_srcloc=sl)
 
 
 ############################################################

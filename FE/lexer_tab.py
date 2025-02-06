@@ -32,29 +32,29 @@ TRIE = list[list[int]]
 @enum.unique
 class TK_KIND(enum.Enum):
     KW = 1000
-    COMPOUND_ASSIGN = 1001
-    OTHER_OP = 1002
-    PREFIX_OP = 1003
-    ANNOTATION = 1004
-    ASSIGN = 1005
-    COLON = 1006
-    COMMA = 1007
-    PAREN_OPEN = 1008
-    PAREN_CLOSED = 1009
-    CURLY_OPEN = 1010
-    CURLY_CLOSED = 1011
-    SQUARE_OPEN = 1012
-    SQUARE_OPEN_EXCL = 1013
-    SQUARE_CLOSED = 1014
-    # These just match the prefix  of the lexeme
-    COMMENT = 1015
-    GENERIC_ANNOTATION = 1016
-    CHAR = 1017
-    STR = 1018
-    BASE_TYPE = 1019
-    NUM = 1020
-    ID = 1021
-    SPECIAL_EOF = 1022
+    COMPOUND_ASSIGN = enum.auto()
+    OTHER_OP = enum.auto()
+    PREFIX_OP = enum.auto()
+    ANNOTATION = enum.auto()
+    ASSIGN = enum.auto()
+    COLON = enum.auto()
+    COMMA = enum.auto()
+    PAREN_OPEN = enum.auto()
+    PAREN_CLOSED = enum.auto()
+    CURLY_OPEN = enum.auto()
+    CURLY_CLOSED = enum.auto()
+    SQUARE_OPEN = enum.auto()
+    SQUARE_OPEN_EXCL = enum.auto()
+    SQUARE_CLOSED = enum.auto()
+    # These just match the  enum.auto()prefix  of the lexeme
+    COMMENT = enum.auto()
+    GENERIC_ANNOTATION = enum.auto()
+    CHAR = enum.auto()
+    STR = enum.auto()
+    BASE_TYPE = enum.auto()
+    NUM = enum.auto()
+    ID = enum.auto()
+    SPECIAL_EOF = enum.auto()
 
 
 def IsEmptyNode(n: NODE):
@@ -531,8 +531,10 @@ def GenerateCodeCC(fout, max_items_per_row=16):
                 print(f"{sep}REP{count}({val})", end="", file=fout)
             sep = ", "
 
-    print(f"#define VAL(x) {len(trie)} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
-    print(f"#define VALX(x) {len(trie)+1} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
+    print(f"#define VAL(x) {
+          len(trie)} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
+    print(f"#define VALX(x) {len(trie) +
+          1} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
 
     print(f"uint8_t TrieNodeCount = {len(trie)};\n", file=fout)
 
