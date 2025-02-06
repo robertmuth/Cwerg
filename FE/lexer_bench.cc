@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <iostream>
 
+#include "FE/lexer.h"
 #include "Util/parse.h"
 #include "Util/switch.h"
 
@@ -32,12 +33,16 @@ int main(int argc, const char* argv[]) {
     fin = &finFile;
   }
 
-  std::ofstream foutFile;
-  std::ostream* fout = &std::cout;
-  if (argv[argc - 1] != std::string_view("-")) {
-    foutFile.open(argv[argc - 1]);
-    fout = &foutFile;
-  }
-
   std::vector<char> data = SlurpDataFromStream(fin);
+  InitLexer();
+  LexerRaw lexer(
+      std::string_view(reinterpret_cast<char*>(data.data()), data.size()), 555);
+
+  while (true) {
+    TK_RAW tk = lexer.Next();
+    std::cout << EnumToString(tk.kind) << " " << tk.text << "\n";
+    if (tk.kind == TK_KIND::SPECIAL_EOF) {
+      break;
+    }
+  }
 }

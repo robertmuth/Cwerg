@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Util/assert.h"
+#include "FE/lexer_gen.h"
 
 namespace cwerg::fe {
 
@@ -16,35 +17,7 @@ struct SrcLoc {
   uint32_t file;
 };
 
-enum class TK_KIND : uint8_t {
-  INVALID = 0,
-  KW,
-  BASE_TYPE,
-  COMPOUND_ASSIGN,
-  OTHER_OP,
-  PREFIX_OP,
-  ANNOTATION,
-  ASSIGN,
-  COLON,
-  COMMA,
-  PAREN_OPEN,
-  PAREN_CLOSED,
-  CURLY_OPEN,
-  CURLY_CLOSED,
-  SQUARE_OPEN,
-  SQUARE_OPEN_EXCL,
-  SQUARE_CLOSED,
-  // These just match the prefix of the lexeme
-  COMMENT,
-  GENERIC_ANNOTATION,
-  CHAR,
-  STR,
-  NUM,
-  ID,
-  SPECIAL_EOF,
-};
 
-extern const char* EnumToString(TK_KIND x);
 
 struct TK_RAW {
   TK_KIND kind;

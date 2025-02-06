@@ -29,9 +29,13 @@ NODE = list[int]
 TRIE = list[list[int]]
 
 
+TK_KIND_OFFSET = 1000
+
+
 @enum.unique
 class TK_KIND(enum.Enum):
-    KW = 1000
+    INVALID = 0
+    KW = enum.auto()
     COMPOUND_ASSIGN = enum.auto()
     OTHER_OP = enum.auto()
     PREFIX_OP = enum.auto()
@@ -111,9 +115,9 @@ def FindInTrie(trie: TRIE, s: str) -> tuple[int, int]:
             return 0, 0
         if x >= len(trie):
             if x & 1:
-                return n, TK_KIND(x >> 1)
+                return n, TK_KIND((x - TK_KIND_OFFSET) >> 1)
             else:
-                return n + 1, TK_KIND(x >> 1)
+                return n + 1, TK_KIND((x - TK_KIND_OFFSET) >> 1)
         node = trie[x]
     return 0, 0
 
@@ -207,7 +211,7 @@ def MakeInitialTrie(KWs):
             node = trie[node[c]]
         assert node[last] == NODE_NULL, f"[{kw}] {
             node[last]} {node is trie[0]}"
-        node[last] = tag.value << 1
+        node[last] = (tag.value << 1) + TK_KIND_OFFSET
 
     def add_kw(kw, tag, non_succ):
         # keyword is only valid if not followed by char in non_succ
@@ -222,7 +226,7 @@ def MakeInitialTrie(KWs):
             c = ord(cc)
             if node[c] == NODE_NULL:
                 if n == len(kw) - 1 and non_succ == set():
-                    node[c] = tag.value << 1
+                    node[c] = (tag.value << 1) + TK_KIND_OFFSET
                     return
                 node[c] = add_node()
             # no kw can be prefix of another
@@ -233,7 +237,7 @@ def MakeInitialTrie(KWs):
         for i in range(len(node)):
             if i not in non_succ:
                 if node[i] == NODE_NULL:
-                    node[i] = (tag.value << 1) + 1
+                    node[i] = (tag.value << 1) + 1 + TK_KIND_OFFSET
 
     # KWs = list(sorted(KWs))[0:1]
 
@@ -505,7 +509,7 @@ def GenerateCodeCC(fout, max_items_per_row=16):
         if x < num_nodes:
             return f"{x}"
         else:
-            kind = TK_KIND(x >> 1)
+            kind = TK_KIND((x - TK_KIND_OFFSET) >> 1)
             if x & 1:
                 return f"VALX({kind.name})"
             else:
@@ -550,11 +554,22 @@ def GenerateCodeCC(fout, max_items_per_row=16):
 
     print("};", file=fout)
 
+    prefix = TK_KIND.__name__
+    cgen.RenderEnumToStringMap(
+        cgen.NameValues(TK_KIND), prefix, fout)
+    cgen.RenderEnumToStringFun(prefix, fout)
+
+
+def GenerateCodeH(fout):
+    cgen.RenderEnumClass(cgen.NameValues(TK_KIND), "TK_KIND", fout)
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
         MakeTrieNoisy()
     elif sys.argv[1] == "gen_cc":
         cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)
+    elif sys.argv[1] == "gen_h":
+        cgen.ReplaceContent(GenerateCodeH, sys.stdin, sys.stdout)
     else:
         assert False

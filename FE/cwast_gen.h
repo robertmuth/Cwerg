@@ -74,7 +74,7 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
   core.bits = bits;
 }
 
-inline Node& Node_next(Node node) { return (Node&)  gNodeCore[node].next; }
+inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
 // =======================================
 // Name API
 // =======================================
@@ -787,6 +787,11 @@ struct NodeDesc {
 // We have aboutr 45 regular and very few bool fields. So there is headroom in
 // the biy vec
 extern NodeDesc GlobalNodeDescs[];
+
+const char* EnumToString(MOD_PARAM_KIND x);
+const char* EnumToString(MACRO_PARAM_KIND x);
+const char* EnumToString(STR_KIND x);
+const char* EnumToString(BASE_TYPE_KIND x);
 
 // default is MACRO_PARAM_KIND::INVALID
 MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name);

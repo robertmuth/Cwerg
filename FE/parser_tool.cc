@@ -238,6 +238,28 @@ Node ParseTopLevel(Lexer* lexer) {
     InitDefFun(out, NameNew(name.text), params, result, body,
                BitsFromAnnotation(name));
     return out;
+  } else if (starts_with(tk.text, "global")) {
+    const TK name = lexer->MatchOrDie(TK_KIND::ID);
+    Node type = Node(HandleInvalid);
+    Node init = Node(HandleInvalid);
+    if (lexer->Match(TK_KIND::ASSIGN)) {
+      type = NodeNew(NT::TypeAuto);
+      InitTypeAuto(type);
+      init = ParseExpr(lexer);
+    } else {
+      type = ParseTypeExpr(lexer);
+      if (lexer->Match(TK_KIND::ASSIGN)) {
+        init = ParseExpr(lexer);
+      } else {
+        init = NodeNew(NT::ValAuto);
+        InitValAuto(init);
+      }
+    }
+    Node out = NodeNew(NT::DefGlobal);
+    // TODO: mut
+    uint16_t bits = 0;
+    InitDefGlobal(out, NameNew(name.text), type, init, bits);
+    return out;
   } else if (tk.text == "rec") {
     ASSERT(false, "NYI DefRec");
   } else if (tk.text == "import") {
@@ -266,7 +288,9 @@ Node ParseTopLevel(Lexer* lexer) {
 
 Node ParseModBodyList(Lexer* lexer, uint32_t column) {
   const TK& tk = lexer->Peek();
+  std::cout << "@@@@ TOP " << tk.text << " " << EnumToString(tk.kind) << "\n";
   if (tk.kind != TK_KIND::KW) {
+    std::cout << "BODY " << EnumToString(tk.kind) << " \n";
     return Node(HandleInvalid);
   }
 

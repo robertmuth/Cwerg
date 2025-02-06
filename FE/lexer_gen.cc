@@ -1,4 +1,4 @@
-#include "FE/lexer.h"
+#include "FE/lexer_gen.h"
 
 namespace cwerg::fe {
 
