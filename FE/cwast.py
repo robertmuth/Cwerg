@@ -4076,10 +4076,8 @@ def UnaryOpsForConcreteSyntax():
     # The lexer will treat it as a BinaryOp and
     # the parse will figure out what it really is
     return [x for x in UNARY_EXPR_SHORTCUT_COMMON
-            if not _NAMED_OP_RE.fullmatch(x)] + [
-        ExprAddrOf.ALIAS,
-        ExprAddrOf.ALIAS + MUTABILITY_SUFFIX,
-    ]
+            if not _NAMED_OP_RE.fullmatch(x)]
+
 
 
 def BinaryOpsForConcreteSyntax():

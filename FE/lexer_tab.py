@@ -44,7 +44,12 @@ class TK_KIND(enum.Enum):
     GENERIC_ANNOTATION = enum.auto()  # {{
     DEREF_OR_POINTER_OP = enum.auto()  # ^, ^!
     ADDR_OF_OP = enum.auto()  # @, @!
-    OTHER_OP = enum.auto()
+    COMPARISON_OP = enum.auto()
+    SHIFT_OP = enum.auto()
+    ADD_OP = enum.auto()
+    MUL_OP = enum.auto()
+    OR_SC_OP = enum.auto()
+    AND_SC_OP = enum.auto()
     PREFIX_OP = enum.auto()
     BASE_TYPE = enum.auto()
 
@@ -142,7 +147,7 @@ def DumpTrieStats(trie: TRIE):
     print(f"Nodes: {len(trie)}")
     histo = collections.defaultdict(int)
     for t in trie:
-        non_null = len(t) - t.count(-1)
+        non_null = len(t) - t.count(NODE_NULL)
         histo[non_null] += 1
     for k, v in sorted(histo.items()):
         print(k, v)
@@ -154,8 +159,16 @@ def GetAllKWAndOps():
     KWs += [(kw, TK_KIND.BASE_TYPE) for kw in cwast.KeywordsBaseTypes()]
 
     KWs += [(kw, TK_KIND.COMPOUND_ASSIGN) for kw in cwast.ASSIGNMENT_SHORTCUT]
-    KWs += [(kw, TK_KIND.OTHER_OP)
-            for kw in cwast.BinaryOpsForConcreteSyntax()]
+    KWs += [(kw, TK_KIND.COMPARISON_OP)
+            for kw in ["<", ">", ">=", "<=", "==", "!="]]
+    KWs += [(kw, TK_KIND.SHIFT_OP)
+            for kw in ["<<", ">>", "<<<", ">>>"]]
+    KWs += [(kw, TK_KIND.ADD_OP)
+            for kw in ["+", "-", "~", "|"]]
+    KWs += [(kw, TK_KIND.MUL_OP)
+            for kw in ["/", "*", "%", "&"]]
+    KWs += [("&&", TK_KIND.AND_SC_OP)]
+    KWs += [("||", TK_KIND.OR_SC_OP)]
     KWs += [(kw, TK_KIND.PREFIX_OP)
             for kw in cwast.UnaryOpsForConcreteSyntax()]
     KWs += [(kw, TK_KIND.ANNOTATION)
@@ -203,7 +216,14 @@ SIMPLE_TAGS = set([
 ])
 
 MAY_BE_PREFIX_TAGS = set([
-    TK_KIND.OTHER_OP, TK_KIND.PREFIX_OP, TK_KIND.ASSIGN, TK_KIND.SQUARE_OPEN,
+    TK_KIND.COMPARISON_OP,
+    TK_KIND.SHIFT_OP,
+    TK_KIND.ADD_OP,
+    TK_KIND.MUL_OP,
+    TK_KIND.OR_SC_OP,
+    TK_KIND.AND_SC_OP,
+    TK_KIND.PREFIX_OP,
+    TK_KIND.PREFIX_OP, TK_KIND.ASSIGN, TK_KIND.SQUARE_OPEN,
     TK_KIND.CURLY_OPEN,  TK_KIND.GENERIC_ANNOTATION, TK_KIND.DEREF_OR_POINTER_OP,
     TK_KIND.ADDR_OF_OP,
 ])
@@ -287,6 +307,7 @@ def MakeTrieNoisy():
     KWs = GetAllKWAndOps()
     trie = MakeInitialTrie(KWs)
     #
+    print("Stats")
     DumpTrieStats(trie)
 
     for i in range(1000):
@@ -295,6 +316,7 @@ def MakeTrieNoisy():
         trie = OptimizeTrie(trie)
         if len(trie) == old_len:
             break
+        print("Stats")
         DumpTrieStats(trie)
         VerifyTrie(trie, KWs)
     return trie
