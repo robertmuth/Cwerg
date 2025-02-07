@@ -58,8 +58,8 @@ PAREN_VALUE = {
 }
 
 
-_PREFIX_EXPR_PARSERS: dict[lexer.TK, tuple[int, Any]] = {}
-_INFIX_EXPR_PARSERS: dict[str, tuple[int, Any]] = {}
+_PREFIX_EXPR_PARSERS: dict[lexer.TK_KIND, tuple[int, Any]] = {}
+_INFIX_EXPR_PARSERS: dict[lexer.TK_KIND, tuple[int, Any]] = {}
 
 
 def _ParseExpr(inp: lexer.Lexer, precedence=0):
@@ -71,7 +71,7 @@ def _ParseExpr(inp: lexer.Lexer, precedence=0):
     lhs = parser(inp, tk, prec)
     while True:
         tk = inp.peek()
-        prec, parser = _INFIX_EXPR_PARSERS.get(tk.text, (0, None))
+        prec, parser = _INFIX_EXPR_PARSERS.get(tk.kind, (0, None))
         if precedence >= prec:
             break
         inp.next()
@@ -253,7 +253,7 @@ _PREFIX_EXPR_PARSERS: dict[lexer.TK_KIND, tuple[int, Callable]] = {
     lexer.TK_KIND.KW: (10, _PParseKeywordConstants),
     lexer.TK_KIND.PREFIX_OP: (pp.PREC1_NOT, _PParsePrefix),
     lexer.TK_KIND.ADDR_OF_OP: (pp.PREC1_NOT, _PParseAddressOf),
-    lexer.TK_KIND.OTHER_OP: (10, _PParsePrefix),  # only used for "-"
+    lexer.TK_KIND.ADD_OP: (10, _PParsePrefix),  # only used for "-"
     lexer.TK_KIND.ID: (10, _PParseId),
     lexer.TK_KIND.NUM: (10, _PParseNum),
     lexer.TK_KIND.STR: (10, _PParseStr),
@@ -328,44 +328,28 @@ def _PParseTernary(inp: lexer.Lexer, cond, tk: lexer.TK, _precedence) -> Any:
 
 
 _INFIX_EXPR_PARSERS = {
-    "<": (pp.PREC2_COMPARISON, _PParserInfixOp),
-    "<=": (pp.PREC2_COMPARISON, _PParserInfixOp),
-    ">": (pp.PREC2_COMPARISON, _PParserInfixOp),
-    ">=": (pp.PREC2_COMPARISON, _PParserInfixOp),
+    lexer.TK_KIND.COMPARISON_OP: (pp.PREC2_COMPARISON, _PParserInfixOp),
     #
-    "==": (pp.PREC2_COMPARISON, _PParserInfixOp),
-    "!=": (pp.PREC2_COMPARISON, _PParserInfixOp),
+    lexer.TK_KIND.ADD_OP: (pp.PREC2_ADD, _PParserInfixOp),
+    lexer.TK_KIND.MUL_OP: (pp.PREC2_MUL, _PParserInfixOp),
     #
-    "+": (pp.PREC2_ADD, _PParserInfixOp),
-    "-": (pp.PREC2_ADD, _PParserInfixOp),
-    "/": (pp.PREC2_MUL, _PParserInfixOp),
-    "*": (pp.PREC2_MUL, _PParserInfixOp),
-    "%": (pp.PREC2_MUL, _PParserInfixOp),
+    lexer.TK_KIND.OR_SC_OP: (pp.PREC2_ORSC, _PParserInfixOp),
+    lexer.TK_KIND.AND_SC_OP: (pp.PREC2_ANDSC, _PParserInfixOp),
     #
-    "||": (pp.PREC2_ORSC, _PParserInfixOp),
-    "&&": (pp.PREC2_ANDSC, _PParserInfixOp),
-    #
-    "<<": (pp.PREC2_SHIFT, _PParserInfixOp),
-    ">>": (pp.PREC2_SHIFT, _PParserInfixOp),
-    "<<<": (pp.PREC2_SHIFT, _PParserInfixOp),
-    ">>>": (pp.PREC2_SHIFT, _PParserInfixOp),
+    lexer.TK_KIND.SHIFT_OP: (pp.PREC2_SHIFT, _PParserInfixOp),
     #
     # "ptr_diff": (10, _PParserInfixOp),
     #
-    "~": (pp.PREC2_ADD, _PParserInfixOp),
-    "|": (pp.PREC2_ADD, _PParserInfixOp),
-    "&": (pp.PREC2_MUL, _PParserInfixOp),
     #
     # "min": (pp.PREC2_MAX, _PParserInfixOp),
     # "max": (pp.PREC2_MAX, _PParserInfixOp),
 
     #
-    "(": (20, _PParseFunctionCall),
-    "[":  (pp.PREC_INDEX, _PParseIndex),
-    "[!":  (pp.PREC_INDEX, _PParseIndex),
-    "^": (pp.PREC_INDEX, _PParseDeref),
-    ".": (pp.PREC_INDEX, _PParseFieldAccess),
-    "?": (6, _PParseTernary),
+    lexer.TK_KIND.PAREN_OPEN: (20, _PParseFunctionCall),
+    lexer.TK_KIND.SQUARE_OPEN:  (pp.PREC_INDEX, _PParseIndex),
+    lexer.TK_KIND.DEREF_OR_POINTER_OP: (pp.PREC_INDEX, _PParseDeref),
+    lexer.TK_KIND.DOT_OP: (pp.PREC_INDEX, _PParseFieldAccess),
+    lexer.TK_KIND.TERNARY_OP: (6, _PParseTernary),
 }
 
 
