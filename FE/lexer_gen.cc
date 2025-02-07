@@ -19,39 +19,39 @@ namespace cwerg::fe {
 
 // clang-format off
 /* @AUTOGEN-START@ */
-#define VAL(x) 204 + (uint8_t(TK_KIND::x) << 1)
+#define VAL(x) 206 + uint8_t(TK_KIND::x)
 
-#define VALX(x) 205 + (uint8_t(TK_KIND::x) << 1)
+#define VALX(x) 238 + uint8_t(TK_KIND::x)
 
-uint8_t TrieNodeCount = 204;
+uint8_t TrieNodeCount = 206;
 
-uint8_t KeywordAndOpRecognizer[204][128] = {
+uint8_t KeywordAndOpRecognizer[206][128] = {
     {REP16(0),
      REP16(0),
-     0, 203, VAL(STR), 0, 0, 1, 202, VAL(CHAR), VAL(PAREN_OPEN), VAL(PAREN_CLOSED), 1, 201, VAL(COMMA), 201, VAL(OTHER_OP), 1,
-     REP10(0), VAL(COLON), VAL(COMMENT), 199, 198, 196, VAL(OTHER_OP),
-     194, REP15(0),
-     REP11(0), 195, 0, VAL(SQUARE_CLOSED), 194, 0,
-     0, 192, 180, 174, 170, 166, 157, 152, 0, 149, 0, 0, 147, 132, 122, 117,
+     0, 205, VAL(STR), 0, 0, 202, 204, VAL(CHAR), VAL(PAREN_OPEN), VAL(PAREN_CLOSED), 202, 203, VAL(COMMA), 203, VAL(DOT_OP), 202,
+     REP10(0), VAL(COLON), VAL(COMMENT), 200, 199, 196, VAL(TERNARY_OP),
+     195, REP15(0),
+     REP11(0), 194, 0, VAL(SQUARE_CLOSED), 193, 0,
+     0, 191, 179, 173, 170, 166, 157, 152, 0, 149, 0, 0, 147, 132, 122, 117,
      107, 0, 102, 77, 63, 30, 22, 5, 4, 0, 0, 3, 2, VAL(CURLY_CLOSED), 1, 0},
 
-    {REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP13(VALX(OTHER_OP)), VAL(COMPOUND_ASSIGN), VALX(OTHER_OP), VALX(OTHER_OP),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP))},
+    {REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP13(VALX(ADD_OP)), VAL(COMPOUND_ASSIGN), VALX(ADD_OP), VALX(ADD_OP),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP))},
 
-    {REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP13(VALX(OTHER_OP)), VAL(COMPOUND_ASSIGN), VALX(OTHER_OP), VALX(OTHER_OP),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP12(VALX(OTHER_OP)), VAL(OTHER_OP), REP3(VALX(OTHER_OP))},
+    {REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP13(VALX(ADD_OP)), VAL(COMPOUND_ASSIGN), VALX(ADD_OP), VALX(ADD_OP),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP12(VALX(ADD_OP)), VAL(OR_SC_OP), REP3(VALX(ADD_OP))},
 
     {REP16(VALX(CURLY_OPEN)),
      REP16(VALX(CURLY_OPEN)),
@@ -959,7 +959,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP6(0), 11, REP9(0),
+     REP3(0), 14, 0, 0, 11, REP9(0),
      REP4(0), 104, REP11(0)},
 
     {REP16(0),
@@ -1581,15 +1581,6 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP5(0), 138, REP10(0),
-     0, 0, 173, REP13(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP5(0), 29, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -1598,7 +1589,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 165, REP13(0), 175,
+     0, 165, REP13(0), 174,
      REP16(0)},
 
     {REP16(0),
@@ -1607,7 +1598,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 176, 0,
+     REP14(0), 175, 0,
      REP16(0)},
 
     {REP16(0),
@@ -1617,7 +1608,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP4(0), 14, REP11(0),
-     REP4(0), 177, REP11(0)},
+     REP4(0), 176, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -1625,7 +1616,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP9(0), 178, REP6(0),
+     REP9(0), 177, REP6(0),
      REP16(0)},
 
     {REP16(0),
@@ -1634,7 +1625,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 179, 0,
+     REP14(0), 178, 0,
      REP16(0)},
 
     {REP16(0),
@@ -1652,8 +1643,8 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP9(0), 188, 0, 0, 186, 0, 0, 184,
-     0, 0, 181, REP13(0)},
+     REP9(0), 187, 0, 0, 185, 0, 0, 183,
+     0, 0, 180, REP13(0)},
 
     {REP16(0),
      REP16(0),
@@ -1661,7 +1652,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 182, REP10(0),
+     REP5(0), 181, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -1670,7 +1661,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 183, REP14(0),
+     0, 182, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -1688,7 +1679,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 185,
+     REP15(0), 184,
      REP16(0)},
 
     {REP16(0),
@@ -1706,7 +1697,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 187,
+     REP15(0), 186,
      REP16(0)},
 
     {REP16(0),
@@ -1715,7 +1706,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP3(0), 183, REP12(0),
+     REP3(0), 182, REP12(0),
      REP16(0)},
 
     {REP16(0),
@@ -1725,7 +1716,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 189, REP11(0)},
+     REP4(0), 188, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -1734,7 +1725,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP7(0), 190, REP8(0)},
+     REP7(0), 189, REP8(0)},
 
     {REP16(0),
      REP16(0),
@@ -1742,7 +1733,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP9(0), 191, REP6(0),
+     REP9(0), 190, REP6(0),
      REP16(0)},
 
     {REP16(0),
@@ -1761,7 +1752,7 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP16(0),
      0, 0, 13, REP13(0),
-     REP3(0), 14, 0, 193, REP10(0)},
+     REP3(0), 14, 0, 192, REP10(0)},
 
     {REP16(0),
      REP16(0),
@@ -1772,91 +1763,118 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
      REP16(0),
      REP4(0), 146, REP11(0)},
 
-    {REP16(VALX(PREFIX_OP)),
-     REP16(VALX(PREFIX_OP)),
-     VALX(PREFIX_OP), VAL(PREFIX_OP), REP14(VALX(PREFIX_OP)),
-     REP16(VALX(PREFIX_OP)),
-     REP16(VALX(PREFIX_OP)),
-     REP16(VALX(PREFIX_OP)),
-     REP16(VALX(PREFIX_OP)),
-     REP16(VALX(PREFIX_OP))},
+    {REP16(VALX(DEREF_OR_POINTER_OP)),
+     REP16(VALX(DEREF_OR_POINTER_OP)),
+     VALX(DEREF_OR_POINTER_OP), VAL(DEREF_OR_POINTER_OP), REP14(VALX(DEREF_OR_POINTER_OP)),
+     REP16(VALX(DEREF_OR_POINTER_OP)),
+     REP16(VALX(DEREF_OR_POINTER_OP)),
+     REP16(VALX(DEREF_OR_POINTER_OP)),
+     REP16(VALX(DEREF_OR_POINTER_OP)),
+     REP16(VALX(DEREF_OR_POINTER_OP))},
 
     {REP16(VALX(SQUARE_OPEN)),
      REP16(VALX(SQUARE_OPEN)),
-     VALX(SQUARE_OPEN), VAL(SQUARE_OPEN_EXCL), REP14(VALX(SQUARE_OPEN)),
+     VALX(SQUARE_OPEN), VAL(SQUARE_OPEN), REP14(VALX(SQUARE_OPEN)),
      REP16(VALX(SQUARE_OPEN)),
      REP16(VALX(SQUARE_OPEN)),
      REP16(VALX(SQUARE_OPEN)),
      REP16(VALX(SQUARE_OPEN)),
      REP16(VALX(SQUARE_OPEN))},
 
-    {REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP13(VALX(OTHER_OP)), VAL(OTHER_OP), 197, VALX(OTHER_OP),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP))},
+    {REP16(VALX(ADDR_OF_OP)),
+     REP16(VALX(ADDR_OF_OP)),
+     VALX(ADDR_OF_OP), VAL(ADDR_OF_OP), REP14(VALX(ADDR_OF_OP)),
+     REP16(VALX(ADDR_OF_OP)),
+     REP16(VALX(ADDR_OF_OP)),
+     REP16(VALX(ADDR_OF_OP)),
+     REP16(VALX(ADDR_OF_OP)),
+     REP16(VALX(ADDR_OF_OP))},
 
-    {REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP13(VALX(OTHER_OP)), VAL(COMPOUND_ASSIGN), 1, VALX(OTHER_OP),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP))},
+    {REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP)),
+     REP13(VALX(COMPARISON_OP)), VAL(COMPARISON_OP), 197, VALX(COMPARISON_OP),
+     REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP))},
+
+    {REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP13(VALX(SHIFT_OP)), VAL(COMPOUND_ASSIGN), 198, VALX(SHIFT_OP),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP))},
+
+    {REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP13(VALX(SHIFT_OP)), VAL(COMPOUND_ASSIGN), VALX(SHIFT_OP), VALX(SHIFT_OP),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP))},
 
     {REP16(VALX(ASSIGN)),
      REP16(VALX(ASSIGN)),
      REP16(VALX(ASSIGN)),
-     REP13(VALX(ASSIGN)), VAL(OTHER_OP), VALX(ASSIGN), VALX(ASSIGN),
+     REP13(VALX(ASSIGN)), VAL(COMPARISON_OP), VALX(ASSIGN), VALX(ASSIGN),
      REP16(VALX(ASSIGN)),
      REP16(VALX(ASSIGN)),
      REP16(VALX(ASSIGN)),
      REP16(VALX(ASSIGN))},
 
-    {REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP12(VALX(OTHER_OP)), 200, VAL(OTHER_OP), VALX(OTHER_OP), VALX(OTHER_OP),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP))},
+    {REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP)),
+     REP12(VALX(COMPARISON_OP)), 201, VAL(COMPARISON_OP), VALX(COMPARISON_OP), VALX(COMPARISON_OP),
+     REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP)),
+     REP16(VALX(COMPARISON_OP))},
 
-    {REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP12(VALX(OTHER_OP)), 1, VAL(COMPOUND_ASSIGN), VALX(OTHER_OP), VALX(OTHER_OP),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP))},
+    {REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP12(VALX(SHIFT_OP)), 198, VAL(COMPOUND_ASSIGN), VALX(SHIFT_OP), VALX(SHIFT_OP),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP)),
+     REP16(VALX(SHIFT_OP))},
 
-    {REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP14(VALX(OTHER_OP)), 0, VALX(OTHER_OP),
-     REP10(0), REP3(VALX(OTHER_OP)), VAL(COMPOUND_ASSIGN), VALX(OTHER_OP), VALX(OTHER_OP),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP))},
+    {REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP)),
+     REP13(VALX(MUL_OP)), VAL(COMPOUND_ASSIGN), VALX(MUL_OP), VALX(MUL_OP),
+     REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP))},
 
-    {REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP6(VALX(OTHER_OP)), VAL(OTHER_OP), REP9(VALX(OTHER_OP)),
-     REP13(VALX(OTHER_OP)), VAL(COMPOUND_ASSIGN), VALX(OTHER_OP), VALX(OTHER_OP),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP)),
-     REP16(VALX(OTHER_OP))},
+    {REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP14(VALX(ADD_OP)), 0, VALX(ADD_OP),
+     REP10(0), REP3(VALX(ADD_OP)), VAL(COMPOUND_ASSIGN), VALX(ADD_OP), VALX(ADD_OP),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP)),
+     REP16(VALX(ADD_OP))},
+
+    {REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP)),
+     REP6(VALX(MUL_OP)), VAL(AND_SC_OP), REP9(VALX(MUL_OP)),
+     REP13(VALX(MUL_OP)), VAL(COMPOUND_ASSIGN), VALX(MUL_OP), VALX(MUL_OP),
+     REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP)),
+     REP16(VALX(MUL_OP))},
 
     {REP16(VALX(PREFIX_OP)),
      REP16(VALX(PREFIX_OP)),
      REP16(VALX(PREFIX_OP)),
-     REP13(VALX(PREFIX_OP)), VAL(OTHER_OP), VALX(PREFIX_OP), VALX(PREFIX_OP),
+     REP13(VALX(PREFIX_OP)), VAL(COMPARISON_OP), VALX(PREFIX_OP), VALX(PREFIX_OP),
      REP16(VALX(PREFIX_OP)),
      REP16(VALX(PREFIX_OP)),
      REP16(VALX(PREFIX_OP)),
@@ -1867,28 +1885,36 @@ uint8_t KeywordAndOpRecognizer[204][128] = {
 const char* const TK_KIND_ToStringMap[] = {
     "INVALID", // 0
     "KW", // 1
-    "COMPOUND_ASSIGN", // 2
-    "OTHER_OP", // 3
-    "PREFIX_OP", // 4
-    "ANNOTATION", // 5
-    "ASSIGN", // 6
-    "COLON", // 7
-    "COMMA", // 8
-    "PAREN_OPEN", // 9
-    "PAREN_CLOSED", // 10
-    "CURLY_OPEN", // 11
-    "CURLY_CLOSED", // 12
-    "SQUARE_OPEN", // 13
-    "SQUARE_OPEN_EXCL", // 14
-    "SQUARE_CLOSED", // 15
-    "COMMENT", // 16
-    "GENERIC_ANNOTATION", // 17
-    "CHAR", // 18
-    "STR", // 19
-    "BASE_TYPE", // 20
-    "NUM", // 21
-    "ID", // 22
-    "SPECIAL_EOF", // 23
+    "ANNOTATION", // 2
+    "ASSIGN", // 3
+    "SQUARE_OPEN", // 4
+    "CURLY_OPEN", // 5
+    "GENERIC_ANNOTATION", // 6
+    "DEREF_OR_POINTER_OP", // 7
+    "ADDR_OF_OP", // 8
+    "COMPARISON_OP", // 9
+    "SHIFT_OP", // 10
+    "ADD_OP", // 11
+    "MUL_OP", // 12
+    "OR_SC_OP", // 13
+    "AND_SC_OP", // 14
+    "PREFIX_OP", // 15
+    "BASE_TYPE", // 16
+    "TERNARY_OP", // 17
+    "DOT_OP", // 18
+    "COMPOUND_ASSIGN", // 19
+    "COLON", // 20
+    "COMMA", // 21
+    "PAREN_OPEN", // 22
+    "PAREN_CLOSED", // 23
+    "CURLY_CLOSED", // 24
+    "SQUARE_CLOSED", // 25
+    "COMMENT", // 26
+    "CHAR", // 27
+    "STR", // 28
+    "NUM", // 29
+    "ID", // 30
+    "SPECIAL_EOF", // 31
 };
 const char* EnumToString(TK_KIND x) { return TK_KIND_ToStringMap[unsigned(x)]; }
 

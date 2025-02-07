@@ -38,6 +38,7 @@ class TK_KIND(enum.Enum):
     INVALID = 0
     # for the items below we may need to check one char extra:
     KW = enum.auto()
+    ANNOTATION = enum.auto()
     ASSIGN = enum.auto()  # =, ==
     SQUARE_OPEN = enum.auto()  # [, [!]
     CURLY_OPEN = enum.auto()   # {}
@@ -56,7 +57,6 @@ class TK_KIND(enum.Enum):
     # The items below are never prefixes of others
     TERNARY_OP = enum.auto()
     DOT_OP = enum.auto()
-    ANNOTATION = enum.auto()
     COMPOUND_ASSIGN = enum.auto()
     COLON = enum.auto()
     COMMA = enum.auto()
@@ -580,10 +580,11 @@ def GenerateCodeCC(fout, max_items_per_row=16):
                 print(f"{sep}REP{count}({val})", end="", file=fout)
             sep = ", "
 
+    offset = len(trie)
     print(f"#define VAL(x) {
-          len(trie)} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
-    print(f"#define VALX(x) {len(trie) +
-          1} + (uint8_t(TK_KIND::x) << 1)\n", file=fout)
+          offset} + uint8_t(TK_KIND::x)\n", file=fout)
+    offset += TK_KIND.SPECIAL_EOF.value + 1
+    print(f"#define VALX(x) {offset} + uint8_t(TK_KIND::x)\n", file=fout)
 
     print(f"uint8_t TrieNodeCount = {len(trie)};\n", file=fout)
 

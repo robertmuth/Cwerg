@@ -1,4 +1,5 @@
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <vector>
@@ -41,27 +42,72 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
 
 uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
-Node ParseTypeExpr(Lexer* lexer) {
-  const TK tk = lexer->Next();
 
-  if (tk.kind == TK_KIND::BASE_TYPE) {
-    Node out = NodeNew(NT::TypeBase);
-    InitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text));
-    return out;
-  } else if (tk.kind == TK_KIND::PREFIX_OP) {
-    ASSERT(tk.text == "^" || tk.text == "^!", "");
-    Node out = NodeNew(NT::TypePtr);
-    Node pointee = ParseTypeExpr(lexer);
-    uint16_t bits = tk.text.size() == 1 ? 0 : 1 << int(NFD_BOOL_FIELD::mut);
-    InitTypePtr(out, pointee, bits);
-    return out;
-  }
 
-  ASSERT(false, "NYI TypeExpr");
+
+
+Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  ASSERT(false, "");
   return Node(HandleInvalid);
 }
 
-Node MakeValStr(std::string_view s) {
+Node PrattParsePrefix(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  ASSERT(false, "");
+  return Node(HandleInvalid);
+}
+
+Node MakeNodeId(std::string_view s) {
+  Node out = NodeNew(NT::Id);
+  std::string_view mod_name = std::string_view();
+  std::string_view enum_name = std::string_view();
+
+  size_t pos = s.find("::");
+  if (pos != std::string_view::npos) {
+    mod_name = s.substr(0, pos);
+    s = s.substr(pos + 2);
+  }
+  pos = s.find(":");
+  if (pos != std::string_view::npos) {
+    enum_name = s.substr(pos + 1);
+    s = s.substr(0, pos);
+  }
+  InitId(out, NameNew(mod_name), NameNew(s), NameNew(enum_name));
+  return out;
+}
+
+Node PrattParseId(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  if (starts_with(tk.text, "$")) {
+    Node out = NodeNew(NT::MacroId);
+    InitMacroId(out, NameNew(tk.text));
+    return out;
+  } else {
+    return MakeNodeId(tk.text);
+  }
+}
+
+Node PrattParseNum(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  Node out = NodeNew(NT::ValNum);
+  InitValNum(out, StrNew(tk.text));
+  return out;
+}
+
+Node PrattParseChar(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  ASSERT(false, "");
+  return Node(HandleInvalid);
+}
+
+Node PrattParseValCompound(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  ASSERT(false, "");
+  return Node(HandleInvalid);
+}
+
+Node PrattParseParenGroup(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  ASSERT(false, "");
+  return Node(HandleInvalid);
+}
+
+Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  std::string_view s = tk.text;
   STR_KIND sk = STR_KIND::NORMAL;
   uint32_t offset = 0;
   if (s[0] == '"') {
@@ -89,19 +135,96 @@ Node MakeValStr(std::string_view s) {
   return out;
 }
 
-Node ParseExpr(Lexer* lexer) {
+struct PrattHandlerPrefix {
+  std::function<Node(Lexer*, const TK&, uint32_t)> handler = nullptr;
+  uint32_t precedence = 0;
+};
+
+struct PrattHandlerInfix {
+  std::function<Node(Lexer*, Node, const TK&, uint32_t)> handler = nullptr;
+  uint32_t precedence = 0;
+};
+
+constexpr int MAX_TK_KIND = int(TK_KIND::SPECIAL_EOF) + 1;
+
+std::array<PrattHandlerPrefix, MAX_TK_KIND> PREFIX_EXPR_PARSERS;
+std::array<PrattHandlerInfix, MAX_TK_KIND> INFIX_EXPR_PARSERS;
+
+// Could probably done with C++20 designated array initializers
+// But going for C++17 to C++20 is a major step.
+void PREFIX_EXPR_PARSERS_Init() {
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW)] = {PrattParseKW, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::PREFIX_OP)] = {PrattParsePrefix, 13};
+  // only used for '-'
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {PrattParsePrefix, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ID)] = {PrattParseId, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::NUM)] = {PrattParseNum, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::STR)] = {PrattParseStr, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CHAR)] = {PrattParseChar, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {PrattParseParenGroup,
+                                                        10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CURLY_OPEN)] = {PrattParseValCompound,
+                                                        10};
+  //
+
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::COMPARISON_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::MUL_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::OR_SC_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::AND_SC_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SHIFT_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DEREF_OR_POINTER_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DOT_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {nullptr, 0};
+}
+
+Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
+
+Node ParseTypeExpr(Lexer* lexer) {
   const TK tk = lexer->Next();
-  if (tk.kind == TK_KIND::STR) {
-    return MakeValStr(tk.text);
-  } else if (tk.kind == TK_KIND::NUM) {
-    Node out = NodeNew(NT::ValNum);
-    InitValNum(out, StrNew(tk.text));
+
+  if (tk.kind == TK_KIND::BASE_TYPE) {
+    Node out = NodeNew(NT::TypeBase);
+    InitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text));
     return out;
-  } else {
-    std::cout << "@@@@ " << tk.text << "\n";
-    ASSERT(false, "NYI AnyExpr");
-    return Node(HandleInvalid);
+  } else if (tk.kind == TK_KIND::PREFIX_OP) {
+    ASSERT(tk.text == "^" || tk.text == "^!", "");
+    Node out = NodeNew(NT::TypePtr);
+    Node pointee = ParseTypeExpr(lexer);
+    uint16_t bits = tk.text.size() == 1 ? 0 : 1 << int(NFD_BOOL_FIELD::mut);
+    InitTypePtr(out, pointee, bits);
+    return out;
+  } else if (tk.kind == TK_KIND::SQUARE_OPEN) {
+    Node dim = PrattParseExpr(lexer);
+    lexer->MatchOrDie(TK_KIND::SQUARE_CLOSED);
+    Node type = ParseTypeExpr(lexer);
+    Node out = NodeNew(NT::TypeVec);
+    InitTypeVec(out, dim, type);
+    return out;
   }
+  std::cout << "### " << tk.text << "\n";
+  ASSERT(false, "NYI TypeExpr");
+  return Node(HandleInvalid);
+}
+
+Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
+  const TK& tk = lexer->Next();
+  const PrattHandlerPrefix& prefix_handler = PREFIX_EXPR_PARSERS[uint8_t(tk.kind)];
+  ASSERT(prefix_handler.handler != nullptr, "");
+  Node lhs = prefix_handler.handler(lexer, tk, prefix_handler.precedence);
+  while (true) {
+    const TK& tk = lexer->Peek();
+    const PrattHandlerInfix& infix_handler = INFIX_EXPR_PARSERS[uint8_t(tk.kind)];
+    if (precedence >=infix_handler.precedence) {
+      break;
+    }
+
+    lhs = infix_handler.handler(lexer, lhs, lexer->Next(),
+                                infix_handler.precedence);
+  }
+  return lhs;
 }
 
 bool MaybeTypeExprStart(const TK& tk) {
@@ -126,7 +249,7 @@ Node ParseTypeExprOrExpr(Lexer* lexer) {
   if (MaybeTypeExprStart(tk)) {
     return ParseTypeExpr(lexer);
   } else {
-    return ParseExpr(lexer);
+    return PrattParseExpr(lexer);
   }
   return Node(HandleInvalid);
 }
@@ -181,7 +304,7 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
 Node ParseStmt(Lexer* lexer) {
   const TK tk = lexer->Next();
   if (tk.text == "return") {
-    Node expr = ParseExpr(lexer);
+    Node expr = PrattParseExpr(lexer);
     Node out = NodeNew(NT::StmtReturn);
     InitStmtReturn(out, expr);
     return out;
@@ -219,8 +342,23 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t column) {
   return out;
 }
 
+Node ParseRecFieldList(Lexer* lexer, uint32_t column) {
+  TK name = lexer->Next();
+  std::cout << "@@ rec field " << name.text << "\n";
+  if (name.kind == TK_KIND::SPECIAL_EOF || name.sl.col < column) {
+    return Node(HandleInvalid);
+  }
+
+  Node type = ParseTypeExpr(lexer);
+  Node out = NodeNew(NT::RecField);
+  InitRecField(out, NameNew(name.text), type);
+  Node_next(out) = ParseRecFieldList(lexer, column);
+  return out;
+}
+
 Node ParseTopLevel(Lexer* lexer) {
   const TK& tk = lexer->Next();
+  ASSERT(tk.kind == TK_KIND::KW, "expected top level kw");
   if (tk.text == "fun") {
     Node out = NodeNew(NT::DefFun);
     TK name = lexer->MatchOrDie(TK_KIND::ID);
@@ -245,11 +383,11 @@ Node ParseTopLevel(Lexer* lexer) {
     if (lexer->Match(TK_KIND::ASSIGN)) {
       type = NodeNew(NT::TypeAuto);
       InitTypeAuto(type);
-      init = ParseExpr(lexer);
+      init = PrattParseExpr(lexer);
     } else {
       type = ParseTypeExpr(lexer);
       if (lexer->Match(TK_KIND::ASSIGN)) {
-        init = ParseExpr(lexer);
+        init = PrattParseExpr(lexer);
       } else {
         init = NodeNew(NT::ValAuto);
         InitValAuto(init);
@@ -261,7 +399,12 @@ Node ParseTopLevel(Lexer* lexer) {
     InitDefGlobal(out, NameNew(name.text), type, init, bits);
     return out;
   } else if (tk.text == "rec") {
-    ASSERT(false, "NYI DefRec");
+    TK name = lexer->MatchOrDie(TK_KIND::ID);
+    lexer->MatchOrDie(TK_KIND::COLON);
+    Node fields = ParseRecFieldList(lexer, lexer->Peek().sl.col);
+    Node out = NodeNew(NT::DefRec);
+    InitDefRec(out, NameNew(name.text), fields, BitsFromAnnotation(tk));
+    return out;
   } else if (tk.text == "import") {
     TK name = lexer->MatchOrDie(TK_KIND::ID);
     Node args = Node(HandleInvalid);
@@ -289,8 +432,7 @@ Node ParseTopLevel(Lexer* lexer) {
 Node ParseModBodyList(Lexer* lexer, uint32_t column) {
   const TK& tk = lexer->Peek();
   std::cout << "@@@@ TOP " << tk.text << " " << EnumToString(tk.kind) << "\n";
-  if (tk.kind != TK_KIND::KW) {
-    std::cout << "BODY " << EnumToString(tk.kind) << " \n";
+  if (tk.kind == TK_KIND::SPECIAL_EOF) {
     return Node(HandleInvalid);
   }
 
@@ -317,6 +459,7 @@ Node ParseDefMod(Lexer* lexer) {
 int main(int argc, const char* argv[]) {
   InitLexer();
   InitStripes(sw_multiplier.Value());
+  PREFIX_EXPR_PARSERS_Init();
 
   // If the synchronization is turned off, the C++ standard streams are allowed
   // to buffer their I/O independently from their stdio counterparts, which may

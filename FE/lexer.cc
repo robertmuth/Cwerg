@@ -85,10 +85,11 @@ Result FindInTrie(std::string_view needle) {
       node_no = x;
     } else {
       x -= TrieNodeCount;
-      if (x & 1) {
-        return Result{TK_KIND(x >> 1), i};
+      if (x > uint8_t(TK_KIND::SPECIAL_EOF)) {
+        x -= uint8_t(TK_KIND::SPECIAL_EOF) + 1;
+        return Result{TK_KIND(x), i};
       } else {
-        return Result{TK_KIND(x >> 1), i + 1};
+        return Result{TK_KIND(x), i + 1};
       }
     }
   }
