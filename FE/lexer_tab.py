@@ -30,34 +30,39 @@ TRIE = list[list[int]]
 
 
 TK_KIND_OFFSET = 1000
+TK_KIND_OFFSET_FOR_LOOK_AHEAD = 2000
 
 
 @enum.unique
 class TK_KIND(enum.Enum):
     INVALID = 0
+    # for the items below we may need to check one char extra:
     KW = enum.auto()
-    COMPOUND_ASSIGN = enum.auto()
+    ASSIGN = enum.auto()  # =, ==
+    SQUARE_OPEN = enum.auto()  # [, [!]
+    CURLY_OPEN = enum.auto()   # {}
+    GENERIC_ANNOTATION = enum.auto()  # {{
+    DEREF_OR_POINTER_OP = enum.auto()  # ^, ^!
     OTHER_OP = enum.auto()
     PREFIX_OP = enum.auto()
+    BASE_TYPE = enum.auto()
+
+    # The items below are never prefixes of others
     TERNARY_OP = enum.auto()
-    DEREF_OR_POINTER_OP = enum.auto()
     DOT_OP = enum.auto()
     ANNOTATION = enum.auto()
-    ASSIGN = enum.auto()
+    COMPOUND_ASSIGN = enum.auto()
     COLON = enum.auto()
     COMMA = enum.auto()
     PAREN_OPEN = enum.auto()
     PAREN_CLOSED = enum.auto()
-    CURLY_OPEN = enum.auto()
     CURLY_CLOSED = enum.auto()
-    SQUARE_OPEN = enum.auto()
     SQUARE_CLOSED = enum.auto()
     # These just match the  enum.auto()prefix  of the lexeme
     COMMENT = enum.auto()
-    GENERIC_ANNOTATION = enum.auto()
     CHAR = enum.auto()
     STR = enum.auto()
-    BASE_TYPE = enum.auto()
+    # these items are synthesized during lexing
     NUM = enum.auto()
     ID = enum.auto()
     SPECIAL_EOF = enum.auto()
@@ -116,10 +121,10 @@ def FindInTrie(trie: TRIE, s: str) -> tuple[int, int]:
         if x == NODE_NULL:
             return 0, 0
         if x >= len(trie):
-            if x & 1:
-                return n, TK_KIND((x - TK_KIND_OFFSET) >> 1)
+            if x >= TK_KIND_OFFSET_FOR_LOOK_AHEAD:
+                return n, TK_KIND(x - TK_KIND_OFFSET_FOR_LOOK_AHEAD)
             else:
-                return n + 1, TK_KIND((x - TK_KIND_OFFSET) >> 1)
+                return n + 1, TK_KIND(x - TK_KIND_OFFSET)
         node = trie[x]
     return 0, 0
 
@@ -183,6 +188,7 @@ def GetAllKWAndOps():
     return KWs
 
 
+# these can not be prefixes of other lexemes
 SIMPLE_TAGS = set([
     TK_KIND.COMPOUND_ASSIGN, TK_KIND.COLON, TK_KIND.COMMA, TK_KIND.PAREN_OPEN,
     TK_KIND.PAREN_CLOSED, TK_KIND.CURLY_CLOSED, TK_KIND.SQUARE_CLOSED,
@@ -194,7 +200,6 @@ SIMPLE_TAGS = set([
 MAY_BE_PREFIX_TAGS = set([
     TK_KIND.OTHER_OP, TK_KIND.PREFIX_OP, TK_KIND.ASSIGN, TK_KIND.SQUARE_OPEN,
     TK_KIND.CURLY_OPEN,  TK_KIND.GENERIC_ANNOTATION, TK_KIND.DEREF_OR_POINTER_OP,
-
 ])
 
 
@@ -221,7 +226,7 @@ def MakeInitialTrie(KWs):
             node = trie[node[c]]
         assert node[last] == NODE_NULL, f"[{kw}] {
             node[last]} {node is trie[0]}"
-        node[last] = (tag.value << 1) + TK_KIND_OFFSET
+        node[last] = tag.value + TK_KIND_OFFSET
 
     def add_kw(kw, tag, non_succ):
         # keyword is only valid if not followed by char in non_succ
@@ -236,7 +241,7 @@ def MakeInitialTrie(KWs):
             c = ord(cc)
             if node[c] == NODE_NULL:
                 if n == len(kw) - 1 and non_succ == set():
-                    node[c] = (tag.value << 1) + TK_KIND_OFFSET
+                    node[c] = tag.value + TK_KIND_OFFSET
                     return
                 node[c] = add_node()
             # no kw can be prefix of another
@@ -247,7 +252,7 @@ def MakeInitialTrie(KWs):
         for i in range(len(node)):
             if i not in non_succ:
                 if node[i] == NODE_NULL:
-                    node[i] = (tag.value << 1) + 1 + TK_KIND_OFFSET
+                    node[i] = tag.value + TK_KIND_OFFSET_FOR_LOOK_AHEAD
 
     # KWs = list(sorted(KWs))[0:1]
 
@@ -258,6 +263,7 @@ def MakeInitialTrie(KWs):
             if kw.endswith("!"):
                 add_kw_simple(kw, tag)
             else:
+                # if the KW is followed by alphanumeric chars, it is not a KW
                 add_kw(kw, tag, _ID_CHARS)
         elif tag in SIMPLE_TAGS:
             add_kw_simple(kw, tag)
@@ -300,7 +306,7 @@ def MakeTrie(optimize):
     return trie
 
 
-@dataclasses.dataclass()
+@ dataclasses.dataclass()
 class TK:
     kind: TK_KIND
     srcloc: cwast.SrcLoc
@@ -519,10 +525,11 @@ def GenerateCodeCC(fout, max_items_per_row=16):
         if x < num_nodes:
             return f"{x}"
         else:
-            kind = TK_KIND((x - TK_KIND_OFFSET) >> 1)
-            if x & 1:
+            if x >= TK_KIND_OFFSET_FOR_LOOK_AHEAD:
+                kind = TK_KIND(x - TK_KIND_OFFSET_FOR_LOOK_AHEAD)
                 return f"VALX({kind.name})"
             else:
+                kind = TK_KIND(x - TK_KIND_OFFSET)
                 return f"VAL({kind.name})"
 
     def render_strip(lst: list[int]):
