@@ -404,17 +404,15 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
             return cwast.TypeUnion(members, untagged=tk.text.endswith(cwast.MUTABILITY_SUFFIX), **extra)
         else:
             assert False, "Not Reachable"
-    elif tk.text == '[':
+    elif tk.kind is  lexer.TK_KIND.SQUARE_OPEN:
         dim = _ParseExpr(inp)
         inp.match_or_die(lexer.TK_KIND.SQUARE_CLOSED)
         type = _ParseTypeExpr(inp)
         return cwast.TypeVec(dim, type, **extra)
-    elif tk.text == "^":
+    elif tk.kind is lexer.TK_KIND.DEREF_OR_POINTER_OP:
+        mut = tk.text.endswith(cwast.MUTABILITY_SUFFIX)
         rest = _ParseTypeExpr(inp)
-        return cwast.TypePtr(rest, **extra)
-    elif tk.text == "^!":
-        rest = _ParseTypeExpr(inp)
-        return cwast.TypePtr(rest, mut=True, **extra)
+        return cwast.TypePtr(rest, mut=mut, **extra)
     else:
         assert False, f"unexpected token {tk}"
 

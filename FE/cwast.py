@@ -4077,8 +4077,6 @@ def UnaryOpsForConcreteSyntax():
     # the parse will figure out what it really is
     return [x for x in UNARY_EXPR_SHORTCUT_COMMON
             if not _NAMED_OP_RE.fullmatch(x)] + [
-        ExprDeref.ALIAS,
-        ExprDeref.ALIAS + MUTABILITY_SUFFIX,
         ExprAddrOf.ALIAS,
         ExprAddrOf.ALIAS + MUTABILITY_SUFFIX,
     ]
