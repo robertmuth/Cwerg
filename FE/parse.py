@@ -296,9 +296,8 @@ def _PParseFunctionCall(inp: lexer.Lexer, callee, tk: lexer.TK, precedence) -> A
 
 
 def _PParseIndex(inp: lexer.Lexer, array, tk: lexer.TK, _precedence) -> Any:
-    assert tk.kind in (lexer.TK_KIND.SQUARE_OPEN,
-                       lexer.TK_KIND.SQUARE_OPEN_EXCL)
-    is_unchecked = tk.kind is lexer.TK_KIND.SQUARE_OPEN_EXCL
+    assert tk.kind is lexer.TK_KIND.SQUARE_OPEN
+    is_unchecked = tk.text.endswith(cwast.MUTABILITY_SUFFIX)
     tk = inp.peek()
     index = _ParseExpr(inp)
     inp.match_or_die(lexer.TK_KIND.SQUARE_CLOSED)

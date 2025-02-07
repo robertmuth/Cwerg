@@ -1257,7 +1257,7 @@ class RecField:  #
 @dataclasses.dataclass()
 class DefRec:
     """Record definition"""
-    ALIAS: ClassVar = "defrec"
+    ALIAS: ClassVar = "rec"
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
@@ -4086,7 +4086,7 @@ def UnaryOpsForConcreteSyntax():
 
 def BinaryOpsForConcreteSyntax():
     return [x for x in BINARY_EXPR_SHORTCUT
-            if not _NAMED_OP_RE.fullmatch(x)] + [ExprField.ALIAS, Expr3.ALIAS]
+            if not _NAMED_OP_RE.fullmatch(x)]
 
 
 ##########################################################################################

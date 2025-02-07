@@ -39,6 +39,8 @@ class TK_KIND(enum.Enum):
     COMPOUND_ASSIGN = enum.auto()
     OTHER_OP = enum.auto()
     PREFIX_OP = enum.auto()
+    TERNARY_OP = enum.auto()
+    DOT_OP = enum.auto()
     ANNOTATION = enum.auto()
     ASSIGN = enum.auto()
     COLON = enum.auto()
@@ -48,7 +50,6 @@ class TK_KIND(enum.Enum):
     CURLY_OPEN = enum.auto()
     CURLY_CLOSED = enum.auto()
     SQUARE_OPEN = enum.auto()
-    SQUARE_OPEN_EXCL = enum.auto()
     SQUARE_CLOSED = enum.auto()
     # These just match the  enum.auto()prefix  of the lexeme
     COMMENT = enum.auto()
@@ -163,7 +164,7 @@ def GetAllKWAndOps():
     KWs += [("{", TK_KIND.CURLY_OPEN)]
     KWs += [("}", TK_KIND.CURLY_CLOSED)]
     KWs += [("[", TK_KIND.SQUARE_OPEN)]
-    KWs += [("[!", TK_KIND.SQUARE_OPEN_EXCL)]
+    KWs += [("[!", TK_KIND.SQUARE_OPEN)]
     KWs += [("]", TK_KIND.SQUARE_CLOSED)]
     #
     KWs += [(";", TK_KIND.COMMENT)]
@@ -172,13 +173,19 @@ def GetAllKWAndOps():
     KWs += [('"', TK_KIND.STR)]
     KWs += [('x"', TK_KIND.STR)]
     KWs += [('r"', TK_KIND.STR)]
+    #
+    KWs += [(cwast.Expr3.ALIAS, TK_KIND.TERNARY_OP)]
+    KWs += [(cwast.ExprField.ALIAS, TK_KIND.DOT_OP)]
+
     return KWs
 
 
 SIMPLE_TAGS = set([
     TK_KIND.COMPOUND_ASSIGN, TK_KIND.COLON, TK_KIND.COMMA, TK_KIND.PAREN_OPEN,
     TK_KIND.PAREN_CLOSED, TK_KIND.CURLY_CLOSED, TK_KIND.SQUARE_CLOSED,
-    TK_KIND.SQUARE_OPEN_EXCL, TK_KIND.COMMENT, TK_KIND.CHAR, TK_KIND.STR,
+    TK_KIND.COMMENT, TK_KIND.CHAR, TK_KIND.STR,
+    TK_KIND.TERNARY_OP, TK_KIND.DOT_OP,
+
 ])
 
 MAY_BE_PREFIX_TAGS = set([
