@@ -197,12 +197,15 @@ def _PParseChar(_inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
     return cwast.ValNum(tk.text, x_srcloc=tk.srcloc)
 
 
+def _PParseAddressOf(inp: lexer.Lexer, tk: lexer.TK, precedence) -> Any:
+    rhs = _ParseExpr(inp, precedence)
+    return cwast.ExprAddrOf(rhs, mut=tk.text == "@!", x_srcloc=tk.srcloc)
+
+
 def _PParsePrefix(inp: lexer.Lexer, tk: lexer.TK, precedence) -> Any:
     rhs = _ParseExpr(inp, precedence)
     if tk.text.startswith("-"):
         kind = cwast.UNARY_EXPR_KIND.NEG
-    elif tk.text.startswith("@"):
-        return cwast.ExprAddrOf(rhs, mut=tk.text == "@!", x_srcloc=tk.srcloc)
     else:
         kind = cwast.UNARY_EXPR_SHORTCUT_SEXPR.get(tk.text)
         if kind is None:
@@ -249,6 +252,7 @@ def _PParseValCompound(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
 _PREFIX_EXPR_PARSERS: dict[lexer.TK_KIND, tuple[int, Callable]] = {
     lexer.TK_KIND.KW: (10, _PParseKeywordConstants),
     lexer.TK_KIND.PREFIX_OP: (pp.PREC1_NOT, _PParsePrefix),
+    lexer.TK_KIND.ADDR_OF_OP: (pp.PREC1_NOT, _PParseAddressOf),
     lexer.TK_KIND.OTHER_OP: (10, _PParsePrefix),  # only used for "-"
     lexer.TK_KIND.ID: (10, _PParseId),
     lexer.TK_KIND.NUM: (10, _PParseNum),
@@ -404,7 +408,7 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
             return cwast.TypeUnion(members, untagged=tk.text.endswith(cwast.MUTABILITY_SUFFIX), **extra)
         else:
             assert False, "Not Reachable"
-    elif tk.kind is  lexer.TK_KIND.SQUARE_OPEN:
+    elif tk.kind is lexer.TK_KIND.SQUARE_OPEN:
         dim = _ParseExpr(inp)
         inp.match_or_die(lexer.TK_KIND.SQUARE_CLOSED)
         type = _ParseTypeExpr(inp)

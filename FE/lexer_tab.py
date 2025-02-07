@@ -43,6 +43,7 @@ class TK_KIND(enum.Enum):
     CURLY_OPEN = enum.auto()   # {}
     GENERIC_ANNOTATION = enum.auto()  # {{
     DEREF_OR_POINTER_OP = enum.auto()  # ^, ^!
+    ADDR_OF_OP = enum.auto()  # @, @!
     OTHER_OP = enum.auto()
     PREFIX_OP = enum.auto()
     BASE_TYPE = enum.auto()
@@ -185,6 +186,10 @@ def GetAllKWAndOps():
     KWs += [(cwast.ExprDeref.ALIAS, TK_KIND.DEREF_OR_POINTER_OP)]
     KWs += [(cwast.ExprDeref.ALIAS + cwast.MUTABILITY_SUFFIX,
              TK_KIND.DEREF_OR_POINTER_OP)]
+    KWs += [(cwast.ExprAddrOf.ALIAS, TK_KIND.ADDR_OF_OP)]
+    KWs += [(cwast.ExprAddrOf.ALIAS + cwast.MUTABILITY_SUFFIX,
+             TK_KIND.ADDR_OF_OP)]
+
     return KWs
 
 
@@ -200,6 +205,7 @@ SIMPLE_TAGS = set([
 MAY_BE_PREFIX_TAGS = set([
     TK_KIND.OTHER_OP, TK_KIND.PREFIX_OP, TK_KIND.ASSIGN, TK_KIND.SQUARE_OPEN,
     TK_KIND.CURLY_OPEN,  TK_KIND.GENERIC_ANNOTATION, TK_KIND.DEREF_OR_POINTER_OP,
+    TK_KIND.ADDR_OF_OP,
 ])
 
 
