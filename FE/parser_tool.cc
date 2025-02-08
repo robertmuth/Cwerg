@@ -133,7 +133,6 @@ Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
 
 Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
 
-
 Node PrattParseExpr2(Lexer* lexer, Node lhs, const TK& tk,
                      uint32_t precedence) {
   BINARY_EXPR_KIND kind = BINARY_EXPR_KIND_FromString(tk.text, tk.kind);
@@ -188,7 +187,6 @@ void PREFIX_EXPR_PARSERS_Init() {
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {nullptr, 0};
 }
 
-
 Node ParseTypeExpr(Lexer* lexer) {
   const TK tk = lexer->Next();
 
@@ -203,15 +201,24 @@ Node ParseTypeExpr(Lexer* lexer) {
     InitTypePtr(out, pointee, bits);
     return out;
   } else if (tk.kind == TK_KIND::SQUARE_OPEN) {
+    Node out = NodeNew(NT::TypeVec);
     Node dim = PrattParseExpr(lexer);
     lexer->MatchOrDie(TK_KIND::SQUARE_CLOSED);
     Node type = ParseTypeExpr(lexer);
-    Node out = NodeNew(NT::TypeVec);
     InitTypeVec(out, dim, type);
     return out;
+  } else if (starts_with(tk.text, "span")) {
+    Node out = NodeNew(NT::TypeSpan);
+    lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
+    Node type = ParseTypeExpr(lexer);
+    lexer->MatchOrDie(TK_KIND::PAREN_CLOSED);
+    uint16_t bits = ends_with(tk.text, "!") ? 1 << int(NFD_BOOL_FIELD::mut) : 0;
+    InitTypeSpan(out, type, bits);
+    return out;
+  } else if (tk.kind == TK_KIND::ID) {
+    return MakeNodeId(tk.text);
   }
-  std::cout << "### " << tk.text << "\n";
-  ASSERT(false, "NYI TypeExpr");
+  ASSERT(false, "NYI TypeExpr " << tk);
   return Node(HandleInvalid);
 }
 
@@ -351,12 +358,13 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t column) {
 }
 
 Node ParseRecFieldList(Lexer* lexer, uint32_t column) {
-  TK name = lexer->Next();
-  std::cout << "@@ rec field " << name.text << "\n";
+  TK name = lexer->Peek();
+
   if (name.kind == TK_KIND::SPECIAL_EOF || name.sl.col < column) {
     return Node(HandleInvalid);
   }
-
+  name = lexer->Next();
+  ASSERT(name.kind == TK_KIND::ID, "expected ID got " << name);
   Node type = ParseTypeExpr(lexer);
   Node out = NodeNew(NT::RecField);
   InitRecField(out, NameNew(name.text), type);

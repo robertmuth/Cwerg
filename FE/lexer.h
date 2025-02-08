@@ -4,8 +4,8 @@
 #include <string_view>
 #include <vector>
 
-#include "Util/assert.h"
 #include "FE/lexer_gen.h"
+#include "Util/assert.h"
 
 namespace cwerg::fe {
 
@@ -17,7 +17,7 @@ struct SrcLoc {
   uint32_t file;
 };
 
-
+std::ostream& operator<<(std::ostream& os, const SrcLoc& sl);
 
 struct TK_RAW {
   TK_KIND kind;
@@ -57,6 +57,8 @@ struct TK {
   std::vector<std::string_view> annotations;
 };
 
+std::ostream& operator<<(std::ostream& os, const TK& tk);
+
 class Lexer {
  private:
   LexerRaw lexer_raw_;
@@ -92,7 +94,7 @@ class Lexer {
       peek_cached_.kind = TK_KIND::INVALID;
       return current_;
     }
-    ASSERT(false, EnumToString(kind) << " " << text );
+    ASSERT(false, EnumToString(kind) << " " << text);
     return current_;
   }
 
@@ -102,16 +104,17 @@ class Lexer {
       peek_cached_.kind = TK_KIND::INVALID;
     } else {
       current_.comments.clear();
+      current_.annotations.clear();
       TK_RAW tk = lexer_raw_.Next();
       while (tk.kind == TK_KIND::COMMENT) {
         current_.comments.push_back(tk.text);
         tk = lexer_raw_.Next();
       }
       while (tk.kind == TK_KIND::ANNOTATION) {
-        current_.annotations.push_back(tk.text);
         if (current_.annotations.empty()) {
           current_.sl = lexer_raw_.GetSrcLoc();
         }
+        current_.annotations.push_back(tk.text);
         tk = lexer_raw_.Next();
       }
       if (current_.annotations.empty()) {

@@ -35,12 +35,12 @@ int main(int argc, const char* argv[]) {
 
   std::vector<char> data = SlurpDataFromStream(fin);
   InitLexer();
-  LexerRaw lexer(
+  Lexer lexer(
       std::string_view(reinterpret_cast<char*>(data.data()), data.size()), 555);
 
   while (true) {
-    TK_RAW tk = lexer.Next();
-    std::cout << EnumToString(tk.kind) << " " << tk.text << "\n";
+    auto tk = lexer.Next();
+    std::cout << tk << "\n";
     if (tk.kind == TK_KIND::SPECIAL_EOF) {
       break;
     }
