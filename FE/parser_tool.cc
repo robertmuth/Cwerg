@@ -87,11 +87,6 @@ Node PrattParseNum(Lexer* lexer, const TK& tk, uint32_t precedence) {
   return out;
 }
 
-Node PrattParseChar(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  ASSERT(false, "");
-  return Node(HandleInvalid);
-}
-
 Node PrattParseValCompound(Lexer* lexer, const TK& tk, uint32_t precedence) {
   ASSERT(false, "");
   return Node(HandleInvalid);
@@ -142,6 +137,21 @@ Node PrattParseExpr2(Lexer* lexer, Node lhs, const TK& tk,
   return out;
 }
 
+Node PrattParseExprDeref(Lexer* lexer, Node lhs, const TK& tk,
+                         uint32_t precedence) {
+  Node out = NodeNew(NT::ExprDeref);
+  InitExprDeref(out, lhs);
+  return out;
+}
+
+Node PrattParseExprField(Lexer* lexer, Node lhs, const TK& tk,
+                         uint32_t precedence) {
+  const TK& field = lexer->MatchOrDie(TK_KIND::ID);
+  Node out = NodeNew(NT::ExprField);
+  InitExprField(out, lhs, MakeNodeId(tk.text));
+  return out;
+}
+
 struct PrattHandlerPrefix {
   std::function<Node(Lexer*, const TK&, uint32_t)> handler = nullptr;
   uint32_t precedence = 0;
@@ -167,7 +177,7 @@ void PREFIX_EXPR_PARSERS_Init() {
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ID)] = {PrattParseId, 10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::NUM)] = {PrattParseNum, 10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::STR)] = {PrattParseStr, 10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CHAR)] = {PrattParseChar, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CHAR)] = {PrattParseNum, 10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {PrattParseParenGroup,
                                                         10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CURLY_OPEN)] = {PrattParseValCompound,
@@ -180,11 +190,12 @@ void PREFIX_EXPR_PARSERS_Init() {
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::MUL_OP)] = {PrattParseExpr2, 11};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SHIFT_OP)] = {PrattParseExpr2, 12};
   //
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DEREF_OR_POINTER_OP)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DOT_OP)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {nullptr, 20};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {nullptr, 14};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DEREF_OR_POINTER_OP)] = {
+      PrattParseExprDeref, 14};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DOT_OP)] = {PrattParseExprField, 14};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {nullptr, 6};
 }
 
 Node ParseTypeExpr(Lexer* lexer) {
@@ -224,15 +235,20 @@ Node ParseTypeExpr(Lexer* lexer) {
 
 Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
   const TK& tk = lexer->Next();
+  std::cout << "@@PRATT START " << tk << "\n";
   const PrattHandlerPrefix& prefix_handler =
       PREFIX_EXPR_PARSERS[uint8_t(tk.kind)];
-  ASSERT(prefix_handler.handler != nullptr, "");
+  ASSERT(prefix_handler.handler != nullptr, "No handler for " << tk);
   Node lhs = prefix_handler.handler(lexer, tk, prefix_handler.precedence);
   while (true) {
     const TK& tk = lexer->Peek();
+
     const PrattHandlerInfix& infix_handler =
         INFIX_EXPR_PARSERS[uint8_t(tk.kind)];
+    std::cout << "@@PRATT LOOP prec=" << precedence << " " << tk
+              << infix_handler.precedence << "\n";
     if (precedence >= infix_handler.precedence) {
+      std::cout << "@@PRATT DONE\n";
       break;
     }
 
@@ -323,6 +339,19 @@ Node ParseStmt(Lexer* lexer) {
     Node out = NodeNew(NT::StmtReturn);
     InitStmtReturn(out, expr);
     return out;
+  } else if (tk.text == "set") {
+    Node lhs = PrattParseExpr(lexer);
+    const TK op = lexer->Next();
+    if (op.kind == TK_KIND::ASSIGN) {
+      Node out = NodeNew(NT::StmtAssignment);
+      Node rhs = PrattParseExpr(lexer);
+      InitStmtAssignment(out, lhs, rhs);
+      return out;
+    } else {
+      ASSERT(op.kind == TK_KIND::COMPOUND_ASSIGN, "" << op);
+      ASSERT(false, "NYI");
+      return Node(HandleInvalid);
+    }
   } else {
     ASSERT(false, "STMT");
     return Node(HandleInvalid);
@@ -480,7 +509,7 @@ int main(int argc, const char* argv[]) {
   // If the synchronization is turned off, the C++ standard streams are allowed
   // to buffer their I/O independently from their stdio counterparts, which may
   // be considerably faster in some cases.
-  std::ios_base::sync_with_stdio(false);
+  //std::ios_base::sync_with_stdio(false);
   std::istream* fin = &std::cin;
 
   std::vector<char> data = SlurpDataFromStream(fin);
