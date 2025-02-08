@@ -37,22 +37,22 @@ TK_KIND_OFFSET_FOR_LOOK_AHEAD = 2000
 class TK_KIND(enum.Enum):
     INVALID = 0
     # for the items below we may need to check one char extra:
-    KW = enum.auto()
-    ANNOTATION = enum.auto()
-    ASSIGN = enum.auto()  # =, ==
-    SQUARE_OPEN = enum.auto()  # [, [!]
-    CURLY_OPEN = enum.auto()   # {}
-    GENERIC_ANNOTATION = enum.auto()  # {{
-    DEREF_OR_POINTER_OP = enum.auto()  # ^, ^!
-    ADDR_OF_OP = enum.auto()  # @, @!
     COMPARISON_OP = enum.auto()
     SHIFT_OP = enum.auto()
     ADD_OP = enum.auto()
     MUL_OP = enum.auto()
     OR_SC_OP = enum.auto()
     AND_SC_OP = enum.auto()
+    DEREF_OR_POINTER_OP = enum.auto()  # ^, ^!
+    ADDR_OF_OP = enum.auto()  # @, @!
     PREFIX_OP = enum.auto()
     BASE_TYPE = enum.auto()
+    KW = enum.auto()
+    ANNOTATION = enum.auto()
+    ASSIGN = enum.auto()  # =, ==
+    SQUARE_OPEN = enum.auto()  # [, [!]
+    CURLY_OPEN = enum.auto()   # {}
+    GENERIC_ANNOTATION = enum.auto()  # {{
 
     # The items below are never prefixes of others
     TERNARY_OP = enum.auto()
@@ -605,9 +605,41 @@ def GenerateCodeCC(fout, max_items_per_row=16):
         cgen.NameValues(TK_KIND), prefix, fout)
     cgen.RenderEnumToStringFun(prefix, fout)
 
+    print("BINARY_EXPR_KIND BINARY_EXPR_KIND_PerfectHash[64] = {", file=fout)
+    m = MakePerfectHashForBinOp()
+    for i in range(64):
+        x = m.get(i, cwast.BASE_TYPE_KIND.INVALID)
+        print(f"  BINARY_EXPR_KIND::{x.name},", file=fout)
+
+    print("};", file=fout)
+
+
 
 def GenerateCodeH(fout):
     cgen.RenderEnumClass(cgen.NameValues(TK_KIND), "TK_KIND", fout)
+
+
+def MakePerfectHashForBinOp():
+    KWs = []
+    KWs += [(kw, TK_KIND.COMPARISON_OP)
+            for kw in ["<", ">", ">=", "<=", "==", "!="]]
+    KWs += [(kw, TK_KIND.SHIFT_OP)
+            for kw in ["<<", ">>", "<<<", ">>>"]]
+    KWs += [(kw, TK_KIND.ADD_OP)
+            for kw in ["+", "-", "~", "|"]]
+    KWs += [(kw, TK_KIND.MUL_OP)
+            for kw in ["/", "*", "%", "&"]]
+    KWs += [("&&", TK_KIND.AND_SC_OP)]
+    KWs += [("||", TK_KIND.OR_SC_OP)]
+    m = {}
+    for a, b, in KWs:
+        o = ord(a[0])
+        l = len(a)
+        c = b.value
+        x = (o << 1) + l + (c << 3)
+        m[x & 0x3f] = cwast.BINARY_EXPR_SHORTCUT[a]
+    assert len(m) == len(KWs), f"{len(m)} != {len(KWs)}"
+    return m
 
 
 if __name__ == "__main__":
@@ -617,5 +649,9 @@ if __name__ == "__main__":
         cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)
     elif sys.argv[1] == "gen_h":
         cgen.ReplaceContent(GenerateCodeH, sys.stdin, sys.stdout)
+    elif sys.argv[1] == "ph":
+        m = MakePerfectHashForBinOp()
+        for a, b in m.items():
+            print(f"{a:x}", b)
     else:
         assert False

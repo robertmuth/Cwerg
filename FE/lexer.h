@@ -92,7 +92,7 @@ class Lexer {
       peek_cached_.kind = TK_KIND::INVALID;
       return current_;
     }
-    ASSERT(false, "");
+    ASSERT(false, EnumToString(kind) << " " << text );
     return current_;
   }
 

@@ -42,10 +42,6 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
 
 uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
-
-
-
-
 Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
   ASSERT(false, "");
   return Node(HandleInvalid);
@@ -135,6 +131,18 @@ Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
   return out;
 }
 
+Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
+
+
+Node PrattParseExpr2(Lexer* lexer, Node lhs, const TK& tk,
+                     uint32_t precedence) {
+  BINARY_EXPR_KIND kind = BINARY_EXPR_KIND_FromString(tk.text, tk.kind);
+  Node rhs = PrattParseExpr(lexer, precedence);
+  Node out = NodeNew(NT::Expr2);
+  InitExpr2(out, kind, lhs, rhs);
+  return out;
+}
+
 struct PrattHandlerPrefix {
   std::function<Node(Lexer*, const TK&, uint32_t)> handler = nullptr;
   uint32_t precedence = 0;
@@ -166,13 +174,13 @@ void PREFIX_EXPR_PARSERS_Init() {
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CURLY_OPEN)] = {PrattParseValCompound,
                                                         10};
   //
-
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::COMPARISON_OP)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::MUL_OP)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::OR_SC_OP)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::AND_SC_OP)] = {nullptr, 0};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SHIFT_OP)] = {nullptr, 0};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::OR_SC_OP)] = {PrattParseExpr2, 5};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::AND_SC_OP)] = {PrattParseExpr2, 6};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::COMPARISON_OP)] = {PrattParseExpr2, 7};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {PrattParseExpr2, 10};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::MUL_OP)] = {PrattParseExpr2, 11};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SHIFT_OP)] = {PrattParseExpr2, 12};
+  //
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {nullptr, 0};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {nullptr, 0};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DEREF_OR_POINTER_OP)] = {nullptr, 0};
@@ -180,7 +188,6 @@ void PREFIX_EXPR_PARSERS_Init() {
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {nullptr, 0};
 }
 
-Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
 
 Node ParseTypeExpr(Lexer* lexer) {
   const TK tk = lexer->Next();
@@ -189,8 +196,7 @@ Node ParseTypeExpr(Lexer* lexer) {
     Node out = NodeNew(NT::TypeBase);
     InitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text));
     return out;
-  } else if (tk.kind == TK_KIND::PREFIX_OP) {
-    ASSERT(tk.text == "^" || tk.text == "^!", "");
+  } else if (tk.kind == TK_KIND::DEREF_OR_POINTER_OP) {
     Node out = NodeNew(NT::TypePtr);
     Node pointee = ParseTypeExpr(lexer);
     uint16_t bits = tk.text.size() == 1 ? 0 : 1 << int(NFD_BOOL_FIELD::mut);
@@ -211,13 +217,15 @@ Node ParseTypeExpr(Lexer* lexer) {
 
 Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
   const TK& tk = lexer->Next();
-  const PrattHandlerPrefix& prefix_handler = PREFIX_EXPR_PARSERS[uint8_t(tk.kind)];
+  const PrattHandlerPrefix& prefix_handler =
+      PREFIX_EXPR_PARSERS[uint8_t(tk.kind)];
   ASSERT(prefix_handler.handler != nullptr, "");
   Node lhs = prefix_handler.handler(lexer, tk, prefix_handler.precedence);
   while (true) {
     const TK& tk = lexer->Peek();
-    const PrattHandlerInfix& infix_handler = INFIX_EXPR_PARSERS[uint8_t(tk.kind)];
-    if (precedence >=infix_handler.precedence) {
+    const PrattHandlerInfix& infix_handler =
+        INFIX_EXPR_PARSERS[uint8_t(tk.kind)];
+    if (precedence >= infix_handler.precedence) {
       break;
     }
 
