@@ -137,6 +137,16 @@ Node PrattParseExpr2(Lexer* lexer, Node lhs, const TK& tk,
   return out;
 }
 
+Node PrattParseExpr3(Lexer* lexer, Node lhs, const TK& tk,
+                     uint32_t precedence) {
+  Node out = NodeNew(NT::Expr3);
+  Node expr_t = PrattParseExpr(lexer);
+  lexer->MatchOrDie(TK_KIND::COLON);
+  Node expr_f = PrattParseExpr(lexer);
+  InitExpr3(out, lhs, expr_t, expr_f);
+  return out;
+}
+
 Node PrattParseExprDeref(Lexer* lexer, Node lhs, const TK& tk,
                          uint32_t precedence) {
   Node out = NodeNew(NT::ExprDeref);
@@ -149,6 +159,31 @@ Node PrattParseExprField(Lexer* lexer, Node lhs, const TK& tk,
   const TK& field = lexer->MatchOrDie(TK_KIND::ID);
   Node out = NodeNew(NT::ExprField);
   InitExprField(out, lhs, MakeNodeId(tk.text));
+  return out;
+}
+
+Node ParseFunArgsList(Lexer* lexer, bool want_comma) {
+  if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
+    return Node(HandleInvalid);
+  }
+  if (want_comma) {
+    lexer->Match(TK_KIND::COMMA);
+  }
+  Node out = PrattParseExpr(lexer);
+  Node_next(out) = ParseFunArgsList(lexer, true);
+  return out;
+}
+
+Node PrattParseExprCall(Lexer* lexer, Node lhs, const TK& tk,
+                        uint32_t precedence) {
+  if (lhs.kind() == NT::Id) {
+    ASSERT(!ends_with(NameData(Node_base_name(lhs)), "#"), "MACRO");
+  }
+  Node out = NodeNew(NT::ExprCall);
+
+  ASSERT(tk.kind == TK_KIND::PAREN_OPEN, "");
+  Node args = ParseFunArgsList(lexer, false);
+  InitExprCall(out, lhs, args);
   return out;
 }
 
@@ -190,12 +225,12 @@ void PREFIX_EXPR_PARSERS_Init() {
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::MUL_OP)] = {PrattParseExpr2, 11};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SHIFT_OP)] = {PrattParseExpr2, 12};
   //
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {nullptr, 20};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {PrattParseExprCall, 20};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {nullptr, 14};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DEREF_OR_POINTER_OP)] = {
       PrattParseExprDeref, 14};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DOT_OP)] = {PrattParseExprField, 14};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {nullptr, 6};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {PrattParseExpr3, 6};
 }
 
 Node ParseTypeExpr(Lexer* lexer) {
@@ -339,6 +374,28 @@ Node ParseStmt(Lexer* lexer) {
     Node out = NodeNew(NT::StmtReturn);
     InitStmtReturn(out, expr);
     return out;
+  } else if (starts_with(tk.text, "let")) {
+    Node out = NodeNew(NT::DefVar);
+    const TK name = lexer->MatchOrDie(TK_KIND::ID);
+    Node type = Node(HandleInvalid);
+    Node init = Node(HandleInvalid);
+    if (lexer->Match(TK_KIND::ASSIGN)) {
+      type = NodeNew(NT::TypeAuto);
+      InitTypeAuto(type);
+      init = PrattParseExpr(lexer);
+    } else {
+      type = ParseTypeExpr(lexer);
+      if (lexer->Match(TK_KIND::ASSIGN)) {
+        init = PrattParseExpr(lexer);
+      } else {
+        init = NodeNew(NT::ValAuto);
+        InitValAuto(init);
+      }
+    }
+    // TODO: mut
+    uint16_t bits = 0;
+    InitDefVar(out, NameNew(name.text), type, init, bits);
+    return out;
   } else if (tk.text == "set") {
     Node lhs = PrattParseExpr(lexer);
     const TK op = lexer->Next();
@@ -422,6 +479,7 @@ Node ParseTopLevel(Lexer* lexer) {
                BitsFromAnnotation(name));
     return out;
   } else if (starts_with(tk.text, "global")) {
+    Node out = NodeNew(NT::DefGlobal);
     const TK name = lexer->MatchOrDie(TK_KIND::ID);
     Node type = Node(HandleInvalid);
     Node init = Node(HandleInvalid);
@@ -438,7 +496,6 @@ Node ParseTopLevel(Lexer* lexer) {
         InitValAuto(init);
       }
     }
-    Node out = NodeNew(NT::DefGlobal);
     // TODO: mut
     uint16_t bits = 0;
     InitDefGlobal(out, NameNew(name.text), type, init, bits);
@@ -509,7 +566,7 @@ int main(int argc, const char* argv[]) {
   // If the synchronization is turned off, the C++ standard streams are allowed
   // to buffer their I/O independently from their stdio counterparts, which may
   // be considerably faster in some cases.
-  //std::ios_base::sync_with_stdio(false);
+  // std::ios_base::sync_with_stdio(false);
   std::istream* fin = &std::cin;
 
   std::vector<char> data = SlurpDataFromStream(fin);

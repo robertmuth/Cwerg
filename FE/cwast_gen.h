@@ -20,6 +20,7 @@ struct Node : public Handle {
       : Handle(index, uint8_t(kind)) {}
 
   explicit constexpr Node(Handle ref) : Handle(ref.value) {}
+  NT kind() { return NT(raw_kind()); }
 };
 
 struct Str : public Handle {
@@ -100,6 +101,11 @@ inline Name NameNew(std::string_view s) {
   // TODO: extract seq from string
   return NameNew(offset, 0);
 }
+
+inline const char* NameData(Name name) {
+  return gNamePool.Data(gNameCore[name].name);
+}
+
 // =======================================
 // Str API
 //
@@ -190,22 +196,22 @@ enum class NFD_STRING_FIELD : uint8_t {
 };
 enum class NFD_BOOL_FIELD : uint8_t {
     invalid = 0,
-    arg_ref = 1, 
-    builtin = 2, 
-    cdecl = 3, 
-    colon = 4, 
-    externx = 5, 
-    fini = 6, 
-    init = 7, 
-    mut = 8, 
-    poly = 9, 
-    preserve_mut = 10, 
-    pub = 11, 
-    ref = 12, 
-    res_ref = 13, 
-    unchecked = 14, 
-    untagged = 15, 
-    wrapped = 16, 
+    arg_ref = 1,
+    builtin = 2,
+    cdecl = 3,
+    colon = 4,
+    externx = 5,
+    fini = 6,
+    init = 7,
+    mut = 8,
+    poly = 9,
+    preserve_mut = 10,
+    pub = 11,
+    ref = 12,
+    res_ref = 13,
+    unchecked = 14,
+    untagged = 15,
+    wrapped = 16,
 };
 enum class NT : uint8_t {
     invalid = 0,
