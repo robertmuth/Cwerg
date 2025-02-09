@@ -49,7 +49,7 @@ class MacroContext:
 
 
 def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
-    if isinstance(node, cwast.MacroVar):
+    if isinstance(node, cwast.DefVar) and node.name.IsMacroVar():
         kind, new_name = ctx.GetSymbol(node.name)
         assert kind is cwast.MACRO_PARAM_KIND.ID
         # Why is this not a MacroVar

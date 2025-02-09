@@ -534,7 +534,7 @@ NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "ExprParen"]
 
 NODES_SYMBOLS_T = Union["DefEnum", "EnumVal", "DefType", "DefVar", "DefGlobal", "DefFun",
                         "FunParam", "ModParam",
-                        "DefMod", "MacroVar", "MacroParam", "DefMacro", "Import", "DefRec"]
+                        "DefMod", "MacroParam", "DefMacro", "Import", "DefRec"]
 
 
 def _EnumValues(enum_class):
@@ -2983,34 +2983,6 @@ class MacroId:
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class MacroVar:
-    """Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
-
-    `name` must start with a `$`.
-
-    `mlet!` makes the allocated space read/write otherwise it is readonly.
-
-    """
-    ALIAS: ClassVar = "mlet"
-    GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.LOCAL_SYM_DEF | NF.MACRO_BODY_ONLY | NF.NON_CORE
-    #
-    name: NAME
-    type_or_auto: NODES_TYPES_OR_AUTO_T
-    initial_or_undef_or_auto: NODES_EXPR_T
-    #
-    mut: bool = False
-    ref: bool = False
-    doc: str = ""
-    #
-    x_srcloc: SrcLoc = INVALID_SRCLOC
-
-    def __repr__(self):
-        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.initial_or_undef_or_auto}"
 
 
 @NodeCommon

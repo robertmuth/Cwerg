@@ -19,9 +19,9 @@ The type of the loop variable is determined by $end"""
         (MacroParam $end EXPR)
         (MacroParam $step EXPR)
         (MacroParam $body STMT_LIST)] [$end_eval $step_eval $it] :
-    (mlet $end_eval (type_of $end) $end)
-    (mlet $step_eval (type_of $end) $step)
-    (mlet! $it (type_of $end) $start)
+    (let $end_eval (type_of $end) $end)
+    (let $step_eval (type_of $end) $step)
+    (let! $it (type_of $end) $start)
     (block _ :
         (if (>= $step_eval 0) :
             (if (>= $it $end_eval) :
@@ -31,7 +31,7 @@ The type of the loop variable is determined by $end"""
             (if (<= $it $end_eval) :
                 (break)
              :))
-        (mlet $index auto $it)
+        (let $index auto $it)
         (= $it (+ $it $step_eval))
         $body
         (continue)))
@@ -43,13 +43,13 @@ The type of the loop variable is determined by $end"""
         (MacroParam $expr EXPR)
         (MacroParam $catch_name ID)
         (MacroParam $catch_body STMT_LIST)] [$eval] :
-    (mlet $eval auto $expr)
+    (let $eval auto $expr)
     (if (is $eval $type) :
      :
-        (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) $type)))
+        (let $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) $type)))
         $catch_body
         (trap))
-    (mlet $name $type (@unchecked narrow_as $eval $type)))
+    (let $name $type (@unchecked narrow_as $eval $type)))
 
 
 @builtin @pub (macro trylet! STMT_LIST [
@@ -58,13 +58,13 @@ The type of the loop variable is determined by $end"""
         (MacroParam $expr EXPR)
         (MacroParam $catch_name ID)
         (MacroParam $catch_body STMT_LIST)] [$eval] :
-    (mlet $eval auto $expr)
+    (let $eval auto $expr)
     (if (! (is $eval $type)) :
-        (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) $type)))
+        (let $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) $type)))
         $catch_body
         (trap)
      :)
-    (mlet! $name $type (@unchecked narrow_as $eval $type)))
+    (let! $name $type (@unchecked narrow_as $eval $type)))
 
 
 @builtin @pub (macro tryset STMT_LIST [
@@ -72,9 +72,9 @@ The type of the loop variable is determined by $end"""
         (MacroParam $expr EXPR)
         (MacroParam $catch_name ID)
         (MacroParam $catch_body STMT_LIST)] [$eval] :
-    (mlet $eval auto $expr)
+    (let $eval auto $expr)
     (if (! (is $eval (type_of $lhs))) :
-        (mlet $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) (type_of $lhs))))
+        (let $catch_name auto (@unchecked narrow_as $eval (union_delta (type_of $eval) (type_of $lhs))))
         $catch_body
         (trap)
      :)
@@ -82,7 +82,7 @@ The type of the loop variable is determined by $end"""
 
 
 (macro swap# STMT_LIST [(MacroParam $a EXPR) (MacroParam $b EXPR)] [$t] :
-    (mlet $t auto $a)
+    (let $t auto $a)
     (= $a $b)
     (= $b $t))
 
@@ -90,9 +90,9 @@ The type of the loop variable is determined by $end"""
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
 @builtin @pub (macro span_inc EXPR [(MacroParam $slice EXPR) (MacroParam $size EXPR)] [$orig_size $orig_len $orig_slice] :
     (expr :
-        (mlet $orig_slice auto $slice)
-        (mlet $orig_len auto (len $orig_slice))
-        (mlet $orig_size uint $size)
+        (let $orig_slice auto $slice)
+        (let $orig_len auto (len $orig_slice))
+        (let $orig_size uint $size)
         (if (> $orig_size $orig_len) :
             (trap)
          :)
@@ -104,9 +104,9 @@ The type of the loop variable is determined by $end"""
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
 @pub (macro span_truncate_or_die# EXPR [(MacroParam $slice EXPR) (MacroParam $size EXPR)] [$orig_size $orig_len $orig_slice] :
     (expr :
-        (mlet $orig_slice auto (as $slice (span! (type_of (^ (front $slice))))))
-        (mlet $orig_len auto (len $orig_slice))
-        (mlet $orig_size uint $size)
+        (let $orig_slice auto (as $slice (span! (type_of (^ (front $slice))))))
+        (let $orig_len auto (len $orig_slice))
+        (let $orig_size uint $size)
         (if (> $orig_size $orig_len) :
             (trap)
          :)
@@ -116,8 +116,8 @@ The type of the loop variable is determined by $end"""
 @doc "works with arrays and slices. For arrays we make sure we do not copy them."
 @pub (macro span_append_or_die# EXPR [(MacroParam $slice EXPR) (MacroParam $out EXPR)] [$e_slice $e_out] :
     (expr :
-        (mlet $e_slice (span (type_of (^ (front $slice)))) $slice)
-        (mlet! $e_out (span! (type_of (^ (front $out)))) $out)
+        (let $e_slice (span (type_of (^ (front $slice)))) $slice)
+        (let! $e_out (span! (type_of (^ (front $out)))) $out)
         (if (> (len $e_slice) (len $e_out)) :
             (trap)
          :)
@@ -133,8 +133,8 @@ The type of the loop variable is determined by $end"""
 @pub (macro assert# STMT [(MacroParam $cond EXPR) (MacroParam $text EXPR)] [$e_cond $e_text] :
     (if $cond :
      :
-        (mlet $e_cond (span u8) (stringify $cond))
-        (mlet $e_text (span u8) $text)
+        (let $e_cond (span u8) (stringify $cond))
+        (let $e_text (span u8) $text)
         (do (ExprCall print_ln [(front $e_cond) (len $e_cond)]))
         (do (ExprCall print_ln [(front $e_text) (len $e_text)]))
         (trap)))

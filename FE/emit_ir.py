@@ -1131,7 +1131,6 @@ def main() -> int:
     eliminated_nodes.add(cwast.DefMacro)
     eliminated_nodes.add(cwast.MacroInvoke)
     eliminated_nodes.add(cwast.MacroId)
-    eliminated_nodes.add(cwast.MacroVar)
     eliminated_nodes.add(cwast.MacroFor)
     eliminated_nodes.add(cwast.MacroParam)
     eliminated_nodes.add(cwast.ExprSrcLoc)

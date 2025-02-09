@@ -6,15 +6,15 @@ fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
     return size
 
 macro unsigned_to_str# EXPR(
-        $val EXPR, $base EXPR, $max_width EXPR, 
+        $val EXPR, $base EXPR, $max_width EXPR,
         ; a slice for the output string
         $out EXPR)[$v, $out_eval, $tmp, $pos]:
     expr:
         ; unsigned to str with given base
-        mlet! $v = $val
-        mlet! $tmp = {[1024]u8:}
-        mlet! $pos uint = $max_width
-        mlet $out_eval = $out
+        let! $v = $val
+        let! $tmp = {[1024]u8:}
+        let! $pos uint = $max_width
+        let $out_eval = $out
         block _:
             set $pos -= 1
             let c = $v % $base

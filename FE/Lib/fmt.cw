@@ -139,9 +139,9 @@ poly fun SysRender(v ^void, out span!(u8), options ^!SysFormatOptions) uint:
 pub macro print# STMT_LIST(
     ; list of items to be printed
     $parts EXPR_LIST_REST)[$buffer, $curr, $options]:
-    mlet! $buffer = {[FORMATED_STRING_MAX_LEN]u8:}
-    mlet! $curr span!(u8) = $buffer
-    ref mlet! $options = {SysFormatOptions:}
+    let! $buffer = {[FORMATED_STRING_MAX_LEN]u8:}
+    let! $curr span!(u8) = $buffer
+    ref let! $options = {SysFormatOptions:}
     mfor $i $parts:
         set $curr = span_inc($curr, SysRender($i, $curr, @!$options))
     do os::write(unwrap(os::Stdout), front($buffer), len($buffer) - len($curr))

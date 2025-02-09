@@ -56,7 +56,8 @@ class SymTab:
         self._imports: dict[cwast.NAME, cwast.DefMod] = {}
         self._syms: dict[cwast.NAME, Any] = {}
 
-    def AddLocalSym(self, name, node):
+    def AddLocalSym(self, name: cwast.NAME, node):
+        assert not name.IsMacroVar()
         assert isinstance(node, (cwast.DefVar, cwast.FunParam)), f"{node}"
         prev = self._syms.get(name)
         if prev is not None:
@@ -261,7 +262,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
         nonlocal builtin_syms, scopes
         if isinstance(node, cwast.Id) and nfd.name != "field":
             _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
-        if isinstance(node, cwast.DefVar):
+        if isinstance(node, cwast.DefVar) and not node.name.IsMacroVar():
             record_local_sym(node)
 
     def scope_enter(node: Any, nfd: cwast.NFD):

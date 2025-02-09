@@ -38,7 +38,7 @@ macro next_char# STMT_LIST($c ID, $error_body STMT_LIST)[]:
 macro read_hex_mantissa# STMT_LIST($c ID, $max_digits EXPR, $val ID, $adjust ID)[
         $digits]:
     block end_of_input:
-        mlet! $digits = $max_digits
+        let! $digits = $max_digits
         ; ignore leading zeros
         while $c == '0':
             next_char# $c:
@@ -67,7 +67,7 @@ macro read_hex_mantissa# STMT_LIST($c ID, $max_digits EXPR, $val ID, $adjust ID)
 macro read_dec_mantissa# STMT_LIST(
         $c ID, $max_digits EXPR, $val ID, $adjust ID, $imprecise ID)[$digits]:
     block end_of_input:
-        mlet! $digits = $max_digits
+        let! $digits = $max_digits
         ; ignore leading zeros
         while $c == '0':
             next_char# $c:
@@ -100,7 +100,7 @@ macro read_dec_mantissa# STMT_LIST(
 
 ; this macro captures i,n,s from the environment
 macro read_dec_exponent# STMT_LIST($c ID, $exp ID)[$negative]:
-    mlet! $negative = false
+    let! $negative = false
     if $c == '-' || $c == '+':
         if $c == '-':
             set $negative = true

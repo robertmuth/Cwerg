@@ -85,7 +85,7 @@ fun skip_non_white_space(line span(u8)) uint:
 ; captures s, out
 macro read_r64# STMT_LIST($dst EXPR)[$t]:
     set s = span_inc(s, skip_white_space(s))
-    mlet $t = parse_real::parse_r64(s)
+    let $t = parse_real::parse_r64(s)
     set s = span_inc(s, $t.length)
     if $t.length == 0:
         return out
@@ -94,13 +94,13 @@ macro read_r64# STMT_LIST($dst EXPR)[$t]:
 ; captures s, out
 macro read_vec3# STMT_LIST($dst EXPR)[$tx, $ty, $tz]:
     set s = span_inc(s, skip_white_space(s))
-    mlet $tx = parse_real::parse_r64(s)
+    let $tx = parse_real::parse_r64(s)
     set s = span_inc(s, $tx.length)
     set s = span_inc(s, skip_white_space(s))
-    mlet $ty = parse_real::parse_r64(s)
+    let $ty = parse_real::parse_r64(s)
     set s = span_inc(s, $ty.length)
     set s = span_inc(s, skip_white_space(s))
-    mlet $tz = parse_real::parse_r64(s)
+    let $tz = parse_real::parse_r64(s)
     set s = span_inc(s, $tz.length)
     if $tx.length == 0 || $ty.length == 0 || $tz.length == 0:
         return out

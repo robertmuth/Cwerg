@@ -175,7 +175,6 @@ _KEYWORDS = [
 KEYWORDS_WITH_EXCL_SUFFIX = {
     # Statements
     "trylet": "mut",
-    "mlet": "mut",
     "let": "mut",
     "global": "mut",
     # Expressions
@@ -768,9 +767,6 @@ def EmitTokensStatement(ts: TS, n):
         _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.DefVar):
         _TokensStmtLet(ts, WithExcl("let", n.mut), str(n.name),
-                       n.type_or_auto, n.initial_or_undef_or_auto)
-    elif isinstance(n, cwast.MacroVar):
-        _TokensStmtLet(ts, WithExcl("mlet", n.mut), str(n.name),
                        n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.StmtIf):
         _TokensStmtBlock(ts, "if", n.cond, n.body_t)

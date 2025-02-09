@@ -11,7 +11,7 @@ import os
 import cmp
 
 macro SysPrint# STMT_LIST($msg EXPR)[$msg_eval]:
-    mlet $msg_eval span(u8) = $msg
+    let $msg_eval span(u8) = $msg
     do os::write(unwrap(os::Stdout), front($msg_eval), len($msg_eval))
 
 pub macro Success# STMT()[]:
@@ -35,14 +35,14 @@ macro AssertCommon# STMT_LIST($name EXPR, $e_expr EXPR, $a_expr EXPR)[
 ;
 ; Both must have derivable types as we use `auto`
 pub macro AssertGenericEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
-    mlet $e_val = $e_expr
-    mlet $a_val = $a_expr
+    let $e_val = $e_expr
+    let $a_val = $a_expr
     if !cmp::eq($e_val, $a_val):
         AssertCommon#("AssertEq", $e_expr, $a_expr)
 
 pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
-    mlet $e_val = $e_expr
-    mlet $a_val = $a_expr
+    let $e_val = $e_expr
+    let $a_val = $a_expr
     if $e_val != $a_val:
         AssertCommon#("AssertEq", $e_expr, $a_expr)
 
@@ -50,14 +50,14 @@ pub macro AssertEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
 ;
 ; Both must have derivable types as we use `auto`
 pub macro AssertGenericNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
-    mlet $e_val = $e_expr
-    mlet $a_val = $a_expr
+    let $e_val = $e_expr
+    let $a_val = $a_expr
     if cmp::eq($e_val, $a_val):
         AssertCommon#("AssertNe", $e_expr, $a_expr)
 
 pub macro AssertNe# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
-    mlet $e_val = $e_expr
-    mlet $a_val = $a_expr
+    let $e_val = $e_expr
+    let $a_val = $a_expr
     if $e_val == $a_val:
         AssertCommon#("AssertNe", $e_expr, $a_expr)
 
@@ -70,29 +70,29 @@ pub macro AssertIs# STMT_LIST($expr EXPR, $type TYPE)[]:
 ; The two arguments must type derivable
 pub macro AssertSliceEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[
         $e_val, $a_val, $i]:
-    mlet $e_val = $e_expr
-    mlet $a_val = $a_expr
+    let $e_val = $e_expr
+    let $a_val = $a_expr
     AssertEq#(len($e_val), len($a_val))
     for $i = 0, len($a_val), 1:
         AssertEq#(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^)
 
 pub macro AssertGenericSliceEq# STMT_LIST($e_expr EXPR, $a_expr EXPR)[
         $e_val, $a_val, $i]:
-    mlet $e_val = $e_expr
-    mlet $a_val = $a_expr
+    let $e_val = $e_expr
+    let $a_val = $a_expr
     AssertEq#(len($e_val), len($a_val))
     for $i = 0, len($a_val), 1:
         AssertGenericEq#(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^)
 
 pub macro AssertEqR64# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
-    mlet $e_val r64 = $e_expr
-    mlet $a_val r64 = $a_expr
+    let $e_val r64 = $e_expr
+    let $a_val r64 = $a_expr
     if bitwise_as($e_val, u64) != bitwise_as($a_val, u64):
         AssertCommon#("AssertEqR64", $e_expr, $a_expr)
 
 pub macro AssertNeR64# STMT_LIST($e_expr EXPR, $a_expr EXPR)[$e_val, $a_val]:
-    mlet $e_val r64 = $e_expr
-    mlet $a_val r64 = $a_expr
+    let $e_val r64 = $e_expr
+    let $a_val r64 = $a_expr
     if bitwise_as($e_val, u64) == bitwise_as($a_val, u64):
         AssertCommon#("AssertNeR64", $e_expr, $a_expr)
 

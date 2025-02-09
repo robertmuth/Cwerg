@@ -482,12 +482,9 @@ def _ParseStmtLetLike(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
             init = _ParseExpr(inp)
         else:
             init = cwast.ValAuto(x_srcloc=name.srcloc)
-    if kw.text.startswith("m"):
-        return cwast.MacroVar(cwast.NAME.FromStr(name.text), type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
-                              **extra)
-    else:
-        return cwast.DefVar(cwast.NAME.FromStr(name.text), type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
-                            **extra)
+
+    return cwast.DefVar(cwast.NAME.FromStr(name.text), type, init, mut=kw.text.endswith(cwast.MUTABILITY_SUFFIX),
+                        **extra)
 
 
 def _ParseStmtWhile(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
@@ -620,8 +617,6 @@ def _ParseStmtMfor(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
 _STMT_HANDLERS = {
     "let": _ParseStmtLetLike,
     "let!": _ParseStmtLetLike,
-    "mlet": _ParseStmtLetLike,
-    "mlet!": _ParseStmtLetLike,
     "while": _ParseStmtWhile,
     "if": _ParseStmtIf,
     "trylet": _ParseStmtTryLet,
