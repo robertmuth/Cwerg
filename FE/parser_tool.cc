@@ -47,6 +47,35 @@ Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
   return Node(HandleInvalid);
 }
 
+Node PrattParseSimpleVal(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  Node out = Node(HandleInvalid);
+  switch (tk.text[0]) {
+    case 'a':
+      out = NodeNew(NT::ValAuto);
+      InitValAuto(out);
+      return out;
+    case 't':
+      out = NodeNew(NT::ValTrue);
+      InitValTrue(out);
+      return out;
+    case 'f':
+      out = NodeNew(NT::ValFalse);
+      InitValFalse(out);
+      return out;
+    case 'u':
+      out = NodeNew(NT::ValUndef);
+      InitValUndef(out);
+      return out;
+    case 'v':
+      out = NodeNew(NT::ValVoid);
+      InitValVoid(out);
+      return out;
+    default:
+      ASSERT(false, tk);
+      return out;
+  }
+}
+
 Node PrattParsePrefix(Lexer* lexer, const TK& tk, uint32_t precedence) {
   ASSERT(false, "");
   return Node(HandleInvalid);
@@ -129,6 +158,15 @@ Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
 Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
 Node ParseStmtBodyList(Lexer* lexer, uint32_t column);
 
+Node PrattParseAddrOf(Lexer* lexer, const TK& tk, uint32_t precedence) {
+  Node out = NodeNew(NT::ExprAddrOf);
+  Node expr = PrattParseExpr(lexer, precedence);
+  // TODO
+  uint16_t bits = 0;
+  InitExprAddrOf(out, expr, bits);
+  return out;
+}
+
 Node PrattParseExpr2(Lexer* lexer, Node lhs, const TK& tk,
                      uint32_t precedence) {
   BINARY_EXPR_KIND kind = BINARY_EXPR_KIND_FromString(tk.text, tk.kind);
@@ -152,6 +190,17 @@ Node PrattParseExprDeref(Lexer* lexer, Node lhs, const TK& tk,
                          uint32_t precedence) {
   Node out = NodeNew(NT::ExprDeref);
   InitExprDeref(out, lhs);
+  return out;
+}
+
+Node PrattParseExprIndex(Lexer* lexer, Node lhs, const TK& tk,
+                         uint32_t precedence) {
+  Node out = NodeNew(NT::ExprIndex);
+  Node index = PrattParseExpr(lexer);
+  lexer->MatchOrDie(TK_KIND::SQUARE_CLOSED);
+  // TODO
+  uint16_t bits = 0;
+  InitExprIndex(out, lhs, index, bits);
   return out;
 }
 
@@ -207,7 +256,11 @@ std::array<PrattHandlerInfix, MAX_TK_KIND> INFIX_EXPR_PARSERS;
 // But going for C++17 to C++20 is a major step.
 void PREFIX_EXPR_PARSERS_Init() {
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW)] = {PrattParseKW, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW_SIMPLE_VAL)] = {PrattParseSimpleVal,
+                                                           10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::PREFIX_OP)] = {PrattParsePrefix, 13};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADDR_OF_OP)] = {PrattParseAddrOf, 13};
+
   // only used for '-'
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {PrattParsePrefix, 10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ID)] = {PrattParseId, 10};
@@ -227,7 +280,8 @@ void PREFIX_EXPR_PARSERS_Init() {
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SHIFT_OP)] = {PrattParseExpr2, 12};
   //
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {PrattParseExprCall, 20};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {nullptr, 14};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {PrattParseExprIndex,
+                                                        14};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DEREF_OR_POINTER_OP)] = {
       PrattParseExprDeref, 14};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DOT_OP)] = {PrattParseExprField, 14};
