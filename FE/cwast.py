@@ -3992,10 +3992,11 @@ def EnumStringConversions(fout: Any):
     render(MACRO_PARAM_KIND)
     render(STR_KIND)
     render(BASE_TYPE_KIND, lower=True)
-    # prefix = ASSIGNMENT_KIND.__name__
-    # cgen.RenderStringToEnumMap(ASSIGNMENT_SHORTCUT.items(),
-    #                           prefix + "_FromStringMap",
-    #                           prefix + "_Jumper", fout)
+    name = ASSIGNMENT_KIND.__name__
+    name_vals = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
+    cgen.RenderStringToEnumMap(name_vals,
+                               name + "_FromStringMap",
+                               name + "_Jumper", fout)
 
 
 def NodeAliasStringConversion(fout: Any):

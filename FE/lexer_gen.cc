@@ -1,7 +1,5 @@
 #include "FE/lexer_gen.h"
 
-#include <map>
-
 namespace cwerg::fe {
 
 #define REP3(a) a, a, a
@@ -2043,14 +2041,6 @@ BINARY_EXPR_KIND BINARY_EXPR_KIND_PerfectHash[64] = {
 };
 /* @AUTOGEN-END@ */
 // clang-format on
-
-
-
-NT KeywordToNT(std::string_view kw) {
-  auto it  = KeywordToNodeTypeMap.find(kw);
-  if (it == KeywordToNodeTypeMap.end()) return NT::invalid;
-  return it->second;
-}
 
 BINARY_EXPR_KIND BINARY_EXPR_KIND_FromString(std::string_view s, TK_KIND kind) {
   uint8_t o = s[0];

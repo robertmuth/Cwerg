@@ -1,6 +1,7 @@
+#include <cstdint>
+#include <map>
 #include "FE/cwast_gen.h"
 
-#include <cstdint>
 
 #include "Util/assert.h"
 
@@ -278,6 +279,35 @@ const uint8_t BASE_TYPE_KIND_Jumper[128] = {
  255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
+const struct StringKind ASSIGNMENT_KIND_FromStringMap[] = {
+    {"%=", 5},
+    {"&=", 10},
+    {"*=", 4},
+    {"+=", 1},
+    {"-=", 2},
+    {"/=", 3},
+    {"<<<=", 43},
+    {"<<=", 41},
+    {">>=", 40},
+    {">>>=", 42},
+    {"max=", 7},
+    {"min=", 6},
+    {"|=", 11},
+    {"~=", 12},
+    {"ZZZ", 0},
+};
+
+const uint8_t ASSIGNMENT_KIND_Jumper[128] = {
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 0, 1, 255, 255, 255, 2, 3, 255, 4, 255, 5,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 6, 255, 8, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 10, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 12, 255, 13, 255,
+};
+
 const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
     {"case", NT::Case},
     {"enum", NT::DefEnum},
@@ -404,6 +434,11 @@ MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name) {
 BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name) {
   return BASE_TYPE_KIND(LinearSearch(BASE_TYPE_KIND_FromStringMap,
                                      BASE_TYPE_KIND_Jumper, name, 0));
+}
+
+ASSIGNMENT_KIND ASSIGNMENT_KIND_FromString(std::string_view name) {
+  return ASSIGNMENT_KIND(LinearSearch(ASSIGNMENT_KIND_FromStringMap,
+                                      ASSIGNMENT_KIND_Jumper, name, 0));
 }
 
 NT KeywordToNT(std::string_view kw) {

@@ -571,10 +571,13 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
       return out;
     } else {
       Node out = NodeNew(NT::StmtAssignment);
-      ASSIGNMENT_KIND kind;
+      ASSIGNMENT_KIND kind = ASSIGNMENT_KIND_FromString(op.text);
       InitStmtCompoundAssignment(out, kind, lhs, rhs);
       return out;
     }
+  } else if (tk.text == "for") {
+    ASSERT(false, "NYI" << tk);
+    return Node(HandleInvalid);
   } else {
     ASSERT(false, tk);
     return Node(HandleInvalid);

@@ -56,7 +56,6 @@ struct Result {
   uint32_t size = 0;
 };
 
-NT KeywordToNT(std::string_view kw);
 
 Result FindInTrie(std::string_view needle);
 
