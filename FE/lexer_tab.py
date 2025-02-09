@@ -529,6 +529,7 @@ class Lexer:
             self._peek_cache = self.next()
         return self._peek_cache
 
+
     def match(self, kind: TK_KIND, text=None) -> bool:
         tk = self.peek()
         if tk.kind != kind or text is not None and tk.text != text:
@@ -543,7 +544,6 @@ class Lexer:
                 tk.srcloc, f"Expected {kind} [{text}], got {tk.kind} [{tk.text}]")
         return self.next()
 
-_NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
 def GenerateCodeCC(fout, max_items_per_row=16):
     trie = MakeTrie(True)
@@ -616,12 +616,7 @@ def GenerateCodeCC(fout, max_items_per_row=16):
 
     print("};", file=fout)
 
-    print(
-        "\nconst std::map<std::string_view, NT> KeywordToNodeTypeMap = {", file=fout)
-    for node in cwast.ALL_NODES:
-        if node.ALIAS and _NAMED_OP_RE.fullmatch(node.ALIAS):
-            print(f'{{"{node.ALIAS}", NT::{node.__name__}}},', file=fout)
-    print("};", file=fout)
+
 
 
 def GenerateCodeH(fout):

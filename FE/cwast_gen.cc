@@ -277,6 +277,71 @@ const uint8_t BASE_TYPE_KIND_Jumper[128] = {
  255, 255, 0, 255, 255, 255, 255, 255, 255, 1, 255, 255, 255, 255, 2, 255,
  255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
+
+const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
+    {"case", NT::Case},
+    {"enum", NT::DefEnum},
+    {"fun", NT::DefFun},
+    {"global", NT::DefGlobal},
+    {"global!", NT::DefGlobal},
+    {"macro", NT::DefMacro},
+    {"module", NT::DefMod},
+    {"rec", NT::DefRec},
+    {"type", NT::DefType},
+    {"let", NT::DefVar},
+    {"let!", NT::DefVar},
+    {"as", NT::ExprAs},
+    {"bitwise_as", NT::ExprBitCast},
+    {"front", NT::ExprFront},
+    {"front!", NT::ExprFront},
+    {"at", NT::ExprIndex},
+    {"at!", NT::ExprIndex},
+    {"is", NT::ExprIs},
+    {"len", NT::ExprLen},
+    {"narrow_as", NT::ExprNarrow},
+    {"narrow_as!", NT::ExprNarrow},
+    {"offset_of", NT::ExprOffsetof},
+    {"size_of", NT::ExprSizeof},
+    {"srcloc", NT::ExprSrcLoc},
+    {"expr", NT::ExprStmt},
+    {"stringify", NT::ExprStringify},
+    {"typeid_of", NT::ExprTypeId},
+    {"union_tag", NT::ExprUnionTag},
+    {"union_untagged", NT::ExprUnionUntagged},
+    {"unsafe_as", NT::ExprUnsafeCast},
+    {"unwrap", NT::ExprUnwrap},
+    {"widen_as", NT::ExprWiden},
+    {"wrap_as", NT::ExprWrap},
+    {"import", NT::Import},
+    {"mfor", NT::MacroFor},
+    {"mlet", NT::MacroVar},
+    {"mlet!", NT::MacroVar},
+    {"block", NT::StmtBlock},
+    {"break", NT::StmtBreak},
+    {"cond", NT::StmtCond},
+    {"continue", NT::StmtContinue},
+    {"defer", NT::StmtDefer},
+    {"do", NT::StmtExpr},
+    {"if", NT::StmtIf},
+    {"return", NT::StmtReturn},
+    {"static_assert", NT::StmtStaticAssert},
+    {"trap", NT::StmtTrap},
+    {"auto", NT::TypeAuto},
+    {"funtype", NT::TypeFun},
+    {"type_of", NT::TypeOf},
+    {"span", NT::TypeSpan},
+    {"span!", NT::TypeSpan},
+    {"union", NT::TypeUnion},
+    {"union!", NT::TypeUnion},
+    {"union_delta", NT::TypeUnionDelta},
+    {"vec", NT::TypeVec},
+    {"auto_val", NT::ValAuto},
+    {"false", NT::ValFalse},
+    {"make_span", NT::ValSpan},
+    {"true", NT::ValTrue},
+    {"undef", NT::ValUndef},
+    {"void_val", NT::ValVoid},
+};
 /* @AUTOGEN-END@ */
 // clang-format on
 
@@ -339,5 +404,11 @@ MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name) {
 BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name) {
   return BASE_TYPE_KIND(LinearSearch(BASE_TYPE_KIND_FromStringMap,
                                      BASE_TYPE_KIND_Jumper, name, 0));
+}
+
+NT KeywordToNT(std::string_view kw) {
+  auto it = KeywordToNodeTypeMap.find(kw);
+  if (it == KeywordToNodeTypeMap.end()) return NT::invalid;
+  return it->second;
 }
 }  // namespace cwerg::fe

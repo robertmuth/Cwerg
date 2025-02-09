@@ -1,34 +1,37 @@
 # for use with @num classes
-def NameValues(cls, lower=False):
-    return [(x.name.lower() if lower else x.name, x.value) for x in cls]
+def NameValues(cls):
+    return [(x.name, x.value) for x in cls]
 
 
-def RenderEnum(cls, name, fout, prefix=""):
+def NameValuesLower(cls):
+    return [(x.name.lower(), x.value) for x in cls]
+
+
+def RenderEnumCommon(name_vals, fout):
+    for name, value in name_vals:
+        if value <= 255:
+            print(f"    {name} = {value},", file=fout)
+        else:
+            print(f"    {name} = 0x{value:x},", file=fout)
+    print("};", file=fout)
+
+
+def RenderEnum(name_vals, name, fout):
     print(f"\nenum {name} {{", file=fout)
-    for name, value in cls:
-        if value <= 255:
-            print(f"    {prefix}{name} = {value},", file=fout)
-        else:
-            print(f"    {prefix}{name} = 0x{value:x},", file=fout)
-    print("};", file=fout)
+    RenderEnumCommon(name_vals, fout)
 
 
-def RenderEnumClass(cls, name, fout, prefix=""):
+def RenderEnumClass(name_vals, name, fout):
     print(f"\nenum class {name} : uint8_t {{", file=fout)
-    for name, value in cls:
-        if value <= 255:
-            print(f"    {prefix}{name} = {value},", file=fout)
-        else:
-            print(f"    {prefix}{name} = 0x{value:x},", file=fout)
-    print("};", file=fout)
+    RenderEnumCommon(name_vals, fout)
+
+##
 
 
-def RenderEnumToStringMap(cls, name, fout, initial=0, lower=False):
+def RenderEnumToStringMap(cls, name, fout, initial=0):
     print(f"\nconst char* const {name}_ToStringMap[] = {{", file=fout)
     last = initial  # this should really be called `next`
     for name, value in cls:
-        if lower:
-            name = name.lower()
         while last != value:
             print(f'    "", // {last}', file=fout)
             last += 1
@@ -57,7 +60,7 @@ def RenderEnumToStringMapFlag(cls, name, fout):
     print("};", file=fout)
 
 
-def RenderStringToEnumMap(cls, map_name, jumper_name, fout, lower=False):
+def RenderStringToEnumMap(cls, map_name, jumper_name, fout):
     print(f"\nconst struct StringKind {map_name}[] = {{", file=fout)
 
     jumper = {}

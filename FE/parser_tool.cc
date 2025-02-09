@@ -560,57 +560,84 @@ Node ParseCaseList(Lexer* lexer, int column) {
   return out;
 }
 
-Node ParseStmt(Lexer* lexer) {
-  const TK tk = lexer->Next();
-  if (tk.text == "return") {
-    Node expr = PrattParseExpr(lexer);
-    Node out = NodeNew(NT::StmtReturn);
-    InitStmtReturn(out, expr);
-    return out;
-  } else if (starts_with(tk.text, "let")) {
-    Node out = NodeNew(NT::DefVar);
-    const TK name = lexer->MatchOrDie(TK_KIND::ID);
-    Node type = Node(HandleInvalid);
-    Node init = Node(HandleInvalid);
-    if (lexer->Match(TK_KIND::ASSIGN)) {
-      type = NodeNew(NT::TypeAuto);
-      InitTypeAuto(type);
-      init = PrattParseExpr(lexer);
-    } else {
-      type = ParseTypeExpr(lexer);
-      if (lexer->Match(TK_KIND::ASSIGN)) {
-        init = PrattParseExpr(lexer);
-      } else {
-        init = NodeNew(NT::ValAuto);
-        InitValAuto(init);
-      }
-    }
-    // TODO: mut
-    uint16_t bits = 0;
-    InitDefVar(out, NameNew(name.text), type, init, bits);
-    return out;
-  } else if (tk.text == "cond") {
-    lexer->MatchOrDie(TK_KIND::COLON);
-    Node out = NodeNew(NT::StmtCond);
-    Node cases = ParseCaseList(lexer, lexer->Peek().sl.col);
-    InitStmtCond(out, cases);
-    return out;
-  } else if (tk.text == "set") {
+Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
+  if (tk.text == "set") {
     Node lhs = PrattParseExpr(lexer);
-    const TK op = lexer->Next();
+    TK op = lexer->Next();
+    Node rhs = PrattParseExpr(lexer);
     if (op.kind == TK_KIND::ASSIGN) {
       Node out = NodeNew(NT::StmtAssignment);
-      Node rhs = PrattParseExpr(lexer);
       InitStmtAssignment(out, lhs, rhs);
       return out;
     } else {
-      ASSERT(op.kind == TK_KIND::COMPOUND_ASSIGN, "" << op);
-      ASSERT(false, "NYI");
-      return Node(HandleInvalid);
+      Node out = NodeNew(NT::StmtAssignment);
+      ASSIGNMENT_KIND kind;
+      InitStmtCompoundAssignment(out, kind, lhs, rhs);
+      return out;
     }
   } else {
-    ASSERT(false, "STMT");
+    ASSERT(false, tk);
     return Node(HandleInvalid);
+  }
+}
+
+Node ParseStmt(Lexer* lexer) {
+  const TK tk = lexer->Next();
+  const NT nt = KeywordToNT(tk.text);
+  switch (nt) {
+    case NT::StmtReturn: {
+      Node expr = PrattParseExpr(lexer);
+      Node out = NodeNew(NT::StmtReturn);
+      InitStmtReturn(out, expr);
+      return out;
+    }
+    case NT::StmtCond: {
+      lexer->MatchOrDie(TK_KIND::COLON);
+      Node out = NodeNew(NT::StmtCond);
+      Node cases = ParseCaseList(lexer, lexer->Peek().sl.col);
+      InitStmtCond(out, cases);
+      return out;
+    }
+    case NT::StmtAssignment: {
+      Node lhs = PrattParseExpr(lexer);
+      const TK op = lexer->Next();
+      if (op.kind == TK_KIND::ASSIGN) {
+        Node out = NodeNew(NT::StmtAssignment);
+        Node rhs = PrattParseExpr(lexer);
+        InitStmtAssignment(out, lhs, rhs);
+        return out;
+      } else {
+        ASSERT(op.kind == TK_KIND::COMPOUND_ASSIGN, "" << op);
+        ASSERT(false, "NYI");
+        return Node(HandleInvalid);
+      }
+    }
+    case NT::DefVar: {
+      Node out = NodeNew(NT::DefVar);
+      const TK name = lexer->MatchOrDie(TK_KIND::ID);
+      Node type = Node(HandleInvalid);
+      Node init = Node(HandleInvalid);
+      if (lexer->Match(TK_KIND::ASSIGN)) {
+        type = NodeNew(NT::TypeAuto);
+        InitTypeAuto(type);
+        init = PrattParseExpr(lexer);
+      } else {
+        type = ParseTypeExpr(lexer);
+        if (lexer->Match(TK_KIND::ASSIGN)) {
+          init = PrattParseExpr(lexer);
+        } else {
+          init = NodeNew(NT::ValAuto);
+          InitValAuto(init);
+        }
+      }
+      // TODO: mut
+      uint16_t bits = 0;
+      InitDefVar(out, NameNew(name.text), type, init, bits);
+      return out;
+    }
+
+    default:
+      return ParseStmtSpecial(lexer, tk);
   }
 }
 

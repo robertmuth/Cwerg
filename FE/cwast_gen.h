@@ -808,4 +808,6 @@ MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name);
 // default is BASE_TYPE_KIND::INVALID
 BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name);
 
+NT KeywordToNT(std::string_view kw);
+
 }  // namespace cwerg::fe

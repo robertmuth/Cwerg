@@ -3978,20 +3978,38 @@ def GenerateCodeH(fout: Any):
     GenerateInits()
 
 
-def EnumStrintConversions(fout: Any):
+def EnumStringConversions(fout: Any):
     def render(cls, both_ways=True, lower=False):
-        prefix = cls.__name__
-        cgen.RenderEnumToStringMap(
-            cgen.NameValues(cls), prefix, fout, lower=lower)
-        cgen.RenderEnumToStringFun(prefix, fout)
+        name_vals = cgen.NameValuesLower(cls) if lower else cgen.NameValues(cls)
+        name = cls.__name__
+        cgen.RenderEnumToStringMap(name_vals, name, fout)
+        cgen.RenderEnumToStringFun(name, fout)
         if both_ways:
-            cgen.RenderStringToEnumMap(cgen.NameValues(cls, lower=lower),
-                                       prefix + "_FromStringMap",
-                                       prefix + "_Jumper", fout, lower=lower)
+            cgen.RenderStringToEnumMap(name_vals,
+                                       name + "_FromStringMap",
+                                       name + "_Jumper", fout)
     render(MOD_PARAM_KIND)
     render(MACRO_PARAM_KIND)
     render(STR_KIND)
     render(BASE_TYPE_KIND, lower=True)
+    # prefix = ASSIGNMENT_KIND.__name__
+    # cgen.RenderStringToEnumMap(ASSIGNMENT_SHORTCUT.items(),
+    #                           prefix + "_FromStringMap",
+    #                           prefix + "_Jumper", fout)
+
+
+def NodeAliasStringConversion(fout: Any):
+    print(
+        "\nconst std::map<std::string_view, NT> KeywordToNodeTypeMap = {", file=fout)
+    for node in sorted(ALL_NODES, key=lambda x: x.__name__):
+        alias = node.ALIAS
+        if alias and _NAMED_OP_RE.fullmatch(alias):
+            print(f'    {{"{alias}", NT::{node.__name__}}},', file=fout)
+            for f in node.ATTRS:
+                if f.name in ("mut", "untagged", "unchecked"):
+                    print(f'    {{"{alias + MUTABILITY_SUFFIX}", NT::{node.__name__}}},', file=fout)
+                    break
+    print("};", file=fout)
 
 
 def EmitNodeDesc(fout: Any):
@@ -4035,7 +4053,8 @@ def EmitNodeDesc(fout: Any):
 
 def GenerateCodeCC(fout: Any):
     EmitNodeDesc(fout)
-    EnumStrintConversions(fout)
+    EnumStringConversions(fout)
+    NodeAliasStringConversion(fout)
 
 
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
