@@ -70,9 +70,9 @@ static_assert c32.b1 == false
 
 pub enum type_enum s32:
     e1 7
-    e2 auto
+    e2 auto_val
     e3 19
-    e4 auto
+    e4 auto_val
 
 global c20 = type_enum:e3
 

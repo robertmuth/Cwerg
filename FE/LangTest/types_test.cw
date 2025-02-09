@@ -22,10 +22,10 @@ pub rec linked_list:
 
 pub enum type_enum s32:
     ; this is a comment with \" with quotes \t
-    s1 auto
-    s2 auto
-    s3 auto
-    s4 auto
+    s1 auto_val
+    s2 auto_val
+    s3 auto_val
+    s4 auto_val
 
 type type_array = [3]bool
 

@@ -7,21 +7,21 @@ import test
 
 pub enum enum8 u8:
     e1 7
-    e2 auto
+    e2 auto_val
     e3 19
-    e4 auto
+    e4 auto_val
 
 pub enum enum16 u16:
     e1 70
-    e2 auto
+    e2 auto_val
     e3 190
-    e4 auto
+    e4 auto_val
 
 pub enum enum32 u32:
     e1 700
-    e2 auto
+    e2 auto_val
     e3 1900
-    e4 auto
+    e4 auto_val
 
 ; GLOBAL
 global! g1 = enum8:e1

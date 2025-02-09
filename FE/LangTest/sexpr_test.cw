@@ -39,9 +39,9 @@ global c2 = offset_of(type_rec, s1)
 
 pub enum type_enum s32:
     s1 7
-    s2 auto
+    s2 auto_val
     s3 19
-    s4 auto
+    s4 auto_val
 
 type type_ptr = ^!s32
 

@@ -166,15 +166,17 @@ _SIMPLE_VAL_NODES: dict[str, Callable] = {
     "true": cwast.ValTrue,
     "false": cwast.ValFalse,
     "void_val": cwast.ValVoid,
-    "auto": cwast.ValAuto,
+    "auto_val": cwast.ValAuto,
     "undef": cwast.ValUndef
 }
 
 
+def _PParseSimpleVal(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
+    return _SIMPLE_VAL_NODES[tk.text](x_srcloc=tk.srcloc)
+
+
 def _PParseKeywordConstants(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
-    if tk.text in _SIMPLE_VAL_NODES:
-        return _SIMPLE_VAL_NODES[tk.text](x_srcloc=tk.srcloc)
-    elif tk.text in cwast.BUILT_IN_EXPR_MACROS:
+    if tk.text in cwast.BUILT_IN_EXPR_MACROS:
         inp.match_or_die(lexer.TK_KIND.PAREN_OPEN)
         args = _ParseMacroCallArgs(inp)
         return cwast.MacroInvoke(cwast.NAME.FromStr(tk.text), args, x_srcloc=tk.srcloc)
@@ -251,6 +253,7 @@ def _PParseValCompound(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
 
 _PREFIX_EXPR_PARSERS: dict[lexer.TK_KIND, tuple[int, Callable]] = {
     lexer.TK_KIND.KW: (10, _PParseKeywordConstants),
+    lexer.TK_KIND.KW_SIMPLE_VAL: (10, _PParseSimpleVal),
     lexer.TK_KIND.PREFIX_OP: (pp.PREC1_NOT, _PParsePrefix),
     lexer.TK_KIND.ADDR_OF_OP: (pp.PREC1_NOT, _PParseAddressOf),
     lexer.TK_KIND.ADD_OP: (10, _PParsePrefix),  # only used for "-"
@@ -285,7 +288,7 @@ def _ParseExprMacro(name: cwast.Id, inp: lexer.Lexer):
     return cwast.MacroInvoke(cwast.NAME.FromStr(name.FullName()), args, x_srcloc=name.x_srcloc)
 
 
-def _PParseFunctionCall(inp: lexer.Lexer, callee, tk: lexer.TK, precedence) -> Any:
+def _PParseCall(inp: lexer.Lexer, callee, tk: lexer.TK, precedence) -> Any:
     if isinstance(callee, cwast.Id) and callee.IsMacroCall():
         return _ParseExprMacro(callee, inp)
     assert tk.kind is lexer.TK_KIND.PAREN_OPEN
@@ -345,7 +348,7 @@ _INFIX_EXPR_PARSERS = {
     # "max": (pp.PREC2_MAX, _PParserInfixOp),
 
     #
-    lexer.TK_KIND.PAREN_OPEN: (20, _PParseFunctionCall),
+    lexer.TK_KIND.PAREN_OPEN: (20, _PParseCall),
     lexer.TK_KIND.SQUARE_OPEN:  (pp.PREC_INDEX, _PParseIndex),
     lexer.TK_KIND.DEREF_OR_POINTER_OP: (pp.PREC_INDEX, _PParseDeref),
     lexer.TK_KIND.DOT_OP: (pp.PREC_INDEX, _PParseFieldAccess),

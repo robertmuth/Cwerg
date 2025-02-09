@@ -43,7 +43,7 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
 uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
 Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  ASSERT(false, "");
+  ASSERT(false, "" << tk);
   return Node(HandleInvalid);
 }
 
@@ -127,6 +127,7 @@ Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
 }
 
 Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
+Node ParseStmtBodyList(Lexer* lexer, uint32_t column);
 
 Node PrattParseExpr2(Lexer* lexer, Node lhs, const TK& tk,
                      uint32_t precedence) {
@@ -367,6 +368,22 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   return out;
 }
 
+Node ParseCaseList(Lexer* lexer, int column) {
+  const TK tk = lexer->Peek();
+  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.sl.col < column) {
+    return Node(HandleInvalid);
+  }
+  lexer->Next();
+  ASSERT(tk.kind == TK_KIND::KW && tk.text == "case", "");
+  Node out = NodeNew(NT::Case);
+  Node cond = PrattParseExpr(lexer);
+  lexer->MatchOrDie(TK_KIND::COLON);
+  Node body = ParseStmtBodyList(lexer, lexer->Peek().sl.col);
+  InitCase(out, cond, body);
+  Node_next(out) = ParseCaseList(lexer, column);
+  return out;
+}
+
 Node ParseStmt(Lexer* lexer) {
   const TK tk = lexer->Next();
   if (tk.text == "return") {
@@ -395,6 +412,12 @@ Node ParseStmt(Lexer* lexer) {
     // TODO: mut
     uint16_t bits = 0;
     InitDefVar(out, NameNew(name.text), type, init, bits);
+    return out;
+  } else if (tk.text == "cond") {
+    lexer->MatchOrDie(TK_KIND::COLON);
+    Node out = NodeNew(NT::StmtCond);
+    Node cases = ParseCaseList(lexer, lexer->Peek().sl.col);
+    InitStmtCond(out, cases);
     return out;
   } else if (tk.text == "set") {
     Node lhs = PrattParseExpr(lexer);

@@ -59,43 +59,6 @@ bool IsNameRest(uint8_t c) { return CType[c] & kCTypeNameRest; }
 
 typedef std::array<uint8_t, 129> TrieNode;
 
-struct Result {
-  TK_KIND kind = TK_KIND::INVALID;
-  uint32_t size = 0;
-};
-
-extern uint8_t TrieNodeCount;
-extern uint8_t KeywordAndOpRecognizer[][128];
-
-Result FindInTrie(std::string_view needle) {
-  uint32_t node_no = 0;
-  for (uint32_t i = 0; i < uint32_t(needle.size()); ++i) {
-    uint8_t c = uint8_t(needle[i]);
-    if (c > 127) {
-      c = 127;
-    }
-
-    uint8_t x = KeywordAndOpRecognizer[node_no][c];
-
-    // std::cout << "Find [" << i << "] [" << c << "] -> " << int(x) << "\n";
-
-    if (x == 0) {
-      return Result();
-    } else if (x < TrieNodeCount) {
-      node_no = x;
-    } else {
-      x -= TrieNodeCount;
-      if (x > uint8_t(TK_KIND::SPECIAL_EOF)) {
-        x -= uint8_t(TK_KIND::SPECIAL_EOF) + 1;
-        return Result{TK_KIND(x), i};
-      } else {
-        return Result{TK_KIND(x), i + 1};
-      }
-    }
-  }
-  return Result();
-}
-
 LexerRaw::LexerRaw(std::string_view input, uint32_t file)
     : input_(input), end_(input.size()) {
   srcloc_.file = file;

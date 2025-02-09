@@ -380,11 +380,11 @@ pub fun Parse(file ^!File) union(Success, AllocError, DataError):
     return SuccessVal
 
 enum State u8:
-    invalid auto
-    between_tokens auto
-    in_string auto
-    in_string_esc auto
-    in_number auto
+    invalid auto_val
+    between_tokens auto_val
+    in_string auto_val
+    in_string_esc auto_val
+    in_number auto_val
 
 pub fun NumJsonObjectsNeeded(raw span(u8)) u32:
     let! state = State:between_tokens

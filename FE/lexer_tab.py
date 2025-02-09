@@ -48,6 +48,7 @@ class TK_KIND(enum.Enum):
     PREFIX_OP = enum.auto()
     BASE_TYPE = enum.auto()
     KW = enum.auto()
+    KW_SIMPLE_VAL = enum.auto()
     ANNOTATION = enum.auto()
     ASSIGN = enum.auto()  # =, ==
     SQUARE_OPEN = enum.auto()  # [, [!]
@@ -156,6 +157,7 @@ def DumpTrieStats(trie: TRIE):
 def GetAllKWAndOps():
     KWs = []
     KWs += [(kw, TK_KIND.KW) for kw in cwast.KeyWordsForConcreteSyntax()]
+    KWs += [(kw, TK_KIND.KW_SIMPLE_VAL) for kw in cwast.KeyWordsSimpleVal()]
     KWs += [(kw, TK_KIND.BASE_TYPE) for kw in cwast.KeywordsBaseTypes()]
 
     KWs += [(kw, TK_KIND.COMPOUND_ASSIGN) for kw in cwast.ASSIGNMENT_SHORTCUT]
@@ -285,7 +287,7 @@ def MakeInitialTrie(KWs):
     # the sortorder ensures that a prefixes are procressed later
     for kw, tag in reversed(sorted(KWs)):
         # print (kw, tag)
-        if tag in (TK_KIND.KW, TK_KIND.ANNOTATION, TK_KIND.BASE_TYPE):
+        if tag in (TK_KIND.KW, TK_KIND.KW_SIMPLE_VAL, TK_KIND.ANNOTATION, TK_KIND.BASE_TYPE):
             if kw.endswith("!"):
                 add_kw_simple(kw, tag)
             else:
@@ -582,13 +584,13 @@ def GenerateCodeCC(fout, max_items_per_row=16):
 
     offset = len(trie)
     print(f"#define VAL(x) {
-          offset} + uint8_t(TK_KIND::x)\n", file=fout)
+          offset} + uint16_t(TK_KIND::x)\n", file=fout)
     offset += TK_KIND.SPECIAL_EOF.value + 1
-    print(f"#define VALX(x) {offset} + uint8_t(TK_KIND::x)\n", file=fout)
+    print(f"#define VALX(x) {offset} + uint16_t(TK_KIND::x)\n", file=fout)
 
-    print(f"uint8_t TrieNodeCount = {len(trie)};\n", file=fout)
+    print(f"uint16_t TrieNodeCount = {len(trie)};\n", file=fout)
 
-    print(f"uint8_t KeywordAndOpRecognizer[{len(trie)}][128] = {{", file=fout)
+    print(f"uint16_t KeywordAndOpRecognizer[{len(trie)}][128] = {{", file=fout)
     for n in trie:
         sep = "    {"
         for i in range(0, len(n), max_items_per_row):
@@ -612,7 +614,6 @@ def GenerateCodeCC(fout, max_items_per_row=16):
         print(f"  BINARY_EXPR_KIND::{x.name},", file=fout)
 
     print("};", file=fout)
-
 
 
 def GenerateCodeH(fout):

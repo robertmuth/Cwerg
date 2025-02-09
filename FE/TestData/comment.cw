@@ -16,9 +16,9 @@ global r02 = {type_rec2: s2 = 9,
 enum type_enum s32:
     ; enum entry comment
     e1 7
-    e2 auto
+    e2 auto_val
     e3 19
-    e4 auto
+    e4 auto_val
 
 global c31 = {[30]uint: 10, 
     ; index_val

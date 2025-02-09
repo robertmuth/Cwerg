@@ -38,9 +38,9 @@ static_assert offset_of(type_rec, u1) == 24
 
 pub enum type_enum s32:
     e1 7
-    e2 auto
+    e2 auto_val
     e3 19
-    e4 auto
+    e4 auto_val
 
 static_assert size_of(type_enum) == 4
 

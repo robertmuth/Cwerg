@@ -1631,7 +1631,7 @@ class ValAuto:
 
     Used for: array dimensions, enum values, chap and range
     """
-    ALIAS: ClassVar = None
+    ALIAS: ClassVar = "auto_val"
     GROUP: ClassVar = GROUP.Value
     FLAGS: ClassVar = NF_EXPR
     #
@@ -4041,9 +4041,14 @@ def GenerateCodeCC(fout: Any):
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
 
+_SIMPLE_VAL = set([ValTrue, ValFalse, ValAuto, ValUndef, ValVoid])
+
+
 def KeyWordsForConcreteSyntax():
     out = []
     for x in ALL_NODES:
+        if x in _SIMPLE_VAL:
+            continue
         alias = x.ALIAS
         if alias and alias not in "^.?=@at":
             out.append(alias)
@@ -4063,6 +4068,10 @@ def KeyWordsForConcreteSyntax():
     return out
 
 
+def KeyWordsSimpleVal():
+    return [x.ALIAS for x in _SIMPLE_VAL]
+
+
 def KeywordsBaseTypes():
     out = []
     for k in BASE_TYPE_KIND:
@@ -4077,7 +4086,6 @@ def UnaryOpsForConcreteSyntax():
     # the parse will figure out what it really is
     return [x for x in UNARY_EXPR_SHORTCUT_COMMON
             if not _NAMED_OP_RE.fullmatch(x)]
-
 
 
 def BinaryOpsForConcreteSyntax():

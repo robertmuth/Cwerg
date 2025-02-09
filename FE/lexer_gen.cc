@@ -19,21 +19,21 @@ namespace cwerg::fe {
 
 // clang-format off
 /* @AUTOGEN-START@ */
-#define VAL(x) 206 + uint8_t(TK_KIND::x)
+#define VAL(x) 212 + uint16_t(TK_KIND::x)
 
-#define VALX(x) 238 + uint8_t(TK_KIND::x)
+#define VALX(x) 245 + uint16_t(TK_KIND::x)
 
-uint8_t TrieNodeCount = 206;
+uint16_t TrieNodeCount = 212;
 
-uint8_t KeywordAndOpRecognizer[206][128] = {
+uint16_t KeywordAndOpRecognizer[212][128] = {
     {REP16(0),
      REP16(0),
-     0, 205, VAL(STR), 0, 0, 202, 204, VAL(CHAR), VAL(PAREN_OPEN), VAL(PAREN_CLOSED), 202, 203, VAL(COMMA), 203, VAL(DOT_OP), 202,
-     REP10(0), VAL(COLON), VAL(COMMENT), 200, 199, 196, VAL(TERNARY_OP),
-     195, REP15(0),
-     REP11(0), 194, 0, VAL(SQUARE_CLOSED), 193, 0,
-     0, 191, 179, 173, 170, 166, 157, 152, 0, 149, 0, 0, 147, 132, 122, 117,
-     107, 0, 102, 77, 63, 30, 22, 5, 4, 0, 0, 3, 2, VAL(CURLY_CLOSED), 1, 0},
+     0, 211, VAL(STR), 0, 0, 208, 210, VAL(CHAR), VAL(PAREN_OPEN), VAL(PAREN_CLOSED), 208, 209, VAL(COMMA), 209, VAL(DOT_OP), 208,
+     REP10(0), VAL(COLON), VAL(COMMENT), 206, 205, 202, VAL(TERNARY_OP),
+     201, REP15(0),
+     REP11(0), 200, 0, VAL(SQUARE_CLOSED), 199, 0,
+     0, 195, 183, 177, 174, 169, 160, 155, 0, 152, 0, 0, 150, 135, 125, 120,
+     110, 0, 105, 80, 64, 31, 22, 5, 4, 0, 0, 3, 2, VAL(CURLY_CLOSED), 1, 0},
 
     {REP16(VALX(ADD_OP)),
      REP16(VALX(ADD_OP)),
@@ -230,7 +230,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 29, REP9(0), 23,
+     REP5(0), 30, REP9(0), 23,
      REP16(0)},
 
     {REP16(0),
@@ -284,8 +284,17 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 14, REP3(0),
+     REP12(0), 29, REP3(0),
      REP16(0)},
+
+    {REP16(VALX(KW_SIMPLE_VAL)),
+     REP16(VALX(KW_SIMPLE_VAL)),
+     REP4(VALX(KW_SIMPLE_VAL)), 0, REP11(VALX(KW_SIMPLE_VAL)),
+     REP10(0), REP6(VALX(KW_SIMPLE_VAL)),
+     VALX(KW_SIMPLE_VAL), REP15(0),
+     REP11(0), REP4(VALX(KW_SIMPLE_VAL)), 0,
+     VALX(KW_SIMPLE_VAL), REP15(0),
+     REP11(0), REP5(VALX(KW_SIMPLE_VAL))},
 
     {REP16(0),
      REP16(0),
@@ -299,10 +308,10 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
     {REP16(0),
      REP16(0),
      REP16(0),
-     0, 62, 0, 61, 0, 0, 60, 0, 59, REP7(0),
+     0, 63, 0, 62, 0, 0, 61, 0, 60, REP7(0),
      REP16(0),
      REP16(0),
-     REP9(0), 57, REP4(0), 31, 0,
+     REP9(0), 58, REP4(0), 32, 0,
      REP16(0)},
 
     {REP16(0),
@@ -311,8 +320,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 55, REP4(0), 38, REP6(0),
-     REP3(0), 35, REP3(0), 32, REP8(0)},
+     REP4(0), 56, REP4(0), 39, REP6(0),
+     REP3(0), 36, REP3(0), 33, REP8(0)},
 
     {REP16(0),
      REP16(0),
@@ -321,7 +330,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 0, 33, REP13(0)},
+     0, 0, 34, REP13(0)},
 
     {REP16(0),
      REP16(0),
@@ -329,7 +338,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 34, REP14(0),
+     0, 35, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -347,7 +356,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 36, REP14(0),
+     0, 37, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -356,7 +365,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP6(0), 37, REP9(0),
+     REP6(0), 38, REP9(0),
      REP16(0)},
 
     {REP16(0),
@@ -374,7 +383,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 39,
+     REP15(0), 40,
      REP16(0)},
 
     {REP16(0),
@@ -383,7 +392,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 40, 0,
+     REP14(0), 41, 0,
      REP16(0)},
 
     {REP16(VALX(KW)),
@@ -391,7 +400,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      VALX(KW), VAL(KW), VALX(KW), VALX(KW), 0, REP11(VALX(KW)),
      REP10(0), REP6(VALX(KW)),
      VALX(KW), REP15(0),
-     REP11(0), REP4(VALX(KW)), 41,
+     REP11(0), REP4(VALX(KW)), 42,
      VALX(KW), REP15(0),
      REP11(0), REP5(VALX(KW))},
 
@@ -401,8 +410,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 51, REP11(0),
-     REP4(0), 49, 42, REP10(0)},
+     REP4(0), 52, REP11(0),
+     REP4(0), 50, 43, REP10(0)},
 
     {REP16(0),
      REP16(0),
@@ -410,7 +419,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 43, 0,
+     REP14(0), 44, 0,
      REP16(0)},
 
     {REP16(0),
@@ -420,7 +429,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 44, REP11(0)},
+     REP4(0), 45, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -428,16 +437,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 45, REP14(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP7(0), 46, REP8(0),
+     0, 46, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -455,7 +455,16 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 48, REP10(0),
+     REP7(0), 48, REP8(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP5(0), 49, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -473,7 +482,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 50, REP14(0),
+     0, 51, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -491,7 +500,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 52, REP10(0),
+     REP5(0), 53, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -500,7 +509,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 53, REP3(0),
+     REP12(0), 54, REP3(0),
      REP16(0)},
 
     {REP16(0),
@@ -510,7 +519,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 54, REP11(0)},
+     REP4(0), 55, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -527,7 +536,133 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 56, REP10(0),
+     REP5(0), 57, REP10(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP6(0), 29, REP9(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP14(0), 59, 0,
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP4(0), 60, REP11(0)},
+
+    {REP16(VALX(BASE_TYPE)),
+     REP16(VALX(BASE_TYPE)),
+     REP4(VALX(BASE_TYPE)), 0, REP11(VALX(BASE_TYPE)),
+     REP10(0), REP6(VALX(BASE_TYPE)),
+     VALX(BASE_TYPE), REP15(0),
+     REP11(0), REP4(VALX(BASE_TYPE)), 0,
+     VALX(BASE_TYPE), REP15(0),
+     REP11(0), REP5(VALX(BASE_TYPE))},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP4(0), 60, REP11(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     0, 0, 60, REP13(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP6(0), 60, REP9(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     0, 0, 72, REP6(0), 65, REP6(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     66, REP15(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP5(0), 67, REP10(0),
+     REP16(0)},
+
+    {REP16(VALX(KW)),
+     REP16(VALX(KW)),
+     REP4(VALX(KW)), 0, REP11(VALX(KW)),
+     REP10(0), REP6(VALX(KW)),
+     VALX(KW), REP15(0),
+     REP11(0), REP4(VALX(KW)), 70,
+     VALX(KW), REP8(0), 68, REP6(0),
+     REP11(0), REP5(VALX(KW))},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP4(0), 69, REP11(0),
+     REP16(0)},
+
+    {REP16(VALX(BASE_TYPE)),
+     REP16(VALX(BASE_TYPE)),
+     REP4(VALX(BASE_TYPE)), 0, REP11(VALX(BASE_TYPE)),
+     REP10(0), REP6(VALX(BASE_TYPE)),
+     VALX(BASE_TYPE), REP15(0),
+     REP11(0), REP4(VALX(BASE_TYPE)), 70,
+     VALX(BASE_TYPE), REP15(0),
+     REP11(0), REP5(VALX(BASE_TYPE))},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP15(0), 71,
      REP16(0)},
 
     {REP16(0),
@@ -545,8 +680,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 58, 0,
-     REP16(0)},
+     0, 35, REP14(0),
+     REP5(0), 79, REP3(0), 73, REP6(0)},
 
     {REP16(0),
      REP16(0),
@@ -554,143 +689,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP16(0),
-     REP4(0), 59, REP11(0)},
-
-    {REP16(VALX(BASE_TYPE)),
-     REP16(VALX(BASE_TYPE)),
-     REP4(VALX(BASE_TYPE)), 0, REP11(VALX(BASE_TYPE)),
-     REP10(0), REP6(VALX(BASE_TYPE)),
-     VALX(BASE_TYPE), REP15(0),
-     REP11(0), REP4(VALX(BASE_TYPE)), 0,
-     VALX(BASE_TYPE), REP15(0),
-     REP11(0), REP5(VALX(BASE_TYPE))},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP4(0), 59, REP11(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     0, 0, 59, REP13(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP6(0), 59, REP9(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     0, 0, 70, REP6(0), 64, REP6(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     65, REP15(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP5(0), 66, REP10(0),
-     REP16(0)},
-
-    {REP16(VALX(KW)),
-     REP16(VALX(KW)),
-     REP4(VALX(KW)), 0, REP11(VALX(KW)),
-     REP10(0), REP6(VALX(KW)),
-     VALX(KW), REP15(0),
-     REP11(0), REP4(VALX(KW)), 69,
-     VALX(KW), REP8(0), 67, REP6(0),
-     REP11(0), REP5(VALX(KW))},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP4(0), 68, REP11(0),
-     REP16(0)},
-
-    {REP16(VALX(BASE_TYPE)),
-     REP16(VALX(BASE_TYPE)),
-     REP4(VALX(BASE_TYPE)), 0, REP11(VALX(BASE_TYPE)),
-     REP10(0), REP6(VALX(BASE_TYPE)),
-     VALX(BASE_TYPE), REP15(0),
-     REP11(0), REP4(VALX(BASE_TYPE)), 69,
-     VALX(BASE_TYPE), REP15(0),
-     REP11(0), REP5(VALX(BASE_TYPE))},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP15(0), 56,
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     0, 34, REP14(0),
-     REP5(0), 21, REP3(0), 71, REP6(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP12(0), 74, REP3(0),
-     REP3(0), 72, REP12(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP5(0), 73, REP10(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP4(0), 14, REP11(0)},
+     REP12(0), 76, REP3(0),
+     REP3(0), 74, REP12(0)},
 
     {REP16(0),
      REP16(0),
@@ -708,7 +708,25 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 76, REP11(0)},
+     REP4(0), 14, REP11(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP5(0), 77, REP10(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP4(0), 78, REP11(0)},
 
     {REP16(VALX(KW)),
      REP16(VALX(KW)),
@@ -722,38 +740,20 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
     {REP16(0),
      REP16(0),
      REP16(0),
-     0, 62, 0, 61, 0, 0, 60, 0, 59, REP7(0),
-     REP16(0),
-     REP16(0),
-     REP5(0), 73, REP3(0), 99, REP6(0),
-     97, 93, 94, 0, 78, REP11(0)},
-
-    {REP16(0),
      REP16(0),
      REP16(0),
      REP16(0),
-     REP16(0),
-     REP16(0),
-     0, 85, REP14(0),
-     0, 0, 79, REP13(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP9(0), 80, REP6(0),
+     REP5(0), 29, REP10(0),
      REP16(0)},
 
     {REP16(0),
      REP16(0),
      REP16(0),
+     0, 63, 0, 62, 0, 0, 61, 0, 60, REP7(0),
      REP16(0),
      REP16(0),
-     REP16(0),
-     REP14(0), 81, 0,
-     REP16(0)},
+     REP5(0), 75, REP3(0), 102, REP6(0),
+     100, 96, 97, 0, 81, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -761,8 +761,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP7(0), 82, REP8(0),
-     REP16(0)},
+     0, 88, REP14(0),
+     0, 0, 82, REP13(0)},
 
     {REP16(0),
      REP16(0),
@@ -779,7 +779,34 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP6(0), 84, REP9(0),
+     REP14(0), 84, 0,
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP7(0), 85, REP8(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP9(0), 86, REP6(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP6(0), 87, REP9(0),
      REP16(0)},
 
     {REP16(0),
@@ -798,7 +825,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 86, REP11(0)},
+     REP4(0), 89, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -806,7 +833,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP9(0), 87, REP6(0),
+     REP9(0), 90, REP6(0),
      REP16(0)},
 
     {REP16(0),
@@ -815,7 +842,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP3(0), 88, REP12(0),
+     REP3(0), 91, REP12(0),
      REP16(0)},
 
     {REP16(0),
@@ -823,17 +850,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 89,
+     REP15(0), 92,
      REP16(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     0, 90, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -842,25 +860,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP16(0),
-     REP3(0), 91, REP12(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP3(0), 92, REP12(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP5(0), 93, REP10(0),
+     0, 93, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -870,7 +870,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 0, 73, REP13(0)},
+     REP3(0), 94, REP12(0)},
 
     {REP16(0),
      REP16(0),
@@ -878,7 +878,16 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP3(0), 95, REP12(0),
+     REP16(0),
+     REP3(0), 95, REP12(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP5(0), 96, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -887,7 +896,16 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 96, REP3(0),
+     REP16(0),
+     0, 0, 75, REP13(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP3(0), 98, REP12(0),
      REP16(0)},
 
     {REP16(0),
@@ -896,7 +914,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 29,
+     REP12(0), 99, REP3(0),
      REP16(0)},
 
     {REP16(0),
@@ -905,7 +923,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 98, REP14(0),
+     REP15(0), 30,
      REP16(0)},
 
     {REP16(0),
@@ -914,7 +932,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 76, 0,
+     0, 101, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -923,16 +941,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 58, 0,
-     REP10(0), 100, REP5(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP5(0), 101, REP10(0),
+     REP14(0), 78, 0,
      REP16(0)},
 
     {REP16(0),
@@ -940,17 +949,35 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 69,
+     REP16(0),
+     REP14(0), 59, 0,
+     REP10(0), 103, REP5(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP5(0), 104, REP10(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP15(0), 70,
      REP16(0),
      REP16(0)},
 
     {REP16(0),
      REP16(0),
      0, 0, VAL(STR), REP13(0),
-     REP3(0), 61, 0, 0, 60, REP9(0),
+     REP3(0), 62, 0, 0, 61, REP9(0),
      REP16(0),
      REP16(0),
-     REP5(0), 103, REP10(0),
+     REP5(0), 106, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -960,7 +987,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP3(0), 14, 0, 0, 11, REP9(0),
-     REP4(0), 104, REP11(0)},
+     REP4(0), 107, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -969,7 +996,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 105, REP10(0)},
+     REP5(0), 108, REP10(0)},
 
     {REP16(0),
      REP16(0),
@@ -978,7 +1005,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 0, 106, REP13(0)},
+     0, 0, 109, REP13(0)},
 
     {REP16(0),
      REP16(0),
@@ -995,8 +1022,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 115,
-     REP4(0), 109, 108, REP10(0)},
+     REP15(0), 118,
+     REP4(0), 112, 111, REP10(0)},
 
     {REP16(0),
      REP16(0),
@@ -1014,14 +1041,14 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 0, 110, REP13(0)},
+     0, 0, 113, REP13(0)},
 
     {REP16(0),
      REP16(0),
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 111,
+     REP15(0), 114,
      REP16(0),
      REP16(0)},
 
@@ -1031,7 +1058,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 113, REP4(0), 112, REP6(0),
+     REP4(0), 116, REP4(0), 115, REP6(0),
      REP16(0)},
 
     {REP16(0),
@@ -1040,7 +1067,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 29, 0,
+     REP14(0), 30, 0,
      REP16(0)},
 
     {REP16(0),
@@ -1049,7 +1076,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 29, REP3(0), 114, REP6(0),
+     REP5(0), 30, REP3(0), 117, REP6(0),
      REP16(0)},
 
     {REP16(0),
@@ -1058,7 +1085,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP6(0), 56, REP9(0),
+     REP6(0), 71, REP9(0),
      REP16(0)},
 
     {REP16(0),
@@ -1067,7 +1094,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 116, REP3(0),
+     REP12(0), 119, REP3(0),
      REP16(0)},
 
     {REP16(0),
@@ -1085,7 +1112,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP6(0), 118, REP9(0),
+     REP6(0), 121, REP9(0),
      REP16(0)},
 
     {REP16(0),
@@ -1094,25 +1121,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP6(0), 119, REP9(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP3(0), 120, REP12(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP5(0), 121, REP10(0),
+     REP6(0), 122, REP9(0),
      REP16(0)},
 
     {REP16(0),
@@ -1122,7 +1131,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 101, REP11(0)},
+     REP3(0), 123, REP12(0)},
 
     {REP16(0),
      REP16(0),
@@ -1130,7 +1139,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 125, REP13(0), 123,
+     REP5(0), 124, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -1140,7 +1149,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 0, 124, REP13(0)},
+     REP4(0), 104, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -1148,17 +1157,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 58, REP10(0),
+     0, 128, REP13(0), 126,
      REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     0, 0, 126, REP13(0)},
 
     {REP16(0),
      REP16(0),
@@ -1175,7 +1175,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 128,
+     REP5(0), 59, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -1185,14 +1185,41 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP7(0), 129, REP8(0)},
+     0, 0, 129, REP13(0)},
 
     {REP16(0),
      REP16(0),
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 130,
+     REP16(0),
+     REP16(0),
+     0, 0, 130, REP13(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP15(0), 131,
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP7(0), 132, REP8(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP15(0), 133,
      REP16(0),
      REP16(0)},
 
@@ -1202,7 +1229,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 131, REP14(0),
+     0, 134, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -1212,7 +1239,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP3(0), 76, REP12(0)},
+     REP3(0), 78, REP12(0)},
 
     {REP16(0),
      REP16(0),
@@ -1220,7 +1247,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 139, REP4(0), 137, 0, 0, 135, 0, 0, 74, 0, 0, 133,
+     0, 142, REP4(0), 140, 0, 0, 138, 0, 0, 76, 0, 0, 136,
      REP16(0)},
 
     {REP16(0),
@@ -1229,7 +1256,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 134, REP11(0),
+     REP4(0), 137, REP11(0),
      REP16(0)},
 
     {REP16(0),
@@ -1247,7 +1274,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 136, 0,
+     REP14(0), 139, 0,
      REP16(0)},
 
     {REP16(VALX(KW)),
@@ -1265,7 +1292,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 138,
+     REP15(0), 141,
      REP16(0)},
 
     {REP16(0),
@@ -1283,8 +1310,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP3(0), 145, REP7(0), 140, REP4(0),
-     REP8(0), 136, REP7(0)},
+     REP3(0), 148, REP7(0), 143, REP4(0),
+     REP8(0), 139, REP7(0)},
 
     {REP16(0),
      REP16(0),
@@ -1292,7 +1319,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 141, REP10(0),
+     REP5(0), 144, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -1300,35 +1327,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 142,
+     REP15(0), 145,
      REP16(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP3(0), 143, REP12(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     144, REP15(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     0, 106, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -1338,7 +1338,34 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 0, 146, REP13(0)},
+     REP3(0), 146, REP12(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     147, REP15(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     0, 109, REP14(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     0, 0, 149, REP13(0)},
 
     {REP16(0),
      REP16(0),
@@ -1355,7 +1382,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 148, REP10(0),
+     REP5(0), 151, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -1365,7 +1392,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP14(0), 14, 0,
-     REP4(0), 76, REP11(0)},
+     REP4(0), 78, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -1373,7 +1400,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP6(0), 14, REP6(0), 150, 0, 0,
+     REP6(0), 14, REP6(0), 153, 0, 0,
      REP3(0), 14, REP12(0)},
 
     {REP16(0),
@@ -1383,7 +1410,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     151, REP15(0)},
+     154, REP15(0)},
 
     {REP16(0),
      REP16(0),
@@ -1391,7 +1418,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 93,
+     REP15(0), 96,
      REP16(0)},
 
     {REP16(0),
@@ -1400,7 +1427,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 153, REP3(0),
+     REP12(0), 156, REP3(0),
      REP16(0)},
 
     {REP16(0),
@@ -1409,7 +1436,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 154,
+     REP15(0), 157,
      REP16(0)},
 
     {REP16(0),
@@ -1418,7 +1445,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 0, 155, REP13(0),
+     0, 0, 158, REP13(0),
      REP16(0)},
 
     {REP16(0),
@@ -1427,7 +1454,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 156, REP14(0),
+     0, 159, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -1436,7 +1463,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 76, REP3(0),
+     REP12(0), 78, REP3(0),
      REP16(0)},
 
     {REP16(0),
@@ -1445,8 +1472,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 164, REP13(0), 138,
-     0, 0, 162, 0, 0, 158, REP10(0)},
+     0, 167, REP13(0), 141,
+     0, 0, 165, 0, 0, 161, REP10(0)},
 
     {REP16(0),
      REP16(0),
@@ -1454,7 +1481,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 159, 0,
+     REP14(0), 162, 0,
      REP16(0)},
 
     {REP16(VALX(KW)),
@@ -1464,7 +1491,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      VALX(KW), REP15(0),
      REP11(0), REP4(VALX(KW)), 0,
      VALX(KW), REP15(0),
-     REP4(0), 160, REP6(0), REP5(VALX(KW))},
+     REP4(0), 163, REP6(0), REP5(VALX(KW))},
 
     {REP16(0),
      REP16(0),
@@ -1473,7 +1500,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP9(0), 161, REP6(0)},
+     REP9(0), 164, REP6(0)},
 
     {REP16(0),
      REP16(0),
@@ -1490,7 +1517,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 163,
+     REP15(0), 166,
      REP16(0)},
 
     {REP16(0),
@@ -1499,7 +1526,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 75, 0,
+     REP14(0), 77, 0,
      REP16(0)},
 
     {REP16(0),
@@ -1508,7 +1535,52 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 165, REP3(0),
+     REP12(0), 168, REP3(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP3(0), 79, REP12(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP12(0), 173, 0, 171, 0,
+     REP8(0), 170, REP7(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     141, REP15(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP5(0), 172, REP10(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP13(0), 14, 0, 0,
      REP16(0)},
 
     {REP16(0),
@@ -1526,34 +1598,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 165, 0, 168, 0,
-     REP8(0), 167, REP7(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     138, REP15(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP5(0), 169, REP10(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP13(0), 14, 0, 0,
+     REP5(0), 175, REP9(0), 14,
      REP16(0)},
 
     {REP16(0),
@@ -1562,7 +1607,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 171, REP9(0), 14,
+     REP6(0), 176, REP9(0),
      REP16(0)},
 
     {REP16(0),
@@ -1571,7 +1616,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP6(0), 172, REP9(0),
+     REP5(0), 141, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -1580,7 +1625,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 138, REP10(0),
+     0, 173, REP13(0), 178,
      REP16(0)},
 
     {REP16(0),
@@ -1589,16 +1634,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 165, REP13(0), 174,
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP14(0), 175, 0,
+     REP14(0), 179, 0,
      REP16(0)},
 
     {REP16(0),
@@ -1608,7 +1644,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP4(0), 14, REP11(0),
-     REP4(0), 176, REP11(0)},
+     REP4(0), 180, REP11(0)},
 
     {REP16(0),
      REP16(0),
@@ -1616,7 +1652,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP9(0), 177, REP6(0),
+     REP9(0), 181, REP6(0),
      REP16(0)},
 
     {REP16(0),
@@ -1625,7 +1661,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP14(0), 178, 0,
+     REP14(0), 182, 0,
      REP16(0)},
 
     {REP16(0),
@@ -1643,8 +1679,8 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP9(0), 187, 0, 0, 185, 0, 0, 183,
-     0, 0, 180, REP13(0)},
+     REP9(0), 191, 0, 0, 189, 0, 0, 187,
+     0, 0, 184, REP13(0)},
 
     {REP16(0),
      REP16(0),
@@ -1652,7 +1688,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP5(0), 181, REP10(0),
+     REP5(0), 185, REP10(0),
      REP16(0)},
 
     {REP16(0),
@@ -1661,7 +1697,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     0, 182, REP14(0),
+     0, 186, REP14(0),
      REP16(0)},
 
     {REP16(0),
@@ -1679,7 +1715,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 184,
+     REP15(0), 188,
      REP16(0)},
 
     {REP16(0),
@@ -1688,7 +1724,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP12(0), 59, REP3(0),
+     REP12(0), 60, REP3(0),
      REP16(0)},
 
     {REP16(0),
@@ -1697,7 +1733,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP15(0), 186,
+     REP15(0), 190,
      REP16(0)},
 
     {REP16(0),
@@ -1706,34 +1742,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP3(0), 182, REP12(0),
-     REP16(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP4(0), 188, REP11(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP7(0), 189, REP8(0)},
-
-    {REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP16(0),
-     REP9(0), 190, REP6(0),
+     REP3(0), 186, REP12(0),
      REP16(0)},
 
     {REP16(0),
@@ -1743,7 +1752,34 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP3(0), 37, REP12(0)},
+     REP4(0), 192, REP11(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP7(0), 193, REP8(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP9(0), 194, REP6(0),
+     REP16(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP3(0), 38, REP12(0)},
 
     {REP16(0),
      REP16(0),
@@ -1752,7 +1788,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      0, 0, 13, REP13(0),
-     REP3(0), 14, 0, 192, REP10(0)},
+     REP3(0), 14, 0, 196, REP10(0)},
 
     {REP16(0),
      REP16(0),
@@ -1761,7 +1797,25 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
      REP16(0),
      REP16(0),
      REP16(0),
-     REP4(0), 146, REP11(0)},
+     REP4(0), 197, REP11(0)},
+
+    {REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP16(0),
+     REP15(0), 198,
+     REP16(0)},
+
+    {REP16(VALX(KW)),
+     REP16(VALX(KW)),
+     REP4(VALX(KW)), 0, REP11(VALX(KW)),
+     REP10(0), REP6(VALX(KW)),
+     VALX(KW), REP15(0),
+     REP11(0), REP4(VALX(KW)), 26,
+     VALX(KW), REP15(0),
+     REP11(0), REP5(VALX(KW))},
 
     {REP16(VALX(DEREF_OR_POINTER_OP)),
      REP16(VALX(DEREF_OR_POINTER_OP)),
@@ -1793,7 +1847,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
     {REP16(VALX(COMPARISON_OP)),
      REP16(VALX(COMPARISON_OP)),
      REP16(VALX(COMPARISON_OP)),
-     REP13(VALX(COMPARISON_OP)), VAL(COMPARISON_OP), 197, VALX(COMPARISON_OP),
+     REP13(VALX(COMPARISON_OP)), VAL(COMPARISON_OP), 203, VALX(COMPARISON_OP),
      REP16(VALX(COMPARISON_OP)),
      REP16(VALX(COMPARISON_OP)),
      REP16(VALX(COMPARISON_OP)),
@@ -1802,7 +1856,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
     {REP16(VALX(SHIFT_OP)),
      REP16(VALX(SHIFT_OP)),
      REP16(VALX(SHIFT_OP)),
-     REP13(VALX(SHIFT_OP)), VAL(COMPOUND_ASSIGN), 198, VALX(SHIFT_OP),
+     REP13(VALX(SHIFT_OP)), VAL(COMPOUND_ASSIGN), 204, VALX(SHIFT_OP),
      REP16(VALX(SHIFT_OP)),
      REP16(VALX(SHIFT_OP)),
      REP16(VALX(SHIFT_OP)),
@@ -1829,7 +1883,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
     {REP16(VALX(COMPARISON_OP)),
      REP16(VALX(COMPARISON_OP)),
      REP16(VALX(COMPARISON_OP)),
-     REP12(VALX(COMPARISON_OP)), 201, VAL(COMPARISON_OP), VALX(COMPARISON_OP), VALX(COMPARISON_OP),
+     REP12(VALX(COMPARISON_OP)), 207, VAL(COMPARISON_OP), VALX(COMPARISON_OP), VALX(COMPARISON_OP),
      REP16(VALX(COMPARISON_OP)),
      REP16(VALX(COMPARISON_OP)),
      REP16(VALX(COMPARISON_OP)),
@@ -1838,7 +1892,7 @@ uint8_t KeywordAndOpRecognizer[206][128] = {
     {REP16(VALX(SHIFT_OP)),
      REP16(VALX(SHIFT_OP)),
      REP16(VALX(SHIFT_OP)),
-     REP12(VALX(SHIFT_OP)), 198, VAL(COMPOUND_ASSIGN), VALX(SHIFT_OP), VALX(SHIFT_OP),
+     REP12(VALX(SHIFT_OP)), 204, VAL(COMPOUND_ASSIGN), VALX(SHIFT_OP), VALX(SHIFT_OP),
      REP16(VALX(SHIFT_OP)),
      REP16(VALX(SHIFT_OP)),
      REP16(VALX(SHIFT_OP)),
@@ -1895,26 +1949,27 @@ const char* const TK_KIND_ToStringMap[] = {
     "PREFIX_OP", // 9
     "BASE_TYPE", // 10
     "KW", // 11
-    "ANNOTATION", // 12
-    "ASSIGN", // 13
-    "SQUARE_OPEN", // 14
-    "CURLY_OPEN", // 15
-    "GENERIC_ANNOTATION", // 16
-    "TERNARY_OP", // 17
-    "DOT_OP", // 18
-    "COMPOUND_ASSIGN", // 19
-    "COLON", // 20
-    "COMMA", // 21
-    "PAREN_OPEN", // 22
-    "PAREN_CLOSED", // 23
-    "CURLY_CLOSED", // 24
-    "SQUARE_CLOSED", // 25
-    "COMMENT", // 26
-    "CHAR", // 27
-    "STR", // 28
-    "NUM", // 29
-    "ID", // 30
-    "SPECIAL_EOF", // 31
+    "KW_SIMPLE_VAL", // 12
+    "ANNOTATION", // 13
+    "ASSIGN", // 14
+    "SQUARE_OPEN", // 15
+    "CURLY_OPEN", // 16
+    "GENERIC_ANNOTATION", // 17
+    "TERNARY_OP", // 18
+    "DOT_OP", // 19
+    "COMPOUND_ASSIGN", // 20
+    "COLON", // 21
+    "COMMA", // 22
+    "PAREN_OPEN", // 23
+    "PAREN_CLOSED", // 24
+    "CURLY_CLOSED", // 25
+    "SQUARE_CLOSED", // 26
+    "COMMENT", // 27
+    "CHAR", // 28
+    "STR", // 29
+    "NUM", // 30
+    "ID", // 31
+    "SPECIAL_EOF", // 32
 };
 const char* EnumToString(TK_KIND x) { return TK_KIND_ToStringMap[unsigned(x)]; }
 
@@ -1994,4 +2049,33 @@ BINARY_EXPR_KIND BINARY_EXPR_KIND_FromString(std::string_view s, TK_KIND kind) {
   return BINARY_EXPR_KIND_PerfectHash[index & 0x3f];
 }
 
+
+Result FindInTrie(std::string_view needle) {
+  uint32_t node_no = 0;
+  for (uint32_t i = 0; i < uint32_t(needle.size()); ++i) {
+    uint8_t c = uint8_t(needle[i]);
+    if (c > 127) {
+      c = 127;
+    }
+
+    uint16_t x = KeywordAndOpRecognizer[node_no][c];
+
+    // std::cout << "Find [" << i << "] [" << c << "] -> " << int(x) << "\n";
+
+    if (x == 0) {
+      return Result();
+    } else if (x < TrieNodeCount) {
+      node_no = x;
+    } else {
+      x -= TrieNodeCount;
+      if (x > uint16_t(TK_KIND::SPECIAL_EOF)) {
+        x -= uint16_t(TK_KIND::SPECIAL_EOF) + 1;
+        return Result{TK_KIND(x), i};
+      } else {
+        return Result{TK_KIND(x), i + 1};
+      }
+    }
+  }
+  return Result();
+}
 }  // namespace cwerg::fe
