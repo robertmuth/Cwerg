@@ -543,6 +543,7 @@ class Lexer:
                 tk.srcloc, f"Expected {kind} [{text}], got {tk.kind} [{tk.text}]")
         return self.next()
 
+_NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
 def GenerateCodeCC(fout, max_items_per_row=16):
     trie = MakeTrie(True)
@@ -613,6 +614,13 @@ def GenerateCodeCC(fout, max_items_per_row=16):
         x = m.get(i, cwast.BASE_TYPE_KIND.INVALID)
         print(f"  BINARY_EXPR_KIND::{x.name},", file=fout)
 
+    print("};", file=fout)
+
+    print(
+        "\nconst std::map<std::string_view, NT> KeywordToNodeTypeMap = {", file=fout)
+    for node in cwast.ALL_NODES:
+        if node.ALIAS and _NAMED_OP_RE.fullmatch(node.ALIAS):
+            print(f'{{"{node.ALIAS}", NT::{node.__name__}}},', file=fout)
     print("};", file=fout)
 
 

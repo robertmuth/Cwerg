@@ -96,16 +96,21 @@ _FUN_LIKE: dict[str, tuple[Callable, str]] = {
     "max": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.MAX, x, y, **kw), "EE"),
     "min": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.MIN, x, y, **kw), "EE"),
     "ptr_diff": (lambda x, y, **kw: cwast.Expr2(cwast.BINARY_EXPR_KIND.PDELTA, x, y, **kw), "EE"),
-    cwast.ExprLen.ALIAS: (cwast.ExprLen, "E"),
     "ptr_inc": (cwast.ExprPointer, "pEEe"),
     "ptr_dec": (cwast.ExprPointer, "pEEe"),
+    #
     cwast.ExprOffsetof.ALIAS: (cwast.ExprOffsetof, "TE"),
-    "make_span": (cwast.ValSpan, "EE"),
+    cwast.ValSpan.ALIAS: (cwast.ValSpan, "EE"),
+    cwast.TypeUnionDelta.ALIAS: (cwast.TypeUnionDelta, "TT"),
+    #
+    cwast.ExprLen.ALIAS: (cwast.ExprLen, "E"),
     cwast.ExprFront.ALIAS:  (cwast.ExprFront, "E"),
     cwast.ExprFront.ALIAS + "!":  (cwast.ExprFront, "E"),
     cwast.ExprUnwrap.ALIAS: (cwast.ExprUnwrap, "E"),
     cwast.ExprUnionTag.ALIAS: (cwast.ExprUnionTag, "E"),
-    #
+    cwast.ExprStringify.ALIAS: (cwast.ExprStringify, "E"),
+    cwast.ExprSrcLoc.ALIAS: (cwast.ExprSrcLoc, "E"),
+    cwast.TypeOf.ALIAS: (cwast.TypeOf, "E"),
     #
     cwast.ExprSizeof.ALIAS: (cwast.ExprSizeof, "T"),
     cwast.ExprTypeId.ALIAS: (cwast.ExprTypeId, "T"),
@@ -120,11 +125,7 @@ _FUN_LIKE: dict[str, tuple[Callable, str]] = {
     cwast.ExprUnsafeCast.ALIAS: (cwast.ExprUnsafeCast, "ET"),
     cwast.ExprBitCast.ALIAS: (cwast.ExprBitCast, "ET"),
     #
-    cwast.ExprStringify.ALIAS: (cwast.ExprStringify, "E"),
-    cwast.ExprSrcLoc.ALIAS: (cwast.ExprSrcLoc, "E"),
-    # Type related
-    cwast.TypeOf.ALIAS: (cwast.TypeOf, "E"),
-    cwast.TypeUnionDelta.ALIAS: (cwast.TypeUnionDelta, "TT"),
+
 }
 
 
@@ -182,7 +183,7 @@ def _PParseKeywordConstants(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
         return cwast.MacroInvoke(cwast.NAME.FromStr(tk.text), args, x_srcloc=tk.srcloc)
     elif tk.text in _FUN_LIKE:
         return _ParseFunLike(inp, tk)
-    elif tk.text == "expr":
+    elif tk.text == cwast.ExprStmt.ALIAS:
         # we use "0" as the indent intentionally
         # allowing the next statement to begin at any column
         body = _ParseStatementList(inp, 0)

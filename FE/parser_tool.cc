@@ -40,11 +40,135 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
   return out;
 }
 
+Node ParseTypeExpr(Lexer* lexer);
+Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
+Node ParseStmtBodyList(Lexer* lexer, uint32_t column);
+
 uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
+void ParseFunLikeArgs(Lexer* lexer, std::string_view args_desc,
+                      std::array<Node, 4>* args) {
+  lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
+  for (int i = 0; i < args_desc.size(); i++) {
+    if (i != 0) {
+      lexer->MatchOrDie(TK_KIND::COMMA);
+    }
+    switch (args_desc[i]) {
+      case 'E':
+        (*args)[i] = PrattParseExpr(lexer);
+        break;
+      case 'T':
+        (*args)[i] = ParseTypeExpr(lexer);
+        break;
+      default:
+        ASSERT(false, "");
+        break;
+    }
+  }
+  lexer->MatchOrDie(TK_KIND::PAREN_CLOSED);
+}
+
+Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
+  Node out = NodeNew(nt);
+  std::array<Node, 4> args = {Node(HandleInvalid), Node(HandleInvalid),  //
+                              Node(HandleInvalid), Node(HandleInvalid)};
+  uint16_t bits = 0;
+  switch (nt) {
+    // TE
+    case NT::ExprOffsetof:
+      ParseFunLikeArgs(lexer, "TE", &args);
+      InitExprOffsetof(out, args[0], args[1]);
+      return out;
+    // EE
+    case NT::ValSpan:
+      ParseFunLikeArgs(lexer, "EE", &args);
+      InitValSpan(out, args[0], args[1]);
+      return out;
+    // TT
+    case NT::TypeUnionDelta:
+      ParseFunLikeArgs(lexer, "TT", &args);
+      InitTypeUnionDelta(out, args[0], args[1]);
+      return out;
+    // E
+    case NT::ExprLen:
+      ParseFunLikeArgs(lexer, "E", &args);
+      InitExprLen(out, args[0]);
+      return out;
+    case NT::ExprUnwrap:
+      ParseFunLikeArgs(lexer, "E", &args);
+      InitExprUnwrap(out, args[0]);
+      return out;
+    case NT::ExprUnionTag:
+      ParseFunLikeArgs(lexer, "E", &args);
+      InitExprUnwrap(out, args[0]);
+      return out;
+    case NT::ExprStringify:
+      ParseFunLikeArgs(lexer, "E", &args);
+      InitExprStringify(out, args[0]);
+      return out;
+    case NT::ExprSrcLoc:
+      ParseFunLikeArgs(lexer, "E", &args);
+      InitExprSrcLoc(out, args[0]);
+      return out;
+    case NT::TypeOf:
+      ParseFunLikeArgs(lexer, "E", &args);
+      InitTypeOf(out, args[0]);
+      return out;
+    // E with bits
+    case NT::ExprFront:
+      ParseFunLikeArgs(lexer, "E", &args);
+      InitExprFront(out, args[0], bits);
+      return out;
+    // T
+    case NT::ExprSizeof:
+      ParseFunLikeArgs(lexer, "T", &args);
+      InitExprSizeof(out, args[0]);
+      return out;
+    case NT::ExprTypeId:
+      ParseFunLikeArgs(lexer, "T", &args);
+      InitExprTypeId(out, args[0]);
+      return out;
+    // ET
+    case NT::ExprAs:
+      ParseFunLikeArgs(lexer, "ET", &args);
+      InitExprAs(out, args[0], args[1]);
+      return out;
+    case NT::ExprWrap:
+      ParseFunLikeArgs(lexer, "ET", &args);
+      InitExprWrap(out, args[0], args[1]);
+      return out;
+    case NT::ExprIs:
+      ParseFunLikeArgs(lexer, "ET", &args);
+      InitExprIs(out, args[0], args[1]);
+      return out;
+    case NT::ExprWiden:
+      ParseFunLikeArgs(lexer, "ET", &args);
+      InitExprWiden(out, args[0], args[1]);
+      return out;
+    case NT::ExprUnsafeCast:
+      ParseFunLikeArgs(lexer, "ET", &args);
+      InitExprUnsafeCast(out, args[0], args[1]);
+      return out;
+    case NT::ExprBitCast:
+      ParseFunLikeArgs(lexer, "ET", &args);
+      InitExprBitCast(out, args[0], args[1]);
+      return out;
+    // ET with bits
+    case NT::ExprNarrow:
+      ParseFunLikeArgs(lexer, "ET", &args);
+      InitExprNarrow(out, args[0], args[1], bits);
+      return out;
+      //
+    default:
+      ASSERT(false, tk);
+      return Node(HandleInvalid);
+  }
+}
+
 Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  ASSERT(false, "" << tk);
-  return Node(HandleInvalid);
+  const NT nt = KeywordToNT(tk.text);
+  ASSERT(nt != NT::invalid, "");
+  return ParseFunLike(lexer, nt, tk);
 }
 
 Node PrattParseSimpleVal(Lexer* lexer, const TK& tk, uint32_t precedence) {
@@ -155,9 +279,6 @@ Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
   return out;
 }
 
-Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
-Node ParseStmtBodyList(Lexer* lexer, uint32_t column);
-
 Node PrattParseAddrOf(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node out = NodeNew(NT::ExprAddrOf);
   Node expr = PrattParseExpr(lexer, precedence);
@@ -255,6 +376,7 @@ std::array<PrattHandlerInfix, MAX_TK_KIND> INFIX_EXPR_PARSERS;
 // Could probably done with C++20 designated array initializers
 // But going for C++17 to C++20 is a major step.
 void PREFIX_EXPR_PARSERS_Init() {
+  // Init Prefix Table
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW)] = {PrattParseKW, 10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW_SIMPLE_VAL)] = {PrattParseSimpleVal,
                                                            10};
@@ -271,7 +393,7 @@ void PREFIX_EXPR_PARSERS_Init() {
                                                         10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CURLY_OPEN)] = {PrattParseValCompound,
                                                         10};
-  //
+  // Init Infix/Postfix Table
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::OR_SC_OP)] = {PrattParseExpr2, 5};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::AND_SC_OP)] = {PrattParseExpr2, 6};
   INFIX_EXPR_PARSERS[uint32_t(TK_KIND::COMPARISON_OP)] = {PrattParseExpr2, 7};

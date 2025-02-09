@@ -1,5 +1,7 @@
 #include "FE/lexer_gen.h"
 
+#include <map>
+
 namespace cwerg::fe {
 
 #define REP3(a) a, a, a
@@ -2039,8 +2041,73 @@ BINARY_EXPR_KIND BINARY_EXPR_KIND_PerfectHash[64] = {
   BINARY_EXPR_KIND::ANDSC,
   BINARY_EXPR_KIND::DIV,
 };
+
+const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
+{"union", NT::TypeUnion},
+{"mfor", NT::MacroFor},
+{"trap", NT::StmtTrap},
+{"if", NT::StmtIf},
+{"make_span", NT::ValSpan},
+{"stringify", NT::ExprStringify},
+{"widen_as", NT::ExprWiden},
+{"at", NT::ExprIndex},
+{"unwrap", NT::ExprUnwrap},
+{"break", NT::StmtBreak},
+{"srcloc", NT::ExprSrcLoc},
+{"union_untagged", NT::ExprUnionUntagged},
+{"enum", NT::DefEnum},
+{"fun", NT::DefFun},
+{"false", NT::ValFalse},
+{"auto", NT::TypeAuto},
+{"rec", NT::DefRec},
+{"module", NT::DefMod},
+{"return", NT::StmtReturn},
+{"expr", NT::ExprStmt},
+{"union_delta", NT::TypeUnionDelta},
+{"vec", NT::TypeVec},
+{"import", NT::Import},
+{"undef", NT::ValUndef},
+{"unsafe_as", NT::ExprUnsafeCast},
+{"len", NT::ExprLen},
+{"bitwise_as", NT::ExprBitCast},
+{"continue", NT::StmtContinue},
+{"macro", NT::DefMacro},
+{"offset_of", NT::ExprOffsetof},
+{"type", NT::DefType},
+{"size_of", NT::ExprSizeof},
+{"is", NT::ExprIs},
+{"typeid_of", NT::ExprTypeId},
+{"type_of", NT::TypeOf},
+{"as", NT::ExprAs},
+{"do", NT::StmtExpr},
+{"block", NT::StmtBlock},
+{"void_val", NT::ValVoid},
+{"let", NT::DefVar},
+{"case", NT::Case},
+{"span", NT::TypeSpan},
+{"front", NT::ExprFront},
+{"true", NT::ValTrue},
+{"auto_val", NT::ValAuto},
+{"static_assert", NT::StmtStaticAssert},
+{"wrap_as", NT::ExprWrap},
+{"defer", NT::StmtDefer},
+{"union_tag", NT::ExprUnionTag},
+{"funtype", NT::TypeFun},
+{"global", NT::DefGlobal},
+{"mlet", NT::MacroVar},
+{"narrow_as", NT::ExprNarrow},
+{"cond", NT::StmtCond},
+};
 /* @AUTOGEN-END@ */
 // clang-format on
+
+
+
+NT KeywordToNT(std::string_view kw) {
+  auto it  = KeywordToNodeTypeMap.find(kw);
+  if (it == KeywordToNodeTypeMap.end()) return NT::invalid;
+  return it->second;
+}
 
 BINARY_EXPR_KIND BINARY_EXPR_KIND_FromString(std::string_view s, TK_KIND kind) {
   uint8_t o = s[0];
@@ -2048,7 +2115,6 @@ BINARY_EXPR_KIND BINARY_EXPR_KIND_FromString(std::string_view s, TK_KIND kind) {
   uint8_t index = (o << 1) + l + (uint8_t(kind) << 3);
   return BINARY_EXPR_KIND_PerfectHash[index & 0x3f];
 }
-
 
 Result FindInTrie(std::string_view needle) {
   uint32_t node_no = 0;
