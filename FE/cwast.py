@@ -815,9 +815,9 @@ def NODE_NAME(node):
 
 def _FLAGS(node):
     out = []
-    for c, _ in node.__class__.ATTRS:
-        if getattr(node, c):
-            out.append(ANNOTATION_PREFIX + c)
+    for nfd in node.__class__.ATTRS:
+        if getattr(node, nfd.name):
+            out.append(ANNOTATION_PREFIX + nfd.name)
     outs = " ".join(out)
     return " " + outs if outs else outs
 
@@ -1320,12 +1320,6 @@ class Id:
 
     def IsMacroCall(self):
         return self.base_name.IsMacroCall() or self.base_name.name in BUILT_IN_EXPR_MACROS
-
-    def IsMacroVar(self):
-        return self.base_name.IsMacroVar()
-
-    def IsPolymorphic(self):
-        return self.base_name.IsPolymorphic()
 
     def FullName(self):
         name = ""
@@ -2982,6 +2976,11 @@ class MacroId:
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
+    @staticmethod
+    def Make(name: str, **kwargs):
+        assert name.startswith(MACRO_VAR_PREFIX)
+        return MacroId(NAME.FromStr(name), **kwargs)
+
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}"
 
@@ -3612,7 +3611,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             if not pre_symbolize:
                 assert node.x_symbol is not INVALID_SYMBOL, f"{
                     node} without valid x_symbol {node.x_srcloc}"
-            if node.IsMacroVar():
+            if node.base_name.IsMacroVar():
                 CompilerError(node.x_srcloc, f"{node} start with $")
         elif isinstance(node, MacroId):
             assert node.name.IsMacroVar()
@@ -3980,7 +3979,8 @@ def GenerateCodeH(fout: Any):
 
 def EnumStringConversions(fout: Any):
     def render(cls, both_ways=True, lower=False):
-        name_vals = cgen.NameValuesLower(cls) if lower else cgen.NameValues(cls)
+        name_vals = cgen.NameValuesLower(
+            cls) if lower else cgen.NameValues(cls)
         name = cls.__name__
         cgen.RenderEnumToStringMap(name_vals, name, fout)
         cgen.RenderEnumToStringFun(name, fout)
@@ -4008,7 +4008,8 @@ def NodeAliasStringConversion(fout: Any):
             print(f'    {{"{alias}", NT::{node.__name__}}},', file=fout)
             for f in node.ATTRS:
                 if f.name in ("mut", "untagged", "unchecked"):
-                    print(f'    {{"{alias + MUTABILITY_SUFFIX}", NT::{node.__name__}}},', file=fout)
+                    print(
+                        f'    {{"{alias + MUTABILITY_SUFFIX}", NT::{node.__name__}}},', file=fout)
                     break
     print("};", file=fout)
 

@@ -81,7 +81,7 @@ def _ParseExpr(inp: lexer.Lexer, precedence=0):
 
 def _PParseId(_inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
     if tk.text.startswith(cwast.MACRO_VAR_PREFIX):
-        return cwast.MacroId(cwast.NAME.FromStr(tk.text), x_srcloc=tk.srcloc)
+        return cwast.MacroId.Make(tk.text, x_srcloc=tk.srcloc)
     return cwast.Id.Make(tk.text, x_srcloc=tk.srcloc)
 
 
@@ -362,7 +362,7 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
     extra = _ExtractAnnotations(tk)
     if tk.kind is lexer.TK_KIND.ID:
         if tk.text.startswith(cwast.MACRO_VAR_PREFIX):
-            return cwast.MacroId(cwast.NAME.FromStr(tk.text), **extra)
+            return cwast.MacroId.Make(tk.text, **extra)
         return cwast.Id.Make(tk.text, **extra)
     elif tk.kind is lexer.TK_KIND.BASE_TYPE:
         kind = cwast.KeywordToBaseTypeKind(tk.text)
@@ -558,8 +558,7 @@ def _ParseStmReturn(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
 def _ParseStmtFor(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     name = inp.match_or_die(lexer.TK_KIND.ID)
     if name.text.startswith(cwast.MACRO_VAR_PREFIX):
-        var = cwast.MacroId(cwast.NAME.FromStr(
-            name.text), x_srcloc=name.srcloc)
+        var = cwast.MacroId.Make(name.text, x_srcloc=name.srcloc)
     else:
         var = cwast.Id.Make(name.text, x_srcloc=name.srcloc)
     inp.match_or_die(lexer.TK_KIND.ASSIGN)
@@ -653,7 +652,7 @@ def _ParseStatement(inp: lexer.Lexer):
             if not kw.text.startswith(cwast.MACRO_VAR_PREFIX):
                 cwast.CompilerError(
                     kw.srcloc, f"expect macro var but got {kw.text}")
-            return cwast.MacroId(cwast.NAME.FromStr(kw.text), **extra)
+            return cwast.MacroId.Make(kw.text, **extra)
     if kw.kind is not lexer.TK_KIND.KW:
         cwast.CompilerError(
             kw.srcloc, f"expected statement keyword but got: {kw}")
@@ -754,7 +753,7 @@ def _ParseMacroGenIds(inp: lexer.Lexer):
             inp.match_or_die(lexer.TK_KIND.COMMA)
         first = False
         name = inp.match_or_die(lexer.TK_KIND.ID)
-        out.append(cwast.MacroId(cwast.NAME.FromStr(name.text), name.srcloc))
+        out.append(cwast.MacroId.Make(name.text, x_srcloc=name.srcloc))
     return out
 
 

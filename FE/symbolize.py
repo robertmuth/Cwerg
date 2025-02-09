@@ -311,6 +311,7 @@ def _CheckAddressCanBeTaken(lhs):
 
 
 def VerifyASTSymbolsRecursively(node):
+    """all macros should have been resolved by now"""
     in_def_macro = False
 
     def visitor(node: Any, nfd: cwast.NFD):
@@ -328,8 +329,6 @@ def VerifyASTSymbolsRecursively(node):
                 assert nfd.name in cwast.FIELD_NAME_FIELDS, f"unresolved symbol {
                     node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
-            # all macros should have been resolved
-            assert not node.IsMacroVar(), f"{node}"
             def_node = node.x_symbol
             is_type_node = nfd.name in cwast.TYPE_FIELDS
             if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeUnion, cwast.DefEnum)):

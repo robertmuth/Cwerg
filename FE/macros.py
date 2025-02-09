@@ -54,7 +54,6 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         assert kind is cwast.MACRO_PARAM_KIND.ID
         # Why is this not a MacroVar
         assert isinstance(new_name, cwast.Id)
-        assert not new_name.IsMacroVar()
         type_or_auto = ExpandMacroRecursively(node.type_or_auto, ctx)
         initial = ExpandMacroRecursively(node.initial_or_undef_or_auto, ctx)
         return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
