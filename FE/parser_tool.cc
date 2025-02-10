@@ -42,7 +42,7 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
 
 Node ParseTypeExpr(Lexer* lexer);
 Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
-Node ParseStmtBodyList(Lexer* lexer, uint32_t column);
+Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column);
 
 uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
@@ -545,19 +545,19 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   return out;
 }
 
-Node ParseCaseList(Lexer* lexer, int column) {
-  const TK tk = lexer->Peek();
-  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.sl.col < column) {
+Node ParseCaseList(Lexer* lexer, int cond_column) {
+  TK tk = lexer->Peek();
+  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.sl.col <= cond_column) {
     return Node(HandleInvalid);
   }
-  lexer->Next();
-  ASSERT(tk.kind == TK_KIND::KW && tk.text == "case", "");
+  tk = lexer->MatchOrDie(TK_KIND::KW, "case");
+  uint32_t case_column = tk.sl.col;
   Node out = NodeNew(NT::Case);
   Node cond = PrattParseExpr(lexer);
   lexer->MatchOrDie(TK_KIND::COLON);
-  Node body = ParseStmtBodyList(lexer, lexer->Peek().sl.col);
+  Node body = ParseStmtBodyList(lexer, case_column);
   InitCase(out, cond, body);
-  Node_next(out) = ParseCaseList(lexer, column);
+  Node_next(out) = ParseCaseList(lexer, cond_column);
   return out;
 }
 
@@ -577,6 +577,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
       return out;
     }
   } else if (tk.text == "for") {
+    uint32_t outer_col = tk.sl.col;
     Node out = NodeNew(NT::MacroInvoke);
     const TK& name = lexer->MatchOrDie(TK_KIND::ID);
     Node id = starts_with(name.text, "$") ? MakeNodeMacroId(tk.text)
@@ -589,7 +590,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     Node step = PrattParseExpr(lexer);
     lexer->MatchOrDie(TK_KIND::COLON);
 
-    Node stmts = ParseStmtBodyList(lexer, lexer->Peek().sl.col);
+    Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
     uint16_t bits = 0;
     InitEphemeralList(body, stmts, bits);
@@ -607,7 +608,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
 }
 
 Node ParseStmt(Lexer* lexer) {
-  const TK tk = lexer->Next();
+  TK tk = lexer->Next();
   const NT nt = KeywordToNT(tk.text);
   switch (nt) {
     case NT::StmtReturn: {
@@ -617,9 +618,10 @@ Node ParseStmt(Lexer* lexer) {
       return out;
     }
     case NT::StmtCond: {
+      uint32_t cond_col = tk.sl.col;
       lexer->MatchOrDie(TK_KIND::COLON);
       Node out = NodeNew(NT::StmtCond);
-      Node cases = ParseCaseList(lexer, lexer->Peek().sl.col);
+      Node cases = ParseCaseList(lexer, cond_col);
       InitStmtCond(out, cases);
       return out;
     }
@@ -660,15 +662,30 @@ Node ParseStmt(Lexer* lexer) {
       InitDefVar(out, NameNew(name.text), type, init, bits);
       return out;
     }
-
+    case NT::StmtIf: {
+      uint32_t if_col = tk.sl.col;
+      Node out = NodeNew(NT::StmtIf);
+      Node cond = PrattParseExpr(lexer);
+      lexer->MatchOrDie(TK_KIND::COLON);
+      Node body_t = ParseStmtBodyList(lexer, if_col);
+      Node body_f = Node(HandleInvalid);
+      tk = lexer->Peek();
+      if (tk.text == "else" && tk.sl.col == if_col) {
+        lexer->Next();
+        lexer->MatchOrDie(TK_KIND::COLON);
+        body_f = ParseStmtBodyList(lexer, if_col);
+      }
+      InitStmtIf(out, cond, body_t, body_f);
+      return out;
+    }
     default:
       return ParseStmtSpecial(lexer, tk);
   }
 }
 
-Node ParseStmtBodyList(Lexer* lexer, uint32_t column) {
+Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
   const TK tk = lexer->Peek();
-  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.sl.col < column) {
+  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.sl.col <= outer_column) {
     return Node(HandleInvalid);
   }
 
@@ -690,7 +707,7 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t column) {
     ASSERT(tk.kind == TK_KIND::KW, "NYI");
     out = ParseStmt(lexer);
   }
-  Node next = ParseStmtBodyList(lexer, column);
+  Node next = ParseStmtBodyList(lexer, outer_column);
   Node_next(out) = next;
   return out;
 }
@@ -714,6 +731,7 @@ Node ParseTopLevel(Lexer* lexer) {
   const TK& tk = lexer->Next();
   ASSERT(tk.kind == TK_KIND::KW, "expected top level kw");
   if (tk.text == "fun") {
+    uint32_t fun_column = tk.sl.col;
     Node out = NodeNew(NT::DefFun);
     TK name = lexer->MatchOrDie(TK_KIND::ID);
     lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
@@ -725,8 +743,7 @@ Node ParseTopLevel(Lexer* lexer) {
       result = ParseTypeExpr(lexer);
       lexer->MatchOrDie(TK_KIND::COLON);
     }
-    const TK& tk = lexer->Peek();
-    Node body = ParseStmtBodyList(lexer, tk.sl.col);
+    Node body = ParseStmtBodyList(lexer, fun_column);
     InitDefFun(out, NameNew(name.text), params, result, body,
                BitsFromAnnotation(name));
     return out;
