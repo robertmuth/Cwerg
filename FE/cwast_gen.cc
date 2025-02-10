@@ -66,7 +66,6 @@ NodeDesc GlobalNodeDescs[] = {
     { 0, BIT_S(name), 0 }, // MacroId
     { BIT_N(args), BIT_S(name), 0 }, // MacroInvoke
     { 0, BIT_S(name), 0 }, // MacroParam
-    { BIT_N(type_or_auto)| BIT_N(initial_or_undef_or_auto), BIT_S(name), BIT_B(mut)| BIT_B(ref) }, // MacroVar
     { 0, BIT_S(name), 0 }, // ModParam
     { BIT_N(type), BIT_S(name), 0 }, // RecField
     { BIT_N(lhs)| BIT_N(expr_rhs), 0, 0 }, // StmtAssignment
@@ -344,8 +343,6 @@ const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
     {"wrap_as", NT::ExprWrap},
     {"import", NT::Import},
     {"mfor", NT::MacroFor},
-    {"mlet", NT::MacroVar},
-    {"mlet!", NT::MacroVar},
     {"block", NT::StmtBlock},
     {"break", NT::StmtBreak},
     {"cond", NT::StmtCond},

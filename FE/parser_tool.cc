@@ -224,14 +224,15 @@ Node MakeNodeId(std::string_view s) {
   return out;
 }
 
+Node MakeNodeMacroId(std::string_view s) {
+  Node out = NodeNew(NT::MacroId);
+  InitMacroId(out, NameNew(s));
+  return out;
+}
+
 Node PrattParseId(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  if (starts_with(tk.text, "$")) {
-    Node out = NodeNew(NT::MacroId);
-    InitMacroId(out, NameNew(tk.text));
-    return out;
-  } else {
-    return MakeNodeId(tk.text);
-  }
+  return starts_with(tk.text, "$") ? MakeNodeMacroId(tk.text)
+                                   : MakeNodeId(tk.text);
 }
 
 Node PrattParseNum(Lexer* lexer, const TK& tk, uint32_t precedence) {
@@ -576,8 +577,29 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
       return out;
     }
   } else if (tk.text == "for") {
-    ASSERT(false, "NYI" << tk);
-    return Node(HandleInvalid);
+    Node out = NodeNew(NT::MacroInvoke);
+    const TK& name = lexer->MatchOrDie(TK_KIND::ID);
+    Node id = starts_with(name.text, "$") ? MakeNodeMacroId(tk.text)
+                                          : MakeNodeId(name.text);
+    lexer->MatchOrDie(TK_KIND::ASSIGN);
+    Node start = PrattParseExpr(lexer);
+    lexer->MatchOrDie(TK_KIND::COMMA);
+    Node end = PrattParseExpr(lexer);
+    lexer->MatchOrDie(TK_KIND::COMMA);
+    Node step = PrattParseExpr(lexer);
+    lexer->MatchOrDie(TK_KIND::COLON);
+
+    Node stmts = ParseStmtBodyList(lexer, lexer->Peek().sl.col);
+    Node body = NodeNew(NT::EphemeralList);
+    uint16_t bits = 0;
+    InitEphemeralList(body, stmts, bits);
+
+    InitMacroInvoke(out, NameNew(tk.text), id);
+    Node_next(id) = start;
+    Node_next(start) = end;
+    Node_next(end) = step;
+    Node_next(step) = body;
+    return out;
   } else {
     ASSERT(false, tk);
     return Node(HandleInvalid);
@@ -649,6 +671,7 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t column) {
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.sl.col < column) {
     return Node(HandleInvalid);
   }
+
   std::cout << "@@ BODY " << tk.text << "\n";
   Node out = Node(HandleInvalid);
   if (tk.kind == TK_KIND::ID) {
