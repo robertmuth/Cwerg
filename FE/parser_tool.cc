@@ -43,6 +43,7 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
 Node ParseTypeExpr(Lexer* lexer);
 Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
 Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column);
+Node ParseMacroArgList(Lexer* lexer, bool want_comma);
 
 uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
@@ -359,8 +360,11 @@ Node ParseFunArgsList(Lexer* lexer, bool want_comma) {
 
 Node PrattParseExprCall(Lexer* lexer, Node lhs, const TK& tk,
                         uint32_t precedence) {
-  if (lhs.kind() == NT::Id) {
-    ASSERT(!ends_with(NameData(Node_base_name(lhs)), "#"), "MACRO");
+  if (lhs.kind() == NT::Id && ends_with(NameData(Node_base_name(lhs)), "#")) {
+    Node out = NodeNew(NT::MacroInvoke);
+    Node args = ParseMacroArgList(lexer, false);
+    InitMacroInvoke(out, NameNew("TODO-macro-name"), args);
+    return out;
   }
   Node out = NodeNew(NT::ExprCall);
 
@@ -512,7 +516,6 @@ Node ParseMacroArgList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
     return Node(HandleInvalid);
   }
-  std::cout << "MACRO_ARG " << want_comma << "\n";
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
