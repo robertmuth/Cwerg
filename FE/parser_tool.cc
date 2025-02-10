@@ -51,10 +51,20 @@ void ParseFunLikeArgs(Lexer* lexer, std::string_view args_desc,
                       std::array<Node, 4>* args) {
   lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
   for (int i = 0; i < args_desc.size(); i++) {
+    uint8_t kind = args_desc[i];
+    if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
+      // e is optional
+      ASSERT(kind == 'e', "");
+      Node undef = NodeNew(NT::ValUndef);
+      InitValUndef(undef);
+      (*args)[i] = undef;
+      return;
+    }
     if (i != 0) {
       lexer->MatchOrDie(TK_KIND::COMMA);
     }
-    switch (args_desc[i]) {
+    switch (kind) {
+      case 'e':
       case 'E':
         (*args)[i] = PrattParseExpr(lexer);
         break;
@@ -166,10 +176,29 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
   }
 }
 
+Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
+  std::array<Node, 4> args = {Node(HandleInvalid), Node(HandleInvalid),  //
+                              Node(HandleInvalid), Node(HandleInvalid)};
+  if (tk.text == "ptr_inc" || tk.text == "ptr_dec") {
+    Node out = NodeNew(NT::ExprPointer);
+    ParseFunLikeArgs(lexer, "EEe", &args);
+    InitExprPointer(out,
+                    tk.text == "ptr_inc" ? POINTER_EXPR_KIND::INCP
+                                         : POINTER_EXPR_KIND::DECP,
+                    args[0], args[1], args[2]);
+    return out;
+  } else {
+    ASSERT(false, tk);
+    return Node(HandleInvalid);
+  }
+}
+
 Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
   const NT nt = KeywordToNT(tk.text);
-  ASSERT(nt != NT::invalid, "");
-  return ParseFunLike(lexer, nt, tk);
+  if (nt != NT::invalid) {
+    return ParseFunLike(lexer, nt, tk);
+  }
+  return ParseFunLikeSpecial(lexer, tk);
 }
 
 Node PrattParseSimpleVal(Lexer* lexer, const TK& tk, uint32_t precedence) {
@@ -742,6 +771,12 @@ Node ParseStmt(Lexer* lexer) {
         label = NameNew(lexer->Next().text);
       }
       InitStmtContinue(out, label);
+      return out;
+    }
+    case NT::StmtExpr: {
+      Node out = NodeNew(NT::StmtExpr);
+      Node expr = PrattParseExpr(lexer);
+      InitStmtExpr(out, expr);
       return out;
     }
     default:
