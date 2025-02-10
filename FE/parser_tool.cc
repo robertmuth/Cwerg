@@ -201,8 +201,19 @@ Node PrattParseSimpleVal(Lexer* lexer, const TK& tk, uint32_t precedence) {
 }
 
 Node PrattParsePrefix(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  ASSERT(false, "");
-  return Node(HandleInvalid);
+  Node rhs = PrattParseExpr(lexer, precedence);
+  if (tk.text == "-") {
+    Node out = NodeNew(NT::Expr1);
+    InitExpr1(out, UNARY_EXPR_KIND::NEG, rhs);
+    return out;
+  } else if (tk.text == "!") {
+    Node out = NodeNew(NT::Expr1);
+    InitExpr1(out, UNARY_EXPR_KIND::NOT, rhs);
+    return out;
+  } else {
+    ASSERT(false, "unknown unary " << tk);
+    return Node(HandleInvalid);
+  }
 }
 
 Node MakeNodeId(std::string_view s) {
@@ -447,7 +458,7 @@ Node ParseTypeExpr(Lexer* lexer) {
 }
 
 Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
-  const TK& tk = lexer->Next();
+  const TK tk = lexer->Next();
   std::cout << "@@PRATT START " << tk << "\n";
   const PrattHandlerPrefix& prefix_handler =
       PREFIX_EXPR_PARSERS[uint8_t(tk.kind)];
@@ -495,17 +506,18 @@ Node ParseTypeExprOrExpr(Lexer* lexer) {
   } else {
     return PrattParseExpr(lexer);
   }
-  return Node(HandleInvalid);
 }
 
 Node ParseMacroArgList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
     return Node(HandleInvalid);
   }
+  std::cout << "MACRO_ARG " << want_comma << "\n";
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
   Node out = ParseTypeExprOrExpr(lexer);
+  std::cout << "MACRO_ARG DONE\n";
 
   Node next = ParseMacroArgList(lexer, true);
   Node_next(out) = next;
@@ -676,6 +688,24 @@ Node ParseStmt(Lexer* lexer) {
         body_f = ParseStmtBodyList(lexer, if_col);
       }
       InitStmtIf(out, cond, body_t, body_f);
+      return out;
+    }
+    case NT::StmtBreak: {
+      Node out = NodeNew(NT::StmtBreak);
+      Name label = NameNew("");
+      if (lexer->Peek().sl.line == tk.sl.line) {
+        label = NameNew(lexer->Next().text);
+      }
+      InitStmtBreak(out, label);
+      return out;
+    }
+    case NT::StmtContinue: {
+      Node out = NodeNew(NT::StmtContinue);
+      Name label = NameNew("");
+      if (lexer->Peek().sl.line == tk.sl.line) {
+        label = NameNew(lexer->Next().text);
+      }
+      InitStmtContinue(out, label);
       return out;
     }
     default:
