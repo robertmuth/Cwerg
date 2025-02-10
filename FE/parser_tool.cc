@@ -253,9 +253,36 @@ Node PrattParseNum(Lexer* lexer, const TK& tk, uint32_t precedence) {
   return out;
 }
 
+Node ParseValPointList(Lexer* lexer, bool want_comma) {
+  if (lexer->Match(TK_KIND::CURLY_CLOSED)) {
+    return Node(HandleInvalid);
+  }
+  if (want_comma) {
+    lexer->Match(TK_KIND::COMMA);
+  }
+  Node out = NodeNew(NT::ValPoint);
+
+  Node val = PrattParseExpr(lexer);
+  Node pos = Node(HandleInvalid);
+  if (lexer->Match(TK_KIND::ASSIGN)) {
+    pos = val;
+    val =  PrattParseExpr(lexer);
+  } else {
+    pos = NodeNew(NT::ValAuto);
+    InitValAuto(pos);
+  }
+  InitValPoint(out, val, pos);
+  Node_next(out) = ParseValPointList(lexer, true);
+  return out;
+}
+
 Node PrattParseValCompound(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  ASSERT(false, "");
-  return Node(HandleInvalid);
+  Node out = NodeNew(NT::ValCompound);
+  Node type = ParseTypeExpr(lexer);
+  lexer->MatchOrDie(TK_KIND::COLON);
+  Node inits = ParseValPointList(lexer, false);
+  InitValCompound(out, type, inits);
+  return out;
 }
 
 Node PrattParseParenGroup(Lexer* lexer, const TK& tk, uint32_t precedence) {
