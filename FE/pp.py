@@ -652,8 +652,8 @@ def EmitTokens(ts: TS, node):
 def _TokensSimpleStmt(ts: TS, kind: str, arg):
     beg = ts.EmitStmtBeg(kind)
     if arg:
-        if isinstance(arg, str):
-            ts.EmitAttr(arg)
+        if isinstance(arg, cwast.NAME):
+            ts.EmitAttr(arg.name)
         elif not isinstance(arg, cwast.ValVoid):
             # for return
             EmitTokens(ts, arg)
@@ -663,8 +663,8 @@ def _TokensSimpleStmt(ts: TS, kind: str, arg):
 def _TokensStmtBlock(ts: TS, kind, arg, stmts):
     beg = ts.EmitStmtBeg(kind)
     if arg:
-        if isinstance(arg, str):
-            ts.EmitAttr(arg)
+        if isinstance(arg, cwast.NAME):
+            ts.EmitAttr(arg.name)
         else:
             EmitTokens(ts, arg)
     ts.EmitStmtEnd(beg)
