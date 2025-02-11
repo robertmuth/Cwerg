@@ -210,10 +210,18 @@ Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
 
 Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
   const NT nt = KeywordToNT(tk.text);
-  if (nt != NT::invalid) {
+  if (nt == NT::invalid) {
+    return ParseFunLikeSpecial(lexer, tk);
+  }
+  if (nt == NT::ExprStmt) {
+    lexer->MatchOrDie(TK_KIND::COLON);
+    Node body = ParseStmtBodyList(lexer, 0);
+    Node out = NodeNew(NT::ExprStmt);
+    InitExprStmt(out, body);
+    return out;
+  } else {
     return ParseFunLike(lexer, nt, tk);
   }
-  return ParseFunLikeSpecial(lexer, tk);
 }
 
 Node PrattParseSimpleVal(Lexer* lexer, const TK& tk, uint32_t precedence) {
@@ -568,6 +576,15 @@ Node ParseTypeExpr(Lexer* lexer) {
         InitTypeFun(out, params, result);
         return out;
       }
+      case NT::TypeUnionDelta: {
+        std::array<Node, 4> args = {Node(HandleInvalid),
+                                    Node(HandleInvalid),  //
+                                    Node(HandleInvalid), Node(HandleInvalid)};
+        Node out = NodeNew(NT::TypeUnionDelta);
+        ParseFunLikeArgs(lexer, "TT", &args);
+        InitTypeUnionDelta(out, args[0], args[1]);
+        return out;
+      }
       default:
         ASSERT(false, tk);
         return Node(HandleInvalid);
@@ -580,7 +597,7 @@ Node ParseTypeExpr(Lexer* lexer) {
 
 Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
   const TK tk = lexer->Next();
-  std::cout << "@@PRATT START " << tk << "\n";
+  // std::cout << "@@PRATT START " << tk << "\n";
   const PrattHandlerPrefix& prefix_handler =
       PREFIX_EXPR_PARSERS[uint8_t(tk.kind)];
   ASSERT(prefix_handler.handler != nullptr, "No handler for " << tk);
@@ -590,10 +607,10 @@ Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
 
     const PrattHandlerInfix& infix_handler =
         INFIX_EXPR_PARSERS[uint8_t(tk.kind)];
-    std::cout << "@@PRATT LOOP prec=" << precedence << " " << tk
-              << infix_handler.precedence << "\n";
+    // std::cout << "@@PRATT LOOP prec=" << precedence << " " << tk
+    //           << infix_handler.precedence << "\n";
     if (precedence >= infix_handler.precedence) {
-      std::cout << "@@PRATT DONE\n";
+      // std::cout << "@@PRATT DONE\n";
       break;
     }
 
@@ -637,7 +654,6 @@ Node ParseMacroArgList(Lexer* lexer, bool want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
   Node out = ParseTypeExprOrExpr(lexer);
-  std::cout << "MACRO_ARG DONE\n";
 
   Node next = ParseMacroArgList(lexer, true);
   Node_next(out) = next;
