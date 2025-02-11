@@ -439,7 +439,7 @@ def _ParseFormalParams(inp: lexer.Lexer):
     return out
 
 
-def _ParseStatementMacro(kw: lexer.TK, inp: lexer.Lexer):
+def _ParseStatementMacro( inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     assert kw.text.endswith(cwast.MACRO_CALL_SUFFIX), f"{kw}"
     args = []
     if inp.match(lexer.TK_KIND.PAREN_OPEN):
@@ -447,11 +447,11 @@ def _ParseStatementMacro(kw: lexer.TK, inp: lexer.Lexer):
     else:
         while inp.peek().kind is not lexer.TK_KIND.COLON:
             args.append(_ParseExpr(inp))
-            if not inp.match(lexer.TK_KIND.COMMA):
+            if not inp.match(lexer.TK_KIND.COMMA) and not inp.match(lexer.TK_KIND.ASSIGN):
                 break
         stmts = _ParseStatementList(inp, kw.column)
         args.append(cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc))
-    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text), args, **_ExtractAnnotations(kw))
+    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text), args, **extra)
 
 
 def _MaybeLabel(tk: lexer.TK, inp: lexer.Lexer):
@@ -641,7 +641,7 @@ def _ParseStatement(inp: lexer.Lexer):
     extra = _ExtractAnnotations(kw)
     if kw.kind is lexer.TK_KIND.ID:
         if kw.text.endswith(cwast.MACRO_CALL_SUFFIX):
-            return _ParseStatementMacro(kw, inp)
+            return _ParseStatementMacro(inp, kw, _ExtractAnnotations(kw))
         else:
             # this happends inside a macro body
             if not kw.text.startswith(cwast.MACRO_VAR_PREFIX):
@@ -821,6 +821,7 @@ def _ParseTopLevel(inp: lexer.Lexer):
                              entries, **extra)
     elif kw.text == "static_assert":
         cond = _ParseExpr(inp)
+        # TODO
         return cwast.StmtStaticAssert(cond, "", **extra)
     else:
         assert False, f"unexpected topelevel [{kw}]"
