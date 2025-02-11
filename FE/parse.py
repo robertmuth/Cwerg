@@ -439,8 +439,7 @@ def _ParseFormalParams(inp: lexer.Lexer):
     return out
 
 
-def _ParseStatementMacro( inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
-    assert kw.text.endswith(cwast.MACRO_CALL_SUFFIX), f"{kw}"
+def _ParseStatementMacro(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     args = []
     if inp.match(lexer.TK_KIND.PAREN_OPEN):
         args = _ParseMacroCallArgs(inp)
@@ -487,13 +486,6 @@ def _ParseStmtLetLike(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
                         **extra)
 
 
-def _ParseStmtWhile(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
-    cond = _ParseExpr(inp)
-    stmts = _ParseStatementList(inp, kw.column)
-    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text), [cond, cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
-                             **extra)
-
-
 def _ParseStmtIf(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     cond = _ParseExpr(inp)
     stmts_t = _ParseStatementList(inp, kw.column)
@@ -507,6 +499,7 @@ def _ParseStmtIf(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
 
 def _ParseStmtTryLet(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     name = inp.match_or_die(lexer.TK_KIND.ID)
+    # note no comma between name and type
     type = _ParseTypeExpr(inp)
     inp.match_or_die(lexer.TK_KIND.ASSIGN)
     expr = _ParseExpr(inp)
@@ -515,19 +508,6 @@ def _ParseStmtTryLet(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     stmts = _ParseStatementList(inp, kw.column)
     return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
                              [cwast.Id.Make(name.text, x_srcloc=name.srcloc), type, expr,  cwast.Id.Make(name2.text, x_srcloc=name2.srcloc),
-                              cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
-                             **extra)
-
-
-def _ParseStmtTrySet(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
-    lhs = _ParseExpr(inp)
-    inp.match_or_die(lexer.TK_KIND.ASSIGN)
-    expr = _ParseExpr(inp)
-    inp.match_or_die(lexer.TK_KIND.COMMA)
-    name2 = inp.match_or_die(lexer.TK_KIND.ID)
-    stmts = _ParseStatementList(inp, kw.column)
-    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
-                             [lhs, expr,  cwast.Id.Make(name2.text, x_srcloc=name2.srcloc),
                               cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
                              **extra)
 
@@ -617,11 +597,12 @@ def _ParseStmtMfor(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
 _STMT_HANDLERS = {
     "let": _ParseStmtLetLike,
     "let!": _ParseStmtLetLike,
-    "while": _ParseStmtWhile,
+    "while": _ParseStatementMacro,
+    "tryset": _ParseStatementMacro,
     "if": _ParseStmtIf,
+    # cannot use _ParseStatementMacro because of type syntax
     "trylet": _ParseStmtTryLet,
     "trylet!": _ParseStmtTryLet,
-    "tryset": _ParseStmtTrySet,
     "set": _ParseStmtSet,
     "return": _ParseStmReturn,
     "for": _ParseStmtFor,
