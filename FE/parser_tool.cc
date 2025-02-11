@@ -189,19 +189,30 @@ Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
                                          : POINTER_EXPR_KIND::DECP,
                     args[0], args[1], args[2]);
     return out;
-  } else if (tk.text == "abs" || tk.text == "sqrt") {
+  } else if (tk.text == "abs") {
     Node out = NodeNew(NT::Expr1);
     ParseFunLikeArgs(lexer, "E", &args);
-    InitExpr1(out,
-              tk.text == "abs" ? UNARY_EXPR_KIND::ABS : UNARY_EXPR_KIND::SQRT,
-              args[0]);
+    InitExpr1(out, UNARY_EXPR_KIND::ABS, args[0]);
     return out;
-  } else if (tk.text == "max" || tk.text == "min") {
+  } else if (tk.text == "sqrt") {
+    Node out = NodeNew(NT::Expr1);
+    ParseFunLikeArgs(lexer, "E", &args);
+    InitExpr1(out, UNARY_EXPR_KIND::SQRT, args[0]);
+    return out;
+  } else if (tk.text == "ptr_diff") {
+    Node out = NodeNew(NT::Expr1);
+    ParseFunLikeArgs(lexer, "EE", &args);
+    InitExpr2(out, BINARY_EXPR_KIND::PDELTA, args[0], args[1]);
+    return out;
+  } else if (tk.text == "max") {
     Node out = NodeNew(NT::Expr2);
     ParseFunLikeArgs(lexer, "EE", &args);
-    InitExpr2(out,
-              tk.text == "max" ? BINARY_EXPR_KIND::MAX : BINARY_EXPR_KIND::MIN,
-              args[0], args[1]);
+    InitExpr2(out, BINARY_EXPR_KIND::MAX, args[0], args[1]);
+    return out;
+  } else if (tk.text == "min") {
+    Node out = NodeNew(NT::Expr2);
+    ParseFunLikeArgs(lexer, "EE", &args);
+    InitExpr2(out, BINARY_EXPR_KIND::MIN, args[0], args[1]);
     return out;
   } else {
     ASSERT(false, tk);
@@ -1130,8 +1141,19 @@ Node ParseTopLevel(Lexer* lexer) {
     }
     case NT::DefMacro: {
       Node out = NodeNew(NT::DefMacro);
-      const TK name = lexer->MatchOrDie(TK_KIND::ID);
-      ASSERT(ends_with(name.text, "#"), name);
+      const TK name = lexer->Next();
+      if (tk.kind == TK_KIND::ID) {
+        ASSERT(ends_with(name.text, "#") || tk.text == "span_inc" ||
+                   tk.text == "span_devc" || tk.text == "span_diff",
+
+               name);
+      } else {
+        ASSERT(tk.kind == TK_KIND::KW, name);
+        ASSERT(tk.text == "for" || tk.text == "while" || tk.text == "tryset" ||
+                   tk.text == "trylet" || tk.text == "trylet!" ||
+                   tk.text == "ptr_diff",
+               name);
+      }
       const TK kind = lexer->MatchOrDie(TK_KIND::ID);
       MACRO_PARAM_KIND mpk = MACRO_PARAM_KIND_FromString(kind.text);
 
