@@ -1096,7 +1096,7 @@ Node ParseTopLevel(Lexer* lexer) {
         path = tk.text;
       }
       if (lexer->Match(TK_KIND::PAREN_OPEN)) {
-        ASSERT(false, "NYI Import With Params");
+        args = ParseMacroArgList(lexer, false);
       }
       Node out = NodeNew(NT::Import);
       InitImport(out, NameNew(name.text), StrNew(path), args);
