@@ -532,25 +532,6 @@ def _ParseStmReturn(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     return cwast.StmtReturn(val, **extra)
 
 
-def _ParseStmtFor(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
-    name = inp.match_or_die(lexer.TK_KIND.ID)
-    if name.text.startswith(cwast.MACRO_VAR_PREFIX):
-        var = cwast.MacroId.Make(name.text, x_srcloc=name.srcloc)
-    else:
-        var = cwast.Id.Make(name.text, x_srcloc=name.srcloc)
-    inp.match_or_die(lexer.TK_KIND.ASSIGN)
-    start = _ParseExpr(inp)
-    inp.match_or_die(lexer.TK_KIND.COMMA)
-    end = _ParseExpr(inp)
-    inp.match_or_die(lexer.TK_KIND.COMMA)
-    step = _ParseExpr(inp)
-    stmts = _ParseStatementList(inp, kw.column)
-    return cwast.MacroInvoke(cwast.NAME.FromStr(kw.text),
-                             [var, start, end, step,
-                              cwast.EphemeralList(stmts, colon=True, x_srcloc=kw.srcloc)],
-                             **extra)
-
-
 def _ParseStmtBreak(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
     label = cwast.NAME.Empty()
     if inp.peek().srcloc.lineno == kw.srcloc.lineno:
@@ -595,17 +576,17 @@ def _ParseStmtMfor(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
 
 
 _STMT_HANDLERS = {
-    "let": _ParseStmtLetLike,
-    "let!": _ParseStmtLetLike,
     "while": _ParseStatementMacro,
     "tryset": _ParseStatementMacro,
-    "if": _ParseStmtIf,
+    "for": _ParseStatementMacro,
     # cannot use _ParseStatementMacro because of type syntax
     "trylet": _ParseStmtTryLet,
     "trylet!": _ParseStmtTryLet,
+    "let": _ParseStmtLetLike,
+    "let!": _ParseStmtLetLike,
+    "if": _ParseStmtIf,
     "set": _ParseStmtSet,
     "return": _ParseStmReturn,
-    "for": _ParseStmtFor,
     "break": _ParseStmtBreak,
     "continue": _ParseStmtContinue,
     "block": _ParseStmtBlock,

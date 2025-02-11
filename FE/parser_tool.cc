@@ -45,6 +45,7 @@ Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
 Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column);
 Node ParseMacroArgList(Lexer* lexer, bool want_comma);
 Node ParseFunParamList(Lexer* lexer, bool want_comma);
+Node ParseMacroInvocation(Lexer* lexer, TK name);
 
 uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
@@ -617,7 +618,7 @@ Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
     const PrattHandlerInfix& infix_handler =
         INFIX_EXPR_PARSERS[uint8_t(tk.kind)];
     // std::cout << "@@PRATT LOOP prec=" << precedence << " " << tk
-    //           << infix_handler.precedence << "\n";
+    //            << infix_handler.precedence << "\n";
     if (precedence >= infix_handler.precedence) {
       // std::cout << "@@PRATT DONE\n";
       break;
@@ -666,6 +667,24 @@ Node ParseMacroArgList(Lexer* lexer, bool want_comma) {
 
   Node next = ParseMacroArgList(lexer, true);
   Node_next(out) = next;
+  return out;
+}
+
+Node ParseMacroArgListWithColon(Lexer* lexer, uint32_t outer_col,
+                                bool want_comma) {
+  if (lexer->Match(TK_KIND::COLON)) {
+    Node stmts = ParseStmtBodyList(lexer, outer_col);
+    Node body = NodeNew(NT::EphemeralList);
+    uint16_t bits = 0;
+    InitEphemeralList(body, stmts, bits);
+    return body;
+  }
+
+  if (want_comma) {
+    lexer->Match(TK_KIND::COMMA) || lexer->Match(TK_KIND::ASSIGN);
+  }
+  Node out = ParseTypeExprOrExpr(lexer);
+  Node_next(out) = ParseMacroArgListWithColon(lexer, outer_col, true);
   return out;
 }
 
@@ -734,42 +753,13 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
       InitStmtCompoundAssignment(out, kind, lhs, rhs);
       return out;
     }
+  } else if (tk.text == "tryset") {
+    return ParseMacroInvocation(lexer, tk);
   } else if (tk.text == "while") {
-    Node out = NodeNew(NT::MacroInvoke);
-    Node cond = PrattParseExpr(lexer);
-    lexer->MatchOrDie(TK_KIND::COLON);
-    Node stmts = ParseStmtBodyList(lexer, outer_col);
-    Node body = NodeNew(NT::EphemeralList);
-    uint16_t bits = 0;
-    InitEphemeralList(body, stmts, bits);
-    InitMacroInvoke(out, NameNew(tk.text), cond);
-    Node_next(cond) = body;
-    return out;
+    return ParseMacroInvocation(lexer, tk);
   } else if (tk.text == "for") {
-    Node out = NodeNew(NT::MacroInvoke);
-    const TK& name = lexer->MatchOrDie(TK_KIND::ID);
-    Node id = starts_with(name.text, "$") ? MakeNodeMacroId(tk.text)
-                                          : MakeNodeId(name.text);
-    lexer->MatchOrDie(TK_KIND::ASSIGN);
-    Node start = PrattParseExpr(lexer);
-    lexer->MatchOrDie(TK_KIND::COMMA);
-    Node end = PrattParseExpr(lexer);
-    lexer->MatchOrDie(TK_KIND::COMMA);
-    Node step = PrattParseExpr(lexer);
-    lexer->MatchOrDie(TK_KIND::COLON);
-
-    Node stmts = ParseStmtBodyList(lexer, outer_col);
-    Node body = NodeNew(NT::EphemeralList);
-    uint16_t bits = 0;
-    InitEphemeralList(body, stmts, bits);
-
-    InitMacroInvoke(out, NameNew(tk.text), id);
-    Node_next(id) = start;
-    Node_next(start) = end;
-    Node_next(end) = step;
-    Node_next(step) = body;
-    return out;
-  } else if (starts_with(tk.text,"trylet")) {
+    return ParseMacroInvocation(lexer, tk);
+  } else if (starts_with(tk.text, "trylet")) {
     Node out = NodeNew(NT::MacroInvoke);
     //
     const TK name = lexer->MatchOrDie(TK_KIND::ID);
@@ -791,26 +781,6 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     Node_next(expr) = var2;
     Node_next(var2) = body;
     InitMacroInvoke(out, NameNew(tk.text), var);
-    return out;
-  } else if (tk.text == "tryset") {
-    Node out = NodeNew(NT::MacroInvoke);
-    //
-    Node lhs = PrattParseExpr(lexer);
-    lexer->MatchOrDie(TK_KIND::ASSIGN);
-    Node expr = PrattParseExpr(lexer);
-    lexer->MatchOrDie(TK_KIND::COMMA);
-    const TK name2 = lexer->MatchOrDie(TK_KIND::ID);
-    Node var2 = MakeNodeId(name2.text);
-    lexer->MatchOrDie(TK_KIND::COLON);
-    Node stmts = ParseStmtBodyList(lexer, outer_col);
-    Node body = NodeNew(NT::EphemeralList);
-    uint16_t bits = 0;
-    InitEphemeralList(body, stmts, bits);
-    //
-    Node_next(lhs) = expr;
-    Node_next(expr) = var2;
-    Node_next(var2) = body;
-    InitMacroInvoke(out, NameNew(tk.text), lhs);
     return out;
   } else {
     ASSERT(false, tk);
@@ -964,6 +934,20 @@ Node ParseExprList(Lexer* lexer, uint32_t outer_column) {
   return out;
 }
 
+Node ParseMacroInvocation(Lexer* lexer, TK name) {
+  uint32_t outer_column = name.sl.col;
+  Node args = Node(HandleInvalid);
+  if (lexer->Match(TK_KIND::PAREN_OPEN)) {
+    args = ParseMacroArgList(lexer, false);
+  } else {
+    args = ParseMacroArgListWithColon(lexer, outer_column, false);
+  }
+
+  Node out = NodeNew(NT::MacroInvoke);
+  InitMacroInvoke(out, NameNew(name.text), args);
+  return out;
+}
+
 Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
   const TK tk = lexer->Peek();
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.sl.col <= outer_column) {
@@ -974,16 +958,14 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
   Node out = Node(HandleInvalid);
   if (tk.kind == TK_KIND::ID) {
     lexer->Next();
-    ASSERT(ends_with(tk.text, "#"), "");
-    Node args = Node(HandleInvalid);
-    if (lexer->Match(TK_KIND::PAREN_OPEN)) {
-      args = ParseMacroArgList(lexer, false);
-    } else {
-      ASSERT(false, "NYI StmtBodyList");
-    }
+    if (ends_with(tk.text, "#")) {
+      out = ParseMacroInvocation(lexer, tk);
 
-    out = NodeNew(NT::MacroInvoke);
-    InitMacroInvoke(out, NameNew(tk.text), args);
+    } else {
+      // This happens when the macro body contains macro parameter
+      ASSERT(starts_with(tk.text, "$"), tk);
+      out = MakeNodeMacroId(tk.text);
+    }
   } else {
     ASSERT(tk.kind == TK_KIND::KW, tk);
     out = ParseStmt(lexer);
