@@ -873,6 +873,15 @@ Node ParseStmt(Lexer* lexer) {
       InitStmtTrap(out);
       return out;
     }
+    case NT::MacroFor: {
+      Node out = NodeNew(NT::MacroFor);
+      TK name = lexer->MatchOrDie(TK_KIND::ID);
+      TK container = lexer->MatchOrDie(TK_KIND::ID);
+      lexer->MatchOrDie(TK_KIND::COLON);
+      Node body = ParseStmtBodyList(lexer, outer_column);
+      InitMacroFor(out, NameNew(name.text), NameNew(container.text), body);
+      return out;
+    }
     default:
       return ParseStmtSpecial(lexer, tk);
   }
@@ -920,6 +929,7 @@ Node ParseRecFieldList(Lexer* lexer, uint32_t column) {
   Node_next(out) = ParseRecFieldList(lexer, column);
   return out;
 }
+
 Node ParseEnumFieldList(Lexer* lexer, uint32_t column) {
   TK name = lexer->Peek();
 
@@ -931,6 +941,37 @@ Node ParseEnumFieldList(Lexer* lexer, uint32_t column) {
   Node out = NodeNew(NT::EnumVal);
   InitEnumVal(out, NameNew(name.text), val);
   Node_next(out) = ParseEnumFieldList(lexer, column);
+  return out;
+}
+
+Node ParseMacroParamList(Lexer* lexer, bool want_comma) {
+  if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
+    return Node(HandleInvalid);
+  }
+  if (want_comma) {
+    lexer->Match(TK_KIND::COMMA);
+  }
+  TK name = lexer->MatchOrDie(TK_KIND::ID);
+  TK kind = lexer->MatchOrDie(TK_KIND::ID);
+  Node out = NodeNew(NT::MacroParam);
+  InitMacroParam(out, NameNew(name.text),
+                 MACRO_PARAM_KIND_FromString(kind.text));
+  Node next = ParseMacroParamList(lexer, true);
+  Node_next(out) = next;
+  return out;
+}
+
+Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
+  if (lexer->Match(TK_KIND::SQUARE_CLOSED)) {
+    return Node(HandleInvalid);
+  }
+  if (want_comma) {
+    lexer->Match(TK_KIND::COMMA);
+  }
+  TK name = lexer->MatchOrDie(TK_KIND::ID);
+  Node out = MakeNodeId(name.text);
+  Node next = ParseMacroGenIdList(lexer, true);
+  Node_next(out) = next;
   return out;
 }
 
@@ -1027,6 +1068,23 @@ Node ParseTopLevel(Lexer* lexer) {
       Node out = NodeNew(NT::StmtStaticAssert);
       Node cond = PrattParseExpr(lexer);
       InitStmtStaticAssert(out, cond, StrNew(""));
+      return out;
+    }
+    case NT::DefMacro: {
+      Node out = NodeNew(NT::DefMacro);
+      const TK name = lexer->MatchOrDie(TK_KIND::ID);
+      ASSERT(ends_with(name.text, "#"), name);
+      const TK kind = lexer->MatchOrDie(TK_KIND::ID);
+      lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
+      Node params = ParseMacroParamList(lexer, false);
+      lexer->MatchOrDie(TK_KIND::SQUARE_OPEN);
+      Node gen_ids = ParseMacroGenIdList(lexer, false);
+      lexer->MatchOrDie(TK_KIND::COLON);
+      Node body = ParseStmtBodyList(lexer, outer_column);
+      uint16_t bits = 0;
+      InitDefMacro(out, NameNew(name.text),
+                   MACRO_PARAM_KIND_FromString(kind.text), params, gen_ids,
+                   body, bits);
       return out;
     }
     default: {
