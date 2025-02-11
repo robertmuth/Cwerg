@@ -230,6 +230,10 @@ TK_RAW LexerRaw::Next() {
   while (IsWhitespace(c = input_[pos_])) {
     pos_++;
     if (pos_ >= input_.size()) {
+      // fix issue with "return [eof]"
+      line_no_++;
+      srcloc_.col = col_no_;
+      srcloc_.line = line_no_;
       return TK_RAW{TK_KIND::SPECIAL_EOF};
     }
     col_no_++;
