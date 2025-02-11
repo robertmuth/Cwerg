@@ -39,12 +39,12 @@ SUM:                                   330            165           1890
 ```
 File                                    blank        comment           code
 --------------------------------------------------------------------------------------
-BE/Base/ir.h                              179            107            791
+BE/Base/ir.h                              182            109            822
 BE/Base/serialize.cc                       72             20            758
 BE/Base/lowering.cc                        56             18            713
 BE/Elf/elfhelper.cc                        66             45            536
-BE/Base/reaching_defs.cc                   46             23            481
-BE/Base/ir.cc                              71             39            469
+BE/Base/ir.cc                              75             39            490
+BE/Base/reaching_defs.cc                   46             23            482
 BE/Elf/elfhelper.h                         82             33            419
 BE/Base/cfg.cc                             44             23            411
 BE/Base/liveness.cc                        35             44            358
@@ -69,7 +69,7 @@ BE/Base/optimize.h                          7              1              9
 BE/Base/sanity.h                            6              1              7
 BE/Base/canonicalize.h                      4              1              5
 --------------------------------------------------------------------------------------
-SUM:                                      966            422           6532
+SUM:                                      973            424           6585
 --------------------------------------------------------------------------------------
 ```
 
@@ -286,10 +286,10 @@ BE/CpuX64/opcode_gen_encodings.h                     1              2          1
 BE/CpuX64/opcode_gen_names.h                         2              3           5455
 BE/CpuX64/opcode_gen_enum.h                          1              1           3404
 BE/CpuX64/opcode_gen.cc                             29              8            470
-BE/CodeGenX64/isel_gen.cc                           35             18            438
+BE/CodeGenX64/isel_gen.cc                           34             18            438
 BE/CpuX64/opcode_gen.h                              25             15            121
 BE/CodeGenX64/isel_gen.h                            18              8             93
 ------------------------------------------------------------------------------------
-SUM:                                               117             56          68501
+SUM:                                               116             56          68501
 ------------------------------------------------------------------------------------
 ```
