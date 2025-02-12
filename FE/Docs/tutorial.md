@@ -20,7 +20,7 @@ for a compiler frontend with basic optimizations
 ## Highlights
 
 * Low level, C-like language: no GC, no unexpected control flow
-* defer statement (scheduling code to run code at scope exit)
+* defer statement (scheduling code to run at scope exit)
 * tagged unions (sum types)
 * optionally wrapped types (by-name type equivalence)
 * modules (not nested)
@@ -34,7 +34,7 @@ for a compiler frontend with basic optimizations
 * named blocks + multi-level break/continue
 * expression statements - cleaned up version of the C's comma operator
 * (almost) no implicit conversions and no truthinesss
-* all value are zero initialized by default (can be overriden with undef)
+* all values are zero initialized by default (can be overriden with undef)
 * visibility is private by default
 * variables are immutable by default
 * no goto, no va-args, no bitfields
