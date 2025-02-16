@@ -33,11 +33,14 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.ValVoid):
         return "void_val"
     elif isinstance(node, cwast.ValString):
-        quotes = '"""' if node.triplequoted else '"'
+        k = node.str_kind
+        quotes = '"""' if k in (cwast.STR_KIND.HEX_TRIPLE,
+                                cwast.STR_KIND.RAW_TRIPLE,
+                                cwast.STR_KIND.NORMAL_TRIPLE) else '"'
         prefix = ""
-        if node.strkind == "raw":
+        if k in (cwast.STR_KIND.RAW_TRIPLE, cwast.STR_KIND.RAW):
             prefix = "r"
-        elif node.strkind == "hex":
+        elif  k in (cwast.STR_KIND.HEX_TRIPLE, cwast.STR_KIND.HEX):
             prefix = "x"
         return prefix + quotes + node.string + quotes
     else:
@@ -85,8 +88,8 @@ def GetExprIndent(_) -> int:
 
 
 def GetDoc(node):
-    for field, _ in node.ATTRS:
-        if field == "doc":
+    for nfd in node.ATTRS:
+        if nfd.name == "doc":
             val = getattr(node, "doc")
             return val
     return None
@@ -230,8 +233,8 @@ def _RenderAttr(node, out, indent, before_paren: bool):
             out[-1].append(doc)
             out.append([" " * indent])
 
-    for field, _ in node.ATTRS:
-        mode = _ATTR_MODE[field]
+    for nfd in node.ATTRS:
+        mode = _ATTR_MODE[nfd.name]
 
         if mode == "skip":
             continue
@@ -244,11 +247,11 @@ def _RenderAttr(node, out, indent, before_paren: bool):
         else:
             assert False
 
-        val = getattr(node, field)
+        val = getattr(node, nfd.name)
         if not val:
             continue
         if isinstance(val, bool):
-            out[-1].append(f"@{field} ")
+            out[-1].append(f"@{nfd.name} ")
         else:
             assert False, f"in node {
                 node} unknown attribute [{field}]: [{val}]"
@@ -276,7 +279,7 @@ def _RenderRecursivelyToIR(node, out, indent: int):
     node_name, fields = GetNodeTypeAndFields(node)
     if isinstance(node, (cwast.DefGlobal, cwast.DefVar, cwast.DefGlobal,
                          cwast.TypePtr, cwast.TypeSpan, cwast.ExprAddrOf,
-                         cwast.ExprFront, cwast.MacroVar)):
+                         cwast.ExprFront)):
         if node.mut:
             node_name += "!"
 
@@ -286,10 +289,11 @@ def _RenderRecursivelyToIR(node, out, indent: int):
     out[-1].append(node_name)
     spacer = " "
 
-    for field, nfd in fields:
+    for nfd in fields:
         field_kind = nfd.kind
+        field = nfd.name
         line = out[-1]
-        val = getattr(node, field)
+        val = getattr(node, nfd.name)
 
         if cwast.IsFieldWithDefaultValue(field, val):
             continue
