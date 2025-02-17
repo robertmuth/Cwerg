@@ -8,6 +8,7 @@ import logging
 from typing import Optional
 
 from FE import cwast
+from Util import pretty as PP
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
         prefix = ""
         if k in (cwast.STR_KIND.RAW_TRIPLE, cwast.STR_KIND.RAW):
             prefix = "r"
-        elif  k in (cwast.STR_KIND.HEX_TRIPLE, cwast.STR_KIND.HEX):
+        elif k in (cwast.STR_KIND.HEX_TRIPLE, cwast.STR_KIND.HEX):
             prefix = "x"
         return prefix + quotes + node.string + quotes
     else:
@@ -83,10 +84,6 @@ def GetColonIndent(field: str) -> int:
 ############################################################
 
 
-def GetExprIndent(_) -> int:
-    return EXPR_LIST_INDENT
-
-
 def GetDoc(node):
     for nfd in node.ATTRS:
         if nfd.name == "doc":
@@ -95,185 +92,109 @@ def GetDoc(node):
     return None
 
 
-def _RenderColonList(val: list, field: str, out, indent: int):
-
-    extra_indent = GetColonIndent(field)
-    line = out[-1]
-    if field == "body_f":
-        out.append([" " * (indent + extra_indent - 3) + ":"])
-        for cc in val:
-            out.append([" " * (indent + extra_indent)])
-            _RenderRecursivelyToIR(
-                cc, out, indent + extra_indent)
-    else:
-        line.append(":")
-        for cc in val:
-            out.append([" " * (indent + extra_indent)])
-            _RenderRecursivelyToIR(cc, out, indent + extra_indent)
-            # extra line between top level nodes
-            if field == "body_mod":
-                out.append([" " * indent])
-
-
-def _GuessNodeSize(v) -> int:
-    if isinstance(v, (cwast.ValAuto, cwast.ValFalse, cwast.ValTrue, cwast.ValNum)):
-        return 1
-    elif isinstance(v, cwast.ValString):
-        if v.triplequoted:
-            return 100
-        return len(v.string) // 8
-    elif isinstance(v, (cwast.FunParam, cwast.MacroParam, cwast.ValCompound)):
-        return 3
-    elif isinstance(v, cwast.ValPoint):
-        return _GuessNodeSize(v.value_or_undef)
-    else:
-        return 2
-
-
-def _ListIsCompact(val: list):
-    points = 0
-    for v in val:
-        if GetDoc(v):
-            return False
-        points += _GuessNodeSize(v)
-
-    if points > 6:
-        return False
-    # for x in val:
-    #    if isinstance(x, cwast.Comment):
-    #        return False
-    return True
-
-
-def _RenderList(val: list, field: str, out, indent: int):
-    extra_indent = GetExprIndent(field)
-    line = out[-1]
+def _RenderColonList(out, val: list):
+    out += [PP.String(":")]
     if not val:
-        line.append("[]")
-    elif len(val) > 12:
-        line.append("[")
-        force_new_line = True
-        sep = ""
-        for cc in val:
-            line = out[-1]
-            if force_new_line or sum(len(x) for x in line) > 80:
-                out.append([" " * (indent + extra_indent)])
-                line = out[-1]
-                sep = ""
-                force_new_line = False
-            line.append(sep)
-            sep = " "
-            _RenderRecursivelyToIR(cc, out, indent + extra_indent)
-            if line != out[-1]:
-                force_new_line = True
-        out[-1].append("]")
-    elif _ListIsCompact(val):
-        line.append("[")
-        sep = ""
-        for cc in val:
-            line = out[-1]
-            line.append(sep)
-            sep = " "
-            _RenderRecursivelyToIR(cc, out, indent + extra_indent)
-        out[-1].append("]")
-
-    else:
-        line.append("[")
-        for cc in val:
-            out.append([" " * (indent + extra_indent)])
-            _RenderRecursivelyToIR(cc, out, indent + extra_indent)
-        out[-1].append("]")
+        return
+    out += [PP.LineBreak(),
+            PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+    add_break = False
+    for cc in val:
+        if add_break:
+            out += [PP.Break()]
+        add_break = True
+        _RenderRecursivelyToIR(out, cc)
+    out += [PP.End()]
 
 
-def _RenderMacroInvoke(node: cwast.MacroInvoke, out, indent: int):
-    line = out[-1]
-    line.append(f"({node.name}")
+def _RenderList(out, val: list, field: str):
+    if not val:
+        out += [PP.String("[]")]
+        return
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 4), PP.String("[")]
+    width = 0
+    for cc in val:
+        out += [PP.Break(width)]
+        width = 1
+        _RenderRecursivelyToIR(out, cc)
+    out += [PP.Break(0), PP.String("]"), PP.End()]
+
+
+def _RenderMacroInvoke(out, node: cwast.MacroInvoke):
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 4),
+            PP.String("("),
+            PP.WeakBreak(0),
+            PP.String(str(node.name))]
+
     for a in node.args:
-        line = out[-1]
+        out += [PP.Break()]
         if isinstance(a, cwast.EphemeralList):
-            line.append(" ")
             if a.colon:
-                _RenderColonList(a.args, "dummy", out, indent)
+                _RenderColonList(out, a.args)
             else:
-                _RenderList(a.args, "dummy", out, indent)
+                _RenderList(out, a.args)
         else:
-            line.append(" ")
-            _RenderRecursivelyToIR(a, out, indent)
-    line = out[-1]
-    line.append(")")
+            _RenderRecursivelyToIR(out, a)
+
+    out += [PP.String(")"), PP.End()]
 
 
 _ATTR_MODE = {
     "doc": "skip",  # handled elsewhere
     "mut": "skip",
     "ref": "after",
-    "pub": "before",
-    "init": "before",
-    "fini": "before",
-    "extern": "before",
-    "popl": "before",
-    "builtin": "before",
-    "cdecl": "before",
+    "pub": "after",
+    "init": "after",
+    "fini": "after",
+    "extern": "after",
+    "popl": "after",
+    "builtin": "after",
+    "cdecl": "after",
     "polymorphic": "after",
     "arg_ref": "after",
     "res_ref": "after",
     "unchecked": "after",
     "wrapped": "after",
     "untagged": "after",
-    "poly": "before",
-    "preserve_mut": "before",
+    "poly": "after",
+    "preserve_mut": "after",
 }
 
 
-def _RenderAttr(node, out, indent, before_paren: bool):
-    if before_paren:
-        doc = GetDoc(node)
-        if doc:
-            out[-1].append("@doc ")
-            out[-1].append(doc)
-            out.append([" " * indent])
+def _RenderAttr(out, node):
+    #   doc = GetDoc(node)
+    #    if doc:
+    #        out += [PP.LineBreak(), PP.String(f"@doc {doc}"), PP.LineBreak()]
 
     for nfd in node.ATTRS:
         mode = _ATTR_MODE[nfd.name]
 
         if mode == "skip":
             continue
-        elif mode == "before":
-            if not before_paren:
-                continue
-        elif mode == "after":
-            if before_paren:
-                continue
-        else:
-            assert False
+        assert mode == "after"
 
         val = getattr(node, nfd.name)
         if not val:
             continue
-        if isinstance(val, bool):
-            out[-1].append(f"@{nfd.name} ")
-        else:
-            assert False, f"in node {
-                node} unknown attribute [{field}]: [{val}]"
-            out.append(f"@{field} {val} ")
+        out += [PP.WeakBreak()]
+        assert isinstance(val, bool)
+        out += [PP.String(f"@{nfd.name}")]
 
 
-def _RenderRecursivelyToIR(node, out, indent: int):
+def _RenderRecursivelyToIR(out, node):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
-        out.append([""])
+        out.append(PP.LineBreak())
     abbrev = MaybeSimplifyLeafNode(node)
     if abbrev:
-        out[-1].append(abbrev)
+        out.append(PP.String(abbrev))
         return
 
-    _RenderAttr(node, out, indent, before_paren=True)
-
     if isinstance(node, cwast.MacroInvoke):
-        _RenderMacroInvoke(node, out, indent)
+        _RenderMacroInvoke(out, node)
         return
 
     if isinstance(node, cwast.ValPoint) and isinstance(node.point, cwast.ValAuto) and not node.doc:
-        _RenderRecursivelyToIR(node.value_or_undef, out, indent)
+        _RenderRecursivelyToIR(out, node.value_or_undef)
         return
 
     node_name, fields = GetNodeTypeAndFields(node)
@@ -283,58 +204,51 @@ def _RenderRecursivelyToIR(node, out, indent: int):
         if node.mut:
             node_name += "!"
 
-    out[-1].append("(")
-    spacer = ""
-    _RenderAttr(node, out, indent, before_paren=False)
-    out[-1].append(node_name)
-    spacer = " "
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 4),
+            PP.String("(")]
+
+    _RenderAttr(out, node)
+    out += [PP.WeakBreak(0), PP.String(node_name)]
 
     for nfd in fields:
         field_kind = nfd.kind
         field = nfd.name
-        line = out[-1]
         val = getattr(node, nfd.name)
 
         if cwast.IsFieldWithDefaultValue(field, val):
             continue
 
-        if field_kind is not cwast.NFK.LIST or field != "body_f":
-            line.append(spacer)
-        spacer = " "
+        out += [PP.Break()]
+
+        # if field_kind is not cwast.NFK.LIST or field != "body_f":
+        #    line.append(spacer)
         # spacer = str(field_kind.value)
 
         if field_kind is cwast.NFK.STR:
-            line.append(str(val))
+            out += [PP.String(str(val))]
         elif field_kind is cwast.NFK.NAME:
-            line.append(str(val))
+            out += [PP.String(str(val))]
         elif field_kind is cwast.NFK.KIND:
-            line.append(val.name)
+            out += [PP.String(val.name)]
         elif field_kind is cwast.NFK.NODE:
-            _RenderRecursivelyToIR(val, out, indent)
+            _RenderRecursivelyToIR(out, val)
         elif field_kind is cwast.NFK.LIST:
             if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for",
                          "cases", "body_macro"):
-                _RenderColonList(val, field, out, indent)
+                _RenderColonList(out, val)
             else:
-                _RenderList(val, field, out, indent)
-        elif field_kind is cwast.NFK.NAME_LIST:
-            val = [v.name for v in val]
-            line.append(f"[{' '.join(val)}]")
+                _RenderList(out, val, field)
         else:
             assert False, f"unexpected field {field}"
 
-    line = out[-1]
-    line.append(")")
-
-    if isinstance(node, cwast.DefMod):
-        out.append([""])
+    out += [PP.String(")"), PP.End()]
 
 
 def PrettyPrint(mod: cwast.DefMod, outp):
-    out = [[""]]
-    _RenderRecursivelyToIR(mod, out, 0)
-    for a in out:
-        print("".join(a), file=outp)
+    out: list[PP.Token] = []
+    _RenderRecursivelyToIR(out, mod)
+    result = PP.PrettyPrint(out, 80)
+    print(result, file=outp)
 
 
 ############################################################
@@ -360,16 +274,13 @@ if __name__ == "__main__":
             fp = open(fn, encoding="utf8")
             mod = parse_sexpr.ReadModFromStream(fp, fn)
             fp.close()
-            out = [[""]]
-            _RenderRecursivelyToIR(mod, out, 0)
+            out: list[PP.Token] = []
+            _RenderRecursivelyToIR(out, mod)
+            result = PP.PrettyPrint(out)
             if args.inplace:
                 fp = open(fn, "w", encoding="utf8")
-                for a in out:
-                    for b in a:
-                        fp.write(b)
-                    fp.write("\n")
+                fp.write(result)
                 fp.close()
             else:
-                for a in out:
-                    print("".join(a))
+                print(result)
     main()
