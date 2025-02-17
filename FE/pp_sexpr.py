@@ -125,13 +125,16 @@ def _RenderMacroInvoke(out, node: cwast.MacroInvoke):
             PP.String(str(node.name))]
 
     for a in node.args:
-        out += [PP.Break()]
         if isinstance(a, cwast.EphemeralList):
             if a.colon:
+                out += [PP.Break(0), PP.String(":"), PP.End()]
                 _RenderColonList(out, a.args)
+                out += [PP.Begin(PP.BreakType.INCONSISTENT, 4)]
             else:
+                out += [PP.Break()]
                 _RenderList(out, a.args)
         else:
+            out += [PP.Break()]
             _RenderRecursivelyToIR(out, a)
 
     out += [PP.String(")"), PP.End()]
