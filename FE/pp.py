@@ -355,7 +355,7 @@ def _EmitParameterList(out, lst):
         out += [PP.String(str(param.name)), PP.Break()]
         if isinstance(param, cwast.FunParam):
             out += [PP.String("TYPE")]
-            #EmitTokens(ts, param.type)
+            # EmitTokens(ts, param.type)
         elif isinstance(param, cwast.ModParam):
             out += [PP.String(param.mod_param_kind.name)]
         elif isinstance(param, cwast.MacroParam):
@@ -606,6 +606,26 @@ def _EmitStatement(out, n):
             # EmitTokens(ts, n.expr_ret)
     elif isinstance(n, cwast.StmtTrap):
         out += [PP.String("trap")]
+    elif isinstance(n, cwast.StmtAssignment):
+        out += [PP.String("EXPR"), PP.Break(), PP.String("="),
+                PP.Break(), PP.String("EXPR")]
+        # _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
+    elif isinstance(n, cwast.StmtCompoundAssignment):
+        op = cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind]
+        out += [PP.String("EXPR"), PP.Break(), PP.String(op),
+                PP.Break(), PP.String("EXPR")]
+        # _TokensStmtSet(ts, op, n.lhs, n.expr_rhs)
+    elif isinstance(n, cwast.DefVar):
+        out += [PP.String(WithExcl("let", n.mut)), PP.Break(),
+                PP.String(str(n.name))]
+        if not isinstance(n.type_or_auto, cwast.TypeAuto):
+            # EmitTokens(ts, node.type_or_auto)
+            out += [PP.Break(), PP.String("TYPE")]
+        if not isinstance(n.initial_or_undef_or_auto, cwast.ValAuto):
+            out += [PP.Break(), PP.String("="), PP.Break()]
+            out += [PP.String("INIT")]
+         # _TokensStmtLet(ts, , str(n.name),
+         #              n.type_or_auto, n.initial_or_undef_or_auto)
     else:
         out += [PP.String("STMT")]
     out += [PP.End()]
@@ -623,14 +643,7 @@ def _EmitStatement(out, n):
         _TokensStmtBlock(ts, "case", n.cond, n.body)
     elif isinstance(n, cwast.StmtCond):
         _TokensStmtBlock(ts, "cond", "", n.cases)
-    elif isinstance(n, cwast.StmtCompoundAssignment):
-        _TokensStmtSet(ts, cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
-                       n.lhs, n.expr_rhs)
-    elif isinstance(n, cwast.StmtAssignment):
-        _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
-    elif isinstance(n, cwast.DefVar):
-        _TokensStmtLet(ts, WithExcl("let", n.mut), str(n.name),
-                       n.type_or_auto, n.initial_or_undef_or_auto)
+
     elif isinstance(n, cwast.StmtIf):
         _TokensStmtBlock(ts, "if", n.cond, n.body_t)
         if n.body_f:
