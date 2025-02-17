@@ -10,6 +10,7 @@ import dataclasses
 from typing import Optional, Any, Callable
 
 from FE import cwast
+from Util import pretty as PP
 
 
 logger = logging.getLogger(__name__)
@@ -129,39 +130,6 @@ def AddMissingParens(node):
 ############################################################
 
 
-@enum.unique
-class TK(enum.Enum):
-    """Token"""
-    INVALID = 0
-
-    ATTR = 1  # attribute
-
-    SEP = 3  # sequence seperator
-    BINOP = 4  # binary operator
-    BINOP_NO_SPACE = 5  # binary operator without space around it
-
-    UNOP_PREFIX = 6  # unary operator - not space afterwards
-    UNOP_SUFFIX = 7  # unary operator - not space before
-
-    ANNOTATION_SHORT = 11
-    ANNOTATION_LONG = 12
-    EOL_COMMENT = 13
-    COMMENT = 14
-    ITEM = 15
-    NL = 16
-
-    COLON_BEG = 9
-    COLON_END = 10
-
-    STMT_END = 31
-    STMT_BEG = 30  # intro keyword (line beginning)
-
-    PAREN_BEG = 20  # white space after
-    PAREN_BEG_EXPR = 21  # white space before and after
-    PAREN_BEG_VEC_TYPE = 22  # [12] as in "[12]int"
-    PAREN_END = 23
-
-
 _KEYWORDS = [
     "enum", "fun", "import", "rec", "static_assert", "type",
 
@@ -191,26 +159,6 @@ BEG_TOKENS = set(_KEYWORDS +
 MAX_LINE_LEN = 80
 
 
-@dataclasses.dataclass()
-class Token:
-    """Node Field Descriptor"""
-    kind: TK
-    tag: str
-    beg: Optional["Token"] = None
-    start: int = 0
-    length: int = 0
-    long_array_val: bool = False
-
-    def __repr__(self):
-        tag = self.tag
-        if self.kind is TK.PAREN_END:
-            tag = self.beg.kind.name
-        elif self.kind is TK.STMT_END:
-            tag = self.beg.tag
-
-        return f"{self.kind.name} [{tag}]"
-
-
 _MATCHING_CLOSING_BRACE = {
     "(": ")",
     "[": "]",
@@ -219,105 +167,7 @@ _MATCHING_CLOSING_BRACE = {
 }
 
 
-class TS:
-    """TokenStream"""
-
-    def __init__(self) -> None:
-        self._tokens: list[Token] = []
-        self._count = 0
-
-    def tokens(self):
-        return self._tokens
-
-    def LastTokenIsCodeBlock(self) -> bool:
-        if not self._tokens:
-            return False
-        last = self._tokens[-1]
-        return last.kind is TK.COLON_END
-
-    def Pos(self) -> int:
-        return self._count
-
-    def EmitToken(self, kind: TK, tag: str = "", beg=None):
-        if tag == "(" or tag == "[":
-            assert kind in (TK.PAREN_BEG, TK.PAREN_BEG_EXPR,
-                            TK.PAREN_BEG_VEC_TYPE)
-        # elif tag == ":":
-        #    assert kind is TK.BEG_COLON
-        tk = Token(kind, tag=tag, beg=beg, start=self._count)
-        self._count += len(tag)
-        self._tokens.append(tk)
-        if beg is not None:
-            beg.length = self._count - beg.start
-        return tk
-
-    def _EmitToken(self, tk: Token):
-        self._count += len(tk.tag)
-        self._tokens.append(tk)
-        return tk
-
-    def EmitUnOp(self, a: str, suffix=False):
-        return self.EmitToken(TK.UNOP_SUFFIX if suffix else TK.UNOP_PREFIX, a)
-
-    def EmitBinOpNoSpace(self, a: str):
-        return self.EmitToken(TK.BINOP_NO_SPACE, a)
-
-    def EmitBinOp(self, a: str):
-        return self.EmitToken(TK.BINOP, a)
-
-    def EmitStmtBeg(self, a: str):
-        return self.EmitToken(TK.STMT_BEG, a)
-
-    def EmitStmtEnd(self, beg):
-        assert beg.kind is TK.STMT_BEG
-        return self._EmitToken(Token(TK.STMT_END, "", beg))
-
-    def EmitAttr(self, a: str):
-        return self.EmitToken(TK.ATTR, a)
-
-    def EmitName(self, s: str):
-        return self._EmitToken(Token(TK.ITEM, s))
-
-    def EmitAnnotationShort(self, a: str):
-        return self.EmitToken(TK.ANNOTATION_SHORT, a)
-
-    def EmitAnnotationLong(self, a: str):
-        return self.EmitToken(TK.ANNOTATION_LONG, a)
-
-    def EmitEolComment(self, a: str):
-        return self.EmitToken(TK.EOL_COMMENT, a)
-
-    def EmitComment(self, a: str):
-        return self.EmitToken(TK.COMMENT, a)
-
-    def EmitSep(self, a: str):
-        return self.EmitToken(TK.SEP, a)
-
-    def EmitNewline(self):
-        return self._EmitToken(Token(TK.NL, ""))
-
-    # space after paren
-    def EmitBegParen(self, a: str):
-        return self.EmitToken(TK.PAREN_BEG, a)
-
-    def EmitBegVecTypeParen(self, a: str):
-        return self.EmitToken(TK.PAREN_BEG_VEC_TYPE, a)
-
-    # space before  and after paren
-    def EmitBegExprParen(self, a: str):
-        return self.EmitToken(TK.PAREN_BEG_EXPR, a)
-
-    def EmitEnd(self, beg: Token):
-        assert beg.kind in (TK.PAREN_BEG, TK.PAREN_BEG_EXPR,
-                            TK.PAREN_BEG_VEC_TYPE)
-        return self.EmitToken(TK.PAREN_END, _MATCHING_CLOSING_BRACE[beg.tag], beg=beg)
-
-    def EmitColonBeg(self):
-        return self.EmitToken(TK.COLON_BEG, ":")
-
-    def EmitColonEnd(self, beg):
-        assert beg.kind == TK.COLON_BEG
-        return self.EmitToken(TK.COLON_END, "", beg=beg)
+TS = str
 
 
 def TokensParenList(ts: TS, lst):
@@ -377,29 +227,25 @@ def EmitExpr3(ts: TS, node: cwast.Expr3):
     EmitTokens(ts, node.expr_f)
 
 
-def TokensAnnotationsPre(ts: TS, node):
-    # handle docs first
+def _GetDoc(node):
     for nfd in node.ATTRS:
-        # these attributes will be rendered directly
-        if nfd.kind is not cwast.NFK.ATTR_STR:
-            continue
-        val = getattr(node, nfd.name)
-        if val:
-            if nfd.name == "doc":
-                if val.startswith('"""'):
-                    val = val[3:-3]
-                else:
-                    val = val[1:-1]
-                for line in val.split("\n"):
-                    if not line:
-                        ts.EmitComment(";")
-                    else:
-                        ts.EmitComment("; " + line)
+        if nfd.name == "doc":
+            val = getattr(node, "doc")
+            return val
+    return None
 
+
+def _MaybeEmitDoc(out, node):
+    doc = _GetDoc(node)
+    if doc:
+        for line in doc.split("\n"):
+            if not line:
+                out += [PP.String(";"), PP.LineBreak()]
             else:
-                ts.EmitAnnotationLong("{{" + nfd.name + "=" + val + "}}")
+                out += [PP.String("; " + line), PP.LineBreak()]
 
-    # next handle non-docs
+
+def _MaybeEmitAnnotations(out, node):
     for nfd in node.ATTRS:
         if nfd.kind is not cwast.NFK.ATTR_BOOL:
             continue
@@ -408,14 +254,11 @@ def TokensAnnotationsPre(ts: TS, node):
             # these are handled by the ! suffix
             continue
         val = getattr(node, field)
-        if val:
-            if field not in ("pub", "wrapped", "ref", "poly"):
-                field = "{{" + field + "}}"
-            ts.EmitAnnotationShort(field)
-
-
-def TokensAnnotationsPost(_ts: TS, _node):
-    pass
+        if not val:
+            continue
+        if field not in ("pub", "wrapped", "ref", "poly"):
+            field = "{{" + field + "}}"
+        out += [PP.String(field), PP.Break()]
 
 
 def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
@@ -497,31 +340,34 @@ def TokensVecType(ts: TS, size, type):
     EmitTokens(ts, type)
 
 
-def TokensParameterList(ts: TS, lst):
-    sep = False
-    beg = ts.EmitBegParen("(")
+def _EmitParameterList(out, lst):
+    out += [PP.Begin(PP.BreakType.CONSISTENT, 2), PP.String("(")]
+    ns = 0
     for param in lst:
-        if sep:
-            ts.EmitSep(",")
-        sep = True
-        TokensAnnotationsPre(ts, param)
+        out += [PP.Break(0)]
+        if ns != 0:
+            out += [PP.String(","), PP.Break()]
+        ns = 1
+        _MaybeEmitDoc(out, param)
+        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        _MaybeEmitAnnotations(out, param)
+        out += [PP.Break(), PP.String(str(param.name)), PP.Break()]
         if isinstance(param, cwast.FunParam):
-            ts.EmitName(str(param.name))
-            EmitTokens(ts, param.type)
+            out += [PP.String("TYPE")]
+            #EmitTokens(ts, param.type)
         elif isinstance(param, cwast.ModParam):
-            ts.EmitName(str(param.name))
-            ts.EmitAttr(param.mod_param_kind.name)
+            out += [PP.String(param.mod_param_kind.name)]
         elif isinstance(param, cwast.MacroParam):
-            ts.EmitName(str(param.name))
-            ts.EmitAttr(param.macro_param_kind.name)
+            out += [PP.String(param.macro_param_kind.name)]
         else:
             assert False
-    ts.EmitEnd(beg)
+        out += [PP.End()]
+    out += [PP.Break(0), PP.String(")"), PP.End()]
 
 
 def TokensTypeFun(ts: TS, node: cwast.TypeFun):
     ts.EmitUnOp("funtype")
-    TokensParameterList(ts, node.params)
+    _EmitParameterList(ts, node.params)
     EmitTokens(ts, node.result)
 
 
@@ -803,303 +649,154 @@ def EmitTokensExprMacroBlock(ts: TS, stmts):
     ts.EmitColonEnd(beg_colon)
 
 
-def _EmitTokensToplevel(ts: TS, node):
-    # extra newline before every toplevel stanza
-    ts.EmitNewline()
+def _EmitTokensToplevel(out, node):
+    _MaybeEmitDoc(out, node)
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    _MaybeEmitAnnotations(out, node)
 
-    TokensAnnotationsPre(ts, node)
     if isinstance(node, cwast.DefGlobal):
-        beg = ts.EmitStmtBeg(WithExcl("global", node.mut))
-        ts.EmitName(str(node.name))
+        out += [PP.String(WithExcl("global", node.mut)),
+                PP.Break(),
+                PP.String(str(node.name))]
         if not isinstance(node.type_or_auto, cwast.TypeAuto):
-            EmitTokens(ts, node.type_or_auto)
+            # EmitTokens(ts, node.type_or_auto)
+            out += [PP.Break(), PP.String("TYPE")]
         if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
-            ts.EmitBinOp("=")
-            EmitTokens(ts, node.initial_or_undef_or_auto)
-        ts.EmitStmtEnd(beg)
+            out += [PP.Break(), PP.String("="), PP.Break()]
+            out += [PP.String("INIT")]
+            # EmitTokens(ts, node.initial_or_undef_or_auto)
     elif isinstance(node, cwast.Import):
-        beg = ts.EmitStmtBeg("import")
-        ts.EmitName(str(node.name))
+        out += [PP.String("import"),
+                PP.Break(),
+                PP.String(str(node.name))]
         path = node.path
         if path:
-            ts.EmitBinOp("=")
             if "/" in path:
                 path = '"' + path + '"'
-            ts.EmitAttr(path)
+            out += [PP.Break(), PP.String("="), PP.Break(), PP.String(path)]
         if node.args_mod:
-            TokensParenList(ts, node.args_mod)
-        ts.EmitStmtEnd(beg)
+            pass
+            # TokensParenList(ts, node.args_mod)
     elif isinstance(node, cwast.DefType):
-        beg = ts.EmitStmtBeg("type")
-        ts.EmitName(str(node.name))
-        ts.EmitBinOp("=")
-        EmitTokens(ts, node.type)
-        ts.EmitStmtEnd(beg)
+        out += [PP.String("type"),
+                PP.Break(),
+                PP.String(str(node.name)),
+                PP.Break(), PP.String("="), PP.Break()]
+        out += [PP.String("TYPE_EXPR")]
+        # EmitTokens(ts, node.type)
     elif isinstance(node, cwast.DefRec):
-        beg = ts.EmitStmtBeg("rec")
-        ts.EmitName(str(node.name))
-        ts.EmitStmtEnd(beg)
-        #
-        beg_colon = ts.EmitColonBeg()
+        out += [PP.String("type"),
+                PP.Break(),
+                PP.String(str(node.name)),
+                PP.Break(0),
+                PP.String(":"), PP.End()]
+        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         for f in node.fields:
-            TokensAnnotationsPre(ts, f)
-            beg = ts.EmitStmtBeg(str(f.name))
-            EmitTokens(ts, f.type)
-            ts.EmitStmtEnd(beg)
-            ts.EmitNewline()
-        ts.EmitColonEnd(beg_colon)
+            _MaybeEmitDoc(out, f)
+            out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+            _MaybeEmitAnnotations(out, f)
+            out += [PP.String(str(f.name)),
+                    PP.Break(),
+                    PP.String("TYPE"),
+                    PP.End()]
+            # EmitTokens(ts, f.type)
     elif isinstance(node, cwast.StmtStaticAssert):
-        beg = ts.EmitStmtBeg("static_assert")
-        EmitTokens(ts, node.cond)
-        ts.EmitStmtEnd(beg)
+        out += [PP.String("static_assert"), PP.Break(),
+                PP.String("EXPR"), PP.End()]
+        # EmitTokens(ts, node.cond)
     elif isinstance(node, cwast.DefEnum):
-        beg = ts.EmitStmtBeg("enum")
-        ts.EmitName(str(node.name))
-        ts.EmitAttr(node.base_type_kind.name.lower())
-        ts.EmitStmtEnd(beg)
-        #
-        beg_colon = ts.EmitColonBeg()
+        out += [PP.String("enum"),
+                PP.Break(),
+                PP.String(str(node.name)),
+                PP.Break(),
+                PP.String(node.base_type_kind.name.lower()),
+                PP.Break(0),
+                PP.String(":"),
+                PP.End()]
+        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         for ef in node.items:
-            TokensAnnotationsPre(ts, ef)
-            beg = ts.EmitStmtBeg(str(ef.name))
-            EmitTokens(ts, ef.value_or_auto)
-            ts.EmitStmtEnd(beg)
-            ts.EmitNewline()
-
-        ts.EmitColonEnd(beg_colon)
+            _MaybeEmitDoc(out, ef)
+            out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+            _MaybeEmitAnnotations(out, ef)
+            out += [PP.String(str(ef.name)), PP.Break()]
+            # EmitTokens(ts, ef.value_or_auto)
+            out += [PP.String("VALUE"),
+                    PP.End()]
     elif isinstance(node, cwast.DefFun):
-        beg = ts.EmitStmtBeg("fun")
-        ts.EmitName(str(node.name))
-        TokensParameterList(ts, node.params)
-        EmitTokens(ts, node.result)
-        ts.EmitStmtEnd(beg)
-        #
-        EmitTokensCodeBlock(ts, node.body)
-    elif isinstance(node, cwast.DefMacro):
-        beg = ts.EmitStmtBeg("macro")
-        ts.EmitName(str(node.name))
-        ts.EmitAttr(node.macro_result_kind.name)
-        TokensParameterList(ts, node.params_macro)
-        #
-        beg_paren = ts.EmitBegParen("[")
-        sep = False
-        for gen_id in node.gen_ids:
-            assert isinstance(gen_id, cwast.MacroId)
+        out += [PP.String("fun"),
+                PP.Break(),
+                PP.String(str(node.name))]
+        out += [PP.Break(0)]
+        _EmitParameterList(out, node.params)
+        out += [PP.Break(), PP.String("TYPE"), PP.Break(0),
+                PP.String(":"), PP.End()]
+        # EmitTokens(ts, node.result)
+        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
 
-            if sep:
-                ts.EmitSep(",")
-            sep = True
-            ts.EmitAttr(gen_id.name.name)
-        ts.EmitEnd(beg_paren)
-        ts.EmitStmtEnd(beg)
-        #
-        if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
-            EmitTokensCodeBlock(ts, node.body_macro)
-        else:
-            EmitTokensExprMacroBlock(ts, node.body_macro)
+        # EmitTokensCodeBlock(ts, node.body)
+    elif isinstance(node, cwast.DefMacro):
+        out += [PP.String("macro"),
+                PP.Break(),
+                PP.String(str(node.name)),
+                PP.Break(),
+                PP.String(node.macro_result_kind.name)]
+
+        if 0:
+            _EmitParameterList(ts, node.params_macro)
+
+            beg_paren = ts.EmitBegParen("[")
+            sep = False
+            for gen_id in node.gen_ids:
+                assert isinstance(gen_id, cwast.MacroId)
+
+                if sep:
+                    ts.EmitSep(",")
+                sep = True
+                ts.EmitAttr(gen_id.name.name)
+            ts.EmitEnd(beg_paren)
+            ts.EmitStmtEnd(beg)
+            #
+            if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
+                EmitTokensCodeBlock(ts, node.body_macro)
+            else:
+                EmitTokensExprMacroBlock(ts, node.body_macro)
     else:
         assert False
-    #
-    if not ts.LastTokenIsCodeBlock():
-        ts.EmitNewline()
+    out += [PP.End()]
 
 
-def EmitTokensModule(ts: TS, node: cwast.DefMod):
-    TokensAnnotationsPre(ts, node)
-    beg = ts.EmitStmtBeg("module")
+def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
+    _MaybeEmitDoc(out, node)
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    out += [PP.String("module")]
     if node.params_mod:
-        TokensParameterList(ts, node.params_mod)
-    ts.EmitStmtEnd(beg)
-    #
-    beg_colon = ts.EmitColonBeg()
-    for child in node.body_mod:
-        _EmitTokensToplevel(ts, child)
-    ts.EmitColonEnd(beg_colon)
+        out += [PP.Break(0)]
+        _EmitParameterList(out, node.params_mod)
+    out += [PP.Break(0), PP.String(":"), PP.End()]
+    if node.body_mod:
+        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 0)]
+        emit_break = False
+        for child in node.body_mod:
+            if emit_break:
+                out += [PP.Break()]
+            emit_break = True
+            _EmitTokensToplevel(out, child)
+        out += [PP.End()]
+    # beg_colon = ts.EmitColonBeg()
+    # for child in node.body_mod:
+    #    _EmitTokensToplevel(ts, child)
 
 
-class Stack:
-    """TBD"""
-
-    def __init__(self):
-        self._stack = []
-
-    def depth(self):
-        return len(self._stack)
-
-    def empty(self):
-        return 0 == len(self._stack)
-
-    def push(self, tk: Token, indent_delta: int, break_after_sep=False) -> int:
-        # assert tk.IsBeg(), f"{tk}"
-        new_indent = self.CurrentIndent() + indent_delta
-        self._stack.append((tk, new_indent, break_after_sep))
-        return new_indent
-
-    def pop(self):
-        return self._stack.pop(-1)
-
-    def CurrentIndent(self) -> int:
-        if self._stack:
-            return self._stack[-1][1]
-        return 0
-
-    def BreakAfterSep(self) -> bool:
-        if self._stack:
-            return self._stack[-1][2]
-        assert False
-
-
-class Sink:
-    """TBD"""
-
-    def __init__(self,  outp, indent_amount=4):
-        self._indent_amount = indent_amount
-        self._indent = 0
-        self._col = 0
-        self._outp = outp
-
-    def CurrenColumn(self):
-        return self._col
-
-    def newline(self):
-        print(file=self._outp)
-        self._col = 0
-
-    def emit_token(self, token):
-        if self._col == 0:
-            ws = " " * (self._indent_amount * self._indent)
-            # ws = f"{len(ws):02}" + ws[2:]
-            print(ws, end="", file=self._outp)
-            self._col = len(ws)
-        print(token, end="", file=self._outp)
-        self._col += len(token)
-
-    def emit_space(self):
-        self.emit_token(" ")
-
-    def set_indent(self, indent):
-        self._indent = indent
-
-
-def FormatTokenStream(tokens, stack: Stack, sink: Sink):
-    """
-    TK.BEG may force a new indentation level
-
-    """
-    want_space = False
-
-    def newline():
-        nonlocal want_space
-        sink.newline()
-        want_space = False
-
-    while True:
-        tk: Token = tokens.pop(-1)
-        kind = tk.kind
-        tag = tk.tag
-        # maybe emit space
-        if want_space:
-            # if the next token is one of these we do not want a space preceeding it
-            if kind not in (TK.STMT_END, TK.PAREN_END, TK.PAREN_BEG, TK.COLON_BEG,
-                            TK.UNOP_SUFFIX, TK.SEP, TK.BINOP_NO_SPACE):
-                sink.emit_space()
-        want_space = True
-        #
-        if kind is TK.COMMENT:
-            if sink.CurrenColumn() != 0:
-                newline()
-            sink.emit_token(tag)
-            newline()
-        elif kind is TK.COLON_BEG:
-            sink.emit_token(tag)
-            newline()
-            indent = stack.push(tk, 1 if stack.depth() > 0 else 0)
-            sink.set_indent(indent)
-        elif kind in (TK.PAREN_BEG, TK.PAREN_BEG_EXPR, TK.PAREN_BEG_VEC_TYPE):
-            sink.emit_token(tag)
-            if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
-                break_after_sep = (not tk.long_array_val) and stack.CurrentIndent(
-                ) + tk.length > MAX_LINE_LEN
-                indent = stack.push(
-                    tk, 1, break_after_sep=break_after_sep)
-                sink.set_indent(indent)
-                newline()
-            else:
-                stack.push(tk, 0)
-        elif kind is TK.STMT_BEG:
-            sink.emit_token(tag)
-            indent = stack.push(tk, 1)
-            sink.set_indent(indent)
-        elif kind is TK.STMT_END:
-            beg, _, _ = stack.pop()
-            assert beg.kind is TK.STMT_BEG, f"{beg}"
-            sink.set_indent(stack.CurrentIndent())
-        elif kind is TK.COLON_END:
-            beg, _, _ = stack.pop()
-            assert beg.kind is TK.COLON_BEG
-            sink.set_indent(stack.CurrentIndent())
-        elif kind is TK.PAREN_END:
-            beg, _, _ = stack.pop()
-            sink.set_indent(stack.CurrentIndent())
-            assert beg.kind in (TK.PAREN_BEG_EXPR,
-                                TK.PAREN_BEG, TK.PAREN_BEG_VEC_TYPE)
-            sink.emit_token(tag)
-        elif kind is TK.NL:
-            newline()
-        elif kind is TK.ANNOTATION_LONG:
-            newline()
-            sink.emit_token(tag)
-            newline()
-        elif kind in (TK.UNOP_SUFFIX, TK.ANNOTATION_SHORT, TK.ITEM, TK.UNOP_PREFIX, TK.BINOP,
-                      TK.BINOP_NO_SPACE):
-            sink.emit_token(tag)
-        elif kind is TK.ATTR:
-            if sink.CurrenColumn() + tk.length > MAX_LINE_LEN:
-                newline()
-            sink.emit_token(tag)
-        elif kind is TK.SEP:
-            sink.emit_token(tag)
-            if stack.BreakAfterSep():
-                newline()
-        else:
-            assert False, f"{kind}"
-        #
-        if kind in (TK.PAREN_BEG, TK.STMT_END, TK.PAREN_BEG_EXPR, TK.PAREN_BEG_VEC_TYPE, TK.UNOP_PREFIX, TK.BINOP_NO_SPACE):
-            want_space = False
-        elif kind is TK.PAREN_END:
-            if tk.beg.kind is TK.PAREN_BEG_VEC_TYPE:
-                want_space = False
-        elif kind is TK.COLON_END:
-            want_space = False
-            if not tokens:
-                return
-
-        assert tokens, f"{tag} {kind}"
-        # TODO: this stopped working after comment support was added
-        # assert stack._stack[0][0] == "module", stack._stack[0][1] == TK.BEG
-
-
+############################################################
+#
+############################################################
 def PrettyPrint(mod: cwast.DefMod, outp):
     cwast.CheckAST(mod, set(), pre_symbolize=True)
-    # we first produce an output token stream from the AST
-    ts = TS()
-    EmitTokensModule(ts, mod)
-    tokens = list(ts.tokens())
-    if 0:
-        indent = 0
-        for tk in tokens:
-            if tk.kind in (TK.COLON_END, TK.STMT_END):
-                indent -= 2
-
-            print(" " * indent, tk)
-
-            if tk.kind in (TK.COLON_BEG, TK.STMT_BEG):
-                indent += 2
-
-    # reverse once because popping of the end of a list is more efficient
-    tokens.reverse()
-    # and now format the stream
-    FormatTokenStream(tokens, Stack(), Sink(outp))
+    out: list[PP.Token] = [PP.Begin(PP.BreakType.CONSISTENT, 0)]
+    EmitTokensModule(out, mod)
+    out += [PP.End()]
+    result = PP.PrettyPrint(out, 80)
+    print(result, file=outp)
 
 
 ############################################################
