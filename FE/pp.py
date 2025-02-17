@@ -277,7 +277,7 @@ def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
                 assert beg_invoke is not None
                 ts.EmitStmtEnd(beg_invoke)
                 had_colon = True
-                EmitTokensCodeBlock(ts, a.args)
+                _EmitCodeBlock(ts, a.args)
             else:
                 assert False, "EphemeralList should not longer occur in code"
                 # if we reconsider this - we should use "{{ ... }}" notation
@@ -372,10 +372,10 @@ def TokensTypeFun(ts: TS, node: cwast.TypeFun):
     EmitTokens(ts, node.result)
 
 
-def EmitTokensCodeBlock(ts: TS, stmts):
+def _EmitCodeBlock(ts: TS, stmts):
     beg_colon = ts.EmitColonBeg()
     for child in stmts:
-        EmitTokensStatement(ts, child)
+        _EmitStatement(ts, child)
     ts.EmitColonEnd(beg_colon)
 
 
@@ -516,7 +516,7 @@ def _TokensStmtBlock(ts: TS, kind, arg, stmts):
             EmitTokens(ts, arg)
     ts.EmitStmtEnd(beg)
     #
-    EmitTokensCodeBlock(ts, stmts)
+    _EmitCodeBlock(ts, stmts)
 
 
 def _TokensStmtSet(ts: TS, kind, lhs, rhs):
@@ -587,16 +587,32 @@ def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
         ts.EmitStmtEnd(beg)
 
 
-def EmitTokensStatement(ts: TS, n):
-    TokensAnnotationsPre(ts, n)
+def _EmitStatement(out, n):
+    _MaybeEmitDoc(out, n)
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    _MaybeEmitAnnotations(out, n)
     if isinstance(n, cwast.StmtContinue):
-        _TokensSimpleStmt(ts, "continue", n.target)
+        out += [PP.String("continue")]
+        if n.target:
+            out += [PP.Break(), PP.String(n.target.name)]
     elif isinstance(n, cwast.StmtBreak):
-        _TokensSimpleStmt(ts, "break", n.target)
-    elif isinstance(n, cwast.StmtTrap):
-        _TokensSimpleStmt(ts, "trap", "")
+        out += [PP.String("break")]
+        if n.target:
+            out += [PP.Break(), PP.String(n.target.name)]
     elif isinstance(n, cwast.StmtReturn):
-        _TokensSimpleStmt(ts, "return", n.expr_ret)
+        out += [PP.String("return")]
+        if not isinstance(n.expr_ret, cwast.ValVoid):
+            out += [PP.Break(), PP.String("EXPR")]
+            # EmitTokens(ts, n.expr_ret)
+    elif isinstance(n, cwast.StmtTrap):
+        out += [PP.String("trap")]
+    else:
+        out += [PP.String("STMT")]
+    out += [PP.End()]
+    return
+    if False:
+        pass
+
     elif isinstance(n, cwast.StmtExpr):
         _TokensSimpleStmt(ts, "do", n.expr)
     elif isinstance(n, cwast.StmtDefer):
@@ -626,7 +642,7 @@ def EmitTokensStatement(ts: TS, n):
         ts.EmitStmtEnd(beg)
         # we now the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
-        EmitTokensCodeBlock(ts, n.body_for)
+        _EmitCodeBlock(ts, n.body_for)
     elif isinstance(n, cwast.MacroInvoke):
         _TokensStmtMacroInvoke(ts, n)
     elif isinstance(n, cwast.MacroId):
@@ -733,8 +749,12 @@ def _EmitTokensToplevel(out, node):
                 PP.String(":"), PP.End()]
         # EmitTokens(ts, node.result)
         out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-
-        # EmitTokensCodeBlock(ts, node.body)
+        emit_break = False
+        for child in node.body:
+            if emit_break:
+                out += [PP.Break()]
+            emit_break = True
+            _EmitStatement(out, child)
     elif isinstance(node, cwast.DefMacro):
         out += [PP.String("macro"),
                 PP.Break(),
@@ -759,7 +779,7 @@ def _EmitTokensToplevel(out, node):
             ts.EmitStmtEnd(beg)
             #
             if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
-                EmitTokensCodeBlock(ts, node.body_macro)
+                _EmitCodeBlock(ts, node.body_macro)
             else:
                 EmitTokensExprMacroBlock(ts, node.body_macro)
     else:
