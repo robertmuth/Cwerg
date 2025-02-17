@@ -52,7 +52,7 @@ def _DecorateNode(node_name, node):
 
 def _RenderRecursivelyHTML(node, out, indent: int):
     line = out[-1]
-    abbrev = pp_sexpr.MaybeSimplifyLeafNode(node)
+    abbrev = pp_sexpr._MaybeSimplifyLeafNode(node)
     if abbrev:
         abbrev = abbrev.replace("<", "&lt;").replace(">", "&gt;")
         if isinstance(node, (cwast.ValNum, cwast.ValString, cwast.Id)):
@@ -61,7 +61,7 @@ def _RenderRecursivelyHTML(node, out, indent: int):
             line += _DecorateNode(abbrev, node)
         return
 
-    node_name, fields = pp_sexpr.GetNodeTypeAndFields(node)
+    node_name, fields = pp_sexpr._GetNodeTypeAndFields(node)
     line += _DecorateNode("(" + node_name, node)
 
     for field, nfd in node.ATTRS:

@@ -33,7 +33,7 @@ def _ExtractAnnotations(tk: lexer.TK) -> dict[str, Any]:
         if com == ";\n":
             com = ""
         elif com.startswith("; "):
-            com = com[3:-1]
+            com = com[2:-1]
         else:
             cwast.CompilerError(tk.srcloc, f"expected comment got: [{com}]")
         comments.append(com)

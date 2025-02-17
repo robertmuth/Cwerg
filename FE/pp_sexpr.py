@@ -14,7 +14,11 @@ from Util import pretty as PP
 logger = logging.getLogger(__name__)
 
 
-def MaybeSimplifyLeafNode(node) -> Optional[str]:
+_BLOCK_INDENT = 4
+_CONT_INDENT = 2
+_MOD_INDENT = 0
+
+def _MaybeSimplifyLeafNode(node) -> Optional[str]:
     if isinstance(node, cwast.TypeBase):
         return cwast.BaseTypeKindToKeyword(node.base_type_kind)
     elif isinstance(node, cwast.ValUndef):
@@ -48,7 +52,7 @@ def MaybeSimplifyLeafNode(node) -> Optional[str]:
         return None
 
 
-def GetNodeTypeAndFields(node, condense=True):
+def _GetNodeTypeAndFields(node, condense=True):
     cls = node.__class__
     fields = cls.FIELDS[:]
     if not condense:
@@ -72,19 +76,12 @@ def GetNodeTypeAndFields(node, condense=True):
         return cls.__name__, fields
 
 
-STMT_LIST_INDENT = 4
-EXPR_LIST_INDENT = 8
-
-
-def GetColonIndent(field: str) -> int:
-    return 0 if field == "body_mod" else STMT_LIST_INDENT
-
 ############################################################
 # Pretty Print
 ############################################################
 
 
-def GetDoc(node):
+def _GetDoc(node):
     for nfd in node.ATTRS:
         if nfd.name == "doc":
             val = getattr(node, "doc")
@@ -92,10 +89,10 @@ def GetDoc(node):
     return None
 
 
-def _RenderColonList(out, val: list):
+def _RenderColonList(out, val: list, indent: int):
     if not val:
         return
-    out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+    out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, indent)]
     add_break = False
     for cc in val:
         if add_break:
@@ -109,7 +106,7 @@ def _RenderList(out, val: list, field: str):
     if not val:
         out += [PP.String("[]")]
         return
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 4), PP.String("[")]
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, _BLOCK_INDENT), PP.String("[")]
     width = 0
     for cc in val:
         out += [PP.Break(width)]
@@ -119,7 +116,7 @@ def _RenderList(out, val: list, field: str):
 
 
 def _RenderMacroInvoke(out, node: cwast.MacroInvoke):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 4),
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT),
             PP.String("("),
             PP.WeakBreak(0),
             PP.String(str(node.name))]
@@ -128,8 +125,8 @@ def _RenderMacroInvoke(out, node: cwast.MacroInvoke):
         if isinstance(a, cwast.EphemeralList):
             if a.colon:
                 out += [PP.Break(0), PP.String(":"), PP.End()]
-                _RenderColonList(out, a.args)
-                out += [PP.Begin(PP.BreakType.INCONSISTENT, 4)]
+                _RenderColonList(out, a.args, 4)
+                out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT)]
             else:
                 out += [PP.Break()]
                 _RenderList(out, a.args)
@@ -140,39 +137,17 @@ def _RenderMacroInvoke(out, node: cwast.MacroInvoke):
     out += [PP.String(")"), PP.End()]
 
 
-_ATTR_MODE = {
-    "doc": "skip",  # handled elsewhere
-    "mut": "skip",
-    "ref": "after",
-    "pub": "after",
-    "init": "after",
-    "fini": "after",
-    "extern": "after",
-    "popl": "after",
-    "builtin": "after",
-    "cdecl": "after",
-    "polymorphic": "after",
-    "arg_ref": "after",
-    "res_ref": "after",
-    "unchecked": "after",
-    "wrapped": "after",
-    "untagged": "after",
-    "poly": "after",
-    "preserve_mut": "after",
-}
+# printed after the open paren
+_AFTER_ANNOTATIONS = set([
+    "ref", "pub", "init", "fini", "extern", "builtin",
+    "cdecl", "arg_ref", "res_ref", "unchecked", "wrapped",
+    "untagged", "poly", "preserve_mut"])
 
 
 def _RenderAttr(out, node):
-    #   doc = GetDoc(node)
-    #    if doc:
-    #        out += [PP.LineBreak(), PP.String(f"@doc {doc}"), PP.LineBreak()]
-
     for nfd in node.ATTRS:
-        mode = _ATTR_MODE[nfd.name]
-
-        if mode == "skip":
+        if nfd.name not in _AFTER_ANNOTATIONS:
             continue
-        assert mode == "after"
 
         val = getattr(node, nfd.name)
         if not val:
@@ -184,7 +159,11 @@ def _RenderAttr(out, node):
 def _RenderRecursivelyToIR(out, node):
     if cwast.NF.TOP_LEVEL in node.FLAGS:
         out.append(PP.LineBreak())
-    abbrev = MaybeSimplifyLeafNode(node)
+
+    doc = _GetDoc(node)
+    if doc:
+        out += [PP.String(f"@doc {doc}"), PP.LineBreak()]
+    abbrev = _MaybeSimplifyLeafNode(node)
     if abbrev:
         out.append(PP.String(abbrev))
         return
@@ -197,14 +176,14 @@ def _RenderRecursivelyToIR(out, node):
         _RenderRecursivelyToIR(out, node.value_or_undef)
         return
 
-    node_name, fields = GetNodeTypeAndFields(node)
+    node_name, fields = _GetNodeTypeAndFields(node)
     if isinstance(node, (cwast.DefGlobal, cwast.DefVar, cwast.DefGlobal,
                          cwast.TypePtr, cwast.TypeSpan, cwast.ExprAddrOf,
                          cwast.ExprFront)):
         if node.mut:
             node_name += "!"
 
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 4),
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT),
             PP.String("(")]
 
     _RenderAttr(out, node)
@@ -234,9 +213,10 @@ def _RenderRecursivelyToIR(out, node):
         elif field_kind is cwast.NFK.LIST:
             if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for",
                          "cases", "body_macro"):
+                indent = _MOD_INDENT if field == "body_mod" else _BLOCK_INDENT
                 out += [PP.Break(0), PP.String(":"), PP.End()]
-                _RenderColonList(out, val)
-                out += [PP.Begin(PP.BreakType.INCONSISTENT, 4)]
+                _RenderColonList(out, val, indent)
+                out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT)]
             else:
                 out += [PP.Break()]
                 _RenderList(out, val, field)
@@ -245,10 +225,15 @@ def _RenderRecursivelyToIR(out, node):
 
     out += [PP.String(")"), PP.End()]
 
+############################################################
+#
+############################################################
+
 
 def PrettyPrint(mod: cwast.DefMod, outp):
-    out: list[PP.Token] = []
+    out: list[PP.Token] = [PP.Begin(PP.BreakType.CONSISTENT, 0)]
     _RenderRecursivelyToIR(out, mod)
+    out += [PP.End()]
     result = PP.PrettyPrint(out, 80)
     print(result, file=outp)
 
