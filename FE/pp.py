@@ -342,16 +342,17 @@ def TokensVecType(ts: TS, size, type):
 
 def _EmitParameterList(out, lst):
     out += [PP.Begin(PP.BreakType.CONSISTENT, 2), PP.String("(")]
-    ns = 0
+    first = True
     for param in lst:
-        out += [PP.Break(0)]
-        if ns != 0:
-            out += [PP.String(","), PP.Break()]
-        ns = 1
+        if first:
+            out += [PP.Break(0)]
+        else:
+            out += [PP.Break(0), PP.String(","), PP.Break()]
+        first = False
         _MaybeEmitDoc(out, param)
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, param)
-        out += [PP.Break(), PP.String(str(param.name)), PP.Break()]
+        out += [PP.String(str(param.name)), PP.Break()]
         if isinstance(param, cwast.FunParam):
             out += [PP.String("TYPE")]
             #EmitTokens(ts, param.type)
@@ -739,10 +740,11 @@ def _EmitTokensToplevel(out, node):
                 PP.Break(),
                 PP.String(str(node.name)),
                 PP.Break(),
-                PP.String(node.macro_result_kind.name)]
+                PP.String(node.macro_result_kind.name),
+                PP.Break()]
+        _EmitParameterList(out, node.params_macro)
 
         if 0:
-            _EmitParameterList(ts, node.params_macro)
 
             beg_paren = ts.EmitBegParen("[")
             sep = False
@@ -777,8 +779,9 @@ def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
         out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 0)]
         emit_break = False
         for child in node.body_mod:
+            out += [PP.LineBreak()]
             if emit_break:
-                out += [PP.Break()]
+                out += [PP.LineBreak()]
             emit_break = True
             _EmitTokensToplevel(out, child)
         out += [PP.End()]
