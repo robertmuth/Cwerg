@@ -93,11 +93,9 @@ def GetDoc(node):
 
 
 def _RenderColonList(out, val: list):
-    out += [PP.String(":")]
     if not val:
         return
-    out += [PP.LineBreak(),
-            PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+    out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
     add_break = False
     for cc in val:
         if add_break:
@@ -176,9 +174,8 @@ def _RenderAttr(out, node):
         val = getattr(node, nfd.name)
         if not val:
             continue
-        out += [PP.WeakBreak()]
         assert isinstance(val, bool)
-        out += [PP.String(f"@{nfd.name}")]
+        out += [PP.String(f"@{nfd.name}"), PP.WeakBreak(1)]
 
 
 def _RenderRecursivelyToIR(out, node):
@@ -218,25 +215,27 @@ def _RenderRecursivelyToIR(out, node):
         if cwast.IsFieldWithDefaultValue(field, val):
             continue
 
-        out += [PP.Break()]
-
         # if field_kind is not cwast.NFK.LIST or field != "body_f":
         #    line.append(spacer)
         # spacer = str(field_kind.value)
 
         if field_kind is cwast.NFK.STR:
-            out += [PP.String(str(val))]
+            out += [PP.Break(), PP.String(str(val))]
         elif field_kind is cwast.NFK.NAME:
-            out += [PP.String(str(val))]
+            out += [PP.Break(), PP.String(str(val))]
         elif field_kind is cwast.NFK.KIND:
-            out += [PP.String(val.name)]
+            out += [PP.Break(), PP.String(val.name)]
         elif field_kind is cwast.NFK.NODE:
+            out += [PP.Break()]
             _RenderRecursivelyToIR(out, val)
         elif field_kind is cwast.NFK.LIST:
             if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for",
                          "cases", "body_macro"):
+                out += [PP.Break(0), PP.String(":"), PP.End()]
                 _RenderColonList(out, val)
+                out += [PP.Begin(PP.BreakType.INCONSISTENT, 4)]
             else:
+                out += [PP.Break()]
                 _RenderList(out, val, field)
         else:
             assert False, f"unexpected field {field}"
