@@ -347,7 +347,7 @@ def _EmitParameterList(out, lst):
         if first:
             out += [PP.Break(0)]
         else:
-            out += [PP.Break(0), PP.String(","), PP.Break()]
+            out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
         first = False
         _MaybeEmitDoc(out, param)
         #
@@ -506,18 +506,6 @@ def _TokensSimpleStmt(ts: TS, kind: str, arg):
             # for return
             EmitTokens(ts, arg)
     ts.EmitStmtEnd(beg)
-
-
-def _TokensStmtBlock(ts: TS, kind, arg, stmts):
-    beg = ts.EmitStmtBeg(kind)
-    if arg:
-        if isinstance(arg, cwast.NAME):
-            ts.EmitAttr(arg.name)
-        else:
-            EmitTokens(ts, arg)
-    ts.EmitStmtEnd(beg)
-    #
-    _EmitCodeBlock(ts, stmts)
 
 
 def _EmitStmtSet(out, kind, lhs, rhs):
@@ -683,15 +671,34 @@ def _EmitStatement(out, n):
         _EmitStatements(out, n.body)
     elif isinstance(n, cwast.MacroInvoke):
         _EmitMacroInvoke(out, n)
+    elif isinstance(n, cwast.MacroId):
+        out += [PP.String(str(n.name))]
+    elif isinstance(n, cwast.StmtBlock):
+        out += [PP.String("block"), PP.Break(), PP.String(n.label),
+                PP.Break(0), PP.String(":"),
+                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        _EmitStatements(out, n.body)
+    elif isinstance(n, cwast.StmtIf):
+        out += [PP.String("if"), PP.Break()]
+        out += [PP.String("EXPR")]
+        # EmitTokens(ts, n.cond)
+        out += [PP.Break(0), PP.String(":"), PP.End(),
+                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        _EmitStatements(out, n.body_t)
+        if n.body_f:
+            out += [PP.End(), PP.Break(),
+                    PP.Begin(PP.BreakType.INCONSISTENT, 2),
+                    PP.String("else"), PP.Break(0), PP.String(":"),
+                    PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+            _EmitStatements(out, n.body_f)
+
+
     else:
         out += [PP.String("STMT")]
     out += [PP.End()]
     return
     if False:
         pass
-
-    elif isinstance(n, cwast.StmtBlock):
-        _TokensStmtBlock(ts, "block", n.label, n.body)
 
     elif isinstance(n, cwast.StmtIf):
         _TokensStmtBlock(ts, "if", n.cond, n.body_t)
@@ -705,16 +712,9 @@ def _EmitStatement(out, n):
         # we now the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
         _EmitCodeBlock(ts, n.body_for)
-    elif isinstance(n, cwast.MacroInvoke):
-        _EmitMacroInvoke(ts, n)
-    elif isinstance(n, cwast.MacroId):
-        ts.EmitAttr(str(n.name))
-        ts.EmitNewline()
     else:
         assert False, f"unexpected stmt node {n}"
     #
-    if not ts.LastTokenIsCodeBlock():
-        ts.EmitNewline()
 
 
 def EmitTokensExprMacroBlock(ts: TS, stmts):
