@@ -318,8 +318,7 @@ def _EmitParameterList(out, lst):
         _MaybeEmitAnnotations(out, param)
         out += [PP.String(str(param.name)), PP.Break()]
         if isinstance(param, cwast.FunParam):
-            out += [PP.String("TYPE")]
-            # EmitTokens(ts, param.type)
+            _EmitExprOrType(out, param.type)
         elif isinstance(param, cwast.ModParam):
             out += [PP.String(param.mod_param_kind.name)]
         elif isinstance(param, cwast.MacroParam):
@@ -539,9 +538,9 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
     elif name == "trylet" or name == "trylet!":
         out += [PP.Break(),
                 PP.String(_GetOriginalVarName(args[0])),
-                PP.Break(),
-                PP.String("EXPR"),
-                #  EmitTokens(ts, args[1])
+                PP.Break()]
+        _EmitExprOrType(out, args[1])
+        out += [PP.Break(),
                 PP.String("="),
                 PP.Break(),
                 ]
@@ -608,8 +607,8 @@ def _EmitStatement(out, n):
         _EmitStmtLetOrGlobal(out, WithExcl("let", n.mut),
                              n.name, n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.StmtExpr):
-        out += [PP.String("do"), PP.Break(), PP.String("EXPR")]
-        # _TokensSimpleStmt(ts, "do", n.expr)
+        out += [PP.String("do"), PP.Break()]
+        _EmitExprOrType(out, n.expr)
     elif isinstance(n, cwast.StmtDefer):
         out += [PP.String("defer"), PP.Break(0), PP.String(":"),
                 PP.Break(),
@@ -624,8 +623,7 @@ def _EmitStatement(out, n):
         _EmitStatements(out, n.cases)
     elif isinstance(n, cwast.Case):
         out += [PP.String("case"), PP.Break()]
-        out += [PP.String("EXPR")]
-        # EmitTokens(ts, n.cond)
+        _EmitExprOrType(out, n.cond)
         out += [PP.Break(0), PP.String(":"), PP.End(),
                 PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         _EmitStatements(out, n.body)
@@ -640,8 +638,7 @@ def _EmitStatement(out, n):
         _EmitStatements(out, n.body)
     elif isinstance(n, cwast.StmtIf):
         out += [PP.String("if"), PP.Break()]
-        out += [PP.String("EXPR")]
-        # EmitTokens(ts, n.cond)
+        _EmitExprOrType(out, n.cond)
         out += [PP.Break(0), PP.String(":"), PP.End(),
                 PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         _EmitStatements(out, n.body_t)
@@ -671,8 +668,7 @@ def _EmitTokensExprMacroBlock(out, stmts):
         if emit_break:
             out += [PP.Break()]
         emit_break = True
-        out += [PP.String("TODO-EXP")]
-        # _EmitStatement(out, child)
+        _EmitExprOrType(out, child)
 
 
 def _EmitTokensToplevel(out, node):
@@ -700,8 +696,7 @@ def _EmitTokensToplevel(out, node):
                 PP.Break(),
                 PP.String(str(node.name)),
                 PP.Break(), PP.String("="), PP.Break()]
-        out += [PP.String("TYPE_EXPR")]
-        # EmitTokens(ts, node.type)
+        _EmitExprOrType(out, node.type)
     elif isinstance(node, cwast.DefRec):
         out += [PP.String("type"),
                 PP.Break(),
@@ -713,15 +708,13 @@ def _EmitTokensToplevel(out, node):
             _MaybeEmitDoc(out, f)
             out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
             _MaybeEmitAnnotations(out, f)
-            out += [PP.String(str(f.name)),
-                    PP.Break(),
-                    PP.String("TYPE"),
-                    PP.End()]
-            # EmitTokens(ts, f.type)
+            out += [PP.String(str(f.name)), PP.Break()]
+            _EmitExprOrType(out, f.type)
+            out += [PP.End()]
     elif isinstance(node, cwast.StmtStaticAssert):
-        out += [PP.String("static_assert"), PP.Break(),
-                PP.String("EXPR"), PP.End()]
-        # EmitTokens(ts, node.cond)
+        out += [PP.String("static_assert"), PP.Break()]
+        _EmitExprOrType(out, node.cond)
+        out += [PP.End()]
     elif isinstance(node, cwast.DefEnum):
         out += [PP.String("enum"),
                 PP.Break(),
@@ -746,9 +739,9 @@ def _EmitTokensToplevel(out, node):
                 PP.String(str(node.name))]
         out += [PP.Break(0)]
         _EmitParameterList(out, node.params)
-        out += [PP.Break(), PP.String("TYPE"), PP.Break(0),
-                PP.String(":"), PP.End()]
-        # EmitTokens(ts, node.result)
+        out += [PP.Break()]
+        _EmitExprOrType(out, node.result)
+        out += [PP.Break(0), PP.String(":"), PP.End()]
         out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         _EmitStatements(out, node.body)
     elif isinstance(node, cwast.DefMacro):
