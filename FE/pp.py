@@ -230,13 +230,6 @@ def TokensValCompound(ts: TS, node: cwast.ValCompound):
     ts.EmitEnd(beg)
 
 
-def TokensVecType(ts: TS, size, type):
-    beg = ts.EmitBegVecTypeParen("[")
-    EmitTokens(ts, size)
-    ts.EmitEnd(beg)
-    EmitTokens(ts, type)
-
-
 def _EmitTypeFun(ts: TS, node: cwast.TypeFun):
     ts.EmitUnOp("funtype")
     _EmitParameterList(ts, node.params)
@@ -253,7 +246,6 @@ _INFIX_OPS = set([
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.MacroInvoke: TokensExprMacroInvoke,
     #
-    cwast.TypeVec: lambda ts, n: TokensVecType(ts, n.size, n.type),
     cwast.TypeFun:  _EmitTypeFun,
     #
     cwast.ValCompound: TokensValCompound,
@@ -268,7 +260,10 @@ def _GetDoc(node):
     for nfd in node.ATTRS:
         if nfd.name == "doc":
             val = getattr(node, "doc")
-            return val
+            if val.startswith('"""'):
+                return val[3:-3]
+            else:
+                return val[1:-1]
     return None
 
 
@@ -408,6 +403,15 @@ def _EmitExprIndex(out, node: cwast.ExprIndex):
     out += [PP.Break(0), PP.String("]"), PP.End()]
 
 
+def _EmitVecType(out, size, type):
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2),
+            PP.String("["), PP.Break(0)]
+    _EmitExprOrType(out, size)
+    out += [PP.Break(0), PP.String("]")]
+    _EmitExprOrType(out, type)
+    out += [PP.End()]
+
+
 _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.Id: lambda out, n:  out.extend([PP.String(n.FullName())]),
     cwast.MacroId: lambda out, n: out.extend([PP.String(str(n.name))]),
@@ -464,7 +468,7 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.ExprField: lambda out, n: _EmitBinary(
         out, n, n.container, 0, ".", 0, n.field),
     cwast.ExprIndex: _EmitExprIndex,
-
+    cwast.TypeVec: lambda out, n: _EmitVecType(out, n.size, n.type),
 }
 
 
@@ -477,14 +481,6 @@ def _EmitExprOrType(out, node):
         emitter(out, node)
     else:
         out += [PP.String("TODO-EXPR")]
-    return
-
-    gen = _CONCRETE_SYNTAX.get(node.__class__)
-    assert gen, f"unknown node {node.__class__}"
-    gen(ts, node)
-    # emit any tail comments
-    if node.__class__ not in _INFIX_OPS:
-        TokensAnnotationsPost(ts, node)
 
 
 def _EmitStmtSet(out, kind, lhs, rhs):
@@ -701,7 +697,11 @@ def _EmitTokensExprMacroBlock(out, stmts):
         if emit_break:
             out += [PP.Break()]
         emit_break = True
+        _MaybeEmitDoc(out, child)
+        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        _MaybeEmitAnnotations(out, child)
         _EmitExprOrType(out, child)
+        out += [PP.End()]
 
 
 def _EmitTokensToplevel(out, node):
