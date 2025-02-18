@@ -497,17 +497,6 @@ def EmitTokens(ts: TS, node):
         TokensAnnotationsPost(ts, node)
 
 
-def _TokensSimpleStmt(ts: TS, kind: str, arg):
-    beg = ts.EmitStmtBeg(kind)
-    if arg:
-        if isinstance(arg, cwast.NAME):
-            ts.EmitAttr(arg.name)
-        elif not isinstance(arg, cwast.ValVoid):
-            # for return
-            EmitTokens(ts, arg)
-    ts.EmitStmtEnd(beg)
-
-
 def _EmitStmtSet(out, kind, lhs, rhs):
     out += [PP.String("set"), PP.Break(), PP.String("EXPR"),
             PP.Break(), PP.String(kind),
@@ -548,6 +537,20 @@ def _GetOriginalVarName(node) -> str:
     else:
         assert isinstance(node, cwast.MacroId), f"{node}"
         return str(node.name)
+
+
+def _EmitIdList(out, lst):
+    out += [PP.Begin(PP.BreakType.CONSISTENT, 2), PP.String("[")]
+    first = True
+    for gen_id in lst:
+        if first:
+            out += [PP.Break(0)]
+        else:
+            out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
+        first = False
+        assert isinstance(gen_id, cwast.MacroId)
+        out += [PP.String(gen_id.name.name)]
+    out += [PP.Break(0), PP.String("]"), PP.End()]
 
 
 def _EmitMacroInvoke(out, node: cwast.MacroInvoke):
@@ -674,8 +677,8 @@ def _EmitStatement(out, n):
     elif isinstance(n, cwast.MacroId):
         out += [PP.String(str(n.name))]
     elif isinstance(n, cwast.StmtBlock):
-        out += [PP.String("block"), PP.Break(), PP.String(n.label),
-                PP.Break(0), PP.String(":"),
+        out += [PP.String("block"), PP.Break(), PP.String(str(n.label)),
+                PP.Break(0), PP.String(":"), PP.End(),
                 PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         _EmitStatements(out, n.body)
     elif isinstance(n, cwast.StmtIf):
@@ -691,41 +694,28 @@ def _EmitStatement(out, n):
                     PP.String("else"), PP.Break(0), PP.String(":"),
                     PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
             _EmitStatements(out, n.body_f)
-
-
-    else:
-        out += [PP.String("STMT")]
-    out += [PP.End()]
-    return
-    if False:
-        pass
-
-    elif isinstance(n, cwast.StmtIf):
-        _TokensStmtBlock(ts, "if", n.cond, n.body_t)
-        if n.body_f:
-            _TokensStmtBlock(ts, "else", "", n.body_f)
     elif isinstance(n, cwast.MacroFor):
-        beg = ts.EmitStmtBeg("mfor")
-        ts.EmitAttr(str(n.name))
-        ts.EmitAttr(str(n.name_list))
-        ts.EmitStmtEnd(beg)
-        # we now the content of body of the MacroFor must be stmts
+        out += [PP.String("mfor"), PP.Break(), PP.String(str(n.name)),
+                PP.Break(), PP.String(str(n.name_list)),   PP.Break(0), PP.String(":"),
+                PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+
+        # we know the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
-        _EmitCodeBlock(ts, n.body_for)
+        _EmitStatements(out, n.body_f)
+
     else:
-        assert False, f"unexpected stmt node {n}"
-    #
+        assert False, f"{n}"
+    out += [PP.End()]
 
 
-def EmitTokensExprMacroBlock(ts: TS, stmts):
-    beg_colon = ts.EmitColonBeg()
+def _EmitTokensExprMacroBlock(out, stmts):
+    emit_break = False
     for child in stmts:
-        if child.__class__ in _CONCRETE_SYNTAX:
-            EmitTokens(ts, child)
-            ts.EmitNewline()
-        else:
-            assert False
-    ts.EmitColonEnd(beg_colon)
+        if emit_break:
+            out += [PP.Break()]
+        emit_break = True
+        out += [PP.String("TODO-EXP")]
+        # _EmitStatement(out, child)
 
 
 def _EmitTokensToplevel(out, node):
@@ -812,25 +802,15 @@ def _EmitTokensToplevel(out, node):
                 PP.String(node.macro_result_kind.name),
                 PP.Break()]
         _EmitParameterList(out, node.params_macro)
-
-        if 0:
-
-            beg_paren = ts.EmitBegParen("[")
-            sep = False
-            for gen_id in node.gen_ids:
-                assert isinstance(gen_id, cwast.MacroId)
-
-                if sep:
-                    ts.EmitSep(",")
-                sep = True
-                ts.EmitAttr(gen_id.name.name)
-            ts.EmitEnd(beg_paren)
-            ts.EmitStmtEnd(beg)
-            #
-            if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
-                _EmitCodeBlock(ts, node.body_macro)
-            else:
-                EmitTokensExprMacroBlock(ts, node.body_macro)
+        out += [PP.Break()]
+        _EmitIdList(out, node.gen_ids)
+        out += [PP.Break(0), PP.String(":")]
+        out += [PP.End()]
+        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
+            _EmitStatements(out, node.body_macro)
+        else:
+            _EmitTokensExprMacroBlock(out, node.body_macro)
     else:
         assert False
     out += [PP.End()]
@@ -839,6 +819,8 @@ def _EmitTokensToplevel(out, node):
 def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
     _MaybeEmitDoc(out, node)
     out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    _MaybeEmitAnnotations(out, node)
+
     out += [PP.String("module")]
     if node.params_mod:
         out += [PP.Break(0)]
