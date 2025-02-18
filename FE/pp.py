@@ -125,71 +125,20 @@ def AddMissingParens(node):
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
 
-############################################################
-# Token
-############################################################
+
+def EmitExpr3(out, node: cwast.Expr3):
+    _EmitExprOrType(out, node.cond)
+    out += [PP.Break(), PP.String("?"), PP.Break()]
+    _EmitExprOrType(out, node.expr_t)
+    out += [PP.Break(), PP.String(":"), PP.Break()]
+    _EmitExprOrType(out, node.expr_f)
 
 
-TS = str
-
-
-def EmitExpr3(ts: TS, node: cwast.Expr3):
-    EmitTokens(ts, node.cond)
-    ts.EmitAttr("?")
-    EmitTokens(ts, node.expr_t)
-    ts.EmitAttr(":")
-    EmitTokens(ts, node.expr_f)
-
-
-def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
-    had_colon = False
-    sep = False
-    for a in args:
-        if sep:
-            if not isinstance(a, cwast.EphemeralList) or not a.colon:
-                ts.EmitSep(",")
-        sep = True
-        if isinstance(a, cwast.Id):
-            ts.EmitAttr(a.FullName())
-        elif isinstance(a, cwast.EphemeralList):
-
-            if a.colon:
-                assert beg_invoke is not None
-                ts.EmitStmtEnd(beg_invoke)
-                had_colon = True
-                _EmitCodeBlock(ts, a.args)
-            else:
-                assert False, "EphemeralList should not longer occur in code"
-                # if we reconsider this - we should use "{{ ... }}" notation
-                sep2 = False
-                beg = ts.EmitBegParen("{")
-                for e in a.args:
-                    if sep2:
-                        ts.EmitSep(",")
-                    sep2 = True
-                    EmitTokens(ts, e)
-                ts.EmitEnd(beg)
-        elif isinstance(a, (cwast.TypeBase, cwast.TypeAuto, cwast.TypeOf,
-                            cwast.TypeVec, cwast.TypePtr, cwast.TypeSpan)):
-            EmitTokens(ts, a)
-        else:
-            EmitTokens(ts, a)
-    return had_colon
-
-
-def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
-    """Handle Expression Macros"""
-    ts.EmitName(str(node.name))
-    beg_paren = ts.EmitBegParen("(")
-    TokensMacroInvokeArgs(ts, node.args, None)
-    ts.EmitEnd(beg_paren)
-
-
-_CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
-    cwast.MacroInvoke: TokensExprMacroInvoke,
-    cwast.Expr3: EmitExpr3,
-    cwast.ExprStmt: lambda ts, n: _TokensStmtBlock(ts, "expr", "", n.body),
-}
+def EmitExprStmt(out, node: cwast.ExprStmt):
+    out += [PP.String("expr"), PP.Break(0), PP.String(":"),
+            PP.End(),
+            PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+    _EmitStatements(out, node.body)
 
 
 def _EmitTypeFun(out, node: cwast.TypeFun):
@@ -371,7 +320,7 @@ def _EmitParenGrouping(out, node: cwast.ExprParen):
 
 
 def _EmitValCompound(out, node: cwast.ValCompound):
-    out += [PP.Begin(PP.BreakType.CONSISTENT, 2),
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2),
             PP.String("{"), PP.WeakBreak(0)]
     if not isinstance(node.type_or_auto, cwast.TypeAuto):
         _EmitExprOrType(out, node.type_or_auto)
@@ -380,12 +329,17 @@ def _EmitValCompound(out, node: cwast.ValCompound):
     emit_comma = False
     for e in node.inits:
         if emit_comma:
-            out += [PP.Break(0), PP.String(",")]
-        out += [PP.Break()]
+            out += [PP.WeakBreak(0), PP.String(",")]
+        out += [PP.WeakBreak(1)]
+        emit_comma = True
         _MaybeEmitDoc(out, e)
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, e)
-        _EmitExprOrType(out, e)
+        assert isinstance(e, cwast.ValPoint)
+        if not isinstance(e.point, cwast.ValAuto):
+            _EmitExprOrType(out, e.point)
+            out += [PP.Break(), PP.String("=")]
+        _EmitExprOrType(out, e.value_or_undef)
         out += [PP.End()]
     out += [PP.Break(0), PP.String("}"), PP.End()]
 
@@ -450,16 +404,17 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.TypeFun:  _EmitTypeFun,
     cwast.ExprParen: lambda out, n: _EmitParenGrouping(out, n),
     cwast.ValCompound: _EmitValCompound,
-
+    cwast.MacroInvoke: lambda out, n: _EmitFunctional(out, n.name.name, n.args),
+    cwast.Expr3: EmitExpr3,
+    cwast.Expr3: EmitExpr3,
+    cwast.ExprStmt: EmitExprStmt
 }
 
 
 def _EmitExprOrType(out, node):
     emitter = _EMITTER_TAB.get(node.__class__)
-    if emitter:
-        emitter(out, node)
-    else:
-        out += [PP.String("TODO-EXPR")]
+    assert emitter, f"unsupported {node}"
+    emitter(out, node)
 
 
 def _EmitStmtSet(out, kind, lhs, rhs):
@@ -601,7 +556,7 @@ def _EmitStatement(out, n):
     elif isinstance(n, cwast.StmtReturn):
         out += [PP.String("return")]
         if not isinstance(n.expr_ret, cwast.ValVoid):
-            out += [PP.Break()]
+            out += [PP.WeakBreak(1)]
             _EmitExprOrType(out, n.expr_ret)
     elif isinstance(n, cwast.StmtTrap):
         out += [PP.String("trap")]
