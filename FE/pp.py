@@ -150,23 +150,11 @@ def TokensParenGrouping(ts: TS, expr):
     ts.EmitEnd(beg)
 
 
-def TokensBinaryInfix(ts: TS, name: str, node1, node2, node):
-    EmitTokens(ts, node1)
-    TokensAnnotationsPre(ts, node)
-    ts.EmitBinOp(name)
-    EmitTokens(ts, node2)
-
-
 def TokensBinaryInfixNoSpace(ts: TS, name: str, node1, node2, node):
     EmitTokens(ts, node1)
     TokensAnnotationsPre(ts, node)
     ts.EmitBinOpNoSpace(name)
     EmitTokens(ts, node2)
-
-
-def TokensUnaryPrefix(ts: TS, name: str, node):
-    ts.EmitUnOp(name)
-    EmitTokens(ts, node)
 
 
 def TokensUnarySuffix(ts: TS, name: str, node):
@@ -261,30 +249,7 @@ def TokensVecType(ts: TS, size, type):
     EmitTokens(ts, type)
 
 
-def _EmitParameterList(out, lst):
-    out += [PP.Begin(PP.BreakType.CONSISTENT, 2), PP.String("(")]
-    first = True
-    for param in lst:
-        if first:
-            out += [PP.Break(0)]
-        else:
-            out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
-        first = False
-        _MaybeEmitDoc(out, param)
-        #
-        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
-        _MaybeEmitAnnotations(out, param)
-        out += [PP.String(str(param.name)), PP.Break()]
-        if isinstance(param, cwast.FunParam):
-            _EmitExprOrType(out, param.type)
-        elif isinstance(param, cwast.ModParam):
-            out += [PP.String(param.mod_param_kind.name)]
-        elif isinstance(param, cwast.MacroParam):
-            out += [PP.String(param.macro_param_kind.name)]
-        else:
-            assert False
-        out += [PP.End()]
-    out += [PP.Break(0), PP.String(")"), PP.End()]
+
 
 
 def TokensTypeFun(ts: TS, node: cwast.TypeFun):
@@ -329,7 +294,6 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.MacroInvoke: TokensExprMacroInvoke,
     #
     #
-    cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithExcl("^", n.mut), n.type),
     cwast.TypeVec: lambda ts, n: TokensVecType(ts, n.size, n.type),
 
 
@@ -339,14 +303,9 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.ValCompound: TokensValCompound,
     #
 
-    #
-    cwast.Expr1: TokensExpr1,
-    cwast.Expr2: TokensExpr2,
     cwast.Expr3: EmitExpr3,
     cwast.ExprIndex: TokensExprIndex,
     cwast.ExprField: lambda ts, n: TokensBinaryInfixNoSpace(ts, ".", n.container, n.field, n),
-    cwast.ExprDeref: lambda ts, n: TokensUnarySuffix(ts, "^", n.expr),
-    cwast.ExprAddrOf: lambda ts, n: TokensUnaryPrefix(ts, WithExcl(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
     cwast.ExprStmt: lambda ts, n: _TokensStmtBlock(ts, "expr", "", n.body),
     cwast.ExprParen: lambda ts, n: TokensParenGrouping(ts, n.expr),
 }
@@ -421,6 +380,65 @@ def _EmitFunctional(out, name, nodes: list):
     _EmitParenList(out, nodes)
     out += [PP.End()]
 
+def _EmitParameterList(out, lst):
+    out += [PP.Begin(PP.BreakType.CONSISTENT, 2), PP.String("(")]
+    first = True
+    for param in lst:
+        if first:
+            out += [PP.Break(0)]
+        else:
+            out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
+        first = False
+        _MaybeEmitDoc(out, param)
+        #
+        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        _MaybeEmitAnnotations(out, param)
+        out += [PP.String(str(param.name)), PP.Break()]
+        if isinstance(param, cwast.FunParam):
+            _EmitExprOrType(out, param.type)
+        elif isinstance(param, cwast.ModParam):
+            out += [PP.String(param.mod_param_kind.name)]
+        elif isinstance(param, cwast.MacroParam):
+            out += [PP.String(param.macro_param_kind.name)]
+        else:
+            assert False
+        out += [PP.End()]
+    out += [PP.Break(0), PP.String(")"), PP.End()]
+
+def _EmitUnary(out, a, b):
+    if isinstance(a, str):
+        out += [PP.String(a)]
+    else:
+        _EmitExprOrType(out, a)
+
+    out += [PP.Break(0)]
+    if isinstance(b, str):
+        out += [PP.String(b)]
+    else:
+        _EmitExprOrType(out, b)
+
+
+def _EmitExpr1(out, node: cwast.Expr1):
+    kind = node.unary_expr_kind
+    sym = cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[kind]
+    if kind in _FUNCTIONAL_UNOPS:
+        _EmitFunctional(out, sym, [node.expr])
+    else:
+        _EmitUnary(out, sym, node.expr)
+
+
+def _EmitExpr2(out, n: cwast.Expr2):
+    kind = n.binary_expr_kind
+    sym = cwast.BINARY_EXPR_SHORTCUT_INV[kind]
+    if kind in _FUNCTIONAL_BINOPS:
+        _EmitFunctional(out, sym, [n.expr1, n.expr2])
+    else:
+        _EmitExprOrType(out, n.expr1)
+        out += [PP.Break()]
+        _MaybeEmitAnnotations(out, n)
+        out += [PP.String(sym), PP.Break()]
+        _EmitExprOrType(out, n.expr2)
+
 
 _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.Id: lambda out, n:  out.extend([PP.String(n.FullName())]),
@@ -467,6 +485,14 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
     #
     cwast.ValString: lambda out, n:  out.extend([PP.String(n.render())]),
+    #
+    cwast.Expr1: _EmitExpr1,
+    cwast.Expr2: _EmitExpr2,
+    #
+    cwast.ExprDeref: lambda out, n: _EmitUnary(out, "^", n.expr),
+    cwast.ExprAddrOf: lambda out, n: _EmitUnary(out, WithExcl(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
+    cwast.TypePtr: lambda out, n: _EmitUnary(out, WithExcl("^", n.mut), n.type),
+
 }
 
 
