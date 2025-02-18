@@ -227,7 +227,7 @@ def _EmitFunctional(out, name, nodes: list):
 
 
 def _EmitParameterList(out, lst):
-    out += [PP.Begin(PP.BreakType.CONSISTENT, 2), PP.String("(")]
+    out += [PP.Begin(PP.BreakType.CONSISTENT, 1), PP.String("(")]
     first = True
     for param in lst:
         if first:
@@ -320,18 +320,21 @@ def _EmitParenGrouping(out, node: cwast.ExprParen):
 
 
 def _EmitValCompound(out, node: cwast.ValCompound):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2),
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 1),
             PP.String("{"), PP.WeakBreak(0)]
     if not isinstance(node.type_or_auto, cwast.TypeAuto):
         _EmitExprOrType(out, node.type_or_auto)
         out += [PP.WeakBreak(0)]
     out += [PP.String(":")]
-    emit_comma = False
+    first = True
     for e in node.inits:
-        if emit_comma:
-            out += [PP.WeakBreak(0), PP.String(",")]
-        out += [PP.WeakBreak(1)]
-        emit_comma = True
+        if first:
+            if _GetDoc(e):
+                out += [PP.Break()]
+            else:
+                out += [PP.WeakBreak(0)]
+        else:
+            out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
         _MaybeEmitDoc(out, e)
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, e)
@@ -478,8 +481,8 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
     out += [PP.String(str(name))]
     is_block_like = _IsMacroWithBlock(node)
     if not is_block_like:
-        out += [PP.Break(0),
-                PP.Begin(PP.BreakType.INCONSISTENT, 2),
+        out += [PP.WeakBreak(0),
+                PP.Begin(PP.BreakType.INCONSISTENT, 1),
                 PP.String("(")]
     args = node.args
     if name == "for":
@@ -487,16 +490,14 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
                 PP.String(_GetOriginalVarName(args[0])),
                 PP.Break(),
                 PP.String("="),
-                PP.Break(),
-                ]
+                PP.Break()]
         args = args[1:]
     elif name == "tryset":
+        out += [PP.Break()]
+        _EmitExprOrType(out, args[0])
         out += [PP.Break(),
-                PP.String(_GetOriginalVarName(args[0])),
-                PP.Break(),
                 PP.String("="),
-                PP.Break(),
-                ]
+                PP.Break()]
         args = args[1:]
     elif name == "trylet" or name == "trylet!":
         out += [PP.Break(),
@@ -505,8 +506,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
         _EmitExprOrType(out, args[1])
         out += [PP.Break(),
                 PP.String("="),
-                PP.Break(),
-                ]
+                PP.Break()]
         args = args[2:]
     #
     first = True
@@ -516,7 +516,9 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
             out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
             _EmitStatements(out, a.args)
             continue
-        elif not first:
+        elif first:
+            out += [PP.WeakBreak(0)]
+        else:
             out += [PP.Break(0), PP.String(","), PP.Break()]
         first = False
         #
