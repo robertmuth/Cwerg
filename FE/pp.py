@@ -150,18 +150,6 @@ def TokensParenGrouping(ts: TS, expr):
     ts.EmitEnd(beg)
 
 
-def TokensBinaryInfixNoSpace(ts: TS, name: str, node1, node2, node):
-    EmitTokens(ts, node1)
-    TokensAnnotationsPre(ts, node)
-    ts.EmitBinOpNoSpace(name)
-    EmitTokens(ts, node2)
-
-
-def TokensUnarySuffix(ts: TS, name: str, node):
-    EmitTokens(ts, node)
-    ts.EmitUnOp(name, suffix=True)
-
-
 def EmitExpr3(ts: TS, node: cwast.Expr3):
     EmitTokens(ts, node.cond)
     ts.EmitAttr("?")
@@ -249,20 +237,10 @@ def TokensVecType(ts: TS, size, type):
     EmitTokens(ts, type)
 
 
-
-
-
-def TokensTypeFun(ts: TS, node: cwast.TypeFun):
+def _EmitTypeFun(ts: TS, node: cwast.TypeFun):
     ts.EmitUnOp("funtype")
     _EmitParameterList(ts, node.params)
     EmitTokens(ts, node.result)
-
-
-def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
-    EmitTokens(ts, node.container)
-    beg_paren = ts.EmitBegParen("[!" if node.unchecked else "[")
-    EmitTokens(ts, node.expr_index)
-    ts.EmitEnd(beg_paren)
 
 
 _INFIX_OPS = set([
@@ -272,40 +250,15 @@ _INFIX_OPS = set([
 ])
 
 
-def TokensExpr1(ts: TS, node: cwast.Expr1):
-    kind = node.unary_expr_kind
-    sym = cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[kind]
-    if kind in _FUNCTIONAL_UNOPS:
-        TokensFunctional(ts, sym, [node.expr])
-    else:
-        TokensUnaryPrefix(ts, sym, node.expr)
-
-
-def TokensExpr2(ts: TS, n: cwast.Expr2):
-    kind = n.binary_expr_kind
-    sym = cwast.BINARY_EXPR_SHORTCUT_INV[kind]
-    if kind in _FUNCTIONAL_BINOPS:
-        return TokensFunctional(ts, sym, [n.expr1, n.expr2])
-    else:
-        return TokensBinaryInfix(ts, sym, n.expr1, n.expr2, n)
-
-
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.MacroInvoke: TokensExprMacroInvoke,
     #
-    #
     cwast.TypeVec: lambda ts, n: TokensVecType(ts, n.size, n.type),
-
-
-    cwast.TypeFun:  TokensTypeFun,
+    cwast.TypeFun:  _EmitTypeFun,
     #
-
     cwast.ValCompound: TokensValCompound,
     #
-
     cwast.Expr3: EmitExpr3,
-    cwast.ExprIndex: TokensExprIndex,
-    cwast.ExprField: lambda ts, n: TokensBinaryInfixNoSpace(ts, ".", n.container, n.field, n),
     cwast.ExprStmt: lambda ts, n: _TokensStmtBlock(ts, "expr", "", n.body),
     cwast.ExprParen: lambda ts, n: TokensParenGrouping(ts, n.expr),
 }
@@ -380,6 +333,7 @@ def _EmitFunctional(out, name, nodes: list):
     _EmitParenList(out, nodes)
     out += [PP.End()]
 
+
 def _EmitParameterList(out, lst):
     out += [PP.Begin(PP.BreakType.CONSISTENT, 2), PP.String("(")]
     first = True
@@ -405,6 +359,7 @@ def _EmitParameterList(out, lst):
         out += [PP.End()]
     out += [PP.Break(0), PP.String(")"), PP.End()]
 
+
 def _EmitUnary(out, a, b):
     if isinstance(a, str):
         out += [PP.String(a)]
@@ -427,17 +382,30 @@ def _EmitExpr1(out, node: cwast.Expr1):
         _EmitUnary(out, sym, node.expr)
 
 
-def _EmitExpr2(out, n: cwast.Expr2):
-    kind = n.binary_expr_kind
+def _EmitBinary(out, node, expr1, width1: int, op: str, width2: int, expr2):
+    _EmitExprOrType(out, expr1)
+    out += [PP.Break(width1)]
+    _MaybeEmitAnnotations(out, node)
+    out += [PP.String(op), PP.Break(width2)]
+    _EmitExprOrType(out, expr2)
+
+
+def _EmitExpr2(out, node: cwast.Expr2):
+    kind = node.binary_expr_kind
     sym = cwast.BINARY_EXPR_SHORTCUT_INV[kind]
     if kind in _FUNCTIONAL_BINOPS:
-        _EmitFunctional(out, sym, [n.expr1, n.expr2])
+        _EmitFunctional(out, sym, [node.expr1, node.expr2])
     else:
-        _EmitExprOrType(out, n.expr1)
-        out += [PP.Break()]
-        _MaybeEmitAnnotations(out, n)
-        out += [PP.String(sym), PP.Break()]
-        _EmitExprOrType(out, n.expr2)
+        _EmitBinary(out, node, node.expr1, 1, sym, 1, node.expr2)
+
+
+def _EmitExprIndex(out, node: cwast.ExprIndex):
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    _EmitExprOrType(out, node.container)
+    out += [PP.Break(0), PP.String(WithExcl("[", node.unchecked)),
+            PP.Break(0)]
+    _EmitExprOrType(out, node.expr_index)
+    out += [PP.Break(0), PP.String("]"), PP.End()]
 
 
 _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
@@ -492,6 +460,10 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.ExprDeref: lambda out, n: _EmitUnary(out, "^", n.expr),
     cwast.ExprAddrOf: lambda out, n: _EmitUnary(out, WithExcl(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
     cwast.TypePtr: lambda out, n: _EmitUnary(out, WithExcl("^", n.mut), n.type),
+    #
+    cwast.ExprField: lambda out, n: _EmitBinary(
+        out, n, n.container, 0, ".", 0, n.field),
+    cwast.ExprIndex: _EmitExprIndex,
 
 }
 
@@ -716,7 +688,7 @@ def _EmitStatement(out, n):
 
         # we know the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
-        _EmitStatements(out, n.body_f)
+        _EmitStatements(out, n.body_for)
 
     else:
         assert False, f"{n}"
