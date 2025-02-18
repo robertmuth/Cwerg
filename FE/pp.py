@@ -350,6 +350,7 @@ def _EmitParameterList(out, lst):
             out += [PP.Break(0), PP.String(","), PP.Break()]
         first = False
         _MaybeEmitDoc(out, param)
+        #
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, param)
         out += [PP.String(str(param.name)), PP.Break()]
@@ -538,12 +539,16 @@ def _TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
     ts.EmitStmtEnd(beg)
 
 
-def _IsMacroWithBlock(node: cwast.MacroInvoke):
+def _IsColonEmphemeral(node) -> bool:
+    return isinstance(node, cwast.EphemeralList) and node.colon
+
+
+def _IsMacroWithBlock(node: cwast.MacroInvoke) -> bool:
     if node.name in cwast.BUILT_IN_STMT_MACROS:
         return True
     if node.args:
         last = node.args[-1]
-        if isinstance(last, cwast.EphemeralList) and last.colon:
+        if _IsColonEmphemeral(last):
             return True
     return False
 
@@ -556,41 +561,79 @@ def _GetOriginalVarName(node) -> str:
         return str(node.name)
 
 
-def _TokensStmtMacroInvoke(ts: TS, node: cwast.MacroInvoke):
+def _EmitMacroInvoke(out, node: cwast.MacroInvoke):
     """Handles Stmt Macros"""
-    beg = ts.EmitStmtBeg(str(node.name))
+    name = node.name.name
+    out += [PP.String(str(name))]
     is_block_like = _IsMacroWithBlock(node)
     if not is_block_like:
-        beg_paren = ts.EmitBegParen("(")
-
+        out += [PP.Break(0),
+                PP.Begin(PP.BreakType.INCONSISTENT, 2),
+                PP.String("(")]
     args = node.args
-    name = node.name.name
     if name == "for":
-        ts.EmitAttr(_GetOriginalVarName(args[0]))
+        out += [PP.Break(),
+                PP.String(_GetOriginalVarName(args[0])),
+                PP.Break(),
+                PP.String("="),
+                PP.Break(),
+                ]
         args = args[1:]
-        ts.EmitBinOp("=")
     elif name == "tryset":
-        EmitTokens(ts, args[0])
+        out += [PP.Break(),
+                PP.String(_GetOriginalVarName(args[0])),
+                PP.Break(),
+                PP.String("="),
+                PP.Break(),
+                ]
         args = args[1:]
-        ts.EmitBinOp("=")
     elif name == "trylet" or name == "trylet!":
-        ts.EmitAttr(_GetOriginalVarName(args[0]))
-        EmitTokens(ts, args[1])
+        out += [PP.Break(),
+                PP.String(_GetOriginalVarName(args[0])),
+                PP.Break(),
+                PP.String("EXPR"),
+                #  EmitTokens(ts, args[1])
+                PP.String("="),
+                PP.Break(),
+                ]
         args = args[2:]
-        ts.EmitBinOp("=")
-
-    had_colon = TokensMacroInvokeArgs(ts, args, beg)
+    #
+    first = True
+    for a in args:
+        if _IsColonEmphemeral(a):
+            out += [PP.Break(0), PP.String(":"), PP.End()]
+            out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+            _EmitStatements(out, a.args)
+            continue
+        elif not first:
+            out += [PP.Break(0), PP.String(","), PP.Break()]
+        first = False
+        #
+        if isinstance(a, cwast.Id):
+            out += [PP.String(a.FullName())]
+        elif isinstance(a, cwast.EphemeralList):
+            out += [PP.String("TODO-LIST")]
+        else:
+            out += [PP.String("ARG")]
 
     if not is_block_like:
-        ts.EmitEnd(beg_paren)
-    if not had_colon:
-        ts.EmitStmtEnd(beg)
+        out += [PP.Break(0), PP.String(")"), PP.End()]
+
+
+def _EmitStatements(out, lst):
+    emit_break = False
+    for child in lst:
+        if emit_break:
+            out += [PP.Break()]
+        emit_break = True
+        _EmitStatement(out, child)
 
 
 def _EmitStatement(out, n):
     _MaybeEmitDoc(out, n)
     out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
     _MaybeEmitAnnotations(out, n)
+    #
     if isinstance(n, cwast.StmtContinue):
         out += [PP.String("continue")]
         if n.target:
@@ -607,12 +650,14 @@ def _EmitStatement(out, n):
     elif isinstance(n, cwast.StmtTrap):
         out += [PP.String("trap")]
     elif isinstance(n, cwast.StmtAssignment):
-        out += [PP.String("EXPR"), PP.Break(), PP.String("="),
+        out += [PP.String("set"), PP.Break(), PP.String("EXPR"),
+                PP.Break(), PP.String("="),
                 PP.Break(), PP.String("EXPR")]
         # _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.StmtCompoundAssignment):
         op = cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind]
-        out += [PP.String("EXPR"), PP.Break(), PP.String(op),
+        out += [PP.String("set"), PP.Break(), PP.String("EXPR"),
+                PP.Break(), PP.String(op),
                 PP.Break(), PP.String("EXPR")]
         # _TokensStmtSet(ts, op, n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.DefVar):
@@ -624,8 +669,32 @@ def _EmitStatement(out, n):
         if not isinstance(n.initial_or_undef_or_auto, cwast.ValAuto):
             out += [PP.Break(), PP.String("="), PP.Break()]
             out += [PP.String("INIT")]
-         # _TokensStmtLet(ts, , str(n.name),
-         #              n.type_or_auto, n.initial_or_undef_or_auto)
+        # _TokensStmtLet(ts, , str(n.name),
+        #              n.type_or_auto, n.initial_or_undef_or_auto)
+    elif isinstance(n, cwast.StmtExpr):
+        out += [PP.String("do"), PP.Break(), PP.String("EXPR")]
+        # _TokensSimpleStmt(ts, "do", n.expr)
+    elif isinstance(n, cwast.StmtDefer):
+        out += [PP.String("defer"), PP.Break(0), PP.String(":"),
+                PP.Break(),
+                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        _EmitStatements(out, n.body)
+        out += [PP.End()]
+
+    elif isinstance(n, cwast.StmtCond):
+        out += [PP.String("cond"), PP.Break(0), PP.String(":"),
+                PP.End(),
+                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        _EmitStatements(out, n.cases)
+    elif isinstance(n, cwast.Case):
+        out += [PP.String("case"), PP.Break()]
+        out += [PP.String("EXPR")]
+        # EmitTokens(ts, n.cond)
+        out += [PP.Break(0), PP.String(":"), PP.End(),
+                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        _EmitStatements(out, n.body)
+    elif isinstance(n, cwast.MacroInvoke):
+        _EmitMacroInvoke(out, n)
     else:
         out += [PP.String("STMT")]
     out += [PP.End()]
@@ -633,16 +702,8 @@ def _EmitStatement(out, n):
     if False:
         pass
 
-    elif isinstance(n, cwast.StmtExpr):
-        _TokensSimpleStmt(ts, "do", n.expr)
-    elif isinstance(n, cwast.StmtDefer):
-        _TokensStmtBlock(ts, "defer", "", n.body)
     elif isinstance(n, cwast.StmtBlock):
         _TokensStmtBlock(ts, "block", n.label, n.body)
-    elif isinstance(n,  cwast.Case):
-        _TokensStmtBlock(ts, "case", n.cond, n.body)
-    elif isinstance(n, cwast.StmtCond):
-        _TokensStmtBlock(ts, "cond", "", n.cases)
 
     elif isinstance(n, cwast.StmtIf):
         _TokensStmtBlock(ts, "if", n.cond, n.body_t)
@@ -657,7 +718,7 @@ def _EmitStatement(out, n):
         # since it occurs in a stmt context
         _EmitCodeBlock(ts, n.body_for)
     elif isinstance(n, cwast.MacroInvoke):
-        _TokensStmtMacroInvoke(ts, n)
+        _EmitMacroInvoke(ts, n)
     elif isinstance(n, cwast.MacroId):
         ts.EmitAttr(str(n.name))
         ts.EmitNewline()
@@ -762,12 +823,7 @@ def _EmitTokensToplevel(out, node):
                 PP.String(":"), PP.End()]
         # EmitTokens(ts, node.result)
         out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-        emit_break = False
-        for child in node.body:
-            if emit_break:
-                out += [PP.Break()]
-            emit_break = True
-            _EmitStatement(out, child)
+        _EmitStatements(out, node.body)
     elif isinstance(node, cwast.DefMacro):
         out += [PP.String("macro"),
                 PP.Break(),
