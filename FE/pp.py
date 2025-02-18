@@ -133,23 +133,6 @@ def AddMissingParens(node):
 TS = str
 
 
-def TokensParenList(ts: TS, lst):
-    sep = False
-    beg = ts.EmitBegParen("(")
-    for t in lst:
-        if sep:
-            ts.EmitSep(",")
-        sep = True
-        EmitTokens(ts, t)
-    ts.EmitEnd(beg)
-
-
-def TokensParenGrouping(ts: TS, expr):
-    beg = ts.EmitBegExprParen("(")
-    EmitTokens(ts, expr)
-    ts.EmitEnd(beg)
-
-
 def EmitExpr3(ts: TS, node: cwast.Expr3):
     EmitTokens(ts, node.cond)
     ts.EmitAttr("?")
@@ -202,58 +185,20 @@ def TokensExprMacroInvoke(ts: TS, node: cwast.MacroInvoke):
     ts.EmitEnd(beg_paren)
 
 
-def TokensValCompound(ts: TS, node: cwast.ValCompound):
-    # EmitTokens(ts, node.type)
-    sizes = []
-    beg = ts.EmitBegExprParen("{")
-    if not isinstance(node.type_or_auto, cwast.TypeAuto):
-        EmitTokens(ts, node.type_or_auto)
-    ts.EmitToken(TK.UNOP_SUFFIX, ":")
-
-    sep = False
-    for e in node.inits:
-        if sep:
-            ts.EmitSep(",")
-        sep = True
-        TokensAnnotationsPre(ts, e)
-        start = ts.Pos()
-        if isinstance(e, cwast.ValPoint):
-            if not isinstance(e.point, cwast.ValAuto):
-                EmitTokens(ts, e.point)
-                ts.EmitAttr("=")
-            EmitTokens(ts, e.value_or_undef)
-        else:
-            assert False
-        sizes.append(ts.Pos() - start)
-    if len(sizes) > 5 and max(sizes) < MAX_LINE_LEN:
-        beg.long_array_val = True
-    ts.EmitEnd(beg)
-
-
-def _EmitTypeFun(ts: TS, node: cwast.TypeFun):
-    ts.EmitUnOp("funtype")
-    _EmitParameterList(ts, node.params)
-    EmitTokens(ts, node.result)
-
-
-_INFIX_OPS = set([
-    cwast.ExprIndex,
-    cwast.ExprField,
-    cwast.Expr2,
-])
-
-
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
     cwast.MacroInvoke: TokensExprMacroInvoke,
-    #
-    cwast.TypeFun:  _EmitTypeFun,
-    #
-    cwast.ValCompound: TokensValCompound,
-    #
     cwast.Expr3: EmitExpr3,
     cwast.ExprStmt: lambda ts, n: _TokensStmtBlock(ts, "expr", "", n.body),
-    cwast.ExprParen: lambda ts, n: TokensParenGrouping(ts, n.expr),
 }
+
+
+def _EmitTypeFun(out, node: cwast.TypeFun):
+    out += [PP.Begin(PP.BreakType.CONSISTENT, 2),
+            PP.String("funtype"), PP.Break(0)]
+    _EmitParameterList(out, node.params)
+    out += [PP.Break()]
+    _EmitExprOrType(out, node.result)
+    out += [PP.End()]
 
 
 def _GetDoc(node):
@@ -412,6 +357,33 @@ def _EmitVecType(out, size, type):
     out += [PP.End()]
 
 
+def _EmitParenGrouping(out, node: cwast.ExprParen):
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2),
+            PP.String("("), PP.Break(0)]
+    _EmitExprOrType(out, node.expr)
+    out += [PP.End()]
+
+
+def _EmitValCompound(out, node: cwast.ValCompound):
+    out += [PP.Begin(PP.BreakType.CONSISTENT, 2),
+            PP.String("{"), PP.WeakBreak(0)]
+    if not isinstance(node.type_or_auto, cwast.TypeAuto):
+        _EmitExprOrType(out, node.type_or_auto)
+        out += [PP.WeakBreak(0)]
+    out += [PP.String(":")]
+    emit_comma = False
+    for e in node.inits:
+        if emit_comma:
+            out += [PP.Break(0), PP.String(",")]
+        out += [PP.Break()]
+        _MaybeEmitDoc(out, e)
+        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        _MaybeEmitAnnotations(out, e)
+        _EmitExprOrType(out, e)
+        out += [PP.End()]
+    out += [PP.Break(0), PP.String("}"), PP.End()]
+
+
 _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.Id: lambda out, n:  out.extend([PP.String(n.FullName())]),
     cwast.MacroId: lambda out, n: out.extend([PP.String(str(n.name))]),
@@ -469,13 +441,14 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
         out, n, n.container, 0, ".", 0, n.field),
     cwast.ExprIndex: _EmitExprIndex,
     cwast.TypeVec: lambda out, n: _EmitVecType(out, n.size, n.type),
+    cwast.TypeFun:  _EmitTypeFun,
+    cwast.ExprParen: lambda out, n: _EmitParenGrouping(out, n),
+    cwast.ValCompound: _EmitValCompound,
+
 }
 
 
 def _EmitExprOrType(out, node):
-    # emit any comments and annotations preceeding the node
-    if node.__class__ not in _INFIX_OPS:
-        _MaybeEmitAnnotations(out, node)
     emitter = _EMITTER_TAB.get(node.__class__)
     if emitter:
         emitter(out, node)
@@ -774,7 +747,7 @@ def _EmitTokensToplevel(out, node):
         out += [PP.String("fun"),
                 PP.Break(),
                 PP.String(str(node.name))]
-        out += [PP.Break(0)]
+        out += [PP.WeakBreak(0)]
         _EmitParameterList(out, node.params)
         out += [PP.Break()]
         _EmitExprOrType(out, node.result)
