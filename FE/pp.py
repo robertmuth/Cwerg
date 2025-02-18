@@ -129,44 +129,6 @@ def AddMissingParens(node):
 # Token
 ############################################################
 
-
-_KEYWORDS = [
-    "enum", "fun", "import", "rec", "static_assert", "type",
-
-    "module", "defer", "block", "expr",
-    "break", "continue",  "cond", "type", "if",
-    "do", "case", "set", "for", "macro",
-    "while", "tryset", "trap", "return",
-    "mfor", "else",
-]
-
-KEYWORDS_WITH_EXCL_SUFFIX = {
-    # Statements
-    "trylet": "mut",
-    "let": "mut",
-    "global": "mut",
-    # Expressions
-    "span": "mut",
-    "front": "mut",
-    "union": "untagged",
-    "narrow_as": "unchecked"
-}
-
-BEG_TOKENS = set(_KEYWORDS +
-                 [k for k in KEYWORDS_WITH_EXCL_SUFFIX] +
-                 [k + "!" for k in KEYWORDS_WITH_EXCL_SUFFIX])
-
-MAX_LINE_LEN = 80
-
-
-_MATCHING_CLOSING_BRACE = {
-    "(": ")",
-    "[": "]",
-    "[!": "]",
-    "{": "}",
-}
-
-
 TS = str
 
 
@@ -373,13 +335,6 @@ def TokensTypeFun(ts: TS, node: cwast.TypeFun):
     EmitTokens(ts, node.result)
 
 
-def _EmitCodeBlock(ts: TS, stmts):
-    beg_colon = ts.EmitColonBeg()
-    for child in stmts:
-        _EmitStatement(ts, child)
-    ts.EmitColonEnd(beg_colon)
-
-
 def TokensExprIndex(ts: TS, node: cwast.ExprIndex):
     EmitTokens(ts, node.container)
     beg_paren = ts.EmitBegParen("[!" if node.unchecked else "[")
@@ -504,7 +459,7 @@ def _EmitStmtSet(out, kind, lhs, rhs):
     # _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
 
 
-def _EmitStmtLet(out, kind: str, name: str, type_or_auto, init_or_auto):
+def _EmitStmtLetOrGlobal(out, kind: str, name: str, type_or_auto, init_or_auto):
     out += [PP.String(kind), PP.Break(),
             PP.String(str(name))]
     if not isinstance(type_or_auto, cwast.TypeAuto):
@@ -553,8 +508,8 @@ def _EmitIdList(out, lst):
     out += [PP.Break(0), PP.String("]"), PP.End()]
 
 
-def _EmitMacroInvoke(out, node: cwast.MacroInvoke):
-    """Handles Stmt Macros"""
+def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
+    """Handle  Macro Invocation in Stmt Context"""
     name = node.name.name
     out += [PP.String(str(name))]
     is_block_like = _IsMacroWithBlock(node)
@@ -648,8 +603,8 @@ def _EmitStatement(out, n):
                      cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
                      n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.DefVar):
-        _EmitStmtLet(out, WithExcl("let", n.mut),
-                     n.name, n.type_or_auto, n.initial_or_undef_or_auto)
+        _EmitStmtLetOrGlobal(out, WithExcl("let", n.mut),
+                             n.name, n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.StmtExpr):
         out += [PP.String("do"), PP.Break(), PP.String("EXPR")]
         # _TokensSimpleStmt(ts, "do", n.expr)
@@ -673,7 +628,7 @@ def _EmitStatement(out, n):
                 PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         _EmitStatements(out, n.body)
     elif isinstance(n, cwast.MacroInvoke):
-        _EmitMacroInvoke(out, n)
+        _EmitStmtMacroInvoke(out, n)
     elif isinstance(n, cwast.MacroId):
         out += [PP.String(str(n.name))]
     elif isinstance(n, cwast.StmtBlock):
@@ -724,8 +679,8 @@ def _EmitTokensToplevel(out, node):
     _MaybeEmitAnnotations(out, node)
 
     if isinstance(node, cwast.DefGlobal):
-        _EmitStmtLet(out, WithExcl("global", node.mut),
-                     node.name, node.type_or_auto, node.initial_or_undef_or_auto)
+        _EmitStmtLetOrGlobal(out, WithExcl("global", node.mut),
+                             node.name, node.type_or_auto, node.initial_or_undef_or_auto)
     elif isinstance(node, cwast.Import):
         out += [PP.String("import"),
                 PP.Break(),
@@ -836,14 +791,12 @@ def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
             emit_break = True
             _EmitTokensToplevel(out, child)
         out += [PP.End()]
-    # beg_colon = ts.EmitColonBeg()
-    # for child in node.body_mod:
-    #    _EmitTokensToplevel(ts, child)
-
 
 ############################################################
 #
 ############################################################
+
+
 def PrettyPrint(mod: cwast.DefMod, outp):
     cwast.CheckAST(mod, set(), pre_symbolize=True)
     out: list[PP.Token] = [PP.Begin(PP.BreakType.CONSISTENT, 0)]

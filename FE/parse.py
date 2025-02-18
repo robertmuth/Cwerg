@@ -23,6 +23,17 @@ from FE import lexer_tab as lexer
 
 logger = logging.getLogger(__name__)
 
+_KEYWORDS_WITH_EXCL_SUFFIX = {
+    # Statements
+    "trylet": "mut",
+    "let": "mut",
+    "global": "mut",
+    # Expressions
+    "span": "mut",
+    "front": "mut",
+    "union": "untagged",
+    "narrow_as": "unchecked"
+}
 
 def _ExtractAnnotations(tk: lexer.TK) -> dict[str, Any]:
     out: dict[str, Any] = {"x_srcloc": tk.srcloc}
@@ -137,7 +148,7 @@ def _ParseFunLike(inp: lexer.Lexer, name: lexer.TK) -> Any:
     params: list[Any] = []
     extra = _ExtractAnnotations(name)
     if name.text.endswith(cwast.MUTABILITY_SUFFIX):
-        extra[pp.KEYWORDS_WITH_EXCL_SUFFIX[fun_name[:-1]]] = True
+        extra[_KEYWORDS_WITH_EXCL_SUFFIX[fun_name[:-1]]] = True
     for a in args:
         if inp.peek().kind is lexer.TK_KIND.PAREN_CLOSED and a == "e":
             params.append(cwast.ValUndef(x_srcloc=name.srcloc))
