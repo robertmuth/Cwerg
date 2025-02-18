@@ -194,7 +194,7 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
 
 def _EmitTypeFun(out, node: cwast.TypeFun):
     out += [PP.Begin(PP.BreakType.CONSISTENT, 2),
-            PP.String("funtype"), PP.Break(0)]
+            PP.String("funtype"), PP.WeakBreak(0)]
     _EmitParameterList(out, node.params)
     out += [PP.Break()]
     _EmitExprOrType(out, node.result)
@@ -251,7 +251,7 @@ def _EmitParenList(out, lst):
     first = True
     for param in lst:
         if first:
-            out += [PP.Break(0)]
+            out += [PP.WeakBreak(0)]
         else:
             out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
         first = False
@@ -279,7 +279,7 @@ def _EmitParameterList(out, lst):
     first = True
     for param in lst:
         if first:
-            out += [PP.Break(0)]
+            out += [PP.WeakBreak(0)]
         else:
             out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
         first = False
@@ -471,7 +471,7 @@ def _EmitStmtLetOrGlobal(out, kind: str, name: str, type_or_auto, init_or_auto):
         out += [PP.Break()]
         _EmitExprOrType(out, type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
-        out += [PP.Break(), PP.String("="), PP.Break()]
+        out += [PP.Break(), PP.String("="), PP.WeakBreak(1)]
         _EmitExprOrType(out, init_or_auto)
 
 
@@ -712,10 +712,11 @@ def _EmitTokensToplevel(out, node):
         out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         emit_break = False
         for f in node.fields:
-            _MaybeEmitDoc(out, f)
             if emit_break:
                 out += [PP.Break()]
             emit_break = True
+            _MaybeEmitDoc(out, f)
+
             out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
             _MaybeEmitAnnotations(out, f)
             out += [PP.String(str(f.name)), PP.Break()]
@@ -735,14 +736,17 @@ def _EmitTokensToplevel(out, node):
                 PP.String(":"),
                 PP.End()]
         out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        emit_break = False
         for ef in node.items:
+            if emit_break:
+                out += [PP.Break()]
+            emit_break = True
             _MaybeEmitDoc(out, ef)
             out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
             _MaybeEmitAnnotations(out, ef)
             out += [PP.String(str(ef.name)), PP.Break()]
-            # EmitTokens(ts, ef.value_or_auto)
-            out += [PP.String("VALUE"),
-                    PP.End()]
+            _EmitExprOrType(out, ef.value_or_auto)
+            out += [PP.End()]
     elif isinstance(node, cwast.DefFun):
         out += [PP.String("fun"),
                 PP.Break(),
@@ -760,7 +764,7 @@ def _EmitTokensToplevel(out, node):
                 PP.String(str(node.name)),
                 PP.Break(),
                 PP.String(node.macro_result_kind.name),
-                PP.Break()]
+                PP.WeakBreak(1)]
         _EmitParameterList(out, node.params_macro)
         out += [PP.Break()]
         _EmitIdList(out, node.gen_ids)
@@ -783,7 +787,7 @@ def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
 
     out += [PP.String("module")]
     if node.params_mod:
-        out += [PP.Break(0)]
+        out += [PP.WeakBreak(0)]
         _EmitParameterList(out, node.params_mod)
     out += [PP.Break(0), PP.String(":"), PP.End()]
     if node.body_mod:
