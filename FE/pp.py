@@ -520,23 +520,24 @@ def _TokensStmtBlock(ts: TS, kind, arg, stmts):
     _EmitCodeBlock(ts, stmts)
 
 
-def _TokensStmtSet(ts: TS, kind, lhs, rhs):
-    beg = ts.EmitStmtBeg("set")
-    EmitTokens(ts, lhs)
-    ts.EmitBinOp(kind)
-    EmitTokens(ts, rhs)
-    ts.EmitStmtEnd(beg)
+def _EmitStmtSet(out, kind, lhs, rhs):
+    out += [PP.String("set"), PP.Break(), PP.String("EXPR"),
+            PP.Break(), PP.String(kind),
+            PP.Break(), PP.String("EXPR")]
+    # _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
 
 
-def _TokensStmtLet(ts: TS, kind, name: str, type_or_auto, init_or_auto):
-    beg = ts.EmitStmtBeg(kind)
-    ts.EmitAttr(name)
+def _EmitStmtLet(out, kind: str, name: str, type_or_auto, init_or_auto):
+    out += [PP.String(kind), PP.Break(),
+            PP.String(str(name))]
     if not isinstance(type_or_auto, cwast.TypeAuto):
-        EmitTokens(ts, type_or_auto)
+        # EmitTokens(ts, node.type_or_auto)
+        out += [PP.Break(), PP.String("TYPE")]
     if not isinstance(init_or_auto, cwast.ValAuto):
-        ts.EmitBinOp("=")
-        EmitTokens(ts, init_or_auto)
-    ts.EmitStmtEnd(beg)
+        out += [PP.Break(), PP.String("="), PP.Break()]
+        out += [PP.String("INIT")]
+    # _TokensStmtLet(ts, , str(n.name),
+    #              n.type_or_auto, n.initial_or_undef_or_auto)
 
 
 def _IsColonEmphemeral(node) -> bool:
@@ -650,27 +651,14 @@ def _EmitStatement(out, n):
     elif isinstance(n, cwast.StmtTrap):
         out += [PP.String("trap")]
     elif isinstance(n, cwast.StmtAssignment):
-        out += [PP.String("set"), PP.Break(), PP.String("EXPR"),
-                PP.Break(), PP.String("="),
-                PP.Break(), PP.String("EXPR")]
-        # _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
+        _EmitStmtSet(out, "=", n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.StmtCompoundAssignment):
-        op = cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind]
-        out += [PP.String("set"), PP.Break(), PP.String("EXPR"),
-                PP.Break(), PP.String(op),
-                PP.Break(), PP.String("EXPR")]
-        # _TokensStmtSet(ts, op, n.lhs, n.expr_rhs)
+        _EmitStmtSet(out,
+                     cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
+                     n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.DefVar):
-        out += [PP.String(WithExcl("let", n.mut)), PP.Break(),
-                PP.String(str(n.name))]
-        if not isinstance(n.type_or_auto, cwast.TypeAuto):
-            # EmitTokens(ts, node.type_or_auto)
-            out += [PP.Break(), PP.String("TYPE")]
-        if not isinstance(n.initial_or_undef_or_auto, cwast.ValAuto):
-            out += [PP.Break(), PP.String("="), PP.Break()]
-            out += [PP.String("INIT")]
-        # _TokensStmtLet(ts, , str(n.name),
-        #              n.type_or_auto, n.initial_or_undef_or_auto)
+        _EmitStmtLet(out, WithExcl("let", n.mut),
+                     n.name, n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.StmtExpr):
         out += [PP.String("do"), PP.Break(), PP.String("EXPR")]
         # _TokensSimpleStmt(ts, "do", n.expr)
@@ -746,16 +734,8 @@ def _EmitTokensToplevel(out, node):
     _MaybeEmitAnnotations(out, node)
 
     if isinstance(node, cwast.DefGlobal):
-        out += [PP.String(WithExcl("global", node.mut)),
-                PP.Break(),
-                PP.String(str(node.name))]
-        if not isinstance(node.type_or_auto, cwast.TypeAuto):
-            # EmitTokens(ts, node.type_or_auto)
-            out += [PP.Break(), PP.String("TYPE")]
-        if not isinstance(node.initial_or_undef_or_auto, cwast.ValAuto):
-            out += [PP.Break(), PP.String("="), PP.Break()]
-            out += [PP.String("INIT")]
-            # EmitTokens(ts, node.initial_or_undef_or_auto)
+        _EmitStmtLet(out, WithExcl("global", node.mut),
+                     node.name, node.type_or_auto, node.initial_or_undef_or_auto)
     elif isinstance(node, cwast.Import):
         out += [PP.String("import"),
                 PP.Break(),
