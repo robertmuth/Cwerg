@@ -129,6 +129,7 @@ def AddMissingParens(node):
 # Token
 ############################################################
 
+
 TS = str
 
 
@@ -439,10 +440,12 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
 }
 
 
-def EmitTokens(ts: TS, node):
+def _EmitExprOrType(out, node):
     # emit any comments and annotations preceeding the node
     if node.__class__ not in _INFIX_OPS:
-        TokensAnnotationsPre(ts, node)
+        _MaybeEmitAnnotations(out, node)
+    out += [PP.String("TODO-EXPR")]
+    return
 
     gen = _CONCRETE_SYNTAX.get(node.__class__)
     assert gen, f"unknown node {node.__class__}"
@@ -453,23 +456,22 @@ def EmitTokens(ts: TS, node):
 
 
 def _EmitStmtSet(out, kind, lhs, rhs):
-    out += [PP.String("set"), PP.Break(), PP.String("EXPR"),
-            PP.Break(), PP.String(kind),
-            PP.Break(), PP.String("EXPR")]
-    # _TokensStmtSet(ts, "=", n.lhs, n.expr_rhs)
+    out += [PP.String("set"), PP.Break()]
+    _EmitExprOrType(out, lhs)
+    out += [PP.Break(), PP.String(kind),
+            PP.Break()]
+    _EmitExprOrType(out, rhs)
 
 
 def _EmitStmtLetOrGlobal(out, kind: str, name: str, type_or_auto, init_or_auto):
     out += [PP.String(kind), PP.Break(),
             PP.String(str(name))]
     if not isinstance(type_or_auto, cwast.TypeAuto):
-        # EmitTokens(ts, node.type_or_auto)
-        out += [PP.Break(), PP.String("TYPE")]
+        out += [PP.Break()]
+        _EmitExprOrType(out, type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
         out += [PP.Break(), PP.String("="), PP.Break()]
-        out += [PP.String("INIT")]
-    # _TokensStmtLet(ts, , str(n.name),
-    #              n.type_or_auto, n.initial_or_undef_or_auto)
+        _EmitExprOrType(out, init_or_auto)
 
 
 def _IsColonEmphemeral(node) -> bool:
@@ -561,7 +563,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
         elif isinstance(a, cwast.EphemeralList):
             out += [PP.String("TODO-LIST")]
         else:
-            out += [PP.String("ARG")]
+            _EmitExprOrType(out, a)
 
     if not is_block_like:
         out += [PP.Break(0), PP.String(")"), PP.End()]
@@ -592,8 +594,8 @@ def _EmitStatement(out, n):
     elif isinstance(n, cwast.StmtReturn):
         out += [PP.String("return")]
         if not isinstance(n.expr_ret, cwast.ValVoid):
-            out += [PP.Break(), PP.String("EXPR")]
-            # EmitTokens(ts, n.expr_ret)
+            out += [PP.Break()]
+            _EmitExprOrType(out, n.expr_ret)
     elif isinstance(n, cwast.StmtTrap):
         out += [PP.String("trap")]
     elif isinstance(n, cwast.StmtAssignment):
