@@ -150,14 +150,6 @@ def TokensParenGrouping(ts: TS, expr):
     ts.EmitEnd(beg)
 
 
-def TokensFunctional(ts: TS, name, nodes: list):
-    if isinstance(name, str):
-        ts.EmitName(name)
-    else:
-        EmitTokens(ts, name)
-    TokensParenList(ts, nodes)
-
-
 def TokensBinaryInfix(ts: TS, name: str, node1, node2, node):
     EmitTokens(ts, node1)
     TokensAnnotationsPre(ts, node)
@@ -188,40 +180,6 @@ def EmitExpr3(ts: TS, node: cwast.Expr3):
     EmitTokens(ts, node.expr_t)
     ts.EmitAttr(":")
     EmitTokens(ts, node.expr_f)
-
-
-def _GetDoc(node):
-    for nfd in node.ATTRS:
-        if nfd.name == "doc":
-            val = getattr(node, "doc")
-            return val
-    return None
-
-
-def _MaybeEmitDoc(out, node):
-    doc = _GetDoc(node)
-    if doc:
-        for line in doc.split("\n"):
-            if not line:
-                out += [PP.String(";"), PP.LineBreak()]
-            else:
-                out += [PP.String("; " + line), PP.LineBreak()]
-
-
-def _MaybeEmitAnnotations(out, node):
-    for nfd in node.ATTRS:
-        if nfd.kind is not cwast.NFK.ATTR_BOOL:
-            continue
-        field = nfd.name
-        if field in ("untagged", "mut", "unchecked"):
-            # these are handled by the ! suffix
-            continue
-        val = getattr(node, field)
-        if not val:
-            continue
-        if field not in ("pub", "wrapped", "ref", "poly"):
-            field = "{{" + field + "}}"
-        out += [PP.String(field), PP.Break()]
 
 
 def TokensMacroInvokeArgs(ts: TS, args, beg_invoke):
@@ -349,18 +307,6 @@ _INFIX_OPS = set([
 ])
 
 
-def TokensValString(ts: TS, node: cwast.ValString):
-    ts.EmitAttr(node.render()),
-
-
-def WithExcl(name: str, mutable: bool) -> str:
-    return name + "!" if mutable else name
-
-
-def KW(node) -> str:
-    return node.ALIAS
-
-
 def TokensExpr1(ts: TS, node: cwast.Expr1):
     kind = node.unary_expr_kind
     sym = cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[kind]
@@ -380,52 +326,19 @@ def TokensExpr2(ts: TS, n: cwast.Expr2):
 
 
 _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
-    cwast.Id: lambda ts, n:  (ts.EmitAttr(n.FullName())),
-    cwast.MacroId: lambda ts, n:  (ts.EmitAttr(str(n.name))),
     cwast.MacroInvoke: TokensExprMacroInvoke,
     #
-    cwast.TypeAuto: lambda ts, n: ts.EmitAttr(KW(n)),
-    cwast.TypeBase: lambda ts, n: ts.EmitAttr(cwast.BaseTypeKindToKeyword(n.base_type_kind)),
     #
-    cwast.TypeSpan: lambda ts, n: TokensFunctional(ts, WithExcl("span", n.mut), [n.type]),
-    cwast.TypeOf: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
-    cwast.TypeUnion: lambda ts, n: TokensFunctional(ts, WithExcl("union", n.untagged), n.types),
     cwast.TypePtr: lambda ts, n: TokensUnaryPrefix(ts, WithExcl("^", n.mut), n.type),
     cwast.TypeVec: lambda ts, n: TokensVecType(ts, n.size, n.type),
-    cwast.TypeUnionDelta: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, n.subtrahend]),
+
+
     cwast.TypeFun:  TokensTypeFun,
     #
-    cwast.ValNum: lambda ts, n: ts.EmitAttr(n.number),
-    cwast.ValTrue: lambda ts, n: ts.EmitAttr(KW(n)),
-    cwast.ValFalse: lambda ts, n: ts.EmitAttr(KW(n)),
-    cwast.ValUndef: lambda ts, n: ts.EmitAttr(KW(n)),
-    cwast.ValVoid: lambda ts, n: ts.EmitAttr(KW(n)),
-    cwast.ValAuto: lambda ts, n: ts.EmitAttr("auto"),
-    cwast.ValSpan: lambda ts, n: TokensFunctional(ts, "make_span", [n.pointer, n.expr_size]),
-    cwast.ValString: TokensValString,
+
     cwast.ValCompound: TokensValCompound,
     #
-    cwast.ExprFront: lambda ts, n: TokensFunctional(ts, WithExcl(KW(n), n.mut), [n.container]),
-    cwast.ExprUnionTag: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
-    cwast.ExprAs: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
-    cwast.ExprIs: lambda ts, n: TokensFunctional(ts,  KW(n), [n.expr, n.type]),
-    cwast.ExprOffsetof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type, n.field]),
-    cwast.ExprLen: lambda ts, n: TokensFunctional(ts, KW(n), [n.container]),
-    cwast.ExprSizeof: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
-    cwast.ExprTypeId: lambda ts, n: TokensFunctional(ts, KW(n), [n.type]),
-    cwast.ExprUnsafeCast: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
-    cwast.ExprBitCast: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
-    cwast.ExprNarrow: lambda ts, n: TokensFunctional(ts, WithExcl(KW(n), n.unchecked), [n.expr, n.type]),
-    cwast.ExprWiden: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
-    cwast.ExprWrap: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr, n.type]),
-    cwast.ExprUnwrap: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
-    cwast.ExprStringify: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
-    cwast.ExprSrcLoc: lambda ts, n: TokensFunctional(ts, KW(n), [n.expr]),
-    cwast.ExprCall: lambda ts, n: TokensFunctional(ts, n.callee, n.args),
-    cwast.ExprPointer: lambda ts, n: TokensFunctional(
-        ts, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
-        [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
-        [n.expr1, n.expr2, n.expr_bound_or_undef]),
+
     #
     cwast.Expr1: TokensExpr1,
     cwast.Expr2: TokensExpr2,
@@ -439,11 +352,133 @@ _CONCRETE_SYNTAX: dict[Any, Callable[[TS, Any], None]] = {
 }
 
 
+def _GetDoc(node):
+    for nfd in node.ATTRS:
+        if nfd.name == "doc":
+            val = getattr(node, "doc")
+            return val
+    return None
+
+
+def _MaybeEmitDoc(out, node):
+    doc = _GetDoc(node)
+    if doc:
+        for line in doc.split("\n"):
+            if not line:
+                out += [PP.String(";"), PP.LineBreak()]
+            else:
+                out += [PP.String("; " + line), PP.LineBreak()]
+
+
+def _MaybeEmitAnnotations(out, node):
+    for nfd in node.ATTRS:
+        if nfd.kind is not cwast.NFK.ATTR_BOOL:
+            continue
+        field = nfd.name
+        if field in ("untagged", "mut", "unchecked"):
+            # these are handled by the ! suffix
+            continue
+        val = getattr(node, field)
+        if not val:
+            continue
+        if field not in ("pub", "wrapped", "ref", "poly"):
+            field = "{{" + field + "}}"
+        out += [PP.String(field), PP.Break()]
+
+
+def WithExcl(name: str, mutable: bool) -> str:
+    return name + "!" if mutable else name
+
+
+def KW(node) -> str:
+    return node.ALIAS
+
+
+def _EmitParenList(out, lst):
+    out += [PP.String("(")]
+    first = True
+    for param in lst:
+        if first:
+            out += [PP.Break(0)]
+        else:
+            out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
+        first = False
+        _MaybeEmitDoc(out, param)
+        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        _MaybeEmitAnnotations(out, param)
+        _EmitExprOrType(out, param)
+        out += [PP.End()]
+    out += [PP.Break(0), PP.String(")")]
+
+
+def _EmitFunctional(out, name, nodes: list):
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    if isinstance(name, str):
+        out += [PP.String(name)]
+    else:
+        _EmitExprOrType(out, name)
+    out += [PP.WeakBreak(0)]
+    _EmitParenList(out, nodes)
+    out += [PP.End()]
+
+
+_EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
+    cwast.Id: lambda out, n:  out.extend([PP.String(n.FullName())]),
+    cwast.MacroId: lambda out, n: out.extend([PP.String(str(n.name))]),
+    #
+    cwast.ValTrue: lambda out, n: out.append(PP.String(KW(n))),
+    cwast.ValFalse: lambda out, n: out.append(PP.String(KW(n))),
+    cwast.ValUndef: lambda out, n: out.append(PP.String(KW(n))),
+    cwast.ValVoid: lambda out, n: out.append(PP.String(KW(n))),
+    cwast.ValAuto: lambda out, n: out.append(PP.String(KW(n))),
+    cwast.TypeAuto: lambda out, n: out.append(PP.String(KW(n))),
+    #
+    cwast.ValNum: lambda out, n: out.append(PP.String(n.number)),
+    cwast.TypeBase: lambda out, n: out.append(
+        PP.String(cwast.BaseTypeKindToKeyword(n.base_type_kind))),
+    #
+    cwast.ExprFront: lambda out, n: _EmitFunctional(out, WithExcl(KW(n), n.mut), [n.container]),
+    cwast.ExprUnionTag: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
+    cwast.ExprAs: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
+    cwast.ExprIs: lambda out, n: _EmitFunctional(out,  KW(n), [n.expr, n.type]),
+    cwast.ExprOffsetof: lambda out, n: _EmitFunctional(out, KW(n), [n.type, n.field]),
+    cwast.ExprLen: lambda out, n: _EmitFunctional(out, KW(n), [n.container]),
+    cwast.ExprSizeof: lambda out, n: _EmitFunctional(out, KW(n), [n.type]),
+    cwast.ExprTypeId: lambda out, n: _EmitFunctional(out, KW(n), [n.type]),
+    cwast.ExprUnsafeCast: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
+    cwast.ExprBitCast: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
+    cwast.ExprNarrow: lambda out, n: _EmitFunctional(out, WithExcl(KW(n), n.unchecked), [n.expr, n.type]),
+    cwast.ExprWiden: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
+    cwast.ExprWrap: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
+    cwast.ExprUnwrap: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
+    cwast.ExprStringify: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
+    cwast.ExprSrcLoc: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
+    cwast.ExprCall: lambda out, n: _EmitFunctional(out, n.callee, n.args),
+    #
+    cwast.TypeSpan: lambda out, n: _EmitFunctional(out, WithExcl("span", n.mut), [n.type]),
+    cwast.TypeOf: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
+    cwast.TypeUnion: lambda out, n: _EmitFunctional(out, WithExcl("union", n.untagged), n.types),
+    cwast.TypeUnionDelta: lambda out, n: _EmitFunctional(out, KW(n), [n.type, n.subtrahend]),
+    cwast.ValSpan: lambda out, n: _EmitFunctional(out, "make_span", [n.pointer, n.expr_size]),
+    #
+    cwast.ExprPointer: lambda out, n: _EmitFunctional(
+        out, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
+        [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
+        [n.expr1, n.expr2, n.expr_bound_or_undef]),
+    #
+    cwast.ValString: lambda out, n:  out.extend([PP.String(n.render())]),
+}
+
+
 def _EmitExprOrType(out, node):
     # emit any comments and annotations preceeding the node
     if node.__class__ not in _INFIX_OPS:
         _MaybeEmitAnnotations(out, node)
-    out += [PP.String("TODO-EXPR")]
+    emitter = _EMITTER_TAB.get(node.__class__)
+    if emitter:
+        emitter(out, node)
+    else:
+        out += [PP.String("TODO-EXPR")]
     return
 
     gen = _CONCRETE_SYNTAX.get(node.__class__)
@@ -698,14 +733,18 @@ def _EmitTokensToplevel(out, node):
                 PP.Break(), PP.String("="), PP.Break()]
         _EmitExprOrType(out, node.type)
     elif isinstance(node, cwast.DefRec):
-        out += [PP.String("type"),
+        out += [PP.String("rec"),
                 PP.Break(),
                 PP.String(str(node.name)),
                 PP.Break(0),
                 PP.String(":"), PP.End()]
         out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        emit_break = False
         for f in node.fields:
             _MaybeEmitDoc(out, f)
+            if emit_break:
+                out += [PP.Break()]
+            emit_break = True
             out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
             _MaybeEmitAnnotations(out, f)
             out += [PP.String(str(f.name)), PP.Break()]
