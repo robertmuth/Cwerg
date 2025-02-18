@@ -251,7 +251,10 @@ def _EmitParenList(out, lst):
     first = True
     for param in lst:
         if first:
-            out += [PP.WeakBreak(0)]
+            if _GetDoc(param):
+                out += [PP.Break(0)]
+            else:
+                out += [PP.WeakBreak(0)]
         else:
             out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
         first = False
@@ -279,7 +282,10 @@ def _EmitParameterList(out, lst):
     first = True
     for param in lst:
         if first:
-            out += [PP.WeakBreak(0)]
+            if _GetDoc(param):
+                out += [PP.Break(0)]
+            else:
+                out += [PP.WeakBreak(0)]
         else:
             out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
         first = False
@@ -716,7 +722,6 @@ def _EmitTokensToplevel(out, node):
                 out += [PP.Break()]
             emit_break = True
             _MaybeEmitDoc(out, f)
-
             out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
             _MaybeEmitAnnotations(out, f)
             out += [PP.String(str(f.name)), PP.Break()]
