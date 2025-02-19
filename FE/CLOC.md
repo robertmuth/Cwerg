@@ -5,21 +5,22 @@ File                                         blank        comment           code
 --------------------------------------------------------------------------------
 FE/emit_ir.py                                  154             53           1137
 FE/typify.py                                   209             58           1101
-FE/pp.py                                       191             69            864
-FE/parse.py                                    137             31            683
+FE/parse.py                                    137             33            692
+FE/pp.py                                       107             44            647
 FE/eval.py                                     102             46            616
 FE/canonicalize.py                             120             38            549
 FE/symbolize.py                                113             19            477
 FE/type_corpus.py                               88             21            443
 FE/parse_sexpr.py                               69             36            334
-FE/pp_sexpr.py                                  63             12            295
 FE/canonicalize_union.py                        52             24            254
 FE/mod_pool.py                                  52             12            254
+FE/pp_sexpr.py                                  50             13            210
 FE/optimize.py                                  36              7            163
 FE/canonicalize_large_args.py                   24              8            153
 FE/pp_html.py                                   30              7            138
 FE/canonicalize_span.py                         27             13            135
 FE/macros.py                                    20             10            128
+FE/tokens.py                                    32              1             69
 FE/dead_code.py                                 10              4             55
 FE/fmt_real.py                                  15              5             51
 FE/identifier.py                                17              4             46
@@ -30,7 +31,7 @@ FE/cw2cws.py                                     9              1             13
 FE/xdump.py                                      5              0             13
 FE/string_re.py                                  4              3             11
 --------------------------------------------------------------------------------
-SUM:                                          1578            481           7977
+SUM:                                          1513            460           7753
 --------------------------------------------------------------------------------
 ```
 
