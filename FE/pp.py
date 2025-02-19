@@ -153,17 +153,17 @@ def _EmitTypeFun(out, node: cwast.TypeFun):
 def _GetDoc(node):
     for nfd in node.ATTRS:
         if nfd.name == "doc":
-            val = getattr(node, "doc")
-            if val.startswith('"""'):
-                return val[3:-3]
-            else:
-                return val[1:-1]
+            return getattr(node, "doc")
     return None
 
 
 def _MaybeEmitDoc(out, node):
     doc = _GetDoc(node)
     if doc:
+        if doc.startswith('"""'):
+            doc = doc[3:-3]
+        else:
+            doc = doc[1:-1]
         for line in doc.split("\n"):
             if not line:
                 out += [PP.String(";"), PP.LineBreak()]
@@ -323,7 +323,7 @@ def _EmitParenGrouping(out, node: cwast.ExprParen):
     out += [PP.Begin(PP.BreakType.INCONSISTENT, 2),
             PP.String("("), PP.Break(0)]
     _EmitExprOrType(out, node.expr)
-    out += [PP.End()]
+    out += [PP.Break(0), PP.String(")"),PP.End()]
 
 
 def _EmitValCompound(out, node: cwast.ValCompound):
@@ -397,7 +397,7 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.Expr1: _EmitExpr1,
     cwast.Expr2: _EmitExpr2,
     #
-    cwast.ExprDeref: lambda out, n: _EmitUnary(out, "^", n.expr),
+    cwast.ExprDeref: lambda out, n: _EmitUnary(out, n.expr, "^"),
     cwast.ExprAddrOf: lambda out, n: _EmitUnary(out, WithExcl(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
     cwast.TypePtr: lambda out, n: _EmitUnary(out, WithExcl("^", n.mut), n.type),
     #
@@ -481,10 +481,12 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
     name = node.name.name
     out += [PP.String(str(name))]
     is_block_like = _IsMacroWithBlock(node)
+    width_first = 1
     if not is_block_like:
         out += [PP.WeakBreak(0),
                 PP.Begin(PP.BreakType.INCONSISTENT, 1),
                 PP.String("(")]
+        width_first = 0
     args = node.args
     if name == "for":
         out += [PP.Break(),
@@ -500,7 +502,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
         args = args[1:]
     elif name == "trylet" or name == "trylet!":
         out += [PP.Break(),
-                PP.String(_GetOriginalVarName(args[0]))]
+                PP.String(_GetOriginalVarName(args[0])), PP.Break()]
         _EmitExprOrType(out, args[1])
         out += [PP.Break(),
                 PP.String("=")]
@@ -514,7 +516,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
             _EmitStatements(out, a.args)
             continue
         elif first:
-            out += [PP.Break(1)]
+            out += [PP.Break(width_first)]
         else:
             out += [PP.Break(0), PP.String(","), PP.Break()]
         first = False
@@ -546,11 +548,11 @@ def _EmitStatement(out, n):
     #
     if isinstance(n, cwast.StmtContinue):
         out += [PP.String("continue")]
-        if n.target:
+        if n.target.name:
             out += [PP.Break(), PP.String(n.target.name)]
     elif isinstance(n, cwast.StmtBreak):
         out += [PP.String("break")]
-        if n.target:
+        if n.target.name:
             out += [PP.Break(), PP.String(n.target.name)]
     elif isinstance(n, cwast.StmtReturn):
         out += [PP.String("return")]
@@ -569,7 +571,7 @@ def _EmitStatement(out, n):
         _EmitStmtLetOrGlobal(out, WithExcl("let", n.mut),
                              n.name, n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.StmtExpr):
-        out += [PP.String("do"), PP.Break()]
+        out += [PP.String("do"), PP.WeakBreak(1)]
         _EmitExprOrType(out, n.expr)
     elif isinstance(n, cwast.StmtDefer):
         out += [PP.String("defer"), PP.Break(0), PP.String(":"),
@@ -656,6 +658,7 @@ def _EmitTokensToplevel(out, node):
             out += [PP.Break(), PP.String("="), PP.Break(), PP.String(path)]
         if node.args_mod:
             pass
+            # TODO
             # TokensParenList(ts, node.args_mod)
     elif isinstance(node, cwast.DefType):
         out += [PP.String("type"),
