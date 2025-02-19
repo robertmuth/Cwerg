@@ -226,19 +226,26 @@ def _EmitFunctional(out, name, nodes: list):
     out += [PP.End()]
 
 
+def _MaybeAddCommaAndHandleComment(out, first, node, width_first):
+    doc = _GetDoc(node)
+    if not first:
+        out += [PP.WeakBreak(0), PP.String(",")]
+    if doc:
+        out += [PP.LineBreak()]
+        _MaybeEmitDoc(out, node)
+    else:
+        if first:
+            out += [PP.WeakBreak(width_first)]
+        else:
+            out += [PP.Break()]
+
+
 def _EmitParameterList(out, lst):
-    out += [PP.Begin(PP.BreakType.CONSISTENT, 1), PP.String("(")]
+    out += [PP.Begin(PP.BreakType.INCONSISTENT, 1), PP.String("(")]
     first = True
     for param in lst:
-        if first:
-            if _GetDoc(param):
-                out += [PP.Break(0)]
-            else:
-                out += [PP.WeakBreak(0)]
-        else:
-            out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
+        _MaybeAddCommaAndHandleComment(out, first, param, 0)
         first = False
-        _MaybeEmitDoc(out, param)
         #
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, param)
@@ -319,18 +326,6 @@ def _EmitParenGrouping(out, node: cwast.ExprParen):
     out += [PP.End()]
 
 
-def _MaybeAddCommaAndHandleComment(out, first, node):
-    doc = _GetDoc(node)
-    if not first:
-        out += [PP.WeakBreak(0), PP.String(",")]
-    if doc:
-        out += [PP.LineBreak()]
-        _MaybeEmitDoc(out, node)
-
-    else:
-        out += [PP.Break()]
-
-
 def _EmitValCompound(out, node: cwast.ValCompound):
     out += [PP.Begin(PP.BreakType.INCONSISTENT, 1),
             PP.String("{"), PP.WeakBreak(0)]
@@ -340,7 +335,7 @@ def _EmitValCompound(out, node: cwast.ValCompound):
     out += [PP.String(":")]
     first = True
     for e in node.inits:
-        _MaybeAddCommaAndHandleComment(out, first, e)
+        _MaybeAddCommaAndHandleComment(out, first, e, 1)
         first = False
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, e)
@@ -495,26 +490,22 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
         out += [PP.Break(),
                 PP.String(_GetOriginalVarName(args[0])),
                 PP.Break(),
-                PP.String("="),
-                PP.Break()]
+                PP.String("=")]
         args = args[1:]
     elif name == "tryset":
         out += [PP.Break()]
         _EmitExprOrType(out, args[0])
         out += [PP.Break(),
-                PP.String("="),
-                PP.Break()]
+                PP.String("=")]
         args = args[1:]
     elif name == "trylet" or name == "trylet!":
         out += [PP.Break(),
-                PP.String(_GetOriginalVarName(args[0])),
-                PP.Break()]
+                PP.String(_GetOriginalVarName(args[0]))]
         _EmitExprOrType(out, args[1])
         out += [PP.Break(),
-                PP.String("="),
-                PP.Break()]
+                PP.String("=")]
         args = args[2:]
-    #
+    # "while" does not require special handling
     first = True
     for a in args:
         if _IsColonEmphemeral(a):
@@ -523,7 +514,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
             _EmitStatements(out, a.args)
             continue
         elif first:
-            out += [PP.WeakBreak(0)]
+            out += [PP.Break(1)]
         else:
             out += [PP.Break(0), PP.String(","), PP.Break()]
         first = False
@@ -716,7 +707,7 @@ def _EmitTokensToplevel(out, node):
             out += [PP.End()]
     elif isinstance(node, cwast.DefFun):
         out += [PP.String("fun"),
-                PP.Break(),
+                PP.WeakBreak(1),
                 PP.String(str(node.name))]
         out += [PP.WeakBreak(0)]
         _EmitParameterList(out, node.params)
