@@ -147,7 +147,8 @@ def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
     for i in reversed(range(len(tokens))):
         token: Token = tokens[i]
         if isinstance(token, Begin):
-            pass
+            if token.break_type == BreakType.FORCE_LINE_BREAK:
+                total = _INFINITY
         elif isinstance(token, End):
             total = _INFINITY
         elif isinstance(token, String):
@@ -169,7 +170,8 @@ def _UpdateSizeOfWeakBreaks(tokens: list[Token], sizes: list[int]):
 
         token: Token = tokens[i]
         if isinstance(token, Begin):
-            pass
+            if token.break_type == BreakType.FORCE_LINE_BREAK:
+                total = 0
         elif isinstance(token, End):
             pass
         elif isinstance(token, String):

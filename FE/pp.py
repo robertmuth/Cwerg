@@ -442,7 +442,7 @@ def _EmitStmtSet(out, kind, lhs, rhs):
 
 
 def _EmitStmtLetOrGlobal(out, kind: str, name: str, type_or_auto, init_or_auto):
-    out += [PP.String(kind), PP.Break(),
+    out += [PP.String(kind), PP.NoBreak(1),
             PP.String(str(name))]
     if not isinstance(type_or_auto, cwast.TypeAuto):
         out += [PP.Break()]
