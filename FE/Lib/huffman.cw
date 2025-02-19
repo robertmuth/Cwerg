@@ -33,8 +33,8 @@ global MAX_SYMBOLS uint = 0xff00
 ;   counts[i] contains the number of huffman code of 2^i
 ;   Note counts[0] is not used
 ;
-pub fun NextSymbol(bs ^!bitstream::Stream32, counts span(u16), symbols span(
-        u16)) u16:
+pub fun NextSymbol(bs ^!bitstream::Stream32, counts span(u16), symbols span(u16)
+                   ) u16:
     let! offset u32 = 0
     let! base u32 = 0
     for level = 1, len(counts), 1:
@@ -76,8 +76,8 @@ fun CountsAreFeasible(counts span(u16)) bool:
 ; Note counts[0] is always 0
 ;
 ;
-pub fun ComputeCountsAndSymbolsFromLengths(
-        lengths span(u16), counts span!(u16), symbols span!(u16)) u16:
+pub fun ComputeCountsAndSymbolsFromLengths(lengths span(u16), counts span!(u16),
+                                           symbols span!(u16)) u16:
     if len(lengths) > MAX_SYMBOLS:
         return BAD_TREE_ENCODING
     for level = 0, len(counts), 1:

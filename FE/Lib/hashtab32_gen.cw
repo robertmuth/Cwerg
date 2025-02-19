@@ -7,14 +7,14 @@
 ; (and meta data) to improve reference locality.
 ;
 module(
-        ; the key type
-        $ktype TYPE,
-        ; the value type
-        $vtype TYPE,
-        ; the hash function: ptr($ktype) -> u32
-        $khash CONST_EXPR,
-        ; the key equality checker: ptr($ktype) X ptr($ktype) -> bool
-        $keq CONST_EXPR):
+       ; the key type
+       $ktype TYPE,
+       ; the value type
+       $vtype TYPE,
+       ; the hash function: ptr($ktype) -> u32
+       $khash CONST_EXPR,
+       ; the key equality checker: ptr($ktype) X ptr($ktype) -> bool
+       $keq CONST_EXPR):
 
 import fmt
 

@@ -8,7 +8,9 @@ import fmt
 
 import JD = jpeg_decode
 
-global test_image = x"""
+global
+  test_image =
+  x"""
    ffd8ffe000104a46 4946000101000001 00010000ffdb0084 0009060712101212 1011101616151517 1515161615191515 19171515181d1618 151817181f282018
    1e251d1715213121 252a2b2e2e2e181f 3338332d37282d2e 2b010a0a0a0e0d0e 1a10101b2d1d2025 2b2b2b2f2b2d2b2d 2f312d2d2d2d2f30 2d2d2f2d2d2b2f2f
    2d2d2b2d2d2b2d2d 2d2d2b2d2d2d2b2d 2d2d2e2d2e2d2d2d 2e2bffc000110800 cc00f80301110002 1101031101ffc400 1c00000105010101 0000000000000000
@@ -209,48 +211,21 @@ fun main(argc s32, argv ^^u8) s32:
     fmt::print#("image byte size: ", len(test_image), "\n")
     trylet fi JD::FrameInfo = JD::DecodeFrameInfo(test_image), err:
         return 1
-    fmt::print#(
-            "image format:",
-            fi.format,
-            " pixels:",
-            fi.width,
-            "x",
-            fi.height,
-            " ncomp:",
-            fi.ncomp,
-            " mbsize:",
-            fi.mbsizex,
-            "x",
-            fi.mbsizey,
-            " mbdim:",
-            fi.mbwidth,
-            "x",
-            fi.mbheight,
-            "\n")
+    fmt::print#("image format:", fi.format, " pixels:", fi.width, "x", fi.height
+                , " ncomp:", fi.ncomp, " mbsize:", fi.mbsizex, "x", fi.mbsizey,
+                " mbdim:", fi.mbwidth, "x", fi.mbheight, "\n")
     for i = 0, fi.ncomp, 1:
         let comp = fi.comp[i]
-        fmt::print#(
-                "comp: ",
-                comp.cid,
-                " ",
-                comp.ssx,
-                "x",
-                comp.ssy,
-                " ",
-                comp.width,
-                "x",
-                comp.height,
-                " stride:",
-                comp.stride,
-                "\n")
+        fmt::print#("comp: ", comp.cid, " ", comp.ssx, "x", comp.ssy, " ", comp.
+                    width, "x", comp.height, " stride:", comp.stride, "\n")
     do JD::DecodeImage(test_image, gByteBuffer)
-    test::AssertEq#(
-            394850026_u32,
-            checksum::CalcCrc(make_span(front(gByteBuffer), 151776), 0, @Crc32Tab))
+    test::AssertEq#(394850026_u32,
+                    checksum::CalcCrc(make_span(front(gByteBuffer), 151776), 0,
+                      @Crc32Tab))
     do JD::ConvertYH1V1ToRGB(gByteBuffer)
-    test::AssertEq#(
-            1970744859_u32,
-            checksum::CalcCrc(make_span(front(gByteBuffer), 151776), 0, @Crc32Tab))
+    test::AssertEq#(1970744859_u32,
+                    checksum::CalcCrc(make_span(front(gByteBuffer), 151776), 0,
+                      @Crc32Tab))
     ; test end
     test::Success#()
     return 0

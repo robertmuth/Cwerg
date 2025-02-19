@@ -10,7 +10,7 @@ type real64 = r64
 fun cmp_r64_lt(a ^real64, b ^real64) bool:
     return a^ < b^
 
-import rhs = heapsort_gen(real64, cmp_r64_lt)
+import rhs = heapsort_gen (real64, cmp_r64_lt)
 
 global SIZE uint = 20
 

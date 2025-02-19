@@ -18,7 +18,8 @@ import bitstream
 ;
 global Tree0Length = {[4]u16: 2, 1, 3, 3}
 
-global Tree0ExpectedSymbols = {[4]u16: 'B' - 'A', 'A' - 'A', 'C' - 'A', 'D' - 'A'}
+global Tree0ExpectedSymbols = {[4]u16: 'B' - 'A', 'A' - 'A', 'C' - 'A',
+                               'D' - 'A'}
 
 global Tree0ExpectedCounts = {[4]u16: 0, 1, 1, 2}
 
@@ -26,9 +27,8 @@ fun test_tree0_decoding() void:
     let! counts [4]u16
     let! symbols [4]u16
     test::AssertEq#(
-            huffman::ComputeCountsAndSymbolsFromLengths(
-                Tree0Length, counts, symbols),
-            4_u16)
+                    huffman::ComputeCountsAndSymbolsFromLengths(Tree0Length,
+                      counts, symbols), 4_u16)
     test::AssertSliceEq#(symbols, Tree0ExpectedSymbols)
     test::AssertSliceEq#(counts, Tree0ExpectedCounts)
 
@@ -78,11 +78,13 @@ fun test_tree0_decoding() void:
 ; 9-J 111110
 ; 10-K 111111
 ;
-global Tree1Length = {[11]u16: 4, 4, 4, 5, 3, 2, 3, 3, 3, 6, 6}
+global Tree1Length = {[11]u16:
+                      4, 4, 4, 5, 3, 2, 3, 3, 3, 6, 6}
 
-global Tree1ExpectedSymbols = {
-        [11]u16: 'F' - 'A', 'E' - 'A', 'G' - 'A', 'H' - 'A', 'I' - 'A', 'A' - 'A', 
-        'B'- 'A', 'C' - 'A', 'D' - 'A', 'J' - 'A', 'K' - 'A'}
+global Tree1ExpectedSymbols = {[11]u16:
+                               'F' - 'A', 'E' - 'A', 'G' - 'A', 'H' - 'A',
+                               'I' - 'A', 'A' - 'A', 'B' - 'A', 'C' - 'A',
+                               'D' - 'A', 'J' - 'A', 'K' - 'A'}
 
 global Tree1ExpectedCounts = {[7]u16: 0, 0, 1, 4, 3, 1, 2}
 
@@ -90,9 +92,8 @@ fun test_tree1_decoding() void:
     let! counts [7]u16
     let! symbols [11]u16
     test::AssertEq#(
-            huffman::ComputeCountsAndSymbolsFromLengths(
-                Tree1Length, counts, symbols),
-            11_u16)
+                    huffman::ComputeCountsAndSymbolsFromLengths(Tree1Length,
+                      counts, symbols), 11_u16)
     test::AssertSliceEq#(symbols, Tree1ExpectedSymbols)
     test::AssertSliceEq#(counts, Tree1ExpectedCounts)
 
@@ -100,9 +101,8 @@ fun test_tree1_bitstream_decoding() void:
     let! counts [7]u16
     let! symbols [11]u16
     test::AssertEq#(
-            huffman::ComputeCountsAndSymbolsFromLengths(
-                Tree1Length, counts, symbols),
-            11_u16)
+                    huffman::ComputeCountsAndSymbolsFromLengths(Tree1Length,
+                      counts, symbols), 11_u16)
     let data = {[8]u8: 0b11111100, 0b01001001, 0b1, 0, 0, 0, 0, 0}
     ref let! bs = {bitstream::Stream32: data}
     test::AssertEq#(5_u16, huffman::NextSymbol(@!bs, counts, symbols))
@@ -119,8 +119,8 @@ fun test_helper() void:
     let! counts [8]u16
     let! symbols [8]u16
     test::AssertEq#(
-            huffman::ComputeCountsAndSymbolsFromLengths(lengths, counts, symbols), 
-            3_u16)
+                    huffman::ComputeCountsAndSymbolsFromLengths(lengths, counts,
+                      symbols), 3_u16)
     test::AssertEq#(0_u16, counts[0])
     test::AssertEq#(1_u16, counts[1])
     test::AssertEq#(2_u16, counts[2])
@@ -134,8 +134,8 @@ fun test_helper_single_code() void:
     let! counts [8]u16
     let! symbols [8]u16
     test::AssertEq#(
-            huffman::ComputeCountsAndSymbolsFromLengths(lengths, counts, symbols), 
-            2_u16)
+                    huffman::ComputeCountsAndSymbolsFromLengths(lengths, counts,
+                      symbols), 2_u16)
     test::AssertEq#(0_u16, counts[0])
     test::AssertEq#(2_u16, counts[1])
     test::AssertEq#(66_u16, symbols[0])
