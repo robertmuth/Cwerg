@@ -6,8 +6,7 @@ import fmt
 
 import sha3
 
-global
-  limerick =
+global limerick =
   """
 A lim'rick's not hard to define
 But it needs to do more than just rhyme

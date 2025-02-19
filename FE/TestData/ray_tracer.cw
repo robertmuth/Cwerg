@@ -230,8 +230,7 @@ fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
             set fb[y * w + x] = as(color, u32)
     return
 
-global
-  gSceneStr =
+global gSceneStr =
   """
 # spheres
 #	position		radius	color			shininess	reflectivity

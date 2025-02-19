@@ -60,8 +60,7 @@ global test_dict_empty = """{}"""
 
 global test_dict_simple = """{"ip": "8.8.8.8"}"""
 
-global
-  test_dict_small =
+global test_dict_small =
   """ {
    "string": "string",
    "bool": false,
@@ -133,8 +132,7 @@ fun test_vec() void:
     test::AssertEq#(jp::ContGetKind(@file, file.root), jp::ContKind:Vec)
     test::AssertEq#(jp::ContGetSize(@file, file.root), 5_u32)
 
-global
-  test4 =
+global test4 =
   """[
     {
         "string": "string",
@@ -143,8 +141,7 @@ global
     }
 ]"""
 
-global
-  test5 =
+global test5 =
   """[
     {
         "string": "string",
@@ -180,8 +177,7 @@ fun test_parser() void:
     test::AssertEq#(jp::ContGetKind(@file, file.root), jp::ContKind:Vec)
     test::AssertEq#(jp::ContGetSize(@file, file.root), 2_u32)
 
-global
-  test6 =
+global test6 =
   """
 {
    "string": "string",
