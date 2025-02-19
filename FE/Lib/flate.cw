@@ -217,8 +217,7 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
         let lit_dist_slice = make_span(front!(lit_dist_lengths),
                                lit_num_syms + dist_num_syms)
         trylet x Success =
-          read_lit_dist_lengths(bs, cl_counts, cl_symbols, lit_dist_slice), err
-          :
+          read_lit_dist_lengths(bs, cl_counts, cl_symbols, lit_dist_slice), err:
             return err
     dump_slice#("combo: ",
                 make_span(front(lit_dist_lengths), lit_num_syms + dist_num_syms)

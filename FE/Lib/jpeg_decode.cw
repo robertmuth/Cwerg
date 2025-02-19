@@ -594,8 +594,7 @@ pub fun ConvertYH1V1ToRGB(out span!(u8)) void:
         set out[i + 2] = as(clamp8b(Y + cbB), u8)
 
 pub fun DecodeImage(a_data span(u8), out span!(u8))
-  union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError)
-  :
+  union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
     debug#("DecodeImage: ", len(a_data), "\n")
     ref let! app_info AppInfo = undef
     ref let! frame_info FrameInfo = undef
@@ -632,13 +631,11 @@ pub fun DecodeImage(a_data span(u8), out span!(u8))
                     return err
             case chunk_kind == 0xffc4:
                 trylet dummy Success =
-                  DecodeHufmanTable(chunk_slice, @!huffman_trees), err
-                  :
+                  DecodeHufmanTable(chunk_slice, @!huffman_trees), err:
                     return err
             case chunk_kind == 0xffdb:
                 tryset qt_avail_bits =
-                  DecodeQuantizationTable(chunk_slice, @!quantization_tab), err
-                  :
+                  DecodeQuantizationTable(chunk_slice, @!quantization_tab), err:
                     return err
             case chunk_kind == 0xffdd:
                 ; tryset restart_interval = DecodeRestartInterval(chunk_slice), err:

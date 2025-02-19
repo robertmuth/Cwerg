@@ -141,8 +141,7 @@ poly fun SysRender(v ^void, out span!(u8), options ^!SysFormatOptions) uint:
 
 pub macro print# STMT_LIST (
                             ; list of items to be printed
-                            $parts EXPR_LIST_REST) [$buffer, $curr, $options]
-  :
+                            $parts EXPR_LIST_REST) [$buffer, $curr, $options]:
     let! $buffer = {[FORMATED_STRING_MAX_LEN]u8:}
     let! $curr span!(u8) = $buffer
     ref let! $options = {SysFormatOptions:}

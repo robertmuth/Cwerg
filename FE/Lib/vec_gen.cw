@@ -344,8 +344,7 @@ pub fun CheckRayHitsSphere2(ray_origin vec3, ray_direction vec3,
     return true
 
 pub fun CheckHitRayPlane(ray_origin vec3, ray_direction vec3, plane_point vec3,
-                         plane_normal vec3, epsilon $T, out ^HitInfo) bool
-  :
+                         plane_normal vec3, epsilon $T, out ^HitInfo) bool:
     return true
 
 ;
