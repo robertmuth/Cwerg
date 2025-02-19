@@ -10,7 +10,7 @@ import parse_real
 
 import random
 
-import v64 = vec_gen(r64)
+import v64 = vec_gen (r64)
 
 rec Material:
     col v64::vec3
@@ -83,7 +83,7 @@ fun skip_non_white_space(line span(u8)) uint:
     return n
 
 ; captures s, out
-macro read_r64# STMT_LIST($dst EXPR)[$t]:
+macro read_r64# STMT_LIST ($dst EXPR) [$t]:
     set s = span_inc(s, skip_white_space(s))
     let $t = parse_real::parse_r64(s)
     set s = span_inc(s, $t.length)
@@ -92,7 +92,7 @@ macro read_r64# STMT_LIST($dst EXPR)[$t]:
     set $dst = $t.value
 
 ; captures s, out
-macro read_vec3# STMT_LIST($dst EXPR)[$tx, $ty, $tz]:
+macro read_vec3# STMT_LIST ($dst EXPR) [$tx, $ty, $tz]:
     set s = span_inc(s, skip_white_space(s))
     let $tx = parse_real::parse_r64(s)
     set s = span_inc(s, $tx.length)
@@ -142,16 +142,16 @@ fun ParseScene(scene_str span(u8)) Scene:
                 if out.num_spheres >= len(out.spheres):
                     fmt::print#("too many spheres\n")
                     trap
-                set out.spheres[out.num_spheres] = {
-                        : obj.v1, obj.s1, {: obj.v2, obj.s2, obj.s3}}
+                set out.spheres[out.num_spheres] =
+                  {: obj.v1, obj.s1, {: obj.v2, obj.s2, obj.s3}}
                 set out.num_spheres += 1
             case obj.kind == 'p':
                 if out.num_planes >= len(out.planes):
                     fmt::print#("too many planes\n")
                     trap
-                set out.planes[out.num_planes] = {
-                        : obj.v1, {: obj.v2, obj.s2, obj.s3}, v64::normalized(
-                            obj.v3)}
+                set out.planes[out.num_planes] =
+                  {: obj.v1, {: obj.v2, obj.s2, obj.s3}, v64::normalized(obj.v3)
+                   }
                 set out.num_planes += 1
             case obj.kind == 'l':
                 if out.num_lights >= len(out.lights):
@@ -225,12 +225,14 @@ fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
                 set rgb = v64::add(rgb, rgb)
             set rgb = v64::scaled(rgb, color_scaler)
             set rgb = v64::pmin(hi, v64::pmax(lo, rgb))
-            let color = as(rgb[0], s32) << 16 + as(rgb[1], s32) << 8 + as(
-                    rgb[2], s32)
+            let color = as(rgb[0], s32) << 16 + as(rgb[1], s32) << 8 +
+              as(rgb[2], s32)
             set fb[y * w + x] = as(color, u32)
     return
 
-global gSceneStr = """
+global
+  gSceneStr =
+  """
 # spheres
 #	position		radius	color			shininess	reflectivity
 s	-1.5 -0.3 -1	0.7		1.0 0.2 0.05		50.0	0.3
@@ -275,6 +277,6 @@ fun main(argc s32, argv ^^u8) s32:
     let rays_per_pixel = 1_u32
     do init_vrand_urand()
     ref let scene = ParseScene(gSceneStr)
-    do Render(
-            w, h, rays_per_pixel, make_span(front!(gPixels), as(w * h, uint)), @scene)
+    do Render(w, h, rays_per_pixel, make_span(front!(gPixels), as(w * h, uint)),
+         @scene)
     return 0
