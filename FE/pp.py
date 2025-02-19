@@ -319,6 +319,18 @@ def _EmitParenGrouping(out, node: cwast.ExprParen):
     out += [PP.End()]
 
 
+def _MaybeAddCommaAndHandleComment(out, first, node):
+    doc = _GetDoc(node)
+    if not first:
+        out += [PP.WeakBreak(0), PP.String(",")]
+    if doc:
+        out += [PP.LineBreak()]
+        _MaybeEmitDoc(out, node)
+
+    else:
+        out += [PP.Break()]
+
+
 def _EmitValCompound(out, node: cwast.ValCompound):
     out += [PP.Begin(PP.BreakType.INCONSISTENT, 1),
             PP.String("{"), PP.WeakBreak(0)]
@@ -328,20 +340,14 @@ def _EmitValCompound(out, node: cwast.ValCompound):
     out += [PP.String(":")]
     first = True
     for e in node.inits:
-        if first:
-            if _GetDoc(e):
-                out += [PP.Break()]
-            else:
-                out += [PP.WeakBreak(0)]
-        else:
-            out += [PP.WeakBreak(0), PP.String(","), PP.Break()]
-        _MaybeEmitDoc(out, e)
+        _MaybeAddCommaAndHandleComment(out, first, e)
+        first = False
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, e)
         assert isinstance(e, cwast.ValPoint)
         if not isinstance(e.point, cwast.ValAuto):
             _EmitExprOrType(out, e.point)
-            out += [PP.Break(), PP.String("=")]
+            out += [PP.Break(), PP.String("="), PP.Break()]
         _EmitExprOrType(out, e.value_or_undef)
         out += [PP.End()]
     out += [PP.Break(0), PP.String("}"), PP.End()]
