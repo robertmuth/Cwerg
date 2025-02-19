@@ -60,7 +60,8 @@ global g5 type_rec5 = undef
 
 global g6 type_rec5 = {type_rec5: 0, buffer, false}
 
-global g7 = {[1]type_rec5: {type_rec5: 0, buffer, false}}
+global g7 = {[1]type_rec5:
+             {type_rec5: 0, buffer, false}}
 
 fun main(argc s32, argv ^^u8) s32:
     ; LOCAL

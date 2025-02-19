@@ -37,10 +37,9 @@ fun DumpNode(i u32) void:
     if is(NodePool[i].next, NoneType):
         fmt::print#(" next: NULL\n")
     else:
-        fmt::print#(
-                " next: ",
-                unsafe_as(narrow_as(NodePool[i].next, ^!LinkedListNode), ^void),
-                "\n")
+        fmt::print#(" next: ",
+                    unsafe_as(narrow_as(NodePool[i].next, ^!LinkedListNode),
+                      ^void), "\n")
 
 fun main(argc s32, argv ^^u8) s32:
     fmt::print#("start: ", unsafe_as(front(NodePool), ^void), "\n")

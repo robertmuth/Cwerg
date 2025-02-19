@@ -38,7 +38,8 @@ pub rec type_rec3:
     u5 [10]u8
     u6 u64
 
-global! r1 = {type_rec3: u5 = {[10]u8: 77, 88, 99}}
+global! r1 = {type_rec3:
+              u5 = {[10]u8: 77, 88, 99}}
 
 global! c4 = {[10]u8: 41, 51, 61}
 
