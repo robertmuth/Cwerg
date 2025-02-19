@@ -224,7 +224,7 @@ def _EmitFunctional(out, name, nodes: list):
     out += [PP.End()]
 
 
-def _MaybeAddCommaAndHandleComment(out, first, node, width_first):
+def _MaybeAddCommaAndHandleComment(out, first, node, first_break):
     doc = _GetDoc(node)
     if not first:
         out += [PP.WeakBreak(0), PP.String(",")]
@@ -233,7 +233,7 @@ def _MaybeAddCommaAndHandleComment(out, first, node, width_first):
         _MaybeEmitDoc(out, node)
     else:
         if first:
-            out += [PP.WeakBreak(width_first)]
+            out += [first_break]
         else:
             out += [PP.Break()]
 
@@ -242,7 +242,7 @@ def _EmitParameterList(out, lst):
     out += [PP.Begin(PP.BreakType.INCONSISTENT, 1), PP.String("(")]
     first = True
     for param in lst:
-        _MaybeAddCommaAndHandleComment(out, first, param, 0)
+        _MaybeAddCommaAndHandleComment(out, first, param, PP.WeakBreak(0))
         first = False
         #
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
@@ -284,7 +284,8 @@ def _EmitExpr1(out, node: cwast.Expr1):
 
 def _EmitBinary(out, node, expr1, width1: int, op: str, width2: int, expr2):
     _EmitExprOrType(out, expr1)
-    out += [PP.Break(width1)]
+    # we do not want a break here
+    out += [PP.WeakBreak(width1)]
     _MaybeEmitAnnotations(out, node)
     out += [PP.String(op), PP.Break(width2)]
     _EmitExprOrType(out, expr2)
@@ -324,6 +325,16 @@ def _EmitParenGrouping(out, node: cwast.ExprParen):
     out += [PP.Break(0), PP.String(")"), PP.End()]
 
 
+def _IsComplexValCompound(node: cwast.ValCompound) -> bool:
+    if len(node.inits) > 10:
+        return True
+    if node.inits and isinstance(node.inits[0].value_or_undef,
+                                 cwast.ValCompound):
+
+        return True
+    return False
+
+
 def _EmitValCompound(out, node: cwast.ValCompound):
     out += [PP.Begin(PP.BreakType.INCONSISTENT, 1),
             PP.String("{"), PP.WeakBreak(0)]
@@ -332,15 +343,18 @@ def _EmitValCompound(out, node: cwast.ValCompound):
         out += [PP.WeakBreak(0)]
     out += [PP.String(":")]
     first = True
+    first_break = PP.WeakBreak(1)
+    if _IsComplexValCompound(node):
+        first_break = PP.LineBreak()
     for e in node.inits:
-        _MaybeAddCommaAndHandleComment(out, first, e, 1)
+        _MaybeAddCommaAndHandleComment(out, first, e, first_break)
         first = False
         out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, e)
         assert isinstance(e, cwast.ValPoint)
         if not isinstance(e.point, cwast.ValAuto):
             _EmitExprOrType(out, e.point)
-            out += [PP.Break(), PP.String("="), PP.Break()]
+            out += [PP.WeakBreak(1), PP.String("="), PP.Break()]
         _EmitExprOrType(out, e.value_or_undef)
         out += [PP.End()]
     out += [PP.Break(0), PP.String("}"), PP.End()]
@@ -434,7 +448,7 @@ def _EmitStmtLetOrGlobal(out, kind: str, name: str, type_or_auto, init_or_auto):
         out += [PP.Break()]
         _EmitExprOrType(out, type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
-        out += [PP.Break(), PP.String("="), PP.WeakBreak(1)]
+        out += [PP.WeakBreak(1), PP.String("="), PP.WeakBreak(1)]
         _EmitExprOrType(out, init_or_auto)
 
 
@@ -644,11 +658,11 @@ def _EmitTokensToplevel(out, node):
         if path:
             if "/" in path:
                 path = '"' + path + '"'
-            out += [PP.Break(), PP.String("="), PP.Break(), PP.String(path)]
+            out += [PP.WeakBreak(1), PP.String("="),
+                    PP.Break(), PP.String(path)]
         if node.args_mod:
-            pass
-            # TODO
-            # TokensParenList(ts, node.args_mod)
+            out += [PP.WeakBreak(1)]
+            _EmitParenList(out, node.args_mod)
     elif isinstance(node, cwast.DefType):
         out += [PP.String("type"),
                 PP.Break(),
