@@ -8,7 +8,7 @@ import fmt
 fun lt(a ^u32, b ^u32) bool:
     return a^ < b^
 
-import bt = "./binary_tree_gen"(u32, lt)
+import bt = "./binary_tree_gen" (u32, lt)
 
 global N u32 = 64
 
