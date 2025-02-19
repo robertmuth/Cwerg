@@ -135,10 +135,8 @@ def EmitExpr3(out, node: cwast.Expr3):
 
 
 def EmitExprStmt(out, node: cwast.ExprStmt):
-    out += [PP.String("expr"), PP.Break(0), PP.String(":"),
-            PP.End(),
-            PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-    _EmitStatements(out, node.body)
+    out += [PP.String("expr"), PP.Break(0), PP.String(":")]
+    _EmitStatementsSpecial(out, node.body)
 
 
 def _EmitTypeFun(out, node: cwast.TypeFun):
@@ -323,7 +321,7 @@ def _EmitParenGrouping(out, node: cwast.ExprParen):
     out += [PP.Begin(PP.BreakType.INCONSISTENT, 2),
             PP.String("("), PP.Break(0)]
     _EmitExprOrType(out, node.expr)
-    out += [PP.Break(0), PP.String(")"),PP.End()]
+    out += [PP.Break(0), PP.String(")"), PP.End()]
 
 
 def _EmitValCompound(out, node: cwast.ValCompound):
@@ -511,9 +509,8 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
     first = True
     for a in args:
         if _IsColonEmphemeral(a):
-            out += [PP.Break(0), PP.String(":"), PP.End()]
-            out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-            _EmitStatements(out, a.args)
+            out += [PP.Break(0), PP.String(":")]
+            _EmitStatementsSpecial(out, a.args)
             continue
         elif first:
             out += [PP.Break(width_first)]
@@ -532,7 +529,10 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
         out += [PP.Break(0), PP.String(")"), PP.End()]
 
 
-def _EmitStatements(out, lst):
+def _EmitStatementsSpecial(out, lst):
+    if not lst:
+        return
+    out += [PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
     emit_break = False
     for child in lst:
         if emit_break:
@@ -574,59 +574,48 @@ def _EmitStatement(out, n):
         out += [PP.String("do"), PP.WeakBreak(1)]
         _EmitExprOrType(out, n.expr)
     elif isinstance(n, cwast.StmtDefer):
-        out += [PP.String("defer"), PP.Break(0), PP.String(":"),
-                PP.Break(),
-                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-        _EmitStatements(out, n.body)
-        out += [PP.End()]
-
+        out += [PP.String("defer"), PP.Break(0), PP.String(":")]
+        _EmitStatementsSpecial(out, n.body)
     elif isinstance(n, cwast.StmtCond):
-        out += [PP.String("cond"), PP.Break(0), PP.String(":"),
-                PP.End(),
-                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-        _EmitStatements(out, n.cases)
+        out += [PP.String("cond"), PP.Break(0), PP.String(":")]
+        _EmitStatementsSpecial(out, n.cases)
     elif isinstance(n, cwast.Case):
         out += [PP.String("case"), PP.Break()]
         _EmitExprOrType(out, n.cond)
-        out += [PP.Break(0), PP.String(":"), PP.End(),
-                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-        _EmitStatements(out, n.body)
+        out += [PP.Break(0), PP.String(":")]
+        _EmitStatementsSpecial(out, n.body)
     elif isinstance(n, cwast.MacroInvoke):
         _EmitStmtMacroInvoke(out, n)
     elif isinstance(n, cwast.MacroId):
         out += [PP.String(str(n.name))]
     elif isinstance(n, cwast.StmtBlock):
         out += [PP.String("block"), PP.Break(), PP.String(str(n.label)),
-                PP.Break(0), PP.String(":"), PP.End(),
-                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-        _EmitStatements(out, n.body)
+                PP.Break(0), PP.String(":")]
+        _EmitStatementsSpecial(out, n.body)
     elif isinstance(n, cwast.StmtIf):
         out += [PP.String("if"), PP.Break()]
         _EmitExprOrType(out, n.cond)
-        out += [PP.Break(0), PP.String(":"), PP.End(),
-                PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-        _EmitStatements(out, n.body_t)
+        out += [PP.Break(0), PP.String(":")]
+        _EmitStatementsSpecial(out, n.body_t)
         if n.body_f:
             out += [PP.End(), PP.Break(),
                     PP.Begin(PP.BreakType.INCONSISTENT, 2),
-                    PP.String("else"), PP.Break(0), PP.String(":"),
-                    PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-            _EmitStatements(out, n.body_f)
+                    PP.String("else"), PP.Break(0), PP.String(":")]
+            _EmitStatementsSpecial(out, n.body_f)
     elif isinstance(n, cwast.MacroFor):
         out += [PP.String("mfor"), PP.Break(), PP.String(str(n.name)),
-                PP.Break(), PP.String(str(n.name_list)),   PP.Break(0), PP.String(":"),
-                PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-
+                PP.Break(), PP.String(str(n.name_list)),   PP.Break(0), PP.String(":")]
         # we know the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
-        _EmitStatements(out, n.body_for)
+        _EmitStatementsSpecial(out, n.body_for)
 
     else:
         assert False, f"{n}"
     out += [PP.End()]
 
 
-def _EmitTokensExprMacroBlock(out, stmts):
+def _EmitTokensExprMacroBlockSpecial(out, stmts):
+    out += [PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
     emit_break = False
     for child in stmts:
         if emit_break:
@@ -716,9 +705,8 @@ def _EmitTokensToplevel(out, node):
         _EmitParameterList(out, node.params)
         out += [PP.Break()]
         _EmitExprOrType(out, node.result)
-        out += [PP.Break(0), PP.String(":"), PP.End()]
-        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
-        _EmitStatements(out, node.body)
+        out += [PP.Break(0), PP.String(":")]
+        _EmitStatementsSpecial(out, node.body)
     elif isinstance(node, cwast.DefMacro):
         out += [PP.String("macro"),
                 PP.Break(),
@@ -730,12 +718,10 @@ def _EmitTokensToplevel(out, node):
         out += [PP.Break()]
         _EmitIdList(out, node.gen_ids)
         out += [PP.Break(0), PP.String(":")]
-        out += [PP.End()]
-        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
         if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
-            _EmitStatements(out, node.body_macro)
+            _EmitStatementsSpecial(out, node.body_macro)
         else:
-            _EmitTokensExprMacroBlock(out, node.body_macro)
+            _EmitTokensExprMacroBlockSpecial(out, node.body_macro)
     else:
         assert False
     out += [PP.End()]
