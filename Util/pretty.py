@@ -22,7 +22,7 @@ A token may be one of:
 
 Enhancements to Oppen:
 * a new BreakType, FORCE_LINE_BREAK, makes nesting easier
-* a week annotation to Break helps with formatting Lisp like code
+* NoBreak is a break that should not be broken
 
 For usage see `tests.py`
 
@@ -82,7 +82,7 @@ def LineBreak(offset=0):
     return Break(num_spaces=_INFINITY, offset=offset)
 
 
-def WeakBreak(num_spaces):
+def NoBreak(num_spaces):
     return Break(num_spaces, 0, True)
 
 

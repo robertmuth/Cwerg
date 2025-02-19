@@ -118,7 +118,7 @@ def _RenderList(out, val: list, field: str):
 def _RenderMacroInvoke(out, node: cwast.MacroInvoke):
     out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT),
             PP.String("("),
-            PP.WeakBreak(0),
+            PP.NoBreak(0),
             PP.String(str(node.name))]
 
     for a in node.args:
@@ -153,7 +153,7 @@ def _RenderAttr(out, node):
         if not val:
             continue
         assert isinstance(val, bool)
-        out += [PP.String(f"@{nfd.name}"), PP.WeakBreak(1)]
+        out += [PP.String(f"@{nfd.name}"), PP.NoBreak(1)]
 
 
 def _RenderRecursivelyToIR(out, node):
@@ -187,7 +187,7 @@ def _RenderRecursivelyToIR(out, node):
             PP.String("(")]
 
     _RenderAttr(out, node)
-    out += [PP.WeakBreak(0), PP.String(node_name)]
+    out += [PP.NoBreak(0), PP.String(node_name)]
 
     for nfd in fields:
         field_kind = nfd.kind
