@@ -20,25 +20,25 @@ fun TestForMacro(end u32) u32:
         set sum += i
     return sum
 
-macro nested0# STMT_LIST()[]:
+macro nested0# STMT_LIST () []:
 
-macro nested1# STMT_LIST()[]:
+macro nested1# STMT_LIST () []:
     nested0#()
 
-macro nested2# STMT_LIST()[]:
+macro nested2# STMT_LIST () []:
     nested1#()
 
-macro nested3# STMT_LIST()[]:
+macro nested3# STMT_LIST () []:
     nested2#()
 
-macro nested4# STMT_LIST()[]:
+macro nested4# STMT_LIST () []:
     nested3#()
 
 fun TestRecursiveMacro() u32:
     nested3#()
     return 0
 
-macro product# STMT_LIST($result ID, $factors EXPR_LIST_REST)[]:
+macro product# STMT_LIST ($result ID, $factors EXPR_LIST_REST) []:
     mfor $x $factors:
         set $result = $result * $x
 

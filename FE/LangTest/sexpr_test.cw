@@ -69,8 +69,7 @@ fun foo4(a s32, b s32, c s32) ^u8:
 
 fun foo5(c s32) bool:
     return c < expr:
-            return 6
-
+        return 6
 
 fun foo6(c s32) s32:
     return 55_s32 * (c + 44)
