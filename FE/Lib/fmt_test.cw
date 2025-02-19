@@ -11,8 +11,8 @@ pub enum color s32:
     green 3
     red 4
 
-poly fun fmt::SysRender(v color, out span!(u8), options ^!fmt::SysFormatOptions) 
-    uint:
+poly fun fmt::SysRender(v color, out span!(u8), options ^!fmt::SysFormatOptions)
+  uint:
     return fmt::SysRender(unwrap(v), out, options)
 
 pub rec ic32:

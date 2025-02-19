@@ -30,7 +30,8 @@ global TRUE_STR span(u8) = "true"
 global FALSE_STR span(u8) = "false"
 
 ; only need to mark the first poly as pub
-pub poly fun SysRender(v bool, buffer span!(u8), options ^!SysFormatOptions) uint:
+pub poly fun SysRender(v bool, buffer span!(u8), options ^!SysFormatOptions)
+  uint:
     let s = v ? TRUE_STR : FALSE_STR
     let n uint = min(len(buffer), len(s))
     return mymemcpy(front!(buffer), front(s), n)
@@ -61,11 +62,13 @@ poly fun SysRender(v s16, out span!(u8), options ^!SysFormatOptions) uint:
 poly fun SysRender(v s32, out span!(u8), options ^!SysFormatOptions) uint:
     return fmt_int::FmtDec(v, out)
 
-poly fun SysRender(v span(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
+poly fun SysRender(v span(u8), buffer span!(u8), options ^!SysFormatOptions)
+  uint:
     let n uint = min(len(buffer), len(v))
     return mymemcpy(front!(buffer), front(v), n)
 
-poly fun SysRender(v span!(u8), buffer span!(u8), options ^!SysFormatOptions) uint:
+poly fun SysRender(v span!(u8), buffer span!(u8), options ^!SysFormatOptions)
+  uint:
     let n uint = min(len(buffer), len(v))
     return mymemcpy(front!(buffer), front(v), n)
 
@@ -136,9 +139,10 @@ poly fun SysRender(v ^void, out span!(u8), options ^!SysFormatOptions) uint:
     let h = wrap_as(bitwise_as(v, uint), uint_hex)
     return SysRender(h, out, options)
 
-pub macro print# STMT_LIST(
-    ; list of items to be printed
-    $parts EXPR_LIST_REST)[$buffer, $curr, $options]:
+pub macro print# STMT_LIST (
+                            ; list of items to be printed
+                            $parts EXPR_LIST_REST) [$buffer, $curr, $options]
+  :
     let! $buffer = {[FORMATED_STRING_MAX_LEN]u8:}
     let! $curr span!(u8) = $buffer
     ref let! $options = {SysFormatOptions:}
@@ -152,7 +156,7 @@ pub fun strz_to_slice(s ^u8) span(u8):
         set i += 1
     return make_span(s, i)
 
-pub macro assert# STMT($cond EXPR, $parts EXPR_LIST_REST)[]:
+pub macro assert# STMT ($cond EXPR, $parts EXPR_LIST_REST) []:
     if $cond:
     else:
         print#(stringify($cond))

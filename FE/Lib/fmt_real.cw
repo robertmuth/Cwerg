@@ -30,7 +30,8 @@ fun div_by_power_of_10(val r64, pow10 s32) r64:
 ; is an integer between target_range_lo and target_range_hi
 ; val must be positive
 fun find_t(val r64) s32:
-    let biased_exp = num_real::r64_raw_exponent(val) - num_real::r64_raw_exponent_bias
+    let biased_exp = num_real::r64_raw_exponent(val) -
+      num_real::r64_raw_exponent_bias
     let! t s32 = -as(log10_2_to_52 - as(biased_exp, r64) / log2_10, s32)
     while true:
         let x = div_by_power_of_10(val, t)
@@ -139,8 +140,9 @@ pub poly fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
             set buffer[0] = '0'
             let! i = 0_uint
             set i += FmtSign(is_negative, force_sign, out)
-            set i += FmtMantissaE(
-                    make_span(front(buffer), 1), precision, span_inc(out, i))
+            set i +=
+              FmtMantissaE(make_span(front(buffer), 1), precision,
+                span_inc(out, i))
             set i += FmtExponentE(0, span_inc(out, i))
             return i
         return 0
@@ -152,22 +154,24 @@ pub poly fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
     ; fmt::print#("@@@ ", t, "\n")
     let x = div_by_power_of_10(val, t)
     let! mantissa = num_real::r64_raw_mantissa(x) + 1 << 52
-    let exponent = num_real::r64_raw_exponent(x) - num_real::r64_raw_exponent_bias
+    let exponent = num_real::r64_raw_exponent(x) -
+      num_real::r64_raw_exponent_bias
     assert#(exponent >= 49 && exponent <= 52, "out of bounds\n")
     if exponent != 52:
         set t -= 1
         set mantissa *= 10
         set mantissa >>= as(52_s32 - exponent, u64)
-    let num_digits uint = fmt_int::FmtDec(
-            mantissa, make_span(front!(buffer), len(buffer)))
+    let num_digits uint = fmt_int::FmtDec(mantissa,
+                            make_span(front!(buffer), len(buffer)))
     ; decimal rounding if we drop digits
     if num_digits > precision + 1 && buffer[precision + 2] >= '5':
         set t += RoundDigitsUp(make_span(front!(buffer), precision + 1))
     set t += as(num_digits - 1, s32)
     let! i = 0_uint
     set i += FmtSign(is_negative, force_sign, out)
-    set i += FmtMantissaE(
-            make_span(front(buffer), num_digits), precision, span_inc(out, i))
+    set i +=
+      FmtMantissaE(make_span(front(buffer), num_digits), precision,
+        span_inc(out, i))
     set i += FmtExponentE(t, span_inc(out, i))
     ; fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")
     return i
@@ -189,7 +193,8 @@ fun FmtMantissaHex(frac_bits u64, is_denorm bool, out span!(u8)) uint:
         set bits <<= 4
     return i
 
-fun FmtExponentHex(raw_exponent s32, is_potential_zero bool, out span!(u8)) uint:
+fun FmtExponentHex(raw_exponent s32, is_potential_zero bool, out span!(u8)) uint
+  :
     let! exp s32 = raw_exponent
     if raw_exponent == num_real::r64_raw_exponent_subnormal:
         set exp = is_potential_zero ? 0 : -1022
@@ -217,8 +222,8 @@ pub poly fun FmtHex(val r64, out span!(u8)) uint:
     if is_negative:
         set out[i] = '-'
         set i += 1
-    set i += FmtMantissaHex(
-            frac_bits, raw_exponent == num_real::r64_raw_exponent_subnormal, span_inc(
-                out, i))
+    set i +=
+      FmtMantissaHex(frac_bits,
+        raw_exponent == num_real::r64_raw_exponent_subnormal, span_inc(out, i))
     set i += FmtExponentHex(raw_exponent, frac_bits == 0, span_inc(out, i))
     return i

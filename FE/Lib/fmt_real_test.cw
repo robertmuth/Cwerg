@@ -46,8 +46,8 @@ fun test_hex() void:
 
 global PRECISION uint = 8
 
-fun make_expected(is_neg bool, integer u32, exp10 s32, precision uint, out span!(
-        u8)) uint:
+fun make_expected(is_neg bool, integer u32, exp10 s32, precision uint,
+                  out span!(u8)) uint:
     set out[0] = is_neg ? '-' : '+'
     set out[1] = '0' + as(integer, u8)
     set out[2] = '.'
@@ -69,9 +69,10 @@ fun test_normal(is_neg bool, multiplier u32, exp10 s32, precision uint) void:
     if is_neg:
         set val *= -1.0
     let len_a uint = fmt_real::FmtE(val, PRECISION, true, actual)
-    let len_e uint = make_expected(is_neg, multiplier, exp10, precision, expected)
-    test::AssertSliceEq#(
-            make_span(front(expected), len_e), make_span(front(actual), len_a))
+    let len_e uint = make_expected(is_neg, multiplier, exp10, precision,
+                       expected)
+    test::AssertSliceEq#(make_span(front(expected), len_e),
+                         make_span(front(actual), len_a))
 
 fun main(argc s32, argv ^^u8) s32:
     ;

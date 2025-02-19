@@ -14,7 +14,8 @@ fun test_bs_or_die() void:
     test::AssertEq#(0x22_u8, bytestream::FrontU8OrDie(@!stream))
     test::AssertEq#(0x4433_u16, bytestream::FrontLeU16OrDie(@!stream))
     test::AssertEq#(0x88776655_u32, bytestream::FrontLeU32OrDie(@!stream))
-    test::AssertSliceEq#(bytestream::FrontSliceOrDie(@!stream, 10), "abcdefghij")
+    test::AssertSliceEq#(bytestream::FrontSliceOrDie(@!stream, 10), "abcdefghij"
+                         )
     test::AssertSliceEq#(bytestream::FrontSliceOrDie(@!stream, 1), "k")
     test::AssertSliceEq#(bytestream::FrontSliceOrDie(@!stream, 0), empty_slice)
 

@@ -26,11 +26,12 @@ global DataAAm = {[1024 * 1024]u8: 0xaa}
 
 global DataFFm = {[1024 * 1024]u8: 0xff}
 
-global DataInc = {
-        [64]u8: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 
-        19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 
-        38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 
-        57, 58, 59, 60, 61, 62, 63}
+global DataInc = {[64]u8:
+                  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                  18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+                  33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+                  48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63
+                  }
 
 fun main(argc s32, argv ^^u8) s32:
     ; init
@@ -56,22 +57,22 @@ fun main(argc s32, argv ^^u8) s32:
     ; adler32
     ;     python3 -c "import zlib&& print(zlib.adler32(bytes([0xff] * 1024)))"
     ;
-    test::AssertEq#(
-            checksum::Adler32(Data00k, checksum::Adler32SeedCrc), 67108865_u32)
-    test::AssertEq#(
-            checksum::Adler32(Data55k, checksum::Adler32SeedCrc), 3587724304_u32)
-    test::AssertEq#(
-            checksum::Adler32(DataAAk, checksum::Adler32SeedCrc), 2814355487_u32)
-    test::AssertEq#(
-            checksum::Adler32(DataFFk, checksum::Adler32SeedCrc), 2040986670_u32)
-    test::AssertEq#(
-            checksum::Adler32(Data00m, checksum::Adler32SeedCrc), 15728641_u32)
-    test::AssertEq#(
-            checksum::Adler32(Data55m, checksum::Adler32SeedCrc), 2238926769_u32)
-    test::AssertEq#(
-            checksum::Adler32(DataAAm, checksum::Adler32SeedCrc), 168140641_u32)
-    test::AssertEq#(
-            checksum::Adler32(DataFFm, checksum::Adler32SeedCrc), 2391338769_u32)
+    test::AssertEq#(checksum::Adler32(Data00k, checksum::Adler32SeedCrc),
+                    67108865_u32)
+    test::AssertEq#(checksum::Adler32(Data55k, checksum::Adler32SeedCrc),
+                    3587724304_u32)
+    test::AssertEq#(checksum::Adler32(DataAAk, checksum::Adler32SeedCrc),
+                    2814355487_u32)
+    test::AssertEq#(checksum::Adler32(DataFFk, checksum::Adler32SeedCrc),
+                    2040986670_u32)
+    test::AssertEq#(checksum::Adler32(Data00m, checksum::Adler32SeedCrc),
+                    15728641_u32)
+    test::AssertEq#(checksum::Adler32(Data55m, checksum::Adler32SeedCrc),
+                    2238926769_u32)
+    test::AssertEq#(checksum::Adler32(DataAAm, checksum::Adler32SeedCrc),
+                    168140641_u32)
+    test::AssertEq#(checksum::Adler32(DataFFm, checksum::Adler32SeedCrc),
+                    2391338769_u32)
     ; test end
     test::Success#()
     return 0

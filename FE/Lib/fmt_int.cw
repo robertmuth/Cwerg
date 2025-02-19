@@ -5,10 +5,9 @@ fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
         set ptr_inc(dst, i)^ = ptr_inc(src, i)^
     return size
 
-macro unsigned_to_str# EXPR(
-        $val EXPR, $base EXPR, $max_width EXPR,
-        ; a slice for the output string
-        $out EXPR)[$v, $out_eval, $tmp, $pos]:
+macro unsigned_to_str# EXPR ($val EXPR, $base EXPR, $max_width EXPR,
+                             ; a slice for the output string
+                             $out EXPR) [$v, $out_eval, $tmp, $pos]:
     expr:
         ; unsigned to str with given base
         let! $v = $val
@@ -26,7 +25,6 @@ macro unsigned_to_str# EXPR(
                 continue
         let n uint = $max_width - min($pos, len($out_eval))
         return mymemcpy(front!($out_eval), ptr_inc(front($tmp), $pos), n)
-
 
 ; Why the polymorphism?
 ;         It makes shorter names and avoids the need for separate
