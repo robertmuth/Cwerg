@@ -1,9 +1,9 @@
 ; Binary Tree Example
 module(
-        ; the payload type
-        $type TYPE,
-        ; the less-than function ($type x $type) -> bool
-        $lt CONST_EXPR):
+       ; the payload type
+       $type TYPE,
+       ; the less-than function ($type x $type) -> bool
+       $lt CONST_EXPR):
 
 pub global Leaf = void_val
 

@@ -48,5 +48,6 @@ fun main(argc s32, argv ^^u8) s32:
         return 1
     ; print# is a stmt macro for printing arbitrary values.
     ; (It is possible to define formatters for custom types.)
-    fmt::print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars, "\n")
+    fmt::print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars,
+                "\n")
     return 0

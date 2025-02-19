@@ -10,10 +10,10 @@ pub rec type_rec2:
 
 ; global with rec literal
 global r02 = {type_rec2:
-    ; first
-    s2 = 9,
-    ; field_val comment
-    7}
+              ; first
+              s2 = 9,
+              ; field_val comment
+              7}
 
 ; enum decl
 enum type_enum s32:
@@ -24,23 +24,23 @@ enum type_enum s32:
     e4 auto_val
 
 global c31 = {[30]uint:
-    ; first
-    10,
-    ; index_val
-    20, 30}
+              ; first
+              10,
+              ; index_val
+              20, 30}
 
 ; fun
 fun main(
-    ; first
-    argc s32,
-    ; param
-    argv ^^u8) s32:
+         ; first
+         argc s32,
+         ; param
+         argv ^^u8) s32:
     let! loc11 = {[30]uint: 10,
-        ; index_val
-        20, 30}
+                  ; index_val
+                  20, 30}
     let! loc22 = {type_rec2: s2 = 9,
-        ; field_val comment
-        7}
+                  ; field_val comment
+                  7}
     ; cond
     cond:
         ; in block
