@@ -687,7 +687,6 @@ def _EmitTokensToplevel(out, node):
     elif isinstance(node, cwast.StmtStaticAssert):
         out += [PP.String("static_assert"), PP.Break()]
         _EmitExprOrType(out, node.cond)
-        out += [PP.End()]
     elif isinstance(node, cwast.DefEnum):
         out += [PP.String("enum"),
                 PP.Break(),
