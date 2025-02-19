@@ -64,8 +64,8 @@ pub fun starts_with(haystack span(u8), needle span(u8)) bool:
     if hlen < nlen:
         return false
     ; at this point we know that both slices have len > 0
-    return are_two_non_empty_strings_the_same(
-            front(haystack), front(needle), nlen)
+    return are_two_non_empty_strings_the_same(front(haystack), front(needle),
+             nlen)
 
 pub fun ends_with(haystack span(u8), needle span(u8)) bool:
     let hlen uint = len(haystack)
@@ -75,8 +75,9 @@ pub fun ends_with(haystack span(u8), needle span(u8)) bool:
     if hlen < nlen:
         return false
     ; at this point we know that both slices have len > 0
-    return are_two_non_empty_strings_the_same(
-            ptr_inc(front(haystack), hlen - nlen), front(needle), nlen)
+    return are_two_non_empty_strings_the_same(ptr_inc(front(haystack),
+                                                hlen - nlen), front(needle),
+             nlen)
 
 pub fun cmp(aslice span(u8), bslice span(u8)) sint:
     let alen uint = len(aslice)

@@ -53,14 +53,16 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(0_uint, string::find_first_of(STR_ABC, STR_ABCD))
     test::AssertEq#(2_uint, string::find_first_of(STR_ABC, STR_CD))
     test::AssertEq#(string::NOT_FOUND, string::find_first_of(STR_ABC, STR_XYZ))
-    test::AssertEq#(string::NOT_FOUND, string::find_first_of(STR_EMPTY, STR_XYZ))
-    test::AssertEq#(string::NOT_FOUND, string::find_first_of(STR_ABC, STR_EMPTY))
+    test::AssertEq#(string::NOT_FOUND, string::find_first_of(STR_EMPTY, STR_XYZ)
+                    )
+    test::AssertEq#(string::NOT_FOUND, string::find_first_of(STR_ABC, STR_EMPTY)
+                    )
     ; find_first_not_of
     test::AssertEq#(3_uint, string::find_first_not_of(STR_ABCD, STR_ABC))
     test::AssertEq#(0_uint, string::find_first_not_of(STR_ABC, STR_CD))
     test::AssertEq#(0_uint, string::find_first_not_of(STR_ABC, STR_XYZ))
-    test::AssertEq#(
-            string::NOT_FOUND, string::find_first_not_of(STR_EMPTY, STR_XYZ))
+    test::AssertEq#(string::NOT_FOUND,
+                    string::find_first_not_of(STR_EMPTY, STR_XYZ))
     test::AssertEq#(0_uint, string::find_first_not_of(STR_ABC, STR_EMPTY))
     ; find_last_of
     test::AssertEq#(2_uint, string::find_last_of(STR_ABCD, STR_ABC))
@@ -72,8 +74,8 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(3_uint, string::find_last_not_of(STR_ABCD, STR_ABC))
     test::AssertEq#(1_uint, string::find_last_not_of(STR_ABC, STR_CD))
     test::AssertEq#(2_uint, string::find_last_not_of(STR_ABC, STR_XYZ))
-    test::AssertEq#(
-            string::NOT_FOUND, string::find_last_not_of(STR_EMPTY, STR_XYZ))
+    test::AssertEq#(string::NOT_FOUND,
+                    string::find_last_not_of(STR_EMPTY, STR_XYZ))
     test::AssertEq#(2_uint, string::find_last_not_of(STR_ABC, STR_EMPTY))
     ; test end
     test::Success#()

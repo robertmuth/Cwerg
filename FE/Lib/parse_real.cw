@@ -25,18 +25,17 @@ fun dec_digit_val(c u8) u8:
     return c - '0'
 
 ; this macros capture i,n,s from the environment
-macro next_char# STMT_LIST($c ID, $error_body STMT_LIST)[]:
+macro next_char# STMT_LIST ($c ID, $error_body STMT_LIST) []:
     if i >= n:
         $error_body
-
     set $c = s[i]
     set i += 1
 
 ; if we have too many digits we drop the one after the dot but
 ; adjust must adjust the exponent for the one before
 ; this macro captures i,n,s from the environment
-macro read_hex_mantissa# STMT_LIST($c ID, $max_digits EXPR, $val ID, $adjust ID)[
-        $digits]:
+macro read_hex_mantissa# STMT_LIST ($c ID, $max_digits EXPR, $val ID, $adjust ID
+                                    ) [$digits]:
     block end_of_input:
         let! $digits = $max_digits
         ; ignore leading zeros
@@ -64,8 +63,8 @@ macro read_hex_mantissa# STMT_LIST($c ID, $max_digits EXPR, $val ID, $adjust ID)
                 next_char# $c:
                     break end_of_input
 
-macro read_dec_mantissa# STMT_LIST(
-        $c ID, $max_digits EXPR, $val ID, $adjust ID, $imprecise ID)[$digits]:
+macro read_dec_mantissa# STMT_LIST ($c ID, $max_digits EXPR, $val ID, $adjust ID
+                                    , $imprecise ID) [$digits]:
     block end_of_input:
         let! $digits = $max_digits
         ; ignore leading zeros
@@ -99,7 +98,7 @@ macro read_dec_mantissa# STMT_LIST(
                     break end_of_input
 
 ; this macro captures i,n,s from the environment
-macro read_dec_exponent# STMT_LIST($c ID, $exp ID)[$negative]:
+macro read_dec_exponent# STMT_LIST ($c ID, $exp ID) [$negative]:
     let! $negative = false
     if $c == '-' || $c == '+':
         if $c == '-':
@@ -129,7 +128,8 @@ fun parse_r64_hex_helper(s span(u8), negative bool, offset uint) ResultR64:
     let! exp_adjustments = 0_s32
     let! exp = 0_s32
     ; allow an extra 2 digits beyond the 52 / 4 = 13 mantissa hex digits
-    read_hex_mantissa#(c, num_real::r64_mantissa_bits / 4 + 2, mant, exp_adjustments)
+    read_hex_mantissa#(c, num_real::r64_mantissa_bits / 4 + 2, mant,
+                       exp_adjustments)
     if c == 'p':
         next_char# c:
             return ParseError

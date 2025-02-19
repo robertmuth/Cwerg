@@ -55,23 +55,25 @@ fun AddBlockAlignedLE(state ^!StateKeccak, data span(u64)) void:
     for i = 17, 18_uint, 1:
         set state^.x[i] ~= data[i]
 
-global rconst = {
-        [24]u64: 0x0000000000000001, 0x0000000000008082, 0x800000000000808a, 0x8000000080008000, 
-        0x000000000000808b, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009, 
-        0x000000000000008a, 0x0000000000000088, 0x0000000080008009, 0x000000008000000a, 
-        0x000000008000808b, 0x800000000000008b, 0x8000000000008089, 0x8000000000008003, 
-        0x8000000000008002, 0x8000000000000080, 0x000000000000800a, 0x800000008000000a, 
-        0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008}
+global rconst = {[24]u64:
+                 0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
+                 0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
+                 0x8000000080008081, 0x8000000000008009, 0x000000000000008a,
+                 0x0000000000000088, 0x0000000080008009, 0x000000008000000a,
+                 0x000000008000808b, 0x800000000000008b, 0x8000000000008089,
+                 0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
+                 0x000000000000800a, 0x800000008000000a, 0x8000000080008081,
+                 0x8000000000008080, 0x0000000080000001, 0x8000000080008008}
 
-macro XOR_5_EXPR# EXPR($x EXPR, $p1 EXPR, $p2 EXPR, $p3 EXPR, $p4 EXPR, $p5 EXPR)[
-    ]:
-    $x^[$p1] ~ $x^[$p2] ~ $x^[$p3] ~ $x^[$p4] ~ $x^[$p5] 
+macro XOR_5_EXPR# EXPR ($x EXPR, $p1 EXPR, $p2 EXPR, $p3 EXPR, $p4 EXPR,
+                        $p5 EXPR) []:
+    $x^[$p1] ~ $x^[$p2] ~ $x^[$p3] ~ $x^[$p4] ~ $x^[$p5]
 
-macro XOR_1# STMT_LIST($x EXPR, $v EXPR, $indices EXPR_LIST_REST)[]:
+macro XOR_1# STMT_LIST ($x EXPR, $v EXPR, $indices EXPR_LIST_REST) []:
     mfor $i $indices:
         set $x^[$i] ~= $v
 
-macro UPDATE# STMT_LIST($a EXPR, $b EXPR, $x EXPR, $i EXPR, $bitpos EXPR)[]:
+macro UPDATE# STMT_LIST ($a EXPR, $b EXPR, $x EXPR, $i EXPR, $bitpos EXPR) []:
     set $b = $x^[$i]
     set $x^[$i] = $a << $bitpos | $a >> (64 - $bitpos)
     set $a = $b

@@ -58,12 +58,10 @@ fun test_dec() void:
     test::AssertEqR64#(+.inf_r64, parse_r64("1e+500"))
     test::AssertEqR64#(-.inf_r64, parse_r64("-1e+500"))
     ; this are slightly less accurate on x86-64 than on arm
-    test::AssertGenericEq#(
-            {cmp::r64r: 3.141592653589793238462643, REL_ERR1},
-            {cmp::r64r: parse_r64("3.141592653589793238462643")})
-    test::AssertGenericEq#(
-            {cmp::r64r: 2.718281828459045235360287, REL_ERR1},
-            {cmp::r64r: parse_r64("2.718281828459045235360287")})
+    test::AssertGenericEq#({cmp::r64r: 3.141592653589793238462643, REL_ERR1},
+                           {cmp::r64r: parse_r64("3.141592653589793238462643")})
+    test::AssertGenericEq#({cmp::r64r: 2.718281828459045235360287, REL_ERR1},
+                           {cmp::r64r: parse_r64("2.718281828459045235360287")})
 
 fun test_hex() void:
     ;
@@ -108,11 +106,11 @@ fun test_hex() void:
     test::AssertEqR64#(0x1.fffffffffffep-1, parse_r64("0x0.ffffffffffffp0"))
     test::AssertEqR64#(0x1.fffffffffffffp-1, parse_r64("0x0.fffffffffffff8p0"))
     ; extra digits have no effect
-    test::AssertEqR64#(
-            0x1.fffffffffffffp-1, parse_r64("0x0.fffffffffffffffffffffp0"))
+    test::AssertEqR64#(0x1.fffffffffffffp-1,
+                       parse_r64("0x0.fffffffffffffffffffffp0"))
     test::AssertEqR64#(0x1fffffffffffffp0, parse_r64("0x1fffffffffffffp0"))
-    test::AssertEqR64#(
-            0x1fffffffffffffp32, parse_r64("0x1fffffffffffffffffffffp0"))
+    test::AssertEqR64#(0x1fffffffffffffp32,
+                       parse_r64("0x1fffffffffffffffffffffp0"))
 
 fun main(argc s32, argv ^^u8) s32:
     ;
