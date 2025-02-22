@@ -128,22 +128,22 @@ def AddMissingParens(node):
 
 def EmitExpr3(out, node: cwast.Expr3):
     _EmitExprOrType(out, node.cond)
-    out += [PP.Break(), PP.String("?"), PP.Break()]
+    out += [PP.Brk(), PP.Str("?"), PP.Brk()]
     _EmitExprOrType(out, node.expr_t)
-    out += [PP.Break(), PP.String(":"), PP.Break()]
+    out += [PP.Brk(), PP.Str(":"), PP.Brk()]
     _EmitExprOrType(out, node.expr_f)
 
 
 def EmitExprStmt(out, node: cwast.ExprStmt):
-    out += [PP.String("expr"), PP.Break(0), PP.String(":")]
+    out += [PP.Str("expr"), PP.Brk(0), PP.Str(":")]
     _EmitStatementsSpecial(out, node.body)
 
 
 def _EmitTypeFun(out, node: cwast.TypeFun):
-    out += [PP.Begin(PP.BreakType.CONSISTENT, 2),
-            PP.String("funtype"), PP.NoBreak(0)]
+    out += [PP.Beg(PP.BreakType.CONSISTENT, 2),
+            PP.Str("funtype"), PP.NoBreak(0)]
     _EmitParameterList(out, node.params)
-    out += [PP.Break()]
+    out += [PP.Brk()]
     _EmitExprOrType(out, node.result)
     out += [PP.End()]
 
@@ -164,9 +164,9 @@ def _MaybeEmitDoc(out, node):
             doc = doc[1:-1]
         for line in doc.split("\n"):
             if not line:
-                out += [PP.String(";"), PP.LineBreak()]
+                out += [PP.Str(";"), PP.LineBreak()]
             else:
-                out += [PP.String("; " + line), PP.LineBreak()]
+                out += [PP.Str("; " + line), PP.LineBreak()]
 
 
 def _MaybeEmitAnnotations(out, node):
@@ -182,7 +182,7 @@ def _MaybeEmitAnnotations(out, node):
             continue
         if field not in ("pub", "wrapped", "ref", "poly"):
             field = "{{" + field + "}}"
-        out += [PP.String(field), PP.Break()]
+        out += [PP.Str(field), PP.Brk()]
 
 
 def WithExcl(name: str, mutable: bool) -> str:
@@ -194,29 +194,29 @@ def KW(node) -> str:
 
 
 def _EmitParenList(out, lst):
-    out += [PP.String("(")]
+    out += [PP.Str("(")]
     first = True
     for param in lst:
         if first:
             if _GetDoc(param):
-                out += [PP.Break(0)]
+                out += [PP.Brk(0)]
             else:
                 out += [PP.NoBreak(0)]
         else:
-            out += [PP.NoBreak(0), PP.String(","), PP.Break()]
+            out += [PP.NoBreak(0), PP.Str(","), PP.Brk()]
         first = False
         _MaybeEmitDoc(out, param)
-        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, param)
         _EmitExprOrType(out, param)
         out += [PP.End()]
-    out += [PP.Break(0), PP.String(")")]
+    out += [PP.Brk(0), PP.Str(")")]
 
 
 def _EmitFunctional(out, name, nodes: list):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
     if isinstance(name, str):
-        out += [PP.String(name)]
+        out += [PP.Str(name)]
     else:
         _EmitExprOrType(out, name)
     out += [PP.NoBreak(0)]
@@ -227,7 +227,7 @@ def _EmitFunctional(out, name, nodes: list):
 def _MaybeAddCommaAndHandleComment(out, first, node, first_break):
     doc = _GetDoc(node)
     if not first:
-        out += [PP.NoBreak(0), PP.String(",")]
+        out += [PP.NoBreak(0), PP.Str(",")]
     if doc:
         out += [PP.LineBreak()]
         _MaybeEmitDoc(out, node)
@@ -235,40 +235,40 @@ def _MaybeAddCommaAndHandleComment(out, first, node, first_break):
         if first:
             out += [first_break]
         else:
-            out += [PP.Break()]
+            out += [PP.Brk()]
 
 
 def _EmitParameterList(out, lst):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 1), PP.String("(")]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 1), PP.Str("(")]
     first = True
     for param in lst:
         _MaybeAddCommaAndHandleComment(out, first, param, PP.NoBreak(0))
         first = False
         #
-        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, param)
-        out += [PP.String(str(param.name)), PP.Break()]
+        out += [PP.Str(str(param.name)), PP.Brk()]
         if isinstance(param, cwast.FunParam):
             _EmitExprOrType(out, param.type)
         elif isinstance(param, cwast.ModParam):
-            out += [PP.String(param.mod_param_kind.name)]
+            out += [PP.Str(param.mod_param_kind.name)]
         elif isinstance(param, cwast.MacroParam):
-            out += [PP.String(param.macro_param_kind.name)]
+            out += [PP.Str(param.macro_param_kind.name)]
         else:
             assert False
         out += [PP.End()]
-    out += [PP.Break(0), PP.String(")"), PP.End()]
+    out += [PP.Brk(0), PP.Str(")"), PP.End()]
 
 
 def _EmitUnary(out, a, b):
     if isinstance(a, str):
-        out += [PP.String(a)]
+        out += [PP.Str(a)]
     else:
         _EmitExprOrType(out, a)
 
-    out += [PP.Break(0)]
+    out += [PP.Brk(0)]
     if isinstance(b, str):
-        out += [PP.String(b)]
+        out += [PP.Str(b)]
     else:
         _EmitExprOrType(out, b)
 
@@ -287,7 +287,7 @@ def _EmitBinary(out, node, expr1, width1: int, op: str, width2: int, expr2):
     # we do not want a break here
     out += [PP.NoBreak(width1)]
     _MaybeEmitAnnotations(out, node)
-    out += [PP.String(op), PP.Break(width2)]
+    out += [PP.Str(op), PP.Brk(width2)]
     _EmitExprOrType(out, expr2)
 
 
@@ -301,28 +301,25 @@ def _EmitExpr2(out, node: cwast.Expr2):
 
 
 def _EmitExprIndex(out, node: cwast.ExprIndex):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
     _EmitExprOrType(out, node.container)
-    out += [PP.Break(0), PP.String(WithExcl("[", node.unchecked)),
-            PP.Break(0)]
+    out += [PP.Brk(0), PP.Str(WithExcl("[", node.unchecked)), PP.Brk(0)]
     _EmitExprOrType(out, node.expr_index)
-    out += [PP.Break(0), PP.String("]"), PP.End()]
+    out += [PP.Brk(0), PP.Str("]"), PP.End()]
 
 
 def _EmitVecType(out, size, type):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2),
-            PP.String("["), PP.Break(0)]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2), PP.Str("["), PP.Brk(0)]
     _EmitExprOrType(out, size)
-    out += [PP.Break(0), PP.String("]")]
+    out += [PP.Brk(0), PP.Str("]")]
     _EmitExprOrType(out, type)
     out += [PP.End()]
 
 
 def _EmitParenGrouping(out, node: cwast.ExprParen):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2),
-            PP.String("("), PP.Break(0)]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2), PP.Str("("), PP.Brk(0)]
     _EmitExprOrType(out, node.expr)
-    out += [PP.Break(0), PP.String(")"), PP.End()]
+    out += [PP.Brk(0), PP.Str(")"), PP.End()]
 
 
 def _IsComplexValCompound(node: cwast.ValCompound) -> bool:
@@ -336,12 +333,12 @@ def _IsComplexValCompound(node: cwast.ValCompound) -> bool:
 
 
 def _EmitValCompound(out, node: cwast.ValCompound):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 1),
-            PP.String("{"), PP.NoBreak(0)]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 1),
+            PP.Str("{"), PP.NoBreak(0)]
     if not isinstance(node.type_or_auto, cwast.TypeAuto):
         _EmitExprOrType(out, node.type_or_auto)
         out += [PP.NoBreak(0)]
-    out += [PP.String(":")]
+    out += [PP.Str(":")]
     first = True
     first_break = PP.NoBreak(1)
     if _IsComplexValCompound(node):
@@ -349,31 +346,31 @@ def _EmitValCompound(out, node: cwast.ValCompound):
     for e in node.inits:
         _MaybeAddCommaAndHandleComment(out, first, e, first_break)
         first = False
-        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, e)
         assert isinstance(e, cwast.ValPoint)
         if not isinstance(e.point, cwast.ValAuto):
             _EmitExprOrType(out, e.point)
-            out += [PP.NoBreak(1), PP.String("="), PP.Break()]
+            out += [PP.NoBreak(1), PP.Str("="), PP.Brk()]
         _EmitExprOrType(out, e.value_or_undef)
         out += [PP.End()]
-    out += [PP.Break(0), PP.String("}"), PP.End()]
+    out += [PP.Brk(0), PP.Str("}"), PP.End()]
 
 
 _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
-    cwast.Id: lambda out, n:  out.extend([PP.String(n.FullName())]),
-    cwast.MacroId: lambda out, n: out.extend([PP.String(str(n.name))]),
+    cwast.Id: lambda out, n:  out.extend([PP.Str(n.FullName())]),
+    cwast.MacroId: lambda out, n: out.extend([PP.Str(str(n.name))]),
     #
-    cwast.ValTrue: lambda out, n: out.append(PP.String(KW(n))),
-    cwast.ValFalse: lambda out, n: out.append(PP.String(KW(n))),
-    cwast.ValUndef: lambda out, n: out.append(PP.String(KW(n))),
-    cwast.ValVoid: lambda out, n: out.append(PP.String(KW(n))),
-    cwast.ValAuto: lambda out, n: out.append(PP.String(KW(n))),
-    cwast.TypeAuto: lambda out, n: out.append(PP.String(KW(n))),
+    cwast.ValTrue: lambda out, n: out.append(PP.Str(KW(n))),
+    cwast.ValFalse: lambda out, n: out.append(PP.Str(KW(n))),
+    cwast.ValUndef: lambda out, n: out.append(PP.Str(KW(n))),
+    cwast.ValVoid: lambda out, n: out.append(PP.Str(KW(n))),
+    cwast.ValAuto: lambda out, n: out.append(PP.Str(KW(n))),
+    cwast.TypeAuto: lambda out, n: out.append(PP.Str(KW(n))),
     #
-    cwast.ValNum: lambda out, n: out.append(PP.String(n.number)),
+    cwast.ValNum: lambda out, n: out.append(PP.Str(n.number)),
     cwast.TypeBase: lambda out, n: out.append(
-        PP.String(cwast.BaseTypeKindToKeyword(n.base_type_kind))),
+        PP.Str(cwast.BaseTypeKindToKeyword(n.base_type_kind))),
     #
     cwast.ExprFront: lambda out, n: _EmitFunctional(out, WithExcl(KW(n), n.mut), [n.container]),
     cwast.ExprUnionTag: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
@@ -404,7 +401,7 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
         [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
     #
-    cwast.ValString: lambda out, n:  out.extend([PP.String(n.render())]),
+    cwast.ValString: lambda out, n:  out.extend([PP.Str(n.render())]),
     #
     cwast.Expr1: _EmitExpr1,
     cwast.Expr2: _EmitExpr2,
@@ -434,21 +431,21 @@ def _EmitExprOrType(out, node):
 
 
 def _EmitStmtSet(out, kind, lhs, rhs):
-    out += [PP.String("set"), PP.Break()]
+    out += [PP.Str("set"), PP.Brk()]
     _EmitExprOrType(out, lhs)
-    out += [PP.Break(), PP.String(kind),
-            PP.Break()]
+    out += [PP.Brk(), PP.Str(kind),
+            PP.Brk()]
     _EmitExprOrType(out, rhs)
 
 
 def _EmitStmtLetOrGlobal(out, kind: str, name: str, type_or_auto, init_or_auto):
-    out += [PP.String(kind), PP.NoBreak(1),
-            PP.String(str(name))]
+    out += [PP.Str(kind), PP.NoBreak(1),
+            PP.Str(str(name))]
     if not isinstance(type_or_auto, cwast.TypeAuto):
-        out += [PP.Break()]
+        out += [PP.Brk()]
         _EmitExprOrType(out, type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
-        out += [PP.NoBreak(1), PP.String("="), PP.NoBreak(1)]
+        out += [PP.NoBreak(1), PP.Str("="), PP.NoBreak(1)]
         _EmitExprOrType(out, init_or_auto)
 
 
@@ -475,106 +472,104 @@ def _GetOriginalVarName(node) -> str:
 
 
 def _EmitIdList(out, lst):
-    out += [PP.Begin(PP.BreakType.CONSISTENT, 2), PP.String("[")]
+    out += [PP.Beg(PP.BreakType.CONSISTENT, 2), PP.Str("[")]
     first = True
     for gen_id in lst:
         if first:
-            out += [PP.Break(0)]
+            out += [PP.Brk(0)]
         else:
-            out += [PP.NoBreak(0), PP.String(","), PP.Break()]
+            out += [PP.NoBreak(0), PP.Str(","), PP.Brk()]
         first = False
         assert isinstance(gen_id, cwast.MacroId)
-        out += [PP.String(gen_id.name.name)]
-    out += [PP.Break(0), PP.String("]"), PP.End()]
+        out += [PP.Str(gen_id.name.name)]
+    out += [PP.Brk(0), PP.Str("]"), PP.End()]
 
 
 def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
     """Handle  Macro Invocation in Stmt Context"""
     name = node.name.name
-    out += [PP.String(str(name))]
+    out += [PP.Str(str(name))]
     is_block_like = _IsMacroWithBlock(node)
     width_first = 1
     if not is_block_like:
         out += [PP.NoBreak(0),
-                PP.Begin(PP.BreakType.INCONSISTENT, 1),
-                PP.String("(")]
+                PP.Beg(PP.BreakType.INCONSISTENT, 1),
+                PP.Str("(")]
         width_first = 0
     args = node.args
     if name == "for":
-        out += [PP.Break(),
-                PP.String(_GetOriginalVarName(args[0])),
-                PP.Break(),
-                PP.String("=")]
+        out += [PP.Brk(),
+                PP.Str(_GetOriginalVarName(args[0])),
+                PP.Brk(),
+                PP.Str("=")]
         args = args[1:]
     elif name == "tryset":
-        out += [PP.Break()]
+        out += [PP.Brk()]
         _EmitExprOrType(out, args[0])
-        out += [PP.Break(),
-                PP.String("=")]
+        out += [PP.Brk(),
+                PP.Str("=")]
         args = args[1:]
     elif name == "trylet" or name == "trylet!":
-        out += [PP.Break(),
-                PP.String(_GetOriginalVarName(args[0])), PP.Break()]
+        out += [PP.Brk(), PP.Str(_GetOriginalVarName(args[0])), PP.Brk()]
         _EmitExprOrType(out, args[1])
-        out += [PP.Break(),
-                PP.String("=")]
+        out += [PP.Brk(), PP.Str("=")]
         args = args[2:]
     # "while" does not require special handling
     first = True
     for a in args:
         if _IsColonEmphemeral(a):
-            out += [PP.Break(0), PP.String(":")]
+            out += [PP.Brk(0), PP.Str(":")]
             _EmitStatementsSpecial(out, a.args)
             continue
         elif first:
-            out += [PP.Break(width_first)]
+            out += [PP.Brk(width_first)]
         else:
-            out += [PP.Break(0), PP.String(","), PP.Break()]
+            out += [PP.Brk(0), PP.Str(","), PP.Brk()]
         first = False
         #
         if isinstance(a, cwast.Id):
-            out += [PP.String(a.FullName())]
+            out += [PP.Str(a.FullName())]
         elif isinstance(a, cwast.EphemeralList):
-            out += [PP.String("TODO-LIST")]
+            out += [PP.Str("TODO-LIST")]
         else:
             _EmitExprOrType(out, a)
 
     if not is_block_like:
-        out += [PP.Break(0), PP.String(")"), PP.End()]
+        out += [PP.Brk(0), PP.Str(")"), PP.End()]
 
 
 def _EmitStatementsSpecial(out, lst):
     if not lst:
         return
-    out += [PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+    out += [PP.End(), PP.Beg(PP.BreakType.FORCE_LINE_BREAK, 4)]
     emit_break = False
     for child in lst:
         if emit_break:
-            out += [PP.Break()]
+            out += [PP.Brk()]
         emit_break = True
         _EmitStatement(out, child)
 
 
 def _EmitStatement(out, n):
     _MaybeEmitDoc(out, n)
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
     _MaybeEmitAnnotations(out, n)
     #
     if isinstance(n, cwast.StmtContinue):
-        out += [PP.String("continue")]
+        out += [PP.Str("continue")]
         if n.target.name:
-            out += [PP.Break(), PP.String(n.target.name)]
+            out += [PP.Brk(), PP.Str(n.target.name)]
     elif isinstance(n, cwast.StmtBreak):
-        out += [PP.String("break")]
+        out += [PP.Str("break")]
         if n.target.name:
-            out += [PP.Break(), PP.String(n.target.name)]
+            out += [PP.Brk(), PP.Str(n.target.name)]
     elif isinstance(n, cwast.StmtReturn):
-        out += [PP.String("return")]
+        out += [PP.Str("return")]
         if not isinstance(n.expr_ret, cwast.ValVoid):
             out += [PP.NoBreak(1)]
             _EmitExprOrType(out, n.expr_ret)
     elif isinstance(n, cwast.StmtTrap):
-        out += [PP.String("trap")]
+        out += [PP.Str("trap")]
     elif isinstance(n, cwast.StmtAssignment):
         _EmitStmtSet(out, "=", n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.StmtCompoundAssignment):
@@ -585,40 +580,40 @@ def _EmitStatement(out, n):
         _EmitStmtLetOrGlobal(out, WithExcl("let", n.mut),
                              n.name, n.type_or_auto, n.initial_or_undef_or_auto)
     elif isinstance(n, cwast.StmtExpr):
-        out += [PP.String("do"), PP.NoBreak(1)]
+        out += [PP.Str("do"), PP.NoBreak(1)]
         _EmitExprOrType(out, n.expr)
     elif isinstance(n, cwast.StmtDefer):
-        out += [PP.String("defer"), PP.Break(0), PP.String(":")]
+        out += [PP.Str("defer"), PP.Brk(0), PP.Str(":")]
         _EmitStatementsSpecial(out, n.body)
     elif isinstance(n, cwast.StmtCond):
-        out += [PP.String("cond"), PP.Break(0), PP.String(":")]
+        out += [PP.Str("cond"), PP.Brk(0), PP.Str(":")]
         _EmitStatementsSpecial(out, n.cases)
     elif isinstance(n, cwast.Case):
-        out += [PP.String("case"), PP.Break()]
+        out += [PP.Str("case"), PP.Brk()]
         _EmitExprOrType(out, n.cond)
-        out += [PP.Break(0), PP.String(":")]
+        out += [PP.Brk(0), PP.Str(":")]
         _EmitStatementsSpecial(out, n.body)
     elif isinstance(n, cwast.MacroInvoke):
         _EmitStmtMacroInvoke(out, n)
     elif isinstance(n, cwast.MacroId):
-        out += [PP.String(str(n.name))]
+        out += [PP.Str(str(n.name))]
     elif isinstance(n, cwast.StmtBlock):
-        out += [PP.String("block"), PP.Break(), PP.String(str(n.label)),
-                PP.Break(0), PP.String(":")]
+        out += [PP.Str("block"), PP.Brk(), PP.Str(str(n.label)),
+                PP.Brk(0), PP.Str(":")]
         _EmitStatementsSpecial(out, n.body)
     elif isinstance(n, cwast.StmtIf):
-        out += [PP.String("if"), PP.Break()]
+        out += [PP.Str("if"), PP.Brk()]
         _EmitExprOrType(out, n.cond)
-        out += [PP.Break(0), PP.String(":")]
+        out += [PP.Brk(0), PP.Str(":")]
         _EmitStatementsSpecial(out, n.body_t)
         if n.body_f:
-            out += [PP.End(), PP.Break(),
-                    PP.Begin(PP.BreakType.INCONSISTENT, 2),
-                    PP.String("else"), PP.Break(0), PP.String(":")]
+            out += [PP.End(), PP.Brk(),
+                    PP.Beg(PP.BreakType.INCONSISTENT, 2),
+                    PP.Str("else"), PP.Brk(0), PP.Str(":")]
             _EmitStatementsSpecial(out, n.body_f)
     elif isinstance(n, cwast.MacroFor):
-        out += [PP.String("mfor"), PP.Break(), PP.String(str(n.name)),
-                PP.Break(), PP.String(str(n.name_list)),   PP.Break(0), PP.String(":")]
+        out += [PP.Str("mfor"), PP.Brk(), PP.Str(str(n.name)),
+                PP.Brk(), PP.Str(str(n.name_list)),   PP.Brk(0), PP.Str(":")]
         # we know the content of body of the MacroFor must be stmts
         # since it occurs in a stmt context
         _EmitStatementsSpecial(out, n.body_for)
@@ -629,14 +624,14 @@ def _EmitStatement(out, n):
 
 
 def _EmitTokensExprMacroBlockSpecial(out, stmts):
-    out += [PP.End(), PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+    out += [PP.End(), PP.Beg(PP.BreakType.FORCE_LINE_BREAK, 4)]
     emit_break = False
     for child in stmts:
         if emit_break:
-            out += [PP.Break()]
+            out += [PP.Brk()]
         emit_break = True
         _MaybeEmitDoc(out, child)
-        out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+        out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
         _MaybeEmitAnnotations(out, child)
         _EmitExprOrType(out, child)
         out += [PP.End()]
@@ -644,94 +639,94 @@ def _EmitTokensExprMacroBlockSpecial(out, stmts):
 
 def _EmitTokensToplevel(out, node):
     _MaybeEmitDoc(out, node)
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
     _MaybeEmitAnnotations(out, node)
 
     if isinstance(node, cwast.DefGlobal):
         _EmitStmtLetOrGlobal(out, WithExcl("global", node.mut),
                              node.name, node.type_or_auto, node.initial_or_undef_or_auto)
     elif isinstance(node, cwast.Import):
-        out += [PP.String("import"),
-                PP.Break(),
-                PP.String(str(node.name))]
+        out += [PP.Str("import"),
+                PP.Brk(),
+                PP.Str(str(node.name))]
         path = node.path
         if path:
             if "/" in path:
                 path = '"' + path + '"'
-            out += [PP.NoBreak(1), PP.String("="),
-                    PP.Break(), PP.String(path)]
+            out += [PP.NoBreak(1), PP.Str("="),
+                    PP.Brk(), PP.Str(path)]
         if node.args_mod:
             out += [PP.NoBreak(1)]
             _EmitParenList(out, node.args_mod)
     elif isinstance(node, cwast.DefType):
-        out += [PP.String("type"),
-                PP.Break(),
-                PP.String(str(node.name)),
-                PP.Break(), PP.String("="), PP.Break()]
+        out += [PP.Str("type"),
+                PP.Brk(),
+                PP.Str(str(node.name)),
+                PP.Brk(), PP.Str("="), PP.Brk()]
         _EmitExprOrType(out, node.type)
     elif isinstance(node, cwast.DefRec):
-        out += [PP.String("rec"),
-                PP.Break(),
-                PP.String(str(node.name)),
-                PP.Break(0),
-                PP.String(":"), PP.End()]
-        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        out += [PP.Str("rec"),
+                PP.Brk(),
+                PP.Str(str(node.name)),
+                PP.Brk(0),
+                PP.Str(":"), PP.End()]
+        out += [PP.Beg(PP.BreakType.FORCE_LINE_BREAK, 4)]
         emit_break = False
         for f in node.fields:
             if emit_break:
-                out += [PP.Break()]
+                out += [PP.Brk()]
             emit_break = True
             _MaybeEmitDoc(out, f)
-            out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+            out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
             _MaybeEmitAnnotations(out, f)
-            out += [PP.String(str(f.name)), PP.Break()]
+            out += [PP.Str(str(f.name)), PP.Brk()]
             _EmitExprOrType(out, f.type)
             out += [PP.End()]
     elif isinstance(node, cwast.StmtStaticAssert):
-        out += [PP.String("static_assert"), PP.Break()]
+        out += [PP.Str("static_assert"), PP.Brk()]
         _EmitExprOrType(out, node.cond)
     elif isinstance(node, cwast.DefEnum):
-        out += [PP.String("enum"),
-                PP.Break(),
-                PP.String(str(node.name)),
-                PP.Break(),
-                PP.String(node.base_type_kind.name.lower()),
-                PP.Break(0),
-                PP.String(":"),
+        out += [PP.Str("enum"),
+                PP.Brk(),
+                PP.Str(str(node.name)),
+                PP.Brk(),
+                PP.Str(node.base_type_kind.name.lower()),
+                PP.Brk(0),
+                PP.Str(":"),
                 PP.End()]
-        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 4)]
+        out += [PP.Beg(PP.BreakType.FORCE_LINE_BREAK, 4)]
         emit_break = False
         for ef in node.items:
             if emit_break:
-                out += [PP.Break()]
+                out += [PP.Brk()]
             emit_break = True
             _MaybeEmitDoc(out, ef)
-            out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+            out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
             _MaybeEmitAnnotations(out, ef)
-            out += [PP.String(str(ef.name)), PP.Break()]
+            out += [PP.Str(str(ef.name)), PP.Brk()]
             _EmitExprOrType(out, ef.value_or_auto)
             out += [PP.End()]
     elif isinstance(node, cwast.DefFun):
-        out += [PP.String("fun"),
+        out += [PP.Str("fun"),
                 PP.NoBreak(1),
-                PP.String(str(node.name))]
+                PP.Str(str(node.name))]
         out += [PP.NoBreak(0)]
         _EmitParameterList(out, node.params)
-        out += [PP.Break()]
+        out += [PP.Brk()]
         _EmitExprOrType(out, node.result)
-        out += [PP.Break(0), PP.String(":")]
+        out += [PP.Brk(0), PP.Str(":")]
         _EmitStatementsSpecial(out, node.body)
     elif isinstance(node, cwast.DefMacro):
-        out += [PP.String("macro"),
-                PP.Break(),
-                PP.String(str(node.name)),
-                PP.Break(),
-                PP.String(node.macro_result_kind.name),
+        out += [PP.Str("macro"),
+                PP.Brk(),
+                PP.Str(str(node.name)),
+                PP.Brk(),
+                PP.Str(node.macro_result_kind.name),
                 PP.NoBreak(1)]
         _EmitParameterList(out, node.params_macro)
-        out += [PP.Break()]
+        out += [PP.Brk()]
         _EmitIdList(out, node.gen_ids)
-        out += [PP.Break(0), PP.String(":")]
+        out += [PP.Brk(0), PP.Str(":")]
         if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
             _EmitStatementsSpecial(out, node.body_macro)
         else:
@@ -743,16 +738,16 @@ def _EmitTokensToplevel(out, node):
 
 def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
     _MaybeEmitDoc(out, node)
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, 2)]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
     _MaybeEmitAnnotations(out, node)
 
-    out += [PP.String("module")]
+    out += [PP.Str("module")]
     if node.params_mod:
         out += [PP.NoBreak(0)]
         _EmitParameterList(out, node.params_mod)
-    out += [PP.Break(0), PP.String(":"), PP.End()]
+    out += [PP.Brk(0), PP.Str(":"), PP.End()]
     if node.body_mod:
-        out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, 0)]
+        out += [PP.Beg(PP.BreakType.FORCE_LINE_BREAK, 0)]
         emit_break = False
         for child in node.body_mod:
             out += [PP.LineBreak()]
@@ -769,7 +764,7 @@ def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
 
 def PrettyPrint(mod: cwast.DefMod, outp):
     cwast.CheckAST(mod, set(), pre_symbolize=True)
-    out: list[PP.Token] = [PP.Begin(PP.BreakType.CONSISTENT, 0)]
+    out: list[PP.Token] = [PP.Beg(PP.BreakType.CONSISTENT, 0)]
     EmitTokensModule(out, mod)
     out += [PP.End()]
     result = PP.PrettyPrint(out, 80)

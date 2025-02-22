@@ -18,6 +18,7 @@ _BLOCK_INDENT = 4
 _CONT_INDENT = 2
 _MOD_INDENT = 0
 
+
 def _MaybeSimplifyLeafNode(node) -> Optional[str]:
     if isinstance(node, cwast.TypeBase):
         return cwast.BaseTypeKindToKeyword(node.base_type_kind)
@@ -92,11 +93,11 @@ def _GetDoc(node):
 def _RenderColonList(out, val: list, indent: int):
     if not val:
         return
-    out += [PP.Begin(PP.BreakType.FORCE_LINE_BREAK, indent)]
+    out += [PP.Beg(PP.BreakType.FORCE_LINE_BREAK, indent)]
     add_break = False
     for cc in val:
         if add_break:
-            out += [PP.Break()]
+            out += [PP.Brk()]
         add_break = True
         _RenderRecursivelyToIR(out, cc)
     out += [PP.End()]
@@ -104,37 +105,37 @@ def _RenderColonList(out, val: list, indent: int):
 
 def _RenderList(out, val: list, field: str):
     if not val:
-        out += [PP.String("[]")]
+        out += [PP.Str("[]")]
         return
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, _BLOCK_INDENT), PP.String("[")]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, _BLOCK_INDENT), PP.Str("[")]
     width = 0
     for cc in val:
-        out += [PP.Break(width)]
+        out += [PP.Brk(width)]
         width = 1
         _RenderRecursivelyToIR(out, cc)
-    out += [PP.Break(0), PP.String("]"), PP.End()]
+    out += [PP.Brk(0), PP.Str("]"), PP.End()]
 
 
 def _RenderMacroInvoke(out, node: cwast.MacroInvoke):
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT),
-            PP.String("("),
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, _CONT_INDENT),
+            PP.Str("("),
             PP.NoBreak(0),
-            PP.String(str(node.name))]
+            PP.Str(str(node.name))]
 
     for a in node.args:
         if isinstance(a, cwast.EphemeralList):
             if a.colon:
-                out += [PP.Break(0), PP.String(":"), PP.End()]
+                out += [PP.Brk(0), PP.Str(":"), PP.End()]
                 _RenderColonList(out, a.args, 4)
-                out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT)]
+                out += [PP.Beg(PP.BreakType.INCONSISTENT, _CONT_INDENT)]
             else:
-                out += [PP.Break()]
+                out += [PP.Brk()]
                 _RenderList(out, a.args)
         else:
-            out += [PP.Break()]
+            out += [PP.Brk()]
             _RenderRecursivelyToIR(out, a)
 
-    out += [PP.String(")"), PP.End()]
+    out += [PP.Str(")"), PP.End()]
 
 
 # printed after the open paren
@@ -153,7 +154,7 @@ def _RenderAttr(out, node):
         if not val:
             continue
         assert isinstance(val, bool)
-        out += [PP.String(f"@{nfd.name}"), PP.NoBreak(1)]
+        out += [PP.Str(f"@{nfd.name}"), PP.NoBreak(1)]
 
 
 def _RenderRecursivelyToIR(out, node):
@@ -162,10 +163,10 @@ def _RenderRecursivelyToIR(out, node):
 
     doc = _GetDoc(node)
     if doc:
-        out += [PP.String(f"@doc {doc}"), PP.LineBreak()]
+        out += [PP.Str(f"@doc {doc}"), PP.LineBreak()]
     abbrev = _MaybeSimplifyLeafNode(node)
     if abbrev:
-        out.append(PP.String(abbrev))
+        out.append(PP.Str(abbrev))
         return
 
     if isinstance(node, cwast.MacroInvoke):
@@ -183,11 +184,11 @@ def _RenderRecursivelyToIR(out, node):
         if node.mut:
             node_name += "!"
 
-    out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT),
-            PP.String("(")]
+    out += [PP.Beg(PP.BreakType.INCONSISTENT, _CONT_INDENT),
+            PP.Str("(")]
 
     _RenderAttr(out, node)
-    out += [PP.NoBreak(0), PP.String(node_name)]
+    out += [PP.NoBreak(0), PP.Str(node_name)]
 
     for nfd in fields:
         field_kind = nfd.kind
@@ -202,28 +203,28 @@ def _RenderRecursivelyToIR(out, node):
         # spacer = str(field_kind.value)
 
         if field_kind is cwast.NFK.STR:
-            out += [PP.Break(), PP.String(str(val))]
+            out += [PP.Brk(), PP.Str(str(val))]
         elif field_kind is cwast.NFK.NAME:
-            out += [PP.Break(), PP.String(str(val))]
+            out += [PP.Brk(), PP.Str(str(val))]
         elif field_kind is cwast.NFK.KIND:
-            out += [PP.Break(), PP.String(val.name)]
+            out += [PP.Brk(), PP.Str(val.name)]
         elif field_kind is cwast.NFK.NODE:
-            out += [PP.Break()]
+            out += [PP.Brk()]
             _RenderRecursivelyToIR(out, val)
         elif field_kind is cwast.NFK.LIST:
             if field in ("items", "fields", "body_mod", "body", "body_t", "body_f", "body_for",
                          "cases", "body_macro"):
                 indent = _MOD_INDENT if field == "body_mod" else _BLOCK_INDENT
-                out += [PP.Break(0), PP.String(":"), PP.End()]
+                out += [PP.Brk(0), PP.Str(":"), PP.End()]
                 _RenderColonList(out, val, indent)
-                out += [PP.Begin(PP.BreakType.INCONSISTENT, _CONT_INDENT)]
+                out += [PP.Beg(PP.BreakType.INCONSISTENT, _CONT_INDENT)]
             else:
-                out += [PP.Break()]
+                out += [PP.Brk()]
                 _RenderList(out, val, field)
         else:
             assert False, f"unexpected field {field}"
 
-    out += [PP.String(")"), PP.End()]
+    out += [PP.Str(")"), PP.End()]
 
 ############################################################
 #
@@ -231,7 +232,7 @@ def _RenderRecursivelyToIR(out, node):
 
 
 def PrettyPrint(mod: cwast.DefMod, outp):
-    out: list[PP.Token] = [PP.Begin(PP.BreakType.CONSISTENT, 0)]
+    out: list[PP.Token] = [PP.Beg(PP.BreakType.CONSISTENT, 0)]
     _RenderRecursivelyToIR(out, mod)
     out += [PP.End()]
     result = PP.PrettyPrint(out, 80)
