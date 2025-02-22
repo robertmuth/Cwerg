@@ -27,7 +27,7 @@ To get started hacking on Cwerg please read [getting_started.md](getting_started
 ## Philosophy
 
 Most components are implemented twice (see [rationale](why_python.md)):
-1. spec/reference implementation: Python 3.9
+1. spec/reference implementation: Python 3.10
 2. high performance implementation: C++20 (with limited STL usage)
 
 Re-implementations in other languages are explicitly encouraged.
