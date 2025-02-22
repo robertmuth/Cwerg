@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(Cwerg)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "-fno-exceptions -O3 -g -Wall -Werror -pedantic -Wno-class-memaccess -Wno-sign-compare ${CWERG_FLAGS}")
 # lto is broke in 22.04: "bytecode mismatch 11.2 vs 11.3"
 set(CMAKE_EXE_LINKER_FLAGS "-static -fno-lto")
@@ -410,6 +410,8 @@ add_executable(pp.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:LEXER_LIB>
         $<TARGET_OBJECTS:FE_CORE_LIB>
+        Util/pretty.cc
+        Util/pretty.h
         FE/parse.cc
         FE/parse.h
         FE/pp.cc

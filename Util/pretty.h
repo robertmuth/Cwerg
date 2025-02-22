@@ -52,20 +52,24 @@ struct Token {
 
 inline Token Brk(ssize_t num_space = 1, ssize_t offset = 0,
                  bool nobreak = false) {
-  return {TokenType::BRK, .brk = {num_space, offset, nobreak}};
+  return {.type = TokenType::BRK, .brk = {num_space, offset, nobreak}};
 }
 
-inline Token End() { return {TokenType::END, .end = {}}; }
+inline Token End() { return {.type = TokenType::END, .end = {}}; }
 
-inline Token Str(std::string_view str) { return {TokenType::STR, .str = str}; }
+inline Token Str(std::string_view str) {
+  return {.type = TokenType::STR, .str = str};
+}
 
 inline Token Beg(BreakType break_type, ssize_t offset) {
-  return {TokenType::BEG, .beg = {break_type, offset}};
+  return {.type = TokenType::BEG, .beg = {break_type, offset}};
 }
 
 inline Token NoBreak(size_t num_spaces) { return Brk(num_spaces, 0, true); }
 
-inline Token LineBreak(size_t offset=0) { return Brk(INFINITE_WIDTH, offset, false); }
+inline Token LineBreak(size_t offset = 0) {
+  return Brk(INFINITE_WIDTH, offset, false);
+}
 
 extern std::string PrettyPrint(const std::vector<Token>& token,
                                size_t line_width);

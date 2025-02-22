@@ -8,9 +8,11 @@
 #include "FE/lexer.h"
 #include "FE/parse.h"
 #include "Util/switch.h"
+#include "Util/pretty.h"
 
 using namespace cwerg::fe;
 using namespace cwerg;
+using namespace PP;
 
 SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
