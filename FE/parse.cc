@@ -1,19 +1,10 @@
-#include <fstream>
 #include <functional>
-#include <iomanip>
-#include <iostream>
 #include <vector>
 
 #include "FE/cwast_gen.h"
 #include "FE/lexer.h"
-#include "Util/stripe.h"
-#include "Util/switch.h"
 
-using namespace cwerg::fe;
-using namespace cwerg;
-
-SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
-                          4);
+namespace cwerg::fe {
 
 bool ends_with(std::string_view str, std::string_view suffix) {
   return str.size() >= suffix.size() &&
@@ -23,21 +14,6 @@ bool ends_with(std::string_view str, std::string_view suffix) {
 bool starts_with(std::string_view str, std::string_view prefix) {
   return str.size() >= prefix.size() &&
          str.compare(0, prefix.size(), prefix) == 0;
-}
-std::vector<char> SlurpDataFromStream(std::istream* fin) {
-  size_t num_bytes_per_read = 1024 * 1024;
-  size_t current_offset = 0U;
-  std::vector<char> out(num_bytes_per_read);
-  auto rdbuf = fin->rdbuf();
-  while (true) {
-    size_t count =
-        rdbuf->sgetn(out.data() + current_offset, num_bytes_per_read);
-    if (count == 0) break;
-    current_offset += count;
-    out.resize(current_offset + num_bytes_per_read);
-  }
-  out.resize(current_offset);
-  return out;
 }
 
 Node ParseTypeExpr(Lexer* lexer);
@@ -489,9 +465,10 @@ constexpr int MAX_TK_KIND = int(TK_KIND::SPECIAL_EOF) + 1;
 std::array<PrattHandlerPrefix, MAX_TK_KIND> PREFIX_EXPR_PARSERS;
 std::array<PrattHandlerInfix, MAX_TK_KIND> INFIX_EXPR_PARSERS;
 
+// Must be called once at start-up
 // Could probably done with C++20 designated array initializers
 // But going for C++17 to C++20 is a major step.
-void PREFIX_EXPR_PARSERS_Init() {
+void InitParser() {
   // Init Prefix Table
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW)] = {PrattParseKW, 10};
   PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW_SIMPLE_VAL)] = {PrattParseSimpleVal,
@@ -1207,22 +1184,4 @@ Node ParseDefMod(Lexer* lexer) {
   return def_mod;
 }
 
-int main(int argc, const char* argv[]) {
-  InitLexer();
-  InitStripes(sw_multiplier.Value());
-  PREFIX_EXPR_PARSERS_Init();
-
-  // If the synchronization is turned off, the C++ standard streams are allowed
-  // to buffer their I/O independently from their stdio counterparts, which may
-  // be considerably faster in some cases.
-  // std::ios_base::sync_with_stdio(false);
-  std::istream* fin = &std::cin;
-
-  std::vector<char> data = SlurpDataFromStream(fin);
-  Lexer lexer(
-      std::string_view(reinterpret_cast<char*>(data.data()), data.size()), 555);
-  // std::cout << "loaded " << data.size() << " bytes\n";
-
-  ParseDefMod(&lexer);
-  return 0;
-}
+}  // namespace cwerg::fe

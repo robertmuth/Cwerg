@@ -406,9 +406,11 @@ add_executable(lexer_bench.exe
         FE/lexer_bench.cc
 )
 
-add_executable(parser_tool.exe
+add_executable(pp.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:LEXER_LIB>
         $<TARGET_OBJECTS:FE_CORE_LIB>
-        FE/parser_tool.cc
+        FE/parse.cc
+        FE/parse.h
+        FE/pp.cc
 )

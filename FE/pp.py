@@ -512,7 +512,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
     elif name == "trylet" or name == "trylet!":
         out += [PP.Brk(), PP.Str(_GetOriginalVarName(args[0])), PP.Brk()]
         _EmitExprOrType(out, args[1])
-        out += [PP.Brk(), PP.Str("=")]
+        out += [PP.Brk(),PP.Str("=")]
         args = args[2:]
     # "while" does not require special handling
     first = True
