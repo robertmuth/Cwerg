@@ -36,6 +36,8 @@ struct Name : public Handle {
 
 constexpr const Handle HandleInvalid(0, 0);
 
+extern ImmutablePool gNamePool;
+
 // =======================================
 // Node API
 // =======================================
@@ -52,9 +54,15 @@ struct NodeExtra {
   Str comment;
 };
 
+
+
 extern struct Stripe<NodeCore, Node> gNodeCore;
 extern struct Stripe<NodeExtra, Node> gNodeExtra;
 extern struct StripeGroup gStripeGroupNode;
+
+inline NT& Node_kind(Node node) { return gNodeCore[node].kind; }
+inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
+inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
 
 inline Node NodeNew(NT kind) {
   Node out = Node(kind, gStripeGroupNode.New().index());
@@ -73,13 +81,13 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
   core.children[3] = child3;
   core.next = HandleInvalid;
   core.bits = bits;
+  Node_comment(node) = Str(0);
 }
 
-inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
 // =======================================
 // Name API
 // =======================================
-extern ImmutablePool gNamePool;
+
 
 struct NameCore {
   uint32_t name;  // offset from ImmutablePool.
@@ -196,22 +204,22 @@ enum class NFD_STRING_FIELD : uint8_t {
 };
 enum class NFD_BOOL_FIELD : uint8_t {
     invalid = 0,
-    arg_ref = 1, 
-    builtin = 2, 
-    cdecl = 3, 
-    colon = 4, 
-    externx = 5, 
-    fini = 6, 
-    init = 7, 
-    mut = 8, 
-    poly = 9, 
-    preserve_mut = 10, 
-    pub = 11, 
-    ref = 12, 
-    res_ref = 13, 
-    unchecked = 14, 
-    untagged = 15, 
-    wrapped = 16, 
+    arg_ref = 1,
+    builtin = 2,
+    cdecl = 3,
+    colon = 4,
+    externx = 5,
+    fini = 6,
+    init = 7,
+    mut = 8,
+    poly = 9,
+    preserve_mut = 10,
+    pub = 11,
+    ref = 12,
+    res_ref = 13,
+    unchecked = 14,
+    untagged = 15,
+    wrapped = 16,
 };
 enum class NT : uint8_t {
     invalid = 0,

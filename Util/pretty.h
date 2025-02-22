@@ -71,7 +71,7 @@ inline Token LineBreak(size_t offset = 0) {
   return Brk(INFINITE_WIDTH, offset, false);
 }
 
-extern std::string PrettyPrint(const std::vector<Token>& token,
+extern std::string PrettyPrint(const std::vector<Token>& tokens,
                                size_t line_width);
 
 }  // namespace PP

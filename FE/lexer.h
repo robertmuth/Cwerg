@@ -4,6 +4,8 @@
 #include <string_view>
 #include <vector>
 
+// only used for interning comment strings
+#include "FE/cwast_gen.h"
 #include "FE/lexer_gen.h"
 #include "Util/assert.h"
 
@@ -53,7 +55,7 @@ struct TK {
   TK_KIND kind = TK_KIND::INVALID;
   std::string_view text;
   SrcLoc sl;
-  std::vector<std::string_view> comments;
+  Str comments;
   std::vector<std::string_view> annotations;
 };
 
@@ -104,11 +106,11 @@ class Lexer {
       current_ = peek_cached_;
       peek_cached_.kind = TK_KIND::INVALID;
     } else {
-      current_.comments.clear();
+      std::vector<std::string_view> comments;
       current_.annotations.clear();
       TK_RAW tk = lexer_raw_.Next();
       while (tk.kind == TK_KIND::COMMENT) {
-        current_.comments.push_back(tk.text);
+        comments.push_back(tk.text);
         tk = lexer_raw_.Next();
       }
       while (tk.kind == TK_KIND::ANNOTATION) {
@@ -123,6 +125,20 @@ class Lexer {
       }
       current_.kind = tk.kind;
       current_.text = tk.text;
+      if (comments.empty()) {
+        current_.comments = Str(0);
+      } else {
+        std::string s;
+        for (std::string_view sv : comments) {
+          ASSERT(sv[0] == ';', "");
+          if (sv.starts_with("; ")) {
+            s += sv.substr(2);
+          } else {
+            s += sv.substr(1);
+          }
+        }
+        current_.comments = StrNew(s);
+      }
     }
     return current_;
   }

@@ -4,11 +4,12 @@
 #include <iostream>
 #include <vector>
 
+#include "Util/assert.h"
 #include "FE/cwast_gen.h"
 #include "FE/lexer.h"
 #include "FE/parse.h"
-#include "Util/switch.h"
 #include "Util/pretty.h"
+#include "Util/switch.h"
 
 using namespace cwerg::fe;
 using namespace cwerg;
@@ -33,6 +34,22 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
   return out;
 }
 
+void MaybeEmitDoc(std::vector<Token>* out, Node node) {
+}
+
+void EmitTokensModule(std::vector<Token>* out, Node node) {
+  ASSERT(Node_kind(node) == NT::DefMod, "");
+  MaybeEmitDoc(out, node);
+}
+
+void Prettify(Node mod) {
+    std::vector<Token> tokens;
+    tokens.push_back(Beg(BreakType::CONSISTENT, 0));
+    EmitTokensModule(&tokens, mod);
+    tokens.push_back(End());
+    std::cout << PrettyPrint(tokens, 80);
+}
+
 int main(int argc, const char* argv[]) {
   InitLexer();
   InitStripes(sw_multiplier.Value());
@@ -50,6 +67,6 @@ int main(int argc, const char* argv[]) {
   // std::cout << "loaded " << data.size() << " bytes\n";
 
   Node mod = ParseDefMod(&lexer);
-  mod = mod;
+  Prettify(mod);
   return 0;
 }
