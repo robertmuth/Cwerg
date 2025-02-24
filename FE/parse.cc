@@ -1103,7 +1103,9 @@ Node ParseTopLevel(Lexer* lexer) {
         args = ParseMacroArgList(lexer, false);
       }
       Node out = NodeNew(NT::Import);
-      InitImport(out, NameNew(name.text), StrNew(path), args, tk.comments);
+      InitImport(out, NameNew(name.text),
+                 path.size() == 0 ? StrInvalid : StrNew(path), args,
+                 tk.comments);
       return out;
     }
     case NT::DefEnum: {

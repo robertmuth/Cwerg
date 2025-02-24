@@ -131,11 +131,7 @@ class Lexer {
         std::string s;
         for (std::string_view sv : comments) {
           ASSERT(sv[0] == ';', "");
-          if (sv.starts_with("; ")) {
-            s += sv.substr(2);
-          } else {
-            s += sv.substr(1);
-          }
+          s += sv;
         }
         current_.comments = StrNew(s);
       }

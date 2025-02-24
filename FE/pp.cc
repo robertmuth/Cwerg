@@ -46,10 +46,64 @@ void MaybeEmitDoc(std::vector<PP::Token>* out, Node node) {
     start = end + 1;
   }
 }
+void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
+  MaybeEmitDoc(out, node);
+  out->push_back(PP::Beg(PP::BreakType::INCONSISTENT, 2));
+  switch (Node_kind(node)) {
+    case NT::DefGlobal:
+      break;
+
+    case NT::Import:
+      out->push_back(PP::Str("import"));
+      out->push_back(PP::Brk());
+      out->push_back(PP::Str(NameData(Node_name(node))));
+      if (Node_path(node) != StrInvalid) {
+        ASSERT(false, "");
+      }
+      if (Node_args_mod(node) != HandleInvalid) {
+        ASSERT(false, "");
+      }
+      break;
+    case NT::DefRec:
+      out->push_back(PP::Str("rec"));
+      out->push_back(PP::Brk());
+      out->push_back(PP::Str(NameData(Node_name(node))));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP::Str(":"));
+      break;
+    default:
+      break;
+  }
+  out->push_back(PP::End());
+}
 
 void EmitTokensModule(std::vector<PP::Token>* out, Node node) {
   ASSERT(Node_kind(node) == NT::DefMod, "");
   MaybeEmitDoc(out, node);
+  out->push_back(PP::Beg(PP::BreakType::INCONSISTENT, 2));
+  out->push_back(PP::Str("module"));
+  //
+  if (Node_params_mod(node) != HandleInvalid) {
+    ASSERT(false, "");
+  }
+  //
+  out->push_back(PP::Brk(0));
+  out->push_back(PP::Str(":"));
+  out->push_back(PP::End());
+  if (Node_body_mod(node) != HandleInvalid) {
+    out->push_back(PP::Beg(PP::BreakType::FORCE_LINE_BREAK, 0));
+    bool emit_break = false;
+    for (Node child = Node_body_mod(node); child != HandleInvalid;
+         child = Node_next(child)) {
+      out->push_back(PP::LineBreak());
+      if (emit_break) {
+        out->push_back(PP::LineBreak());
+      }
+      emit_break = true;
+      EmitTokensTopLevel(out, child);
+    }
+    out->push_back(PP::End());
+  }
 }
 
 void Prettify(Node mod) {
@@ -57,8 +111,6 @@ void Prettify(Node mod) {
   tokens.push_back(PP::Beg(PP::BreakType::CONSISTENT, 0));
   EmitTokensModule(&tokens, mod);
   tokens.push_back(PP::End());
-
-  // std::cout << "@@@@@@@@@ " << StrData(Node_comment(mod)) << "\n";
   std::cout << PP::PrettyPrint(tokens, 80);
 }
 

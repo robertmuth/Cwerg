@@ -59,7 +59,7 @@ extern struct Stripe<NodeCore, Node> gNodeCore;
 extern struct Stripe<NodeExtra, Node> gNodeExtra;
 extern struct StripeGroup gStripeGroupNode;
 
-inline NT& Node_kind(Node node) { return gNodeCore[node].kind; }
+inline NT Node_kind(Node node) { return gNodeCore[node].kind; }
 inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
 inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
 
