@@ -1884,7 +1884,6 @@ def ComputeStringSize(str_kind: STR_KIND, string: str) -> int:
 def MakeValString(t: str, sl: SrcLoc) -> ValString:
     kind = STR_KIND.NORMAL
     offset = 0
-    tq = 0
     if t.startswith('"'):
         kind = STR_KIND.NORMAL
         offset = 0
@@ -3872,6 +3871,7 @@ def GenerateInits():
                 print(f", {other_kind.enum_kind.__name__} {nfd.name}", end="")
         if has_bits:
             print(", uint16_t bits", end="")
+        print(", Str doc", end="")
         print(") {")
         args = ["node", f"NT::{cls.__name__}"]
         for i in range(MAX_SLOTS):
@@ -3887,6 +3887,7 @@ def GenerateInits():
             args.append("bits")
         else:
             args.append("0")
+        args.append("doc")
         print(f"    NodeInit({', '.join(args)});")
         print("}\n")
 

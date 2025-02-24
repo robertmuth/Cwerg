@@ -4,16 +4,15 @@
 #include <iostream>
 #include <vector>
 
-#include "Util/assert.h"
 #include "FE/cwast_gen.h"
 #include "FE/lexer.h"
 #include "FE/parse.h"
+#include "Util/assert.h"
 #include "Util/pretty.h"
 #include "Util/switch.h"
 
 using namespace cwerg::fe;
 using namespace cwerg;
-using namespace PP;
 
 SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
@@ -34,20 +33,33 @@ std::vector<char> SlurpDataFromStream(std::istream* fin) {
   return out;
 }
 
-void MaybeEmitDoc(std::vector<Token>* out, Node node) {
+void MaybeEmitDoc(std::vector<PP::Token>* out, Node node) {
+  Str doc = Node_comment(node);
+  if (doc == StrInvalid) return;
+  const char* data = StrData(doc);
+  size_t start = 0;
+  size_t end = 0;
+  while (data[start] != '\0') {
+    for (end = start; data[end] != '\n'; ++end);
+    out->push_back(PP::Str(std::string_view(data + start, end - start)));
+    out->push_back(PP ::LineBreak());
+    start = end + 1;
+  }
 }
 
-void EmitTokensModule(std::vector<Token>* out, Node node) {
+void EmitTokensModule(std::vector<PP::Token>* out, Node node) {
   ASSERT(Node_kind(node) == NT::DefMod, "");
   MaybeEmitDoc(out, node);
 }
 
 void Prettify(Node mod) {
-    std::vector<Token> tokens;
-    tokens.push_back(Beg(BreakType::CONSISTENT, 0));
-    EmitTokensModule(&tokens, mod);
-    tokens.push_back(End());
-    std::cout << PrettyPrint(tokens, 80);
+  std::vector<PP::Token> tokens;
+  tokens.push_back(PP::Beg(PP::BreakType::CONSISTENT, 0));
+  EmitTokensModule(&tokens, mod);
+  tokens.push_back(PP::End());
+
+  // std::cout << "@@@@@@@@@ " << StrData(Node_comment(mod)) << "\n";
+  std::cout << PP::PrettyPrint(tokens, 80);
 }
 
 int main(int argc, const char* argv[]) {

@@ -16,6 +16,14 @@ bool starts_with(std::string_view str, std::string_view prefix) {
          str.compare(0, prefix.size(), prefix) == 0;
 }
 
+Str MoveComment(Node n) {
+  Str comment = Node_comment(n);
+  if (comment != StrInvalid) {
+    Node_comment(n) = StrInvalid;
+  }
+  return comment;
+}
+
 Node ParseTypeExpr(Lexer* lexer);
 Node PrattParseExpr(Lexer* lexer, uint32_t precdence = 0);
 Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column);
@@ -27,14 +35,14 @@ uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
 
 void ParseFunLikeArgs(Lexer* lexer, std::string_view args_desc,
                       std::array<Node, 4>* args) {
-  lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
+  TK start = lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
   for (int i = 0; i < args_desc.size(); i++) {
     uint8_t kind = args_desc[i];
     if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
       // e is optional
       ASSERT(kind == 'e', "");
       Node undef = NodeNew(NT::ValUndef);
-      InitValUndef(undef);
+      InitValUndef(undef, start.comments);
       (*args)[i] = undef;
       return;
     }
@@ -66,86 +74,86 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
     // TE
     case NT::ExprOffsetof:
       ParseFunLikeArgs(lexer, "TE", &args);
-      InitExprOffsetof(out, args[0], args[1]);
+      InitExprOffsetof(out, args[0], args[1], tk.comments);
       return out;
     // EE
     case NT::ValSpan:
       ParseFunLikeArgs(lexer, "EE", &args);
-      InitValSpan(out, args[0], args[1]);
+      InitValSpan(out, args[0], args[1], tk.comments);
       return out;
     // TT
     case NT::TypeUnionDelta:
       ParseFunLikeArgs(lexer, "TT", &args);
-      InitTypeUnionDelta(out, args[0], args[1]);
+      InitTypeUnionDelta(out, args[0], args[1], tk.comments);
       return out;
     // E
     case NT::ExprLen:
       ParseFunLikeArgs(lexer, "E", &args);
-      InitExprLen(out, args[0]);
+      InitExprLen(out, args[0], tk.comments);
       return out;
     case NT::ExprUnwrap:
       ParseFunLikeArgs(lexer, "E", &args);
-      InitExprUnwrap(out, args[0]);
+      InitExprUnwrap(out, args[0], tk.comments);
       return out;
     case NT::ExprUnionTag:
       ParseFunLikeArgs(lexer, "E", &args);
-      InitExprUnwrap(out, args[0]);
+      InitExprUnwrap(out, args[0], tk.comments);
       return out;
     case NT::ExprStringify:
       ParseFunLikeArgs(lexer, "E", &args);
-      InitExprStringify(out, args[0]);
+      InitExprStringify(out, args[0], tk.comments);
       return out;
     case NT::ExprSrcLoc:
       ParseFunLikeArgs(lexer, "E", &args);
-      InitExprSrcLoc(out, args[0]);
+      InitExprSrcLoc(out, args[0], tk.comments);
       return out;
     case NT::TypeOf:
       ParseFunLikeArgs(lexer, "E", &args);
-      InitTypeOf(out, args[0]);
+      InitTypeOf(out, args[0], tk.comments);
       return out;
     // E with bits
     case NT::ExprFront:
       ParseFunLikeArgs(lexer, "E", &args);
-      InitExprFront(out, args[0], bits);
+      InitExprFront(out, args[0], bits, tk.comments);
       return out;
     // T
     case NT::ExprSizeof:
       ParseFunLikeArgs(lexer, "T", &args);
-      InitExprSizeof(out, args[0]);
+      InitExprSizeof(out, args[0], tk.comments);
       return out;
     case NT::ExprTypeId:
       ParseFunLikeArgs(lexer, "T", &args);
-      InitExprTypeId(out, args[0]);
+      InitExprTypeId(out, args[0], tk.comments);
       return out;
     // ET
     case NT::ExprAs:
       ParseFunLikeArgs(lexer, "ET", &args);
-      InitExprAs(out, args[0], args[1]);
+      InitExprAs(out, args[0], args[1], tk.comments);
       return out;
     case NT::ExprWrap:
       ParseFunLikeArgs(lexer, "ET", &args);
-      InitExprWrap(out, args[0], args[1]);
+      InitExprWrap(out, args[0], args[1], tk.comments);
       return out;
     case NT::ExprIs:
       ParseFunLikeArgs(lexer, "ET", &args);
-      InitExprIs(out, args[0], args[1]);
+      InitExprIs(out, args[0], args[1], tk.comments);
       return out;
     case NT::ExprWiden:
       ParseFunLikeArgs(lexer, "ET", &args);
-      InitExprWiden(out, args[0], args[1]);
+      InitExprWiden(out, args[0], args[1], tk.comments);
       return out;
     case NT::ExprUnsafeCast:
       ParseFunLikeArgs(lexer, "ET", &args);
-      InitExprUnsafeCast(out, args[0], args[1]);
+      InitExprUnsafeCast(out, args[0], args[1], tk.comments);
       return out;
     case NT::ExprBitCast:
       ParseFunLikeArgs(lexer, "ET", &args);
-      InitExprBitCast(out, args[0], args[1]);
+      InitExprBitCast(out, args[0], args[1], tk.comments);
       return out;
     // ET with bits
     case NT::ExprNarrow:
       ParseFunLikeArgs(lexer, "ET", &args);
-      InitExprNarrow(out, args[0], args[1], bits);
+      InitExprNarrow(out, args[0], args[1], bits, tk.comments);
       return out;
       //
     default:
@@ -163,32 +171,32 @@ Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
     InitExprPointer(out,
                     tk.text == "ptr_inc" ? POINTER_EXPR_KIND::INCP
                                          : POINTER_EXPR_KIND::DECP,
-                    args[0], args[1], args[2]);
+                    args[0], args[1], args[2], tk.comments);
     return out;
   } else if (tk.text == "abs") {
     Node out = NodeNew(NT::Expr1);
     ParseFunLikeArgs(lexer, "E", &args);
-    InitExpr1(out, UNARY_EXPR_KIND::ABS, args[0]);
+    InitExpr1(out, UNARY_EXPR_KIND::ABS, args[0], tk.comments);
     return out;
   } else if (tk.text == "sqrt") {
     Node out = NodeNew(NT::Expr1);
     ParseFunLikeArgs(lexer, "E", &args);
-    InitExpr1(out, UNARY_EXPR_KIND::SQRT, args[0]);
+    InitExpr1(out, UNARY_EXPR_KIND::SQRT, args[0], tk.comments);
     return out;
   } else if (tk.text == "ptr_diff") {
     Node out = NodeNew(NT::Expr1);
     ParseFunLikeArgs(lexer, "EE", &args);
-    InitExpr2(out, BINARY_EXPR_KIND::PDELTA, args[0], args[1]);
+    InitExpr2(out, BINARY_EXPR_KIND::PDELTA, args[0], args[1], tk.comments);
     return out;
   } else if (tk.text == "max") {
     Node out = NodeNew(NT::Expr2);
     ParseFunLikeArgs(lexer, "EE", &args);
-    InitExpr2(out, BINARY_EXPR_KIND::MAX, args[0], args[1]);
+    InitExpr2(out, BINARY_EXPR_KIND::MAX, args[0], args[1], tk.comments);
     return out;
   } else if (tk.text == "min") {
     Node out = NodeNew(NT::Expr2);
     ParseFunLikeArgs(lexer, "EE", &args);
-    InitExpr2(out, BINARY_EXPR_KIND::MIN, args[0], args[1]);
+    InitExpr2(out, BINARY_EXPR_KIND::MIN, args[0], args[1], tk.comments);
     return out;
   } else {
     ASSERT(false, tk);
@@ -205,7 +213,7 @@ Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
     lexer->MatchOrDie(TK_KIND::COLON);
     Node body = ParseStmtBodyList(lexer, 0);
     Node out = NodeNew(NT::ExprStmt);
-    InitExprStmt(out, body);
+    InitExprStmt(out, body, tk.comments);
     return out;
   } else {
     return ParseFunLike(lexer, nt, tk);
@@ -217,23 +225,23 @@ Node PrattParseSimpleVal(Lexer* lexer, const TK& tk, uint32_t precedence) {
   switch (tk.text[0]) {
     case 'a':
       out = NodeNew(NT::ValAuto);
-      InitValAuto(out);
+      InitValAuto(out, tk.comments);
       return out;
     case 't':
       out = NodeNew(NT::ValTrue);
-      InitValTrue(out);
+      InitValTrue(out, tk.comments);
       return out;
     case 'f':
       out = NodeNew(NT::ValFalse);
-      InitValFalse(out);
+      InitValFalse(out, tk.comments);
       return out;
     case 'u':
       out = NodeNew(NT::ValUndef);
-      InitValUndef(out);
+      InitValUndef(out, tk.comments);
       return out;
     case 'v':
       out = NodeNew(NT::ValVoid);
-      InitValVoid(out);
+      InitValVoid(out, tk.comments);
       return out;
     default:
       ASSERT(false, tk);
@@ -245,11 +253,11 @@ Node PrattParsePrefix(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node rhs = PrattParseExpr(lexer, precedence);
   if (tk.text == "-") {
     Node out = NodeNew(NT::Expr1);
-    InitExpr1(out, UNARY_EXPR_KIND::NEG, rhs);
+    InitExpr1(out, UNARY_EXPR_KIND::NEG, rhs, tk.comments);
     return out;
   } else if (tk.text == "!") {
     Node out = NodeNew(NT::Expr1);
-    InitExpr1(out, UNARY_EXPR_KIND::NOT, rhs);
+    InitExpr1(out, UNARY_EXPR_KIND::NOT, rhs, tk.comments);
     return out;
   } else {
     ASSERT(false, "unknown unary " << tk);
@@ -257,7 +265,8 @@ Node PrattParsePrefix(Lexer* lexer, const TK& tk, uint32_t precedence) {
   }
 }
 
-Node MakeNodeId(std::string_view s) {
+Node MakeNodeId(const TK& tk) {
+  auto s = tk.text;
   Node out = NodeNew(NT::Id);
   std::string_view mod_name = std::string_view();
   std::string_view enum_name = std::string_view();
@@ -272,24 +281,24 @@ Node MakeNodeId(std::string_view s) {
     enum_name = s.substr(pos + 1);
     s = s.substr(0, pos);
   }
-  InitId(out, NameNew(mod_name), NameNew(s), NameNew(enum_name));
+  InitId(out, NameNew(mod_name), NameNew(s), NameNew(enum_name), tk.comments);
   return out;
 }
 
-Node MakeNodeMacroId(std::string_view s) {
+Node MakeNodeMacroId(const TK& tk) {
+  std::string_view s = tk.text;
   Node out = NodeNew(NT::MacroId);
-  InitMacroId(out, NameNew(s));
+  InitMacroId(out, NameNew(s), tk.comments);
   return out;
 }
 
 Node PrattParseId(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  return starts_with(tk.text, "$") ? MakeNodeMacroId(tk.text)
-                                   : MakeNodeId(tk.text);
+  return starts_with(tk.text, "$") ? MakeNodeMacroId(tk) : MakeNodeId(tk);
 }
 
 Node PrattParseNum(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node out = NodeNew(NT::ValNum);
-  InitValNum(out, StrNew(tk.text));
+  InitValNum(out, StrNew(tk.text), tk.comments);
   return out;
 }
 
@@ -309,9 +318,13 @@ Node ParseValPointList(Lexer* lexer, bool want_comma) {
     val = PrattParseExpr(lexer);
   } else {
     pos = NodeNew(NT::ValAuto);
-    InitValAuto(pos);
+    InitValAuto(pos, StrInvalid);
   }
-  InitValPoint(out, val, pos);
+  Str comment = MoveComment(pos);
+  if (comment == StrInvalid) {
+    comment = MoveComment(val);
+  }
+  InitValPoint(out, val, pos, comment);
   Node_next(out) = ParseValPointList(lexer, true);
   return out;
 }
@@ -321,13 +334,13 @@ Node PrattParseValCompound(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node type = Node(HandleInvalid);
   if (lexer->Match(TK_KIND::COLON)) {
     type = NodeNew(NT::TypeAuto);
-    InitTypeAuto(out);
+    InitTypeAuto(out, StrInvalid);
   } else {
     type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::COLON);
   }
   Node inits = ParseValPointList(lexer, false);
-  InitValCompound(out, type, inits);
+  InitValCompound(out, type, inits, tk.comments);
   return out;
 }
 
@@ -335,7 +348,7 @@ Node PrattParseParenGroup(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node out = NodeNew(NT::ExprParen);
   Node expr = PrattParseExpr(lexer);
   lexer->MatchOrDie(TK_KIND::PAREN_CLOSED);
-  InitExprParen(out, expr);
+  InitExprParen(out, expr, tk.comments);
   return out;
 }
 
@@ -364,7 +377,7 @@ Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
   }
 
   Node out = NodeNew(NT::ValString);
-  InitValString(out, StrNew(s), sk);
+  InitValString(out, StrNew(s), sk, tk.comments);
   return out;
 }
 
@@ -373,7 +386,7 @@ Node PrattParseAddrOf(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node expr = PrattParseExpr(lexer, precedence);
   // TODO
   uint16_t bits = 0;
-  InitExprAddrOf(out, expr, bits);
+  InitExprAddrOf(out, expr, bits, tk.comments);
   return out;
 }
 
@@ -382,7 +395,7 @@ Node PrattParseExpr2(Lexer* lexer, Node lhs, const TK& tk,
   BINARY_EXPR_KIND kind = BINARY_EXPR_KIND_FromString(tk.text, tk.kind);
   Node rhs = PrattParseExpr(lexer, precedence);
   Node out = NodeNew(NT::Expr2);
-  InitExpr2(out, kind, lhs, rhs);
+  InitExpr2(out, kind, lhs, rhs, tk.comments);
   return out;
 }
 
@@ -392,14 +405,14 @@ Node PrattParseExpr3(Lexer* lexer, Node lhs, const TK& tk,
   Node expr_t = PrattParseExpr(lexer);
   lexer->MatchOrDie(TK_KIND::COLON);
   Node expr_f = PrattParseExpr(lexer);
-  InitExpr3(out, lhs, expr_t, expr_f);
+  InitExpr3(out, lhs, expr_t, expr_f, tk.comments);
   return out;
 }
 
 Node PrattParseExprDeref(Lexer* lexer, Node lhs, const TK& tk,
                          uint32_t precedence) {
   Node out = NodeNew(NT::ExprDeref);
-  InitExprDeref(out, lhs);
+  InitExprDeref(out, lhs, tk.comments);
   return out;
 }
 
@@ -410,7 +423,7 @@ Node PrattParseExprIndex(Lexer* lexer, Node lhs, const TK& tk,
   lexer->MatchOrDie(TK_KIND::SQUARE_CLOSED);
   // TODO
   uint16_t bits = 0;
-  InitExprIndex(out, lhs, index, bits);
+  InitExprIndex(out, lhs, index, bits, tk.comments);
   return out;
 }
 
@@ -418,7 +431,7 @@ Node PrattParseExprField(Lexer* lexer, Node lhs, const TK& tk,
                          uint32_t precedence) {
   const TK& field = lexer->MatchOrDie(TK_KIND::ID);
   Node out = NodeNew(NT::ExprField);
-  InitExprField(out, lhs, MakeNodeId(tk.text));
+  InitExprField(out, lhs, MakeNodeId(field), tk.comments);
   return out;
 }
 
@@ -439,14 +452,14 @@ Node PrattParseExprCall(Lexer* lexer, Node lhs, const TK& tk,
   if (lhs.kind() == NT::Id && ends_with(NameData(Node_base_name(lhs)), "#")) {
     Node out = NodeNew(NT::MacroInvoke);
     Node args = ParseMacroArgList(lexer, false);
-    InitMacroInvoke(out, NameNew("TODO-macro-name"), args);
+    InitMacroInvoke(out, NameNew("TODO-macro-name"), args, tk.comments);
     return out;
   }
   Node out = NodeNew(NT::ExprCall);
 
   ASSERT(tk.kind == TK_KIND::PAREN_OPEN, "");
   Node args = ParseFunArgsList(lexer, false);
-  InitExprCall(out, lhs, args);
+  InitExprCall(out, lhs, args, tk.comments);
   return out;
 }
 
@@ -520,20 +533,20 @@ Node ParseTypeExpr(Lexer* lexer) {
 
   if (tk.kind == TK_KIND::BASE_TYPE) {
     Node out = NodeNew(NT::TypeBase);
-    InitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text));
+    InitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text), tk.comments);
     return out;
   } else if (tk.kind == TK_KIND::DEREF_OR_POINTER_OP) {
     Node out = NodeNew(NT::TypePtr);
     Node pointee = ParseTypeExpr(lexer);
     uint16_t bits = tk.text.size() == 1 ? 0 : 1 << int(NFD_BOOL_FIELD::mut);
-    InitTypePtr(out, pointee, bits);
+    InitTypePtr(out, pointee, bits, tk.comments);
     return out;
   } else if (tk.kind == TK_KIND::SQUARE_OPEN) {
     Node out = NodeNew(NT::TypeVec);
     Node dim = PrattParseExpr(lexer);
     lexer->MatchOrDie(TK_KIND::SQUARE_CLOSED);
     Node type = ParseTypeExpr(lexer);
-    InitTypeVec(out, dim, type);
+    InitTypeVec(out, dim, type, tk.comments);
     return out;
   } else if (starts_with(tk.text, "span")) {
     Node out = NodeNew(NT::TypeSpan);
@@ -541,10 +554,10 @@ Node ParseTypeExpr(Lexer* lexer) {
     Node type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::PAREN_CLOSED);
     uint16_t bits = ends_with(tk.text, "!") ? 1 << int(NFD_BOOL_FIELD::mut) : 0;
-    InitTypeSpan(out, type, bits);
+    InitTypeSpan(out, type, bits, tk.comments);
     return out;
   } else if (tk.kind == TK_KIND::ID) {
-    return MakeNodeId(tk.text);
+    return MakeNodeId(tk);
   } else if (tk.kind == TK_KIND::KW) {
     NT nt = KeywordToNT(tk.text);
     ASSERT(nt != NT::invalid, tk);
@@ -554,7 +567,7 @@ Node ParseTypeExpr(Lexer* lexer) {
         lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
         uint16_t bits = 0;
         Node types = ParseTypeList(lexer, false);
-        InitTypeUnion(out, types, bits);
+        InitTypeUnion(out, types, bits, tk.comments);
         return out;
       }
       case NT::TypeFun: {
@@ -562,7 +575,7 @@ Node ParseTypeExpr(Lexer* lexer) {
         lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
         Node params = ParseFunParamList(lexer, false);
         Node result = ParseTypeExpr(lexer);
-        InitTypeFun(out, params, result);
+        InitTypeFun(out, params, result, tk.comments);
         return out;
       }
       case NT::TypeUnionDelta: {
@@ -571,7 +584,7 @@ Node ParseTypeExpr(Lexer* lexer) {
                                     Node(HandleInvalid), Node(HandleInvalid)};
         Node out = NodeNew(NT::TypeUnionDelta);
         ParseFunLikeArgs(lexer, "TT", &args);
-        InitTypeUnionDelta(out, args[0], args[1]);
+        InitTypeUnionDelta(out, args[0], args[1], tk.comments);
         return out;
       }
       case NT::TypeOf: {
@@ -580,7 +593,7 @@ Node ParseTypeExpr(Lexer* lexer) {
                                     Node(HandleInvalid), Node(HandleInvalid)};
         Node out = NodeNew(NT::TypeOf);
         ParseFunLikeArgs(lexer, "E", &args);
-        InitTypeOf(out, args[0]);
+        InitTypeOf(out, args[0], tk.comments);
         return out;
       }
       default:
@@ -664,7 +677,7 @@ Node ParseMacroArgListWithColon(Lexer* lexer, uint32_t outer_col,
     Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
     uint16_t bits = 0;
-    InitEphemeralList(body, stmts, bits);
+    InitEphemeralList(body, stmts, bits, StrInvalid);
     return body;
   }
 
@@ -686,7 +699,8 @@ Node ParseModParamList(Lexer* lexer, bool want_comma) {
   TK name = lexer->MatchOrDie(TK_KIND::ID);
   TK kind = lexer->MatchOrDie(TK_KIND::ID);
   Node out = NodeNew(NT::ModParam);
-  InitModParam(out, NameNew(name.text), MOD_PARAM_KIND_FromString(kind.text));
+  InitModParam(out, NameNew(name.text), MOD_PARAM_KIND_FromString(kind.text),
+               name.comments);
   Node next = ParseModParamList(lexer, true);
   Node_next(out) = next;
   return out;
@@ -703,7 +717,8 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   Node type = ParseTypeExpr(lexer);
   Node out = NodeNew(NT::ModParam);
 
-  InitFunParam(out, NameNew(name.text), type, BitsFromAnnotation(name));
+  InitFunParam(out, NameNew(name.text), type, BitsFromAnnotation(name),
+               name.comments);
   Node next = ParseFunParamList(lexer, true);
   Node_next(out) = next;
   return out;
@@ -720,7 +735,7 @@ Node ParseCaseList(Lexer* lexer, int cond_column) {
   Node cond = PrattParseExpr(lexer);
   lexer->MatchOrDie(TK_KIND::COLON);
   Node body = ParseStmtBodyList(lexer, case_column);
-  InitCase(out, cond, body);
+  InitCase(out, cond, body, tk.comments);
   Node_next(out) = ParseCaseList(lexer, cond_column);
   return out;
 }
@@ -733,12 +748,12 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     Node rhs = PrattParseExpr(lexer);
     if (op.kind == TK_KIND::ASSIGN) {
       Node out = NodeNew(NT::StmtAssignment);
-      InitStmtAssignment(out, lhs, rhs);
+      InitStmtAssignment(out, lhs, rhs, tk.comments);
       return out;
     } else {
       Node out = NodeNew(NT::StmtAssignment);
       ASSIGNMENT_KIND kind = ASSIGNMENT_KIND_FromString(op.text);
-      InitStmtCompoundAssignment(out, kind, lhs, rhs);
+      InitStmtCompoundAssignment(out, kind, lhs, rhs, tk.comments);
       return out;
     }
   } else if (tk.text == "tryset") {
@@ -751,24 +766,24 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     Node out = NodeNew(NT::MacroInvoke);
     //
     const TK name = lexer->MatchOrDie(TK_KIND::ID);
-    Node var = MakeNodeId(name.text);
+    Node var = MakeNodeId(name);
     Node type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::ASSIGN);
     Node expr = PrattParseExpr(lexer);
     lexer->MatchOrDie(TK_KIND::COMMA);
     const TK name2 = lexer->MatchOrDie(TK_KIND::ID);
-    Node var2 = MakeNodeId(name2.text);
+    Node var2 = MakeNodeId(name2);
     lexer->MatchOrDie(TK_KIND::COLON);
     Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
     uint16_t bits = 0;
-    InitEphemeralList(body, stmts, bits);
+    InitEphemeralList(body, stmts, bits, StrInvalid);
     //
     Node_next(var) = type;
     Node_next(type) = expr;
     Node_next(expr) = var2;
     Node_next(var2) = body;
-    InitMacroInvoke(out, NameNew(tk.text), var);
+    InitMacroInvoke(out, NameNew(tk.text), var, tk.comments);
     return out;
   } else {
     ASSERT(false, tk);
@@ -787,17 +802,17 @@ Node ParseStmt(Lexer* lexer) {
         expr = PrattParseExpr(lexer);
       } else {
         expr = NodeNew(NT::ValVoid);
-        InitValVoid(expr);
+        InitValVoid(expr, StrInvalid);
       }
       Node out = NodeNew(NT::StmtReturn);
-      InitStmtReturn(out, expr);
+      InitStmtReturn(out, expr, tk.comments);
       return out;
     }
     case NT::StmtCond: {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node out = NodeNew(NT::StmtCond);
       Node cases = ParseCaseList(lexer, outer_column);
-      InitStmtCond(out, cases);
+      InitStmtCond(out, cases, tk.comments);
       return out;
     }
     case NT::StmtAssignment: {
@@ -806,7 +821,7 @@ Node ParseStmt(Lexer* lexer) {
       if (op.kind == TK_KIND::ASSIGN) {
         Node out = NodeNew(NT::StmtAssignment);
         Node rhs = PrattParseExpr(lexer);
-        InitStmtAssignment(out, lhs, rhs);
+        InitStmtAssignment(out, lhs, rhs, tk.comments);
         return out;
       } else {
         ASSERT(op.kind == TK_KIND::COMPOUND_ASSIGN, "" << op);
@@ -821,7 +836,7 @@ Node ParseStmt(Lexer* lexer) {
       Node init = Node(HandleInvalid);
       if (lexer->Match(TK_KIND::ASSIGN)) {
         type = NodeNew(NT::TypeAuto);
-        InitTypeAuto(type);
+        InitTypeAuto(type, StrInvalid);
         init = PrattParseExpr(lexer);
       } else {
         type = ParseTypeExpr(lexer);
@@ -829,12 +844,12 @@ Node ParseStmt(Lexer* lexer) {
           init = PrattParseExpr(lexer);
         } else {
           init = NodeNew(NT::ValAuto);
-          InitValAuto(init);
+          InitValAuto(init, StrInvalid);
         }
       }
       // TODO: mut
       uint16_t bits = 0;
-      InitDefVar(out, NameNew(name.text), type, init, bits);
+      InitDefVar(out, NameNew(name.text), type, init, bits, tk.comments);
       return out;
     }
     case NT::StmtIf: {
@@ -849,14 +864,14 @@ Node ParseStmt(Lexer* lexer) {
         lexer->MatchOrDie(TK_KIND::COLON);
         body_f = ParseStmtBodyList(lexer, outer_column);
       }
-      InitStmtIf(out, cond, body_t, body_f);
+      InitStmtIf(out, cond, body_t, body_f, tk.comments);
       return out;
     }
     case NT::StmtDefer: {
       Node out = NodeNew(NT::StmtDefer);
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = ParseStmtBodyList(lexer, outer_column);
-      InitStmtDefer(out, body);
+      InitStmtDefer(out, body, tk.comments);
       return out;
     }
     case NT::StmtBlock: {
@@ -867,7 +882,7 @@ Node ParseStmt(Lexer* lexer) {
         lexer->MatchOrDie(TK_KIND::COLON);
       }
       Node body = ParseStmtBodyList(lexer, outer_column);
-      InitStmtBlock(out, label, body);
+      InitStmtBlock(out, label, body, tk.comments);
       return out;
     }
     case NT::StmtBreak: {
@@ -876,7 +891,7 @@ Node ParseStmt(Lexer* lexer) {
       if (lexer->Peek().sl.line == tk.sl.line) {
         label = NameNew(lexer->Next().text);
       }
-      InitStmtBreak(out, label);
+      InitStmtBreak(out, label, tk.comments);
       return out;
     }
     case NT::StmtContinue: {
@@ -885,18 +900,18 @@ Node ParseStmt(Lexer* lexer) {
       if (lexer->Peek().sl.line == tk.sl.line) {
         label = NameNew(lexer->Next().text);
       }
-      InitStmtContinue(out, label);
+      InitStmtContinue(out, label, tk.comments);
       return out;
     }
     case NT::StmtExpr: {
       Node out = NodeNew(NT::StmtExpr);
       Node expr = PrattParseExpr(lexer);
-      InitStmtExpr(out, expr);
+      InitStmtExpr(out, expr, tk.comments);
       return out;
     }
     case NT::StmtTrap: {
       Node out = NodeNew(NT::StmtTrap);
-      InitStmtTrap(out);
+      InitStmtTrap(out, tk.comments);
       return out;
     }
     case NT::MacroFor: {
@@ -905,7 +920,8 @@ Node ParseStmt(Lexer* lexer) {
       TK container = lexer->MatchOrDie(TK_KIND::ID);
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = ParseStmtBodyList(lexer, outer_column);
-      InitMacroFor(out, NameNew(name.text), NameNew(container.text), body);
+      InitMacroFor(out, NameNew(name.text), NameNew(container.text), body,
+                   tk.comments);
       return out;
     }
     default:
@@ -932,7 +948,7 @@ Node ParseMacroInvocation(Lexer* lexer, TK name) {
   }
 
   Node out = NodeNew(NT::MacroInvoke);
-  InitMacroInvoke(out, NameNew(name.text), args);
+  InitMacroInvoke(out, NameNew(name.text), args, name.comments);
   return out;
 }
 
@@ -942,7 +958,6 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
     return Node(HandleInvalid);
   }
 
-  std::cout << "@@ BODY " << tk.text << "\n";
   Node out = Node(HandleInvalid);
   if (tk.kind == TK_KIND::ID) {
     lexer->Next();
@@ -952,7 +967,7 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
     } else {
       // This happens when the macro body contains macro parameter
       ASSERT(starts_with(tk.text, "$"), tk);
-      out = MakeNodeMacroId(tk.text);
+      out = MakeNodeMacroId(tk);
     }
   } else {
     ASSERT(tk.kind == TK_KIND::KW, tk);
@@ -971,7 +986,7 @@ Node ParseRecFieldList(Lexer* lexer, uint32_t column) {
   name = lexer->MatchOrDie(TK_KIND::ID);
   Node type = ParseTypeExpr(lexer);
   Node out = NodeNew(NT::RecField);
-  InitRecField(out, NameNew(name.text), type);
+  InitRecField(out, NameNew(name.text), type, name.comments);
   Node_next(out) = ParseRecFieldList(lexer, column);
   return out;
 }
@@ -985,7 +1000,7 @@ Node ParseEnumFieldList(Lexer* lexer, uint32_t column) {
   name = lexer->MatchOrDie(TK_KIND::ID);
   Node val = PrattParseExpr(lexer);
   Node out = NodeNew(NT::EnumVal);
-  InitEnumVal(out, NameNew(name.text), val);
+  InitEnumVal(out, NameNew(name.text), val, name.comments);
   Node_next(out) = ParseEnumFieldList(lexer, column);
   return out;
 }
@@ -1001,7 +1016,7 @@ Node ParseMacroParamList(Lexer* lexer, bool want_comma) {
   TK kind = lexer->MatchOrDie(TK_KIND::ID);
   Node out = NodeNew(NT::MacroParam);
   InitMacroParam(out, NameNew(name.text),
-                 MACRO_PARAM_KIND_FromString(kind.text));
+                 MACRO_PARAM_KIND_FromString(kind.text), name.comments);
   Node next = ParseMacroParamList(lexer, true);
   Node_next(out) = next;
   return out;
@@ -1015,7 +1030,7 @@ Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
   TK name = lexer->MatchOrDie(TK_KIND::ID);
-  Node out = MakeNodeId(name.text);
+  Node out = MakeNodeId(name);
   Node next = ParseMacroGenIdList(lexer, true);
   Node_next(out) = next;
   return out;
@@ -1040,7 +1055,7 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = ParseStmtBodyList(lexer, outer_column);
       InitDefFun(out, NameNew(name.text), params, result, body,
-                 BitsFromAnnotation(name));
+                 BitsFromAnnotation(name), tk.comments);
       return out;
     }
     case NT::DefGlobal: {
@@ -1050,7 +1065,7 @@ Node ParseTopLevel(Lexer* lexer) {
       Node init = Node(HandleInvalid);
       if (lexer->Match(TK_KIND::ASSIGN)) {
         type = NodeNew(NT::TypeAuto);
-        InitTypeAuto(type);
+        InitTypeAuto(type, StrInvalid);
         init = PrattParseExpr(lexer);
       } else {
         type = ParseTypeExpr(lexer);
@@ -1058,12 +1073,12 @@ Node ParseTopLevel(Lexer* lexer) {
           init = PrattParseExpr(lexer);
         } else {
           init = NodeNew(NT::ValAuto);
-          InitValAuto(init);
+          InitValAuto(init, StrInvalid);
         }
       }
       // TODO: mut
       uint16_t bits = 0;
-      InitDefGlobal(out, NameNew(name.text), type, init, bits);
+      InitDefGlobal(out, NameNew(name.text), type, init, bits, tk.comments);
       return out;
     }
     case NT::DefRec: {
@@ -1071,7 +1086,8 @@ Node ParseTopLevel(Lexer* lexer) {
       TK name = lexer->MatchOrDie(TK_KIND::ID);
       lexer->MatchOrDie(TK_KIND::COLON);
       Node fields = ParseRecFieldList(lexer, outer_column);
-      InitDefRec(out, NameNew(name.text), fields, BitsFromAnnotation(tk));
+      InitDefRec(out, NameNew(name.text), fields, BitsFromAnnotation(tk),
+                 tk.comments);
       return out;
     }
 
@@ -1087,7 +1103,7 @@ Node ParseTopLevel(Lexer* lexer) {
         args = ParseMacroArgList(lexer, false);
       }
       Node out = NodeNew(NT::Import);
-      InitImport(out, NameNew(name.text), StrNew(path), args);
+      InitImport(out, NameNew(name.text), StrNew(path), args, tk.comments);
       return out;
     }
     case NT::DefEnum: {
@@ -1098,7 +1114,7 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node items = ParseEnumFieldList(lexer, outer_column);
       uint16_t bits = 0;
-      InitDefEnum(out, NameNew(name.text), bt, items, bits);
+      InitDefEnum(out, NameNew(name.text), bt, items, bits, tk.comments);
       return out;
     }
     case NT::DefType: {
@@ -1107,13 +1123,13 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::ASSIGN);
       Node type = ParseTypeExpr(lexer);
       uint16_t bits = 0;
-      InitDefType(out, NameNew(name.text), type, bits);
+      InitDefType(out, NameNew(name.text), type, bits, tk.comments);
       return out;
     }
     case NT::StmtStaticAssert: {
       Node out = NodeNew(NT::StmtStaticAssert);
       Node cond = PrattParseExpr(lexer);
-      InitStmtStaticAssert(out, cond, StrNew(""));
+      InitStmtStaticAssert(out, cond, StrNew(""), tk.comments);
       return out;
     }
     case NT::DefMacro: {
@@ -1146,7 +1162,8 @@ Node ParseTopLevel(Lexer* lexer) {
         body = ParseStmtBodyList(lexer, outer_column);
       }
       uint16_t bits = 0;
-      InitDefMacro(out, NameNew(name.text), mpk, params, gen_ids, body, bits);
+      InitDefMacro(out, NameNew(name.text), mpk, params, gen_ids, body, bits,
+                   tk.comments);
       return out;
     }
     default: {
@@ -1180,7 +1197,7 @@ Node ParseDefMod(Lexer* lexer) {
   }
   lexer->MatchOrDie(TK_KIND::COLON);
   Node body = ParseModBodyList(lexer, 0);
-  InitDefMod(def_mod, params, body, BitsFromAnnotation(tk));
+  InitDefMod(def_mod, params, body, BitsFromAnnotation(tk), tk.comments);
   return def_mod;
 }
 
