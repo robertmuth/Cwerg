@@ -307,6 +307,91 @@ const uint8_t ASSIGNMENT_KIND_Jumper[128] = {
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 12, 255, 13, 255,
 };
 
+const char* const NT_ToStringMap[] = {
+    "invalid", // 0
+    "Case", // 1
+    "DefEnum", // 2
+    "DefFun", // 3
+    "DefGlobal", // 4
+    "DefMacro", // 5
+    "DefMod", // 6
+    "DefRec", // 7
+    "DefType", // 8
+    "DefVar", // 9
+    "EnumVal", // 10
+    "EphemeralList", // 11
+    "Expr1", // 12
+    "Expr2", // 13
+    "Expr3", // 14
+    "ExprAddrOf", // 15
+    "ExprAs", // 16
+    "ExprBitCast", // 17
+    "ExprCall", // 18
+    "ExprDeref", // 19
+    "ExprField", // 20
+    "ExprFront", // 21
+    "ExprIndex", // 22
+    "ExprIs", // 23
+    "ExprLen", // 24
+    "ExprNarrow", // 25
+    "ExprOffsetof", // 26
+    "ExprParen", // 27
+    "ExprPointer", // 28
+    "ExprSizeof", // 29
+    "ExprSrcLoc", // 30
+    "ExprStmt", // 31
+    "ExprStringify", // 32
+    "ExprTypeId", // 33
+    "ExprUnionTag", // 34
+    "ExprUnionUntagged", // 35
+    "ExprUnsafeCast", // 36
+    "ExprUnwrap", // 37
+    "ExprWiden", // 38
+    "ExprWrap", // 39
+    "FunParam", // 40
+    "Id", // 41
+    "Import", // 42
+    "MacroFor", // 43
+    "MacroId", // 44
+    "MacroInvoke", // 45
+    "MacroParam", // 46
+    "ModParam", // 47
+    "RecField", // 48
+    "StmtAssignment", // 49
+    "StmtBlock", // 50
+    "StmtBreak", // 51
+    "StmtCompoundAssignment", // 52
+    "StmtCond", // 53
+    "StmtContinue", // 54
+    "StmtDefer", // 55
+    "StmtExpr", // 56
+    "StmtIf", // 57
+    "StmtReturn", // 58
+    "StmtStaticAssert", // 59
+    "StmtTrap", // 60
+    "TypeAuto", // 61
+    "TypeBase", // 62
+    "TypeFun", // 63
+    "TypeOf", // 64
+    "TypePtr", // 65
+    "TypeSpan", // 66
+    "TypeUnion", // 67
+    "TypeUnionDelta", // 68
+    "TypeVec", // 69
+    "ValAuto", // 70
+    "ValCompound", // 71
+    "ValFalse", // 72
+    "ValNum", // 73
+    "ValPoint", // 74
+    "ValSpan", // 75
+    "ValString", // 76
+    "ValTrue", // 77
+    "ValUndef", // 78
+    "ValVoid", // 79
+};
+const char* EnumToString(NT x) { return NT_ToStringMap[unsigned(x)]; }
+
+
 const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
     {"case", NT::Case},
     {"enum", NT::DefEnum},

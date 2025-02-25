@@ -201,6 +201,7 @@ enum class NFD_STRING_FIELD : uint8_t {
     string = 10,  // slot: 0
     target = 11,  // slot: 0
 };
+
 enum class NFD_BOOL_FIELD : uint8_t {
     invalid = 0,
     arg_ref = 1,
@@ -220,6 +221,7 @@ enum class NFD_BOOL_FIELD : uint8_t {
     untagged = 15,
     wrapped = 16,
 };
+
 enum class NT : uint8_t {
     invalid = 0,
     Case = 1,
@@ -800,6 +802,7 @@ const char* EnumToString(MOD_PARAM_KIND x);
 const char* EnumToString(MACRO_PARAM_KIND x);
 const char* EnumToString(STR_KIND x);
 const char* EnumToString(BASE_TYPE_KIND x);
+const char* EnumToString(NT x);
 
 // default is MACRO_PARAM_KIND::INVALID
 MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name);

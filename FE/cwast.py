@@ -3892,6 +3892,23 @@ def GenerateInits():
         print("}\n")
 
 
+def _NameValuesForNT():
+    out = [("invalid", 0)]
+    for n, cls in enumerate(sorted(ALL_NODES, key=lambda x: x.__name__)):
+        out.append((cls.__name__, n+1))
+    return out
+
+
+
+def _NameValuesForBoolFields(fields_by_kind):
+    out = [("invalid", 0)]
+    fields = sorted(f.name for f in fields_by_kind[NFK.ATTR_BOOL])
+    for n, name in enumerate(fields):
+        name = name.replace("extern", "externx")
+        out.append((name, n+1))
+    return out
+
+
 def GenerateCodeH(fout: Any):
     _ComputeRemainingSlotsForFields()
 
@@ -3915,20 +3932,10 @@ def GenerateCodeH(fout: Any):
         print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
     print("};")
 
-    print(f"enum class NFD_BOOL_FIELD : uint8_t {{")
-    print(f"    invalid = 0,")
-    fields = sorted(f.name for f in fields_by_kind[NFK.ATTR_BOOL])
-    for n, name in enumerate(fields):
-        name = name.replace("extern", "externx")
-        print(f"    {name} = {n+1}, ")
-    print("};")
+    cgen.RenderEnumClass(_NameValuesForBoolFields(
+        fields_by_kind), "NFD_BOOL_FIELD", fout)
 
-    print(f"enum class NT : uint8_t {{")
-    print(f"    invalid = 0,")
-    for n, cls in enumerate(sorted(ALL_NODES, key=lambda x: x.__name__)):
-        print(f"    {cls.__name__} = {n+1},")
-    print("};")
-
+    cgen.RenderEnumClass(_NameValuesForNT(), "NT", fout)
     cgen.RenderEnumClass(cgen.NameValues(
         BINARY_EXPR_KIND), "BINARY_EXPR_KIND", fout)
     cgen.RenderEnumClass(cgen.NameValues(
@@ -3961,6 +3968,7 @@ def EnumStringConversions(fout: Any):
             cgen.RenderStringToEnumMap(name_vals,
                                        name + "_FromStringMap",
                                        name + "_Jumper", fout)
+
     render(MOD_PARAM_KIND)
     render(MACRO_PARAM_KIND)
     render(STR_KIND)
@@ -3970,6 +3978,11 @@ def EnumStringConversions(fout: Any):
     cgen.RenderStringToEnumMap(name_vals,
                                name + "_FromStringMap",
                                name + "_Jumper", fout)
+
+    name = "NT"
+    name_vals = _NameValuesForNT()
+    cgen.RenderEnumToStringMap(name_vals, name, fout)
+    cgen.RenderEnumToStringFun(name, fout)
 
 
 def NodeAliasStringConversion(fout: Any):
