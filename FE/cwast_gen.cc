@@ -1,7 +1,7 @@
-#include <cstdint>
-#include <map>
 #include "FE/cwast_gen.h"
 
+#include <cstdint>
+#include <map>
 
 #include "Util/assert.h"
 
@@ -528,4 +528,14 @@ NT KeywordToNT(std::string_view kw) {
   if (it == KeywordToNodeTypeMap.end()) return NT::invalid;
   return it->second;
 }
+
+std::string_view ASSIGNMENT_SHORTCUT_INV[] = {
+    "INVALID", "+=", "-=", "/=",  "*=",  "%=",   "min=", "max=",
+    "&=",      "|=", "~=", "<<=", ">>=", "<<<=", ">>>=",
+};
+
+std::string_view GetOperatorString(ASSIGNMENT_KIND kind) {
+  return ASSIGNMENT_SHORTCUT_INV[uint8_t(kind)];
+}
+
 }  // namespace cwerg::fe

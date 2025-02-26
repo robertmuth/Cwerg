@@ -59,6 +59,7 @@ struct NodeCore {
     UNARY_EXPR_KIND unary_expr_kind;
     MACRO_PARAM_KIND macro_param_kind;
     MOD_PARAM_KIND mod_param_kind;
+    ASSIGNMENT_KIND assignment_kind;
   };
   uint16_t bits;
   Handle children[4];
@@ -126,6 +127,10 @@ inline const char* NameData(Name name) {
   return gNamePool.Data(gNameCore[name].name);
 }
 
+inline bool NameIsEmpty(Name name) {
+  return gNamePool.Data(gNameCore[name].name)[0] == '\0';
+}
+
 // =======================================
 // Str API
 //
@@ -141,6 +146,10 @@ inline Str StrNew(std::string_view s) {
 
 // Pointer returned by StrData is only valid until another string is interned.
 inline const char* StrData(Str str) { return gStringPool.Data(str.index()); }
+
+inline bool StrIsEmpty(Str str) {
+  return gStringPool.Data(str.index())[0] == '\0';
+}
 
 inline int StrCmp(Str a, Str b) {
   if (a == b) return 0;
@@ -809,7 +818,10 @@ inline MACRO_PARAM_KIND& Node_macro_param_kind(Node n) {
 }
 
 inline MACRO_PARAM_KIND& Node_macro_result_kind(Node n) {
-    return gNodeCore[n].macro_param_kind;
+  return gNodeCore[n].macro_param_kind;
+}
+inline ASSIGNMENT_KIND Node_assignment_kind(Node n) {
+    return gNodeCore[n].assignment_kind;
   }
 
 struct NodeDesc {
@@ -841,5 +853,7 @@ BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name);
 ASSIGNMENT_KIND ASSIGNMENT_KIND_FromString(std::string_view name);
 
 NT KeywordToNT(std::string_view kw);
+
+std::string_view GetOperatorString(ASSIGNMENT_KIND kind);
 
 }  // namespace cwerg::fe

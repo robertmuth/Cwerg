@@ -50,25 +50,27 @@ void MaybeEmitDoc(std::vector<PP::Token>* out, Node node) {
   }
 }
 
-std::string FullName(Node node) {
+void EmitFullName(std::vector<PP::Token>* out, Node node) {
   ASSERT(Node_kind(node) == NT::Id, "");
-  std::string out = NameData(Node_mod_name(node));
-  if (!out.empty()) {
-    out += "::";
+  if (!NameIsEmpty(Node_mod_name(node))) {
+    out->push_back(PP::Str(NameData(Node_mod_name(node))));
+    out->push_back(PP::NoBreak(0));
+
+    out->push_back(PP::Str("::"));
+    out->push_back(PP::NoBreak(0));
   }
-  out += NameData(Node_base_name(node));
-  std::string e = NameData(Node_enum_name(node));
-  if (!e.empty()) {
-    out += ":";
-    out += e;
+  out->push_back(PP::Str(NameData(Node_base_name(node))));
+
+  if (!NameIsEmpty(Node_enum_name(node))) {
+    out->push_back(PP::NoBreak(0));
+    out->push_back(PP::Str(NameData(Node_enum_name(node))));
   }
-  return out;
 }
 
 void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
   switch (Node_kind(node)) {
     case NT::Id:
-      out->push_back(PP::Str(FullName(node)));
+      EmitFullName(out, node);
       break;
     case NT::MacroId:
       out->push_back(PP::Str(NameData(Node_name(node))));
@@ -141,17 +143,49 @@ void EmitStatementsSpecial(std::vector<PP::Token>* out, Node node) {
   }
 }
 
+void EmitStmtSet(std::vector<PP::Token>* out, std::string_view op, Node lhs,
+                 Node rhs) {
+  out->push_back(PP ::Str("set"));
+  out->push_back(PP::Brk());
+  EmitExprOrType(out, lhs);
+  out->push_back(PP::Brk());
+  out->push_back(PP ::Str(op));
+  out->push_back(PP::Brk());
+  EmitExprOrType(out, rhs);
+}
+void EmitStmtLetOrGlobal(std::vector<PP::Token>* out, std::string_view kw,
+                         Name name, Node type_or_auto,
+                         Node initial_or_undef_or_auto) {
+  out->push_back(PP ::Str(kw));
+  if (Node_kind(type_or_auto) != NT::TypeAuto) {
+    out->push_back(PP::NoBreak(1));
+    EmitExprOrType(out, type_or_auto);
+  }
+  if (Node_kind(initial_or_undef_or_auto) != NT::ValAuto) {
+    out->push_back(PP::NoBreak(1));
+    out->push_back(PP ::Str("="));
+    out->push_back(PP::NoBreak(1));
+    EmitExprOrType(out, initial_or_undef_or_auto);
+  }
+}
+
 void EmitStatement(std::vector<PP::Token>* out, Node node) {
   MaybeEmitDoc(out, node);
   out->push_back(PP_BEG_STD);
   switch (Node_kind(node)) {
     case NT::StmtContinue:
       out->push_back(PP ::Str("continue"));
-
+      if (!NameIsEmpty(Node_target(node))) {
+        out->push_back(PP::NoBreak(1));
+        out->push_back(PP::Str(NameData(Node_target(node))));
+      }
       break;
     case NT::StmtBreak:
       out->push_back(PP ::Str("break"));
-
+      if (!NameIsEmpty(Node_target(node))) {
+        out->push_back(PP::NoBreak(1));
+        out->push_back(PP::Str(NameData(Node_target(node))));
+      }
       break;
     case NT::StmtReturn:
       out->push_back(PP ::Str("return"));
@@ -164,13 +198,15 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP ::Str("trap"));
       break;
     case NT::StmtAssignment:
-      out->push_back(PP ::Str("set"));
+      EmitStmtSet(out, "=", Node_lhs(node), Node_expr_rhs(node));
       break;
     case NT::StmtCompoundAssignment:
-      out->push_back(PP ::Str("set"));
+      EmitStmtSet(out, GetOperatorString(Node_assignment_kind(node)),
+                  Node_lhs(node), Node_expr_rhs(node));
       break;
     case NT::DefVar:
-      out->push_back(PP ::Str("let"));
+      EmitStmtLetOrGlobal(out, "let", Node_name(node), Node_type_or_auto(node),
+                          Node_initial_or_undef_or_auto(node));
       break;
     case NT::StmtExpr:
       out->push_back(PP ::Str("do"));
@@ -247,6 +283,9 @@ void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
   bool emit_break;
   switch (Node_kind(node)) {
     case NT::DefGlobal:
+      EmitStmtLetOrGlobal(out, "global", Node_name(node),
+                          Node_type_or_auto(node),
+                          Node_initial_or_undef_or_auto(node));
       break;
 
     case NT::Import:
@@ -401,9 +440,9 @@ int main(int argc, const char* argv[]) {
   InitStripes(sw_multiplier.Value());
   InitParser();
 
-  // If the synchronization is turned off, the C++ standard streams are allowed
-  // to buffer their I/O independently from their stdio counterparts, which may
-  // be considerably faster in some cases.
+  // If the synchronization is turned off, the C++ standard streams are
+  // allowed to buffer their I/O independently from their stdio counterparts,
+  // which may be considerably faster in some cases.
   // std::ios_base::sync_with_stdio(false);
   std::istream* fin = &std::cin;
 

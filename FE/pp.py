@@ -446,7 +446,7 @@ def _EmitStmtLetOrGlobal(out, kind: str, name: str, type_or_auto, init_or_auto):
     out += [PP.Str(kind), PP.NoBreak(1),
             PP.Str(str(name))]
     if not isinstance(type_or_auto, cwast.TypeAuto):
-        out += [PP.Brk()]
+        out += [PP.NoBreak(1)]
         _EmitExprOrType(out, type_or_auto)
     if not isinstance(init_or_auto, cwast.ValAuto):
         out += [PP.NoBreak(1), PP.Str("="), PP.NoBreak(1)]
@@ -562,11 +562,11 @@ def _EmitStatement(out, n):
     if isinstance(n, cwast.StmtContinue):
         out += [PP.Str("continue")]
         if n.target.name:
-            out += [PP.Brk(), PP.Str(n.target.name)]
+            out += [PP.NoBreak(1), PP.Str(n.target.name)]
     elif isinstance(n, cwast.StmtBreak):
         out += [PP.Str("break")]
         if n.target.name:
-            out += [PP.Brk(), PP.Str(n.target.name)]
+            out += [PP.NoBreak(1), PP.Str(n.target.name)]
     elif isinstance(n, cwast.StmtReturn):
         out += [PP.Str("return")]
         if not isinstance(n.expr_ret, cwast.ValVoid):

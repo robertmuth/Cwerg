@@ -204,9 +204,8 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
               as(bitstream::Stream32GetBits(bs, 3), u16)
             debug#("sym length ", i, ": ", cl_lengths[CodeLenCodeIndex[i]], "\n"
                    )
-        let cl_last_symbol
-          u16 = huffman::ComputeCountsAndSymbolsFromLengths(cl_lengths,
-                  cl_counts, cl_symbols)
+        let cl_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
+                                   cl_lengths, cl_counts, cl_symbols)
         if cl_last_symbol == huffman::BAD_TREE_ENCODING:
             return CorruptionErrorVal
         debug#("decode combined lengths for lit + dist\n")
@@ -226,9 +225,8 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
     let! lit_counts [MAX_HUFFMAN_BITS + 1]u16
     block _:
         let lit_lengths = make_span(front!(lit_dist_lengths), lit_num_syms)
-        let lit_last_symbol
-          u16 = huffman::ComputeCountsAndSymbolsFromLengths(lit_lengths,
-                  lit_counts, lit_symbols)
+        let lit_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
+                                    lit_lengths, lit_counts, lit_symbols)
         if lit_last_symbol == huffman::BAD_TREE_ENCODING:
             return CorruptionErrorVal
         debug#("computed literal tree. last=", lit_last_symbol, "\n")
@@ -237,9 +235,8 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
     block _:
         let dist_lengths = make_span(ptr_inc(front!(lit_dist_lengths),
                                        lit_num_syms), dist_num_syms)
-        let dist_last_symbol
-          u16 = huffman::ComputeCountsAndSymbolsFromLengths(dist_lengths,
-                  dist_counts, dist_symbols)
+        let dist_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
+                                     dist_lengths, dist_counts, dist_symbols)
         if dist_last_symbol == huffman::BAD_TREE_ENCODING:
             debug#("BAD ENCODING\n")
             return CorruptionErrorVal
