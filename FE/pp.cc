@@ -88,9 +88,24 @@ void EmitArg(std::vector<PP::Token>* out, Node node, bool first) {
   out->push_back(PP::End());
 }
 
+void EmitParenList(std::vector<PP::Token>* out, Node arg0,
+                   Node arg1 = NodeInvalid) {
+  out->push_back(PP::Str("("));
+  EmitArg(out, arg0, true);
+  for (Node child = Node_next(arg0); child != HandleInvalid;
+       child = Node_next(child)) {
+    EmitArg(out, child, false);
+  }
+
+  if (arg1 != NodeInvalid) {
+    EmitArg(out, arg1, false);
+  }
+  out->push_back(PP::NoBreak(0));
+  out->push_back(PP::Str(")"));
+}
+
 void EmitFunctional(std::vector<PP::Token>* out, std::string_view name,
-                    Node arg0, Node arg1 = NodeInvalid,
-                    Node arg2 = NodeInvalid) {
+                    Node arg0, Node arg1 = NodeInvalid) {
   out->push_back(PP_BEG_STD);
   out->push_back(PP::Str(name));
   out->push_back(PP::NoBreak(0));
@@ -98,9 +113,6 @@ void EmitFunctional(std::vector<PP::Token>* out, std::string_view name,
   EmitArg(out, arg0, true);
   if (arg1 != NodeInvalid) {
     EmitArg(out, arg1, false);
-  }
-  if (arg2 != NodeInvalid) {
-    EmitArg(out, arg2, false);
   }
   out->push_back(PP::NoBreak(0));
   out->push_back(PP::Str(")"));
@@ -204,6 +216,21 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     case NT::TypeOf:
       EmitFunctional(out, "type_of", Node_expr(node));
       break;
+    case NT::ExprCall:
+      out->push_back(PP_BEG_STD);
+      EmitExprOrType(out, Node_callee(node));
+      out->push_back(PP::NoBreak(0));
+      EmitParenList(out, Node_args(node));
+      out->push_back(PP::End());
+      break;
+    case NT::TypeUnion:
+      out->push_back(PP_BEG_STD);
+      out->push_back(PP::Str("union"));
+      out->push_back(PP::NoBreak(0));
+      EmitParenList(out, Node_args(node));
+      out->push_back(PP::End());
+      break;
+
     default:
       out->push_back(PP::Str("EXPR_OR_TYPE"));
   }
