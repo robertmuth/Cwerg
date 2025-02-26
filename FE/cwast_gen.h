@@ -14,6 +14,14 @@ uint8_t constexpr kKindStr = 100;
 uint8_t constexpr kKindName = 101;
 
 enum class NT : uint8_t;
+enum class BINARY_EXPR_KIND : uint8_t;
+enum class UNARY_EXPR_KIND : uint8_t;
+enum class POINTER_EXPR_KIND : uint8_t;
+enum class BASE_TYPE_KIND : uint8_t;
+enum class STR_KIND : uint8_t;
+enum class MACRO_PARAM_KIND : uint8_t;
+enum class MOD_PARAM_KIND : uint8_t;
+enum class ASSIGNMENT_KIND : uint8_t;
 
 struct Node : public Handle {
   explicit constexpr Node(NT kind, uint32_t index = 0)
@@ -45,7 +53,13 @@ extern ImmutablePool gNamePool;
 
 struct NodeCore {
   NT kind;
-  uint8_t other_kind;
+  union {
+    uint8_t other_kind;
+    BINARY_EXPR_KIND binary_expr_kind;
+    UNARY_EXPR_KIND unary_expr_kind;
+    MACRO_PARAM_KIND macro_param_kind;
+    MOD_PARAM_KIND mod_param_kind;
+  };
   uint16_t bits;
   Handle children[4];
   Handle next;
@@ -86,7 +100,6 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
 // =======================================
 // Name API
 // =======================================
-
 
 struct NameCore {
   uint32_t name;  // offset from ImmutablePool.
@@ -786,6 +799,14 @@ inline void InitValVoid(Node node, Str doc) {
 
 /* @AUTOGEN-END@ */
 // clang-format on
+
+inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
+  return gNodeCore[n].mod_param_kind;
+}
+
+inline MACRO_PARAM_KIND& Node_macro_param_kind(Node n) {
+  return gNodeCore[n].macro_param_kind;
+}
 
 struct NodeDesc {
   uint64_t node_field_bits;
