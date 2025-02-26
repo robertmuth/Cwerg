@@ -62,6 +62,7 @@ struct NodeCore {
     MOD_PARAM_KIND mod_param_kind;
     ASSIGNMENT_KIND assignment_kind;
     BASE_TYPE_KIND base_type_kind;
+    POINTER_EXPR_KIND pointer_expr_kind;
   };
   uint16_t bits;
   Handle children[4];
@@ -822,12 +823,27 @@ inline MACRO_PARAM_KIND& Node_macro_param_kind(Node n) {
 inline MACRO_PARAM_KIND& Node_macro_result_kind(Node n) {
   return gNodeCore[n].macro_param_kind;
 }
+
 inline ASSIGNMENT_KIND Node_assignment_kind(Node n) {
   return gNodeCore[n].assignment_kind;
 }
+
 inline BASE_TYPE_KIND Node_base_type_kind(Node n) {
   return gNodeCore[n].base_type_kind;
 }
+
+inline POINTER_EXPR_KIND Node_pointer_expr_kind(Node n) {
+  return gNodeCore[n].pointer_expr_kind;
+}
+
+inline UNARY_EXPR_KIND Node_unary_expr_kind(Node n) {
+  return gNodeCore[n].unary_expr_kind;
+}
+
+inline BINARY_EXPR_KIND Node_binary_expr_kind(Node n) {
+  return gNodeCore[n].binary_expr_kind;
+}
+
 struct NodeDesc {
   uint64_t node_field_bits;
   uint64_t string_field_bits;
@@ -844,6 +860,9 @@ const char* EnumToString(MACRO_PARAM_KIND x);
 const char* EnumToString(STR_KIND x);
 const char* EnumToString(BASE_TYPE_KIND x);
 const char* EnumToString(NT x);
+const char* EnumToString(POINTER_EXPR_KIND x);
+const char* EnumToString(BINARY_EXPR_KIND x);
+const char* EnumToString(ASSIGNMENT_KIND x);
 
 // default is MACRO_PARAM_KIND::INVALID
 MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name);
@@ -857,7 +876,5 @@ BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name);
 ASSIGNMENT_KIND ASSIGNMENT_KIND_FromString(std::string_view name);
 
 NT KeywordToNT(std::string_view kw);
-
-std::string_view GetOperatorString(ASSIGNMENT_KIND kind);
 
 }  // namespace cwerg::fe

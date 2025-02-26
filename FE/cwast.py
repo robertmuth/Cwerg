@@ -3899,7 +3899,6 @@ def _NameValuesForNT():
     return out
 
 
-
 def _NameValuesForBoolFields(fields_by_kind):
     out = [("invalid", 0)]
     fields = sorted(f.name for f in fields_by_kind[NFK.ATTR_BOOL])
@@ -3958,10 +3957,7 @@ def GenerateCodeH(fout: Any):
 
 
 def EnumStringConversions(fout: Any):
-    def render(cls, both_ways=True, lower=False):
-        name_vals = cgen.NameValuesLower(
-            cls) if lower else cgen.NameValues(cls)
-        name = cls.__name__
+    def render(name: str, name_vals: list, both_ways=True):
         cgen.RenderEnumToStringMap(name_vals, name, fout)
         cgen.RenderEnumToStringFun(name, fout)
         if both_ways:
@@ -3969,20 +3965,23 @@ def EnumStringConversions(fout: Any):
                                        name + "_FromStringMap",
                                        name + "_Jumper", fout)
 
-    render(MOD_PARAM_KIND)
-    render(MACRO_PARAM_KIND)
-    render(STR_KIND)
-    render(BASE_TYPE_KIND, lower=True)
-    name = ASSIGNMENT_KIND.__name__
-    name_vals = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
-    cgen.RenderStringToEnumMap(name_vals,
-                               name + "_FromStringMap",
-                               name + "_Jumper", fout)
+    def std_render(cls):
+        render(cls.__name__, cgen.NameValues(cls))
 
-    name = "NT"
-    name_vals = _NameValuesForNT()
-    cgen.RenderEnumToStringMap(name_vals, name, fout)
-    cgen.RenderEnumToStringFun(name, fout)
+    std_render(MOD_PARAM_KIND)
+    std_render(MACRO_PARAM_KIND)
+    std_render(STR_KIND)
+    render(BASE_TYPE_KIND.__name__,  cgen.NameValuesLower(BASE_TYPE_KIND))
+
+    render(ASSIGNMENT_KIND.__name__,
+           [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()])
+
+    render(POINTER_EXPR_KIND.__name__,
+           [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()], both_ways=False)
+
+    render(BINARY_EXPR_KIND.__name__,
+           [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()], both_ways=False)
+    render("NT",  _NameValuesForNT(), both_ways=False)
 
 
 def NodeAliasStringConversion(fout: Any):

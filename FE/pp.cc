@@ -88,24 +88,21 @@ void EmitArg(std::vector<PP::Token>* out, Node node, bool first) {
   out->push_back(PP::End());
 }
 
-void EmitParenList(std::vector<PP::Token>* out, Node arg0,
-                   Node arg1 = NodeInvalid) {
+void EmitParenList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::Str("("));
-  EmitArg(out, arg0, true);
-  for (Node child = Node_next(arg0); child != HandleInvalid;
+  EmitArg(out, node, true);
+  for (Node child = Node_next(node); child != HandleInvalid;
        child = Node_next(child)) {
     EmitArg(out, child, false);
   }
 
-  if (arg1 != NodeInvalid) {
-    EmitArg(out, arg1, false);
-  }
   out->push_back(PP::NoBreak(0));
   out->push_back(PP::Str(")"));
 }
 
 void EmitFunctional(std::vector<PP::Token>* out, std::string_view name,
-                    Node arg0, Node arg1 = NodeInvalid) {
+                    Node arg0, Node arg1 = NodeInvalid,
+                    Node arg2 = NodeInvalid) {
   out->push_back(PP_BEG_STD);
   out->push_back(PP::Str(name));
   out->push_back(PP::NoBreak(0));
@@ -113,6 +110,9 @@ void EmitFunctional(std::vector<PP::Token>* out, std::string_view name,
   EmitArg(out, arg0, true);
   if (arg1 != NodeInvalid) {
     EmitArg(out, arg1, false);
+  }
+  if (arg2 != NodeInvalid) {
+    EmitArg(out, arg2, false);
   }
   out->push_back(PP::NoBreak(0));
   out->push_back(PP::Str(")"));
@@ -166,7 +166,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
                      Node_subtrahend(node));
       break;
     case NT::ValSpan:
-      EmitFunctional(out, "make_spane", Node_pointer(node),
+      EmitFunctional(out, "make_span", Node_pointer(node),
                      Node_expr_size(node));
       break;
       //
@@ -216,6 +216,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     case NT::TypeOf:
       EmitFunctional(out, "type_of", Node_expr(node));
       break;
+      //
     case NT::ExprCall:
       out->push_back(PP_BEG_STD);
       EmitExprOrType(out, Node_callee(node));
@@ -230,9 +231,63 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       EmitParenList(out, Node_args(node));
       out->push_back(PP::End());
       break;
-
+    //
+    case NT::ExprPointer:
+      if (Node_kind(Node_expr_bound_or_undef(node)) == NT::ValUndef) {
+        EmitFunctional(out, EnumToString(Node_pointer_expr_kind(node)),
+                       Node_expr1(node), Node_expr2(node));
+      } else {
+        EmitFunctional(out, EnumToString(Node_pointer_expr_kind(node)),
+                       Node_expr1(node), Node_expr2(node),
+                       Node_expr_bound_or_undef(node));
+      }
+      break;
+    case NT::Expr1:
+      switch (Node_unary_expr_kind(node)) {
+        case UNARY_EXPR_KIND::ABS:
+          EmitFunctional(out, "abs", Node_expr(node));
+          break;
+        case UNARY_EXPR_KIND::SQRT:
+          EmitFunctional(out, "sqr", Node_expr(node));
+          break;
+        case UNARY_EXPR_KIND::NOT:
+          out->push_back(PP::Str("!"));
+          out->push_back(PP::Brk(0));
+          EmitExprOrType(out, Node_expr(node));
+          break;
+        case UNARY_EXPR_KIND::NEG:
+          out->push_back(PP::Str("-"));
+          out->push_back(PP::Brk(0));
+          EmitExprOrType(out, Node_expr(node));
+          break;
+        case UNARY_EXPR_KIND::INVALID:
+          ASSERT(false, "");
+          break;
+      }
+      break;
+    case NT::Expr2:
+      switch (Node_binary_expr_kind(node)) {
+        case BINARY_EXPR_KIND::PDELTA:
+          EmitFunctional(out, "ptr_diff", Node_expr1(node), Node_expr2(node));
+          break;
+        case BINARY_EXPR_KIND::MIN:
+          EmitFunctional(out, "min", Node_expr1(node), Node_expr2(node));
+          break;
+        case BINARY_EXPR_KIND::MAX:
+          EmitFunctional(out, "max", Node_expr1(node), Node_expr2(node));
+          break;
+        default:
+          EmitExprOrType(out, Node_expr1(node));
+          out->push_back(PP::NoBreak(1));
+          out->push_back(PP::Str(EnumToString(Node_binary_expr_kind(node))));
+          out->push_back(PP::Brk());
+          EmitExprOrType(out, Node_expr2(node));
+          break;
+      }
+      break;
     default:
       out->push_back(PP::Str("EXPR_OR_TYPE"));
+      break;
   }
 }
 
@@ -358,8 +413,8 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       EmitStmtSet(out, "=", Node_lhs(node), Node_expr_rhs(node));
       break;
     case NT::StmtCompoundAssignment:
-      EmitStmtSet(out, GetOperatorString(Node_assignment_kind(node)),
-                  Node_lhs(node), Node_expr_rhs(node));
+      EmitStmtSet(out, EnumToString(Node_assignment_kind(node)), Node_lhs(node),
+                  Node_expr_rhs(node));
       break;
     case NT::DefVar:
       EmitStmtLetOrGlobal(out, "let", Node_name(node), Node_type_or_auto(node),
@@ -408,6 +463,8 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP ::Str("if"));
       out->push_back(PP::Brk());
       EmitExprOrType(out, Node_cond(node));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP ::Str(":"));
       EmitStatementsSpecial(out, Node_body_t(node));
       if (Node_body_f(node) != HandleInvalid) {
         out->push_back(PP::End());
@@ -625,8 +682,8 @@ int main(int argc, const char* argv[]) {
   InitParser();
 
   // If the synchronization is turned off, the C++ standard streams are
-  // allowed to buffer their I/O independently from their stdio counterparts,
-  // which may be considerably faster in some cases.
+  // allowed to buffer their I/O independently from their stdio
+  // counterparts, which may be considerably faster in some cases.
   // std::ios_base::sync_with_stdio(false);
   std::istream* fin = &std::cin;
 

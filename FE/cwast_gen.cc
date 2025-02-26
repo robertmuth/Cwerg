@@ -278,6 +278,55 @@ const uint8_t BASE_TYPE_KIND_Jumper[128] = {
  255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
+const char* const ASSIGNMENT_KIND_ToStringMap[] = {
+    "", // 0
+    "+=", // 1
+    "-=", // 2
+    "/=", // 3
+    "*=", // 4
+    "%=", // 5
+    "min=", // 6
+    "max=", // 7
+    "", // 8
+    "", // 9
+    "&=", // 10
+    "|=", // 11
+    "~=", // 12
+    "", // 13
+    "", // 14
+    "", // 15
+    "", // 16
+    "", // 17
+    "", // 18
+    "", // 19
+    "", // 20
+    "", // 21
+    "", // 22
+    "", // 23
+    "", // 24
+    "", // 25
+    "", // 26
+    "", // 27
+    "", // 28
+    "", // 29
+    "", // 30
+    "", // 31
+    "", // 32
+    "", // 33
+    "", // 34
+    "", // 35
+    "", // 36
+    "", // 37
+    "", // 38
+    "", // 39
+    ">>=", // 40
+    "<<=", // 41
+    ">>>=", // 42
+    "<<<=", // 43
+};
+const char* EnumToString(ASSIGNMENT_KIND x) { return ASSIGNMENT_KIND_ToStringMap[unsigned(x)]; }
+
+
 const struct StringKind ASSIGNMENT_KIND_FromStringMap[] = {
     {"%=", 5},
     {"&=", 10},
@@ -306,6 +355,72 @@ const uint8_t ASSIGNMENT_KIND_Jumper[128] = {
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 10, 255, 255,
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 12, 255, 13, 255,
 };
+
+const char* const POINTER_EXPR_KIND_ToStringMap[] = {
+    "", // 0
+    "ptr_inc", // 1
+    "ptr_dec", // 2
+};
+const char* EnumToString(POINTER_EXPR_KIND x) { return POINTER_EXPR_KIND_ToStringMap[unsigned(x)]; }
+
+
+const char* const BINARY_EXPR_KIND_ToStringMap[] = {
+    "", // 0
+    "+", // 1
+    "-", // 2
+    "/", // 3
+    "*", // 4
+    "%", // 5
+    "min", // 6
+    "max", // 7
+    "", // 8
+    "", // 9
+    "&", // 10
+    "|", // 11
+    "~", // 12
+    "", // 13
+    "", // 14
+    "", // 15
+    "", // 16
+    "", // 17
+    "", // 18
+    "", // 19
+    "==", // 20
+    "!=", // 21
+    "<", // 22
+    "<=", // 23
+    ">", // 24
+    ">=", // 25
+    "", // 26
+    "", // 27
+    "", // 28
+    "", // 29
+    "&&", // 30
+    "||", // 31
+    "", // 32
+    "", // 33
+    "", // 34
+    "", // 35
+    "", // 36
+    "", // 37
+    "", // 38
+    "", // 39
+    ">>", // 40
+    "<<", // 41
+    ">>>", // 42
+    "<<<", // 43
+    "", // 44
+    "", // 45
+    "", // 46
+    "", // 47
+    "", // 48
+    "", // 49
+    "", // 50
+    "", // 51
+    "ptr_diff", // 52
+};
+const char* EnumToString(BINARY_EXPR_KIND x) { return BINARY_EXPR_KIND_ToStringMap[unsigned(x)]; }
+
 
 const char* const NT_ToStringMap[] = {
     "invalid", // 0
@@ -527,15 +642,6 @@ NT KeywordToNT(std::string_view kw) {
   auto it = KeywordToNodeTypeMap.find(kw);
   if (it == KeywordToNodeTypeMap.end()) return NT::invalid;
   return it->second;
-}
-
-std::string_view ASSIGNMENT_SHORTCUT_INV[] = {
-    "INVALID", "+=", "-=", "/=",  "*=",  "%=",   "min=", "max=",
-    "&=",      "|=", "~=", "<<=", ">>=", "<<<=", ">>>=",
-};
-
-std::string_view GetOperatorString(ASSIGNMENT_KIND kind) {
-  return ASSIGNMENT_SHORTCUT_INV[uint8_t(kind)];
 }
 
 }  // namespace cwerg::fe

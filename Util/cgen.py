@@ -28,10 +28,10 @@ def RenderEnumClass(name_vals, name, fout):
 ##
 
 
-def RenderEnumToStringMap(cls, name, fout, initial=0):
+def RenderEnumToStringMap(name_vals, name, fout, initial=0):
     print(f"\nconst char* const {name}_ToStringMap[] = {{", file=fout)
     last = initial  # this should really be called `next`
-    for name, value in cls:
+    for value, name in sorted([(v, k) for k, v in name_vals]):
         while last != value:
             print(f'    "", // {last}', file=fout)
             last += 1
