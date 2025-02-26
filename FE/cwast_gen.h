@@ -808,6 +808,10 @@ inline MACRO_PARAM_KIND& Node_macro_param_kind(Node n) {
   return gNodeCore[n].macro_param_kind;
 }
 
+inline MACRO_PARAM_KIND& Node_macro_result_kind(Node n) {
+    return gNodeCore[n].macro_param_kind;
+  }
+
 struct NodeDesc {
   uint64_t node_field_bits;
   uint64_t string_field_bits;

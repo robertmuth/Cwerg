@@ -1030,9 +1030,8 @@ Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
   TK name = lexer->MatchOrDie(TK_KIND::ID);
-  Node out = MakeNodeId(name);
-  Node next = ParseMacroGenIdList(lexer, true);
-  Node_next(out) = next;
+  Node out = MakeNodeMacroId(name);
+  Node_next(out) = ParseMacroGenIdList(lexer, true);
   return out;
 }
 
@@ -1178,7 +1177,7 @@ Node ParseTopLevel(Lexer* lexer) {
 
 Node ParseModBodyList(Lexer* lexer, uint32_t column) {
   const TK& tk = lexer->Peek();
-  std::cout << "@@@@ TOP " << tk.text << " " << EnumToString(tk.kind) << "\n";
+  // std::cout << "@@@@ TOP " << tk.text << " " << EnumToString(tk.kind) << "\n";
   if (tk.kind == TK_KIND::SPECIAL_EOF) {
     return Node(HandleInvalid);
   }

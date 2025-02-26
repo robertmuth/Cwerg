@@ -99,6 +99,106 @@ void EmitParameterList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::End());
 }
 
+void EmitStatement(std::vector<PP::Token>* out, Node node);
+
+void EmitStatementsSpecial(std::vector<PP::Token>* out, Node node) {
+  if (node == HandleInvalid) {
+    return;
+  }
+  out->push_back(PP::End());
+  out->push_back(PP_BEG_NEST);
+  bool first = true;
+  for (Node child = node; child != HandleInvalid; child = Node_next(child)) {
+    if (!first) {
+      out->push_back(PP::Brk());
+    }
+    first = false;
+    EmitStatement(out, child);
+  }
+}
+
+void EmitStatement(std::vector<PP::Token>* out, Node node) {
+  MaybeEmitDoc(out, node);
+  out->push_back(PP_BEG_STD);
+  switch (Node_kind(node)) {
+    case NT::StmtContinue:
+      out->push_back(PP ::Str("continue"));
+
+      break;
+    case NT::StmtBreak:
+      out->push_back(PP ::Str("break"));
+
+      break;
+    case NT::StmtReturn:
+      out->push_back(PP ::Str("return"));
+      break;
+    case NT::StmtTrap:
+      out->push_back(PP ::Str("trap"));
+      break;
+    case NT::StmtAssignment:
+      out->push_back(PP ::Str("set"));
+      break;
+    case NT::StmtCompoundAssignment:
+      out->push_back(PP ::Str("set"));
+      break;
+    case NT::DefVar:
+      out->push_back(PP ::Str("let"));
+      break;
+    case NT::StmtExpr:
+      out->push_back(PP ::Str("do"));
+      break;
+    case NT::StmtDefer:
+      out->push_back(PP ::Str("defer"));
+      break;
+    case NT::StmtCond:
+      out->push_back(PP ::Str("cond"));
+      break;
+    case NT::Case:
+      out->push_back(PP ::Str("case"));
+      break;
+    case NT::MacroInvoke:
+      out->push_back(PP ::Str("TODO-MACRO_INVOKE"));
+      break;
+    case NT::MacroId:
+      out->push_back(PP ::Str(NameData(Node_name(node))));
+      break;
+    case NT::StmtBlock:
+      out->push_back(PP ::Str("block"));
+      break;
+    case NT::StmtIf:
+      out->push_back(PP ::Str("if"));
+      break;
+    case NT::MacroFor:
+      out->push_back(PP ::Str("mfor"));
+      break;
+    default:
+      ASSERT(false, "");
+  }
+  out->push_back(PP::End());
+}
+
+void EmitTokensExprMacroBlockSpecial(std::vector<PP::Token>* out, Node node) {}
+
+void EmitIdList(std::vector<PP::Token>* out, Node node) {
+  out->push_back(PP::Beg(PP::BreakType::CONSISTENT, 2));
+  out->push_back(PP::Str("["));
+  bool first = true;
+  for (Node child = node; child != HandleInvalid; child = Node_next(child)) {
+    if (first) {
+      out->push_back(PP::Brk(0));
+    } else {
+      out->push_back(PP::NoBreak(0));
+      out->push_back(PP::Str(","));
+      out->push_back(PP::Brk());
+    }
+    first = false;
+    out->push_back(PP::Str(NameData(Node_name(node))));
+  }
+  out->push_back(PP::Brk(0));
+  out->push_back(PP::Str("]"));
+  out->push_back(PP::End());
+}
+
 void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
   std::cout << "TOPLEVEL " << EnumToString(Node_kind(node)) << "\n";
   MaybeEmitDoc(out, node);
@@ -191,7 +291,26 @@ void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
       EmitExprOrType(out, Node_result(node));
       out->push_back(PP::NoBreak(0));
       out->push_back(PP::Str(":"));
-
+      EmitStatementsSpecial(out, Node_body(node));
+      break;
+    case NT::DefMacro:
+      out->push_back(PP::Str("macro"));
+      out->push_back(PP::NoBreak(1));
+      out->push_back(PP::Str(NameData(Node_name(node))));
+      out->push_back(PP::Brk());
+      out->push_back(PP::Str(EnumToString(Node_macro_param_kind(node))));
+      out->push_back(PP::NoBreak(1));
+      EmitParameterList(out, Node_params(node));
+      out->push_back(PP::Brk());
+      EmitIdList(out, Node_gen_ids(node));
+      out->push_back(PP::NoBreak(0));
+      out->push_back(PP::Str(":"));
+      if (Node_macro_param_kind(node) == MACRO_PARAM_KIND::STMT ||
+          Node_macro_param_kind(node) == MACRO_PARAM_KIND::STMT_LIST) {
+        EmitStatementsSpecial(out, Node_body(node));
+      } else {
+        EmitTokensExprMacroBlockSpecial(out, Node_body_macro(node));
+      }
       break;
     default:
       break;
