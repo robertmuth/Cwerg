@@ -50,8 +50,32 @@ void MaybeEmitDoc(std::vector<PP::Token>* out, Node node) {
   }
 }
 
+std::string FullName(Node node) {
+  ASSERT(Node_kind(node) == NT::Id, "");
+  std::string out = NameData(Node_mod_name(node));
+  if (!out.empty()) {
+    out += "::";
+  }
+  out += NameData(Node_base_name(node));
+  std::string e = NameData(Node_enum_name(node));
+  if (!e.empty()) {
+    out += ":";
+    out += e;
+  }
+  return out;
+}
+
 void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
-  out->push_back(PP::Str("EXPR_OR_TYPE"));
+  switch (Node_kind(node)) {
+    case NT::Id:
+      out->push_back(PP::Str(FullName(node)));
+      break;
+    case NT::MacroId:
+      out->push_back(PP::Str(NameData(Node_name(node))));
+      break;
+    default:
+      out->push_back(PP::Str("EXPR_OR_TYPE"));
+  }
 }
 
 void MaybeAddCommaAndHandleComment(std::vector<PP::Token>* out, bool first,
@@ -131,6 +155,10 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       break;
     case NT::StmtReturn:
       out->push_back(PP ::Str("return"));
+      if (Node_kind(Node_expr_ret(node)) != NT::ValVoid) {
+        out->push_back(PP::NoBreak(1));
+        EmitExprOrType(out, Node_result(node));
+      }
       break;
     case NT::StmtTrap:
       out->push_back(PP ::Str("trap"));
@@ -146,15 +174,28 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       break;
     case NT::StmtExpr:
       out->push_back(PP ::Str("do"));
+      out->push_back(PP::NoBreak(1));
+      EmitExprOrType(out, Node_expr(node));
       break;
     case NT::StmtDefer:
       out->push_back(PP ::Str("defer"));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP ::Str(":"));
+      EmitStatementsSpecial(out, Node_body(node));
       break;
     case NT::StmtCond:
       out->push_back(PP ::Str("cond"));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP ::Str(":"));
+      EmitStatementsSpecial(out, Node_cases(node));
       break;
     case NT::Case:
       out->push_back(PP ::Str("case"));
+      out->push_back(PP::Brk());
+      EmitExprOrType(out, Node_cond(node));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP ::Str(":"));
+      EmitStatementsSpecial(out, Node_body(node));
       break;
     case NT::MacroInvoke:
       out->push_back(PP ::Str("TODO-MACRO_INVOKE"));
