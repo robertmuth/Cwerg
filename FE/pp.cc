@@ -153,6 +153,7 @@ void EmitStmtSet(std::vector<PP::Token>* out, std::string_view op, Node lhs,
   out->push_back(PP::Brk());
   EmitExprOrType(out, rhs);
 }
+
 void EmitStmtLetOrGlobal(std::vector<PP::Token>* out, std::string_view kw,
                          Name name, Node type_or_auto,
                          Node initial_or_undef_or_auto) {
@@ -241,15 +242,41 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       break;
     case NT::StmtBlock:
       out->push_back(PP ::Str("block"));
+      out->push_back(PP::Brk());
+      out->push_back(PP ::Str(NameData(Node_label(node))));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP ::Str(":"));
+      EmitStatementsSpecial(out, Node_body(node));
       break;
     case NT::StmtIf:
       out->push_back(PP ::Str("if"));
+      out->push_back(PP::Brk());
+      EmitExprOrType(out, Node_cond(node));
+      EmitStatementsSpecial(out, Node_body_t(node));
+      if (Node_body_f(node) != HandleInvalid) {
+        out->push_back(PP::End());
+        out->push_back(PP::Brk());
+        out->push_back(PP_BEG_STD);
+        out->push_back(PP ::Str("else"));
+        out->push_back(PP::Brk(0));
+        out->push_back(PP ::Str(":"));
+        EmitStatementsSpecial(out, Node_body_f(node));
+      }
       break;
     case NT::MacroFor:
       out->push_back(PP ::Str("mfor"));
+      out->push_back(PP::Brk());
+      out->push_back(PP ::Str(NameData(Node_name(node))));
+      out->push_back(PP::Brk());
+      out->push_back(PP ::Str(NameData(Node_name_list(node))));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP ::Str(":"));
+      EmitStatementsSpecial(out, Node_body_for(node));
+
       break;
     default:
-      ASSERT(false, "");
+      ASSERT(false, EnumToString(Node_kind(node)));
+      break;
   }
   out->push_back(PP::End());
 }
@@ -393,6 +420,7 @@ void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
       }
       break;
     default:
+      ASSERT(false, EnumToString(Node_kind(node)));
       break;
   }
   out->push_back(PP::End());
