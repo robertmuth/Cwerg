@@ -546,11 +546,11 @@ def _EmitStatementsSpecial(out, lst):
     if not lst:
         return
     out += [PP.End(), PP_BEG_NEST]
-    emit_break = False
+    first = True
     for child in lst:
-        if emit_break:
+        if not first:
             out += [PP.Brk()]
-        emit_break = True
+        first = False
         _EmitStatement(out, child)
 
 
@@ -628,11 +628,11 @@ def _EmitStatement(out, n):
 
 def _EmitTokensExprMacroBlockSpecial(out, stmts):
     out += [PP.End(), PP_BEG_NEST]
-    emit_break = False
+    first = True
     for child in stmts:
-        if emit_break:
+        if not first:
             out += [PP.Brk()]
-        emit_break = True
+        first = False
         _MaybeEmitDoc(out, child)
         out += [PP_BEG_STD]
         _MaybeEmitAnnotations(out, child)
@@ -674,11 +674,11 @@ def _EmitTokensToplevel(out, node):
                 PP.Brk(0),
                 PP.Str(":"), PP.End()]
         out += [PP_BEG_NEST]
-        emit_break = False
+        first = True
         for f in node.fields:
-            if emit_break:
+            if not first:
                 out += [PP.Brk()]
-            emit_break = True
+            first = False
             _MaybeEmitDoc(out, f)
             out += [PP_BEG_STD]
             _MaybeEmitAnnotations(out, f)
@@ -698,11 +698,11 @@ def _EmitTokensToplevel(out, node):
                 PP.Str(":"),
                 PP.End()]
         out += [PP_BEG_NEST]
-        emit_break = False
+        first = True
         for ef in node.items:
-            if emit_break:
+            if not first:
                 out += [PP.Brk()]
-            emit_break = True
+            first = False
             _MaybeEmitDoc(out, ef)
             out += [PP_BEG_STD]
             _MaybeEmitAnnotations(out, ef)
@@ -751,12 +751,12 @@ def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
     out += [PP.Brk(0), PP.Str(":"), PP.End()]
     if node.body_mod:
         out += [PP.Beg(PP.BreakType.FORCE_LINE_BREAK, 0)]
-        emit_break = False
+        first = True
         for child in node.body_mod:
             out += [PP.LineBreak()]
-            if emit_break:
+            if not first:
                 out += [PP.LineBreak()]
-            emit_break = True
+            first = False
             _EmitTokensToplevel(out, child)
         out += [PP.End()]
 
