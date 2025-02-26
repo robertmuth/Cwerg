@@ -377,28 +377,34 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
         PP.Str(cwast.BaseTypeKindToKeyword(n.base_type_kind))),
     #
     cwast.ExprFront: lambda out, n: _EmitFunctional(out, WithExcl(KW(n), n.mut), [n.container]),
-    cwast.ExprUnionTag: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
+    cwast.ExprLen: lambda out, n: _EmitFunctional(out, KW(n), [n.container]),
+    #
+    cwast.ExprOffsetof: lambda out, n: _EmitFunctional(out, KW(n), [n.type, n.field]),
+    cwast.TypeUnionDelta: lambda out, n: _EmitFunctional(out, KW(n), [n.type, n.subtrahend]),
+    cwast.ValSpan: lambda out, n: _EmitFunctional(out, "make_span", [n.pointer, n.expr_size]),
+    #
     cwast.ExprAs: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
     cwast.ExprIs: lambda out, n: _EmitFunctional(out,  KW(n), [n.expr, n.type]),
-    cwast.ExprOffsetof: lambda out, n: _EmitFunctional(out, KW(n), [n.type, n.field]),
-    cwast.ExprLen: lambda out, n: _EmitFunctional(out, KW(n), [n.container]),
-    cwast.ExprSizeof: lambda out, n: _EmitFunctional(out, KW(n), [n.type]),
-    cwast.ExprTypeId: lambda out, n: _EmitFunctional(out, KW(n), [n.type]),
     cwast.ExprUnsafeCast: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
-    cwast.ExprBitCast: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
-    cwast.ExprNarrow: lambda out, n: _EmitFunctional(out, WithExcl(KW(n), n.unchecked), [n.expr, n.type]),
     cwast.ExprWiden: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
     cwast.ExprWrap: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
+    cwast.ExprBitCast: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
+    cwast.ExprNarrow: lambda out, n: _EmitFunctional(out, WithExcl(KW(n), n.unchecked), [n.expr, n.type]),
+    #
+    cwast.ExprSizeof: lambda out, n: _EmitFunctional(out, KW(n), [n.type]),
+    cwast.ExprTypeId: lambda out, n: _EmitFunctional(out, KW(n), [n.type]),
+    cwast.TypeSpan: lambda out, n: _EmitFunctional(out, WithExcl("span", n.mut), [n.type]),
+    #
+    cwast.ExprUnionTag: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
     cwast.ExprUnwrap: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
     cwast.ExprStringify: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
     cwast.ExprSrcLoc: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
-    cwast.ExprCall: lambda out, n: _EmitFunctional(out, n.callee, n.args),
-    #
-    cwast.TypeSpan: lambda out, n: _EmitFunctional(out, WithExcl("span", n.mut), [n.type]),
     cwast.TypeOf: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
+    #
+
+    cwast.ExprCall: lambda out, n: _EmitFunctional(out, n.callee, n.args),
     cwast.TypeUnion: lambda out, n: _EmitFunctional(out, WithExcl("union", n.untagged), n.types),
-    cwast.TypeUnionDelta: lambda out, n: _EmitFunctional(out, KW(n), [n.type, n.subtrahend]),
-    cwast.ValSpan: lambda out, n: _EmitFunctional(out, "make_span", [n.pointer, n.expr_size]),
+
     #
     cwast.ExprPointer: lambda out, n: _EmitFunctional(
         out, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],

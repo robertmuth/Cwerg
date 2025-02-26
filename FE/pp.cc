@@ -67,6 +67,46 @@ void EmitFullName(std::vector<PP::Token>* out, Node node) {
   }
 }
 
+void EmitExprOrType(std::vector<PP::Token>* out, Node node);
+
+void EmitArg(std::vector<PP::Token>* out, Node node, bool first) {
+  if (first) {
+    if (Node_comment(node) != StrInvalid) {
+      out->push_back(PP::Brk(0));
+
+    } else {
+      out->push_back(PP::NoBreak(0));
+    }
+  } else {
+    out->push_back(PP::NoBreak(0));
+    out->push_back(PP::Str(","));
+    out->push_back(PP::Brk());
+  }
+  MaybeEmitDoc(out, node);
+  out->push_back(PP_BEG_STD);
+  EmitExprOrType(out, node);
+  out->push_back(PP::End());
+}
+
+void EmitFunctional(std::vector<PP::Token>* out, std::string_view name,
+                    Node arg0, Node arg1 = NodeInvalid,
+                    Node arg2 = NodeInvalid) {
+  out->push_back(PP_BEG_STD);
+  out->push_back(PP::Str(name));
+  out->push_back(PP::NoBreak(0));
+  out->push_back(PP::Str("("));
+  EmitArg(out, arg0, true);
+  if (arg1 != NodeInvalid) {
+    EmitArg(out, arg1, false);
+  }
+  if (arg2 != NodeInvalid) {
+    EmitArg(out, arg2, false);
+  }
+  out->push_back(PP::NoBreak(0));
+  out->push_back(PP::Str(")"));
+  out->push_back(PP::End());
+}
+
 void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
   switch (Node_kind(node)) {
     case NT::Id:
@@ -74,6 +114,95 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       break;
     case NT::MacroId:
       out->push_back(PP::Str(NameData(Node_name(node))));
+      break;
+    case NT::ValTrue:
+      out->push_back(PP::Str("true"));
+      break;
+    case NT::ValFalse:
+      out->push_back(PP::Str("false"));
+      break;
+    case NT::ValUndef:
+      out->push_back(PP::Str("undef"));
+      break;
+    case NT::ValVoid:
+      out->push_back(PP::Str("void_val"));
+      break;
+    case NT::ValAuto:
+      out->push_back(PP::Str("auto_val"));
+      break;
+    case NT::TypeAuto:
+      out->push_back(PP::Str("auto"));
+      break;
+    case NT::ValNum:
+      out->push_back(PP::Str(StrData(Node_number(node))));
+      break;
+    case NT::TypeBase:
+      out->push_back(PP::Str(EnumToString(Node_base_type_kind(node))));
+      break;
+    case NT::ExprFront:
+      EmitFunctional(out, "front", Node_container(node));
+      break;
+    case NT::ExprLen:
+      EmitFunctional(out, "len", Node_container(node));
+      break;
+      //
+    case NT::ExprOffsetof:
+      EmitFunctional(out, "offset_of", Node_type(node), Node_field(node));
+      break;
+    case NT::TypeUnionDelta:
+      EmitFunctional(out, "union_delta", Node_type(node),
+                     Node_subtrahend(node));
+      break;
+    case NT::ValSpan:
+      EmitFunctional(out, "make_spane", Node_pointer(node),
+                     Node_expr_size(node));
+      break;
+      //
+
+    case NT::ExprAs:
+      EmitFunctional(out, "as", Node_expr(node), Node_type(node));
+      break;
+    case NT::ExprIs:
+      EmitFunctional(out, "is", Node_expr(node), Node_type(node));
+      break;
+    case NT::ExprUnsafeCast:
+      EmitFunctional(out, "unsafe_as", Node_expr(node), Node_type(node));
+      break;
+    case NT::ExprWiden:
+      EmitFunctional(out, "widen_as", Node_expr(node), Node_type(node));
+      break;
+    case NT::ExprWrap:
+      EmitFunctional(out, "wrap_as", Node_expr(node), Node_type(node));
+      break;
+    case NT::ExprBitCast:
+      EmitFunctional(out, "bitwise_as", Node_expr(node), Node_type(node));
+      break;
+    case NT::ExprNarrow:
+      EmitFunctional(out, "narrow_as", Node_expr(node), Node_type(node));
+      break;
+    case NT::ExprSizeof:
+      EmitFunctional(out, "size_of", Node_type(node));
+      break;
+    case NT::ExprTypeId:
+      EmitFunctional(out, "typeid_of", Node_type(node));
+      break;
+    case NT::TypeSpan:
+      EmitFunctional(out, "span", Node_type(node));
+      break;
+    case NT::ExprUnionTag:
+      EmitFunctional(out, "union_tag", Node_expr(node));
+      break;
+    case NT::ExprUnwrap:
+      EmitFunctional(out, "unwrap", Node_expr(node));
+      break;
+    case NT::ExprStringify:
+      EmitFunctional(out, "stringify", Node_expr(node));
+      break;
+    case NT::ExprSrcLoc:
+      EmitFunctional(out, "srcloc", Node_expr(node));
+      break;
+    case NT::TypeOf:
+      EmitFunctional(out, "type_of", Node_expr(node));
       break;
     default:
       out->push_back(PP::Str("EXPR_OR_TYPE"));

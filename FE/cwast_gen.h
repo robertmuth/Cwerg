@@ -44,6 +44,7 @@ struct Name : public Handle {
 
 constexpr const Handle HandleInvalid(0, 0);
 constexpr const Str StrInvalid(0);
+constexpr const Node NodeInvalid(HandleInvalid);
 
 extern ImmutablePool gNamePool;
 
@@ -60,6 +61,7 @@ struct NodeCore {
     MACRO_PARAM_KIND macro_param_kind;
     MOD_PARAM_KIND mod_param_kind;
     ASSIGNMENT_KIND assignment_kind;
+    BASE_TYPE_KIND base_type_kind;
   };
   uint16_t bits;
   Handle children[4];
@@ -821,9 +823,11 @@ inline MACRO_PARAM_KIND& Node_macro_result_kind(Node n) {
   return gNodeCore[n].macro_param_kind;
 }
 inline ASSIGNMENT_KIND Node_assignment_kind(Node n) {
-    return gNodeCore[n].assignment_kind;
-  }
-
+  return gNodeCore[n].assignment_kind;
+}
+inline BASE_TYPE_KIND Node_base_type_kind(Node n) {
+  return gNodeCore[n].base_type_kind;
+}
 struct NodeDesc {
   uint64_t node_field_bits;
   uint64_t string_field_bits;
