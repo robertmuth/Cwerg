@@ -130,9 +130,9 @@ PP_BEG_STD = PP.Beg(PP.BreakType.INCONSISTENT, 2)
 PP_BEG_NEST = PP.Beg(PP.BreakType.FORCE_LINE_BREAK, 4)
 
 
-def EmitExpr3(out, node: cwast.Expr3):
+def _EmitExpr3(out, node: cwast.Expr3):
     _EmitExprOrType(out, node.cond)
-    out += [PP.Brk(), PP.Str("?"), PP.Brk()]
+    out += [PP.NoBreak(1), PP.Str("?"), PP.Brk()]
     _EmitExprOrType(out, node.expr_t)
     out += [PP.Brk(), PP.Str(":"), PP.Brk()]
     _EmitExprOrType(out, node.expr_f)
@@ -305,15 +305,15 @@ def _EmitExpr2(out, node: cwast.Expr2):
 
 
 def _EmitExprIndex(out, node: cwast.ExprIndex):
-    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2)]
+    out += [PP_BEG_STD]
     _EmitExprOrType(out, node.container)
-    out += [PP.Brk(0), PP.Str(WithExcl("[", node.unchecked)), PP.Brk(0)]
+    out += [PP.NoBreak(0), PP.Str(WithExcl("[", node.unchecked)), PP.Brk(0)]
     _EmitExprOrType(out, node.expr_index)
     out += [PP.Brk(0), PP.Str("]"), PP.End()]
 
 
 def _EmitVecType(out, size, type):
-    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2), PP.Str("["), PP.Brk(0)]
+    out += [PP_BEG_STD, PP.Str("["), PP.Brk(0)]
     _EmitExprOrType(out, size)
     out += [PP.Brk(0), PP.Str("]")]
     _EmitExprOrType(out, type)
@@ -321,7 +321,7 @@ def _EmitVecType(out, size, type):
 
 
 def _EmitParenGrouping(out, node: cwast.ExprParen):
-    out += [PP.Beg(PP.BreakType.INCONSISTENT, 2), PP.Str("("), PP.Brk(0)]
+    out += [PP_BEG_STD, PP.Str("("), PP.Brk(0)]
     _EmitExprOrType(out, node.expr)
     out += [PP.Brk(0), PP.Str(")"), PP.End()]
 
@@ -401,20 +401,17 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.ExprSrcLoc: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
     cwast.TypeOf: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
     #
-
     cwast.ExprCall: lambda out, n: _EmitFunctional(out, n.callee, n.args),
     cwast.TypeUnion: lambda out, n: _EmitFunctional(out, WithExcl("union", n.untagged), n.types),
-
     #
     cwast.ExprPointer: lambda out, n: _EmitFunctional(
         out, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
         [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
     #
-    cwast.ValString: lambda out, n:  out.extend([PP.Str(n.render())]),
-    #
     cwast.Expr1: _EmitExpr1,
     cwast.Expr2: _EmitExpr2,
+    cwast.Expr3: _EmitExpr3,
     #
     cwast.ExprDeref: lambda out, n: _EmitUnary(out, n.expr, "^"),
     cwast.ExprAddrOf: lambda out, n: _EmitUnary(out, WithExcl(_ADDRESS_OF_OP, n.mut), n.expr_lhs),
@@ -428,9 +425,9 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.ExprParen: lambda out, n: _EmitParenGrouping(out, n),
     cwast.ValCompound: _EmitValCompound,
     cwast.MacroInvoke: lambda out, n: _EmitFunctional(out, n.name.name, n.args),
-    cwast.Expr3: EmitExpr3,
-    cwast.Expr3: EmitExpr3,
-    cwast.ExprStmt: EmitExprStmt
+    cwast.ExprStmt: EmitExprStmt,
+    #
+    cwast.ValString: lambda out, n:  out.extend([PP.Str(n.render())]),
 }
 
 

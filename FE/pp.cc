@@ -228,7 +228,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP_BEG_STD);
       out->push_back(PP::Str("union"));
       out->push_back(PP::NoBreak(0));
-      EmitParenList(out, Node_args(node));
+      EmitParenList(out, Node_types(node));
       out->push_back(PP::End());
       break;
     //
@@ -285,8 +285,94 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
           break;
       }
       break;
+    case NT::Expr3:
+      EmitExprOrType(out, Node_cond(node));
+      out->push_back(PP::NoBreak(1));
+      out->push_back(PP::Str("?"));
+      out->push_back(PP::Brk());
+      EmitExprOrType(out, Node_expr_t(node));
+      out->push_back(PP::Brk());
+      out->push_back(PP::Str(":"));
+      out->push_back(PP::Brk());
+      EmitExprOrType(out, Node_expr_f(node));
+      break;
+    case NT::ExprDeref:
+      EmitExprOrType(out, Node_expr(node));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP::Str("^"));
+      break;
+    case NT::ExprAddrOf:
+      out->push_back(PP::Str("@"));
+      out->push_back(PP::Brk(0));
+      EmitExprOrType(out, Node_expr(node));
+      break;
+    case NT::TypePtr:
+      out->push_back(PP::Str("^"));
+      out->push_back(PP::Brk(0));
+      EmitExprOrType(out, Node_type(node));
+      break;
+    case NT::ExprField:
+      EmitExprOrType(out, Node_container(node));
+      out->push_back(PP::NoBreak(0));
+      out->push_back(PP::Str("."));
+      out->push_back(PP::Brk(0));
+      EmitExprOrType(out, Node_field(node));
+      break;
+    case NT::ExprIndex:
+      out->push_back(PP_BEG_STD);
+      EmitExprOrType(out, Node_container(node));
+      out->push_back(PP::NoBreak(0));
+      out->push_back(PP::Str("["));
+      out->push_back(PP::Brk(0));
+      EmitExprOrType(out, Node_expr_index(node));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP::Str("]"));
+      out->push_back(PP::End());
+      break;
+    case NT::TypeVec:
+      out->push_back(PP_BEG_STD);
+      out->push_back(PP::Str("["));
+      out->push_back(PP::Brk(0));
+      EmitExprOrType(out, Node_size(node));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP::Str("]"));
+      EmitExprOrType(out, Node_type(node));
+      out->push_back(PP::End());
+      break;
+    case NT::TypeFun:
+      out->push_back(PP::Beg(PP::BreakType::CONSISTENT, 2));
+      out->push_back(PP::Str("funtype"));
+      out->push_back(PP::NoBreak(0));
+      EmitParenList(out, Node_params(node));
+      out->push_back(PP::Brk());
+      EmitExprOrType(out, Node_result(node));
+      out->push_back(PP::End());
+      break;
+    case NT::ExprParen:
+      out->push_back(PP_BEG_STD);
+      out->push_back(PP::Str("("));
+      out->push_back(PP::Brk(0));
+      EmitExprOrType(out, Node_expr(node));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP::Str(")"));
+      out->push_back(PP::End());
+      break;
+    case NT::ValCompound:
+      out->push_back(PP::Str("TODO-VAL_COMPOUND"));
+      break;
+    case NT::MacroInvoke:
+      out->push_back(PP::Str("TODO-MACRO-INVOKE"));
+      break;
+    case NT::ExprStmt:
+      out->push_back(PP::Str("TODO-EXPR-STMT"));
+      break;
+    case NT::ValString:
+      out->push_back(PP::Str("TODO-VAL-STRING"));
+      break;
     default:
-      out->push_back(PP::Str("EXPR_OR_TYPE"));
+      out->push_back(PP::Str("TODO-UNEXPECTED"));
+
+      // ASSERT(false, EnumToString(Node_kind(node)));
       break;
   }
 }
@@ -403,7 +489,7 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP ::Str("return"));
       if (Node_kind(Node_expr_ret(node)) != NT::ValVoid) {
         out->push_back(PP::NoBreak(1));
-        EmitExprOrType(out, Node_result(node));
+        EmitExprOrType(out, Node_expr_ret(node));
       }
       break;
     case NT::StmtTrap:
@@ -494,7 +580,9 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::End());
 }
 
-void EmitTokensExprMacroBlockSpecial(std::vector<PP::Token>* out, Node node) {}
+void EmitTokensExprMacroBlockSpecial(std::vector<PP::Token>* out, Node node) {
+  out->push_back(PP::Str("TODO-SPECIAL-MACRO"));
+}
 
 void EmitIdList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::Beg(PP::BreakType::CONSISTENT, 2));
@@ -517,7 +605,7 @@ void EmitIdList(std::vector<PP::Token>* out, Node node) {
 }
 
 void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
-  std::cout << "TOPLEVEL " << EnumToString(Node_kind(node)) << "\n";
+  // std::cout << "TOPLEVEL " << EnumToString(Node_kind(node)) << "\n";
   MaybeEmitDoc(out, node);
   out->push_back(PP_BEG_STD);
   bool emit_break;
@@ -533,7 +621,7 @@ void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Brk());
       out->push_back(PP::Str(NameData(Node_name(node))));
       if (Node_path(node) != StrInvalid) {
-        ASSERT(false, "");
+        ASSERT(false, "TODO-import with path");
       }
       if (Node_args_mod(node) != HandleInvalid) {
         ASSERT(false, "");
