@@ -234,8 +234,12 @@ class ModPoolBase:
                 for import_node, normalized_args in mod_info.imports:
                     if import_node.x_module != cwast.INVALID_MOD:
                         continue
-                    path = import_node.path if import_node.path else str(
-                        import_node.name)
+                    path = import_node.path
+                    if path:
+                        if path.startswith('"'):
+                            path = path[1:-1]
+                    else:
+                        path = str(import_node.name)
                     if import_node.args_mod:
                         # import of generic module
                         done = _TryToNormalizeModArgs(

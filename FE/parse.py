@@ -733,9 +733,6 @@ def _ParseTopLevel(inp: lexer.Lexer):
         path = ""
         if inp.match(lexer.TK_KIND.ASSIGN):
             path = inp.next().text
-            if path.startswith('"'):
-                assert path.endswith('"')
-                path = path[1:-1]
         params = []
         if inp.match(lexer.TK_KIND.PAREN_OPEN):
             first = True

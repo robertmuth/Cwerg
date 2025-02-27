@@ -657,8 +657,6 @@ def _EmitTokensToplevel(out, node):
                 PP.Str(str(node.name))]
         path = node.path
         if path:
-            if "/" in path:
-                path = '"' + path + '"'
             out += [PP.NoBreak(1), PP.Str("="),
                     PP.Brk(), PP.Str(path)]
         if node.args_mod:
