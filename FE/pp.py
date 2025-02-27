@@ -402,6 +402,7 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.TypeOf: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
     #
     cwast.ExprCall: lambda out, n: _EmitFunctional(out, n.callee, n.args),
+    cwast.MacroInvoke: lambda out, n: _EmitFunctional(out, n.name.name, n.args),
     cwast.TypeUnion: lambda out, n: _EmitFunctional(out, WithExcl("union", n.untagged), n.types),
     #
     cwast.ExprPointer: lambda out, n: _EmitFunctional(
@@ -424,7 +425,6 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.TypeFun:  _EmitTypeFun,
     cwast.ExprParen: lambda out, n: _EmitParenGrouping(out, n),
     cwast.ValCompound: _EmitValCompound,
-    cwast.MacroInvoke: lambda out, n: _EmitFunctional(out, n.name.name, n.args),
     cwast.ExprStmt: EmitExprStmt,
     #
     cwast.ValString: lambda out, n:  out.extend([PP.Str(n.render())]),
@@ -461,21 +461,11 @@ def _IsColonEmphemeral(node) -> bool:
 
 
 def _IsMacroWithBlock(node: cwast.MacroInvoke) -> bool:
-    if node.name in cwast.BUILT_IN_STMT_MACROS:
-        return True
     if node.args:
         last = node.args[-1]
         if _IsColonEmphemeral(last):
             return True
     return False
-
-
-def _GetOriginalVarName(node) -> str:
-    if isinstance(node, cwast.Id):
-        return node.FullName()
-    else:
-        assert isinstance(node, cwast.MacroId), f"{node}"
-        return str(node.name)
 
 
 def _EmitIdList(out, lst):
@@ -496,28 +486,22 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
     """Handle  Macro Invocation in Stmt Context"""
     name = node.name.name
     out += [PP.Str(str(name))]
-    is_block_like = _IsMacroWithBlock(node)
-    width_first = 1
+    is_block_like = name in cwast.BUILT_IN_STMT_MACROS or _IsMacroWithBlock(
+        node)
     if not is_block_like:
         out += [PP.NoBreak(0),
                 PP.Beg(PP.BreakType.INCONSISTENT, 1),
                 PP.Str("(")]
-        width_first = 0
     args = node.args
-    if name == "for":
-        out += [PP.Brk(),
-                PP.Str(_GetOriginalVarName(args[0])),
-                PP.Brk(),
-                PP.Str("=")]
-        args = args[1:]
-    elif name == "tryset":
+    if name == "for" or name == "tryset":
         out += [PP.Brk()]
         _EmitExprOrType(out, args[0])
-        out += [PP.Brk(),
-                PP.Str("=")]
+        out += [PP.Brk(), PP.Str("=")]
         args = args[1:]
     elif name == "trylet" or name == "trylet!":
-        out += [PP.Brk(), PP.Str(_GetOriginalVarName(args[0])), PP.Brk()]
+        out += [PP.Brk()]
+        _EmitExprOrType(out, args[0])
+        out += [PP.Brk()]
         _EmitExprOrType(out, args[1])
         out += [PP.Brk(), PP.Str("=")]
         args = args[2:]
@@ -529,7 +513,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
             _EmitStatementsSpecial(out, a.args)
             continue
         elif first:
-            out += [PP.Brk(width_first)]
+            out += [PP.Brk(1 if is_block_like else 0)]
         else:
             out += [PP.Brk(0), PP.Str(","), PP.Brk()]
         first = False

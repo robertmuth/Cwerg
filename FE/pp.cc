@@ -224,6 +224,13 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       EmitParenList(out, Node_args(node));
       out->push_back(PP::End());
       break;
+    case NT::MacroInvoke:
+      out->push_back(PP_BEG_STD);
+      out->push_back(PP::Str(NameData(Node_name(node))));
+      out->push_back(PP::NoBreak(0));
+      EmitParenList(out, Node_args(node));
+      out->push_back(PP::End());
+      break;
     case NT::TypeUnion:
       out->push_back(PP_BEG_STD);
       out->push_back(PP::Str("union"));
@@ -360,9 +367,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     case NT::ValCompound:
       out->push_back(PP::Str("TODO-VAL_COMPOUND"));
       break;
-    case NT::MacroInvoke:
-      out->push_back(PP::Str("TODO-MACRO-INVOKE"));
-      break;
+
     case NT::ExprStmt:
       out->push_back(PP::Str("TODO-EXPR-STMT"));
       break;
@@ -466,6 +471,68 @@ void EmitStmtLetOrGlobal(std::vector<PP::Token>* out, std::string_view kw,
     EmitExprOrType(out, initial_or_undef_or_auto);
   }
 }
+bool IsBuiltInStmtMacro(std::string_view name) {
+  return name == "while" || name == "for" || name == "trylet" ||
+         name == "trylet!" || name == "tryset";
+}
+
+bool IsMacroWitBlock(Node node) {
+  for (Node arg = Node_args(node); arg != HandleInvalid; arg = Node_next(arg)) {
+    if (Node_kind(arg) == NT::EphemeralList && /* TODO */ true) return true;
+  }
+  return false;
+}
+
+void EmitStmtMacroInvoke(std::vector<PP::Token>* out, Node node) {
+  std::string_view name = NameData(Node_name(node));
+  out->push_back(PP::Str(name));
+  bool is_block_like = IsBuiltInStmtMacro(name) || IsMacroWitBlock(node);
+  if (!is_block_like) {
+    out->push_back(PP::NoBreak(0));
+    out->push_back(PP::Beg(PP::BreakType::INCONSISTENT, 1));
+    out->push_back(PP ::Str("("));
+  }
+  Node arg = Node_args(node);
+  if (name == "for" || name == "tryset") {
+    out->push_back(PP::Brk());
+    EmitExprOrType(out, arg);
+    arg = Node_next(arg);
+    out->push_back(PP::Brk());
+    out->push_back(PP ::Str("="));
+  } else if (name == "trylet" || name == "trylet!") {
+    out->push_back(PP::Brk());
+    EmitExprOrType(out, arg);
+    arg = Node_next(arg);
+    out->push_back(PP::Brk());
+    EmitExprOrType(out, arg);
+    arg = Node_next(arg);
+    out->push_back(PP::Brk());
+    out->push_back(PP ::Str("="));
+  }
+  bool first = true;
+  for (; arg != HandleInvalid; arg = Node_next(arg)) {
+    if (Node_kind(arg) == NT::EphemeralList && /* TODO */ true) {
+      out->push_back(PP::Brk(0));
+      out->push_back(PP ::Str(":"));
+      EmitStatementsSpecial(out, Node_args(arg));
+      continue;
+    }
+    if (first) {
+      out->push_back(PP::Brk(is_block_like ? 1 : 0));
+    } else {
+      out->push_back(PP::Brk(0));
+      out->push_back(PP ::Str(","));
+      out->push_back(PP::Brk());
+    }
+    first = false;
+    EmitExprOrType(out, arg);
+  }
+  if (!is_block_like) {
+    out->push_back(PP::Brk(0));
+    out->push_back(PP ::Str(")"));
+    out->push_back(PP::End());
+  }
+}
 
 void EmitStatement(std::vector<PP::Token>* out, Node node) {
   MaybeEmitDoc(out, node);
@@ -532,7 +599,7 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       EmitStatementsSpecial(out, Node_body(node));
       break;
     case NT::MacroInvoke:
-      out->push_back(PP ::Str("TODO-MACRO_INVOKE"));
+      EmitStmtMacroInvoke(out, node);
       break;
     case NT::MacroId:
       out->push_back(PP ::Str(NameData(Node_name(node))));
@@ -621,10 +688,14 @@ void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Brk());
       out->push_back(PP::Str(NameData(Node_name(node))));
       if (Node_path(node) != StrInvalid) {
-        ASSERT(false, "TODO-import with path");
+        out->push_back(PP::NoBreak(1));
+        out->push_back(PP::Str("="));
+        out->push_back(PP::Brk());
+        out->push_back(PP::Str(StrData(Node_path(node))));
       }
       if (Node_args_mod(node) != HandleInvalid) {
-        ASSERT(false, "");
+        out->push_back(PP::NoBreak(1));
+        EmitParenList(out, Node_args_mod(node));
       }
       break;
     case NT::DefType:
@@ -761,7 +832,7 @@ void Prettify(Node mod) {
   tokens.push_back(PP::Beg(PP::BreakType::CONSISTENT, 0));
   EmitTokensModule(&tokens, mod);
   tokens.push_back(PP::End());
-  std::cout << PP::PrettyPrint(tokens, 80);
+  std::cout << PP::PrettyPrint(tokens, 80) << "\n";
 }
 
 int main(int argc, const char* argv[]) {
