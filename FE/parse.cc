@@ -334,7 +334,7 @@ Node PrattParseValCompound(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node type = Node(HandleInvalid);
   if (lexer->Match(TK_KIND::COLON)) {
     type = NodeNew(NT::TypeAuto);
-    InitTypeAuto(out, StrInvalid);
+    InitTypeAuto(type, StrInvalid);
   } else {
     type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::COLON);
