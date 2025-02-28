@@ -82,7 +82,11 @@ void EmitFullName(std::vector<PP::Token>* out, Node node) {
   }
 }
 
+// forward decls
+
 void EmitExprOrType(std::vector<PP::Token>* out, Node node);
+void EmitStatement(std::vector<PP::Token>* out, Node node);
+void EmitStatementsSpecial(std::vector<PP::Token>* out, Node node);
 
 void EmitArg(std::vector<PP::Token>* out, Node node, bool first) {
   if (first) {
@@ -429,7 +433,10 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       break;
 
     case NT::ExprStmt:
-      out->push_back(PP::Str("TODO-EXPR-STMT"));
+      out->push_back(PP::Str("expr"));
+      out->push_back(PP::Brk(0));
+      out->push_back(PP::Str(":"));
+      EmitStatementsSpecial(out, Node_body(node));
       break;
     case NT::ValString:
       out->push_back(PP::Str("TODO-VAL-STRING"));
