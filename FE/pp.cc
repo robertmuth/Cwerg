@@ -50,6 +50,21 @@ void MaybeEmitDoc(std::vector<PP::Token>* out, Node node) {
   }
 }
 
+void MaybeAddCommaAndHandleComment(std::vector<PP::Token>* out, bool first,
+                                   Node node, const PP::Token& first_break) {
+  Str doc = Node_comment(node);
+  if (!first) {
+    out->push_back(PP::NoBreak(0));
+    out->push_back(PP::Str(","));
+  }
+  if (doc != StrInvalid) {
+    out->push_back(PP::LineBreak());
+    MaybeEmitDoc(out, node);
+  } else {
+    out->push_back(first ? first_break : PP::Brk());
+  }
+}
+
 void EmitFullName(std::vector<PP::Token>* out, Node node) {
   ASSERT(Node_kind(node) == NT::Id, "");
   if (!NameIsEmpty(Node_mod_name(node))) {
@@ -116,6 +131,49 @@ void EmitFunctional(std::vector<PP::Token>* out, std::string_view name,
   }
   out->push_back(PP::NoBreak(0));
   out->push_back(PP::Str(")"));
+  out->push_back(PP::End());
+}
+
+bool IsComplexValCompound(Node inits) {
+  int num_inits = 0;
+  for (Node child = inits; child != HandleInvalid; child = Node_next(child)) {
+    ++num_inits;
+  }
+  if (num_inits > 10) {
+    return true;
+  }
+  return inits != HandleInvalid &&
+         Node_kind(Node_value_or_undef(inits)) == NT::ValCompound;
+}
+
+void EmitValCompound(std::vector<PP::Token>* out, Node node) {
+  out->push_back(PP::Beg(PP::BreakType::INCONSISTENT, 1));
+  out->push_back(PP::Str("{"));
+  if (Node_kind(Node_type_or_auto(node)) != NT::TypeAuto) {
+    EmitExprOrType(out, Node_type_or_auto(node));
+    out->push_back(PP::NoBreak(0));
+  }
+  out->push_back(PP::Str(":"));
+  bool first = true;
+  PP::Token first_break =
+      IsComplexValCompound(Node_inits(node)) ? PP::LineBreak() : PP::NoBreak(1);
+  for (Node child = Node_inits(node); child != HandleInvalid;
+       child = Node_next(child)) {
+    MaybeAddCommaAndHandleComment(out, first, child, first_break);
+    first = false;
+    ASSERT(Node_kind(child) == NT::ValPoint, "");
+    out->push_back(PP_BEG_STD);
+    if (Node_kind(Node_point(child)) != NT::ValAuto) {
+      EmitExprOrType(out, Node_point(child));
+      out->push_back(PP::NoBreak(1));
+      out->push_back(PP::Str("="));
+      out->push_back(PP::Brk());
+    }
+    EmitExprOrType(out, Node_value_or_undef(child));
+    out->push_back(PP::End());
+  }
+  out->push_back(PP::Brk(0));
+  out->push_back(PP::Str("}"));
   out->push_back(PP::End());
 }
 
@@ -365,7 +423,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::End());
       break;
     case NT::ValCompound:
-      out->push_back(PP::Str("TODO-VAL_COMPOUND"));
+      EmitValCompound(out, node);
       break;
 
     case NT::ExprStmt:
@@ -379,21 +437,6 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
 
       // ASSERT(false, EnumToString(Node_kind(node)));
       break;
-  }
-}
-
-void MaybeAddCommaAndHandleComment(std::vector<PP::Token>* out, bool first,
-                                   Node node, const PP::Token& first_break) {
-  Str doc = Node_comment(node);
-  if (!first) {
-    out->push_back(PP::NoBreak(0));
-    out->push_back(PP::Str(","));
-  }
-  if (doc != StrInvalid) {
-    out->push_back(PP::LineBreak());
-    MaybeEmitDoc(out, node);
-  } else {
-    out->push_back(first ? first_break : PP::Brk());
   }
 }
 
@@ -460,6 +503,9 @@ void EmitStmtLetOrGlobal(std::vector<PP::Token>* out, std::string_view kw,
                          Name name, Node type_or_auto,
                          Node initial_or_undef_or_auto) {
   out->push_back(PP ::Str(kw));
+  out->push_back(PP::NoBreak(1));
+  out->push_back(PP ::Str(NameData(name)));
+
   if (Node_kind(type_or_auto) != NT::TypeAuto) {
     out->push_back(PP::NoBreak(1));
     EmitExprOrType(out, type_or_auto);
