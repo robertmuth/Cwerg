@@ -16,6 +16,35 @@ struct StringKind {
   uint8_t kind;
 };
 
+constexpr std::array<uint16_t, 17> MakeBF2MASK() {
+  std::array<uint16_t, 17> out;
+  //
+  out[int(BF::MUT)] = 1;
+  out[int(BF::UNCHECKED)] = 1;
+  out[int(BF::UNTAGGED)] = 1;
+  //
+  out[int(BF::PRESERVE_MUT)] = 2;
+  out[int(BF::REF)] = 2;
+  out[int(BF::ARG_REF)] = 2;
+  out[int(BF::WRAPPED)] = 2;
+  out[int(BF::COLON)] = 2;
+  //
+  out[int(BF::RES_REF)] = 3;
+  out[int(BF::PUB)] = 3;
+  //
+  out[int(BF::BUILTIN)] = 4;
+  out[int(BF::CDECL)] = 5;
+  out[int(BF::EXTERN)] = 6;
+  out[int(BF::FINI)] = 7;
+  out[int(BF::INIT)] = 8;
+  out[int(BF::POLY)] = 9;
+  //
+  return out;
+
+}
+
+std::array<uint16_t, 17> BF2MASK = MakeBF2MASK();
+
 // clang-format off
 /* @AUTOGEN-START@ */
 NodeDesc GlobalNodeDescs[] = {

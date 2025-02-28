@@ -1,6 +1,7 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+#include <array>
 #include <cstdint>
 #include <cstring>
 
@@ -13,7 +14,7 @@ namespace cwerg::fe {
 uint8_t constexpr kKindStr = 100;
 uint8_t constexpr kKindName = 101;
 
-enum class NT : uint8_t;   // "node type"
+enum class NT : uint8_t;  // "node type"
 enum class BF : uint8_t;  // "bit flag"
 
 enum class BINARY_EXPR_KIND : uint8_t;
@@ -25,7 +26,9 @@ enum class MACRO_PARAM_KIND : uint8_t;
 enum class MOD_PARAM_KIND : uint8_t;
 enum class ASSIGNMENT_KIND : uint8_t;
 
-inline uint16_t Mask(BF val) { return 1 << uint16_t(val); }
+extern std::array<uint16_t, 17> BF2MASK;
+
+inline uint16_t Mask(BF val) { return BF2MASK[int(val)]; }
 
 struct Node : public Handle {
   explicit constexpr Node(NT kind, uint32_t index = 0)
@@ -84,9 +87,15 @@ extern struct StripeGroup gStripeGroupNode;
 inline NT Node_kind(Node node) { return gNodeCore[node].kind; }
 inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
 inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
-inline bool Node_has_flag(Node node, BF bf) { return gNodeCore[node].flags & Mask(bf); }
-inline void Node_set_flag(Node node, BF bf) { gNodeCore[node].flags |= Mask(bf); }
-inline void Node_clr_flag(Node node, BF bf) { gNodeCore[node].flags &= ~Mask(bf); }
+inline bool Node_has_flag(Node node, BF bf) {
+  return gNodeCore[node].flags & Mask(bf);
+}
+inline void Node_set_flag(Node node, BF bf) {
+  gNodeCore[node].flags |= Mask(bf);
+}
+inline void Node_clr_flag(Node node, BF bf) {
+  gNodeCore[node].flags &= ~Mask(bf);
+}
 
 inline Node NodeNew(NT kind) {
   Node out = Node(kind, gStripeGroupNode.New().index());
@@ -171,30 +180,6 @@ inline bool StrCmpLt(Str a, Str b) {
   return strcmp(gStringPool.Data(a.index()), gStringPool.Data(b.index())) < 0;
 }
 
-enum class BF : uint8_t {
-  EXCL = 1,
-  MUT = 1,
-  UNCHECKED = 1,
-  UNTAGGED = 1,
-  //
-  PRESERVE_MUT = 2,
-  REF = 2,
-  ARG_REF = 2,
-  WRAPPED = 2,
-  COLON = 2,
-  //
-  RES_REF = 3,
-  PUB = 3,
-  //
-  BUILTIN = 4,
-  CDECL = 5,
-  EXTERN = 6,
-  FINI = 7,
-  INIT = 8,
-  POLY = 9,
-};
-
-
 // clang-format off
 /* @AUTOGEN-START@ */
 enum class NFD_NODE_FIELD : uint8_t {
@@ -256,6 +241,26 @@ enum class NFD_STRING_FIELD : uint8_t {
     path = 9,  // slot: 1
     string = 10,  // slot: 0
     target = 11,  // slot: 0
+};
+
+enum class BF : uint8_t {
+    invalid = 0,
+    ARG_REF = 1,
+    BUILTIN = 2,
+    CDECL = 3,
+    COLON = 4,
+    EXTERN = 5,
+    FINI = 6,
+    INIT = 7,
+    MUT = 8,
+    POLY = 9,
+    PRESERVE_MUT = 10,
+    PUB = 11,
+    REF = 12,
+    RES_REF = 13,
+    UNCHECKED = 14,
+    UNTAGGED = 15,
+    WRAPPED = 16,
 };
 
 enum class NT : uint8_t {
