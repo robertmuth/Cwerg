@@ -34,7 +34,6 @@ int main(int argc, const char* argv[]) {
   }
 
   std::vector<char> data = SlurpDataFromStream(fin);
-  InitLexer();
   Lexer lexer(
       std::string_view(reinterpret_cast<char*>(data.data()), data.size()), 555);
 

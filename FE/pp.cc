@@ -836,7 +836,6 @@ void Prettify(Node mod) {
 }
 
 int main(int argc, const char* argv[]) {
-  InitLexer();
   InitStripes(sw_multiplier.Value());
   InitParser();
 

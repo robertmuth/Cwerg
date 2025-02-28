@@ -16,7 +16,7 @@ struct StringKind {
   uint8_t kind;
 };
 
-constexpr std::array<uint16_t, 17> MakeBF2MASK() {
+constexpr std::array<uint16_t, 17> InitBF2MASK() {
   std::array<uint16_t, 17> out;
   //
   out[int(BF::MUT)] = 1;
@@ -43,7 +43,7 @@ constexpr std::array<uint16_t, 17> MakeBF2MASK() {
 
 }
 
-std::array<uint16_t, 17> BF2MASK = MakeBF2MASK();
+std::array<uint16_t, 17> BF2MASK = InitBF2MASK();
 
 // clang-format off
 /* @AUTOGEN-START@ */

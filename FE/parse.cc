@@ -1177,7 +1177,8 @@ Node ParseTopLevel(Lexer* lexer) {
 
 Node ParseModBodyList(Lexer* lexer, uint32_t column) {
   const TK& tk = lexer->Peek();
-  // std::cout << "@@@@ TOP " << tk.text << " " << EnumToString(tk.kind) << "\n";
+  // std::cout << "@@@@ TOP " << tk.text << " " << EnumToString(tk.kind) <<
+  // "\n";
   if (tk.kind == TK_KIND::SPECIAL_EOF) {
     return Node(HandleInvalid);
   }

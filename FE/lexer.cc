@@ -18,32 +18,34 @@ const int kCTypeNumberRest = 8;
 const int kCTypeNameStart = 16;
 const int kCTypeNameRest = 32;
 
-uint8_t CType[256];
-
-void InitLexer() {
+std::array<uint8_t, 256> MakeCType() {
+  std::array<uint8_t, 256> out;
   for (uint8_t c : " \t\n") {
-    CType[c] |= kCTypeWhitespace;
+    out[c] |= kCTypeWhitespace;
   }
   //
-  CType['_'] |= kCTypeNameStart | kCTypeNameRest;
+  out['_'] |= kCTypeNameStart | kCTypeNameRest;
 
   for (uint8_t x = 0; x < 26; x++) {
-    CType['a' + x] |= kCTypeNameStart | kCTypeNameRest;
-    CType['A' + x] |= kCTypeNameStart | kCTypeNameRest;
+    out['a' + x] |= kCTypeNameStart | kCTypeNameRest;
+    out['A' + x] |= kCTypeNameStart | kCTypeNameRest;
   }
   for (uint8_t x = 0; x < 10; x++) {
-    CType['0' + x] |= kCTypeNameRest;
+    out['0' + x] |= kCTypeNameRest;
   }
   // Number
   for (uint8_t c : ".-+01234567890") {
-    CType[c] |= kCTypeNumberStart | kCTypeNumberRest;
+    out[c] |= kCTypeNumberStart | kCTypeNumberRest;
   }
   for (uint8_t c : "xpabcdef_rstuin") {
-    CType[c] |= kCTypeNumberRest;
+    out[c] |= kCTypeNumberRest;
   }
-
-  //
+  return out;
 }
+
+std::array<uint8_t, 256> CType = MakeCType();
+
+
 
 bool IsWhitespace(uint8_t c) { return CType[c] & kCTypeWhitespace; }
 
