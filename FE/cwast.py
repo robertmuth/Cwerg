@@ -3899,15 +3899,6 @@ def _NameValuesForNT():
     return out
 
 
-def _NameValuesForBoolFields(fields_by_kind):
-    out = [("invalid", 0)]
-    fields = sorted(f.name for f in fields_by_kind[NFK.ATTR_BOOL])
-    for n, name in enumerate(fields):
-        name = name.replace("extern", "externx")
-        out.append((name, n+1))
-    return out
-
-
 def GenerateCodeH(fout: Any):
     _ComputeRemainingSlotsForFields()
 
@@ -3930,9 +3921,6 @@ def GenerateCodeH(fout: Any):
     for n, name in enumerate(fields):
         print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
     print("};")
-
-    cgen.RenderEnumClass(_NameValuesForBoolFields(
-        fields_by_kind), "NFD_BOOL_FIELD", fout)
 
     cgen.RenderEnumClass(_NameValuesForNT(), "NT", fout)
     cgen.RenderEnumClass(cgen.NameValues(
@@ -4016,8 +4004,7 @@ def EmitNodeDesc(fout: Any):
         for nfd in cls.ATTRS:
             k = nfd.kind
             if k == NFK.ATTR_BOOL:
-                bool_fields.append(
-                    f"BIT_B({nfd.name.replace('extern', 'externx')})")
+                bool_fields.append(f"BIT_B({nfd.name.upper()})")
         if node_fields:
             node_fields = '| '.join(node_fields)
         else:

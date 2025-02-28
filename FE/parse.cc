@@ -538,7 +538,7 @@ Node ParseTypeExpr(Lexer* lexer) {
   } else if (tk.kind == TK_KIND::DEREF_OR_POINTER_OP) {
     Node out = NodeNew(NT::TypePtr);
     Node pointee = ParseTypeExpr(lexer);
-    uint16_t bits = tk.text.size() == 1 ? 0 : 1 << int(NFD_BOOL_FIELD::mut);
+    uint16_t bits = tk.text.size() == 1 ? 0 : 1 << Mask(BF::MUT);
     InitTypePtr(out, pointee, bits, tk.comments);
     return out;
   } else if (tk.kind == TK_KIND::SQUARE_OPEN) {
@@ -553,7 +553,7 @@ Node ParseTypeExpr(Lexer* lexer) {
     lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
     Node type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::PAREN_CLOSED);
-    uint16_t bits = ends_with(tk.text, "!") ? 1 << int(NFD_BOOL_FIELD::mut) : 0;
+    uint16_t bits = ends_with(tk.text, "!") ? 1 << Mask(BF::MUT) : 0;
     InitTypeSpan(out, type, bits, tk.comments);
     return out;
   } else if (tk.kind == TK_KIND::ID) {

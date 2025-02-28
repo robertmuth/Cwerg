@@ -518,9 +518,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
             out += [PP.Brk(0), PP.Str(","), PP.Brk()]
         first = False
         #
-        if isinstance(a, cwast.Id):
-            out += [PP.Str(a.FullName())]
-        elif isinstance(a, cwast.EphemeralList):
+        if isinstance(a, cwast.EphemeralList):
             out += [PP.Str("TODO-LIST")]
         else:
             _EmitExprOrType(out, a)
