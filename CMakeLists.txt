@@ -403,6 +403,7 @@ add_library(FE_CORE_LIB OBJECT
 add_executable(lexer_bench.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:LEXER_LIB>
+        $<TARGET_OBJECTS:FE_CORE_LIB>
         FE/lexer_bench.cc
 )
 
