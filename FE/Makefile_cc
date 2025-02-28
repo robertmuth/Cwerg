@@ -1,0 +1,45 @@
+# no built-in rules please
+.SUFFIXES:
+
+DIR=build
+
+
+$(info $(shell mkdir -p $(DIR)))
+
+############################################################
+# Code Gen
+############################################################
+
+cwast_gen.cc: cwast.py
+	@echo "[$@]"
+	$(PYPY) ./cwast.py gen_cc <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+cwast_gen.h: cwast.py
+	@echo "[$@]"
+	$(PYPY) ./cwast.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+lexer_gen.cc: lexer_tab.py
+	@echo "[$@]"
+	$(PYPY) ./lexer_tab.py gen_cc <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc
+
+
+############################################################
+# C++
+############################################################
+BUILD_DIR=../build
+LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
+PP=$(BUILD_DIR)/pp.exe
+
+$(LEXER_BENCH)::
+	@cd $(BUILD_DIR); $(MAKE) -s lexer_bench.exe
+
+$(PP)::
+	@cd $(BUILD_DIR); $(MAKE) -s pp.exe
+
+run_lexer_bench: $(LEXER_BENCH)
+	/bin/time -p cat Lib/*cw TestData/*cw  LangTest/*cw | $(LEXER_BENCH) - - > /dev/null
