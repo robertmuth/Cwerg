@@ -155,6 +155,7 @@ void EmitValCompound(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::Beg(PP::BreakType::INCONSISTENT, 1));
   Node type = Node_type_or_auto(node);
   out->push_back(PP::Str("{"));
+  out->push_back(PP::NoBreak(0));
   if (Node_kind(type) != NT::TypeAuto) {
     EmitExprOrType(out, type);
     out->push_back(PP::NoBreak(0));
