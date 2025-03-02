@@ -140,7 +140,7 @@ def _ComputeSizes(tokens: list[Token]):
     return sizes
 
 
-def _UpdateSizeOfNoBreaks(tokens: list[Token], sizes: list[int]):
+def _UpdateSizeForNoBreaks(tokens: list[Token], sizes: list[int]):
     # Update chains of NoBreaks from the right to have smaller sizes
     # This will result in NoBreak to more likely fit in the current line
     total = _INFINIE_WIDTH
@@ -273,11 +273,11 @@ def _Render(tokens, sizes, output: _Output):
 
 
 def PrettyPrint(tokens: list[Token], line_width: int) -> str:
-    # print(tokens)
     sizes: list[int] = _ComputeSizes(tokens)
-    _UpdateSizeOfNoBreaks(tokens, sizes)
-    #for t, s in zip(tokens, sizes):
-    #    print(t, s)
+    _UpdateSizeForNoBreaks(tokens, sizes)
+    if False:
+        for t, s in zip(tokens, sizes):
+            print(t, s)
     output = _Output(line_width)
     _Render(tokens, sizes, output)
     return output.get_string()

@@ -38,8 +38,9 @@ std::ostream& operator<<(std::ostream& out, const Token& t) {
       out << "End()";
       break;
     case TokenType::BRK:
-      out << "Brk(numsoaces=" << t.brk.num_spaces << ", offset=" << t.brk.offset
-          << ", nobreak=" << t.brk.nobreak << ")";
+      out << "Brk(num_spaces=" << t.brk.num_spaces
+          << ", offset=" << t.brk.offset << ", nobreak=" << t.brk.nobreak
+          << ")";
       break;
     case TokenType::STR:
       out << "Str(\"" << t.str << "\")";
@@ -119,7 +120,6 @@ void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
       case TokenType::END:
         total = INFINITE_WIDTH;
         break;
-
       case TokenType::BRK:
         if (token.brk.nobreak) {
           if (total < sizes[i]) {
@@ -152,17 +152,14 @@ void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
         }
         break;
       case TokenType::END:
-        //
         break;
-
       case TokenType::BRK:
         total += token.brk.num_spaces;
         if (!token.brk.nobreak) {
           if (total > sizes[i]) {
             sizes[i] = total;
-          } else {
-            total = 0;
           }
+          total = 0;
         }
         break;
       case TokenType::STR:
