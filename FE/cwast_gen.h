@@ -70,6 +70,7 @@ struct NodeCore {
     ASSIGNMENT_KIND assignment_kind;
     BASE_TYPE_KIND base_type_kind;
     POINTER_EXPR_KIND pointer_expr_kind;
+    STR_KIND str_kind;
   };
   uint16_t flags;
   Handle children[4];
@@ -859,6 +860,8 @@ inline UNARY_EXPR_KIND Node_unary_expr_kind(Node n) {
 inline BINARY_EXPR_KIND Node_binary_expr_kind(Node n) {
   return gNodeCore[n].binary_expr_kind;
 }
+
+inline STR_KIND Node_str_kind(Node n) { return gNodeCore[n].str_kind; }
 
 struct NodeDesc {
   uint64_t node_field_bits;

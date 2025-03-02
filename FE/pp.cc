@@ -216,7 +216,8 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Str(EnumToString(Node_base_type_kind(node))));
       break;
     case NT::ExprFront:
-      EmitFunctional(out, "front", Node_container(node));
+      EmitFunctional(out, Node_has_flag(node, BF::MUT) ? "front!" : "front",
+                     Node_container(node));
       break;
     case NT::ExprLen:
       EmitFunctional(out, "len", Node_container(node));
@@ -254,7 +255,9 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       EmitFunctional(out, "bitwise_as", Node_expr(node), Node_type(node));
       break;
     case NT::ExprNarrow:
-      EmitFunctional(out, "narrow_as", Node_expr(node), Node_type(node));
+      EmitFunctional(
+          out, Node_has_flag(node, BF::UNCHECKED) ? "narrow_as!" : "narrow_as",
+          Node_expr(node), Node_type(node));
       break;
     case NT::ExprSizeof:
       EmitFunctional(out, "size_of", Node_type(node));
@@ -263,7 +266,8 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       EmitFunctional(out, "typeid_of", Node_type(node));
       break;
     case NT::TypeSpan:
-      EmitFunctional(out, "span", Node_type(node));
+      EmitFunctional(out, Node_has_flag(node, BF::MUT) ? "span!" : "span",
+                     Node_type(node));
       break;
     case NT::ExprUnionTag:
       EmitFunctional(out, "union_tag", Node_expr(node));
@@ -297,7 +301,8 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       break;
     case NT::TypeUnion:
       out->push_back(PP_BEG_STD);
-      out->push_back(PP::Str("union"));
+      out->push_back(
+          PP::Str(Node_has_flag(node, BF::UNTAGGED) ? "union!" : "union"));
       out->push_back(PP::NoBreak(0));
       EmitParenList(out, Node_types(node));
       out->push_back(PP::End());
@@ -393,7 +398,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP_BEG_STD);
       EmitExprOrType(out, Node_container(node));
       out->push_back(PP::NoBreak(0));
-      out->push_back(PP::Str("["));
+      out->push_back(PP::Str(Node_has_flag(node, BF::UNCHECKED) ? "[!" : "["));
       out->push_back(PP::Brk(0));
       EmitExprOrType(out, Node_expr_index(node));
       out->push_back(PP::Brk(0));
@@ -439,7 +444,41 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       EmitStatementsSpecial(out, Node_body(node));
       break;
     case NT::ValString:
-      out->push_back(PP::Str("TODO-VAL-STRING"));
+      switch (Node_str_kind(node)) {
+        case STR_KIND::HEX:
+        case STR_KIND::HEX_TRIPLE:
+          out->push_back(PP::Str("x"));
+          out->push_back(PP::NoBreak(0));
+          break;
+        case STR_KIND::RAW:
+        case STR_KIND::RAW_TRIPLE:
+          out->push_back(PP::Str("r"));
+          out->push_back(PP::NoBreak(0));
+          break;
+        case STR_KIND::NORMAL:
+        case STR_KIND::NORMAL_TRIPLE:
+          break;
+      }
+      switch (Node_str_kind(node)) {
+        case STR_KIND::RAW_TRIPLE:
+        case STR_KIND::HEX_TRIPLE:
+        case STR_KIND::NORMAL_TRIPLE:
+          out->push_back(PP::Str("\"\"\""));
+          out->push_back(PP::NoBreak(0));
+          out->push_back(PP::Str(StrData(Node_string(node))));
+          out->push_back(PP::NoBreak(0));
+          out->push_back(PP::Str("\"\"\""));
+          break;
+        case STR_KIND::HEX:
+        case STR_KIND::RAW:
+        case STR_KIND::NORMAL:
+          out->push_back(PP::Str("\""));
+          out->push_back(PP::NoBreak(0));
+          out->push_back(PP::Str(StrData(Node_string(node))));
+          out->push_back(PP::NoBreak(0));
+          out->push_back(PP::Str("\""));
+          break;
+      }
       break;
     default:
       // out->push_back(PP::Str("TODO-UNEXPECTED"));
@@ -530,7 +569,8 @@ bool IsBuiltInStmtMacro(std::string_view name) {
 
 bool IsMacroWitBlock(Node node) {
   for (Node arg = Node_args(node); arg != HandleInvalid; arg = Node_next(arg)) {
-    if (Node_kind(arg) == NT::EphemeralList && /* TODO */ true) return true;
+    if (Node_kind(arg) == NT::EphemeralList && Node_has_flag(node, BF::COLON))
+      return true;
   }
   return false;
 }
@@ -563,7 +603,7 @@ void EmitStmtMacroInvoke(std::vector<PP::Token>* out, Node node) {
   }
   bool first = true;
   for (; arg != HandleInvalid; arg = Node_next(arg)) {
-    if (Node_kind(arg) == NT::EphemeralList && /* TODO */ true) {
+    if (Node_kind(arg) == NT::EphemeralList && Node_has_flag(arg, BF::COLON)) {
       out->push_back(PP::Brk(0));
       out->push_back(PP ::Str(":"));
       EmitStatementsSpecial(out, Node_args(arg));
@@ -622,7 +662,8 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
                   Node_expr_rhs(node));
       break;
     case NT::DefVar:
-      EmitStmtLetOrGlobal(out, "let", Node_name(node), Node_type_or_auto(node),
+      EmitStmtLetOrGlobal(out, Node_has_flag(node, BF::MUT) ? "let!" : "let",
+                          Node_name(node), Node_type_or_auto(node),
                           Node_initial_or_undef_or_auto(node));
       break;
     case NT::StmtExpr:
@@ -742,8 +783,9 @@ void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
   bool emit_break;
   switch (Node_kind(node)) {
     case NT::DefGlobal:
-      EmitStmtLetOrGlobal(out, "global", Node_name(node),
-                          Node_type_or_auto(node),
+      EmitStmtLetOrGlobal(out,
+                          Node_has_flag(node, BF::MUT) ? "global!" : "global",
+                          Node_name(node), Node_type_or_auto(node),
                           Node_initial_or_undef_or_auto(node));
       break;
 

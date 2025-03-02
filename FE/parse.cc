@@ -114,6 +114,7 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
     // E with bits
     case NT::ExprFront:
       ParseFunLikeArgs(lexer, "E", &args);
+      bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       InitExprFront(out, args[0], bits, tk.comments);
       return out;
     // T
@@ -153,6 +154,7 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
     // ET with bits
     case NT::ExprNarrow:
       ParseFunLikeArgs(lexer, "ET", &args);
+      bits = tk.text.ends_with("!") ? Mask(BF::UNCHECKED) : 0;
       InitExprNarrow(out, args[0], args[1], bits, tk.comments);
       return out;
       //
@@ -421,8 +423,7 @@ Node PrattParseExprIndex(Lexer* lexer, Node lhs, const TK& tk,
   Node out = NodeNew(NT::ExprIndex);
   Node index = PrattParseExpr(lexer);
   lexer->MatchOrDie(TK_KIND::SQUARE_CLOSED);
-  // TODO
-  uint16_t bits = 0;
+  uint16_t bits = tk.text.ends_with("!") ? Mask(BF::UNCHECKED) : 0;
   InitExprIndex(out, lhs, index, bits, tk.comments);
   return out;
 }
@@ -553,7 +554,7 @@ Node ParseTypeExpr(Lexer* lexer) {
     lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
     Node type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::PAREN_CLOSED);
-    uint16_t bits = ends_with(tk.text, "!") ? 1 << Mask(BF::MUT) : 0;
+    uint16_t bits = ends_with(tk.text, "!") ? Mask(BF::MUT) : 0;
     InitTypeSpan(out, type, bits, tk.comments);
     return out;
   } else if (tk.kind == TK_KIND::ID) {
@@ -565,7 +566,7 @@ Node ParseTypeExpr(Lexer* lexer) {
       case NT::TypeUnion: {
         Node out = NodeNew(NT::TypeUnion);
         lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
-        uint16_t bits = 0;
+        uint16_t bits = tk.text.ends_with("!") ? Mask(BF::UNTAGGED) : 0;
         Node types = ParseTypeList(lexer, false);
         InitTypeUnion(out, types, bits, tk.comments);
         return out;
@@ -676,8 +677,7 @@ Node ParseMacroArgListWithColon(Lexer* lexer, uint32_t outer_col,
   if (lexer->Match(TK_KIND::COLON)) {
     Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
-    uint16_t bits = 0;
-    InitEphemeralList(body, stmts, bits, StrInvalid);
+    InitEphemeralList(body, stmts, Mask(BF::COLON), StrInvalid);
     return body;
   }
 
@@ -776,8 +776,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     lexer->MatchOrDie(TK_KIND::COLON);
     Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
-    uint16_t bits = 0;
-    InitEphemeralList(body, stmts, bits, StrInvalid);
+    InitEphemeralList(body, stmts, Mask(BF::COLON), StrInvalid);
     //
     Node_next(var) = type;
     Node_next(type) = expr;
@@ -847,8 +846,8 @@ Node ParseStmt(Lexer* lexer) {
           InitValAuto(init, StrInvalid);
         }
       }
-      // TODO: mut
-      uint16_t bits = 0;
+
+      uint16_t bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       InitDefVar(out, NameNew(name.text), type, init, bits, tk.comments);
       return out;
     }
@@ -1076,7 +1075,7 @@ Node ParseTopLevel(Lexer* lexer) {
         }
       }
       // TODO: mut
-      uint16_t bits = 0;
+      uint16_t bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       InitDefGlobal(out, NameNew(name.text), type, init, bits, tk.comments);
       return out;
     }
