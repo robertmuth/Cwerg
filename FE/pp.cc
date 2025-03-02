@@ -87,6 +87,7 @@ void EmitFullName(std::vector<PP::Token>* out, Node node) {
 void EmitExprOrType(std::vector<PP::Token>* out, Node node);
 void EmitStatement(std::vector<PP::Token>* out, Node node);
 void EmitStatementsSpecial(std::vector<PP::Token>* out, Node node);
+void EmitParameterList(std::vector<PP::Token>* out, Node node);
 
 void EmitArg(std::vector<PP::Token>* out, Node node, bool first) {
   if (first) {
@@ -185,6 +186,7 @@ void EmitValCompound(std::vector<PP::Token>* out, Node node) {
 }
 
 void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
+  // std::cout << "EXPR " << EnumToString(Node_kind(node)) << "\n";
   switch (Node_kind(node)) {
     case NT::Id:
       EmitFullName(out, node);
@@ -379,12 +381,12 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Str("^"));
       break;
     case NT::ExprAddrOf:
-      out->push_back(PP::Str("@"));
+      out->push_back(PP::Str(Node_has_flag(node, BF::MUT) ? "@!" :"@"));
       out->push_back(PP::Brk(0));
       EmitExprOrType(out, Node_expr(node));
       break;
     case NT::TypePtr:
-      out->push_back(PP::Str("^"));
+      out->push_back(PP::Str(Node_has_flag(node, BF::MUT) ? "^!" : "^"));
       out->push_back(PP::Brk(0));
       EmitExprOrType(out, Node_type(node));
       break;
@@ -420,7 +422,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Beg(PP::BreakType::CONSISTENT, 2));
       out->push_back(PP::Str("funtype"));
       out->push_back(PP::NoBreak(0));
-      EmitParenList(out, Node_params(node));
+      EmitParameterList(out, Node_params(node));
       out->push_back(PP::Brk());
       EmitExprOrType(out, Node_result(node));
       out->push_back(PP::End());
@@ -741,7 +743,7 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::End());
 }
 
-void EmitTokensExprMacroBlockSpecial(std::vector<PP::Token>* out, Node node) {
+void EmitExprMacroBlockSpecial(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::End());
   out->push_back(PP_BEG_NEST);
   bool first = true;
@@ -777,7 +779,7 @@ void EmitIdList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::End());
 }
 
-void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
+void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
   // std::cout << "TOPLEVEL " << EnumToString(Node_kind(node)) << "\n";
   MaybeEmitDoc(out, node);
   out->push_back(PP_BEG_STD);
@@ -895,7 +897,7 @@ void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
           Node_macro_param_kind(node) == MACRO_PARAM_KIND::STMT_LIST) {
         EmitStatementsSpecial(out, Node_body_macro(node));
       } else {
-        EmitTokensExprMacroBlockSpecial(out, Node_body_macro(node));
+        EmitExprMacroBlockSpecial(out, Node_body_macro(node));
       }
       break;
     default:
@@ -905,7 +907,7 @@ void EmitTokensTopLevel(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::End());
 }
 
-void EmitTokensModule(std::vector<PP::Token>* out, Node node) {
+void EmitModule(std::vector<PP::Token>* out, Node node) {
   ASSERT(Node_kind(node) == NT::DefMod, "");
   MaybeEmitDoc(out, node);
   out->push_back(PP_BEG_STD);
@@ -927,7 +929,7 @@ void EmitTokensModule(std::vector<PP::Token>* out, Node node) {
         out->push_back(PP::LineBreak());
       }
       emit_break = true;
-      EmitTokensTopLevel(out, child);
+      EmitTopLevel(out, child);
     }
     out->push_back(PP::End());
   }
@@ -936,7 +938,7 @@ void EmitTokensModule(std::vector<PP::Token>* out, Node node) {
 void Prettify(Node mod) {
   std::vector<PP::Token> tokens;
   tokens.push_back(PP::Beg(PP::BreakType::CONSISTENT, 0));
-  EmitTokensModule(&tokens, mod);
+  EmitModule(&tokens, mod);
   tokens.push_back(PP::End());
   std::cout << PP::PrettyPrint(tokens, 80) << "\n";
 }

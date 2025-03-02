@@ -386,8 +386,7 @@ Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
 Node PrattParseAddrOf(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node out = NodeNew(NT::ExprAddrOf);
   Node expr = PrattParseExpr(lexer, precedence);
-  // TODO
-  uint16_t bits = 0;
+  uint16_t bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
   InitExprAddrOf(out, expr, bits, tk.comments);
   return out;
 }
@@ -539,7 +538,7 @@ Node ParseTypeExpr(Lexer* lexer) {
   } else if (tk.kind == TK_KIND::DEREF_OR_POINTER_OP) {
     Node out = NodeNew(NT::TypePtr);
     Node pointee = ParseTypeExpr(lexer);
-    uint16_t bits = tk.text.size() == 1 ? 0 : 1 << Mask(BF::MUT);
+    uint16_t bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
     InitTypePtr(out, pointee, bits, tk.comments);
     return out;
   } else if (tk.kind == TK_KIND::SQUARE_OPEN) {
