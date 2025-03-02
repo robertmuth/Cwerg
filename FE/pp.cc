@@ -478,8 +478,6 @@ void EmitParameterList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::End());
 }
 
-void EmitStatement(std::vector<PP::Token>* out, Node node);
-
 void EmitStatementsSpecial(std::vector<PP::Token>* out, Node node) {
   if (node == HandleInvalid) {
     return;

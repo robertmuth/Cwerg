@@ -18,7 +18,7 @@ const int kCTypeNumberRest = 8;
 const int kCTypeNameStart = 16;
 const int kCTypeNameRest = 32;
 
-std::array<uint8_t, 256> MakeCType() {
+std::array<uint8_t, 256> InitCType() {
   std::array<uint8_t, 256> out;
   for (uint8_t c : " \t\n") {
     out[c] |= kCTypeWhitespace;
@@ -43,9 +43,7 @@ std::array<uint8_t, 256> MakeCType() {
   return out;
 }
 
-std::array<uint8_t, 256> CType = MakeCType();
-
-
+std::array<uint8_t, 256> CType = InitCType();
 
 bool IsWhitespace(uint8_t c) { return CType[c] & kCTypeWhitespace; }
 
