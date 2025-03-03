@@ -772,7 +772,7 @@ void EmitIdList(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Brk());
     }
     first = false;
-    out->push_back(PP::Str(NameData(Node_name(node))));
+    out->push_back(PP::Str(NameData(Node_name(child))));
   }
   out->push_back(PP::Brk(0));
   out->push_back(PP::Str("]"));

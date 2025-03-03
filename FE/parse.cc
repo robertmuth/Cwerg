@@ -447,12 +447,27 @@ Node ParseFunArgsList(Lexer* lexer, bool want_comma) {
   return out;
 }
 
+std::string FullName(Node node) {
+  ASSERT(node.kind() == NT::Id, "");
+  std::string out = NameData(Node_mod_name(node));
+  if (!out.empty()) {
+    out += "::";
+  }
+  out += NameData(Node_base_name(node));
+  if (!NameIsEmpty(Node_enum_name(node))) {
+    out += ":";
+
+
+  }
+  return out;
+}
+
 Node PrattParseExprCall(Lexer* lexer, Node lhs, const TK& tk,
                         uint32_t precedence) {
   if (lhs.kind() == NT::Id && ends_with(NameData(Node_base_name(lhs)), "#")) {
     Node out = NodeNew(NT::MacroInvoke);
     Node args = ParseMacroArgList(lexer, false);
-    InitMacroInvoke(out, NameNew("TODO-macro-name"), args, tk.comments);
+    InitMacroInvoke(out, NameNew(FullName(lhs)), args, tk.comments);
     return out;
   }
   Node out = NodeNew(NT::ExprCall);
@@ -1034,11 +1049,10 @@ Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
 }
 
 Node ParseTopLevel(Lexer* lexer) {
-  const TK& tk = lexer->Next();
+  const TK tk = lexer->Next();
   ASSERT(tk.kind == TK_KIND::KW, "expected top level kw");
   NT nt = KeywordToNT(tk.text);
   uint32_t outer_column = tk.sl.col;
-
   switch (nt) {
     case NT::DefFun: {
       Node out = NodeNew(NT::DefFun);
@@ -1073,7 +1087,6 @@ Node ParseTopLevel(Lexer* lexer) {
           InitValAuto(init, StrInvalid);
         }
       }
-      // TODO: mut
       uint16_t bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       InitDefGlobal(out, NameNew(name.text), type, init, bits, tk.comments);
       return out;
@@ -1134,16 +1147,16 @@ Node ParseTopLevel(Lexer* lexer) {
     case NT::DefMacro: {
       Node out = NodeNew(NT::DefMacro);
       const TK name = lexer->Next();
-      if (tk.kind == TK_KIND::ID) {
-        ASSERT(ends_with(name.text, "#") || tk.text == "span_inc" ||
-                   tk.text == "span_devc" || tk.text == "span_diff",
+      if (name.kind == TK_KIND::ID) {
+        ASSERT(ends_with(name.text, "#") || name.text == "span_inc" ||
+                   name.text == "span_devc" || name.text == "span_diff",
 
                name);
       } else {
-        ASSERT(tk.kind == TK_KIND::KW, name);
-        ASSERT(tk.text == "for" || tk.text == "while" || tk.text == "tryset" ||
-                   tk.text == "trylet" || tk.text == "trylet!" ||
-                   tk.text == "ptr_diff",
+        ASSERT(name.kind == TK_KIND::KW, EnumToString(tk.kind) << " " << name);
+        ASSERT(name.text == "for" || name.text == "while" ||
+                   name.text == "tryset" || name.text == "trylet" ||
+                   name.text == "trylet!" || name.text == "ptr_diff",
                name);
       }
       const TK kind = lexer->MatchOrDie(TK_KIND::ID);
