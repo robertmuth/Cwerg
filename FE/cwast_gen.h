@@ -878,6 +878,7 @@ const char* EnumToString(MOD_PARAM_KIND x);
 const char* EnumToString(MACRO_PARAM_KIND x);
 const char* EnumToString(STR_KIND x);
 const char* EnumToString(BASE_TYPE_KIND x);
+const char* EnumToString(BF x);
 const char* EnumToString(NT x);
 const char* EnumToString(POINTER_EXPR_KIND x);
 const char* EnumToString(BINARY_EXPR_KIND x);
@@ -893,6 +894,8 @@ MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name);
 BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name);
 
 ASSIGNMENT_KIND ASSIGNMENT_KIND_FromString(std::string_view name);
+
+BF BF_FromString(std::string_view name);
 
 NT KeywordToNT(std::string_view kw);
 

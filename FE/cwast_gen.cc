@@ -40,7 +40,6 @@ constexpr std::array<uint16_t, 17> InitBF2MASK() {
   out[int(BF::POLY)] = 9;
   //
   return out;
-
 }
 
 std::array<uint16_t, 17> BF2MASK = InitBF2MASK();
@@ -536,6 +535,60 @@ const char* const NT_ToStringMap[] = {
 const char* EnumToString(NT x) { return NT_ToStringMap[unsigned(x)]; }
 
 
+const char* const BF_ToStringMap[] = {
+    "invalid", // 0
+    "arg_ref", // 1
+    "builtin", // 2
+    "cdecl", // 3
+    "colon", // 4
+    "extern", // 5
+    "fini", // 6
+    "init", // 7
+    "mut", // 8
+    "poly", // 9
+    "preserve_mut", // 10
+    "pub", // 11
+    "ref", // 12
+    "res_ref", // 13
+    "unchecked", // 14
+    "untagged", // 15
+    "wrapped", // 16
+};
+const char* EnumToString(BF x) { return BF_ToStringMap[unsigned(x)]; }
+
+
+const struct StringKind BF_FromStringMap[] = {
+    {"arg_ref", 1},
+    {"builtin", 2},
+    {"cdecl", 3},
+    {"colon", 4},
+    {"extern", 5},
+    {"fini", 6},
+    {"init", 7},
+    {"invalid", 0},
+    {"mut", 8},
+    {"poly", 9},
+    {"preserve_mut", 10},
+    {"pub", 11},
+    {"ref", 12},
+    {"res_ref", 13},
+    {"unchecked", 14},
+    {"untagged", 15},
+    {"wrapped", 16},
+    {"ZZZ", 0},
+};
+
+const uint8_t BF_Jumper[128] = {
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 0, 1, 2, 255, 4, 5, 255, 255, 6, 255, 255, 255, 8, 255, 255,
+ 9, 255, 12, 255, 255, 14, 255, 16, 255, 255, 255, 255, 255, 255, 255, 255,
+};
+
 const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
     {"case", NT::Case},
     {"enum", NT::DefEnum},
@@ -665,6 +718,10 @@ BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name) {
 ASSIGNMENT_KIND ASSIGNMENT_KIND_FromString(std::string_view name) {
   return ASSIGNMENT_KIND(LinearSearch(ASSIGNMENT_KIND_FromStringMap,
                                       ASSIGNMENT_KIND_Jumper, name, 0));
+}
+
+BF BF_FromString(std::string_view name) {
+  return BF(LinearSearch(BF_FromStringMap, BF_Jumper, name, 0));
 }
 
 NT KeywordToNT(std::string_view kw) {

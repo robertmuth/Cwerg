@@ -3899,40 +3899,44 @@ def _NameValuesForNT():
     return out
 
 
-def _NameValuesForBoolFields(fields_by_kind):
+def _MakeNameValues(names, to_upper=False):
     out = [("invalid", 0)]
-    fields = sorted(f.name for f in fields_by_kind[NFK.ATTR_BOOL])
-    for n, name in enumerate(fields):
-        name = name.upper()
+    for n, name in enumerate(names):
+        if to_upper:
+            name = name.upper()
         out.append((name, n+1))
+    return out
+
+
+def _FieldNamesForKind(nfk: NFK) -> list[str]:
+    out = []
+    for nfd in ALL_FIELDS:
+        if nfd.kind is nfk:
+            out.append(nfd.name)
     return out
 
 
 def GenerateCodeH(fout: Any):
     _ComputeRemainingSlotsForFields()
 
-    fields_by_kind = collections.defaultdict(list)
-    for nfd in ALL_FIELDS:
-        fields_by_kind[nfd.kind].append(nfd)
-
     print(f"enum class NFD_NODE_FIELD : uint8_t {{")
     print(f"    invalid = 0,")
-    fields = sorted(f.name for f in (
-        fields_by_kind[NFK.NODE] + fields_by_kind[NFK.LIST]))
+    fields = sorted(_FieldNamesForKind(NFK.NODE) +
+                    _FieldNamesForKind(NFK.LIST))
     for n, name in enumerate(fields):
         print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
     print("};")
 
     print(f"enum class NFD_STRING_FIELD : uint8_t {{")
     print(f"    invalid = 0,")
-    fields = sorted(f.name for f in (
-        fields_by_kind[NFK.NAME] + fields_by_kind[NFK.STR]))
+    fields = sorted(_FieldNamesForKind(NFK.NAME) +
+                    _FieldNamesForKind(NFK.STR))
     for n, name in enumerate(fields):
         print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
     print("};")
 
-    cgen.RenderEnumClass(_NameValuesForBoolFields(
-        fields_by_kind), "BF", fout)
+    cgen.RenderEnumClass(_MakeNameValues(
+        sorted(_FieldNamesForKind(NFK.ATTR_BOOL)), to_upper=True), "BF", fout)
 
     cgen.RenderEnumClass(_NameValuesForNT(), "NT", fout)
     cgen.RenderEnumClass(cgen.NameValues(
@@ -3982,6 +3986,9 @@ def EnumStringConversions(fout: Any):
     render(BINARY_EXPR_KIND.__name__,
            [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()], both_ways=False)
     render("NT",  _NameValuesForNT(), both_ways=False)
+    render("BF", _MakeNameValues(
+        sorted(_FieldNamesForKind(NFK.ATTR_BOOL)), to_upper=False),
+        both_ways=True)
 
 
 def NodeAliasStringConversion(fout: Any):
