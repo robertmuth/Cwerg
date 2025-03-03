@@ -1,7 +1,7 @@
 {{builtin}} module:
 
 ; macro for while-loop
-pub {{builtin}} macro while STMT ($cond EXPR, $body STMT_LIST) []:
+{{builtin}} pub macro while STMT ($cond EXPR, $body STMT_LIST) []:
     block _:
         if !$cond:
             break
@@ -11,7 +11,7 @@ pub {{builtin}} macro while STMT ($cond EXPR, $body STMT_LIST) []:
 ; macro for number range for-loop,
 ;
 ; The type of the loop variable is determined by $end
-pub {{builtin}} macro for STMT_LIST ($index ID, $start EXPR, $end EXPR,
+{{builtin}} pub macro for STMT_LIST ($index ID, $start EXPR, $end EXPR,
                                      $step EXPR, $body STMT_LIST)
   [$end_eval, $step_eval, $it]:
     let $end_eval type_of($end) = $end
@@ -29,7 +29,7 @@ pub {{builtin}} macro for STMT_LIST ($index ID, $start EXPR, $end EXPR,
         $body
         continue
 
-pub {{builtin}} macro trylet STMT_LIST ($name ID, $type EXPR, $expr EXPR,
+{{builtin}} pub macro trylet STMT_LIST ($name ID, $type EXPR, $expr EXPR,
                                         $catch_name ID, $catch_body STMT_LIST)
   [$eval]:
     let $eval = $expr
@@ -39,7 +39,7 @@ pub {{builtin}} macro trylet STMT_LIST ($name ID, $type EXPR, $expr EXPR,
         trap
     let $name $type = narrow_as!($eval, $type)
 
-pub {{builtin}} macro trylet! STMT_LIST ($name ID, $type EXPR, $expr EXPR,
+{{builtin}} pub macro trylet! STMT_LIST ($name ID, $type EXPR, $expr EXPR,
                                          $catch_name ID, $catch_body STMT_LIST)
   [$eval]:
     let $eval = $expr
@@ -49,7 +49,7 @@ pub {{builtin}} macro trylet! STMT_LIST ($name ID, $type EXPR, $expr EXPR,
         trap
     let! $name $type = narrow_as!($eval, $type)
 
-pub {{builtin}} macro tryset STMT_LIST ($lhs EXPR, $expr EXPR, $catch_name ID,
+{{builtin}} pub macro tryset STMT_LIST ($lhs EXPR, $expr EXPR, $catch_name ID,
                                         $catch_body STMT_LIST) [$eval]:
     let $eval = $expr
     if !is($eval, type_of($lhs)):
@@ -65,7 +65,7 @@ macro swap# STMT_LIST ($a EXPR, $b EXPR) [$t]:
     set $b = $t
 
 ; works with arrays and slices. For arrays we make sure we do not copy them.
-pub {{builtin}} macro span_inc EXPR ($slice EXPR, $size EXPR)
+{{builtin}} pub macro span_inc EXPR ($slice EXPR, $size EXPR)
   [$orig_size, $orig_len, $orig_slice]:
     expr:
         let $orig_slice = $slice
@@ -76,7 +76,7 @@ pub {{builtin}} macro span_inc EXPR ($slice EXPR, $size EXPR)
         return make_span(ptr_inc({{preserve_mut}} front($orig_slice), $orig_size
                            ), $orig_len - $orig_size)
 
-pub {{builtin}} macro span_diff EXPR ($a EXPR, $b EXPR) []:
+{{builtin}} pub macro span_diff EXPR ($a EXPR, $b EXPR) []:
     ptr_diff(front($a), front($b))
 
 ; works with arrays and slices. For arrays we make sure we do not copy them.

@@ -3072,8 +3072,8 @@ class DefMacro:
     gen_ids: list[MacroId]
     body_macro: list[Any]  # new scope
     #
-    pub: bool = False
     builtin: bool = False  # only used by some macros from buildin.cw
+    pub: bool = False
     doc: str = ""
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
