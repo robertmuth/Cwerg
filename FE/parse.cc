@@ -639,7 +639,7 @@ Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
   ASSERT(prefix_handler.handler != nullptr, "No handler for " << tk);
   Node lhs = prefix_handler.handler(lexer, tk, prefix_handler.precedence);
   while (true) {
-    const TK& tk = lexer->Peek();
+    const TK tk = lexer->Peek();
 
     const PrattHandlerInfix& infix_handler =
         INFIX_EXPR_PARSERS[uint8_t(tk.kind)];
@@ -1078,7 +1078,7 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = ParseStmtBodyList(lexer, outer_column);
       InitDefFun(out, NameNew(name.text), params, result, body,
-                 BitsFromAnnotation(name), tk.comments);
+                 BitsFromAnnotation(tk), tk.comments);
       return out;
     }
     case NT::DefGlobal: {
@@ -1188,8 +1188,7 @@ Node ParseTopLevel(Lexer* lexer) {
       return out;
     }
     default: {
-      std::cout << "#### " << tk.text << "\n";
-      ASSERT(false, "");
+      ASSERT(false, tk.text);
       return Node(HandleInvalid);
     }
   }

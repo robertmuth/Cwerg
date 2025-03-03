@@ -19,25 +19,25 @@ struct StringKind {
 constexpr std::array<uint16_t, 17> InitBF2MASK() {
   std::array<uint16_t, 17> out;
   //
-  out[int(BF::MUT)] = 1;
-  out[int(BF::UNCHECKED)] = 1;
-  out[int(BF::UNTAGGED)] = 1;
+  out[int(BF::MUT)] = 1 << 1;
+  out[int(BF::UNCHECKED)] = 1 << 1;
+  out[int(BF::UNTAGGED)] = 1 << 1;
   //
-  out[int(BF::PRESERVE_MUT)] = 2;
-  out[int(BF::REF)] = 2;
-  out[int(BF::ARG_REF)] = 2;
-  out[int(BF::WRAPPED)] = 2;
-  out[int(BF::COLON)] = 2;
+  out[int(BF::PRESERVE_MUT)] = 1 << 2;
+  out[int(BF::REF)] = 1 << 2;
+  out[int(BF::ARG_REF)] = 1 << 2;
+  out[int(BF::WRAPPED)] = 1 << 2;
+  out[int(BF::COLON)] = 1 << 2;
   //
-  out[int(BF::RES_REF)] = 3;
-  out[int(BF::PUB)] = 3;
+  out[int(BF::RES_REF)] = 1 << 3;
+  out[int(BF::PUB)] = 1 << 3;
   //
-  out[int(BF::BUILTIN)] = 4;
-  out[int(BF::CDECL)] = 5;
-  out[int(BF::EXTERN)] = 6;
-  out[int(BF::FINI)] = 7;
-  out[int(BF::INIT)] = 8;
-  out[int(BF::POLY)] = 9;
+  out[int(BF::BUILTIN)] = 1 << 4;
+  out[int(BF::CDECL)] = 1 << 5;
+  out[int(BF::EXTERN)] = 1 << 6;
+  out[int(BF::FINI)] = 1 << 7;
+  out[int(BF::INIT)] = 1 << 8;
+  out[int(BF::POLY)] = 1 << 9;
   //
   return out;
 }

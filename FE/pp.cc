@@ -59,12 +59,11 @@ const uint32_t KW_FLAGS =
 
 void MaybeEmitAnnotations(std::vector<PP::Token>* out, Node node) {
   uint16_t compressed = Node_compressed_flags(node);
-  if (compressed == 0) return;
-  uint32_t available = GlobalNodeDescs[int(Node_kind(node))].bool_field_bits & ~EXCLAMATION_FLAGS;
 
+  if (compressed == 0) return;
+  uint32_t available = GlobalNodeDescs[int(Node_kind(node))].bool_field_bits &
+                       ~EXCLAMATION_FLAGS;
   if (available == 0) return;
-  // std::cout << EnumToString(Node_kind(node)) << " " << std::hex << compressed
-  //          << " avail=" << std::hex << available << "\n";
 
   for (int i = 0; i < 32; i++) {
     uint32_t mask = 1 << i;
@@ -74,6 +73,14 @@ void MaybeEmitAnnotations(std::vector<PP::Token>* out, Node node) {
     if ((mask & KW_FLAGS) != 0) {
       out->push_back(PP::Str(EnumToString(bf)));
       out->push_back(PP::Brk());
+    } else {
+      out->push_back(PP::Str("{{"));
+      out->push_back(PP::NoBreak(0));
+      out->push_back(PP::Str(EnumToString(bf)));
+      out->push_back(PP::NoBreak(0));
+      out->push_back(PP::Str("}}"));
+      out->push_back(PP::Brk());
+
     }
   }
 }
@@ -662,6 +669,8 @@ void EmitStmtMacroInvoke(std::vector<PP::Token>* out, Node node) {
 void EmitStatement(std::vector<PP::Token>* out, Node node) {
   MaybeEmitDoc(out, node);
   out->push_back(PP_BEG_STD);
+  MaybeEmitAnnotations(out, node);
+
   switch (Node_kind(node)) {
     case NT::StmtContinue:
       out->push_back(PP ::Str("continue"));
