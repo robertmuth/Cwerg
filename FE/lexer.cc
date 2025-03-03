@@ -302,13 +302,19 @@ std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
 
 std::ostream& operator<<(std::ostream& os, const TK& tk) {
   os << tk.sl << " " << EnumToString(tk.kind) << " [" << tk.text << "]";
-  if (!tk.annotations.empty()) {
+  if (tk.annotation_bits != 0) {
+    std::string_view sep = "";
     os << "{";
-    for (const auto& x : tk.annotations) {
-      os << x << ",";
+    for (int i = 0; i < 32; ++i) {
+      if (((1 << i) & tk.annotation_bits) != 0) {
+        BF bf = BF(i);
+        os << sep << EnumToString(bf);
+        sep = ", ";
+      }
     }
     os << "}";
   }
+
   return os;
 }
 

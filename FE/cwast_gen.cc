@@ -9,7 +9,7 @@ namespace cwerg::fe {
 
 #define BIT_N(x) 1ull << uint64_t(NFD_NODE_FIELD::x)
 #define BIT_S(x) 1ull << uint64_t(NFD_STRING_FIELD::x)
-#define BIT_B(x) 1ull << uint64_t(BF::x)
+#define BIT_B(x) 1ull << uint32_t(BF::x)
 
 struct StringKind {
   const char* name;

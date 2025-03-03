@@ -56,7 +56,7 @@ struct TK {
   std::string_view text;
   SrcLoc sl;
   Str comments;
-  std::vector<std::string_view> annotations;
+  uint32_t annotation_bits;
 };
 
 std::ostream& operator<<(std::ostream& os, const TK& tk);
@@ -107,20 +107,22 @@ class Lexer {
       peek_cached_.kind = TK_KIND::INVALID;
     } else {
       std::vector<std::string_view> comments;
-      current_.annotations.clear();
+      current_.annotation_bits = 0;
+
       TK_RAW tk = lexer_raw_.Next();
       while (tk.kind == TK_KIND::COMMENT) {
         comments.push_back(tk.text);
         tk = lexer_raw_.Next();
       }
       while (tk.kind == TK_KIND::ANNOTATION) {
-        if (current_.annotations.empty()) {
+        if (current_.annotation_bits == 0) {
           current_.sl = lexer_raw_.GetSrcLoc();
         }
-        current_.annotations.push_back(tk.text);
+
+        current_.annotation_bits |= 1 << uint32_t(BF_FromString(tk.text));
         tk = lexer_raw_.Next();
       }
-      if (current_.annotations.empty()) {
+      if (current_.annotation_bits == 0) {
         current_.sl = lexer_raw_.GetSrcLoc();
       }
       current_.kind = tk.kind;

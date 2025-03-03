@@ -31,7 +31,19 @@ Node ParseMacroArgList(Lexer* lexer, bool want_comma);
 Node ParseFunParamList(Lexer* lexer, bool want_comma);
 Node ParseMacroInvocation(Lexer* lexer, TK name);
 
-uint16_t BitsFromAnnotation(const TK& tk) { return 0; }
+uint16_t BitsFromAnnotation(const TK& tk) {
+  uint32_t uncompressed = tk.annotation_bits;
+  if (uncompressed == 0) {
+    return 0;
+  }
+  uint16_t out = 0;
+  for (int i = 0; i < 32; i++) {
+    if (((1 << i) & uncompressed) != 0) {
+      out |= Mask(BF(i));
+    }
+  }
+  return out;
+}
 
 void ParseFunLikeArgs(Lexer* lexer, std::string_view args_desc,
                       std::array<Node, 4>* args) {
@@ -69,7 +81,7 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
   Node out = NodeNew(nt);
   std::array<Node, 4> args = {Node(HandleInvalid), Node(HandleInvalid),  //
                               Node(HandleInvalid), Node(HandleInvalid)};
-  uint16_t bits = 0;
+  uint16_t bits = BitsFromAnnotation(tk);
   switch (nt) {
     // TE
     case NT::ExprOffsetof:
@@ -114,7 +126,7 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
     // E with bits
     case NT::ExprFront:
       ParseFunLikeArgs(lexer, "E", &args);
-      bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
+      bits |= tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       InitExprFront(out, args[0], bits, tk.comments);
       return out;
     // T
@@ -154,7 +166,7 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
     // ET with bits
     case NT::ExprNarrow:
       ParseFunLikeArgs(lexer, "ET", &args);
-      bits = tk.text.ends_with("!") ? Mask(BF::UNCHECKED) : 0;
+      bits |= tk.text.ends_with("!") ? Mask(BF::UNCHECKED) : 0;
       InitExprNarrow(out, args[0], args[1], bits, tk.comments);
       return out;
       //
@@ -456,8 +468,6 @@ std::string FullName(Node node) {
   out += NameData(Node_base_name(node));
   if (!NameIsEmpty(Node_enum_name(node))) {
     out += ":";
-
-
   }
   return out;
 }
@@ -861,7 +871,8 @@ Node ParseStmt(Lexer* lexer) {
         }
       }
 
-      uint16_t bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
+      uint16_t bits = BitsFromAnnotation(tk);
+      bits |= tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       InitDefVar(out, NameNew(name.text), type, init, bits, tk.comments);
       return out;
     }
@@ -1053,6 +1064,7 @@ Node ParseTopLevel(Lexer* lexer) {
   ASSERT(tk.kind == TK_KIND::KW, "expected top level kw");
   NT nt = KeywordToNT(tk.text);
   uint32_t outer_column = tk.sl.col;
+  uint16_t bits = BitsFromAnnotation(tk);
   switch (nt) {
     case NT::DefFun: {
       Node out = NodeNew(NT::DefFun);
@@ -1087,7 +1099,7 @@ Node ParseTopLevel(Lexer* lexer) {
           InitValAuto(init, StrInvalid);
         }
       }
-      uint16_t bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
+      bits |= tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       InitDefGlobal(out, NameNew(name.text), type, init, bits, tk.comments);
       return out;
     }
@@ -1125,7 +1137,6 @@ Node ParseTopLevel(Lexer* lexer) {
       BASE_TYPE_KIND bt = BASE_TYPE_KIND_FromString(base_type.text);
       lexer->MatchOrDie(TK_KIND::COLON);
       Node items = ParseEnumFieldList(lexer, outer_column);
-      uint16_t bits = 0;
       InitDefEnum(out, NameNew(name.text), bt, items, bits, tk.comments);
       return out;
     }
@@ -1134,7 +1145,6 @@ Node ParseTopLevel(Lexer* lexer) {
       const TK name = lexer->MatchOrDie(TK_KIND::ID);
       lexer->MatchOrDie(TK_KIND::ASSIGN);
       Node type = ParseTypeExpr(lexer);
-      uint16_t bits = 0;
       InitDefType(out, NameNew(name.text), type, bits, tk.comments);
       return out;
     }
@@ -1173,7 +1183,6 @@ Node ParseTopLevel(Lexer* lexer) {
       } else {
         body = ParseStmtBodyList(lexer, outer_column);
       }
-      uint16_t bits = 0;
       InitDefMacro(out, NameNew(name.text), mpk, params, gen_ids, body, bits,
                    tk.comments);
       return out;

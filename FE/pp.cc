@@ -50,6 +50,34 @@ void MaybeEmitDoc(std::vector<PP::Token>* out, Node node) {
   }
 }
 
+#define BIT_B(x) 1ull << uint32_t(BF::x)
+
+const uint32_t EXCLAMATION_FLAGS =
+    BIT_B(MUT) | BIT_B(UNCHECKED) | BIT_B(UNTAGGED);
+const uint32_t KW_FLAGS =
+    BIT_B(PUB) | BIT_B(WRAPPED) | BIT_B(REF) | BIT_B(POLY);
+
+void MaybeEmitAnnotations(std::vector<PP::Token>* out, Node node) {
+  uint16_t compressed = Node_compressed_flags(node);
+  if (compressed == 0) return;
+  uint32_t available = GlobalNodeDescs[int(Node_kind(node))].bool_field_bits & ~EXCLAMATION_FLAGS;
+
+  if (available == 0) return;
+  // std::cout << EnumToString(Node_kind(node)) << " " << std::hex << compressed
+  //          << " avail=" << std::hex << available << "\n";
+
+  for (int i = 0; i < 32; i++) {
+    uint32_t mask = 1 << i;
+    if ((mask & available) == 0) continue;
+    BF bf = BF(i);
+    if ((Mask(bf) & compressed) == 0) continue;
+    if ((mask & KW_FLAGS) != 0) {
+      out->push_back(PP::Str(EnumToString(bf)));
+      out->push_back(PP::Brk());
+    }
+  }
+}
+
 void MaybeAddCommaAndHandleComment(std::vector<PP::Token>* out, bool first,
                                    Node node, const PP::Token& first_break) {
   Str doc = Node_comment(node);
@@ -77,6 +105,8 @@ void EmitFullName(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::Str(NameData(Node_base_name(node))));
 
   if (!NameIsEmpty(Node_enum_name(node))) {
+    out->push_back(PP::NoBreak(0));
+    out->push_back(PP::Str(":"));
     out->push_back(PP::NoBreak(0));
     out->push_back(PP::Str(NameData(Node_enum_name(node))));
   }
@@ -381,7 +411,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Str("^"));
       break;
     case NT::ExprAddrOf:
-      out->push_back(PP::Str(Node_has_flag(node, BF::MUT) ? "@!" :"@"));
+      out->push_back(PP::Str(Node_has_flag(node, BF::MUT) ? "@!" : "@"));
       out->push_back(PP::Brk(0));
       EmitExprOrType(out, Node_expr(node));
       break;
@@ -783,6 +813,7 @@ void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
   // std::cout << "TOPLEVEL " << EnumToString(Node_kind(node)) << "\n";
   MaybeEmitDoc(out, node);
   out->push_back(PP_BEG_STD);
+  MaybeEmitAnnotations(out, node);
   bool emit_break;
   switch (Node_kind(node)) {
     case NT::DefGlobal:

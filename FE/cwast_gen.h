@@ -72,7 +72,7 @@ struct NodeCore {
     POINTER_EXPR_KIND pointer_expr_kind;
     STR_KIND str_kind;
   };
-  uint16_t flags;
+  uint16_t compressed_flags;
   Handle children[4];
   Handle next;
 };
@@ -89,14 +89,15 @@ inline NT Node_kind(Node node) { return gNodeCore[node].kind; }
 inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
 inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
 inline bool Node_has_flag(Node node, BF bf) {
-  return gNodeCore[node].flags & Mask(bf);
+  return gNodeCore[node].compressed_flags & Mask(bf);
 }
 inline void Node_set_flag(Node node, BF bf) {
-  gNodeCore[node].flags |= Mask(bf);
+  gNodeCore[node].compressed_flags |= Mask(bf);
 }
 inline void Node_clr_flag(Node node, BF bf) {
-  gNodeCore[node].flags &= ~Mask(bf);
+  gNodeCore[node].compressed_flags &= ~Mask(bf);
 }
+inline uint16_t& Node_compressed_flags(Node node) { return gNodeCore[node].compressed_flags; }
 
 inline Node NodeNew(NT kind) {
   Node out = Node(kind, gStripeGroupNode.New().index());
@@ -114,7 +115,7 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
   core.children[2] = child2;
   core.children[3] = child3;
   core.next = HandleInvalid;
-  core.flags = bits;
+  core.compressed_flags = bits;
   Node_comment(node) = doc;
 }
 
@@ -866,7 +867,7 @@ inline STR_KIND Node_str_kind(Node n) { return gNodeCore[n].str_kind; }
 struct NodeDesc {
   uint64_t node_field_bits;
   uint64_t string_field_bits;
-  uint64_t bool_field_bits;
+  uint32_t bool_field_bits;
 };
 
 // For each NT described which fields (regular / bool) are present
