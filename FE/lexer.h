@@ -13,12 +13,6 @@ namespace cwerg::fe {
 
 void InitLexer();
 
-struct SrcLoc {
-  uint32_t line;
-  uint32_t col;
-  uint32_t file;
-};
-
 std::ostream& operator<<(std::ostream& os, const SrcLoc& sl);
 
 struct TK_RAW {
@@ -54,7 +48,7 @@ class LexerRaw {
 struct TK {
   TK_KIND kind = TK_KIND::INVALID;
   std::string_view text;
-  SrcLoc sl;
+  SrcLoc srcloc;
   Str comments;
   uint32_t annotation_bits;
 };
@@ -116,14 +110,14 @@ class Lexer {
       }
       while (tk.kind == TK_KIND::ANNOTATION) {
         if (current_.annotation_bits == 0) {
-          current_.sl = lexer_raw_.GetSrcLoc();
+          current_.srcloc = lexer_raw_.GetSrcLoc();
         }
 
         current_.annotation_bits |= 1 << uint32_t(BF_FromString(tk.text));
         tk = lexer_raw_.Next();
       }
       if (current_.annotation_bits == 0) {
-        current_.sl = lexer_raw_.GetSrcLoc();
+        current_.srcloc = lexer_raw_.GetSrcLoc();
       }
       current_.kind = tk.kind;
       current_.text = tk.text;

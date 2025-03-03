@@ -3871,7 +3871,7 @@ def GenerateInits():
                 print(f", {other_kind.enum_kind.__name__} {nfd.name}", end="")
         if has_bits:
             print(", uint16_t bits", end="")
-        print(", Str doc", end="")
+        print(", Str doc, const SrcLoc& srcloc", end="")
         print(") {")
         args = ["node", f"NT::{cls.__name__}"]
         for i in range(MAX_SLOTS):
@@ -3888,6 +3888,7 @@ def GenerateInits():
         else:
             args.append("0")
         args.append("doc")
+        args.append("srcloc")
         print(f"    NodeInit({', '.join(args)});")
         print("}\n")
 

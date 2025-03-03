@@ -301,7 +301,7 @@ std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
 }
 
 std::ostream& operator<<(std::ostream& os, const TK& tk) {
-  os << tk.sl << " " << EnumToString(tk.kind) << " [" << tk.text << "]";
+  os << tk.srcloc << " " << EnumToString(tk.kind) << " [" << tk.text << "]";
   if (tk.annotation_bits != 0) {
     std::string_view sep = "";
     os << "{";
