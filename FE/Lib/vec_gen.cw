@@ -65,7 +65,7 @@ pub global ID_mat4 mat4 = {:
                            {: 0.0, 0.0, 1.0, 0.0}, {: 0.0, 0.0, 0.0, 1.0}}
 
 ;
-pub poly fun eq(a vec2, b vec2) bool:
+poly pub fun eq(a vec2, b vec2) bool:
     return a[0] == b[0] && a[1] == b[1]
 
 poly fun eq(a vec3, b vec3) bool:
@@ -91,7 +91,7 @@ poly fun eq(a mat4, b mat4) bool:
       && a[3][1] == b[3][1] && a[3][2] == b[3][2] && a[3][3] == b[3][3]
 
 ;
-pub poly fun add(a vec2, b vec2) vec2:
+poly pub fun add(a vec2, b vec2) vec2:
     return {: a[0] + b[0], a[1] + b[1]}
 
 poly fun add(a vec3, b vec3) vec3:
@@ -123,7 +123,7 @@ poly fun add(a mat4, b mat4) mat4:
              a[3][3] + b[3][3]}}
 
 ;
-pub poly fun pmax(a vec2, b vec2) vec2:
+poly pub fun pmax(a vec2, b vec2) vec2:
     return {: max(a[0], b[0]), max(a[1], b[1])}
 
 poly fun pmax(a vec3, b vec3) vec3:
@@ -134,7 +134,7 @@ poly fun pmax(a vec4, b vec4) vec4:
             }
 
 ;
-pub poly fun pmin(a vec2, b vec2) vec2:
+poly pub fun pmin(a vec2, b vec2) vec2:
     return {: min(a[0], b[0]), min(a[1], b[1])}
 
 poly fun pmin(a vec3, b vec3) vec3:
@@ -145,12 +145,12 @@ poly fun pmin(a vec4, b vec4) vec4:
             }
 
 ;
-pub poly fun cross(a vec3, b vec3) vec3:
+poly pub fun cross(a vec3, b vec3) vec3:
     return {: a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
             a[0] * b[1] - a[1] * b[0]}
 
 ;
-pub poly fun dot(a vec2, b vec2) $T:
+poly pub fun dot(a vec2, b vec2) $T:
     return a[0] * b[0] + a[1] * b[1]
 
 poly fun dot(a vec3, b vec3) $T:
@@ -160,14 +160,14 @@ poly fun dot(a vec4, b vec4) $T:
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
 
 ; b is interpreted as a column vec and the result is a column vec
-pub poly fun mulmv(a mat2, b vec2) vec2:
+poly pub fun mulmv(a mat2, b vec2) vec2:
     return {: a[0][0] * b[0] + a[0][1] * b[1], a[1][0] * b[0] + a[1][1] * b[1]}
 
 ; a is interpreted as a row vec and the result is a row vec
-pub poly fun mulvm(b vec2, a mat2) vec2:
+poly pub fun mulvm(b vec2, a mat2) vec2:
     return {: a[0][0] * b[0] + a[1][0] * b[1], a[0][1] * b[0] + a[1][1] * b[1]}
 
-pub poly fun mulmm(a mat2, b mat2) mat2:
+poly pub fun mulmm(a mat2, b mat2) mat2:
     return {:
             {: a[0][0] * b[0][0] + a[0][1] * b[1][0],
              a[0][0] * b[0][1] + a[0][1] * b[1][1]},
@@ -198,7 +198,7 @@ poly fun mulmm(a mat3, b mat3) mat3:
              a[2][0] * b[0][2] + a[2][1] * b[1][2] + a[2][2] * b[2][2]}}
 
 ;
-pub poly fun sub(a vec2, b vec2) vec2:
+poly pub fun sub(a vec2, b vec2) vec2:
     return {: a[0] - b[0], a[1] - b[1]}
 
 poly fun sub(a vec3, b vec3) vec3:
@@ -230,7 +230,7 @@ poly fun sub(a mat4, b mat4) mat4:
              a[3][3] - b[3][3]}}
 
 ;
-pub poly fun normalized(a vec2) vec2:
+poly pub fun normalized(a vec2) vec2:
     let x = a[0]
     let y = a[1]
     let li $T = 1.0 / sqrt(x * x + y * y)
@@ -252,7 +252,7 @@ poly fun normalized(a vec4) vec4:
     return {: x * li, y * li, z * li, w * li}
 
 ;
-pub poly fun scaled(b vec2, a $T) vec2:
+poly pub fun scaled(b vec2, a $T) vec2:
     return {: a * b[0], a * b[1]}
 
 poly fun scaled(b vec3, a $T) vec3:

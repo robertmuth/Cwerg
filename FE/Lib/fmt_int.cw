@@ -29,19 +29,19 @@ macro unsigned_to_str# EXPR ($val EXPR, $base EXPR, $max_width EXPR,
 ; Why the polymorphism?
 ;         It makes shorter names and avoids the need for separate
 ;         uint and sint handling
-pub poly fun FmtDec(v u8, out span!(u8)) uint:
+poly pub fun FmtDec(v u8, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
-pub poly fun FmtDec(v u16, out span!(u8)) uint:
+poly pub fun FmtDec(v u16, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
-pub poly fun FmtDec(v u32, out span!(u8)) uint:
+poly pub fun FmtDec(v u32, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
-pub poly fun FmtDec(v u64, out span!(u8)) uint:
+poly pub fun FmtDec(v u64, out span!(u8)) uint:
     return unsigned_to_str#(v, 10, 32_uint, out)
 
-pub poly fun FmtDec(v s16, out span!(u8)) uint:
+poly pub fun FmtDec(v s16, out span!(u8)) uint:
     if len(out) == 0:
         return 0
     if v < 0:
@@ -51,7 +51,7 @@ pub poly fun FmtDec(v s16, out span!(u8)) uint:
     else:
         return FmtDec(as(v, u16), out)
 
-pub poly fun FmtDec(v s32, out span!(u8)) uint:
+poly pub fun FmtDec(v s32, out span!(u8)) uint:
     if len(out) == 0:
         return 0
     if v < 0:
@@ -64,14 +64,14 @@ pub poly fun FmtDec(v s32, out span!(u8)) uint:
 ; Why the polymorphism?
 ;         It makes shorter names and avoids the need for separate
 ;         uint and sint handling
-pub poly fun FmtHex(v u64, out span!(u8)) uint:
+poly pub fun FmtHex(v u64, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 64_uint, out)
 
-pub poly fun FmtHex(v u32, out span!(u8)) uint:
+poly pub fun FmtHex(v u32, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 32_uint, out)
 
-pub poly fun FmtHex(v u16, out span!(u8)) uint:
+poly pub fun FmtHex(v u16, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 32_uint, out)
 
-pub poly fun FmtHex(v u8, out span!(u8)) uint:
+poly pub fun FmtHex(v u8, out span!(u8)) uint:
     return unsigned_to_str#(v, 16, 32_uint, out)

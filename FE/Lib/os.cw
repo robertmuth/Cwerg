@@ -4,11 +4,11 @@ pub rec TimeSpec:
     sec uint
     nano_sec uint
 
-pub {{extern}} {{cdecl}} fun nanosleep(req ^TimeSpec, rem ^!TimeSpec) s32:
+{{extern}} {{cdecl}} pub fun nanosleep(req ^TimeSpec, rem ^!TimeSpec) s32:
 
-pub {{extern}} {{cdecl}} fun write(fd s32, s ^u8, size uint) sint:
+{{extern}} {{cdecl}} pub fun write(fd s32, s ^u8, size uint) sint:
 
-pub {{extern}} {{cdecl}} fun read(fd s32, s ^!u8, size uint) sint:
+{{extern}} {{cdecl}} pub fun read(fd s32, s ^!u8, size uint) sint:
 
 pub wrapped type Error = s32
 

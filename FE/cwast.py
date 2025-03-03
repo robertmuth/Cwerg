@@ -557,9 +557,14 @@ ALL_FIELDS = [
 
     NfdStr("path", "TBD"),
     #
+    # order of the attribute should match the order in the node class definition
+    # as we use it for pretty printing.
+    #
+    NfdAttrBool("builtin", "module is the builtin module"),
     NfdAttrBool("init", "run function at startup"),
     NfdAttrBool("fini", "run function at shutdown"),
     NfdAttrBool("extern", "is external function (empty body)"),
+    NfdAttrBool("cdecl", "use c-linkage (no module prefix)"),
     NfdAttrBool("poly", "is polymorphic function"),
     #
     NfdAttrBool("pub", "has public visibility"),
@@ -567,14 +572,12 @@ ALL_FIELDS = [
     NfdAttrBool("preserve_mut", "result type is mutable if underlying type is"),
     NfdAttrBool("ref", "address may be taken"),
     NfdAttrBool("colon", "colon style list"),
-    NfdAttrBool("cdecl", "use c-linkage (no module prefix)"),
     NfdAttrBool("wrapped", "is wrapped type (forces type equivalence by name)"),
 
     NfdAttrBool("unchecked", "array acces is not checked"),
     NfdAttrBool("untagged", "union type is untagged"),
     NfdAttrBool("arg_ref", "in parameter was converted for by-val to pointer"),
     NfdAttrBool("res_ref", "in parameter was converted for by-val to pointer"),
-    NfdAttrBool("builtin", "module is the builtin module"),
     NfdAttrStr("doc", "possibly multi-line comment"),
 
     #
@@ -2898,11 +2901,13 @@ class DefFun:
     #
     init: bool = False
     fini: bool = False
-    pub: bool = False
-    ref: bool = False
-    poly: bool = False
     extern: bool = False
     cdecl: bool = False
+    poly: bool = False
+    #
+    pub: bool = False
+    ref: bool = False
+
     doc: str = ""
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
@@ -3936,8 +3941,9 @@ def GenerateCodeH(fout: Any):
         print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
     print("};")
 
+    #  intentionally not sorted
     cgen.RenderEnumClass(_MakeNameValues(
-        sorted(_FieldNamesForKind(NFK.ATTR_BOOL)), to_upper=True), "BF", fout)
+        _FieldNamesForKind(NFK.ATTR_BOOL), to_upper=True), "BF", fout)
 
     cgen.RenderEnumClass(_NameValuesForNT(), "NT", fout)
     cgen.RenderEnumClass(cgen.NameValues(
@@ -3987,8 +3993,9 @@ def EnumStringConversions(fout: Any):
     render(BINARY_EXPR_KIND.__name__,
            [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()], both_ways=False)
     render("NT",  _NameValuesForNT(), both_ways=False)
+    # intentionally not sorted - order is "print-order"
     render("BF", _MakeNameValues(
-        sorted(_FieldNamesForKind(NFK.ATTR_BOOL)), to_upper=False),
+        _FieldNamesForKind(NFK.ATTR_BOOL), to_upper=False),
         both_ways=True)
 
 

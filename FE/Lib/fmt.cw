@@ -6,7 +6,7 @@ import fmt_int
 
 import fmt_real
 
-pub {{extern}} fun memcpy(dst ^!u8, src ^u8, size uint) ^!u8:
+{{extern}} pub fun memcpy(dst ^!u8, src ^u8, size uint) ^!u8:
 
 pub global FORMATED_STRING_MAX_LEN uint = 4096
 
@@ -30,7 +30,7 @@ global TRUE_STR span(u8) = "true"
 global FALSE_STR span(u8) = "false"
 
 ; only need to mark the first poly as pub
-pub poly fun SysRender(v bool, buffer span!(u8), options ^!SysFormatOptions)
+poly pub fun SysRender(v bool, buffer span!(u8), options ^!SysFormatOptions)
   uint:
     let s = v ? TRUE_STR : FALSE_STR
     let n uint = min(len(buffer), len(s))

@@ -127,7 +127,7 @@ fun RoundDigitsUp(digits span!(u8)) s32:
     set digits[0] = '1'
     return 1
 
-pub poly fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
+poly pub fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
     ; worst case -x.[precision]e-xxx
     let is_negative = num_real::r64_is_negative(val)
     let! buffer [32]u8 = undef
@@ -212,7 +212,7 @@ fun FmtExponentHex(raw_exponent s32, is_potential_zero bool, out span!(u8)) uint
 ;         exponentiation bias is 1023
 ;         https://en.wikipedia.org/wiki/Double-precision_floating-point_format
 ;         https://observablehq.com/@jrus/hexfloat
-pub poly fun FmtHex(val r64, out span!(u8)) uint:
+poly pub fun FmtHex(val r64, out span!(u8)) uint:
     let! frac_bits = num_real::r64_raw_mantissa(val)
     let is_negative = num_real::r64_is_negative(val)
     let raw_exponent = num_real::r64_raw_exponent(val)

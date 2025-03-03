@@ -101,7 +101,7 @@ pub macro span_append_or_die# EXPR ($slice EXPR, $out EXPR) [$e_slice, $e_out]:
             set $e_out[i] = $e_slice[i]
         return len($e_slice)
 
-pub {{extern}} {{cdecl}} fun print_ln(s ^u8, size uint) void:
+{{extern}} {{cdecl}} pub fun print_ln(s ^u8, size uint) void:
 
 ; simple assert for those libs that cannot import fmt
 pub macro assert# STMT ($cond EXPR, $text EXPR) [$e_cond, $e_text]:
