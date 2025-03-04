@@ -74,8 +74,8 @@ fun Test_Dim3() void:
                         {v64::mat3: v64::X_vec3, v64::Y_vec3, v64::Z_vec3}))
     test::AssertTrue#(
                       v64::eq(v64::ONES_vec3,
-                        v64::add(v64::add(v64::X_vec3, v64::Y_vec3), v64::Z_vec3
-                          )))
+                        v64::add(v64::add(v64::X_vec3, v64::Y_vec3),
+                          v64::Z_vec3)))
     test::AssertTrue#(
                       v64::eq(v64::X_vec3,
                         v64::sub(v64::sub(v64::ONES_vec3, v64::Y_vec3),

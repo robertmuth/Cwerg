@@ -69,12 +69,12 @@ pub fun r64_is_subnormal(val r64) bool:
     return r64_raw_exponent(val) == r64_raw_exponent_subnormal
 
 pub fun r64_is_qnan(val r64) bool:
-    return r64_raw_mantissa(val) == r64_mantissa_qnan && r64_raw_exponent(val) ==
-      r64_raw_exponent_nan
+    return r64_raw_mantissa(val) == r64_mantissa_qnan &&
+      r64_raw_exponent(val) == r64_raw_exponent_nan
 
 pub fun r64_is_snan(val r64) bool:
-    return r64_raw_mantissa(val) == r64_mantissa_qnan && r64_raw_exponent(val) ==
-      r64_raw_exponent_nan
+    return r64_raw_mantissa(val) == r64_mantissa_qnan &&
+      r64_raw_exponent(val) == r64_raw_exponent_nan
 
 pub fun r64_is_infinite(val r64) bool:
     return r64_raw_mantissa(val) == r64_mantissa_infinity &&

@@ -73,8 +73,8 @@ macro swap# STMT_LIST ($a EXPR, $b EXPR) [$t]:
         let $orig_size uint = $size
         if $orig_size > $orig_len:
             trap
-        return make_span(ptr_inc({{preserve_mut}} front($orig_slice), $orig_size
-                           ), $orig_len - $orig_size)
+        return make_span(ptr_inc({{preserve_mut}} front($orig_slice),
+                           $orig_size), $orig_len - $orig_size)
 
 {{builtin}} pub macro span_diff EXPR ($a EXPR, $b EXPR) []:
     ptr_diff(front($a), front($b))

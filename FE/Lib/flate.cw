@@ -158,8 +158,8 @@ fun handle_huffman_common(bs ^!bitstream::Stream32, lit_counts span(u16),
                 let sym_width = sym - 257
                 let width u32 = as(width_base_lookup[sym_width], u32) +
                   bitstream::Stream32GetBits(bs, width_bits_lookup[sym_width])
-                let sym_dist = huffman::NextSymbol(bs, dist_counts, dist_symbols
-                                 )
+                let sym_dist = huffman::NextSymbol(bs, dist_counts,
+                                 dist_symbols)
                 if bitstream::Stream32Eos(bs):
                     return TruncationErrorVal
                 if sym_dist > as(len(dist_bits_lookup), u16):

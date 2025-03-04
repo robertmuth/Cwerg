@@ -197,24 +197,29 @@ def KW(node) -> str:
     return node.ALIAS
 
 
+def _EmitArg(out, param, first):
+    if first:
+        if _GetDoc(param):
+            out += [PP.Brk(0)]
+        else:
+            out += [PP.NoBreak(0)]
+    else:
+        out += [PP.NoBreak(0), PP.Str(","), PP.Brk()]
+    _MaybeEmitDoc(out, param)
+    out += [PP_BEG_STD]
+    _MaybeEmitAnnotations(out, param)
+    _EmitExprOrType(out, param)
+    out += [PP.End()]
+
+
 def _EmitParenList(out, lst):
     out += [PP.Str("(")]
     first = True
     for param in lst:
-        if first:
-            if _GetDoc(param):
-                out += [PP.Brk(0)]
-            else:
-                out += [PP.NoBreak(0)]
-        else:
-            out += [PP.NoBreak(0), PP.Str(","), PP.Brk()]
+        _EmitArg(out, param, first)
         first = False
-        _MaybeEmitDoc(out, param)
-        out += [PP_BEG_STD]
-        _MaybeEmitAnnotations(out, param)
-        _EmitExprOrType(out, param)
-        out += [PP.End()]
-    out += [PP.Brk(0), PP.Str(")")]
+
+    out += [PP.NoBreak(0), PP.Str(")")]
 
 
 def _EmitFunctional(out, name, nodes: list):
