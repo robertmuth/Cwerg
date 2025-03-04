@@ -157,10 +157,11 @@ void EmitParenList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::Str(")"));
 }
 
-void EmitFunctional(std::vector<PP::Token>* out, std::string_view name,
-                    Node arg0, Node arg1 = NodeInvalid,
+void EmitFunctional(std::vector<PP::Token>* out, Node node,
+                    std::string_view name, Node arg0, Node arg1 = NodeInvalid,
                     Node arg2 = NodeInvalid) {
   out->push_back(PP_BEG_STD);
+  MaybeEmitAnnotations(out, node);
   out->push_back(PP::Str(name));
   out->push_back(PP::NoBreak(0));
   out->push_back(PP::Str("("));
@@ -255,73 +256,75 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Str(EnumToString(Node_base_type_kind(node))));
       break;
     case NT::ExprFront:
-      EmitFunctional(out, Node_has_flag(node, BF::MUT) ? "front!" : "front",
+      EmitFunctional(out, node,
+                     Node_has_flag(node, BF::MUT) ? "front!" : "front",
                      Node_container(node));
       break;
     case NT::ExprLen:
-      EmitFunctional(out, "len", Node_container(node));
+      EmitFunctional(out, node, "len", Node_container(node));
       break;
       //
     case NT::ExprOffsetof:
-      EmitFunctional(out, "offset_of", Node_type(node), Node_field(node));
+      EmitFunctional(out, node, "offset_of", Node_type(node), Node_field(node));
       break;
     case NT::TypeUnionDelta:
-      EmitFunctional(out, "union_delta", Node_type(node),
+      EmitFunctional(out, node, "union_delta", Node_type(node),
                      Node_subtrahend(node));
       break;
     case NT::ValSpan:
-      EmitFunctional(out, "make_span", Node_pointer(node),
+      EmitFunctional(out, node, "make_span", Node_pointer(node),
                      Node_expr_size(node));
       break;
       //
 
     case NT::ExprAs:
-      EmitFunctional(out, "as", Node_expr(node), Node_type(node));
+      EmitFunctional(out, node, "as", Node_expr(node), Node_type(node));
       break;
     case NT::ExprIs:
-      EmitFunctional(out, "is", Node_expr(node), Node_type(node));
+      EmitFunctional(out, node, "is", Node_expr(node), Node_type(node));
       break;
     case NT::ExprUnsafeCast:
-      EmitFunctional(out, "unsafe_as", Node_expr(node), Node_type(node));
+      EmitFunctional(out, node, "unsafe_as", Node_expr(node), Node_type(node));
       break;
     case NT::ExprWiden:
-      EmitFunctional(out, "widen_as", Node_expr(node), Node_type(node));
+      EmitFunctional(out, node, "widen_as", Node_expr(node), Node_type(node));
       break;
     case NT::ExprWrap:
-      EmitFunctional(out, "wrap_as", Node_expr(node), Node_type(node));
+      EmitFunctional(out, node, "wrap_as", Node_expr(node), Node_type(node));
       break;
     case NT::ExprBitCast:
-      EmitFunctional(out, "bitwise_as", Node_expr(node), Node_type(node));
+      EmitFunctional(out, node, "bitwise_as", Node_expr(node), Node_type(node));
       break;
     case NT::ExprNarrow:
       EmitFunctional(
-          out, Node_has_flag(node, BF::UNCHECKED) ? "narrow_as!" : "narrow_as",
+          out, node,
+          Node_has_flag(node, BF::UNCHECKED) ? "narrow_as!" : "narrow_as",
           Node_expr(node), Node_type(node));
       break;
     case NT::ExprSizeof:
-      EmitFunctional(out, "size_of", Node_type(node));
+      EmitFunctional(out, node, "size_of", Node_type(node));
       break;
     case NT::ExprTypeId:
-      EmitFunctional(out, "typeid_of", Node_type(node));
+      EmitFunctional(out, node, "typeid_of", Node_type(node));
       break;
     case NT::TypeSpan:
-      EmitFunctional(out, Node_has_flag(node, BF::MUT) ? "span!" : "span",
+      EmitFunctional(out, node, Node_has_flag(node, BF::MUT) ? "span!" : "span",
                      Node_type(node));
       break;
     case NT::ExprUnionTag:
-      EmitFunctional(out, "union_tag", Node_expr(node));
+      EmitFunctional(out, node, "union_tag", Node_expr(node));
       break;
     case NT::ExprUnwrap:
-      EmitFunctional(out, "unwrap", Node_expr(node));
+      EmitFunctional(out, node, "unwrap", Node_expr(node));
       break;
     case NT::ExprStringify:
-      EmitFunctional(out, "stringify", Node_expr(node));
+      EmitFunctional(out, node, "stringify", Node_expr(node));
       break;
     case NT::ExprSrcLoc:
-      EmitFunctional(out, "srcloc", Node_expr(node));
+      EmitFunctional(out, node, "srcloc", Node_expr(node));
       break;
     case NT::TypeOf:
-      EmitFunctional(out, "type_of", Node_expr(node));
+      EmitFunctional(out, node, "type_of", Node_expr(node));
       break;
       //
     case NT::ExprCall:
@@ -349,10 +352,10 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     //
     case NT::ExprPointer:
       if (Node_kind(Node_expr_bound_or_undef(node)) == NT::ValUndef) {
-        EmitFunctional(out, EnumToString(Node_pointer_expr_kind(node)),
+        EmitFunctional(out, node, EnumToString(Node_pointer_expr_kind(node)),
                        Node_expr1(node), Node_expr2(node));
       } else {
-        EmitFunctional(out, EnumToString(Node_pointer_expr_kind(node)),
+        EmitFunctional(out, node, EnumToString(Node_pointer_expr_kind(node)),
                        Node_expr1(node), Node_expr2(node),
                        Node_expr_bound_or_undef(node));
       }
@@ -360,10 +363,10 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     case NT::Expr1:
       switch (Node_unary_expr_kind(node)) {
         case UNARY_EXPR_KIND::ABS:
-          EmitFunctional(out, "abs", Node_expr(node));
+          EmitFunctional(out, node, "abs", Node_expr(node));
           break;
         case UNARY_EXPR_KIND::SQRT:
-          EmitFunctional(out, "sqrt", Node_expr(node));
+          EmitFunctional(out, node, "sqrt", Node_expr(node));
           break;
         case UNARY_EXPR_KIND::NOT:
           out->push_back(PP::Str("!"));
@@ -383,13 +386,13 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     case NT::Expr2:
       switch (Node_binary_expr_kind(node)) {
         case BINARY_EXPR_KIND::PDELTA:
-          EmitFunctional(out, "ptr_diff", Node_expr1(node), Node_expr2(node));
+          EmitFunctional(out, node, "ptr_diff", Node_expr1(node), Node_expr2(node));
           break;
         case BINARY_EXPR_KIND::MIN:
-          EmitFunctional(out, "min", Node_expr1(node), Node_expr2(node));
+          EmitFunctional(out, node, "min", Node_expr1(node), Node_expr2(node));
           break;
         case BINARY_EXPR_KIND::MAX:
-          EmitFunctional(out, "max", Node_expr1(node), Node_expr2(node));
+          EmitFunctional(out, node, "max", Node_expr1(node), Node_expr2(node));
           break;
         default:
           EmitExprOrType(out, Node_expr1(node));
@@ -574,7 +577,7 @@ bool IsBuiltInStmtMacro(std::string_view name) {
 
 bool IsMacroWitBlock(Node node) {
   for (Node arg = Node_args(node); arg != HandleInvalid; arg = Node_next(arg)) {
-    if (Node_kind(arg) == NT::EphemeralList && Node_has_flag(node, BF::COLON))
+    if (Node_kind(arg) == NT::EphemeralList && Node_has_flag(arg, BF::COLON))
       return true;
   }
   return false;

@@ -4,10 +4,8 @@
 """
 
 import logging
-import enum
-import dataclasses
 
-from typing import Optional, Any, Callable
+from typing import Any, Callable
 
 from FE import cwast
 from Util import pretty as PP
@@ -207,7 +205,6 @@ def _EmitArg(out, param, first):
         out += [PP.NoBreak(0), PP.Str(","), PP.Brk()]
     _MaybeEmitDoc(out, param)
     out += [PP_BEG_STD]
-    _MaybeEmitAnnotations(out, param)
     _EmitExprOrType(out, param)
     out += [PP.End()]
 
@@ -222,12 +219,22 @@ def _EmitParenList(out, lst):
     out += [PP.NoBreak(0), PP.Str(")")]
 
 
-def _EmitFunctional(out, name, nodes: list):
+def _EmitFunctional(out, node, name, nodes: list):
     out += [PP_BEG_STD]
-    if isinstance(name, str):
-        out += [PP.Str(name)]
-    else:
-        _EmitExprOrType(out, name)
+    _MaybeEmitAnnotations(out, node)
+    out += [PP.Str(name)]
+    out += [PP.NoBreak(0)]
+    _EmitParenList(out, nodes)
+    out += [PP.End()]
+
+
+def _EmitFunctionalKW(out, node, nodes: list, add_excl=False):
+    _EmitFunctional(out, node, WithExcl(KW(node), add_excl), nodes)
+
+
+def _EmitCall(out, name, nodes: list):
+    out += [PP_BEG_STD]
+    _EmitExprOrType(out, name)
     out += [PP.NoBreak(0)]
     _EmitParenList(out, nodes)
     out += [PP.End()]
@@ -286,7 +293,7 @@ def _EmitExpr1(out, node: cwast.Expr1):
     kind = node.unary_expr_kind
     sym = cwast.UNARY_EXPR_SHORTCUT_CONCRETE_INV[kind]
     if kind in _FUNCTIONAL_UNOPS:
-        _EmitFunctional(out, sym, [node.expr])
+        _EmitFunctional(out, node, sym, [node.expr])
     else:
         _EmitUnary(out, sym, node.expr)
 
@@ -304,7 +311,7 @@ def _EmitExpr2(out, node: cwast.Expr2):
     kind = node.binary_expr_kind
     sym = cwast.BINARY_EXPR_SHORTCUT_INV[kind]
     if kind in _FUNCTIONAL_BINOPS:
-        _EmitFunctional(out, sym, [node.expr1, node.expr2])
+        _EmitFunctional(out, node, sym, [node.expr1, node.expr2])
     else:
         _EmitBinary(out, node, node.expr1, 1, sym, 1, node.expr2)
 
@@ -381,39 +388,44 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.TypeBase: lambda out, n: out.append(
         PP.Str(cwast.BaseTypeKindToKeyword(n.base_type_kind))),
     #
-    cwast.ExprFront: lambda out, n: _EmitFunctional(out, WithExcl(KW(n), n.mut), [n.container]),
-    cwast.ExprLen: lambda out, n: _EmitFunctional(out, KW(n), [n.container]),
+    cwast.ExprLen: lambda out, n: _EmitFunctionalKW(out, n, [n.container]),
     #
-    cwast.ExprOffsetof: lambda out, n: _EmitFunctional(out, KW(n), [n.type, n.field]),
-    cwast.TypeUnionDelta: lambda out, n: _EmitFunctional(out, KW(n), [n.type, n.subtrahend]),
-    cwast.ValSpan: lambda out, n: _EmitFunctional(out, "make_span", [n.pointer, n.expr_size]),
+    cwast.ExprOffsetof: lambda out, n: _EmitFunctionalKW(out, n, [n.type, n.field]),
+    cwast.TypeUnionDelta: lambda out, n: _EmitFunctionalKW(out, n, [n.type, n.subtrahend]),
+    cwast.ValSpan: lambda out, n: _EmitFunctionalKW(out, n, [n.pointer, n.expr_size]),
     #
-    cwast.ExprAs: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
-    cwast.ExprIs: lambda out, n: _EmitFunctional(out,  KW(n), [n.expr, n.type]),
-    cwast.ExprUnsafeCast: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
-    cwast.ExprWiden: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
-    cwast.ExprWrap: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
-    cwast.ExprBitCast: lambda out, n: _EmitFunctional(out, KW(n), [n.expr, n.type]),
-    cwast.ExprNarrow: lambda out, n: _EmitFunctional(out, WithExcl(KW(n), n.unchecked), [n.expr, n.type]),
+    cwast.ExprAs: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
+    cwast.ExprIs: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
+    cwast.ExprUnsafeCast: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
+    cwast.ExprWiden: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
+    cwast.ExprWrap: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
+    cwast.ExprBitCast: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
     #
-    cwast.ExprSizeof: lambda out, n: _EmitFunctional(out, KW(n), [n.type]),
-    cwast.ExprTypeId: lambda out, n: _EmitFunctional(out, KW(n), [n.type]),
-    cwast.TypeSpan: lambda out, n: _EmitFunctional(out, WithExcl("span", n.mut), [n.type]),
+    cwast.ExprSizeof: lambda out, n: _EmitFunctionalKW(out, n, [n.type]),
+    cwast.ExprTypeId: lambda out, n: _EmitFunctionalKW(out, n, [n.type]),
     #
-    cwast.ExprUnionTag: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
-    cwast.ExprUnwrap: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
-    cwast.ExprStringify: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
-    cwast.ExprSrcLoc: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
-    cwast.TypeOf: lambda out, n: _EmitFunctional(out, KW(n), [n.expr]),
+    cwast.ExprUnionTag: lambda out, n: _EmitFunctionalKW(out, n, [n.expr]),
+    cwast.ExprUnwrap: lambda out, n: _EmitFunctionalKW(out, n, [n.expr]),
+    cwast.ExprStringify: lambda out, n: _EmitFunctionalKW(out, n, [n.expr]),
+    cwast.ExprSrcLoc: lambda out, n: _EmitFunctionalKW(out, n, [n.expr]),
+    cwast.TypeOf: lambda out, n: _EmitFunctionalKW(out, n, [n.expr]),
     #
-    cwast.ExprCall: lambda out, n: _EmitFunctional(out, n.callee, n.args),
-    cwast.MacroInvoke: lambda out, n: _EmitFunctional(out, n.name.name, n.args),
-    cwast.TypeUnion: lambda out, n: _EmitFunctional(out, WithExcl("union", n.untagged), n.types),
+    cwast.TypeUnion: lambda out, n: _EmitFunctionalKW(out, n, n.types, n.untagged),
+    cwast.TypeSpan: lambda out, n: _EmitFunctionalKW(out, n, [n.type], n.mut),
+    cwast.ExprFront: lambda out, n: _EmitFunctionalKW(out, n, [n.container], n.mut),
+    cwast.ExprNarrow: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type], n.unchecked),
     #
     cwast.ExprPointer: lambda out, n: _EmitFunctional(
-        out, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
+        out, n, cwast.POINTER_EXPR_SHORTCUT_INV[n.pointer_expr_kind],
         [n.expr1, n.expr2] if isinstance(n.expr_bound_or_undef, cwast.ValUndef) else
         [n.expr1, n.expr2, n.expr_bound_or_undef]),
+    #
+    cwast.MacroInvoke: lambda out, n: _EmitFunctional(out, n, n.name.name, n.args),
+
+    #
+    cwast.ExprCall: lambda out, n: _EmitCall(out, n.callee, n.args),
+    #
+
     #
     cwast.Expr1: _EmitExpr1,
     cwast.Expr2: _EmitExpr2,
