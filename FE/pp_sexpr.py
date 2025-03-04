@@ -39,16 +39,7 @@ def _MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.ValVoid):
         return "void_val"
     elif isinstance(node, cwast.ValString):
-        k = node.str_kind
-        quotes = '"""' if k in (cwast.STR_KIND.HEX_TRIPLE,
-                                cwast.STR_KIND.RAW_TRIPLE,
-                                cwast.STR_KIND.NORMAL_TRIPLE) else '"'
-        prefix = ""
-        if k in (cwast.STR_KIND.RAW_TRIPLE, cwast.STR_KIND.RAW):
-            prefix = "r"
-        elif k in (cwast.STR_KIND.HEX_TRIPLE, cwast.STR_KIND.HEX):
-            prefix = "x"
-        return prefix + quotes + node.string + quotes
+        return node.render()
     else:
         return None
 

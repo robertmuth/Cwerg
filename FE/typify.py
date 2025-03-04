@@ -508,7 +508,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValCompound):
         return _TypifyValCompound(node, tc, target_type, ctx)
     elif isinstance(node, cwast.ValString):
-        dim = cwast.ComputeStringSize(node.str_kind, node.string)
+        dim = len(node.get_bytes())
         ct = tc.insert_array_type(
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
         return AnnotateNodeType(node, ct)

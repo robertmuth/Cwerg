@@ -16,8 +16,6 @@ from FE import typify
 from FE import identifier
 from FE import canonicalize
 
-from Util.parse import EscapedStringToBytes, HexStringToBytes
-
 
 logger = logging.getLogger(__name__)
 
@@ -492,15 +490,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ValCompound):
         return _AssignValue(node, _EvalValCompound(node.x_type, node.inits, node.x_srcloc))
     elif isinstance(node, cwast.ValString):
-        s = node.string
-        if not all(ord(c) < 128 for c in s):
-            cwast.CompilerError(
-                node, "non-ascii chars currently not supported")
-        if node.str_kind in (cwast.STR_KIND.RAW, cwast.STR_KIND.RAW_TRIPLE):
-            return _AssignValue(node, bytes(s, encoding="ascii"))
-        elif node.str_kind in (cwast.STR_KIND.HEX, cwast.STR_KIND.HEX_TRIPLE):
-            return _AssignValue(node, HexStringToBytes(s))
-        return _AssignValue(node, EscapedStringToBytes(s))
+        return _AssignValue(node, node.get_bytes())
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
         container_val = node.container.x_value

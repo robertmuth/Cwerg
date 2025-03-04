@@ -11,6 +11,7 @@ import re
 import collections
 
 from Util import cgen
+from Util.parse import EscapedStringToBytes, HexStringToBytes
 
 from typing import Optional, Union, Any, TypeAlias, NoReturn, Final, ClassVar
 
@@ -1822,9 +1823,23 @@ class ValString:
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
-    def render(this):
-        tq = this.str_kind.value & 1
-        kind = STR_KIND(this.str_kind.value & 0xfe)
+    def payload(self):
+        return self.string
+
+    def get_bytes(self):
+        s = self.payload()
+        if not all(ord(c) < 128 for c in s):
+            CompilerError(
+                self, "non-ascii chars currently not supported")
+        if self.str_kind in (STR_KIND.RAW, STR_KIND.RAW_TRIPLE):
+            return bytes(s, encoding="ascii")
+        elif self.str_kind in (STR_KIND.HEX, STR_KIND.HEX_TRIPLE):
+            return HexStringToBytes(s)
+        return EscapedStringToBytes(s)
+
+    def render(self):
+        tq = self.str_kind.value & 1
+        kind = STR_KIND(self.str_kind.value & 0xfe)
         quotes = '"""' if tq else '"'
         prefix = ""
         if kind == STR_KIND.RAW:
@@ -1833,7 +1848,7 @@ class ValString:
             prefix = "x"
         else:
             assert kind == STR_KIND.NORMAL, f"{kind}"
-        return f'{prefix}{quotes}{this.string}{quotes}'
+        return f'{prefix}{quotes}{self.string}{quotes}'
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.string}"
@@ -1852,36 +1867,7 @@ def IsWellFormedStringLiteral(t: str):
         return False
 
 
-def ComputeStringSize(str_kind: STR_KIND, string: str) -> int:
-    kind = STR_KIND(str_kind.value & 0xfe)
-    n = len(string)
-    if kind == STR_KIND.RAW:
-        return n
-    if kind == STR_KIND.HEX:
-        n = 0
-        last = None
-        for c in string:
-            if c in " \t\n":
-                continue
-            if last:
-                last = None
-            else:
-                last = c
-                n += 1
-        assert last is None
-        return n
-    assert kind == STR_KIND.NORMAL
-    esc = False
-    for c in string:
-        if esc:
-            esc = False
-            if c == "x":
-                n -= 3
-            else:
-                n -= 1
-        elif c == "\\":
-            esc = True
-    return n
+
 
 
 def MakeValString(t: str, sl: SrcLoc) -> ValString:
