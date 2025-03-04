@@ -210,9 +210,9 @@ fun main(argc s32, argv ^^u8) s32:
     fmt::print#("image byte size: ", len(test_image), "\n")
     trylet fi JD::FrameInfo = JD::DecodeFrameInfo(test_image), err:
         return 1
-    fmt::print#("image format:", fi.format, " pixels:", fi.width, "x", fi.height
-                , " ncomp:", fi.ncomp, " mbsize:", fi.mbsizex, "x", fi.mbsizey,
-                " mbdim:", fi.mbwidth, "x", fi.mbheight, "\n")
+    fmt::print#("image format:", fi.format, " pixels:", fi.width, "x", fi.
+                height, " ncomp:", fi.ncomp, " mbsize:", fi.mbsizex, "x", fi.
+                mbsizey, " mbdim:", fi.mbwidth, "x", fi.mbheight, "\n")
     for i = 0, fi.ncomp, 1:
         let comp = fi.comp[i]
         fmt::print#("comp: ", comp.cid, " ", comp.ssx, "x", comp.ssy, " ", comp.

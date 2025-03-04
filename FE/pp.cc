@@ -620,7 +620,7 @@ void EmitStmtMacroInvoke(std::vector<PP::Token>* out, Node node) {
     if (first) {
       out->push_back(PP::Brk(is_block_like ? 1 : 0));
     } else {
-      out->push_back(PP::Brk(0));
+      out->push_back(PP::NoBreak(0));
       out->push_back(PP ::Str(","));
       out->push_back(PP::Brk());
     }

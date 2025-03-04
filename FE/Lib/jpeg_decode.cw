@@ -141,8 +141,8 @@ fun ColIDCT(blk ^![8 * 8]s16) void:
                 set blk^[o + i] = t
             continue
         CommonIDCT#()
-        debug#("idc-col out ", descale(x40 + x17), " ", descale(x41 + tmp2), " "
-               , descale(x42 + tmp3), " ", descale(x43 - x44), "\n")
+        debug#("idc-col out ", descale(x40 + x17), " ", descale(x41 + tmp2),
+               " ", descale(x42 + tmp3), " ", descale(x43 - x44), "\n")
         set blk^[o + 8 * 0] = clamp8(descale(x40 + x17))
         set blk^[o + 8 * 1] = clamp8(descale(x41 + tmp2))
         set blk^[o + 8 * 2] = clamp8(descale(x42 + tmp3))

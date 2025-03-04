@@ -532,7 +532,7 @@ def _EmitStmtMacroInvoke(out, node: cwast.MacroInvoke):
         elif first:
             out += [PP.Brk(1 if is_block_like else 0)]
         else:
-            out += [PP.Brk(0), PP.Str(","), PP.Brk()]
+            out += [PP.NoBreak(0), PP.Str(","), PP.Brk()]
         first = False
         #
         if isinstance(a, cwast.EphemeralList):
