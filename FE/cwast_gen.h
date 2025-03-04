@@ -262,22 +262,22 @@ enum class NFD_STRING_FIELD : uint8_t {
 
 enum class BF : uint8_t {
     invalid = 0,
-    ARG_REF = 1,
-    BUILTIN = 2,
-    CDECL = 3,
-    COLON = 4,
-    EXTERN = 5,
-    FINI = 6,
-    INIT = 7,
+    BUILTIN = 1,
+    INIT = 2,
+    FINI = 3,
+    EXTERN = 4,
+    CDECL = 5,
+    POLY = 6,
+    PUB = 7,
     MUT = 8,
-    POLY = 9,
-    PRESERVE_MUT = 10,
-    PUB = 11,
-    REF = 12,
-    RES_REF = 13,
-    UNCHECKED = 14,
-    UNTAGGED = 15,
-    WRAPPED = 16,
+    PRESERVE_MUT = 9,
+    REF = 10,
+    COLON = 11,
+    WRAPPED = 12,
+    UNCHECKED = 13,
+    UNTAGGED = 14,
+    ARG_REF = 15,
+    RES_REF = 16,
 };
 
 enum class NT : uint8_t {
@@ -422,15 +422,6 @@ enum class BASE_TYPE_KIND : uint8_t {
     NORET = 41,
     BOOL = 42,
     TYPEID = 43,
-};
-
-enum class STR_KIND : uint8_t {
-    NORMAL = 0,
-    NORMAL_TRIPLE = 1,
-    RAW = 2,
-    RAW_TRIPLE = 3,
-    HEX = 4,
-    HEX_TRIPLE = 5,
 };
 
 enum class MACRO_PARAM_KIND : uint8_t {
@@ -826,8 +817,8 @@ inline void InitValSpan(Node node, Node pointer, Node expr_size, Str doc, const 
     NodeInit(node, NT::ValSpan, pointer, expr_size, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
 }
 
-inline void InitValString(Node node, Str string, STR_KIND str_kind, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValString, string, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(str_kind), 0, doc, srcloc);
+inline void InitValString(Node node, Str string, Str doc, const SrcLoc& srcloc) {
+    NodeInit(node, NT::ValString, string, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValTrue(Node node, Str doc, const SrcLoc& srcloc) {

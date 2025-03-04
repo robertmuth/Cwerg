@@ -371,31 +371,8 @@ Node PrattParseParenGroup(Lexer* lexer, const TK& tk, uint32_t precedence) {
 }
 
 Node PrattParseStr(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  std::string_view s = tk.text;
-  STR_KIND sk = STR_KIND::NORMAL;
-  uint32_t offset = 0;
-  if (s[0] == '"') {
-    sk = STR_KIND::NORMAL;
-    offset = 0;
-  } else if (s[0] == 'r') {
-    sk = STR_KIND::RAW;
-    offset = 1;
-  } else if (s[0] == 'x') {
-    sk = STR_KIND::HEX;
-    offset = 1;
-  } else {
-    ASSERT(false, "");
-  }
-
-  if (starts_with(s.substr(1), "\"\"\"")) {
-    s = s.substr(offset + 3, s.size() - offset - 6);
-    sk = STR_KIND(1 + uint8_t(sk));
-  } else {
-    s = s.substr(offset + 1, s.size() - offset - 2);
-  }
-
   Node out = NodeNew(NT::ValString);
-  InitValString(out, StrNew(s), sk, tk.comments, tk.srcloc);
+  InitValString(out, StrNew(tk.text), tk.comments, tk.srcloc);
   return out;
 }
 
@@ -644,7 +621,7 @@ Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
   ASSERT(prefix_handler.handler != nullptr, "No handler for " << tk);
   Node lhs = prefix_handler.handler(lexer, tk, prefix_handler.precedence);
   while (true) {
-    const TK tk = lexer->Peek();
+    TK tk = lexer->Peek();
 
     const PrattHandlerInfix& infix_handler =
         INFIX_EXPR_PARSERS[uint8_t(tk.kind)];
@@ -655,8 +632,8 @@ Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
       break;
     }
 
-    lhs = infix_handler.handler(lexer, lhs, lexer->Next(),
-                                infix_handler.precedence);
+    lexer->Next();
+    lhs = infix_handler.handler(lexer, lhs, tk, infix_handler.precedence);
   }
   return lhs;
 }
@@ -758,7 +735,7 @@ Node ParseCaseList(Lexer* lexer, int cond_column) {
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= cond_column) {
     return Node(HandleInvalid);
   }
-  tk = lexer->MatchOrDie(TK_KIND::KW, "case");
+  lexer->MatchOrDie(TK_KIND::KW, "case");
   uint32_t case_column = tk.srcloc.col;
   Node out = NodeNew(NT::Case);
   Node cond = PrattParseExpr(lexer);
@@ -888,8 +865,8 @@ Node ParseStmt(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body_t = ParseStmtBodyList(lexer, outer_column);
       Node body_f = Node(HandleInvalid);
-      tk = lexer->Peek();
-      if (tk.text == "else" && tk.srcloc.col == outer_column) {
+      const TK& else_tk = lexer->Peek();
+      if (else_tk.text == "else" && else_tk.srcloc.col == outer_column) {
         lexer->Next();
         lexer->MatchOrDie(TK_KIND::COLON);
         body_f = ParseStmtBodyList(lexer, outer_column);
@@ -1001,6 +978,8 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
     }
   } else {
     ASSERT(tk.kind == TK_KIND::KW, tk);
+    // if (tk.comments != StrInvalid)
+    //   std::cout << "@@ " << tk.text << " >>>>" << StrData(tk.comments);
     out = ParseStmt(lexer);
   }
   Node_next(out) = ParseStmtBodyList(lexer, outer_column);
@@ -1204,10 +1183,7 @@ Node ParseTopLevel(Lexer* lexer) {
 }
 
 Node ParseModBodyList(Lexer* lexer, uint32_t column) {
-  const TK& tk = lexer->Peek();
-  // std::cout << "@@@@ TOP " << tk.text << " " << EnumToString(tk.kind) <<
-  // "\n";
-  if (tk.kind == TK_KIND::SPECIAL_EOF) {
+  if (lexer->Peek().kind == TK_KIND::SPECIAL_EOF) {
     return Node(HandleInvalid);
   }
 
@@ -1218,7 +1194,7 @@ Node ParseModBodyList(Lexer* lexer, uint32_t column) {
 }
 
 Node ParseDefMod(Lexer* lexer) {
-  const TK& tk = lexer->MatchOrDie(TK_KIND::KW, "module");
+  const TK tk = lexer->MatchOrDie(TK_KIND::KW, "module");
   //
   Node def_mod = NodeNew(NT::DefMod);
   Node params = Node(HandleInvalid);

@@ -483,41 +483,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       EmitStatementsSpecial(out, Node_body(node));
       break;
     case NT::ValString:
-      switch (Node_str_kind(node)) {
-        case STR_KIND::HEX:
-        case STR_KIND::HEX_TRIPLE:
-          out->push_back(PP::Str("x"));
-          out->push_back(PP::NoBreak(0));
-          break;
-        case STR_KIND::RAW:
-        case STR_KIND::RAW_TRIPLE:
-          out->push_back(PP::Str("r"));
-          out->push_back(PP::NoBreak(0));
-          break;
-        case STR_KIND::NORMAL:
-        case STR_KIND::NORMAL_TRIPLE:
-          break;
-      }
-      switch (Node_str_kind(node)) {
-        case STR_KIND::RAW_TRIPLE:
-        case STR_KIND::HEX_TRIPLE:
-        case STR_KIND::NORMAL_TRIPLE:
-          out->push_back(PP::Str("\"\"\""));
-          out->push_back(PP::NoBreak(0));
-          out->push_back(PP::Str(StrData(Node_string(node))));
-          out->push_back(PP::NoBreak(0));
-          out->push_back(PP::Str("\"\"\""));
-          break;
-        case STR_KIND::HEX:
-        case STR_KIND::RAW:
-        case STR_KIND::NORMAL:
-          out->push_back(PP::Str("\""));
-          out->push_back(PP::NoBreak(0));
-          out->push_back(PP::Str(StrData(Node_string(node))));
-          out->push_back(PP::NoBreak(0));
-          out->push_back(PP::Str("\""));
-          break;
-      }
+      out->push_back(PP::Str(StrData(Node_string(node))));
       break;
     default:
       // out->push_back(PP::Str("TODO-UNEXPECTED"));

@@ -50,9 +50,9 @@ NodeDesc GlobalNodeDescs[] = {
     {}, // invalid
     { BIT_N(cond)| BIT_N(body), 0, 0 }, // Case
     { BIT_N(items), BIT_S(name), BIT_B(PUB) }, // DefEnum
-    { BIT_N(params)| BIT_N(result)| BIT_N(body), BIT_S(name), BIT_B(INIT)| BIT_B(FINI)| BIT_B(PUB)| BIT_B(REF)| BIT_B(POLY)| BIT_B(EXTERN)| BIT_B(CDECL) }, // DefFun
+    { BIT_N(params)| BIT_N(result)| BIT_N(body), BIT_S(name), BIT_B(INIT)| BIT_B(FINI)| BIT_B(EXTERN)| BIT_B(CDECL)| BIT_B(POLY)| BIT_B(PUB)| BIT_B(REF) }, // DefFun
     { BIT_N(type_or_auto)| BIT_N(initial_or_undef_or_auto), BIT_S(name), BIT_B(PUB)| BIT_B(MUT)| BIT_B(REF)| BIT_B(CDECL) }, // DefGlobal
-    { BIT_N(params_macro)| BIT_N(gen_ids)| BIT_N(body_macro), BIT_S(name), BIT_B(PUB)| BIT_B(BUILTIN) }, // DefMacro
+    { BIT_N(params_macro)| BIT_N(gen_ids)| BIT_N(body_macro), BIT_S(name), BIT_B(BUILTIN)| BIT_B(PUB) }, // DefMacro
     { BIT_N(params_mod)| BIT_N(body_mod), 0, BIT_B(BUILTIN) }, // DefMod
     { BIT_N(fields), BIT_S(name), BIT_B(PUB) }, // DefRec
     { BIT_N(type), BIT_S(name), BIT_B(PUB)| BIT_B(WRAPPED) }, // DefType
@@ -189,38 +189,6 @@ const uint8_t MACRO_PARAM_KIND_Jumper[128] = {
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 0, 3, 255, 255, 4, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 6, 8, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-};
-
-const char* const STR_KIND_ToStringMap[] = {
-    "NORMAL", // 0
-    "NORMAL_TRIPLE", // 1
-    "RAW", // 2
-    "RAW_TRIPLE", // 3
-    "HEX", // 4
-    "HEX_TRIPLE", // 5
-};
-const char* EnumToString(STR_KIND x) { return STR_KIND_ToStringMap[unsigned(x)]; }
-
-
-const struct StringKind STR_KIND_FromStringMap[] = {
-    {"HEX", 4},
-    {"HEX_TRIPLE", 5},
-    {"NORMAL", 0},
-    {"NORMAL_TRIPLE", 1},
-    {"RAW", 2},
-    {"RAW_TRIPLE", 3},
-    {"ZZZ", 0},
-};
-
-const uint8_t STR_KIND_Jumper[128] = {
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 255, 255, 255, 255, 2, 255,
- 255, 255, 4, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
@@ -537,44 +505,44 @@ const char* EnumToString(NT x) { return NT_ToStringMap[unsigned(x)]; }
 
 const char* const BF_ToStringMap[] = {
     "invalid", // 0
-    "arg_ref", // 1
-    "builtin", // 2
-    "cdecl", // 3
-    "colon", // 4
-    "extern", // 5
-    "fini", // 6
-    "init", // 7
+    "builtin", // 1
+    "init", // 2
+    "fini", // 3
+    "extern", // 4
+    "cdecl", // 5
+    "poly", // 6
+    "pub", // 7
     "mut", // 8
-    "poly", // 9
-    "preserve_mut", // 10
-    "pub", // 11
-    "ref", // 12
-    "res_ref", // 13
-    "unchecked", // 14
-    "untagged", // 15
-    "wrapped", // 16
+    "preserve_mut", // 9
+    "ref", // 10
+    "colon", // 11
+    "wrapped", // 12
+    "unchecked", // 13
+    "untagged", // 14
+    "arg_ref", // 15
+    "res_ref", // 16
 };
 const char* EnumToString(BF x) { return BF_ToStringMap[unsigned(x)]; }
 
 
 const struct StringKind BF_FromStringMap[] = {
-    {"arg_ref", 1},
-    {"builtin", 2},
-    {"cdecl", 3},
-    {"colon", 4},
-    {"extern", 5},
-    {"fini", 6},
-    {"init", 7},
+    {"arg_ref", 15},
+    {"builtin", 1},
+    {"cdecl", 5},
+    {"colon", 11},
+    {"extern", 4},
+    {"fini", 3},
+    {"init", 2},
     {"invalid", 0},
     {"mut", 8},
-    {"poly", 9},
-    {"preserve_mut", 10},
-    {"pub", 11},
-    {"ref", 12},
-    {"res_ref", 13},
-    {"unchecked", 14},
-    {"untagged", 15},
-    {"wrapped", 16},
+    {"poly", 6},
+    {"preserve_mut", 9},
+    {"pub", 7},
+    {"ref", 10},
+    {"res_ref", 16},
+    {"unchecked", 13},
+    {"untagged", 14},
+    {"wrapped", 12},
     {"ZZZ", 0},
 };
 
