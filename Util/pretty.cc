@@ -63,10 +63,10 @@ std::vector<ssize_t> ComputeSizes(const std::vector<Token>& tokens) {
   std::vector<ssize_t> sizes;
   sizes.reserve(tokens.size());
   ssize_t total = 0;
-  std::vector<size_t> scan_stack;
-  size_t x;
+  std::vector<ssize_t> scan_stack;
+  ssize_t x;
 
-  for (size_t n = 0; n < tokens.size(); n++) {
+  for (ssize_t n = 0; n < tokens.size(); n++) {
     const Token& token = tokens[n];
     switch (token.type) {
       case TokenType::BEG:
@@ -108,8 +108,8 @@ std::vector<ssize_t> ComputeSizes(const std::vector<Token>& tokens) {
 void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
                              std::vector<ssize_t>& sizes) {
   ssize_t total = INFINITE_WIDTH;
-  for (size_t j = 0; j < tokens.size(); j++) {
-    size_t i = tokens.size() - 1 - j;
+  for (ssize_t j = 0; j < tokens.size(); j++) {
+    ssize_t i = tokens.size() - 1 - j;
     const Token& token = tokens[i];
     switch (token.type) {
       case TokenType::BEG:
@@ -142,8 +142,8 @@ void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
   }
   //
   total = 0;
-  for (size_t j = 0; j < tokens.size(); j++) {
-    size_t i = tokens.size() - 1 - j;
+  for (ssize_t j = 0; j < tokens.size(); j++) {
+    ssize_t i = tokens.size() - 1 - j;
     const Token& token = tokens[i];
     switch (token.type) {
       case TokenType::BEG:
@@ -174,7 +174,7 @@ void UpdatesSizesForNoBreaks(const std::vector<Token>& tokens,
 
 class Output {
  public:
-  Output(size_t line_width, size_t approx_output_length)
+  Output(ssize_t line_width, size_t approx_output_length)
       : line_width_(line_width), remaining_(line_width) {
     buffer_.reserve(approx_output_length);
   }
@@ -187,51 +187,51 @@ class Output {
   }
 
   void IndentWithSpaceUpdate(size_t num_spaces) {
-    for (size_t i = 0; i < num_spaces; i++) {
+    for (ssize_t i = 0; i < num_spaces; i++) {
       buffer_ += ' ';
     }
     remaining_ -= num_spaces;
   }
 
-  size_t LineWidth() { return line_width_; }
+  ssize_t LineWidth() { return line_width_; }
 
-  size_t Remaining() { return remaining_; }
+  ssize_t Remaining() { return remaining_; }
 
-  bool FitsInCurrentLine(size_t size) { return size <= remaining_; }
+  bool FitsInCurrentLine(ssize_t size) { return size <= remaining_; }
 
   std::string Get() { return buffer_; }
 
-  void SetOffsetAndLineBreak(size_t offset) {
+  void SetOffsetAndLineBreak(ssize_t offset) {
     remaining_ = offset;
     buffer_ += '\n';
-    size_t ci = line_width_ - remaining_;
-    for (size_t i = 0; i < ci; i++) {
+    ssize_t ci = line_width_ - remaining_;
+    for (ssize_t i = 0; i < ci; i++) {
       buffer_ += ' ';
     }
   }
 
  private:
-  size_t line_width_;
-  size_t remaining_;
+  ssize_t line_width_;
+  ssize_t remaining_;
   std::string buffer_;
 };
 
 struct Entry {
-  size_t offset;
+  ssize_t offset;
   BreakType break_type;
 };
 
 void Render(const std::vector<Token>& tokens, const std::vector<ssize_t>& sizes,
             Output* output) {
   std::vector<Entry> stack;
-  for (size_t i = 0; i < tokens.size(); i++) {
+  for (ssize_t i = 0; i < tokens.size(); i++) {
     const Token& token = tokens[i];
-    const size_t size = sizes[i];
+    const ssize_t size = sizes[i];
     switch (token.type) {
       case TokenType::BEG: {
         Entry entry;
         if (token.beg.break_type == BreakType::FORCE_LINE_BREAK) {
-          size_t offset;
+          ssize_t offset;
           if (!stack.empty()) {
             offset = stack.back().offset;
             output->SetOffsetAndLineBreak(offset - token.beg.offset);
@@ -257,7 +257,7 @@ void Render(const std::vector<Token>& tokens, const std::vector<ssize_t>& sizes,
       case TokenType::BRK: {
         const Entry& top = stack.back();
         BreakType break_type = top.break_type;
-        size_t offset = top.offset;
+        ssize_t offset = top.offset;
         if ((token.brk.nobreak && output->FitsInCurrentLine(size)) ||
             break_type == BreakType::FITS) {
           output->IndentWithSpaceUpdate(token.brk.num_spaces);
@@ -283,8 +283,8 @@ void Render(const std::vector<Token>& tokens, const std::vector<ssize_t>& sizes,
   }
 }
 
-size_t ApproxOutputLength(const std::vector<Token>& tokens) {
-  size_t total = 0;
+ssize_t ApproxOutputLength(const std::vector<Token>& tokens) {
+  ssize_t total = 0;
   for (const Token& token : tokens) {
     switch (token.type) {
       case TokenType::BEG:
@@ -304,7 +304,7 @@ size_t ApproxOutputLength(const std::vector<Token>& tokens) {
   return total;
 }
 
-std::string PrettyPrint(const std::vector<Token>& tokens, size_t line_width) {
+std::string PrettyPrint(const std::vector<Token>& tokens, ssize_t line_width) {
   std::vector<ssize_t> sizes = ComputeSizes(tokens);
   assert(sizes.size() == tokens.size());
   UpdatesSizesForNoBreaks(tokens, sizes);
