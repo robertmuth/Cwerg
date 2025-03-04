@@ -204,7 +204,7 @@ def _PParseKeywordConstants(inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
 
 
 def _PParseStr(_inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:
-    return cwast.MakeValString(tk.text, tk.srcloc)
+    return cwast.ValString(tk.text, tk.srcloc)
 
 
 def _PParseChar(_inp: lexer.Lexer, tk: lexer.TK, _precedence) -> Any:

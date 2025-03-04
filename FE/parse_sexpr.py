@@ -192,7 +192,7 @@ def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
         return node
 
     if cwast.IsWellFormedStringLiteral(t):
-        return cwast.MakeValString(t,  **attr)
+        return cwast.ValString(t,  **attr)
     elif RE_TOKEN_NUM.fullmatch(t):
         logger.info("NUM %s at %s", t, srcloc)
         return cwast.ValNum(t, x_srcloc=srcloc, **attr)

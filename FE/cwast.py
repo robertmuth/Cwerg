@@ -380,16 +380,6 @@ class MACRO_PARAM_KIND(enum.Enum):
     EXPR_LIST_REST = 8   # must be last
 
 
-@enum.unique
-class STR_KIND(enum.Enum):
-    """same type two operand expressions"""
-    NORMAL = 0
-    NORMAL_TRIPLE = 1
-    RAW = 2
-    RAW_TRIPLE = 3
-    HEX = 4
-    HEX_TRIPLE = 5
-
 ############################################################
 # Field attributes of Nodes
 #
@@ -607,8 +597,7 @@ ALL_FIELDS = [
     NfdKind("pointer_expr_kind",
             f"one of: [{_EnumValues(POINTER_EXPR_KIND)}](#pointerop-kind)",
             POINTER_EXPR_KIND),
-    NfdKind("str_kind",   f"one of: [{_EnumValues(STR_KIND)}](#pointerop-kind)",
-            STR_KIND),
+
 
     #
     # TODO: fix all the None below
@@ -1817,38 +1806,34 @@ class ValString:
     #
     string: str
     #
-    str_kind: STR_KIND
-    #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
 
+    def kind(self) -> str:
+        out = self.string[0]
+        return "" if out == '"' else out
+
     def payload(self):
-        return self.string
+        offset = len(self.kind())
+        if self.string.endswith('"""'):
+            return self.string[offset+3:-3]
+        return self.string[offset + 1:-1]
 
     def get_bytes(self):
         s = self.payload()
+        k = self.kind()
         if not all(ord(c) < 128 for c in s):
             CompilerError(
                 self, "non-ascii chars currently not supported")
-        if self.str_kind in (STR_KIND.RAW, STR_KIND.RAW_TRIPLE):
+        if k == "r":
             return bytes(s, encoding="ascii")
-        elif self.str_kind in (STR_KIND.HEX, STR_KIND.HEX_TRIPLE):
+        elif k == "x":
             return HexStringToBytes(s)
         return EscapedStringToBytes(s)
 
     def render(self):
-        tq = self.str_kind.value & 1
-        kind = STR_KIND(self.str_kind.value & 0xfe)
-        quotes = '"""' if tq else '"'
-        prefix = ""
-        if kind == STR_KIND.RAW:
-            prefix = "r"
-        elif kind == STR_KIND.HEX:
-            prefix = "x"
-        else:
-            assert kind == STR_KIND.NORMAL, f"{kind}"
-        return f'{prefix}{quotes}{self.string}{quotes}'
+        return self.string
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.string}"
@@ -1865,32 +1850,6 @@ def IsWellFormedStringLiteral(t: str):
                 len(t) >= 3 and t.startswith('x"'))
     else:
         return False
-
-
-
-
-
-def MakeValString(t: str, sl: SrcLoc) -> ValString:
-    kind = STR_KIND.NORMAL
-    offset = 0
-    if t.startswith('"'):
-        kind = STR_KIND.NORMAL
-        offset = 0
-    elif t.startswith('r'):
-        kind = STR_KIND.RAW
-        offset = 1
-    elif t.startswith('x'):
-        kind = STR_KIND.HEX
-        offset = 1
-    else:
-        assert False, f"unexpected string [{t}] at {sl}"
-
-    quotes = 3 if t[offset:].startswith('"""') else 1
-    t = t[offset + quotes: - quotes]
-    if quotes == 3:
-        kind = STR_KIND(kind.value + 1)
-
-    return ValString(t, kind, x_srcloc=sl)
 
 
 ############################################################
@@ -3941,7 +3900,6 @@ def GenerateCodeH(fout: Any):
 
     cgen.RenderEnumClass(cgen.NameValues(
         BASE_TYPE_KIND), "BASE_TYPE_KIND", fout)
-    cgen.RenderEnumClass(cgen.NameValues(STR_KIND), "STR_KIND", fout)
     cgen.RenderEnumClass(cgen.NameValues(
         MACRO_PARAM_KIND), "MACRO_PARAM_KIND", fout)
     cgen.RenderEnumClass(cgen.NameValues(
@@ -3967,7 +3925,6 @@ def EnumStringConversions(fout: Any):
 
     std_render(MOD_PARAM_KIND)
     std_render(MACRO_PARAM_KIND)
-    std_render(STR_KIND)
     render(BASE_TYPE_KIND.__name__,  cgen.NameValuesLower(BASE_TYPE_KIND))
 
     render(ASSIGNMENT_KIND.__name__,

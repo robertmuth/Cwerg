@@ -80,7 +80,6 @@ void MaybeEmitAnnotations(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::NoBreak(0));
       out->push_back(PP::Str("}}"));
       out->push_back(PP::Brk());
-
     }
   }
 }
@@ -364,7 +363,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
           EmitFunctional(out, "abs", Node_expr(node));
           break;
         case UNARY_EXPR_KIND::SQRT:
-          EmitFunctional(out, "sqr", Node_expr(node));
+          EmitFunctional(out, "sqrt", Node_expr(node));
           break;
         case UNARY_EXPR_KIND::NOT:
           out->push_back(PP::Str("!"));
@@ -951,6 +950,7 @@ void EmitModule(std::vector<PP::Token>* out, Node node) {
   ASSERT(Node_kind(node) == NT::DefMod, "");
   MaybeEmitDoc(out, node);
   out->push_back(PP_BEG_STD);
+  MaybeEmitAnnotations(out, node);
   out->push_back(PP::Str("module"));
   if (Node_params_mod(node) != HandleInvalid) {
     out->push_back(PP::NoBreak(0));
