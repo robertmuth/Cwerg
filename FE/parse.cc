@@ -109,7 +109,7 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
       return out;
     case NT::ExprUnionTag:
       ParseFunLikeArgs(lexer, "E", &args);
-      InitExprUnwrap(out, args[0], tk.comments, tk.srcloc);
+      InitExprUnionTag(out, args[0], tk.comments, tk.srcloc);
       return out;
     case NT::ExprStringify:
       ParseFunLikeArgs(lexer, "E", &args);
