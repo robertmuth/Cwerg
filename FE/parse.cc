@@ -632,7 +632,7 @@ Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
       break;
     }
 
-    lexer->Next();
+    lexer->Skip();
     lhs = infix_handler.handler(lexer, lhs, tk, infix_handler.precedence);
   }
   return lhs;
@@ -656,7 +656,7 @@ bool MaybeTypeExprStart(const TK& tk) {
 }
 
 Node ParseTypeExprOrExpr(Lexer* lexer) {
-  const TK& tk = lexer->Peek();
+  const TK tk = lexer->Peek();
   if (MaybeTypeExprStart(tk)) {
     return ParseTypeExpr(lexer);
   } else {
@@ -865,9 +865,9 @@ Node ParseStmt(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body_t = ParseStmtBodyList(lexer, outer_column);
       Node body_f = Node(HandleInvalid);
-      const TK& else_tk = lexer->Peek();
+      const TK else_tk = lexer->Peek();
       if (else_tk.text == "else" && else_tk.srcloc.col == outer_column) {
-        lexer->Next();
+        lexer->Skip();
         lexer->MatchOrDie(TK_KIND::COLON);
         body_f = ParseStmtBodyList(lexer, outer_column);
       }
@@ -959,15 +959,14 @@ Node ParseMacroInvocation(Lexer* lexer, TK name) {
   return out;
 }
 
-Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
+Node ParseStmtList(Lexer* lexer, uint32_t column) {
   const TK tk = lexer->Peek();
-  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= outer_column) {
+  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col < column) {
     return Node(HandleInvalid);
   }
-
   Node out = Node(HandleInvalid);
   if (tk.kind == TK_KIND::ID) {
-    lexer->Next();
+    lexer->Skip();
     if (ends_with(tk.text, "#")) {
       out = ParseMacroInvocation(lexer, tk);
 
@@ -982,8 +981,17 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
     //   std::cout << "@@ " << tk.text << " >>>>" << StrData(tk.comments);
     out = ParseStmt(lexer);
   }
-  Node_next(out) = ParseStmtBodyList(lexer, outer_column);
+  Node_next(out) = ParseStmtList(lexer, column);
   return out;
+}
+
+Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
+  const TK tk = lexer->Peek();
+  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= outer_column) {
+    return Node(HandleInvalid);
+  }
+
+  return ParseStmtList(lexer, tk.srcloc.col);
 }
 
 Node ParseRecFieldList(Lexer* lexer, uint32_t column) {
@@ -1105,7 +1113,7 @@ Node ParseTopLevel(Lexer* lexer) {
       Node args = Node(HandleInvalid);
       std::string_view path = std::string_view();
       if (lexer->Match(TK_KIND::ASSIGN)) {
-        const TK& tk = lexer->Next();
+        const TK tk = lexer->Next();
         path = tk.text;
       }
       if (lexer->Match(TK_KIND::PAREN_OPEN)) {
@@ -1175,10 +1183,9 @@ Node ParseTopLevel(Lexer* lexer) {
                    tk.comments, tk.srcloc);
       return out;
     }
-    default: {
+    default:
       ASSERT(false, tk.text);
       return Node(HandleInvalid);
-    }
   }
 }
 
