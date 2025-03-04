@@ -348,8 +348,8 @@ pub fun CheckHitRayPlane(ray_origin vec3, ray_direction vec3, plane_point vec3,
     return true
 
 ;
-poly fun fmt::SysRender(v vec2, out span!(u8), opt ^!fmt::SysFormatOptions) uint
-  :
+poly fun fmt::SysRender(v vec2, out span!(u8), opt ^!fmt::SysFormatOptions)
+  uint:
     let! t = out
     set t = span_inc(t, fmt::SysRender("{", t, opt))
     set t = span_inc(t, fmt::SysRender(v[0], t, opt))
@@ -358,8 +358,8 @@ poly fun fmt::SysRender(v vec2, out span!(u8), opt ^!fmt::SysFormatOptions) uint
     set t = span_inc(t, fmt::SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v vec3, out span!(u8), opt ^!fmt::SysFormatOptions) uint
-  :
+poly fun fmt::SysRender(v vec3, out span!(u8), opt ^!fmt::SysFormatOptions)
+  uint:
     let! t = out
     set t = span_inc(t, fmt::SysRender("{", t, opt))
     set t = span_inc(t, fmt::SysRender(v[0], t, opt))
@@ -370,8 +370,8 @@ poly fun fmt::SysRender(v vec3, out span!(u8), opt ^!fmt::SysFormatOptions) uint
     set t = span_inc(t, fmt::SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v vec4, out span!(u8), opt ^!fmt::SysFormatOptions) uint
-  :
+poly fun fmt::SysRender(v vec4, out span!(u8), opt ^!fmt::SysFormatOptions)
+  uint:
     let! t = out
     set t = span_inc(t, fmt::SysRender("{", t, opt))
     set t = span_inc(t, fmt::SysRender(v[0], t, opt))
@@ -384,8 +384,8 @@ poly fun fmt::SysRender(v vec4, out span!(u8), opt ^!fmt::SysFormatOptions) uint
     set t = span_inc(t, fmt::SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v mat2, out span!(u8), opt ^!fmt::SysFormatOptions) uint
-  :
+poly fun fmt::SysRender(v mat2, out span!(u8), opt ^!fmt::SysFormatOptions)
+  uint:
     let! t = out
     set t = span_inc(t, fmt::SysRender("{", t, opt))
     set t = span_inc(t, fmt::SysRender(v[0], t, opt))
@@ -394,8 +394,8 @@ poly fun fmt::SysRender(v mat2, out span!(u8), opt ^!fmt::SysFormatOptions) uint
     set t = span_inc(t, fmt::SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v mat3, out span!(u8), opt ^!fmt::SysFormatOptions) uint
-  :
+poly fun fmt::SysRender(v mat3, out span!(u8), opt ^!fmt::SysFormatOptions)
+  uint:
     let! t = out
     set t = span_inc(t, fmt::SysRender("{", t, opt))
     set t = span_inc(t, fmt::SysRender(v[0], t, opt))
@@ -406,8 +406,8 @@ poly fun fmt::SysRender(v mat3, out span!(u8), opt ^!fmt::SysFormatOptions) uint
     set t = span_inc(t, fmt::SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v mat4, out span!(u8), opt ^!fmt::SysFormatOptions) uint
-  :
+poly fun fmt::SysRender(v mat4, out span!(u8), opt ^!fmt::SysFormatOptions)
+  uint:
     let! t = out
     set t = span_inc(t, fmt::SysRender("{", t, opt))
     set t = span_inc(t, fmt::SysRender(v[0], t, opt))

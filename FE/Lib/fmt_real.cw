@@ -193,8 +193,8 @@ fun FmtMantissaHex(frac_bits u64, is_denorm bool, out span!(u8)) uint:
         set bits <<= 4
     return i
 
-fun FmtExponentHex(raw_exponent s32, is_potential_zero bool, out span!(u8)) uint
-  :
+fun FmtExponentHex(raw_exponent s32, is_potential_zero bool, out span!(u8))
+  uint:
     let! exp s32 = raw_exponent
     if raw_exponent == num_real::r64_raw_exponent_subnormal:
         set exp = is_potential_zero ? 0 : -1022

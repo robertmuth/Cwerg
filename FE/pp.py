@@ -705,7 +705,7 @@ def _EmitTokensToplevel(out, node):
         _EmitParameterList(out, node.params)
         out += [PP.Brk()]
         _EmitExprOrType(out, node.result)
-        out += [PP.Brk(0), PP.Str(":")]
+        out += [PP.NoBreak(0), PP.Str(":")]
         _EmitStatementsSpecial(out, node.body)
     elif isinstance(node, cwast.DefMacro):
         out += [PP.Str("macro"),
