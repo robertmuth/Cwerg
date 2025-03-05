@@ -27,7 +27,7 @@ typedef void (*AbortHandlerFun)();
 
 void SetAbortHandler(AbortHandlerFun handler);
 
-#ifdef NDEBUG
+#if defined(NDEBUG)
 #define ASSERT(x, m)
 #else
 #define ASSERT(x, m) do { if (!(x)) AssertHelper(__LINE__, __FILE__) << m; } while(0)
