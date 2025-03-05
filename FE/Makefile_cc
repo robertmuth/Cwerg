@@ -42,4 +42,4 @@ $(PP)::
 	@cd $(BUILD_DIR); $(MAKE) -s pp.exe
 
 run_lexer_bench: $(LEXER_BENCH)
-	/bin/time -p cat Lib/*cw TestData/*cw  LangTest/*cw | $(LEXER_BENCH) - - > /dev/null
+	/bin/time -p $(LEXER_BENCH)  Lib/*cw TestData/*cw  LangTest/*cw  > /dev/null

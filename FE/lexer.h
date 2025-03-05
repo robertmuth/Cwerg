@@ -38,9 +38,14 @@ class LexerRaw {
   TK_RAW HandleMultiStr();
 
  public:
-  LexerRaw(std::string_view input, uint32_t file_id);
+ // input is assumed to have a trailing zero byte
+  LexerRaw(std::string_view input, uint32_t file_id)
+      : input_(input), end_(input.size()) {
+    srcloc_.file = file_id;
+  }
 
   const SrcLoc& GetSrcLoc() { return srcloc_; }
+
   int LinesProcessed() { return line_no_; }
 
   TK_RAW Next();
@@ -107,12 +112,13 @@ class Lexer {
       current_ = peek_cached_;
       peek_cached_.kind = TK_KIND::INVALID;
     } else {
-      std::vector<std::string_view> comments;
+      std::string comments;
       current_.annotation_bits = 0;
 
       TK_RAW tk = lexer_raw_.Next();
       while (tk.kind == TK_KIND::COMMENT) {
-        comments.push_back(tk.text);
+        ASSERT(tk.text[0] == ';', "");
+        comments += tk.text;
         tk = lexer_raw_.Next();
       }
       while (tk.kind == TK_KIND::ANNOTATION) {
@@ -131,12 +137,7 @@ class Lexer {
       if (comments.empty()) {
         current_.comments = Str(0);
       } else {
-        std::string s;
-        for (std::string_view sv : comments) {
-          ASSERT(sv[0] == ';', "");
-          s += sv;
-        }
-        current_.comments = StrNew(s);
+        current_.comments = StrNew(comments);
       }
     }
     return current_;

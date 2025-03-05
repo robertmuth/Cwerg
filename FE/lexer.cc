@@ -59,11 +59,6 @@ bool IsNameRest(uint8_t c) { return CType[c] & kCTypeNameRest; }
 
 typedef std::array<uint8_t, 129> TrieNode;
 
-LexerRaw::LexerRaw(std::string_view input, uint32_t file)
-    : input_(input), end_(input.size()) {
-  srcloc_.file = file;
-}
-
 // Below is bunch of adhoc lexer helpers
 // These are quite horrible and the only excuse for them
 // is that they let us do without a depenency on a lexer library,

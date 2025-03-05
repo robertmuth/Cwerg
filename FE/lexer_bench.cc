@@ -1,3 +1,9 @@
+
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -12,19 +18,59 @@ namespace {
 using namespace cwerg;
 using namespace cwerg::fe;
 
+# if 0
+std::string_view ReadFile(const char* filename) {
+  std::ifstream finFile;
+  std::istream* fin;
+  if (filename == std::string_view("-")) {
+    fin = &std::cin;
+  } else {
+    finFile.open(filename);
+    fin = &finFile;
+  }
+
+  std::vector<char>* data = SlurpDataFromStream(fin);
+  return std::string_view(reinterpret_cast<const char*>(data->data()),
+                          data->size());
+}
+
+#else
+
+std::string_view ReadFile(const char* filename) {
+  int fd = open(filename, O_RDONLY, 0);
+  if (fd < 0) {
+    std::cerr << "Cannot open input file [" << filename << "] err=" << fd
+              << "\n";
+    return std::string_view();
+  }
+  struct stat sb;
+  fstat(fd, &sb);
+
+  // map an extra terminator byte
+  void* data_bytes =
+      mmap(NULL, sb.st_size + 1, PROT_WRITE, MAP_PRIVATE, fd, 0);
+  if (data_bytes == MAP_FAILED) {
+    std::cerr << "Cannot mmap input file " << filename << "\n";
+    return std::string_view();
+  }
+  close(fd);
+
+  return std::string_view(reinterpret_cast<char*>(data_bytes), sb.st_size);
+}
+
+#endif
+
 void RunLexer(Lexer* lexer) {
   while (true) {
     auto tk = lexer->Next();
-    std::cout << tk << "\n";
+    // std::cout << tk << "\n";
     if (tk.kind == TK_KIND::SPECIAL_EOF) {
       break;
     }
   }
 }
 
-void RunParser(Lexer* lexer) {
-  ParseDefMod(lexer);
-}
+void RunParser(Lexer* lexer) { ParseDefMod(lexer); }
 
 }  //  namespace
 
@@ -51,22 +97,11 @@ int main(int argc, const char* argv[]) {
   int total_lines = 0;
 
   for (int i = start_positional; i < argc; ++i) {
-    std::ifstream finFile;
-    std::istream* fin;
-    if (argv[i] == std::string_view("-")) {
-      fin = &std::cin;
-    } else {
-      finFile.open(argv[i]);
-      fin = &finFile;
-    }
-
-    std::vector<char> data = SlurpDataFromStream(fin);
+    auto data = ReadFile(argv[i]);
     total_bytes += data.size();
-    std::cout << "processing: " << argv[i] << " bytes=" << data.size() << "\n";
-    Lexer lexer(std::string_view(reinterpret_cast<const char*>(data.data()),
-                                 data.size()),
-                i);
 
+    std::cout << "processing: " << argv[i] << " bytes=" << data.size() << "\n";
+    Lexer lexer(data, i);
 
     std::string_view mode = sw_mode.Value();
     if (mode == "lexer") {
