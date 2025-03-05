@@ -38,7 +38,7 @@ class LexerRaw {
   TK_RAW HandleMultiStr();
 
  public:
- // input is assumed to have a trailing zero byte
+  // input is assumed to have a trailing zero byte
   LexerRaw(std::string_view input, uint32_t file_id)
       : input_(input), end_(input.size()) {
     srcloc_.file = file_id;
@@ -52,8 +52,8 @@ class LexerRaw {
 };
 
 struct TK {
-  TK_KIND kind = TK_KIND::INVALID;
   std::string_view text;
+  TK_KIND kind = TK_KIND::INVALID;
   SrcLoc srcloc;
   Str comments;
   uint32_t annotation_bits;
@@ -64,16 +64,17 @@ std::ostream& operator<<(std::ostream& os, const TK& tk);
 class Lexer {
  private:
   LexerRaw lexer_raw_;
+  bool peek_valid_ = false;
   TK peek_cached_;
-  TK current_;
 
  public:
   Lexer(std::string_view input, uint32_t file_id)
       : lexer_raw_(input, file_id) {}
 
   TK Peek() {
-    if (peek_cached_.kind == TK_KIND::INVALID) {
+    if (!peek_valid_) {
       peek_cached_ = Next();
+      peek_valid_ = true;
     }
     return peek_cached_;
   }
@@ -82,38 +83,48 @@ class Lexer {
     Peek();
     if (kind == peek_cached_.kind &&
         (text.empty() || text == peek_cached_.text)) {
-      peek_cached_.kind = TK_KIND::INVALID;
+      peek_valid_ = false;
       return true;
     }
     return false;
   }
 
-  TK MatchOrDie(TK_KIND kind, std::string_view text = std::string_view()) {
+  void MatchOrDie(TK_KIND kind) {
     Peek();
-    if (kind == peek_cached_.kind &&
-        (text.empty() || text == peek_cached_.text)) {
-      current_ = peek_cached_;
-      peek_cached_.kind = TK_KIND::INVALID;
-      return current_;
+    if (kind == peek_cached_.kind) {
+      peek_valid_ = false;
+      return;
     }
-    ASSERT(false, "expected: " << EnumToString(kind) << " " << text << " got "
+    ASSERT(false, "expected: " << EnumToString(kind) << " " << " got "
                                << peek_cached_);
-    return current_;
+    abort();
   }
 
+  TK MatchIdOrDie() {
+    Peek();
+    if (TK_KIND::ID == peek_cached_.kind) {
+      peek_valid_ = false;
+      return peek_cached_;
+    }
+    ASSERT(false, "expected ID: " << " got " << peek_cached_);
+    abort();
+    return peek_cached_;
+  }
   // Use after Peek
   void Skip() {
-    ASSERT(peek_cached_.kind != TK_KIND::INVALID, "");
-    peek_cached_.kind = TK_KIND::INVALID;
+    ASSERT(peek_valid_, "");
+    peek_valid_ = false;
   }
 
   TK Next() {
-    if (peek_cached_.kind != TK_KIND::INVALID) {
-      current_ = peek_cached_;
-      peek_cached_.kind = TK_KIND::INVALID;
+    if (peek_valid_) {
+      peek_valid_ = false;
+      return peek_cached_;
     } else {
+      TK current;
+
       std::string comments;
-      current_.annotation_bits = 0;
+      current.annotation_bits = 0;
 
       TK_RAW tk = lexer_raw_.Next();
       while (tk.kind == TK_KIND::COMMENT) {
@@ -122,25 +133,26 @@ class Lexer {
         tk = lexer_raw_.Next();
       }
       while (tk.kind == TK_KIND::ANNOTATION) {
-        if (current_.annotation_bits == 0) {
-          current_.srcloc = lexer_raw_.GetSrcLoc();
+        if (current.annotation_bits == 0) {
+          current.srcloc = lexer_raw_.GetSrcLoc();
         }
 
-        current_.annotation_bits |= 1 << uint32_t(BF_FromString(tk.text));
+        current.annotation_bits |= 1 << uint32_t(BF_FromString(tk.text));
         tk = lexer_raw_.Next();
       }
-      if (current_.annotation_bits == 0) {
-        current_.srcloc = lexer_raw_.GetSrcLoc();
+      if (current.annotation_bits == 0) {
+        current.srcloc = lexer_raw_.GetSrcLoc();
       }
-      current_.kind = tk.kind;
-      current_.text = tk.text;
+      current.kind = tk.kind;
+      current.text = tk.text;
+
       if (comments.empty()) {
-        current_.comments = Str(0);
+        current.comments = Str(0);
       } else {
-        current_.comments = StrNew(comments);
+        current.comments = StrNew(comments);
       }
+      return current;
     }
-    return current_;
   }
 
   int LinesProcessed() { return lexer_raw_.LinesProcessed(); }

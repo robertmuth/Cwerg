@@ -47,7 +47,8 @@ uint16_t BitsFromAnnotation(const TK& tk) {
 
 void ParseFunLikeArgs(Lexer* lexer, std::string_view args_desc,
                       std::array<Node, 4>* args) {
-  TK start = lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
+  TK start = lexer->Peek();
+  lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
   for (int i = 0; i < args_desc.size(); i++) {
     uint8_t kind = args_desc[i];
     if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
@@ -422,7 +423,7 @@ Node PrattParseExprIndex(Lexer* lexer, Node lhs, const TK& tk,
 
 Node PrattParseExprField(Lexer* lexer, Node lhs, const TK& tk,
                          uint32_t precedence) {
-  const TK& field = lexer->MatchOrDie(TK_KIND::ID);
+  TK field = lexer->MatchIdOrDie();
   Node out = NodeNew(NT::ExprField);
   InitExprField(out, lhs, MakeNodeId(field), tk.comments, tk.srcloc);
   return out;
@@ -702,8 +703,8 @@ Node ParseModParamList(Lexer* lexer, bool want_comma) {
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
-  TK name = lexer->MatchOrDie(TK_KIND::ID);
-  TK kind = lexer->MatchOrDie(TK_KIND::ID);
+  TK name = lexer->MatchIdOrDie();
+  TK kind = lexer->MatchIdOrDie();
   Node out = NodeNew(NT::ModParam);
   InitModParam(out, NameNew(name.text), MOD_PARAM_KIND_FromString(kind.text),
                name.comments, name.srcloc);
@@ -719,7 +720,7 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
-  TK name = lexer->MatchOrDie(TK_KIND::ID);
+  TK name = lexer->MatchIdOrDie();
   Node type = ParseTypeExpr(lexer);
   Node out = NodeNew(NT::ModParam);
 
@@ -735,7 +736,8 @@ Node ParseCaseList(Lexer* lexer, int cond_column) {
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= cond_column) {
     return Node(HandleInvalid);
   }
-  lexer->MatchOrDie(TK_KIND::KW, "case");
+  ASSERT(tk.text == "case", "");
+  lexer->Skip();
   uint32_t case_column = tk.srcloc.col;
   Node out = NodeNew(NT::Case);
   Node cond = PrattParseExpr(lexer);
@@ -771,13 +773,13 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
   } else if (starts_with(tk.text, "trylet")) {
     Node out = NodeNew(NT::MacroInvoke);
     //
-    const TK name = lexer->MatchOrDie(TK_KIND::ID);
+    const TK name = lexer->MatchIdOrDie();
     Node var = MakeNodeId(name);
     Node type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::ASSIGN);
     Node expr = PrattParseExpr(lexer);
     lexer->MatchOrDie(TK_KIND::COMMA);
-    const TK name2 = lexer->MatchOrDie(TK_KIND::ID);
+    const TK name2 = lexer->MatchIdOrDie();
     Node var2 = MakeNodeId(name2);
     lexer->MatchOrDie(TK_KIND::COLON);
     Node stmts = ParseStmtBodyList(lexer, outer_col);
@@ -836,7 +838,7 @@ Node ParseStmt(Lexer* lexer) {
     }
     case NT::DefVar: {
       Node out = NodeNew(NT::DefVar);
-      const TK name = lexer->MatchOrDie(TK_KIND::ID);
+      const TK name = lexer->MatchIdOrDie();
       Node type = Node(HandleInvalid);
       Node init = Node(HandleInvalid);
       if (lexer->Match(TK_KIND::ASSIGN)) {
@@ -923,8 +925,8 @@ Node ParseStmt(Lexer* lexer) {
     }
     case NT::MacroFor: {
       Node out = NodeNew(NT::MacroFor);
-      TK name = lexer->MatchOrDie(TK_KIND::ID);
-      TK container = lexer->MatchOrDie(TK_KIND::ID);
+      TK name = lexer->MatchIdOrDie();
+      TK container = lexer->MatchIdOrDie();
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = ParseStmtBodyList(lexer, outer_column);
       InitMacroFor(out, NameNew(name.text), NameNew(container.text), body,
@@ -1000,7 +1002,7 @@ Node ParseRecFieldList(Lexer* lexer, uint32_t column) {
   if (name.kind == TK_KIND::SPECIAL_EOF || name.srcloc.col <= column) {
     return Node(HandleInvalid);
   }
-  name = lexer->MatchOrDie(TK_KIND::ID);
+  name = lexer->MatchIdOrDie();
   Node type = ParseTypeExpr(lexer);
   Node out = NodeNew(NT::RecField);
   InitRecField(out, NameNew(name.text), type, name.comments, name.srcloc);
@@ -1014,7 +1016,7 @@ Node ParseEnumFieldList(Lexer* lexer, uint32_t column) {
   if (name.kind == TK_KIND::SPECIAL_EOF || name.srcloc.col <= column) {
     return Node(HandleInvalid);
   }
-  name = lexer->MatchOrDie(TK_KIND::ID);
+  name = lexer->MatchIdOrDie();
   Node val = PrattParseExpr(lexer);
   Node out = NodeNew(NT::EnumVal);
   InitEnumVal(out, NameNew(name.text), val, name.comments, name.srcloc);
@@ -1029,8 +1031,8 @@ Node ParseMacroParamList(Lexer* lexer, bool want_comma) {
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
-  TK name = lexer->MatchOrDie(TK_KIND::ID);
-  TK kind = lexer->MatchOrDie(TK_KIND::ID);
+  TK name = lexer->MatchIdOrDie();
+  TK kind = lexer->MatchIdOrDie();
   Node out = NodeNew(NT::MacroParam);
   InitMacroParam(out, NameNew(name.text),
                  MACRO_PARAM_KIND_FromString(kind.text), name.comments,
@@ -1047,7 +1049,7 @@ Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
   }
-  TK name = lexer->MatchOrDie(TK_KIND::ID);
+  TK name = lexer->MatchIdOrDie();
   Node out = MakeNodeMacroId(name);
   Node_next(out) = ParseMacroGenIdList(lexer, true);
   return out;
@@ -1062,7 +1064,7 @@ Node ParseTopLevel(Lexer* lexer) {
   switch (nt) {
     case NT::DefFun: {
       Node out = NodeNew(NT::DefFun);
-      TK name = lexer->MatchOrDie(TK_KIND::ID);
+      TK name = lexer->MatchIdOrDie();
       lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
       Node params = ParseFunParamList(lexer, false);
       Node result = Node(HandleInvalid);
@@ -1077,7 +1079,7 @@ Node ParseTopLevel(Lexer* lexer) {
     }
     case NT::DefGlobal: {
       Node out = NodeNew(NT::DefGlobal);
-      const TK name = lexer->MatchOrDie(TK_KIND::ID);
+      const TK name = lexer->MatchIdOrDie();
       Node type = Node(HandleInvalid);
       Node init = Node(HandleInvalid);
       if (lexer->Match(TK_KIND::ASSIGN)) {
@@ -1100,7 +1102,7 @@ Node ParseTopLevel(Lexer* lexer) {
     }
     case NT::DefRec: {
       Node out = NodeNew(NT::DefRec);
-      TK name = lexer->MatchOrDie(TK_KIND::ID);
+      TK name = lexer->MatchIdOrDie();
       lexer->MatchOrDie(TK_KIND::COLON);
       Node fields = ParseRecFieldList(lexer, outer_column);
       InitDefRec(out, NameNew(name.text), fields, BitsFromAnnotation(tk),
@@ -1109,7 +1111,7 @@ Node ParseTopLevel(Lexer* lexer) {
     }
 
     case NT::Import: {
-      TK name = lexer->MatchOrDie(TK_KIND::ID);
+      TK name = lexer->MatchIdOrDie();
       Node args = Node(HandleInvalid);
       std::string_view path = std::string_view();
       if (lexer->Match(TK_KIND::ASSIGN)) {
@@ -1127,8 +1129,9 @@ Node ParseTopLevel(Lexer* lexer) {
     }
     case NT::DefEnum: {
       Node out = NodeNew(NT::DefEnum);
-      const TK name = lexer->MatchOrDie(TK_KIND::ID);
-      const TK base_type = lexer->MatchOrDie(TK_KIND::BASE_TYPE);
+      const TK name = lexer->MatchIdOrDie();
+      const TK base_type = lexer->Peek();
+      lexer->MatchOrDie(TK_KIND::BASE_TYPE);
       BASE_TYPE_KIND bt = BASE_TYPE_KIND_FromString(base_type.text);
       lexer->MatchOrDie(TK_KIND::COLON);
       Node items = ParseEnumFieldList(lexer, outer_column);
@@ -1138,7 +1141,7 @@ Node ParseTopLevel(Lexer* lexer) {
     }
     case NT::DefType: {
       Node out = NodeNew(NT::DefType);
-      const TK name = lexer->MatchOrDie(TK_KIND::ID);
+      const TK name = lexer->MatchIdOrDie();
       lexer->MatchOrDie(TK_KIND::ASSIGN);
       Node type = ParseTypeExpr(lexer);
       InitDefType(out, NameNew(name.text), type, bits, tk.comments, tk.srcloc);
@@ -1165,7 +1168,7 @@ Node ParseTopLevel(Lexer* lexer) {
                    name.text == "trylet!" || name.text == "ptr_diff",
                name);
       }
-      const TK kind = lexer->MatchOrDie(TK_KIND::ID);
+      const TK kind = lexer->MatchIdOrDie();
       MACRO_PARAM_KIND mpk = MACRO_PARAM_KIND_FromString(kind.text);
 
       lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
@@ -1201,7 +1204,9 @@ Node ParseModBodyList(Lexer* lexer, uint32_t column) {
 }
 
 Node ParseDefMod(Lexer* lexer) {
-  const TK tk = lexer->MatchOrDie(TK_KIND::KW, "module");
+  const TK tk = lexer->Peek();
+  ASSERT(tk.text == "module", "");
+  lexer->Skip();
   //
   Node def_mod = NodeNew(NT::DefMod);
   Node params = Node(HandleInvalid);
