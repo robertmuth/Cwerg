@@ -41,6 +41,7 @@ class LexerRaw {
   LexerRaw(std::string_view input, uint32_t file_id);
 
   const SrcLoc& GetSrcLoc() { return srcloc_; }
+  int LinesProcessed() { return line_no_; }
 
   TK_RAW Next();
 };
@@ -140,6 +141,8 @@ class Lexer {
     }
     return current_;
   }
+
+  int LinesProcessed() { return lexer_raw_.LinesProcessed(); }
 };
 
 }  // namespace cwerg::fe

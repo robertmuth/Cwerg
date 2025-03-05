@@ -3,6 +3,7 @@ project(Cwerg)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "-fno-exceptions -O3 -g -Wall -Werror -pedantic -Wno-class-memaccess -Wno-sign-compare ${CWERG_FLAGS}")
+
 # lto is broke in 22.04: "bytecode mismatch 11.2 vs 11.3"
 set(CMAKE_EXE_LINKER_FLAGS "-static -fno-lto")
 
@@ -387,24 +388,22 @@ add_executable(example_fib_c
 )
 
 #
-
 add_library(LEXER_LIB OBJECT
         FE/lexer.cc
         FE/lexer_gen.cc
-
 )
-
 
 add_library(FE_CORE_LIB OBJECT
         FE/cwast_gen.cc
 )
-
 
 add_executable(lexer_bench.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:LEXER_LIB>
         $<TARGET_OBJECTS:FE_CORE_LIB>
         FE/lexer_bench.cc
+        FE/parse.cc
+        FE/parse.h
 )
 
 add_executable(pp.exe
