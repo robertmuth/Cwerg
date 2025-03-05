@@ -1,8 +1,8 @@
 #include <Util/assert.h>
 #include <Util/webserver.h>
-
 #include <netinet/in.h>
 #include <unistd.h>
+
 #include <iostream>
 
 namespace cwerg {
@@ -48,7 +48,8 @@ WebRequest ParseHeaders(std::string_view header) {
     std::string_view key = line.substr(0, pos);
     line.remove_prefix(pos + 1);
     ltrim(&line);
-    request.header.emplace_back(HeaderAttribute{std::string(key), std::string(line)});
+    request.header.emplace_back(
+        HeaderAttribute{std::string(key), std::string(line)});
   }
   return request;
 }
@@ -64,9 +65,16 @@ void SendResponse(int sc, const WebResponse& response) {
   const std::string head = header.str();
 
   ssize_t res = write(sc, head.data(), head.size());
-  ASSERT( res >= 0, "writing http header data failed");
+  ASSERT(res >= 0, "writing http header data failed");
+
+  if (res < 0) {
+    abort();
+  }
   res = write(sc, body.data(), body.size());
-  ASSERT( res >= 0, "writing http body data failed");
+  ASSERT(res >= 0, "writing http body data failed");
+  if (res < 0) {
+    abort();
+  }
 }
 
 WebResponse DefaultHandler(const WebRequest& request) {
@@ -105,6 +113,9 @@ bool WebServer::Start(int port, std::string_view host) {
 
   int status = bind(sc, (struct sockaddr*)&server_addr, sizeof(server_addr));
   ASSERT(status >= 0, "cannot bind server address with port " << port);
+  if (status < 0) {
+    abort();
+  }
 
   listen(sc, kConnectionBufferSize);
 
@@ -131,10 +142,7 @@ bool WebServer::Start(int port, std::string_view host) {
   return true;
 }
 
-void WebServer::Shutdown(){
-  shut_down = true;
-}
-
+void WebServer::Shutdown() { shut_down = true; }
 
 const std::string_view WebServer::kHtmlProlog(R"(<!doctype html>
 <html>
@@ -175,4 +183,3 @@ int main(int argc, const char* argv[]) {
   return 0;
 }
 #endif
-
