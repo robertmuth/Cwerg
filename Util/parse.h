@@ -108,7 +108,7 @@ extern std::string_view StrCat(char* buf,
                                std::string_view s5);
 
 // This works well for std::cin
-std::vector<char> SlurpDataFromStream(std::istream* fin);
+std::vector<char>* SlurpDataFromStream(std::istream* fin);
 
 extern bool IsWhiteSpace(char c);
 

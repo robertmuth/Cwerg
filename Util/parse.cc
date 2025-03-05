@@ -425,19 +425,20 @@ std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
   return {buf, len};
 }
 
-std::vector<char> SlurpDataFromStream(std::istream* fin) {
+std::vector<char>* SlurpDataFromStream(std::istream* fin) {
   size_t num_bytes_per_read = 1024 * 1024;
   size_t current_offset = 0U;
-  std::vector<char> out(num_bytes_per_read);
+  std::vector<char>* out = new std::vector<char>();
+  out->resize(num_bytes_per_read);
   auto rdbuf = fin->rdbuf();
   while (true) {
     size_t count =
-        rdbuf->sgetn(out.data() + current_offset, num_bytes_per_read);
+        rdbuf->sgetn(out->data() + current_offset, num_bytes_per_read);
     if (count == 0) break;
     current_offset += count;
-    out.resize(current_offset + num_bytes_per_read);
+    out->resize(current_offset + num_bytes_per_read);
   }
-  out.resize(current_offset);
+  out->resize(current_offset);
   return out;
 }
 
