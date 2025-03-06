@@ -589,9 +589,9 @@ def GenerateCodeCC(fout, max_items_per_row=16):
     offset += TK_KIND.SPECIAL_EOF.value + 1
     print(f"#define VALX(x) {offset} + uint16_t(TK_KIND::x)\n", file=fout)
 
-    print(f"uint16_t TrieNodeCount = {len(trie)};\n", file=fout)
+    print(f"const uint16_t TrieNodeCount = {len(trie)};\n", file=fout)
 
-    print(f"uint16_t KeywordAndOpRecognizer[{len(trie)}][128] = {{", file=fout)
+    print(f"const uint16_t KeywordAndOpRecognizer[{len(trie)}][128] = {{", file=fout)
     for n in trie:
         sep = "    {"
         for i in range(0, len(n), max_items_per_row):
@@ -608,7 +608,7 @@ def GenerateCodeCC(fout, max_items_per_row=16):
         cgen.NameValues(TK_KIND), prefix, fout)
     cgen.RenderEnumToStringFun(prefix, fout)
 
-    print("BINARY_EXPR_KIND BINARY_EXPR_KIND_PerfectHash[64] = {", file=fout)
+    print("const BINARY_EXPR_KIND BINARY_EXPR_KIND_PerfectHash[64] = {", file=fout)
     m = MakePerfectHashForBinOp()
     for i in range(64):
         x = m.get(i, cwast.BASE_TYPE_KIND.INVALID)

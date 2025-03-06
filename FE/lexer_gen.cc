@@ -23,9 +23,9 @@ namespace cwerg::fe {
 
 #define VALX(x) 245 + uint16_t(TK_KIND::x)
 
-uint16_t TrieNodeCount = 212;
+const uint16_t TrieNodeCount = 212;
 
-uint16_t KeywordAndOpRecognizer[212][128] = {
+const uint16_t KeywordAndOpRecognizer[212][128] = {
     {REP16(0),
      REP16(0),
      0, 211, VAL(STR), 0, 0, 208, 210, VAL(CHAR), VAL(PAREN_OPEN), VAL(PAREN_CLOSED), 208, 209, VAL(COMMA), 209, VAL(DOT_OP), 208,
@@ -1973,7 +1973,7 @@ const char* const TK_KIND_ToStringMap[] = {
 };
 const char* EnumToString(TK_KIND x) { return TK_KIND_ToStringMap[unsigned(x)]; }
 
-BINARY_EXPR_KIND BINARY_EXPR_KIND_PerfectHash[64] = {
+const BINARY_EXPR_KIND BINARY_EXPR_KIND_PerfectHash[64] = {
   BINARY_EXPR_KIND::INVALID,
   BINARY_EXPR_KIND::LT,
   BINARY_EXPR_KIND::LE,

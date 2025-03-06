@@ -43,7 +43,7 @@ std::array<uint8_t, 256> InitCType() {
   return out;
 }
 
-std::array<uint8_t, 256> CType = InitCType();
+const std::array<uint8_t, 256> CType = InitCType();
 
 bool IsWhitespace(uint8_t c) { return CType[c] & kCTypeWhitespace; }
 
