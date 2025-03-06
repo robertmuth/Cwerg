@@ -267,19 +267,3 @@ lexer_gen.h: lexer_tab.py
 	@mv $(DIR)/$@.tmp $@
 
 GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc lexer_gen.h
-
-############################################################
-# C++
-############################################################
-BUILD_DIR=../build
-LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
-PARSER_TOOL=$(BUILD_DIR)/parser_tool.exe
-
-$(LEXER_BENCH)::
-	@cd $(BUILD_DIR); $(MAKE) -s lexer_bench.exe
-
-$(PARSER_TOOL)::
-	@cd $(BUILD_DIR); $(MAKE) -s parser_tool.exe
-
-run_lexer_bench: $(LEXER_BENCH)
-	/bin/time -p cat Lib/*cw TestData/*cw  LangTest/*cw | $(LEXER_BENCH) > /dev/null
