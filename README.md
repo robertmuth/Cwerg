@@ -36,12 +36,15 @@ A lot of code is table driven to facilitate that.
 Cwerg de-emphasizes quality of the generated code (the hope is to come within 50%
 of state of the art compilers) in favor of a small code base that can be
 understood by a single developer and very fast translation times.
+
 Explicit line number targets are in place to prevent feature creep:
 * frontend: 10kLOC
   ([current counts](FE/CLOC.md))
 * backend 10kLOC (target independent code) + 5kLOC(per target
   ([current counts](BE/CLOC.md))
 
+The translation speed target is 1000k LOC per sec using at most 4 cores 
+on a 2020 era midrange desktop or high end laptop.
 
 ## Inspirations
 
