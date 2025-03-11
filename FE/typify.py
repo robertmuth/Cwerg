@@ -143,7 +143,7 @@ class _PolyMap:
         name = fun.name.GetSymbolNameWithoutQualifier()
         first_param_type = ct.children[0].name
         logger.info("Register polymorphic fun %s::%s: %s",
-                    mod.x_modname, name, first_param_type)
+                    mod.x_modinfo.name, name, first_param_type)
         # TODO: Should this work with parameterized volumes
         key = (mod, name, first_param_type)
         assert key not in self._map, f"duplicate poly def {fun.x_srcloc}"
@@ -1276,14 +1276,14 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
     # so that they can be used for recursive type definitions
     # We stil need to process the fields which is done later below
     for mod in mod_topo_order:
-        ctx = _TypeContext(mod.x_modname, poly_map)
+        ctx = _TypeContext(mod.x_modinfo.name, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
                 ct = tc.insert_rec_type(f"{ctx.mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
     #
     for mod in mod_topo_order:
-        ctx = _TypeContext(mod.x_modname, poly_map)
+        ctx = _TypeContext(mod.x_modinfo.name, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
                 ct = node.x_type
@@ -1297,7 +1297,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                 tc.finalize_rec_type(ct)
     # deal with the top level stuff - not function bodies
     for mod in mod_topo_order:
-        ctx = _TypeContext(mod.x_modname, poly_map)
+        ctx = _TypeContext(mod.x_modinfo.name, poly_map)
         for node in mod.body_mod:
             if not isinstance(node, cwast.DefRec):
                 # we already dealt with DefRecs
@@ -1308,7 +1308,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                 poly_map.Register(node)
     # now typify function bodies
     for mod in mod_topo_order:
-        ctx = _TypeContext(mod.x_modname, poly_map)
+        ctx = _TypeContext(mod.x_modinfo.name, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 for c in node.body:

@@ -21,15 +21,17 @@ EXTENSION_CW = ".cw"
 
 
 class ModInfo:
-    def __init__(self, uid: ModId, mod: cwast.DefMod):
+    def __init__(self, uid: ModId, mod: cwast.DefMod, name: str, symtab):
         self.uid = uid
         self.mod = mod
+        self.symtab = symtab
+        self.name = name
         # the second component holds the normalized args
         self.imports = [
             (node, [None] * len(node.args_mod)) for node in mod.body_mod if isinstance(node, cwast.Import)]
 
     def __str__(self):
-        return f"{self.mod.x_modname}:{self.uid}"
+        return f"{self.name}:{self.uid}"
 
 
 def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod]:
@@ -57,14 +59,14 @@ def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod
             deps_out[importee].append(mod)
 
     # start with candidates with no incoming deps, candidates is sorted by
-    # mod.x_modname to make it deterministic
+    # mod.x_modinfo.name to make it deterministic
     candidates: list[tuple[str, cwast.DefMod]] = []
     for mi in mod_infos:
         mod = mi.mod
         assert isinstance(mod, cwast.DefMod)
         if not deps_in[mod]:
             logger.info("found leaf mod [%s]", mod)
-            heapq.heappush(candidates, (mod.x_modname, mod))
+            heapq.heappush(candidates, (mod.x_modinfo.name, mod))
 
     # topological order
     out: list[cwast.DefMod] = []
@@ -77,7 +79,7 @@ def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod
         for importer in deps_out[x]:
             deps_in[importer].remove(x)
             if not deps_in[importer]:
-                heapq.heappush(candidates, (importer.x_modname, importer))
+                heapq.heappush(candidates, (importer.x_modinfo.name, importer))
     return out
 
 
@@ -143,21 +145,22 @@ class ModPoolBase:
         self._raw_generic: dict[pathlib.PurePath, cwast.DefMod] = {}
         #
         self._builtin_mod: Optional[cwast.DefMod] = None
-        self.builtin_macros: set[str] = set()
         self.builtin_symtab: symbolize.SymTab = symbolize.SymTab()
 
     def __str__(self):
         return f"root={self._root}"
 
-    def _AddModInfoCommon(self, mid: ModId, mod: cwast.DefMod) -> ModInfo:
-        mod_info = ModInfo(mid, mod)
+    def _AddModInfoCommon(self, mid: ModId, mod: cwast.DefMod, symtab) -> ModInfo:
+        name = mid[0].name
+        mod_info = ModInfo(mid, mod, name, symtab)
         # print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
         self._all_mods[mid] = mod_info
-        name = mid[0].name
+
         assert name not in self._taken_names
+        # TODO: deal with generics and possible name clashes
         self._taken_names.add(name)
-        mod_info.mod.x_modname = name
+        mod.x_modinfo = mod_info
         return mod_info
 
     def _AddModInfoSimple(self, uid: ModId) -> ModInfo:
@@ -165,8 +168,8 @@ class ModPoolBase:
         assert isinstance(uid, tuple), uid
         mod = self._ReadMod(uid[0])
         cwast.AnnotateImportsForQualifers(mod)
-        mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
-        return self._AddModInfoCommon(uid, mod)
+        symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
+        return self._AddModInfoCommon(uid, mod, symtab)
 
     def _AddModInfoForGeneric(self, mid: ModId) -> ModInfo:
         """Specialize Generic Mod and register it"""
@@ -179,8 +182,8 @@ class ModPoolBase:
             self._raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         cwast.AnnotateImportsForQualifers(mod)
-        mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
-        return self._AddModInfoCommon(mid, symbolize.SpecializeGenericModule(mod, args))
+        symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
+        return self._AddModInfoCommon(mid, symbolize.SpecializeGenericModule(mod, args), symtab)
 
     def _FindModInfo(self, uid) -> Optional[ModInfo]:
         return self._all_mods.get(uid)
@@ -208,7 +211,7 @@ class ModPoolBase:
             active.append(mod_info)
             assert not self._builtin_mod
             self._builtin_mod = mod_info.mod
-            self.builtin_symtab = mod_info.mod.x_symtab
+            self.builtin_symtab = mod_info.symtab
 
         for pathname in seed_modules:
             assert not pathname.startswith(".")
@@ -255,7 +258,7 @@ class ModPoolBase:
                             import_mod_info = self._AddModInfoForGeneric(mid)
                             import_node.x_module = import_mod_info.mod
                             import_node.args_mod.clear()
-                            mod_info.mod.x_symtab.AddImport(import_node)
+                            mod_info.mod.x_modinfo.symtab.AddImport(import_node)
                             new_active.append(import_mod_info)
                             seen_change = True
                         else:
@@ -270,9 +273,9 @@ class ModPoolBase:
                             new_active.append(import_mod_info)
                             seen_change = True
                         logger.info(
-                            f"in {mod_info.mod.x_modname} resolving inport of {import_mod_info.mod.x_modname}")
+                            f"in {mod_info.mod} resolving inport of {import_mod_info.mod.x_modinfo.name}")
                         import_node.x_module = import_mod_info.mod
-                        mod_info.mod.x_symtab.AddImport(import_node)
+                        mod_info.mod.x_modinfo.symtab.AddImport(import_node)
                 if num_unresolved:
                     new_active.append(mod_info)
                 logger.info("finish resolving imports for %s - unresolved: %d",

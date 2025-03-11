@@ -82,7 +82,7 @@ def _MangledGlobalName(mod: cwast.DefMod, node: Any, is_cdecl: bool) -> cwast.NA
     if is_cdecl:
         return cwast.NAME(f"{n.name}{poly_suffix}", n.seq)
     else:
-        return cwast.NAME(f"{mod.x_modname}/{n.name}{poly_suffix}", n.seq)
+        return cwast.NAME(f"{mod.x_modinfo.name}/{n.name}{poly_suffix}", n.seq)
 
 
 @enum.unique
@@ -1163,8 +1163,9 @@ def main() -> int:
                     allow_type_auto=False)
 
     logger.info("Legalize 1")
-    mod_gen = cwast.DefMod([], [],
-                           x_srcloc=cwast.SRCLOC_GENERATED, x_modname="GeNeRaTeD")
+
+    mod_gen = cwast.DefMod([], [], x_srcloc=cwast.SRCLOC_GENERATED)
+    mod_gen.x_modinfo = mod_pool.ModInfo((None,), mod_gen, "GeNeRaTeD", None)
     global_id_gen = identifier.IdGen()
 
     # for key, val in fun_sigs_with_large_args.items():
@@ -1307,7 +1308,7 @@ def main() -> int:
     # Emit Cwert IR
     # print ("# TOPO-ORDER")
     # for mod in mod_topo_order:
-    #    print (f"# {mod.x_modname}")
+    #    print (f"# {mod.x_modinfo.name}")
 
     sig_names: set[str] = set()
     for mod in mod_topo_order:

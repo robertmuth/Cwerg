@@ -30,13 +30,10 @@ _test_mods_local = {
 
 class ModPoolForTest(mod_pool.ModPoolBase):
 
-    def _ReadMod(self: "ModPoolForTest", mid: mod_pool.ModId) -> cwast.DefMod:
-        handle = mid[0]
+    def _ReadMod(self: "ModPoolForTest", handle) -> cwast.DefMod:
         name = handle.name
         dir = handle.parent.name
         mod = _test_mods_std[name] if dir == "Lib" else _test_mods_local[name]
-        cwast.AnnotateImportsForQualifers(mod)
-        mod.x_symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return mod
 
 
@@ -46,7 +43,7 @@ def tests(cwd: str):
     logger.info("Pool %s", pool)
     pool.ReadModulesRecursively(["builtin",
                                  str(pathlib.Path("./main").resolve())], False)
-    print([m.name for m in pool.ModulesInTopologicalOrder()])
+    print([m.x_modinfo.name for m in pool.ModulesInTopologicalOrder()])
     print("OK")
 
 

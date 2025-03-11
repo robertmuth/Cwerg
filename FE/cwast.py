@@ -134,14 +134,13 @@ class NF(enum.Flag):
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     # possibly uniquified name of module, use during code-gen
-    MODNAME_ANNOTATED = enum.auto()
+    MODINFO_ANNOTATED = enum.auto()
 
     # Temporary annotations
     # node reference to the imported module (x_module)
     MODULE_ANNOTATED = enum.auto()
     # reference to the import node resolving the qualifier  (x_import)
     IMPORT_ANNOTATED = enum.auto()
-    SYMTAB = enum.auto()
 
     # Node families
     MAY_BE_LHS = enum.auto()
@@ -765,23 +764,24 @@ def IsFieldWithDefaultValue(field, val):
 
 
 X_FIELDS = {
-    "x_srcloc": None,  # set by cwast.py
-    # set by mod_pool.py
-    # uniquified module name (for instantiated generic modules)
-    "x_modname": NF.MODNAME_ANNOTATED,  # unique module name
-    # set by typify.py
-    "x_type": NF.TYPE_ANNOTATED,
-    "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
-    # set by eval.py
-    "x_value": NF.VALUE_ANNOTATED,
     # set by mod_pool.py
     # containing module links for symbol resolution
     # id -> referenced module
     # fun -> module of archetype (only use for polymorphic function)
     # macro_invoke ->  referenced module
     "x_import": NF.IMPORT_ANNOTATED,
-    # computed by symbolize but annotated by mod_pool.py
-    "x_symtab": NF.SYMTAB,
+
+
+    ################################################
+    # VeryCommon
+    ################################################
+    "x_srcloc": None,  # set by cwast.py
+    # set by eval.py
+    # ExprXXX ->
+    "x_value": NF.VALUE_ANNOTATED,
+    # set by typify.py
+    "x_type": NF.TYPE_ANNOTATED,
+
     ################################################
     # The x_XXX below point to other Nodes
     ################################################
@@ -794,7 +794,15 @@ X_FIELDS = {
     # set by symbolize.py
     # linksbreak/continue/return -> nodes to enclosing node (DefFun, StmtBlock)
     "x_target": NF.CONTROL_FLOW,
-
+    ################################################
+    # Could live in the same union as last group
+    ################################################
+    # set by typify.py
+    # RecField -> int
+    "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
+    # set by mod_pool.py
+    # DefMod -> str (uniquified module name for instantiated generic modules)
+    "x_modinfo": NF.MODINFO_ANNOTATED,  # unique module name
 }
 
 
@@ -1172,7 +1180,7 @@ class DefMod:
     """
     ALIAS: ClassVar = "module"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.MODNAME_ANNOTATED | NF.SYMTAB
+    FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.MODINFO_ANNOTATED
     #
     params_mod: list[NODES_PARAMS_MOD_T]
     body_mod: list[NODES_BODY_MOD_T]
@@ -1181,12 +1189,11 @@ class DefMod:
     builtin: bool = False
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
-    x_modname: str = ""  # unique name for code gen, derived from path
-    x_symtab: Any = None
+    x_modinfo: Any = None
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params_mod)
-        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.x_modname} [{params}]"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.x_modinfo.name if self.x_modinfo else ""} [{params}]"
 
 
 INVALID_MOD = DefMod([], [])
@@ -3448,7 +3455,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
     `disallowed_nodes` contains a set of nodes that must not appear.
 
     `pre_symbolize` indicates that the check is running before symbolization so
-    that the field `x_modname` is not yet set.
+    that the field `x_modinfo` is not yet set.
 
 
     """
@@ -3516,7 +3523,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 assert node.x_module != INVALID_MOD
         elif isinstance(node, DefMod):
             if not pre_symbolize:
-                assert node.x_modname, f"missing x_modname {node}"
+                assert node.x_modinfo, f"missing x_modinfo {node}"
         if nfd is not None:
             if not _IsPermittedNode(node, nfd.node_type, parent, toplevel_node,
                                     node_mod,
