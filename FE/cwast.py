@@ -8,7 +8,6 @@ import dataclasses
 import logging
 import enum
 import re
-import collections
 
 from Util import cgen
 from Util.parse import EscapedStringToBytes, HexStringToBytes
@@ -140,8 +139,6 @@ class NF(enum.Flag):
     # Temporary annotations
     # node reference to the imported module (x_module)
     MODULE_ANNOTATED = enum.auto()
-    # only used for pretty printing
-    ROLE_ANNOTATED = enum.auto()
     # reference to the import node resolving the qualifier  (x_import)
     IMPORT_ANNOTATED = enum.auto()
     SYMTAB = enum.auto()
@@ -429,6 +426,7 @@ class NFD:
     doc: str
     enum_kind: Any = None
     node_type: Any = None
+    # not really needed anymore
     role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
 
@@ -768,35 +766,35 @@ def IsFieldWithDefaultValue(field, val):
 
 X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
-
     # set by mod_pool.py
-    # import -> imported module
-    "x_module": NF.MODULE_ANNOTATED,
-    # set by mod_pool.py
-    # uniquified module name
+    # uniquified module name (for instantiated generic modules)
     "x_modname": NF.MODNAME_ANNOTATED,  # unique module name
-    # set by symbolize.py
-    # contains node from GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
-    "x_symbol": NF.SYMBOL_ANNOTATED,
-    # set by symbolize.py
-    # linksbreak/continue/return nodes to enclosing node
-    "x_target": NF.CONTROL_FLOW,
+    # set by typify.py
     "x_type": NF.TYPE_ANNOTATED,
     "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
     # set by eval.py
     "x_value": NF.VALUE_ANNOTATED,
-
-    # TEMPORARY
-    # set by AnnotateRole() in this file
-    # used by pretty printing where we do not have sym info
-    "x_role":   NF.ROLE_ANNOTATED,
     # set by mod_pool.py
     # containing module links for symbol resolution
     # id -> referenced module
     # fun -> module of archetype (only use for polymorphic function)
     # macro_invoke ->  referenced module
     "x_import": NF.IMPORT_ANNOTATED,
+    # computed by symbolize but annotated by mod_pool.py
     "x_symtab": NF.SYMTAB,
+    ################################################
+    # The x_XXX below point to other Nodes
+    ################################################
+    # set by mod_pool.py
+    # Import -> imported module (DefMod)
+    "x_module": NF.MODULE_ANNOTATED,
+    # set by symbolize.py
+    # Id -> Node in GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
+    "x_symbol": NF.SYMBOL_ANNOTATED,
+    # set by symbolize.py
+    # linksbreak/continue/return -> nodes to enclosing node (DefFun, StmtBlock)
+    "x_target": NF.CONTROL_FLOW,
+
 }
 
 
@@ -2917,13 +2915,12 @@ class MacroId:
     """
     ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Macro
-    FLAGS: ClassVar = NF.NON_CORE | NF.ROLE_ANNOTATED
+    FLAGS: ClassVar = NF.NON_CORE
     #
     name: NAME
 
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
-    x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
     @staticmethod
     def Make(name: str, **kwargs):
@@ -2980,7 +2977,7 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Macro
-    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED | NF.ROLE_ANNOTATED
+    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED
     #
     name: NAME   # may contain qualifiers
     args: list[NODES_EXPR_T]
@@ -2989,7 +2986,6 @@ class MacroInvoke:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_import: Import = INVALID_IMPORT
-    x_role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}"
@@ -3344,33 +3340,6 @@ def NumberOfNodes(node) -> int:
 ############################################################
 # Helpers
 ############################################################
-
-
-def AnnotateRoleForMacroInvoke(node, parent=None, nfd=None):
-    """Some nodes can play multiple role. Determine which one.
-
-    This is useful if we do not have symbol information (x_symbol)
-    but want to pretty print the code
-    """
-
-    def visitor(node, parent, nfd: NFD):
-        if not isinstance(node, (MacroInvoke, MacroId)):
-            return
-        if isinstance(parent, EphemeralList):
-            if parent.colon:
-                node.x_role = MACRO_PARAM_KIND.STMT
-            else:
-                node.x_role = MACRO_PARAM_KIND.EXPR
-        else:
-            assert nfd.kind in (NFK.NODE, NFK.LIST)
-            if nfd.role is MACRO_PARAM_KIND.STMT_LIST:
-                node.x_role = MACRO_PARAM_KIND.STMT
-            elif nfd.role is MACRO_PARAM_KIND.TYPE:
-                node.x_role = MACRO_PARAM_KIND.TYPE
-            else:
-                node.x_role = MACRO_PARAM_KIND.EXPR
-
-    VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd)
 
 
 def AnnotateImportsForQualifers(mod: DefMod):
@@ -3763,7 +3732,7 @@ def _ComputeRemainingSlotsForFields():
                         _FIELD_2_SLOT[field] = i
                         break
                 else:
-                    assert False, f"slot clash"
+                    assert False, "slot clash"
 
 
 _KIND_TO_HANDLE = {
@@ -3870,16 +3839,16 @@ def _FieldNamesForKind(nfk: NFK) -> list[str]:
 def GenerateCodeH(fout: Any):
     _ComputeRemainingSlotsForFields()
 
-    print(f"enum class NFD_NODE_FIELD : uint8_t {{")
-    print(f"    invalid = 0,")
+    print("enum class NFD_NODE_FIELD : uint8_t {")
+    print("    invalid = 0,")
     fields = sorted(_FieldNamesForKind(NFK.NODE) +
                     _FieldNamesForKind(NFK.LIST))
     for n, name in enumerate(fields):
         print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
     print("};")
 
-    print(f"enum class NFD_STRING_FIELD : uint8_t {{")
-    print(f"    invalid = 0,")
+    print("enum class NFD_STRING_FIELD : uint8_t {")
+    print("    invalid = 0,")
     fields = sorted(_FieldNamesForKind(NFK.NAME) +
                     _FieldNamesForKind(NFK.STR))
     for n, name in enumerate(fields):
@@ -3958,7 +3927,7 @@ def NodeAliasStringConversion(fout: Any):
 
 
 def EmitNodeDesc(fout: Any):
-    print("NodeDesc GlobalNodeDescs[] = {")
+    print("const NodeDesc GlobalNodeDescs[] = {")
     print("    {}, // invalid")
 
     for cls in sorted(ALL_NODES, key=lambda n: n.__name__):
