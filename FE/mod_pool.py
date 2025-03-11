@@ -172,10 +172,8 @@ class ModPoolBase:
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon((path,), mod, symtab)
 
-    def _AddModInfoForGeneric(self, mid: ModId) -> ModInfo:
+    def _AddModInfoForGeneric(self, path: Path, args: list) -> ModInfo:
         """Specialize Generic Mod and register it"""
-        path = mid[0]
-        args = list(mid)[1:]
         generic_mod = self._raw_generic.get(path)
         if not generic_mod:
             logger.info("reading raw generic from: %s", path)
@@ -184,7 +182,7 @@ class ModPoolBase:
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         cwast.AnnotateImportsForQualifers(mod)
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
-        return self._AddModInfoCommon(mid, symbolize.SpecializeGenericModule(mod, args), symtab)
+        return self._AddModInfoCommon((path, *args), symbolize.SpecializeGenericModule(mod, args), symtab)
 
     def _FindModInfoSimple(self, path: Path) -> Optional[ModInfo]:
         return self._all_mods.get((path,))
@@ -253,10 +251,11 @@ class ModPoolBase:
                         logger.info(
                             "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
                         if done:
-                            mid = (_ModUniquePathName(
-                                self._root, mod_info.uid[0], path),
+                            p = _ModUniquePathName(
+                                self._root, mod_info.uid[0], path)
+                            mid = (p,
                                 *normalized_args)
-                            import_mod_info = self._AddModInfoForGeneric(mid)
+                            import_mod_info = self._AddModInfoForGeneric(p, normalized_args)
                             import_node.x_module = import_mod_info.mod
                             import_node.args_mod.clear()
                             mod_info.mod.x_modinfo.symtab.AddImport(import_node)
