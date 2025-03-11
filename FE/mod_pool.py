@@ -104,9 +104,9 @@ def _TryToNormalizeModArgs(args, normalized) -> bool:
     return count == len(args)
 
 
-def _ModUniquePathName(root: pathlib.PurePath,
-                       curr: Optional[pathlib.PurePath],
-                       pathname: str) -> pathlib.PurePath:
+def _ModUniquePathName(root: Path,
+                       curr: Optional[Path],
+                       pathname: str) -> Path:
     """
     Provide a unique id for a module.
 
@@ -122,7 +122,7 @@ def _ModUniquePathName(root: pathlib.PurePath,
         pc = pathlib.Path(curr).parent
         return (pc / pathname).resolve()
     else:
-        return (root / pathname).resolve()
+        return pathlib.Path(root / pathname).resolve()
 
 
 _MAIN_FUN_NAME = cwast.NAME.FromStr("main")
@@ -137,14 +137,14 @@ class ModPoolBase:
     (non parameterized imports)
     """
 
-    def __init__(self, root: pathlib.Path):
+    def __init__(self, root: Path):
         logger.info("Init ModPool with: %s", root)
-        self._root: pathlib.Path = root
+        self._root: Path = root
         # all modules keyed by ModHandle
         self._all_mods: dict[ModId, ModInfo] = {}
         self._main_mod: Optional[cwast.DefMod] = None
         self._taken_names: set[str] = set()
-        self._raw_generic: dict[pathlib.PurePath, cwast.DefMod] = {}
+        self._raw_generic: dict[Path, cwast.DefMod] = {}
         #
         self._builtin_mod: Optional[cwast.DefMod] = None
         self.builtin_symtab: symbolize.SymTab = symbolize.SymTab()
@@ -152,8 +152,9 @@ class ModPoolBase:
     def __str__(self):
         return f"root={self._root}"
 
-    def _AddModInfoCommon(self, mid: ModId, mod: cwast.DefMod, symtab) -> ModInfo:
-        name = mid[0].name
+    def _AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> ModInfo:
+        mid = (path, *args)
+        name = path.name
         mod_info = ModInfo(mid, mod, name, symtab)
         # print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
@@ -170,7 +171,7 @@ class ModPoolBase:
         mod = self._ReadMod(path)
         cwast.AnnotateImportsForQualifers(mod)
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
-        return self._AddModInfoCommon((path,), mod, symtab)
+        return self._AddModInfoCommon(path, [], mod, symtab)
 
     def _AddModInfoForGeneric(self, path: Path, args: list) -> ModInfo:
         """Specialize Generic Mod and register it"""
@@ -182,12 +183,12 @@ class ModPoolBase:
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         cwast.AnnotateImportsForQualifers(mod)
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
-        return self._AddModInfoCommon((path, *args), symbolize.SpecializeGenericModule(mod, args), symtab)
+        return self._AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
 
     def _FindModInfoSimple(self, path: Path) -> Optional[ModInfo]:
         return self._all_mods.get((path,))
 
-    def _ReadMod(self, _handle: pathlib.PurePath) -> cwast.DefMod:
+    def _ReadMod(self, _handle: Path) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
         return cwast.INVALID_MOD
 
@@ -215,7 +216,8 @@ class ModPoolBase:
         for pathname in seed_modules:
             assert not pathname.startswith(".")
             path = _ModUniquePathName(self._root, None, pathname)
-            assert self._FindModInfoSimple(path) is None, f"duplicate module {path}"
+            assert self._FindModInfoSimple(
+                path) is None, f"duplicate module {pathname}"
             mod_info = self._AddModInfoSimple(path)
             if not self._main_mod:
                 self._main_mod = mod_info.mod
@@ -236,12 +238,12 @@ class ModPoolBase:
                 for import_node, normalized_args in mod_info.imports:
                     if import_node.x_module != cwast.INVALID_MOD:
                         continue
-                    path = import_node.path
-                    if path:
-                        if path.startswith('"'):
-                            path = path[1:-1]
+                    pathname = import_node.path
+                    if pathname:
+                        if pathname.startswith('"'):
+                            pathname = pathname[1:-1]
                     else:
-                        path = str(import_node.name)
+                        pathname = str(import_node.name)
                     if import_node.args_mod:
                         # import of generic module
                         done = _TryToNormalizeModArgs(
@@ -251,26 +253,24 @@ class ModPoolBase:
                         logger.info(
                             "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
                         if done:
-                            p = _ModUniquePathName(
-                                self._root, mod_info.uid[0], path)
-                            mid = (p,
-                                *normalized_args)
-                            import_mod_info = self._AddModInfoForGeneric(p, normalized_args)
+                            path = _ModUniquePathName(
+                                self._root, mod_info.uid[0], pathname)
+                            import_mod_info = self._AddModInfoForGeneric(
+                                path, normalized_args)
                             import_node.x_module = import_mod_info.mod
                             import_node.args_mod.clear()
-                            mod_info.mod.x_modinfo.symtab.AddImport(import_node)
+                            mod_info.mod.x_modinfo.symtab.AddImport(
+                                import_node)
                             new_active.append(import_mod_info)
                             seen_change = True
                         else:
                             num_unresolved += 1
                     else:
-
-                        mid = (_ModUniquePathName(
-                            self._root, mod_info.uid[0], path),)
-                        import_mod_info = self._FindModInfoSimple(mid[0])
+                        path = _ModUniquePathName(
+                            self._root, mod_info.uid[0], pathname)
+                        import_mod_info = self._FindModInfoSimple(path)
                         if not import_mod_info:
-                            import_mod_info = self._AddModInfoSimple(
-                                mid[0])
+                            import_mod_info = self._AddModInfoSimple(path)
                             new_active.append(import_mod_info)
                             seen_change = True
                         logger.info(
@@ -292,7 +292,7 @@ class ModPoolBase:
 
 class ModPool(ModPoolBase):
 
-    def _ReadMod(self, handle: pathlib.PurePath) -> cwast.DefMod:
+    def _ReadMod(self, handle: Path) -> cwast.DefMod:
         """Overload"""
         fn = str(handle) + EXTENSION_CW
         if pathlib.Path(fn).exists():
