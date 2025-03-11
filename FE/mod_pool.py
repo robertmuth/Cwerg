@@ -12,7 +12,9 @@ from FE import parse
 
 from typing import Optional, Sequence
 
-ModId = tuple[pathlib.PurePath, ...]
+Path = pathlib.PurePath
+
+ModId = tuple[Path, ...]
 
 logger = logging.getLogger(__name__)
 
@@ -163,13 +165,12 @@ class ModPoolBase:
         mod.x_modinfo = mod_info
         return mod_info
 
-    def _AddModInfoSimple(self, uid: ModId) -> ModInfo:
+    def _AddModInfoSimple(self, path: Path) -> ModInfo:
         """Register regular module"""
-        assert isinstance(uid, tuple), uid
-        mod = self._ReadMod(uid[0])
+        mod = self._ReadMod(path)
         cwast.AnnotateImportsForQualifers(mod)
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
-        return self._AddModInfoCommon(uid, mod, symtab)
+        return self._AddModInfoCommon((path,), mod, symtab)
 
     def _AddModInfoForGeneric(self, mid: ModId) -> ModInfo:
         """Specialize Generic Mod and register it"""
@@ -185,8 +186,8 @@ class ModPoolBase:
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(mid, symbolize.SpecializeGenericModule(mod, args), symtab)
 
-    def _FindModInfo(self, uid) -> Optional[ModInfo]:
-        return self._all_mods.get(uid)
+    def _FindModInfoSimple(self, path: Path) -> Optional[ModInfo]:
+        return self._all_mods.get((path,))
 
     def _ReadMod(self, _handle: pathlib.PurePath) -> cwast.DefMod:
         assert False, "to be implemented by derived class"
@@ -205,8 +206,8 @@ class ModPoolBase:
     def ReadModulesRecursively(self, seed_modules: list[str], add_builtin: bool):
         active: list[ModInfo] = []
         if add_builtin:
-            uid = (_ModUniquePathName(self._root, None, "builtin"),)
-            mod_info = self._AddModInfoSimple(uid)
+            path = _ModUniquePathName(self._root, None, "builtin")
+            mod_info = self._AddModInfoSimple(path)
             assert mod_info.mod.builtin
             active.append(mod_info)
             assert not self._builtin_mod
@@ -215,9 +216,9 @@ class ModPoolBase:
 
         for pathname in seed_modules:
             assert not pathname.startswith(".")
-            uid = (_ModUniquePathName(self._root, None, pathname),)
-            assert self._FindModInfo(uid) is None, f"duplicate module {uid}"
-            mod_info = self._AddModInfoSimple(uid)
+            path = _ModUniquePathName(self._root, None, pathname)
+            assert self._FindModInfoSimple(path) is None, f"duplicate module {path}"
+            mod_info = self._AddModInfoSimple(path)
             if not self._main_mod:
                 self._main_mod = mod_info.mod
             active.append(mod_info)
@@ -264,12 +265,13 @@ class ModPoolBase:
                         else:
                             num_unresolved += 1
                     else:
+
                         mid = (_ModUniquePathName(
                             self._root, mod_info.uid[0], path),)
-                        import_mod_info = self._FindModInfo(mid)
+                        import_mod_info = self._FindModInfoSimple(mid[0])
                         if not import_mod_info:
                             import_mod_info = self._AddModInfoSimple(
-                                mid)
+                                mid[0])
                             new_active.append(import_mod_info)
                             seen_change = True
                         logger.info(
