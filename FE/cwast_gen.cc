@@ -53,7 +53,7 @@ const NodeDesc GlobalNodeDescs[] = {
     { BIT_N(params)| BIT_N(result)| BIT_N(body), BIT_S(name), BIT_B(INIT)| BIT_B(FINI)| BIT_B(EXTERN)| BIT_B(CDECL)| BIT_B(POLY)| BIT_B(PUB)| BIT_B(REF) }, // DefFun
     { BIT_N(type_or_auto)| BIT_N(initial_or_undef_or_auto), BIT_S(name), BIT_B(PUB)| BIT_B(MUT)| BIT_B(REF)| BIT_B(CDECL) }, // DefGlobal
     { BIT_N(params_macro)| BIT_N(gen_ids)| BIT_N(body_macro), BIT_S(name), BIT_B(BUILTIN)| BIT_B(PUB) }, // DefMacro
-    { BIT_N(params_mod)| BIT_N(body_mod), 0, BIT_B(BUILTIN) }, // DefMod
+    { BIT_N(params_mod)| BIT_N(body_mod), BIT_S(name), BIT_B(BUILTIN) }, // DefMod
     { BIT_N(fields), BIT_S(name), BIT_B(PUB) }, // DefRec
     { BIT_N(type), BIT_S(name), BIT_B(PUB)| BIT_B(WRAPPED) }, // DefType
     { BIT_N(type_or_auto)| BIT_N(initial_or_undef_or_auto), BIT_S(name), BIT_B(MUT)| BIT_B(REF) }, // DefVar

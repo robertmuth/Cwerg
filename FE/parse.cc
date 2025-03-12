@@ -1203,7 +1203,7 @@ Node ParseModBodyList(Lexer* lexer, uint32_t column) {
   return top;
 }
 
-Node ParseDefMod(Lexer* lexer) {
+Node ParseDefMod(Lexer* lexer, Name name) {
   const TK tk = lexer->Peek();
   ASSERT(tk.text == "module", "");
   lexer->Skip();
@@ -1215,7 +1215,7 @@ Node ParseDefMod(Lexer* lexer) {
   }
   lexer->MatchOrDie(TK_KIND::COLON);
   Node body = ParseModBodyList(lexer, 0);
-  InitDefMod(def_mod, params, body, BitsFromAnnotation(tk), tk.comments,
+  InitDefMod(def_mod, name, params, body, BitsFromAnnotation(tk), tk.comments,
              tk.srcloc);
   return def_mod;
 }

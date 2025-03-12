@@ -10,6 +10,6 @@ namespace cwerg::fe {
 extern void InitParser();
 
 
-extern Node ParseDefMod(Lexer* lexer);
+extern Node ParseDefMod(Lexer* lexer, Name name);
 
 } // namespace cwerg::fe

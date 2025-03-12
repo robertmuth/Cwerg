@@ -225,7 +225,7 @@ enum class NFD_NODE_FIELD : uint8_t {
     body_f = 4,  // slot: 2
     body_for = 5,  // slot: 2
     body_macro = 6,  // slot: 3
-    body_mod = 7,  // slot: 1
+    body_mod = 7,  // slot: 2
     body_t = 8,  // slot: 0
     callee = 9,  // slot: 0
     cases = 10,  // slot: 0
@@ -251,7 +251,7 @@ enum class NFD_NODE_FIELD : uint8_t {
     lhs = 30,  // slot: 0
     params = 31,  // slot: 1
     params_macro = 32,  // slot: 1
-    params_mod = 33,  // slot: 0
+    params_mod = 33,  // slot: 1
     point = 34,  // slot: 1
     pointer = 35,  // slot: 0
     result = 36,  // slot: 2
@@ -492,7 +492,7 @@ inline Str Node_message(Node n) { return Str(gNodeCore[n].children[0]); }
 inline Str Node_path(Node n) { return Str(gNodeCore[n].children[1]); }
 // NFK.LIST
 inline Node Node_params(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_params_mod(Node n) { return Node(gNodeCore[n].children[0]); }
+inline Node Node_params_mod(Node n) { return Node(gNodeCore[n].children[1]); }
 inline Node Node_params_macro(Node n) { return Node(gNodeCore[n].children[1]); }
 inline Node Node_args(Node n) { return Node(gNodeCore[n].children[1]); }
 inline Node Node_args_mod(Node n) { return Node(gNodeCore[n].children[2]); }
@@ -501,7 +501,7 @@ inline Node Node_fields(Node n) { return Node(gNodeCore[n].children[1]); }
 inline Node Node_types(Node n) { return Node(gNodeCore[n].children[0]); }
 inline Node Node_inits(Node n) { return Node(gNodeCore[n].children[0]); }
 inline Node Node_gen_ids(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_body_mod(Node n) { return Node(gNodeCore[n].children[1]); }
+inline Node Node_body_mod(Node n) { return Node(gNodeCore[n].children[2]); }
 inline Node Node_body(Node n) { return Node(gNodeCore[n].children[3]); }
 inline Node Node_body_t(Node n) { return Node(gNodeCore[n].children[0]); }
 inline Node Node_body_f(Node n) { return Node(gNodeCore[n].children[2]); }
@@ -555,8 +555,8 @@ inline void InitDefMacro(Node node, Name name, MACRO_PARAM_KIND macro_result_kin
     NodeInit(node, NT::DefMacro, name, params_macro, gen_ids, body_macro, uint8_t(macro_result_kind), bits, doc, srcloc);
 }
 
-inline void InitDefMod(Node node, Node params_mod, Node body_mod, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::DefMod, params_mod, body_mod, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+inline void InitDefMod(Node node, Name name, Node params_mod, Node body_mod, uint16_t bits, Str doc, const SrcLoc& srcloc) {
+    NodeInit(node, NT::DefMod, name, params_mod, body_mod, HandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitDefRec(Node node, Name name, Node fields, uint16_t bits, Str doc, const SrcLoc& srcloc) {

@@ -967,7 +967,7 @@ int main(int argc, const char* argv[]) {
       std::string_view(reinterpret_cast<char*>(data.data()), data.size()), 555);
   // std::cout << "loaded " << data.size() << " bytes\n";
 
-  Node mod = ParseDefMod(&lexer);
+  Node mod = ParseDefMod(&lexer, NameNew("stdin"));
   Prettify(mod);
   return 0;
 }

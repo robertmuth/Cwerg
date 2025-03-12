@@ -47,9 +47,11 @@ run_lexer_bench: $(LEXER_BENCH)
 ############################################################
 # Profile
 #############################################################
-For profiling to work, run this as root first:
+# For profiling to work, run this as root first:
 # echo "-1" > /proc/sys/kernel/perf_event_paranoid
-
+#
+# to examine the profile use
+# perf report
 XXX1 =  Lib/*cw
 XXX2 = $(XXX1) $(XXX1)
 XXX3 = $(XXX2) $(XXX2)
@@ -58,5 +60,8 @@ XXX5 = $(XXX4) $(XXX4)
 XXX6 = $(XXX5) $(XXX5)
 XXX7 = $(XXX6) $(XXX6)
 
-profile:
-	perf record -g -F max $(LEXER_BENCH) -m parser $(XXX7) $(XXX5)
+profile: $(LEXER_BENCH)
+	perf record -g -F max $(LEXER_BENCH) -m parser $(XXX7) $(XXX5) $(XXX1)
+
+benchmark: $(LEXER_BENCH)
+	/bin/time -p $(LEXER_BENCH) -m parser $(XXX7) $(XXX5) $(XXX1)
