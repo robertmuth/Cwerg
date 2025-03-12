@@ -28,18 +28,16 @@ _test_mods_local = {
 }
 
 
-class ModPoolForTest(mod_pool.ModPoolBase):
-
-    def _ReadMod(self: "ModPoolForTest", handle) -> cwast.DefMod:
-        name = handle.name
-        dir = handle.parent.name
-        mod = _test_mods_std[name] if dir == "Lib" else _test_mods_local[name]
-        return mod
+def _ReadMod(handle) -> cwast.DefMod:
+    name = handle.name
+    dir = handle.parent.name
+    mod = _test_mods_std[name] if dir == "Lib" else _test_mods_local[name]
+    return mod
 
 
 def tests(cwd: str):
 
-    pool = ModPoolForTest(pathlib.Path(cwd) / "Lib")
+    pool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib", _ReadMod)
     logger.info("Pool %s", pool)
     pool.ReadModulesRecursively(["builtin",
                                  str(pathlib.Path("./main").resolve())], False)

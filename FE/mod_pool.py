@@ -23,7 +23,7 @@ EXTENSION_CW = ".cw"
 
 
 class ModInfo:
-    def __init__(self, mid: ModId, mod: cwast.DefMod, name: str, symtab):
+    def __init__(self, mid: ModId, mod: cwast.DefMod, name: str, symtab: symbolize.SymTab):
         self.mid = mid
         self.mod = mod
         self.symtab = symtab
@@ -128,16 +128,32 @@ def _ModUniquePathName(root: Path,
 _MAIN_FUN_NAME = cwast.NAME.FromStr("main")
 
 
-class ModPoolBase:
+def _ReadMod(handle: Path) -> cwast.DefMod:
+    """Overload"""
+    fn = str(handle) + EXTENSION_CW
+    if pathlib.Path(fn).exists():
+        mod = parse.ReadModFromStream(open(fn, encoding="utf8"), fn)
+        assert isinstance(mod, cwast.DefMod)
+        return mod
+    fn = str(handle) + EXTENSION_CWS
+    if pathlib.Path(fn).exists():
+        mod = parse_sexpr.ReadModFromStream(open(fn, encoding="utf8"), fn)
+        assert isinstance(mod, cwast.DefMod)
+        return mod
+    assert False, f"module {str(handle)} does not exist"
+
+
+class ModPool:
     """
     Will set the following fields:
         * x_import field of the Import nodes
         * x_module (name) field of the DefMod nodes
     """
 
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, read_mod_fun=_ReadMod):
         logger.info("Init ModPool with: %s", root)
         self._root: Path = root
+        self._read_mod_fun = read_mod_fun
         # all modules keyed by ModHandle
         self._all_mods: dict[ModId, ModInfo] = {}
         self._taken_names: set[str] = set()
@@ -165,7 +181,7 @@ class ModPoolBase:
 
     def _AddModInfoSimple(self, path: Path) -> ModInfo:
         """Register regular module"""
-        mod = self._ReadMod(path)
+        mod = self._read_mod_fun(path)
         cwast.AnnotateImportsForQualifers(mod)
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, [], mod, symtab)
@@ -175,7 +191,7 @@ class ModPoolBase:
         generic_mod = self._raw_generic.get(path)
         if not generic_mod:
             logger.info("reading raw generic from: %s", path)
-            generic_mod = self._ReadMod(path)
+            generic_mod = self._read_mod_fun(path)
             self._raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         cwast.AnnotateImportsForQualifers(mod)
@@ -184,10 +200,6 @@ class ModPoolBase:
 
     def _FindModInfoSimple(self, path: Path) -> Optional[ModInfo]:
         return self._all_mods.get((path,))
-
-    def _ReadMod(self, _handle: Path) -> cwast.DefMod:
-        assert False, "to be implemented by derived class"
-        return cwast.INVALID_MOD
 
     def AllModInfos(self) -> Sequence[ModInfo]:
         return self._all_mods.values()
@@ -200,8 +212,9 @@ class ModPoolBase:
         assert False
 
     def BuiltinSymtab(self):
-        assert self._builtin_modinfo
-        return self._builtin_modinfo.symtab
+        if self._builtin_modinfo:
+            return self._builtin_modinfo.symtab
+        return symbolize.SymTab()
 
     def ReadModulesRecursively(self, seed_modules: list[str], add_builtin: bool):
         active: list[ModInfo] = []
@@ -288,23 +301,6 @@ class ModPoolBase:
 
     def ModulesInTopologicalOrder(self) -> list[cwast.DefMod]:
         return ModulesInTopologicalOrder(self.AllModInfos())
-
-
-class ModPool(ModPoolBase):
-
-    def _ReadMod(self, handle: Path) -> cwast.DefMod:
-        """Overload"""
-        fn = str(handle) + EXTENSION_CW
-        if pathlib.Path(fn).exists():
-            mod = parse.ReadModFromStream(open(fn, encoding="utf8"), fn)
-            assert isinstance(mod, cwast.DefMod)
-            return mod
-        fn = str(handle) + EXTENSION_CWS
-        if pathlib.Path(fn).exists():
-            mod = parse_sexpr.ReadModFromStream(open(fn, encoding="utf8"), fn)
-            assert isinstance(mod, cwast.DefMod)
-            return mod
-        assert False, f"module {str(handle)} does not exist"
 
 
 if __name__ == "__main__":
