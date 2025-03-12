@@ -324,8 +324,6 @@ class ModPool:
                                 path, normalized_args, mod_name)
                             import_node.x_module = import_mod_info.mod
                             import_node.args_mod.clear()
-                            mod_info.mod.x_symtab.AddImport(
-                                import_node)
                             new_active.append(import_mod_info)
                             seen_change = True
                         else:
@@ -343,7 +341,6 @@ class ModPool:
                         logger.info(
                             f"in {mod_info.mod} resolving inport of {import_mod_info.mod.name}")
                         import_node.x_module = import_mod_info.mod
-                        mod_info.mod.x_symtab.AddImport(import_node)
                 if num_unresolved:
                     new_active.append(mod_info)
                 logger.info("finish resolving imports for %s - unresolved: %d",

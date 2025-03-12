@@ -47,13 +47,9 @@ def _resolve_enum_item(node: cwast.DefEnum, entry_name, srcloc) -> cwast.EnumVal
 
 
 class SymTab:
-    """Symbol Table For Global and Local Symbols in one Mod
-
-
-    """
+    """Symbol Table For Global and Local Symbols in one Mod"""
 
     def __init__(self: Any):
-        self._imports: dict[cwast.NAME, cwast.DefMod] = {}
         self._syms: dict[cwast.NAME, Any] = {}
 
     def AddLocalSym(self, name: cwast.NAME, node):
@@ -81,13 +77,6 @@ class SymTab:
         if name in self._syms:
             cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
         self._syms[name] = node
-
-    def AddImport(self, node: cwast.Import):
-        name = node.name
-        if name in self._imports:
-            cwast.CompilerError(node.x_srcloc, f"dup import {name}")
-        assert node.x_module != cwast.INVALID_MOD
-        self._imports[name] = node.x_module
 
     def DelSym(self, name):
         assert name in self._syms
@@ -539,7 +528,8 @@ _GENERIC_DUMMY_MODULE = cwast.NAME.FromStr("GENERIC")
 
 
 def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
-    assert len(mod.params_mod) == len(args), f"{len(mod.params_mod)} vs {len(args)} {type(args)}"
+    assert len(mod.params_mod) == len(
+        args), f"{len(mod.params_mod)} vs {len(args)} {type(args)}"
     translation: dict[cwast.NAME, Any] = {}
     for p, a in zip(mod.params_mod, args):
         sl = p.x_srcloc
