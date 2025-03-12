@@ -1122,7 +1122,7 @@ def main() -> int:
 
     logger.info("Expand macros and link most IDs to their definition")
     symbolize.MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order, mp.builtin_symtab, fun_id_gens)
+        mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         cwast.StripFromListRecursively(mod, cwast.Import)

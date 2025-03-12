@@ -23,8 +23,8 @@ EXTENSION_CW = ".cw"
 
 
 class ModInfo:
-    def __init__(self, uid: ModId, mod: cwast.DefMod, name: str, symtab):
-        self.uid = uid
+    def __init__(self, mid: ModId, mod: cwast.DefMod, name: str, symtab):
+        self.mid = mid
         self.mod = mod
         self.symtab = symtab
         self.name = name
@@ -33,7 +33,7 @@ class ModInfo:
             (node, [None] * len(node.args_mod)) for node in mod.body_mod if isinstance(node, cwast.Import)]
 
     def __str__(self):
-        return f"{self.name}:{self.uid}"
+        return f"{self.name}:{self.mid}"
 
 
 def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod]:
@@ -133,8 +133,6 @@ class ModPoolBase:
     Will set the following fields:
         * x_import field of the Import nodes
         * x_module (name) field of the DefMod nodes
-        * x_normalized field of the ModParam nodes
-    (non parameterized imports)
     """
 
     def __init__(self, root: Path):
@@ -142,12 +140,11 @@ class ModPoolBase:
         self._root: Path = root
         # all modules keyed by ModHandle
         self._all_mods: dict[ModId, ModInfo] = {}
-        self._main_mod: Optional[cwast.DefMod] = None
         self._taken_names: set[str] = set()
         self._raw_generic: dict[Path, cwast.DefMod] = {}
         #
-        self._builtin_mod: Optional[cwast.DefMod] = None
-        self.builtin_symtab: symbolize.SymTab = symbolize.SymTab()
+        self._builtin_modinfo: Optional[ModInfo] = None
+        self._main_modinfo: Optional[ModInfo] = None
 
     def __str__(self):
         return f"root={self._root}"
@@ -196,11 +193,15 @@ class ModPoolBase:
         return self._all_mods.values()
 
     def MainEntryFun(self) -> cwast.DefFun:
-        assert self._main_mod
-        for fun in self._main_mod.body_mod:
+        assert self._main_modinfo
+        for fun in self._main_modinfo.mod.body_mod:
             if isinstance(fun, cwast.DefFun) and fun.name == _MAIN_FUN_NAME:
                 return fun
         assert False
+
+    def BuiltinSymtab(self):
+        assert self._builtin_modinfo
+        return self._builtin_modinfo.symtab
 
     def ReadModulesRecursively(self, seed_modules: list[str], add_builtin: bool):
         active: list[ModInfo] = []
@@ -209,9 +210,8 @@ class ModPoolBase:
             mod_info = self._AddModInfoSimple(path)
             assert mod_info.mod.builtin
             active.append(mod_info)
-            assert not self._builtin_mod
-            self._builtin_mod = mod_info.mod
-            self.builtin_symtab = mod_info.symtab
+            assert not self._builtin_modinfo
+            self._builtin_modinfo = mod_info
 
         for pathname in seed_modules:
             assert not pathname.startswith(".")
@@ -219,8 +219,8 @@ class ModPoolBase:
             assert self._FindModInfoSimple(
                 path) is None, f"duplicate module {pathname}"
             mod_info = self._AddModInfoSimple(path)
-            if not self._main_mod:
-                self._main_mod = mod_info.mod
+            if not self._main_modinfo:
+                self._main_modinfo = mod_info
             active.append(mod_info)
             assert not mod_info.mod.builtin
 
@@ -230,7 +230,7 @@ class ModPoolBase:
             seen_change = False
             # this probably needs to be a fix point computation as well
             symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                [m.mod for m in self.AllModInfos()], self.builtin_symtab, False)
+                [m.mod for m in self.AllModInfos()], self.BuiltinSymtab(), False)
             for mod_info in active:
                 assert isinstance(mod_info, ModInfo), mod_info
                 logger.info("start resolving imports for %s", mod_info)
@@ -254,7 +254,7 @@ class ModPoolBase:
                             "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
                         if done:
                             path = _ModUniquePathName(
-                                self._root, mod_info.uid[0], pathname)
+                                self._root, mod_info.mid[0], pathname)
                             import_mod_info = self._AddModInfoForGeneric(
                                 path, normalized_args)
                             import_node.x_module = import_mod_info.mod
@@ -267,7 +267,7 @@ class ModPoolBase:
                             num_unresolved += 1
                     else:
                         path = _ModUniquePathName(
-                            self._root, mod_info.uid[0], pathname)
+                            self._root, mod_info.mid[0], pathname)
                         import_mod_info = self._FindModInfoSimple(path)
                         if not import_mod_info:
                             import_mod_info = self._AddModInfoSimple(path)

@@ -769,9 +769,9 @@ X_FIELDS = {
     # id -> referenced module
     # fun -> module of archetype (only use for polymorphic function)
     # macro_invoke ->  referenced module
+    #
+    # only used for symbolization and typification
     "x_import": NF.IMPORT_ANNOTATED,
-
-
     ################################################
     # VeryCommon
     ################################################
@@ -787,6 +787,8 @@ X_FIELDS = {
     ################################################
     # set by mod_pool.py
     # Import -> imported module (DefMod)
+    #
+    # only used for symbolization and typification
     "x_module": NF.MODULE_ANNOTATED,
     # set by symbolize.py
     # Id -> Node in GLOBAL_SYM_DEF/LOCAL_SYM_DEF group

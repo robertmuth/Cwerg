@@ -455,10 +455,10 @@ def _TypifyId(node: cwast.Id, tc: type_corpus.TypeCorpus,
     return AnnotateNodeType(node, ct)
 
 
-def _IsPolymorphicCall(call: cwast.ExprCall) -> bool:
-    if not isinstance(call.callee, cwast.Id):
+def _IsPolymorphicCallee(callee: Any) -> bool:
+    if not isinstance(callee, cwast.Id):
         return False
-    def_sym = call.callee.x_symbol
+    def_sym = callee.x_symbol
     if not isinstance(def_sym, cwast.DefFun):
         return False
     return def_sym.poly
@@ -602,7 +602,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ExprCall):
         callee = node.callee
-        if _IsPolymorphicCall(node):
+        if _IsPolymorphicCallee(callee):
             assert len(node.args) > 0
             assert isinstance(callee, cwast.Id)
             t = _TypifyNodeRecursively(
@@ -1344,7 +1344,7 @@ def main(argv: list[str]):
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
     symbolize.MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order, mp.builtin_symtab, fun_id_gens)
+        mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)

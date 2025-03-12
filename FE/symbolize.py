@@ -539,7 +539,7 @@ _GENERIC_DUMMY_MODULE = cwast.NAME.FromStr("GENERIC")
 
 
 def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
-    assert len(mod.params_mod) == len(args)
+    assert len(mod.params_mod) == len(args), f"{len(mod.params_mod)} vs {len(args)} {type(args)}"
     translation: dict[cwast.NAME, Any] = {}
     for p, a in zip(mod.params_mod, args):
         sl = p.x_srcloc
@@ -589,7 +589,7 @@ def main(argv: list[str]):
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
     MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order, mp.builtin_symtab, fun_id_gens)
+        mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
     for ast in mod_topo_order:
         cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
