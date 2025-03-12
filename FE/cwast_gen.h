@@ -26,7 +26,7 @@ enum class MACRO_PARAM_KIND : uint8_t;
 enum class MOD_PARAM_KIND : uint8_t;
 enum class ASSIGNMENT_KIND : uint8_t;
 
-extern std::array<uint16_t, 17> BF2MASK;
+extern const std::array<uint16_t, 17> BF2MASK;
 
 inline uint16_t Mask(BF val) { return BF2MASK[int(val)]; }
 
@@ -49,7 +49,7 @@ struct Name : public Handle {
   explicit constexpr Name(Handle ref) : Handle(ref.value) {}
 };
 
-constexpr const Handle HandleInvalid(0, 0);
+constexpr const Handle HandleInvalid(0, kKindInvalid);
 constexpr const Str StrInvalid(0);
 constexpr const Node NodeInvalid(HandleInvalid);
 
@@ -86,17 +86,35 @@ struct NodeCore {
 
 struct NodeExtra {
   Str comment;
-  SrcLoc srcloc;
+  SrcLoc x_srcloc;
+  // TODO: add typeninfo
+  union {
+    Node x_symbol;
+    Node x_target;
+    uint32_t x_offset;
+    // TODO: add ModInfo
+  };
 };
+
+struct NodeAuxTyping {
+    Node x_import;
+    Node x_module;
+};
+
 
 extern struct Stripe<NodeCore, Node> gNodeCore;
 extern struct Stripe<NodeExtra, Node> gNodeExtra;
+extern struct Stripe<NodeAuxTyping, Node> gNodeAuxTyping;
+
 extern struct StripeGroup gStripeGroupNode;
 
 inline NT Node_kind(Node node) { return gNodeCore[node].kind; }
 inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
+//
 inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
-inline SrcLoc& Node_srcloc(Node node) { return gNodeExtra[node].srcloc; }
+inline SrcLoc& Node_srcloc(Node node) { return gNodeExtra[node].x_srcloc; }
+inline Node& Node_x_symbol(Node node) { return gNodeExtra[node].x_symbol; }
+inline Node& Node_x_target(Node node) { return gNodeExtra[node].x_target; }
 
 inline bool Node_has_flag(Node node, BF bf) {
   return gNodeCore[node].compressed_flags & Mask(bf);
@@ -131,7 +149,7 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
   //
   NodeExtra& extra = gNodeExtra[node];
   extra.comment = doc;
-  extra.srcloc = srcloc;
+  extra.x_srcloc = srcloc;
 }
 
 // =======================================
@@ -879,7 +897,7 @@ struct NodeDesc {
 // For each NT described which fields (regular / bool) are present
 // We have aboutr 45 regular and very few bool fields. So there is headroom in
 // the biy vec
-extern NodeDesc GlobalNodeDescs[];
+extern const NodeDesc GlobalNodeDescs[];
 
 const char* EnumToString(MOD_PARAM_KIND x);
 const char* EnumToString(MACRO_PARAM_KIND x);

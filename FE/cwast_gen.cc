@@ -42,11 +42,11 @@ constexpr std::array<uint16_t, 17> InitBF2MASK() {
   return out;
 }
 
-std::array<uint16_t, 17> BF2MASK = InitBF2MASK();
+const std::array<uint16_t, 17> BF2MASK = InitBF2MASK();
 
 // clang-format off
 /* @AUTOGEN-START@ */
-NodeDesc GlobalNodeDescs[] = {
+const NodeDesc GlobalNodeDescs[] = {
     {}, // invalid
     { BIT_N(cond)| BIT_N(body), 0, 0 }, // Case
     { BIT_N(items), BIT_S(name), BIT_B(PUB) }, // DefEnum
@@ -639,7 +639,10 @@ ImmutablePool gNamePool(4);
 
 struct Stripe<NodeCore, Node> gNodeCore("NodeCore");
 struct Stripe<NodeExtra, Node> gNodeExtra("NodeExtra");
-StripeBase* const gAllStripesNode[] = {&gNodeCore, &gNodeExtra, nullptr};
+struct Stripe<NodeAuxTyping, Node> gNodeAuxTyping("NodeAuxTyping");
+
+StripeBase* const gAllStripesNode[] = {&gNodeCore, &gNodeExtra, &gNodeAuxTyping,
+                                       nullptr};
 struct StripeGroup gStripeGroupNode("Node", gAllStripesNode, 256 * 1024);
 
 struct Stripe<NameCore, Name> gNameCore("NameCore");
