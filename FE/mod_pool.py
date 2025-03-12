@@ -26,6 +26,7 @@ def _GetQualifierIfPresent(name: str) -> Optional[cwast.NAME]:
     assert 1 == len(tokens)
     return None
 
+
 def AnnotateImportsForQualifers(mod: cwast.DefMod):
     """Set the x_import field.
 
@@ -74,7 +75,7 @@ class ModInfo:
         self.mod = mod
         self.symtab = symtab
         # the second component holds the normalized args
-        self.imports = [
+        self.imports: list[tuple[cwast.Import, Any]] = [
             (node, [None] * len(node.args_mod)) for node in mod.body_mod if isinstance(node, cwast.Import)]
 
     def __str__(self):
@@ -222,7 +223,7 @@ class ModPool:
         assert name not in self._taken_names
         # TODO: deal with generics and possible name clashes
         self._taken_names.add(name)
-        mod.x_modinfo = mod_info
+        mod.x_symtab = mod_info.symtab
         return mod_info
 
     def _AddModInfoSimple(self, path: Path, name: str) -> ModInfo:
@@ -299,6 +300,7 @@ class ModPool:
                 num_unresolved = 0
                 for import_node, normalized_args in mod_info.imports:
                     if import_node.x_module != cwast.INVALID_MOD:
+                        # import has been processed
                         continue
                     pathname = import_node.path
                     if pathname:
@@ -322,7 +324,7 @@ class ModPool:
                                 path, normalized_args, mod_name)
                             import_node.x_module = import_mod_info.mod
                             import_node.args_mod.clear()
-                            mod_info.mod.x_modinfo.symtab.AddImport(
+                            mod_info.mod.x_symtab.AddImport(
                                 import_node)
                             new_active.append(import_mod_info)
                             seen_change = True
@@ -341,7 +343,7 @@ class ModPool:
                         logger.info(
                             f"in {mod_info.mod} resolving inport of {import_mod_info.mod.name}")
                         import_node.x_module = import_mod_info.mod
-                        mod_info.mod.x_modinfo.symtab.AddImport(import_node)
+                        mod_info.mod.x_symtab.AddImport(import_node)
                 if num_unresolved:
                     new_active.append(mod_info)
                 logger.info("finish resolving imports for %s - unresolved: %d",

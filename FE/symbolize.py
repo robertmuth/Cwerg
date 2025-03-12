@@ -152,7 +152,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
                 AnnotateNodeSymbol(node, def_node)
                 return
         # symbol is not a local symbol - so we fall through to looking in the global scope
-    symtab: SymTab = node.x_import.x_module.x_modinfo.symtab
+    symtab: SymTab = node.x_import.x_module.x_symtab
     def_node = symtab.resolve_sym(node, builtin_syms, is_qualified)
     if def_node is None:
         cwast.CompilerError(
@@ -192,7 +192,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
                     cwast.CompilerError(
                         node.x_srcloc, f"import of {node.base_name} not resolved")
                 return
-            symtab = node.x_import.x_module.x_modinfo.symtab
+            symtab = node.x_import.x_module.x_symtab
             def_node = symtab.resolve_sym(
                 node, builtin_syms, (node.mod_name is not None))
             if def_node:
@@ -220,7 +220,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
             return cwast.ValString(f'r"{node.expr}"', x_srcloc=node.x_srcloc)
 
         assert isinstance(node, cwast.MacroInvoke)
-        symtab: SymTab = node.x_import.x_module.x_modinfo.symtab
+        symtab: SymTab = node.x_import.x_module.x_symtab
         macro = symtab.resolve_macro(
             node,  builtin_syms,  node.name.IsQualifiedName())
         if macro is None:
@@ -432,7 +432,7 @@ def MacroExpansionDecorateASTWithSymbols(
         # we wait until macro expansion with this
         _SetTargetFieldRecursively(mod)
 
-        symtab = mod.x_modinfo.symtab
+        symtab = mod.x_symtab
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node.name)

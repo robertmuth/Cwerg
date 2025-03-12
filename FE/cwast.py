@@ -134,7 +134,7 @@ class NF(enum.Flag):
     VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     # possibly uniquified name of module, use during code-gen
-    MODINFO_ANNOTATED = enum.auto()
+    SYMTAB_ANNOTATED = enum.auto()
 
     # Temporary annotations
     # node reference to the imported module (x_module)
@@ -764,14 +764,7 @@ def IsFieldWithDefaultValue(field, val):
 
 
 X_FIELDS = {
-    # set by mod_pool.py
-    # containing module links for symbol resolution
-    # id -> referenced module
-    # fun -> module of archetype (only use for polymorphic function)
-    # macro_invoke ->  referenced module
-    #
-    # only used for symbolization and typification
-    "x_import": NF.IMPORT_ANNOTATED,
+
     ################################################
     # VeryCommon
     ################################################
@@ -781,15 +774,20 @@ X_FIELDS = {
     "x_value": NF.VALUE_ANNOTATED,
     # set by typify.py
     "x_type": NF.TYPE_ANNOTATED,
-
+    ################################################
+    # Only used until typing is complete
+    # set by mod_pool.py
+    ################################################
+    # Id, DefFun, MacroInvoke -> Import
+    # (if name is qualified)
+    "x_import": NF.IMPORT_ANNOTATED,
+    # Import -> DefMod (imported module)
+    "x_module": NF.MODULE_ANNOTATED,
+    # DefMod -> (global) SymTab
+    "x_symtab": NF.SYMTAB_ANNOTATED,
     ################################################
     # The x_XXX below point to other Nodes
     ################################################
-    # set by mod_pool.py
-    # Import -> imported module (DefMod)
-    #
-    # only used for symbolization and typification
-    "x_module": NF.MODULE_ANNOTATED,
     # set by symbolize.py
     # Id -> Node in GLOBAL_SYM_DEF/LOCAL_SYM_DEF group
     "x_symbol": NF.SYMBOL_ANNOTATED,
@@ -802,9 +800,7 @@ X_FIELDS = {
     # set by typify.py
     # RecField -> int
     "x_offset": NF.TYPE_CORPUS,   # oddball, should be moved into types
-    # set by mod_pool.py
-    # DefMod -> str (uniquified module name for instantiated generic modules)
-    "x_modinfo": NF.MODINFO_ANNOTATED,  # unique module name
+
 }
 
 
@@ -1182,7 +1178,7 @@ class DefMod:
     """
     ALIAS: ClassVar = "module"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.MODINFO_ANNOTATED
+    FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.SYMTAB_ANNOTATED
     #
     name: NAME
     params_mod: list[NODES_PARAMS_MOD_T]
@@ -1192,7 +1188,7 @@ class DefMod:
     builtin: bool = False
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
-    x_modinfo: Any = None
+    x_symtab: Any = None
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params_mod)
@@ -3411,7 +3407,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
     `disallowed_nodes` contains a set of nodes that must not appear.
 
     `pre_symbolize` indicates that the check is running before symbolization so
-    that the field `x_modinfo` is not yet set.
+    that the fields `x_symtab`, `x_target`, `x_symbol` are not yet set.
 
 
     """
@@ -3479,7 +3475,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 assert node.x_module != INVALID_MOD
         elif isinstance(node, DefMod):
             if not pre_symbolize:
-                assert node.x_modinfo, f"missing x_modinfo {node}"
+                assert node.x_symtab, f"missing x_symtab {node}"
         if nfd is not None:
             if not _IsPermittedNode(node, nfd.node_type, parent, toplevel_node,
                                     node_mod,

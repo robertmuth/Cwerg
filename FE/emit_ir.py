@@ -1165,7 +1165,7 @@ def main() -> int:
     logger.info("Legalize 1")
 
     mod_gen = cwast.DefMod(cwast.NAME("GeNeRaTeD", 0), [], [], x_srcloc=cwast.SRCLOC_GENERATED)
-    mod_gen.x_modinfo = mod_pool.ModInfo((None,), mod_gen, None)
+    mod_gen.x_symtab = symbolize.SymTab()
     global_id_gen = identifier.IdGen()
 
     # for key, val in fun_sigs_with_large_args.items():
