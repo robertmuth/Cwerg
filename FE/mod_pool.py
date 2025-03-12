@@ -10,13 +10,59 @@ from FE import parse_sexpr
 from FE import symbolize
 from FE import parse
 
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Any
 
 Path = pathlib.PurePath
 
 ModId = tuple[Path, ...]
 
 logger = logging.getLogger(__name__)
+
+
+def _GetQualifierIfPresent(name: str) -> Optional[cwast.NAME]:
+    tokens = name.split(cwast.ID_PATH_SEPARATOR)
+    if len(tokens) == 2:
+        return cwast.NAME.FromStr(tokens[0])
+    assert 1 == len(tokens)
+    return None
+
+def AnnotateImportsForQualifers(mod: cwast.DefMod):
+    """Set the x_import field.
+
+    We do this even for unqualified names using a `dummy_import`.
+    This is important for macros whose
+    syntax tree might get copied into a different from where it originated.
+    """
+    imports: dict[cwast.NAME, cwast.Import] = {}
+    dummy_import = cwast.Import(cwast.NAME("$self", 0), "", [], x_module=mod)
+
+    def annotate(node, q):
+        if q:
+            # only polymorphic functions may have qualifiers
+            if isinstance(node, cwast.DefFun):
+                assert node.poly
+            if q not in imports:
+                cwast.CompilerError(node.x_srcloc, f"unkown module {repr(q)}")
+            node.x_import = imports[q]
+        else:
+            node.x_import = dummy_import
+
+    def visitor(node: Any):
+        nonlocal imports, dummy_import
+        if isinstance(node, cwast.Import):
+            name = node.name
+            if name in imports:
+                cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
+            imports[name] = node
+        elif isinstance(node, cwast.DefFun):
+            annotate(node, _GetQualifierIfPresent(node.name.name))
+        elif isinstance(node, cwast.MacroInvoke):
+            annotate(node, _GetQualifierIfPresent(node.name.name))
+        elif isinstance(node, cwast.Id):
+            annotate(node, node.mod_name)
+
+    cwast.VisitAstRecursivelyPost(mod, visitor)
+
 
 EXTENSION_CWS = ".cws"
 EXTENSION_CW = ".cw"
@@ -182,7 +228,7 @@ class ModPool:
     def _AddModInfoSimple(self, path: Path, name: str) -> ModInfo:
         """Register regular module"""
         mod = self._read_mod_fun(path, name)
-        cwast.AnnotateImportsForQualifers(mod)
+        AnnotateImportsForQualifers(mod)
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, [], mod, symtab)
 
@@ -194,7 +240,7 @@ class ModPool:
             generic_mod = self._read_mod_fun(path, name)
             self._raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
-        cwast.AnnotateImportsForQualifers(mod)
+        AnnotateImportsForQualifers(mod)
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
 

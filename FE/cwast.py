@@ -1280,14 +1280,6 @@ class DefRec:
 ############################################################
 
 
-def _GetQualifierIfPresent(name: str) -> Optional[NAME]:
-    tokens = name.split(ID_PATH_SEPARATOR)
-    if len(tokens) == 2:
-        return NAME.FromStr(tokens[0])
-    assert 1 == len(tokens)
-    return None
-
-
 INVALID_SYMBOL = None  # forward declaration
 
 
@@ -3350,45 +3342,6 @@ def NumberOfNodes(node) -> int:
 ############################################################
 # Helpers
 ############################################################
-
-
-def AnnotateImportsForQualifers(mod: DefMod):
-    """Set the x_import field.
-
-    We do this even for unqualified names using a `dummy_import`.
-    This is important for macros whose
-    syntax tree might get copied into a different from where it originated.
-    """
-    imports: dict[NAME, Import] = {}
-    dummy_import = Import(NAME("$self", 0), "", [], x_module=mod)
-
-    def annotate(node, q):
-        if q:
-            # only polymorphic functions may have qualifiers
-            if isinstance(node, DefFun):
-                assert node.poly
-            if q not in imports:
-                CompilerError(node.x_srcloc, f"unkown module {repr(q)}")
-            node.x_import = imports[q]
-        else:
-            node.x_import = dummy_import
-
-    def visitor(node: Any):
-        nonlocal imports, dummy_import
-        if isinstance(node, Import):
-            name = node.name
-            if name in imports:
-                CompilerError(node.x_srcloc, f"duplicate import {name}")
-            imports[name] = node
-        elif isinstance(node, DefFun):
-            annotate(node, _GetQualifierIfPresent(node.name.name))
-        elif isinstance(node, MacroInvoke):
-            annotate(node, _GetQualifierIfPresent(node.name.name))
-        elif isinstance(node, Id):
-            annotate(node, node.mod_name)
-
-    VisitAstRecursivelyPost(mod, visitor)
-
 
 def StripFromListRecursively(node, cls):
     for nfd in node.__class__.NODE_FIELDS:
