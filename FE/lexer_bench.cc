@@ -18,7 +18,7 @@ namespace {
 using namespace cwerg;
 using namespace cwerg::fe;
 
-# if 0
+#if 0
 std::string_view ReadFile(const char* filename) {
   std::ifstream finFile;
   std::istream* fin;
@@ -47,8 +47,7 @@ std::string_view ReadFile(const char* filename) {
   fstat(fd, &sb);
 
   // map an extra terminator byte
-  void* data_bytes =
-      mmap(NULL, sb.st_size + 1, PROT_WRITE, MAP_PRIVATE, fd, 0);
+  void* data_bytes = mmap(NULL, sb.st_size + 1, PROT_WRITE, MAP_PRIVATE, fd, 0);
   if (data_bytes == MAP_FAILED) {
     std::cerr << "Cannot mmap input file " << filename << "\n";
     return std::string_view();
@@ -70,7 +69,7 @@ void RunLexer(Lexer* lexer) {
   }
 }
 
-void RunParser(Lexer* lexer) { ParseDefMod(lexer); }
+void RunParser(Lexer* lexer, Name name) { ParseDefMod(lexer, name); }
 
 }  //  namespace
 
@@ -107,7 +106,7 @@ int main(int argc, const char* argv[]) {
     if (mode == "lexer") {
       RunLexer(&lexer);
     } else if (mode == "parser") {
-      RunParser(&lexer);
+      RunParser(&lexer, NameNew(argv[i]));
     } else {
       std::cerr << "unknown mode " << mode << "\n";
       return 1;
