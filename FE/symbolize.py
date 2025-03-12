@@ -428,7 +428,7 @@ def MacroExpansionDecorateASTWithSymbols(
                 FindAndExpandMacrosRecursively(node, builtin_symtab, 0, ctx)
 
     for mod in mod_topo_order:
-        logger.info("Resolving symbols inside module: %s", mod.x_modinfo.name)
+        logger.info("Resolving symbols inside module: %s", mod.name)
         # we wait until macro expansion with this
         _SetTargetFieldRecursively(mod)
 

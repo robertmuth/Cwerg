@@ -403,7 +403,7 @@ def ReadSExpr(stream: ReadTokens, parent_cls, attr: dict[str, Any]) -> Any:
         return ReadRestAndMakeNode(cls, [], cls.FIELDS, attr, stream)
 
 
-def ReadModFromStream(fp, fn) -> cwast.DefMod:
+def ReadModFromStream(fp, fn: str, name: str) -> cwast.DefMod:
     asts = []
     stream = ReadTokens(fp, fn)
     failure = False
@@ -424,6 +424,7 @@ def ReadModFromStream(fp, fn) -> cwast.DefMod:
     except StopIteration:
         assert not failure, "truncated file"
     assert len(asts) == 1
+    asts[0].name = cwast.NAME(name, 0)
     return asts[0]
 
 

@@ -23,11 +23,10 @@ EXTENSION_CW = ".cw"
 
 
 class ModInfo:
-    def __init__(self, mid: ModId, mod: cwast.DefMod, name: str, symtab: symbolize.SymTab):
+    def __init__(self, mid: ModId, mod: cwast.DefMod, symtab: symbolize.SymTab):
         self.mid = mid
         self.mod = mod
         self.symtab = symtab
-        self.name = name
         # the second component holds the normalized args
         self.imports = [
             (node, [None] * len(node.args_mod)) for node in mod.body_mod if isinstance(node, cwast.Import)]
@@ -61,14 +60,14 @@ def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod
             deps_out[importee].append(mod)
 
     # start with candidates with no incoming deps, candidates is sorted by
-    # mod.x_modinfo.name to make it deterministic
+    # mod.name to make it deterministic
     candidates: list[tuple[str, cwast.DefMod]] = []
     for mi in mod_infos:
         mod = mi.mod
         assert isinstance(mod, cwast.DefMod)
         if not deps_in[mod]:
             logger.info("found leaf mod [%s]", mod)
-            heapq.heappush(candidates, (mod.x_modinfo.name, mod))
+            heapq.heappush(candidates, (str(mod.name), mod))
 
     # topological order
     out: list[cwast.DefMod] = []
@@ -81,7 +80,7 @@ def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod
         for importer in deps_out[x]:
             deps_in[importer].remove(x)
             if not deps_in[importer]:
-                heapq.heappush(candidates, (importer.x_modinfo.name, importer))
+                heapq.heappush(candidates, (str(importer.name), importer))
     return out
 
 
@@ -128,16 +127,17 @@ def _ModUniquePathName(root: Path,
 _MAIN_FUN_NAME = cwast.NAME.FromStr("main")
 
 
-def _ReadMod(handle: Path) -> cwast.DefMod:
+def _ReadMod(handle: Path, name: str) -> cwast.DefMod:
     """Overload"""
     fn = str(handle) + EXTENSION_CW
     if pathlib.Path(fn).exists():
-        mod = parse.ReadModFromStream(open(fn, encoding="utf8"), fn)
+        mod = parse.ReadModFromStream(open(fn, encoding="utf8"), fn, name)
         assert isinstance(mod, cwast.DefMod)
         return mod
     fn = str(handle) + EXTENSION_CWS
     if pathlib.Path(fn).exists():
-        mod = parse_sexpr.ReadModFromStream(open(fn, encoding="utf8"), fn)
+        mod = parse_sexpr.ReadModFromStream(
+            open(fn, encoding="utf8"), fn, name)
         assert isinstance(mod, cwast.DefMod)
         return mod
     assert False, f"module {str(handle)} does not exist"
@@ -168,7 +168,7 @@ class ModPool:
     def _AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> ModInfo:
         mid = (path, *args)
         name = path.name
-        mod_info = ModInfo(mid, mod, name, symtab)
+        mod_info = ModInfo(mid, mod, symtab)
         # print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
         self._all_mods[mid] = mod_info
@@ -179,19 +179,19 @@ class ModPool:
         mod.x_modinfo = mod_info
         return mod_info
 
-    def _AddModInfoSimple(self, path: Path) -> ModInfo:
+    def _AddModInfoSimple(self, path: Path, name: str) -> ModInfo:
         """Register regular module"""
-        mod = self._read_mod_fun(path)
+        mod = self._read_mod_fun(path, name)
         cwast.AnnotateImportsForQualifers(mod)
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, [], mod, symtab)
 
-    def _AddModInfoForGeneric(self, path: Path, args: list) -> ModInfo:
+    def _AddModInfoForGeneric(self, path: Path, args: list, name: str) -> ModInfo:
         """Specialize Generic Mod and register it"""
         generic_mod = self._raw_generic.get(path)
         if not generic_mod:
             logger.info("reading raw generic from: %s", path)
-            generic_mod = self._read_mod_fun(path)
+            generic_mod = self._read_mod_fun(path, name)
             self._raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         cwast.AnnotateImportsForQualifers(mod)
@@ -219,8 +219,9 @@ class ModPool:
     def ReadModulesRecursively(self, seed_modules: list[str], add_builtin: bool):
         active: list[ModInfo] = []
         if add_builtin:
-            path = _ModUniquePathName(self._root, None, "builtin")
-            mod_info = self._AddModInfoSimple(path)
+            mod_name = "builtin"
+            path = _ModUniquePathName(self._root, None, mod_name)
+            mod_info = self._AddModInfoSimple(path, mod_name)
             assert mod_info.mod.builtin
             active.append(mod_info)
             assert not self._builtin_modinfo
@@ -229,9 +230,11 @@ class ModPool:
         for pathname in seed_modules:
             assert not pathname.startswith(".")
             path = _ModUniquePathName(self._root, None, pathname)
+            mod_name = path.name
+
             assert self._FindModInfoSimple(
                 path) is None, f"duplicate module {pathname}"
-            mod_info = self._AddModInfoSimple(path)
+            mod_info = self._AddModInfoSimple(path, mod_name)
             if not self._main_modinfo:
                 self._main_modinfo = mod_info
             active.append(mod_info)
@@ -268,8 +271,9 @@ class ModPool:
                         if done:
                             path = _ModUniquePathName(
                                 self._root, mod_info.mid[0], pathname)
+                            mod_name = path.name
                             import_mod_info = self._AddModInfoForGeneric(
-                                path, normalized_args)
+                                path, normalized_args, mod_name)
                             import_node.x_module = import_mod_info.mod
                             import_node.args_mod.clear()
                             mod_info.mod.x_modinfo.symtab.AddImport(
@@ -283,11 +287,13 @@ class ModPool:
                             self._root, mod_info.mid[0], pathname)
                         import_mod_info = self._FindModInfoSimple(path)
                         if not import_mod_info:
-                            import_mod_info = self._AddModInfoSimple(path)
+                            mod_name = path.name
+                            import_mod_info = self._AddModInfoSimple(
+                                path, mod_name)
                             new_active.append(import_mod_info)
                             seen_change = True
                         logger.info(
-                            f"in {mod_info.mod} resolving inport of {import_mod_info.mod.x_modinfo.name}")
+                            f"in {mod_info.mod} resolving inport of {import_mod_info.mod.name}")
                         import_node.x_module = import_mod_info.mod
                         mod_info.mod.x_modinfo.symtab.AddImport(import_node)
                 if num_unresolved:

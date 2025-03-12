@@ -10,17 +10,17 @@ from FE import symbolize
 logger = logging.getLogger(__name__)
 
 _test_mods_std = {
-    "builtin": cwast.DefMod([], []),
-    "os": cwast.DefMod([], []),
-    "math": cwast.DefMod([], []),
-    "std":  cwast.DefMod([], []),
+    "builtin": cwast.DefMod("builtin", [], []),
+    "os": cwast.DefMod("os", [], []),
+    "math": cwast.DefMod("math", [], []),
+    "std":  cwast.DefMod("std", [], []),
 }
 _test_mods_local = {
-    "helper": cwast.DefMod([],
+    "helper": cwast.DefMod("helper", [],
                            [cwast.Import(cwast.NAME.FromStr("os"), "", [])]),
-    "math":  cwast.DefMod([],
+    "math":  cwast.DefMod("math", [],
                           [cwast.Import(cwast.NAME.FromStr("std"), "", [])]),
-    "main": cwast.DefMod([],
+    "main": cwast.DefMod("main", [],
                          [cwast.Import(cwast.NAME.FromStr("std"), "", []),
                           cwast.Import(cwast.NAME.FromStr("math"), "", []),
                           # cwast.Import(cwast.NAME.FromStr("./math"), "", []),
@@ -28,7 +28,7 @@ _test_mods_local = {
 }
 
 
-def _ReadMod(handle) -> cwast.DefMod:
+def _ReadMod(handle, _) -> cwast.DefMod:
     name = handle.name
     dir = handle.parent.name
     mod = _test_mods_std[name] if dir == "Lib" else _test_mods_local[name]
@@ -41,7 +41,7 @@ def tests(cwd: str):
     logger.info("Pool %s", pool)
     pool.ReadModulesRecursively(["builtin",
                                  str(pathlib.Path("./main").resolve())], False)
-    print([m.x_modinfo.name for m in pool.ModulesInTopologicalOrder()])
+    print([m.name for m in pool.ModulesInTopologicalOrder()])
     print("OK")
 
 

@@ -1184,6 +1184,7 @@ class DefMod:
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.MODINFO_ANNOTATED
     #
+    name: NAME
     params_mod: list[NODES_PARAMS_MOD_T]
     body_mod: list[NODES_BODY_MOD_T]
     #
@@ -1195,10 +1196,10 @@ class DefMod:
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params_mod)
-        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.x_modinfo.name if self.x_modinfo else ""} [{params}]"
+        return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
 
 
-INVALID_MOD = DefMod([], [])
+INVALID_MOD = DefMod(NAME("INVALID_MOD", 0), [], [])
 ############################################################
 #
 ############################################################

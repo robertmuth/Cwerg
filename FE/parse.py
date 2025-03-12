@@ -797,7 +797,7 @@ def _ParseTopLevel(inp: lexer.Lexer):
         assert False, f"unexpected topelevel [{kw}]"
 
 
-def _ParseDefMod(inp: lexer.Lexer):
+def _ParseDefMod(inp: lexer.Lexer, name: str):
     # comments, annotations = _ParseOptionalCommentsAttributes(inp)
     # print(comments, annotations)
     kw = inp.match_or_die(lexer.TK_KIND.KW, "module")
@@ -814,7 +814,7 @@ def _ParseDefMod(inp: lexer.Lexer):
                                          cwast.MOD_PARAM_KIND[pkind.text],
                                          **_ExtractAnnotations(pname)))
     inp.match_or_die(lexer.TK_KIND.COLON)
-    out = cwast.DefMod(params, [], **_ExtractAnnotations(kw))
+    out = cwast.DefMod(cwast.NAME(name, 0), params, [], **_ExtractAnnotations(kw))
 
     while True:
         if inp.peek().kind is lexer.TK_KIND.SPECIAL_EOF:
@@ -837,9 +837,9 @@ def RemoveRedundantParens(node):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
 
 
-def ReadModFromStream(fp, fn) -> cwast.DefMod:
+def ReadModFromStream(fp, fn: str, name: str) -> cwast.DefMod:
     inp = lexer.Lexer(lexer.LexerRaw(fn, fp))
-    return _ParseDefMod(inp)
+    return _ParseDefMod(inp, name)
 
 
 ############################################################
