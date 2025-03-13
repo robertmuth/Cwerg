@@ -4,6 +4,8 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <unordered_map>
+#include <map>
 
 #include "Util/handle.h"
 #include "Util/immutable.h"
@@ -92,15 +94,18 @@ struct NodeExtra {
     Node x_symbol;
     Node x_target;
     uint32_t x_offset;
-    // TODO: add ModInfo
   };
 };
 
+using SymTab = std::map<Name, Node>;
+
 struct NodeAuxTyping {
+  union {
     Node x_import;
     Node x_module;
+    SymTab* x_symtab;
+  };
 };
-
 
 extern struct Stripe<NodeCore, Node> gNodeCore;
 extern struct Stripe<NodeExtra, Node> gNodeExtra;
@@ -115,6 +120,11 @@ inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
 inline SrcLoc& Node_srcloc(Node node) { return gNodeExtra[node].x_srcloc; }
 inline Node& Node_x_symbol(Node node) { return gNodeExtra[node].x_symbol; }
 inline Node& Node_x_target(Node node) { return gNodeExtra[node].x_target; }
+inline uint32_t& Node_x_offset(Node node) { return gNodeExtra[node].x_offset; }
+
+inline Node& Node_x_import(Node node) { return gNodeAuxTyping[node].x_import; }
+inline Node& Node_x_module(Node node) { return gNodeAuxTyping[node].x_import; }
+inline SymTab*& Node_x_symtab(Node node) { return gNodeAuxTyping[node].x_symtab; }
 
 inline bool Node_has_flag(Node node, BF bf) {
   return gNodeCore[node].compressed_flags & Mask(bf);

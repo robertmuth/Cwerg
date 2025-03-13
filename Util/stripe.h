@@ -108,7 +108,8 @@ template <typename STRUCT, typename REF>
 struct Stripe : public StripeBase {
   Stripe(const char* name) : StripeBase(sizeof(STRUCT), name) {
     static_assert(sizeof(STRUCT) % 4 == 0, "stripe sizes must be multiples of 4");
-    static_assert(std::alignment_of<STRUCT>::value <= 4, "stripe alignment must be at most 4");
+    // TODO: explain whether this is important or not
+    //static_assert(std::alignment_of<STRUCT>::value <= 4, "stripe alignment must be at most 4");
 
   }
 

@@ -34,12 +34,16 @@ GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc
 BUILD_DIR=../build
 LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
 PP=$(BUILD_DIR)/pp.exe
+EMIT_IR=$(BUILD_DIR)/emit_ir.exe
 
 $(LEXER_BENCH)::
 	@cd $(BUILD_DIR); $(MAKE) -s lexer_bench.exe
 
 $(PP)::
 	@cd $(BUILD_DIR); $(MAKE) -s pp.exe
+
+$(EMIT_IR)::
+	@cd $(BUILD_DIR); $(MAKE) -s emit_ir.exe
 
 run_lexer_bench: $(LEXER_BENCH)
 	/bin/time -p $(LEXER_BENCH)  Lib/*cw TestData/*cw  LangTest/*cw  > /dev/null
