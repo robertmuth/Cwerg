@@ -245,12 +245,6 @@ class ModPool:
         symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
 
-    def _FindModInfoSimple(self, path: Path) -> Optional[ModInfo]:
-        return self._all_mods.get((path,))
-
-    def AllModInfos(self) -> Sequence[ModInfo]:
-        return self._all_mods.values()
-
     def MainEntryFun(self) -> cwast.DefFun:
         assert self._main_modinfo
         for fun in self._main_modinfo.mod.body_mod:
@@ -279,8 +273,8 @@ class ModPool:
             path = _ModUniquePathName(self._root, None, pathname)
             mod_name = path.name
 
-            assert self._FindModInfoSimple(
-                path) is None, f"duplicate module {pathname}"
+            assert self._all_mods.get(
+                (path,)) is None, f"duplicate module {pathname}"
             mod_info = self._AddModInfoSimple(path, mod_name)
             if not self._main_modinfo:
                 self._main_modinfo = mod_info
@@ -293,7 +287,7 @@ class ModPool:
             seen_change = False
             # this probably needs to be a fix point computation as well
             symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                [m.mod for m in self.AllModInfos()], self.BuiltinSymtab(), False)
+                [m.mod for m in self._all_mods.values()], self.BuiltinSymtab(), False)
             for mod_info in active:
                 assert isinstance(mod_info, ModInfo), mod_info
                 logger.info("start resolving imports for %s", mod_info)
@@ -322,8 +316,8 @@ class ModPool:
                             mod_name = path.name
                             import_mod_info = self._AddModInfoForGeneric(
                                 path, normalized_args, mod_name)
-                            import_node.x_module = import_mod_info.mod
                             import_node.args_mod.clear()
+                            import_node.x_module = import_mod_info.mod
                             new_active.append(import_mod_info)
                             seen_change = True
                         else:
@@ -331,7 +325,7 @@ class ModPool:
                     else:
                         path = _ModUniquePathName(
                             self._root, mod_info.mid[0], pathname)
-                        import_mod_info = self._FindModInfoSimple(path)
+                        import_mod_info = self._all_mods.get((path,))
                         if not import_mod_info:
                             mod_name = path.name
                             import_mod_info = self._AddModInfoSimple(
@@ -351,7 +345,7 @@ class ModPool:
             active = new_active
 
     def ModulesInTopologicalOrder(self) -> list[cwast.DefMod]:
-        return ModulesInTopologicalOrder(self.AllModInfos())
+        return ModulesInTopologicalOrder(self._all_mods.values())
 
 
 if __name__ == "__main__":
