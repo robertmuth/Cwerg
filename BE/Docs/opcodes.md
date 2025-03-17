@@ -42,7 +42,7 @@ The declaration can happen in one of two ways:
 2. with a `colon-suffix` by the first instruction writing to it.
 
 ```
-.reg R32 [a b c]   # declares registers a, b, c to be 32 bit wide and of flavor F
+.reg R32 [a b c]   # declares registers a, b, c to be 32 bit wide and of flavor R
 add a b c
 ```
 is equivalent to
