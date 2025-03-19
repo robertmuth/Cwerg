@@ -1,3 +1,8 @@
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <thread>
+
 #include "BE/Base/ir.h"
 #include "BE/Base/serialize.h"
 #include "BE/CodeGenA32/codegen.h"
@@ -8,18 +13,11 @@
 #include "Util/switch.h"
 #include "Util/webserver.h"
 
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <thread>
-
 namespace {
 
 using namespace cwerg;
 using namespace cwerg::base;
 using namespace cwerg::code_gen_a32;
-
-
 
 WebResponse DefaultHandler(const WebRequest& request) {
   WebResponse out;
@@ -66,8 +64,7 @@ WebResponse CodeHandler(base::Unit unit, const WebRequest& request) {
   return out;
 }
 
-SwitchInt32 sw_multiplier("multiplier",
-                          "adjust multiplies for item pool sizes",
+SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
 
 SwitchString sw_mode("mode", "mode indicating what to do", "optimize");
@@ -77,8 +74,7 @@ SwitchBool sw_show_stats("show_stats", "emit stats to cout");
 SwitchBool sw_break_after_load("break_after_load", "break after load IR");
 
 SwitchInt32 sw_webserver_port("webserver_port",
-                              "launch webserver at given port",
-                              -1);
+                              "launch webserver at given port", -1);
 
 void SleepForever() {
   std::cerr << "execution asserted webserver still active\n";
@@ -118,8 +114,8 @@ int main(int argc, const char* argv[]) {
     fout = &foutFile;
   }
 
-  std::vector<char> data = SlurpDataFromStream(fin);
-  Unit unit = UnitParseFromAsm("unit", {data.data(), data.size()}, {});
+  std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
+  Unit unit = UnitParseFromAsm("unit", {data->data(), data->size()}, {});
 
   std::unique_ptr<cwerg::WebServer> webserver;
   std::unique_ptr<std::thread> webserver_thread;

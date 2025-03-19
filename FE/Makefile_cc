@@ -6,6 +6,7 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
+
 ############################################################
 # Code Gen
 ############################################################
@@ -69,3 +70,6 @@ profile: $(LEXER_BENCH)
 
 benchmark: $(LEXER_BENCH)
 	/bin/time -p $(LEXER_BENCH) -m parser $(XXX7) $(XXX5) $(XXX1)
+
+
+all:: $(LEXER_BENCH) $(PP) $(EMIT_IR)

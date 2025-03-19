@@ -51,9 +51,8 @@ struct Name : public Handle {
   explicit constexpr Name(Handle ref) : Handle(ref.value) {}
 };
 
-constexpr const Handle HandleInvalid(0, kKindInvalid);
 constexpr const Str StrInvalid(0);
-constexpr const Node NodeInvalid(HandleInvalid);
+constexpr const Node NodeInvalid(kHandleInvalid);
 
 extern ImmutablePool gNamePool;
 
@@ -154,7 +153,7 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
   core.children[1] = child1;
   core.children[2] = child2;
   core.children[3] = child3;
-  core.next = HandleInvalid;
+  core.next = kHandleInvalid;
   core.compressed_flags = bits;
   //
   NodeExtra& extra = gNodeExtra[node];
@@ -546,11 +545,11 @@ inline Node Node_lhs(Node n) { return Node(gNodeCore[n].children[0]); }
 inline Node Node_expr_lhs(Node n) { return Node(gNodeCore[n].children[0]); }
 inline Node Node_initial_or_undef_or_auto(Node n) { return Node(gNodeCore[n].children[2]); }
 inline void InitCase(Node node, Node cond, Node body, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::Case, HandleInvalid, cond, HandleInvalid, body, 0, 0, doc, srcloc);
+    NodeInit(node, NT::Case, kHandleInvalid, cond, kHandleInvalid, body, 0, 0, doc, srcloc);
 }
 
 inline void InitDefEnum(Node node, Name name, BASE_TYPE_KIND base_type_kind, Node items, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::DefEnum, name, items, HandleInvalid, HandleInvalid, uint8_t(base_type_kind), bits, doc, srcloc);
+    NodeInit(node, NT::DefEnum, name, items, kHandleInvalid, kHandleInvalid, uint8_t(base_type_kind), bits, doc, srcloc);
 }
 
 inline void InitDefFun(Node node, Name name, Node params, Node result, Node body, uint16_t bits, Str doc, const SrcLoc& srcloc) {
@@ -558,7 +557,7 @@ inline void InitDefFun(Node node, Name name, Node params, Node result, Node body
 }
 
 inline void InitDefGlobal(Node node, Name name, Node type_or_auto, Node initial_or_undef_or_auto, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::DefGlobal, name, type_or_auto, initial_or_undef_or_auto, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::DefGlobal, name, type_or_auto, initial_or_undef_or_auto, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitDefMacro(Node node, Name name, MACRO_PARAM_KIND macro_result_kind, Node params_macro, Node gen_ids, Node body_macro, uint16_t bits, Str doc, const SrcLoc& srcloc) {
@@ -566,299 +565,299 @@ inline void InitDefMacro(Node node, Name name, MACRO_PARAM_KIND macro_result_kin
 }
 
 inline void InitDefMod(Node node, Name name, Node params_mod, Node body_mod, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::DefMod, name, params_mod, body_mod, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::DefMod, name, params_mod, body_mod, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitDefRec(Node node, Name name, Node fields, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::DefRec, name, fields, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::DefRec, name, fields, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitDefType(Node node, Name name, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::DefType, name, type, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::DefType, name, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitDefVar(Node node, Name name, Node type_or_auto, Node initial_or_undef_or_auto, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::DefVar, name, type_or_auto, initial_or_undef_or_auto, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::DefVar, name, type_or_auto, initial_or_undef_or_auto, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitEnumVal(Node node, Name name, Node value_or_auto, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::EnumVal, name, value_or_auto, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::EnumVal, name, value_or_auto, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitEphemeralList(Node node, Node args, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::EphemeralList, HandleInvalid, args, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::EphemeralList, kHandleInvalid, args, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitExpr1(Node node, UNARY_EXPR_KIND unary_expr_kind, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::Expr1, expr, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(unary_expr_kind), 0, doc, srcloc);
+    NodeInit(node, NT::Expr1, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, uint8_t(unary_expr_kind), 0, doc, srcloc);
 }
 
 inline void InitExpr2(Node node, BINARY_EXPR_KIND binary_expr_kind, Node expr1, Node expr2, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::Expr2, expr1, expr2, HandleInvalid, HandleInvalid, uint8_t(binary_expr_kind), 0, doc, srcloc);
+    NodeInit(node, NT::Expr2, expr1, expr2, kHandleInvalid, kHandleInvalid, uint8_t(binary_expr_kind), 0, doc, srcloc);
 }
 
 inline void InitExpr3(Node node, Node cond, Node expr_t, Node expr_f, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::Expr3, expr_t, cond, expr_f, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::Expr3, expr_t, cond, expr_f, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprAddrOf(Node node, Node expr_lhs, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprAddrOf, expr_lhs, HandleInvalid, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::ExprAddrOf, expr_lhs, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitExprAs(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprAs, expr, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprAs, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprBitCast(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprBitCast, expr, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprBitCast, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprCall(Node node, Node callee, Node args, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprCall, callee, args, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprCall, callee, args, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprDeref(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprDeref, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprDeref, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprField(Node node, Node container, Node field, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprField, container, HandleInvalid, field, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprField, container, kHandleInvalid, field, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprFront(Node node, Node container, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprFront, container, HandleInvalid, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::ExprFront, container, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitExprIndex(Node node, Node container, Node expr_index, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprIndex, container, expr_index, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::ExprIndex, container, expr_index, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitExprIs(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprIs, expr, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprIs, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprLen(Node node, Node container, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprLen, container, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprLen, container, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprNarrow(Node node, Node expr, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprNarrow, expr, type, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::ExprNarrow, expr, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitExprOffsetof(Node node, Node type, Node field, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprOffsetof, HandleInvalid, type, field, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprOffsetof, kHandleInvalid, type, field, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprParen(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprParen, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprParen, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprPointer(Node node, POINTER_EXPR_KIND pointer_expr_kind, Node expr1, Node expr2, Node expr_bound_or_undef, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprPointer, expr1, expr2, expr_bound_or_undef, HandleInvalid, uint8_t(pointer_expr_kind), 0, doc, srcloc);
+    NodeInit(node, NT::ExprPointer, expr1, expr2, expr_bound_or_undef, kHandleInvalid, uint8_t(pointer_expr_kind), 0, doc, srcloc);
 }
 
 inline void InitExprSizeof(Node node, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprSizeof, HandleInvalid, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprSizeof, kHandleInvalid, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprSrcLoc(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprSrcLoc, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprSrcLoc, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprStmt(Node node, Node body, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprStmt, HandleInvalid, HandleInvalid, HandleInvalid, body, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprStmt, kHandleInvalid, kHandleInvalid, kHandleInvalid, body, 0, 0, doc, srcloc);
 }
 
 inline void InitExprStringify(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprStringify, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprStringify, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprTypeId(Node node, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprTypeId, HandleInvalid, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprTypeId, kHandleInvalid, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprUnionTag(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprUnionTag, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprUnionTag, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprUnionUntagged(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprUnionUntagged, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprUnionUntagged, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprUnsafeCast(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprUnsafeCast, expr, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprUnsafeCast, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprUnwrap(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprUnwrap, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprUnwrap, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprWiden(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprWiden, expr, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprWiden, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitExprWrap(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ExprWrap, expr, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ExprWrap, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitFunParam(Node node, Name name, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::FunParam, name, type, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::FunParam, name, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitId(Node node, Name mod_name, Name base_name, Name enum_name, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::Id, mod_name, base_name, enum_name, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::Id, mod_name, base_name, enum_name, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitImport(Node node, Name name, Str path, Node args_mod, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::Import, name, path, args_mod, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::Import, name, path, args_mod, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitMacroFor(Node node, Name name, Name name_list, Node body_for, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::MacroFor, name, name_list, body_for, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::MacroFor, name, name_list, body_for, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitMacroId(Node node, Name name, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::MacroId, name, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::MacroId, name, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitMacroInvoke(Node node, Name name, Node args, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::MacroInvoke, name, args, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::MacroInvoke, name, args, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitMacroParam(Node node, Name name, MACRO_PARAM_KIND macro_param_kind, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::MacroParam, name, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(macro_param_kind), 0, doc, srcloc);
+    NodeInit(node, NT::MacroParam, name, kHandleInvalid, kHandleInvalid, kHandleInvalid, uint8_t(macro_param_kind), 0, doc, srcloc);
 }
 
 inline void InitModParam(Node node, Name name, MOD_PARAM_KIND mod_param_kind, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ModParam, name, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(mod_param_kind), 0, doc, srcloc);
+    NodeInit(node, NT::ModParam, name, kHandleInvalid, kHandleInvalid, kHandleInvalid, uint8_t(mod_param_kind), 0, doc, srcloc);
 }
 
 inline void InitRecField(Node node, Name name, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::RecField, name, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::RecField, name, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtAssignment(Node node, Node lhs, Node expr_rhs, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtAssignment, lhs, expr_rhs, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtAssignment, lhs, expr_rhs, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtBlock(Node node, Name label, Node body, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtBlock, label, HandleInvalid, HandleInvalid, body, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtBlock, label, kHandleInvalid, kHandleInvalid, body, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtBreak(Node node, Name target, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtBreak, target, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtBreak, target, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtCompoundAssignment(Node node, ASSIGNMENT_KIND assignment_kind, Node lhs, Node expr_rhs, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtCompoundAssignment, lhs, expr_rhs, HandleInvalid, HandleInvalid, uint8_t(assignment_kind), 0, doc, srcloc);
+    NodeInit(node, NT::StmtCompoundAssignment, lhs, expr_rhs, kHandleInvalid, kHandleInvalid, uint8_t(assignment_kind), 0, doc, srcloc);
 }
 
 inline void InitStmtCond(Node node, Node cases, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtCond, cases, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtCond, cases, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtContinue(Node node, Name target, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtContinue, target, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtContinue, target, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtDefer(Node node, Node body, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtDefer, HandleInvalid, HandleInvalid, HandleInvalid, body, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtDefer, kHandleInvalid, kHandleInvalid, kHandleInvalid, body, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtExpr(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtExpr, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtExpr, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtIf(Node node, Node cond, Node body_t, Node body_f, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtIf, body_t, cond, body_f, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtIf, body_t, cond, body_f, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtReturn(Node node, Node expr_ret, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtReturn, expr_ret, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtReturn, expr_ret, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtStaticAssert(Node node, Node cond, Str message, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtStaticAssert, message, cond, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtStaticAssert, message, cond, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtTrap(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtTrap, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtTrap, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitTypeAuto(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypeAuto, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::TypeAuto, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitTypeBase(Node node, BASE_TYPE_KIND base_type_kind, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypeBase, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, uint8_t(base_type_kind), 0, doc, srcloc);
+    NodeInit(node, NT::TypeBase, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, uint8_t(base_type_kind), 0, doc, srcloc);
 }
 
 inline void InitTypeFun(Node node, Node params, Node result, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypeFun, HandleInvalid, params, result, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::TypeFun, kHandleInvalid, params, result, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitTypeOf(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypeOf, expr, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::TypeOf, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitTypePtr(Node node, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypePtr, HandleInvalid, type, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::TypePtr, kHandleInvalid, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitTypeSpan(Node node, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypeSpan, HandleInvalid, type, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::TypeSpan, kHandleInvalid, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitTypeUnion(Node node, Node types, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypeUnion, types, HandleInvalid, HandleInvalid, HandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::TypeUnion, types, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
 inline void InitTypeUnionDelta(Node node, Node type, Node subtrahend, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypeUnionDelta, subtrahend, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::TypeUnionDelta, subtrahend, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitTypeVec(Node node, Node size, Node type, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::TypeVec, size, type, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::TypeVec, size, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValAuto(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValAuto, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValAuto, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValCompound(Node node, Node type_or_auto, Node inits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValCompound, inits, type_or_auto, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValCompound, inits, type_or_auto, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValFalse(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValFalse, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValFalse, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValNum(Node node, Str number, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValNum, number, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValNum, number, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValPoint(Node node, Node value_or_undef, Node point, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValPoint, value_or_undef, point, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValPoint, value_or_undef, point, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValSpan(Node node, Node pointer, Node expr_size, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValSpan, pointer, expr_size, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValSpan, pointer, expr_size, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValString(Node node, Str string, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValString, string, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValString, string, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValTrue(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValTrue, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValTrue, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValUndef(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValUndef, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValUndef, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitValVoid(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValVoid, HandleInvalid, HandleInvalid, HandleInvalid, HandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValVoid, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 /* @AUTOGEN-END@ */

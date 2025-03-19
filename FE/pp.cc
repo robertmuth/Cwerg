@@ -2,12 +2,14 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "FE/cwast_gen.h"
 #include "FE/lexer.h"
 #include "FE/parse.h"
 #include "Util/assert.h"
+#include "Util/parse.h"
 #include "Util/pretty.h"
 #include "Util/switch.h"
 
@@ -19,22 +21,6 @@ SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
 
 const PP::Token PP_BEG_STD = PP::Beg(PP::BreakType::INCONSISTENT, 2);
 const PP::Token PP_BEG_NEST = PP::Beg(PP::BreakType::FORCE_LINE_BREAK, 4);
-
-std::vector<char> SlurpDataFromStream(std::istream* fin) {
-  size_t num_bytes_per_read = 1024 * 1024;
-  size_t current_offset = 0U;
-  std::vector<char> out(num_bytes_per_read);
-  auto rdbuf = fin->rdbuf();
-  while (true) {
-    size_t count =
-        rdbuf->sgetn(out.data() + current_offset, num_bytes_per_read);
-    if (count == 0) break;
-    current_offset += count;
-    out.resize(current_offset + num_bytes_per_read);
-  }
-  out.resize(current_offset);
-  return out;
-}
 
 void MaybeEmitDoc(std::vector<PP::Token>* out, Node node) {
   Str doc = Node_comment(node);
@@ -146,9 +132,9 @@ void EmitArg(std::vector<PP::Token>* out, Node node, bool first) {
 
 void EmitParenList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::Str("("));
-  if (node != HandleInvalid) {
+  if (node != kHandleInvalid) {
     EmitArg(out, node, true);
-    for (Node child = Node_next(node); child != HandleInvalid;
+    for (Node child = Node_next(node); child != kHandleInvalid;
          child = Node_next(child)) {
       EmitArg(out, child, false);
     }
@@ -179,13 +165,13 @@ void EmitFunctional(std::vector<PP::Token>* out, Node node,
 
 bool IsComplexValCompound(Node inits) {
   int num_inits = 0;
-  for (Node child = inits; child != HandleInvalid; child = Node_next(child)) {
+  for (Node child = inits; child != kHandleInvalid; child = Node_next(child)) {
     ++num_inits;
   }
   if (num_inits > 10) {
     return true;
   }
-  return inits != HandleInvalid &&
+  return inits != kHandleInvalid &&
          Node_kind(Node_value_or_undef(inits)) == NT::ValCompound;
 }
 
@@ -202,7 +188,7 @@ void EmitValCompound(std::vector<PP::Token>* out, Node node) {
   bool first = true;
   PP::Token first_break =
       IsComplexValCompound(Node_inits(node)) ? PP::LineBreak() : PP::NoBreak(1);
-  for (Node child = Node_inits(node); child != HandleInvalid;
+  for (Node child = Node_inits(node); child != kHandleInvalid;
        child = Node_next(child)) {
     MaybeAddCommaAndHandleComment(out, first, child, first_break);
     first = false;
@@ -386,7 +372,8 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     case NT::Expr2:
       switch (Node_binary_expr_kind(node)) {
         case BINARY_EXPR_KIND::PDELTA:
-          EmitFunctional(out, node, "ptr_diff", Node_expr1(node), Node_expr2(node));
+          EmitFunctional(out, node, "ptr_diff", Node_expr1(node),
+                         Node_expr2(node));
           break;
         case BINARY_EXPR_KIND::MIN:
           EmitFunctional(out, node, "min", Node_expr1(node), Node_expr2(node));
@@ -499,7 +486,7 @@ void EmitParameterList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::Beg(PP::BreakType::INCONSISTENT, 1));
   out->push_back(PP ::Str("("));
   bool first = true;
-  for (Node child = node; child != HandleInvalid; child = Node_next(child)) {
+  for (Node child = node; child != kHandleInvalid; child = Node_next(child)) {
     MaybeAddCommaAndHandleComment(out, first, child, PP::NoBreak(0));
     first = false;
     out->push_back(PP_BEG_STD);
@@ -526,13 +513,13 @@ void EmitParameterList(std::vector<PP::Token>* out, Node node) {
 }
 
 void EmitStatementsSpecial(std::vector<PP::Token>* out, Node node) {
-  if (node == HandleInvalid) {
+  if (node == kHandleInvalid) {
     return;
   }
   out->push_back(PP::End());
   out->push_back(PP_BEG_NEST);
   bool first = true;
-  for (Node child = node; child != HandleInvalid; child = Node_next(child)) {
+  for (Node child = node; child != kHandleInvalid; child = Node_next(child)) {
     if (!first) {
       out->push_back(PP::Brk());
     }
@@ -576,7 +563,8 @@ bool IsBuiltInStmtMacro(std::string_view name) {
 }
 
 bool IsMacroWitBlock(Node node) {
-  for (Node arg = Node_args(node); arg != HandleInvalid; arg = Node_next(arg)) {
+  for (Node arg = Node_args(node); arg != kHandleInvalid;
+       arg = Node_next(arg)) {
     if (Node_kind(arg) == NT::EphemeralList && Node_has_flag(arg, BF::COLON))
       return true;
   }
@@ -610,7 +598,7 @@ void EmitStmtMacroInvoke(std::vector<PP::Token>* out, Node node) {
     out->push_back(PP ::Str("="));
   }
   bool first = true;
-  for (; arg != HandleInvalid; arg = Node_next(arg)) {
+  for (; arg != kHandleInvalid; arg = Node_next(arg)) {
     if (Node_kind(arg) == NT::EphemeralList && Node_has_flag(arg, BF::COLON)) {
       out->push_back(PP::Brk(0));
       out->push_back(PP ::Str(":"));
@@ -722,7 +710,7 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Brk(0));
       out->push_back(PP ::Str(":"));
       EmitStatementsSpecial(out, Node_body_t(node));
-      if (Node_body_f(node) != HandleInvalid) {
+      if (Node_body_f(node) != kHandleInvalid) {
         out->push_back(PP::End());
         out->push_back(PP::Brk());
         out->push_back(PP_BEG_STD);
@@ -754,7 +742,7 @@ void EmitExprMacroBlockSpecial(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::End());
   out->push_back(PP_BEG_NEST);
   bool first = true;
-  for (Node child = node; child != HandleInvalid; child = Node_next(child)) {
+  for (Node child = node; child != kHandleInvalid; child = Node_next(child)) {
     if (!first) {
       out->push_back(PP::Brk());
     }
@@ -770,7 +758,7 @@ void EmitIdList(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP::Beg(PP::BreakType::CONSISTENT, 2));
   out->push_back(PP::Str("["));
   bool first = true;
-  for (Node child = node; child != HandleInvalid; child = Node_next(child)) {
+  for (Node child = node; child != kHandleInvalid; child = Node_next(child)) {
     if (first) {
       out->push_back(PP::Brk(0));
     } else {
@@ -810,7 +798,7 @@ void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
         out->push_back(PP::Brk());
         out->push_back(PP::Str(StrData(Node_path(node))));
       }
-      if (Node_args_mod(node) != HandleInvalid) {
+      if (Node_args_mod(node) != kHandleInvalid) {
         out->push_back(PP::NoBreak(1));
         EmitParenList(out, Node_args_mod(node));
       }
@@ -833,7 +821,7 @@ void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::End());
       out->push_back(PP_BEG_NEST);
       emit_break = false;
-      for (Node child = Node_items(node); child != HandleInvalid;
+      for (Node child = Node_items(node); child != kHandleInvalid;
            child = Node_next(child)) {
         if (emit_break) {
           out->push_back(PP::Brk());
@@ -863,7 +851,7 @@ void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::End());
       out->push_back(PP_BEG_NEST);
       emit_break = false;
-      for (Node child = Node_items(node); child != HandleInvalid;
+      for (Node child = Node_items(node); child != kHandleInvalid;
            child = Node_next(child)) {
         if (emit_break) {
           out->push_back(PP::Brk());
@@ -921,17 +909,17 @@ void EmitModule(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP_BEG_STD);
   MaybeEmitAnnotations(out, node);
   out->push_back(PP::Str("module"));
-  if (Node_params_mod(node) != HandleInvalid) {
+  if (Node_params_mod(node) != kHandleInvalid) {
     out->push_back(PP::NoBreak(0));
     EmitParameterList(out, Node_params_mod(node));
   }
   out->push_back(PP::Brk(0));
   out->push_back(PP::Str(":"));
   out->push_back(PP::End());
-  if (Node_body_mod(node) != HandleInvalid) {
+  if (Node_body_mod(node) != kHandleInvalid) {
     out->push_back(PP::Beg(PP::BreakType::FORCE_LINE_BREAK, 0));
     bool emit_break = false;
-    for (Node child = Node_body_mod(node); child != HandleInvalid;
+    for (Node child = Node_body_mod(node); child != kHandleInvalid;
          child = Node_next(child)) {
       out->push_back(PP::LineBreak());
       if (emit_break) {
@@ -962,9 +950,8 @@ int main(int argc, const char* argv[]) {
   // std::ios_base::sync_with_stdio(false);
   std::istream* fin = &std::cin;
 
-  std::vector<char> data = SlurpDataFromStream(fin);
-  Lexer lexer(
-      std::string_view(reinterpret_cast<char*>(data.data()), data.size()), 555);
+  std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
+  Lexer lexer({data->data(), data->size()}, 555);
   // std::cout << "loaded " << data.size() << " bytes\n";
 
   Node mod = ParseDefMod(&lexer, NameNew("stdin"));

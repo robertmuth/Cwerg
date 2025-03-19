@@ -113,7 +113,7 @@ WebResponse DefaultHandler(const WebRequest& request) {
 
   out.body << "<h2>Stripes</h2>\n";
   out.body << "<pre>\n";
-  cwerg::StripeGroup::DumpAllGroups(out.body);
+  StripeGroup::DumpAllGroups(out.body);
   out.body << "</pre>\n";
 
   out.body << WebServer::kHtmlEpilog;
@@ -163,7 +163,7 @@ BreakPoint bp_before_exit("before_exit");
 }  // namespace
 
 int main(int argc, const char* argv[]) {
-  if (argc != cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr)) {
+  if (argc != SwitchBase::ParseArgv(argc, argv, &std::cerr)) {
     std::cerr << "possibly unused commandline args\n";
     return 1;
   }
@@ -173,11 +173,11 @@ int main(int argc, const char* argv[]) {
   // be considerably faster in some cases.
   std::ios_base::sync_with_stdio(false);
 
-  cwerg::InitStripes(sw_multiplier.Value());
+  InitStripes(sw_multiplier.Value());
 
-  const std::vector<char> input = cwerg::SlurpDataFromStream(&std::cin);
-  cwerg::base::Unit unit = cwerg::base::UnitParseFromAsm(
-      "unit", std::string_view(input.data(), input.size()), {});
+  std::unique_ptr<const std::vector<char>> input(
+      SlurpDataFromStream(&std::cin));
+  Unit unit = UnitParseFromAsm("unit", {input->data(), input->size()}, {});
   if (unit.isnull()) return 1;
 
   std::unique_ptr<cwerg::WebServer> webserver;
@@ -209,35 +209,35 @@ int main(int argc, const char* argv[]) {
     UnitOptBasic(unit, true);
     UnitCfgExit(unit);
     std::ostringstream out;
-    cwerg::base::UnitRenderToAsm(unit, &out);
+    UnitRenderToAsm(unit, &out);
     std::cout << out.str();
   } else if (sw_mode.Value() == "optimize") {
     UnitCfgInit(unit);
     UnitOpt(unit, true);
     UnitCfgExit(unit);
     std::ostringstream out;
-    cwerg::base::UnitRenderToAsm(unit, &out);
+    UnitRenderToAsm(unit, &out);
     std::cout << out.str();
   } else if (sw_mode.Value() == "cfg") {
     UnitCfgInit(unit);
     std::ostringstream out;
-    cwerg::base::UnitRenderToAsm(unit, &out);
+    UnitRenderToAsm(unit, &out);
     std::cout << out.str();
   } else if (sw_mode.Value() == "cfg2") {
     UnitCfgInit(unit);
     UnitCfgExit(unit);
     std::ostringstream out;
-    cwerg::base::UnitRenderToAsm(unit, &out);
+    UnitRenderToAsm(unit, &out);
     std::cout << out.str();
   } else if (sw_mode.Value() == "serialize") {
     std::ostringstream out;
-    cwerg::base::UnitRenderToAsm(unit, &out);
+    UnitRenderToAsm(unit, &out);
     std::cout << out.str();
   } else {
     std::cerr << "unknown mode [" << sw_mode.Value() << "]\n";
   }
   if (sw_show_stats.Value()) {
-    cwerg::StripeGroup::DumpAllGroups(std::cout);
+    StripeGroup::DumpAllGroups(std::cout);
   }
 
   // If we spawned a webserver break before exiting so we can expect the  code.

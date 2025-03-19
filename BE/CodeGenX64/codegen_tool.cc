@@ -122,8 +122,8 @@ int main(int argc, const char* argv[]) {
     fout = &foutFile;
   }
 
-  std::vector<char> data = SlurpDataFromStream(fin);
-  Unit unit = UnitParseFromAsm("unit", {data.data(), data.size()}, {});
+  std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
+  Unit unit = UnitParseFromAsm("unit", {data->data(), data->size()}, {});
 
   std::unique_ptr<cwerg::WebServer> webserver;
   std::unique_ptr<std::thread> webserver_thread;

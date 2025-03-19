@@ -3754,7 +3754,7 @@ def GenerateInits():
         args = ["node", f"NT::{cls.__name__}"]
         for i in range(MAX_SLOTS):
             if slots[i] is None:
-                args.append("HandleInvalid")
+                args.append("kHandleInvalid")
             else:
                 args.append(slots[i].name)
         if other_kind is None:

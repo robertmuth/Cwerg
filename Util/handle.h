@@ -12,6 +12,7 @@
 namespace cwerg {
 
 const int kKindFree = 0xff;
+const int kKindInvalid = 0x00;
 
 // Reference mimic 32 bit tagged pointers where the lowest 8 bits are the tag
 struct Handle {
@@ -35,6 +36,8 @@ struct Handle {
 
   uint32_t value;
 };
+
+constexpr const Handle kHandleInvalid(0, kKindInvalid);
 
 
 }  // namespace cwerg

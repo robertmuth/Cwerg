@@ -40,7 +40,7 @@ struct ModId {
 
 struct ModInfo {
   ModId mid;
-  Node mod = Node(HandleInvalid);
+  Node mod = Node(kHandleInvalid);
   SymTab* symtab = nullptr;
 
   bool IsValid() { return mod.raw_kind() != kKindInvalid; }

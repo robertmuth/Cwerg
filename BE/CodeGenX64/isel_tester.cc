@@ -7,6 +7,7 @@
 #include "Util/parse.h"
 
 #include <iostream>
+#include <memory>
 
 namespace {
 
@@ -65,9 +66,9 @@ void HandleIns(Ins ins, const code_gen_x64::EmitContext& ctx) {
 
 void Process(std::istream* input) {
   code_gen_x64::InitCodeGenX64();
-  std::vector<char> data = SlurpDataFromStream(input);
+  std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(input));
 
-  Unit unit = UnitParseFromAsm("unit", {data.data(), data.size()},
+  Unit unit = UnitParseFromAsm("unit", {data->data(), data->size()},
                                code_gen_x64::GetAllRegs());
   code_gen_x64::EmitContext ctx;
   // UnitRenderToAsm(unit, &std::cout);
