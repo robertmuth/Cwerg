@@ -167,31 +167,33 @@ def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
 
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
                                                         must_resolve_all: bool):
-
+    # this may be called multiple times for the same module
     def visitor(node: Any, nfd: cwast.NFD):
         nonlocal builtin_syms
-        if isinstance(node, cwast.Id):
-            if nfd.name == "field":
-                # must wait until type info is available
-                return
-            if node.x_symbol:
-                return
-            if node.x_import.x_module == cwast.INVALID_MOD:
-                if must_resolve_all:
-                    cwast.CompilerError(
-                        node.x_srcloc, f"import of {node.base_name} not resolved")
-                return
-            symtab = node.x_import.x_module.x_symtab
-            def_node = symtab.resolve_sym(
-                node, builtin_syms, (node.mod_name is not None))
-            if def_node:
-                AnnotateNodeSymbol(node, def_node)
-            else:
-                if must_resolve_all and nfd.name != "point":
-                    cwast.CompilerError(
-                        node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
+        if not isinstance(node, cwast.Id):
+            return
+        if node.x_symbol:
+            return
+        if nfd.name == "field":
+            # must wait until type info is available
+            return
 
-    cwast.VisitAstRecursivelyWithFieldPost(node, visitor)
+        if node.x_import.x_module == cwast.INVALID_MOD:
+            if must_resolve_all:
+                cwast.CompilerError(
+                    node.x_srcloc, f"import of {node.base_name} not resolved")
+            return
+        symtab = node.x_import.x_module.x_symtab
+        def_node = symtab.resolve_sym(
+            node, builtin_syms, (node.mod_name is not None))
+        if def_node:
+            AnnotateNodeSymbol(node, def_node)
+        else:
+            if must_resolve_all and nfd.name != "point":
+                cwast.CompilerError(
+                    node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
+
+    cwast.VisitAstRecursivelyWithField(node, visitor)
 
 
 MAX_MACRO_NESTING = 8
@@ -347,7 +349,7 @@ def VerifyASTSymbolsRecursively(node):
 def _SetTargetFieldRecursively(node):
     parents = []
 
-    def visitor_pre(node, _):
+    def visitor_pre(node):
         nonlocal parents
         if isinstance(node, cwast.DefMacro):
             return True
@@ -372,7 +374,7 @@ def _SetTargetFieldRecursively(node):
                 assert False, f"{
                     node} --- {[p.__class__.__name__ for p in parents]}"
 
-    def visitor_post(node, _):
+    def visitor_post(node):
         nonlocal parents
         parents.pop(-1)
 

@@ -604,7 +604,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
 def EvalRecursively(node) -> bool:
     seen_change = False
 
-    def visitor(node, nfd: cwast.NFD):
+    def visitor(node):
         nonlocal seen_change
         if isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
             initial = node.initial_or_undef_or_auto
@@ -617,13 +617,9 @@ def EvalRecursively(node) -> bool:
         if node.x_value is not None:
             return
 
-        if isinstance(node, cwast.Id) and node.x_symbol is None:
-            assert nfd.name == "point"
-            return
-
         seen_change |= _EvalNode(node)
 
-    cwast.VisitAstRecursivelyWithFieldPost(node, visitor, None)
+    cwast.VisitAstRecursivelyPost(node, visitor)
 
     if seen_change:
         logger.info("SEEN CHANGE %s", node)
@@ -634,7 +630,7 @@ def VerifyASTEvalsRecursively(node):
     """Make sure that everything that is supposed to be const was evaluated"""
     is_const = False
 
-    def visitor(node: Any, parent: Any, nfd: cwast.NFD):
+    def visitor(node: Any, parent: Any):
         nonlocal is_const
         # logger.info(f"EVAL-VERIFY: {node}")
         if isinstance(node, cwast.ValUndef):
@@ -653,13 +649,6 @@ def VerifyASTEvalsRecursively(node):
 
         if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum, cwast.ValString)):
             assert node.x_value is not None, f"{node}"
-
-        if nfd and nfd.name == "point":
-            if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.RecField):
-                return
-            if node.x_value is None:
-                assert isinstance(
-                    node, cwast.ValAuto), f"unevaluated ValArray init index: {node}"
 
         if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.Id):
@@ -699,7 +688,7 @@ def VerifyASTEvalsRecursively(node):
         if isinstance(node, cwast.TypeVec):
             assert node.size.x_value is not None, f"uneval'ed type dim: {node}"
 
-    cwast.VisitAstRecursivelyWithParentAndField(node, visitor, None, None)
+    cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
 
 def DecorateASTWithPartialEvaluation(mod_topo_order: list[cwast.DefMod]):

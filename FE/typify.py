@@ -1232,7 +1232,7 @@ VERIFIERS = VERIFIERS_WEAK | {
 
 
 def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
-    def visitor(node, nfd: cwast.NFD):
+    def visitor(node, parent):
         nonlocal verifier_table
         if cwast.NF.TOP_LEVEL in node.FLAGS:
             logger.info("TYPE-VERIFYING %s", node)
@@ -1240,7 +1240,9 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             ct: cwast.CanonType = node.x_type
             if ct is cwast.NO_TYPE:
-                assert nfd.name == "point", f"missing type for {
+                assert isinstance(node, (cwast.Id, cwast.ValAuto)), f"untype node {node}"
+                assert isinstance(parent, cwast.ValPoint)
+                assert parent.point == node, f"missing type for {
                     node} in {node.x_srcloc}"
             else:
                 assert ct.name in tc.corpus, f"bad type annotation for {
@@ -1254,7 +1256,7 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
             if handler:
                 handler(node, tc)
 
-    cwast.VisitAstRecursivelyWithFieldPost(node, visitor)
+    cwast.VisitAstRecursivelyWithParentPost(node, visitor, None)
 
 
 def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],

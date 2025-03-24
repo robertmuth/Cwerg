@@ -3116,24 +3116,24 @@ def VisitAstRecursivelyWithField(node, visitor, nfd=None):
                 VisitAstRecursivelyWithField(child, visitor, nfd)
 
 
-def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post, nfd=None):
-    if visitor_pre(node, nfd):
+def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post):
+    if visitor_pre(node):
         return
 
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            VisitAstRecursivelyPreAndPost(child, visitor_pre, visitor_post, f)
+            VisitAstRecursivelyPreAndPost(child, visitor_pre, visitor_post)
         else:
             for child in getattr(node, f):
                 VisitAstRecursivelyPreAndPost(
-                    child, visitor_pre, visitor_post, f)
+                    child, visitor_pre, visitor_post)
 
-    visitor_post(node, nfd)
+    visitor_post(node)
 
 
-def VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd=None):
+def _VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd=None):
     if visitor(node, parent, nfd):
         return
 
@@ -3141,11 +3141,26 @@ def VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd=None):
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            VisitAstRecursivelyWithParentAndField(child, visitor, node, nfd)
+            _VisitAstRecursivelyWithParentAndField(child, visitor, node, nfd)
         else:
             for child in getattr(node, f):
-                VisitAstRecursivelyWithParentAndField(
+                _VisitAstRecursivelyWithParentAndField(
                     child, visitor, node, nfd)
+
+
+def VisitAstRecursivelyWithParent(node, visitor, parent):
+    if visitor(node, parent):
+        return
+
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            VisitAstRecursivelyWithParent(child, visitor, node)
+        else:
+            for child in getattr(node, f):
+                VisitAstRecursivelyWithParent(
+                    child, visitor, node)
 
 
 def VisitAstRecursivelyPost(node, visitor):
@@ -3161,17 +3176,22 @@ def VisitAstRecursivelyPost(node, visitor):
     visitor(node)
 
 
-def VisitAstRecursivelyWithFieldPost(node, visitor, field=None):
+def VisitAstRecursivelyWithParentPost(node, visitor, parent):
+
+
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            VisitAstRecursivelyWithFieldPost(child, visitor, nfd)
+            VisitAstRecursivelyWithParentPost(child, visitor, node)
         else:
             for child in getattr(node, f):
-                VisitAstRecursivelyWithFieldPost(child, visitor, nfd)
+                VisitAstRecursivelyWithParentPost(
+                    child, visitor, node)
 
-    visitor(node, field)
+    visitor(node, parent)
+
+
 
 
 def MaybeReplaceAstRecursively(node, replacer):
@@ -3339,6 +3359,7 @@ def NumberOfNodes(node) -> int:
 # Helpers
 ############################################################
 
+
 def StripFromListRecursively(node, cls):
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
@@ -3428,9 +3449,9 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             node.x_srcloc, SrcLoc) and node.x_srcloc != INVALID_SRCLOC, f"Node without srcloc node {node} for parent={parent} field={nfd} {node.x_srcloc}"
 
         if NF.TOP_LEVEL in node.FLAGS:
-            if nfd.name != "body_mod":
+            if not isinstance(parent, DefMod):
                 CompilerError(
-                    node.x_srcloc, f"only allowed at toplevel [{nfd.name}]: {node}")
+                    node.x_srcloc, f"only allowed at toplevel: {node}")
             toplevel_node = node
         if NF.MACRO_BODY_ONLY in node.FLAGS:
             assert isinstance(
@@ -3483,7 +3504,7 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 CompilerError(
                     node.x_srcloc, f"unexpected node for field={nfd.name}: {node.__class__.__name__}")
 
-    VisitAstRecursivelyWithParentAndField(node_mod, visitor, None)
+    _VisitAstRecursivelyWithParentAndField(node_mod, visitor, None)
 
 
 ##########################################################################################
