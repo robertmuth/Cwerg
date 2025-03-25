@@ -4,8 +4,9 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
-#include <unordered_map>
+#include <functional>
 #include <map>
+#include <unordered_map>
 
 #include "Util/handle.h"
 #include "Util/immutable.h"
@@ -13,6 +14,7 @@
 
 namespace cwerg::fe {
 
+// These must be larger than the last element of the NT enum
 uint8_t constexpr kKindStr = 100;
 uint8_t constexpr kKindName = 101;
 
@@ -66,6 +68,7 @@ struct SrcLoc {
 };
 
 const SrcLoc SrcLocInvalid(0, 0, 0);
+constexpr int MAX_NODE_CHILDREN = 4;
 
 struct NodeCore {
   NT kind;
@@ -81,7 +84,7 @@ struct NodeCore {
     STR_KIND str_kind;
   };
   uint16_t compressed_flags;
-  Handle children[4];
+  Handle children[MAX_NODE_CHILDREN];
   Handle next;
 };
 
@@ -123,7 +126,9 @@ inline uint32_t& Node_x_offset(Node node) { return gNodeExtra[node].x_offset; }
 
 inline Node& Node_x_import(Node node) { return gNodeAuxTyping[node].x_import; }
 inline Node& Node_x_module(Node node) { return gNodeAuxTyping[node].x_import; }
-inline SymTab*& Node_x_symtab(Node node) { return gNodeAuxTyping[node].x_symtab; }
+inline SymTab*& Node_x_symtab(Node node) {
+  return gNodeAuxTyping[node].x_symtab;
+}
 
 inline bool Node_has_flag(Node node, BF bf) {
   return gNodeCore[node].compressed_flags & Mask(bf);
@@ -932,5 +937,70 @@ ASSIGNMENT_KIND ASSIGNMENT_KIND_FromString(std::string_view name);
 BF BF_FromString(std::string_view name);
 
 NT KeywordToNT(std::string_view kw);
+
+inline void VisitNodesRecursivelyPost(Node node,
+                                      std::function<void(Node)> visitor) {
+  const auto& core = gNodeCore[node];
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Handle child = core.children[i];
+    if (child.raw_kind() >= kKindStr) continue;
+    while (!child.isnull()) {
+      VisitNodesRecursivelyPost(Node(child), visitor);
+      child = Node_next(Node(child));
+    }
+  }
+  visitor(node);
+}
+
+inline void VisitNodesRecursivelyPre(Node node,
+                                     std::function<void(Node, Node)> visitor,
+                                     Node parent) {
+  visitor(node, parent);
+
+  const auto& core = gNodeCore[node];
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Handle child = core.children[i];
+    if (child.raw_kind() >= kKindStr) continue;
+    while (!child.isnull()) {
+      VisitNodesRecursivelyPre(Node(child), visitor, node);
+      child = Node_next(Node(child));
+    }
+  }
+}
+
+inline void VisitNodesRecursivelyPost(Node node,
+                                      std::function<void(Node, Node)> visitor,
+                                      Node parent) {
+  const auto& core = gNodeCore[node];
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Handle child = core.children[i];
+    if (child.raw_kind() >= kKindStr) continue;
+    while (!child.isnull()) {
+      VisitNodesRecursivelyPre(Node(child), visitor, node);
+      child = Node_next(Node(child));
+    }
+  }
+  visitor(node, parent);
+}
+
+inline void VisitNodesRecursivelyPreAndPost(
+    Node node, std::function<void(Node, Node)> pre_visitor,
+    std::function<void(Node, Node)> post_visitor, Node parent) {
+  const auto& core = gNodeCore[node];
+  pre_visitor(node, parent);
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Handle child = core.children[i];
+    if (child.raw_kind() >= kKindStr) continue;
+    while (!child.isnull()) {
+      VisitNodesRecursivelyPreAndPost(Node(child), pre_visitor, post_visitor, node);
+      child = Node_next(Node(child));
+    }
+  }
+  post_visitor(node, parent);
+}
 
 }  // namespace cwerg::fe

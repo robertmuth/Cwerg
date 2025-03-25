@@ -24,6 +24,8 @@ int main(int argc, const char* argv[]) {
   InitStripes(sw_multiplier.Value());
   InitParser();
   ModPool mod_pool(sw_stdlib.Value());
+  std::vector<Path> seed_modules;
+  mod_pool.ReadModulesRecursively(seed_modules, true);
   // TODO
   return 0;
 }

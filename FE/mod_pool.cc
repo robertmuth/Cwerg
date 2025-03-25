@@ -45,10 +45,14 @@ std::string_view ReadFile(const char* filename) {
 }
 
 Node ReadMod(const Path& path) {
+  std::cout << "ReadMod " << path << "\n";
+
   Path filename = path.filename();
   Path with_suffix = path;
   with_suffix.replace_extension(".cw");
   auto data = ReadFile(with_suffix.c_str());
+  std::cout << "ReadMod " << path << " size=" << data.size() << "\n";
+
   // TODO: fix magic number
   Lexer lexer(data, 666);
   return ParseDefMod(&lexer, NameNew(filename.c_str()));
@@ -59,11 +63,32 @@ ModInfo AddModInfoCommon(const Path& path, Node mod, SymTab* symtab) {
   return ModInfo();
 }
 
+
+void Dump(Node node) {
+  std::vector<Node> stack;
+  int indent = -4;
+  auto pre_visitor = [&stack, &indent](Node node, Node parent) {
+    if (stack.empty() || stack.back() != parent) {
+      stack.push_back(parent);
+      indent += 4;
+    }
+
+    std::cout << std::setw(indent) << " " <<  EnumToString(Node_kind(node)) << "\n";
+  };
+  auto post_visitor = [&stack, &indent](Node node, Node parent) {
+    if (stack.back() != parent) {
+      stack.pop_back();
+      indent -= 4;
+    }
+  };
+  VisitNodesRecursivelyPreAndPost(node, pre_visitor, post_visitor, NodeInvalid);
+}
+
 ModInfo ModPool::AddModInfoSimple(const Path& path, SymTab* symtab) {
   Node mod = ReadMod(path);
   // AnnotateImportsForQualifers(mod);
   // SymTab symtab = ExtractSymTabPopulatedWithGlobals(mod);
-
+  Dump(mod);
   return AddModInfoCommon(path, mod, symtab);
 }
 
@@ -80,4 +105,4 @@ void ModPool::ReadModulesRecursively(const std::vector<Path>& seed_modules,
   }
 }
 
-}  // namespace
+}  // namespace cwerg::fe
