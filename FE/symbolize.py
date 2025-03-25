@@ -165,17 +165,26 @@ def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
     return symtab
 
 
+def _IsFieldNode(node, parent) -> bool:
+    return isinstance(parent, (cwast.ExprOffsetof, cwast.ExprField)) and parent.field is node
+
+
+def _IsPointNode(node, parent) -> bool:
+    return isinstance(parent, cwast.ValPoint) and parent.point is node
+
+
 def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
                                                         must_resolve_all: bool):
     # this may be called multiple times for the same module
-    def visitor(node: Any, nfd: cwast.NFD):
+    def visitor(node: Any, parent):
         nonlocal builtin_syms
         if not isinstance(node, cwast.Id):
             return
         if node.x_symbol:
             return
-        if nfd.name == "field":
-            # must wait until type info is available
+
+        # must wait until type info is available
+        if _IsFieldNode(node, parent):
             return
 
         if node.x_import.x_module == cwast.INVALID_MOD:
@@ -189,11 +198,11 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
         if def_node:
             AnnotateNodeSymbol(node, def_node)
         else:
-            if must_resolve_all and nfd.name != "point":
+            if must_resolve_all and not _IsPointNode(node, parent):
                 cwast.CompilerError(
                     node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
 
-    cwast.VisitAstRecursivelyWithField(node, visitor)
+    cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
 
 MAX_MACRO_NESTING = 8
