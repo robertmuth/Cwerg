@@ -996,11 +996,30 @@ inline void VisitNodesRecursivelyPreAndPost(
     Handle child = core.children[i];
     if (child.raw_kind() >= kKindStr) continue;
     while (!child.isnull()) {
-      VisitNodesRecursivelyPreAndPost(Node(child), pre_visitor, post_visitor, node);
+      VisitNodesRecursivelyPreAndPost(Node(child), pre_visitor, post_visitor,
+                                      node);
       child = Node_next(Node(child));
     }
   }
   post_visitor(node, parent);
 }
+
+// TODO: move this to a helper lib
+struct CompilerError : public std::ostream, private std::streambuf {
+  CompilerError(const SrcLoc& srcloc) : std::ostream(this) {
+    std::cerr << "Error " << srcloc.file << ":" << srcloc.line << ": ";
+  }
+
+  ~CompilerError() {
+    std::cerr.put('\n');
+    exit(1);
+  }
+
+ private:
+  int overflow(int c) override {
+    std::cerr.put(c);
+    return 0;
+  }
+};
 
 }  // namespace cwerg::fe
