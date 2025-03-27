@@ -66,6 +66,26 @@ def AnnotateImportsForQualifers(mod: cwast.DefMod):
     cwast.VisitAstRecursivelyPost(mod, visitor)
 
 
+def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> symbolize.SymTab:
+    symtab = symbolize.SymTab()
+    assert isinstance(mod, cwast.DefMod), mod
+    logger.info("Processing %s", mod)
+    # pass 1: get all the top level symbols
+    for node in mod.body_mod:
+        if not isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.DefGlobal,
+                                 cwast.DefRec, cwast.DefEnum, cwast.DefType)):
+            continue
+
+        name: cwast.NAME = node.name
+        # we only record the first occurrence of a poly functions which is why
+        # only that function's visibility setting matters
+        if isinstance(node, cwast.DefFun) and node.poly:
+            if name.IsQualifiedName() or symtab.has_sym(name):
+                continue
+        symtab.add_with_dup_check(name, node)
+    return symtab
+
+
 EXTENSION_CWS = ".cws"
 EXTENSION_CW = ".cw"
 
@@ -231,7 +251,7 @@ class ModPool:
         """Register regular module"""
         mod = self._read_mod_fun(path, name)
         AnnotateImportsForQualifers(mod)
-        symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
+        symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, [], mod, symtab)
 
     def _AddModInfoForGeneric(self, path: Path, args: list, name: str) -> ModInfo:
@@ -243,7 +263,7 @@ class ModPool:
             self._raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         AnnotateImportsForQualifers(mod)
-        symtab = symbolize.ExtractSymTabPopulatedWithGlobals(mod)
+        symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
 
     def MainEntryFun(self) -> cwast.DefFun:

@@ -52,33 +52,22 @@ class SymTab:
     def __init__(self: Any):
         self._syms: dict[cwast.NAME, Any] = {}
 
-    def AddLocalSym(self, name: cwast.NAME, node):
-        assert not name.IsMacroVar()
-        assert isinstance(node, (cwast.DefVar, cwast.FunParam)), f"{node}"
+    def add_with_dup_check(self, name: cwast.NAME, node):
         prev = self._syms.get(name)
         if prev is not None:
             cwast.CompilerError(node.x_srcloc,
                                 f"Duplicate symbol name [{name}] for\n {node}\npreviously defined by\n {prev}")
         self._syms[name] = node
 
-    def AddTopLevelSym(self: "SymTab", node: Any):
-        logger.info("recording global symbol: %s", node)
-        if not isinstance(node, (cwast.DefFun, cwast.DefMacro, cwast.DefGlobal,
-                                 cwast.DefRec, cwast.DefEnum, cwast.DefType)):
-            cwast.CompilerError(
-                node.x_srcloc, f"Unexpected toplevel node {node}")
-        name: cwast.NAME = node.name
-        # we only recored the first occurrence of a poly functions which is why
-        # only that function's visibility setting matters
-        if isinstance(node, cwast.DefFun) and node.poly:
-            if name.IsQualifiedName() or name in self._syms:
-                return
+    def AddLocalSym(self, name: cwast.NAME, node):
+        assert not name.IsMacroVar()
+        assert isinstance(node, (cwast.DefVar, cwast.FunParam)), f"{node}"
+        self.add_with_dup_check(name, node)
 
-        if name in self._syms:
-            cwast.CompilerError(node.x_srcloc, f"duplicate name {name}")
-        self._syms[name] = node
+    def has_sym(self, name):
+        return name in self._syms
 
-    def DelSym(self, name):
+    def del_sym(self, name):
         assert name in self._syms
         del self._syms[name]
 
@@ -147,22 +136,6 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
         cwast.CompilerError(
             node.x_srcloc, f"cannot resolve symbol for {node}")
     AnnotateNodeSymbol(node, def_node)
-
-
-def ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> SymTab:
-    symtab = SymTab()
-    assert isinstance(mod, cwast.DefMod), mod
-    logger.info("Processing %s", mod)
-    # pass 1: get all the top level symbols
-    for node in mod.body_mod:
-        if isinstance(node, cwast.StmtStaticAssert):
-            continue
-        elif isinstance(node, cwast.Import):
-            # these will be processed during the recursive module reading
-            continue
-        else:
-            symtab.AddTopLevelSym(node)
-    return symtab
 
 
 def _IsFieldNode(node, parent) -> bool:
@@ -278,7 +251,7 @@ def ResolveSymbolsInsideFunctionsRecursively(
         nonlocal scopes, symtab
         logger.debug("pop scope for %s: %s", node, nfd.name)
         for name in scopes[-1].keys():
-            symtab.DelSym(name)
+            symtab.del_sym(name)
         scopes.pop(-1)
 
     cwast.VisitAstRecursivelyWithScopeTracking(
