@@ -156,11 +156,11 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
         if not isinstance(call.callee, cwast.Id):
             return None
         fun_def: cwast.DefFun = call.callee.x_symbol
-        # TODO
-        if fun_def.name.name != "fib":
-            return None
         if not isinstance(fun_def, cwast.DefFun):
             return None
+        # TODO
+        #if fun_def.name.name != "fib":
+        #    return None
         if fun_def.extern:
             return None
         n = 0
