@@ -18,8 +18,8 @@ bool starts_with(std::string_view str, std::string_view prefix) {
 
 Str MoveComment(Node n) {
   Str comment = Node_comment(n);
-  if (comment != StrInvalid) {
-    Node_comment(n) = StrInvalid;
+  if (comment != kStrInvalid) {
+    Node_comment(n) = kStrInvalid;
   }
   return comment;
 }
@@ -80,8 +80,8 @@ void ParseFunLikeArgs(Lexer* lexer, std::string_view args_desc,
 
 Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
   Node out = NodeNew(nt);
-  std::array<Node, 4> args = {Node(kHandleInvalid), Node(kHandleInvalid),  //
-                              Node(kHandleInvalid), Node(kHandleInvalid)};
+  std::array<Node, 4> args = {kNodeInvalid, kNodeInvalid,  //
+                              kNodeInvalid, kNodeInvalid};
   uint16_t bits = BitsFromAnnotation(tk);
   switch (nt) {
     // TE
@@ -173,13 +173,13 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
       //
     default:
       ASSERT(false, tk);
-      return Node(kHandleInvalid);
+      return kNodeInvalid;
   }
 }
 
 Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
-  std::array<Node, 4> args = {Node(kHandleInvalid), Node(kHandleInvalid),  //
-                              Node(kHandleInvalid), Node(kHandleInvalid)};
+  std::array<Node, 4> args = {kNodeInvalid, kNodeInvalid,  //
+                              kNodeInvalid, kNodeInvalid};
   if (tk.text == "ptr_inc" || tk.text == "ptr_dec") {
     Node out = NodeNew(NT::ExprPointer);
     ParseFunLikeArgs(lexer, "EEe", &args);
@@ -218,7 +218,7 @@ Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
     return out;
   } else {
     ASSERT(false, tk);
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
 }
 
@@ -239,7 +239,7 @@ Node PrattParseKW(Lexer* lexer, const TK& tk, uint32_t precedence) {
 }
 
 Node PrattParseSimpleVal(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  Node out = Node(kHandleInvalid);
+  Node out = kNodeInvalid;
   switch (tk.text[0]) {
     case 'a':
       out = NodeNew(NT::ValAuto);
@@ -279,7 +279,7 @@ Node PrattParsePrefix(Lexer* lexer, const TK& tk, uint32_t precedence) {
     return out;
   } else {
     ASSERT(false, "unknown unary " << tk);
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
 }
 
@@ -299,7 +299,8 @@ Node MakeNodeId(const TK& tk) {
     enum_name = s.substr(pos + 1);
     s = s.substr(0, pos);
   }
-  InitId(out, NameNew(mod_name), NameNew(s), NameNew(enum_name), tk.comments,
+  InitId(out, mod_name.empty() ? kNameInvalid : NameNew(mod_name), NameNew(s),
+         enum_name.empty() ? kNameInvalid : NameNew(enum_name), tk.comments,
          tk.srcloc);
   return out;
 }
@@ -323,7 +324,7 @@ Node PrattParseNum(Lexer* lexer, const TK& tk, uint32_t precedence) {
 
 Node ParseValPointList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::CURLY_CLOSED)) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
@@ -331,16 +332,16 @@ Node ParseValPointList(Lexer* lexer, bool want_comma) {
   Node out = NodeNew(NT::ValPoint);
 
   Node val = PrattParseExpr(lexer);
-  Node pos = Node(kHandleInvalid);
+  Node pos = kNodeInvalid;
   if (lexer->Match(TK_KIND::ASSIGN)) {
     pos = val;
     val = PrattParseExpr(lexer);
   } else {
     pos = NodeNew(NT::ValAuto);
-    InitValAuto(pos, StrInvalid, SrcLocInvalid);
+    InitValAuto(pos, kStrInvalid, kSrcLocInvalid);
   }
   Str comment = MoveComment(pos);
-  if (comment == StrInvalid) {
+  if (comment == kStrInvalid) {
     comment = MoveComment(val);
   }
   InitValPoint(out, val, pos, comment, Node_srcloc(val));
@@ -350,10 +351,10 @@ Node ParseValPointList(Lexer* lexer, bool want_comma) {
 
 Node PrattParseValCompound(Lexer* lexer, const TK& tk, uint32_t precedence) {
   Node out = NodeNew(NT::ValCompound);
-  Node type = Node(kHandleInvalid);
+  Node type = kNodeInvalid;
   if (lexer->Match(TK_KIND::COLON)) {
     type = NodeNew(NT::TypeAuto);
-    InitTypeAuto(type, StrInvalid, SrcLocInvalid);
+    InitTypeAuto(type, kStrInvalid, kSrcLocInvalid);
   } else {
     type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::COLON);
@@ -431,7 +432,7 @@ Node PrattParseExprField(Lexer* lexer, Node lhs, const TK& tk,
 
 Node ParseFunArgsList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
@@ -525,7 +526,7 @@ void InitParser() {
 
 Node ParseTypeList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
@@ -587,18 +588,18 @@ Node ParseTypeExpr(Lexer* lexer) {
         return out;
       }
       case NT::TypeUnionDelta: {
-        std::array<Node, 4> args = {Node(kHandleInvalid),
-                                    Node(kHandleInvalid),  //
-                                    Node(kHandleInvalid), Node(kHandleInvalid)};
+        std::array<Node, 4> args = {kNodeInvalid,
+                                    kNodeInvalid,  //
+                                    kNodeInvalid, kNodeInvalid};
         Node out = NodeNew(NT::TypeUnionDelta);
         ParseFunLikeArgs(lexer, "TT", &args);
         InitTypeUnionDelta(out, args[0], args[1], tk.comments, tk.srcloc);
         return out;
       }
       case NT::TypeOf: {
-        std::array<Node, 4> args = {Node(kHandleInvalid),
-                                    Node(kHandleInvalid),  //
-                                    Node(kHandleInvalid), Node(kHandleInvalid)};
+        std::array<Node, 4> args = {kNodeInvalid,
+                                    kNodeInvalid,  //
+                                    kNodeInvalid, kNodeInvalid};
         Node out = NodeNew(NT::TypeOf);
         ParseFunLikeArgs(lexer, "E", &args);
         InitTypeOf(out, args[0], tk.comments, tk.srcloc);
@@ -606,11 +607,11 @@ Node ParseTypeExpr(Lexer* lexer) {
       }
       default:
         ASSERT(false, tk);
-        return Node(kHandleInvalid);
+        return kNodeInvalid;
     }
   } else {
     ASSERT(false, "NYI TypeExpr " << tk);
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
 }
 
@@ -667,7 +668,7 @@ Node ParseTypeExprOrExpr(Lexer* lexer) {
 
 Node ParseMacroArgList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
@@ -684,7 +685,8 @@ Node ParseMacroArgListWithColon(Lexer* lexer, uint32_t outer_col,
   if (lexer->Match(TK_KIND::COLON)) {
     Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
-    InitEphemeralList(body, stmts, Mask(BF::COLON), StrInvalid, SrcLocInvalid);
+    InitEphemeralList(body, stmts, Mask(BF::COLON), kStrInvalid,
+                      kSrcLocInvalid);
     return body;
   }
 
@@ -698,7 +700,7 @@ Node ParseMacroArgListWithColon(Lexer* lexer, uint32_t outer_col,
 
 Node ParseModParamList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
@@ -715,7 +717,7 @@ Node ParseModParamList(Lexer* lexer, bool want_comma) {
 
 Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
@@ -734,7 +736,7 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
 Node ParseCaseList(Lexer* lexer, int cond_column) {
   TK tk = lexer->Peek();
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= cond_column) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   ASSERT(tk.text == "case", "");
   lexer->Skip();
@@ -784,7 +786,8 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     lexer->MatchOrDie(TK_KIND::COLON);
     Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
-    InitEphemeralList(body, stmts, Mask(BF::COLON), StrInvalid, SrcLocInvalid);
+    InitEphemeralList(body, stmts, Mask(BF::COLON), kStrInvalid,
+                      kSrcLocInvalid);
     //
     Node_next(var) = type;
     Node_next(type) = expr;
@@ -794,7 +797,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     return out;
   } else {
     ASSERT(false, tk);
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
 }
 
@@ -804,12 +807,12 @@ Node ParseStmt(Lexer* lexer) {
   const NT nt = KeywordToNT(tk.text);
   switch (nt) {
     case NT::StmtReturn: {
-      Node expr = Node(kHandleInvalid);
+      Node expr = kNodeInvalid;
       if (lexer->Peek().srcloc.line == tk.srcloc.line) {
         expr = PrattParseExpr(lexer);
       } else {
         expr = NodeNew(NT::ValVoid);
-        InitValVoid(expr, StrInvalid, SrcLocInvalid);
+        InitValVoid(expr, kStrInvalid, kSrcLocInvalid);
       }
       Node out = NodeNew(NT::StmtReturn);
       InitStmtReturn(out, expr, tk.comments, tk.srcloc);
@@ -833,17 +836,17 @@ Node ParseStmt(Lexer* lexer) {
       } else {
         ASSERT(op.kind == TK_KIND::COMPOUND_ASSIGN, "" << op);
         ASSERT(false, "NYI");
-        return Node(kHandleInvalid);
+        return kNodeInvalid;
       }
     }
     case NT::DefVar: {
       Node out = NodeNew(NT::DefVar);
       const TK name = lexer->MatchIdOrDie();
-      Node type = Node(kHandleInvalid);
-      Node init = Node(kHandleInvalid);
+      Node type = kNodeInvalid;
+      Node init = kNodeInvalid;
       if (lexer->Match(TK_KIND::ASSIGN)) {
         type = NodeNew(NT::TypeAuto);
-        InitTypeAuto(type, StrInvalid, SrcLocInvalid);
+        InitTypeAuto(type, kStrInvalid, kSrcLocInvalid);
         init = PrattParseExpr(lexer);
       } else {
         type = ParseTypeExpr(lexer);
@@ -851,7 +854,7 @@ Node ParseStmt(Lexer* lexer) {
           init = PrattParseExpr(lexer);
         } else {
           init = NodeNew(NT::ValAuto);
-          InitValAuto(init, StrInvalid, SrcLocInvalid);
+          InitValAuto(init, kStrInvalid, kSrcLocInvalid);
         }
       }
 
@@ -866,7 +869,7 @@ Node ParseStmt(Lexer* lexer) {
       Node cond = PrattParseExpr(lexer);
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body_t = ParseStmtBodyList(lexer, outer_column);
-      Node body_f = Node(kHandleInvalid);
+      Node body_f = kNodeInvalid;
       const TK else_tk = lexer->Peek();
       if (else_tk.text == "else" && else_tk.srcloc.col == outer_column) {
         lexer->Skip();
@@ -940,7 +943,7 @@ Node ParseStmt(Lexer* lexer) {
 Node ParseExprList(Lexer* lexer, uint32_t outer_column) {
   const TK tk = lexer->Peek();
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= outer_column) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   Node out = PrattParseExpr(lexer);
   Node_next(out) = ParseExprList(lexer, true);
@@ -949,7 +952,7 @@ Node ParseExprList(Lexer* lexer, uint32_t outer_column) {
 
 Node ParseMacroInvocation(Lexer* lexer, TK name) {
   uint32_t outer_column = name.srcloc.col;
-  Node args = Node(kHandleInvalid);
+  Node args = kNodeInvalid;
   if (lexer->Match(TK_KIND::PAREN_OPEN)) {
     args = ParseMacroArgList(lexer, false);
   } else {
@@ -964,9 +967,9 @@ Node ParseMacroInvocation(Lexer* lexer, TK name) {
 Node ParseStmtList(Lexer* lexer, uint32_t column) {
   const TK tk = lexer->Peek();
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col < column) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
-  Node out = Node(kHandleInvalid);
+  Node out = kNodeInvalid;
   if (tk.kind == TK_KIND::ID) {
     lexer->Skip();
     if (ends_with(tk.text, "#")) {
@@ -990,7 +993,7 @@ Node ParseStmtList(Lexer* lexer, uint32_t column) {
 Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
   const TK tk = lexer->Peek();
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= outer_column) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
 
   return ParseStmtList(lexer, tk.srcloc.col);
@@ -1000,7 +1003,7 @@ Node ParseRecFieldList(Lexer* lexer, uint32_t column) {
   TK name = lexer->Peek();
 
   if (name.kind == TK_KIND::SPECIAL_EOF || name.srcloc.col <= column) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   name = lexer->MatchIdOrDie();
   Node type = ParseTypeExpr(lexer);
@@ -1014,7 +1017,7 @@ Node ParseEnumFieldList(Lexer* lexer, uint32_t column) {
   TK name = lexer->Peek();
 
   if (name.kind == TK_KIND::SPECIAL_EOF || name.srcloc.col <= column) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   name = lexer->MatchIdOrDie();
   Node val = PrattParseExpr(lexer);
@@ -1026,7 +1029,7 @@ Node ParseEnumFieldList(Lexer* lexer, uint32_t column) {
 
 Node ParseMacroParamList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
@@ -1044,7 +1047,7 @@ Node ParseMacroParamList(Lexer* lexer, bool want_comma) {
 
 Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::SQUARE_CLOSED)) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
   if (want_comma) {
     lexer->Match(TK_KIND::COMMA);
@@ -1067,7 +1070,7 @@ Node ParseTopLevel(Lexer* lexer) {
       TK name = lexer->MatchIdOrDie();
       lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
       Node params = ParseFunParamList(lexer, false);
-      Node result = Node(kHandleInvalid);
+      Node result = kNodeInvalid;
       // the result type must not be omitted because
       // we do require it for `funtype` as well
       result = ParseTypeExpr(lexer);
@@ -1080,11 +1083,11 @@ Node ParseTopLevel(Lexer* lexer) {
     case NT::DefGlobal: {
       Node out = NodeNew(NT::DefGlobal);
       const TK name = lexer->MatchIdOrDie();
-      Node type = Node(kHandleInvalid);
-      Node init = Node(kHandleInvalid);
+      Node type = kNodeInvalid;
+      Node init = kNodeInvalid;
       if (lexer->Match(TK_KIND::ASSIGN)) {
         type = NodeNew(NT::TypeAuto);
-        InitTypeAuto(type, StrInvalid, SrcLocInvalid);
+        InitTypeAuto(type, kStrInvalid, kSrcLocInvalid);
         init = PrattParseExpr(lexer);
       } else {
         type = ParseTypeExpr(lexer);
@@ -1092,7 +1095,7 @@ Node ParseTopLevel(Lexer* lexer) {
           init = PrattParseExpr(lexer);
         } else {
           init = NodeNew(NT::ValAuto);
-          InitValAuto(init, StrInvalid, SrcLocInvalid);
+          InitValAuto(init, kStrInvalid, kSrcLocInvalid);
         }
       }
       bits |= tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
@@ -1112,7 +1115,7 @@ Node ParseTopLevel(Lexer* lexer) {
 
     case NT::Import: {
       TK name = lexer->MatchIdOrDie();
-      Node args = Node(kHandleInvalid);
+      Node args = kNodeInvalid;
       std::string_view path = std::string_view();
       if (lexer->Match(TK_KIND::ASSIGN)) {
         const TK tk = lexer->Next();
@@ -1123,7 +1126,7 @@ Node ParseTopLevel(Lexer* lexer) {
       }
       Node out = NodeNew(NT::Import);
       InitImport(out, NameNew(name.text),
-                 path.size() == 0 ? StrInvalid : StrNew(path), args,
+                 path.size() == 0 ? kStrInvalid : StrNew(path), args,
                  tk.comments, tk.srcloc);
       return out;
     }
@@ -1176,7 +1179,7 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::SQUARE_OPEN);
       Node gen_ids = ParseMacroGenIdList(lexer, false);
       lexer->MatchOrDie(TK_KIND::COLON);
-      Node body = Node(kHandleInvalid);
+      Node body = kNodeInvalid;
       if (mpk == MACRO_PARAM_KIND::EXPR || mpk == MACRO_PARAM_KIND::EXPR_LIST) {
         body = ParseExprList(lexer, outer_column);
       } else {
@@ -1188,13 +1191,13 @@ Node ParseTopLevel(Lexer* lexer) {
     }
     default:
       ASSERT(false, tk.text);
-      return Node(kHandleInvalid);
+      return kNodeInvalid;
   }
 }
 
 Node ParseModBodyList(Lexer* lexer, uint32_t column) {
   if (lexer->Peek().kind == TK_KIND::SPECIAL_EOF) {
-    return Node(kHandleInvalid);
+    return kNodeInvalid;
   }
 
   Node top = ParseTopLevel(lexer);
@@ -1209,7 +1212,7 @@ Node ParseDefMod(Lexer* lexer, Name name) {
   lexer->Skip();
   //
   Node def_mod = NodeNew(NT::DefMod);
-  Node params = Node(kHandleInvalid);
+  Node params = kNodeInvalid;
   if (lexer->Match(TK_KIND::PAREN_OPEN)) {
     params = ParseModParamList(lexer, false);
   }

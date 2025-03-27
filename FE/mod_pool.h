@@ -23,7 +23,8 @@ inline Path ModUniquePathName(const Path& root_path, const Path& curr_path,
                               std::string_view pathname) {
   Path path(pathname);
   if (path.is_absolute()) {
-    return std::filesystem::canonical(path);
+    // return std::filesystem::canonical(path);
+    return path;
   } else if (pathname.starts_with(".")) {
     return curr_path.parent_path() / path;
   } else {
@@ -37,15 +38,13 @@ struct ModId {
   std::vector<Node> args;  // for generic  modules
 };
 
-
 struct ModInfo {
   ModId mid;
-  Node mod = Node(kHandleInvalid);
+  Node mod = kNodeInvalid;
   SymTab* symtab = nullptr;
 
   bool IsValid() { return mod.raw_kind() != kKindInvalid; }
 };
-
 
 class ModPool {
   Path root_path_;
@@ -59,6 +58,7 @@ class ModPool {
   void ReadModulesRecursively(const std::vector<Path>& seed_modules,
                               bool add_builtin);
 
+ private:
   inline SymTab* BuiltinSymtab() const { return symtabs_[0]; }
 
   Node MainEntryFun() const;

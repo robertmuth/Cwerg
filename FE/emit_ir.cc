@@ -21,10 +21,16 @@ SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
 SwitchString sw_stdlib("stdlib", "path to stdlib directory", "./Lib");
 
 int main(int argc, const char* argv[]) {
+  const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
+  std::ios_base::sync_with_stdio(true);
+
   InitStripes(sw_multiplier.Value());
   InitParser();
   ModPool mod_pool(sw_stdlib.Value());
   std::vector<Path> seed_modules;
+  for (int i = arg_start; i < argc; ++i) {
+    seed_modules.push_back(std::filesystem::absolute((argv[i])));
+  }
   mod_pool.ReadModulesRecursively(seed_modules, true);
   // TODO
   return 0;

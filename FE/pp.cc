@@ -24,7 +24,7 @@ const PP::Token PP_BEG_NEST = PP::Beg(PP::BreakType::FORCE_LINE_BREAK, 4);
 
 void MaybeEmitDoc(std::vector<PP::Token>* out, Node node) {
   Str doc = Node_comment(node);
-  if (doc == StrInvalid) return;
+  if (doc == kStrInvalid) return;
   const char* data = StrData(doc);
   size_t start = 0;
   size_t end = 0;
@@ -77,7 +77,7 @@ void MaybeAddCommaAndHandleComment(std::vector<PP::Token>* out, bool first,
     out->push_back(PP::NoBreak(0));
     out->push_back(PP::Str(","));
   }
-  if (doc != StrInvalid) {
+  if (doc != kStrInvalid) {
     out->push_back(PP::LineBreak());
     MaybeEmitDoc(out, node);
   } else {
@@ -113,7 +113,7 @@ void EmitParameterList(std::vector<PP::Token>* out, Node node);
 
 void EmitArg(std::vector<PP::Token>* out, Node node, bool first) {
   if (first) {
-    if (Node_comment(node) != StrInvalid) {
+    if (Node_comment(node) != kStrInvalid) {
       out->push_back(PP::Brk(0));
 
     } else {
@@ -144,18 +144,18 @@ void EmitParenList(std::vector<PP::Token>* out, Node node) {
 }
 
 void EmitFunctional(std::vector<PP::Token>* out, Node node,
-                    std::string_view name, Node arg0, Node arg1 = NodeInvalid,
-                    Node arg2 = NodeInvalid) {
+                    std::string_view name, Node arg0, Node arg1 = kNodeInvalid,
+                    Node arg2 = kNodeInvalid) {
   out->push_back(PP_BEG_STD);
   MaybeEmitAnnotations(out, node);
   out->push_back(PP::Str(name));
   out->push_back(PP::NoBreak(0));
   out->push_back(PP::Str("("));
   EmitArg(out, arg0, true);
-  if (arg1 != NodeInvalid) {
+  if (arg1 != kNodeInvalid) {
     EmitArg(out, arg1, false);
   }
-  if (arg2 != NodeInvalid) {
+  if (arg2 != kNodeInvalid) {
     EmitArg(out, arg2, false);
   }
   out->push_back(PP::NoBreak(0));
@@ -792,7 +792,7 @@ void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Str("import"));
       out->push_back(PP::Brk());
       out->push_back(PP::Str(NameData(Node_name(node))));
-      if (Node_path(node) != StrInvalid) {
+      if (Node_path(node) != kStrInvalid) {
         out->push_back(PP::NoBreak(1));
         out->push_back(PP::Str("="));
         out->push_back(PP::Brk());

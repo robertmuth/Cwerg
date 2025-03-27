@@ -37,16 +37,15 @@ def AnnotateImportsForQualifers(mod: cwast.DefMod):
     imports: dict[cwast.NAME, cwast.Import] = {}
     dummy_import = cwast.Import(cwast.NAME("$self", 0), "", [], x_module=mod)
 
-    def annotate(node, q):
+    def annotate(node, q) -> bool:
         if q:
-            # only polymorphic functions may have qualifiers
-            if isinstance(node, cwast.DefFun):
-                assert node.poly
             if q not in imports:
                 cwast.CompilerError(node.x_srcloc, f"unkown module {repr(q)}")
             node.x_import = imports[q]
+            return True
         else:
             node.x_import = dummy_import
+            return False
 
     def visitor(node: Any):
         nonlocal imports, dummy_import
@@ -56,7 +55,9 @@ def AnnotateImportsForQualifers(mod: cwast.DefMod):
                 cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node
         elif isinstance(node, cwast.DefFun):
-            annotate(node, _GetQualifierIfPresent(node.name.name))
+            if annotate(node, _GetQualifierIfPresent(node.name.name)):
+                # only polymorphic functions may have qualifiers
+                assert node.poly
         elif isinstance(node, cwast.MacroInvoke):
             annotate(node, _GetQualifierIfPresent(node.name.name))
         elif isinstance(node, cwast.Id):

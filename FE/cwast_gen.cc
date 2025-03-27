@@ -645,7 +645,7 @@ StripeBase* const gAllStripesNode[] = {&gNodeCore, &gNodeExtra, &gNodeAuxTyping,
                                        nullptr};
 struct StripeGroup gStripeGroupNode("Node", gAllStripesNode, 256 * 1024);
 
-struct Stripe<NameCore, Name> gNameCore("NameCore");
+struct Stripe<StrAndSeq, Name> gNameCore("NameCore");
 StripeBase* const gAllStripesName[] = {&gNameCore, nullptr};
 struct StripeGroup gStripeGroupName("Name", gAllStripesName, 256 * 1024);
 

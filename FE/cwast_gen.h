@@ -35,7 +35,7 @@ extern const std::array<uint16_t, 17> BF2MASK;
 inline uint16_t Mask(BF val) { return BF2MASK[int(val)]; }
 
 struct Node : public Handle {
-  explicit constexpr Node(NT kind, uint32_t index = 0)
+  explicit constexpr Node(NT kind = NT(0), uint32_t index = 0)
       : Handle(index, uint8_t(kind)) {}
 
   explicit constexpr Node(Handle ref) : Handle(ref.value) {}
@@ -53,8 +53,9 @@ struct Name : public Handle {
   explicit constexpr Name(Handle ref) : Handle(ref.value) {}
 };
 
-constexpr const Str StrInvalid(0);
-constexpr const Node NodeInvalid(kHandleInvalid);
+constexpr const Str kStrInvalid(0);
+constexpr const Name kNameInvalid(0);
+constexpr const Node kNodeInvalid(kHandleInvalid);
 
 extern ImmutablePool gNamePool;
 
@@ -67,7 +68,7 @@ struct SrcLoc {
   uint32_t file;
 };
 
-const SrcLoc SrcLocInvalid(0, 0, 0);
+constexpr SrcLoc kSrcLocInvalid(0, 0, 0);
 constexpr int MAX_NODE_CHILDREN = 4;
 
 struct NodeCore {
@@ -170,12 +171,19 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
 // Name API
 // =======================================
 
-struct NameCore {
+struct StrAndSeq {
   uint32_t name;  // offset from ImmutablePool.
   uint32_t seq;
+
+  bool operator<(const StrAndSeq& other) const {
+    if (name == other.name) {
+      return seq < other.seq;
+    }
+    return name < other.name;
+  }
 };
 
-extern struct Stripe<NameCore, Name> gNameCore;
+extern struct Stripe<StrAndSeq, Name> gNameCore;
 extern struct StripeGroup gStripeGroupName;
 
 inline Name NameNew(uint32_t offset, uint32_t seq) {
@@ -191,6 +199,9 @@ inline Name NameNew(std::string_view s) {
   return NameNew(offset, 0);
 }
 
+inline StrAndSeq& NameStrAndSeq(Name name) { return gNameCore[name]; }
+
+// TODO: this does not include the the seq
 inline const char* NameData(Name name) {
   return gNamePool.Data(gNameCore[name].name);
 }
