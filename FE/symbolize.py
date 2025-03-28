@@ -195,7 +195,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
         assert isinstance(node, cwast.MacroInvoke)
         symtab: SymTab = node.x_import.x_module.x_symtab
         macro = symtab.resolve_macro(
-            node,  builtin_syms,  node.name.IsQualifiedName())
+            node,  builtin_syms, not node.x_import.name.IsSelfImport())
         if macro is None:
             cwast.CompilerError(
                 node.x_srcloc, f"invocation of unknown macro `{node.name}`")

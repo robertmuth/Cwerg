@@ -52,6 +52,13 @@ class NAME:
         return cls(sys.intern(s[:pos]), int(s[pos+1:]))
 
     @classmethod
+    def SelfImport(cls) -> "NAME":
+        return cls("$self", 0)
+
+    def IsSelfImport(self) -> bool:
+        return self.name == "$self"
+
+    @classmethod
     def Empty(cls) -> "NAME":
         return cls("", 0)
 
@@ -66,9 +73,6 @@ class NAME:
         if pos < 0:
             return self
         return NAME(sys.intern(self.name[pos + len(ID_PATH_SEPARATOR):]), self.seq)
-
-    def IsQualifiedName(self) -> bool:
-        return ID_PATH_SEPARATOR in self.name
 
     def IsEmpty(self):
         return self.name == ""

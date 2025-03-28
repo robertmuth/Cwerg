@@ -35,7 +35,7 @@ def AnnotateImportsForQualifers(mod: cwast.DefMod):
     syntax tree might get copied into a different from where it originated.
     """
     imports: dict[cwast.NAME, cwast.Import] = {}
-    dummy_import = cwast.Import(cwast.NAME("$self", 0), "", [], x_module=mod)
+    self_import = cwast.Import(cwast.NAME.SelfImport(), "", [], x_module=mod)
 
     def annotate(node, q) -> bool:
         if q:
@@ -44,11 +44,11 @@ def AnnotateImportsForQualifers(mod: cwast.DefMod):
             node.x_import = imports[q]
             return True
         else:
-            node.x_import = dummy_import
+            node.x_import = self_import
             return False
 
     def visitor(node: Any):
-        nonlocal imports, dummy_import
+        nonlocal imports, self_import
         if isinstance(node, cwast.Import):
             name = node.name
             if name in imports:
@@ -58,10 +58,13 @@ def AnnotateImportsForQualifers(mod: cwast.DefMod):
             if annotate(node, _GetQualifierIfPresent(node.name.name)):
                 # only polymorphic functions may have qualifiers
                 assert node.poly
+                node.name = node.name.GetSymbolNameWithoutQualifier()
         elif isinstance(node, cwast.MacroInvoke):
-            annotate(node, _GetQualifierIfPresent(node.name.name))
+            if annotate(node, _GetQualifierIfPresent(node.name.name)):
+                node.name = node.name.GetSymbolNameWithoutQualifier()
         elif isinstance(node, cwast.Id):
-            annotate(node, node.mod_name)
+            if annotate(node, node.mod_name):
+                pass
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
 
@@ -80,7 +83,7 @@ def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> symbolize.SymTab:
         # we only record the first occurrence of a poly functions which is why
         # only that function's visibility setting matters
         if isinstance(node, cwast.DefFun) and node.poly:
-            if name.IsQualifiedName() or symtab.has_sym(name):
+            if not node.x_import.name.IsSelfImport() or symtab.has_sym(name):
                 continue
         symtab.add_with_dup_check(name, node)
     return symtab
