@@ -151,7 +151,7 @@ class _PolyMap:
 
     def Resolve(self, callee: cwast.Id, first_param_type: cwast.CanonType) -> cwast.DefFun:
         # TODO: why are we not using the mod_name here?
-        fun_name = callee.base_name
+        fun_name = callee.name
         type_name = first_param_type.name
         logger.info("Resolving polymorphic fun %s: %s", fun_name, type_name)
         callee_mod: cwast.DefMod = callee.x_import.x_module

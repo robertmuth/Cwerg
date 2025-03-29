@@ -54,17 +54,9 @@ def _ResolveImportsForQualifers(mod: cwast.DefMod):
             if name in imports:
                 cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node
-        elif isinstance(node, cwast.DefFun):
-            if annotate(node, _GetQualifierIfPresent(node.name.name)):
-                # only polymorphic functions may have qualifiers
-                assert node.poly
-                node.name = node.name.GetSymbolNameWithoutQualifier()
-        elif isinstance(node, cwast.MacroInvoke):
+        elif isinstance(node, (cwast.DefFun, cwast.Id, cwast.MacroInvoke)):
             if annotate(node, _GetQualifierIfPresent(node.name.name)):
                 node.name = node.name.GetSymbolNameWithoutQualifier()
-        elif isinstance(node, cwast.Id):
-            if annotate(node, _GetQualifierIfPresent(node.base_name.name)):
-                node.base_name = node.base_name.GetSymbolNameWithoutQualifier()
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
 

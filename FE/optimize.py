@@ -104,7 +104,7 @@ def FunCopyPropagation(fun: cwast.DefFun):
                 r = replacements.get(r)
             if r is not None:
                 stats.IncCounter("CopyProp", "Id", 1)
-                node.base_name = r.name
+                node.name = r.name
                 node.x_symbol = r
                 node.x_type = r.x_type
                 # print(f">>>>>>>> {node.FullName()} {node.x_type}  <- {r.name} {r.x_srcloc}")

@@ -165,7 +165,7 @@ def _ParseFunLike(inp: lexer.Lexer, name: lexer.TK) -> Any:
             # used for field name
             f = _ParseExpr(inp)
             assert isinstance(f, cwast.Id)
-            params.append(f.base_name)
+            params.append(f.name)
         else:
             assert a == "T", f"unknown parameter [{a}]"
             params.append(_ParseTypeExpr(inp))

@@ -66,7 +66,7 @@ def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
 def _FunFixRenamedIdsBestEffort(fun: cwast.DefFun):
     def visitor(n):
         if isinstance(n, cwast.Id):
-            n.base_name = n.x_symbol.name
+            n.name = n.x_symbol.name
 
     cwast.VisitAstRecursivelyPost(fun, visitor)
 

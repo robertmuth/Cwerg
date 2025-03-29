@@ -94,9 +94,9 @@ class SymTab:
     def resolve_sym(self, ident: cwast.Id, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         # the mod_name has already been used to pick this SymTab
-        base_name = ident.base_name
+        name = ident.name
         if ident.enum_name is not None:
-            s = self._syms.get(base_name)
+            s = self._syms.get(name)
             if s:
                 assert isinstance(s, cwast.DefEnum)
                 if must_be_public:
@@ -105,10 +105,10 @@ class SymTab:
             cwast.CompilerError(
                 ident.x_srcloc, f"could not resolve enum base-name [{ident.enum_name}]")
 
-        out = self.resolve_sym_here(base_name, must_be_public, ident.x_srcloc)
+        out = self.resolve_sym_here(name, must_be_public, ident.x_srcloc)
         if not out:
             out = builtin_syms.resolve_sym_here(
-                base_name, must_be_public, ident.x_srcloc)
+                name, must_be_public, ident.x_srcloc)
         return out
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke,
@@ -132,7 +132,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
     if node.x_symbol:
         # this happens for module parameter
         return
-    name = node.base_name
+    name = node.name
     was_qualified = HasImportedSymbolReference(node)
 
     if not was_qualified and node.enum_name is None:
@@ -175,7 +175,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
         if node.x_import.x_module == cwast.INVALID_MOD:
             if must_resolve_all:
                 cwast.CompilerError(
-                    node.x_srcloc, f"import of {node.base_name} not resolved")
+                    node.x_srcloc, f"import of {node.name} not resolved")
             return
         symtab = node.x_import.x_module.x_symtab
         def_node = symtab.resolve_sym(

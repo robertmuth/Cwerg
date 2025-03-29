@@ -542,8 +542,6 @@ def _EnumValues(enum_class):
 
 ALL_FIELDS = [
     NfdName("name", "name of the object"),
-    NfdName("mod_name", "optional module qualifier"),
-    NfdName("base_name", "name of the object"),
     NfdName("enum_name", "optional enum element name"),
     NfdName("name_list", "name of the object list"),
     NfdName("label", "block  name (if not empty)"),
@@ -1304,7 +1302,7 @@ class Id:
     GROUP: ClassVar = GROUP.Misc
     FLAGS: ClassVar = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
-    base_name: NAME
+    name: NAME
     enum_name: Optional[NAME]
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
@@ -1318,24 +1316,24 @@ class Id:
         return self.x_symbol
 
     def IsMacroCall(self):
-        return self.base_name.IsMacroCall() or self.base_name.name in BUILT_IN_EXPR_MACROS
+        return self.name.IsMacroCall() or self.name.name in BUILT_IN_EXPR_MACROS
 
     def FullName(self):
-        name = str(self.base_name)
+        name = str(self.name)
         if self.enum_name:
             name += f":{self.enum_name}"
         return name
 
     def GetBaseNameStrict(self):
         assert self.enum_name is None
-        return self.base_name
+        return self.name
 
     @staticmethod
     def Make(name: str, **kwargs):
         assert not name.startswith(MACRO_VAR_PREFIX)
         enum_name = None
         pos = name.rfind(":")
-        if pos > 0 and name[pos  -1 ] != ":":
+        if pos > 0 and name[pos - 1] != ":":
             enum_name = NAME.FromStr(name[pos + 1:])
             name = name[:pos]
         return Id(NAME.FromStr(name), enum_name, **kwargs)
@@ -3476,11 +3474,11 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
                 assert isinstance(i, MacroId)
             _CheckMacroRecursively(node, set())
         elif isinstance(node, Id):
-            assert isinstance(node.base_name, NAME), f"{node} {node.x_symbol}"
+            assert isinstance(node.name, NAME), f"{node} {node.x_symbol}"
             if not pre_symbolize:
                 assert node.x_symbol is not INVALID_SYMBOL, f"{
                     node} without valid x_symbol {node.x_srcloc}"
-            if node.base_name.IsMacroVar():
+            if node.name.IsMacroVar():
                 CompilerError(node.x_srcloc, f"{node} start with $")
         elif isinstance(node, MacroId):
             assert node.name.IsMacroVar()
