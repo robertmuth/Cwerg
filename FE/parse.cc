@@ -286,22 +286,15 @@ Node PrattParsePrefix(Lexer* lexer, const TK& tk, uint32_t precedence) {
 Node MakeNodeId(const TK& tk) {
   auto s = tk.text;
   Node out = NodeNew(NT::Id);
-  std::string_view mod_name = std::string_view();
   std::string_view enum_name = std::string_view();
 
-  size_t pos = s.find("::");
-  if (pos != std::string_view::npos) {
-    mod_name = s.substr(0, pos);
-    s = s.substr(pos + 2);
-  }
-  pos = s.find(":");
-  if (pos != std::string_view::npos) {
+  size_t pos = s.rfind(":");
+  if (pos != std::string_view::npos && s[pos - 1] != ':') {
     enum_name = s.substr(pos + 1);
     s = s.substr(0, pos);
   }
-  InitId(out, mod_name.empty() ? kNameInvalid : NameNew(mod_name), NameNew(s),
-         enum_name.empty() ? kNameInvalid : NameNew(enum_name), tk.comments,
-         tk.srcloc);
+  InitId(out, NameNew(s), enum_name.empty() ? kNameInvalid : NameNew(enum_name),
+         tk.comments, tk.srcloc);
   return out;
 }
 
@@ -444,11 +437,7 @@ Node ParseFunArgsList(Lexer* lexer, bool want_comma) {
 
 std::string FullName(Node node) {
   ASSERT(node.kind() == NT::Id, "");
-  std::string out = NameData(Node_mod_name(node));
-  if (!out.empty()) {
-    out += "::";
-  }
-  out += NameData(Node_base_name(node));
+  std::string out = NameData(Node_name(node));
   if (!NameIsEmpty(Node_enum_name(node))) {
     out += ":";
   }
@@ -457,7 +446,7 @@ std::string FullName(Node node) {
 
 Node PrattParseExprCall(Lexer* lexer, Node lhs, const TK& tk,
                         uint32_t precedence) {
-  if (lhs.kind() == NT::Id && ends_with(NameData(Node_base_name(lhs)), "#")) {
+  if (lhs.kind() == NT::Id && ends_with(NameData(Node_name(lhs)), "#")) {
     Node out = NodeNew(NT::MacroInvoke);
     Node args = ParseMacroArgList(lexer, false);
     InitMacroInvoke(out, NameNew(FullName(lhs)), args, tk.comments, tk.srcloc);

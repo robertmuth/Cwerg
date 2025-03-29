@@ -17,6 +17,17 @@ namespace cwerg::fe {
 // These must be larger than the last element of the NT enum
 uint8_t constexpr kKindStr = 100;
 uint8_t constexpr kKindName = 101;
+struct StrAndSeq {
+  uint32_t name;  // offset from ImmutablePool.
+  uint32_t seq;
+
+  bool operator<(const StrAndSeq& other) const {
+    if (name == other.name) {
+      return seq < other.seq;
+    }
+    return name < other.name;
+  }
+};
 
 enum class NT : uint8_t;  // "node type"
 enum class BF : uint8_t;  // "bit flag"
@@ -100,7 +111,7 @@ struct NodeExtra {
   };
 };
 
-using SymTab = std::map<Name, Node>;
+using SymTab = std::map<StrAndSeq, Node>;
 
 struct NodeAuxTyping {
   union {
@@ -170,18 +181,6 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
 // =======================================
 // Name API
 // =======================================
-
-struct StrAndSeq {
-  uint32_t name;  // offset from ImmutablePool.
-  uint32_t seq;
-
-  bool operator<(const StrAndSeq& other) const {
-    if (name == other.name) {
-      return seq < other.seq;
-    }
-    return name < other.name;
-  }
-};
 
 extern struct Stripe<StrAndSeq, Name> gNameCore;
 extern struct StripeGroup gStripeGroupName;
@@ -290,17 +289,15 @@ enum class NFD_NODE_FIELD : uint8_t {
 };
 enum class NFD_STRING_FIELD : uint8_t {
     invalid = 0,
-    base_name = 1,  // slot: 1
-    enum_name = 2,  // slot: 2
-    label = 3,  // slot: 0
-    message = 4,  // slot: 0
-    mod_name = 5,  // slot: 0
-    name = 6,  // slot: 0
-    name_list = 7,  // slot: 1
-    number = 8,  // slot: 0
-    path = 9,  // slot: 1
-    string = 10,  // slot: 0
-    target = 11,  // slot: 0
+    enum_name = 1,  // slot: 1
+    label = 2,  // slot: 0
+    message = 3,  // slot: 0
+    name = 4,  // slot: 0
+    name_list = 5,  // slot: 1
+    number = 6,  // slot: 0
+    path = 7,  // slot: 1
+    string = 8,  // slot: 0
+    target = 9,  // slot: 0
 };
 
 enum class BF : uint8_t {
@@ -504,9 +501,7 @@ enum class ASSIGNMENT_KIND : uint8_t {
 };
 // NFK.NAME
 inline Name Node_name(Node n) { return Name(gNodeCore[n].children[0]); }
-inline Name Node_mod_name(Node n) { return Name(gNodeCore[n].children[0]); }
-inline Name Node_base_name(Node n) { return Name(gNodeCore[n].children[1]); }
-inline Name Node_enum_name(Node n) { return Name(gNodeCore[n].children[2]); }
+inline Name Node_enum_name(Node n) { return Name(gNodeCore[n].children[1]); }
 inline Name Node_name_list(Node n) { return Name(gNodeCore[n].children[1]); }
 inline Name Node_label(Node n) { return Name(gNodeCore[n].children[0]); }
 inline Name Node_target(Node n) { return Name(gNodeCore[n].children[0]); }
@@ -720,8 +715,8 @@ inline void InitFunParam(Node node, Name name, Node type, uint16_t bits, Str doc
     NodeInit(node, NT::FunParam, name, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
-inline void InitId(Node node, Name mod_name, Name base_name, Name enum_name, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::Id, mod_name, base_name, enum_name, kHandleInvalid, 0, 0, doc, srcloc);
+inline void InitId(Node node, Name name, Name enum_name, Str doc, const SrcLoc& srcloc) {
+    NodeInit(node, NT::Id, name, enum_name, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void InitImport(Node node, Name name, Str path, Node args_mod, Str doc, const SrcLoc& srcloc) {

@@ -87,14 +87,7 @@ void MaybeAddCommaAndHandleComment(std::vector<PP::Token>* out, bool first,
 
 void EmitFullName(std::vector<PP::Token>* out, Node node) {
   ASSERT(Node_kind(node) == NT::Id, "");
-  if (!NameIsEmpty(Node_mod_name(node))) {
-    out->push_back(PP::Str(NameData(Node_mod_name(node))));
-    out->push_back(PP::NoBreak(0));
-
-    out->push_back(PP::Str("::"));
-    out->push_back(PP::NoBreak(0));
-  }
-  out->push_back(PP::Str(NameData(Node_base_name(node))));
+  out->push_back(PP::Str(NameData(Node_name(node))));
 
   if (!NameIsEmpty(Node_enum_name(node))) {
     out->push_back(PP::NoBreak(0));

@@ -88,7 +88,7 @@ const NodeDesc GlobalNodeDescs[] = {
     { BIT_N(expr)| BIT_N(type), 0, 0 }, // ExprWiden
     { BIT_N(expr)| BIT_N(type), 0, 0 }, // ExprWrap
     { BIT_N(type), BIT_S(name), BIT_B(ARG_REF)| BIT_B(RES_REF) }, // FunParam
-    { 0, BIT_S(mod_name)| BIT_S(base_name)| BIT_S(enum_name), 0 }, // Id
+    { 0, BIT_S(name)| BIT_S(enum_name), 0 }, // Id
     { BIT_N(args_mod), BIT_S(name)| BIT_S(path), 0 }, // Import
     { BIT_N(body_for), BIT_S(name)| BIT_S(name_list), 0 }, // MacroFor
     { 0, BIT_S(name), 0 }, // MacroId

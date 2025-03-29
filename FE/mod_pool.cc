@@ -95,7 +95,17 @@ Name GetQualifierIfPresent(Name name) {
   return kNameInvalid;
 }
 
-void AnnotateImportsForQualifers(Node mod) {
+Name StripQualifier(Name name) {
+  const char* str = NameData(name);
+  for (size_t pos = 0; str[pos] != 0; ++pos) {
+    if (str[pos] == ':' && str[pos + 1] == ':') {
+      return NameNew(str + pos + 1);
+    }
+  }
+  return kNameInvalid;
+}
+
+void ResolveImportsForQualifers(Node mod) {
   std::map<StrAndSeq, Node> imports;
 
   Node dummy_import = NodeNew(NT::Import);
@@ -129,19 +139,13 @@ void AnnotateImportsForQualifers(Node mod) {
         imports[name] = node;
       } break;
       case NT::DefFun:
+      case NT::MacroInvoke:
+      case NT::Id:
         if (annotate(node, GetQualifierIfPresent(Node_name(node)))) {
-          if (!Node_has_flag(node, BF::POLY)) {
-            CompilerError(Node_srcloc(node))
-                << "only polymorphic functions may have s module qualifier";
-          }
+          Node_name(node) = StripQualifier(Node_name(node));
         }
         break;
-      case NT::MacroInvoke:
-        annotate(node, GetQualifierIfPresent(Node_name(node)));
-        break;
-      case NT::Id:
-        annotate(node, Node_mod_name(node));
-        break;
+
       default:
         break;
     }
@@ -149,10 +153,29 @@ void AnnotateImportsForQualifers(Node mod) {
   VisitNodesRecursivelyPost(mod, visitor, kNodeInvalid);
 }
 
+void PopulateSymTabWithGlobals(Node mod, SymTab* symtab) {
+  for (Node child = Node_body_mod(mod); !child.isnull();
+       child = Node_next(Node(child))) {
+    switch (Node_kind(child)) {
+      case NT::DefFun:
+      case NT::DefType:
+      case NT::DefEnum:
+      case NT::DefGlobal:
+      case NT::DefMacro:
+      case NT::DefRec: {
+        // auto name = NameStrAndSeq(Node_name(child));
+        break;
+      }
+      default:
+        break;
+    }
+  }
+}
+
 ModInfo ModPool::AddModInfoSimple(const Path& path, SymTab* symtab) {
   Node mod = ReadMod(path);
 
-  AnnotateImportsForQualifers(mod);
+  ResolveImportsForQualifers(mod);
   // SymTab symtab = ExtractSymTabPopulatedWithGlobals(mod);
   // Dump(mod);
   return AddModInfoCommon(path, mod, symtab);
