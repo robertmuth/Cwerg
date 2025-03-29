@@ -27,7 +27,7 @@ def _GetQualifierIfPresent(name: str) -> Optional[cwast.NAME]:
     return None
 
 
-def AnnotateImportsForQualifers(mod: cwast.DefMod):
+def _ResolveImportsForQualifers(mod: cwast.DefMod):
     """Set the x_import field.
 
     We do this even for unqualified names using a `dummy_import`.
@@ -63,8 +63,8 @@ def AnnotateImportsForQualifers(mod: cwast.DefMod):
             if annotate(node, _GetQualifierIfPresent(node.name.name)):
                 node.name = node.name.GetSymbolNameWithoutQualifier()
         elif isinstance(node, cwast.Id):
-            if annotate(node, node.mod_name):
-                pass
+            if annotate(node, _GetQualifierIfPresent(node.base_name.name)):
+                node.base_name = node.base_name.GetSymbolNameWithoutQualifier()
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
 
@@ -253,7 +253,7 @@ class ModPool:
     def _AddModInfoSimple(self, path: Path, name: str) -> ModInfo:
         """Register regular module"""
         mod = self._read_mod_fun(path, name)
-        AnnotateImportsForQualifers(mod)
+        _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, [], mod, symtab)
 
@@ -265,7 +265,7 @@ class ModPool:
             generic_mod = self._read_mod_fun(path, name)
             self._raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
-        AnnotateImportsForQualifers(mod)
+        _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         return self._AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
 

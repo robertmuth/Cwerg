@@ -110,7 +110,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
 
 def _IdNodeFromDef(def_node: Union[cwast.DefVar, cwast.DefGlobal], x_srcloc) -> cwast.Id:
     assert def_node.type_or_auto.x_type is not None
-    return cwast.Id(None, def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
+    return cwast.Id(def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
                     x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
 
 

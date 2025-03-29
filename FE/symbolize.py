@@ -520,9 +520,6 @@ def AreEqualNormalizedModParam(a, b) -> bool:
     return False
 
 
-_GENERIC_DUMMY_MODULE = cwast.NAME.FromStr("GENERIC")
-
-
 def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
     assert len(mod.params_mod) == len(
         args), f"{len(mod.params_mod)} vs {len(args)} {type(args)}"
@@ -531,11 +528,9 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
         sl = p.x_srcloc
         if isinstance(a, cwast.DefFun):
             assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
-            translation[p.name] = cwast.Id(
-                _GENERIC_DUMMY_MODULE, a.name, None, x_symbol=a, x_srcloc=sl)
+            translation[p.name] = cwast.Id(a.name, None, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.DefRec, cwast.DefType)):
-            translation[p.name] = cwast.Id(
-                _GENERIC_DUMMY_MODULE, a.name, None, x_symbol=a, x_srcloc=sl)
+            translation[p.name] = cwast.Id(a.name, None, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
             translation[p.name] = a
         else:

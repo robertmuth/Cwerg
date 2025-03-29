@@ -1304,7 +1304,6 @@ class Id:
     GROUP: ClassVar = GROUP.Misc
     FLAGS: ClassVar = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
-    mod_name: Optional[NAME]
     base_name: NAME
     enum_name: Optional[NAME]
     #
@@ -1322,32 +1321,24 @@ class Id:
         return self.base_name.IsMacroCall() or self.base_name.name in BUILT_IN_EXPR_MACROS
 
     def FullName(self):
-        name = ""
-        if self.mod_name:
-            name = f"{self.mod_name}::"
-        name += str(self.base_name)
+        name = str(self.base_name)
         if self.enum_name:
             name += f":{self.enum_name}"
         return name
 
     def GetBaseNameStrict(self):
-        assert self.enum_name is None and self.mod_name is None
+        assert self.enum_name is None
         return self.base_name
 
     @staticmethod
     def Make(name: str, **kwargs):
         assert not name.startswith(MACRO_VAR_PREFIX)
-        mod_name = None
         enum_name = None
-        pos = name.find(ID_PATH_SEPARATOR)
-        if pos > 0:
-            mod_name = NAME.FromStr(name[:pos])
-            name = name[pos + len(ID_PATH_SEPARATOR):]
-        pos = name.find(":")
-        if pos > 0:
+        pos = name.rfind(":")
+        if pos > 0 and name[pos  -1 ] != ":":
             enum_name = NAME.FromStr(name[pos + 1:])
             name = name[:pos]
-        return Id(mod_name, NAME.FromStr(name), enum_name, **kwargs)
+        return Id(NAME.FromStr(name), enum_name, **kwargs)
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.FullName()}"

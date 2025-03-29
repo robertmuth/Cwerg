@@ -56,12 +56,12 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
 
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None
-    return cwast.Id(None, def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
+    return cwast.Id(def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
                     x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
 
 
 def IdNodeFromRecField(recfield: cwast.RecField, srcloc):
-    return cwast.Id(None, recfield.name, None, x_srcloc=srcloc, x_type=recfield.x_type,
+    return cwast.Id(recfield.name, None, x_srcloc=srcloc, x_type=recfield.x_type,
                     x_symbol=recfield)
 
 
