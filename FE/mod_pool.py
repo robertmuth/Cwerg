@@ -83,7 +83,7 @@ def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> symbolize.SymTab:
         # we only record the first occurrence of a poly functions which is why
         # only that function's visibility setting matters
         if isinstance(node, cwast.DefFun) and node.poly:
-            if not node.x_import.name.IsSelfImport() or symtab.has_sym(name):
+            if symbolize.HasImportedSymbolReference(node) or symtab.has_sym(name):
                 continue
         symtab.add_with_dup_check(name, node)
     return symtab

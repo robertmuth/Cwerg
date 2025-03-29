@@ -38,6 +38,17 @@ def UpdateNodeSymbolForPolyCall(id_node: cwast.Id, new_def_node: cwast.DefFun):
     id_node.x_symbol = new_def_node
 
 
+def HasImportedSymbolReference(node: Any) -> bool:
+    """This is only used during symbol resolution after
+    the x_import field has been set.
+
+    Note: Some Id nodes that get created during macro instatiations do not have
+    the x_import field set.
+    """
+    n: cwast.NAME = node.x_import.name
+    return not n.IsInvalid() and not n.IsSelfImport()
+
+
 def _resolve_enum_item(node: cwast.DefEnum, entry_name, srcloc) -> cwast.EnumVal:
     for item in node.items:
         if isinstance(item, cwast.EnumVal) and item.name == entry_name:
@@ -122,8 +133,9 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
         # this happens for module parameter
         return
     name = node.base_name
-    is_qualified = node.mod_name is not None
-    if not is_qualified and node.enum_name is None:
+    was_qualified = HasImportedSymbolReference(node)
+
+    if not was_qualified and node.enum_name is None:
         for s in reversed(scopes):
             def_node = s.get(name)
             if def_node is not None:
@@ -131,7 +143,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
                 return
         # symbol is not a local symbol - so we fall through to looking in the global scope
     symtab: SymTab = node.x_import.x_module.x_symtab
-    def_node = symtab.resolve_sym(node, builtin_syms, is_qualified)
+    def_node = symtab.resolve_sym(node, builtin_syms, was_qualified)
     if def_node is None:
         cwast.CompilerError(
             node.x_srcloc, f"cannot resolve symbol for {node}")
@@ -167,7 +179,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
             return
         symtab = node.x_import.x_module.x_symtab
         def_node = symtab.resolve_sym(
-            node, builtin_syms, (node.mod_name is not None))
+            node, builtin_syms, HasImportedSymbolReference(node))
         if def_node:
             AnnotateNodeSymbol(node, def_node)
         else:
@@ -195,7 +207,7 @@ def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cw
         assert isinstance(node, cwast.MacroInvoke)
         symtab: SymTab = node.x_import.x_module.x_symtab
         macro = symtab.resolve_macro(
-            node,  builtin_syms, not node.x_import.name.IsSelfImport())
+            node,  builtin_syms, HasImportedSymbolReference(node))
         if macro is None:
             cwast.CompilerError(
                 node.x_srcloc, f"invocation of unknown macro `{node.name}`")

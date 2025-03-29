@@ -53,10 +53,17 @@ class NAME:
 
     @classmethod
     def SelfImport(cls) -> "NAME":
-        return cls("$self", 0)
+        return cls("$$self", 0)
 
     def IsSelfImport(self) -> bool:
-        return self.name == "$self"
+        return self.name == "$$self"
+
+    @classmethod
+    def Invalid(cls) -> "NAME":
+        return cls("$$invalid", 0)
+
+    def IsInvalid(self) -> bool:
+        return self.name == "$$invalid"
 
     @classmethod
     def Empty(cls) -> "NAME":
@@ -1226,7 +1233,7 @@ class Import:
         return f"{NODE_NAME(self)} {self.name}  path={self.path}"
 
 
-INVALID_IMPORT = Import(NAME("$$INVALID", 0), "", [])
+INVALID_IMPORT = Import(NAME.Invalid(), "", [])
 
 
 @NodeCommon
@@ -3182,7 +3189,6 @@ def VisitAstRecursivelyPost(node, visitor):
 
 def VisitAstRecursivelyWithParentPost(node, visitor, parent):
 
-
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         if nfd.kind is NFK.NODE:
@@ -3194,8 +3200,6 @@ def VisitAstRecursivelyWithParentPost(node, visitor, parent):
                     child, visitor, node)
 
     visitor(node, parent)
-
-
 
 
 def MaybeReplaceAstRecursively(node, replacer):
