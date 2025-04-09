@@ -1,4 +1,6 @@
-# for use with @num classes
+# Helpers for generating C++ code 
+
+# for use with @enum classes
 def NameValues(cls):
     return [(x.name, x.value) for x in cls]
 
@@ -86,7 +88,7 @@ def RenderEnumToStringFun(name, fout):
     print(f"const char* EnumToString({name} x) {{"
           f" return {name}_ToStringMap[unsigned(x)]; }}\n", file=fout)
 
-
+# replace the section between "@AUTOGEN-START@" and "@AUTOGEN-END@" in a file 
 def ReplaceContent(emitter, fin, fout):
     in_auto_gen = False
     for line in fin:
