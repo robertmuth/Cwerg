@@ -3,6 +3,12 @@
 
 // =================================================================================
 // BST Templates (which ia really a Treap)
+// cf.: https://medium.com/carpanese/a-visual-introduction-to-treap-data-structure-part-1-6196d6cc12ee
+// FAQ:
+// Q: Why re-invent the wheel and not use STL?
+// A: STL does not work for our data structures. We also try to not use STL for performance critical code.
+// Q: Why a treap and not a tree?
+// A: We use the priority of the heap to add randomization and avoid degenerate trees. 
 // =================================================================================
 
 #include "Util/assert.h"
