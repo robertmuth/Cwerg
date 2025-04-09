@@ -1,6 +1,11 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+// Simple assert/check library that supports complex messages using `<<`
+// Usage example:
+//   ASSERT(!first_free_.isnull(), "out of items in " << name_);
+// CHECK(...) is like ASSERT(...) but cannot be disabled with NDEBUG
+
 #include <sstream>
 
 class AssertHelper {
