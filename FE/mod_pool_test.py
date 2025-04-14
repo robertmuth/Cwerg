@@ -36,12 +36,12 @@ def _ReadMod(handle, _) -> cwast.DefMod:
 
 
 def tests(cwd: str):
-
-    pool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib", _ReadMod)
-    logger.info("Pool %s", pool)
-    pool.ReadModulesRecursively(["builtin",
-                                 str(pathlib.Path("./main").resolve())], False)
-    print([m.name for m in pool.ModulesInTopologicalOrder()])
+    mp = mod_pool.ReadModulesRecursively(
+        pathlib.Path(cwd) / "Lib",
+        ["builtin", str(pathlib.Path("./main").resolve())],
+        False,
+        _ReadMod)
+    print([m.name for m in mp.mods_in_topo_order])
     print("OK")
 
 

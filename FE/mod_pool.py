@@ -1,5 +1,6 @@
 #!/bin/env python3
 
+import dataclasses
 import pathlib
 import logging
 import collections
@@ -10,7 +11,7 @@ from FE import parse_sexpr
 from FE import symbolize
 from FE import parse
 
-from typing import Optional, Sequence, Any
+from typing import Optional, Sequence, Any, Callable
 
 Path = pathlib.PurePath
 
@@ -206,158 +207,168 @@ def _ReadMod(handle: Path, name: str) -> cwast.DefMod:
     assert False, f"module {str(handle)} does not exist"
 
 
-class ModPool:
-    """
-    Will set the following Node fields:
-        * x_import field of the Import nodes
-        * x_module (name) field of the DefMod nodes
-    """
+@dataclasses.dataclass()
+class _ModPoolState:
+    read_mod_fun: Callable
+    # all modules keyed by ModHandle
+    all_mods: dict[ModId, ModInfo] = dataclasses.field(default_factory=dict)
+    taken_names: set[str] = dataclasses.field(default_factory=set)
+    raw_generic: dict[Path, cwast.DefMod] = dataclasses.field(
+        default_factory=dict)
 
-    def __init__(self, read_mod_fun=_ReadMod):
-        self._read_mod_fun = read_mod_fun
-        # all modules keyed by ModHandle
-        self._all_mods: dict[ModId, ModInfo] = {}
-        self._taken_names: set[str] = set()
-        self._raw_generic: dict[Path, cwast.DefMod] = {}
-        #
-        self._builtin_modinfo: Optional[ModInfo] = None
-        self._main_modinfo: Optional[ModInfo] = None
-
-    def _AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> ModInfo:
+    def AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> ModInfo:
         mid = (path, *args)
         name = path.name
         mod_info = ModInfo(mid, mod, symtab)
         # print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
-        self._all_mods[mid] = mod_info
+        self.all_mods[mid] = mod_info
 
-        assert name not in self._taken_names
+        assert name not in self.taken_names
         # TODO: deal with generics and possible name clashes
-        self._taken_names.add(name)
+        self.taken_names.add(name)
         mod.x_symtab = mod_info.symtab
         return mod_info
 
-    def _AddModInfoSimple(self, path: Path, name: str) -> ModInfo:
+    def AddModInfoSimple(self, path: Path, name: str) -> ModInfo:
         """Register regular module"""
-        mod = self._read_mod_fun(path, name)
+        mod = self.read_mod_fun(path, name)
         _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
-        return self._AddModInfoCommon(path, [], mod, symtab)
+        return self.AddModInfoCommon(path, [], mod, symtab)
 
-    def _AddModInfoForGeneric(self, path: Path, args: list, name: str) -> ModInfo:
+    def AddModInfoForGeneric(self, path: Path, args: list, name: str) -> ModInfo:
         """Specialize Generic Mod and register it"""
-        generic_mod = self._raw_generic.get(path)
+        generic_mod = self.raw_generic.get(path)
         if not generic_mod:
             logger.info("reading raw generic from: %s", path)
-            generic_mod = self._read_mod_fun(path, name)
-            self._raw_generic[path] = generic_mod
+            generic_mod = self.read_mod_fun(path, name)
+            self.raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
-        return self._AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
+        return self.AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
+
+
+@dataclasses.dataclass()
+class ModPool:
+    builtin_modinfo: Optional[ModInfo] = None
+    main_modinfo: Optional[ModInfo] = None
+    mods_in_topo_order: list[cwast.DefMod] = dataclasses.field(
+        default_factory=list)
+
+    def BuiltinSymtab(self):
+        if self.builtin_modinfo:
+            return self.builtin_modinfo.symtab
+        return symbolize.SymTab()
 
     def MainEntryFun(self) -> cwast.DefFun:
-        assert self._main_modinfo
-        for fun in self._main_modinfo.mod.body_mod:
+        assert self.main_modinfo
+        for fun in self.main_modinfo.mod.body_mod:
             if isinstance(fun, cwast.DefFun) and fun.name == _MAIN_FUN_NAME:
                 return fun
         assert False
 
-    def BuiltinSymtab(self):
-        if self._builtin_modinfo:
-            return self._builtin_modinfo.symtab
-        return symbolize.SymTab()
 
-    def ReadModulesRecursively(self, root: Path,
-                               seed_modules: list[str], add_builtin: bool):
-        active: list[ModInfo] = []
-        if add_builtin:
-            mod_name = "builtin"
-            path = _ModUniquePathName(root, None, mod_name)
-            mod_info = self._AddModInfoSimple(path, mod_name)
-            assert mod_info.mod.builtin
-            active.append(mod_info)
-            assert not self._builtin_modinfo
-            self._builtin_modinfo = mod_info
+def ReadModulesRecursively(root: Path,
+                           seed_modules: list[str], add_builtin: bool, read_mod_fun=_ReadMod) -> ModPool:
+    """
+    Will set the following Node fields of all imported Modules as a side-effect:
+        * x_import field of the Import nodes
+        * x_module (name) field of the DefMod nodes
+    """
+    state = _ModPoolState(read_mod_fun)
+    out = ModPool()
 
-        for pathname in seed_modules:
-            assert not pathname.startswith(".")
-            path = _ModUniquePathName(root, None, pathname)
-            mod_name = path.name
+    active: list[ModInfo] = []
+    if add_builtin:
+        mod_name = "builtin"
+        path = _ModUniquePathName(root, None, mod_name)
+        mod_info = state.AddModInfoSimple(path, mod_name)
+        assert mod_info.mod.builtin
+        active.append(mod_info)
+        assert not out.builtin_modinfo
+        out.builtin_modinfo = mod_info
 
-            assert self._all_mods.get(
-                (path,)) is None, f"duplicate module {pathname}"
-            mod_info = self._AddModInfoSimple(path, mod_name)
-            if not self._main_modinfo:
-                self._main_modinfo = mod_info
-            active.append(mod_info)
-            assert not mod_info.mod.builtin
+    for pathname in seed_modules:
+        assert not pathname.startswith(".")
+        path = _ModUniquePathName(root, None, pathname)
+        mod_name = path.name
 
-        # fix point computation for resolving imports
-        while active:
-            new_active: list[ModInfo] = []
-            seen_change = False
-            # this probably needs to be a fix point computation as well
-            symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                [m.mod for m in self._all_mods.values()], self.BuiltinSymtab(), False)
-            for mod_info in active:
-                assert isinstance(mod_info, ModInfo), mod_info
-                logger.info("start resolving imports for %s", mod_info)
-                num_unresolved = 0
-                for import_node, normalized_args in mod_info.imports:
-                    if import_node.x_module != cwast.INVALID_MOD:
-                        # import has been processed
-                        continue
-                    pathname = import_node.path
-                    if pathname:
-                        if pathname.startswith('"'):
-                            pathname = pathname[1:-1]
-                    else:
-                        pathname = str(import_node.name)
-                    if import_node.args_mod:
-                        # import of generic module
-                        done = _TryToNormalizeModArgs(
-                            import_node.args_mod, normalized_args)
-                        args_strs = [f"{_FormatModArg(a)}->{_FormatModArg(n)}"
-                                     for a, n in zip(import_node.args_mod, normalized_args)]
-                        logger.info(
-                            "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
-                        if done:
-                            path = _ModUniquePathName(
-                                root, mod_info.mid[0], pathname)
-                            mod_name = path.name
-                            import_mod_info = self._AddModInfoForGeneric(
-                                path, normalized_args, mod_name)
-                            import_node.args_mod.clear()
-                            import_node.x_module = import_mod_info.mod
-                            new_active.append(import_mod_info)
-                            seen_change = True
-                        else:
-                            num_unresolved += 1
-                    else:
+        assert state.all_mods.get(
+            (path,)) is None, f"duplicate module {pathname}"
+        mod_info = state.AddModInfoSimple(path, mod_name)
+        if not out.main_modinfo:
+            out.main_modinfo = mod_info
+        active.append(mod_info)
+        assert not mod_info.mod.builtin
+
+    # fix point computation for resolving imports
+    while active:
+        new_active: list[ModInfo] = []
+        seen_change = False
+        # this probably needs to be a fix point computation as well
+        symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+            [m.mod for m in state.all_mods.values()], out.BuiltinSymtab(), False)
+        for mod_info in active:
+            assert isinstance(mod_info, ModInfo), mod_info
+            logger.info("start resolving imports for %s", mod_info)
+            num_unresolved = 0
+            for import_node, normalized_args in mod_info.imports:
+                if import_node.x_module != cwast.INVALID_MOD:
+                    # import has been processed
+                    continue
+                pathname = import_node.path
+                if pathname:
+                    if pathname.startswith('"'):
+                        pathname = pathname[1:-1]
+                else:
+                    pathname = str(import_node.name)
+                if import_node.args_mod:
+                    # import of generic module
+                    done = _TryToNormalizeModArgs(
+                        import_node.args_mod, normalized_args)
+                    args_strs = [f"{_FormatModArg(a)}->{_FormatModArg(n)}"
+                                 for a, n in zip(import_node.args_mod, normalized_args)]
+                    logger.info(
+                        "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
+                    if done:
                         path = _ModUniquePathName(
                             root, mod_info.mid[0], pathname)
-                        import_mod_info = self._all_mods.get((path,))
-                        if not import_mod_info:
-                            mod_name = path.name
-                            import_mod_info = self._AddModInfoSimple(
-                                path, mod_name)
-                            new_active.append(import_mod_info)
-                            seen_change = True
-                        logger.info(
-                            f"in {mod_info.mod} resolving inport of {import_mod_info.mod.name}")
+                        mod_name = path.name
+                        import_mod_info = state.AddModInfoForGeneric(
+                            path, normalized_args, mod_name)
+                        import_node.args_mod.clear()
                         import_node.x_module = import_mod_info.mod
-                if num_unresolved:
-                    new_active.append(mod_info)
-                logger.info("finish resolving imports for %s - unresolved: %d",
-                            mod_info, num_unresolved)
+                        new_active.append(import_mod_info)
+                        seen_change = True
+                    else:
+                        num_unresolved += 1
+                else:
+                    path = _ModUniquePathName(
+                        root, mod_info.mid[0], pathname)
+                    import_mod_info = state.all_mods.get((path,))
+                    if not import_mod_info:
+                        mod_name = path.name
+                        import_mod_info = state.AddModInfoSimple(
+                            path, mod_name)
+                        new_active.append(import_mod_info)
+                        seen_change = True
+                    logger.info(
+                        f"in {mod_info.mod} resolving inport of {import_mod_info.mod.name}")
+                    import_node.x_module = import_mod_info.mod
+            if num_unresolved:
+                new_active.append(mod_info)
+            logger.info("finish resolving imports for %s - unresolved: %d",
+                        mod_info, num_unresolved)
 
-            if not seen_change and new_active:
-                assert False, "module import does not terminate"
-            active = new_active
+        if not seen_change and new_active:
+            assert False, "module import does not terminate"
+        active = new_active
 
-    def ModulesInTopologicalOrder(self) -> list[cwast.DefMod]:
-        return ModulesInTopologicalOrder(self._all_mods.values())
+    out.mods_in_topo_order = ModulesInTopologicalOrder(
+        state.all_mods.values())
+    return out
 
 
 if __name__ == "__main__":
@@ -369,9 +380,8 @@ if __name__ == "__main__":
         assert argv[0].endswith(EXTENSION_CW)
 
         cwd = os.getcwd()
-        mp: ModPool = ModPool()
-        mp.ReadModulesRecursively(pathlib.Path(cwd) / "Lib",
-            ["builtin", str(pathlib.Path(argv[0][:-3]).resolve())], False)
+        ReadModulesRecursively(pathlib.Path(cwd) / "Lib",
+                               ["builtin", str(pathlib.Path(argv[0][:-3]).resolve())], False)
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)

@@ -1098,15 +1098,15 @@ def main() -> int:
     logging.basicConfig(level=logging.WARN)
     # logger.setLevel(logging.INFO)
     logger.info("Start Parsing")
-    mp: mod_pool.ModPool = mod_pool.ModPool()
     assert len(args.files) == 1
     fn = args.files[0]
     fn, ext = os.path.splitext(fn)
     assert ext in (".cw", ".cws")
     main = str(pathlib.Path(fn).resolve())
-    mp.ReadModulesRecursively(pathlib.Path(args.stdlib), [main], add_builtin=True)
+    mp = mod_pool.ReadModulesRecursively(
+        pathlib.Path(args.stdlib), [main], add_builtin=True)
 
-    mod_topo_order = mp.ModulesInTopologicalOrder()
+    mod_topo_order = mp.mods_in_topo_order
     main_entry_fun: cwast.DefFun = mp.MainEntryFun()
     fun_id_gens = identifier.IdGenCache()
 
@@ -1164,7 +1164,8 @@ def main() -> int:
 
     logger.info("Legalize 1")
 
-    mod_gen = cwast.DefMod(cwast.NAME("GeNeRaTeD", 0), [], [], x_srcloc=cwast.SRCLOC_GENERATED)
+    mod_gen = cwast.DefMod(cwast.NAME("GeNeRaTeD", 0),
+                           [], [], x_srcloc=cwast.SRCLOC_GENERATED)
     mod_gen.x_symtab = symbolize.SymTab()
     global_id_gen = identifier.IdGen()
 

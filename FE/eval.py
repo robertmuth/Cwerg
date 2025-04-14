@@ -715,21 +715,19 @@ def main(argv: list[str]):
     assert ext in (".cw", ".cws")
 
     cwd = os.getcwd()
-    mp: mod_pool.ModPool = mod_pool.ModPool()
     main = str(pathlib.Path(fn).resolve())
-    mp.ReadModulesRecursively(pathlib.Path(
+    mp = mod_pool.ReadModulesRecursively(pathlib.Path(
         cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
-    mod_topo_order = mp.ModulesInTopologicalOrder()
-    for mod in mod_topo_order:
+    for mod in mp.mods_in_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
     symbolize.MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
-    for mod in mod_topo_order:
+        mp.mods_in_topo_order, mp.BuiltinSymtab(), fun_id_gens)
+    for mod in mp.mods_in_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
-    typify.DecorateASTWithTypes(mod_topo_order, tc)
-    DecorateASTWithPartialEvaluation(mod_topo_order)
+    typify.DecorateASTWithTypes(mp.mods_in_topo_order, tc)
+    DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
 
 
 if __name__ == "__main__":

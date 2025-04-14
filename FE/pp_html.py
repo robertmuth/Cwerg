@@ -64,23 +64,23 @@ def _RenderRecursivelyHTML(node, out, indent: int):
     node_name, fields = pp_sexpr._GetNodeTypeAndFields(node)
     line += _DecorateNode("(" + node_name, node)
 
-    for field, nfd in node.ATTRS:
+    for nfd in node.ATTRS:
         field_kind = nfd.kind
-        val = getattr(node, field)
+        val = getattr(node, nfd.name)
         if field_kind is cwast.NFK.ATTR_BOOL:
             if val:
-                line.append(" " + field)
+                line.append(" " + nfd.name)
         elif field_kind is cwast.NFK.ATTR_STR:
             if val:
                 pass
                 # line.append(" " + field)
 
-    for field, nfd in fields:
+    for nfd in fields:
         line = out[-1]
         field_kind = nfd.kind
-        val = getattr(node, field)
+        val = getattr(node, nfd.name)
 
-        if cwast.IsFieldWithDefaultValue(field, val):
+        if cwast.IsFieldWithDefaultValue(nfd.name, val):
             continue
         elif field_kind is cwast.NFK.STR:
             line.append(
@@ -94,7 +94,7 @@ def _RenderRecursivelyHTML(node, out, indent: int):
             line.append(" ")
             _RenderRecursivelyHTML(val, out, indent)
         elif field_kind is cwast.NFK.LIST:
-            extra_indent = pp_sexpr.GetColonIndent(field)
+            extra_indent = 0 if nfd.name == "body_mod" else 4
             if not val:
                 line.append(" []")
             else:
@@ -102,7 +102,7 @@ def _RenderRecursivelyHTML(node, out, indent: int):
                 for cc in val:
                     out.append(_RenderIndent(indent + extra_indent))
                     _RenderRecursivelyHTML(cc, out, indent + extra_indent)
-                if field == "body_mod":
+                if nfd.name == "body_mod":
                     out.append(_RenderIndent(indent))
                 out[-1].append("]")
         else:
@@ -155,20 +155,19 @@ if __name__ == "__main__":
         assert args.files[0].endswith(".cw")
 
         cwd = os.getcwd()
-        mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
         main = str(pathlib.Path(args.files[0][:-3]).resolve())
-        mp.ReadModulesRecursively([main], add_builtin=True)
-        mod_topo_order = mp.ModulesInTopologicalOrder()
+        mp = mod_pool.ReadModulesRecursively(pathlib.Path(
+            cwd) / "Lib", [main], add_builtin=True)
         fun_id_gens = identifier.IdGenCache()
         symbolize.MacroExpansionDecorateASTWithSymbols(
-            mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
-        for mod in mod_topo_order:
+            mp.mods_in_topo_order, mp.BuiltinSymtab(), fun_id_gens)
+        for mod in mp.mods_in_topo_order:
             cwast.StripFromListRecursively(mod, cwast.DefMacro)
         tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
-        typify.DecorateASTWithTypes(mod_topo_order, tc)
-        eval.DecorateASTWithPartialEvaluation(mod_topo_order)
+        typify.DecorateASTWithTypes(mp.mods_in_topo_order, tc)
+        eval.DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
 
-        for mod in mod_topo_order:
+        for mod in mp.mods_in_topo_order:
             PrettyPrintHTML(mod)
         return 0
 

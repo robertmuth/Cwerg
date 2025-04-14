@@ -1338,20 +1338,18 @@ def main(argv: list[str]):
     fn, ext = os.path.splitext(fn)
     assert ext in (".cw", ".cws")
     cwd = os.getcwd()
-    mp: mod_pool.ModPool = mod_pool.ModPool()
     main = str(pathlib.Path(fn).resolve())
-    mp.ReadModulesRecursively(pathlib.Path(cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
-    mod_topo_order = mp.ModulesInTopologicalOrder()
-    for mod in mod_topo_order:
+    mp = mod_pool.ReadModulesRecursively(pathlib.Path(cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
+    for mod in mp.mods_in_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
     symbolize.MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
-    for mod in mod_topo_order:
+        mp.mods_in_topo_order, mp.BuiltinSymtab(), fun_id_gens)
+    for mod in mp.mods_in_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
-    DecorateASTWithTypes(mod_topo_order, tc)
-    for mod in mod_topo_order:
+    DecorateASTWithTypes(mp.mods_in_topo_order, tc)
+    for mod in mp.mods_in_topo_order:
         VerifyTypesRecursively(mod, tc, VERIFIERS_WEAK)
 
     for t, n in tc.corpus.items():

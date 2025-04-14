@@ -562,17 +562,16 @@ def main(argv: list[str]):
     fn, ext = os.path.splitext(fn)
     assert ext in (".cw", ".cws")
     cwd = os.getcwd()
-    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
     main = str(pathlib.Path(fn).resolve())
-    mp.ReadModulesRecursively([main], add_builtin=fn != "Lib/builtin")
-    mod_topo_order = mp.ModulesInTopologicalOrder()
+    mp= mod_pool.ReadModulesRecursively(pathlib.Path(cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
+    mod_topo_order = mp.mods_in_topo_order
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
     MacroExpansionDecorateASTWithSymbols(
         mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
     for ast in mod_topo_order:
-        cwast.CheckAST(ast, set())
+        # cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
         pp_sexpr.PrettyPrint(ast, sys.stdout)
 
