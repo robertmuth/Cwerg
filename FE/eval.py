@@ -715,9 +715,10 @@ def main(argv: list[str]):
     assert ext in (".cw", ".cws")
 
     cwd = os.getcwd()
-    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(cwd) / "Lib")
+    mp: mod_pool.ModPool = mod_pool.ModPool()
     main = str(pathlib.Path(fn).resolve())
-    mp.ReadModulesRecursively([main], add_builtin=fn != "Lib/builtin")
+    mp.ReadModulesRecursively(pathlib.Path(
+        cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
     mod_topo_order = mp.ModulesInTopologicalOrder()
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)

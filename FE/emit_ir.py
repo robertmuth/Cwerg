@@ -1098,13 +1098,13 @@ def main() -> int:
     logging.basicConfig(level=logging.WARN)
     # logger.setLevel(logging.INFO)
     logger.info("Start Parsing")
-    mp: mod_pool.ModPool = mod_pool.ModPool(pathlib.Path(args.stdlib))
+    mp: mod_pool.ModPool = mod_pool.ModPool()
     assert len(args.files) == 1
     fn = args.files[0]
     fn, ext = os.path.splitext(fn)
     assert ext in (".cw", ".cws")
     main = str(pathlib.Path(fn).resolve())
-    mp.ReadModulesRecursively([main], add_builtin=True)
+    mp.ReadModulesRecursively(pathlib.Path(args.stdlib), [main], add_builtin=True)
 
     mod_topo_order = mp.ModulesInTopologicalOrder()
     main_entry_fun: cwast.DefFun = mp.MainEntryFun()

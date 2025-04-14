@@ -208,14 +208,12 @@ def _ReadMod(handle: Path, name: str) -> cwast.DefMod:
 
 class ModPool:
     """
-    Will set the following fields:
+    Will set the following Node fields:
         * x_import field of the Import nodes
         * x_module (name) field of the DefMod nodes
     """
 
-    def __init__(self, root: Path, read_mod_fun=_ReadMod):
-        logger.info("Init ModPool with: %s", root)
-        self._root: Path = root
+    def __init__(self, read_mod_fun=_ReadMod):
         self._read_mod_fun = read_mod_fun
         # all modules keyed by ModHandle
         self._all_mods: dict[ModId, ModInfo] = {}
@@ -224,9 +222,6 @@ class ModPool:
         #
         self._builtin_modinfo: Optional[ModInfo] = None
         self._main_modinfo: Optional[ModInfo] = None
-
-    def __str__(self):
-        return f"root={self._root}"
 
     def _AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> ModInfo:
         mid = (path, *args)
@@ -273,11 +268,12 @@ class ModPool:
             return self._builtin_modinfo.symtab
         return symbolize.SymTab()
 
-    def ReadModulesRecursively(self, seed_modules: list[str], add_builtin: bool):
+    def ReadModulesRecursively(self, root: Path,
+                               seed_modules: list[str], add_builtin: bool):
         active: list[ModInfo] = []
         if add_builtin:
             mod_name = "builtin"
-            path = _ModUniquePathName(self._root, None, mod_name)
+            path = _ModUniquePathName(root, None, mod_name)
             mod_info = self._AddModInfoSimple(path, mod_name)
             assert mod_info.mod.builtin
             active.append(mod_info)
@@ -286,7 +282,7 @@ class ModPool:
 
         for pathname in seed_modules:
             assert not pathname.startswith(".")
-            path = _ModUniquePathName(self._root, None, pathname)
+            path = _ModUniquePathName(root, None, pathname)
             mod_name = path.name
 
             assert self._all_mods.get(
@@ -328,7 +324,7 @@ class ModPool:
                             "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
                         if done:
                             path = _ModUniquePathName(
-                                self._root, mod_info.mid[0], pathname)
+                                root, mod_info.mid[0], pathname)
                             mod_name = path.name
                             import_mod_info = self._AddModInfoForGeneric(
                                 path, normalized_args, mod_name)
@@ -340,7 +336,7 @@ class ModPool:
                             num_unresolved += 1
                     else:
                         path = _ModUniquePathName(
-                            self._root, mod_info.mid[0], pathname)
+                            root, mod_info.mid[0], pathname)
                         import_mod_info = self._all_mods.get((path,))
                         if not import_mod_info:
                             mod_name = path.name
@@ -373,8 +369,8 @@ if __name__ == "__main__":
         assert argv[0].endswith(EXTENSION_CW)
 
         cwd = os.getcwd()
-        mp: ModPool = ModPool(pathlib.Path(cwd) / "Lib")
-        mp.ReadModulesRecursively(
+        mp: ModPool = ModPool()
+        mp.ReadModulesRecursively(pathlib.Path(cwd) / "Lib",
             ["builtin", str(pathlib.Path(argv[0][:-3]).resolve())], False)
 
     logging.basicConfig(level=logging.WARN)
