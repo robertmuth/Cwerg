@@ -57,11 +57,6 @@ Node ReadMod(const Path& path) {
   Lexer lexer(data, 666);
   return ParseDefMod(&lexer, NameNew(filename.c_str()));
 }
-// TODO: add args argument
-ModInfo AddModInfoCommon(const Path& path, Node mod, SymTab* symtab) {
-  // TODO
-  return ModInfo();
-}
 
 void Dump(Node node) {
   std::vector<Node> stack;
@@ -172,33 +167,50 @@ void PopulateSymTabWithGlobals(Node mod, SymTab* symtab) {
   }
 }
 
-ModInfo ModPool::AddModInfoSimple(const Path& path, SymTab* symtab) {
-  Node mod = ReadMod(path);
+struct ModPoolState {
+  // ModInfo main_modinfo_ = ModInfoInvalid;
+  // ModInfo builtin_modinfo_ = ModInfoInvalid;
+  std::vector<SymTab*> symtabs;
 
-  ResolveImportsForQualifers(mod);
-  // SymTab symtab = ExtractSymTabPopulatedWithGlobals(mod);
-  // Dump(mod);
-  return AddModInfoCommon(path, mod, symtab);
-}
+  // TODO: add args argument
+  ModInfo AddModInfoCommon(const Path& path, Node mod, SymTab* symtab) {
+    // TODO
+    return ModInfo();
+  }
 
-void ModPool::ReadModulesRecursively(const std::vector<Path>& seed_modules,
-                                     bool add_builtin) {
+  ModInfo AddModInfoSimple(const Path& path, SymTab* symtab) {
+    Node mod = ReadMod(path);
+
+    ResolveImportsForQualifers(mod);
+    // SymTab symtab = ExtractSymTabPopulatedWithGlobals(mod);
+    // Dump(mod);
+    return AddModInfoCommon(path, mod, symtab);
+  }
+};
+
+ModPool ReadModulesRecursively(Path root_path,
+                               const std::vector<Path>& seed_modules,
+                               bool add_builtin) {
+  ModPoolState state;
+  ModPool out;
   std::vector<ModInfo> active;
   if (add_builtin) {
-    Path path = ModUniquePathName(root_path_, PATH_INVALID, "builtin");
+    Path path = ModUniquePathName(root_path, PATH_INVALID, "builtin");
     SymTab* symtab = new SymTab();
+    out.builtin_symtab = symtab;
 
-    ModInfo mi = AddModInfoSimple(path, symtab);
+    ModInfo mi = state.AddModInfoSimple(path, symtab);
     active.push_back(mi);
     // builtin_modinfo_ = mi;
   }
   for (const auto& filename : seed_modules) {
-    Path path = ModUniquePathName(root_path_, PATH_INVALID, filename.c_str());
+    Path path = ModUniquePathName(root_path, PATH_INVALID, filename.c_str());
 
     SymTab* symtab = new SymTab();
-    ModInfo mi = AddModInfoSimple(path, symtab);
+    ModInfo mi = state.AddModInfoSimple(path, symtab);
     active.push_back(mi);
   }
+  return out;
 }
 
 }  // namespace cwerg::fe

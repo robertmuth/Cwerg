@@ -46,24 +46,14 @@ struct ModInfo {
   bool IsValid() { return mod.raw_kind() != kKindInvalid; }
 };
 
-class ModPool {
-  Path root_path_;
-  // ModInfo main_modinfo_ = ModInfoInvalid;
-  // ModInfo builtin_modinfo_ = ModInfoInvalid;
-  std::vector<SymTab*> symtabs_;
-
- public:
-  ModPool(const Path& path) : root_path_(path) {}
-
-  void ReadModulesRecursively(const std::vector<Path>& seed_modules,
-                              bool add_builtin);
-
- private:
-  inline SymTab* BuiltinSymtab() const { return symtabs_[0]; }
-
-  Node MainEntryFun() const;
-
-  ModInfo AddModInfoSimple(const Path& path, SymTab* symtab);
+struct ModPool {
+   SymTab* builtin_symtab = nullptr;
+   Node main_entry_fun;
 };
+
+ModPool ReadModulesRecursively(Path root_path,
+                               const std::vector<Path>& seed_modules,
+                               bool add_builtin);
+
 
 }  // namespace cwerg::fe
