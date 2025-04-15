@@ -86,14 +86,36 @@ EXTENSION_CWS = ".cws"
 EXTENSION_CW = ".cw"
 
 
+class _ImportInfo:
+    # the normalized args are None initially because they have not been normalized
+    def __init__(self, import_node, num_normalized_args):
+        self.import_node = import_node
+        self.normalized_args = [None] * num_normalized_args
+
+    def TryToNormalizeArgs(self) -> bool:
+        all_args_are_normalized = True
+        for i, n in enumerate(self.normalized_args):
+            if n is None:
+                n = symbolize.NormalizeModParam(self.import_node.args_mod[i])
+                if n:
+                    self.normalized_args[i] = n
+                else:
+                    all_args_are_normalized = False
+        return all_args_are_normalized
+
+    def ArgString(self) -> str:
+        return ' '.join([f"{_FormatModArg(a)}->{_FormatModArg(n)}"
+                         for a, n in zip(self.import_node.args_mod, self.normalized_args)])
+
+
 class ModInfo:
     def __init__(self, mid: ModId, mod: cwast.DefMod, symtab: symbolize.SymTab):
         self.mid = mid
         self.mod = mod
         self.symtab = symtab
-        # the second component holds the normalized args
-        self.imports: list[tuple[cwast.Import, Any]] = [
-            (node, [None] * len(node.args_mod)) for node in mod.body_mod if isinstance(node, cwast.Import)]
+
+        self.imports: list[_ImportInfo] = [
+            _ImportInfo(node, len(node.args_mod)) for node in mod.body_mod if isinstance(node, cwast.Import)]
 
     def __str__(self):
         return f"{self.name}:{self.mid}"
@@ -114,7 +136,8 @@ def _ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMo
     for mi in mod_infos:
         mod = mi.mod
         assert isinstance(mod, cwast.DefMod)
-        for node, _ in mi.imports:
+        for import_info in mi.imports:
+            node = import_info.import_node
             importee = node.x_module
             assert isinstance(importee, cwast.DefMod), node
 
@@ -152,19 +175,6 @@ def _FormatModArg(node) -> str:
     if node is None:
         return "None"
     return cwast.NODE_NAME(node)
-
-
-def _TryToNormalizeModArgs(args, normalized) -> bool:
-    count = 0
-    for i, n in enumerate(normalized):
-        if n is None:
-            n = symbolize.NormalizeModParam(args[i])
-            if n:
-                normalized[i] = n
-                count += 1
-        else:
-            count += 1
-    return count == len(args)
 
 
 def _ModUniquePathName(root: Path,
@@ -230,6 +240,15 @@ class _ModPoolState:
         mod.x_symtab = mod_info.symtab
         return mod_info
 
+    def GetModInfo(self, mid: ModId) -> Optional[ModInfo]:
+        return self.all_mods.get(mid)
+
+    def AllMods(self) -> Sequence[cwast.DefMod]:
+        return [info.mod for info in self.all_mods.values()]
+
+    def AllModInfos(self) -> Sequence[ModInfo]:
+        return self.all_mods.values()
+
     def AddModInfoSimple(self, path: Path, name: str) -> ModInfo:
         """Register regular module"""
         mod = self.read_mod_fun(path, name)
@@ -250,11 +269,12 @@ class _ModPoolState:
         return self.AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
 
 
-def _MainEntryFun(mod: cwast.DefMod) -> cwast.DefFun:
+def _MainEntryFun(mod: cwast.DefMod) -> Optional[cwast.DefFun]:
     for fun in mod.body_mod:
         if isinstance(fun, cwast.DefFun) and fun.name == _MAIN_FUN_NAME:
             return fun
     return None
+
 
 @dataclasses.dataclass()
 class ModPool:
@@ -263,8 +283,6 @@ class ModPool:
     main_fun: Optional[cwast.DefFun] = None
     mods_in_topo_order: list[cwast.DefMod] = dataclasses.field(
         default_factory=list)
-
-
 
 
 def ReadModulesRecursively(root: Path,
@@ -293,7 +311,7 @@ def ReadModulesRecursively(root: Path,
         path = _ModUniquePathName(root, None, pathname)
         mod_name = path.name
 
-        assert state.all_mods.get(
+        assert state.GetModInfo(
             (path,)) is None, f"duplicate module {pathname}"
         mod_info = state.AddModInfoSimple(path, mod_name)
         if not out.main_fun:
@@ -307,12 +325,13 @@ def ReadModulesRecursively(root: Path,
         seen_change = False
         # this probably needs to be a fix point computation as well
         symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-            [m.mod for m in state.all_mods.values()], out.builtin_symtab, False)
+            state.AllMods(), out.builtin_symtab, False)
         for mod_info in active:
             assert isinstance(mod_info, ModInfo), mod_info
             logger.info("start resolving imports for %s", mod_info)
             num_unresolved = 0
-            for import_node, normalized_args in mod_info.imports:
+            for import_info in mod_info.imports:
+                import_node = import_info.import_node
                 if import_node.x_module != cwast.INVALID_MOD:
                     # import has been processed
                     continue
@@ -324,18 +343,17 @@ def ReadModulesRecursively(root: Path,
                     pathname = str(import_node.name)
                 if import_node.args_mod:
                     # import of generic module
-                    done = _TryToNormalizeModArgs(
-                        import_node.args_mod, normalized_args)
-                    args_strs = [f"{_FormatModArg(a)}->{_FormatModArg(n)}"
-                                 for a, n in zip(import_node.args_mod, normalized_args)]
+                    done = import_info.TryToNormalizeArgs()
                     logger.info(
-                        "generic module: [%s] %s %s", done, import_node.name, ','.join(args_strs))
+                        "generic module: [%s] %s %s", done, import_node.name, import_info.ArgString())
                     if done:
                         path = _ModUniquePathName(
                             root, mod_info.mid[0], pathname)
                         mod_name = path.name
                         import_mod_info = state.AddModInfoForGeneric(
-                            path, normalized_args, mod_name)
+                            path, import_info.normalized_args, mod_name)
+                        # we have specialized the module for the given args so the args are no
+                        # longer necessary
                         import_node.args_mod.clear()
                         import_node.x_module = import_mod_info.mod
                         new_active.append(import_mod_info)
@@ -345,7 +363,7 @@ def ReadModulesRecursively(root: Path,
                 else:
                     path = _ModUniquePathName(
                         root, mod_info.mid[0], pathname)
-                    import_mod_info = state.all_mods.get((path,))
+                    import_mod_info = state.GetModInfo((path,))
                     if not import_mod_info:
                         mod_name = path.name
                         import_mod_info = state.AddModInfoSimple(
@@ -364,8 +382,7 @@ def ReadModulesRecursively(root: Path,
             assert False, "module import does not terminate"
         active = new_active
 
-    out.mods_in_topo_order = _ModulesInTopologicalOrder(
-        state.all_mods.values())
+    out.mods_in_topo_order = _ModulesInTopologicalOrder(state.AllModInfos())
     return out
 
 
