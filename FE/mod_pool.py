@@ -87,10 +87,10 @@ EXTENSION_CW = ".cw"
 
 
 class _ImportInfo:
-    # the normalized args are None initially because they have not been normalized
-    def __init__(self, import_node, num_normalized_args):
+    def __init__(self, import_node: cwast.Import):
         self.import_node = import_node
-        self.normalized_args = [None] * num_normalized_args
+        # the normalized args are None initially because they have not been normalized
+        self.normalized_args = [None] * len(import_node.args_mod)
 
     def TryToNormalizeArgs(self) -> bool:
         all_args_are_normalized = True
@@ -107,6 +107,12 @@ class _ImportInfo:
         return ' '.join([f"{_FormatModArg(a)}->{_FormatModArg(n)}"
                          for a, n in zip(self.import_node.args_mod, self.normalized_args)])
 
+    def ResolveImport(self, imported_mod: cwast.DefMod):
+        # we have specialized the module for the given args so the args are no
+        # longer necessary
+        self.import_node.args_mod.clear()
+        self.import_node.x_module = imported_mod
+
 
 class ModInfo:
     def __init__(self, mid: ModId, mod: cwast.DefMod, symtab: symbolize.SymTab):
@@ -115,7 +121,7 @@ class ModInfo:
         self.symtab = symtab
 
         self.imports: list[_ImportInfo] = [
-            _ImportInfo(node, len(node.args_mod)) for node in mod.body_mod if isinstance(node, cwast.Import)]
+            _ImportInfo(node) for node in mod.body_mod if isinstance(node, cwast.Import)]
 
     def __str__(self):
         return f"{self.name}:{self.mid}"
@@ -352,10 +358,7 @@ def ReadModulesRecursively(root: Path,
                         mod_name = path.name
                         import_mod_info = state.AddModInfoForGeneric(
                             path, import_info.normalized_args, mod_name)
-                        # we have specialized the module for the given args so the args are no
-                        # longer necessary
-                        import_node.args_mod.clear()
-                        import_node.x_module = import_mod_info.mod
+                        import_info.ResolveImport(import_mod_info.mod)
                         new_active.append(import_mod_info)
                         seen_change = True
                     else:
@@ -372,7 +375,8 @@ def ReadModulesRecursively(root: Path,
                         seen_change = True
                     logger.info(
                         f"in {mod_info.mod} resolving inport of {import_mod_info.mod.name}")
-                    import_node.x_module = import_mod_info.mod
+                    import_info.ResolveImport(import_mod_info.mod)
+
             if num_unresolved:
                 new_active.append(mod_info)
             logger.info("finish resolving imports for %s - unresolved: %d",
