@@ -148,7 +148,7 @@ void ResolveImportsForQualifers(Node mod) {
   VisitNodesRecursivelyPost(mod, visitor, kNodeInvalid);
 }
 
-void PopulateSymTabWithGlobals(Node mod, SymTab* symtab) {
+void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {
   for (Node child = Node_body_mod(mod); !child.isnull();
        child = Node_next(Node(child))) {
     switch (Node_kind(child)) {
@@ -158,12 +158,27 @@ void PopulateSymTabWithGlobals(Node mod, SymTab* symtab) {
       case NT::DefGlobal:
       case NT::DefMacro:
       case NT::DefRec: {
-        // auto name = NameStrAndSeq(Node_name(child));
+        auto name = NameStrAndSeq(Node_name(child));
+        // std::cout << "@@@ " << EnumToString(Node_kind(child)) << " " << name
+        // << "\n";
+        // TODO: special handling of polymorphic functions
+        if (symtab->contains(name)) {
+          CompilerError(Node_srcloc(child)) << "duplicate symbol " << name;
+        } else {
+          symtab->insert({name, child});
+        }
         break;
       }
       default:
         break;
     }
+  }
+}
+
+void Dump(SymTab* symtab) {
+  for (auto& kv : *symtab) {
+    std::cout << kv.first << " -> " << EnumToString(Node_kind(kv.second))
+              << "\n";
   }
 }
 
@@ -182,8 +197,9 @@ struct ModPoolState {
     Node mod = ReadMod(path);
 
     ResolveImportsForQualifers(mod);
-    // SymTab symtab = ExtractSymTabPopulatedWithGlobals(mod);
+    ExtractSymTabPopulatedWithGlobals(mod, symtab);
     // Dump(mod);
+    Dump(symtab);
     return AddModInfoCommon(path, mod, symtab);
   }
 };

@@ -1344,7 +1344,7 @@ def main(argv: list[str]):
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
     symbolize.MacroExpansionDecorateASTWithSymbols(
-        mp.mods_in_topo_order, mp.BuiltinSymtab(), fun_id_gens)
+        mp.mods_in_topo_order, mp.builtin_symtab, fun_id_gens)
     for mod in mp.mods_in_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)

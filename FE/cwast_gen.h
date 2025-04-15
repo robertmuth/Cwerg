@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <iostream>
 #include <map>
 #include <unordered_map>
 
@@ -207,6 +208,14 @@ inline const char* NameData(Name name) {
 
 inline bool NameIsEmpty(Name name) {
   return gNamePool.Data(gNameCore[name].name)[0] == '\0';
+}
+
+inline std::ostream& operator<<(std::ostream& os, const StrAndSeq& ss) {
+  os << gNamePool.Data(ss.name);
+  if (ss.seq != 0) {
+    os << "%" << ss.seq;
+  }
+  return os;
 }
 
 // =======================================

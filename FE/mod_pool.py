@@ -99,7 +99,7 @@ class ModInfo:
         return f"{self.name}:{self.mid}"
 
 
-def ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod]:
+def _ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod]:
     """The order is also deterministic
 
     This means modules cannot have circular dependencies except for module arguments
@@ -250,32 +250,30 @@ class _ModPoolState:
         return self.AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
 
 
+def _MainEntryFun(mod: cwast.DefMod) -> cwast.DefFun:
+    for fun in mod.body_mod:
+        if isinstance(fun, cwast.DefFun) and fun.name == _MAIN_FUN_NAME:
+            return fun
+    return None
+
 @dataclasses.dataclass()
 class ModPool:
-    builtin_modinfo: Optional[ModInfo] = None
-    main_modinfo: Optional[ModInfo] = None
+    builtin_symtab: symbolize.SymTab = dataclasses.field(
+        default_factory=symbolize.SymTab)
+    main_fun: Optional[cwast.DefFun] = None
     mods_in_topo_order: list[cwast.DefMod] = dataclasses.field(
         default_factory=list)
 
-    def BuiltinSymtab(self):
-        if self.builtin_modinfo:
-            return self.builtin_modinfo.symtab
-        return symbolize.SymTab()
 
-    def MainEntryFun(self) -> cwast.DefFun:
-        assert self.main_modinfo
-        for fun in self.main_modinfo.mod.body_mod:
-            if isinstance(fun, cwast.DefFun) and fun.name == _MAIN_FUN_NAME:
-                return fun
-        assert False
 
 
 def ReadModulesRecursively(root: Path,
                            seed_modules: list[str], add_builtin: bool, read_mod_fun=_ReadMod) -> ModPool:
     """
     Will set the following Node fields of all imported Modules as a side-effect:
-        * x_import field of the Import nodes
-        * x_module (name) field of the DefMod nodes
+        * x_symtab on DefMod nodes
+        * x_import field for all DefFun, DefMacro and most Id nodes
+        * x_module field of all Import nodes
     """
     state = _ModPoolState(read_mod_fun)
     out = ModPool()
@@ -287,8 +285,8 @@ def ReadModulesRecursively(root: Path,
         mod_info = state.AddModInfoSimple(path, mod_name)
         assert mod_info.mod.builtin
         active.append(mod_info)
-        assert not out.builtin_modinfo
-        out.builtin_modinfo = mod_info
+        assert out.builtin_symtab.is_empty()
+        out.builtin_symtab = mod_info.symtab
 
     for pathname in seed_modules:
         assert not pathname.startswith(".")
@@ -298,8 +296,8 @@ def ReadModulesRecursively(root: Path,
         assert state.all_mods.get(
             (path,)) is None, f"duplicate module {pathname}"
         mod_info = state.AddModInfoSimple(path, mod_name)
-        if not out.main_modinfo:
-            out.main_modinfo = mod_info
+        if not out.main_fun:
+            out.main_fun = _MainEntryFun(mod_info.mod)
         active.append(mod_info)
         assert not mod_info.mod.builtin
 
@@ -309,7 +307,7 @@ def ReadModulesRecursively(root: Path,
         seen_change = False
         # this probably needs to be a fix point computation as well
         symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-            [m.mod for m in state.all_mods.values()], out.BuiltinSymtab(), False)
+            [m.mod for m in state.all_mods.values()], out.builtin_symtab, False)
         for mod_info in active:
             assert isinstance(mod_info, ModInfo), mod_info
             logger.info("start resolving imports for %s", mod_info)
@@ -366,7 +364,7 @@ def ReadModulesRecursively(root: Path,
             assert False, "module import does not terminate"
         active = new_active
 
-    out.mods_in_topo_order = ModulesInTopologicalOrder(
+    out.mods_in_topo_order = _ModulesInTopologicalOrder(
         state.all_mods.values())
     return out
 

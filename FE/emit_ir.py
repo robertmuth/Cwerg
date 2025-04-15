@@ -1107,7 +1107,7 @@ def main() -> int:
         pathlib.Path(args.stdlib), [main], add_builtin=True)
 
     mod_topo_order = mp.mods_in_topo_order
-    main_entry_fun: cwast.DefFun = mp.MainEntryFun()
+    main_entry_fun: cwast.DefFun = mp.main_fun
     fun_id_gens = identifier.IdGenCache()
 
     eliminated_nodes: set[Any] = set()
@@ -1122,7 +1122,7 @@ def main() -> int:
 
     logger.info("Expand macros and link most IDs to their definition")
     symbolize.MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
+        mod_topo_order, mp.builtin_symtab, fun_id_gens)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         cwast.StripFromListRecursively(mod, cwast.Import)

@@ -63,6 +63,9 @@ class SymTab:
     def __init__(self: Any):
         self._syms: dict[cwast.NAME, Any] = {}
 
+    def is_empty(self) -> int:
+        return len(self._syms) == 0
+
     def add_with_dup_check(self, name: cwast.NAME, node):
         prev = self._syms.get(name)
         if prev is not None:
@@ -528,9 +531,11 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
         sl = p.x_srcloc
         if isinstance(a, cwast.DefFun):
             assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
-            translation[p.name] = cwast.Id(a.name, None, x_symbol=a, x_srcloc=sl)
+            translation[p.name] = cwast.Id(
+                a.name, None, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.DefRec, cwast.DefType)):
-            translation[p.name] = cwast.Id(a.name, None, x_symbol=a, x_srcloc=sl)
+            translation[p.name] = cwast.Id(
+                a.name, None, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
             translation[p.name] = a
         else:
@@ -563,13 +568,14 @@ def main(argv: list[str]):
     assert ext in (".cw", ".cws")
     cwd = os.getcwd()
     main = str(pathlib.Path(fn).resolve())
-    mp= mod_pool.ReadModulesRecursively(pathlib.Path(cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
+    mp = mod_pool.ReadModulesRecursively(pathlib.Path(
+        cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
     mod_topo_order = mp.mods_in_topo_order
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
     MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order, mp.BuiltinSymtab(), fun_id_gens)
+        mod_topo_order, mp.builtin_symtab, fun_id_gens)
     for ast in mod_topo_order:
         # cwast.CheckAST(ast, set())
         VerifyASTSymbolsRecursively(ast)
