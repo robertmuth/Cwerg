@@ -23,7 +23,6 @@ _BUILT_IN_PLACE_HOLDER = None
 def AnnotateNodeSymbol(id_node: cwast.Id, def_node: Any):
     """Sets the x_symol field to a node like DefGlobal, DefVar, DefFun, DefRec, etc ."""
     logger.debug("resolving %s [%s] -> %s", id_node, id(id_node), def_node)
-    assert cwast.NF.SYMBOL_ANNOTATED in id_node.FLAGS
     assert (cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS or
             cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS), f"unpexpected node: {def_node}"
     assert id_node.x_symbol is cwast.INVALID_SYMBOL
@@ -38,12 +37,12 @@ def UpdateNodeSymbolForPolyCall(id_node: cwast.Id, new_def_node: cwast.DefFun):
     id_node.x_symbol = new_def_node
 
 
-def HasImportedSymbolReference(node: Any) -> bool:
+def HasImportedSymbolReference(node: cwast.Id) -> bool:
     """This is only used during symbol resolution after
     the x_import field has been set.
 
     Note: Some Id nodes that get created during macro instatiations do not have
-    the x_import field set.
+    the x_import field set. (TODO: is this still true?)
     """
     n: cwast.NAME = node.x_import.name
     return not n.IsInvalid() and not n.IsSelfImport()
@@ -85,7 +84,7 @@ class SymTab:
         assert name in self._syms
         del self._syms[name]
 
-    def resolve_sym_here(self, name, must_be_public, srcloc):
+    def resolve_name_with_visibility_check(self, name, must_be_public, srcloc):
         s = self._syms.get(name)
         if s:
             if must_be_public and not s.pub:
@@ -98,19 +97,16 @@ class SymTab:
         """We could be more specific here if we narrow down the symbol type"""
         # the mod_name has already been used to pick this SymTab
         name = ident.name
+        out = self.resolve_name_with_visibility_check(name, must_be_public, ident.x_srcloc)
         if ident.enum_name is not None:
-            s = self._syms.get(name)
-            if s:
-                assert isinstance(s, cwast.DefEnum)
-                if must_be_public:
-                    assert s.pub, f"{ident.FullName()} must be public"
-                return _resolve_enum_item(s, ident.enum_name, ident.x_srcloc)
-            cwast.CompilerError(
-                ident.x_srcloc, f"could not resolve enum base-name [{ident.enum_name}]")
+            if not out:
+                cwast.CompilerError(
+                    ident.x_srcloc, f"could not resolve enum base-name [{name}]")
+            assert isinstance(out, cwast.DefEnum)
+            return _resolve_enum_item(out, ident.enum_name, ident.x_srcloc)
 
-        out = self.resolve_sym_here(name, must_be_public, ident.x_srcloc)
         if not out:
-            out = builtin_syms.resolve_sym_here(
+            out = builtin_syms.resolve_name_with_visibility_check(
                 name, must_be_public, ident.x_srcloc)
         return out
 
@@ -161,14 +157,12 @@ def _IsPointNode(node, parent) -> bool:
     return isinstance(parent, cwast.ValPoint) and parent.point is node
 
 
-def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
+def _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
                                                         must_resolve_all: bool):
     # this may be called multiple times for the same module
     def visitor(node: Any, parent):
         nonlocal builtin_syms
-        if not isinstance(node, cwast.Id):
-            return
-        if node.x_symbol:
+        if not isinstance(node, cwast.Id) or node.x_symbol:
             return
 
         # must wait until type info is available
@@ -180,7 +174,7 @@ def _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymT
                 cwast.CompilerError(
                     node.x_srcloc, f"import of {node.name} not resolved")
             return
-        symtab = node.x_import.x_module.x_symtab
+        symtab: SymTab = node.x_import.x_module.x_symtab
         def_node = symtab.resolve_sym(
             node, builtin_syms, HasImportedSymbolReference(node))
         if def_node:
@@ -386,7 +380,7 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[
         for node in mod.body_mod:
             if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
                 logger.info("Resolving global object: %s", node)
-                _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+                _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     node, builtin_syms, must_resolve_all)
 
 
@@ -405,7 +399,7 @@ def MacroExpansionDecorateASTWithSymbols(
         for node in mod.body_mod:
             if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
                 logger.info("Resolving global object: %s", node)
-                _ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+                _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
                     node, builtin_symtab, True)
 
     for mod in mod_topo_order:
