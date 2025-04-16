@@ -200,16 +200,19 @@ void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {
        child = Node_next(Node(child))) {
     switch (Node_kind(child)) {
       case NT::DefFun:
+        if (Node_has_flag(child, BF::POLY)) {
+          if (HasImportedSymbolReference(child) ||
+              symtab->contains(NameStrAndSeq(Node_name(child)))) {
+            continue;
+          }
+        }
+      // fall through
       case NT::DefType:
       case NT::DefEnum:
       case NT::DefGlobal:
       case NT::DefMacro:
       case NT::DefRec: {
         auto name = NameStrAndSeq(Node_name(child));
-        // std::cout << "@@@ " << EnumToString(Node_kind(child)) << " " <<
-        // name
-        // << "\n";
-        // TODO: special handling of polymorphic functions
         if (symtab->contains(name)) {
           CompilerError(Node_srcloc(child))
               << "duplicate symbol " << Node_name(child);
@@ -334,7 +337,8 @@ ModPool ReadModulesRecursively(Path root_path,
             new_active.push_back(mi);
           }
           ModInfo mi = state.GetModInfo(mid);
-          std::cout << "Resolve import " << mi.mid << " " << EnumToString(Node_kind(mi.mod)) << "\n";
+          std::cout << "Resolve import " << mi.mid << " "
+                    << EnumToString(Node_kind(mi.mod)) << "\n";
           import.ResolveImport(mi.mod);
         } else {
           ASSERT(false, "");

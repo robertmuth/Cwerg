@@ -12,6 +12,7 @@
 #include "FE/cwast_gen.h"
 
 namespace cwerg::fe {
+bool HasImportedSymbolReference(Node node);
 
 void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
     const std::vector<Node>& modules, const SymTab* builtin_symtab,
