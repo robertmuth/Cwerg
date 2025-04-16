@@ -295,9 +295,12 @@ def ReadModulesRecursively(root: Path,
                            seed_modules: list[str], add_builtin: bool, read_mod_fun=_ReadMod) -> ModPool:
     """
     Will set the following Node fields of all imported Modules as a side-effect:
-        * x_symtab on DefMod nodes
+        * x_symtab on DefMod nodes (includes creation of SymTabs for all topelevel symbols)
         * x_import field for all DefFun, DefMacro and most Id nodes
         * x_module field of all Import nodes
+
+    This will also resolve all Id nodes that are not inside function bodies to
+    facilitate specialization of generic modules.
     """
     state = _ModPoolState(read_mod_fun)
     out = ModPool()
@@ -355,24 +358,24 @@ def ReadModulesRecursively(root: Path,
                     if done:
                         path = _ModUniquePathName(
                             root, mod_info.mid[0], pathname)
-                        import_info = state.AddModInfoForGeneric(
-                            path, import_info.normalized_args, path.mod_name)
-                        import_info.ResolveImport(import_info.mod)
-                        new_active.append(import_info)
+                        mi = state.AddModInfoForGeneric(
+                            path, import_info.normalized_args, path.name)
+                        import_info.ResolveImport(mi.mod)
+                        new_active.append(mi)
                         seen_change = True
                     else:
                         num_unresolved += 1
                 else:
                     path = _ModUniquePathName(
                         root, mod_info.mid[0], pathname)
-                    import_info = state.GetModInfo((path,))
-                    if not import_info:
-                        import_info = state.AddModInfoSimple(path, path.name)
-                        new_active.append(import_info)
+                    mi = state.GetModInfo((path,))
+                    if not mi:
+                        mi = state.AddModInfoSimple(path, path.name)
+                        new_active.append(mi)
                         seen_change = True
                     logger.info(
-                        f"in {mod_info.mod} resolving inport of {import_info.mod.name}")
-                    import_info.ResolveImport(import_info.mod)
+                        f"in {mod_info.mod} resolving inport of {mi.mod.name}")
+                    import_info.ResolveImport(mi.mod)
 
             if num_unresolved:
                 new_active.append(mod_info)
