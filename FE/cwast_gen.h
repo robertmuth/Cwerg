@@ -18,6 +18,8 @@ namespace cwerg::fe {
 // These must be larger than the last element of the NT enum
 uint8_t constexpr kKindStr = 100;
 uint8_t constexpr kKindName = 101;
+uint32_t constexpr MAGIC_SELF_IMPORT_SEQ = 0xffffffff;
+
 struct StrAndSeq {
   uint32_t name;  // offset from ImmutablePool.
   uint32_t seq;
@@ -192,6 +194,12 @@ inline Name NameNew(uint32_t offset, uint32_t seq) {
   return out;
 }
 
+inline Name NameNew(std::string_view s, uint32_t seq) {
+  // we want a null byte at the end
+  uint32_t offset = gNamePool.Intern(s, 1);
+  return NameNew(offset, seq);
+}
+
 inline Name NameNew(std::string_view s) {
   // we want a null byte at the end
   uint32_t offset = gNamePool.Intern(s, 1);
@@ -216,6 +224,25 @@ inline std::ostream& operator<<(std::ostream& os, const StrAndSeq& ss) {
     os << "%" << ss.seq;
   }
   return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os, Name name) {
+  StrAndSeq& ss = NameStrAndSeq(name);
+  os << gNamePool.Data(ss.name);
+  if (ss.seq != 0) {
+    os << "%" << ss.seq;
+  }
+  return os;
+}
+
+inline std::string Name_String(Name name) {
+  StrAndSeq& ss = NameStrAndSeq(name);
+  std::string s = gNamePool.Data(ss.name);
+  if (ss.seq != 0) {
+    s += "%";
+    s += std::to_string(ss.seq);
+  }
+  return s;
 }
 
 // =======================================

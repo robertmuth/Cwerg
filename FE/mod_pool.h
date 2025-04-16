@@ -35,25 +35,29 @@ inline Path ModUniquePathName(const Path& root_path, const Path& curr_path,
 struct ModId {
  public:
   Path path;
-  std::vector<Node> args;  // for generic  modules
+  std::vector<Node> args;  // for generic modules
+
+  bool operator<(const ModId& other) const {
+    if (path != other.path) {
+      return path < other.path;
+    }
+    if (args.size() != other.args.size()) {
+      return args.size() < other.args.size();
+    }
+    // TODO: support generic modules
+    return false;
+  }
 };
 
-struct ModInfo {
-  ModId mid;
-  Node mod = kNodeInvalid;
-  SymTab* symtab = nullptr;
-
-  bool IsValid() { return mod.raw_kind() != kKindInvalid; }
-};
 
 struct ModPool {
-   SymTab* builtin_symtab = nullptr;
-   Node main_entry_fun;
+  SymTab* builtin_symtab;
+  Node main_fun;
+  std::vector<Node> mods_in_topo_order;
 };
 
 ModPool ReadModulesRecursively(Path root_path,
                                const std::vector<Path>& seed_modules,
                                bool add_builtin);
-
 
 }  // namespace cwerg::fe

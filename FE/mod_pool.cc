@@ -23,6 +23,46 @@ using namespace cwerg::fe;
 
 const Path PATH_INVALID;
 
+struct ImportInfo {
+  Node import_node;
+  std::vector<Node> normalized_args;
+
+  ImportInfo(Node import_node) {
+    ASSERT(Node_kind(import_node) == NT::Import, "");
+    // TODO:)
+    for (Node child = Node_args_mod(import_node); !child.isnull();
+         child = Node_next(Node(child))) {
+      normalized_args.push_back(kNodeInvalid);
+    }
+  }
+
+  int NumArgs() {
+    int n = 0;
+    for (Node child = Node_args_mod(import_node); !child.isnull();
+         child = Node_next(Node(child))) {
+      ++n;
+    }
+    return n;
+  }
+
+  void ResolveImport(Node imported_mod) {
+    ASSERT(Node_kind(import_node) == NT::DefMod, "");
+    Node_x_module(import_node) = imported_mod;
+  }
+};
+
+struct ModInfo {
+  ModId mid;
+  Node mod = kNodeInvalid;
+  SymTab* symtab = nullptr;
+  std::vector<ImportInfo> imports;
+
+  ModInfo(ModId a_mid, Node a_mod, SymTab* a_symtab)
+      : mid(a_mid), mod(a_mod), symtab(a_symtab) {}
+
+  bool IsValid() { return mod.raw_kind() != kKindInvalid; }
+};
+
 std::string_view ReadFile(const char* filename) {
   int fd = open(filename, O_RDONLY, 0);
   if (fd < 0) {
@@ -104,8 +144,8 @@ void ResolveImportsForQualifers(Node mod) {
   std::map<StrAndSeq, Node> imports;
 
   Node dummy_import = NodeNew(NT::Import);
-  InitImport(dummy_import, NameNew("$self"), kStrInvalid, kNodeInvalid,
-             kStrInvalid, kSrcLocInvalid);
+  InitImport(dummy_import, NameNew("$$self", MAGIC_SELF_IMPORT_SEQ),
+             kStrInvalid, kNodeInvalid, kStrInvalid, kSrcLocInvalid);
   Node_x_module(dummy_import) = mod;
 
   auto visitor = [&dummy_import, &imports](Node node, Node parent) {
@@ -163,7 +203,8 @@ void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {
         // << "\n";
         // TODO: special handling of polymorphic functions
         if (symtab->contains(name)) {
-          CompilerError(Node_srcloc(child)) << "duplicate symbol " << name;
+          CompilerError(Node_srcloc(child))
+              << "duplicate symbol " << Node_name(child);
         } else {
           symtab->insert({name, child});
         }
@@ -175,22 +216,38 @@ void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {
   }
 }
 
-void Dump(SymTab* symtab) {
+void Dump(const SymTab* symtab) {
+  std::cout << "SYMTAB " << symtab << "\n";
   for (auto& kv : *symtab) {
     std::cout << kv.first << " -> " << EnumToString(Node_kind(kv.second))
               << "\n";
   }
 }
 
-struct ModPoolState {
+class ModPoolState {
   // ModInfo main_modinfo_ = ModInfoInvalid;
   // ModInfo builtin_modinfo_ = ModInfoInvalid;
   std::vector<SymTab*> symtabs;
+  std::map<ModId, ModInfo> all_mods;
 
-  // TODO: add args argument
+ public:
+  // TODO: add args argument support
   ModInfo AddModInfoCommon(const Path& path, Node mod, SymTab* symtab) {
-    // TODO
-    return ModInfo();
+    ASSERT(Node_kind(mod) == NT::DefMod, "");
+    ModId mid = ModId(path);
+    ModInfo mod_info(mid, mod, symtab);
+    all_mods.insert({mid, mod_info});
+    symtabs.push_back(symtab);
+    Node_x_symtab(mod) = symtab;
+    return mod_info;
+  }
+
+  std::vector<Node> AllMods() {
+    std::vector<Node> out;
+    for (auto& kv : all_mods) {
+      out.push_back(kv.second.mod);
+    }
+    return out;
   }
 
   ModInfo AddModInfoSimple(const Path& path, SymTab* symtab) {
@@ -213,11 +270,10 @@ ModPool ReadModulesRecursively(Path root_path,
   if (add_builtin) {
     Path path = ModUniquePathName(root_path, PATH_INVALID, "builtin");
     SymTab* symtab = new SymTab();
-    out.builtin_symtab = symtab;
 
     ModInfo mi = state.AddModInfoSimple(path, symtab);
     active.push_back(mi);
-    // builtin_modinfo_ = mi;
+    out.builtin_symtab = symtab;
   }
   for (const auto& filename : seed_modules) {
     Path path = ModUniquePathName(root_path, PATH_INVALID, filename.c_str());
@@ -226,6 +282,37 @@ ModPool ReadModulesRecursively(Path root_path,
     ModInfo mi = state.AddModInfoSimple(path, symtab);
     active.push_back(mi);
   }
+  std::vector<ModInfo> new_active;
+  while (!active.empty()) {
+    ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+        state.AllMods(), out.builtin_symtab, false);
+    break;
+    // bool seen_change = false;
+    new_active.clear();
+    for (auto& mi : active) {
+      // int num_unresolved = 0;
+      for (ImportInfo& import : mi.imports) {
+        if (!Node_x_module(import.import_node).isnull()) {
+          continue;
+        }
+
+        std::string path;
+        if (Node_path(import.import_node) == kStrInvalid) {
+          path = Name_String(Node_name(import.import_node));
+        } else {
+          path = StrData(Node_path(import.import_node));
+          if (path[0] == '"') {
+            path = path.substr(1, path.size() - 2);
+          }
+        }
+        if (import.NumArgs() == 0) {
+        } else {
+          ASSERT(false, "");
+        }
+      }
+    }
+  }
+
   return out;
 }
 

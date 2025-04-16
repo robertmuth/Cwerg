@@ -44,8 +44,9 @@ def HasImportedSymbolReference(node: cwast.Id) -> bool:
     Note: Some Id nodes that get created during macro instatiations do not have
     the x_import field set. (TODO: is this still true?)
     """
-    n: cwast.NAME = node.x_import.name
-    return not n.IsInvalid() and not n.IsSelfImport()
+    if not node.x_import:
+        return False
+    return not node.x_import.name.IsSelfImport()
 
 
 def _resolve_enum_item(node: cwast.DefEnum, entry_name, srcloc) -> cwast.EnumVal:
@@ -97,7 +98,8 @@ class SymTab:
         """We could be more specific here if we narrow down the symbol type"""
         # the mod_name has already been used to pick this SymTab
         name = ident.name
-        out = self.resolve_name_with_visibility_check(name, must_be_public, ident.x_srcloc)
+        out = self.resolve_name_with_visibility_check(
+            name, must_be_public, ident.x_srcloc)
         if ident.enum_name is not None:
             if not out:
                 cwast.CompilerError(
@@ -158,7 +160,7 @@ def _IsPointNode(node, parent) -> bool:
 
 
 def _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
-                                                        must_resolve_all: bool):
+                                                              must_resolve_all: bool):
     # this may be called multiple times for the same module
     def visitor(node: Any, parent):
         nonlocal builtin_syms

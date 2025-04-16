@@ -2,10 +2,10 @@
 // (c) Robert Muth - see LICENSE for more info
 #include <cstdint>
 #include <filesystem>
-#include <unordered_map>
 #include <set>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 // only used for interning comment strings
@@ -13,6 +13,8 @@
 
 namespace cwerg::fe {
 
-
+void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+    const std::vector<Node>& modules, const SymTab* builtin_symtab,
+    bool must_resolve_all);
 
 }  // namespace cwerg::fe

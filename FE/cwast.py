@@ -53,17 +53,10 @@ class NAME:
 
     @classmethod
     def SelfImport(cls) -> "NAME":
-        return cls("$$self", 0)
+        return cls("$$self", -1)
 
     def IsSelfImport(self) -> bool:
-        return self.name == "$$self"
-
-    @classmethod
-    def Invalid(cls) -> "NAME":
-        return cls("$$invalid", 0)
-
-    def IsInvalid(self) -> bool:
-        return self.name == "$$invalid"
+        return self.seq == -1
 
     @classmethod
     def Empty(cls) -> "NAME":
@@ -1231,9 +1224,6 @@ class Import:
         return f"{NODE_NAME(self)} {self.name}  path={self.path}"
 
 
-INVALID_IMPORT = Import(NAME.Invalid(), "", [])
-
-
 @NodeCommon
 @dataclasses.dataclass()
 class RecField:  #
@@ -1309,7 +1299,7 @@ class Id:
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
     x_symbol: NODES_SYMBOLS_T = INVALID_SYMBOL
-    x_import: Import = INVALID_IMPORT  # which import the id is qualified with
+    x_import: Optional[Import] = None  # which import the id is qualified with
 
     def GetRecFieldRef(self) -> RecField:
         assert isinstance(self.x_symbol, RecField)
@@ -2853,7 +2843,7 @@ class DefFun:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_import: Import = INVALID_IMPORT  # only used for polymorphic function
+    x_import: Import = None  # only used for polymorphic function
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params)
@@ -2983,7 +2973,7 @@ class MacroInvoke:
     doc: str = ""
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
-    x_import: Import = INVALID_IMPORT
+    x_import: Import = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}"
