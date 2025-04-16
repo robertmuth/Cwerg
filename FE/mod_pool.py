@@ -207,17 +207,17 @@ def _ModUniquePathName(root: Path,
 _MAIN_FUN_NAME = cwast.NAME.FromStr("main")
 
 
-def _ReadMod(handle: Path, name: str) -> cwast.DefMod:
+def _ReadMod(handle: Path, mod_name: str) -> cwast.DefMod:
     """Overload"""
     fn = str(handle) + EXTENSION_CW
     if pathlib.Path(fn).exists():
-        mod = parse.ReadModFromStream(open(fn, encoding="utf8"), fn, name)
+        mod = parse.ReadModFromStream(open(fn, encoding="utf8"), fn, mod_name)
         assert isinstance(mod, cwast.DefMod)
         return mod
     fn = str(handle) + EXTENSION_CWS
     if pathlib.Path(fn).exists():
         mod = parse_sexpr.ReadModFromStream(
-            open(fn, encoding="utf8"), fn, name)
+            open(fn, encoding="utf8"), fn, mod_name)
         assert isinstance(mod, cwast.DefMod)
         return mod
     assert False, f"module {str(handle)} does not exist"
@@ -255,19 +255,19 @@ class _ModPoolState:
     def AllModInfos(self) -> Sequence[ModInfo]:
         return self.all_mods.values()
 
-    def AddModInfoSimple(self, path: Path, name: str) -> ModInfo:
+    def AddModInfoSimple(self, path: Path, mod_name: str) -> ModInfo:
         """Register regular module"""
-        mod = self.read_mod_fun(path, name)
+        mod = self.read_mod_fun(path, mod_name)
         _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         return self.AddModInfoCommon(path, [], mod, symtab)
 
-    def AddModInfoForGeneric(self, path: Path, args: list, name: str) -> ModInfo:
+    def AddModInfoForGeneric(self, path: Path, args: list, mod_name: str) -> ModInfo:
         """Specialize Generic Mod and register it"""
         generic_mod = self.raw_generic.get(path)
         if not generic_mod:
             logger.info("reading raw generic from: %s", path)
-            generic_mod = self.read_mod_fun(path, name)
+            generic_mod = self.read_mod_fun(path, mod_name)
             self.raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         _ResolveImportsForQualifers(mod)
@@ -355,27 +355,24 @@ def ReadModulesRecursively(root: Path,
                     if done:
                         path = _ModUniquePathName(
                             root, mod_info.mid[0], pathname)
-                        mod_name = path.name
-                        import_mod_info = state.AddModInfoForGeneric(
-                            path, import_info.normalized_args, mod_name)
-                        import_info.ResolveImport(import_mod_info.mod)
-                        new_active.append(import_mod_info)
+                        import_info = state.AddModInfoForGeneric(
+                            path, import_info.normalized_args, path.mod_name)
+                        import_info.ResolveImport(import_info.mod)
+                        new_active.append(import_info)
                         seen_change = True
                     else:
                         num_unresolved += 1
                 else:
                     path = _ModUniquePathName(
                         root, mod_info.mid[0], pathname)
-                    import_mod_info = state.GetModInfo((path,))
-                    if not import_mod_info:
-                        mod_name = path.name
-                        import_mod_info = state.AddModInfoSimple(
-                            path, mod_name)
-                        new_active.append(import_mod_info)
+                    import_info = state.GetModInfo((path,))
+                    if not import_info:
+                        import_info = state.AddModInfoSimple(path, path.name)
+                        new_active.append(import_info)
                         seen_change = True
                     logger.info(
-                        f"in {mod_info.mod} resolving inport of {import_mod_info.mod.name}")
-                    import_info.ResolveImport(import_mod_info.mod)
+                        f"in {mod_info.mod} resolving inport of {import_info.mod.name}")
+                    import_info.ResolveImport(import_info.mod)
 
             if num_unresolved:
                 new_active.append(mod_info)

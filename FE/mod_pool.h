@@ -49,6 +49,10 @@ struct ModId {
   }
 };
 
+inline std::ostream& operator<<(std::ostream& os, ModId mid) {
+  os << "ModInfo(" << mid.path << ", " << mid.args.size() << ")";
+  return os;
+}
 
 struct ModPool {
   SymTab* builtin_symtab;

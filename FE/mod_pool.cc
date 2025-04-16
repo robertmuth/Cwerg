@@ -27,16 +27,16 @@ struct ImportInfo {
   Node import_node;
   std::vector<Node> normalized_args;
 
-  ImportInfo(Node import_node) {
-    ASSERT(Node_kind(import_node) == NT::Import, "");
+  ImportInfo(Node a_import_node) : import_node(a_import_node) {
+    ASSERT(Node_kind(a_import_node) == NT::Import, "");
     // TODO:)
-    for (Node child = Node_args_mod(import_node); !child.isnull();
+    for (Node child = Node_args_mod(a_import_node); !child.isnull();
          child = Node_next(Node(child))) {
       normalized_args.push_back(kNodeInvalid);
     }
   }
 
-  int NumArgs() {
+  int NumArgs() const {
     int n = 0;
     for (Node child = Node_args_mod(import_node); !child.isnull();
          child = Node_next(Node(child))) {
@@ -46,7 +46,7 @@ struct ImportInfo {
   }
 
   void ResolveImport(Node imported_mod) {
-    ASSERT(Node_kind(import_node) == NT::DefMod, "");
+    ASSERT(Node_kind(imported_mod) == NT::DefMod, "");
     Node_x_module(import_node) = imported_mod;
   }
 };
@@ -58,7 +58,14 @@ struct ModInfo {
   std::vector<ImportInfo> imports;
 
   ModInfo(ModId a_mid, Node a_mod, SymTab* a_symtab)
-      : mid(a_mid), mod(a_mod), symtab(a_symtab) {}
+      : mid(a_mid), mod(a_mod), symtab(a_symtab) {
+    for (Node child = Node_body_mod(mod); !child.isnull();
+         child = Node_next(child)) {
+      if (Node_kind(child) == NT::Import) {
+        imports.push_back(ImportInfo(child));
+      }
+    }
+  }
 
   bool IsValid() { return mod.raw_kind() != kKindInvalid; }
 };
@@ -85,13 +92,13 @@ std::string_view ReadFile(const char* filename) {
 }
 
 Node ReadMod(const Path& path) {
-  std::cout << "ReadMod " << path << " as " << path.filename() << "\n";
+  std::cout << "ReadMod [" << path << "] as [" << path.filename() << "]\n";
 
   Path filename = path.filename();
   Path with_suffix = path;
   with_suffix.replace_extension(".cw");
   auto data = ReadFile(with_suffix.c_str());
-  std::cout << "ReadMod " << path << " size=" << data.size() << "\n";
+  std::cout << "ReadMod [" << path << "] size=" << data.size() << "\n";
 
   // TODO: fix magic number
   Lexer lexer(data, 666);
@@ -199,7 +206,8 @@ void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {
       case NT::DefMacro:
       case NT::DefRec: {
         auto name = NameStrAndSeq(Node_name(child));
-        // std::cout << "@@@ " << EnumToString(Node_kind(child)) << " " << name
+        // std::cout << "@@@ " << EnumToString(Node_kind(child)) << " " <<
+        // name
         // << "\n";
         // TODO: special handling of polymorphic functions
         if (symtab->contains(name)) {
@@ -222,11 +230,10 @@ void Dump(const SymTab* symtab) {
     std::cout << kv.first << " -> " << EnumToString(Node_kind(kv.second))
               << "\n";
   }
+  std::cout << "\n";
 }
 
 class ModPoolState {
-  // ModInfo main_modinfo_ = ModInfoInvalid;
-  // ModInfo builtin_modinfo_ = ModInfoInvalid;
   std::vector<SymTab*> symtabs;
   std::map<ModId, ModInfo> all_mods;
 
@@ -240,6 +247,16 @@ class ModPoolState {
     symtabs.push_back(symtab);
     Node_x_symtab(mod) = symtab;
     return mod_info;
+  }
+
+  ModInfo GetModInfo(const ModId& mid) const {
+    auto it = all_mods.find(mid);
+    return it->second;
+  }
+
+  bool HasModInfo(const ModId& mid) const {
+    return all_mods.find(mid) != all_mods.end();
+    ;
   }
 
   std::vector<Node> AllMods() {
@@ -282,35 +299,49 @@ ModPool ReadModulesRecursively(Path root_path,
     ModInfo mi = state.AddModInfoSimple(path, symtab);
     active.push_back(mi);
   }
+
+  std::cout << "Fixpoint For Imports\n" << std::flush;
   std::vector<ModInfo> new_active;
   while (!active.empty()) {
     ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
         state.AllMods(), out.builtin_symtab, false);
-    break;
-    // bool seen_change = false;
     new_active.clear();
-    for (auto& mi : active) {
-      // int num_unresolved = 0;
-      for (ImportInfo& import : mi.imports) {
+    for (ModInfo& mi : active) {
+      std::cout << "Handle Imports for Mod: " << mi.mid.path << "\n";
+      for (auto& import : mi.imports) {
+        std::cout << "Imports [" << Node_path(import.import_node) << "] ["
+                  << Node_name(import.import_node) << "]\n";
+
         if (!Node_x_module(import.import_node).isnull()) {
           continue;
         }
 
-        std::string path;
+        std::string pathname;
         if (Node_path(import.import_node) == kStrInvalid) {
-          path = Name_String(Node_name(import.import_node));
+          pathname = Name_String(Node_name(import.import_node));
         } else {
-          path = StrData(Node_path(import.import_node));
-          if (path[0] == '"') {
-            path = path.substr(1, path.size() - 2);
+          pathname = StrData(Node_path(import.import_node));
+          if (pathname[0] == '"') {
+            pathname = pathname.substr(1, pathname.size() - 2);
           }
         }
         if (import.NumArgs() == 0) {
+          Path path = ModUniquePathName(root_path, mi.mid.path, pathname);
+          ModId mid(path);
+          if (!state.HasModInfo(mid)) {
+            SymTab* symtab = new SymTab();
+            ModInfo mi = state.AddModInfoSimple(path, symtab);
+            new_active.push_back(mi);
+          }
+          ModInfo mi = state.GetModInfo(mid);
+          std::cout << "Resolve import " << mi.mid << " " << EnumToString(Node_kind(mi.mod)) << "\n";
+          import.ResolveImport(mi.mod);
         } else {
           ASSERT(false, "");
         }
       }
     }
+    active.swap(new_active);
   }
 
   return out;

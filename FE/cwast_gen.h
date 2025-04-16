@@ -275,6 +275,11 @@ inline bool StrCmpLt(Str a, Str b) {
   return strcmp(gStringPool.Data(a.index()), gStringPool.Data(b.index())) < 0;
 }
 
+inline std::ostream& operator<<(std::ostream& os, Str str) {
+  os << StrData(str);
+  return os;
+}
+
 // clang-format off
 /* @AUTOGEN-START@ */
 enum class NFD_NODE_FIELD : uint8_t {
