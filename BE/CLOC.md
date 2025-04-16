@@ -126,9 +126,9 @@ BE/CodeGenA32/legalize.cc                        45             14            34
 BE/CpuA32/assembler.cc                           32              6            261
 BE/CodeGenA32/codegen.cc                         24              3            228
 BE/CpuA32/symbolic.cc                            21              3            221
-BE/CodeGenA32/codegen_tool.cc                    38              5            146
+BE/CodeGenA32/codegen_tool.cc                    36              5            144
 BE/CpuA32/disassembler_tool.cc                    6              5            101
-BE/CodeGenA32/isel_tester.cc                     12              2             94
+BE/CodeGenA32/isel_tester.cc                     12              2             95
 BE/CodeGenA32/regs.h                             22              7             52
 BE/CpuA32/assembler_tool.cc                      10              1             50
 BE/CodeGenA32/legalize.h                          7              1             16
@@ -136,7 +136,7 @@ BE/CpuA32/assembler.h                            10              2             1
 BE/CpuA32/symbolic.h                              6              1             13
 BE/CodeGenA32/codegen.h                           8              1             12
 ---------------------------------------------------------------------------------
-SUM:                                            296             61           2057
+SUM:                                            294             61           2056
 ---------------------------------------------------------------------------------
 ```
 
@@ -195,7 +195,7 @@ BE/CodeGenA64/codegen.cc                         20              3            19
 BE/CpuA64/symbolic.cc                            16              3            187
 BE/CodeGenA64/codegen_tool.cc                    38              5            147
 BE/CpuA64/disassembler_tool.cc                    6              5             97
-BE/CodeGenA64/isel_tester.cc                     12              2             94
+BE/CodeGenA64/isel_tester.cc                     12              2             95
 BE/CodeGenA64/regs.h                             20             10             59
 BE/CpuA64/assembler_tool.cc                      10              1             49
 BE/CodeGenA64/legalize.h                         10              1             18
@@ -203,7 +203,7 @@ BE/CpuA64/assembler.h                            10              2             1
 BE/CpuA64/symbolic.h                              7              2             11
 BE/CodeGenA64/codegen.h                           5              1              9
 ---------------------------------------------------------------------------------
-SUM:                                            278             79           1888
+SUM:                                            278             79           1889
 ---------------------------------------------------------------------------------
 ```
 
@@ -263,7 +263,7 @@ BE/CpuX64/assembler.cc                           38             11            30
 BE/CodeGenX64/codegen.cc                         24              3            226
 BE/CodeGenX64/codegen_tool.cc                    39              5            149
 BE/CpuX64/disassembler_tool.cc                   11              7            129
-BE/CodeGenX64/isel_tester.cc                     12              2             78
+BE/CodeGenX64/isel_tester.cc                     12              2             79
 BE/CodeGenX64/regs.h                             24             18             72
 BE/CpuX64/assembler_tool.cc                      10              1             49
 BE/CodeGenX64/legalize.h                         11              1             19
@@ -271,7 +271,7 @@ BE/CpuX64/assembler.h                            12              2             1
 BE/CpuX64/symbolic.h                              7              2             12
 BE/CodeGenX64/codegen.h                           5              1              9
 ---------------------------------------------------------------------------------
-SUM:                                            314             90           2320
+SUM:                                            314             90           2321
 ---------------------------------------------------------------------------------
 ```
 
