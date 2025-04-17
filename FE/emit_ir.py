@@ -738,7 +738,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         else:
             assert src_type.is_vec()
             element_size: int = src_type.array_element_size()
-            for index, c in symbolize.IterateValArray(init_node.inits,
+            for index, c in symbolize.IterateValVec(init_node.inits,
                                                       init_node.x_type.array_dim(),
                                                       init_node.x_srcloc):
                 if c is None:
@@ -995,7 +995,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                 last = cwast.ValUndef()
                 stride = ct.size // width
                 assert stride * width == ct.size, f"{ct.size} {width}"
-                for n, init in symbolize.IterateValArray(node.inits, width, node.x_srcloc):
+                for n, init in symbolize.IterateValVec(node.inits, width, node.x_srcloc):
                     if init is None:
                         count = _emit_recursively(
                             last, x_type, offset + n * stride)
@@ -1066,7 +1066,7 @@ def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
         cwast.CheckAST(mod, eliminated_node_types,
                        allow_type_auto, pre_symbolize=pre_symbolize)
         if verifier:
-            symbolize.VerifyASTSymbolsRecursively(mod)
+            symbolize.VerifySymbols(mod)
             typify.VerifyTypesRecursively(mod, tc, verifier)
             eval.VerifyASTEvalsRecursively(mod)
 
@@ -1124,8 +1124,11 @@ def main() -> int:
     logger.info("Expand macros and link most IDs to their definition")
     macro.MacroExpansion(
         mod_topo_order, mp.builtin_symtab, fun_id_gens)
-    symbolize.DecorateASTWithSymbols(
+    symbolize.SetTargetFields(mod_topo_order)
+    symbolize.ResolveLocalAndLeftoverGlobalSymbols(
         mod_topo_order, mp.builtin_symtab)
+    for mod in mp.mods_in_topo_order:
+        symbolize.VerifySymbols(mod)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         cwast.StripFromListRecursively(mod, cwast.Import)

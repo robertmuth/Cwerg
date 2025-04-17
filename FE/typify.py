@@ -1347,8 +1347,12 @@ def main(argv: list[str]):
     fun_id_gens = identifier.IdGenCache()
     macro.MacroExpansion(
         mp.mods_in_topo_order, mp.builtin_symtab, fun_id_gens)
-    symbolize.DecorateASTWithSymbols(
+    symbolize.SetTargetFields(mp.mods_in_topo_order)
+    symbolize.ResolveLocalAndLeftoverGlobalSymbols(
         mp.mods_in_topo_order, mp.builtin_symtab)
+    for mod in mp.mods_in_topo_order:
+        symbolize.VerifySymbols(mod)
+
     for mod in mp.mods_in_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)

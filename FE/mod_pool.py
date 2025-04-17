@@ -85,6 +85,81 @@ def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> symbolize.SymTab:
 EXTENSION_CWS = ".cws"
 EXTENSION_CW = ".cw"
 
+# for now no DefEnum
+_NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.TypeUnion,
+                                  cwast.DefType,
+                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan,
+                                  cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
+
+
+def _IsNormalizeModParam(node):
+    if isinstance(node, _NORMALIZED_NODES_FOR_MOD_ARGS):
+        return True
+    elif isinstance(node, cwast.DefType) and node.wrapped:
+        return True
+    else:
+        return False
+
+
+def _NormalizeModParam(node):
+    if _IsNormalizeModParam(node):
+        return node
+    elif isinstance(node, cwast.DefType) and not node.wrapped:
+        return _NormalizeModParam(node.type)
+    elif isinstance(node, cwast.Id):
+        if node.x_symbol:
+            return _NormalizeModParam(node.x_symbol)
+        else:
+            return None
+    else:
+        assert False, f"NYI: {node}"
+
+
+# def AreEqualNormalizedModParam(a, b) -> bool:
+#     if a is None or b is None:
+#         return False
+#     if a is not type(b):
+#         return False
+#     if a is b:
+#         return True
+
+#     return False
+
+
+def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
+    assert len(mod.params_mod) == len(
+        args), f"{len(mod.params_mod)} vs {len(args)} {type(args)}"
+    translation: dict[cwast.NAME, Any] = {}
+    for p, a in zip(mod.params_mod, args):
+        sl = p.x_srcloc
+        if isinstance(a, cwast.DefFun):
+            assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
+            translation[p.name] = cwast.Id(
+                a.name, None, x_symbol=a, x_srcloc=sl)
+        elif isinstance(a, (cwast.DefRec, cwast.DefType)):
+            translation[p.name] = cwast.Id(
+                a.name, None, x_symbol=a, x_srcloc=sl)
+        elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
+            translation[p.name] = a
+        else:
+            assert cwast.NF.TYPE_CORPUS in a.FLAGS
+            translation[p.name] = a
+
+    mod.params_mod.clear()
+
+    def replacer(node, _parent, _field):
+        nonlocal translation
+        if not isinstance(node, cwast.MacroId):
+            return None
+        name = node.name
+        assert name.IsMacroVar(), f" non macro name: {node}"
+        t = translation[name]
+
+        return cwast.CloneNodeRecursively(t, {}, {})
+
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(mod, replacer)
+    return mod
+
 
 class _ImportInfo:
     def __init__(self, import_node: cwast.Import):
@@ -96,7 +171,7 @@ class _ImportInfo:
         all_args_are_normalized = True
         for i, n in enumerate(self.normalized_args):
             if n is None:
-                n = symbolize.NormalizeModParam(self.import_node.args_mod[i])
+                n = _NormalizeModParam(self.import_node.args_mod[i])
                 if n:
                     self.normalized_args[i] = n
                 else:
@@ -272,7 +347,7 @@ class _ModPoolState:
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
-        return self.AddModInfoCommon(path, args, symbolize.SpecializeGenericModule(mod, args), symtab)
+        return self.AddModInfoCommon(path, args, _SpecializeGenericModule(mod, args), symtab)
 
 
 def _MainEntryFun(mod: cwast.DefMod) -> Optional[cwast.DefFun]:
@@ -333,7 +408,7 @@ def ReadModulesRecursively(root: Path,
         new_active: list[ModInfo] = []
         seen_change = False
         # this probably needs to be a fix point computation as well
-        symbolize.ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+        symbolize.ResolveGlobalSymbols(
             state.AllMods(), out.builtin_symtab, False)
         for mod_info in active:
             assert isinstance(mod_info, ModInfo), mod_info

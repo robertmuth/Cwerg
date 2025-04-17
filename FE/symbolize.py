@@ -9,7 +9,6 @@ import logging
 from typing import Optional, Any, Sequence
 
 from FE import cwast
-from FE import identifier
 
 logger = logging.getLogger(__name__)
 
@@ -126,26 +125,7 @@ class SymTab:
         return out
 
 
-def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -> Any:
-    if node.x_symbol:
-        # this happens for module parameter
-        return
-    name = node.name
-    was_qualified = HasImportedSymbolReference(node)
 
-    if not was_qualified and node.enum_name is None:
-        for s in reversed(scopes):
-            def_node = s.get(name)
-            if def_node is not None:
-                AnnotateNodeSymbol(node, def_node)
-                return
-        # symbol is not a local symbol - so we fall through to looking in the global scope
-    symtab: SymTab = node.x_import.x_module.x_symtab
-    def_node = symtab.resolve_sym(node, builtin_syms, was_qualified)
-    if def_node is None:
-        cwast.CompilerError(
-            node.x_srcloc, f"cannot resolve symbol for {node}")
-    AnnotateNodeSymbol(node, def_node)
 
 
 def _IsFieldNode(node, parent) -> bool:
@@ -156,8 +136,7 @@ def _IsPointNode(node, parent) -> bool:
     return isinstance(parent, cwast.ValPoint) and parent.point is node
 
 
-def _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms: SymTab,
-                                                              must_resolve_all: bool):
+def _HelperResolveGlobalSymbols(node, builtin_syms: SymTab, must_resolve_all: bool):
     # this may be called multiple times for the same module
     def visitor(node: Any, parent):
         nonlocal builtin_syms
@@ -186,7 +165,40 @@ def _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
 
-def ResolveSymbolsInsideFunctionsRecursively(
+def ResolveGlobalSymbols(mod_topo_order: Sequence[cwast.DefMod],
+                         builtin_syms: SymTab,
+                         must_resolve_all):
+    for mod in mod_topo_order:
+        for node in mod.body_mod:
+            if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
+                logger.info("Resolving global object: %s", node)
+                _HelperResolveGlobalSymbols(
+                    node, builtin_syms, must_resolve_all)
+
+
+def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -> Any:
+    if node.x_symbol:
+        # this happens for module parameter
+        return
+    name = node.name
+    was_qualified = HasImportedSymbolReference(node)
+
+    if not was_qualified and node.enum_name is None:
+        for s in reversed(scopes):
+            def_node = s.get(name)
+            if def_node is not None:
+                AnnotateNodeSymbol(node, def_node)
+                return
+        # symbol is not a local symbol - so we fall through to looking in the global scope
+    # assert False, f"{node}"
+    symtab: SymTab = node.x_import.x_module.x_symtab
+    def_node = symtab.resolve_sym(node, builtin_syms, was_qualified)
+    if def_node is None:
+        cwast.CompilerError(
+            node.x_srcloc, f"cannot resolve symbol for {node}")
+    AnnotateNodeSymbol(node, def_node)
+
+def _HelperResolveLocalAndLeftoverGlobalSymbols(
         node, symtab: SymTab, builtin_syms: SymTab, scopes: list[dict]):
 
     def record_local_sym(node):
@@ -225,6 +237,27 @@ def ResolveSymbolsInsideFunctionsRecursively(
         node, visitor, scope_enter, scope_exit)
 
 
+def ResolveLocalAndLeftoverGlobalSymbols(
+        mods: list[cwast.DefMod], builtin_symtab: SymTab):
+    """
+    At this point:
+    * DefMods have valid x_symtab populated with the global symbols
+    * Imports have a valid x_module field
+    * most Id referencing globals have their x_symbol fields set.
+    """
+
+    for mod in mods:
+        logger.info("Resolving symbols inside module: %s", mod.name)
+        symtab = mod.x_symtab
+        for node in mod.body_mod:
+            if isinstance(node, (cwast.DefFun)):
+                logger.info("Resolving symbols inside fun: %s", node.name)
+                scopes: list[dict] = []
+                _HelperResolveLocalAndLeftoverGlobalSymbols(
+                    node, symtab, builtin_symtab, scopes)
+                assert not scopes
+
+
 def _CheckAddressCanBeTaken(lhs):
     if isinstance(lhs, cwast.Id):
         node_def = lhs.x_symbol
@@ -251,7 +284,7 @@ def _CheckAddressCanBeTaken(lhs):
         assert False, f"{lhs}"
 
 
-def VerifyASTSymbolsRecursively(node):
+def VerifySymbols(node):
     """all macros should have been resolved by now"""
     in_def_macro = False
 
@@ -295,7 +328,7 @@ def VerifyASTSymbolsRecursively(node):
     cwast.VisitAstRecursivelyWithField(node, visitor, None)
 
 
-def _SetTargetFieldRecursively(node):
+def _HelperSetTargetField(node):
     parents = []
 
     def visitor_pre(node):
@@ -331,47 +364,15 @@ def _SetTargetFieldRecursively(node):
         node, visitor_pre, visitor_post)
 
 
-def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[cwast.DefMod],
-                                                       builtin_syms: SymTab,
-                                                       must_resolve_all):
-    for mod in mod_topo_order:
-        for node in mod.body_mod:
-            if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
-                logger.info("Resolving global object: %s", node)
-                _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    node, builtin_syms, must_resolve_all)
-
-
-def DecorateASTWithSymbols(
-        mods: list[cwast.DefMod], builtin_symtab: SymTab):
-    """
-    At this point every DefMod has a symtable populated with the global symbols
-    and the Imports. All Imports have a valid x_module field.
-    Ids that are inside DefFuns have their x_symbol fields set.
-
-    * expand macros recursively (macros are global symbols)
-    * reolve symbols within functions (= setting x_symbol)
-    """
-
+def SetTargetFields(mods: list[cwast.DefMod]):
     for mod in mods:
         logger.info("Resolving symbols inside module: %s", mod.name)
         # we wait until macro expansion before resolving control flow targets
-        _SetTargetFieldRecursively(mod)
-
-        symtab = mod.x_symtab
-        for node in mod.body_mod:
-            if isinstance(node, (cwast.DefFun)):
-                logger.info("Resolving symbols inside fun: %s", node.name)
-                scopes: list[dict] = []
-                ResolveSymbolsInsideFunctionsRecursively(
-                    node, symtab, builtin_symtab, scopes)
-                assert not scopes
-
-    for mod in mods:
-        VerifyASTSymbolsRecursively(mod)
+        _HelperSetTargetField(mod)
 
 
 def IterateValRec(points: list[cwast.ValPoint], def_rec: cwast.CanonType):
+    """Pairs given ValPoints from a ValCompound repesenting a DefRec with RecFields"""
     assert isinstance(def_rec.ast_node, cwast.DefRec)
     next_point = 0
     for f in def_rec.ast_node.fields:
@@ -397,100 +398,24 @@ def IterateValRec(points: list[cwast.ValPoint], def_rec: cwast.CanonType):
 _UNDEF = cwast.ValUndef()
 
 
-def IterateValArray(inits, width, srcloc):
-    curr_val = 0
-    for init in inits:
-        assert isinstance(init, cwast.ValPoint)
+def IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
+    """Pairs given ValPoints from a ValCompound repesenting a Vec with their indices"""
+    curr_index = 0
+    for init in points:
         if isinstance(init.point, cwast.ValAuto):
-            yield curr_val, init
-            curr_val += 1
+            yield curr_index, init
+            curr_index += 1
             continue
         index = init.point.x_value
         assert isinstance(index, int)
-        while curr_val < index:
-            yield curr_val, None
-            curr_val += 1
-        yield curr_val, init
-        curr_val += 1
-    if curr_val > width:
+        while curr_index < index:
+            yield curr_index, None
+            curr_index += 1
+        yield curr_index, init
+        curr_index += 1
+    if curr_index > dim:
         cwast.CompilerError(
-            srcloc, f"Out of bounds array access at {curr_val}. Array size is  {width}")
-    while curr_val < width:
-        yield curr_val, None
-        curr_val += 1
-
-
-# for now no DefEnum
-_NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.TypeUnion,
-                                  cwast.DefType,
-                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan,
-                                  cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
-
-
-def IsNormalizeModParam(node):
-    if isinstance(node, _NORMALIZED_NODES_FOR_MOD_ARGS):
-        return True
-    elif isinstance(node, cwast.DefType) and node.wrapped:
-        return True
-    else:
-        return False
-
-
-def NormalizeModParam(node):
-    if IsNormalizeModParam(node):
-        return node
-    elif isinstance(node, cwast.DefType) and not node.wrapped:
-        return NormalizeModParam(node.type)
-    elif isinstance(node, cwast.Id):
-        if node.x_symbol:
-            return NormalizeModParam(node.x_symbol)
-        else:
-            return None
-    else:
-        assert False, f"NYI: {node}"
-
-
-def AreEqualNormalizedModParam(a, b) -> bool:
-    if a is None or b is None:
-        return False
-    if a is not type(b):
-        return False
-    if a is b:
-        return True
-
-    return False
-
-
-def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
-    assert len(mod.params_mod) == len(
-        args), f"{len(mod.params_mod)} vs {len(args)} {type(args)}"
-    translation: dict[cwast.NAME, Any] = {}
-    for p, a in zip(mod.params_mod, args):
-        sl = p.x_srcloc
-        if isinstance(a, cwast.DefFun):
-            assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
-            translation[p.name] = cwast.Id(
-                a.name, None, x_symbol=a, x_srcloc=sl)
-        elif isinstance(a, (cwast.DefRec, cwast.DefType)):
-            translation[p.name] = cwast.Id(
-                a.name, None, x_symbol=a, x_srcloc=sl)
-        elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
-            translation[p.name] = a
-        else:
-            assert cwast.NF.TYPE_CORPUS in a.FLAGS
-            translation[p.name] = a
-
-    mod.params_mod.clear()
-
-    def replacer(node, _parent, _field):
-        nonlocal translation
-        if not isinstance(node, cwast.MacroId):
-            return None
-        name = node.name
-        assert name.IsMacroVar(), f" non macro name: {node}"
-        t = translation[name]
-
-        return cwast.CloneNodeRecursively(t, {}, {})
-
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(mod, replacer)
-    return mod
+            srcloc, f"Out of bounds array access at {curr_index}. Array size is  {dim}")
+    while curr_index < dim:
+        yield curr_index, None
+        curr_index += 1
