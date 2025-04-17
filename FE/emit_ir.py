@@ -19,6 +19,7 @@ from FE import canonicalize_large_args
 from FE import canonicalize_span
 from FE import canonicalize_union
 from FE import canonicalize
+from FE import macros
 from FE import symbolize
 from FE import type_corpus
 from FE import cwast
@@ -1121,8 +1122,10 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     logger.info("Expand macros and link most IDs to their definition")
-    symbolize.MacroExpansionDecorateASTWithSymbols(
+    macros.MacroExpansion(
         mod_topo_order, mp.builtin_symtab, fun_id_gens)
+    symbolize.DecorateASTWithSymbols(
+        mod_topo_order, mp.builtin_symtab)
     for mod in mod_topo_order:
         cwast.StripFromListRecursively(mod, cwast.DefMacro)
         cwast.StripFromListRecursively(mod, cwast.Import)

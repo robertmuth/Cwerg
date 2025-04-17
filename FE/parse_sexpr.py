@@ -437,4 +437,4 @@ if __name__ == "__main__":
     logger.setLevel(logging.INFO)
     assert len(sys.argv) == 2
     with open(sys.argv[1], encoding="utf8") as f:
-        ReadModFromStream(f, sys.argv[1])
+        ReadModFromStream(f, sys.argv[1], "main_mod")

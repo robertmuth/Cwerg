@@ -72,7 +72,7 @@ tests_meta_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
 tests_eval_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.eval)
 	@echo "PASSED $@"
 
-tests_symtab_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.symtab)
+tests_macro_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.macro)
 	@echo "PASSED $@"
 
 tests_pp_py: $(ALL_SOURCES:%.cws=$(DIR)/%.cw.pp)
@@ -81,7 +81,7 @@ tests_pp_py: $(ALL_SOURCES:%.cws=$(DIR)/%.cw.pp)
 tests_concrete_py:  $(ALL_SOURCES:%.cw=$(DIR)/%.concrete)
 	@echo "PASSED $@"
 
-tests_all_py: tests_parse_py tests_symtab_py tests_meta_py tests_eval_py tests_pp_py
+tests_all_py: tests_parse_py tests_macro_py tests_meta_py tests_eval_py tests_pp_py
 
 STD_LIB_WITH_ARGV_X64 = ../BE/StdLib/startup.x64.asm ../BE/StdLib/syscall.x64.asm ../BE/StdLib/std_lib.64.asm
 STD_LIB_WITH_ARGV_A64 = ../BE/StdLib/startup.a64.asm ../BE/StdLib/syscall.a64.asm ../BE/StdLib/std_lib.64.asm
@@ -113,9 +113,9 @@ $(DIR)/%.cw.eval: %.cw
 	@echo "[eval $@]"
 	$(PYPY) ./eval.py $<
 
-$(DIR)/%.cw.symtab: %.cw
-	@echo "[symbolize $@]"
-	$(PYPY) ./symbolize.py $<
+$(DIR)/%.cw.macro: %.cw
+	@echo "[macro $@]"
+	$(PYPY) ./macros.py $<
 
 
 $(DIR)/%.cws.pp: %.cws

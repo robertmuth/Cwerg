@@ -7,15 +7,16 @@
 import dataclasses
 import logging
 
-from typing import Any, Tuple
+from typing import Any, Tuple, Union
 
 from FE import cwast
 from FE import identifier
+from FE import symbolize
 
 logger = logging.getLogger(__name__)
 
 
-class MacroContext:
+class _MacroContext:
     """TBD"""
 
     def __init__(self, id_gen: identifier.IdGen):
@@ -48,14 +49,14 @@ class MacroContext:
         return self.macro_parameter[name]
 
 
-def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
+def _ExpandMacroBodyRecursively(node, ctx: _MacroContext) -> Any:
     if isinstance(node, cwast.DefVar) and node.name.IsMacroVar():
         kind, new_name = ctx.GetSymbol(node.name)
         assert kind is cwast.MACRO_PARAM_KIND.ID
         # Why is this not a MacroVar
         assert isinstance(new_name, cwast.Id)
-        type_or_auto = ExpandMacroRecursively(node.type_or_auto, ctx)
-        initial = ExpandMacroRecursively(node.initial_or_undef_or_auto, ctx)
+        type_or_auto = _ExpandMacroBodyRecursively(node.type_or_auto, ctx)
+        initial = _ExpandMacroBodyRecursively(node.initial_or_undef_or_auto, ctx)
         return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
@@ -77,7 +78,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
         for item in arg.args:
             ctx.RegisterSymbol(node.name, (cwast.MACRO_PARAM_KIND.EXPR, item))
             for b in node.body_for:
-                exp = ExpandMacroRecursively(b, ctx)
+                exp = _ExpandMacroBodyRecursively(b, ctx)
                 if isinstance(exp, cwast.EphemeralList):
                     out += exp.args
                 else:
@@ -89,12 +90,12 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     for nfd in node.__class__.NODE_FIELDS:
         c = nfd.name
         if nfd.kind is cwast.NFK.NODE:
-            replacement = ExpandMacroRecursively(getattr(node, c), ctx)
+            replacement = _ExpandMacroBodyRecursively(getattr(node, c), ctx)
             setattr(clone, c, replacement)
         else:
             out = []
             for cc in getattr(node, c):
-                exp = ExpandMacroRecursively(cc, ctx)
+                exp = _ExpandMacroBodyRecursively(cc, ctx)
                 # TODO: this tricky and needs a comment
                 if isinstance(exp, cwast.EphemeralList) and not isinstance(cc, cwast.EphemeralList):
                     out += exp.args
@@ -104,7 +105,7 @@ def ExpandMacroRecursively(node, ctx: MacroContext) -> Any:
     return clone
 
 
-def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroContext) -> Any:
+def _ExpandMacroInvokation(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: _MacroContext) -> Any:
     params: list[cwast.MacroParam] = macro.params_macro
     args = invoke.args
     if params and params[-1].macro_param_kind is cwast.MACRO_PARAM_KIND.EXPR_LIST_REST:
@@ -146,7 +147,7 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     for node in macro.body_macro:
         logger.debug("Expand macro body node: %s", node)
         # pp_sexpr.PrettyPrint(node)
-        exp = ExpandMacroRecursively(node, ctx)
+        exp = _ExpandMacroBodyRecursively(node, ctx)
         # pp_sexpr.PrettyPrint(exp)
         if isinstance(exp, cwast.EphemeralList):
             out += exp.args
@@ -156,3 +157,95 @@ def ExpandMacro(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: MacroCont
     if len(out) == 1:
         return out[0]
     return cwast.EphemeralList(out, colon=False)
+
+
+MAX_MACRO_NESTING = 8
+
+
+def _ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cwast.MacroInvoke],
+                            builtin_syms: symbolize.SymTab, nesting: int, ctx: _MacroContext):
+    """This will recursively expand the macro so returned node does not contain any expandables"""
+    while cwast.NF.TO_BE_EXPANDED in node.FLAGS:
+        assert nesting < MAX_MACRO_NESTING
+        if isinstance(node, cwast.ExprSrcLoc):
+            return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
+        elif isinstance(node, cwast.ExprStringify):
+            # assert isinstance(node.expr, cwast.Id)
+            return cwast.ValString(f'r"{node.expr}"', x_srcloc=node.x_srcloc)
+
+        assert isinstance(node, cwast.MacroInvoke)
+        symtab: symbolize.SymTab = node.x_import.x_module.x_symtab
+        macro = symtab.resolve_macro(
+            node,  builtin_syms, symbolize.HasImportedSymbolReference(node))
+        if macro is None:
+            cwast.CompilerError(
+                node.x_srcloc, f"invocation of unknown macro `{node.name}`")
+        node = _ExpandMacroInvokation(node, macro, ctx)
+        nesting += 1
+
+    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, node
+    # recurse and resolve any expandables
+    _FindAndExpandMacrosRecursively(node, builtin_syms, nesting + 1, ctx)
+    # pp_sexpr.PrettyPrint(exp)
+    return node
+
+
+def _FindAndExpandMacrosRecursively(node, builtin_symtab: symbolize.SymTab, nesting: int, ctx: _MacroContext):
+    def replacer(node: Any):
+        nonlocal builtin_symtab, nesting, ctx
+        if cwast.NF.TO_BE_EXPANDED in node.FLAGS:
+            return _ExpandMacroOrMacroLike(node, builtin_symtab, nesting, ctx)
+
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+
+
+def MacroExpansion(mods: list[cwast.DefMod], builtin_symtab: symbolize.SymTab, fun_id_gens: identifier.IdGenCache):
+
+    for mod in mods:
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefFun):
+                logger.info("Expanding macros in: %s", node.name)
+                ctx = _MacroContext(fun_id_gens.Get(node))
+                _FindAndExpandMacrosRecursively(node, builtin_symtab, 0, ctx)
+
+
+############################################################
+#
+############################################################
+
+
+def main(argv: list[str]):
+    assert len(argv) == 1
+    fn = argv[0]
+    fn, ext = os.path.splitext(fn)
+    assert ext in (".cw", ".cws")
+    cwd = os.getcwd()
+    main = str(pathlib.Path(fn).resolve())
+    mp = mod_pool.ReadModulesRecursively(pathlib.Path(
+        cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
+    mod_topo_order = mp.mods_in_topo_order
+    for mod in mod_topo_order:
+        canonicalize.FunRemoveParentheses(mod)
+    fun_id_gens = identifier.IdGenCache()
+    MacroExpansion(mod_topo_order, mp.builtin_symtab, fun_id_gens)
+    symbolize.DecorateASTWithSymbols(
+        mod_topo_order, mp.builtin_symtab)
+    for ast in mod_topo_order:
+        # cwast.CheckAST(ast, set())
+        symbolize.VerifyASTSymbolsRecursively(ast)
+        pp_sexpr.PrettyPrint(ast, sys.stdout)
+
+
+if __name__ == "__main__":
+    import sys
+    import os
+    import pathlib
+    from FE import mod_pool
+    from FE import canonicalize
+    from FE import pp_sexpr
+
+    logging.basicConfig(level=logging.WARNING)
+    symbolize.logger.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
+
+    main(sys.argv[1:])

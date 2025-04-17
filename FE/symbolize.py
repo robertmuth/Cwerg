@@ -6,12 +6,9 @@
 
 import logging
 
-from typing import Optional, Any, Sequence, Union
+from typing import Optional, Any, Sequence
 
-from FE import pp_sexpr
-from FE import macros
 from FE import cwast
-from FE import canonicalize
 from FE import identifier
 
 logger = logging.getLogger(__name__)
@@ -189,47 +186,6 @@ def _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(node, builtin_syms
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
 
-MAX_MACRO_NESTING = 8
-
-
-def ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cwast.MacroInvoke],
-                           builtin_syms: SymTab, nesting: int, ctx: macros.MacroContext):
-    """This will recursively expand the macro so returned node does not contain any expandables"""
-    while cwast.NF.TO_BE_EXPANDED in node.FLAGS:
-        assert nesting < MAX_MACRO_NESTING
-        if isinstance(node, cwast.ExprSrcLoc):
-            return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
-        elif isinstance(node, cwast.ExprStringify):
-            # assert isinstance(node.expr, cwast.Id)
-            return cwast.ValString(f'r"{node.expr}"', x_srcloc=node.x_srcloc)
-
-        assert isinstance(node, cwast.MacroInvoke)
-        symtab: SymTab = node.x_import.x_module.x_symtab
-        macro = symtab.resolve_macro(
-            node,  builtin_syms, HasImportedSymbolReference(node))
-        if macro is None:
-            cwast.CompilerError(
-                node.x_srcloc, f"invocation of unknown macro `{node.name}`")
-        node = macros.ExpandMacro(node, macro, ctx)
-        nesting += 1
-
-    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, node
-    # recurse and resolve any expandables
-    FindAndExpandMacrosRecursively(node, builtin_syms, nesting + 1, ctx)
-    # pp_sexpr.PrettyPrint(exp)
-    return node
-
-
-def FindAndExpandMacrosRecursively(node, builtin_syms, nesting: int, ctx: macros.MacroContext):
-
-    def replacer(node: Any):
-        nonlocal builtin_syms, nesting, ctx
-        if cwast.NF.TO_BE_EXPANDED in node.FLAGS:
-            return ExpandMacroOrMacroLike(node, builtin_syms, nesting, ctx)
-
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
-
-
 def ResolveSymbolsInsideFunctionsRecursively(
         node, symtab: SymTab, builtin_syms: SymTab, scopes: list[dict]):
 
@@ -386,34 +342,20 @@ def ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(mod_topo_order: Sequence[
                     node, builtin_syms, must_resolve_all)
 
 
-def MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order: list[cwast.DefMod], builtin_symtab: SymTab, fun_id_gens: identifier.IdGenCache):
+def DecorateASTWithSymbols(
+        mods: list[cwast.DefMod], builtin_symtab: SymTab):
     """
     At this point every DefMod has a symtable populated with the global symbols
     and the Imports. All Imports have a valid x_module field.
-    Ids that are not inside DefFuns have their x_symbol fields set.
+    Ids that are inside DefFuns have their x_symbol fields set.
 
     * expand macros recursively (macros are global symbols)
     * reolve symbols within functions (= setting x_symbol)
     """
 
-    for mod in mod_topo_order:
-        for node in mod.body_mod:
-            if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
-                logger.info("Resolving global object: %s", node)
-                _HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-                    node, builtin_symtab, True)
-
-    for mod in mod_topo_order:
-        for node in mod.body_mod:
-            if isinstance(node, cwast.DefFun):
-                logger.info("Expanding macros in: %s", node.name)
-                ctx = macros.MacroContext(fun_id_gens.Get(node))
-                FindAndExpandMacrosRecursively(node, builtin_symtab, 0, ctx)
-
-    for mod in mod_topo_order:
+    for mod in mods:
         logger.info("Resolving symbols inside module: %s", mod.name)
-        # we wait until macro expansion with this
+        # we wait until macro expansion before resolving control flow targets
         _SetTargetFieldRecursively(mod)
 
         symtab = mod.x_symtab
@@ -425,7 +367,7 @@ def MacroExpansionDecorateASTWithSymbols(
                     node, symtab, builtin_symtab, scopes)
                 assert not scopes
 
-    for mod in mod_topo_order:
+    for mod in mods:
         VerifyASTSymbolsRecursively(mod)
 
 
@@ -552,40 +494,3 @@ def SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(mod, replacer)
     return mod
-############################################################
-#
-############################################################
-
-
-def main(argv: list[str]):
-    assert len(argv) == 1
-    fn = argv[0]
-    fn, ext = os.path.splitext(fn)
-    assert ext in (".cw", ".cws")
-    cwd = os.getcwd()
-    main = str(pathlib.Path(fn).resolve())
-    mp = mod_pool.ReadModulesRecursively(pathlib.Path(
-        cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
-    mod_topo_order = mp.mods_in_topo_order
-    for mod in mod_topo_order:
-        canonicalize.FunRemoveParentheses(mod)
-    fun_id_gens = identifier.IdGenCache()
-    MacroExpansionDecorateASTWithSymbols(
-        mod_topo_order, mp.builtin_symtab, fun_id_gens)
-    for ast in mod_topo_order:
-        # cwast.CheckAST(ast, set())
-        VerifyASTSymbolsRecursively(ast)
-        pp_sexpr.PrettyPrint(ast, sys.stdout)
-
-
-if __name__ == "__main__":
-    import sys
-    import os
-    import pathlib
-    from FE import mod_pool
-
-    logging.basicConfig(level=logging.WARNING)
-    logger.setLevel(logging.INFO)
-    macros.logger.setLevel(logging.INFO)
-
-    main(sys.argv[1:])
