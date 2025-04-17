@@ -19,7 +19,7 @@ from FE import canonicalize_large_args
 from FE import canonicalize_span
 from FE import canonicalize_union
 from FE import canonicalize
-from FE import macros
+from FE import macro
 from FE import symbolize
 from FE import type_corpus
 from FE import cwast
@@ -1122,7 +1122,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     logger.info("Expand macros and link most IDs to their definition")
-    macros.MacroExpansion(
+    macro.MacroExpansion(
         mod_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.DecorateASTWithSymbols(
         mod_topo_order, mp.builtin_symtab)

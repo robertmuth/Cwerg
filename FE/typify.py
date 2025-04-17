@@ -1240,7 +1240,8 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             ct: cwast.CanonType = node.x_type
             if ct is cwast.NO_TYPE:
-                assert isinstance(node, (cwast.Id, cwast.ValAuto)), f"untype node {node}"
+                assert isinstance(
+                    node, (cwast.Id, cwast.ValAuto)), f"untype node {node}"
                 assert isinstance(parent, cwast.ValPoint)
                 assert parent.point == node, f"missing type for {
                     node} in {node.x_srcloc}"
@@ -1339,11 +1340,12 @@ def main(argv: list[str]):
     assert ext in (".cw", ".cws")
     cwd = os.getcwd()
     main = str(pathlib.Path(fn).resolve())
-    mp = mod_pool.ReadModulesRecursively(pathlib.Path(cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
+    mp = mod_pool.ReadModulesRecursively(pathlib.Path(
+        cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
     for mod in mp.mods_in_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
-    macros.MacroExpansion(
+    macro.MacroExpansion(
         mp.mods_in_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.DecorateASTWithSymbols(
         mp.mods_in_topo_order, mp.builtin_symtab)
@@ -1364,7 +1366,7 @@ if __name__ == "__main__":
     import pathlib
     from FE import mod_pool
     from FE import identifier
-    from FE import macros
+    from FE import macro
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.WARN)

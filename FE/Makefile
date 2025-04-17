@@ -115,7 +115,7 @@ $(DIR)/%.cw.eval: %.cw
 
 $(DIR)/%.cw.macro: %.cw
 	@echo "[macro $@]"
-	$(PYPY) ./macros.py $<
+	$(PYPY) ./macro.py $<
 
 
 $(DIR)/%.cws.pp: %.cws
