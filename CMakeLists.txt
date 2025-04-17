@@ -430,5 +430,6 @@ add_executable(emit_ir.exe
         FE/mod_pool.h
         FE/symbolize.cc
         FE/symbolize.h
+        FE/identifier.h
         FE/emit_ir.cc
 )
