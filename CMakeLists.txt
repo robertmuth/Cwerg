@@ -431,5 +431,7 @@ add_executable(emit_ir.exe
         FE/symbolize.cc
         FE/symbolize.h
         FE/identifier.h
+        FE/macro.h
+        FE/macro.cc
         FE/emit_ir.cc
 )
