@@ -80,7 +80,7 @@ class SymTab:
         return self._syms.get(name)
 
     def resolve_name_with_visibility_check(self, name, must_be_public, srcloc):
-        s = self._syms.get(name)
+        s = self.resolve_name(name)
         if s:
             if must_be_public and not s.pub:
                 cwast.CompilerError(srcloc, f"{name} must be public")
@@ -108,14 +108,13 @@ class SymTab:
 
         # We are already in the "right" symtab
         name = macro_invoke.name.GetSymbolNameWithoutQualifier()
-        out = self._syms.get(name)
+        out = self.resolve_name_with_visibility_check(
+            name, must_be_public, macro_invoke.x_srcloc)
         if not out:
             out = builtin_syms._syms.get(name)
         if not out:
             return out
         assert isinstance(out, cwast.DefMacro)
-        if must_be_public:
-            assert out.pub, f"{out.name} must be public"
         return out
 
 
