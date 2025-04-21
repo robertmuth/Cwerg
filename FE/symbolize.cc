@@ -82,7 +82,7 @@ void AnnotateNodeSymbol(Node node, Node def_node) {
   Node_x_symbol(node) = def_node;
 }
 
-void HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+void HelperResolveSymbolsOutsideFunctionsAndMacros(
     Node node, const SymTab* builtin_symtab, bool must_resolve_all) {
   auto visitor = [must_resolve_all, builtin_symtab](Node node, Node parent) {
     if (Node_kind(node) != NT::Id || !Node_x_symbol(node).isnull()) {
@@ -125,7 +125,7 @@ void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(Node(child))) {
       if (Node_kind(child) != NT::DefFun && Node_kind(child) != NT::DefMacro) {
-        HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
+        HelperResolveSymbolsOutsideFunctionsAndMacros(
             child, builtin_symtab, must_resolve_all);
       }
     }

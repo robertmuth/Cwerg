@@ -69,17 +69,15 @@ class SymTab:
                                 f"Duplicate symbol name [{name}] for\n {node}\npreviously defined by\n {prev}")
         self._syms[name] = node
 
-    def AddLocalSym(self, name: cwast.NAME, node):
-        assert not name.IsMacroVar()
-        assert isinstance(node, (cwast.DefVar, cwast.FunParam)), f"{node}"
-        self.add_with_dup_check(name, node)
-
     def has_sym(self, name):
         return name in self._syms
 
     def del_sym(self, name):
         assert name in self._syms
         del self._syms[name]
+
+    def resolve_name(self, name):
+        return self._syms.get(name)
 
     def resolve_name_with_visibility_check(self, name, must_be_public, srcloc):
         s = self._syms.get(name)
@@ -181,8 +179,8 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
     was_qualified = HasImportedSymbolReference(node)
 
     if not was_qualified and node.enum_name is None:
-        for s in reversed(scopes):
-            def_node = s.get(name)
+        for symtab in reversed(scopes):
+            def_node = symtab.resolve_name(name)
             if def_node is not None:
                 AnnotateNodeSymbol(node, def_node)
                 return
@@ -196,29 +194,25 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
     AnnotateNodeSymbol(node, def_node)
 
 
-def _DunResolveSymbols(
-        node, symtab: SymTab, builtin_syms: SymTab, scopes: list[dict]):
+def _HelperResolveSymbolsInsideFunctions(
+        node, symtab: SymTab, builtin_syms: SymTab, scopes: list[SymTab]):
 
     def record_local_sym(node):
-        name = node.name
         logger.debug("recording local symbol: %s", node)
-        if name in scopes[-1]:
-            cwast.CompilerError(node.x_srcloc,
-                                f"redefinition of symbol: {name}")
-        scopes[-1][name] = node
-        symtab.AddLocalSym(name, node)
+        scopes[-1].add_with_dup_check(node.name, node)
 
     def visitor(node: Any, nfd: cwast.NFD):
         nonlocal builtin_syms, scopes
         if isinstance(node, cwast.Id) and nfd.name != "field":
             _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
-        if isinstance(node, cwast.DefVar) and not node.name.IsMacroVar():
+        if isinstance(node, cwast.DefVar):
+            assert not node.name.IsMacroVar()
             record_local_sym(node)
 
     def scope_enter(node: Any, nfd: cwast.NFD):
         nonlocal scopes
         logger.debug("push scope for %s: %s", node, nfd.name)
-        scopes.append({})
+        scopes.append(SymTab())
         if isinstance(node, cwast.DefFun):
             for p in node.params:
                 if isinstance(p, cwast.FunParam):
@@ -227,8 +221,6 @@ def _DunResolveSymbols(
     def scope_exit(node: Any, nfd: cwast.NFD):
         nonlocal scopes, symtab
         logger.debug("pop scope for %s: %s", node, nfd.name)
-        for name in scopes[-1].keys():
-            symtab.del_sym(name)
         scopes.pop(-1)
 
     cwast.VisitAstRecursivelyWithScopeTracking(
@@ -251,8 +243,8 @@ def ResolveSymbolsInsideFunctions(
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node.name)
-                scopes: list[dict] = []
-                _DunResolveSymbols(
+                scopes: list[SymTab] = []
+                _HelperResolveSymbolsInsideFunctions(
                     node, symtab, builtin_symtab, scopes)
                 assert not scopes
 
