@@ -77,14 +77,14 @@ aarch64-linux-gnu-objdump -d hello_barebones-a64
 qemu-arm-static  ./hello_barebones-a64
 ```
 
-Often it useful to see how a compiler translates a certain C expression.
+Often it is useful to see how a compiler translates a certain C expression.
 Assuming `test.c` contains code with that expression. Run
 ```
 aarch64-linux-gnu-gcc-8 test.c -c -O3  -o xxx.o ; aarch64-linux-gnu-objdump -D xxx.o
 ```
 to see the result.
 
-Qemu can also used to generated traces which can be useful for debugging:
+Qemu can also be used to generate traces which can be useful for debugging:
 
 General purpose reg contents only
 ```

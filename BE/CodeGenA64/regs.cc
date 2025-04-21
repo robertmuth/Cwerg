@@ -1,4 +1,7 @@
 #include "BE/CodeGenA64/regs.h"
+
+#include <algorithm>
+
 #include "BE/Base/cfg.h"
 #include "BE/Base/reg_alloc.h"
 #include "BE/Base/serialize.h"

@@ -4,6 +4,7 @@
 #include "BE/CodeGenA64/isel_gen.h"
 #include "BE/Base/opcode_gen.h"
 
+#include <algorithm>
 #include <cstdint>
 
 namespace cwerg::code_gen_a64 {

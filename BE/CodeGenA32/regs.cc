@@ -1,4 +1,7 @@
 #include "BE/CodeGenA32/regs.h"
+
+#include <algorithm>
+
 #include "BE/Base/reg_alloc.h"
 #include "BE/Base/serialize.h"
 #include "BE/CodeGenA32/isel_gen.h"

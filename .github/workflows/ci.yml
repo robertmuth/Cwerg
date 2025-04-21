@@ -41,7 +41,7 @@ jobs:
         echo
         # NOTE: the qemu-user-static causes a lot of pain because it occasionally is
         #       unavailable in CI repos
-        #       So we alternate between using the stock version and a pinnen version
+        #       So we alternate between using the stock version and a pinned version
         # PINNED VERSION
         # sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.20
         # wget http://launchpadlibrarian.net/548257507/qemu-user-static_4.2-3ubuntu6.17_amd64.deb
