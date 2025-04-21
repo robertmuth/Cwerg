@@ -88,7 +88,7 @@ class SymTab:
 
         return None
 
-    def resolve_sym(self, ident: cwast.Id, builtin_syms: "SymTab", must_be_public) -> Optional[Any]:
+    def resolve_sym(self, ident: cwast.Id, must_be_public) -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
         # the mod_name has already been used to pick this SymTab
         name = ident.name
@@ -100,10 +100,6 @@ class SymTab:
                     ident.x_srcloc, f"could not resolve enum base-name [{name}]")
             assert isinstance(out, cwast.DefEnum)
             return _resolve_enum_item(out, ident.enum_name, ident.x_srcloc)
-
-        if not out:
-            out = builtin_syms.resolve_name_with_visibility_check(
-                name, must_be_public, ident.x_srcloc)
         return out
 
     def resolve_macro(self, macro_invoke: cwast.MacroInvoke,
@@ -148,8 +144,10 @@ def _HelperResolveGlobalSymbols(node, builtin_syms: SymTab, must_resolve_all: bo
                     node.x_srcloc, f"import of {node.name} not resolved")
             return
         symtab: SymTab = node.x_import.x_module.x_symtab
-        def_node = symtab.resolve_sym(
-            node, builtin_syms, HasImportedSymbolReference(node))
+        is_qualified = HasImportedSymbolReference(node)
+        def_node = symtab.resolve_sym(node, is_qualified)
+        if not def_node and not is_qualified:
+            def_node = builtin_syms.resolve_sym(node, True)
         if def_node:
             AnnotateNodeSymbol(node, def_node)
         else:
@@ -184,10 +182,13 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
             if def_node is not None:
                 AnnotateNodeSymbol(node, def_node)
                 return
-        # symbol is not a local symbol - so we fall through to looking in the global scope
+
+    # symbol is not a local symbol - so we fall through to looking in the global scope
     # assert False, f"{node}"
     symtab: SymTab = node.x_import.x_module.x_symtab
-    def_node = symtab.resolve_sym(node, builtin_syms, was_qualified)
+    def_node = symtab.resolve_sym(node, was_qualified)
+    if not def_node:
+        def_node = builtin_syms.resolve_sym(node, True)
     if def_node is None:
         cwast.CompilerError(
             node.x_srcloc, f"cannot resolve symbol for {node}")
