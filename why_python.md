@@ -49,8 +49,8 @@ Implementing the everything twice has additional benefits:
 The initial plan was to provide a C port but C in 2020 felt like an exercise in masochism
 and so the C port morphed into a C++ port.
 The hope is to offer plain C bindings on top of it. To facilitate this the C++ stays clear
-of exception and virtual functions and only uses a fairly limited part of STL.
-All the basic data structure use custom containers.
+of exceptions and virtual functions and only uses a fairly limited part of STL.
+All the basic data structures use custom containers.
 
 
 ## C++ Entanglement

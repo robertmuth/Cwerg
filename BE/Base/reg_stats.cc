@@ -2,6 +2,7 @@
 
 #include "BE/Base/reg_stats.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <map>
 

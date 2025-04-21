@@ -9,7 +9,7 @@ based Linux distributions.
 
 First you need to install (cross) tool chains and emulators.
 
-Cwerg requires C++17 compatible compilers and Python 3.10 or higher.
+Cwerg requires C++20 compatible compilers and Python 3.10 or higher.
 ```
 sudo apt install cmake
 sudo apt install gcc g++

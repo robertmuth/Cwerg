@@ -3,6 +3,7 @@
 
 #include "BE/CodeGenX64/isel_gen.h"
 
+#include <algorithm>
 #include <cstdint>
 
 #include "BE/Base/opcode_gen.h"
