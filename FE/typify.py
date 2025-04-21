@@ -1348,7 +1348,7 @@ def main(argv: list[str]):
     macro.MacroExpansion(
         mp.mods_in_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.SetTargetFields(mp.mods_in_topo_order)
-    symbolize.ResolveLocalAndLeftoverGlobalSymbols(
+    symbolize.ResolveSymbolsInsideFunctions(
         mp.mods_in_topo_order, mp.builtin_symtab)
     for mod in mp.mods_in_topo_order:
         symbolize.VerifySymbols(mod)

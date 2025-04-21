@@ -125,9 +125,6 @@ class SymTab:
         return out
 
 
-
-
-
 def _IsFieldNode(node, parent) -> bool:
     return isinstance(parent, (cwast.ExprOffsetof, cwast.ExprField)) and parent.field is node
 
@@ -165,9 +162,9 @@ def _HelperResolveGlobalSymbols(node, builtin_syms: SymTab, must_resolve_all: bo
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
 
-def ResolveGlobalSymbols(mod_topo_order: Sequence[cwast.DefMod],
-                         builtin_syms: SymTab,
-                         must_resolve_all):
+def ResolveSymbolsOutsideFunctionsAndMacros(mod_topo_order: Sequence[cwast.DefMod],
+                                            builtin_syms: SymTab,
+                                            must_resolve_all):
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if not isinstance(node, (cwast.DefFun, cwast.DefMacro)):
@@ -198,7 +195,8 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
             node.x_srcloc, f"cannot resolve symbol for {node}")
     AnnotateNodeSymbol(node, def_node)
 
-def _HelperResolveLocalAndLeftoverGlobalSymbols(
+
+def _DunResolveSymbols(
         node, symtab: SymTab, builtin_syms: SymTab, scopes: list[dict]):
 
     def record_local_sym(node):
@@ -237,13 +235,14 @@ def _HelperResolveLocalAndLeftoverGlobalSymbols(
         node, visitor, scope_enter, scope_exit)
 
 
-def ResolveLocalAndLeftoverGlobalSymbols(
+def ResolveSymbolsInsideFunctions(
         mods: list[cwast.DefMod], builtin_symtab: SymTab):
     """
     At this point:
-    * DefMods have valid x_symtab populated with the global symbols
+    * DefMods have a valid x_symtab populated with the global symbols
     * Imports have a valid x_module field
-    * most Id referencing globals have their x_symbol fields set.
+    * Ids referencing imported symbols have a valid x_import field
+
     """
 
     for mod in mods:
@@ -253,7 +252,7 @@ def ResolveLocalAndLeftoverGlobalSymbols(
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node.name)
                 scopes: list[dict] = []
-                _HelperResolveLocalAndLeftoverGlobalSymbols(
+                _DunResolveSymbols(
                     node, symtab, builtin_symtab, scopes)
                 assert not scopes
 

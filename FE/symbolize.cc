@@ -118,9 +118,9 @@ void HelperResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
 }
 
 void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-    const std::vector<Node>& modules, const SymTab* builtin_symtab,
+    const std::vector<Node>& mods, const SymTab* builtin_symtab,
     bool must_resolve_all) {
-  for (Node mod : modules) {
+  for (Node mod : mods) {
     ASSERT(Node_kind(mod) == NT::DefMod, "");
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(Node(child))) {
@@ -131,5 +131,30 @@ void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
     }
   }
 }
+
+void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
+                                   const SymTab* builtin_symtab) {
+  for (Node mod : mods) {
+    for (Node child = Node_body_mod(mod); !child.isnull();
+         child = Node_next(child)) {
+      if (Node_kind(child) == NT::DefFun) {
+        //
+      }
+    }
+  }
+}
+
+void SetTargetFields(const std::vector<Node>& mods) {
+  for (Node mod : mods) {
+    for (Node child = Node_body_mod(mod); !child.isnull();
+         child = Node_next(child)) {
+      if (Node_kind(child) == NT::DefFun) {
+        //
+      }
+    }
+  }
+}
+
+void VerifySymbols(Node node) {}
 
 }  // namespace cwerg::fe

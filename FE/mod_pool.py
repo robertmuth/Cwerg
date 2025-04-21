@@ -189,7 +189,7 @@ class _ImportInfo:
         self.import_node.x_module = imported_mod
 
 
-class ModInfo:
+class _ModInfo:
     def __init__(self, mid: ModId, mod: cwast.DefMod, symtab: symbolize.SymTab):
         self.mid = mid
         self.mod = mod
@@ -202,7 +202,7 @@ class ModInfo:
         return f"{self.name}:{self.mid}"
 
 
-def _ModulesInTopologicalOrder(mod_infos: Sequence[ModInfo]) -> list[cwast.DefMod]:
+def _ModulesInTopologicalOrder(mod_infos: Sequence[_ModInfo]) -> list[cwast.DefMod]:
     """The order is also deterministic
 
     This means modules cannot have circular dependencies except for module arguments
@@ -302,15 +302,15 @@ def _ReadMod(handle: Path, mod_name: str) -> cwast.DefMod:
 class _ModPoolState:
     read_mod_fun: Callable
     # all modules keyed by ModHandle
-    all_mods: dict[ModId, ModInfo] = dataclasses.field(default_factory=dict)
+    all_mods: dict[ModId, _ModInfo] = dataclasses.field(default_factory=dict)
     taken_names: set[str] = dataclasses.field(default_factory=set)
     raw_generic: dict[Path, cwast.DefMod] = dataclasses.field(
         default_factory=dict)
 
-    def AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> ModInfo:
+    def AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> _ModInfo:
         mid = (path, *args)
         name = path.name
-        mod_info = ModInfo(mid, mod, symtab)
+        mod_info = _ModInfo(mid, mod, symtab)
         # print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
         self.all_mods[mid] = mod_info
@@ -321,23 +321,23 @@ class _ModPoolState:
         mod.x_symtab = mod_info.symtab
         return mod_info
 
-    def GetModInfo(self, mid: ModId) -> Optional[ModInfo]:
+    def GetModInfo(self, mid: ModId) -> Optional[_ModInfo]:
         return self.all_mods.get(mid)
 
     def AllMods(self) -> Sequence[cwast.DefMod]:
         return [info.mod for info in self.all_mods.values()]
 
-    def AllModInfos(self) -> Sequence[ModInfo]:
+    def AllModInfos(self) -> Sequence[_ModInfo]:
         return self.all_mods.values()
 
-    def AddModInfoSimple(self, path: Path, mod_name: str) -> ModInfo:
+    def AddModInfoSimple(self, path: Path, mod_name: str) -> _ModInfo:
         """Register regular module"""
         mod = self.read_mod_fun(path, mod_name)
         _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         return self.AddModInfoCommon(path, [], mod, symtab)
 
-    def AddModInfoForGeneric(self, path: Path, args: list, mod_name: str) -> ModInfo:
+    def AddModInfoForGeneric(self, path: Path, args: list, mod_name: str) -> _ModInfo:
         """Specialize Generic Mod and register it"""
         generic_mod = self.raw_generic.get(path)
         if not generic_mod:
@@ -368,19 +368,24 @@ class ModPool:
 
 def ReadModulesRecursively(root: Path,
                            seed_modules: list[str], add_builtin: bool, read_mod_fun=_ReadMod) -> ModPool:
-    """
-    Will set the following Node fields of all imported Modules as a side-effect:
-        * x_symtab on DefMod nodes (includes creation of SymTabs for all topelevel symbols)
-        * x_import field for all DefFun, DefMacro and most Id nodes
-        * x_module field of all Import nodes
+    """Reads all the seed_modules and their imports, also instantiates generic modules
 
-    This will also resolve all Id nodes that are not inside function bodies to
-    facilitate specialization of generic modules.
+    Will set the following Node fields of all read Modules as a side-effect:
+        * x_symtab on DefMod nodes (includes creation of SymTabs for all topelevel symbols)
+        * x_import field for all DefFun, DefMacro and Id nodes
+        * x_module field of all Import nodes
+        * x_symbol field for Id Nodes outside of Functions or Macros
+
+    The setting of x_symbol fields facilitates specialization of generic modules.
+    Setting the x_import fields has important consequences for Macro bodies:
+    If an Id in the macro body references a symbol not defined prior in the body AND
+    not defined in the function instantiating the macro then the symtab of the module containing
+    the macro will be used for the symbol resolution.
     """
     state = _ModPoolState(read_mod_fun)
     out = ModPool()
 
-    active: list[ModInfo] = []
+    active: list[_ModInfo] = []
     if add_builtin:
         mod_name = "builtin"
         path = _ModUniquePathName(root, None, mod_name)
@@ -405,13 +410,13 @@ def ReadModulesRecursively(root: Path,
 
     # fix point computation for resolving imports
     while active:
-        new_active: list[ModInfo] = []
+        new_active: list[_ModInfo] = []
         seen_change = False
         # this probably needs to be a fix point computation as well
-        symbolize.ResolveGlobalSymbols(
+        symbolize.ResolveSymbolsOutsideFunctionsAndMacros(
             state.AllMods(), out.builtin_symtab, False)
         for mod_info in active:
-            assert isinstance(mod_info, ModInfo), mod_info
+            assert isinstance(mod_info, _ModInfo), mod_info
             logger.info("start resolving imports for %s", mod_info)
             num_unresolved = 0
             for import_info in mod_info.imports:

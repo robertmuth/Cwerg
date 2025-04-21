@@ -6,5 +6,7 @@
 #include "Util/assert.h"
 
 namespace cwerg::fe {
-class MacroContext {};
+class MacroContext {
+
+};
 }  // namespace cwerg::fe

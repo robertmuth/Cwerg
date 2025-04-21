@@ -200,10 +200,7 @@ def _FindAndExpandMacrosRecursively(node, builtin_symtab: symbolize.SymTab, nest
 
 
 def MacroExpansion(mods: list[cwast.DefMod], builtin_symtab: symbolize.SymTab, fun_id_gens: identifier.IdGenCache):
-    """Expands MacroInvoke, ExprSrcLoc, ExprStringify
-
-    needs a valid x_symbol to find the DefMacro for a MacroInvoke
-    """
+    """Expands MacroInvoke, ExprSrcLoc, ExprStringify"""
     for mod in mods:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
@@ -232,7 +229,7 @@ def main(argv: list[str]):
     fun_id_gens = identifier.IdGenCache()
     MacroExpansion(mod_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.SetTargetFields(mp.mods_in_topo_order)
-    symbolize.ResolveLocalAndLeftoverGlobalSymbols(
+    symbolize.ResolveSymbolsInsideFunctions(
         mod_topo_order, mp.builtin_symtab)
     for ast in mod_topo_order:
         # cwast.CheckAST(ast, set())

@@ -1125,7 +1125,7 @@ def main() -> int:
     macro.MacroExpansion(
         mod_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.SetTargetFields(mod_topo_order)
-    symbolize.ResolveLocalAndLeftoverGlobalSymbols(
+    symbolize.ResolveSymbolsInsideFunctions(
         mod_topo_order, mp.builtin_symtab)
     for mod in mp.mods_in_topo_order:
         symbolize.VerifySymbols(mod)
