@@ -1,6 +1,6 @@
 ## Instruction Selection
 
-Both the Arm32 and Arm64 backend use the same approach to instruction selection
+All backends (Arm32, Arm64, x86-64) use the same approach to instruction selection
 described below.
 
 
