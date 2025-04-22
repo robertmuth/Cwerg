@@ -721,7 +721,7 @@ def main(argv: list[str]):
     for mod in mp.mods_in_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
-    macro.MacroExpansion(
+    macro.ExpandMacrosAndMacroLike(
         mp.mods_in_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.SetTargetFields(mp.mods_in_topo_order)
     symbolize.ResolveSymbolsInsideFunctions(

@@ -56,7 +56,8 @@ def _ExpandMacroBodyRecursively(node, ctx: _MacroContext) -> Any:
         # Why is this not a MacroVar
         assert isinstance(new_name, cwast.Id)
         type_or_auto = _ExpandMacroBodyRecursively(node.type_or_auto, ctx)
-        initial = _ExpandMacroBodyRecursively(node.initial_or_undef_or_auto, ctx)
+        initial = _ExpandMacroBodyRecursively(
+            node.initial_or_undef_or_auto, ctx)
         return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
@@ -162,8 +163,8 @@ def _ExpandMacroInvokation(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx
 MAX_MACRO_NESTING = 8
 
 
-def _ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cwast.MacroInvoke],
-                            builtin_syms: symbolize.SymTab, nesting: int, ctx: _MacroContext):
+def _ExpandSingleNodeIteratively(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cwast.MacroInvoke],
+                                 builtin_syms: symbolize.SymTab, nesting: int, ctx: _MacroContext):
     """This will recursively expand the macro so returned node does not contain any expandables"""
     while cwast.NF.TO_BE_EXPANDED in node.FLAGS:
         assert nesting < MAX_MACRO_NESTING
@@ -185,28 +186,29 @@ def _ExpandMacroOrMacroLike(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, c
 
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, node
     # recurse and resolve any expandables
-    _FindAndExpandMacrosRecursively(node, builtin_syms, nesting + 1, ctx)
+    _ExpandMacrosAndMacroLikeRecursively(node, builtin_syms, nesting + 1, ctx)
     # pp_sexpr.PrettyPrint(exp)
     return node
 
 
-def _FindAndExpandMacrosRecursively(node, builtin_symtab: symbolize.SymTab, nesting: int, ctx: _MacroContext):
+def _ExpandMacrosAndMacroLikeRecursively(fun, builtin_symtab: symbolize.SymTab, nesting: int, ctx: _MacroContext):
     def replacer(node: Any):
         nonlocal builtin_symtab, nesting, ctx
         if cwast.NF.TO_BE_EXPANDED in node.FLAGS:
-            return _ExpandMacroOrMacroLike(node, builtin_symtab, nesting, ctx)
+            return _ExpandSingleNodeIteratively(node, builtin_symtab, nesting, ctx)
 
-    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def MacroExpansion(mods: list[cwast.DefMod], builtin_symtab: symbolize.SymTab, fun_id_gens: identifier.IdGenCache):
+def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod], builtin_symtab: symbolize.SymTab, fun_id_gens: identifier.IdGenCache):
     """Expands MacroInvoke, ExprSrcLoc, ExprStringify"""
     for mod in mods:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node.name)
                 ctx = _MacroContext(fun_id_gens.Get(node))
-                _FindAndExpandMacrosRecursively(node, builtin_symtab, 0, ctx)
+                _ExpandMacrosAndMacroLikeRecursively(
+                    node, builtin_symtab, 0, ctx)
 
 
 ############################################################
@@ -227,7 +229,7 @@ def main(argv: list[str]):
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
-    MacroExpansion(mod_topo_order, mp.builtin_symtab, fun_id_gens)
+    ExpandMacrosAndMacroLike(mod_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.SetTargetFields(mp.mods_in_topo_order)
     symbolize.ResolveSymbolsInsideFunctions(
         mod_topo_order, mp.builtin_symtab)

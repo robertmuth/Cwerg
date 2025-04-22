@@ -1122,7 +1122,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     logger.info("Expand macros and link most IDs to their definition")
-    macro.MacroExpansion(
+    macro.ExpandMacrosAndMacroLike(
         mod_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.SetTargetFields(mod_topo_order)
     symbolize.ResolveSymbolsInsideFunctions(
