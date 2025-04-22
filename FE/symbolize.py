@@ -195,36 +195,36 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
 
 
 def _HelperResolveSymbolsInsideFunctions(
-        node, symtab: SymTab, builtin_syms: SymTab, scopes: list[SymTab]):
+        fun, symtab: SymTab, builtin_syms: SymTab, scopes: list[SymTab]):
 
     def record_local_sym(node):
         logger.debug("recording local symbol: %s", node)
         scopes[-1].add_with_dup_check(node.name, node)
 
-    def visitor(node: Any, nfd: cwast.NFD):
+    def visitor(node: Any, parent: Any):
         nonlocal builtin_syms, scopes
-        if isinstance(node, cwast.Id) and nfd.name != "field":
+        if isinstance(node, cwast.Id) and not _IsFieldNode(node, parent):
             _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
         if isinstance(node, cwast.DefVar):
             assert not node.name.IsMacroVar()
             record_local_sym(node)
 
-    def scope_enter(node: Any, nfd: cwast.NFD):
+    def scope_enter(node: Any):
         nonlocal scopes
-        logger.debug("push scope for %s: %s", node, nfd.name)
+        logger.debug("push scope for %s", node)
         scopes.append(SymTab())
         if isinstance(node, cwast.DefFun):
             for p in node.params:
                 if isinstance(p, cwast.FunParam):
                     record_local_sym(p)
 
-    def scope_exit(node: Any, nfd: cwast.NFD):
+    def scope_exit(node: Any):
         nonlocal scopes, symtab
-        logger.debug("pop scope for %s: %s", node, nfd.name)
+        logger.debug("pop scope for %s", node)
         scopes.pop(-1)
 
     cwast.VisitAstRecursivelyWithScopeTracking(
-        node, visitor, scope_enter, scope_exit)
+        fun, visitor, scope_enter, scope_exit, None)
 
 
 def ResolveSymbolsInsideFunctions(

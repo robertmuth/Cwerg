@@ -287,11 +287,11 @@ enum class NFD_NODE_FIELD : uint8_t {
     args = 1,  // slot: 1
     args_mod = 2,  // slot: 2
     body = 3,  // slot: 3
-    body_f = 4,  // slot: 2
+    body_f = 4,  // slot: 3
     body_for = 5,  // slot: 2
     body_macro = 6,  // slot: 3
-    body_mod = 7,  // slot: 2
-    body_t = 8,  // slot: 0
+    body_mod = 7,  // slot: 3
+    body_t = 8,  // slot: 2
     callee = 9,  // slot: 0
     cases = 10,  // slot: 0
     cond = 11,  // slot: 1
@@ -540,17 +540,24 @@ enum class ASSIGNMENT_KIND : uint8_t {
     ROTR = 42,
     ROTL = 43,
 };
+
+constexpr int SLOT_BODY = 3;
+
+constexpr int SLOT_BODY_T = 2;
+
 // NFK.NAME
 inline Name Node_name(Node n) { return Name(gNodeCore[n].children[0]); }
 inline Name Node_enum_name(Node n) { return Name(gNodeCore[n].children[1]); }
 inline Name Node_name_list(Node n) { return Name(gNodeCore[n].children[1]); }
 inline Name Node_label(Node n) { return Name(gNodeCore[n].children[0]); }
 inline Name Node_target(Node n) { return Name(gNodeCore[n].children[0]); }
+
 // NFK.STR
 inline Str Node_number(Node n) { return Str(gNodeCore[n].children[0]); }
 inline Str Node_string(Node n) { return Str(gNodeCore[n].children[0]); }
 inline Str Node_message(Node n) { return Str(gNodeCore[n].children[0]); }
 inline Str Node_path(Node n) { return Str(gNodeCore[n].children[1]); }
+
 // NFK.LIST
 inline Node Node_params(Node n) { return Node(gNodeCore[n].children[1]); }
 inline Node Node_params_mod(Node n) { return Node(gNodeCore[n].children[1]); }
@@ -562,13 +569,14 @@ inline Node Node_fields(Node n) { return Node(gNodeCore[n].children[1]); }
 inline Node Node_types(Node n) { return Node(gNodeCore[n].children[0]); }
 inline Node Node_inits(Node n) { return Node(gNodeCore[n].children[0]); }
 inline Node Node_gen_ids(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_body_mod(Node n) { return Node(gNodeCore[n].children[2]); }
+inline Node Node_body_mod(Node n) { return Node(gNodeCore[n].children[3]); }
 inline Node Node_body(Node n) { return Node(gNodeCore[n].children[3]); }
-inline Node Node_body_t(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_body_f(Node n) { return Node(gNodeCore[n].children[2]); }
+inline Node Node_body_t(Node n) { return Node(gNodeCore[n].children[2]); }
+inline Node Node_body_f(Node n) { return Node(gNodeCore[n].children[3]); }
 inline Node Node_body_for(Node n) { return Node(gNodeCore[n].children[2]); }
 inline Node Node_body_macro(Node n) { return Node(gNodeCore[n].children[3]); }
 inline Node Node_cases(Node n) { return Node(gNodeCore[n].children[0]); }
+
 // NFK.NODE
 inline Node Node_field(Node n) { return Node(gNodeCore[n].children[2]); }
 inline Node Node_point(Node n) { return Node(gNodeCore[n].children[1]); }
@@ -617,7 +625,7 @@ inline void InitDefMacro(Node node, Name name, MACRO_PARAM_KIND macro_result_kin
 }
 
 inline void InitDefMod(Node node, Name name, Node params_mod, Node body_mod, uint16_t bits, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::DefMod, name, params_mod, body_mod, kHandleInvalid, 0, bits, doc, srcloc);
+    NodeInit(node, NT::DefMod, name, params_mod, kHandleInvalid, body_mod, 0, bits, doc, srcloc);
 }
 
 inline void InitDefRec(Node node, Name name, Node fields, uint16_t bits, Str doc, const SrcLoc& srcloc) {
@@ -821,7 +829,7 @@ inline void InitStmtExpr(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
 }
 
 inline void InitStmtIf(Node node, Node cond, Node body_t, Node body_f, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtIf, body_t, cond, body_f, kHandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtIf, kHandleInvalid, cond, body_t, body_f, 0, 0, doc, srcloc);
 }
 
 inline void InitStmtReturn(Node node, Node expr_ret, Str doc, const SrcLoc& srcloc) {
@@ -1049,6 +1057,34 @@ inline void VisitNodesRecursivelyPreAndPost(
     }
   }
   post_visitor(node, parent);
+}
+
+inline void VisitAstRecursivelyWithScopeTracking(
+    Node node, std::function<void(Node, Node)> pre_visitor,
+    std::function<void(Node)> scope_enter, std::function<void(Node)> scope_exit,
+    Node parent) {
+  const auto& core = gNodeCore[node];
+
+  pre_visitor(node, parent);
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Handle child = core.children[i];
+    if (child.raw_kind() >= kKindStr || child.isnull()) continue;
+    bool is_new_scope =
+        (i == SLOT_BODY) || (Node_kind(node) == NT::StmtIf && i == SLOT_BODY_T);
+    if (is_new_scope) {
+      scope_enter(node);
+    }
+
+    do {
+      VisitAstRecursivelyWithScopeTracking(Node(child), pre_visitor,
+                                             scope_enter, scope_exit, node);
+      child = Node_next(Node(child));
+    } while (!child.isnull());
+    if (is_new_scope) {
+      scope_exit(node);
+    }
+  }
 }
 
 // TODO: move this to a helper lib

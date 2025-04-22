@@ -48,8 +48,7 @@ Node SymTabResolveNameWithVisibilityCheck(const SymTab* symtab, Name name,
   return def;
 }
 
-Node SymTabResolveSym(const SymTab* symtab, Node node,
-                      const SymTab* builtin_symtab, bool must_be_public) {
+Node SymTabResolveSym(const SymTab* symtab, Node node, bool must_be_public) {
   ASSERT(Node_kind(node) == NT::Id, "");
   Name name = Node_name(node);
   Name enum_name = Node_enum_name(node);
@@ -69,10 +68,6 @@ Node SymTabResolveSym(const SymTab* symtab, Node node,
     }
     CompilerError(Node_srcloc(node)) << "enum value not found";
   }
-  if (out == kNodeInvalid) {
-    out = SymTabResolveNameWithVisibilityCheck(
-        builtin_symtab, name, must_be_public, Node_srcloc(node));
-  }
   return out;
 }
 
@@ -82,8 +77,9 @@ void AnnotateNodeSymbol(Node node, Node def_node) {
   Node_x_symbol(node) = def_node;
 }
 
-void HelperResolveSymbolsOutsideFunctionsAndMacros(
-    Node node, const SymTab* builtin_symtab, bool must_resolve_all) {
+void HelperResolveSymbolsOutsideFunctionsAndMacros(Node node,
+                                                   const SymTab* builtin_symtab,
+                                                   bool must_resolve_all) {
   auto visitor = [must_resolve_all, builtin_symtab](Node node, Node parent) {
     if (Node_kind(node) != NT::Id || !Node_x_symbol(node).isnull()) {
       return;
@@ -104,8 +100,11 @@ void HelperResolveSymbolsOutsideFunctionsAndMacros(
     const SymTab* ref_symtab = Node_x_symtab(Node_x_module(import_node));
     // std::cout << "@@@@@@ " << Node_name(import_node) << " " << " "
     //          << builtin_symtab << "\n";
-    Node def_node = SymTabResolveSym(ref_symtab, node, builtin_symtab,
-                                     HasImportedSymbolReference(node));
+    Node def_node =
+        SymTabResolveSym(ref_symtab, node, HasImportedSymbolReference(node));
+    if (def_node.isnull()) {
+      def_node = SymTabResolveSym(builtin_symtab, node, true);
+    }
     if (def_node == kNodeInvalid) {
       AnnotateNodeSymbol(node, def_node);
     } else {
@@ -125,11 +124,23 @@ void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(Node(child))) {
       if (Node_kind(child) != NT::DefFun && Node_kind(child) != NT::DefMacro) {
-        HelperResolveSymbolsOutsideFunctionsAndMacros(
-            child, builtin_symtab, must_resolve_all);
+        HelperResolveSymbolsOutsideFunctionsAndMacros(child, builtin_symtab,
+                                                      must_resolve_all);
       }
     }
   }
+}
+
+void HelperResolveSymbolsInsideFunctions(Node fun,
+                                         const SymTab* builtin_symtab) {
+  auto visitor = [builtin_symtab](Node node, Node parent) {
+  };
+
+  auto scope_enter = [builtin_symtab](Node node) {
+  };
+  auto scope_exit = [builtin_symtab](Node node) {
+  };
+  VisitAstRecursivelyWithScopeTracking(fun, visitor, scope_enter, scope_exit, kNodeInvalid);
 }
 
 void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
@@ -138,7 +149,7 @@ void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
       if (Node_kind(child) == NT::DefFun) {
-        //
+        HelperResolveSymbolsInsideFunctions(child, builtin_symtab);
       }
     }
   }

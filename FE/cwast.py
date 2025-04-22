@@ -3072,8 +3072,8 @@ def VisitAstRecursively(node, visitor):
                 VisitAstRecursively(child, visitor)
 
 
-def VisitAstRecursivelyWithScopeTracking(node, visitor, scope_enter, scope_exit, nfd=None):
-    if visitor(node, nfd):
+def VisitAstRecursivelyWithScopeTracking(node, visitor, scope_enter, scope_exit, parent=None):
+    if visitor(node, parent):
         return
 
     for nfd in node.__class__.NODE_FIELDS:
@@ -3081,15 +3081,15 @@ def VisitAstRecursivelyWithScopeTracking(node, visitor, scope_enter, scope_exit,
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
             VisitAstRecursivelyWithScopeTracking(
-                child, visitor, scope_enter, scope_exit, nfd)
+                child, visitor, scope_enter, scope_exit, node)
         else:
             if nfd.name in NEW_SCOPE_FIELDS:
-                scope_enter(node, nfd)
+                scope_enter(node)
             for child in getattr(node, f):
                 VisitAstRecursivelyWithScopeTracking(
-                    child, visitor, scope_enter, scope_exit, nfd)
+                    child, visitor, scope_enter, scope_exit, node)
             if nfd.name in NEW_SCOPE_FIELDS:
-                scope_exit(node, nfd)
+                scope_exit(node)
 
 
 def VisitAstRecursivelyWithField(node, visitor, nfd=None):
@@ -3651,7 +3651,7 @@ _NFK_KIND_2_SIZE = {
 }
 
 
-# this covers all fields which occur more than once
+# this covers all fields which occur more than once (and all the body_* fields)
 _FIELD_2_SLOT = {
     "type": 1,
     "type_or_auto": 1,
@@ -3660,6 +3660,9 @@ _FIELD_2_SLOT = {
     "expr1": 0,
     "expr2": 1,
     "body": 3,
+    "body_mod": 3,
+    "body_f": 3,
+    "body_t": 2,
     "cond": 1,
     "container": 0,
     "params": 1,
@@ -3717,7 +3720,7 @@ def GenerateAccessors():
         if k not in _KIND_TO_HANDLE:
             continue
         if k != last:
-            print(f"// {k}")
+            print(f"\n// {k}")
             last = k
 
         dst = _KIND_TO_HANDLE[k]
@@ -3843,6 +3846,8 @@ def GenerateCodeH(fout: Any):
     cgen.RenderEnumClass(cgen.NameValues(
         ASSIGNMENT_KIND), "ASSIGNMENT_KIND", fout)
 
+    print(f"\nconstexpr int SLOT_BODY = {_FIELD_2_SLOT['body']};")
+    print(f"\nconstexpr int SLOT_BODY_T = {_FIELD_2_SLOT['body_t']};")
     GenerateAccessors()
     GenerateInits()
 
