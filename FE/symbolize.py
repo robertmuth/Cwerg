@@ -194,7 +194,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -
     AnnotateNodeSymbol(node, def_node)
 
 
-def _HelperResolveSymbolsInsideFunctions(
+def _FunResolveSymbolsInsideFunctions(
         fun, symtab: SymTab, builtin_syms: SymTab, scopes: list[SymTab]):
 
     def record_local_sym(node):
@@ -203,9 +203,10 @@ def _HelperResolveSymbolsInsideFunctions(
 
     def visitor(node: Any, parent: Any):
         nonlocal builtin_syms, scopes
-        if isinstance(node, cwast.Id) and not _IsFieldNode(node, parent):
-            _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
-        if isinstance(node, cwast.DefVar):
+        if isinstance(node, cwast.Id):
+            if not _IsFieldNode(node, parent):
+                _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
+        elif isinstance(node, cwast.DefVar):
             assert not node.name.IsMacroVar()
             record_local_sym(node)
 
@@ -244,7 +245,7 @@ def ResolveSymbolsInsideFunctions(
             if isinstance(node, (cwast.DefFun)):
                 logger.info("Resolving symbols inside fun: %s", node.name)
                 scopes: list[SymTab] = []
-                _HelperResolveSymbolsInsideFunctions(
+                _FunResolveSymbolsInsideFunctions(
                     node, symtab, builtin_symtab, scopes)
                 assert not scopes
 
@@ -319,14 +320,11 @@ def VerifySymbols(node):
     cwast.VisitAstRecursivelyWithField(node, visitor, None)
 
 
-def _HelperSetTargetField(node):
+def _FunSetTargetField(fun):
     parents = []
 
     def visitor_pre(node):
         nonlocal parents
-        if isinstance(node, cwast.DefMacro):
-            return True
-
         parents.append(node)
 
         if isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
@@ -335,16 +333,15 @@ def _HelperSetTargetField(node):
                 if isinstance(p, cwast.StmtBlock):
                     if p.label == target or target.IsEmpty():
                         node.x_target = p
-                        break
-            else:
-                assert False
+                        return
+            assert False
         if isinstance(node, cwast.StmtReturn):
             for p in reversed(parents):
                 if isinstance(p, (cwast.DefFun, cwast.ExprStmt)):
                     node.x_target = p
-                    break
-            else:
-                assert False, f"{
+                    return
+
+            assert False, f"{
                     node} --- {[p.__class__.__name__ for p in parents]}"
 
     def visitor_post(node):
@@ -352,14 +349,16 @@ def _HelperSetTargetField(node):
         parents.pop(-1)
 
     cwast.VisitAstRecursivelyPreAndPost(
-        node, visitor_pre, visitor_post)
+        fun, visitor_pre, visitor_post)
 
 
 def SetTargetFields(mods: list[cwast.DefMod]):
     for mod in mods:
-        logger.info("Resolving symbols inside module: %s", mod.name)
+        logger.info("Resolving target inside module: %s", mod.name)
         # we wait until macro expansion before resolving control flow targets
-        _HelperSetTargetField(mod)
+        for node in mod.body_mod:
+            if isinstance(node, (cwast.DefFun)):
+                _FunSetTargetField(node)
 
 
 def IterateValRec(points: list[cwast.ValPoint], def_rec: cwast.CanonType):

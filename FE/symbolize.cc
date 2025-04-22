@@ -130,29 +130,88 @@ void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
     }
   }
 }
+void ResolveSymbolInsideFunction(Node node, const SymTab* builtin_symtab,
+                                 std::vector<SymTab>* scopes) {
+  ASSERT(Node_kind(node) == NT::Id, "");
+  // TODO
+}
 
-void HelperResolveSymbolsInsideFunctions(Node fun,
-                                         const SymTab* builtin_symtab) {
-  auto visitor = [builtin_symtab](Node node, Node parent) {
+void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,
+                                      std::vector<SymTab>* scopes) {
+  auto visitor = [builtin_symtab, scopes](Node node, Node parent) {
+    if (Node_kind(node) == NT::Id) {
+      if (!IsFieldNode(node, parent)) {
+        ResolveSymbolInsideFunction(node, builtin_symtab, scopes);
+      }
+    } else if (Node_kind(node) == NT::DefVar) {
+      auto& ss = NameStrAndSeq(Node_name(node));
+      if (scopes->back().contains(ss)) {
+        CompilerError(Node_srcloc(node)) << "duplicate symbol " << ss;
+      }
+      scopes->back()[ss] = node;
+    }
   };
 
-  auto scope_enter = [builtin_symtab](Node node) {
+  auto scope_enter = [scopes](Node node) {
+    scopes->push_back(SymTab());
+    if (Node_kind(node) == NT::DefFun) {
+      for (Node child = Node_params(node); !child.isnull();
+           child = Node_next(child)) {
+        auto& ss = NameStrAndSeq(Node_name(child));
+        if (scopes->back().contains(ss)) {
+          CompilerError(Node_srcloc(node)) << "duplicate symbol " << ss;
+          scopes->back()[ss] = node;
+        }
+      }
+    }
   };
-  auto scope_exit = [builtin_symtab](Node node) {
-  };
-  VisitAstRecursivelyWithScopeTracking(fun, visitor, scope_enter, scope_exit, kNodeInvalid);
+  auto scope_exit = [scopes](Node node) { scopes->pop_back(); };
+  VisitAstRecursivelyWithScopeTracking(fun, visitor, scope_enter, scope_exit,
+                                       kNodeInvalid);
 }
 
 void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
                                    const SymTab* builtin_symtab) {
+  std::vector<SymTab> scopes;
   for (Node mod : mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
       if (Node_kind(child) == NT::DefFun) {
-        HelperResolveSymbolsInsideFunctions(child, builtin_symtab);
+        scopes.clear();
+        FunResolveSymbolsInsideFunctions(child, builtin_symtab, &scopes);
       }
     }
   }
+}
+
+void FunSetTargetField(Node fun) {
+  std::vector<Node> stack;
+  auto pre_visitor = [&stack](Node node, Node parent) {
+    stack.push_back(node);
+    const auto nt = Node_kind(node);
+    if (nt == NT::StmtBreak || nt == NT::StmtContinue) {
+      for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+        if (Node_kind(*it) == NT::StmtBlock) {
+          if (Node_label(node).isnull() || NameStrAndSeq(Node_label(node)) ==
+                                               NameStrAndSeq(Node_label(*it))) {
+            Node_x_target(node) = *it;
+            return;
+          }
+        }
+      }
+      CompilerError(Node_srcloc(node)) << "cannot find target";
+    } else if (nt == NT::StmtReturn) {
+      for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+        if (Node_kind(*it) == NT::DefFun || Node_kind(*it) == NT::ExprStmt) {
+          Node_x_target(node) = *it;
+          return;
+        }
+      }
+      CompilerError(Node_srcloc(node)) << "cannot find target";
+    }
+  };
+  auto post_visitor = [&stack](Node node, Node parent) { stack.pop_back(); };
+  VisitNodesRecursivelyPreAndPost(fun, pre_visitor, post_visitor, kNodeInvalid);
 }
 
 void SetTargetFields(const std::vector<Node>& mods) {
@@ -160,7 +219,7 @@ void SetTargetFields(const std::vector<Node>& mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
       if (Node_kind(child) == NT::DefFun) {
-        //
+        FunSetTargetField(child);
       }
     }
   }

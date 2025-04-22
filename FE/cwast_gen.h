@@ -30,6 +30,10 @@ struct StrAndSeq {
     }
     return name < other.name;
   }
+
+  bool operator==(const StrAndSeq& other) const {
+    return name == other.name && seq == other.seq;
+  }
 };
 
 enum class NT : uint8_t;  // "node type"
@@ -1078,7 +1082,7 @@ inline void VisitAstRecursivelyWithScopeTracking(
 
     do {
       VisitAstRecursivelyWithScopeTracking(Node(child), pre_visitor,
-                                             scope_enter, scope_exit, node);
+                                           scope_enter, scope_exit, node);
       child = Node_next(Node(child));
     } while (!child.isnull());
     if (is_new_scope) {
