@@ -142,7 +142,7 @@ class GlobalConstantPool:
         self._all_globals.append(def_node)
         return def_node
 
-    def _maybe_replace(self, node, parent, _field) -> Optional[Any]:
+    def _maybe_replace(self, node, parent) -> Optional[Any]:
         if isinstance(parent, cwast.DefGlobal):
             return None
         elif (isinstance(node, cwast.ValCompound) and
@@ -167,6 +167,7 @@ class GlobalConstantPool:
         return None
 
     def PopulateConstantPool(self, node):
+        # if we relace a node we do not need to recurse into the subtree
         cwast.MaybeReplaceAstRecursively(node, self._maybe_replace)
 
     def GetDefGlobals(self) -> list[cwast.DefGlobal]:

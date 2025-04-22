@@ -52,7 +52,7 @@ def FunRemoveUnusedDefVar(fun: cwast.DefFun):
 
     cwast.VisitAstRecursivelyPost(fun, visit)
 
-    def update(node,  _parent, _field):
+    def update(node,  _parent):
         nonlocal used
 
         if isinstance(node, cwast.DefVar):
@@ -60,6 +60,7 @@ def FunRemoveUnusedDefVar(fun: cwast.DefFun):
                 stats.IncCounter("Removed", "DefVar", 1)
                 return cwast.EphemeralList([])
         return None
+    # if we remove a node we do not need to recurse into the subtree
     cwast.MaybeReplaceAstRecursively(fun, update)
 
 

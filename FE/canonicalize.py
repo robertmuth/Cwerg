@@ -321,12 +321,16 @@ def ReplaceConstExpr(node):
     """
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
-    def replacer(node, _parent, nfd: cwast.NFD):
+    def replacer(node, parent):
         if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
             assert node.x_value is not None
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS or node.x_value is None:
             return None
-        if nfd.name in ("expr_lhs", "inits"):
+        # TODO: add comments for the exception
+        # hack:  "node not in parent.inits" would be slower:
+        if isinstance(parent, cwast.ValCompound) and node is not parent.type_or_auto:
+            return
+        if isinstance(parent, cwast.ExprAddrOf) and node is parent.expr_lhs:
             return
         if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal)):
             return
@@ -340,6 +344,7 @@ def ReplaceConstExpr(node):
             pass
         return None
 
+    # no neeed to siplify interior subtrees if we we rewrite a node
     cwast.MaybeReplaceAstRecursively(node, replacer)
 
 

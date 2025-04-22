@@ -3182,12 +3182,15 @@ def VisitAstRecursivelyWithParentPost(node, visitor, parent):
 
 
 def MaybeReplaceAstRecursively(node, replacer):
-    """Note: the root node will not be replaced"""
+    """Note: the root node will not be replaced
+
+    If a node is being replace we do not recurse into its children.
+    """
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            new_child = replacer(child, node, nfd)
+            new_child = replacer(child, node)
             if new_child:
                 setattr(node, f, new_child)
             else:
@@ -3195,7 +3198,7 @@ def MaybeReplaceAstRecursively(node, replacer):
         else:
             children = getattr(node, f)
             for n, child in enumerate(children):
-                new_child = replacer(child, node, nfd)
+                new_child = replacer(child, node)
                 if new_child:
                     children[n] = new_child
                 else:
