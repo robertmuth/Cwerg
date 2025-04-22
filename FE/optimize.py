@@ -149,7 +149,7 @@ _INLINE_NODE_CUT_OFF = 20
 
 def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
 
-    def replacer(call: Any, _parent: Any, _field: str):
+    def replacer(call: Any, _parent: Any):
         nonlocal fun
         if not isinstance(call, cwast.ExprCall):
             return None
@@ -176,7 +176,7 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
         # print("INLINING ", call, call.x_srcloc,
         #      "    ->     ", f"{repr(fun_def.name)}", fun_def)
         return MakeExprStmtForCall(call, id_gen)
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 def FunRemoveSimpleExprStmts(fun: cwast.DefFun):

@@ -834,7 +834,7 @@ def RemoveRedundantParens(node):
                 return node.expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(node, replacer)
 
 
 def ReadModFromStream(fp, fn: str, name: str) -> cwast.DefMod:

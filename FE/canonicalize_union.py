@@ -219,7 +219,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
     ])
 
     """
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         nonlocal tc, id_gen
         if not isinstance(node, cwast.ExprNarrow):
             return None
@@ -251,14 +251,14 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
             return expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 def ReplaceUnions(node):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
     """
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         sl = node.x_srcloc
         if isinstance(node, cwast.ExprUnionTag):
             # get the tag field from the rec that now represents the union
@@ -327,4 +327,4 @@ def ReplaceUnions(node):
             assert False, f"do not know how to convert sum node [{
                 new_ct.name}]:\n {node} {node.x_srcloc}"
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer)

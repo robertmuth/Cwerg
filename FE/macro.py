@@ -200,13 +200,13 @@ def _ExpandMacrosAndMacroLikeRecursively(fun, builtin_symtab: symbolize.SymTab, 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod], builtin_symtab: symbolize.SymTab, fun_id_gens: identifier.IdGenCache):
+def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod], builtin_symtab: symbolize.SymTab, id_gen_cache: identifier.IdGenCache):
     """Expands MacroInvoke, ExprSrcLoc, ExprStringify"""
     for mod in mods:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node.name)
-                ctx = _MacroContext(fun_id_gens.Get(node))
+                ctx = _MacroContext(id_gen_cache.Get(node))
                 _ExpandMacrosAndMacroLikeRecursively(
                     node, builtin_symtab, 0, ctx)
 

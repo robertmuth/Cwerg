@@ -92,7 +92,7 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
                                x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=False),
                            x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(fun, replacer)
 
 
 def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
@@ -125,11 +125,11 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
 
 def FunReplaceExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Transform ExprIs comparisons for typeids"""
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         if isinstance(node, cwast.ExprIs):
             return _RewriteExprIs(node, tc)
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
@@ -137,7 +137,7 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
 
     Note we could implement the ternary op as a macro but would lose the ability to do
     type inference, so instead we use this hardcoded rewrite"""
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         if isinstance(node, cwast.Expr3):
             sl = node.x_srcloc
             name_t = id_gen.NewName("op_t")
@@ -167,7 +167,7 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
             return expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 ############################################################
@@ -345,7 +345,7 @@ def ReplaceConstExpr(node):
 
 def FunCanonicalizeRemoveStmtCond(fun: cwast.DefFun):
     """Convert StmtCond to nested StmtIf"""
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         if not isinstance(node, cwast.StmtCond):
             return None
         if not node.cases:
@@ -358,7 +358,7 @@ def FunCanonicalizeRemoveStmtCond(fun: cwast.DefFun):
                 out], x_srcloc=case.x_srcloc)
         return out
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 def FunOptimizeKnownConditionals(fun: cwast.DefFun):
@@ -403,14 +403,14 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
 def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     uint_type = tc.get_uint_canon_type()
 
-    def replacer(node, _parent,  _field):
+    def replacer(node, _parent):
         nonlocal tc, uint_type
         if isinstance(node, cwast.ExprIndex):
             return _ConvertIndex(node, uint_type, tc, node.x_srcloc)
 
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
@@ -609,7 +609,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
             return cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC, type_check, cmp,
                                x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
 
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
 
         if not isinstance(node, cwast.Expr2):
             return None
@@ -621,16 +621,16 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
         if node.expr2.x_type.is_tagged_union():
             return make_cmp(node, node.expr2, node.expr1)
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 def FunReplaceTypeOfAndTypeUnionDelta(fun: cwast.DefFun):
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         if not isinstance(node, (cwast.TypeOf, cwast.TypeUnionDelta)):
             return None
         return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 def _IsSimpleInitializer(expr) -> bool:
@@ -699,9 +699,9 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
 
 
 def FunRemoveParentheses(fun: cwast.DefFun):
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         if isinstance(node, cwast.ExprParen):
             return node.expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)

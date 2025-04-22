@@ -3228,22 +3228,40 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
                     new_children.append(new_child)
             setattr(node, f, new_children)
 
-
-def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
+def MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer):
     """Note: the root node will not be replaced"""
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
         # print ("replace: ", node.__class__.__name__, c)
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            MaybeReplaceAstRecursivelyWithParentPost(child, replacer)
+            MaybeReplaceAstRecursivelySimpleWithParentPost(child, replacer)
+            new_child = replacer(child, node)
+            if new_child:
+                setattr(node, f, new_child)
+        else:
+            children = getattr(node, f)
+            for n, child in enumerate(children):
+                MaybeReplaceAstRecursivelySimpleWithParentPost(child, replacer)
+                new_child = replacer(child, node)
+                if new_child:
+                    children[n] = new_child
+
+def MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(node, replacer):
+    """Note: the root node will not be replaced"""
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
+        # print ("replace: ", node.__class__.__name__, c)
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(child, replacer)
             new_child = replacer(child, node, nfd)
             if new_child:
                 setattr(node, f, new_child)
         else:
             children = getattr(node, f)
             for n, child in enumerate(children):
-                MaybeReplaceAstRecursivelyWithParentPost(child, replacer)
+                MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(child, replacer)
                 new_child = replacer(child, node, nfd)
                 if new_child:
                     children[n] = new_child

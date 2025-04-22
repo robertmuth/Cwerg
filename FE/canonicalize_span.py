@@ -89,7 +89,7 @@ def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
     """Eliminate Array to Span casts. """
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         nonlocal tc, uint_type
         if isinstance(node, cwast.ExprAs):
             if (node.x_type != node.expr.x_type and
@@ -99,7 +99,7 @@ def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
                     node.expr, node.x_type, tc, uint_type)
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer)
 
 
 def ReplaceSpans(node):
@@ -112,7 +112,7 @@ def ReplaceSpans(node):
      TODO: see unused _ConvertMutSpanValRecToSpanValRec helper
      `span<u8> = span-mut<u8>` is ok before the change to structs but not afterwards
     """
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
 
         # len of array is constant and should have already been eliminated
         if isinstance(node, cwast.ExprLen):
@@ -172,4 +172,4 @@ def ReplaceSpans(node):
                     f"[{def_rec.name}]: {type(node)} of type {node.x_type}")
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer)

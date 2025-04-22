@@ -147,7 +147,7 @@ def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod
 
     mod.params_mod.clear()
 
-    def replacer(node, _parent, _field):
+    def replacer(node, _parent):
         nonlocal translation
         if not isinstance(node, cwast.MacroId):
             return None
@@ -157,7 +157,7 @@ def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod
 
         return cwast.CloneNodeRecursively(t, {}, {})
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(mod, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(mod, replacer)
     return mod
 
 

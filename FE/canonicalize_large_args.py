@@ -135,7 +135,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
          we cannot be sure if mutable aliases to a, b, c are accessed by foo
          of functions called by foo, so we have to make a copy with value just before the call.
     """
-    def replacer(call, _parent, _field) -> Optional[Any]:
+    def replacer(call, _parent) -> Optional[Any]:
         if isinstance(call, cwast.ExprCall) and call.callee.x_type in fun_sigs_with_large_args:
             sl = call.x_srcloc
             old_sig: cwast.CanonType = call.callee.x_type
@@ -183,4 +183,4 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                     expr_ret=call, x_srcloc=call.x_srcloc, x_target=expr))
             return expr
         return None
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
