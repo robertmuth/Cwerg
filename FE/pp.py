@@ -786,7 +786,6 @@ if __name__ == "__main__":
         mod = parse.ReadModFromStream(inp, "stdin")
         # cwast.AnnotateRoleForMacroInvoke(mod)
         # AddMissingParens(mod)
-        # cwast.EliminateEphemeralsRecursively(mod)
         PrettyPrint(mod, sys.stdout)
 
     def main():

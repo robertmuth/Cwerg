@@ -202,6 +202,5 @@ def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):
     FunInlineSmallFuns(fun, id_gen)
     FunCopyPropagation(fun)
     FunRemoveUnusedDefVar(fun)
-    cwast.EliminateEphemeralsRecursively(fun)
     FunPeepholeOpts(fun)
     FunRemoveSimpleExprStmts(fun)

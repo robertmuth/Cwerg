@@ -3197,13 +3197,17 @@ def MaybeReplaceAstRecursively(node, replacer):
                 MaybeReplaceAstRecursively(child, replacer)
         else:
             children = getattr(node, f)
+            new_children = []
             for n, child in enumerate(children):
                 new_child = replacer(child, node)
-                if new_child:
-                    children[n] = new_child
-                else:
+                if isinstance(new_child, EphemeralList):
+                    new_children += new_child.args
+                elif new_child is None:
+                    new_children.append(child)
                     MaybeReplaceAstRecursively(child, replacer)
-
+                else:
+                    new_children.append(new_child)
+            setattr(node, f, new_children)
 
 def MaybeReplaceAstRecursivelyPost(node, replacer):
     for nfd in node.__class__.NODE_FIELDS:
@@ -3221,6 +3225,33 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
             for n, child in enumerate(children):
                 MaybeReplaceAstRecursivelyPost(child, replacer)
                 new_child = replacer(child)
+                if new_child is None:
+                    new_children.append(child)
+                elif isinstance(new_child, EphemeralList):
+                    for x in new_child.args:
+                        assert not isinstance(x, EphemeralList)
+                    new_children += new_child.args
+                else:
+                    new_children.append(new_child)
+            setattr(node, f, new_children)
+
+
+def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
+    for nfd in node.__class__.NODE_FIELDS:
+        f = nfd.name
+        if nfd.kind is NFK.NODE:
+            child = getattr(node, f)
+            MaybeReplaceAstRecursivelyPost(child, replacer)
+            new_child = replacer(child, node)
+            assert not isinstance(new_child, EphemeralList)
+            if new_child is not None:
+                setattr(node, f, new_child)
+        else:
+            children = getattr(node, f)
+            new_children = []
+            for n, child in enumerate(children):
+                MaybeReplaceAstRecursivelyPost(child, replacer)
+                new_child = replacer(child, node)
                 if new_child is None:
                     new_children.append(child)
                 elif isinstance(new_child, EphemeralList):
