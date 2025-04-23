@@ -82,7 +82,7 @@ _FUNCTIONAL_BINOPS = (cwast.BINARY_EXPR_KIND.MAX,
 _FUNCTIONAL_UNOPS = (cwast.UNARY_EXPR_KIND.ABS, cwast.UNARY_EXPR_KIND.SQRT)
 
 
-def NodeNeedsParen(node, parent, nfd: cwast.NFD):
+def NodeNeedsParen(node, parent):
     """Do we need to add parenthesese around an expression
     so that the (naive) concrete syntax emitter does not
     produce invalid code.
@@ -90,13 +90,13 @@ def NodeNeedsParen(node, parent, nfd: cwast.NFD):
     if isinstance(parent, cwast.Expr2):
         if parent.binary_expr_kind in _FUNCTIONAL_BINOPS:
             return False
-        if nfd.name == "expr1":
+        if node is parent.expr1:
             if isinstance(node, cwast.Expr2):
                 # parent: (expr2 node ...)
                 # BAD EXAMPLES:
                 # (* (+ a b ) c) =>  a + b * c
                 return _prec2(node) < _prec2(parent) and node.binary_expr_kind not in _FUNCTIONAL_BINOPS
-        if nfd.name == "expr2":
+        if node is parent.expr2:
             if isinstance(node, cwast.Expr2):
                 # parent: (expr2 ... node)
                 # BAD EXAMPLES:
@@ -115,13 +115,13 @@ def NodeNeedsParen(node, parent, nfd: cwast.NFD):
 
 def AddMissingParens(node):
     """Add Missing Parenthesis to help with translation to concrete syntax. """
-    def replacer(node, parent, nfd: cwast.NFD):
-        if NodeNeedsParen(node, parent, nfd):
+    def replacer(node, parent):
+        if NodeNeedsParen(node, parent):
             return cwast.ExprParen(node, x_srcloc=node.x_srcloc, x_type=node.x_type)
 
         return None
 
-    cwast.MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer)
 
 
 PP_BEG_STD = PP.Beg(PP.BreakType.INCONSISTENT, 2)

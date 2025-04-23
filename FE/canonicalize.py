@@ -65,14 +65,14 @@ def IdNodeFromRecField(recfield: cwast.RecField, srcloc):
                     x_symbol=recfield)
 
 
-def _ShouldBeBoolExpanded(node, nfd: cwast.NFD):
+def _ShouldBeBoolExpanded(node, parent):
     # these nodes do not represent a complex boolean expression
     if not isinstance(node, (cwast.Expr1, cwast.Expr2)):
         return False
     # the field condition ensures that the node
     # * is not part of a conditional
     # * has a x_type
-    return node.x_type.is_bool() and nfd.name in cwast.TOP_LEVEL_EXPRESSION_FIELDS
+    return node.x_type.is_bool() and isinstance(parent, cwast.TOP_LEVEL_EXPRESSION_NODES)
 
 
 def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
@@ -81,8 +81,8 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
     This will make it eligible for CanonicalizeTernaryOp which is the only way currently
     to materialize boolean values
      """
-    def replacer(node, _parent, nfd: cwast.NFD):
-        if not _ShouldBeBoolExpanded(node, nfd):
+    def replacer(node, parent):
+        if not _ShouldBeBoolExpanded(node, parent):
             return None
         cstr_bool = tc.get_bool_canon_type()
         return cwast.Expr3(node,
@@ -92,7 +92,7 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
                                x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=False),
                            x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
-    cwast.MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
 
 
 def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):

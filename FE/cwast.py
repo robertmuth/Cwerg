@@ -696,10 +696,6 @@ NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 
 TYPE_FIELDS = set(["type", "types", "result", "type_or_auto", "subtrahend"])
 
-# parent is not also an expression
-TOP_LEVEL_EXPRESSION_FIELDS = set([
-    "args", "expr_ret", "expr_rhs", "initial_or_undef_or_auto", "value",
-    "value_or_undef"])
 
 FIELD_NAME_FIELDS = set(["point", "field"])
 
@@ -3053,6 +3049,10 @@ BINOP_OPS_HAVE_SAME_TYPE = {
 
 # NO_SYMBOL = DefType(NAME("", 0), TypeBase(BASE_TYPE_KIND.BOOL))
 
+
+# parent is not also an expression
+TOP_LEVEL_EXPRESSION_NODES = (ExprCall, StmtReturn, StmtCompoundAssignment, StmtAssignment,
+                              DefVar, DefGlobal, ValPoint)
 ############################################################
 #
 ############################################################
@@ -3231,6 +3231,7 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
                     new_children.append(new_child)
             setattr(node, f, new_children)
 
+
 def MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer):
     """Note: the root node will not be replaced"""
     for nfd in node.__class__.NODE_FIELDS:
@@ -3247,25 +3248,6 @@ def MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer):
             for n, child in enumerate(children):
                 MaybeReplaceAstRecursivelySimpleWithParentPost(child, replacer)
                 new_child = replacer(child, node)
-                if new_child:
-                    children[n] = new_child
-
-def MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(node, replacer):
-    """Note: the root node will not be replaced"""
-    for nfd in node.__class__.NODE_FIELDS:
-        f = nfd.name
-        # print ("replace: ", node.__class__.__name__, c)
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, f)
-            MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(child, replacer)
-            new_child = replacer(child, node, nfd)
-            if new_child:
-                setattr(node, f, new_child)
-        else:
-            children = getattr(node, f)
-            for n, child in enumerate(children):
-                MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(child, replacer)
-                new_child = replacer(child, node, nfd)
                 if new_child:
                     children[n] = new_child
 

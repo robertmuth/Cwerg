@@ -828,13 +828,13 @@ def _ParseDefMod(inp: lexer.Lexer, name: str):
 def RemoveRedundantParens(node):
     """Remove Parens which would be re-added by AddMissingParens."""
 
-    def replacer(node, parent, nfd: cwast.NFD):
+    def replacer(node, parent):
         if isinstance(node, cwast.ExprParen):
-            if pp.NodeNeedsParen(node.expr, parent, nfd):
+            if pp.NodeNeedsParen(node.expr, parent):
                 return node.expr
         return None
 
-    cwast.MaybeReplaceAstRecursivelySimpleWithParentAndNFDPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer)
 
 
 def ReadModFromStream(fp, fn: str, name: str) -> cwast.DefMod:
