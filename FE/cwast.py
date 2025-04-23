@@ -3209,6 +3209,7 @@ def MaybeReplaceAstRecursively(node, replacer):
                     new_children.append(new_child)
             setattr(node, f, new_children)
 
+
 def MaybeReplaceAstRecursivelyPost(node, replacer):
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name
@@ -3241,7 +3242,7 @@ def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
         f = nfd.name
         if nfd.kind is NFK.NODE:
             child = getattr(node, f)
-            MaybeReplaceAstRecursivelyPost(child, replacer)
+            MaybeReplaceAstRecursivelyWithParentPost(child, replacer)
             new_child = replacer(child, node)
             assert not isinstance(new_child, EphemeralList)
             if new_child is not None:
@@ -3250,7 +3251,7 @@ def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
             children = getattr(node, f)
             new_children = []
             for n, child in enumerate(children):
-                MaybeReplaceAstRecursivelyPost(child, replacer)
+                MaybeReplaceAstRecursivelyWithParentPost(child, replacer)
                 new_child = replacer(child, node)
                 if new_child is None:
                     new_children.append(child)
@@ -3261,26 +3262,6 @@ def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
                 else:
                     new_children.append(new_child)
             setattr(node, f, new_children)
-
-
-def MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer):
-    """Note: the root node will not be replaced"""
-    for nfd in node.__class__.NODE_FIELDS:
-        f = nfd.name
-        # print ("replace: ", node.__class__.__name__, c)
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, f)
-            MaybeReplaceAstRecursivelySimpleWithParentPost(child, replacer)
-            new_child = replacer(child, node)
-            if new_child:
-                setattr(node, f, new_child)
-        else:
-            children = getattr(node, f)
-            for n, child in enumerate(children):
-                MaybeReplaceAstRecursivelySimpleWithParentPost(child, replacer)
-                new_child = replacer(child, node)
-                if new_child:
-                    children[n] = new_child
 
 
 def _MaybeFlattenEphemeralList(nodes: list[Any]):

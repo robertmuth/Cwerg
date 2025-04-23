@@ -157,7 +157,7 @@ def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod
 
         return cwast.CloneNodeRecursively(t, {}, {})
 
-    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(mod, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(mod, replacer)
     return mod
 
 

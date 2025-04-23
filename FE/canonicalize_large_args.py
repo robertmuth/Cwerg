@@ -183,4 +183,4 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                     expr_ret=call, x_srcloc=call.x_srcloc, x_target=expr))
             return expr
         return None
-    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(fun, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)

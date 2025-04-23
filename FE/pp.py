@@ -121,7 +121,7 @@ def AddMissingParens(node):
 
         return None
 
-    cwast.MaybeReplaceAstRecursivelySimpleWithParentPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
 
 
 PP_BEG_STD = PP.Beg(PP.BreakType.INCONSISTENT, 2)
