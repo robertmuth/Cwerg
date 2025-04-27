@@ -163,17 +163,11 @@ def _ExpandMacroInvokation(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx
 MAX_MACRO_NESTING = 8
 
 
-def _ExpandSingleNodeIteratively(node: Union[cwast.ExprSrcLoc, cwast.ExprStringify, cwast.MacroInvoke],
-                                 builtin_syms: symbolize.SymTab, nesting: int, ctx: _MacroContext):
+def _ExpandMacroInvokeIteratively(node: cwast.MacroInvoke,
+                                  nesting: int, builtin_syms: symbolize.SymTab, ctx: _MacroContext):
     """This will recursively expand the macro so returned node does not contain any expandables"""
-    while cwast.NF.TO_BE_EXPANDED in node.FLAGS:
+    while isinstance(node, cwast.MacroInvoke):
         assert nesting < MAX_MACRO_NESTING
-        if isinstance(node, cwast.ExprSrcLoc):
-            return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
-        elif isinstance(node, cwast.ExprStringify):
-            # assert isinstance(node.expr, cwast.Id)
-            return cwast.ValString(f'r"{node.expr}"', x_srcloc=node.x_srcloc)
-
         assert isinstance(node, cwast.MacroInvoke)
         symtab: symbolize.SymTab = node.x_import.x_module.x_symtab
         macro = symtab.resolve_macro(
@@ -186,16 +180,24 @@ def _ExpandSingleNodeIteratively(node: Union[cwast.ExprSrcLoc, cwast.ExprStringi
 
     assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, node
     # recurse and resolve any expandables
-    _ExpandMacrosAndMacroLikeRecursively(node, builtin_syms, nesting + 1, ctx)
+    _ExpandMacrosAndMacroLikeRecursively(node, nesting + 1, builtin_syms, ctx)
     # pp_sexpr.PrettyPrint(exp)
     return node
 
 
-def _ExpandMacrosAndMacroLikeRecursively(fun, builtin_symtab: symbolize.SymTab, nesting: int, ctx: _MacroContext):
+def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, builtin_symtab: symbolize.SymTab, ctx: _MacroContext):
     def replacer(node: Any):
         nonlocal builtin_symtab, nesting, ctx
-        if cwast.NF.TO_BE_EXPANDED in node.FLAGS:
-            return _ExpandSingleNodeIteratively(node, builtin_symtab, nesting, ctx)
+        orig_node = node
+        if isinstance(node, cwast.MacroInvoke):
+            node = _ExpandMacroInvokeIteratively(
+                node, nesting, builtin_symtab, ctx)
+        if isinstance(node, cwast.ExprSrcLoc):
+            return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
+        elif isinstance(node, cwast.ExprStringify):
+            # assert isinstance(node.expr, cwast.Id)
+            return cwast.ValString(f'r"{node.expr}"', x_srcloc=node.x_srcloc)
+        return None if orig_node is node else node
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
@@ -208,7 +210,7 @@ def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod], builtin_symtab: symbolize
                 logger.info("Expanding macros in: %s", node.name)
                 ctx = _MacroContext(id_gen_cache.Get(node))
                 _ExpandMacrosAndMacroLikeRecursively(
-                    node, builtin_symtab, 0, ctx)
+                    node, 0, builtin_symtab, ctx)
 
 
 ############################################################
