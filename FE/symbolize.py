@@ -107,7 +107,7 @@ class SymTab:
         """We could be more specific here if we narrow down the symbol type"""
 
         # We are already in the "right" symtab
-        name = macro_invoke.name.GetSymbolNameWithoutQualifier()
+        name = macro_invoke.name
         out = self.resolve_name_with_visibility_check(
             name, must_be_public, macro_invoke.x_srcloc)
         if not out:

@@ -140,7 +140,7 @@ class _PolyMap:
     def Register(self, fun: cwast.DefFun):
         ct: cwast.CanonType = fun.x_type
         mod: cwast.DefMod = fun.x_import.x_module
-        name = fun.name.GetSymbolNameWithoutQualifier()
+        name = fun.name
         first_param_type = ct.children[0].name
         logger.info("Register polymorphic fun %s::%s: %s",
                     str(mod.name), name, first_param_type)
