@@ -106,19 +106,19 @@ def _ExpandMacroBodyRecursively(node, ctx: _MacroContext) -> Any:
     return clone
 
 
-def _ExpandMacroInvokation(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx: _MacroContext) -> Any:
-    params: list[cwast.MacroParam] = macro.params_macro
-    args = invoke.args
+def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.DefMacro, ctx: _MacroContext) -> Any:
+    params: list[cwast.MacroParam] = def_macro.params_macro
+    args = macro_invoke.args
     if params and params[-1].macro_param_kind is cwast.MACRO_PARAM_KIND.EXPR_LIST_REST:
         rest = cwast.EphemeralList(args[len(params)-1:], colon=False)
         args = args[:len(params)-1:] + [rest]
     if len(params) != len(args):
-        cwast.CompilerError(invoke.x_srcloc, f"parameter mismatch in: {invoke}: "
+        cwast.CompilerError(macro_invoke.x_srcloc, f"parameter mismatch in: {macro_invoke}: "
                             f"actual {len(args)} expected: {len(params)}")
-    logger.info("Expanding Macro Invocation: %s", invoke)
+    logger.info("Expanding Macro Invocation: %s", macro_invoke)
     # pp_sexpr.PrettyPrint(invoke)
     # pp_sexpr.PrettyPrint(macro)
-    ctx.PushScope(invoke.x_srcloc)
+    ctx.PushScope(macro_invoke.x_srcloc)
     for p, a in zip(params, args):
         assert p.name.IsMacroVar()
         kind = p.macro_param_kind
@@ -127,7 +127,7 @@ def _ExpandMacroInvokation(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx
         elif kind in (cwast.MACRO_PARAM_KIND.STMT_LIST, cwast.MACRO_PARAM_KIND.EXPR_LIST,
                       cwast.MACRO_PARAM_KIND.EXPR_LIST_REST):
             if not isinstance(a, cwast.EphemeralList):
-                cwast.CompilerError(invoke.x_srcloc,
+                cwast.CompilerError(macro_invoke.x_srcloc,
                                     f"expected EphemeralList for macro param {p} got {a}")
         elif kind is cwast.MACRO_PARAM_KIND.TYPE:
             pass
@@ -135,17 +135,17 @@ def _ExpandMacroInvokation(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx
             assert isinstance(a, cwast.Id)
         elif kind is cwast.MACRO_PARAM_KIND.ID:
             assert isinstance(
-                a, cwast.Id), f"while expanding macro {macro.name} expected parameter id but got: {a}"
+                a, cwast.Id), f"while expanding macro {def_macro.name} expected parameter id but got: {a}"
         else:
             assert False
         ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))
-    for gen_id in macro.gen_ids:
+    for gen_id in def_macro.gen_ids:
         assert isinstance(gen_id, cwast.MacroId)
         new_name = ctx.GenUniqueName(gen_id.name)
         ctx.RegisterSymbol(
-            gen_id.name, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, None, x_srcloc=macro.x_srcloc)))
+            gen_id.name, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, None, x_srcloc=def_macro.x_srcloc)))
     out = []
-    for node in macro.body_macro:
+    for node in def_macro.body_macro:
         logger.debug("Expand macro body node: %s", node)
         # pp_sexpr.PrettyPrint(node)
         exp = _ExpandMacroBodyRecursively(node, ctx)
@@ -163,26 +163,26 @@ def _ExpandMacroInvokation(invoke: cwast.MacroInvoke, macro: cwast.DefMacro, ctx
 MAX_MACRO_NESTING = 8
 
 
-def _ExpandMacroInvokeIteratively(node: cwast.MacroInvoke,
+def _ExpandMacroInvokeIteratively(macro_invoke: cwast.MacroInvoke,
                                   nesting: int, builtin_syms: symbolize.SymTab, ctx: _MacroContext):
     """This will recursively expand the macro so returned node does not contain any expandables"""
-    while isinstance(node, cwast.MacroInvoke):
+    while isinstance(macro_invoke, cwast.MacroInvoke):
         assert nesting < MAX_MACRO_NESTING
-        assert isinstance(node, cwast.MacroInvoke)
-        symtab: symbolize.SymTab = node.x_import.x_module.x_symtab
-        macro = symtab.resolve_macro(
-            node,  builtin_syms, symbolize.HasImportedSymbolReference(node))
-        if macro is None:
+        assert isinstance(macro_invoke, cwast.MacroInvoke)
+        symtab: symbolize.SymTab = macro_invoke.x_import.x_module.x_symtab
+        def_macro = symtab.resolve_macro(
+            macro_invoke,  builtin_syms, symbolize.HasImportedSymbolReference(macro_invoke))
+        if def_macro is None:
             cwast.CompilerError(
-                node.x_srcloc, f"invocation of unknown macro `{node.name}`")
-        node = _ExpandMacroInvokation(node, macro, ctx)
+                macro_invoke.x_srcloc, f"invocation of unknown macro `{macro_invoke.name}`")
+        macro_invoke = _ExpandMacroInvokation(macro_invoke, def_macro, ctx)
         nesting += 1
 
-    assert cwast.NF.TO_BE_EXPANDED not in node.FLAGS, node
+    assert cwast.NF.TO_BE_EXPANDED not in macro_invoke.FLAGS, macro_invoke
     # recurse and resolve any expandables
-    _ExpandMacrosAndMacroLikeRecursively(node, nesting + 1, builtin_syms, ctx)
+    _ExpandMacrosAndMacroLikeRecursively(macro_invoke, nesting + 1, builtin_syms, ctx)
     # pp_sexpr.PrettyPrint(exp)
-    return node
+    return macro_invoke
 
 
 def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, builtin_symtab: symbolize.SymTab, ctx: _MacroContext):

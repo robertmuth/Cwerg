@@ -71,6 +71,22 @@ Node SymTabResolveSym(const SymTab* symtab, Node node, bool must_be_public) {
   return out;
 }
 
+Node SymTabResolveMacro(const SymTab* symtab, Node macro_invoke,
+                        const SymTab* builtin_symtab, bool must_be_public) {
+  ASSERT(Node_kind(macro_invoke) == NT::MacroInvoke, "");
+  Name name = Node_name(macro_invoke);
+  Node out = SymTabResolveNameWithVisibilityCheck(symtab, name, must_be_public,
+                                                  Node_srcloc(macro_invoke));
+  if (out.isnull()) {
+    out = SymTabFindWithDefault(builtin_symtab, name);
+  }
+  if (out.isnull()) {
+    return out;
+  }
+  ASSERT(Node_kind(out) == NT::DefMacro, "");
+  return out;
+}
+
 void AnnotateNodeSymbol(Node node, Node def_node) {
   ASSERT(Node_kind(node) == NT::Id, "");
   ASSERT(Node_x_symbol(node) == kNodeInvalid, "");
