@@ -19,7 +19,6 @@
 namespace cwerg::fe {
 
 using namespace cwerg;
-using namespace cwerg::fe;
 
 const Path PATH_INVALID;
 

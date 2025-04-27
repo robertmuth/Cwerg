@@ -3,10 +3,12 @@
 #include <map>
 
 #include "FE/cwast_gen.h"
+#include "FE/identifier.h"
 #include "Util/assert.h"
 
 namespace cwerg::fe {
-class MacroContext {
 
-};
+void ExpandMacrosAndMacroLike(const std::vector<Node>& mods,
+                              const SymTab* builtin_symtab,
+                              IdGenCache* id_gen_cache);
 }  // namespace cwerg::fe

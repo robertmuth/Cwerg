@@ -1091,6 +1091,43 @@ inline void VisitAstRecursivelyWithScopeTracking(
   }
 }
 
+inline void MaybeReplaceAstRecursivelyPost(Node node,
+                                           std::function<Node(Node, Node)> replacer, Node parent) {
+  auto& core = gNodeCore[node];
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Handle child = core.children[i];
+    if (child.raw_kind() >= kKindStr || child.isnull()) continue;
+
+    Node new_children_first = kNodeInvalid;
+    Node new_children_last = kNodeInvalid;
+
+    do {
+      MaybeReplaceAstRecursivelyPost(Node(child), replacer, node);
+
+      Node new_child = replacer(Node(child), node);
+      if (new_child.isnull()) {
+        new_child = Node(child);
+      } else if (Node_kind(new_child) == NT::EphemeralList) {
+        new_child = Node_args(new_child);
+      }
+
+      Node_next(new_children_last) = new_child;
+      new_children_last = new_child;
+      while (!Node_next(new_children_last).isnull()) {
+        new_children_last = Node_next(new_children_last);
+      }
+
+      if (new_children_first.isnull()) {
+        new_children_first = new_child;
+      }
+
+      child = Node_next(Node(child));
+    } while (!child.isnull());
+    core.children[i] = new_children_first;
+  }
+}
+
 // TODO: move this to a helper lib
 struct CompilerError : public std::ostream, private std::streambuf {
   CompilerError(const SrcLoc& srcloc) : std::ostream(this) {
