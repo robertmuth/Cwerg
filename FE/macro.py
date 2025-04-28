@@ -19,40 +19,33 @@ logger = logging.getLogger(__name__)
 class _MacroContext:
     """TBD"""
 
-    def __init__(self, id_gen: identifier.IdGen):
+    def __init__(self, id_gen: identifier.IdGen, srcloc):
         self._id_gen = id_gen
         # these need to become lists
         self.macro_parameter: dict[cwast.NAME,
                                    Tuple[cwast.MacroParam, Any]] = {}
-        self.srcloc = None
-
-    def PushScope(self, srcloc):
-        self.macro_parameter.clear()
         self.srcloc = srcloc
-
-    def PopScope(self):
-        # TBD
-        pass
 
     def GenUniqueName(self, name: cwast.NAME) -> cwast.NAME:
         assert name.IsMacroVar(), f"expected macro id {name}"
         # print (f"@@@@@@@@@@@@@@@ {name}")
         return self._id_gen.NewName(name.name[1:])
 
-    def RegisterSymbol(self, name: cwast.NAME, value, check_clash=False):
-        if check_clash:
-            assert name not in self.macro_parameter
+    def RegisterSymbol(self, name: cwast.NAME, value):
+        assert name not in self.macro_parameter, f"duplicate macro param: {name} in {value}"
         self.macro_parameter[name] = value
 
-    def GetSymbol(self: Any, name: cwast.NAME) -> Tuple[cwast.MacroParam, Any]:
+    def SetSymbol(self, name: cwast.NAME, value):
+        self.macro_parameter[name] = value
+
+    def GetSymbol(self: Any, name: cwast.NAME) -> Any:
         assert name.IsMacroVar()
         return self.macro_parameter[name]
 
 
 def _ExpandMacroBodyRecursively(node, ctx: _MacroContext) -> Any:
     if isinstance(node, cwast.DefVar) and node.name.IsMacroVar():
-        kind, new_name = ctx.GetSymbol(node.name)
-        assert kind is cwast.MACRO_PARAM_KIND.ID
+        new_name = ctx.GetSymbol(node.name)
         # Why is this not a MacroVar
         assert isinstance(new_name, cwast.Id)
         type_or_auto = _ExpandMacroBodyRecursively(node.type_or_auto, ctx)
@@ -61,23 +54,16 @@ def _ExpandMacroBodyRecursively(node, ctx: _MacroContext) -> Any:
         return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
-        kind, arg = ctx.GetSymbol(node.name)
-        # We dont support `FIELD``
-        assert kind in (cwast.MACRO_PARAM_KIND.EXPR,
-                        cwast.MACRO_PARAM_KIND.ID,
-                        cwast.MACRO_PARAM_KIND.FIELD,
-                        cwast.MACRO_PARAM_KIND.TYPE,
-                        cwast.MACRO_PARAM_KIND.EXPR_LIST,
-                        cwast.MACRO_PARAM_KIND.EXPR_LIST_REST,
-                        cwast.MACRO_PARAM_KIND.STMT_LIST), f"{node.name} -> {kind} {arg}"
+        arg = ctx.GetSymbol(node.name)
+        # _kind can be anything but STMT
         return cwast.CloneNodeRecursively(arg, {}, {})
     elif isinstance(node, cwast.MacroFor):
         assert node.name.IsMacroVar(), f" non macro name: {node}"
-        kind, arg = ctx.GetSymbol(node.name_list)
+        arg = ctx.GetSymbol(node.name_list)
         assert isinstance(arg, cwast.EphemeralList)
         out = []
         for item in arg.args:
-            ctx.RegisterSymbol(node.name, (cwast.MACRO_PARAM_KIND.EXPR, item))
+            ctx.SetSymbol(node.name, item)
             for b in node.body_for:
                 exp = _ExpandMacroBodyRecursively(b, ctx)
                 if isinstance(exp, cwast.EphemeralList):
@@ -106,7 +92,29 @@ def _ExpandMacroBodyRecursively(node, ctx: _MacroContext) -> Any:
     return clone
 
 
-def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.DefMacro, ctx: _MacroContext) -> Any:
+def _CheckMacroArg(p,  a, macro_invoke, def_macro):
+    assert p.name.IsMacroVar()
+    kind = p.macro_param_kind
+    if kind is cwast.MACRO_PARAM_KIND.EXPR:
+        pass
+    elif kind in (cwast.MACRO_PARAM_KIND.STMT_LIST, cwast.MACRO_PARAM_KIND.EXPR_LIST,
+                  cwast.MACRO_PARAM_KIND.EXPR_LIST_REST):
+        if not isinstance(a, cwast.EphemeralList):
+            cwast.CompilerError(macro_invoke.x_srcloc,
+                                f"expected EphemeralList for macro param {p} got {a}")
+    elif kind is cwast.MACRO_PARAM_KIND.TYPE:
+        pass
+    elif kind is cwast.MACRO_PARAM_KIND.FIELD:
+        assert isinstance(a, cwast.Id)
+    elif kind is cwast.MACRO_PARAM_KIND.ID:
+        assert isinstance(
+            a, cwast.Id), f"while expanding macro {def_macro.name} expected parameter id but got: {a}"
+    else:
+        assert False
+
+
+def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.DefMacro,
+                           id_gen: identifier.IdGen) -> Any:
     params: list[cwast.MacroParam] = def_macro.params_macro
     args = macro_invoke.args
     if params and params[-1].macro_param_kind is cwast.MACRO_PARAM_KIND.EXPR_LIST_REST:
@@ -118,32 +126,15 @@ def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.Def
     logger.info("Expanding Macro Invocation: %s", macro_invoke)
     # pp_sexpr.PrettyPrint(invoke)
     # pp_sexpr.PrettyPrint(macro)
-    ctx.PushScope(macro_invoke.x_srcloc)
+    ctx = _MacroContext(id_gen, macro_invoke.x_srcloc)
     for p, a in zip(params, args):
-        assert p.name.IsMacroVar()
-        kind = p.macro_param_kind
-        if kind is cwast.MACRO_PARAM_KIND.EXPR:
-            pass
-        elif kind in (cwast.MACRO_PARAM_KIND.STMT_LIST, cwast.MACRO_PARAM_KIND.EXPR_LIST,
-                      cwast.MACRO_PARAM_KIND.EXPR_LIST_REST):
-            if not isinstance(a, cwast.EphemeralList):
-                cwast.CompilerError(macro_invoke.x_srcloc,
-                                    f"expected EphemeralList for macro param {p} got {a}")
-        elif kind is cwast.MACRO_PARAM_KIND.TYPE:
-            pass
-        elif kind is cwast.MACRO_PARAM_KIND.FIELD:
-            assert isinstance(a, cwast.Id)
-        elif kind is cwast.MACRO_PARAM_KIND.ID:
-            assert isinstance(
-                a, cwast.Id), f"while expanding macro {def_macro.name} expected parameter id but got: {a}"
-        else:
-            assert False
-        ctx.RegisterSymbol(p.name, (p.macro_param_kind, a))
+        _CheckMacroArg(p, a, macro_invoke, def_macro)
+        ctx.RegisterSymbol(p.name, a)
     for gen_id in def_macro.gen_ids:
         assert isinstance(gen_id, cwast.MacroId)
         new_name = ctx.GenUniqueName(gen_id.name)
         ctx.RegisterSymbol(
-            gen_id.name, (cwast.MACRO_PARAM_KIND.ID, cwast.Id(new_name, None, x_srcloc=def_macro.x_srcloc)))
+            gen_id.name, cwast.Id(new_name, None, x_srcloc=def_macro.x_srcloc))
     out = []
     for node in def_macro.body_macro:
         logger.debug("Expand macro body node: %s", node)
@@ -154,7 +145,6 @@ def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.Def
             out += exp.args
         else:
             out.append(exp)
-    ctx.PopScope()
     if len(out) == 1:
         return out[0]
     return cwast.EphemeralList(out, colon=False)
@@ -164,7 +154,7 @@ MAX_MACRO_NESTING = 8
 
 
 def _ExpandMacroInvokeIteratively(macro_invoke: cwast.MacroInvoke,
-                                  nesting: int, builtin_syms: symbolize.SymTab, ctx: _MacroContext):
+                                  nesting: int, builtin_syms: symbolize.SymTab, id_gen: identifier.IdGen) -> Any:
     """This will recursively expand the macro so returned node does not contain any expandables"""
     while isinstance(macro_invoke, cwast.MacroInvoke):
         assert nesting < MAX_MACRO_NESTING
@@ -175,23 +165,24 @@ def _ExpandMacroInvokeIteratively(macro_invoke: cwast.MacroInvoke,
         if def_macro is None:
             cwast.CompilerError(
                 macro_invoke.x_srcloc, f"invocation of unknown macro `{macro_invoke.name}`")
-        macro_invoke = _ExpandMacroInvokation(macro_invoke, def_macro, ctx)
+        macro_invoke = _ExpandMacroInvokation(macro_invoke, def_macro, id_gen)
         nesting += 1
 
     assert cwast.NF.TO_BE_EXPANDED not in macro_invoke.FLAGS, macro_invoke
     # recurse and resolve any expandables
-    _ExpandMacrosAndMacroLikeRecursively(macro_invoke, nesting + 1, builtin_syms, ctx)
+    _ExpandMacrosAndMacroLikeRecursively(
+        macro_invoke, nesting + 1, builtin_syms, id_gen)
     # pp_sexpr.PrettyPrint(exp)
     return macro_invoke
 
 
-def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, builtin_symtab: symbolize.SymTab, ctx: _MacroContext):
+def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, builtin_symtab: symbolize.SymTab, id_gen: identifier.IdGen):
     def replacer(node: Any):
-        nonlocal builtin_symtab, nesting, ctx
+        nonlocal builtin_symtab, nesting, id_gen
         orig_node = node
         if isinstance(node, cwast.MacroInvoke):
             node = _ExpandMacroInvokeIteratively(
-                node, nesting, builtin_symtab, ctx)
+                node, nesting, builtin_symtab, id_gen)
         if isinstance(node, cwast.ExprSrcLoc):
             return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
         elif isinstance(node, cwast.ExprStringify):
@@ -208,9 +199,8 @@ def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod], builtin_symtab: symbolize
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node.name)
-                ctx = _MacroContext(id_gen_cache.Get(node))
                 _ExpandMacrosAndMacroLikeRecursively(
-                    node, 0, builtin_symtab, ctx)
+                    node, 0, builtin_symtab, id_gen_cache.Get(node))
 
 
 ############################################################

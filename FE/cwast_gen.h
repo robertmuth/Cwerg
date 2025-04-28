@@ -136,6 +136,24 @@ extern struct StripeGroup gStripeGroupNode;
 
 inline NT Node_kind(Node node) { return gNodeCore[node].kind; }
 inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
+
+inline int NodeNumSiblings(Node node) {
+  int n = 0;
+  for (; !node.isnull(); node = Node_next(node)) {
+    ++n;
+  }
+  return n;
+}
+
+inline Node NodeLastSiblings(Node node) {
+  if (node.isnull()) return node;
+
+  while (!Node_next(node).isnull()) {
+    node = Node_next(node);
+  }
+  return node;
+}
+
 //
 inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
 inline SrcLoc& Node_srcloc(Node node) { return gNodeExtra[node].x_srcloc; }
@@ -1091,8 +1109,8 @@ inline void VisitAstRecursivelyWithScopeTracking(
   }
 }
 
-inline void MaybeReplaceAstRecursivelyPost(Node node,
-                                           std::function<Node(Node, Node)> replacer, Node parent) {
+inline void MaybeReplaceAstRecursivelyPost(
+    Node node, std::function<Node(Node, Node)> replacer, Node parent) {
   auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
