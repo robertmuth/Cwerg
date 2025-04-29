@@ -133,7 +133,7 @@ def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.Def
     for gen_id in def_macro.gen_ids:
         assert isinstance(gen_id, cwast.MacroId)
         new_name = ctx.GenUniqueName(gen_id.name)
-        #new_name = cwast.NAME.FromStr(gen_id.name.name[1:])
+        # new_name = cwast.NAME.FromStr(gen_id.name.name[1:])
         ctx.RegisterSymbol(
             gen_id.name, cwast.Id(new_name, None, x_srcloc=def_macro.x_srcloc))
     out = []
@@ -155,35 +155,30 @@ MAX_MACRO_NESTING = 8
 
 
 def _ExpandMacroInvokeIteratively(macro_invoke: cwast.MacroInvoke,
-                                  nesting: int, builtin_syms: symbolize.SymTab, id_gen: identifier.IdGen) -> Any:
+                                  nesting: int, id_gen: identifier.IdGen) -> Any:
     """This will recursively expand the macro so returned node does not contain any expandables"""
     while isinstance(macro_invoke, cwast.MacroInvoke):
         assert nesting < MAX_MACRO_NESTING
         assert isinstance(macro_invoke, cwast.MacroInvoke)
-        symtab: symbolize.SymTab = macro_invoke.x_import.x_module.x_symtab
-        def_macro = symtab.resolve_macro(
-            macro_invoke,  builtin_syms, symbolize.HasImportedSymbolReference(macro_invoke))
-        if def_macro is None:
-            cwast.CompilerError(
-                macro_invoke.x_srcloc, f"invocation of unknown macro `{macro_invoke.name}`")
+        def_macro = macro_invoke.x_symbol
+        assert isinstance(def_macro, cwast.DefMacro), f"{macro_invoke} -> {def_macro}"
         macro_invoke = _ExpandMacroInvokation(macro_invoke, def_macro, id_gen)
         nesting += 1
 
     assert cwast.NF.TO_BE_EXPANDED not in macro_invoke.FLAGS, macro_invoke
     # recurse and resolve any expandables
     _ExpandMacrosAndMacroLikeRecursively(
-        macro_invoke, nesting + 1, builtin_syms, id_gen)
+        macro_invoke, nesting + 1, id_gen)
     # pp_sexpr.PrettyPrint(exp)
     return macro_invoke
 
 
-def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, builtin_symtab: symbolize.SymTab, id_gen: identifier.IdGen):
+def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, id_gen: identifier.IdGen):
     def replacer(node: Any):
-        nonlocal builtin_symtab, nesting, id_gen
+        nonlocal nesting, id_gen
         orig_node = node
         if isinstance(node, cwast.MacroInvoke):
-            node = _ExpandMacroInvokeIteratively(
-                node, nesting, builtin_symtab, id_gen)
+            node = _ExpandMacroInvokeIteratively(node, nesting, id_gen)
         if isinstance(node, cwast.ExprSrcLoc):
             return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
         elif isinstance(node, cwast.ExprStringify):
@@ -194,14 +189,14 @@ def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, builtin_symtab: sym
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod], builtin_symtab: symbolize.SymTab, id_gen_cache: identifier.IdGenCache):
+def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod], id_gen_cache: identifier.IdGenCache):
     """Expands MacroInvoke, ExprSrcLoc, ExprStringify"""
     for mod in mods:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node.name)
                 _ExpandMacrosAndMacroLikeRecursively(
-                    node, 0, builtin_symtab, id_gen_cache.Get(node))
+                    node, 0, id_gen_cache.Get(node))
 
 
 ############################################################
@@ -222,7 +217,7 @@ def main(argv: list[str]):
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
     fun_id_gens = identifier.IdGenCache()
-    ExpandMacrosAndMacroLike(mod_topo_order, mp.builtin_symtab, fun_id_gens)
+    ExpandMacrosAndMacroLike(mod_topo_order, fun_id_gens)
     symbolize.SetTargetFields(mp.mods_in_topo_order)
     symbolize.ResolveSymbolsInsideFunctions(
         mod_topo_order, mp.builtin_symtab)

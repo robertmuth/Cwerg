@@ -467,6 +467,7 @@ def ReadModulesRecursively(root: Path,
         active = new_active
 
     out.mods_in_topo_order = _ModulesInTopologicalOrder(state.AllModInfos())
+    symbolize.ResolveMacroInvocations(out.mods_in_topo_order, out.builtin_symtab)
     return out
 
 

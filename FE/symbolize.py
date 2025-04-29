@@ -6,7 +6,7 @@
 
 import logging
 
-from typing import Optional, Any, Sequence
+from typing import Optional, Any, Sequence, Union
 
 from FE import cwast
 
@@ -33,7 +33,7 @@ def UpdateNodeSymbolForPolyCall(id_node: cwast.Id, new_def_node: cwast.DefFun):
     id_node.x_symbol = new_def_node
 
 
-def HasImportedSymbolReference(node: cwast.Id) -> bool:
+def HasImportedSymbolReference(node: Union[cwast.Id, cwast.MacroInvoke]) -> bool:
     """This is only used during symbol resolution after
     the x_import field has been set.
 
@@ -250,6 +250,33 @@ def ResolveSymbolsInsideFunctions(
                 assert not scopes
 
 
+def _FunResolveMacroInvocations(node, builtin_symtab: SymTab):
+    # this may be called multiple times for the same module
+    def visitor(node: Any, _parent):
+        nonlocal builtin_symtab
+        if not isinstance(node, cwast.MacroInvoke):
+            return
+        symtab = node.x_import.x_module.x_symtab
+        def_macro = symtab.resolve_macro(
+            node,  builtin_symtab, HasImportedSymbolReference(node))
+        assert isinstance(def_macro, cwast.DefMacro)
+        if def_macro is None:
+            cwast.CompilerError(
+                node.x_srcloc, f"invocation of unknown macro `{node.name}`")
+        AnnotateNodeSymbol(node, def_macro)
+
+    cwast.VisitAstRecursivelyWithParent(node, visitor, None)
+
+
+def ResolveMacroInvocations(
+        mods: list[cwast.DefMod], builtin_symtab: SymTab):
+    for mod in mods:
+        logger.info("Resolving symbols inside module: %s", mod.name)
+        for node in mod.body_mod:
+            if isinstance(node, (cwast.DefFun, cwast.DefMacro)):
+                _FunResolveMacroInvocations(node, builtin_symtab)
+
+
 def _CheckAddressCanBeTaken(lhs):
     if isinstance(lhs, cwast.Id):
         node_def = lhs.x_symbol
@@ -342,7 +369,7 @@ def _FunSetTargetField(fun):
                     return
 
             assert False, f"{
-                    node} --- {[p.__class__.__name__ for p in parents]}"
+                node} --- {[p.__class__.__name__ for p in parents]}"
 
     def visitor_post(node):
         nonlocal parents

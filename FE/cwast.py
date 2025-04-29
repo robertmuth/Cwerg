@@ -2961,7 +2961,7 @@ class MacroInvoke:
     """Macro Invocation"""
     ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Macro
-    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED
+    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.IMPORT_ANNOTATED | NF.SYMBOL_ANNOTATED
     #
     name: NAME   # may contain qualifiers
     args: list[NODES_EXPR_T]
@@ -2969,6 +2969,7 @@ class MacroInvoke:
     doc: str = ""
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
+    x_symbol: NODES_SYMBOLS_T = INVALID_SYMBOL
     x_import: Import = None
 
     def __repr__(self):
