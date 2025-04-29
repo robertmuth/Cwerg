@@ -1121,9 +1121,8 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     logger.info("Expand macros and link most IDs to their definition")
-    fun_id_gens = identifier.IdGenCache()
     macro.ExpandMacrosAndMacroLike(
-        mod_topo_order, mp.builtin_symtab, fun_id_gens)
+        mod_topo_order, mp.builtin_symtab, identifier.IdGenCache())
     symbolize.SetTargetFields(mod_topo_order)
     symbolize.ResolveSymbolsInsideFunctions(
         mod_topo_order, mp.builtin_symtab)
@@ -1173,7 +1172,6 @@ def main() -> int:
     mod_gen = cwast.DefMod(cwast.NAME("GeNeRaTeD", 0),
                            [], [], x_srcloc=cwast.SRCLOC_GENERATED)
     mod_gen.x_symtab = symbolize.SymTab()
-    global_id_gen = identifier.IdGen()
 
     # for key, val in fun_sigs_with_large_args.items():
     #    print (key.name, " -> ", val.name)
@@ -1206,7 +1204,7 @@ def main() -> int:
     SanityCheckMods("after_initial_lowering", args,
                     mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
 
-    constant_pool = eval.GlobalConstantPool(global_id_gen)
+    constant_pool = eval.GlobalConstantPool()
 
     logger.info("Legalize 2")
     for mod in mod_topo_order:

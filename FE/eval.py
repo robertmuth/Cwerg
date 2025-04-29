@@ -127,13 +127,15 @@ class GlobalConstantPool:
 
     """
 
-    def __init__(self, id_gen_global: identifier.IdGen):
-        self._id_gen_global = id_gen_global
+    def __init__(self):
+        self._current_no = 0
         self._bytes_map: dict[bytes, cwast.DefGlobal] = {}
         self._all_globals: list[cwast.DefGlobal] = []
 
     def _add_def_global(self, node) -> cwast.DefGlobal:
-        def_node = cwast.DefGlobal(self._id_gen_global.NewName("global_val"),
+        # TODO: leave this to code gen
+        self._current_no += 1
+        def_node = cwast.DefGlobal(cwast.NAME.FromStr(f"global_val_{self._current_no}"),
                                    cwast.TypeAuto(
             x_srcloc=node.x_srcloc, x_type=node.x_type), node,
             pub=True,
