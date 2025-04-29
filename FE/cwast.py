@@ -3309,11 +3309,11 @@ def CloneNodeRecursively(node, symbol_map, target_map):
         target_map[node] = clone
 
     if NF.SYMBOL_ANNOTATED in clone.FLAGS:
-        clone.x_symbol = symbol_map.get(clone.x_symbol, clone.x_symbol)
+        old_symbol = clone.x_symbol
+        clone.x_symbol = symbol_map.get(old_symbol, old_symbol)
     if NF.CONTROL_FLOW in clone.FLAGS:
         old_target = clone.x_target
-        new_target = target_map.get(old_target, old_target)
-        clone.x_target = new_target
+        clone.x_target = target_map.get(old_target, old_target)
 
     for nfd in node.__class__.NODE_FIELDS:
         f = nfd.name

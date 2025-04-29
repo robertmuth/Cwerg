@@ -1146,6 +1146,59 @@ inline void MaybeReplaceAstRecursivelyPost(
   }
 }
 
+inline Node GetWithDefault(const std::map<Node, Node>& m, Node node) {
+  auto it = m.find(node);
+  return (it == m.end()) ? it->second : node;
+}
+
+inline Node CloneNodeRecursively(Node node, std::map<Node, Node>* symbol_map,
+                                 std::map<Node, Node>* target_map) {
+  Node clone = NodeNew(Node_kind(node));
+  gNodeCore[clone] = gNodeCore[node];
+  gNodeExtra[clone] = gNodeExtra[node];
+  gNodeAuxTyping[clone] = gNodeAuxTyping[node];
+  switch (Node_kind(clone)) {
+    case NT::DefVar:
+      (*symbol_map)[node] = clone;
+      break;
+    case NT::StmtBlock:
+    case NT::ExprStmt:
+      (*target_map)[node] = clone;
+      break;
+    case NT::Id:
+      Node_x_symbol(clone) = GetWithDefault(*symbol_map, Node_x_symbol(node));
+      break;
+    case NT::StmtBreak:
+    case NT::StmtContinue:
+    case NT::StmtReturn:
+      Node_x_target(clone) = GetWithDefault(*target_map, Node_x_target(node));
+      break;
+    default:
+      break;
+  }
+
+  auto& core = gNodeCore[clone];
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Handle handle = core.children[i];
+    if (handle.raw_kind() == kKindStr || handle.raw_kind() == kKindName ||
+        handle.isnull())
+      continue;
+
+    Node child = Node(handle);
+    core.children[i] =
+        CloneNodeRecursively(Node(child), symbol_map, target_map);
+
+    while (!Node_next(child).isnull()) {
+      Node_next(child) =
+          CloneNodeRecursively(Node_next(child), symbol_map, target_map);
+      child = Node_next(child);
+    }
+  }
+
+  return clone;
+}
+
 // TODO: move this to a helper lib
 struct CompilerError : public std::ostream, private std::streambuf {
   CompilerError(const SrcLoc& srcloc) : std::ostream(this) {
