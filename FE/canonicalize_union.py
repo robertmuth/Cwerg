@@ -193,7 +193,7 @@ def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus
                                         x_type=untagged_ct)
 
 
-def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
+def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Simplifies ExprNarrow for tagged unions `u`
 
     (narrowto @unchecked u t)
@@ -220,7 +220,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
 
     """
     def replacer(node, _parent):
-        nonlocal tc, id_gen
+        nonlocal tc
         if not isinstance(node, cwast.ExprNarrow):
             return None
         if not node.expr.x_type.is_tagged_union():
@@ -235,7 +235,7 @@ def SimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus, id_g
             body = []
             expr = cwast.ExprStmt(body, x_srcloc=sl, x_type=node.x_type)
             node.expr = canonicalize.MakeNodeCopyableWithoutRiskOfSideEffects(
-                node.expr, body, id_gen, False)
+                node.expr, body, False)
             assert canonicalize.IsNodeCopyableWithoutRiskOfSideEffects(
                 node.expr)
             # assert isinstance(node.expr, cwast.Id), f"NYI: {node.expr}"

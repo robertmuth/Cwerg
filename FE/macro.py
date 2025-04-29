@@ -133,6 +133,7 @@ def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.Def
     for gen_id in def_macro.gen_ids:
         assert isinstance(gen_id, cwast.MacroId)
         new_name = ctx.GenUniqueName(gen_id.name)
+        #new_name = cwast.NAME.FromStr(gen_id.name.name[1:])
         ctx.RegisterSymbol(
             gen_id.name, cwast.Id(new_name, None, x_srcloc=def_macro.x_srcloc))
     out = []

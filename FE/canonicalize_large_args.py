@@ -51,7 +51,7 @@ def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> dict[Any, Any]:
 
 
 def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonType,
-                                       tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
+                                       tc: type_corpus.TypeCorpus):
     old_sig: cwast.CanonType = fun.x_type
     typify.UpdateNodeType(fun, new_sig)
     result_changes = old_sig.result_type() != new_sig.result_type()
@@ -62,8 +62,8 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
         sl = fun.x_srcloc
         result_type = cwast.TypePtr(
             fun.result, mut=True, x_srcloc=sl, x_type=new_sig.parameter_types()[-1])
-        result_param = cwast.FunParam(id_gen.NewName(
-            "result"), result_type, x_srcloc=sl, x_type=result_type.x_type, res_ref=True)
+        result_param = cwast.FunParam(cwast.NAME.FromStr(
+            "large_result"), result_type, x_srcloc=sl, x_type=result_type.x_type, res_ref=True)
         fun.params.append(result_param)
         fun.result = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=sl,
                                     x_type=tc.get_void_canon_type())
@@ -80,9 +80,9 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
 
 
 def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
-                                  tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
+                                  tc: type_corpus.TypeCorpus):
     changing_params, result_changes = _FixupFunctionPrototypeForLargArgs(
-        fun, new_sig, tc, id_gen)
+        fun, new_sig, tc)
 
     # print([k.name for k, v in changing_params.items()], result_changes)
 
@@ -113,7 +113,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
 
 
 def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
-                                  tc: type_corpus.TypeCorpus, id_gen: identifier.IdGen):
+                                  tc: type_corpus.TypeCorpus):
     """Assuming the callee signature was changed like so
           foo(a: rec A, b: rec B, c: rec C)
        To
@@ -149,7 +149,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                                new_sig.parameter_types())):
                 if old != new:
                     at = cwast.TypeAuto(x_srcloc=sl, x_type=old)
-                    new_def = cwast.DefVar(id_gen.NewName(f"arg{n}"),
+                    new_def = cwast.DefVar(cwast.NAME.FromStr(f"arg{n}"),
                                            at,
                                            call.args[n], ref=True,
                                            x_srcloc=sl,
@@ -162,7 +162,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             if len(old_sig.parameter_types()) != len(new_sig.parameter_types()):
                 # the result is not a argument
                 at = cwast.TypeAuto(x_srcloc=sl, x_type=old_sig.result_type())
-                new_def = cwast.DefVar(id_gen.NewName("result"),
+                new_def = cwast.DefVar(cwast.NAME.FromStr("result"),
                                        at,
                                        cwast.ValUndef(x_srcloc=sl),
                                        mut=True, ref=True,

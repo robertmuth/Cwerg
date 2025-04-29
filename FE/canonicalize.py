@@ -173,7 +173,7 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
 ############################################################
 #
 ############################################################
-def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], id_gen: identifier.IdGen, is_lhs: bool):
+def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool):
     """Ensures that the node has one of the following shapes:
     1) Id
     2) (^ Id)
@@ -199,7 +199,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], id_gen: iden
             return lhs
         sl = lhs.x_srcloc
         at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.expr.x_type)
-        def_node = cwast.DefVar(id_gen.NewName("assign"),
+        def_node = cwast.DefVar(cwast.NAME.FromStr("deref_assign"),
                                 at,
                                 lhs.expr, x_srcloc=sl, x_type=at.x_type)
         stmts.append(def_node)
@@ -207,7 +207,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], id_gen: iden
         return lhs
     elif isinstance(lhs, cwast.ExprField):
         lhs.container = MakeNodeCopyableWithoutRiskOfSideEffects(
-            lhs.container, stmts, id_gen, is_lhs)
+            lhs.container, stmts, is_lhs)
         return lhs
     else:
         # note we do not need to deal with  cwast.ExprIndex because that has been lowered
@@ -216,7 +216,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], id_gen: iden
             assert False
         sl = lhs.x_srcloc
         at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.x_type)
-        def_node = cwast.DefVar(id_gen.NewName("assign"),
+        def_node = cwast.DefVar(cwast.NAME.FromStr("assign"),
                                 at,
                                 lhs, x_srcloc=sl, x_type=at.x_type)
         stmts.append(def_node)
@@ -298,13 +298,13 @@ def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
 #
 
 
-def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen):
+def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
     """Convert StmtCompoundAssignment to StmtAssignment"""
     def replacer(node):
         if isinstance(node, cwast.StmtCompoundAssignment):
             stmts = []
             new_lhs = MakeNodeCopyableWithoutRiskOfSideEffects(
-                node.lhs, stmts, id_gen, True)
+                node.lhs, stmts, True)
             assert IsNodeCopyableWithoutRiskOfSideEffects(
                 new_lhs), f"{new_lhs}"
             assignment = _AssigmemtNode(node.assignment_kind, new_lhs,
@@ -649,7 +649,7 @@ def _IsSimpleInitializer(expr) -> bool:
         return False
 
 
-def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc: type_corpus.TypeCorpus):
+def FunRewriteComplexAssignments(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Rewrite assignments of recs (including unions and spans) and arrays
 
     to ensure correctness.
@@ -687,7 +687,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, id_gen: identifier.IdGen, tc
                 if not _IsSimpleInitializer(i.value_or_undef):
                     sl = i.x_srcloc
                     at = cwast.TypeAuto(x_srcloc=sl, x_type=i.x_type)
-                    def_tmp = cwast.DefVar(id_gen.NewName("val_array_tmp"),
+                    def_tmp = cwast.DefVar(cwast.NAME.FromStr("val_array_tmp"),
                                            at, i.value_or_undef,
                                            x_srcloc=sl, x_type=at.x_type)
                     extra.append(def_tmp)

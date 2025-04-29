@@ -112,7 +112,7 @@ def FunCopyPropagation(fun: cwast.DefFun):
     cwast.VisitAstRecursivelyPost(fun, update)
 
 
-def MakeExprStmtForCall(call: cwast.ExprCall, id_gen: identifier.IdGen) -> cwast.ExprStmt:
+def MakeExprStmtForCall(call: cwast.ExprCall) -> cwast.ExprStmt:
     """ Note: this duplicates fields from `call` so call shold be
     deleted afterwards
     """
@@ -126,7 +126,7 @@ def MakeExprStmtForCall(call: cwast.ExprCall, id_gen: identifier.IdGen) -> cwast
     for a, p in zip(call.args, fun_def.params):
         sl = a.x_srcloc
         at = cwast.TypeAuto(x_srcloc=sl, x_type=p.type.x_type)
-        t = cwast.DefVar(id_gen.NewName("inl_arg"),
+        t = cwast.DefVar(cwast.NAME.FromStr(f"inl_arg_{p.name.name}"),
                          at,
                          a,
                          x_srcloc=sl,
@@ -148,7 +148,7 @@ def MakeExprStmtForCall(call: cwast.ExprCall, id_gen: identifier.IdGen) -> cwast
 _INLINE_NODE_CUT_OFF = 20
 
 
-def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
+def FunInlineSmallFuns(fun: cwast.DefFun):
 
     def replacer(call: Any, _parent: Any):
         nonlocal fun
@@ -176,7 +176,7 @@ def FunInlineSmallFuns(fun: cwast.DefFun, id_gen: identifier.IdGen):
         stats.IncCounter("Inlining", "Nodes", n)
         # print("INLINING ", call, call.x_srcloc,
         #      "    ->     ", f"{repr(fun_def.name)}", fun_def)
-        return MakeExprStmtForCall(call, id_gen)
+        return MakeExprStmtForCall(call)
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
@@ -198,8 +198,8 @@ def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def FunOptimize(fun: cwast.DefFun, id_gen: identifier.IdGen):
-    FunInlineSmallFuns(fun, id_gen)
+def FunOptimize(fun: cwast.DefFun):
+    FunInlineSmallFuns(fun)
     FunCopyPropagation(fun)
     FunRemoveUnusedDefVar(fun)
     FunPeepholeOpts(fun)

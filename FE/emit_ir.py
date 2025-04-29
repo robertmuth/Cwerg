@@ -739,8 +739,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             assert src_type.is_vec()
             element_size: int = src_type.array_element_size()
             for index, c in symbolize.IterateValVec(init_node.inits,
-                                                      init_node.x_type.array_dim(),
-                                                      init_node.x_srcloc):
+                                                    init_node.x_type.array_dim(),
+                                                    init_node.x_srcloc):
                 if c is None:
                     continue
                 if isinstance(c.value_or_undef, cwast.ValUndef):
@@ -1109,7 +1109,6 @@ def main() -> int:
 
     mod_topo_order = mp.mods_in_topo_order
     main_entry_fun: cwast.DefFun = mp.main_fun
-    fun_id_gens = identifier.IdGenCache()
 
     eliminated_nodes: set[Any] = set()
     SanityCheckMods("after_parsing", args, mod_topo_order, None, None, eliminated_nodes,
@@ -1122,6 +1121,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
     logger.info("Expand macros and link most IDs to their definition")
+    fun_id_gens = identifier.IdGenCache()
     macro.ExpandMacrosAndMacroLike(
         mod_topo_order, mp.builtin_symtab, fun_id_gens)
     symbolize.SetTargetFields(mod_topo_order)
@@ -1188,9 +1188,8 @@ def main() -> int:
 
             if not isinstance(fun, cwast.DefFun):
                 continue
-            id_gen = fun_id_gens.Get(fun)
             # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
-            canonicalize_union.SimplifyTaggedExprNarrow(fun, tc, id_gen)
+            canonicalize_union.SimplifyTaggedExprNarrow(fun, tc)
             canonicalize.FunReplaceExprIs(fun, tc)
             canonicalize.FunCanonicalizeDefer(fun, [])
             cwast.EliminateEphemeralsRecursively(fun)
@@ -1225,10 +1224,8 @@ def main() -> int:
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):
-                id_gen = fun_id_gens.Get(fun)
                 # Note, the inlining inside FunOptimize will invalidate id_gen
-                optimize.FunOptimize(fun, id_gen)
-    fun_id_gens = identifier.IdGenCache()
+                optimize.FunOptimize(fun)
 
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
@@ -1255,12 +1252,11 @@ def main() -> int:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
                 continue
-            id_gen = fun_id_gens.Get(fun)
             canonicalize_large_args.FunRewriteLargeArgsCallerSide(
-                fun, fun_sigs_with_large_args, tc, id_gen)
+                fun, fun_sigs_with_large_args, tc)
             if fun.x_type in fun_sigs_with_large_args:
                 canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
-                    fun, fun_sigs_with_large_args[fun.x_type], tc, id_gen)
+                    fun, fun_sigs_with_large_args[fun.x_type], tc)
 
     SanityCheckMods("after_large_arg_conversion", args,
                     mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
@@ -1269,10 +1265,9 @@ def main() -> int:
             if not isinstance(fun, cwast.DefFun):
                 continue
 
-            id_gen = fun_id_gens.Get(fun)
-            canonicalize.FunCanonicalizeCompoundAssignments(fun, id_gen)
+            canonicalize.FunCanonicalizeCompoundAssignments(fun)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
-            canonicalize.FunRewriteComplexAssignments(fun, id_gen, tc)
+            canonicalize.FunRewriteComplexAssignments(fun, tc)
     eliminated_nodes.add(cwast.StmtCompoundAssignment)
     eliminated_nodes.add(cwast.StmtCond)
     eliminated_nodes.add(cwast.Case)
@@ -1281,10 +1276,8 @@ def main() -> int:
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):
-                id_gen = fun_id_gens.Get(fun)
                 # Note, the inlining inside FunOptimize will invalidate id_gen
-                optimize.FunOptimize(fun, id_gen)
-    fun_id_gens = identifier.IdGenCache()
+                optimize.FunOptimize(fun)
 
     for node in cwast.ALL_NODES:
         if cwast.NF.NON_CORE in node.FLAGS:
