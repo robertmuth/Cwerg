@@ -1215,7 +1215,7 @@ def main() -> int:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
                     node, tc)
-                canonicalize.FunCanonicalizeTernaryOp(node, identifier.IdGen())
+                canonicalize.FunCanonicalizeTernaryOp(node)
                 canonicalize.FunOptimizeKnownConditionals(node)
                 canonicalize.FunAddMissingReturnStmts(node)
 
@@ -1224,7 +1224,6 @@ def main() -> int:
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):
-                # Note, the inlining inside FunOptimize will invalidate id_gen
                 optimize.FunOptimize(fun)
 
     mod_gen.body_mod += constant_pool.GetDefGlobals()

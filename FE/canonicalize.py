@@ -132,7 +132,7 @@ def FunReplaceExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
+def FunCanonicalizeTernaryOp(fun: cwast.DefFun):
     """Convert ternary operator nodes into expr with if statements
 
     Note we could implement the ternary op as a macro but would lose the ability to do
@@ -140,12 +140,12 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun, id_gen: identifier.IdGen):
     def replacer(node, _parent):
         if isinstance(node, cwast.Expr3):
             sl = node.x_srcloc
-            name_t = id_gen.NewName("op_t")
+            name_t = cwast.NAME.FromStr("op_t")
             at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
             def_t = cwast.DefVar(name_t,
                                  at, node.expr_t,
                                  x_srcloc=sl, x_type=node.x_type)
-            name_f = id_gen.NewName("op_f")
+            name_f = cwast.NAME.FromStr("op_f")
             at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
             def_f = cwast.DefVar(name_f, at,
                                  node.expr_f, x_srcloc=sl, x_type=node.x_type)
