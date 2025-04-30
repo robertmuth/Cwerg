@@ -362,23 +362,32 @@ UNARY_EXPR_SHORTCUT_CONCRETE_INV = {
 class MOD_PARAM_KIND(enum.Enum):
     """Module Parameter Kind"""
     INVALID = 0
-    CONST_EXPR = 1
-    TYPE = 2
+    CONST_EXPR = enum.auto()
+    TYPE = enum.auto()
 
 
 @enum.unique
 class MACRO_PARAM_KIND(enum.Enum):
     """Macro Parameter Kinds"""
     INVALID = 0
-    ID = 1
-    STMT_LIST = 2
-    EXPR_LIST = 3
-    EXPR = 4
-    STMT = 5
-    FIELD = 6
-    TYPE = 7
-    EXPR_LIST_REST = 8   # must be last
+    ID = enum.auto()
+    EXPR = enum.auto()
+    FIELD = enum.auto()
+    TYPE = enum.auto()
+    ID_DEF = enum.auto()      # an id the results in a DefVar being created inside the macro
+    STMT_LIST = enum.auto()   # list of statements must be last
+    EXPR_LIST_REST = enum.auto()   # must be last parameter
 
+
+@enum.unique
+class MACRO_RESULT_KIND(enum.Enum):
+    """Macro Parameter Kinds"""
+    INVALID = 0
+    STMT = enum.auto()
+    STMT_LIST = enum.auto()
+    EXPR = enum.auto()
+    EXPR_LIST = enum.auto()
+    TYPE = enum.auto()
 
 ############################################################
 # Field attributes of Nodes
@@ -429,8 +438,6 @@ class NFD:
     doc: str
     enum_kind: Any = None
     node_type: Any = None
-    # not really needed anymore
-    role: MACRO_PARAM_KIND = MACRO_PARAM_KIND.INVALID
 
 
 def NfdStr(name, doc):
@@ -461,12 +468,12 @@ def _ExtractTypes(t):
     return tuple([x.__forward_arg__ for x in t.__args__])
 
 
-def NfdNode(name, doc, node_type, role):
-    return NFD(NFK.NODE, name, doc, node_type=_ExtractTypes(node_type), role=role)
+def NfdNode(name, doc, node_type):
+    return NFD(NFK.NODE, name, doc, node_type=_ExtractTypes(node_type))
 
 
-def NfdNodeList(name, doc, node_type, role):
-    return NFD(NFK.LIST, name, doc, node_type=_ExtractTypes(node_type), role=role)
+def NfdNodeList(name, doc, node_type):
+    return NFD(NFK.LIST, name, doc, node_type=_ExtractTypes(node_type))
 
 
 NODES_INITS_T: TypeAlias = "ValPoint"
@@ -588,11 +595,11 @@ ALL_FIELDS = [
                         }](#stmtcompoundassignment-kind)",
             ASSIGNMENT_KIND),
     NfdKind("macro_param_kind",
-            f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#MacroParam-kind)",
+            f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#macro-param-kind)",
             MACRO_PARAM_KIND),
     NfdKind("macro_result_kind",
-            f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#MacroParam-kind)",
-            MACRO_PARAM_KIND),
+            f"one of: [{_EnumValues(MACRO_RESULT_KIND)}](#macro-result-kind)",
+            MACRO_RESULT_KIND),
     NfdKind("pointer_expr_kind",
             f"one of: [{_EnumValues(POINTER_EXPR_KIND)}](#pointerop-kind)",
             POINTER_EXPR_KIND),
@@ -600,96 +607,70 @@ ALL_FIELDS = [
 
     #
     # TODO: fix all the None below
-    NfdNodeList("params", "function parameters and/or comments", NODES_PARAMS_T,
-                MACRO_PARAM_KIND.INVALID),
-    NfdNodeList("params_mod", "module template parameters", NODES_PARAMS_MOD_T,
-                MACRO_PARAM_KIND.INVALID),
-    NfdNodeList("params_macro", "macro parameters", NODES_PARAMS_MACRO_T,
-                MACRO_PARAM_KIND.INVALID),
-    NfdNodeList("args", "function call arguments",
-                NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
+    NfdNodeList("params", "function parameters and/or comments",
+                NODES_PARAMS_T),
+    NfdNodeList("params_mod", "module template parameters",
+                NODES_PARAMS_MOD_T),
+    NfdNodeList("params_macro", "macro parameters", NODES_PARAMS_MACRO_T),
+    NfdNodeList("args", "function call arguments", NODES_EXPR_T),
     NfdNodeList("args_mod", "module arguments",
-                Union[NODES_EXPR_T, NODES_TYPES_T], MACRO_PARAM_KIND.EXPR),
-    NfdNodeList("items", "enum items and/or comments", NODES_ITEMS_T,
-                MACRO_PARAM_KIND.INVALID),
-    NfdNodeList("fields", "record fields and/or comments", NODES_FIELDS_T,
-                MACRO_PARAM_KIND.INVALID),
-    NfdNodeList("types", "union types", NODES_TYPES_T,
-                MACRO_PARAM_KIND.TYPE),
-    NfdNodeList("inits",
-                "rec initializers and/or comments", NODES_INITS_T,
-                MACRO_PARAM_KIND.INVALID),
+                Union[NODES_EXPR_T, NODES_TYPES_T]),
+    NfdNodeList("items", "enum items and/or comments", NODES_ITEMS_T),
+    NfdNodeList("fields", "record fields and/or comments", NODES_FIELDS_T),
+    NfdNodeList("types", "union types", NODES_TYPES_T),
+    NfdNodeList("inits", "rec initializers and/or comments", NODES_INITS_T),
     NfdNodeList("gen_ids",
                 "name placeholder ids to be generated at macro instantiation time",
-                "MacroId", MACRO_PARAM_KIND.INVALID),
+                "MacroId"),
 
     #
     NfdNodeList("body_mod",
-                "toplevel module definitions and/or comments", NODES_BODY_MOD_T,
-                MACRO_PARAM_KIND.STMT_LIST),
-    NfdNodeList("body", "new scope: statement list and/or comments", NODES_BODY_T,
-                MACRO_PARAM_KIND.STMT_LIST),
+                "toplevel module definitions and/or comments", NODES_BODY_MOD_T),
+    NfdNodeList(
+        "body", "new scope: statement list and/or comments", NODES_BODY_T),
     NfdNodeList("body_t",
-                "new scope: statement list and/or comments for true branch", NODES_BODY_T,
-                MACRO_PARAM_KIND.STMT_LIST),
+                "new scope: statement list and/or comments for true branch", NODES_BODY_T),
     NfdNodeList("body_f",
-                "new scope: statement list and/or comments for false branch", NODES_BODY_T,
-                MACRO_PARAM_KIND.STMT_LIST),
-    NfdNodeList("body_for", "statement list for macro_loop", NODES_BODY_T,
-                MACRO_PARAM_KIND.STMT_LIST),
+                "new scope: statement list and/or comments for false branch", NODES_BODY_T),
+    NfdNodeList("body_for", "statement list for macro_loop", NODES_BODY_T),
     NfdNodeList("body_macro",
-                "new scope: macro statments/expression", NODES_BODY_MACRO_T,
-                MACRO_PARAM_KIND.STMT_LIST),
-    NfdNodeList("cases", "list of case statements", NODES_CASES_T,
-                MACRO_PARAM_KIND.STMT_LIST),
+                "new scope: macro statments/expression", NODES_BODY_MACRO_T),
+    NfdNodeList("cases", "list of case statements", NODES_CASES_T),
 
     #
-    NfdNode("field", "record field", "Id", MACRO_PARAM_KIND.ID),
+    NfdNode("field", "record field", "Id"),
     NfdNode("point",
-            "compound initializer index/field or auto (meaning next pos)", NODES_EXPR_OR_AUTO_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("type", "type expression", NODES_TYPES_T, MACRO_PARAM_KIND.TYPE),
-    NfdNode("subtrahend", "type expression",
-            NODES_TYPES_T, MACRO_PARAM_KIND.TYPE),
-    NfdNode("type_or_auto", "type expression",
-            NODES_TYPES_OR_AUTO_T, MACRO_PARAM_KIND.TYPE),
-    NfdNode("result", "return type", NODES_TYPES_T, MACRO_PARAM_KIND.TYPE),
-    NfdNode("size", "compile-time constant size",
-            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
+            "compound initializer index/field or auto (meaning next pos)", NODES_EXPR_OR_AUTO_T),
+    NfdNode("type", "type expression", NODES_TYPES_T),
+    NfdNode("subtrahend", "type expression", NODES_TYPES_T),
+    NfdNode("type_or_auto", "type expression", NODES_TYPES_OR_AUTO_T),
+    NfdNode("result", "return type", NODES_TYPES_T),
+    NfdNode("size", "compile-time constant size", NODES_EXPR_T),
     NfdNode("expr_size", "expression determining the size or auto",
-            NODES_EXPR_OR_AUTO_T, MACRO_PARAM_KIND.EXPR),
+            NODES_EXPR_OR_AUTO_T),
     NfdNode("expr_index",
-            "expression determining the index to be accessed", NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("expr", "expression", NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("cond", "conditional expression must evaluate to a boolean",
-            NODES_COND_T, MACRO_PARAM_KIND.EXPR),
+            "expression determining the index to be accessed", NODES_EXPR_T),
+    NfdNode("expr", "expression", NODES_EXPR_T),
+    NfdNode("cond", "conditional expression must evaluate to a boolean", NODES_COND_T),
     NfdNode("expr_t",
-            "expression (will only be evaluated if cond == true)", NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
+            "expression (will only be evaluated if cond == true)", NODES_EXPR_T),
     NfdNode("expr_f",
-            "expression (will only be evaluated if cond == false)", NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("expr1", "left operand expression",
-            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("expr2", "right operand expression",
-            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("expr_bound_or_undef", "",
-            NODES_EXPR_OR_UNDEF_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("expr_rhs", "rhs of assignment",
-            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("expr_ret", "result expression (ValVoid means no result)",
-            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("pointer", "pointer component of span",
-            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("container", "vec and span",
-            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("callee", "expression evaluating to the function to be called",
-            NODES_EXPR_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("value_or_auto", "enum constant or auto",
-            NODES_EXPR_OR_AUTO_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("value_or_undef", "", NODES_EXPR_OR_UNDEF_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("lhs", "l-value expression", NODES_LHS_T, MACRO_PARAM_KIND.EXPR),
-    NfdNode("expr_lhs", "l-value expression",
-            NODES_LHS_T, MACRO_PARAM_KIND.EXPR),
+            "expression (will only be evaluated if cond == false)", NODES_EXPR_T),
+    NfdNode("expr1", "left operand expression", NODES_EXPR_T),
+    NfdNode("expr2", "right operand expression", NODES_EXPR_T),
+    NfdNode("expr_bound_or_undef", "", NODES_EXPR_OR_UNDEF_T),
+    NfdNode("expr_rhs", "rhs of assignment", NODES_EXPR_T),
+    NfdNode("expr_ret", "result expression (ValVoid means no result)", NODES_EXPR_T),
+    NfdNode("pointer", "pointer component of span", NODES_EXPR_T),
+    NfdNode("container", "vec and span", NODES_EXPR_T),
+    NfdNode(
+        "callee", "expression evaluating to the function to be called", NODES_EXPR_T),
+    NfdNode("value_or_auto", "enum constant or auto", NODES_EXPR_OR_AUTO_T),
+    NfdNode("value_or_undef", "", NODES_EXPR_OR_UNDEF_T),
+    NfdNode("lhs", "l-value expression", NODES_LHS_T),
+    NfdNode("expr_lhs", "l-value expression", NODES_LHS_T),
     NfdNode("initial_or_undef_or_auto", "initializer",
-            NODES_EXPR_OR_UNDEF_OR_AUTO_T, MACRO_PARAM_KIND.EXPR),
+            NODES_EXPR_OR_UNDEF_OR_AUTO_T),
 ]
 
 NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
@@ -2993,7 +2974,7 @@ class DefMacro:
     FLAGS: ClassVar = NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.NON_CORE
     #
     name: NAME
-    macro_result_kind: MACRO_PARAM_KIND
+    macro_result_kind: MACRO_RESULT_KIND
     params_macro: list[NODES_PARAMS_MACRO_T]
     gen_ids: list[MacroId]
     body_macro: list[Any]  # new scope
@@ -3653,6 +3634,8 @@ Misc enums used inside of nodes.
                       MOD_PARAM_KIND, fout)
     _RenderKindSimple("MacroParam",
                       MACRO_PARAM_KIND, fout)
+    _RenderKindSimple("MacroResult",
+                      MACRO_RESULT_KIND, fout)
 
 
 _NFK_KIND_2_SIZE = {
@@ -3858,6 +3841,8 @@ def GenerateCodeH(fout: Any):
     cgen.RenderEnumClass(cgen.NameValues(
         MACRO_PARAM_KIND), "MACRO_PARAM_KIND", fout)
     cgen.RenderEnumClass(cgen.NameValues(
+        MACRO_RESULT_KIND), "MACRO_RESULT_KIND", fout)
+    cgen.RenderEnumClass(cgen.NameValues(
         MOD_PARAM_KIND), "MOD_PARAM_KIND", fout)
     cgen.RenderEnumClass(cgen.NameValues(
         ASSIGNMENT_KIND), "ASSIGNMENT_KIND", fout)
@@ -3882,6 +3867,8 @@ def EnumStringConversions(fout: Any):
 
     std_render(MOD_PARAM_KIND)
     std_render(MACRO_PARAM_KIND)
+    std_render(MACRO_RESULT_KIND)
+
     render(BASE_TYPE_KIND.__name__,  cgen.NameValuesLower(BASE_TYPE_KIND))
 
     render(ASSIGNMENT_KIND.__name__,

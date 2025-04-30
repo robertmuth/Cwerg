@@ -91,8 +91,6 @@ class SymTab:
 
     def resolve_sym_with_fallback(self, node: Union[cwast.Id, cwast.MacroInvoke], builtin_syms: "SymTab") -> Optional[Any]:
         """We could be more specific here if we narrow down the symbol type"""
-
-        # We are already in the "right" symtab
         out = self._syms.get(node.name)
         if not out:
             out = builtin_syms.resolve_imported_sym(node)

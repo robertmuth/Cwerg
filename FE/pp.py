@@ -730,7 +730,7 @@ def _EmitTokensToplevel(out, node):
         out += [PP.Brk()]
         _EmitIdList(out, node.gen_ids)
         out += [PP.Brk(0), PP.Str(":")]
-        if node.macro_result_kind in (cwast.MACRO_PARAM_KIND.STMT, cwast.MACRO_PARAM_KIND.STMT_LIST):
+        if node.macro_result_kind in (cwast.MACRO_RESULT_KIND.STMT, cwast.MACRO_RESULT_KIND.STMT_LIST):
             _EmitStatementsSpecial(out, node.body_macro)
         else:
             _EmitTokensExprMacroBlockSpecial(out, node.body_macro)

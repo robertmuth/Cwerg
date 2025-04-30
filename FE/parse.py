@@ -776,7 +776,7 @@ def _ParseTopLevel(inp: lexer.Lexer):
             body = _ParseExprList(inp, kw.column)
         else:
             body = _ParseStatementList(inp, kw.column)
-        return cwast.DefMacro(cwast.NAME.FromStr(name.text), cwast.MACRO_PARAM_KIND[kind.text],
+        return cwast.DefMacro(cwast.NAME.FromStr(name.text), cwast.MACRO_RESULT_KIND[kind.text],
                               params, gen_ids, body, **extra)
     elif kw.text == "type":
         name = inp.match_or_die(lexer.TK_KIND.ID)

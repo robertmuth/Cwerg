@@ -97,7 +97,7 @@ def _CheckMacroArg(p,  a, macro_invoke, def_macro):
     kind = p.macro_param_kind
     if kind is cwast.MACRO_PARAM_KIND.EXPR:
         pass
-    elif kind in (cwast.MACRO_PARAM_KIND.STMT_LIST, cwast.MACRO_PARAM_KIND.EXPR_LIST,
+    elif kind in (cwast.MACRO_PARAM_KIND.STMT_LIST,
                   cwast.MACRO_PARAM_KIND.EXPR_LIST_REST):
         if not isinstance(a, cwast.EphemeralList):
             cwast.CompilerError(macro_invoke.x_srcloc,
@@ -106,7 +106,7 @@ def _CheckMacroArg(p,  a, macro_invoke, def_macro):
         pass
     elif kind is cwast.MACRO_PARAM_KIND.FIELD:
         assert isinstance(a, cwast.Id)
-    elif kind is cwast.MACRO_PARAM_KIND.ID:
+    elif kind in (cwast.MACRO_PARAM_KIND.ID, cwast.MACRO_PARAM_KIND.ID_DEF):
         assert isinstance(
             a, cwast.Id), f"while expanding macro {def_macro.name} expected parameter id but got: {a}"
     else:
@@ -161,7 +161,8 @@ def _ExpandMacroInvokeIteratively(macro_invoke: cwast.MacroInvoke,
         assert nesting < MAX_MACRO_NESTING
         assert isinstance(macro_invoke, cwast.MacroInvoke)
         def_macro = macro_invoke.x_symbol
-        assert isinstance(def_macro, cwast.DefMacro), f"{macro_invoke} -> {def_macro}"
+        assert isinstance(
+            def_macro, cwast.DefMacro), f"{macro_invoke} -> {def_macro}"
         macro_invoke = _ExpandMacroInvokation(macro_invoke, def_macro, id_gen)
         nesting += 1
 
