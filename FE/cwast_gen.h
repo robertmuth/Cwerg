@@ -36,6 +36,7 @@ struct StrAndSeq {
   }
 };
 
+// some forward declarations
 enum class NT : uint8_t;  // "node type"
 enum class BF : uint8_t;  // "bit flag"
 
@@ -45,6 +46,7 @@ enum class POINTER_EXPR_KIND : uint8_t;
 enum class BASE_TYPE_KIND : uint8_t;
 enum class STR_KIND : uint8_t;
 enum class MACRO_PARAM_KIND : uint8_t;
+enum class MACRO_RESULT_KIND : uint8_t;
 enum class MOD_PARAM_KIND : uint8_t;
 enum class ASSIGNMENT_KIND : uint8_t;
 
@@ -96,6 +98,7 @@ struct NodeCore {
     BINARY_EXPR_KIND binary_expr_kind;
     UNARY_EXPR_KIND unary_expr_kind;
     MACRO_PARAM_KIND macro_param_kind;
+    MACRO_RESULT_KIND macro_result_kind;
     MOD_PARAM_KIND mod_param_kind;
     ASSIGNMENT_KIND assignment_kind;
     BASE_TYPE_KIND base_type_kind;
@@ -530,13 +533,21 @@ enum class BASE_TYPE_KIND : uint8_t {
 enum class MACRO_PARAM_KIND : uint8_t {
     INVALID = 0,
     ID = 1,
+    EXPR = 2,
+    FIELD = 3,
+    TYPE = 4,
+    ID_DEF = 5,
+    STMT_LIST = 6,
+    EXPR_LIST_REST = 7,
+};
+
+enum class MACRO_RESULT_KIND : uint8_t {
+    INVALID = 0,
+    STMT = 1,
     STMT_LIST = 2,
-    EXPR_LIST = 3,
-    EXPR = 4,
-    STMT = 5,
-    FIELD = 6,
-    TYPE = 7,
-    EXPR_LIST_REST = 8,
+    EXPR = 3,
+    EXPR_LIST = 4,
+    TYPE = 5,
 };
 
 enum class MOD_PARAM_KIND : uint8_t {
@@ -642,7 +653,7 @@ inline void InitDefGlobal(Node node, Name name, Node type_or_auto, Node initial_
     NodeInit(node, NT::DefGlobal, name, type_or_auto, initial_or_undef_or_auto, kHandleInvalid, 0, bits, doc, srcloc);
 }
 
-inline void InitDefMacro(Node node, Name name, MACRO_PARAM_KIND macro_result_kind, Node params_macro, Node gen_ids, Node body_macro, uint16_t bits, Str doc, const SrcLoc& srcloc) {
+inline void InitDefMacro(Node node, Name name, MACRO_RESULT_KIND macro_result_kind, Node params_macro, Node gen_ids, Node body_macro, uint16_t bits, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::DefMacro, name, params_macro, gen_ids, body_macro, uint8_t(macro_result_kind), bits, doc, srcloc);
 }
 
@@ -953,8 +964,8 @@ inline MACRO_PARAM_KIND& Node_macro_param_kind(Node n) {
   return gNodeCore[n].macro_param_kind;
 }
 
-inline MACRO_PARAM_KIND& Node_macro_result_kind(Node n) {
-  return gNodeCore[n].macro_param_kind;
+inline MACRO_RESULT_KIND& Node_macro_result_kind(Node n) {
+  return gNodeCore[n].macro_result_kind;
 }
 
 inline ASSIGNMENT_KIND Node_assignment_kind(Node n) {
@@ -1002,6 +1013,9 @@ const char* EnumToString(ASSIGNMENT_KIND x);
 
 // default is MACRO_PARAM_KIND::INVALID
 MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name);
+
+// default is MACRO_RESULT_KIND::INVALID
+MACRO_RESULT_KIND MACRO_RESULT_KIND_FromString(std::string_view name);
 
 // default is MOD_PARAM_KIND::INVALID
 MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name);

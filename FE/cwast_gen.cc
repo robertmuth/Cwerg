@@ -158,27 +158,25 @@ const uint8_t MOD_PARAM_KIND_Jumper[128] = {
 const char* const MACRO_PARAM_KIND_ToStringMap[] = {
     "INVALID", // 0
     "ID", // 1
-    "STMT_LIST", // 2
-    "EXPR_LIST", // 3
-    "EXPR", // 4
-    "STMT", // 5
-    "FIELD", // 6
-    "TYPE", // 7
-    "EXPR_LIST_REST", // 8
+    "EXPR", // 2
+    "FIELD", // 3
+    "TYPE", // 4
+    "ID_DEF", // 5
+    "STMT_LIST", // 6
+    "EXPR_LIST_REST", // 7
 };
 const char* EnumToString(MACRO_PARAM_KIND x) { return MACRO_PARAM_KIND_ToStringMap[unsigned(x)]; }
 
 
 const struct StringKind MACRO_PARAM_KIND_FromStringMap[] = {
-    {"EXPR", 4},
-    {"EXPR_LIST", 3},
-    {"EXPR_LIST_REST", 8},
-    {"FIELD", 6},
+    {"EXPR", 2},
+    {"EXPR_LIST_REST", 7},
+    {"FIELD", 3},
     {"ID", 1},
+    {"ID_DEF", 5},
     {"INVALID", 0},
-    {"STMT", 5},
-    {"STMT_LIST", 2},
-    {"TYPE", 7},
+    {"STMT_LIST", 6},
+    {"TYPE", 4},
     {"ZZZ", 0},
 };
 
@@ -187,8 +185,40 @@ const uint8_t MACRO_PARAM_KIND_Jumper[128] = {
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 0, 3, 255, 255, 4, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 6, 8, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 0, 2, 255, 255, 3, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 6, 7, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+};
+
+const char* const MACRO_RESULT_KIND_ToStringMap[] = {
+    "INVALID", // 0
+    "STMT", // 1
+    "STMT_LIST", // 2
+    "EXPR", // 3
+    "EXPR_LIST", // 4
+    "TYPE", // 5
+};
+const char* EnumToString(MACRO_RESULT_KIND x) { return MACRO_RESULT_KIND_ToStringMap[unsigned(x)]; }
+
+
+const struct StringKind MACRO_RESULT_KIND_FromStringMap[] = {
+    {"EXPR", 3},
+    {"EXPR_LIST", 4},
+    {"INVALID", 0},
+    {"STMT", 1},
+    {"STMT_LIST", 2},
+    {"TYPE", 5},
+    {"ZZZ", 0},
+};
+
+const uint8_t MACRO_RESULT_KIND_Jumper[128] = {
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 0, 255, 255, 255, 2, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 3, 5, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
@@ -674,6 +704,11 @@ static uint8_t LinearSearch(const StringKind* table, const uint8_t* jumper,
 MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name) {
   return MACRO_PARAM_KIND(LinearSearch(MACRO_PARAM_KIND_FromStringMap,
                                        MACRO_PARAM_KIND_Jumper, name, 0));
+}
+
+MACRO_RESULT_KIND MACRO_RESULT_KIND_FromString(std::string_view name) {
+  return MACRO_RESULT_KIND(LinearSearch(MACRO_RESULT_KIND_FromStringMap,
+                                        MACRO_RESULT_KIND_Jumper, name, 0));
 }
 
 MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name) {

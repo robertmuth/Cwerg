@@ -1161,7 +1161,7 @@ Node ParseTopLevel(Lexer* lexer) {
                name);
       }
       const TK kind = lexer->MatchIdOrDie();
-      MACRO_PARAM_KIND mpk = MACRO_PARAM_KIND_FromString(kind.text);
+      MACRO_RESULT_KIND mrk = MACRO_RESULT_KIND_FromString(kind.text);
 
       lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
       Node params = ParseMacroParamList(lexer, false);
@@ -1169,12 +1169,13 @@ Node ParseTopLevel(Lexer* lexer) {
       Node gen_ids = ParseMacroGenIdList(lexer, false);
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = kNodeInvalid;
-      if (mpk == MACRO_PARAM_KIND::EXPR || mpk == MACRO_PARAM_KIND::EXPR_LIST) {
+      if (mrk == MACRO_RESULT_KIND::TYPE || mrk == MACRO_RESULT_KIND::EXPR ||
+          mrk == MACRO_RESULT_KIND::EXPR_LIST) {
         body = ParseExprList(lexer, outer_column);
       } else {
         body = ParseStmtBodyList(lexer, outer_column);
       }
-      InitDefMacro(out, NameNew(name.text), mpk, params, gen_ids, body, bits,
+      InitDefMacro(out, NameNew(name.text), mrk, params, gen_ids, body, bits,
                    tk.comments, tk.srcloc);
       return out;
     }
