@@ -454,7 +454,8 @@ def ReadModulesRecursively(root: Path,
                 else:
                     path = _ModUniquePathName(
                         root, mod_info.mid[0], pathname)
-                    mi = state.GetModInfo((path,))  # see if the module has been read already
+                    # see if the module has been read already
+                    mi = state.GetModInfo((path,))
                     if not mi:
                         mi = state.AddModInfoSimple(path, path.name)
                         new_active.append(mi)
@@ -473,9 +474,8 @@ def ReadModulesRecursively(root: Path,
         active = new_active
 
     out.mods_in_topo_order = _ModulesInTopologicalOrder(state.AllModInfos())
-    symbolize.ResolveSymbolsFromImports(out.mods_in_topo_order)
-    symbolize.ResolveMacroInvocations(
-        out.mods_in_topo_order, out.builtin_symtab)
+    symbolize.ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(out.mods_in_topo_order,
+                                                                      out.builtin_symtab)
     return out
 
 

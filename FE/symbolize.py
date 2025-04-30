@@ -154,29 +154,18 @@ def ResolveSymbolsOutsideFunctionsAndMacros(mod_topo_order: Sequence[cwast.DefMo
 
 def _ResolveSymbolInsideFunction(node: cwast.Id, symtab: SymTab, builtin_syms: SymTab, scopes) -> Any:
     if node.x_symbol:
-        # this happens for module parameter, imported symbols
+        # this happens for global, imported symbols, not all enums are global too
         return
     name = node.name
-    if node.enum_name is None:
-        for symtab in reversed(scopes):
-            def_node = symtab.resolve_name(name)
-            if def_node is not None:
-                AnnotateNodeSymbol(node, def_node)
-                return
 
-    # symbol is not a local symbol - so we fall through to looking in the global scope
-    # assert False, f"{node}"
-    symtab: SymTab = node.x_import.x_module.x_symtab
-    def_node = symtab.resolve_sym_with_fallback(node, builtin_syms)
-    if def_node:
-        if node.enum_name is not None:
-            assert isinstance(def_node, cwast.DefEnum)
-            def_node = _resolve_enum_item(
-                def_node, node.enum_name, node.x_srcloc)
-        AnnotateNodeSymbol(node, def_node)
-    else:
-        cwast.CompilerError(
-            node.x_srcloc, f"cannot resolve symbol for {node}")
+    for symtab in reversed(scopes):
+        def_node = symtab.resolve_name(name)
+        if def_node is not None:
+            AnnotateNodeSymbol(node, def_node)
+            return
+
+    cwast.CompilerError(
+        node.x_srcloc, f"cannot resolve symbol for {node}")
 
 
 def _FunResolveSymbolsInsideFunctions(
@@ -190,8 +179,12 @@ def _FunResolveSymbolsInsideFunctions(
         nonlocal builtin_syms, scopes
         if isinstance(node, cwast.Id):
             if not _IsFieldNode(node, parent):
-                _ResolveSymbolInsideFunction(node, symtab, builtin_syms, scopes)
+                _ResolveSymbolInsideFunction(
+                    node, symtab, builtin_syms, scopes)
         elif isinstance(node, cwast.DefVar):
+            if symtab.resolve_name(node.name) or builtin_syms.resolve_name(node.name):
+                cwast.CompilerError(
+                    node.x_srcloc, f"local symbol {node.name} must not shadow global symbol")
             assert not node.name.IsMacroVar()
             record_local_sym(node)
 
@@ -235,45 +228,27 @@ def ResolveSymbolsInsideFunctions(
                 assert not scopes
 
 
-def _FunResolveMacroInvocations(node, symtab: SymTab, builtin_symtab: SymTab):
-    def visitor(node: Any, _parent):
-        nonlocal builtin_symtab, symtab
-        if not isinstance(node, cwast.MacroInvoke):
-            return
-        # imported symbols have been already resolved
-        if node.x_symbol:
-            return
-        def_macro = symtab.resolve_sym_with_fallback(node,  builtin_symtab)
-        if not def_macro:
-            cwast.CompilerError(
-                node.x_srcloc, f"invocation of unknown macro `{node.name}`")
-        assert isinstance(def_macro, cwast.DefMacro)
-        AnnotateNodeSymbol(node, def_macro)
-
-    cwast.VisitAstRecursivelyWithParent(node, visitor, None)
-
-
-def ResolveMacroInvocations(
-        mods: list[cwast.DefMod], builtin_symtab: SymTab):
-    for mod in mods:
-        logger.info("Resolving symbols inside module: %s", mod.name)
-        symtab = mod.x_symtab
-        for node in mod.body_mod:
-            if isinstance(node, (cwast.DefFun, cwast.DefMacro)):
-                _FunResolveMacroInvocations(node, symtab, builtin_symtab)
-
-
-def _FunResolveSymbolsFromImports(node):
-    def visitor(node: Any, _parent):
+def _FunResolveGlobalAndImportedSymbols(node, symtab: SymTab, builtin_symtab: SymTab):
+    def visitor(node: Any, parent):
         if not isinstance(node, (cwast.MacroInvoke, cwast.Id)):
             return
-        if not HasImportedSymbolReference(node):
+        # must wait until type info is available
+        if _IsFieldNode(node, parent):
             return
-        symtab: SymTab = node.x_import.x_module.x_symtab
-        def_node = symtab.resolve_imported_sym(node)
-        if not def_node:
-            cwast.CompilerError(
-                node.x_srcloc, f"invocation of unknown macro `{node.name}`")
+        if HasImportedSymbolReference(node):
+            st: SymTab = node.x_import.x_module.x_symtab
+            def_node = st.resolve_imported_sym(node)
+            if not def_node:
+                cwast.CompilerError(
+                    node.x_srcloc, f"unknown imported symbol`{node.name}`")
+        else:
+            def_node = symtab.resolve_sym_with_fallback(node, builtin_symtab)
+            if not def_node:
+                if isinstance(node, cwast.MacroInvoke):
+                    cwast.CompilerError(
+                        node.x_srcloc, f"invocation of unknown macro `{node.name}`")
+                else:
+                    return
         if isinstance(node, cwast.Id) and node.enum_name is not None:
             assert isinstance(def_node, cwast.DefEnum)
             def_node = _resolve_enum_item(
@@ -283,12 +258,15 @@ def _FunResolveSymbolsFromImports(node):
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
 
-def ResolveSymbolsFromImports(mods: list[cwast.DefMod]):
+def ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(mods: list[cwast.DefMod],
+                                                            builtin_symtab: SymTab):
     for mod in mods:
         logger.info("Resolving symbols inside module: %s", mod.name)
         for node in mod.body_mod:
+            symtab = mod.x_symtab
             if isinstance(node, (cwast.DefFun, cwast.DefMacro)):
-                _FunResolveSymbolsFromImports(node)
+                _FunResolveGlobalAndImportedSymbols(
+                    node, symtab, builtin_symtab)
 
 
 def _CheckAddressCanBeTaken(lhs):
