@@ -419,8 +419,8 @@ def ReadModulesRecursively(root: Path,
         new_active: list[_ModInfo] = []
         seen_change = False
         # this probably needs to be a fix point computation as well
-        symbolize.ResolveSymbolsOutsideFunctionsAndMacros(
-            state.AllMods(), out.builtin_symtab, False)
+        symbolize.ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
+            state.AllMods(), out.builtin_symtab)
         for mod_info in active:
             assert isinstance(mod_info, _ModInfo), mod_info
             logger.info("start resolving imports for %s", mod_info)
