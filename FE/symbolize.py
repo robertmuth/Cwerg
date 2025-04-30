@@ -155,7 +155,7 @@ def ResolveSymbolsOutsideFunctionsAndMacros(mod_topo_order: Sequence[cwast.DefMo
                     node, builtin_syms, must_resolve_all)
 
 
-def _ResolveSymbolInsideFunction(node: cwast.Id, builtin_syms: SymTab, scopes) -> Any:
+def _ResolveSymbolInsideFunction(node: cwast.Id, symtab: SymTab, builtin_syms: SymTab, scopes) -> Any:
     if node.x_symbol:
         # this happens for module parameter, imported symbols
         return
@@ -193,7 +193,7 @@ def _FunResolveSymbolsInsideFunctions(
         nonlocal builtin_syms, scopes
         if isinstance(node, cwast.Id):
             if not _IsFieldNode(node, parent):
-                _ResolveSymbolInsideFunction(node, builtin_syms, scopes)
+                _ResolveSymbolInsideFunction(node, symtab, builtin_syms, scopes)
         elif isinstance(node, cwast.DefVar):
             assert not node.name.IsMacroVar()
             record_local_sym(node)
@@ -238,15 +238,14 @@ def ResolveSymbolsInsideFunctions(
                 assert not scopes
 
 
-def _FunResolveMacroInvocations(node, builtin_symtab: SymTab):
+def _FunResolveMacroInvocations(node, symtab: SymTab, builtin_symtab: SymTab):
     def visitor(node: Any, _parent):
-        nonlocal builtin_symtab
+        nonlocal builtin_symtab, symtab
         if not isinstance(node, cwast.MacroInvoke):
             return
         # imported symbols have been already resolved
         if node.x_symbol:
             return
-        symtab: SymTab = node.x_import.x_module.x_symtab
         def_macro = symtab.resolve_sym_with_fallback(node,  builtin_symtab)
         if not def_macro:
             cwast.CompilerError(
@@ -261,9 +260,10 @@ def ResolveMacroInvocations(
         mods: list[cwast.DefMod], builtin_symtab: SymTab):
     for mod in mods:
         logger.info("Resolving symbols inside module: %s", mod.name)
+        symtab = mod.x_symtab
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefMacro)):
-                _FunResolveMacroInvocations(node, builtin_symtab)
+                _FunResolveMacroInvocations(node, symtab, builtin_symtab)
 
 
 def _FunResolveSymbolsFromImports(node):
