@@ -80,7 +80,7 @@ class SymTab:
         return self._syms.get(name)
 
     def resolve_imported_sym(self, node: Union[cwast.Id, cwast.MacroInvoke]) -> Optional[Any]:
-        s = self.resolve_name(node.name)
+        s = self._syms.get(node.name)
         if s:
             if not s.pub:
                 cwast.CompilerError(
@@ -93,10 +93,9 @@ class SymTab:
         """We could be more specific here if we narrow down the symbol type"""
 
         # We are already in the "right" symtab
-        name = node.name
-        out = self.resolve_name(name)
+        out = self._syms.get(node.name)
         if not out:
-            out = builtin_syms.resolve_name(name)
+            out = builtin_syms.resolve_imported_sym(node)
         return out
 
 

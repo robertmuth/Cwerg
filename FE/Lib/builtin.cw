@@ -59,7 +59,7 @@
         trap
     set $lhs = narrow_as($eval, type_of($lhs))
 
-macro swap# STMT_LIST ($a EXPR, $b EXPR) [$t]:
+pub macro swap# STMT_LIST ($a EXPR, $b EXPR) [$t]:
     let $t = $a
     set $a = $b
     set $b = $t
