@@ -51,6 +51,7 @@ def _ResolveImportsForQualifers(mod: cwast.DefMod):
     def visitor(node: Any):
         nonlocal imports, self_import
         if isinstance(node, cwast.Import):
+            # assert node.x_module != cwast.INVALID_MOD
             name = node.name
             if name in imports:
                 cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
@@ -333,8 +334,8 @@ class _ModPoolState:
     def AddModInfoSimple(self, path: Path, mod_name: str) -> _ModInfo:
         """Register regular module"""
         mod = self.read_mod_fun(path, mod_name)
-        _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
+        _ResolveImportsForQualifers(mod)
         return self.AddModInfoCommon(path, [], mod, symtab)
 
     def AddModInfoForGeneric(self, path: Path, args: list, mod_name: str) -> _ModInfo:
@@ -345,8 +346,8 @@ class _ModPoolState:
             generic_mod = self.read_mod_fun(path, mod_name)
             self.raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
-        _ResolveImportsForQualifers(mod)
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
+        _ResolveImportsForQualifers(mod)
         return self.AddModInfoCommon(path, args, _SpecializeGenericModule(mod, args), symtab)
 
 
@@ -408,7 +409,12 @@ def ReadModulesRecursively(root: Path,
         active.append(mod_info)
         assert not mod_info.mod.builtin
 
-    # fix point computation for resolving imports
+    # Fix point computation for resolving imports
+    # -------------------------------------------
+    # for each "active" module we look at all its imports
+    #    we then try to read each imported module - if it has not already been imported.
+    #    however, for parameterized imports, this may not be possible yet.
+    #  Once all imports have been resolved, the module is no longer "active"
     while active:
         new_active: list[_ModInfo] = []
         seen_change = False
@@ -448,7 +454,7 @@ def ReadModulesRecursively(root: Path,
                 else:
                     path = _ModUniquePathName(
                         root, mod_info.mid[0], pathname)
-                    mi = state.GetModInfo((path,))
+                    mi = state.GetModInfo((path,))  # see if the module has been read already
                     if not mi:
                         mi = state.AddModInfoSimple(path, path.name)
                         new_active.append(mi)
@@ -467,7 +473,8 @@ def ReadModulesRecursively(root: Path,
         active = new_active
 
     out.mods_in_topo_order = _ModulesInTopologicalOrder(state.AllModInfos())
-    symbolize.ResolveMacroInvocations(out.mods_in_topo_order, out.builtin_symtab)
+    symbolize.ResolveMacroInvocations(
+        out.mods_in_topo_order, out.builtin_symtab)
     return out
 
 
