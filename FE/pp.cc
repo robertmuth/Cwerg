@@ -882,8 +882,8 @@ void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
       EmitIdList(out, Node_gen_ids(node));
       out->push_back(PP::NoBreak(0));
       out->push_back(PP::Str(":"));
-      if (Node_macro_param_kind(node) == MACRO_PARAM_KIND::STMT ||
-          Node_macro_param_kind(node) == MACRO_PARAM_KIND::STMT_LIST) {
+      if (Node_macro_result_kind(node) == MACRO_RESULT_KIND::STMT ||
+          Node_macro_result_kind(node) == MACRO_RESULT_KIND::STMT_LIST) {
         EmitStatementsSpecial(out, Node_body_macro(node));
       } else {
         EmitExprMacroBlockSpecial(out, Node_body_macro(node));
