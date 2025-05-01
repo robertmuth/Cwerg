@@ -36,7 +36,6 @@ def _ResolveImportsForQualifers(mod: cwast.DefMod):
     syntax tree might get copied into a different from where it originated.
     """
     imports: dict[cwast.NAME, cwast.Import] = {}
-    self_import = cwast.Import(cwast.NAME.SelfImport(), "", [], x_module=mod)
 
     def annotate(node, q) -> bool:
         if q:
@@ -45,11 +44,10 @@ def _ResolveImportsForQualifers(mod: cwast.DefMod):
             node.x_import = imports[q]
             return True
         else:
-            node.x_import = self_import
             return False
 
     def visitor(node: Any):
-        nonlocal imports, self_import
+        nonlocal imports
         if isinstance(node, cwast.Import):
             # assert node.x_module != cwast.INVALID_MOD
             name = node.name
@@ -77,7 +75,7 @@ def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> symbolize.SymTab:
         # we only record the first occurrence of a poly functions which is why
         # only that function's visibility setting matters
         if isinstance(node, cwast.DefFun) and node.poly:
-            if symbolize.HasImportedSymbolReference(node) or symtab.has_sym(name):
+            if node.x_import or symtab.has_sym(name):
                 continue
         symtab.add_with_dup_check(name, node)
     return symtab
@@ -387,13 +385,12 @@ def ReadModulesRecursively(root: Path,
         * x_symtab on DefMod nodes (includes creation of SymTabs for all topelevel symbols)
         * x_import field for all DefFun, DefMacro and Id nodes
         * x_module field of all Import nodes
-        * x_symbol field for Id Nodes outside of Functions or Macros
+        * x_symbol field for Id Nodes for global symbols (done in two phases)
 
-    The setting of x_symbol fields facilitates specialization of generic modules.
-    Setting the x_import fields has important consequences for Macro bodies:
-    If an Id in the macro body references a symbol not defined prior in the body AND
-    not defined in the function instantiating the macro then the symtab of the module containing
-    the macro will be used for the symbol resolution.
+
+    For polymorphic functions x_symbol will point to a canonical DefFun instance.
+    After typing it will be replaced with the correct DefFun instance.
+
     """
     state = _ModPoolState(read_mod_fun)
     out = ModPool()

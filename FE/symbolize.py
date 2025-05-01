@@ -33,18 +33,6 @@ def UpdateNodeSymbolForPolyCall(id_node: cwast.Id, new_def_node: cwast.DefFun):
     id_node.x_symbol = new_def_node
 
 
-def HasImportedSymbolReference(node: Union[cwast.Id, cwast.MacroInvoke]) -> bool:
-    """This is only used during symbol resolution after
-    the x_import field has been set.
-
-    Note: Some Id nodes that get created during macro instatiations do not have
-    the x_import field set. (TODO: is this still true?)
-    """
-    if not node.x_import:
-        return False
-    return not node.x_import.name.IsSelfImport()
-
-
 def _resolve_enum_item(node: cwast.DefEnum, entry_name, srcloc) -> cwast.EnumVal:
     for item in node.items:
         if isinstance(item, cwast.EnumVal) and item.name == entry_name:
@@ -196,7 +184,7 @@ def _ResolveGlobalAndImportedSymbols(node, symtab: SymTab, builtin_symtab: SymTa
         # must wait until type info is available
         if _IsFieldNode(node, parent):
             return
-        if HasImportedSymbolReference(node):
+        if node.x_import:
             if node.x_import.x_module == cwast.INVALID_MOD:
                 if not runs_outside_fun:
                     cwast.CompilerError(
