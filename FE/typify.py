@@ -137,9 +137,10 @@ class _PolyMap:
                               cwast.NAME, str], cwast.DefFun] = {}
         self._type_corpus = tc
 
-    def Register(self, fun: cwast.DefFun, mod_self: cwast.DefMod):
+    def Register(self, fun: cwast.DefFun):
+        assert fun.poly
         ct: cwast.CanonType = fun.x_type
-        mod: cwast.DefMod = fun.x_import.x_module if fun.x_import else mod_self
+        mod: cwast.DefMod = fun.x_poly_mod
         name = fun.name
         first_param_type = ct.children[0].name
         logger.info("Register polymorphic fun %s::%s: %s",
@@ -154,7 +155,8 @@ class _PolyMap:
         fun_name = callee.name
         type_name = first_param_type.name
         logger.info("Resolving polymorphic fun %s: %s", fun_name, type_name)
-        callee_mod: cwast.DefMod = callee.x_import.x_module
+        callee_mod: cwast.DefMod = callee.x_symbol.x_poly_mod
+
         out = self._map.get((callee_mod, fun_name, type_name))
         if out:
             return out
@@ -1308,7 +1310,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
             if isinstance(node, cwast.DefFun) and node.poly:
                 ct = node.x_type
                 assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
-                poly_map.Register(node, mod)
+                poly_map.Register(node)
     # now typify function bodies
     for mod in mod_topo_order:
         ctx = _TypeContext(str(mod.name), poly_map)

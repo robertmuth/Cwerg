@@ -367,6 +367,18 @@ class ModPool:
         default_factory=list)
 
 
+def ResolvePolyMods(mods: list[cwast.DefMod]):
+
+    for mod in mods:
+        logger.info("Resolving symbols inside module: %s", mod.name)
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefFun) and node.poly:
+                if node.x_import:
+                    node.x_poly_mod = node.x_import.x_module
+                else:
+                    node.x_poly_mod = mod
+
+
 def ReadModulesRecursively(root: Path,
                            seed_modules: list[str], add_builtin: bool, read_mod_fun=_ReadMod) -> ModPool:
     """Reads all the seed_modules and their imports, also instantiates generic modules
@@ -474,6 +486,7 @@ def ReadModulesRecursively(root: Path,
         active = new_active
 
     out.mods_in_topo_order = _ModulesInTopologicalOrder(state.AllModInfos())
+    ResolvePolyMods(out.mods_in_topo_order)
     symbolize.ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(out.mods_in_topo_order,
                                                                       out.builtin_symtab)
     return out

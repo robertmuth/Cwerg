@@ -145,6 +145,7 @@ class NF(enum.Flag):
     MODULE_ANNOTATED = enum.auto()
     # reference to the import node resolving the qualifier  (x_import)
     IMPORT_ANNOTATED = enum.auto()
+    POLY_MOD_ANNOTATED = enum.auto()
 
     # Node families
     MAY_BE_LHS = enum.auto()
@@ -760,6 +761,7 @@ X_FIELDS = {
     # Id, DefFun, MacroInvoke -> Import
     # (if name is qualified)
     "x_import": NF.IMPORT_ANNOTATED,
+    "x_poly_mod": NF.POLY_MOD_ANNOTATED,
     # Import -> DefMod (imported module)
     "x_module": NF.MODULE_ANNOTATED,
     # DefMod -> (global) SymTab
@@ -2800,7 +2802,7 @@ class DefFun:
      """
     ALIAS: ClassVar = "fun"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.IMPORT_ANNOTATED
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.IMPORT_ANNOTATED | NF.POLY_MOD_ANNOTATED
     #
     name: NAME   # may contain qualifier (in case of polymorphic funs)
     params: list[NODES_PARAMS_T]
@@ -2821,6 +2823,7 @@ class DefFun:
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
     x_import: Import = None  # only used for polymorphic function
+    x_poly_mod: Optional[DefMod] = None  # only used for polymorphic function
 
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params)
