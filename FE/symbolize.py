@@ -173,7 +173,7 @@ def _ResolveGlobalAndImportedSymbols(node, symtab: SymTab, builtin_symtab: SymTa
 
     """
     def visitor(node: Any, parent):
-        nonlocal builtin_symtab, symtab
+        nonlocal builtin_symtab, symtab, runs_outside_fun
         if not isinstance(node, (cwast.MacroInvoke, cwast.Id)):
             return
         if node.x_symbol:

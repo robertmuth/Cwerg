@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <map>
@@ -149,15 +150,9 @@ Name StripQualifier(Name name) {
 void ResolveImportsForQualifers(Node mod) {
   std::map<StrAndSeq, Node> imports;
 
-  Node dummy_import = NodeNew(NT::Import);
-  InitImport(dummy_import, NameNew("$$self", MAGIC_SELF_IMPORT_SEQ),
-             kStrInvalid, kNodeInvalid, kStrInvalid, kSrcLocInvalid);
-  Node_x_module(dummy_import) = mod;
-
-  auto visitor = [&dummy_import, &imports](Node node, Node parent) {
-    auto annotate = [&dummy_import, &imports](Node node, Name name) -> bool {
+  auto visitor = [&imports](Node node, Node parent) {
+    auto annotate = [&imports](Node node, Name name) -> bool {
       if (name == kNameInvalid) {
-        Node_x_import(node) = dummy_import;
         return false;
       } else {
         auto it = imports.find(NameStrAndSeq(name));
@@ -280,6 +275,54 @@ class ModPoolState {
   }
 };
 
+struct Candidate {
+  StrAndSeq name;
+  Node mod;
+
+  bool operator<(const Candidate& other) const { return name < other.name; }
+};
+
+std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
+  std::map<Node, std::set<Node>> deps_in;
+  std::map<Node, std::set<Node>> deps_out;
+
+  for (Node mod : mods) {
+    for (Node child = Node_body_mod(mod); !child.isnull();
+         child = Node_next(Node(child))) {
+      if (Node_kind(child) == NT::Import) {
+        Node importee = Node_x_module(child);
+        ASSERT(Node_kind(importee) == NT::DefMod, "");
+        deps_in[mod].insert(importee);
+        deps_out[importee].insert(mod);
+      }
+    }
+  }
+
+  std::vector<Candidate> candidates;
+  for (Node mod : mods) {
+    if (deps_in[mod].empty()) {
+      candidates.push_back({NameStrAndSeq(Node_name(mod)), mod});
+      std::push_heap(candidates.begin(), candidates.end());
+    }
+  }
+
+  std::vector<Node> out;
+  while (out.size() != mods.size()) {
+    std::pop_heap(candidates.begin(), candidates.end());
+    Node mod = candidates.back().mod;
+    candidates.pop_back();
+    out.push_back(mod);
+    for (Node importer : deps_out[mod]) {
+      deps_in[importer].erase(mod);
+      if (deps_in[importer].empty()) {
+        candidates.push_back({NameStrAndSeq(Node_name(importer)), importer});
+        std::push_heap(candidates.begin(), candidates.end());
+      }
+    }
+  }
+  return out;
+}
+
 ModPool ReadModulesRecursively(Path root_path,
                                const std::vector<Path>& seed_modules,
                                bool add_builtin) {
@@ -305,8 +348,8 @@ ModPool ReadModulesRecursively(Path root_path,
   std::cout << "Fixpoint For Imports\n" << std::flush;
   std::vector<ModInfo> new_active;
   while (!active.empty()) {
-    ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-        state.AllMods(), out.builtin_symtab, false);
+    ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
+        state.AllMods(), out.builtin_symtab);
     new_active.clear();
     for (ModInfo& mi : active) {
       std::cout << "Handle Imports for Mod: " << mi.mid.path << "\n";
@@ -346,7 +389,9 @@ ModPool ReadModulesRecursively(Path root_path,
     }
     active.swap(new_active);
   }
-
+  out.mods_in_topo_order = ModulesInTopologicalOrder(state.AllMods());
+  ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
+      out.mods_in_topo_order, out.builtin_symtab);
   return out;
 }
 

@@ -63,6 +63,8 @@ constexpr int MAX_MACRO_NESTING = 8;
 
 Node ExpandMacroInvokeIteratively(Node macro_invoke, int nesting,
                                   const SymTab* builtin_symtab, IdGen* id_gen) {
+#if 0
+
   do {
     if (nesting >= MAX_MACRO_NESTING) {
       CompilerError(Node_srcloc(macro_invoke)) << "too many nested macros";
@@ -79,6 +81,7 @@ Node ExpandMacroInvokeIteratively(Node macro_invoke, int nesting,
   } while (Node_kind(macro_invoke) == NT::MacroInvoke);
   ExpandMacrosAndMacroLikeRecursively(macro_invoke, nesting + 1, builtin_symtab,
                                       id_gen);
+#endif
   return kNodeInvalid;
 }
 

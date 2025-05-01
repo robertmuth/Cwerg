@@ -8,15 +8,11 @@
 namespace cwerg::fe {
 bool HasImportedSymbolReference(Node node);
 
-Node SymTabResolveMacro(const SymTab* symtab, Node makro_invoke,
-    const SymTab* builtin_symtab, bool must_be_public);
+void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
+    const std::vector<Node>& mods, const SymTab* builtin_symtab);
 
-void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-    const std::vector<Node>& mods, const SymTab* builtin_symtab,
-    bool must_resolve_all);
-
-void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
-                                   const SymTab* builtin_symtab);
+void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
+    const std::vector<Node>& mods, const SymTab* builtin_symtab);
 
 void SetTargetFields(const std::vector<Node>& mods);
 

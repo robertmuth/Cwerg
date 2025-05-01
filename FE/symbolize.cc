@@ -36,116 +36,131 @@ Node SymTabFindWithDefault(const SymTab* symtab, Name name) {
   return it->second;
 }
 
-Node SymTabResolveNameWithVisibilityCheck(const SymTab* symtab, Name name,
-                                          bool must_be_public,
-                                          const SrcLoc& srcloc) {
-  Node def = SymTabFindWithDefault(symtab, name);
-  if (def != kNodeInvalid) {
-    if (must_be_public && !Node_has_flag(def, BF::PUB)) {
-      CompilerError(srcloc) << "not public " << name;
+Node SymTabResolveImported(const SymTab* symtab, Node node) {
+  std::cout << "SymTabResolveImported: " << Node_name(node) << "\n";
+
+  Node def_node = SymTabFindWithDefault(symtab, Node_name(node));
+  if (!def_node.isnull()) {
+    if (!Node_has_flag(def_node, BF::PUB)) {
+      CompilerError(Node_srcloc(node)) << "not public " << Node_name(node);
     }
+  }
+  return def_node;
+}
+
+Node SymTabResolveWithFallback(const SymTab* symtab, Node node,
+                               const SymTab* builtin_symtab) {
+  std::cout << "SymTabResolveWithFallback: " << Node_name(node) << "\n";
+
+  Node def = SymTabFindWithDefault(symtab, Node_name(node));
+  if (def.isnull()) {
+    def = SymTabResolveImported(builtin_symtab, node);
   }
   return def;
 }
 
-Node SymTabResolveSym(const SymTab* symtab, Node node, bool must_be_public) {
-  ASSERT(Node_kind(node) == NT::Id, "");
-  Name name = Node_name(node);
-  Name enum_name = Node_enum_name(node);
-  Node out = SymTabResolveNameWithVisibilityCheck(symtab, name, must_be_public,
-                                                  Node_srcloc(node));
-  if (enum_name != kNameInvalid) {
-    if (out == kNodeInvalid) {
-      CompilerError(Node_srcloc(node)) << "enum not found";
+Node ResolveEnum(Node enum_id, Node enum_type) {
+  ASSERT(Node_kind(enum_type) == NT::DefEnum, "");
+  ASSERT(Node_kind(enum_id) == NT::Id, "");
+  Name enum_name = Node_name(enum_id);
+  for (Node child = Node_items(enum_type); !child.isnull();
+       child = Node_next(Node(child))) {
+    ASSERT(Node_kind(child) == NT::EnumVal, "");
+    if (Node_name(child) == enum_name) {
+      return child;
     }
-    ASSERT(Node_kind(out) == NT::DefEnum, "");
-    for (Node child = Node_items(out); !child.isnull();
-         child = Node_next(Node(child))) {
-      ASSERT(Node_kind(child) == NT::EnumVal, "");
-      if (Node_name(child) == enum_name) {
-        return child;
-      }
-    }
-    CompilerError(Node_srcloc(node)) << "enum value not found";
   }
-  return out;
-}
-
-Node SymTabResolveMacro(const SymTab* symtab, Node macro_invoke,
-                        const SymTab* builtin_symtab, bool must_be_public) {
-  ASSERT(Node_kind(macro_invoke) == NT::MacroInvoke, "");
-  Name name = Node_name(macro_invoke);
-  Node out = SymTabResolveNameWithVisibilityCheck(symtab, name, must_be_public,
-                                                  Node_srcloc(macro_invoke));
-  if (out.isnull()) {
-    out = SymTabFindWithDefault(builtin_symtab, name);
-  }
-  if (out.isnull()) {
-    return out;
-  }
-  ASSERT(Node_kind(out) == NT::DefMacro, "");
-  return out;
+  CompilerError(Node_srcloc(enum_id)) << "enum value not found " << enum_name;
+  return kNodeInvalid;
 }
 
 void AnnotateNodeSymbol(Node node, Node def_node) {
-  ASSERT(Node_kind(node) == NT::Id, "");
+  ASSERT(Node_kind(node) == NT::Id || Node_kind(node) == NT::MacroInvoke, "");
   ASSERT(Node_x_symbol(node) == kNodeInvalid, "");
   Node_x_symbol(node) = def_node;
 }
 
-void HelperResolveSymbolsOutsideFunctionsAndMacros(Node node,
-                                                   const SymTab* builtin_symtab,
-                                                   bool must_resolve_all) {
-  auto visitor = [must_resolve_all, builtin_symtab](Node node, Node parent) {
-    if (Node_kind(node) != NT::Id || !Node_x_symbol(node).isnull()) {
-      return;
-    }
-    if (IsFieldNode(node, parent)) {
-      return;
-    }
-    Node import_node = Node_x_import(node);
-    ASSERT(!import_node.isnull(), "");
-    ASSERT(Node_kind(import_node) == NT::Import, "");
-
-    if (Node_x_module(import_node).isnull()) {
-      if (must_resolve_all) {
-        CompilerError(Node_srcloc(node)) << "module not resolved";
+void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
+                                     const SymTab* builtin_symtab,
+                                     bool runs_outside_fun) {
+  auto visitor = [symtab, builtin_symtab, runs_outside_fun](Node node,
+                                                            Node parent) {
+    NT kind = Node_kind(node);
+    if (kind != NT::Id && kind != NT::MacroInvoke) return;
+    if (!Node_x_symbol(node).isnull()) return;
+    if (IsFieldNode(node, parent)) return;
+    Node def_node;
+    if (!Node_x_import(node).isnull()) {
+      Node def_mod = Node_x_module(Node_x_import(node));
+      if (def_mod.isnull()) {
+        if (!runs_outside_fun) {
+          CompilerError(Node_srcloc(node))
+              << "module import unresolved for " << Node_name(node);
+        }
+        return;
       }
-      return;
-    }
-    const SymTab* ref_symtab = Node_x_symtab(Node_x_module(import_node));
-    // std::cout << "@@@@@@ " << Node_name(import_node) << " " << " "
-    //          << builtin_symtab << "\n";
-    Node def_node =
-        SymTabResolveSym(ref_symtab, node, HasImportedSymbolReference(node));
-    if (def_node.isnull()) {
-      def_node = SymTabResolveSym(builtin_symtab, node, true);
-    }
-    if (def_node == kNodeInvalid) {
-      AnnotateNodeSymbol(node, def_node);
+      const SymTab* symtab = Node_x_symtab(def_mod);
+      def_node = SymTabResolveImported(symtab, node);
+      if (def_node.isnull()) {
+        CompilerError(Node_srcloc(node))
+            << "unknown imported symbol " << Node_name(node);
+      }
     } else {
-      if (must_resolve_all && !IsPointNode(node, parent)) {
-        CompilerError(Node_srcloc(node)) << "cannot resolve symbol";
+      def_node = SymTabResolveWithFallback(symtab, node, builtin_symtab);
+      if (def_node.isnull()) {
+        if (kind == NT::MacroInvoke) {
+          CompilerError(Node_srcloc(node))
+              << "invocation of unknown macro " << Node_name(node);
+        } else {
+          if (runs_outside_fun && !IsPointNode(node, parent)) {
+            CompilerError(Node_srcloc(node))
+                << "unknown symbol " << Node_name(node);
+          }
+          return;
+        }
       }
     }
+
+    if (kind == NT::Id && !Node_enum_name(node).isnull()) {
+      def_node = ResolveEnum(node, def_node);
+    }
+
+    AnnotateNodeSymbol(node, def_node);
   };
-  VisitNodesRecursivelyPost(node, visitor, kNodeInvalid);
+  VisitNodesRecursivelyPre(node, visitor, kNodeInvalid);
 }
 
-void ResolveSymbolsRecursivelyOutsideFunctionsAndMacros(
-    const std::vector<Node>& mods, const SymTab* builtin_symtab,
-    bool must_resolve_all) {
+void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
+    const std::vector<Node>& mods, const SymTab* builtin_symtab) {
   for (Node mod : mods) {
-    ASSERT(Node_kind(mod) == NT::DefMod, "");
+    std::cout << "ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros "
+              << Node_name(mod) << "\n";
+    const SymTab* symtab = Node_x_symtab(mod);
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(Node(child))) {
       if (Node_kind(child) != NT::DefFun && Node_kind(child) != NT::DefMacro) {
-        HelperResolveSymbolsOutsideFunctionsAndMacros(child, builtin_symtab,
-                                                      must_resolve_all);
+        ResolveGlobalAndImportedSymbols(child, symtab, builtin_symtab, true);
       }
     }
   }
 }
+
+void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
+    const std::vector<Node>& mods, const SymTab* builtin_symtab) {
+  for (Node mod : mods) {
+    std::cout << "ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros "
+              << Node_name(mod) << "\n";
+
+    const SymTab* symtab = Node_x_symtab(mod);
+    for (Node child = Node_body_mod(mod); !child.isnull();
+         child = Node_next(Node(child))) {
+      if (Node_kind(child) == NT::DefFun || Node_kind(child) == NT::DefMacro) {
+        ResolveGlobalAndImportedSymbols(child, symtab, builtin_symtab, false);
+      }
+    }
+  }
+}
+
 void ResolveSymbolInsideFunction(Node node, const SymTab* builtin_symtab,
                                  std::vector<SymTab>* scopes) {
   ASSERT(Node_kind(node) == NT::Id, "");
@@ -190,6 +205,7 @@ void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
                                    const SymTab* builtin_symtab) {
   std::vector<SymTab> scopes;
   for (Node mod : mods) {
+    std::cout << "ResolveSymbolsInsideFunctions " << Node_name(mod) << "\n";
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
       if (Node_kind(child) == NT::DefFun) {
