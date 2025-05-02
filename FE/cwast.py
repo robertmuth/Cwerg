@@ -51,12 +51,6 @@ class NAME:
             return cls(sys.intern(s), 0)
         return cls(sys.intern(s[:pos]), int(s[pos+1:]))
 
-    @classmethod
-    def SelfImport(cls) -> "NAME":
-        return cls("$$self", -1)
-
-    def IsSelfImport(self) -> bool:
-        return self.seq == -1
 
     @classmethod
     def Empty(cls) -> "NAME":

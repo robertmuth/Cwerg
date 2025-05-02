@@ -255,7 +255,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         return BaseOffset(base, node.field.GetRecFieldRef().x_offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
-        base = id_gen.NewName(f"lhsaddr_{name}")
+        base = id_gen.NewName(f"lhsaddr")
         kind = tc.get_data_address_reg_type()
         storage = _StorageForId(node)
         if storage is STORAGE_KIND.DATA:
@@ -385,9 +385,9 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Type
         assert cond.x_type.is_bool()
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
         if invert:
-            print(f"{TAB}beq {cond.FullName()} 0 {label_false}")
+            print(f"{TAB}beq {cond.x_symbol.name} 0 {label_false}")
         else:
-            print(f"{TAB}bne {cond.FullName()} 0 {label_false}")
+            print(f"{TAB}bne {cond.x_symbol.name} 0 {label_false}")
     else:
         assert False, f"unexpected expression {cond}"
 
