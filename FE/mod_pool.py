@@ -37,15 +37,6 @@ def _ResolveImportsForQualifers(mod: cwast.DefMod):
     """
     imports: dict[cwast.NAME, cwast.Import] = {}
 
-    def annotate(node, q) -> bool:
-        if q:
-            if q not in imports:
-                cwast.CompilerError(node.x_srcloc, f"unkown module {repr(q)}")
-            node.x_import = imports[q]
-            return True
-        else:
-            return False
-
     def visitor(node: Any):
         nonlocal imports
         if isinstance(node, cwast.Import):
@@ -55,7 +46,12 @@ def _ResolveImportsForQualifers(mod: cwast.DefMod):
                 cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node
         elif isinstance(node, (cwast.DefFun, cwast.Id, cwast.MacroInvoke)):
-            if annotate(node, _GetQualifierIfPresent(node.name.name)):
+            q = _GetQualifierIfPresent(node.name.name)
+            if q:
+                if q not in imports:
+                    cwast.CompilerError(
+                        node.x_srcloc, f"unkown module {repr(q)}")
+                node.x_import = imports[q]
                 node.name = node.name.GetSymbolNameWithoutQualifier()
 
     cwast.VisitAstRecursivelyPost(mod, visitor)

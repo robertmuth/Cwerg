@@ -955,6 +955,7 @@ inline void InitValVoid(Node node, Str doc, const SrcLoc& srcloc) {
 
 /* @AUTOGEN-END@ */
 // clang-format on
+inline void Node_set_name(Node n, Name name) { gNodeCore[n].children[0] = name; }
 
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
   return gNodeCore[n].mod_param_kind;

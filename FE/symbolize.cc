@@ -37,8 +37,6 @@ Node SymTabFindWithDefault(const SymTab* symtab, Name name) {
 }
 
 Node SymTabResolveImported(const SymTab* symtab, Node node) {
-  std::cout << "SymTabResolveImported: " << Node_name(node) << "\n";
-
   Node def_node = SymTabFindWithDefault(symtab, Node_name(node));
   if (!def_node.isnull()) {
     if (!Node_has_flag(def_node, BF::PUB)) {
@@ -50,7 +48,6 @@ Node SymTabResolveImported(const SymTab* symtab, Node node) {
 
 Node SymTabResolveWithFallback(const SymTab* symtab, Node node,
                                const SymTab* builtin_symtab) {
-  std::cout << "SymTabResolveWithFallback: " << Node_name(node) << "\n";
 
   Node def = SymTabFindWithDefault(symtab, Node_name(node));
   if (def.isnull()) {
@@ -124,7 +121,7 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
     if (kind == NT::Id && !Node_enum_name(node).isnull()) {
       def_node = ResolveEnum(node, def_node);
     }
-
+    std::cout << "SymTabResolved: " << Node_name(node) << "\n";
     AnnotateNodeSymbol(node, def_node);
   };
   VisitNodesRecursivelyPre(node, visitor, kNodeInvalid);

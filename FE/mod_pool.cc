@@ -141,7 +141,7 @@ Name StripQualifier(Name name) {
   const char* str = NameData(name);
   for (size_t pos = 0; str[pos] != 0; ++pos) {
     if (str[pos] == ':' && str[pos + 1] == ':') {
-      return NameNew(str + pos + 1);
+      return NameNew(str + pos + 2);
     }
   }
   return kNameInvalid;
@@ -151,21 +151,6 @@ void ResolveImportsForQualifers(Node mod) {
   std::map<StrAndSeq, Node> imports;
 
   auto visitor = [&imports](Node node, Node parent) {
-    auto annotate = [&imports](Node node, Name name) -> bool {
-      if (name == kNameInvalid) {
-        return false;
-      } else {
-        auto it = imports.find(NameStrAndSeq(name));
-        if (it == imports.end()) {
-          CompilerError(Node_srcloc(node))
-              << "cannot resolve qualifier [" << NameData(name) << "] "
-              << name.index();
-        }
-        Node_x_import(node) = it->second;
-        return true;
-      }
-    };
-
     switch (Node_kind(node)) {
       case NT::Import: {
         auto name = NameStrAndSeq(Node_name(node));
@@ -176,11 +161,22 @@ void ResolveImportsForQualifers(Node mod) {
       } break;
       case NT::DefFun:
       case NT::MacroInvoke:
-      case NT::Id:
-        if (annotate(node, GetQualifierIfPresent(Node_name(node)))) {
-          Node_name(node) = StripQualifier(Node_name(node));
+      case NT::Id: {
+        Name name = Node_name(node);
+        Name q = GetQualifierIfPresent(name);
+        if (!q.isnull()) {
+          auto it = imports.find(NameStrAndSeq(q));
+          if (it == imports.end()) {
+            CompilerError(Node_srcloc(node))
+                << "cannot resolve qualifier [" << q << "] " << name.index();
+          }
+          Node_x_import(node) = it->second;
+          auto s =  StripQualifier(name);
+          Node_set_name(node, s);
+          std::cout << "ResolveImportsForQualifers " << name << " -> "
+                    << s << "\n";
         }
-        break;
+      } break;
 
       default:
         break;
