@@ -42,36 +42,6 @@ ZEROS = [b"\0" * i for i in range(128)]
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
-def _FunRenameLocalsToAvoidNameClashes(fun: cwast.DefFun):
-    names: set[cwast.NAME] = set()
-    clashes: set[Any] = set()
-
-    def visitor(n):
-        nonlocal names, clashes
-        if isinstance(n, (cwast.DefVar, cwast.FunParam)):
-            if n.name in names:
-                clashes.add(n)
-            else:
-                names.add(n.name)
-    cwast.VisitAstRecursivelyPost(fun, visitor)
-    if not clashes:
-        return
-    id_gen = identifier.IdGen()
-    id_gen.RegisterExistingLocals(fun)
-
-    for n in clashes:
-        n.name = id_gen.NewName(n.name.name)
-        assert n.name not in names
-
-
-def _FunFixRenamedIdsBestEffort(fun: cwast.DefFun):
-    def visitor(n):
-        if isinstance(n, cwast.Id):
-            n.name = n.x_symbol.name
-
-    cwast.VisitAstRecursivelyPost(fun, visitor)
-
-
 def _MangledGlobalName(mod: cwast.DefMod, mod_name: str, node: Any, is_cdecl: bool) -> cwast.NAME:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
@@ -185,6 +155,7 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
     for p in fun.params:
         # TODO: NewName returns a str but p.name is really a NAME
         # this uniquifies names
+        # Name translation!
         p.name = id_gen.NewName(str(p.name))
         reg_types = p.type.x_type.register_types
         if len(reg_types) == 1:
@@ -784,6 +755,9 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
 def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.TypeCorpus,
                id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
+        # name translation!
+        node.name = id_gen.NewName(str(node.name))
+
         def_type: cwast.CanonType = node.type_or_auto.x_type
         initial = node.initial_or_undef_or_auto
         if def_type.size == 0:
@@ -1293,9 +1267,6 @@ def main() -> int:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
                 node.name = _MangledGlobalName(
                     mod, str(mod.name), node, node.cdecl or node == main_entry_fun)
-            if isinstance(node, cwast.DefFun):
-                _FunRenameLocalsToAvoidNameClashes(node)
-                _FunFixRenamedIdsBestEffort(node)
 
     SanityCheckMods("after_name_cleanup", args,
                     mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
