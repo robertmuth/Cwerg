@@ -113,7 +113,7 @@ def _CheckMacroArg(p,  a, macro_invoke, def_macro):
         assert False
 
 
-def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.DefMacro,
+def _ExpandMacroInvocation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.DefMacro,
                            id_gen: identifier.IdGen) -> Any:
     params: list[cwast.MacroParam] = def_macro.params_macro
     args = macro_invoke.args
@@ -146,32 +146,12 @@ def _ExpandMacroInvokation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.Def
             out += exp.args
         else:
             out.append(exp)
-    if len(out) == 1:
-        return out[0]
+    # if len(out) == 1:
+    #    return out[0]
     return cwast.EphemeralList(out, colon=False)
 
 
 MAX_MACRO_NESTING = 8
-
-
-def _ExpandMacroInvokeIteratively(macro_invoke: cwast.MacroInvoke,
-                                  nesting: int, id_gen: identifier.IdGen) -> Any:
-    """This will recursively expand the macro so returned node does not contain any expandables"""
-    while isinstance(macro_invoke, cwast.MacroInvoke):
-        assert nesting < MAX_MACRO_NESTING
-        assert isinstance(macro_invoke, cwast.MacroInvoke)
-        def_macro = macro_invoke.x_symbol
-        assert isinstance(
-            def_macro, cwast.DefMacro), f"{macro_invoke} -> {def_macro}"
-        macro_invoke = _ExpandMacroInvokation(macro_invoke, def_macro, id_gen)
-        nesting += 1
-
-    assert cwast.NF.TO_BE_EXPANDED not in macro_invoke.FLAGS, macro_invoke
-    # recurse and resolve any expandables
-    _ExpandMacrosAndMacroLikeRecursively(
-        macro_invoke, nesting + 1, id_gen)
-    # pp_sexpr.PrettyPrint(exp)
-    return macro_invoke
 
 
 def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, id_gen: identifier.IdGen):
@@ -179,7 +159,19 @@ def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, id_gen: identifier.
         nonlocal nesting, id_gen
         orig_node = node
         if isinstance(node, cwast.MacroInvoke):
-            node = _ExpandMacroInvokeIteratively(node, nesting, id_gen)
+            def_macro = node.x_symbol
+            assert isinstance(
+                def_macro, cwast.DefMacro), f"{node} -> {def_macro}"
+            node = _ExpandMacroInvocation(node, def_macro, id_gen)
+
+            # expand the macro body
+            _ExpandMacrosAndMacroLikeRecursively(
+                node, nesting + 1, id_gen)
+            # pp_sexpr.PrettyPrint(exp)
+            assert isinstance(node, cwast.EphemeralList)
+            if len(node.args) == 1:
+                node = node.args[0]
+            return node
         if isinstance(node, cwast.ExprSrcLoc):
             return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
         elif isinstance(node, cwast.ExprStringify):
