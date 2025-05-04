@@ -42,19 +42,10 @@ ALL_BUILT_IN_MACROS = BUILT_IN_STMT_MACROS | BUILT_IN_EXPR_MACROS
 @dataclasses.dataclass(eq=True, frozen=True)
 class NAME:
     name: str
-    seq: int
-
-    @classmethod
-    def FromStr(cls, s: str) -> "NAME":
-        pos = s.find("%")
-        if pos < 0:
-            return cls(sys.intern(s), 0)
-        return cls(sys.intern(s[:pos]), int(s[pos+1:]))
-
 
     @classmethod
     def Empty(cls) -> "NAME":
-        return cls("", 0)
+        return cls("")
 
     def IsMacroCall(self):
         return self.name.endswith(MACRO_CALL_SUFFIX)
@@ -66,15 +57,13 @@ class NAME:
         pos = self.name.find(ID_PATH_SEPARATOR)
         if pos < 0:
             return self
-        return NAME(sys.intern(self.name[pos + len(ID_PATH_SEPARATOR):]), self.seq)
+        return NAME(sys.intern(self.name[pos + len(ID_PATH_SEPARATOR):]))
 
     def IsEmpty(self):
         return self.name == ""
 
     def __str__(self):
-        if self.seq == 0:
-            return self.name
-        return f"{self.name}%{self.seq}"
+        return f"{self.name}"
 
 
 ############################################################
@@ -1170,7 +1159,7 @@ class DefMod:
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
 
 
-INVALID_MOD = DefMod(NAME("INVALID_MOD", 0), [], [])
+INVALID_MOD = DefMod(NAME("INVALID_MOD"), [], [])
 ############################################################
 #
 ############################################################
@@ -1297,9 +1286,9 @@ class Id:
         enum_name = None
         pos = name.rfind(":")
         if pos > 0 and name[pos - 1] != ":":
-            enum_name = NAME.FromStr(name[pos + 1:])
+            enum_name = NAME(name[pos + 1:])
             name = name[:pos]
-        return Id(NAME.FromStr(name), enum_name, **kwargs)
+        return Id(NAME(name), enum_name, **kwargs)
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.FullName()}"
@@ -2887,7 +2876,7 @@ class MacroId:
     @staticmethod
     def Make(name: str, **kwargs):
         assert name.startswith(MACRO_VAR_PREFIX)
-        return MacroId(NAME.FromStr(name), **kwargs)
+        return MacroId(NAME(name), **kwargs)
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}"

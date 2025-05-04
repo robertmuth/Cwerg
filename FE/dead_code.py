@@ -9,7 +9,7 @@ from FE import stats
 logger = logging.getLogger(__name__)
 
 
-_Hell = cwast.DefFun(cwast.NAME.FromStr("hell"), [],
+_Hell = cwast.DefFun(cwast.NAME("hell"), [],
                      cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID), [])
 
 

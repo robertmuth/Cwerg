@@ -20,8 +20,8 @@ from FE import canonicalize
 #
 # sum[r64, bool, ...] -> struct {tag u16, union untagged-sum[r64, bool, ... ]}
 ############################################################
-SUM_FIELD_TAG = cwast.NAME.FromStr("tag")
-SUM_FIELD_UNION = cwast.NAME.FromStr("union")
+SUM_FIELD_TAG = cwast.NAME("tag")
+SUM_FIELD_UNION = cwast.NAME("union")
 
 
 def _MakeUnionReplacementStruct(union_type: cwast.CanonType,
@@ -124,8 +124,8 @@ def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.Canon
 
 def _CloneId(node: cwast.Id) -> cwast.Id:
     assert isinstance(node, cwast.Id)
-    return cwast.Id.Make(node.FullName(), x_symbol=node.x_symbol, x_type=node.x_type,
-                         x_srcloc=node.x_srcloc)
+    return cwast.Id(node.name, None, x_symbol=node.x_symbol, x_type=node.x_type,
+                    x_srcloc=node.x_srcloc)
 
 
 def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValCompound:

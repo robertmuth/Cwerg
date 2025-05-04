@@ -51,9 +51,9 @@ def _MangledGlobalName(mod: cwast.DefMod, mod_name: str, node: Any, is_cdecl: bo
         poly_suffix = f"<{node.x_type.parameter_types()[0].name}>"
     n = node.name
     if is_cdecl:
-        return cwast.NAME(f"{n.name}{poly_suffix}", n.seq)
+        return cwast.NAME(f"{n}{poly_suffix}")
     else:
-        return cwast.NAME(f"{mod_name}/{n.name}{poly_suffix}", n.seq)
+        return cwast.NAME(f"{mod_name}/{n}{poly_suffix}")
 
 
 @enum.unique
@@ -1141,7 +1141,7 @@ def main() -> int:
 
     logger.info("Legalize 1")
 
-    mod_gen = cwast.DefMod(cwast.NAME("GeNeRaTeD", 0),
+    mod_gen = cwast.DefMod(cwast.NAME("GeNeRaTeD"),
                            [], [], x_srcloc=cwast.SRCLOC_GENERATED)
     mod_gen.x_symtab = symbolize.SymTab()
 

@@ -200,7 +200,7 @@ def ExpandShortHand(t: str, srcloc, attr: dict[str, Any]) -> Any:
         # if t in cwast.NODES_ALIASES:
         #    cwast.CompilerError(srcloc, f"Reserved name used as ID: {t}")
         if t[0] == "$":
-            return cwast.MacroId(cwast.NAME.FromStr(t), x_srcloc=srcloc)
+            return cwast.MacroId(cwast.NAME(t), x_srcloc=srcloc)
         logger.info("ID %s at %s", t, srcloc)
         return cwast.Id.Make(t, x_srcloc=srcloc, **attr)
     elif len(t) >= 2 and t[0] == "'" and t[-1] == "'":
@@ -265,7 +265,7 @@ def ReadPiece(field, token, stream: ReadTokens, parent_cls) -> Any:
     elif nfd.kind is cwast.NFK.STR:
         return token
     elif nfd.kind is cwast.NFK.NAME:
-        return cwast.NAME.FromStr(token)
+        return cwast.NAME(token)
 
     elif nfd.kind is cwast.NFK.KIND:
         assert nfd.enum_kind is not None, f"{field} {token}"
@@ -307,7 +307,7 @@ def ReadMacroInvocation(tag: str, stream: ReadTokens, attr: dict[str, Any]):
     while True:
         token = next(stream)
         if token == ")":
-            return cwast.MacroInvoke(cwast.NAME.FromStr(tag), args, x_srcloc=srcloc, **attr)
+            return cwast.MacroInvoke(cwast.NAME(tag), args, x_srcloc=srcloc, **attr)
         sub_attr: dict[str, Any] = {}
         token = ReadAttrs(token, sub_attr, stream)
         if token == "(":
@@ -424,7 +424,7 @@ def ReadModFromStream(fp, fn: str, name: str) -> cwast.DefMod:
     except StopIteration:
         assert not failure, "truncated file"
     assert len(asts) == 1
-    asts[0].name = cwast.NAME(name, 0)
+    asts[0].name = cwast.NAME(name)
     return asts[0]
 
 

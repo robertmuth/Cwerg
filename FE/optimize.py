@@ -125,7 +125,7 @@ def MakeExprStmtForCall(call: cwast.ExprCall) -> cwast.ExprStmt:
     for a, p in zip(call.args, fun_def.params):
         sl = a.x_srcloc
         at = cwast.TypeAuto(x_srcloc=sl, x_type=p.type.x_type)
-        t = cwast.DefVar(cwast.NAME.FromStr(f"inl_arg_{p.name.name}"),
+        t = cwast.DefVar(cwast.NAME(f"inl_arg_{p.name.name}"),
                          at,
                          a,
                          x_srcloc=sl,

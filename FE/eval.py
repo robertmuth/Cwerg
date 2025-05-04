@@ -134,7 +134,7 @@ class GlobalConstantPool:
     def _add_def_global(self, node) -> cwast.DefGlobal:
         # TODO: leave this to code gen
         self._current_no += 1
-        def_node = cwast.DefGlobal(cwast.NAME.FromStr(f"global_val_{self._current_no}"),
+        def_node = cwast.DefGlobal(cwast.NAME(f"global_val_{self._current_no}"),
                                    cwast.TypeAuto(
             x_srcloc=node.x_srcloc, x_type=node.x_type), node,
             pub=True,

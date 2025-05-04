@@ -36,19 +36,8 @@ class IdGen:
     def __init__(self: "IdGen"):
         self._names: dict[str, int] = {}
 
-    def RegisterExistingLocals(self, fun: cwast.DefFun):
-        # TODO: should we take global symbols into account?
-        # one could argue that the names do not matter anymore anyway,
-        # after symbol resolution only x_symbol links matter
-        def visitor(node: Any):
-            if isinstance(node, (cwast.FunParam, cwast.DefVar)):
-                n: cwast.NAME = node.name
-                self._names[n.name] = max(n.seq, self._names.get(n.name, 0))
-
-        cwast.VisitAstRecursively(fun, visitor)
-
     def NewName(self, prefix: str) -> cwast.NAME:
-        # TODO: 10 is arbitrary
         no = self._names.get(prefix, 1)
         self._names[prefix] = no + 1
-        return cwast.NAME(sys.intern(prefix),  no + 1)
+        # this should be the only place introducing a "%" in an identifier
+        return cwast.NAME(f"{prefix}%{no}")
