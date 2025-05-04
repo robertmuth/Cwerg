@@ -319,7 +319,7 @@ def _FunSetTargetField(fun):
             target = node.target
             for p in reversed(parents):
                 if isinstance(p, cwast.StmtBlock):
-                    if p.label == target or target.IsEmpty():
+                    if p.label == target or target is cwast.EMPTY_NAME:
                         node.x_target = p
                         return
             assert False

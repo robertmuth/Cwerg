@@ -43,10 +43,6 @@ ALL_BUILT_IN_MACROS = BUILT_IN_STMT_MACROS | BUILT_IN_EXPR_MACROS
 class NAME:
     name: str
 
-    @classmethod
-    def Empty(cls) -> "NAME":
-        return cls("")
-
     def IsMacroCall(self):
         return self.name.endswith(MACRO_CALL_SUFFIX)
 
@@ -59,12 +55,11 @@ class NAME:
             return self
         return NAME(sys.intern(self.name[pos + len(ID_PATH_SEPARATOR):]))
 
-    def IsEmpty(self):
-        return self.name == ""
-
     def __str__(self):
         return f"{self.name}"
 
+
+EMPTY_NAME = NAME("")
 
 ############################################################
 # Enums
@@ -699,7 +694,7 @@ def GetOptional(field: str, srcloc):
     elif e == "@ValUndef":
         return ValUndef(x_srcloc=srcloc)
     elif e == "@EmptyName":
-        return NAME.Empty()
+        return EMPTY_NAME
     else:
         assert False
 

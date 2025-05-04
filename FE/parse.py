@@ -478,7 +478,7 @@ def _ParseOptionalLabel(inp: lexer.Lexer) -> cwast.NAME:
         assert not p.text.startswith(cwast.MACRO_VAR_PREFIX), f"{p.text}"
         inp.next()
         return cwast.NAME(p.text)
-    return cwast.NAME.Empty()
+    return cwast.EMPTY_NAME
 
 
 def _ParseStmtLetLike(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
@@ -544,14 +544,14 @@ def _ParseStmReturn(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
 
 
 def _ParseStmtBreak(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
-    label = cwast.NAME.Empty()
+    label = cwast.EMPTY_NAME
     if inp.peek().srcloc.lineno == kw.srcloc.lineno:
         label = _ParseOptionalLabel(inp)
     return cwast.StmtBreak(label, **extra)
 
 
 def _ParseStmtContinue(inp: lexer.Lexer, kw: lexer.TK, extra: dict[str, Any]):
-    label = cwast.NAME.Empty()
+    label = cwast.EMPTY_NAME
     if inp.peek().srcloc.lineno == kw.srcloc.lineno:
         label = _ParseOptionalLabel(inp)
     return cwast.StmtContinue(label, **extra)
