@@ -4,7 +4,6 @@
 from typing import Any, Optional
 
 
-from FE import identifier
 from FE import cwast
 from FE import type_corpus
 from FE import eval
@@ -242,14 +241,15 @@ def IsNodeCopyableWithoutRiskOfSideEffects(node) -> bool:
 
 
 def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
-        fun: cwast.DefFun, id_gen: identifier.IdGen):
+        fun: cwast.DefFun):
+    """Currently unused """
     def replacer(node):
         if isinstance(node, cwast.ExprDeref):
             if isinstance(node.expr, cwast.Id):
                 return None
             sl = node.x_srcloc
             at = cwast.TypeAuto(x_srcloc=sl, x_type=node.expr.x_type)
-            def_node = cwast.DefVar(id_gen.NewName("assign"),
+            def_node = cwast.DefVar(cwast.NAME.FromStr("assign"),
                                     at,
                                     node.expr, x_srcloc=sl, x_type=at.x_type)
             node.expr = _IdNodeFromDef(def_node, node.x_srcloc)

@@ -13,7 +13,6 @@ from FE import cwast
 from FE import symbolize
 from FE import type_corpus
 from FE import typify
-from FE import identifier
 from FE import canonicalize
 
 
@@ -723,9 +722,7 @@ def main(argv: list[str]):
         cwd) / "Lib", [main], add_builtin=fn != "Lib/builtin")
     for mod in mp.mods_in_topo_order:
         canonicalize.FunRemoveParentheses(mod)
-    fun_id_gens = identifier.IdGenCache()
-    macro.ExpandMacrosAndMacroLike(
-        mp.mods_in_topo_order, fun_id_gens)
+    macro.ExpandMacrosAndMacroLike(mp.mods_in_topo_order)
     symbolize.SetTargetFields(mp.mods_in_topo_order)
     symbolize.ResolveSymbolsInsideFunctions(
         mp.mods_in_topo_order, mp.builtin_symtab)
@@ -743,7 +740,6 @@ if __name__ == "__main__":
     import os
     import pathlib
     from FE import mod_pool
-    from FE import identifier
     from FE import macro
 
     logging.basicConfig(level=logging.WARN)

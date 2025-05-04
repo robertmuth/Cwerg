@@ -138,10 +138,9 @@ if __name__ == "__main__":
     import pathlib
 
     from FE import type_corpus
-    from FE import symbolize
+    from FE import macro
     from FE import typify
     from FE import eval
-    from FE import identifier
 
     def main() -> int:
         parser = argparse.ArgumentParser(description='pretty_printer')
@@ -158,9 +157,7 @@ if __name__ == "__main__":
         main = str(pathlib.Path(args.files[0][:-3]).resolve())
         mp = mod_pool.ReadModulesRecursively(pathlib.Path(
             cwd) / "Lib", [main], add_builtin=True)
-        fun_id_gens = identifier.IdGenCache()
-        symbolize.MacroExpansionDecorateASTWithSymbols(
-            mp.mods_in_topo_order, mp.builtin_symtab, fun_id_gens)
+        macro.ExpandMacrosAndMacroLike(mp.mods_in_topo_order)
         for mod in mp.mods_in_topo_order:
             cwast.StripFromListRecursively(mod, cwast.DefMacro)
         tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)

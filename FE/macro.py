@@ -190,14 +190,14 @@ def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, id_gen: identifier.
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod], id_gen_cache: identifier.IdGenCache):
+def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod]):
     """Expands MacroInvoke, ExprSrcLoc, ExprStringify"""
     for mod in mods:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
                 logger.info("Expanding macros in: %s", node.name)
                 _ExpandMacrosAndMacroLikeRecursively(
-                    node, 0, id_gen_cache.Get(node))
+                    node, 0, identifier.IdGen())
 
 
 ############################################################
@@ -217,8 +217,7 @@ def main(argv: list[str]):
     mod_topo_order = mp.mods_in_topo_order
     for mod in mod_topo_order:
         canonicalize.FunRemoveParentheses(mod)
-    fun_id_gens = identifier.IdGenCache()
-    ExpandMacrosAndMacroLike(mod_topo_order, fun_id_gens)
+    ExpandMacrosAndMacroLike(mod_topo_order)
     symbolize.SetTargetFields(mp.mods_in_topo_order)
     symbolize.ResolveSymbolsInsideFunctions(
         mod_topo_order, mp.builtin_symtab)

@@ -52,16 +52,3 @@ class IdGen:
         no = self._names.get(prefix, 1)
         self._names[prefix] = no + 1
         return cwast.NAME(sys.intern(prefix),  no + 1)
-
-
-class IdGenCache:
-    def __init__(self: "IdGenCache"):
-        self._cache: dict[cwast.DefFun, IdGen] = {}
-
-    def Get(self, fun: cwast.DefFun) -> IdGen:
-        ig = self._cache.get(fun)
-        if ig is None:
-            ig = IdGen()
-            self._cache[fun] = ig
-            ig.RegisterExistingLocals(fun)
-        return ig

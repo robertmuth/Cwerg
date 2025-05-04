@@ -14,7 +14,6 @@ from FE import cwast
 from FE import type_corpus
 from FE import typify
 from FE import canonicalize
-from FE import identifier
 
 ############################################################
 # Convert Tagged Unions to equvalent struct

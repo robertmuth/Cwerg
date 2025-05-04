@@ -18,7 +18,6 @@ Effects of this step:
 
 from typing import Optional, Any
 
-from FE import identifier
 from FE import cwast
 from FE import type_corpus
 from FE import typify
