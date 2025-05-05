@@ -61,7 +61,7 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
         sl = fun.x_srcloc
         result_type = cwast.TypePtr(
             fun.result, mut=True, x_srcloc=sl, x_type=new_sig.parameter_types()[-1])
-        result_param = cwast.FunParam(cwast.NAME(
+        result_param = cwast.FunParam(cwast.NAME.Make(
             "large_result"), result_type, x_srcloc=sl, x_type=result_type.x_type, res_ref=True)
         fun.params.append(result_param)
         fun.result = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=sl,
@@ -148,7 +148,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                                new_sig.parameter_types())):
                 if old != new:
                     at = cwast.TypeAuto(x_srcloc=sl, x_type=old)
-                    new_def = cwast.DefVar(cwast.NAME(f"arg{n}"),
+                    new_def = cwast.DefVar(cwast.NAME.Make(f"arg{n}"),
                                            at,
                                            call.args[n], ref=True,
                                            x_srcloc=sl,
@@ -161,7 +161,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             if len(old_sig.parameter_types()) != len(new_sig.parameter_types()):
                 # the result is not a argument
                 at = cwast.TypeAuto(x_srcloc=sl, x_type=old_sig.result_type())
-                new_def = cwast.DefVar(cwast.NAME("result"),
+                new_def = cwast.DefVar(cwast.NAME.Make("result"),
                                        at,
                                        cwast.ValUndef(x_srcloc=sl),
                                        mut=True, ref=True,

@@ -43,6 +43,10 @@ ALL_BUILT_IN_MACROS = BUILT_IN_STMT_MACROS | BUILT_IN_EXPR_MACROS
 class NAME:
     name: str
 
+    @staticmethod
+    def Make(s) -> "NAME":
+        return NAME(sys.intern(s))
+
     def IsMacroCall(self):
         return self.name.endswith(MACRO_CALL_SUFFIX)
 
@@ -53,7 +57,7 @@ class NAME:
         pos = self.name.find(ID_PATH_SEPARATOR)
         if pos < 0:
             return self
-        return NAME(sys.intern(self.name[pos + len(ID_PATH_SEPARATOR):]))
+        return NAME(self.name[pos + len(ID_PATH_SEPARATOR):])
 
     def __str__(self):
         return f"{self.name}"
@@ -1281,9 +1285,9 @@ class Id:
         enum_name = None
         pos = name.rfind(":")
         if pos > 0 and name[pos - 1] != ":":
-            enum_name = NAME(name[pos + 1:])
+            enum_name = NAME.Make(name[pos + 1:])
             name = name[:pos]
-        return Id(NAME(name), enum_name, **kwargs)
+        return Id(NAME.Make(name), enum_name, **kwargs)
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.FullName()}"
@@ -2871,7 +2875,7 @@ class MacroId:
     @staticmethod
     def Make(name: str, **kwargs):
         assert name.startswith(MACRO_VAR_PREFIX)
-        return MacroId(NAME(name), **kwargs)
+        return MacroId(NAME.Make(name), **kwargs)
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}"

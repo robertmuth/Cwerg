@@ -17,14 +17,14 @@ _test_mods_std = {
 }
 _test_mods_local = {
     "helper": cwast.DefMod("helper", [],
-                           [cwast.Import(cwast.NAME("os"), "", [])]),
+                           [cwast.Import(cwast.NAME.Make("os"), "", [])]),
     "math":  cwast.DefMod("math", [],
-                          [cwast.Import(cwast.NAME("std"), "", [])]),
+                          [cwast.Import(cwast.NAME.Make("std"), "", [])]),
     "main": cwast.DefMod("main", [],
-                         [cwast.Import(cwast.NAME("std"), "", []),
-                          cwast.Import(cwast.NAME("math"), "", []),
-                          # cwast.Import(cwast.NAME("./math"), "", []),
-                          cwast.Import(cwast.NAME("./helper"), "", [])])
+                         [cwast.Import(cwast.NAME.Make("std"), "", []),
+                          cwast.Import(cwast.NAME.Make("math"), "", []),
+                          # cwast.Import(cwast.NAME.Make("./math"), "", []),
+                          cwast.Import(cwast.NAME.Make("./helper"), "", [])])
 }
 
 

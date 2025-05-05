@@ -17,8 +17,8 @@ from FE import eval
 #
 # span mut u8 -> struct {pointer ptr mut  u8, len uint}
 ############################################################
-SLICE_FIELD_POINTER = cwast.NAME("pointer")
-SLICE_FIELD_LENGTH = cwast.NAME("length")
+SLICE_FIELD_POINTER = cwast.NAME.Make("pointer")
+SLICE_FIELD_LENGTH = cwast.NAME.Make("length")
 
 
 def _MakeSpanReplacementStruct(span_type: cwast.CanonType,

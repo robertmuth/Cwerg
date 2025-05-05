@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def _GetQualifierIfPresent(name: str) -> Optional[cwast.NAME]:
     tokens = name.split(cwast.ID_PATH_SEPARATOR)
     if len(tokens) == 2:
-        return cwast.NAME(tokens[0])
+        return cwast.NAME.Make(tokens[0])
     assert 1 == len(tokens)
     return None
 
@@ -274,7 +274,7 @@ def _ModUniquePathName(root: Path,
         return pathlib.Path(root / pathname).resolve()
 
 
-_MAIN_FUN_NAME = cwast.NAME("main")
+_MAIN_FUN_NAME = cwast.NAME.Make("main")
 
 
 def _ReadMod(handle: Path, mod_name: str) -> cwast.DefMod:

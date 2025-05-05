@@ -20,8 +20,8 @@ from FE import canonicalize
 #
 # sum[r64, bool, ...] -> struct {tag u16, union untagged-sum[r64, bool, ... ]}
 ############################################################
-SUM_FIELD_TAG = cwast.NAME("tag")
-SUM_FIELD_UNION = cwast.NAME("union")
+SUM_FIELD_TAG = cwast.NAME.Make("tag")
+SUM_FIELD_UNION = cwast.NAME.Make("union")
 
 
 def _MakeUnionReplacementStruct(union_type: cwast.CanonType,

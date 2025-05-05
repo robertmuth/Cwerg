@@ -40,4 +40,4 @@ class IdGen:
         no = self._names.get(prefix, 1)
         self._names[prefix] = no + 1
         # this should be the only place introducing a "%" in an identifier
-        return cwast.NAME(f"{prefix}%{no}")
+        return cwast.NAME.Make(f"{prefix}%{no}")

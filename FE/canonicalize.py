@@ -45,7 +45,7 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
         field_type = cwast.TypeAuto(x_srcloc=srcloc, x_type=field_ct)
         fields.append(cwast.RecField(
             field_name, field_type, x_srcloc=srcloc, x_type=field_ct))
-    rec = cwast.DefRec(cwast.NAME(
+    rec = cwast.DefRec(cwast.NAME.Make(
         name), fields, pub=True, x_srcloc=srcloc)
     rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
     typify.AnnotateNodeType(rec, rec_ct)
@@ -139,12 +139,12 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun):
     def replacer(node, _parent):
         if isinstance(node, cwast.Expr3):
             sl = node.x_srcloc
-            name_t = cwast.NAME("op_t")
+            name_t = cwast.NAME.Make("op_t")
             at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
             def_t = cwast.DefVar(name_t,
                                  at, node.expr_t,
                                  x_srcloc=sl, x_type=node.x_type)
-            name_f = cwast.NAME("op_f")
+            name_f = cwast.NAME.Make("op_f")
             at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
             def_f = cwast.DefVar(name_f, at,
                                  node.expr_f, x_srcloc=sl, x_type=node.x_type)
@@ -198,7 +198,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
             return lhs
         sl = lhs.x_srcloc
         at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.expr.x_type)
-        def_node = cwast.DefVar(cwast.NAME("deref_assign"),
+        def_node = cwast.DefVar(cwast.NAME.Make("deref_assign"),
                                 at,
                                 lhs.expr, x_srcloc=sl, x_type=at.x_type)
         stmts.append(def_node)
@@ -215,7 +215,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
             assert False
         sl = lhs.x_srcloc
         at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.x_type)
-        def_node = cwast.DefVar(cwast.NAME("assign"),
+        def_node = cwast.DefVar(cwast.NAME.Make("assign"),
                                 at,
                                 lhs, x_srcloc=sl, x_type=at.x_type)
         stmts.append(def_node)
@@ -249,7 +249,7 @@ def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
                 return None
             sl = node.x_srcloc
             at = cwast.TypeAuto(x_srcloc=sl, x_type=node.expr.x_type)
-            def_node = cwast.DefVar(cwast.NAME("assign"),
+            def_node = cwast.DefVar(cwast.NAME.Make("assign"),
                                     at,
                                     node.expr, x_srcloc=sl, x_type=at.x_type)
             node.expr = _IdNodeFromDef(def_node, node.x_srcloc)
@@ -687,7 +687,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
                 if not _IsSimpleInitializer(i.value_or_undef):
                     sl = i.x_srcloc
                     at = cwast.TypeAuto(x_srcloc=sl, x_type=i.x_type)
-                    def_tmp = cwast.DefVar(cwast.NAME("val_array_tmp"),
+                    def_tmp = cwast.DefVar(cwast.NAME.Make("val_array_tmp"),
                                            at, i.value_or_undef,
                                            x_srcloc=sl, x_type=at.x_type)
                     extra.append(def_tmp)
