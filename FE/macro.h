@@ -8,7 +8,5 @@
 
 namespace cwerg::fe {
 
-void ExpandMacrosAndMacroLike(const std::vector<Node>& mods,
-                              const SymTab* builtin_symtab,
-                              IdGenCache* id_gen_cache);
+void ExpandMacrosAndMacroLike(const std::vector<Node>& mods);
 }  // namespace cwerg::fe

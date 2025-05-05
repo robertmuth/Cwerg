@@ -10,7 +10,6 @@ class MacroContext {
  private:
   IdGen* id_gen_;
   SrcLoc srcloc_;
-  SymTab symtabs_;
 
  public:
   MacroContext(IdGen* id_gen, const SrcLoc& srcloc)
@@ -55,14 +54,12 @@ Node ExpandMacroInvokation(Node macro_invoke, Node def_macro, IdGen* id_gen) {
   return kNodeInvalid;
 }
 
-void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting,
-                                         const SymTab* builtin_symtab,
-                                         IdGen* id_gen);
+void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen);
 
 constexpr int MAX_MACRO_NESTING = 8;
 
 Node ExpandMacroInvokeIteratively(Node macro_invoke, int nesting,
-                                  const SymTab* builtin_symtab, IdGen* id_gen) {
+                                  IdGen* id_gen) {
 #if 0
 
   do {
@@ -85,15 +82,11 @@ Node ExpandMacroInvokeIteratively(Node macro_invoke, int nesting,
   return kNodeInvalid;
 }
 
-void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting,
-                                         const SymTab* builtin_symtab,
-                                         IdGen* id_gen) {
-  auto replacer = [nesting, builtin_symtab, id_gen](Node node,
-                                                    Node parent) -> Node {
+void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
+  auto replacer = [nesting, id_gen](Node node, Node parent) -> Node {
     Node orig_node = node;
     if (Node_kind(node) == NT::MacroInvoke) {
-      node =
-          ExpandMacroInvokeIteratively(node, nesting, builtin_symtab, id_gen);
+      node = ExpandMacroInvokeIteratively(node, nesting, id_gen);
     }
     NT kind = Node_kind(node);
     if (kind == NT::ExprSrcLoc) {
@@ -108,15 +101,13 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting,
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
-void ExpandMacrosAndMacroLike(const std::vector<Node>& mods,
-                              const SymTab* builtin_symtab,
-                              IdGenCache* id_gen_cache) {
+void ExpandMacrosAndMacroLike(const std::vector<Node>& mods) {
   for (Node mod : mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
       if (Node_kind(child) == NT::DefFun) {
-        ExpandMacrosAndMacroLikeRecursively(
-            child, 0, builtin_symtab, id_gen_cache->Get(child, builtin_symtab));
+        IdGen idgen;
+        ExpandMacrosAndMacroLikeRecursively(child, 0, &idgen);
       }
     }
   }

@@ -148,12 +148,12 @@ Name StripQualifier(Name name) {
 }
 
 void ResolveImportsForQualifers(Node mod) {
-  std::map<StrAndSeq, Node> imports;
+  std::map<Name, Node> imports;
 
   auto visitor = [&imports](Node node, Node parent) {
     switch (Node_kind(node)) {
       case NT::Import: {
-        auto name = NameStrAndSeq(Node_name(node));
+        auto name = Node_name(node);
         if (imports.contains(name)) {
           CompilerError(Node_srcloc(node)) << "duplicate import";
         }
@@ -165,7 +165,7 @@ void ResolveImportsForQualifers(Node mod) {
         Name name = Node_name(node);
         Name q = GetQualifierIfPresent(name);
         if (!q.isnull()) {
-          auto it = imports.find(NameStrAndSeq(q));
+          auto it = imports.find(q);
           if (it == imports.end()) {
             CompilerError(Node_srcloc(node))
                 << "cannot resolve qualifier [" << q << "] " << name.index();
@@ -192,7 +192,7 @@ void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {
       case NT::DefFun:
         if (Node_has_flag(child, BF::POLY)) {
           if (HasImportedSymbolReference(child) ||
-              symtab->contains(NameStrAndSeq(Node_name(child)))) {
+              symtab->contains(Node_name(child))) {
             continue;
           }
         }
@@ -202,7 +202,7 @@ void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {
       case NT::DefGlobal:
       case NT::DefMacro:
       case NT::DefRec: {
-        auto name = NameStrAndSeq(Node_name(child));
+        auto name = Node_name(child);
         if (symtab->contains(name)) {
           CompilerError(Node_srcloc(child))
               << "duplicate symbol " << Node_name(child);
@@ -272,10 +272,10 @@ class ModPoolState {
 };
 
 struct Candidate {
-  StrAndSeq name;
+  Name name;
   Node mod;
 
-  bool operator<(const Candidate& other) const { return name < other.name; }
+  bool operator<(const Candidate& other) const { return NameCmpLt(name, other.name); }
 };
 
 std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
@@ -297,7 +297,7 @@ std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
   std::vector<Candidate> candidates;
   for (Node mod : mods) {
     if (deps_in[mod].empty()) {
-      candidates.push_back({NameStrAndSeq(Node_name(mod)), mod});
+      candidates.push_back({Node_name(mod), mod});
       std::push_heap(candidates.begin(), candidates.end());
     }
   }
@@ -311,7 +311,7 @@ std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
     for (Node importer : deps_out[mod]) {
       deps_in[importer].erase(mod);
       if (deps_in[importer].empty()) {
-        candidates.push_back({NameStrAndSeq(Node_name(importer)), importer});
+        candidates.push_back({Node_name(importer), importer});
         std::push_heap(candidates.begin(), candidates.end());
       }
     }
@@ -359,7 +359,7 @@ ModPool ReadModulesRecursively(Path root_path,
 
         std::string pathname;
         if (Node_path(import.import_node) == kStrInvalid) {
-          pathname = Name_String(Node_name(import.import_node));
+          pathname = NameData(Node_name(import.import_node));
         } else {
           pathname = StrData(Node_path(import.import_node));
           if (pathname[0] == '"') {

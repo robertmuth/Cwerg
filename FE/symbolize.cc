@@ -16,19 +16,11 @@ bool IsPointNode(Node node, Node parent) {
 }
 
 bool HasImportedSymbolReference(Node node) {
-  if (Node_x_import(node).isnull()) {
-    return false;
-  }
-
-  auto seq = NameStrAndSeq(Node_name(Node_x_import(node))).seq;
-  return seq != MAGIC_SELF_IMPORT_SEQ;
+  return !Node_x_import(node).isnull();
 }
 
 Node SymTabFindWithDefault(const SymTab* symtab, Name name) {
-  StrAndSeq ss = NameStrAndSeq(name);
-  auto it = symtab->find(ss);
-
-  // auto it = symtab->find(NameStrAndSeq(name));
+  auto it = symtab->find(name);
 
   if (it == symtab->end()) {
     return kNodeInvalid;
@@ -48,7 +40,6 @@ Node SymTabResolveImported(const SymTab* symtab, Node node) {
 
 Node SymTabResolveWithFallback(const SymTab* symtab, Node node,
                                const SymTab* builtin_symtab) {
-
   Node def = SymTabFindWithDefault(symtab, Node_name(node));
   if (def.isnull()) {
     def = SymTabResolveImported(builtin_symtab, node);
@@ -172,7 +163,7 @@ void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,
         ResolveSymbolInsideFunction(node, builtin_symtab, scopes);
       }
     } else if (Node_kind(node) == NT::DefVar) {
-      auto& ss = NameStrAndSeq(Node_name(node));
+      auto ss = Node_name(node);
       if (scopes->back().contains(ss)) {
         CompilerError(Node_srcloc(node)) << "duplicate symbol " << ss;
       }
@@ -185,7 +176,7 @@ void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,
     if (Node_kind(node) == NT::DefFun) {
       for (Node child = Node_params(node); !child.isnull();
            child = Node_next(child)) {
-        auto& ss = NameStrAndSeq(Node_name(child));
+        auto ss = Node_name(child);
         if (scopes->back().contains(ss)) {
           CompilerError(Node_srcloc(node)) << "duplicate symbol " << ss;
           scopes->back()[ss] = node;
@@ -221,8 +212,8 @@ void FunSetTargetField(Node fun) {
     if (nt == NT::StmtBreak || nt == NT::StmtContinue) {
       for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
         if (Node_kind(*it) == NT::StmtBlock) {
-          if (Node_label(node).isnull() || NameStrAndSeq(Node_label(node)) ==
-                                               NameStrAndSeq(Node_label(*it))) {
+          if (Node_label(node).isnull() ||
+              Node_label(node) == Node_label(*it)) {
             Node_x_target(node) = *it;
             return;
           }

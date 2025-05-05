@@ -18,23 +18,6 @@ namespace cwerg::fe {
 // These must be larger than the last element of the NT enum
 uint8_t constexpr kKindStr = 100;
 uint8_t constexpr kKindName = 101;
-uint32_t constexpr MAGIC_SELF_IMPORT_SEQ = 0xffffffff;
-
-struct StrAndSeq {
-  uint32_t name;  // offset from ImmutablePool.
-  uint32_t seq;
-
-  bool operator<(const StrAndSeq& other) const {
-    if (name == other.name) {
-      return seq < other.seq;
-    }
-    return name < other.name;
-  }
-
-  bool operator==(const StrAndSeq& other) const {
-    return name == other.name && seq == other.seq;
-  }
-};
 
 // some forward declarations
 enum class NT : uint8_t;  // "node type"
@@ -121,7 +104,7 @@ struct NodeExtra {
   };
 };
 
-using SymTab = std::map<StrAndSeq, Node>;
+using SymTab = std::map<Name, Node>;
 
 struct NodeAuxTyping {
   union {
@@ -210,65 +193,33 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
 // Name API
 // =======================================
 
-extern struct Stripe<StrAndSeq, Name> gNameCore;
-extern struct StripeGroup gStripeGroupName;
-
-inline Name NameNew(uint32_t offset, uint32_t seq) {
-  Name out = Name(gStripeGroupName.New().index());
-  gNameCore[out] = {offset, seq};
-  return out;
-}
-
-inline Name NameNew(std::string_view s, uint32_t seq) {
-  // we want a null byte at the end
-  uint32_t offset = gNamePool.Intern(s, 1);
-  return NameNew(offset, seq);
-}
-
 inline Name NameNew(std::string_view s) {
   // we want a null byte at the end
-  uint32_t offset = gNamePool.Intern(s, 1);
-  // TODO: extract seq from string
-  return NameNew(offset, 0);
+  return Name(gNamePool.Intern(s, 1));
 }
-
-inline StrAndSeq& NameStrAndSeq(Name name) { return gNameCore[name]; }
 
 // TODO: this does not include the the seq
-inline const char* NameData(Name name) {
-  return gNamePool.Data(gNameCore[name].name);
-}
+inline const char* NameData(Name name) { return gNamePool.Data(name.index()); }
 
 inline bool NameIsEmpty(Name name) {
-  return gNamePool.Data(gNameCore[name].name)[0] == '\0';
-}
-
-inline std::ostream& operator<<(std::ostream& os, const StrAndSeq& ss) {
-  os << gNamePool.Data(ss.name);
-  if (ss.seq != 0) {
-    os << "%" << ss.seq;
-  }
-  return os;
+  return gNamePool.Data(name.index())[0] == '\0';
 }
 
 inline std::ostream& operator<<(std::ostream& os, Name name) {
-  StrAndSeq& ss = NameStrAndSeq(name);
-  os << gNamePool.Data(ss.name);
-  if (ss.seq != 0) {
-    os << "%" << ss.seq;
-  }
+  os << NameData(name);
   return os;
 }
 
-inline std::string Name_String(Name name) {
-  StrAndSeq& ss = NameStrAndSeq(name);
-  std::string s = gNamePool.Data(ss.name);
-  if (ss.seq != 0) {
-    s += "%";
-    s += std::to_string(ss.seq);
-  }
-  return s;
+inline int NameCmp(Name a, Name b) {
+  if (a == b) return 0;
+  return strcmp(gNamePool.Data(a.index()), gNamePool.Data(b.index()));
 }
+
+inline bool NameCmpLt(Name a, Name b) {
+  if (a == b) return 0;
+  return strcmp(gNamePool.Data(a.index()), gNamePool.Data(b.index())) < 0;
+}
+
 
 // =======================================
 // Str API
@@ -955,7 +906,9 @@ inline void InitValVoid(Node node, Str doc, const SrcLoc& srcloc) {
 
 /* @AUTOGEN-END@ */
 // clang-format on
-inline void Node_set_name(Node n, Name name) { gNodeCore[n].children[0] = name; }
+inline void Node_set_name(Node n, Name name) {
+  gNodeCore[n].children[0] = name;
+}
 
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
   return gNodeCore[n].mod_param_kind;

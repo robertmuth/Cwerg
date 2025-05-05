@@ -675,9 +675,6 @@ StripeBase* const gAllStripesNode[] = {&gNodeCore, &gNodeExtra, &gNodeAuxTyping,
                                        nullptr};
 struct StripeGroup gStripeGroupNode("Node", gAllStripesNode, 256 * 1024);
 
-struct Stripe<StrAndSeq, Name> gNameCore("NameCore");
-StripeBase* const gAllStripesName[] = {&gNameCore, nullptr};
-struct StripeGroup gStripeGroupName("Name", gAllStripesName, 256 * 1024);
 
 int string_view_cmp(const char* a, std::string_view b) {
   int x = strncmp(a, b.data(), b.size());
