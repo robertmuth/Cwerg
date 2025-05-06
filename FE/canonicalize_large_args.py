@@ -105,7 +105,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
             node.expr_ret = cwast.ValVoid(x_srcloc=node.x_srcloc,
                                           x_type=tc.get_void_canon_type())
-            return cwast.EphemeralList([assign, node], x_srcloc=node.x_srcloc)
+            return [assign, node]
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)

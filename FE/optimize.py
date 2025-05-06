@@ -57,7 +57,7 @@ def FunRemoveUnusedDefVar(fun: cwast.DefFun):
         if isinstance(node, cwast.DefVar):
             if node not in used and not MayHaveSideEffects(node.initial_or_undef_or_auto):
                 stats.IncCounter("Removed", "DefVar", 1)
-                return cwast.EphemeralList([])
+                return []
         return None
     # if we remove a node we do not need to recurse into the subtree
     cwast.MaybeReplaceAstRecursively(fun, update)
@@ -187,7 +187,7 @@ def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
             target_map = {node.expr_ret: node.x_target}
             cwast.UpdateSymbolAndTargetLinks(node.expr_ret, {}, target_map)
             stats.IncCounter("Removed", "ExprStmt.1", 1)
-            return cwast.EphemeralList(node.expr_ret.body, colon=True)
+            return node.expr_ret.body
         if isinstance(node, cwast.ExprStmt) and len(node.body) == 1 and isinstance(node.body[0], cwast.StmtReturn):
             # assert False, f"{node.body}"
             stats.IncCounter("Removed", "ExprStmt.2", 1)

@@ -253,7 +253,7 @@ def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
                                     at,
                                     node.expr, x_srcloc=sl, x_type=at.x_type)
             node.expr = _IdNodeFromDef(def_node, node.x_srcloc)
-            return cwast.EphemeralList([def_node, node])
+            return [def_node, node]
         elif isinstance(node, cwast.ExprField):
             c = node.container
             if isinstance(c, cwast.Id):
@@ -312,7 +312,7 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
             if not stmts:
                 return assignment
             stmts.append(assignment)
-            return cwast.EphemeralList(stmts, colon=True)
+            return stmts
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
@@ -354,7 +354,7 @@ def FunCanonicalizeRemoveStmtCond(fun: cwast.DefFun):
         if not isinstance(node, cwast.StmtCond):
             return None
         if not node.cases:
-            return cwast.EphemeralList([])
+            return []
 
         out = None
         for case in reversed(node.cases):
@@ -696,7 +696,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
             if not extra:
                 return None
             extra.append(node)
-            return cwast.EphemeralList(extra)
+            return extra
         else:
             return None
 

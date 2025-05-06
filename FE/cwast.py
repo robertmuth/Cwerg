@@ -3167,8 +3167,8 @@ def MaybeReplaceAstRecursively(node, replacer):
             new_children = []
             for n, child in enumerate(children):
                 new_child = replacer(child, node)
-                if isinstance(new_child, EphemeralList):
-                    new_children += new_child.args
+                if isinstance(new_child, list):
+                    new_children += new_child
                 elif new_child is None:
                     new_children.append(child)
                     MaybeReplaceAstRecursively(child, replacer)
@@ -3195,10 +3195,10 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
                 new_child = replacer(child)
                 if new_child is None:
                     new_children.append(child)
-                elif isinstance(new_child, EphemeralList):
-                    for x in new_child.args:
-                        assert not isinstance(x, EphemeralList)
-                    new_children += new_child.args
+                elif isinstance(new_child, list):
+                    for x in new_child:
+                        assert not isinstance(x, list)
+                    new_children += new_child
                 else:
                     new_children.append(new_child)
             setattr(node, f, new_children)
@@ -3211,7 +3211,7 @@ def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
             child = getattr(node, f)
             MaybeReplaceAstRecursivelyWithParentPost(child, replacer)
             new_child = replacer(child, node)
-            assert not isinstance(new_child, EphemeralList)
+            assert not isinstance(new_child, list)
             if new_child is not None:
                 setattr(node, f, new_child)
         else:
@@ -3222,9 +3222,9 @@ def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
                 new_child = replacer(child, node)
                 if new_child is None:
                     new_children.append(child)
-                elif isinstance(new_child, EphemeralList):
+                elif isinstance(new_child, list):
                     for x in new_child.args:
-                        assert not isinstance(x, EphemeralList)
+                        assert not isinstance(x, list)
                     new_children += new_child.args
                 else:
                     new_children.append(new_child)
