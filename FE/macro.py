@@ -43,20 +43,23 @@ class _MacroContext:
         return self.macro_parameter[name]
 
 
-def _ExpandMacroBodyRecursively(node, ctx: _MacroContext) -> Any:
+def _ExpandMacroBodyNodeRecursively(node, ctx: _MacroContext) -> Any:
     if isinstance(node, cwast.DefVar) and node.name.IsMacroVar():
         new_name = ctx.GetSymbol(node.name)
         # Why is this not a MacroVar
         assert isinstance(new_name, cwast.Id)
-        type_or_auto = _ExpandMacroBodyRecursively(node.type_or_auto, ctx)
-        initial = _ExpandMacroBodyRecursively(
+        type_or_auto = _ExpandMacroBodyNodeRecursively(node.type_or_auto, ctx)
+        initial = _ExpandMacroBodyNodeRecursively(
             node.initial_or_undef_or_auto, ctx)
         return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
         arg = ctx.GetSymbol(node.name)
-        # _kind can be anything but STMT
-        return cwast.CloneNodeRecursively(arg, {}, {})
+        replacement = cwast.CloneNodeRecursively(arg, {}, {})
+        # when we expland the MacroId we unwrap the EphemeralList
+        if isinstance(replacement, cwast.EphemeralList):
+            return replacement.args
+        return replacement
     elif isinstance(node, cwast.MacroFor):
         assert node.name.IsMacroVar(), f" non macro name: {node}"
         arg = ctx.GetSymbol(node.name_list)
@@ -65,27 +68,29 @@ def _ExpandMacroBodyRecursively(node, ctx: _MacroContext) -> Any:
         for item in arg.args:
             ctx.SetSymbol(node.name, item)
             for b in node.body_for:
-                exp = _ExpandMacroBodyRecursively(b, ctx)
-                if isinstance(exp, cwast.EphemeralList):
-                    out += exp.args
+                exp = _ExpandMacroBodyNodeRecursively(b, ctx)
+                if isinstance(exp, list):
+                    out += exp
                 else:
                     out.append(exp)
-        return cwast.EphemeralList(out, colon=False)
+        return out
 
     clone = dataclasses.replace(node)
 
     for nfd in node.__class__.NODE_FIELDS:
         c = nfd.name
         if nfd.kind is cwast.NFK.NODE:
-            replacement = _ExpandMacroBodyRecursively(getattr(node, c), ctx)
+            replacement = _ExpandMacroBodyNodeRecursively(
+                getattr(node, c), ctx)
+            assert not isinstance(replacement, list)
             setattr(clone, c, replacement)
         else:
             out = []
             for cc in getattr(node, c):
-                exp = _ExpandMacroBodyRecursively(cc, ctx)
+                exp = _ExpandMacroBodyNodeRecursively(cc, ctx)
                 # TODO: this tricky and needs a comment
-                if isinstance(exp, cwast.EphemeralList) and not isinstance(cc, cwast.EphemeralList):
-                    out += exp.args
+                if isinstance(exp, list):
+                    out += exp
                 else:
                     out.append(exp)
             setattr(clone, c, out)
@@ -114,9 +119,10 @@ def _CheckMacroArg(p,  a, macro_invoke, def_macro):
 
 
 def _ExpandMacroInvocation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.DefMacro,
-                           id_gen: identifier.IdGen) -> Any:
+                           nesting, id_gen: identifier.IdGen) -> Any:
     params: list[cwast.MacroParam] = def_macro.params_macro
     args = macro_invoke.args
+    # collect EXPR_LIST_REST parameters into an EphemeralList
     if params and params[-1].macro_param_kind is cwast.MACRO_PARAM_KIND.EXPR_LIST_REST:
         rest = cwast.EphemeralList(args[len(params)-1:], colon=False)
         args = args[:len(params)-1:] + [rest]
@@ -140,15 +146,18 @@ def _ExpandMacroInvocation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.Def
     for node in def_macro.body_macro:
         logger.debug("Expand macro body node: %s", node)
         # pp_sexpr.PrettyPrint(node)
-        exp = _ExpandMacroBodyRecursively(node, ctx)
+        exp = _ExpandMacroBodyNodeRecursively(node, ctx)
         # pp_sexpr.PrettyPrint(exp)
-        if isinstance(exp, cwast.EphemeralList):
-            out += exp.args
+        if isinstance(exp, list):
+            out += exp
         else:
             out.append(exp)
-    # if len(out) == 1:
-    #    return out[0]
-    return cwast.EphemeralList(out, colon=False)
+    # using a EphemeralList is somewhat ugly but we can run
+    # _ExpandMacrosAndMacroLikeRecursively more easily this way.
+    x = cwast.EphemeralList(out)
+    # expand the macro body
+    _ExpandMacrosAndMacroLikeRecursively(x, nesting + 1, id_gen)
+    return x.args
 
 
 MAX_MACRO_NESTING = 8
@@ -162,16 +171,11 @@ def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, id_gen: identifier.
             def_macro = node.x_symbol
             assert isinstance(
                 def_macro, cwast.DefMacro), f"{node} -> {def_macro}"
-            node = _ExpandMacroInvocation(node, def_macro, id_gen)
-
-            # expand the macro body
-            _ExpandMacrosAndMacroLikeRecursively(
-                node, nesting + 1, id_gen)
+            nodes = _ExpandMacroInvocation(node, def_macro, nesting, id_gen)
             # pp_sexpr.PrettyPrint(exp)
-            assert isinstance(node, cwast.EphemeralList)
-            if len(node.args) == 1:
-                return node.args[0]
-            return node.args
+            if len(nodes) == 1:
+                return nodes[0]
+            return nodes
         if isinstance(node, cwast.ExprSrcLoc):
             return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
         elif isinstance(node, cwast.ExprStringify):

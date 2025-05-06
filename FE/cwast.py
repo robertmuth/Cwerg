@@ -1092,9 +1092,11 @@ SRCLOC_GENERATED: Final[SrcLoc] = SrcLoc("@generated@", 0)
 @NodeCommon
 @dataclasses.dataclass()
 class EphemeralList:
-    """Only exist temporarily after a replacement strep
+    """Only exist in the context of macro parameters:
+       STMT_LIST, EXPR_LIST, EXPR_LIST_REST
+       and is not used after macro expansion
 
-    will removed (flattened) in the next cleanup list
+
     """
     ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Macro
@@ -1102,7 +1104,7 @@ class EphemeralList:
     #
     args: list[Any]
     #
-    colon: bool = False  # colon style list
+    colon: bool = False  # orignated from a STMT_LIST
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
 
