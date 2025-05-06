@@ -418,12 +418,11 @@ def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def _CanonicalizeDeferRecursively(fun: cwast.DefFun, scopes):
-    if isinstance(fun, cwast.DefFun):
-        scopes.append((fun, []))
+def _CanonicalizeDeferRecursively(node: cwast.DefFun, scopes):
 
-    if isinstance(fun, cwast.StmtDefer):
-        scopes[-1][1].append(fun)
+
+    if isinstance(node, cwast.StmtDefer):
+        scopes[-1][1].append(node)
 
     def handle_cfg(target):
         out = []
@@ -435,21 +434,21 @@ def _CanonicalizeDeferRecursively(fun: cwast.DefFun, scopes):
                 break
         return out
 
-    if cwast.NF.CONTROL_FLOW in fun.FLAGS:
-        return cwast.EphemeralList(handle_cfg(fun.x_target) + [fun], colon=False)
+    if cwast.NF.CONTROL_FLOW in node.FLAGS:
+        return cwast.EphemeralList(handle_cfg(node.x_target) + [node])
 
     # TODO: try converting this to VisitAstRecursivelyPreAndPost
-    for nfd in fun.__class__.NODE_FIELDS:
+    for nfd in node.__class__.NODE_FIELDS:
         field = nfd.name
         if nfd.kind is cwast.NFK.NODE:
-            child = getattr(fun, field)
+            child = getattr(node, field)
             new_child = _CanonicalizeDeferRecursively(child, scopes)
             if new_child:
-                setattr(fun, child, new_child)
+                setattr(node, child, new_child)
         else:
             if field in cwast.NEW_SCOPE_FIELDS:
-                scopes.append((fun, []))
-            children = getattr(fun, field)
+                scopes.append((node, []))
+            children = getattr(node, field)
             for n, child in enumerate(children):
                 new_child = _CanonicalizeDeferRecursively(child, scopes)
                 if new_child:
@@ -461,10 +460,8 @@ def _CanonicalizeDeferRecursively(fun: cwast.DefFun, scopes):
                         children += out
                 scopes.pop(-1)
 
-    if isinstance(fun, cwast.StmtDefer):
-        return cwast.EphemeralList([], colon=False, x_srcloc=fun.x_srcloc)
-    if isinstance(fun, cwast.DefFun):
-        scopes.pop(-1)
+    if isinstance(node, cwast.StmtDefer):
+        return cwast.EphemeralList([])
     return None
 
 
