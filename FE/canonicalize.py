@@ -418,7 +418,7 @@ def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
+def _CanonicalizeDeferRecursively(fun: cwast.DefFun, scopes):
     if isinstance(fun, cwast.DefFun):
         scopes.append((fun, []))
 
@@ -443,7 +443,7 @@ def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
         field = nfd.name
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(fun, field)
-            new_child = FunCanonicalizeDefer(child, scopes)
+            new_child = _CanonicalizeDeferRecursively(child, scopes)
             if new_child:
                 setattr(fun, child, new_child)
         else:
@@ -451,7 +451,7 @@ def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
                 scopes.append((fun, []))
             children = getattr(fun, field)
             for n, child in enumerate(children):
-                new_child = FunCanonicalizeDefer(child, scopes)
+                new_child = _CanonicalizeDeferRecursively(child, scopes)
                 if new_child:
                     children[n] = new_child
             if field in cwast.NEW_SCOPE_FIELDS:
@@ -466,6 +466,11 @@ def FunCanonicalizeDefer(fun: cwast.DefFun, scopes):
     if isinstance(fun, cwast.DefFun):
         scopes.pop(-1)
     return None
+
+
+def FunCanonicalizeDefer(fun: cwast.DefFun):
+    _CanonicalizeDeferRecursively(fun, [])
+    cwast.EliminateEphemeralsRecursively(fun)
 
 
 def FunAddMissingReturnStmts(fun: cwast.DefFun):
