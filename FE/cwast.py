@@ -154,7 +154,6 @@ class GROUP(enum.IntEnum):
     Value = enum.auto()
     Expression = enum.auto()
     Macro = enum.auto()
-    Ephemeral = enum.auto()  # should only exist during intermediate steps and in macros
 
 
 @enum.unique
@@ -3186,7 +3185,7 @@ def MaybeReplaceAstRecursivelyPost(node, replacer):
             child = getattr(node, f)
             MaybeReplaceAstRecursivelyPost(child, replacer)
             new_child = replacer(child)
-            assert not isinstance(new_child, EphemeralList)
+            assert not isinstance(new_child, list)
             if new_child is not None:
                 setattr(node, f, new_child)
         else:
@@ -3231,43 +3230,6 @@ def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
                 else:
                     new_children.append(new_child)
             setattr(node, f, new_children)
-
-
-def _MaybeFlattenEphemeralList(nodes: list[Any]):
-    has_ephemeral = False
-    for n in nodes:
-        if isinstance(n, EphemeralList):
-            has_ephemeral = True
-            break
-    if not has_ephemeral:
-        return nodes
-    out = []
-    for c in nodes:
-        if isinstance(c, EphemeralList):
-            out += _MaybeFlattenEphemeralList(c.args)
-        else:
-            out.append(c)
-    return out
-
-
-def EliminateEphemeralsRecursively(node):
-    for nfd in node.__class__.NODE_FIELDS:
-        f = nfd.name
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, f)
-            if isinstance(child, EphemeralList):
-                new_child = _MaybeFlattenEphemeralList([child])
-                assert len(
-                    new_child) == 1, f"{f} {node.__class__} {len(new_child)}"
-                setattr(node, f, new_child[0])
-            EliminateEphemeralsRecursively(child)
-        else:
-            children = getattr(node, f)
-            new_children = _MaybeFlattenEphemeralList(children)
-            if new_children is not children:
-                setattr(node, f, new_children)
-            for child in children:
-                EliminateEphemeralsRecursively(child)
 
 
 def CloneNodeRecursively(node, symbol_map, target_map):
@@ -3434,9 +3396,6 @@ def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symb
             if not isinstance(node, DefMod):
                 assert isinstance(node.name, NAME), f"{node}"
 
-        if node.GROUP is GROUP.Ephemeral:
-            assert isinstance(
-                toplevel_node, DefMacro), f"only allowed in macros: {node}"
         if isinstance(node, DefMacro):
             if not node.name.IsMacroCall() and node.name.name not in ALL_BUILT_IN_MACROS:
                 CompilerError(

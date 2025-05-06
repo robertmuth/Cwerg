@@ -294,7 +294,7 @@ def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
 #    lhs = cwast.ExprDeref(_IdNodeFromDef(
 #                def_node, node.x_srcloc), x_srcloc=node.x_srcloc, x_type=node.lhs.x_type)
 #    new_assignment = _AssigmemtNode(node.assignment_kind, lhs, node.expr_rhs, node.x_srcloc)
-#    return cwast.EphemeralList(True, [def_node, new_assignment])
+#    return [def_node, new_assignment]
 #
 
 
@@ -418,8 +418,8 @@ def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def _CanonicalizeDeferRecursively(node: cwast.DefFun, scopes):
-
+# TODO: try converting this to VisitAstRecursivelyPreAndPost
+def _CanonicalizeDeferRecursively(node: cwast.DefFun, scopes: list[tuple[Any, list[Any]]]):
 
     if isinstance(node, cwast.StmtDefer):
         scopes[-1][1].append(node)
@@ -432,42 +432,58 @@ def _CanonicalizeDeferRecursively(node: cwast.DefFun, scopes):
                 out += clone.body
             if scope is target:
                 break
+        for x in out:
+            assert not isinstance(x, cwast.StmtDefer)
         return out
 
     if cwast.NF.CONTROL_FLOW in node.FLAGS:
-        return cwast.EphemeralList(handle_cfg(node.x_target) + [node])
+        # inject the defer bodies just before the control flow change
+        return handle_cfg(node.x_target) + [node]
 
-    # TODO: try converting this to VisitAstRecursivelyPreAndPost
     for nfd in node.__class__.NODE_FIELDS:
         field = nfd.name
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, field)
             new_child = _CanonicalizeDeferRecursively(child, scopes)
+            assert new_child is None
             if new_child:
+                assert not isinstance(new_child, list)
                 setattr(node, child, new_child)
         else:
             if field in cwast.NEW_SCOPE_FIELDS:
                 scopes.append((node, []))
+            #
             children = getattr(node, field)
+            new_children = []
+            change = False
             for n, child in enumerate(children):
                 new_child = _CanonicalizeDeferRecursively(child, scopes)
-                if new_child:
-                    children[n] = new_child
+                if new_child is None:
+                    new_children.append(child)
+                else:
+                    assert isinstance(new_child, list)
+                    new_children += new_child
+                    change = True
+
+            #
             if field in cwast.NEW_SCOPE_FIELDS:
-                if children and not isinstance(children[-1], cwast.EphemeralList):
-                    if cwast.NF.CONTROL_FLOW not in children[-1].FLAGS:
-                        out = handle_cfg(scopes[-1][0])
-                        children += out
+                if new_children and cwast.NF.CONTROL_FLOW not in children[-1].FLAGS:
+                    out = handle_cfg(scopes[-1][0])
+                    if out:
+                        new_children += out
+                        change = True
                 scopes.pop(-1)
+            #
+            if change:
+                setattr(node, field, new_children)
 
     if isinstance(node, cwast.StmtDefer):
-        return cwast.EphemeralList([])
+        return []
     return None
 
 
-def FunCanonicalizeDefer(fun: cwast.DefFun):
+def FunEliminateDefer(fun: cwast.DefFun):
     _CanonicalizeDeferRecursively(fun, [])
-    cwast.EliminateEphemeralsRecursively(fun)
 
 
 def FunAddMissingReturnStmts(fun: cwast.DefFun):

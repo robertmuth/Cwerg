@@ -1161,7 +1161,7 @@ def main() -> int:
             # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
             canonicalize_union.SimplifyTaggedExprNarrow(fun, tc)
             canonicalize.FunReplaceExprIs(fun, tc)
-            canonicalize.FunCanonicalizeDefer(fun)
+            canonicalize.FunEliminateDefer(fun)
             typify.RemoveUselessCast(fun, tc)
 
     eliminated_nodes.add(cwast.ExprSizeof)
