@@ -25,19 +25,19 @@ class _MacroContext:
         self.macro_parameter: dict[cwast.NAME, Any] = {}
         self.srcloc = srcloc
 
-    def RegisterSymbol(self, name: cwast.NAME, value):
-        assert name not in self.macro_parameter, f"duplicate macro param: {name} in {value}"
+    def SetSymbol(self, name: cwast.NAME, value):
+        assert name.IsMacroVar()
         self.macro_parameter[name] = value
 
-    def SetSymbol(self, name: cwast.NAME, value):
-        self.macro_parameter[name] = value
+    def RegisterSymbol(self, name: cwast.NAME, value):
+        assert name not in self.macro_parameter, f"duplicate macro param: {name} in {value}"
+        self.SetSymbol(name, value)
 
     def GetSymbol(self: Any, name: cwast.NAME) -> Any:
         assert name.IsMacroVar()
         return self.macro_parameter[name]
 
     def GenerateNewSymbol(self, name: cwast.NAME, srcloc):
-        assert name.IsMacroVar(), f"expected macro id {name}"
         # print (f"@@@@@@@@@@@@@@@ {name}")
         new_name = self._id_gen.NewName(name.name[1:])
         self.RegisterSymbol(name, cwast.Id(
@@ -62,12 +62,13 @@ def _ExpandMacroBodyNodeRecursively(node, ctx: _MacroContext) -> Any:
             return replacement.args
         return replacement
     elif isinstance(node, cwast.MacroFor):
-        assert node.name.IsMacroVar(), f" non macro name: {node}"
-        arg = ctx.GetSymbol(node.name_list)
-        assert isinstance(arg, cwast.EphemeralList)
+        loop_var = node.name
+        assert loop_var.IsMacroVar(), f" non macro name: {node}"
+        args = ctx.GetSymbol(node.name_list)
+        assert isinstance(args, cwast.EphemeralList)
         out = []
-        for item in arg.args:
-            ctx.SetSymbol(node.name, item)
+        for item in args.args:
+            ctx.SetSymbol(loop_var, item)
             for b in node.body_for:
                 exp = _ExpandMacroBodyNodeRecursively(b, ctx)
                 if isinstance(exp, list):

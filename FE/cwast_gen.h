@@ -205,6 +205,10 @@ inline bool NameIsEmpty(Name name) {
   return gNamePool.Data(name.index())[0] == '\0';
 }
 
+inline bool NameIsMacro(Name name) {
+  return gNamePool.Data(name.index())[0] == '$';
+}
+
 inline std::ostream& operator<<(std::ostream& os, Name name) {
   os << NameData(name);
   return os;
@@ -219,7 +223,6 @@ inline bool NameCmpLt(Name a, Name b) {
   if (a == b) return 0;
   return strcmp(gNamePool.Data(a.index()), gNamePool.Data(b.index())) < 0;
 }
-
 
 // =======================================
 // Str API
@@ -1077,40 +1080,50 @@ inline void VisitAstRecursivelyWithScopeTracking(
   }
 }
 
+class NodeChain {
+  Node first_ = kNodeInvalid;
+  Node last_ = kNodeInvalid;
+
+ public:
+  NodeChain() = default;
+
+  void Append(Node node) {
+    if (first_.isnull()) {
+      first_ = node;
+      last_ = node;
+    } else {
+      Node_next(last_) = node;
+      last_ = node;
+    }
+
+    while (!Node_next(last_).isnull()) {
+      last_ = Node_next(last_);
+    }
+  }
+
+  Node First() { return first_; }
+};
+
 inline void MaybeReplaceAstRecursivelyPost(
     Node node, std::function<Node(Node, Node)> replacer, Node parent) {
   auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Handle child = core.children[i];
-    if (child.raw_kind() >= kKindStr || child.isnull()) continue;
-
-    Node new_children_first = kNodeInvalid;
-    Node new_children_last = kNodeInvalid;
+    if (child.raw_kind() >= kKindStr || child.isnull()) {
+      core.children[i] = child;
+      continue;
+    }
+    NodeChain new_children;
 
     do {
       MaybeReplaceAstRecursivelyPost(Node(child), replacer, node);
 
       Node new_child = replacer(Node(child), node);
-      if (new_child.isnull()) {
-        new_child = Node(child);
-      } else if (Node_kind(new_child) == NT::EphemeralList) {
-        new_child = Node_args(new_child);
-      }
-
-      Node_next(new_children_last) = new_child;
-      new_children_last = new_child;
-      while (!Node_next(new_children_last).isnull()) {
-        new_children_last = Node_next(new_children_last);
-      }
-
-      if (new_children_first.isnull()) {
-        new_children_first = new_child;
-      }
-
+      new_children.Append(new_child);
       child = Node_next(Node(child));
     } while (!child.isnull());
-    core.children[i] = new_children_first;
+    core.children[i] = new_children.First();
   }
 }
 
@@ -1119,12 +1132,20 @@ inline Node GetWithDefault(const std::map<Node, Node>& m, Node node) {
   return (it == m.end()) ? it->second : node;
 }
 
-inline Node CloneNodeRecursively(Node node, std::map<Node, Node>* symbol_map,
-                                 std::map<Node, Node>* target_map) {
+inline Node NodeCloneBasics(Node node) {
   Node clone = NodeNew(Node_kind(node));
   gNodeCore[clone] = gNodeCore[node];
+  Node_next(clone) = kNodeInvalid;
+
   gNodeExtra[clone] = gNodeExtra[node];
   gNodeAuxTyping[clone] = gNodeAuxTyping[node];
+  return clone;
+}
+
+inline Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
+                                 std::map<Node, Node>* target_map) {
+  Node clone = NodeCloneBasics(node);
+
   switch (Node_kind(clone)) {
     case NT::DefVar:
       (*symbol_map)[node] = clone;
@@ -1150,20 +1171,20 @@ inline Node CloneNodeRecursively(Node node, std::map<Node, Node>* symbol_map,
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Handle handle = core.children[i];
     if (handle.raw_kind() == kKindStr || handle.raw_kind() == kKindName ||
-        handle.isnull())
+        handle.isnull()) {
+      core.children[i] = handle;
       continue;
-
+    }
     Node child = Node(handle);
     core.children[i] =
-        CloneNodeRecursively(Node(child), symbol_map, target_map);
+        NodeCloneRecursively(Node(child), symbol_map, target_map);
 
     while (!Node_next(child).isnull()) {
       Node_next(child) =
-          CloneNodeRecursively(Node_next(child), symbol_map, target_map);
+          NodeCloneRecursively(Node_next(child), symbol_map, target_map);
       child = Node_next(child);
     }
   }
-
   return clone;
 }
 
