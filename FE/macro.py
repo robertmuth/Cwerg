@@ -22,14 +22,8 @@ class _MacroContext:
     def __init__(self, id_gen: identifier.IdGen, srcloc):
         self._id_gen = id_gen
         # these need to become lists
-        self.macro_parameter: dict[cwast.NAME,
-                                   Tuple[cwast.MacroParam, Any]] = {}
+        self.macro_parameter: dict[cwast.NAME, Any] = {}
         self.srcloc = srcloc
-
-    def GenUniqueName(self, name: cwast.NAME) -> cwast.NAME:
-        assert name.IsMacroVar(), f"expected macro id {name}"
-        # print (f"@@@@@@@@@@@@@@@ {name}")
-        return self._id_gen.NewName(name.name[1:])
 
     def RegisterSymbol(self, name: cwast.NAME, value):
         assert name not in self.macro_parameter, f"duplicate macro param: {name} in {value}"
@@ -41,6 +35,13 @@ class _MacroContext:
     def GetSymbol(self: Any, name: cwast.NAME) -> Any:
         assert name.IsMacroVar()
         return self.macro_parameter[name]
+
+    def GenerateNewSymbol(self, name: cwast.NAME, srcloc):
+        assert name.IsMacroVar(), f"expected macro id {name}"
+        # print (f"@@@@@@@@@@@@@@@ {name}")
+        new_name = self._id_gen.NewName(name.name[1:])
+        self.RegisterSymbol(name, cwast.Id(
+            new_name, None, x_srcloc=srcloc))
 
 
 def _ExpandMacroBodyNodeRecursively(node, ctx: _MacroContext) -> Any:
@@ -118,14 +119,27 @@ def _CheckMacroArg(p,  a, macro_invoke, def_macro):
         assert False
 
 
-def _ExpandMacroInvocation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.DefMacro,
-                           nesting, id_gen: identifier.IdGen) -> Any:
-    params: list[cwast.MacroParam] = def_macro.params_macro
-    args = macro_invoke.args
-    # collect EXPR_LIST_REST parameters into an EphemeralList
+MAX_MACRO_NESTING = 8
+
+
+def _FixUpExprListRest(params: list[cwast.MacroParam], args: list[Any]):
+    """collect EXPR_LIST_REST parameters into an EphemeralList"""
     if params and params[-1].macro_param_kind is cwast.MACRO_PARAM_KIND.EXPR_LIST_REST:
         rest = cwast.EphemeralList(args[len(params)-1:], colon=False)
-        args = args[:len(params)-1:] + [rest]
+        del args[len(params)-1:]
+        args.append(rest)
+
+
+def _ExpandMacroInvocation(macro_invoke: cwast.MacroInvoke,
+                           nesting, id_gen: identifier.IdGen) -> Any:
+    if nesting >= MAX_MACRO_NESTING:
+        cwast.CompilerError(macro_invoke.x_srcloc, "nesting to deep")
+    def_macro: cwast.DefMacro = macro_invoke.x_symbol
+    assert isinstance(
+        def_macro, cwast.DefMacro), f"{node} -> {def_macro}"
+    params: list[cwast.MacroParam] = def_macro.params_macro
+    args = macro_invoke.args
+    _FixUpExprListRest(params, args)
     if len(params) != len(args):
         cwast.CompilerError(macro_invoke.x_srcloc, f"parameter mismatch in: {macro_invoke}: "
                             f"actual {len(args)} expected: {len(params)}")
@@ -138,10 +152,9 @@ def _ExpandMacroInvocation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.Def
         ctx.RegisterSymbol(p.name, a)
     for gen_id in def_macro.gen_ids:
         assert isinstance(gen_id, cwast.MacroId)
-        new_name = ctx.GenUniqueName(gen_id.name)
         # new_name = cwast.NAME.Make(gen_id.name.name[1:])
-        ctx.RegisterSymbol(
-            gen_id.name, cwast.Id(new_name, None, x_srcloc=def_macro.x_srcloc))
+        ctx.GenerateNewSymbol(gen_id.name, def_macro.x_srcloc)
+
     out = []
     for node in def_macro.body_macro:
         logger.debug("Expand macro body node: %s", node)
@@ -160,23 +173,17 @@ def _ExpandMacroInvocation(macro_invoke: cwast.MacroInvoke, def_macro: cwast.Def
     return x.args
 
 
-MAX_MACRO_NESTING = 8
-
-
 def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, id_gen: identifier.IdGen):
     def replacer(node: Any):
         nonlocal nesting, id_gen
         orig_node = node
         if isinstance(node, cwast.MacroInvoke):
-            def_macro = node.x_symbol
-            assert isinstance(
-                def_macro, cwast.DefMacro), f"{node} -> {def_macro}"
-            nodes = _ExpandMacroInvocation(node, def_macro, nesting, id_gen)
+            nodes = _ExpandMacroInvocation(node, nesting, id_gen)
             # pp_sexpr.PrettyPrint(exp)
             if len(nodes) == 1:
                 return nodes[0]
             return nodes
-        if isinstance(node, cwast.ExprSrcLoc):
+        elif isinstance(node, cwast.ExprSrcLoc):
             return cwast.ValString(f'r"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
         elif isinstance(node, cwast.ExprStringify):
             # assert isinstance(node.expr, cwast.Id)
