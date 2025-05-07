@@ -48,7 +48,7 @@ BE/Base/reaching_defs.cc                   46             23            482
 BE/Elf/elfhelper.h                         82             33            419
 BE/Base/cfg.cc                             44             23            411
 BE/Base/liveness.cc                        35             44            358
-BE/Base/reg_stats.cc                       35              6            296
+BE/Base/reg_stats.cc                       35              6            297
 BE/Base/reg_alloc.cc                       26              2            237
 BE/Base/optimize_tool.cc                   37              7            205
 BE/Elf/elf_unit.h                          28              5            196
@@ -69,7 +69,7 @@ BE/Base/optimize.h                          7              1              9
 BE/Base/sanity.h                            6              1              7
 BE/Base/canonicalize.h                      4              1              5
 --------------------------------------------------------------------------------------
-SUM:                                      973            424           6585
+SUM:                                      973            424           6586
 --------------------------------------------------------------------------------------
 ```
 
@@ -121,7 +121,7 @@ SUM:                                       382            162           2228
 ```
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
-BE/CodeGenA32/regs.cc                            55             10            506
+BE/CodeGenA32/regs.cc                            57             10            507
 BE/CodeGenA32/legalize.cc                        45             14            344
 BE/CpuA32/assembler.cc                           32              6            261
 BE/CodeGenA32/codegen.cc                         24              3            228
@@ -136,7 +136,7 @@ BE/CpuA32/assembler.h                            10              2             1
 BE/CpuA32/symbolic.h                              6              1             13
 BE/CodeGenA32/codegen.h                           8              1             12
 ---------------------------------------------------------------------------------
-SUM:                                            294             61           2056
+SUM:                                            296             61           2057
 ---------------------------------------------------------------------------------
 ```
 
@@ -188,7 +188,7 @@ SUM:                                       425            199           2639
 ```
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
-BE/CodeGenA64/regs.cc                            45             25            412
+BE/CodeGenA64/regs.cc                            47             25            413
 BE/CodeGenA64/legalize.cc                        44             13            340
 BE/CpuA64/assembler.cc                           35              6            256
 BE/CodeGenA64/codegen.cc                         20              3            196
@@ -203,7 +203,7 @@ BE/CpuA64/assembler.h                            10              2             1
 BE/CpuA64/symbolic.h                              7              2             11
 BE/CodeGenA64/codegen.h                           5              1              9
 ---------------------------------------------------------------------------------
-SUM:                                            278             79           1889
+SUM:                                            280             79           1890
 ---------------------------------------------------------------------------------
 ```
 
@@ -212,12 +212,12 @@ SUM:                                            278             79           188
 ```
 File                                     blank        comment           code
 ---------------------------------------------------------------------------------------
-BE/CodeGenA64/isel_gen.cc                   47             21           7053
+BE/CodeGenA64/isel_gen.cc                   47             21           7054
 BE/CpuA64/opcode_gen.cc                    290            285           4704
 BE/CpuA64/opcode_gen.h                      33             20           1047
 BE/CodeGenA64/isel_gen.h                    17              8            102
 ---------------------------------------------------------------------------------------
-SUM:                                       387            334          12906
+SUM:                                       387            334          12907
 ---------------------------------------------------------------------------------------
 ```
 ## X64 Code
@@ -257,7 +257,7 @@ SUM:                                       330            164           2688
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
 BE/CodeGenX64/legalize.cc                        52             18            495
-BE/CodeGenX64/regs.cc                            45             18            414
+BE/CodeGenX64/regs.cc                            47             18            415
 BE/CpuX64/symbolic.cc                            24              1            349
 BE/CpuX64/assembler.cc                           38             11            304
 BE/CodeGenX64/codegen.cc                         24              3            226
@@ -271,7 +271,7 @@ BE/CpuX64/assembler.h                            12              2             1
 BE/CpuX64/symbolic.h                              7              2             12
 BE/CodeGenX64/codegen.h                           5              1              9
 ---------------------------------------------------------------------------------
-SUM:                                            314             90           2321
+SUM:                                            316             90           2322
 ---------------------------------------------------------------------------------
 ```
 
@@ -286,10 +286,10 @@ BE/CpuX64/opcode_gen_encodings.h                     1              2          1
 BE/CpuX64/opcode_gen_names.h                         2              3           5455
 BE/CpuX64/opcode_gen_enum.h                          1              1           3404
 BE/CpuX64/opcode_gen.cc                             29              8            470
-BE/CodeGenX64/isel_gen.cc                           34             18            438
+BE/CodeGenX64/isel_gen.cc                           34             18            439
 BE/CpuX64/opcode_gen.h                              25             15            121
 BE/CodeGenX64/isel_gen.h                            18              8             93
 ------------------------------------------------------------------------------------
-SUM:                                               116             56          68501
+SUM:                                               116             56          68502
 ------------------------------------------------------------------------------------
 ```
