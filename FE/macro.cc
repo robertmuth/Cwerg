@@ -1,6 +1,8 @@
 
 #include "FE/macro.h"
 
+#include <sstream>
+
 #include "FE/cwast_gen.h"
 #include "FE/symbolize.h"
 
@@ -66,6 +68,8 @@ void FixUpExprListRest(Node params, Node args) {
 void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen);
 
 Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
+  std::cout << "@@   Expand body node " << EnumToString(Node_kind(node))
+            << "\n";
   // Note these may be written.
   std::map<Node, Node> dummy1;
   std::map<Node, Node> dummy2;
@@ -107,7 +111,7 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
              body = Node_next(body)) {
           Node exp = ExpandMacroBodyNodeRecursively(body, ctx);
           out.Append(exp);
-         }
+        }
       }
       return out.First();
     }
@@ -126,14 +130,14 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
       core.children[i] = handle;
       continue;
     }
-
+    NodeChain new_children;
     Node child = Node(handle);
-    core.children[i] = ExpandMacroBodyNodeRecursively(Node(child), ctx);
-
-    while (!Node_next(child).isnull()) {
-      Node_next(child) = ExpandMacroBodyNodeRecursively(Node_next(child), ctx);
+    do {
+      Node exp = ExpandMacroBodyNodeRecursively(Node(child), ctx);
+      new_children.Append(exp);
       child = Node_next(child);
-    }
+    } while (!child.isnull());
+    core.children[i] = new_children.First();
   }
 
   return clone;
@@ -142,6 +146,8 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
 constexpr int MAX_MACRO_NESTING = 8;
 
 Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
+  std::cout << "@@# Expand invoke of " << Node_name(macro_invoke) << " "
+            << nesting << "\n";
   if (nesting >= MAX_MACRO_NESTING) {
     CompilerError(Node_srcloc(macro_invoke)) << "too many nested macros";
   }
@@ -168,27 +174,42 @@ Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
     ctx.GenerateNewSymbol(Node_name(x), Node_srcloc(macro_invoke));
   }
 
+  NodeChain body_clone;
   for (Node body = Node_body_macro(def_macro); !body.isnull();
        body = Node_next(body)) {
-    // Node exp = ExpandMacroBodyNodeRecursively(body, &ctx);
+    Node exp = ExpandMacroBodyNodeRecursively(body, &ctx);
+    body_clone.Append(exp);
   }
-  return kNodeInvalid;
+
+  Node list = NodeNew(NT::EphemeralList);
+  InitEphemeralList(list, body_clone.First(), 0, kStrInvalid, kSrcLocInvalid);
+  ExpandMacrosAndMacroLikeRecursively(list, nesting + 1, id_gen);
+  return Node_args(list);
 }
 
 void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
   auto replacer = [nesting, id_gen](Node node, Node parent) -> Node {
-    NT kind = Node_kind(node);
+    switch (Node_kind(node)) {
+      case NT::MacroInvoke:
+        return ExpandMacroInvocation(node, nesting, id_gen);
+      case NT::ExprSrcLoc: {
+        std::stringstream ss;
+        ss << Node_srcloc(Node_expr(node));
+        Node out = NodeNew(NT::ValString);
+        InitValString(out, StrNew(ss.str()), kStrInvalid, Node_srcloc(node));
+        return out;
+      }
+      case NT::ExprStringify: {
+        std::stringstream ss;
+        ss << EnumToString(Node_kind(Node_expr(node)));
+        Node out = NodeNew(NT::ValString);
+        InitValString(out, StrNew(ss.str()), kStrInvalid, Node_srcloc(node));
+        return out;
+      }
 
-    if (kind == NT::MacroInvoke) {
-      return ExpandMacroInvocation(node, nesting, id_gen);
-    } else if (kind == NT::ExprSrcLoc) {
-      ASSERT(false, "");
-      return kNodeInvalid;
-    } else if (kind == NT::ExprStringify) {
-      ASSERT(false, "");
-      return kNodeInvalid;
+      default:
+        return node;
     }
-    return node;
   };
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
@@ -198,6 +219,7 @@ void ExpandMacrosAndMacroLike(const std::vector<Node>& mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
       if (Node_kind(child) == NT::DefFun) {
+        std::cout << "@@@@@ inside fun " << Node_name(child) << "\n";
         IdGen idgen;
         ExpandMacrosAndMacroLikeRecursively(child, 0, &idgen);
       }

@@ -290,11 +290,6 @@ TK_RAW LexerRaw::Next() {
   return TK_RAW{result.kind, token};
 }
 
-std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
-  os << sl.line << ":" << sl.col;
-  return os;
-}
-
 std::ostream& operator<<(std::ostream& os, const TK& tk) {
   os << tk.srcloc << " " << EnumToString(tk.kind) << " [" << tk.text << "]";
   if (tk.annotation_bits != 0) {

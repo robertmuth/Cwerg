@@ -9,6 +9,7 @@
 #include "FE/lexer.h"
 #include "FE/mod_pool.h"
 #include "FE/parse.h"
+#include "FE/macro.h"
 #include "Util/assert.h"
 #include "Util/switch.h"
 
@@ -30,8 +31,10 @@ int main(int argc, const char* argv[]) {
   for (int i = arg_start; i < argc; ++i) {
     seed_modules.push_back(std::filesystem::absolute((argv[i])));
   }
-  // ModPool mod_pool =
-  ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
-  // TODO
+
+  ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
+  ExpandMacrosAndMacroLike(mp.mods_in_topo_order);
+
+
   return 0;
 }

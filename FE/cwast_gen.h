@@ -71,6 +71,11 @@ struct SrcLoc {
   uint32_t file;
 };
 
+inline std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
+  os << sl.line << ":" << sl.col;
+  return os;
+}
+
 constexpr SrcLoc kSrcLocInvalid(0, 0, 0);
 constexpr int MAX_NODE_CHILDREN = 4;
 
@@ -1106,25 +1111,32 @@ class NodeChain {
 
 inline void MaybeReplaceAstRecursivelyPost(
     Node node, std::function<Node(Node, Node)> replacer, Node parent) {
+  // std::cout << "<<< MaybeReplaceAstRecursivelyPost " <<
+  // EnumToString(Node_kind(node)) << "\n";
   auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle child = core.children[i];
-    if (child.raw_kind() >= kKindStr || child.isnull()) {
-      core.children[i] = child;
+    Handle childH = core.children[i];
+    if (childH.raw_kind() >= kKindStr || childH.isnull()) {
+      core.children[i] = childH;
       continue;
     }
     NodeChain new_children;
+    Node child = Node(childH);
 
     do {
-      MaybeReplaceAstRecursivelyPost(Node(child), replacer, node);
+      Node next = Node_next(child);
+      Node_next(child) = kNodeInvalid;
+      MaybeReplaceAstRecursivelyPost(child, replacer, node);
 
-      Node new_child = replacer(Node(child), node);
+      Node new_child = replacer(child, node);
       new_children.Append(new_child);
-      child = Node_next(Node(child));
+      child = next;
     } while (!child.isnull());
     core.children[i] = new_children.First();
   }
+  // std::cout << ">>> MaybeReplaceAstRecursivelyPost " <<
+  // EnumToString(Node_kind(node)) << "\n";
 }
 
 inline Node GetWithDefault(const std::map<Node, Node>& m, Node node) {
