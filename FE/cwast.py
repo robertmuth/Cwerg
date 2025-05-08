@@ -3294,18 +3294,14 @@ def NumberOfNodes(node) -> int:
 
 
 def StripFromListRecursively(node, cls):
-    for nfd in node.__class__.NODE_FIELDS:
-        f = nfd.name
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, f)
-            StripFromListRecursively(child, cls)
+    def replacer(node, _):
+        nonlocal cls
+        if isinstance(node, cls):
+            return []
         else:
-            children = getattr(node, f)
-            for child in children:
-                StripFromListRecursively(child, cls)
-            new_children = [c for c in children if not isinstance(c, cls)]
-            if len(new_children) != len(children):
-                setattr(node, f, new_children)
+            return None
+
+    MaybeReplaceAstRecursively(node, replacer)
 
 
 ############################################################
@@ -3670,7 +3666,7 @@ def GenerateAccessors():
 
         dst = _KIND_TO_HANDLE[k]
         print(f"inline {dst}& Node_{
-nfd.name}(Node n) {{ return gNodeCore[n].children_{dst.lower()}[{_FIELD_2_SLOT[nfd.name]}]; }}")
+            nfd.name}(Node n) {{ return gNodeCore[n].children_{dst.lower()}[{_FIELD_2_SLOT[nfd.name]}]; }}")
 
 
 def GenerateInits():
