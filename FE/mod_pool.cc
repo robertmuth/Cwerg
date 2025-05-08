@@ -101,8 +101,9 @@ Node ReadMod(const Path& path) {
   std::cout << "ReadMod [" << path << "] size=" << data.size() << "\n";
 
   // TODO: fix magic number
-  Lexer lexer(data, 666);
-  return ParseDefMod(&lexer, NameNew(filename.c_str()));
+  Name name = NameNew(filename.c_str());
+  Lexer lexer(data, name);
+  return ParseDefMod(&lexer, name);
 }
 
 void Dump(Node node) {

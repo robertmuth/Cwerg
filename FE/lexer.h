@@ -39,7 +39,7 @@ class LexerRaw {
 
  public:
   // input is assumed to have a trailing zero byte
-  LexerRaw(std::string_view input, uint32_t file_id)
+  LexerRaw(std::string_view input, Name file_id)
       : input_(input), end_(input.size()) {
     srcloc_.file = file_id;
   }
@@ -68,7 +68,7 @@ class Lexer {
   TK peek_cached_;
 
  public:
-  Lexer(std::string_view input, uint32_t file_id)
+  Lexer(std::string_view input, Name file_id)
       : lexer_raw_(input, file_id) {}
 
   TK Peek() {

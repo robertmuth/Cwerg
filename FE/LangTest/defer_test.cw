@@ -17,7 +17,7 @@ fun foo() void:
     defer:
         do store('g')
     do store('a')
-    block _:
+    block:
         do store('b')
         defer:
             do store('e')

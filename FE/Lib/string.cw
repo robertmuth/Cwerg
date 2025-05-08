@@ -5,7 +5,7 @@ pub global NOT_FOUND uint = !0
 
 fun are_two_non_empty_strings_the_same(s1 ^u8, s2 ^u8, n uint) bool:
     let! i uint = 0
-    block _:
+    block:
         let c1 u8 = ptr_inc(s1, i)^
         let c2 u8 = ptr_inc(s2, i)^
         if c1 != c2:
@@ -28,7 +28,7 @@ pub fun find(haystack span(u8), needle span(u8)) uint:
     let nptr ^u8 = front(needle)
     let n uint = hlen - nlen
     let! i uint = 0
-    block _:
+    block:
         if are_two_non_empty_strings_the_same(ptr_inc(hptr, i), nptr, nlen):
             return i
         set i += 1
@@ -48,7 +48,7 @@ pub fun rfind(haystack span(u8), needle span(u8)) uint:
     let hptr ^u8 = front(haystack)
     let nptr ^u8 = front(needle)
     let! i uint = hlen - nlen
-    block _:
+    block:
         if are_two_non_empty_strings_the_same(ptr_inc(hptr, i), nptr, nlen):
             return i
         if i == 0:
@@ -86,7 +86,7 @@ pub fun cmp(aslice span(u8), bslice span(u8)) sint:
     let aptr ^u8 = front(aslice)
     let bptr ^u8 = front(bslice)
     let! i uint = 0
-    block _:
+    block:
         if i < n:
         else:
             break
@@ -114,7 +114,7 @@ fun contains_char(haystack span(u8), needle u8) bool:
     let n uint = len(haystack)
     let hptr ^u8 = front(haystack)
     let! i uint = 0
-    block _:
+    block:
         if needle == ptr_inc(hptr, i)^:
             return true
         set i += 1
@@ -133,7 +133,7 @@ pub fun find_first_of(haystack span(u8), needle span(u8)) uint:
     ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let! i uint = 0
-    block _:
+    block:
         if contains_char(needle, ptr_inc(hptr, i)^):
             return i
         set i += 1
@@ -152,7 +152,7 @@ pub fun find_first_not_of(haystack span(u8), needle span(u8)) uint:
     ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let! i uint = 0
-    block _:
+    block:
         if contains_char(needle, ptr_inc(hptr, i)^):
         else:
             return i
@@ -172,7 +172,7 @@ pub fun find_last_of(haystack span(u8), needle span(u8)) uint:
     ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let! i uint = hlen
-    block _:
+    block:
         set i -= 1
         if contains_char(needle, ptr_inc(hptr, i)^):
             return i
@@ -190,7 +190,7 @@ pub fun find_last_not_of(haystack span(u8), needle span(u8)) uint:
     ; at this point we know that both slices have len > 0
     let hptr ^u8 = front(haystack)
     let! i uint = hlen
-    block _:
+    block:
         set i -= 1
         if contains_char(needle, ptr_inc(hptr, i)^):
         else:

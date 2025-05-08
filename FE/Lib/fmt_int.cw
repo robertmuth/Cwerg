@@ -14,7 +14,7 @@ macro unsigned_to_str# EXPR ($val EXPR, $base EXPR, $max_width EXPR,
         let! $tmp = {[1024]u8:}
         let! $pos uint = $max_width
         let $out_eval = $out
-        block _:
+        block:
             set $pos -= 1
             let c = $v % $base
             let! c8 = as(c, u8)

@@ -944,7 +944,7 @@ int main(int argc, const char* argv[]) {
   std::istream* fin = &std::cin;
 
   std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
-  Lexer lexer({data->data(), data->size()}, 555);
+  Lexer lexer({data->data(), data->size()}, kNameInvalid);
   // std::cout << "loaded " << data.size() << " bytes\n";
 
   Node mod = ParseDefMod(&lexer, NameNew("stdin"));

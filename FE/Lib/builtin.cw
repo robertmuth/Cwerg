@@ -2,7 +2,7 @@
 
 ; macro for while-loop
 {{builtin}} pub macro while STMT ($cond EXPR, $body STMT_LIST) []:
-    block _:
+    block:
         if !$cond:
             break
         $body
@@ -17,7 +17,7 @@
     let $end_eval type_of($end) = $end
     let $step_eval type_of($end) = $step
     let! $it type_of($end) = $start
-    block _:
+    block:
         if $step_eval >= 0:
             if $it >= $end_eval:
                 break

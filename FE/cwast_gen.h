@@ -68,7 +68,7 @@ extern ImmutablePool gNamePool;
 struct SrcLoc {
   uint32_t line;
   uint32_t col;
-  uint32_t file;
+  Name file;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
@@ -76,7 +76,7 @@ inline std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
   return os;
 }
 
-constexpr SrcLoc kSrcLocInvalid(0, 0, 0);
+constexpr SrcLoc kSrcLocInvalid(0, 0, kNameInvalid);
 constexpr int MAX_NODE_CHILDREN = 4;
 
 struct NodeCore {

@@ -81,7 +81,7 @@ fun read_lit_dist_lengths(bs ^!bitstream::Stream32, cl_counts span(u16),
                 if i + as(n, uint) > len(lengths):
                     return CorruptionErrorVal
                 debug#("tree decoding num=", i, " sym=", sym, " len=", n, "\n")
-                block _:
+                block:
                     set n -= 1
                     set lengths[i] = 0
                     set i += 1
@@ -92,7 +92,7 @@ fun read_lit_dist_lengths(bs ^!bitstream::Stream32, cl_counts span(u16),
                 if i + as(n, uint) > len(lengths):
                     return CorruptionErrorVal
                 debug#("tree decoding num=", i, " sym=0", " len=", n, "\n")
-                block _:
+                block:
                     set n -= 1
                     set lengths[i] = 0
                     set i += 1
@@ -192,7 +192,7 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
            " dist_num_syms=", dist_num_syms, " cl_num_syms=", cl_num_syms, "\n")
     ;
     ref let! lit_dist_lengths [MAX_DIST_SYMS + MAX_LIT_SYMS]u16
-    block _:
+    block:
         ; build the code_len auxiliary huffman tree
         let! cl_lengths [NUM_CODE_LEN_SYMS]u16
         let! cl_symbols [NUM_CODE_LEN_SYMS]u16
@@ -223,7 +223,7 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
                 )
     let! lit_symbols [MAX_LIT_SYMS]u16
     let! lit_counts [MAX_HUFFMAN_BITS + 1]u16
-    block _:
+    block:
         let lit_lengths = make_span(front!(lit_dist_lengths), lit_num_syms)
         let lit_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
                                     lit_lengths, lit_counts, lit_symbols)
@@ -232,7 +232,7 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
         debug#("computed literal tree. last=", lit_last_symbol, "\n")
     let! dist_symbols [MAX_DIST_SYMS]u16
     let! dist_counts [MAX_HUFFMAN_BITS + 1]u16
-    block _:
+    block:
         let dist_lengths = make_span(ptr_inc(front!(lit_dist_lengths),
                                        lit_num_syms), dist_num_syms)
         let dist_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
