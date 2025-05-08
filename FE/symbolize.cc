@@ -50,7 +50,7 @@ Node SymTabResolveWithFallback(const SymTab* symtab, Node node,
 Node ResolveEnum(Node enum_id, Node enum_type) {
   ASSERT(Node_kind(enum_type) == NT::DefEnum, "");
   ASSERT(Node_kind(enum_id) == NT::Id, "");
-  Name enum_name = Node_name(enum_id);
+  Name enum_name = Node_enum_name(enum_id);
   for (Node child = Node_items(enum_type); !child.isnull();
        child = Node_next(Node(child))) {
     ASSERT(Node_kind(child) == NT::EnumVal, "");
