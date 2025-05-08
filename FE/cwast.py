@@ -3669,9 +3669,8 @@ def GenerateAccessors():
             last = k
 
         dst = _KIND_TO_HANDLE[k]
-        print(f"inline {dst} Node_{
-
-            nfd.name}(Node n) {{ return {dst}(gNodeCore[n].children[{_FIELD_2_SLOT[nfd.name]}]); }}")
+        print(f"inline {dst}& Node_{
+nfd.name}(Node n) {{ return gNodeCore[n].children_{dst.lower()}[{_FIELD_2_SLOT[nfd.name]}]; }}")
 
 
 def GenerateInits():

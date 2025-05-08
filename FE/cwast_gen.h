@@ -94,7 +94,12 @@ struct NodeCore {
     STR_KIND str_kind;
   };
   uint16_t compressed_flags;
-  Handle children[MAX_NODE_CHILDREN];
+  union {
+    Handle children_handle[MAX_NODE_CHILDREN];
+    Node children_node[MAX_NODE_CHILDREN];
+    Str children_str[MAX_NODE_CHILDREN];
+    Name children_name[MAX_NODE_CHILDREN];
+  };
   Handle next;
 };
 
@@ -182,10 +187,10 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
   NodeCore& core = gNodeCore[node];
   core.kind = kind;
   core.other_kind = other_kind;
-  core.children[0] = child0;
-  core.children[1] = child1;
-  core.children[2] = child2;
-  core.children[3] = child3;
+  core.children_handle[0] = child0;
+  core.children_handle[1] = child1;
+  core.children_handle[2] = child2;
+  core.children_handle[3] = child3;
   core.next = kHandleInvalid;
   core.compressed_flags = bits;
   //
@@ -538,64 +543,64 @@ constexpr int SLOT_BODY = 3;
 constexpr int SLOT_BODY_T = 2;
 
 // NFK.NAME
-inline Name Node_name(Node n) { return Name(gNodeCore[n].children[0]); }
-inline Name Node_enum_name(Node n) { return Name(gNodeCore[n].children[1]); }
-inline Name Node_name_list(Node n) { return Name(gNodeCore[n].children[1]); }
-inline Name Node_label(Node n) { return Name(gNodeCore[n].children[0]); }
-inline Name Node_target(Node n) { return Name(gNodeCore[n].children[0]); }
+inline Name& Node_name(Node n) { return gNodeCore[n].children_name[0]; }
+inline Name& Node_enum_name(Node n) { return gNodeCore[n].children_name[1]; }
+inline Name& Node_name_list(Node n) { return gNodeCore[n].children_name[1]; }
+inline Name& Node_label(Node n) { return gNodeCore[n].children_name[0]; }
+inline Name& Node_target(Node n) { return gNodeCore[n].children_name[0]; }
 
 // NFK.STR
-inline Str Node_number(Node n) { return Str(gNodeCore[n].children[0]); }
-inline Str Node_string(Node n) { return Str(gNodeCore[n].children[0]); }
-inline Str Node_message(Node n) { return Str(gNodeCore[n].children[0]); }
-inline Str Node_path(Node n) { return Str(gNodeCore[n].children[1]); }
+inline Str& Node_number(Node n) { return gNodeCore[n].children_str[0]; }
+inline Str& Node_string(Node n) { return gNodeCore[n].children_str[0]; }
+inline Str& Node_message(Node n) { return gNodeCore[n].children_str[0]; }
+inline Str& Node_path(Node n) { return gNodeCore[n].children_str[1]; }
 
 // NFK.LIST
-inline Node Node_params(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_params_mod(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_params_macro(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_args(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_args_mod(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_items(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_fields(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_types(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_inits(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_gen_ids(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_body_mod(Node n) { return Node(gNodeCore[n].children[3]); }
-inline Node Node_body(Node n) { return Node(gNodeCore[n].children[3]); }
-inline Node Node_body_t(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_body_f(Node n) { return Node(gNodeCore[n].children[3]); }
-inline Node Node_body_for(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_body_macro(Node n) { return Node(gNodeCore[n].children[3]); }
-inline Node Node_cases(Node n) { return Node(gNodeCore[n].children[0]); }
+inline Node& Node_params(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_params_mod(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_params_macro(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_args(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_args_mod(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_items(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_fields(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_types(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_inits(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_gen_ids(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_body_mod(Node n) { return gNodeCore[n].children_node[3]; }
+inline Node& Node_body(Node n) { return gNodeCore[n].children_node[3]; }
+inline Node& Node_body_t(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_body_f(Node n) { return gNodeCore[n].children_node[3]; }
+inline Node& Node_body_for(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_body_macro(Node n) { return gNodeCore[n].children_node[3]; }
+inline Node& Node_cases(Node n) { return gNodeCore[n].children_node[0]; }
 
 // NFK.NODE
-inline Node Node_field(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_point(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_type(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_subtrahend(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_type_or_auto(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_result(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_size(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_expr_size(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_expr_index(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_expr(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_cond(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_expr_t(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_expr_f(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_expr1(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_expr2(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_expr_bound_or_undef(Node n) { return Node(gNodeCore[n].children[2]); }
-inline Node Node_expr_rhs(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_expr_ret(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_pointer(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_container(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_callee(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_value_or_auto(Node n) { return Node(gNodeCore[n].children[1]); }
-inline Node Node_value_or_undef(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_lhs(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_expr_lhs(Node n) { return Node(gNodeCore[n].children[0]); }
-inline Node Node_initial_or_undef_or_auto(Node n) { return Node(gNodeCore[n].children[2]); }
+inline Node& Node_field(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_point(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_type(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_subtrahend(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_type_or_auto(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_result(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_size(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_expr_size(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_expr_index(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_expr(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_cond(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_expr_t(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_expr_f(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_expr1(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_expr2(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_expr_bound_or_undef(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_expr_rhs(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_expr_ret(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_pointer(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_container(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_callee(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_value_or_auto(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_value_or_undef(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_lhs(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_expr_lhs(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_initial_or_undef_or_auto(Node n) { return gNodeCore[n].children_node[2]; }
 inline void InitCase(Node node, Node cond, Node body, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::Case, kHandleInvalid, cond, kHandleInvalid, body, 0, 0, doc, srcloc);
 }
@@ -914,9 +919,6 @@ inline void InitValVoid(Node node, Str doc, const SrcLoc& srcloc) {
 
 /* @AUTOGEN-END@ */
 // clang-format on
-inline void Node_set_name(Node n, Name name) {
-  gNodeCore[n].children[0] = name;
-}
 
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
   return gNodeCore[n].mod_param_kind;
@@ -996,11 +998,11 @@ inline void VisitNodesRecursivelyPost(Node node,
   const auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle child = core.children[i];
+    Node child = core.children_node[i];
     if (child.raw_kind() >= kKindStr) continue;
     while (!child.isnull()) {
-      VisitNodesRecursivelyPost(Node(child), visitor);
-      child = Node_next(Node(child));
+      VisitNodesRecursivelyPost(child, visitor);
+      child = Node_next(child);
     }
   }
   visitor(node);
@@ -1014,11 +1016,11 @@ inline void VisitNodesRecursivelyPre(Node node,
   const auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle child = core.children[i];
+    Node child = core.children_node[i];
     if (child.raw_kind() >= kKindStr) continue;
     while (!child.isnull()) {
-      VisitNodesRecursivelyPre(Node(child), visitor, node);
-      child = Node_next(Node(child));
+      VisitNodesRecursivelyPre(child, visitor, node);
+      child = Node_next(child);
     }
   }
 }
@@ -1029,11 +1031,11 @@ inline void VisitNodesRecursivelyPost(Node node,
   const auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle child = core.children[i];
+    Node child = core.children_node[i];
     if (child.raw_kind() >= kKindStr) continue;
     while (!child.isnull()) {
-      VisitNodesRecursivelyPre(Node(child), visitor, node);
-      child = Node_next(Node(child));
+      VisitNodesRecursivelyPre(child, visitor, node);
+      child = Node_next(child);
     }
   }
   visitor(node, parent);
@@ -1046,12 +1048,11 @@ inline void VisitNodesRecursivelyPreAndPost(
   pre_visitor(node, parent);
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle child = core.children[i];
+    Node child = core.children_node[i];
     if (child.raw_kind() >= kKindStr) continue;
     while (!child.isnull()) {
-      VisitNodesRecursivelyPreAndPost(Node(child), pre_visitor, post_visitor,
-                                      node);
-      child = Node_next(Node(child));
+      VisitNodesRecursivelyPreAndPost(child, pre_visitor, post_visitor, node);
+      child = Node_next(child);
     }
   }
   post_visitor(node, parent);
@@ -1066,7 +1067,7 @@ inline void VisitAstRecursivelyWithScopeTracking(
   pre_visitor(node, parent);
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle child = core.children[i];
+    Node child = core.children_node[i];
     if (child.raw_kind() >= kKindStr || child.isnull()) continue;
     bool is_new_scope =
         (i == SLOT_BODY) || (Node_kind(node) == NT::StmtIf && i == SLOT_BODY_T);
@@ -1075,9 +1076,9 @@ inline void VisitAstRecursivelyWithScopeTracking(
     }
 
     do {
-      VisitAstRecursivelyWithScopeTracking(Node(child), pre_visitor,
-                                           scope_enter, scope_exit, node);
-      child = Node_next(Node(child));
+      VisitAstRecursivelyWithScopeTracking(child, pre_visitor, scope_enter,
+                                           scope_exit, node);
+      child = Node_next(child);
     } while (!child.isnull());
     if (is_new_scope) {
       scope_exit(node);
@@ -1116,13 +1117,12 @@ inline void MaybeReplaceAstRecursivelyPost(
   auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle childH = core.children[i];
-    if (childH.raw_kind() >= kKindStr || childH.isnull()) {
-      core.children[i] = childH;
+    Node child = core.children_node[i];
+    if (child.raw_kind() >= kKindStr || child.isnull()) {
+      core.children_node[i] = child;
       continue;
     }
     NodeChain new_children;
-    Node child = Node(childH);
 
     do {
       Node next = Node_next(child);
@@ -1133,7 +1133,7 @@ inline void MaybeReplaceAstRecursivelyPost(
       new_children.Append(new_child);
       child = next;
     } while (!child.isnull());
-    core.children[i] = new_children.First();
+    core.children_node[i] = new_children.First();
   }
   // std::cout << ">>> MaybeReplaceAstRecursivelyPost " <<
   // EnumToString(Node_kind(node)) << "\n";
@@ -1178,23 +1178,23 @@ inline Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
       break;
   }
 
-  auto& core = gNodeCore[clone];
+  auto& core_clone = gNodeCore[clone];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle handle = core.children[i];
-    if (handle.raw_kind() == kKindStr || handle.raw_kind() == kKindName ||
-        handle.isnull()) {
-      core.children[i] = handle;
+    Node child = core_clone.children_node[i];
+    if (child.raw_kind() == kKindStr || child.raw_kind() == kKindName ||
+        child.isnull()) {
+      core_clone.children_node[i] = child;
       continue;
     }
-    Node child = Node(handle);
-    core.children[i] =
-        NodeCloneRecursively(Node(child), symbol_map, target_map);
+    Node clone = NodeCloneRecursively(child, symbol_map, target_map);
+    core_clone.children_node[i] = clone;
 
     while (!Node_next(child).isnull()) {
-      Node_next(child) =
-          NodeCloneRecursively(Node_next(child), symbol_map, target_map);
       child = Node_next(child);
+      Node new_clone = NodeCloneRecursively(child, symbol_map, target_map);
+      Node_next(clone) = new_clone;
+      clone = new_clone;
     }
   }
   return clone;

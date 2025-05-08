@@ -45,11 +45,18 @@ class MacroContext {
   }
 };
 
-void FixUpExprListRest(Node params, Node args) {
+Node FixUpArgsForExprListRest(Node params, Node args) {
   int num_params = NodeNumSiblings(params);
   Node last_param = NodeLastSiblings(params);
-  if (Node_macro_param_kind(last_param) != MACRO_PARAM_KIND::EXPR_LIST_REST) {
-    return;
+  if (Node_macro_param_kind(last_param) != MACRO_PARAM_KIND::EXPR_LIST_REST ||
+      args.isnull()) {
+    return args;
+  }
+
+  Node rest = NodeNew(NT::EphemeralList);
+  if (num_params == 1) {
+    InitEphemeralList(rest, args, 0, kStrInvalid, Node_srcloc(args));
+    return rest;
   }
 
   for (int i = 0; i < num_params - 1; ++i) {
@@ -59,10 +66,9 @@ void FixUpExprListRest(Node params, Node args) {
     args = Node_next(args);
   }
 
-  Node rest = NodeNew(NT::EphemeralList);
   InitEphemeralList(rest, Node_next(args), 0, kStrInvalid, Node_srcloc(args));
-  Node_next(args) = kNodeInvalid;
-  Node_next(last_param) = rest;
+  Node_next(args) = rest;
+  return args;
 }
 
 void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen);
@@ -124,20 +130,19 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
   auto& core = gNodeCore[clone];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Handle handle = core.children[i];
-    if (handle.raw_kind() == kKindStr || handle.raw_kind() == kKindName ||
-        handle.isnull()) {
-      core.children[i] = handle;
+    Node child = core.children_node[i];
+    if (child.raw_kind() == kKindStr || child.raw_kind() == kKindName ||
+        child.isnull()) {
+      core.children_node[i] = child;
       continue;
     }
     NodeChain new_children;
-    Node child = Node(handle);
     do {
       Node exp = ExpandMacroBodyNodeRecursively(Node(child), ctx);
       new_children.Append(exp);
       child = Node_next(child);
     } while (!child.isnull());
-    core.children[i] = new_children.First();
+    core.children_node[i] = new_children.First();
   }
 
   return clone;
@@ -157,10 +162,14 @@ Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
   }
   Node params = Node_params_macro(def_macro);
   Node args = Node_args(macro_invoke);
-  FixUpExprListRest(params, args);
+  std::cout << "@@@@@@@@@@@@ " << Node_name(macro_invoke) << ": "
+            << NodeNumSiblings(params) << " vs " << NodeNumSiblings(args)
+            << "\n";
+  args = FixUpArgsForExprListRest(params, args);
   if (NodeNumSiblings(params) != NodeNumSiblings(args)) {
     CompilerError(Node_srcloc(macro_invoke))
-        << "wrong number of macro arguments";
+        << "wrong number of macro arguments for " << Node_name(macro_invoke)
+        << ": " << NodeNumSiblings(params) << " vs " << NodeNumSiblings(args);
   }
 
   MacroContext ctx(id_gen, Node_srcloc(macro_invoke));

@@ -171,10 +171,10 @@ void ResolveImportsForQualifers(Node mod) {
                 << "cannot resolve qualifier [" << q << "] " << name.index();
           }
           Node_x_import(node) = it->second;
-          auto s =  StripQualifier(name);
-          Node_set_name(node, s);
-          std::cout << "ResolveImportsForQualifers " << name << " -> "
-                    << s << "\n";
+          auto s = StripQualifier(name);
+          Node_name(node) = s;
+          std::cout << "ResolveImportsForQualifers " << name << " -> " << s
+                    << "\n";
         }
       } break;
 
@@ -275,7 +275,9 @@ struct Candidate {
   Name name;
   Node mod;
 
-  bool operator<(const Candidate& other) const { return NameCmpLt(name, other.name); }
+  bool operator<(const Candidate& other) const {
+    return NameCmpLt(name, other.name);
+  }
 };
 
 std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
