@@ -414,7 +414,9 @@ add_executable(pp.exe
         Util/pretty.h
         FE/parse.cc
         FE/parse.h
+        FE/pp.h
         FE/pp.cc
+        FE/pp_tool.cc
 )
 
 
@@ -433,5 +435,7 @@ add_executable(emit_ir.exe
         FE/identifier.h
         FE/macro.h
         FE/macro.cc
+        FE/pp.h
+        FE/pp.cc
         FE/emit_ir.cc
 )

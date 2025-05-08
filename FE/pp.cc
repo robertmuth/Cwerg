@@ -1,23 +1,16 @@
+#include "FE/pp.h"
+
 #include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
-#include <memory>
 #include <vector>
 
 #include "FE/cwast_gen.h"
-#include "FE/lexer.h"
-#include "FE/parse.h"
 #include "Util/assert.h"
-#include "Util/parse.h"
 #include "Util/pretty.h"
-#include "Util/switch.h"
 
-using namespace cwerg::fe;
-using namespace cwerg;
-
-SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
-                          4);
+namespace cwerg::fe {
 
 const PP::Token PP_BEG_STD = PP::Beg(PP::BreakType::INCONSISTENT, 2);
 const PP::Token PP_BEG_NEST = PP::Beg(PP::BreakType::FORCE_LINE_BREAK, 4);
@@ -933,21 +926,4 @@ void Prettify(Node mod) {
   std::cout << PP::PrettyPrint(tokens, 80) << "\n";
 }
 
-int main(int argc, const char* argv[]) {
-  InitStripes(sw_multiplier.Value());
-  InitParser();
-
-  // If the synchronization is turned off, the C++ standard streams are
-  // allowed to buffer their I/O independently from their stdio
-  // counterparts, which may be considerably faster in some cases.
-  // std::ios_base::sync_with_stdio(false);
-  std::istream* fin = &std::cin;
-
-  std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
-  Lexer lexer({data->data(), data->size()}, kNameInvalid);
-  // std::cout << "loaded " << data.size() << " bytes\n";
-
-  Node mod = ParseDefMod(&lexer, NameNew("stdin"));
-  Prettify(mod);
-  return 0;
-}
+}  // namespace cwerg::fe

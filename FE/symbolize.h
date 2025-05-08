@@ -14,6 +14,9 @@ void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
 void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
     const std::vector<Node>& mods, const SymTab* builtin_symtab);
 
+void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
+                                   const SymTab* builtin_symtab);
+
 void SetTargetFields(const std::vector<Node>& mods);
 
 void VerifySymbols(Node node);

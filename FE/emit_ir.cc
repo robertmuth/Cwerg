@@ -10,6 +10,7 @@
 #include "FE/macro.h"
 #include "FE/mod_pool.h"
 #include "FE/parse.h"
+#include "FE/pp.h"
 #include "Util/assert.h"
 #include "Util/switch.h"
 
@@ -35,7 +36,10 @@ int main(int argc, const char* argv[]) {
   ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
   ExpandMacrosAndMacroLike(mp.mods_in_topo_order);
   SetTargetFields(mp.mods_in_topo_order);
-  //ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
+  ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
+  for (Node mod : mp.mods_in_topo_order) {
+    Prettify(mod);
+  }
 
   return 0;
 }
