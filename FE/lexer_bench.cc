@@ -100,7 +100,7 @@ int main(int argc, const char* argv[]) {
     total_bytes += data.size();
 
     std::cout << "processing: " << argv[i] << " bytes=" << data.size() << "\n";
-    Lexer lexer(data, i);
+    Lexer lexer(data, kNameInvalid);
 
     std::string_view mode = sw_mode.Value();
     if (mode == "lexer") {
