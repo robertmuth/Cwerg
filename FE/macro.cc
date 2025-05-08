@@ -59,7 +59,9 @@ Node FixUpArgsForExprListRest(Node params, Node args) {
     return rest;
   }
 
-  for (int i = 0; i < num_params - 1; ++i) {
+  Node head = args;
+  // advance args to the one before the "rest"
+  for (int i = 0; i < num_params - 2; ++i) {
     if (args.isnull()) {
       CompilerError(Node_srcloc(args)) << "too few arguments";
     }
@@ -68,14 +70,14 @@ Node FixUpArgsForExprListRest(Node params, Node args) {
 
   InitEphemeralList(rest, Node_next(args), 0, kStrInvalid, Node_srcloc(args));
   Node_next(args) = rest;
-  return args;
+  return head;
 }
 
 void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen);
 
 Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
-  std::cout << "@@   Expand body node " << EnumToString(Node_kind(node))
-            << "\n";
+  // std::cout << "@@   Expand body node " << EnumToString(Node_kind(node))
+  //          << "\n";
   // Note these may be written.
   std::map<Node, Node> dummy1;
   std::map<Node, Node> dummy2;
@@ -97,11 +99,14 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
       break;
     case NT::MacroId: {
       Node arg = ctx->GetSymbol(Node_name(node));
+      // std::cout << "@@ expanding " << Node_name(node) << " " <<
+      // EnumToString(Node_kind(arg)) << "\n";
 
       Node replacement = NodeCloneRecursively(arg, &dummy1, &dummy2);
       if (Node_kind(replacement) == NT::EphemeralList) {
         replacement = Node_args(replacement);
       }
+
       return replacement;
     }
     case NT::MacroFor: {
@@ -127,22 +132,25 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
   }
 
   Node clone = NodeCloneBasics(node);
-  auto& core = gNodeCore[clone];
+  const NodeCore& core = gNodeCore[node];
+  auto& core_clone = gNodeCore[clone];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
     if (child.raw_kind() == kKindStr || child.raw_kind() == kKindName ||
         child.isnull()) {
-      core.children_node[i] = child;
+      core_clone.children_node[i] = child;
       continue;
     }
     NodeChain new_children;
+
     do {
-      Node exp = ExpandMacroBodyNodeRecursively(Node(child), ctx);
+      Node exp = ExpandMacroBodyNodeRecursively(child, ctx);
       new_children.Append(exp);
       child = Node_next(child);
     } while (!child.isnull());
-    core.children_node[i] = new_children.First();
+
+    core_clone.children_node[i] = new_children.First();
   }
 
   return clone;
@@ -151,8 +159,8 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
 constexpr int MAX_MACRO_NESTING = 8;
 
 Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
-  std::cout << "@@# Expand invoke of " << Node_name(macro_invoke) << " "
-            << nesting << "\n";
+  std::cout << "@@ Expand invoke of " << Node_name(macro_invoke)
+            << " nesting=" << nesting << "\n";
   if (nesting >= MAX_MACRO_NESTING) {
     CompilerError(Node_srcloc(macro_invoke)) << "too many nested macros";
   }
@@ -162,9 +170,6 @@ Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
   }
   Node params = Node_params_macro(def_macro);
   Node args = Node_args(macro_invoke);
-  std::cout << "@@@@@@@@@@@@ " << Node_name(macro_invoke) << ": "
-            << NodeNumSiblings(params) << " vs " << NodeNumSiblings(args)
-            << "\n";
   args = FixUpArgsForExprListRest(params, args);
   if (NodeNumSiblings(params) != NodeNumSiblings(args)) {
     CompilerError(Node_srcloc(macro_invoke))
