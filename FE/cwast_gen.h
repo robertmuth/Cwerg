@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
+#include <vector>
 
 #include "Util/handle.h"
 #include "Util/immutable.h"
@@ -18,6 +19,7 @@ namespace cwerg::fe {
 // These must be larger than the last element of the NT enum
 uint8_t constexpr kKindStr = 100;
 uint8_t constexpr kKindName = 101;
+uint8_t constexpr kKindCanonType = 102;
 
 // some forward declarations
 enum class NT : uint8_t;  // "node type"
@@ -54,6 +56,13 @@ struct Name : public Handle {
   explicit constexpr Name(uint32_t index = 0) : Handle(index, kKindName) {}
 
   explicit constexpr Name(Handle ref) : Handle(ref.value) {}
+};
+
+struct CanonType : public Handle {
+  explicit constexpr CanonType(uint32_t index = 0)
+      : Handle(index, kKindCanonType) {}
+
+  explicit constexpr CanonType(Handle ref) : Handle(ref.value) {}
 };
 
 constexpr const Str kStrInvalid(0);
@@ -919,6 +928,27 @@ inline void InitValVoid(Node node, Str doc, const SrcLoc& srcloc) {
 
 /* @AUTOGEN-END@ */
 // clang-format on
+
+// =======================================
+// CanonType API
+// =======================================
+
+struct CanonTypeCore {
+  Node node;
+  Name name;
+  bool mut = false;
+  int dim = -1;
+  BASE_TYPE_KIND base_type_kind = BASE_TYPE_KIND::INVALID;
+  CanonType children;
+  Node ast_node;
+};
+
+extern struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore;
+
+extern struct StripeGroup gStripeGroupCanonType;
+
+// =======================================
+// =======================================
 
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
   return gNodeCore[n].mod_param_kind;

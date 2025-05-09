@@ -9,6 +9,7 @@
 #include "FE/cwast_gen.h"
 #include "FE/lexer.h"
 #include "FE/macro.h"
+#include "FE/typify.h"
 #include "FE/mod_pool.h"
 #include "FE/parse.h"
 #include "FE/pp.h"
@@ -22,7 +23,6 @@ SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
 
 SwitchString sw_stdlib("stdlib", "path to stdlib directory", "./Lib");
-
 
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
@@ -50,5 +50,7 @@ int main(int argc, const char* argv[]) {
       NT::MacroId, NT::MacroFor, NT::ModParam,
   };
 
+  TypeCorpus tc;
+  DecorateASTWithTypes(mp.mods_in_topo_order, &tc);
   return 0;
 }
