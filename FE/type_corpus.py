@@ -280,12 +280,15 @@ class TypeCorpus:
         self.corpus: dict[str, cwast.CanonType] = {}  # name to canonical type
 
         # VOID should get typeid zero
-        self._insert_base_type(cwast.BASE_TYPE_KIND.VOID)
+        ct = self._insert_base_type(cwast.BASE_TYPE_KIND.VOID)
+        self._base_type_map[cwast.BASE_TYPE_KIND.VOID] = ct
+
         for kind in cwast.BASE_TYPE_KIND:
-            if kind.name in ("INVALID", "UINT", "SINT", "TYPEID"):
+            if kind.name in ("INVALID", "UINT", "SINT", "TYPEID", "VOID"):
                 continue
             ct = self._insert_base_type(kind)
             self._base_type_map[kind] = ct
+
             bitwidth = cwast.BASE_TYPE_KIND_TO_SIZE[kind] * 8
             if kind in cwast.BASE_TYPE_KIND_SINT:
                 if bitwidth == target_arch_config.sint_bitwidth:
@@ -440,8 +443,7 @@ class TypeCorpus:
 
     def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
         """The only type not finalized here are Recs"""
-        if ct.name in self.corpus:
-            return self.corpus[ct.name]
+        assert ct.name not in self.corpus, f"duplicate insertion of type: {ct.name}"
 
         # print(f">>>>>>>> ",  ct.name,  ct.typeid, ct.original_type)
         self.corpus[ct.name] = ct
@@ -461,23 +463,23 @@ class TypeCorpus:
             cwast.TypeBase, cwast.BaseTypeKindToKeyword(kind), base_type_kind=kind))
 
     def insert_ptr_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
-        if mut:
-            name = f"ptr_mut<{ct.name}>"
-        else:
-            name = f"ptr<{ct.name}>"
+        name = f"ptr_mut<{ct.name}>" if mut else f"ptr<{ct.name}>"
+        if name in self.corpus:
+            return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypePtr, name, mut=mut, children=[ct],
                                             ))
 
     def insert_span_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
-        if mut:
-            name = f"span_mut<{ct.name}>"
-        else:
-            name = f"span<{ct.name}>"
+        name = f"span_mut<{ct.name}>" if mut else f"span<{ct.name}>"
+        if name in self.corpus:
+            return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeSpan, name, mut=mut, children=[ct],
                                             ))
 
     def insert_array_type(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"array<{ct.name},{dim}>"
+        if name in self.corpus:
+            return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeVec, name, dim=dim,
                                             children=[ct]))
 
@@ -519,6 +521,8 @@ class TypeCorpus:
         sorted_names = [x.name for x in sorted_children]
         extra = "_untagged" if untagged else ""
         name = f"sum{extra}<{','.join(sorted_names)}>"
+        if name in self.corpus:
+            return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=sorted_children, untagged=untagged))
 
     def insert_fun_type(self, params: list[cwast.CanonType],
@@ -526,6 +530,8 @@ class TypeCorpus:
         x = [p.name for p in params]
         x.append(result.name)
         name = f"fun<{','.join(x)}>"
+        if name in self.corpus:
+            return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeFun, name, children=params + [result]))
 
     def insert_wrapped_type(self, ct: cwast.CanonType) -> cwast.CanonType:
