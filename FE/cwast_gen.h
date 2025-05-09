@@ -1094,6 +1094,9 @@ class NodeChain {
   NodeChain() = default;
 
   void Append(Node node) {
+    if (node.isnull()) {
+      return;
+    }
     if (first_.isnull()) {
       first_ = node;
       last_ = node;
@@ -1109,6 +1112,33 @@ class NodeChain {
 
   Node First() { return first_; }
 };
+
+inline void MaybeReplaceAstRecursively(
+    Node node, std::function<Node(Node, Node)> replacer) {
+  // std::cout << "<<< MaybeReplaceAstRecursivelyPost " <<
+  // EnumToString(Node_kind(node)) << "\n";
+  auto& core = gNodeCore[node];
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Node child = core.children_node[i];
+    if (child.raw_kind() >= kKindStr || child.isnull()) {
+      continue;
+    }
+
+    NodeChain new_children;
+    do {
+      Node next = Node_next(child);
+      Node_next(child) = kNodeInvalid;
+      Node new_child = replacer(child, node);
+      if (child == new_child) {
+        MaybeReplaceAstRecursively(child, replacer);
+      }
+      new_children.Append(new_child);
+      child = next;
+    } while (!child.isnull());
+    core.children_node[i] = new_children.First();
+  }
+}
 
 inline void MaybeReplaceAstRecursivelyPost(
     Node node, std::function<Node(Node, Node)> replacer, Node parent) {
@@ -1144,6 +1174,8 @@ inline Node GetWithDefault(const std::map<Node, Node>& m, Node node) {
   return (it == m.end()) ? it->second : node;
 }
 
+void RemoveNodesOfType(Node node, NT kind);
+
 inline Node NodeCloneBasics(Node node) {
   Node clone = NodeNew(Node_kind(node));
   gNodeCore[clone] = gNodeCore[node];
@@ -1154,51 +1186,8 @@ inline Node NodeCloneBasics(Node node) {
   return clone;
 }
 
-inline Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
-                                 std::map<Node, Node>* target_map) {
-  Node clone = NodeCloneBasics(node);
-
-  switch (Node_kind(clone)) {
-    case NT::DefVar:
-      (*symbol_map)[node] = clone;
-      break;
-    case NT::StmtBlock:
-    case NT::ExprStmt:
-      (*target_map)[node] = clone;
-      break;
-    case NT::Id:
-      Node_x_symbol(clone) = GetWithDefault(*symbol_map, Node_x_symbol(node));
-      break;
-    case NT::StmtBreak:
-    case NT::StmtContinue:
-    case NT::StmtReturn:
-      Node_x_target(clone) = GetWithDefault(*target_map, Node_x_target(node));
-      break;
-    default:
-      break;
-  }
-
-  auto& core_clone = gNodeCore[clone];
-
-  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
-    Node child = core_clone.children_node[i];
-    if (child.raw_kind() == kKindStr || child.raw_kind() == kKindName ||
-        child.isnull()) {
-      core_clone.children_node[i] = child;
-      continue;
-    }
-    Node clone = NodeCloneRecursively(child, symbol_map, target_map);
-    core_clone.children_node[i] = clone;
-
-    while (!Node_next(child).isnull()) {
-      child = Node_next(child);
-      Node new_clone = NodeCloneRecursively(child, symbol_map, target_map);
-      Node_next(clone) = new_clone;
-      clone = new_clone;
-    }
-  }
-  return clone;
-}
+Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
+                          std::map<Node, Node>* target_map);
 
 // TODO: move this to a helper lib
 struct CompilerError : public std::ostream, private std::streambuf {

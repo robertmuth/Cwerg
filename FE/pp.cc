@@ -683,8 +683,10 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       break;
     case NT::StmtBlock:
       out->push_back(PP ::Str("block"));
-      out->push_back(PP::Brk());
-      out->push_back(PP ::Str(NameData(Node_label(node))));
+      if (!NameIsEmpty(Node_label(node))) {
+        out->push_back(PP::Brk());
+        out->push_back(PP::Str(NameData(Node_label(node))));
+      }
       out->push_back(PP::Brk(0));
       out->push_back(PP ::Str(":"));
       EmitStatementsSpecial(out, Node_body(node));
@@ -895,6 +897,10 @@ void EmitModule(std::vector<PP::Token>* out, Node node) {
   out->push_back(PP_BEG_STD);
   MaybeEmitAnnotations(out, node);
   out->push_back(PP::Str("module"));
+  if (!NameIsEmpty(Node_name(node))) {
+    out->push_back(PP::Brk());
+    out->push_back(PP::Str(NameData(Node_name(node))));
+  }
   if (Node_params_mod(node) != kHandleInvalid) {
     out->push_back(PP::NoBreak(0));
     EmitParameterList(out, Node_params_mod(node));

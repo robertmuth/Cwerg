@@ -112,7 +112,7 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
     if (kind == NT::Id && !Node_enum_name(node).isnull()) {
       def_node = ResolveEnum(node, def_node);
     }
-    std::cout << "SymTabResolved: " << Node_name(node) << "\n";
+    // std::cout << "SymTabResolved: " << Node_name(node) << "\n";
     AnnotateNodeSymbol(node, def_node);
   };
   VisitNodesRecursivelyPre(node, visitor, kNodeInvalid);
@@ -121,8 +121,8 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
 void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
     const std::vector<Node>& mods, const SymTab* builtin_symtab) {
   for (Node mod : mods) {
-    std::cout << "ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros "
-              << Node_name(mod) << "\n";
+    // std::cout << "ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros "
+    //           << Node_name(mod) << "\n";
     const SymTab* symtab = Node_x_symtab(mod);
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(Node(child))) {
@@ -136,8 +136,8 @@ void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
 void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
     const std::vector<Node>& mods, const SymTab* builtin_symtab) {
   for (Node mod : mods) {
-    std::cout << "ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros "
-              << Node_name(mod) << "\n";
+    //std::cout << "ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros "
+    //          << Node_name(mod) << "\n";
 
     const SymTab* symtab = Node_x_symtab(mod);
     for (Node child = Node_body_mod(mod); !child.isnull();
@@ -193,7 +193,6 @@ void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
                                    const SymTab* builtin_symtab) {
   std::vector<SymTab> scopes;
   for (Node mod : mods) {
-    std::cout << "ResolveSymbolsInsideFunctions " << Node_name(mod) << "\n";
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
       if (Node_kind(child) == NT::DefFun) {

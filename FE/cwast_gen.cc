@@ -675,7 +675,6 @@ StripeBase* const gAllStripesNode[] = {&gNodeCore, &gNodeExtra, &gNodeAuxTyping,
                                        nullptr};
 struct StripeGroup gStripeGroupNode("Node", gAllStripesNode, 256 * 1024);
 
-
 int string_view_cmp(const char* a, std::string_view b) {
   int x = strncmp(a, b.data(), b.size());
   if (x == 0 && a[b.size()] != 0) return 1;
@@ -731,6 +730,63 @@ NT KeywordToNT(std::string_view kw) {
   auto it = KeywordToNodeTypeMap.find(kw);
   if (it == KeywordToNodeTypeMap.end()) return NT::invalid;
   return it->second;
+}
+
+void RemoveNodesOfType(Node node, NT kind) {
+  auto replacer = [kind](Node node, Node parent) -> Node {
+    if (Node_kind(node) == kind) {
+      return kNodeInvalid;
+    }
+    return node;
+  };
+  MaybeReplaceAstRecursively(node, replacer);
+}
+
+
+Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
+                                 std::map<Node, Node>* target_map) {
+  Node clone = NodeCloneBasics(node);
+
+  switch (Node_kind(clone)) {
+    case NT::DefVar:
+      (*symbol_map)[node] = clone;
+      break;
+    case NT::StmtBlock:
+    case NT::ExprStmt:
+      (*target_map)[node] = clone;
+      break;
+    case NT::Id:
+      Node_x_symbol(clone) = GetWithDefault(*symbol_map, Node_x_symbol(node));
+      break;
+    case NT::StmtBreak:
+    case NT::StmtContinue:
+    case NT::StmtReturn:
+      Node_x_target(clone) = GetWithDefault(*target_map, Node_x_target(node));
+      break;
+    default:
+      break;
+  }
+
+  auto& core_clone = gNodeCore[clone];
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Node child = core_clone.children_node[i];
+    if (child.raw_kind() == kKindStr || child.raw_kind() == kKindName ||
+        child.isnull()) {
+      core_clone.children_node[i] = child;
+      continue;
+    }
+    Node clone = NodeCloneRecursively(child, symbol_map, target_map);
+    core_clone.children_node[i] = clone;
+
+    while (!Node_next(child).isnull()) {
+      child = Node_next(child);
+      Node new_clone = NodeCloneRecursively(child, symbol_map, target_map);
+      Node_next(clone) = new_clone;
+      clone = new_clone;
+    }
+  }
+  return clone;
 }
 
 }  // namespace cwerg::fe

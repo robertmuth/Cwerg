@@ -159,8 +159,8 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
 constexpr int MAX_MACRO_NESTING = 8;
 
 Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
-  std::cout << "@@ Expand invoke of " << Node_name(macro_invoke)
-            << " nesting=" << nesting << "\n";
+  // std::cout << "@@ Expand invoke of " << Node_name(macro_invoke)
+  //           << " nesting=" << nesting << "\n";
   if (nesting >= MAX_MACRO_NESTING) {
     CompilerError(Node_srcloc(macro_invoke)) << "too many nested macros";
   }
@@ -233,11 +233,14 @@ void ExpandMacrosAndMacroLike(const std::vector<Node>& mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
       if (Node_kind(child) == NT::DefFun) {
-        std::cout << "@@@@@ inside fun " << Node_name(child) << "\n";
         IdGen idgen;
         ExpandMacrosAndMacroLikeRecursively(child, 0, &idgen);
       }
     }
+  }
+
+  for (Node mod : mods) {
+    RemoveNodesOfType(mod, NT::DefMacro);
   }
 }
 }  // namespace cwerg::fe

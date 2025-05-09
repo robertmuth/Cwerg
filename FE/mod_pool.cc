@@ -174,8 +174,8 @@ void ResolveImportsForQualifers(Node mod) {
           Node_x_import(node) = it->second;
           auto s = StripQualifier(name);
           Node_name(node) = s;
-          std::cout << "ResolveImportsForQualifers " << name << " -> " << s
-                    << "\n";
+          // std::cout << "ResolveImportsForQualifers " << name << " -> " << s
+          //          << "\n";
         }
       } break;
 
@@ -266,8 +266,7 @@ class ModPoolState {
 
     ResolveImportsForQualifers(mod);
     ExtractSymTabPopulatedWithGlobals(mod, symtab);
-    // Dump(mod);
-    Dump(symtab);
+    // Dump(symtab);
     return AddModInfoCommon(path, mod, symtab);
   }
 };
@@ -391,6 +390,9 @@ ModPool ReadModulesRecursively(Path root_path,
   out.mods_in_topo_order = ModulesInTopologicalOrder(state.AllMods());
   ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
       out.mods_in_topo_order, out.builtin_symtab);
+  for (Node mod : out.mods_in_topo_order) {
+    RemoveNodesOfType(mod, NT::DefMacro);
+  }
   return out;
 }
 

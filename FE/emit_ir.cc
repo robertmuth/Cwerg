@@ -3,6 +3,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <set>
 #include <vector>
 
 #include "FE/cwast_gen.h"
@@ -22,6 +23,7 @@ SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
 
 SwitchString sw_stdlib("stdlib", "path to stdlib directory", "./Lib");
 
+
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
   std::ios_base::sync_with_stdio(true);
@@ -37,9 +39,16 @@ int main(int argc, const char* argv[]) {
   ExpandMacrosAndMacroLike(mp.mods_in_topo_order);
   SetTargetFields(mp.mods_in_topo_order);
   ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
+
   for (Node mod : mp.mods_in_topo_order) {
+    std::cout << "\n\n\n";
     Prettify(mod);
   }
+
+  std::set<NT> eliminated_nodes = {
+      NT::Import,  NT::DefMacro, NT::MacroInvoke,
+      NT::MacroId, NT::MacroFor, NT::ModParam,
+  };
 
   return 0;
 }
