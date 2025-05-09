@@ -3293,7 +3293,7 @@ def NumberOfNodes(node) -> int:
 ############################################################
 
 
-def StripFromListRecursively(node, cls):
+def RemoveNodesOfType(node, cls):
     def replacer(node, _):
         nonlocal cls
         if isinstance(node, cls):

@@ -202,7 +202,10 @@ def ExpandMacrosAndMacroLike(mods: list[cwast.DefMod]):
                 logger.info("Expanding macros in: %s", node.name)
                 _ExpandMacrosAndMacroLikeRecursively(
                     node, 0, identifier.IdGen())
-
+    # now that all macro invocations have been expanded,
+    # we do not need the macros anymore
+    for mod in mods:
+        cwast.RemoveNodesOfType(mod, cwast.DefMacro)
 
 ############################################################
 #

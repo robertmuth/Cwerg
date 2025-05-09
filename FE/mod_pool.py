@@ -480,8 +480,13 @@ def ReadModulesRecursively(root: Path,
 
     out.mods_in_topo_order = _ModulesInTopologicalOrder(state.AllModInfos())
     ResolvePolyMods(out.mods_in_topo_order)
-    symbolize.ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(out.mods_in_topo_order,
-                                                                      out.builtin_symtab)
+    symbolize.ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
+        out.mods_in_topo_order, out.builtin_symtab)
+    # after resolving all global symbols there is not need for Imports
+    # anymore
+    for mod in out.mods_in_topo_order:
+        cwast.RemoveNodesOfType(mod, cwast.Import)
+
     return out
 
 

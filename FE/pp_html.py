@@ -158,8 +158,6 @@ if __name__ == "__main__":
         mp = mod_pool.ReadModulesRecursively(pathlib.Path(
             cwd) / "Lib", [main], add_builtin=True)
         macro.ExpandMacrosAndMacroLike(mp.mods_in_topo_order)
-        for mod in mp.mods_in_topo_order:
-            cwast.StripFromListRecursively(mod, cwast.DefMacro)
         tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
         typify.DecorateASTWithTypes(mp.mods_in_topo_order, tc)
         eval.DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)

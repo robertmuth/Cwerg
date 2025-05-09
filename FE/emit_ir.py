@@ -1084,11 +1084,12 @@ def main() -> int:
     main = str(pathlib.Path(fn).resolve())
     mp = mod_pool.ReadModulesRecursively(
         pathlib.Path(args.stdlib), [main], add_builtin=True)
-
+    eliminated_nodes: set[Any] = set()
+    eliminated_nodes.add(cwast.Import)
+    eliminated_nodes.add(cwast.ModParam)
     mod_topo_order = mp.mods_in_topo_order
     main_entry_fun: cwast.DefFun = mp.main_fun
 
-    eliminated_nodes: set[Any] = set()
     SanityCheckMods("after_parsing", args, mod_topo_order, None, None, eliminated_nodes,
                     allow_type_auto=False, pre_symbolize=True)
 
@@ -1100,16 +1101,6 @@ def main() -> int:
 
     logger.info("Expand macros and link most IDs to their definition")
     macro.ExpandMacrosAndMacroLike(mod_topo_order)
-    symbolize.SetTargetFields(mod_topo_order)
-    symbolize.ResolveSymbolsInsideFunctions(mod_topo_order, mp.builtin_symtab)
-    for mod in mp.mods_in_topo_order:
-        symbolize.VerifySymbols(mod)
-    for mod in mod_topo_order:
-        cwast.StripFromListRecursively(mod, cwast.DefMacro)
-        cwast.StripFromListRecursively(mod, cwast.Import)
-
-    eliminated_nodes.add(cwast.Import)
-    eliminated_nodes.add(cwast.DefMacro)
     eliminated_nodes.add(cwast.MacroInvoke)
     eliminated_nodes.add(cwast.MacroId)
     eliminated_nodes.add(cwast.MacroFor)
@@ -1117,7 +1108,12 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprSrcLoc)
     eliminated_nodes.add(cwast.ExprStringify)
     eliminated_nodes.add(cwast.EphemeralList)
-    eliminated_nodes.add(cwast.ModParam)
+    eliminated_nodes.add(cwast.DefMacro)
+    symbolize.SetTargetFields(mod_topo_order)
+    symbolize.ResolveSymbolsInsideFunctions(mod_topo_order, mp.builtin_symtab)
+    for mod in mp.mods_in_topo_order:
+        symbolize.VerifySymbols(mod)
+
     # Before Typing we cannot set the symbol links for rec fields
     SanityCheckMods("after_symbolizing", args, mod_topo_order, None, None, eliminated_nodes,
                     allow_type_auto=False, pre_symbolize=True)
@@ -1135,7 +1131,7 @@ def main() -> int:
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
 
     for mod in mod_topo_order:
-        cwast.StripFromListRecursively(mod, cwast.StmtStaticAssert)
+        cwast.RemoveNodesOfType(mod, cwast.StmtStaticAssert)
 
     eliminated_nodes.add(cwast.StmtStaticAssert)
 

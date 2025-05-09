@@ -728,8 +728,6 @@ def main(argv: list[str]):
         mp.mods_in_topo_order, mp.builtin_symtab)
     for mod in mp.mods_in_topo_order:
         symbolize.VerifySymbols(mod)
-    for mod in mp.mods_in_topo_order:
-        cwast.StripFromListRecursively(mod, cwast.DefMacro)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
     typify.DecorateASTWithTypes(mp.mods_in_topo_order, tc)
     DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
