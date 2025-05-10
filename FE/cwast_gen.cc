@@ -673,16 +673,11 @@ struct Stripe<NodeAuxTyping, Node> gNodeAuxTyping("NodeAuxTyping");
 
 StripeBase* const gAllStripesNode[] = {&gNodeCore, &gNodeExtra, &gNodeAuxTyping,
                                        nullptr};
-struct StripeGroup gStripeGroupNode("Node", &gAllStripesNode[0], 256 * 1024);
+struct StripeGroup gStripeGroupNode("Node", gAllStripesNode, 256 * 1024);
 
 // =======================================
 
-struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore("CanonTypeCore");
 
-StripeBase* const gAllStripesCanonType[] = {&gCanonTypeCore, nullptr};
-
-struct StripeGroup gStripeGroupCanonType("CanonType", &gAllStripesCanonType[0],
-                                         128 * 1024);
 
 int string_view_cmp(const char* a, std::string_view b) {
   int x = strncmp(a, b.data(), b.size());

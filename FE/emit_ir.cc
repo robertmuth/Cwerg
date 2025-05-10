@@ -50,7 +50,7 @@ int main(int argc, const char* argv[]) {
       NT::MacroId, NT::MacroFor, NT::ModParam,
   };
 
-  TypeCorpus tc;
+  TypeCorpus tc(STD_TARGET_X64);
   DecorateASTWithTypes(mp.mods_in_topo_order, &tc);
   return 0;
 }

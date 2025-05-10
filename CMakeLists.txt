@@ -439,5 +439,7 @@ add_executable(emit_ir.exe
         FE/pp.cc
         FE/typify.h
         FE/typify.cc
+        FE/type_corpus.h
+        FE/type_corpus.cc
         FE/emit_ir.cc
 )

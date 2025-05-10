@@ -39,7 +39,7 @@ class MacroContext {
   void GenerateNewSymbol(Name name, const SrcLoc& srcloc) {
     Name new_name = id_gen_->NameNewNext(NameNew(NameData(name) + 1));
     Node id = NodeNew(NT::Id);
-    InitId(id, new_name, kNameInvalid, kStrInvalid, srcloc);
+    NodeInitId(id, new_name, kNameInvalid, kStrInvalid, srcloc);
 
     RegisterSymbol(name, id);
   }
@@ -55,7 +55,7 @@ Node FixUpArgsForExprListRest(Node params, Node args) {
 
   Node rest = NodeNew(NT::EphemeralList);
   if (num_params == 1) {
-    InitEphemeralList(rest, args, 0, kStrInvalid, Node_srcloc(args));
+    NodeInitEphemeralList(rest, args, 0, kStrInvalid, Node_srcloc(args));
     return rest;
   }
 
@@ -68,7 +68,7 @@ Node FixUpArgsForExprListRest(Node params, Node args) {
     args = Node_next(args);
   }
 
-  InitEphemeralList(rest, Node_next(args), 0, kStrInvalid, Node_srcloc(args));
+  NodeInitEphemeralList(rest, Node_next(args), 0, kStrInvalid, Node_srcloc(args));
   Node_next(args) = rest;
   return head;
 }
@@ -91,7 +91,7 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
         Node initial = ExpandMacroBodyNodeRecursively(
             Node_initial_or_undef_or_auto(node), ctx);
         Node out = NodeNew(NT::DefVar);
-        InitDefVar(out, Node_name(new_name), type, initial,
+        NodeInitDefVar(out, Node_name(new_name), type, initial,
                    Node_compressed_flags(node), kStrInvalid, Node_srcloc(node));
         return out;
       }
@@ -196,7 +196,7 @@ Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
   }
 
   Node list = NodeNew(NT::EphemeralList);
-  InitEphemeralList(list, body_clone.First(), 0, kStrInvalid, kSrcLocInvalid);
+  NodeInitEphemeralList(list, body_clone.First(), 0, kStrInvalid, kSrcLocInvalid);
   ExpandMacrosAndMacroLikeRecursively(list, nesting + 1, id_gen);
   return Node_args(list);
 }
@@ -210,14 +210,14 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
         std::stringstream ss;
         ss << Node_srcloc(Node_expr(node));
         Node out = NodeNew(NT::ValString);
-        InitValString(out, StrNew(ss.str()), kStrInvalid, Node_srcloc(node));
+        NodeInitValString(out, StrNew(ss.str()), kStrInvalid, Node_srcloc(node));
         return out;
       }
       case NT::ExprStringify: {
         std::stringstream ss;
         ss << EnumToString(Node_kind(Node_expr(node)));
         Node out = NodeNew(NT::ValString);
-        InitValString(out, StrNew(ss.str()), kStrInvalid, Node_srcloc(node));
+        NodeInitValString(out, StrNew(ss.str()), kStrInvalid, Node_srcloc(node));
         return out;
       }
 

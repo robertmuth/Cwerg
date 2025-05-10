@@ -3687,7 +3687,7 @@ def GenerateInits():
             if nfd.kind == NFK.ATTR_BOOL:
                 has_bits = True
 
-        print(f"inline void Init{cls.__name__}(Node node", end="")
+        print(f"inline void NodeInit{cls.__name__}(Node node", end="")
         for nfd in nfds:
             k = nfd.kind
             if k == NFK.NODE or k == NFK.LIST:
