@@ -297,7 +297,7 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.size, tc, uint_type, ctx)
         dim = _ComputeArrayLength(node.size, uint_type.base_type_kind)
-        return AnnotateNodeType(node, tc.insert_array_type(dim, t))
+        return AnnotateNodeType(node, tc.insert_vec_type(dim, t))
     elif isinstance(node, cwast.TypeUnion):
         # this is tricky code to ensure that children of TypeUnion
         # are not TypeUnion themselves on the canonical side
@@ -511,7 +511,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return _TypifyValCompound(node, tc, target_type, ctx)
     elif isinstance(node, cwast.ValString):
         dim = len(node.get_bytes())
-        ct = tc.insert_array_type(
+        ct = tc.insert_vec_type(
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprIndex):

@@ -929,7 +929,6 @@ inline void NodeInitValVoid(Node node, Str doc, const SrcLoc& srcloc) {
 /* @AUTOGEN-END@ */
 // clang-format on
 
-
 // =======================================
 // =======================================
 
@@ -1219,17 +1218,5 @@ struct CompilerError : public std::ostream, private std::streambuf {
     return 0;
   }
 };
-
-struct TargetArchConfig {
-  int uint_bitwidth;
-  int sint_bitwidth;
-  int typeid_bitwidth;
-  int data_addr_bitwidth;
-  int code_addr_bitwidth;
-};
-
-constexpr TargetArchConfig STD_TARGET_X64 = {64, 64, 16, 64, 64};
-constexpr TargetArchConfig STD_TARGET_A64 = {64, 64, 16, 64, 64};
-constexpr TargetArchConfig STD_TARGET_A32 = {32, 32, 16, 32, 32};
 
 }  // namespace cwerg::fe

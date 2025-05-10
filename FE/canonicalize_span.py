@@ -66,7 +66,7 @@ def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.T
         elif ct.is_vec():
             replacement = ct.underlying_array_type().replacement_type
             if replacement is not None:
-                add_replacement(ct,  tc.insert_array_type(
+                add_replacement(ct,  tc.insert_vec_type(
                     ct.array_dim(), replacement))
 
 

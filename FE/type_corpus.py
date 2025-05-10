@@ -476,7 +476,7 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.TypeSpan, name, mut=mut, children=[ct],
                                             ))
 
-    def insert_array_type(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
+    def insert_vec_type(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"array<{ct.name},{dim}>"
         if name in self.corpus:
             return self.corpus[name]
