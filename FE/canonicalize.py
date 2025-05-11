@@ -47,7 +47,7 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
             field_name, field_type, x_srcloc=srcloc, x_type=field_ct))
     rec = cwast.DefRec(cwast.NAME.Make(
         name), fields, pub=True, x_srcloc=srcloc)
-    rec_ct: cwast.CanonType = tc.insert_rec_type(f"{name}", rec)
+    rec_ct: cwast.CanonType = tc.InsertRecType(f"{name}", rec)
     typify.AnnotateNodeType(rec, rec_ct)
     tc.finalize_rec_type(rec_ct)
     return rec
@@ -393,7 +393,7 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
     else:
         assert container_type.is_span()
         mut = container_type.is_mutable()
-    ptr_ct = tc.insert_ptr_type(
+    ptr_ct = tc.InsertPtrType(
         mut, container_type.underlying_vec_or_span_type())
     bound = cwast.ExprLen(cwast.CloneNodeRecursively(
         node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type, x_value=bound)
@@ -503,7 +503,7 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
 def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
                          uint_type: cwast.CanonType) -> cwast.ValSpan:
     assert node.x_type.is_vec()
-    p_type = tc.insert_ptr_type(dst_type.mut, dst_type.underlying_span_type())
+    p_type = tc.InsertPtrType(dst_type.mut, dst_type.underlying_span_type())
     value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
         node) or isinstance(node, (cwast.ValCompound, cwast.ValString)) else None
     pointer = cwast.ExprFront(

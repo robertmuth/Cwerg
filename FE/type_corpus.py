@@ -462,21 +462,21 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(
             cwast.TypeBase, cwast.BaseTypeKindToKeyword(kind), base_type_kind=kind))
 
-    def insert_ptr_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
+    def InsertPtrType(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"ptr_mut<{ct.name}>" if mut else f"ptr<{ct.name}>"
         if name in self.corpus:
             return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypePtr, name, mut=mut, children=[ct],
                                             ))
 
-    def insert_span_type(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
+    def InsertSpanType(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"span_mut<{ct.name}>" if mut else f"span<{ct.name}>"
         if name in self.corpus:
             return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeSpan, name, mut=mut, children=[ct],
                                             ))
 
-    def insert_vec_type(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
+    def InsertVecType(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"array<{ct.name},{dim}>"
         if name in self.corpus:
             return self.corpus[name]
@@ -495,7 +495,7 @@ class TypeCorpus:
                 return x
         return None
 
-    def insert_rec_type(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
+    def InsertRecType(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"
@@ -508,7 +508,7 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.DefEnum, name,
                                             base_type_kind=ast_node.base_type_kind, ast_node=ast_node))
 
-    def insert_union_type(self, components: list[cwast.CanonType], untagged: bool) -> cwast.CanonType:
+    def InsertUnionType(self, untagged: bool, components: list[cwast.CanonType]) -> cwast.CanonType:
         assert len(components) > 1
         pp = set()
         for c in components:
@@ -555,4 +555,4 @@ class TypeCorpus:
                 out.append(x)
         if len(out) == 1:
             return out[0]
-        return self.insert_union_type(out, all.untagged)
+        return self.InsertUnionType(all.untagged, out)

@@ -24,7 +24,7 @@ SLICE_FIELD_LENGTH = cwast.NAME.Make("length")
 def _MakeSpanReplacementStruct(span_type: cwast.CanonType,
                                tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     fields = [
-        (SLICE_FIELD_POINTER, tc.insert_ptr_type(
+        (SLICE_FIELD_POINTER, tc.InsertPtrType(
             span_type.mut, span_type.underlying_span_type())),
         (SLICE_FIELD_LENGTH,  tc.get_uint_canon_type())
     ]
@@ -62,11 +62,11 @@ def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.T
         elif ct.is_pointer():
             replacement = ct.underlying_pointer_type().replacement_type
             if replacement is not None:
-                add_replacement(ct, tc.insert_ptr_type(ct.mut, replacement))
+                add_replacement(ct, tc.InsertPtrType(ct.mut, replacement))
         elif ct.is_vec():
             replacement = ct.underlying_array_type().replacement_type
             if replacement is not None:
-                add_replacement(ct,  tc.insert_vec_type(
+                add_replacement(ct,  tc.InsertVecType(
                     ct.array_dim(), replacement))
 
 

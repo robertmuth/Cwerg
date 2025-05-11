@@ -37,12 +37,12 @@ def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> dict[Any, Any]:
         params: list[cwast.CanonType] = fun_sig.parameter_types()
         for n, p in enumerate(params):
             if not p.fits_in_register():
-                params[n] = tc.insert_ptr_type(False, p)
+                params[n] = tc.InsertPtrType(False, p)
                 change = True
         result = fun_sig.result_type()
         if not result.is_void() and not result.fits_in_register():
             change = True
-            params.append(tc.insert_ptr_type(True, result))
+            params.append(tc.InsertPtrType(True, result))
             result = tc.get_void_canon_type()
         if change:
             out[fun_sig] = tc.insert_fun_type(params, result)

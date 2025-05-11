@@ -162,7 +162,7 @@ class _PolyMap:
             return out
         # TODO: why do we need this - seems unsafe:
         if first_param_type.is_vec():
-            span_type = self._type_corpus. insert_span_type(
+            span_type = self._type_corpus. InsertSpanType(
                 False, first_param_type.underlying_array_type())
             type_name = span_type.name
 
@@ -285,10 +285,10 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, tc.get_base_canon_type(node.base_type_kind))
     elif isinstance(node, cwast.TypePtr):
         t = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        return AnnotateNodeType(node, tc.insert_ptr_type(node.mut, t))
+        return AnnotateNodeType(node, tc.InsertPtrType(node.mut, t))
     elif isinstance(node, cwast.TypeSpan):
         t = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        return AnnotateNodeType(node, tc.insert_span_type(node.mut, t))
+        return AnnotateNodeType(node, tc.InsertSpanType(node.mut, t))
     elif isinstance(node, cwast.TypeFun):
         return _TypifyTypeFunOrDefFun(node, tc, ctx)
     elif isinstance(node, cwast.TypeVec):
@@ -297,13 +297,13 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.size, tc, uint_type, ctx)
         dim = _ComputeArrayLength(node.size, uint_type.base_type_kind)
-        return AnnotateNodeType(node, tc.insert_vec_type(dim, t))
+        return AnnotateNodeType(node, tc.InsertVecType(dim, t))
     elif isinstance(node, cwast.TypeUnion):
         # this is tricky code to ensure that children of TypeUnion
         # are not TypeUnion themselves on the canonical side
         pieces = [_TypifyNodeRecursively(
             f, tc, cwast.NO_TYPE, ctx) for f in node.types]
-        return AnnotateNodeType(node, tc.insert_union_type(pieces, node.untagged))
+        return AnnotateNodeType(node, tc.InsertUnionType(node.untagged, pieces))
     elif isinstance(node, cwast.TypeUnionDelta):
         minuend = _TypifyNodeRecursively(
             node.type, tc, cwast.NO_TYPE, ctx)
@@ -511,7 +511,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return _TypifyValCompound(node, tc, target_type, ctx)
     elif isinstance(node, cwast.ValString):
         dim = len(node.get_bytes())
-        ct = tc.insert_vec_type(
+        ct = tc.InsertVecType(
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprIndex):
@@ -590,7 +590,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         mut = node.mut
         if node.preserve_mut and ct.is_span() and ct.mut:
             mut = True
-        p_type = tc.insert_ptr_type(mut, ct.underlying_vec_or_span_type())
+        p_type = tc.InsertPtrType(mut, ct.underlying_vec_or_span_type())
         return AnnotateNodeType(node, p_type)
     elif isinstance(node, cwast.Expr3):
         _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), ctx)
@@ -667,7 +667,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         cstr_expr = _TypifyNodeRecursively(
             node.expr_lhs, tc, cwast.NO_TYPE, ctx)
         mut = node.mut
-        return AnnotateNodeType(node, tc.insert_ptr_type(mut, cstr_expr))
+        return AnnotateNodeType(node, tc.InsertPtrType(mut, cstr_expr))
     elif isinstance(node, cwast.ExprOffsetof):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         field_node = tc.lookup_rec_field(ct, node.field.GetBaseNameStrict())
@@ -682,7 +682,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprUnionUntagged):
         ct = _TypifyNodeRecursively(node.expr, tc, cwast.NO_TYPE, ctx)
         assert ct.is_tagged_union()
-        return AnnotateNodeType(node, tc.insert_union_type(ct.children, True))
+        return AnnotateNodeType(node, tc.InsertUnionType(True, ct.children))
     elif isinstance(node, cwast.ExprTypeId):
         _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         return AnnotateNodeType(node, tc.get_typeid_canon_type())
@@ -690,14 +690,14 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr_size, tc, uint_type, ctx)
         if isinstance(target_type, cwast.TypeSpan):
-            ptr_type = tc.insert_ptr_type(target_type.mut, target_type.type)
+            ptr_type = tc.InsertPtrType(target_type.mut, target_type.type)
             _TypifyNodeRecursively(node.pointer, tc, ptr_type, ctx)
             return AnnotateNodeType(node, target_type)
         else:
             ptr_type = _TypifyNodeRecursively(
                 node.pointer, tc, cwast.NO_TYPE, ctx)
             return AnnotateNodeType(
-                node, tc.insert_span_type(ptr_type.mut, ptr_type.underlying_pointer_type()))
+                node, tc.InsertSpanType(ptr_type.mut, ptr_type.underlying_pointer_type()))
     elif isinstance(node, cwast.ExprParen):
         ct = _TypifyNodeRecursively(node.expr, tc, target_type, ctx)
         return AnnotateNodeType(node, ct)
@@ -1284,7 +1284,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
         ctx = _TypeContext(str(mod.name), poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
-                ct = tc.insert_rec_type(f"{ctx.mod_name}/{node.name}", node)
+                ct = tc.InsertRecType(f"{ctx.mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
     #
     for mod in mod_topo_order:

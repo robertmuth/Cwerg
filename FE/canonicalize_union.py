@@ -29,8 +29,8 @@ def _MakeUnionReplacementStruct(union_type: cwast.CanonType,
     assert not union_type.untagged
     fields = [
         (SUM_FIELD_TAG, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.TYPEID)),
-        (SUM_FIELD_UNION, tc.insert_union_type(
-            union_type.union_member_types(), True))
+        (SUM_FIELD_UNION, tc.InsertUnionType(
+            True, union_type.union_member_types()))
     ]
     return canonicalize.MakeDefRec(f"xtuple_{union_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
@@ -63,11 +63,11 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
         elif ct.is_pointer():
             replacement = ct.underlying_pointer_type().replacement_type
             if replacement is not None:
-                add_replacement(ct, tc.insert_ptr_type(ct.mut, replacement))
+                add_replacement(ct, tc.InsertPtrType(ct.mut, replacement))
         elif ct.is_vec():
             replacement = ct.underlying_array_type().replacement_type
             if replacement is not None:
-                add_replacement(ct, tc.insert_vec_type(
+                add_replacement(ct, tc.InsertVecType(
                     ct.array_dim(), replacement))
         elif ct.is_span():
             # This is now run this after spans have been eliminated so
@@ -75,7 +75,7 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
             assert False
             replacement = ct.underlying_span_type().replacement_type
             if replacement is not None:
-                add_replacement(ct, tc.insert_span_type(
+                add_replacement(ct, tc.InsertSpanType(
                     ct.mut, replacement))
 
 
@@ -186,7 +186,7 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.Cano
 
 def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus.TypeCorpus):
     tagged_ct: cwast.CanonType = node.expr.x_type
-    untagged_ct = tc.insert_union_type(tagged_ct.union_member_types(), True)
+    untagged_ct = tc.InsertUnionType(True, tagged_ct.union_member_types())
     node.unchecked = True
     node.expr = cwast.ExprUnionUntagged(node.expr, x_srcloc=node.x_srcloc,
                                         x_type=untagged_ct)
