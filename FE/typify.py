@@ -269,7 +269,7 @@ def _TypifyTypeFunOrDefFun(node, tc: type_corpus.TypeCorpus,
         params.append(p.type.x_type)
     result = _TypifyNodeRecursively(
         node.result, tc, cwast.NO_TYPE, ctx)
-    ct = tc.insert_fun_type(params, result)
+    ct = tc.InsertFunType(params, result)
     return AnnotateNodeType(node, ct)
 
 
@@ -334,13 +334,13 @@ def _TypifyTopLevel(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.DefType):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
         if node.wrapped:
-            ct = tc.insert_wrapped_type(ct)
+            ct = tc.InsertWrappedType(ct)
         AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.DefFun):
         # note, this does not recurse into the function body
         _TypifyTypeFunOrDefFun(node, tc, ctx)
     elif isinstance(node, cwast.DefEnum):
-        ct = tc.insert_enum_type(f"{ctx.mod_name}/{node.name}", node)
+        ct = tc.InsertEnumType(f"{ctx.mod_name}/{node.name}", node)
         for f in node.items:
             _TypifyNodeRecursively(f, tc, ct, ctx)
         AnnotateNodeType(node, ct)

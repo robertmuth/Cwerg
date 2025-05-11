@@ -36,7 +36,7 @@ def MaybeMakeFunSigReplacementType(fun_sig: cwast.CanonType,
     assert fun_sig.is_fun()
     result = new_or_old(fun_sig.result_type())
     params = [new_or_old(p) for p in fun_sig.parameter_types()]
-    return tc.insert_fun_type(params, result)
+    return tc.InsertFunType(params, result)
 
 
 def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cwast.DefRec:

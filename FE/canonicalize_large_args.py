@@ -45,7 +45,7 @@ def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> dict[Any, Any]:
             params.append(tc.InsertPtrType(True, result))
             result = tc.get_void_canon_type()
         if change:
-            out[fun_sig] = tc.insert_fun_type(params, result)
+            out[fun_sig] = tc.InsertFunType(params, result)
     return out
 
 

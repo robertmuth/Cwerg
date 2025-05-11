@@ -477,7 +477,7 @@ class TypeCorpus:
                                             ))
 
     def InsertVecType(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
-        name = f"array<{ct.name},{dim}>"
+        name = f"vec<{dim},{ct.name}>"
         if name in self.corpus:
             return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeVec, name, dim=dim,
@@ -501,7 +501,7 @@ class TypeCorpus:
         name = f"rec<{name}>"
         return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node), finalize=False)
 
-    def insert_enum_type(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
+    def InsertEnumType(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefEnum)
         name = f"enum<{name}>"
@@ -525,8 +525,8 @@ class TypeCorpus:
             return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=sorted_children, untagged=untagged))
 
-    def insert_fun_type(self, params: list[cwast.CanonType],
-                        result: cwast.CanonType) -> cwast.CanonType:
+    def InsertFunType(self, params: list[cwast.CanonType],
+                      result: cwast.CanonType) -> cwast.CanonType:
         x = [p.name for p in params]
         x.append(result.name)
         name = f"fun<{','.join(x)}>"
@@ -534,7 +534,7 @@ class TypeCorpus:
             return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeFun, name, children=params + [result]))
 
-    def insert_wrapped_type(self, ct: cwast.CanonType) -> cwast.CanonType:
+    def InsertWrappedType(self, ct: cwast.CanonType) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert not ct.is_wrapped()
         uid = self._wrapped_curr
