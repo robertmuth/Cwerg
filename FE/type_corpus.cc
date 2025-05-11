@@ -111,5 +111,69 @@ CanonType CanonTypeNewFunType(Name name,
       .node = NT::TypeFun, .name = name, .children = params_result};
   return out;
 }
+void TypeCorpus::Insert(CanonType ct) {
+  ASSERT(corpus_.find(CanonType_name(ct)) == corpus_.end(), "");
+  corpus_[CanonType_name(ct)] = ct;
+}
+
+Name MakeCanonTypeName(std::string_view main, std::string_view arg1,
+                       std::string_view arg2 = std::string_view()) {
+  std::string buf;
+  buf.append(main);
+  buf.append("<");
+  buf.append(arg1);
+  if (!arg2.empty()) {
+    buf.append(",");
+    buf.append(arg2);
+  }
+  buf.append(">");
+  return NameNew(buf);
+}
+
+void TypeCorpus::InsertPtrType(bool mut, CanonType child) {
+  Name name = MakeCanonTypeName(mut ? "mut_ptr" : "ptr",
+                                NameData(CanonType_name(child)));
+  CanonType out = CanonTypeNewPtrType(name, mut, child);
+  Insert(out);
+}
+
+void TypeCorpus::InsertSpanType(bool mut, CanonType child) {
+  Name name = MakeCanonTypeName(mut ? "mut_span" : "span",
+                                NameData(CanonType_name(child)));
+  CanonType out = CanonTypeNewSpanType(name, mut, child);
+  Insert(out);
+}
+
+void TypeCorpus::InsertWrappedType(CanonType child) {
+  // TODO uid update
+  Name name = MakeCanonTypeName("wrapped", NameData(CanonType_name(child)));
+  CanonType out = CanonTypeNewWrappedType(name, child);
+  Insert(out);
+}
+
+void TypeCorpus::InsertVecType(int dim, CanonType child) {
+  Name name = MakeCanonTypeName("vec", std::to_string(dim),
+                                NameData(CanonType_name(child)));
+  CanonType out = CanonTypeNewVecType(name, dim, child);
+  Insert(out);
+}
+
+void TypeCorpus::InsertRecType(std::string_view name, Node ast_node) {
+  Name n = MakeCanonTypeName("rec", name);
+  CanonType out = CanonTypeNewRecType(n, ast_node);
+  Insert(out);
+}
+
+void TypeCorpus::InsertEnumType(std::string_view  name, BASE_TYPE_KIND base_type,
+                                Node ast_node) {
+  Name n = MakeCanonTypeName("enum", name);
+  CanonType out = CanonTypeNewEnumType(n, base_type, ast_node);
+  Insert(out);
+}
+
+void TypeCorpus::InsertUnionType(
+    bool untagged, const std::vector<CanonType>& sorted_children) {}
+
+void TypeCorpus::InsertFunType(const std::vector<CanonType>& params_result) {}
 
 }  // namespace cwerg::fe

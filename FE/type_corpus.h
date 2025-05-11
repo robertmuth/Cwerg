@@ -19,8 +19,22 @@ constexpr TargetArchConfig STD_TARGET_A32 = {32, 32, 16, 32, 32};
 extern Name CanonType_name(CanonType n);
 
 class TypeCorpus {
- public:
+  std::map<Name, CanonType> corpus_;
+
+  void Insert(CanonType ct);
+
+  public:
   TypeCorpus(const TargetArchConfig& arch);
+
+  void InsertPtrType(bool mut, CanonType child);
+  void InsertSpanType(bool mut, CanonType child);
+  void InsertWrappedType(CanonType child);
+  void InsertVecType(int dim, CanonType child);
+  void InsertRecType(std::string_view name, Node ast_node);
+  void InsertEnumType(std::string_view name, BASE_TYPE_KIND base_type, Node ast_node);
+  void InsertUnionType(bool untagged,
+                       const std::vector<CanonType>& sorted_children);
+  void InsertFunType(const std::vector<CanonType>& params_result);
 };
 
 }  // namespace cwerg::fe
