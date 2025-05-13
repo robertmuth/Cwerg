@@ -403,7 +403,7 @@ class TypeCorpus:
             alignment = max(alignment, field_ct.alignment)
         return size, alignment
 
-    def finalize_rec_type(self, ct: cwast.CanonType):
+    def FinalizeRecType(self, ct: cwast.CanonType):
         if not ct.original_type:
             ct.typeid = self._typeid_curr
             self._typeid_curr += 1

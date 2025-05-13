@@ -49,7 +49,7 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
         name), fields, pub=True, x_srcloc=srcloc)
     rec_ct: cwast.CanonType = tc.InsertRecType(f"{name}", rec)
     typify.AnnotateNodeType(rec, rec_ct)
-    tc.finalize_rec_type(rec_ct)
+    tc.FinalizeRecType(rec_ct)
     return rec
 
 

@@ -174,8 +174,8 @@ class _PolyMap:
 
 
 class _TypeContext:
-    def __init__(self, mod_name, poly_map: _PolyMap):
-        self.mod_name: str = mod_name
+    def __init__(self, mod_name: cwast.NAME, poly_map: _PolyMap):
+        self.mod_name: cwast.NAME = mod_name
         self.poly_map: _PolyMap = poly_map
 
 
@@ -1285,10 +1285,10 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
             if isinstance(node, cwast.DefRec):
                 ct = tc.InsertRecType(f"{mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
-    #
+    # now finalize the DefRec
     poly_map = _PolyMap(tc)
     for mod in mod_topo_order:
-        ctx = _TypeContext(str(mod.name), poly_map)
+        ctx = _TypeContext(mod.name, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
                 ct = node.x_type
@@ -1299,10 +1299,12 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                     AnnotateNodeType(f, fct)
                 # we delay this until after fields have been typified this is necessary
                 # because of recursive types
-                tc.finalize_rec_type(ct)
+                tc.FinalizeRecType(ct)
+
+
     # deal with the top level stuff - not function bodies
     for mod in mod_topo_order:
-        ctx = _TypeContext(str(mod.name), poly_map)
+        ctx = _TypeContext(mod.name, poly_map)
         for node in mod.body_mod:
             if not isinstance(node, cwast.DefRec):
                 # we already dealt with DefRecs
@@ -1313,7 +1315,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                 poly_map.Register(node)
     # now typify function bodies
     for mod in mod_topo_order:
-        ctx = _TypeContext(str(mod.name), poly_map)
+        ctx = _TypeContext(mod.name, poly_map)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:
                 for c in node.body:

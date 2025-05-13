@@ -10,6 +10,13 @@ namespace cwerg::fe {
 class PolyMap {
  public:
   PolyMap() {}
+
+  void Register(Node fun) { ASSERT(false, ""); }
+
+  Node Resolve(Node callee, CanonType first_param_type) {
+    ASSERT(false, "");
+    return kNodeInvalid;
+  }
 };
 
 // =======================================
@@ -57,6 +64,21 @@ void DecorateASTWithTypes(const std::vector<Node>& mods,
       }
     }
   }
+//
+#if 0
+  for (Node mod : mods) {
+    for (Node child = Node_body_mod(mod); !child.isnull();
+         child = Node_next(child)) {
+      if (Node_kind(child) == NT::DefRec) {
+        CanonType ct = Node_x_type(child);
+        for (Node field = Node_fields(child); !child.isnull();
+             field = Node_next(field)) {
+        }
+        // type_corpus->FinalizeRecType(ct);
+      }
+    }
+  }
+#endif
 }
 
 }  // namespace cwerg::fe
