@@ -233,6 +233,7 @@ def _get_size_and_offset_for_union_type(ct: cwast.CanonType, tag_size, ptr_size)
             max_alignment = max(max_alignment, ptr_size)
         else:
             num_other += 1
+            assert t.size >= 0, f"{ct} size is not yet known"
             max_size = max(max_size, t.size)
             max_alignment = max(max_alignment, t.alignment)
     if ct.untagged:

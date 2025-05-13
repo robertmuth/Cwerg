@@ -36,7 +36,6 @@ module:
 
 import fmt
 
-pub type Object = union!(Cont, Item, Atom)
 
 pub wrapped type Success = void
 
@@ -183,6 +182,8 @@ pub fun ContGetItemForIndex(file ^File, cont Index, index u32) Index:
         set item = ItemGetNext(file, item)
         set n += 1
     return item
+
+pub type Object = union!(Cont, Item, Atom)
 
 pub rec File:
     ; the raw json data - must out-live the `file` rec

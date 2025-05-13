@@ -325,11 +325,6 @@ def _TypifyTopLevel(node, tc: type_corpus.TypeCorpus,
 
     if isinstance(node, cwast.DefGlobal):
         _TypifyDefGlobalOrDefVar(node, tc, ctx)
-    elif isinstance(node, cwast.DefType):
-        ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, ctx)
-        if node.wrapped:
-            ct = tc.InsertWrappedType(ct)
-        AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.DefFun):
         # note, this does not recurse into the function body
         _TypifyTypeFunOrDefFun(node, tc, ctx)
@@ -474,13 +469,6 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
 
     if isinstance(node, cwast.Id):
         return _TypifyId(node, tc, target_type, ctx)
-    elif isinstance(node, cwast.EnumVal):
-        if isinstance(node.value_or_auto, cwast.ValAuto):
-            AnnotateNodeType(node.value_or_auto, target_type)
-        else:
-            ct = _TypifyNodeRecursively(
-                node.value_or_auto, tc, target_type, ctx)
-        return AnnotateNodeType(node, target_type)
     elif isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
         return AnnotateNodeType(node, tc.get_bool_canon_type())
     elif isinstance(node, cwast.ValVoid):
@@ -1265,7 +1253,8 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
                 ct = tc.InsertEnumType(f"{mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
 
-    # now finalize the DefRec
+    # now finalize the DefRec, this two phase approach is necessary because the fields
+    # could be pointers to this DefRec or others.
     poly_map = _PolyMap(tc)
     for mod in mod_topo_order:
         for node in mod.body_mod:
@@ -1279,6 +1268,19 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
                 # we delay this until after fields have been typified this is necessary
                 # because of recursive types
                 tc.FinalizeRecType(ct)
+            elif isinstance(node, cwast.DefEnum):
+                ct = node.x_type
+                for f in node.items:
+                    assert isinstance(f,  cwast.EnumVal)
+                    _TypifyNodeRecursively(
+                        f.value_or_auto, tc, ct, poly_map)
+                    AnnotateNodeType(f, ct)
+            elif isinstance(node, cwast.DefType):
+                ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, poly_map)
+                if node.wrapped:
+                    ct = tc.InsertWrappedType(ct)
+                AnnotateNodeType(node, ct)
+
 
     return poly_map
 
@@ -1302,11 +1304,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
     # deal with the top level stuff - not function bodies
     for mod in mod_topo_order:
         for node in mod.body_mod:
-            if isinstance(node, cwast.DefEnum):
-                ct = node.x_type
-                for f in node.items:
-                    _TypifyNodeRecursively(f, tc, ct, poly_map)
-            elif not isinstance(node, cwast.DefRec):
+            if not isinstance(node, (cwast.DefRec, cwast.DefEnum, cwast.DefType)):
                 # we already dealt with DefRecs
                 _TypifyTopLevel(node, tc, poly_map)
             if isinstance(node, cwast.DefFun) and node.poly:
