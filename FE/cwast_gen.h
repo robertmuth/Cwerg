@@ -68,6 +68,7 @@ struct CanonType : public Handle {
 constexpr const Str kStrInvalid(0);
 constexpr const Name kNameInvalid(0);
 constexpr const Node kNodeInvalid(kHandleInvalid);
+constexpr const CanonType kCanonTypeInvalid(kHandleInvalid);
 
 extern ImmutablePool gNamePool;
 
@@ -115,6 +116,7 @@ struct NodeCore {
 struct NodeExtra {
   Str comment;
   SrcLoc x_srcloc;
+  CanonType x_type;
   // TODO: add typeninfo
   union {
     Node x_symbol;
@@ -165,6 +167,7 @@ inline SrcLoc& Node_srcloc(Node node) { return gNodeExtra[node].x_srcloc; }
 inline Node& Node_x_symbol(Node node) { return gNodeExtra[node].x_symbol; }
 inline Node& Node_x_target(Node node) { return gNodeExtra[node].x_target; }
 inline uint32_t& Node_x_offset(Node node) { return gNodeExtra[node].x_offset; }
+inline CanonType& Node_x_type(Node node) { return gNodeExtra[node].x_type; }
 
 inline Node& Node_x_import(Node node) { return gNodeAuxTyping[node].x_import; }
 inline Node& Node_x_module(Node node) { return gNodeAuxTyping[node].x_import; }

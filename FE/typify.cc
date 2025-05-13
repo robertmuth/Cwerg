@@ -12,8 +12,6 @@ class PolyMap {
   PolyMap() {}
 };
 
-
-
 // =======================================
 // =======================================
 
@@ -36,7 +34,29 @@ class TypeContext {
 
 TypeCorpus::TypeCorpus(const TargetArchConfig& arch) {}
 
+void UpdateType(Node node, CanonType ct) { Node_x_type(node) = ct; }
+
+CanonType AnnotateType(Node node, CanonType ct) {
+  ASSERT(Node_x_type(node).isnull(), "");
+  UpdateType(node, ct);
+  return ct;
+}
+
 void DecorateASTWithTypes(const std::vector<Node>& mods,
-                          TypeCorpus* type_corpus) {}
+                          TypeCorpus* type_corpus) {
+  for (Node mod : mods) {
+    for (Node child = Node_body_mod(mod); !child.isnull();
+         child = Node_next(child)) {
+      if (Node_kind(child) == NT::DefRec) {
+        std::string name;
+        name.append(NameData(Node_name(mod)));
+        name.append("/");
+        name.append(NameData(Node_name(child)));
+        CanonType ct = type_corpus->InsertRecType(name, child);
+        AnnotateType(child, ct);
+      }
+    }
+  }
+}
 
 }  // namespace cwerg::fe

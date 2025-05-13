@@ -202,7 +202,7 @@ def _ComputeArrayLength(node, kind: cwast.BASE_TYPE_KIND) -> int:
         assert False, f"unexpected dim node: {node}"
 
 
-def UpdateNodeType(node, ct: cwast.CanonType):
+def UpdateNodeType(node, ct: cwast.CanonType) -> cwast.CanonType:
     assert cwast.NF.TYPE_ANNOTATED in node.FLAGS, f"node not meant for type annotation: {
         node}"
     assert ct, f"No valid type for {node}"
@@ -210,7 +210,7 @@ def UpdateNodeType(node, ct: cwast.CanonType):
     return ct
 
 
-def AnnotateNodeType(node, ct: cwast.CanonType):
+def AnnotateNodeType(node, ct: cwast.CanonType) -> cwast.CanonType:
     logger.info("TYPE of %s: %s", node, ct.name)
     assert ct != cwast.NO_TYPE
     assert node.x_type is cwast.NO_TYPE, f"duplicate annotation for {node}"
@@ -1276,17 +1276,17 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
     * some x_symbol for polymorphic invocations
     """
 
-    poly_map = _PolyMap(tc)
     # make rec types known without fully processing the rec fields
     # so that they can be used for recursive type definitions
     # We stil need to process the fields which is done later below
     for mod in mod_topo_order:
-        ctx = _TypeContext(str(mod.name), poly_map)
+        mod_name = str(mod.name)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
-                ct = tc.InsertRecType(f"{ctx.mod_name}/{node.name}", node)
+                ct = tc.InsertRecType(f"{mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
     #
+    poly_map = _PolyMap(tc)
     for mod in mod_topo_order:
         ctx = _TypeContext(str(mod.name), poly_map)
         for node in mod.body_mod:
