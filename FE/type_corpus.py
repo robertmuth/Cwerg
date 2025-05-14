@@ -247,6 +247,22 @@ def _get_size_and_offset_for_union_type(ct: cwast.CanonType, tag_size, ptr_size)
     return size + max_size, max_alignment
 
 
+def _get_size_and_alignment_and_set_offsets_for_rec_type(ct: cwast.CanonType):
+    size = 0
+    alignment = 1
+    assert isinstance(ct.ast_node, cwast.DefRec)
+    def_rec: cwast.DefRec = ct.ast_node
+    for rf in def_rec.fields:
+        assert isinstance(rf, cwast.RecField)
+        field_ct: cwast.CanonType = rf.type.x_type
+        assert field_ct.alignment >= 0
+        size = align(size, field_ct.alignment)
+        rf.x_offset = size
+        size += field_ct.size
+        alignment = max(alignment, field_ct.alignment)
+    return size, alignment
+
+
 @dataclasses.dataclass()
 class TargetArchConfig:
     """target system config"""
@@ -390,28 +406,6 @@ class TypeCorpus:
             assert False, f"unknown type {ct.name}"
             return None
 
-    def _get_size_and_alignment_and_set_offsets_for_rec_type(self, ct: cwast.CanonType):
-        size = 0
-        alignment = 1
-        assert isinstance(ct.ast_node, cwast.DefRec)
-        def_rec: cwast.DefRec = ct.ast_node
-        for rf in def_rec.fields:
-            assert isinstance(rf, cwast.RecField)
-            field_ct: cwast.CanonType = rf.type.x_type
-            size = align(size, field_ct.alignment)
-            rf.x_offset = size
-            size += field_ct.size
-            alignment = max(alignment, field_ct.alignment)
-        return size, alignment
-
-    def FinalizeRecType(self, ct: cwast.CanonType):
-        if not ct.original_type:
-            ct.typeid = self._typeid_curr
-            self._typeid_curr += 1
-        size, alignment = self._get_size_and_alignment_and_set_offsets_for_rec_type(
-            ct)
-        ct.finalize(size, alignment, self._get_register_type(ct))
-
     def _get_size_and_alignment(self, ct: cwast.CanonType):
         if ct.node is cwast.TypeBase:
             size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
@@ -442,6 +436,12 @@ class TypeCorpus:
             # Note, DefRec is not handled here
             assert False, f"unknown type {ct}"
 
+    def _finalize(self, ct: cwast.CanonType, size, alignment):
+        if not ct.original_type:
+            ct.typeid = self._typeid_curr
+            self._typeid_curr += 1
+        ct.finalize(size, alignment, self._get_register_type(ct))
+
     def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
         """The only type not finalized here are Recs"""
         assert ct.name not in self.corpus, f"duplicate insertion of type: {ct.name}"
@@ -452,11 +452,8 @@ class TypeCorpus:
         assert STRINGIFIEDTYPE_RE.fullmatch(
             ct.name), f"bad type name [{ct.name}]"
         if finalize:
-            if not ct.original_type:
-                ct.typeid = self._typeid_curr
-                self._typeid_curr += 1
             size, alignment = self._get_size_and_alignment(ct)
-            ct.finalize(size, alignment, self._get_register_type(ct))
+            self._finalize(ct, size, alignment)
         return ct
 
     def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
@@ -502,6 +499,11 @@ class TypeCorpus:
         name = f"rec<{name}>"
         return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node), finalize=False)
 
+    def FinalizeRecType(self, ct: cwast.CanonType):
+        size, alignment = _get_size_and_alignment_and_set_offsets_for_rec_type(
+            ct)
+        self._finalize(ct, size, alignment)
+
     def InsertEnumType(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefEnum)
@@ -524,7 +526,11 @@ class TypeCorpus:
         name = f"sum{extra}<{','.join(sorted_names)}>"
         if name in self.corpus:
             return self.corpus[name]
-        return self._insert(cwast.CanonType(cwast.TypeUnion, name, children=sorted_children, untagged=untagged))
+        ct = cwast.CanonType(cwast.TypeUnion, name,
+                             children=sorted_children, untagged=untagged)
+        if not untagged:
+            ct.set_union_kind()
+        return self._insert(ct)
 
     def InsertFunType(self, params: list[cwast.CanonType],
                       result: cwast.CanonType) -> cwast.CanonType:

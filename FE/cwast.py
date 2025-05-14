@@ -1039,7 +1039,7 @@ class CanonType:
         else:
             return self.original_type.get_original_typeid()
 
-    def _set_union_kind(self):
+    def set_union_kind(self):
         seen_pointer = False
         for t in self.union_member_types():
             if t.is_wrapped():
@@ -1061,8 +1061,7 @@ class CanonType:
         self.size = size
         self.alignment = alignment
         self.register_types = register_types
-        if self.is_tagged_union():
-            self._set_union_kind()
+
 
     def __str__(self):
         return self.name + ("☠" if self.replacement_type else " ")
