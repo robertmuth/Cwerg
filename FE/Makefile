@@ -5,7 +5,7 @@ QEMU :=
 $(info $(shell mkdir -p $(DIR)))
 
 TEST_SOURCES := $(wildcard TestData/*.cw)
-TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cws))
+TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cw))
 
 LANG_TESTS := $(wildcard LangTest/*_test.cw)
 LANG_SOURCES := $(wildcard LangTest/*.cw)

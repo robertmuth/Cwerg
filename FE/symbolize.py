@@ -104,6 +104,7 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab: SymTab, builtin_syms: S
             AnnotateNodeSymbol(node, def_node)
             return
 
+
     cwast.CompilerError(
         node.x_srcloc, f"cannot resolve symbol for {node}")
 
@@ -118,7 +119,7 @@ def _FunResolveSymbolsInsideFunctions(
     def visitor(node: Any, parent: Any):
         nonlocal builtin_syms, scopes
         if isinstance(node, cwast.Id):
-            if not _IsFieldNode(node, parent):
+            if not _IsFieldNode(node, parent) and not _IsPointNode(node, parent):
                 _ResolveSymbolInsideFunction(
                     node, symtab, builtin_syms, scopes)
         elif isinstance(node, cwast.DefVar):
