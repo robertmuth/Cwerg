@@ -1247,11 +1247,14 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
         mod_name = str(mod.name)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
-                ct = tc.InsertRecType(f"{mod_name}/{node.name}", node)
+                ct = tc.InsertRecTypePrep(f"{mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
             elif isinstance(node, cwast.DefEnum):
                 ct = tc.InsertEnumType(f"{mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
+            elif isinstance(node, cwast.DefType) and node.wrapped:
+                    ct = tc.InsertWrappedTypePrep(f"{mod_name}/{node.name}")
+                    AnnotateNodeType(node, ct)
 
     # now finalize the DefRec, this two phase approach is necessary because the fields
     # could be pointers to this DefRec or others.
@@ -1278,8 +1281,10 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
             elif isinstance(node, cwast.DefType):
                 ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, poly_map)
                 if node.wrapped:
-                    ct = tc.InsertWrappedType(ct)
-                AnnotateNodeType(node, ct)
+                    assert node.x_type is not cwast.NO_TYPE
+                    tc.InsertWrappedTypeFinalize(node.x_type, ct)
+                else:
+                    AnnotateNodeType(node, ct)
 
 
     return poly_map

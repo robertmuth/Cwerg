@@ -289,7 +289,6 @@ class TypeCorpus:
 
     def __init__(self, target_arch_config: TargetArchConfig):
         self._target_arch_config: TargetArchConfig = target_arch_config
-        self._wrapped_curr = 1
         self._base_type_map: dict[cwast.BASE_TYPE_KIND, cwast.CanonType] = {}
         self._typeid_curr = 0
         # maps to ast
@@ -493,7 +492,7 @@ class TypeCorpus:
                 return x
         return None
 
-    def InsertRecType(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
+    def InsertRecTypePrep(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"
@@ -541,14 +540,18 @@ class TypeCorpus:
             return self.corpus[name]
         return self._insert(cwast.CanonType(cwast.TypeFun, name, children=params + [result]))
 
-    def InsertWrappedType(self, ct: cwast.CanonType) -> cwast.CanonType:
+    def InsertWrappedTypePrep(self, name: str) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
-        assert not ct.is_wrapped()
-        uid = self._wrapped_curr
-        self._wrapped_curr += 1
-        name = f"wrapped<{uid},{ct.name}>"
+        name = f"wrapped<{name}>"
         assert name not in self.corpus
-        return self._insert(cwast.CanonType(cwast.DefType, name, children=[ct]))
+        return self._insert(cwast.CanonType(cwast.DefType, name), finalize=False)
+
+    def InsertWrappedTypeFinalize(self, ct: cwast.CanonType,
+                                  ct_wrapped: cwast.CanonType) -> cwast.CanonType:
+        assert not ct_wrapped.is_wrapped()
+        ct.children = [ct_wrapped]
+        size, alignment = self._get_size_and_alignment(ct)
+        self._finalize(ct, size, alignment)
 
     def insert_union_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
         assert all.node is cwast.TypeUnion, f"expect sum type: {all.name}"
