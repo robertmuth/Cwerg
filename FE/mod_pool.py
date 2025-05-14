@@ -224,26 +224,26 @@ def _ModulesInTopologicalOrder(mod_infos: Sequence[_ModInfo]) -> list[cwast.DefM
 
     # start with candidates with no incoming deps, candidates is sorted by
     # mod.name to make it deterministic
-    candidates: list[tuple[str, cwast.DefMod]] = []
+    candidates: list[cwast.DefMod] = []
     for mi in mod_infos:
         mod = mi.mod
         assert isinstance(mod, cwast.DefMod)
         if not deps_in[mod]:
             logger.info("found leaf mod [%s]", mod)
-            heapq.heappush(candidates, (str(mod.name), mod))
+            heapq.heappush(candidates, mod)
 
     # topological order
     out: list[cwast.DefMod] = []
     while len(out) != len(mod_infos):
         assert candidates
-        _, x = heapq.heappop(candidates)
+        x = heapq.heappop(candidates)
         logger.info("picking next mod: %s", x)
         out.append(x)
 
         for importer in deps_out[x]:
             deps_in[importer].remove(x)
             if not deps_in[importer]:
-                heapq.heappush(candidates, (str(importer.name), importer))
+                heapq.heappush(candidates, importer)
     return out
 
 
@@ -298,9 +298,10 @@ class _ModPoolState:
     read_mod_fun: Callable
     # all modules keyed by ModHandle
     all_mods: dict[ModId, _ModInfo] = dataclasses.field(default_factory=dict)
-    taken_names: set[str] = dataclasses.field(default_factory=set)
     raw_generic: dict[Path, cwast.DefMod] = dataclasses.field(
         default_factory=dict)
+
+    gen_mod_uid: int = 0
 
     def AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> _ModInfo:
         mid = (path, *args)
@@ -310,9 +311,6 @@ class _ModPoolState:
         logger.info("Adding new mod: %s", mod_info)
         self.all_mods[mid] = mod_info
 
-        assert name not in self.taken_names
-        # TODO: deal with generics and possible name clashes
-        self.taken_names.add(name)
         mod.x_symtab = mod_info.symtab
         return mod_info
 
@@ -340,6 +338,10 @@ class _ModPoolState:
             generic_mod = self.read_mod_fun(path, mod_name)
             self.raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
+        self.gen_mod_uid += 1
+        mod.name = cwast.NAME.Make(f"{generic_mod.name}/{self.gen_mod_uid}")
+
+
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         _ResolveImportsForQualifers(mod)
         return self.AddModInfoCommon(path, args, _SpecializeGenericModule(mod, args), symtab)

@@ -1153,6 +1153,9 @@ class DefMod:
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_symtab: Any = None
 
+    def __lt__(self, other):
+        return self.name.name < other.name.name
+
     def __repr__(self):
         params = ', '.join(str(p) for p in self.params_mod)
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} [{params}]"
