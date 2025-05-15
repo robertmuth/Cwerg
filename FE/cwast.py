@@ -111,12 +111,13 @@ class BASE_TYPE_KIND(enum.Enum):
         return self.SINT.value <= self.value <= self.R64.value
 
     @classmethod
-    def UintFromSize(cls, size: int) -> "BASE_TYPE_KIND":
-        return {1: cls.U8, 2: cls.U16, 4: cls.U32, 8: cls.U64}[size]
+    def MakeUint(cls, size: int) -> "BASE_TYPE_KIND":
+        return {8: cls.U8, 16: cls.U16, 32: cls.U32, 64: cls.U64}[size]
 
     @classmethod
-    def SintFromSize(cls, size: int) -> "BASE_TYPE_KIND":
-        return {1: cls.S8, 2: cls.S16, 4: cls.S32, 8: cls.S64}[size]
+    def MakeSint(cls, size: int) -> "BASE_TYPE_KIND":
+        return {8: cls.S8, 16: cls.S16, 32: cls.S32, 64: cls.S64}[size]
+
 
 BASE_TYPE_KIND_TO_SIZE: dict[BASE_TYPE_KIND, int] = {
     BASE_TYPE_KIND.U8: 1,
@@ -136,6 +137,7 @@ BASE_TYPE_KIND_TO_SIZE: dict[BASE_TYPE_KIND, int] = {
     BASE_TYPE_KIND.NORET: 0,
 
 }
+
 
 def KeywordToBaseTypeKind(s: str) -> BASE_TYPE_KIND:
     ss = s.lower()
@@ -1379,8 +1381,6 @@ class FunParam:
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}: {self.type}"
-
-
 
 
 @NodeCommon

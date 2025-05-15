@@ -49,12 +49,14 @@ CanonType CanonTypeNew() {
   return out;
 }
 
-CanonType CanonTypeNewBaseType(Name name, BASE_TYPE_KIND base_type) {
+CanonType CanonTypeNewBaseType(BASE_TYPE_KIND base_type) {
   CanonType out = CanonTypeNew();
-  gCanonTypeCore[out] = {
-      .node = NT::TypePtr, .name = name, .base_type_kind = base_type};
+  gCanonTypeCore[out] = {.node = NT::TypePtr,
+                         .name = NameNew(EnumToString(base_type)),
+                         .base_type_kind = base_type};
   return out;
 }
+
 
 CanonType CanonTypeNewPtrType(Name name, bool mut, CanonType child) {
   CanonType out = CanonTypeNew();
@@ -119,6 +121,61 @@ CanonType CanonTypeNewFunType(Name name,
       .node = NT::TypeFun, .name = name, .children = params_result};
   return out;
 }
+
+// ====================================================================
+BASE_TYPE_KIND MakeSint(int bitwidth) {
+  switch (bitwidth) {
+    case 8:
+      return BASE_TYPE_KIND::S8;
+    case 16:
+      return BASE_TYPE_KIND::S16;
+    case 32:
+      return BASE_TYPE_KIND::S32;
+    case 64:
+      return BASE_TYPE_KIND::S64;
+    default:
+      ASSERT(false, "");
+      return BASE_TYPE_KIND::INVALID;
+  }
+}
+BASE_TYPE_KIND MakeUint(int bitwidth) {
+  switch (bitwidth) {
+    case 8:
+      return BASE_TYPE_KIND::U8;
+    case 16:
+      return BASE_TYPE_KIND::U16;
+    case 32:
+      return BASE_TYPE_KIND::U32;
+    case 64:
+      return BASE_TYPE_KIND::U64;
+    default:
+      ASSERT(false, "");
+      return BASE_TYPE_KIND::INVALID;
+  }
+}
+
+TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_(arch) {
+  for (BASE_TYPE_KIND kind : {BASE_TYPE_KIND::VOID,
+                              //
+                              BASE_TYPE_KIND::S8, BASE_TYPE_KIND::S16,
+                              BASE_TYPE_KIND::S32, BASE_TYPE_KIND::S64,
+                              //
+                              BASE_TYPE_KIND::U8, BASE_TYPE_KIND::U16,
+                              BASE_TYPE_KIND::U32, BASE_TYPE_KIND::U64,
+                              //
+                              BASE_TYPE_KIND::R32, BASE_TYPE_KIND::R64,
+                              //
+                              BASE_TYPE_KIND::BOOL}) {
+    base_type_map_[kind] = InsertBaseType(kind);
+  }
+  base_type_map_[BASE_TYPE_KIND::SINT] =
+      base_type_map_[MakeSint(arch_.sint_bitwidth)];
+  base_type_map_[BASE_TYPE_KIND::UINT] =
+      base_type_map_[MakeUint(arch_.uint_bitwidth)];
+  base_type_map_[BASE_TYPE_KIND::TYPEID] =
+      base_type_map_[MakeUint(arch_.typeid_bitwidth)];
+}
+
 CanonType TypeCorpus::Insert(CanonType ct) {
   ASSERT(corpus_.find(CanonType_name(ct)) == corpus_.end(), "");
   corpus_[CanonType_name(ct)] = ct;
@@ -154,13 +211,18 @@ Name MakeCanonTypeName(std::string_view main,
   return NameNew(buf);
 }
 
+CanonType TypeCorpus::InsertBaseType(BASE_TYPE_KIND kind) {
+  CanonType out = CanonTypeNewBaseType(kind);
+  return Insert(out);
+}
+
 CanonType TypeCorpus::InsertPtrType(bool mut, CanonType child) {
   Name name = MakeCanonTypeName(mut ? "mut_ptr" : "ptr",
                                 NameData(CanonType_name(child)));
   auto it = corpus_.find(name);
   if (it != corpus_.end(), "") return it->second;
   CanonType out = CanonTypeNewPtrType(name, mut, child);
-  return (out);
+  return Insert(out);
 }
 
 CanonType TypeCorpus::InsertSpanType(bool mut, CanonType child) {

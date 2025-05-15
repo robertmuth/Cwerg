@@ -24,10 +24,18 @@ extern NT CanonType_kind(CanonType n);
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;
 
+  std::map<BASE_TYPE_KIND, CanonType> base_type_map_;
+  const TargetArchConfig& arch_;
+
   CanonType Insert(CanonType ct);
+  CanonType InsertBaseType(BASE_TYPE_KIND kind);
 
  public:
   TypeCorpus(const TargetArchConfig& arch);
+
+  CanonType get_base_canon_type(BASE_TYPE_KIND kind) {
+    return base_type_map_[kind];
+  }
 
   CanonType InsertPtrType(bool mut, CanonType child);
   CanonType InsertSpanType(bool mut, CanonType child);

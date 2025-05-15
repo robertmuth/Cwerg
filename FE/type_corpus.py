@@ -430,11 +430,11 @@ class TypeCorpus:
             self._base_type_map[kind] = ct
 
         self._base_type_map[cwast.BASE_TYPE_KIND.SINT] = self._base_type_map[
-            cwast.BASE_TYPE_KIND.SintFromSize(target_arch_config.sint_bitwidth // 8)]
+            cwast.BASE_TYPE_KIND.MakeSint(target_arch_config.sint_bitwidth)]
         self._base_type_map[cwast.BASE_TYPE_KIND.UINT] = self._base_type_map[
-            cwast.BASE_TYPE_KIND.UintFromSize(target_arch_config.uint_bitwidth // 8)]
+            cwast.BASE_TYPE_KIND.MakeUint(target_arch_config.uint_bitwidth)]
         self._base_type_map[cwast.BASE_TYPE_KIND.TYPEID] = self._base_type_map[
-            cwast.BASE_TYPE_KIND.UintFromSize(target_arch_config.typeid_bitwidth // 8)]
+            cwast.BASE_TYPE_KIND.MakeUint(target_arch_config.typeid_bitwidth)]
 
     def get_base_canon_type(self, kind: cwast.BASE_TYPE_KIND):
         return self._base_type_map[kind]
