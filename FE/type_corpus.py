@@ -420,20 +420,20 @@ class TypeCorpus:
         self._initial_typing = True
 
         # VOID should get typeid zero
-        ct = self._insert_base_type(cwast.BASE_TYPE_KIND.VOID)
+        ct = self._InsertBaseType(cwast.BASE_TYPE_KIND.VOID)
         self._base_type_map[cwast.BASE_TYPE_KIND.VOID] = ct
 
         for kind in cwast.BASE_TYPE_KIND:
             if kind.name in ("INVALID", "UINT", "SINT", "TYPEID", "VOID"):
                 continue
-            ct = self._insert_base_type(kind)
+            ct = self._InsertBaseType(kind)
             self._base_type_map[kind] = ct
 
             bitwidth = cwast.BASE_TYPE_KIND_TO_SIZE[kind] * 8
-            if kind in cwast.BASE_TYPE_KIND_SINT:
+            if kind.IsSint():
                 if bitwidth == target_arch_config.sint_bitwidth:
                     self._base_type_map[cwast.BASE_TYPE_KIND.SINT] = ct
-            if kind in cwast.BASE_TYPE_KIND_UINT:
+            if kind.IsUint():
                 if bitwidth == target_arch_config.uint_bitwidth:
                     self._base_type_map[cwast.BASE_TYPE_KIND.UINT] = ct
                 if bitwidth == target_arch_config.typeid_bitwidth:
@@ -457,8 +457,6 @@ class TypeCorpus:
     def get_void_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.VOID]
 
-
-
     def SetAbiInfoForall(self):
         for ct in self.corpus.values():
             SetAbiInfoRecursively(ct, self._target_arch_config)
@@ -480,7 +478,7 @@ class TypeCorpus:
             self._typeid_curr += 1
         return ct
 
-    def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
+    def _InsertBaseType(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
         ct = cwast.CanonType(
             cwast.TypeBase, cwast.BaseTypeKindToKeyword(kind), base_type_kind=kind)
         return self._insert(ct)

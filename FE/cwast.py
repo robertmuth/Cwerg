@@ -95,6 +95,21 @@ class BASE_TYPE_KIND(enum.Enum):
     BOOL = 42
     TYPEID = 43
 
+    def IsUint(self) -> bool:
+        return self.UINT.value <= self.value <= self.U64.value
+
+    def IsSint(self) -> bool:
+        return self.SINT.value <= self.value <= self.S64.value
+
+    def IsInt(self) -> bool:
+        return self.SINT.value <= self.value <= self.U64.value
+
+    def IsReal(self) -> bool:
+        return self in (self.R32, self.R64)
+
+    def IsNumber(self) -> bool:
+        return self.SINT.value <= self.value <= self.R64.value
+
 
 def KeywordToBaseTypeKind(s: str) -> BASE_TYPE_KIND:
     ss = s.lower()
@@ -912,19 +927,20 @@ class CanonType:
         return self.base_type_kind is BASE_TYPE_KIND.VOID
 
     def is_int(self) -> bool:
-        return self.base_type_kind in BASE_TYPE_KIND_INT
+        return self.base_type_kind.IsInt()
 
     def is_uint(self) -> bool:
-        return self.base_type_kind in BASE_TYPE_KIND_UINT
+        return self.base_type_kind.IsUint()
 
     def is_sint(self) -> bool:
-        return self.base_type_kind in BASE_TYPE_KIND_SINT
+        return self.base_type_kind.IsSint()
 
     def is_real(self) -> bool:
-        return self.base_type_kind in BASE_TYPE_KIND_REAL
+        return self.base_type_kind.IsReal()
 
     def is_number(self) -> bool:
-        return self.base_type_kind in BASE_TYPE_KIND_REAL or self.base_type_kind in BASE_TYPE_KIND_INT
+        return self.base_type_kind.IsNumber()
+
 
     def is_wrapped(self) -> bool:
         return self.node is DefType
@@ -1341,29 +1357,6 @@ class FunParam:
         return f"{NODE_NAME(self)} {self.name}: {self.type}"
 
 
-BASE_TYPE_KIND_UINT = set([
-    BASE_TYPE_KIND.U8,
-    BASE_TYPE_KIND.U16,
-    BASE_TYPE_KIND.U32,
-    BASE_TYPE_KIND.U64,
-    BASE_TYPE_KIND.UINT,
-
-])
-
-BASE_TYPE_KIND_SINT = set([
-    BASE_TYPE_KIND.S8,
-    BASE_TYPE_KIND.S16,
-    BASE_TYPE_KIND.S32,
-    BASE_TYPE_KIND.S64,
-    BASE_TYPE_KIND.SINT,
-])
-
-BASE_TYPE_KIND_INT = BASE_TYPE_KIND_UINT | BASE_TYPE_KIND_SINT
-
-BASE_TYPE_KIND_REAL = set([
-    BASE_TYPE_KIND.R32,
-    BASE_TYPE_KIND.R64,
-])
 
 
 BASE_TYPE_KIND_TO_SIZE: dict[BASE_TYPE_KIND, int] = {
