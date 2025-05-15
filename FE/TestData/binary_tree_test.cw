@@ -5,6 +5,23 @@ import test
 
 import fmt
 
+rec Data:
+    x u32
+    y u32
+    z u32
+
+
+fun lt2(a ^Data, b ^Data) bool:
+    if a^.x != a^.y:
+        return a^.x < a^.y
+
+    if b^.x != b^.y:
+        return b^.x < b^.y
+
+    return a^.z < b^.z
+
+import bt2 = "./binary_tree_gen" (Data, lt2)
+
 fun lt(a ^u32, b ^u32) bool:
     return a^ < b^
 
@@ -34,6 +51,9 @@ fun reverse_bits(bits u32, width u32) u32:
 
 fun DumpNode(payload ^u32) void:
     fmt::print#(payload^, "\n")
+
+
+
 
 fun main(argc s32, argv ^^u8) s32:
     let! root bt::MaybeNode = bt::Leaf

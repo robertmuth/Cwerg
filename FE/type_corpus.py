@@ -417,6 +417,7 @@ class TypeCorpus:
         # maps to ast
         self.topo_order: list[cwast.CanonType] = []
         self.corpus: dict[str, cwast.CanonType] = {}  # name to canonical type
+        self._initial_typing = True
 
         # VOID should get typeid zero
         ct = self._insert_base_type(cwast.BASE_TYPE_KIND.VOID)
@@ -457,9 +458,16 @@ class TypeCorpus:
         return self._base_type_map[cwast.BASE_TYPE_KIND.VOID]
 
     def _finalize(self, ct: cwast.CanonType):
+        if not self._initial_typing:
+            SetAbiInfoRecursively(ct, self._target_arch_config)
         if not ct.original_type:
             ct.typeid = self._typeid_curr
             self._typeid_curr += 1
+
+    def SetAbiInfoForall(self):
+        for ct in self.corpus.values():
+            SetAbiInfoRecursively(ct, self._target_arch_config)
+        self._initial_typing = False
 
     def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
         """The only type not finalized here are Recs"""
@@ -471,34 +479,34 @@ class TypeCorpus:
         assert STRINGIFIEDTYPE_RE.fullmatch(
             ct.name), f"bad type name [{ct.name}]"
         if finalize:
-            SetAbiInfoRecursively(ct, self._target_arch_config)
             self._finalize(ct)
         return ct
 
     def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
-        return self._insert(cwast.CanonType(
-            cwast.TypeBase, cwast.BaseTypeKindToKeyword(kind), base_type_kind=kind))
+        ct = cwast.CanonType(
+            cwast.TypeBase, cwast.BaseTypeKindToKeyword(kind), base_type_kind=kind)
+        return self._insert(ct)
 
     def InsertPtrType(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"ptr_mut<{ct.name}>" if mut else f"ptr<{ct.name}>"
         if name in self.corpus:
             return self.corpus[name]
-        return self._insert(cwast.CanonType(cwast.TypePtr, name, mut=mut, children=[ct],
-                                            ))
+        ct = cwast.CanonType(cwast.TypePtr, name, mut=mut, children=[ct])
+        return self._insert(ct)
 
     def InsertSpanType(self, mut: bool, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"span_mut<{ct.name}>" if mut else f"span<{ct.name}>"
         if name in self.corpus:
             return self.corpus[name]
-        return self._insert(cwast.CanonType(cwast.TypeSpan, name, mut=mut, children=[ct],
-                                            ))
+        ct = cwast.CanonType(cwast.TypeSpan, name, mut=mut, children=[ct])
+        return self._insert(ct)
 
     def InsertVecType(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
         name = f"vec<{dim},{ct.name}>"
         if name in self.corpus:
             return self.corpus[name]
-        return self._insert(cwast.CanonType(cwast.TypeVec, name, dim=dim,
-                                            children=[ct]))
+        ct = cwast.CanonType(cwast.TypeVec, name, dim=dim, children=[ct])
+        return self._insert(ct)
 
     def lookup_rec_field(self, ct: cwast.CanonType, field_name) -> Optional[cwast.RecField]:
         """Oddball since the node returned is NOT inside corpus
@@ -516,19 +524,19 @@ class TypeCorpus:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"
-        return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node), finalize=False)
+        ct = cwast.CanonType(cwast.DefRec, name, ast_node=ast_node)
+        return self._insert(ct, finalize=False)
 
     def FinalizeRecType(self, ct: cwast.CanonType):
-
-        SetAbiInfoRecursively(ct, self._target_arch_config)
         self._finalize(ct)
 
     def InsertEnumType(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefEnum)
         name = f"enum<{name}>"
-        return self._insert(cwast.CanonType(cwast.DefEnum, name,
-                                            base_type_kind=ast_node.base_type_kind, ast_node=ast_node))
+        ct = cwast.CanonType(cwast.DefEnum, name,
+                             base_type_kind=ast_node.base_type_kind, ast_node=ast_node)
+        return self._insert(ct)
 
     def InsertUnionType(self, untagged: bool, components: list[cwast.CanonType]) -> cwast.CanonType:
         assert len(components) > 1
@@ -558,19 +566,20 @@ class TypeCorpus:
         name = f"fun<{','.join(x)}>"
         if name in self.corpus:
             return self.corpus[name]
-        return self._insert(cwast.CanonType(cwast.TypeFun, name, children=params + [result]))
+        ct = cwast.CanonType(cwast.TypeFun, name, children=params + [result])
+        return self._insert(ct)
 
     def InsertWrappedTypePrep(self, name: str) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         name = f"wrapped<{name}>"
         assert name not in self.corpus
-        return self._insert(cwast.CanonType(cwast.DefType, name), finalize=False)
+        ct = cwast.CanonType(cwast.DefType, name)
+        return self._insert(ct, finalize=False)
 
     def InsertWrappedTypeFinalize(self, ct: cwast.CanonType,
                                   ct_wrapped: cwast.CanonType) -> cwast.CanonType:
         assert not ct_wrapped.is_wrapped()
         ct.children = [ct_wrapped]
-        SetAbiInfoRecursively(ct, self._target_arch_config)
         self._finalize(ct)
 
     def insert_union_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:

@@ -426,6 +426,7 @@ def _TypifyId(node: cwast.Id, tc: type_corpus.TypeCorpus,
             ct = def_node.x_type
     elif isinstance(def_node, (cwast.DefType, cwast.DefFun, cwast.DefEnum, cwast.DefGlobal)):
         if ct == cwast.NO_TYPE:
+            # assert False, f"{node} {node.x_srcloc}"
             _TypifyTopLevel(def_node, tc, ctx)
             ct = def_node.x_type
     elif isinstance(def_node, cwast.EnumVal):
@@ -1253,8 +1254,8 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
                 ct = tc.InsertEnumType(f"{mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
             elif isinstance(node, cwast.DefType) and node.wrapped:
-                    ct = tc.InsertWrappedTypePrep(f"{mod_name}/{node.name}")
-                    AnnotateNodeType(node, ct)
+                ct = tc.InsertWrappedTypePrep(f"{mod_name}/{node.name}")
+                AnnotateNodeType(node, ct)
 
     # now finalize the DefRec, this two phase approach is necessary because the fields
     # could be pointers to this DefRec or others.
@@ -1279,13 +1280,13 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
                         f.value_or_auto, tc, ct, poly_map)
                     AnnotateNodeType(f, ct)
             elif isinstance(node, cwast.DefType):
-                ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, poly_map)
+                ct = _TypifyNodeRecursively(
+                    node.type, tc, cwast.NO_TYPE, poly_map)
                 if node.wrapped:
                     assert node.x_type is not cwast.NO_TYPE
                     tc.InsertWrappedTypeFinalize(node.x_type, ct)
                 else:
                     AnnotateNodeType(node, ct)
-
 
     return poly_map
 
@@ -1325,6 +1326,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                     _TypifyStatement(
                         c, tc, node.result.x_type, poly_map)
 
+    tc.SetAbiInfoForall()
 
 def RemoveUselessCast(node, tc: type_corpus.TypeCorpus):
     def replacer(node, _parent):
