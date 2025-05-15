@@ -290,36 +290,102 @@ def _get_size_and_alignment_and_set_offsets_for_rec_type(ct: cwast.CanonType):
     return size, alignment
 
 
-def _get_size_and_alignment(ct: cwast.CanonType, target_arch_config: TargetArchConfig):
+def _get_size_and_alignment(ct: cwast.CanonType, ta: TargetArchConfig):
     if ct.node is cwast.TypeBase:
         size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
         return size, size
     elif ct.node is cwast.TypePtr:
-        size = target_arch_config.code_addr_bitwidth // 8
+        size = ta.code_addr_bitwidth // 8
         return size, size
     elif ct.node is cwast.TypeSpan:
         # span is converted to (pointer, length) tuple
-        ptr_field_size = target_arch_config.data_addr_bitwidth // 8
-        len_field_size = target_arch_config.uint_bitwidth // 8
+        ptr_field_size = ta.data_addr_bitwidth // 8
+        len_field_size = ta.uint_bitwidth // 8
         return ptr_field_size + len_field_size, ptr_field_size
     elif ct.node is cwast.TypeVec:
         return ct.children[0].aligned_size() * ct.dim, ct.children[0].alignment
     elif ct.node is cwast.TypeUnion:
         return _get_size_and_offset_for_union_type(
-            ct, target_arch_config.typeid_bitwidth // 8,
-            target_arch_config.data_addr_bitwidth // 8)
+            ct, ta.typeid_bitwidth // 8,
+            ta.data_addr_bitwidth // 8)
     elif ct.node is cwast.DefEnum:
         size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
         return size, size
     elif ct.node is cwast.TypeFun:
-        size = target_arch_config.code_addr_bitwidth // 8
+        size = ta.code_addr_bitwidth // 8
         return size, size
     elif ct.node is cwast.DefType:
-        return _get_size_and_alignment(ct.children[0], target_arch_config)
+        return _get_size_and_alignment(ct.children[0], ta)
     elif ct.node is cwast.DefRec:
         return _get_size_and_alignment_and_set_offsets_for_rec_type(ct)
     else:
         assert False, f"unknown type {ct}"
+
+
+def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[list[str]]:
+    assert ct.node is cwast.TypeUnion
+    num_void = 0
+    scalars: list[cwast.CanonType] = []
+    largest_by_kind: dict[str, int] = {}
+    largest = 0
+    for t in ct.union_member_types():
+        if t.is_wrapped():
+            t = t.children[0]
+        if t.is_void():
+            num_void += 1
+            continue
+        regs = t.register_types
+        if regs is None or len(regs) > 1:
+            return None
+        scalars.append(t)
+        k = regs[0][0]
+        size = int(regs[0][1:])
+        largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
+        largest = max(largest, size)
+    # special hack for pointer + error-code
+    if ENABLE_UNION_OPTIMIZATIONS and len(scalars) == 1 and scalars[0].is_pointer():
+        return scalars[0].register_types
+
+    if largest == 0:
+        return [f"U{ta.typeid_bitwidth}"]
+    return [f"U{largest}", f"U{ta.typeid_bitwidth}"]
+
+
+def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[list[str]]:
+    """As long as a type can fit into no more than two regs it will have
+    register representation which is also how it will be past in function calls.
+    """
+    if ct.node is cwast.TypeBase:
+        return _BASE_TYPE_MAP.get(ct.base_type_kind)
+    elif ct.node is cwast.TypePtr:
+        return [ta.get_data_address_reg_type()]
+    elif ct.node is cwast.TypeSpan:
+        return [ta.get_data_address_reg_type(),
+                ta.get_uint_reg_type()]
+    elif ct.node is cwast.DefRec:
+        assert isinstance(ct.ast_node, cwast.DefRec)
+        fields = ct.ast_node.fields
+        if len(fields) == 1:
+            return _get_register_type(fields[0].type.x_type, ta)
+        elif len(fields) == 2:
+            a = _get_register_type(fields[0].type.x_type, ta)
+            b = _get_register_type(fields[1].type.x_type, ta)
+            if a is not None and b is not None and len(a) + len(b) <= 2:
+                return a + b
+        return None
+    elif ct.node is cwast.TypeVec:
+        return None
+    elif ct.node is cwast.DefEnum:
+        return _BASE_TYPE_MAP[ct.base_type_kind]
+    elif ct.node is cwast.TypeUnion:
+        return _get_register_type_for_union_type(ct, ta)
+    elif ct.node is cwast.DefType:
+        return _get_register_type(ct.children[0], ta)
+    elif ct.node is cwast.TypeFun:
+        return [f"C{ta.data_addr_bitwidth}"]
+    else:
+        assert False, f"unknown type {ct.name}"
+        return None
 
 
 class TypeCorpus:
@@ -377,75 +443,12 @@ class TypeCorpus:
     def get_void_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.VOID]
 
-    def _get_register_type_for_union_type(self, ct: cwast.CanonType) -> Optional[list[str]]:
-        assert ct.node is cwast.TypeUnion
-        num_void = 0
-        scalars: list[cwast.CanonType] = []
-        largest_by_kind: dict[str, int] = {}
-        largest = 0
-        for t in ct.union_member_types():
-            if t.is_wrapped():
-                t = t.children[0]
-            if t.is_void():
-                num_void += 1
-                continue
-            regs = t.register_types
-            if regs is None or len(regs) > 1:
-                return None
-            scalars.append(t)
-            k = regs[0][0]
-            size = int(regs[0][1:])
-            largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
-            largest = max(largest, size)
-        # special hack for pointer + error-code
-        if ENABLE_UNION_OPTIMIZATIONS and len(scalars) == 1 and scalars[0].is_pointer():
-            return scalars[0].register_types
-
-        if largest == 0:
-            return [f"U{self._target_arch_config.typeid_bitwidth}"]
-        return [f"U{largest}", f"U{self._target_arch_config.typeid_bitwidth}"]
-
-    def _get_register_type(self, ct: cwast.CanonType) -> Optional[list[str]]:
-        """As long as a type can fit into no more than two regs it will have
-        register representation which is also how it will be past in function calls.
-        """
-        if ct.node is cwast.TypeBase:
-            return _BASE_TYPE_MAP.get(ct.base_type_kind)
-        elif ct.node is cwast.TypePtr:
-            return [self._target_arch_config.get_data_address_reg_type()]
-        elif ct.node is cwast.TypeSpan:
-            return [self._target_arch_config.get_data_address_reg_type(),
-                    self._target_arch_config.get_uint_reg_type()]
-        elif ct.node is cwast.DefRec:
-            assert isinstance(ct.ast_node, cwast.DefRec)
-            fields = ct.ast_node.fields
-            if len(fields) == 1:
-                return self._get_register_type(fields[0].type.x_type)
-            elif len(fields) == 2:
-                a = self._get_register_type(fields[0].type.x_type)
-                b = self._get_register_type(fields[1].type.x_type)
-                if a is not None and b is not None and len(a) + len(b) <= 2:
-                    return a + b
-            return None
-        elif ct.node is cwast.TypeVec:
-            return None
-        elif ct.node is cwast.DefEnum:
-            return _BASE_TYPE_MAP[ct.base_type_kind]
-        elif ct.node is cwast.TypeUnion:
-            return self._get_register_type_for_union_type(ct)
-        elif ct.node is cwast.DefType:
-            return self._get_register_type(ct.children[0])
-        elif ct.node is cwast.TypeFun:
-            return [f"C{self._target_arch_config.data_addr_bitwidth}"]
-        else:
-            assert False, f"unknown type {ct.name}"
-            return None
-
     def _finalize(self, ct: cwast.CanonType, size, alignment):
         if not ct.original_type:
             ct.typeid = self._typeid_curr
             self._typeid_curr += 1
-        ct.finalize(size, alignment, self._get_register_type(ct))
+        ct.finalize(size, alignment, _get_register_type(
+            ct, self._target_arch_config))
 
     def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
         """The only type not finalized here are Recs"""
