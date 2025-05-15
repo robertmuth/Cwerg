@@ -10,6 +10,8 @@ struct TargetArchConfig {
   int typeid_bitwidth;
   int data_addr_bitwidth;
   int code_addr_bitwidth;
+
+  inline int get_address_size() const { return data_addr_bitwidth / 8; }
 };
 
 constexpr TargetArchConfig STD_TARGET_X64 = {64, 64, 16, 64, 64};
@@ -29,14 +31,17 @@ class TypeCorpus {
 
   CanonType InsertPtrType(bool mut, CanonType child);
   CanonType InsertSpanType(bool mut, CanonType child);
-  CanonType InsertWrappedType(CanonType child);
   CanonType InsertVecType(int dim, CanonType child);
+
   CanonType InsertRecType(std::string_view name, Node ast_node);
-  CanonType InsertEnumType(std::string_view name, BASE_TYPE_KIND base_type,
-                           Node ast_node);
+  CanonType InsertEnumType(std::string_view name, Node ast_node);
   CanonType InsertUnionType(bool untagged,
                             const std::vector<CanonType>& components);
   CanonType InsertFunType(const std::vector<CanonType>& params_result);
+  CanonType InsertWrappedTypePre(std::string_view name);
+  void InsertWrappedTypeFinalize(CanonType ct, CanonType wrapped_type);
+
+  void Dump();
 };
 
 }  // namespace cwerg::fe

@@ -52,5 +52,6 @@ int main(int argc, const char* argv[]) {
 
   TypeCorpus tc(STD_TARGET_X64);
   DecorateASTWithTypes(mp.mods_in_topo_order, &tc);
+  tc.Dump();
   return 0;
 }

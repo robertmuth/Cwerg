@@ -54,13 +54,38 @@ void DecorateASTWithTypes(const std::vector<Node>& mods,
   for (Node mod : mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
-      if (Node_kind(child) == NT::DefRec) {
-        std::string name;
-        name.append(NameData(Node_name(mod)));
-        name.append("/");
-        name.append(NameData(Node_name(child)));
-        CanonType ct = type_corpus->InsertRecType(name, child);
-        AnnotateType(child, ct);
+      switch (Node_kind(child)) {
+        case NT::DefRec: {
+          std::string name;
+          name.append(NameData(Node_name(mod)));
+          name.append("/");
+          name.append(NameData(Node_name(child)));
+          CanonType ct = type_corpus->InsertRecType(name, child);
+          AnnotateType(child, ct);
+          break;
+        }
+        case NT::DefEnum: {
+          std::string name;
+          name.append(NameData(Node_name(mod)));
+          name.append("/");
+          name.append(NameData(Node_name(child)));
+          CanonType ct = type_corpus->InsertEnumType(name, child);
+          AnnotateType(child, ct);
+          break;
+        }
+        case NT::DefType:
+          if (Node_has_flag(child, BF::WRAPPED)) {
+            std::string name;
+            name.append(NameData(Node_name(mod)));
+            name.append("/");
+            name.append(NameData(Node_name(child)));
+            CanonType ct = type_corpus->InsertWrappedTypePre(name);
+            AnnotateType(child, ct);
+          }
+          break;
+
+        default:
+          break;
       }
     }
   }

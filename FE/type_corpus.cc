@@ -40,7 +40,7 @@ NT CanonType_kind(CanonType n) { return gCanonTypeCore[n].node; }
 
 bool CanonType_untagged(CanonType n) { return gCanonTypeCore[n].untagged; }
 
-const std::vector<CanonType>& CanonType_children(CanonType n) {
+std::vector<CanonType>& CanonType_children(CanonType n) {
   return gCanonTypeCore[n].children;
 }
 
@@ -70,10 +70,9 @@ CanonType CanonTypeNewSpanType(Name name, bool mut, CanonType child) {
   return out;
 }
 
-CanonType CanonTypeNewWrappedType(Name name, CanonType child) {
+CanonType CanonTypeNewWrappedType(Name name) {
   CanonType out = CanonTypeNew();
-  gCanonTypeCore[out] = {
-      .node = NT::DefType, .name = name, .children = {child}};
+  gCanonTypeCore[out] = {.node = NT::DefType, .name = name};
   return out;
 }
 
@@ -173,11 +172,16 @@ CanonType TypeCorpus::InsertSpanType(bool mut, CanonType child) {
   return Insert(out);
 }
 
-CanonType TypeCorpus::InsertWrappedType(CanonType child) {
+CanonType TypeCorpus::InsertWrappedTypePre(std::string_view name) {
   // TODO uid update
-  Name name = MakeCanonTypeName("wrapped", NameData(CanonType_name(child)));
-  CanonType out = CanonTypeNewWrappedType(name, child);
+  Name n = MakeCanonTypeName("wrapped", name);
+  CanonType out = CanonTypeNewWrappedType(n);
   return Insert(out);
+}
+
+void TypeCorpus::InsertWrappedTypeFinalize(CanonType ct,
+                                           CanonType wrapped_type) {
+  CanonType_children(ct) = {wrapped_type};
 }
 
 CanonType TypeCorpus::InsertVecType(int dim, CanonType child) {
@@ -195,10 +199,10 @@ CanonType TypeCorpus::InsertRecType(std::string_view name, Node ast_node) {
   return Insert(out);
 }
 
-CanonType TypeCorpus::InsertEnumType(std::string_view name,
-                                     BASE_TYPE_KIND base_type, Node ast_node) {
+CanonType TypeCorpus::InsertEnumType(std::string_view name, Node ast_node) {
   Name n = MakeCanonTypeName("enum", name);
-  CanonType out = CanonTypeNewEnumType(n, base_type, ast_node);
+  CanonType out =
+      CanonTypeNewEnumType(n, Node_base_type_kind(ast_node), ast_node);
   return Insert(out);
 }
 
@@ -237,6 +241,12 @@ CanonType TypeCorpus::InsertFunType(
   if (it != corpus_.end(), "") return it->second;
   CanonType out = CanonTypeNewFunType(name, params_result);
   return Insert(out);
+}
+
+void TypeCorpus::Dump() {
+  for (auto it = corpus_.begin(); it != corpus_.end(); ++it) {
+    std::cout << NameData(it->first) << "\n";
+  }
 }
 
 }  // namespace cwerg::fe
