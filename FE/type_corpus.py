@@ -520,15 +520,14 @@ class TypeCorpus:
                 return x
         return None
 
-    def InsertRecTypePrep(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
+    def InsertRecType(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"
         ct = cwast.CanonType(cwast.DefRec, name, ast_node=ast_node)
-        return self._insert(ct, finalize=False)
+        return self._insert(ct)
 
-    def FinalizeRecType(self, ct: cwast.CanonType):
-        self._finalize(ct)
+
 
     def InsertEnumType(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""

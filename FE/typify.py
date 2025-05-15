@@ -1248,7 +1248,7 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
         mod_name = str(mod.name)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
-                ct = tc.InsertRecTypePrep(f"{mod_name}/{node.name}", node)
+                ct = tc.InsertRecType(f"{mod_name}/{node.name}", node)
                 AnnotateNodeType(node, ct)
             elif isinstance(node, cwast.DefEnum):
                 ct = tc.InsertEnumType(f"{mod_name}/{node.name}", node)
@@ -1269,9 +1269,6 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
                     fct = _TypifyNodeRecursively(
                         f.type, tc, cwast.NO_TYPE, poly_map)
                     AnnotateNodeType(f, fct)
-                # we delay this until after fields have been typified this is necessary
-                # because of recursive types
-                tc.FinalizeRecType(ct)
             elif isinstance(node, cwast.DefEnum):
                 ct = node.x_type
                 for f in node.items:
