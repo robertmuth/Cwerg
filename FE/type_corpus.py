@@ -242,86 +242,6 @@ STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64)
 STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32)
 
 
-def _get_size_and_offset_for_union_type(ct: cwast.CanonType, tag_size, ptr_size):
-    assert ct.node is cwast.TypeUnion
-    num_void = 0
-    num_pointer = 0
-    num_other = 0
-    max_size = 0
-    max_alignment = 1
-    for t in ct.union_member_types():
-        if t.is_wrapped():
-            t = t.children[0]
-        if t.is_void():
-            num_void += 1
-        elif t.is_pointer():
-            num_pointer += 1
-            max_size = max(max_size, ptr_size)
-            max_alignment = max(max_alignment, ptr_size)
-        else:
-            num_other += 1
-            assert t.size >= 0, f"{ct} size is not yet known"
-            max_size = max(max_size, t.size)
-            max_alignment = max(max_alignment, t.alignment)
-    if ct.untagged:
-        return max_size, max_alignment
-    if ENABLE_UNION_OPTIMIZATIONS and num_other == 0 and num_pointer == 1:
-        # special hack for pointer + error-code
-        return ptr_size, ptr_size
-    # the tag is the first component of the tagged union in memory
-    max_alignment = max(max_alignment, tag_size)
-    size = align(tag_size, max_alignment)
-    return size + max_size, max_alignment
-
-
-def _get_size_and_alignment_and_set_offsets_for_rec_type(ct: cwast.CanonType):
-    size = 0
-    alignment = 1
-    assert isinstance(ct.ast_node, cwast.DefRec)
-    def_rec: cwast.DefRec = ct.ast_node
-    for rf in def_rec.fields:
-        assert isinstance(rf, cwast.RecField)
-        field_ct: cwast.CanonType = rf.type.x_type
-        assert field_ct.alignment >= 0
-        size = align(size, field_ct.alignment)
-        rf.x_offset = size
-        size += field_ct.size
-        alignment = max(alignment, field_ct.alignment)
-    return size, alignment
-
-
-def _get_size_and_alignment(ct: cwast.CanonType, ta: TargetArchConfig):
-    if ct.node is cwast.TypeBase:
-        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
-        return size, size
-    elif ct.node is cwast.TypePtr:
-        size = ta.code_addr_bitwidth // 8
-        return size, size
-    elif ct.node is cwast.TypeSpan:
-        # span is converted to (pointer, length) tuple
-        ptr_field_size = ta.data_addr_bitwidth // 8
-        len_field_size = ta.uint_bitwidth // 8
-        return ptr_field_size + len_field_size, ptr_field_size
-    elif ct.node is cwast.TypeVec:
-        return ct.children[0].aligned_size() * ct.dim, ct.children[0].alignment
-    elif ct.node is cwast.TypeUnion:
-        return _get_size_and_offset_for_union_type(
-            ct, ta.typeid_bitwidth // 8,
-            ta.data_addr_bitwidth // 8)
-    elif ct.node is cwast.DefEnum:
-        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
-        return size, size
-    elif ct.node is cwast.TypeFun:
-        size = ta.code_addr_bitwidth // 8
-        return size, size
-    elif ct.node is cwast.DefType:
-        return _get_size_and_alignment(ct.children[0], ta)
-    elif ct.node is cwast.DefRec:
-        return _get_size_and_alignment_and_set_offsets_for_rec_type(ct)
-    else:
-        assert False, f"unknown type {ct}"
-
-
 def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[list[str]]:
     assert ct.node is cwast.TypeUnion
     num_void = 0
@@ -388,6 +308,99 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[li
         return None
 
 
+def _SetAbiInfoRecursivelyForSum(ct: cwast.CanonType, ta: TargetArchConfig):
+    tag_size = ta.typeid_bitwidth // 8
+    ptr_size = ta.data_addr_bitwidth // 8
+    assert ct.node is cwast.TypeUnion
+    num_void = 0
+    num_pointer = 0
+    num_other = 0
+    max_size = 0
+    max_alignment = 1
+    for t in ct.union_member_types():
+        if t.is_wrapped():
+            t = t.children[0]
+        SetAbiInfoRecursively(t, ta)
+        if t.is_void():
+            num_void += 1
+        elif t.is_pointer():
+            num_pointer += 1
+            max_size = max(max_size, ptr_size)
+            max_alignment = max(max_alignment, ptr_size)
+        else:
+            num_other += 1
+            assert t.size >= 0, f"{ct} size is not yet known"
+            max_size = max(max_size, t.size)
+            max_alignment = max(max_alignment, t.alignment)
+    if ct.untagged:
+        return max_size, max_alignment
+    if ENABLE_UNION_OPTIMIZATIONS and num_other == 0 and num_pointer == 1:
+        # special hack for pointer + error-code
+        return ptr_size, ptr_size
+    # the tag is the first component of the tagged union in memory
+    max_alignment = max(max_alignment, tag_size)
+    size = align(tag_size, max_alignment)
+    return size + max_size, max_alignment
+
+
+def _SetAbiInfoRecursivelyForRec(ct: cwast.CanonType, ta: TargetArchConfig):
+    size = 0
+    alignment = 1
+    assert isinstance(ct.ast_node, cwast.DefRec)
+    def_rec: cwast.DefRec = ct.ast_node
+    for rf in def_rec.fields:
+        assert isinstance(rf, cwast.RecField)
+        field_ct: cwast.CanonType = rf.type.x_type
+        SetAbiInfoRecursively(field_ct, ta)
+        size = align(size, field_ct.alignment)
+        # only place where x_offset is set
+        rf.x_offset = size
+        size += field_ct.size
+        alignment = max(alignment, field_ct.alignment)
+    return size, alignment
+
+
+def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
+    if ct.alignment >= 0:
+        return
+    if ct.node is cwast.TypeBase:
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
+        ct.finalize(size, size, _get_register_type(ct, ta))
+    elif ct.node is cwast.TypePtr:
+        size = ta.code_addr_bitwidth // 8
+        ct.finalize(size, size, _get_register_type(ct, ta))
+    elif ct.node is cwast.TypeSpan:
+        # span is converted to (pointer, length) tuple
+        ptr_field_size = ta.data_addr_bitwidth // 8
+        len_field_size = ta.uint_bitwidth // 8
+        ct.finalize(ptr_field_size + len_field_size,
+                    ptr_field_size, _get_register_type(ct, ta))
+
+    elif ct.node is cwast.TypeVec:
+        ct_dep = ct.children[0]
+        SetAbiInfoRecursively(ct_dep, ta)
+        ct.finalize(ct_dep.aligned_size() * ct.dim,
+                    ct_dep.alignment,  _get_register_type(ct, ta))
+    elif ct.node is cwast.TypeUnion:
+        size, alignment = _SetAbiInfoRecursivelyForSum(ct, ta)
+        ct.finalize(size, alignment, _get_register_type(ct, ta))
+    elif ct.node is cwast.DefEnum:
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
+        ct.finalize(size, size, _get_register_type(ct, ta))
+    elif ct.node is cwast.TypeFun:
+        size = ta.code_addr_bitwidth // 8
+        ct.finalize(size, size, _get_register_type(ct, ta))
+    elif ct.node is cwast.DefType:
+        ct_dep = ct.children[0]
+        SetAbiInfoRecursively(ct_dep, ta)
+        ct.finalize(ct_dep.size, ct_dep.alignment, _get_register_type(ct, ta))
+    elif ct.node is cwast.DefRec:
+        size, alignment = _SetAbiInfoRecursivelyForRec(ct, ta)
+        ct.finalize(size, alignment, _get_register_type(ct, ta))
+    else:
+        assert False, f"unknown type {ct}"
+
+
 class TypeCorpus:
     """The type corpus uniquifies types
 
@@ -443,12 +456,10 @@ class TypeCorpus:
     def get_void_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.VOID]
 
-    def _finalize(self, ct: cwast.CanonType, size, alignment):
+    def _finalize(self, ct: cwast.CanonType):
         if not ct.original_type:
             ct.typeid = self._typeid_curr
             self._typeid_curr += 1
-        ct.finalize(size, alignment, _get_register_type(
-            ct, self._target_arch_config))
 
     def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
         """The only type not finalized here are Recs"""
@@ -460,9 +471,8 @@ class TypeCorpus:
         assert STRINGIFIEDTYPE_RE.fullmatch(
             ct.name), f"bad type name [{ct.name}]"
         if finalize:
-            size, alignment = _get_size_and_alignment(
-                ct, self._target_arch_config)
-            self._finalize(ct, size, alignment)
+            SetAbiInfoRecursively(ct, self._target_arch_config)
+            self._finalize(ct)
         return ct
 
     def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
@@ -509,8 +519,9 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node), finalize=False)
 
     def FinalizeRecType(self, ct: cwast.CanonType):
-        size, alignment = _get_size_and_alignment(ct, self._target_arch_config)
-        self._finalize(ct, size, alignment)
+
+        SetAbiInfoRecursively(ct, self._target_arch_config)
+        self._finalize(ct)
 
     def InsertEnumType(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
@@ -559,8 +570,8 @@ class TypeCorpus:
                                   ct_wrapped: cwast.CanonType) -> cwast.CanonType:
         assert not ct_wrapped.is_wrapped()
         ct.children = [ct_wrapped]
-        size, alignment = _get_size_and_alignment(ct, self._target_arch_config)
-        self._finalize(ct, size, alignment)
+        SetAbiInfoRecursively(ct, self._target_arch_config)
+        self._finalize(ct)
 
     def insert_union_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
         assert all.node is cwast.TypeUnion, f"expect sum type: {all.name}"
