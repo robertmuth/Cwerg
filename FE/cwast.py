@@ -110,6 +110,32 @@ class BASE_TYPE_KIND(enum.Enum):
     def IsNumber(self) -> bool:
         return self.SINT.value <= self.value <= self.R64.value
 
+    @classmethod
+    def UintFromSize(cls, size: int) -> "BASE_TYPE_KIND":
+        return {1: cls.U8, 2: cls.U16, 4: cls.U32, 8: cls.U64}[size]
+
+    @classmethod
+    def SintFromSize(cls, size: int) -> "BASE_TYPE_KIND":
+        return {1: cls.S8, 2: cls.S16, 4: cls.S32, 8: cls.S64}[size]
+
+BASE_TYPE_KIND_TO_SIZE: dict[BASE_TYPE_KIND, int] = {
+    BASE_TYPE_KIND.U8: 1,
+    BASE_TYPE_KIND.U16: 2,
+    BASE_TYPE_KIND.U32: 4,
+    BASE_TYPE_KIND.U64: 8,
+
+    BASE_TYPE_KIND.S8: 1,
+    BASE_TYPE_KIND.S16: 2,
+    BASE_TYPE_KIND.S32: 4,
+    BASE_TYPE_KIND.S64: 8,
+    BASE_TYPE_KIND.R32: 4,
+    BASE_TYPE_KIND.R64: 8,
+    BASE_TYPE_KIND.BOOL: 1,
+    #
+    BASE_TYPE_KIND.VOID: 0,
+    BASE_TYPE_KIND.NORET: 0,
+
+}
 
 def KeywordToBaseTypeKind(s: str) -> BASE_TYPE_KIND:
     ss = s.lower()
@@ -941,7 +967,6 @@ class CanonType:
     def is_number(self) -> bool:
         return self.base_type_kind.IsNumber()
 
-
     def is_wrapped(self) -> bool:
         return self.node is DefType
 
@@ -1077,7 +1102,6 @@ class CanonType:
         self.size = size
         self.alignment = alignment
         self.register_types = register_types
-
 
     def __str__(self):
         return self.name + ("☠" if self.replacement_type else " ")
@@ -1357,27 +1381,6 @@ class FunParam:
         return f"{NODE_NAME(self)} {self.name}: {self.type}"
 
 
-
-
-BASE_TYPE_KIND_TO_SIZE: dict[BASE_TYPE_KIND, int] = {
-    BASE_TYPE_KIND.U8: 1,
-    BASE_TYPE_KIND.U16: 2,
-    BASE_TYPE_KIND.U32: 4,
-    BASE_TYPE_KIND.U64: 8,
-
-    BASE_TYPE_KIND.S8: 1,
-    BASE_TYPE_KIND.S16: 2,
-    BASE_TYPE_KIND.S32: 4,
-    BASE_TYPE_KIND.S64: 8,
-    BASE_TYPE_KIND.R32: 4,
-    BASE_TYPE_KIND.R64: 8,
-    BASE_TYPE_KIND.TYPEID: 2,
-    BASE_TYPE_KIND.BOOL: 1,
-    #
-    BASE_TYPE_KIND.VOID: 0,
-    BASE_TYPE_KIND.NORET: 0,
-
-}
 
 
 @NodeCommon
