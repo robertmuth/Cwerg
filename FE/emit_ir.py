@@ -192,41 +192,41 @@ def is_repeated_single_char(data: bytes):
 ZERO_INDEX = "0"
 
 
-def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TargetArchConfig,
+def OffsetScaleToOffset(offset_expr, scale: int, ta: type_corpus.TargetArchConfig,
                         id_gen: identifier.IdGenIR) -> str:
     if offset_expr.x_value is not None:
         return offset_expr.x_value * scale
     else:
-        offset = EmitIRExpr(offset_expr, tc, id_gen)
+        offset = EmitIRExpr(offset_expr, ta, id_gen)
         if scale == 1:
             return offset
         scaled = id_gen.NewName("scaled")
         print(
-            f"{TAB}conv {scaled}:{tc.get_sint_reg_type()} = {offset}")
+            f"{TAB}conv {scaled}:{ta.get_sint_reg_type()} = {offset}")
         print(
             f"{TAB}mul {scaled} = {scaled} {scale}")
         return scaled
 
 
-def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TargetArchConfig,
+def _GetLValueAddressAsBaseOffset(node, ta: type_corpus.TargetArchConfig,
                                   id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type: cwast.CanonType = node.container.x_type
         assert x_type.is_vec(), f"{x_type}"
-        base = _GetLValueAddress(node.container, tc, id_gen)
+        base = _GetLValueAddress(node.container, ta, id_gen)
         offset = OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size,
-                                     tc, id_gen)
+                                     ta, id_gen)
         return BaseOffset(base, offset)
 
     elif isinstance(node, cwast.ExprDeref):
-        return BaseOffset(EmitIRExpr(node.expr, tc, id_gen), 0)
+        return BaseOffset(EmitIRExpr(node.expr, ta, id_gen), 0)
     elif isinstance(node, cwast.ExprField):
-        base = _GetLValueAddress(node.container, tc, id_gen)
+        base = _GetLValueAddress(node.container, ta, id_gen)
         return BaseOffset(base, node.field.GetRecFieldRef().x_offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
         base = id_gen.NewName(f"lhsaddr")
-        kind = tc.get_data_address_reg_type()
+        kind = ta.get_data_address_reg_type()
         storage = _StorageForId(node)
         if storage is STORAGE_KIND.DATA:
             print(f"{TAB}lea.mem {base}:{kind} = {name} 0")
@@ -238,7 +238,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TargetArchConfig,
     elif isinstance(node, cwast.ExprNarrow):
         #
         assert node.expr.x_type.is_untagged_union()
-        base = _GetLValueAddress(node.expr, tc, id_gen)
+        base = _GetLValueAddress(node.expr, ta, id_gen)
         return BaseOffset(base, 0)
     elif isinstance(node, cwast.ExprStmt):
         ct = node.x_type
@@ -246,21 +246,21 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TargetArchConfig,
         assert ct.size > 0
         print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
         base = id_gen.NewName("stmt_stk_base")
-        kind = tc.get_data_address_reg_type()
+        kind = ta.get_data_address_reg_type()
         print(f"{TAB}lea.stk {base}:{kind} {name} 0")
-        EmitIRExprToMemory(node,  BaseOffset(base, 0), tc, id_gen)
+        EmitIRExprToMemory(node,  BaseOffset(base, 0), ta, id_gen)
         return BaseOffset(base, 0)
     else:
         assert False, f"unsupported node for lvalue {node} at {node.x_srcloc}"
 
 
-def _GetLValueAddress(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> str:
-    bo = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
+def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> str:
+    bo = _GetLValueAddressAsBaseOffset(node, ta, id_gen)
     if bo.offset == 0:
         return bo.base
     else:
         res = id_gen.NewName("at")
-        kind = tc.get_data_address_reg_type()
+        kind = ta.get_data_address_reg_type()
         print(f"{TAB}lea {res}:{kind} = {bo.base} {bo.offset}")
         return res
 
@@ -288,7 +288,7 @@ def IsUnconditionalBranch(node):
     return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
 
 
-def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.TargetArchConfig,
+def EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
                       id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     if cond.x_value is True:
@@ -299,30 +299,30 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Targ
             print(f"{TAB}bra {label_false}")
     elif isinstance(cond, cwast.Expr1):
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
-        EmitIRConditional(cond.expr, not invert, label_false, tc, id_gen)
+        EmitIRConditional(cond.expr, not invert, label_false, ta, id_gen)
     elif isinstance(cond, cwast.Expr2):
         kind: cwast.BINARY_EXPR_KIND = cond.binary_expr_kind
         if kind is cwast.BINARY_EXPR_KIND.ANDSC:
             if invert:
-                EmitIRConditional(cond.expr1, True, label_false, tc, id_gen)
-                EmitIRConditional(cond.expr2, True, label_false, tc, id_gen)
+                EmitIRConditional(cond.expr1, True, label_false, ta, id_gen)
+                EmitIRConditional(cond.expr2, True, label_false, ta, id_gen)
             else:
                 failed = id_gen.NewName("br_failed_and")
-                EmitIRConditional(cond.expr1, True, failed, tc, id_gen)
-                EmitIRConditional(cond.expr2, False, label_false, tc, id_gen)
+                EmitIRConditional(cond.expr1, True, failed, ta, id_gen)
+                EmitIRConditional(cond.expr2, False, label_false, ta, id_gen)
                 print(f".bbl {failed}")
         elif kind is cwast.BINARY_EXPR_KIND.ORSC:
             if invert:
                 failed = id_gen.NewName("br_failed_or")
-                EmitIRConditional(cond.expr1, False, failed, tc, id_gen)
-                EmitIRConditional(cond.expr2, True, label_false, tc, id_gen)
+                EmitIRConditional(cond.expr1, False, failed, ta, id_gen)
+                EmitIRConditional(cond.expr2, True, label_false, ta, id_gen)
                 print(f".bbl {failed}")
             else:
-                EmitIRConditional(cond.expr1, False, label_false, tc, id_gen)
-                EmitIRConditional(cond.expr2, False, label_false, tc, id_gen)
+                EmitIRConditional(cond.expr1, False, label_false, ta, id_gen)
+                EmitIRConditional(cond.expr2, False, label_false, ta, id_gen)
         elif kind in (cwast.BINARY_EXPR_KIND.AND, cwast.BINARY_EXPR_KIND.OR,
                       cwast.BINARY_EXPR_KIND.XOR):
-            op = EmitIRExpr(cond, tc, id_gen)
+            op = EmitIRExpr(cond, ta, id_gen)
             if invert:
                 print(f"{TAB}beq {op} 0 {label_false}")
             else:
@@ -330,8 +330,8 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Targ
         else:
             assert cond.expr1.x_type.fits_in_register(
             ), f"NYI Expr2 for {cond} {cond.expr1.x_type}"
-            op1 = EmitIRExpr(cond.expr1, tc, id_gen)
-            op2 = EmitIRExpr(cond.expr2, tc, id_gen)
+            op1 = EmitIRExpr(cond.expr1, ta, id_gen)
+            op2 = EmitIRExpr(cond.expr2, ta, id_gen)
             if invert:
                 kind = _MAP_COMPARE_INVERT[kind]
             # reduce comparison to what can be easily tranalate IR
@@ -346,7 +346,7 @@ def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.Targ
                 f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_false}  # {cond}")
     elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt, cwast.ExprField,
                            cwast.ExprIndex, cwast.ExprDeref)):
-        op = EmitIRExpr(cond, tc, id_gen)
+        op = EmitIRExpr(cond, ta, id_gen)
         if invert:
             print(f"{TAB}beq {op} 0 {label_false}")
         else:
@@ -435,7 +435,7 @@ def _FormatNumber(val: cwast.ValNum) -> str:
         assert False, f"unsupported scalar: {val}"
 
 
-def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
+def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
     assert ct_dst.is_void_or_wrapped_void(
@@ -443,7 +443,7 @@ def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
     if isinstance(node, cwast.ExprCall):
         sig: cwast.CanonType = node.callee.x_type
         assert sig.is_fun()
-        args = [EmitIRExpr(a, tc, id_gen) for a in node.args]
+        args = [EmitIRExpr(a, ta, id_gen) for a in node.args]
         for a in reversed(args):
             assert not a.startswith("["), f"{a} {node.args[4]}"
             print(f"{TAB}pusharg {a}")
@@ -494,20 +494,20 @@ def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
         else:
             return str(node.x_symbol.name)
     elif isinstance(node, cwast.ExprAddrOf):
-        return _GetLValueAddress(node.expr_lhs, tc, id_gen)
+        return _GetLValueAddress(node.expr_lhs, ta, id_gen)
     elif isinstance(node, cwast.Expr1):
-        op = EmitIRExpr(node.expr, tc, id_gen)
+        op = EmitIRExpr(node.expr, ta, id_gen)
         res = id_gen.NewName("expr1")
         _EmitExpr1(node.unary_expr_kind, res, node.x_type, op)
         return res
     elif isinstance(node, cwast.Expr2):
-        op1 = EmitIRExpr(node.expr1, tc, id_gen)
-        op2 = EmitIRExpr(node.expr2, tc, id_gen)
+        op1 = EmitIRExpr(node.expr1, ta, id_gen)
+        op2 = EmitIRExpr(node.expr2, ta, id_gen)
         res = id_gen.NewName("expr2")
         _EmitExpr2(node, res, op1, op2, id_gen)
         return res
     elif isinstance(node, cwast.ExprPointer):
-        base = EmitIRExpr(node.expr1, tc, id_gen)
+        base = EmitIRExpr(node.expr1, ta, id_gen)
         # TODO: add range check
         # assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
         res = id_gen.NewName("expr2")
@@ -516,15 +516,15 @@ def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
             assert ct.is_pointer()
             # print ("@@@@@ ", ct,  ct.underlying_pointer_type().size)
             offset = OffsetScaleToOffset(
-                node.expr2, ct.underlying_pointer_type().aligned_size(), tc, id_gen)
-            kind = tc.get_data_address_reg_type()
+                node.expr2, ct.underlying_pointer_type().aligned_size(), ta, id_gen)
+            kind = ta.get_data_address_reg_type()
             print(f"{TAB}lea {res}:{kind} = {base} {offset}")
         else:
             assert False, f"unsupported expression {node}"
         return res
     elif isinstance(node, cwast.ExprBitCast):
         res = id_gen.NewName("bitcast")
-        expr = EmitIRExpr(node.expr, tc, id_gen)
+        expr = EmitIRExpr(node.expr, ta, id_gen)
         src_reg_type = node.expr.x_type.get_single_register_type()
         dst_reg_type = node.type.x_type.get_single_register_type()
         if src_reg_type == dst_reg_type:
@@ -533,13 +533,13 @@ def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
             print(f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
         return res
     elif isinstance(node, cwast.ExprUnsafeCast):
-        return EmitIRExpr(node.expr, tc, id_gen)
+        return EmitIRExpr(node.expr, ta, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
         if ct_dst.is_void_or_wrapped_void():
             return None
         ct_src: cwast.CanonType = node.expr.x_type
         assert ct_src.is_union() or ct_src.original_type.is_union()
-        addr = _GetLValueAddress(node.expr, tc, id_gen)
+        addr = _GetLValueAddress(node.expr, ta, id_gen)
         res = id_gen.NewName("union_access")
         print(
             f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
@@ -548,20 +548,20 @@ def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
         ct_src: cwast.CanonType = node.expr.x_type
         if ct_src.is_base_type() and ct_dst.is_base_type():
             # more compatibility checking needed
-            expr = EmitIRExpr(node.expr, tc, id_gen)
+            expr = EmitIRExpr(node.expr, ta, id_gen)
             res = id_gen.NewName("as")
             print(
                 f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {expr}")
             return res
         elif ct_src.is_pointer() and ct_dst.is_pointer():
-            return EmitIRExpr(node.expr, tc, id_gen)
+            return EmitIRExpr(node.expr, ta, id_gen)
         else:
             assert False, f"unsupported cast {
                 node.expr} ({ct_src.name}) -> {ct_dst.name}"
     elif isinstance(node, (cwast.ExprWrap, cwast.ExprUnwrap)):
-        return EmitIRExpr(node.expr, tc, id_gen)
+        return EmitIRExpr(node.expr, ta, id_gen)
     elif isinstance(node, cwast.ExprDeref):
-        addr = EmitIRExpr(node.expr, tc, id_gen)
+        addr = EmitIRExpr(node.expr, ta, id_gen)
         res = id_gen.NewName("deref")
         print(
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} 0")
@@ -575,22 +575,22 @@ def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
                 f"{TAB}.reg {node.x_type.get_single_register_type()} [{result}]")
         end_label = id_gen.NewName("end_expr")
         for c in node.body:
-            EmitIRStmt(c, ReturnResultLocation(result, end_label), tc, id_gen)
+            EmitIRStmt(c, ReturnResultLocation(result, end_label), ta, id_gen)
         print(f".bbl {end_label}  # block end")
         return result
     elif isinstance(node, cwast.ExprIndex):
-        src = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
+        src = _GetLValueAddressAsBaseOffset(node, ta, id_gen)
         res = id_gen.NewName("at")
         print(
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {src.base} {src.offset}")
         return res
     elif isinstance(node, cwast.ExprFront):
         assert node.container.x_type.is_vec(), f"unexpected {node}"
-        return _GetLValueAddress(node.container, tc, id_gen)
+        return _GetLValueAddress(node.container, ta, id_gen)
     elif isinstance(node, cwast.ExprField):
         recfield: cwast.RecField = node.field.GetRecFieldRef()
         res = id_gen.NewName(f"field_{recfield.name}")
-        addr = _GetLValueAddress(node.container, tc, id_gen)
+        addr = _GetLValueAddress(node.container, ta, id_gen)
         print(
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {recfield.x_offset}")
         return res
@@ -598,7 +598,7 @@ def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
         # this should only happen for widening empty untagged unions
         assert node.x_type.size == 0
         # make sure we evaluate the rest for side-effects
-        return EmitIRExpr(node.expr, tc, id_gen)
+        return EmitIRExpr(node.expr, ta, id_gen)
     elif isinstance(node, cwast.ValVoid):
         pass
     else:
@@ -618,7 +618,7 @@ def _EmitZero(dst: BaseOffset, length, alignment,
 
 
 def EmitIRExprToMemory(init_node, dst: BaseOffset,
-                       tc: type_corpus.TargetArchConfig,
+                       ta: type_corpus.TargetArchConfig,
                        id_gen: identifier.IdGenIR):
     """This will instantiate objects on the stack or heap.
 
@@ -632,15 +632,15 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                               cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
                               cwast.Expr1, cwast.Expr2,
                               cwast.ExprPointer, cwast.ExprFront)):
-        reg = EmitIRExpr(init_node, tc, id_gen)
+        reg = EmitIRExpr(init_node, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, (cwast.ExprBitCast, cwast.ExprUnsafeCast)):
         # both imply scalar and both do not change the bits
-        reg = EmitIRExpr(init_node.expr, tc, id_gen)
+        reg = EmitIRExpr(init_node.expr, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, (cwast.ExprWrap, cwast.ExprUnwrap)):
         # these do NOT imply scalars
-        EmitIRExprToMemory(init_node.expr, dst, tc, id_gen)
+        EmitIRExprToMemory(init_node.expr, dst, ta, id_gen)
     elif isinstance(init_node, cwast.ExprAs):
         # this implies scalar
         # TODO: add the actual conversion step using IR opcode `conv`
@@ -649,26 +649,26 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             init_node.type.x_type} ->  {init_node.x_type}"
         assert init_node.x_type.fits_in_register(
         ), f"{init_node} {init_node.x_type}"
-        reg = EmitIRExpr(init_node, tc, id_gen)
+        reg = EmitIRExpr(init_node, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, cwast.ExprNarrow):
         # if we are narrowing the dst determines the size
         ct: cwast.CanonType = init_node.x_type
         if ct.size != 0:
-            src_base = _GetLValueAddress(init_node.expr, tc, id_gen)
+            src_base = _GetLValueAddress(init_node.expr, ta, id_gen)
             _EmitCopy(dst, BaseOffset(src_base, 0),
                       ct.size, ct.alignment, id_gen)
     elif isinstance(init_node, cwast.ExprWiden):
         assert init_node.x_type.is_untagged_union()
         ct: cwast.CanonType = init_node.expr.x_type
         if ct.size != 0:
-            EmitIRExprToMemory(init_node.expr, dst, tc, id_gen)
+            EmitIRExprToMemory(init_node.expr, dst, ta, id_gen)
     elif isinstance(init_node, cwast.Id) and _StorageForId(init_node) is STORAGE_KIND.REGISTER:
-        reg = EmitIRExpr(init_node, tc, id_gen)
+        reg = EmitIRExpr(init_node, ta, id_gen)
         assert reg is not None
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprIndex, cwast.ExprField)):
-        src_base = _GetLValueAddress(init_node, tc, id_gen)
+        src_base = _GetLValueAddress(init_node, ta, id_gen)
         src_type = init_node.x_type
         # if isinstance(init_node,  cwast.ExprField):
         #    print ("@@@@@@", init_node, src_type)
@@ -679,7 +679,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
     elif isinstance(init_node, cwast.ExprStmt):
         end_label = id_gen.NewName("end_expr")
         for c in init_node.body:
-            EmitIRStmt(c, ReturnResultLocation(dst, end_label), tc, id_gen)
+            EmitIRStmt(c, ReturnResultLocation(dst, end_label), ta, id_gen)
         print(f".bbl {end_label}  # block end")
     elif isinstance(init_node, cwast.ValString):
         assert False, f"NYI {init_node}"
@@ -704,7 +704,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                     pass
                 else:
                     EmitIRExprToMemory(init.value_or_undef, BaseOffset(
-                        dst.base, dst.offset+field.x_offset), tc, id_gen)
+                        dst.base, dst.offset+field.x_offset), ta, id_gen)
         else:
             assert src_type.is_vec()
             element_size: int = src_type.array_element_size()
@@ -716,7 +716,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                 if isinstance(c.value_or_undef, cwast.ValUndef):
                     continue
                 EmitIRExprToMemory(
-                    c.value_or_undef, BaseOffset(dst.base, dst.offset + element_size * index), tc, id_gen)
+                    c.value_or_undef, BaseOffset(dst.base, dst.offset + element_size * index), ta, id_gen)
     else:
         assert False, f"NYI: {init_node}"
 
@@ -751,7 +751,7 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
             curr += width
 
 
-def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.TargetArchConfig,
+def EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.TargetArchConfig,
                id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         # name translation!
@@ -762,23 +762,23 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Tar
         if def_type.size == 0:
             if not isinstance(initial, cwast.ValUndef):
                 # still need to evaluate the expression for the side effect
-                EmitIRExpr(initial, tc, id_gen)
+                EmitIRExpr(initial, ta, id_gen)
         elif _IsDefVarOnStack(node):
             assert def_type.size > 0
             print(f"{TAB}.stk {node.name} {
                   def_type.alignment} {def_type.size}")
             if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
-                kind = tc.get_data_address_reg_type()
+                kind = ta.get_data_address_reg_type()
                 print(f"{TAB}lea.stk {init_base}:{kind} {node.name} 0")
                 EmitIRExprToMemory(initial, BaseOffset(
-                    init_base, 0), tc, id_gen)
+                    init_base, 0), ta, id_gen)
         else:
             if isinstance(initial, cwast.ValUndef):
                 print(
                     f"{TAB}.reg {def_type.get_single_register_type()} [{node.name}]")
             else:
-                out = EmitIRExpr(initial, tc, id_gen)
+                out = EmitIRExpr(initial, ta, id_gen)
                 assert out is not None, f"Failure to gen code for {initial}"
                 print(
                     f"{TAB}mov {node.name}:{def_type.get_single_register_type()} = {out}")
@@ -793,7 +793,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Tar
 
         print(f".bbl {continue_label}  # block start")
         for c in node.body:
-            EmitIRStmt(c, result, tc, id_gen)
+            EmitIRStmt(c, result, ta, id_gen)
         print(f".bbl {break_label}  # block end")
     elif isinstance(node, cwast.StmtReturn):
         if isinstance(node.x_target, cwast.ExprStmt):
@@ -803,16 +803,16 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Tar
             # and the branch to the end of the ExprStmt
             if not node.expr_ret.x_type.is_void_or_wrapped_void():
                 if isinstance(result.dst, str):
-                    out = EmitIRExpr(node.expr_ret, tc, id_gen)
+                    out = EmitIRExpr(node.expr_ret, ta, id_gen)
                     print(f"{TAB}mov {result.dst} {out}")
                 else:
-                    EmitIRExprToMemory(node.expr_ret, result.dst, tc, id_gen)
+                    EmitIRExprToMemory(node.expr_ret, result.dst, ta, id_gen)
             else:
                 # nothing to save here
-                EmitIRExpr(node.expr_ret, tc, id_gen)
+                EmitIRExpr(node.expr_ret, ta, id_gen)
             print(f"{TAB}bra {result.end_label}  # end of expr")
         else:
-            out = EmitIRExpr(node.expr_ret, tc, id_gen)
+            out = EmitIRExpr(node.expr_ret, ta, id_gen)
             if not node.expr_ret.x_type.is_void_or_wrapped_void():
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
@@ -825,51 +825,51 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.Tar
     elif isinstance(node, cwast.StmtExpr):
         ct: cwast.CanonType = node.expr.x_type
         if ct.is_void_or_wrapped_void() or ct.fits_in_register():
-            EmitIRExpr(node.expr, tc, id_gen)
+            EmitIRExpr(node.expr, ta, id_gen)
         else:
             name = id_gen.NewName("stmt_stk_var")
             assert ct.size > 0
             print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
             base = id_gen.NewName("stmt_stk_base")
-            kind = tc.get_data_address_reg_type()
+            kind = ta.get_data_address_reg_type()
             print(f"{TAB}lea.stk {base}:{kind} {name} 0")
-            EmitIRExprToMemory(node.expr,  BaseOffset(base, 0), tc, id_gen)
+            EmitIRExprToMemory(node.expr,  BaseOffset(base, 0), ta, id_gen)
     elif isinstance(node, cwast.StmtIf):
         label_f = id_gen.NewName("br_f")
         label_join = id_gen.NewName("br_join")
         if node.body_t and node.body_f:
-            EmitIRConditional(node.cond, True, label_f, tc, id_gen)
+            EmitIRConditional(node.cond, True, label_f, ta, id_gen)
             for c in node.body_t:
-                EmitIRStmt(c, result, tc, id_gen)
+                EmitIRStmt(c, result, ta, id_gen)
             if not IsUnconditionalBranch(node.body_t[-1]):
                 print(f"{TAB}bra {label_join}")
             print(f".bbl {label_f}")
             for c in node.body_f:
-                EmitIRStmt(c, result, tc, id_gen)
+                EmitIRStmt(c, result, ta, id_gen)
             print(f".bbl {label_join}")
         elif node.body_t:
-            EmitIRConditional(node.cond, True, label_join, tc, id_gen)
+            EmitIRConditional(node.cond, True, label_join, ta, id_gen)
             for c in node.body_t:
-                EmitIRStmt(c, result, tc, id_gen)
+                EmitIRStmt(c, result, ta, id_gen)
             print(f".bbl {label_join}")
         elif node.body_f:
-            EmitIRConditional(node.cond, False, label_join, tc, id_gen)
+            EmitIRConditional(node.cond, False, label_join, ta, id_gen)
             for c in node.body_f:
-                EmitIRStmt(c, result, tc, id_gen)
+                EmitIRStmt(c, result, ta, id_gen)
             print(f".bbl {label_join}")
         else:
-            EmitIRConditional(node.cond, False, label_join, tc, id_gen)
+            EmitIRConditional(node.cond, False, label_join, ta, id_gen)
             print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
         lhs = node.lhs
         if lhs.x_type.fits_in_register() and _AssignmentLhsIsInReg(lhs):
             assert isinstance(node.lhs, cwast.Id)
-            out = EmitIRExpr(node.expr_rhs, tc, id_gen)
+            out = EmitIRExpr(node.expr_rhs, ta, id_gen)
             print(f"{TAB}mov {lhs.x_symbol.name} = {out}  # {node}")
         else:
-            lhs = _GetLValueAddressAsBaseOffset(lhs, tc, id_gen)
+            lhs = _GetLValueAddressAsBaseOffset(lhs, ta, id_gen)
             assert node.expr_rhs.x_type.size > 0, f"{node.expr_rhs} {node.x_srcloc} {node.expr_rhs.x_type}"
-            EmitIRExprToMemory(node.expr_rhs, lhs, tc, id_gen)
+            EmitIRExprToMemory(node.expr_rhs, lhs, ta, id_gen)
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
     else:
@@ -897,7 +897,7 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"   # intentioanlly not zero?
 
 
-def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TargetArchConfig) -> int:
+def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> int:
     """Note there is some similarity to  EmitIRExprToMemory
 
     returns the amount of bytes emitted
@@ -924,16 +924,16 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TargetArchConfig) -> 
             # we need to emit an address
             assert isinstance(node.container, cwast.Id), f"{node.container}"
             name = node.container.x_symbol.name
-            print(f".addr.mem {tc.get_address_size()} {name} 0")
+            print(f".addr.mem {ta.get_address_size()} {name} 0")
             # assert False, f"{name} {node.container}"
-            return tc.get_address_size()
+            return ta.get_address_size()
         elif isinstance(node, cwast.ExprAddrOf):
             assert isinstance(
                 node.expr_lhs, cwast.Id), "NYI complex static addresses"
             data = node.expr_lhs
             print(
-                f"\n.addr.mem {tc.get_address_size()} {data.x_symbol.name} 0")
-            return tc.get_address_size()
+                f"\n.addr.mem {ta.get_address_size()} {data.x_symbol.name} 0")
+            return ta.get_address_size()
         elif isinstance(node, cwast.ExprWiden):
             count = _emit_recursively(node.expr, node.expr.x_type, offset)
             target = node.x_type.size
@@ -1014,12 +1014,12 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TargetArchConfig) -> 
                              node.type_or_auto.x_type, 0)
 
 
-def EmitIRDefFun(node: cwast.DefFun, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
+def EmitIRDefFun(node: cwast.DefFun, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
     if not node.extern:
         _EmitFunctionHeader(node.name, "NORMAL", node.x_type)
         _EmitFunctionProlog(node, id_gen)
         for c in node.body:
-            EmitIRStmt(c, None, tc, id_gen)
+            EmitIRStmt(c, None, ta, id_gen)
 
 
 def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
