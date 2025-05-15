@@ -457,19 +457,14 @@ class TypeCorpus:
     def get_void_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.VOID]
 
-    def _finalize(self, ct: cwast.CanonType):
-        if not self._initial_typing:
-            SetAbiInfoRecursively(ct, self._target_arch_config)
-        if not ct.original_type:
-            ct.typeid = self._typeid_curr
-            self._typeid_curr += 1
+
 
     def SetAbiInfoForall(self):
         for ct in self.corpus.values():
             SetAbiInfoRecursively(ct, self._target_arch_config)
         self._initial_typing = False
 
-    def _insert(self, ct: cwast.CanonType, finalize=True) -> cwast.CanonType:
+    def _insert(self, ct: cwast.CanonType) -> cwast.CanonType:
         """The only type not finalized here are Recs"""
         assert ct.name not in self.corpus, f"duplicate insertion of type: {ct.name}"
 
@@ -478,8 +473,11 @@ class TypeCorpus:
         self.topo_order.append(ct)
         assert STRINGIFIEDTYPE_RE.fullmatch(
             ct.name), f"bad type name [{ct.name}]"
-        if finalize:
-            self._finalize(ct)
+        if not self._initial_typing:
+            SetAbiInfoRecursively(ct, self._target_arch_config)
+        if not ct.original_type:
+            ct.typeid = self._typeid_curr
+            self._typeid_curr += 1
         return ct
 
     def _insert_base_type(self, kind: cwast.BASE_TYPE_KIND) -> cwast.CanonType:
@@ -527,8 +525,6 @@ class TypeCorpus:
         ct = cwast.CanonType(cwast.DefRec, name, ast_node=ast_node)
         return self._insert(ct)
 
-
-
     def InsertEnumType(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefEnum)
@@ -573,13 +569,12 @@ class TypeCorpus:
         name = f"wrapped<{name}>"
         assert name not in self.corpus
         ct = cwast.CanonType(cwast.DefType, name)
-        return self._insert(ct, finalize=False)
+        return self._insert(ct)
 
     def InsertWrappedTypeFinalize(self, ct: cwast.CanonType,
                                   ct_wrapped: cwast.CanonType) -> cwast.CanonType:
         assert not ct_wrapped.is_wrapped()
         ct.children = [ct_wrapped]
-        self._finalize(ct)
 
     def insert_union_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
         assert all.node is cwast.TypeUnion, f"expect sum type: {all.name}"

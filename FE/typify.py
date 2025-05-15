@@ -1239,11 +1239,25 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
     cwast.VisitAstRecursivelyWithParentPost(node, visitor, None)
 
 
-def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
-                       tc: type_corpus.TypeCorpus):
-    # make rec types known without fully processing the rec fields
-    # so that they can be used for recursive type definitions
-    # We stil need to process the fields which is done later below
+def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
+                         tc: type_corpus.TypeCorpus):
+    """This checks types and maps them to a canonical node
+
+    Since array type include a fixed bound this also also includes
+    the evaluation of constant expressions.
+
+    The following node fields will be initialized:
+    * x_type
+    * x_field
+    * some x_value (only array dimention as they are related to types)
+    * some x_symbol for polymorphic invocations
+    """
+
+    # The 3 types below have the module name in their canonical type name
+    # We process them first while we know that module name.
+    # We could just do the processing when we encounter them naturally
+    # during processing or recursion but then we do not have access to the
+    # module name.
     for mod in mod_topo_order:
         mod_name = str(mod.name)
         for node in mod.body_mod:
@@ -1257,8 +1271,8 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
                 ct = tc.InsertWrappedTypePrep(f"{mod_name}/{node.name}")
                 AnnotateNodeType(node, ct)
 
-    # now finalize the DefRec, this two phase approach is necessary because the fields
-    # could be pointers to this DefRec or others.
+    # Now handle the child nodes which have become unvisible to the recursion
+    # because parent has a type annotation
     poly_map = _PolyMap(tc)
     for mod in mod_topo_order:
         for node in mod.body_mod:
@@ -1285,25 +1299,6 @@ def PopulateTypeCorpus(mod_topo_order: list[cwast.DefMod],
                 else:
                     AnnotateNodeType(node, ct)
 
-    return poly_map
-
-
-def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
-                         tc: type_corpus.TypeCorpus):
-    """This checks types and maps them to a canonical node
-
-    Since array type include a fixed bound this also also includes
-    the evaluation of constant expressions.
-
-    The following node fields will be initialized:
-    * x_type
-    * x_field
-    * some x_value (only array dimention as they are related to types)
-    * some x_symbol for polymorphic invocations
-    """
-
-    poly_map = PopulateTypeCorpus(mod_topo_order, tc)
-
     # deal with the top level stuff - not function bodies
     for mod in mod_topo_order:
         for node in mod.body_mod:
@@ -1323,7 +1318,10 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                     _TypifyStatement(
                         c, tc, node.result.x_type, poly_map)
 
+    # after this call, all invocations of InsertXXXType() will set thw AbiInfo
+    # implicitly
     tc.SetAbiInfoForall()
+
 
 def RemoveUselessCast(node, tc: type_corpus.TypeCorpus):
     def replacer(node, _parent):
