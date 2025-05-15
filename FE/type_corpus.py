@@ -215,6 +215,21 @@ _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, list[str]] = {
 }
 
 
+@dataclasses.dataclass()
+class TargetArchConfig:
+    """target system config"""
+    uint_bitwidth: int    # also used for ptr cast to ints
+    sint_bitwidth: int
+    typeid_bitwidth: int
+    data_addr_bitwidth: int  # it is hard to imagine: data_addr_bitwidth != uint_bitwidth
+    code_addr_bitwidth: int
+
+
+STD_TARGET_X64 = TargetArchConfig(64, 64, 16, 64, 64)
+STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64)
+STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32)
+
+
 def _get_size_and_offset_for_union_type(ct: cwast.CanonType, tag_size, ptr_size):
     assert ct.node is cwast.TypeUnion
     num_void = 0
@@ -263,19 +278,36 @@ def _get_size_and_alignment_and_set_offsets_for_rec_type(ct: cwast.CanonType):
     return size, alignment
 
 
-@dataclasses.dataclass()
-class TargetArchConfig:
-    """target system config"""
-    uint_bitwidth: int    # also used for ptr cast to ints
-    sint_bitwidth: int
-    typeid_bitwidth: int
-    data_addr_bitwidth: int  # it is hard to imagine: data_addr_bitwidth != uint_bitwidth
-    code_addr_bitwidth: int
-
-
-STD_TARGET_X64 = TargetArchConfig(64, 64, 16, 64, 64)
-STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64)
-STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32)
+def _get_size_and_alignment(ct: cwast.CanonType, target_arch_config: TargetArchConfig):
+    if ct.node is cwast.TypeBase:
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
+        return size, size
+    elif ct.node is cwast.TypePtr:
+        size = target_arch_config.code_addr_bitwidth // 8
+        return size, size
+    elif ct.node is cwast.TypeSpan:
+        # span is converted to (pointer, length) tuple
+        ptr_field_size = target_arch_config.data_addr_bitwidth // 8
+        len_field_size = target_arch_config.uint_bitwidth // 8
+        return ptr_field_size + len_field_size, ptr_field_size
+    elif ct.node is cwast.TypeVec:
+        return ct.children[0].aligned_size() * ct.dim, ct.children[0].alignment
+    elif ct.node is cwast.TypeUnion:
+        return _get_size_and_offset_for_union_type(
+            ct, target_arch_config.typeid_bitwidth // 8,
+            target_arch_config.data_addr_bitwidth // 8)
+    elif ct.node is cwast.DefEnum:
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
+        return size, size
+    elif ct.node is cwast.TypeFun:
+        size = target_arch_config.code_addr_bitwidth // 8
+        return size, size
+    elif ct.node is cwast.DefType:
+        return _get_size_and_alignment(ct.children[0], target_arch_config)
+    elif ct.node is cwast.DefRec:
+        return _get_size_and_alignment_and_set_offsets_for_rec_type(ct)
+    else:
+        assert False, f"unknown type {ct}"
 
 
 class TypeCorpus:
@@ -405,36 +437,6 @@ class TypeCorpus:
             assert False, f"unknown type {ct.name}"
             return None
 
-    def _get_size_and_alignment(self, ct: cwast.CanonType):
-        if ct.node is cwast.TypeBase:
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
-            return size, size
-        elif ct.node is cwast.TypePtr:
-            size = self._target_arch_config.code_addr_bitwidth // 8
-            return size, size
-        elif ct.node is cwast.TypeSpan:
-            # span is converted to (pointer, length) tuple
-            ptr_field_size = self._target_arch_config.data_addr_bitwidth // 8
-            len_field_size = self._target_arch_config.uint_bitwidth // 8
-            return ptr_field_size + len_field_size, ptr_field_size
-        elif ct.node is cwast.TypeVec:
-            return ct.children[0].aligned_size() * ct.dim, ct.children[0].alignment
-        elif ct.node is cwast.TypeUnion:
-            return _get_size_and_offset_for_union_type(
-                ct, self._target_arch_config.typeid_bitwidth // 8,
-                self._target_arch_config.data_addr_bitwidth // 8)
-        elif ct.node is cwast.DefEnum:
-            size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
-            return size, size
-        elif ct.node is cwast.TypeFun:
-            size = self._target_arch_config.code_addr_bitwidth // 8
-            return size, size
-        elif ct.node is cwast.DefType:
-            return self._get_size_and_alignment(ct.children[0])
-        else:
-            # Note, DefRec is not handled here
-            assert False, f"unknown type {ct}"
-
     def _finalize(self, ct: cwast.CanonType, size, alignment):
         if not ct.original_type:
             ct.typeid = self._typeid_curr
@@ -451,7 +453,8 @@ class TypeCorpus:
         assert STRINGIFIEDTYPE_RE.fullmatch(
             ct.name), f"bad type name [{ct.name}]"
         if finalize:
-            size, alignment = self._get_size_and_alignment(ct)
+            size, alignment = _get_size_and_alignment(
+                ct, self._target_arch_config)
             self._finalize(ct, size, alignment)
         return ct
 
@@ -499,8 +502,7 @@ class TypeCorpus:
         return self._insert(cwast.CanonType(cwast.DefRec, name, ast_node=ast_node), finalize=False)
 
     def FinalizeRecType(self, ct: cwast.CanonType):
-        size, alignment = _get_size_and_alignment_and_set_offsets_for_rec_type(
-            ct)
+        size, alignment = _get_size_and_alignment(ct, self._target_arch_config)
         self._finalize(ct, size, alignment)
 
     def InsertEnumType(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:
@@ -550,7 +552,7 @@ class TypeCorpus:
                                   ct_wrapped: cwast.CanonType) -> cwast.CanonType:
         assert not ct_wrapped.is_wrapped()
         ct.children = [ct_wrapped]
-        size, alignment = self._get_size_and_alignment(ct)
+        size, alignment = _get_size_and_alignment(ct, self._target_arch_config)
         self._finalize(ct, size, alignment)
 
     def insert_union_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
