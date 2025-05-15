@@ -192,7 +192,7 @@ def is_repeated_single_char(data: bytes):
 ZERO_INDEX = "0"
 
 
-def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
+def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TargetArchConfig,
                         id_gen: identifier.IdGenIR) -> str:
     if offset_expr.x_value is not None:
         return offset_expr.x_value * scale
@@ -201,15 +201,14 @@ def OffsetScaleToOffset(offset_expr, scale: int, tc: type_corpus.TypeCorpus,
         if scale == 1:
             return offset
         scaled = id_gen.NewName("scaled")
-        sint_type = tc.get_sint_canon_type()
         print(
-            f"{TAB}conv {scaled}:{sint_type.get_single_register_type()} = {offset}")
+            f"{TAB}conv {scaled}:{tc.get_sint_reg_type()} = {offset}")
         print(
             f"{TAB}mul {scaled} = {scaled} {scale}")
         return scaled
 
 
-def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
+def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TargetArchConfig,
                                   id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type: cwast.CanonType = node.container.x_type
@@ -255,7 +254,7 @@ def _GetLValueAddressAsBaseOffset(node, tc: type_corpus.TypeCorpus,
         assert False, f"unsupported node for lvalue {node} at {node.x_srcloc}"
 
 
-def _GetLValueAddress(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> str:
+def _GetLValueAddress(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> str:
     bo = _GetLValueAddressAsBaseOffset(node, tc, id_gen)
     if bo.offset == 0:
         return bo.base
@@ -289,7 +288,7 @@ def IsUnconditionalBranch(node):
     return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
 
 
-def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.TypeCorpus,
+def EmitIRConditional(cond, invert: bool, label_false: str, tc: type_corpus.TargetArchConfig,
                       id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     if cond.x_value is True:
@@ -436,7 +435,7 @@ def _FormatNumber(val: cwast.ValNum) -> str:
         assert False, f"unsupported scalar: {val}"
 
 
-def EmitIRExpr(node, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR) -> Any:
+def EmitIRExpr(node, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
     assert ct_dst.is_void_or_wrapped_void(
@@ -619,7 +618,7 @@ def _EmitZero(dst: BaseOffset, length, alignment,
 
 
 def EmitIRExprToMemory(init_node, dst: BaseOffset,
-                       tc: type_corpus.TypeCorpus,
+                       tc: type_corpus.TargetArchConfig,
                        id_gen: identifier.IdGenIR):
     """This will instantiate objects on the stack or heap.
 
@@ -752,7 +751,7 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
             curr += width
 
 
-def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.TypeCorpus,
+def EmitIRStmt(node, result: Optional[ReturnResultLocation], tc: type_corpus.TargetArchConfig,
                id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         # name translation!
@@ -898,7 +897,7 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"   # intentioanlly not zero?
 
 
-def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
+def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TargetArchConfig) -> int:
     """Note there is some similarity to  EmitIRExprToMemory
 
     returns the amount of bytes emitted
@@ -1015,7 +1014,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, tc: type_corpus.TypeCorpus) -> int:
                              node.type_or_auto.x_type, 0)
 
 
-def EmitIRDefFun(node: cwast.DefFun, tc: type_corpus.TypeCorpus, id_gen: identifier.IdGenIR):
+def EmitIRDefFun(node: cwast.DefFun, tc: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
     if not node.extern:
         _EmitFunctionHeader(node.name, "NORMAL", node.x_type)
         _EmitFunctionProlog(node, id_gen)
@@ -1119,7 +1118,8 @@ def main() -> int:
                     allow_type_auto=False, pre_symbolize=True)
 
     logger.info("Typify the nodes")
-    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(_ARCH_MAP[args.arch])
+    ta: type_corpus.TargetArchConfig = _ARCH_MAP[args.arch]
+    tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(ta)
     typify.DecorateASTWithTypes(mod_topo_order, tc)
     for mod in mod_topo_order:
         typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
@@ -1287,11 +1287,11 @@ def main() -> int:
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
-                EmitIRDefGlobal(node, tc)
+                EmitIRDefGlobal(node, ta)
         for node in mod.body_mod:
 
             if isinstance(node, cwast.DefFun):
-                EmitIRDefFun(node, tc, identifier.IdGenIR())
+                EmitIRDefFun(node, ta, identifier.IdGenIR())
     return 0
 
 

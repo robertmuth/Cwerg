@@ -224,6 +224,18 @@ class TargetArchConfig:
     data_addr_bitwidth: int  # it is hard to imagine: data_addr_bitwidth != uint_bitwidth
     code_addr_bitwidth: int
 
+    def get_data_address_reg_type(self):
+        return f"A{self.data_addr_bitwidth}"
+
+    def get_uint_reg_type(self):
+        return f"U{self.uint_bitwidth}"
+
+    def get_sint_reg_type(self):
+        return f"S{self.sint_bitwidth}"
+
+    def get_address_size(self):
+        return self.data_addr_bitwidth // 8
+
 
 STD_TARGET_X64 = TargetArchConfig(64, 64, 16, 64, 64)
 STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64)
@@ -365,15 +377,6 @@ class TypeCorpus:
     def get_void_canon_type(self):
         return self._base_type_map[cwast.BASE_TYPE_KIND.VOID]
 
-    def get_data_address_reg_type(self):
-        return f"A{self._target_arch_config.data_addr_bitwidth}"
-
-    def get_uint_reg_type(self):
-        return f"U{self._target_arch_config.uint_bitwidth}"
-
-    def get_address_size(self):
-        return self._target_arch_config.data_addr_bitwidth // 8
-
     def _get_register_type_for_union_type(self, ct: cwast.CanonType) -> Optional[list[str]]:
         assert ct.node is cwast.TypeUnion
         num_void = 0
@@ -409,9 +412,10 @@ class TypeCorpus:
         if ct.node is cwast.TypeBase:
             return _BASE_TYPE_MAP.get(ct.base_type_kind)
         elif ct.node is cwast.TypePtr:
-            return [self.get_data_address_reg_type()]
+            return [self._target_arch_config.get_data_address_reg_type()]
         elif ct.node is cwast.TypeSpan:
-            return [self.get_data_address_reg_type(), self.get_uint_reg_type()]
+            return [self._target_arch_config.get_data_address_reg_type(),
+                    self._target_arch_config.get_uint_reg_type()]
         elif ct.node is cwast.DefRec:
             assert isinstance(ct.ast_node, cwast.DefRec)
             fields = ct.ast_node.fields
