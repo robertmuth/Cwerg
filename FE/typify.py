@@ -235,23 +235,22 @@ def _GetExprStmtType(root: cwast.ExprStmt) -> cwast.CanonType:
 
 
 def _TypifyDefGlobalOrDefVar(node, tc: type_corpus.TypeCorpus,
-                             pm: _PolyMap):
+                             pm: _PolyMap) -> cwast.CanonType:
     initial = node.initial_or_undef_or_auto
-    if isinstance(node.type_or_auto, cwast.TypeAuto):
+    type = node.type_or_auto
+    if isinstance(type, cwast.TypeAuto):
         assert not isinstance(initial, cwast.ValUndef)
-        ct = _TypifyNodeRecursively(
-            node.initial_or_undef_or_auto, tc, cwast.NO_TYPE, pm)
-        _TypifyNodeRecursively(node.type_or_auto, tc, ct, pm)
+        ct = _TypifyNodeRecursively(initial, tc, cwast.NO_TYPE, pm)
+        _TypifyNodeRecursively(type, tc, ct, pm)
     else:
-        ct = _TypifyNodeRecursively(
-            node.type_or_auto, tc, cwast.NO_TYPE, pm)
+        ct = _TypifyNodeRecursively(type, tc, cwast.NO_TYPE, pm)
         if not isinstance(initial, cwast.ValUndef):
             _TypifyNodeRecursively(initial, tc, ct, pm)
-    AnnotateNodeType(node, ct)
+    return AnnotateNodeType(node, ct)
 
 
 def _TypifyTypeFunOrDefFun(node, tc: type_corpus.TypeCorpus,
-                           pm: _PolyMap):
+                           pm: _PolyMap) -> cwast.CanonType:
     params = []
     for p in node.params:
         assert isinstance(p, cwast.FunParam)
@@ -399,11 +398,9 @@ def _TypifyId(node: cwast.Id, tc: type_corpus.TypeCorpus,
     ct = def_node.x_type
     if ct == cwast.NO_TYPE:
         if isinstance(def_node, (cwast.DefVar, cwast.DefGlobal)):
-            _TypifyDefGlobalOrDefVar(def_node, tc, pm)
-            ct = def_node.x_type
+            ct = _TypifyDefGlobalOrDefVar(def_node, tc, pm)
         elif isinstance(def_node, cwast.DefFun):
-            _TypifyTypeFunOrDefFun(node, tc, pm)
-            ct = def_node.x_type
+            ct = _TypifyTypeFunOrDefFun(node, tc, pm)
         else:
             assert False, f"symbol should have a type: {node} -> {def_node}"
     assert ct != cwast.NO_TYPE
@@ -493,26 +490,27 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         if node.binary_expr_kind.ResultIsBool():
             # for comparisons the type of the expressions has nothing to do with
             # the type of the operands
-            # TODO introduce BINOP_OPS_HAVE_SAME_TYPE_AS_EXPRESSION
             target_type = cwast.NO_TYPE
-        ct = _TypifyNodeRecursively(
-            node.expr1, tc, target_type, pm)
-        if node.binary_expr_kind.OpsHaveSameType() and ct.is_number():
-            ct2 = _TypifyNodeRecursively(node.expr2, tc, ct, pm)
+        ct_left = _TypifyNodeRecursively(node.expr1, tc, target_type, pm)
+        if ct_left.is_number():
+            ct_right = _TypifyNodeRecursively(node.expr2, tc, ct_left, pm)
         else:
-            ct2 = _TypifyNodeRecursively(
+            ct_right = _TypifyNodeRecursively(
                 node.expr2, tc, cwast.NO_TYPE, pm)
 
         if node.binary_expr_kind.ResultIsBool():
             ct = tc.get_bool_canon_type()
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
-            if ct.is_pointer():
-                assert ct2.is_pointer()
-                ct = tc.get_sint_canon_type()
-            elif ct.is_span():
-                assert ct2.is_span()
+            ct = tc.get_sint_canon_type()
+            if ct_left.is_pointer():
+                assert ct_right.is_pointer()
+            elif ct_left.is_span():
+                # TODO: is this still used
+                assert ct_right.is_span()
             else:
                 assert False
+        else:
+            ct = ct_left
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprPointer):
         ct = _TypifyNodeRecursively(node.expr1, tc, target_type, pm)
