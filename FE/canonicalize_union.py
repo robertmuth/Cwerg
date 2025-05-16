@@ -28,7 +28,7 @@ def _MakeUnionReplacementStruct(union_type: cwast.CanonType,
                                 tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     assert not union_type.untagged
     fields = [
-        (SUM_FIELD_TAG, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.TYPEID)),
+        (SUM_FIELD_TAG, tc.get_typeid_canon_type()),
         (SUM_FIELD_UNION, tc.InsertUnionType(
             True, union_type.union_member_types()))
     ]

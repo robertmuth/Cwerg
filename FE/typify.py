@@ -59,8 +59,7 @@ def address_can_be_taken(node) -> bool:
             address_can_be_taken(node.container))
 
 
-def _NumCleanupAndTypeExtraction(num: str) -> tuple[str, cwast.BASE_TYPE_KIND]:
-    num = num.replace("_", "").replace(".nan", "nan").replace(".inf", "inf")
+def _NumCleanupAndTypeExtraction(num: str, target_kind: cwast.BASE_TYPE_KIND) -> tuple[str, cwast.BASE_TYPE_KIND]:
     suffix = ""
     if num[-4:] in ("uint", "sint"):
         suffix = num[-4:]
@@ -69,44 +68,42 @@ def _NumCleanupAndTypeExtraction(num: str) -> tuple[str, cwast.BASE_TYPE_KIND]:
     elif num[-2:] in ("u8", "s8"):
         suffix = num[-2:]
     else:
-        return num, cwast.BASE_TYPE_KIND.INVALID
+        return num, target_kind
     return num[:-len(suffix)], cwast.BASE_TYPE_KIND[suffix.upper()]
 
 
-def ParseNumRaw(num_val: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,  cwast.BASE_TYPE_KIND]:
+def ParseNumRaw(num_val: cwast.ValNum, target_kind: cwast.BASE_TYPE_KIND) -> Tuple[Any,  cwast.BASE_TYPE_KIND]:
     num = num_val.number
     if num[0] == "'":
-        if kind is cwast.BASE_TYPE_KIND.INVALID:
+        if target_kind is cwast.BASE_TYPE_KIND.INVALID:
             cwast.CompilerError(
                 num_val.x_srcloc, f"Number needs explicit type {num_val}")
         assert num[-1] == "'"
         if num[1] == "\\":
             if num[2] == "n":
-                return ord('\n'), kind
+                return ord('\n'), target_kind
             elif num[2] == "t":
-                return ord('\t'), kind
+                return ord('\t'), target_kind
             elif num[2] == "r":
-                return ord('\r'), kind
+                return ord('\r'), target_kind
             elif num[2] == "\\":
-                return ord('\\'), kind
+                return ord('\\'), target_kind
             assert False, f"unsupported escape sequence: [{num}]"
 
         else:
-            return ord(num[1]), kind
+            return ord(num[1]), target_kind
 
-    num, kind_explicit = _NumCleanupAndTypeExtraction(num)
-    if kind_explicit != cwast.BASE_TYPE_KIND.INVALID:
-        kind = kind_explicit
-
-    if kind.IsInt():
-        return int(num, 0), kind
-    elif kind.IsReal():
+    num, target_kind = _NumCleanupAndTypeExtraction(num, target_kind)
+    num = num.replace("_", "").replace(".inf", "inf").replace(".nan", "nan")
+    if target_kind.IsInt():
+        return int(num, 0), target_kind
+    elif target_kind.IsReal():
         if "0x" in num:
-            return float.fromhex(num), kind
-        return float(num), kind
+            return float.fromhex(num), target_kind
+        return float(num), target_kind
     else:
         cwast.CompilerError(
-            num_val.x_srcloc, f"cannot parse number: {num} {kind}")
+            num_val.x_srcloc, f"cannot parse number: {num} {target_kind}")
         return (None, cwast.BASE_TYPE_KIND.INVALID)
 
 
@@ -449,8 +446,8 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValUndef):
         assert False, "Must not try to typify UNDEF"
     elif isinstance(node, cwast.ValNum):
-        target_kind = target_type.base_type_kind if target_type else cwast.BASE_TYPE_KIND.INVALID
-        actual_kind = ParseNumRaw(node, target_kind)[1]
+        target_kind = cwast.BASE_TYPE_KIND.INVALID if target_type == cwast.NO_TYPE else target_type.base_type_kind
+        actual_kind = _NumCleanupAndTypeExtraction(node.number, target_kind)[1]
         ct = tc.get_base_canon_type(actual_kind)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ValAuto):
@@ -493,20 +490,20 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyNodeRecursively(node.expr, tc, target_type, pm)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.Expr2):
-        if node.binary_expr_kind in cwast.BINOP_BOOL:
+        if node.binary_expr_kind.ResultIsBool():
             # for comparisons the type of the expressions has nothing to do with
             # the type of the operands
             # TODO introduce BINOP_OPS_HAVE_SAME_TYPE_AS_EXPRESSION
             target_type = cwast.NO_TYPE
         ct = _TypifyNodeRecursively(
             node.expr1, tc, target_type, pm)
-        if node.binary_expr_kind in cwast.BINOP_OPS_HAVE_SAME_TYPE and ct.is_number():
+        if node.binary_expr_kind.OpsHaveSameType() and ct.is_number():
             ct2 = _TypifyNodeRecursively(node.expr2, tc, ct, pm)
         else:
             ct2 = _TypifyNodeRecursively(
                 node.expr2, tc, cwast.NO_TYPE, pm)
 
-        if node.binary_expr_kind in cwast.BINOP_BOOL:
+        if node.binary_expr_kind.ResultIsBool():
             ct = tc.get_bool_canon_type()
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
             if ct.is_pointer():
@@ -714,7 +711,7 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
     if kind in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
         assert result_type.is_bool()
         _CheckTypeCompatibleForEq(node, op1_type, op2_type)
-    elif kind in cwast.BINOP_BOOL:
+    elif kind.ResultIsBool():
         assert op1_type.is_base_type() and result_type.is_bool()
         _CheckTypeSame(node, op1_type, op2_type)
     elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
@@ -1260,7 +1257,8 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                 for f in node.items:
                     assert isinstance(f,  cwast.EnumVal)
                     _TypifyNodeRecursively(
-                        f.value_or_auto, tc, ct, poly_map)
+                        f.value_or_auto, tc,
+                        tc.get_base_canon_type(ct.base_type_kind), poly_map)
                     AnnotateNodeType(f, ct)
             elif isinstance(node, cwast.DefType):
                 ct = _TypifyNodeRecursively(

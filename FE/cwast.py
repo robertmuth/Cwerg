@@ -96,27 +96,27 @@ class BASE_TYPE_KIND(enum.Enum):
     TYPEID = 43
 
     def IsUint(self) -> bool:
-        return self.UINT.value <= self.value <= self.U64.value
+        return BASE_TYPE_KIND.UINT.value <= self.value <= BASE_TYPE_KIND.U64.value
 
     def IsSint(self) -> bool:
-        return self.SINT.value <= self.value <= self.S64.value
+        return BASE_TYPE_KIND.SINT.value <= self.value <= BASE_TYPE_KIND.S64.value
 
     def IsInt(self) -> bool:
-        return self.SINT.value <= self.value <= self.U64.value
+        return BASE_TYPE_KIND.SINT.value <= self.value <= BASE_TYPE_KIND.U64.value
 
     def IsReal(self) -> bool:
-        return self in (self.R32, self.R64)
+        return self in (BASE_TYPE_KIND.R32, BASE_TYPE_KIND.R64)
 
     def IsNumber(self) -> bool:
-        return self.SINT.value <= self.value <= self.R64.value
+        return BASE_TYPE_KIND.SINT.value <= self.value <= BASE_TYPE_KIND.R64.value
 
     @classmethod
     def MakeUint(cls, size: int) -> "BASE_TYPE_KIND":
-        return {8: cls.U8, 16: cls.U16, 32: cls.U32, 64: cls.U64}[size]
+        return {8: BASE_TYPE_KIND.U8, 16: BASE_TYPE_KIND.U16, 32: BASE_TYPE_KIND.U32, 64: BASE_TYPE_KIND.U64}[size]
 
     @classmethod
     def MakeSint(cls, size: int) -> "BASE_TYPE_KIND":
-        return {8: cls.S8, 16: cls.S16, 32: cls.S32, 64: cls.S64}[size]
+        return {8: BASE_TYPE_KIND.S8, 16: BASE_TYPE_KIND.S16, 32: BASE_TYPE_KIND.S32, 64: BASE_TYPE_KIND.S64}[size]
 
 
 BASE_TYPE_KIND_TO_SIZE: dict[BASE_TYPE_KIND, int] = {
@@ -232,6 +232,12 @@ class BINARY_EXPR_KIND(enum.Enum):
     ROTL = 43    # <<<
 
     PDELTA = 52  # pointer delta result is sint
+
+    def ResultIsBool(self) -> bool:
+        return BINARY_EXPR_KIND.EQ.value <= self.value <= BINARY_EXPR_KIND.ORSC.value
+
+    def OpsHaveSameType(self) -> bool:
+        return self is not BINARY_EXPR_KIND.PDELTA
 
 
 BINARY_EXPR_SHORTCUT = {
@@ -2973,49 +2979,7 @@ class DefMacro:
         return f"{NODE_NAME(self)} {self.name}"
 
 
-BINOP_BOOL = {
-    BINARY_EXPR_KIND.GE,
-    BINARY_EXPR_KIND.GT,
-    BINARY_EXPR_KIND.LE,
-    BINARY_EXPR_KIND.LT,
-    BINARY_EXPR_KIND.EQ,
-    BINARY_EXPR_KIND.NE,
-    BINARY_EXPR_KIND.ANDSC,
-    BINARY_EXPR_KIND.ORSC,
-}
-
-BINOP_OPS_HAVE_SAME_TYPE = {
-    BINARY_EXPR_KIND.GE,
-    BINARY_EXPR_KIND.GT,
-    BINARY_EXPR_KIND.LE,
-    BINARY_EXPR_KIND.LT,
-    BINARY_EXPR_KIND.EQ,
-    BINARY_EXPR_KIND.NE,
-    #
-    BINARY_EXPR_KIND.ADD,
-    BINARY_EXPR_KIND.SUB,
-    BINARY_EXPR_KIND.MUL,
-    BINARY_EXPR_KIND.DIV,
-    BINARY_EXPR_KIND.MOD,
-    BINARY_EXPR_KIND.MIN,
-    BINARY_EXPR_KIND.MAX,
-    #
-    BINARY_EXPR_KIND.ANDSC,
-    BINARY_EXPR_KIND.ORSC,
-    #
-    BINARY_EXPR_KIND.SHL,
-    BINARY_EXPR_KIND.SHR,
-    BINARY_EXPR_KIND.ROTL,
-    BINARY_EXPR_KIND.ROTR,
-    #
-    BINARY_EXPR_KIND.AND,
-    BINARY_EXPR_KIND.OR,
-    BINARY_EXPR_KIND.XOR,
-}
-
 # NO_SYMBOL = DefType(NAME("", 0), TypeBase(BASE_TYPE_KIND.BOOL))
-
-
 # parent is not also an expression
 TOP_LEVEL_EXPRESSION_NODES = (ExprCall, StmtReturn, StmtCompoundAssignment, StmtAssignment,
                               DefVar, DefGlobal, ValPoint)
