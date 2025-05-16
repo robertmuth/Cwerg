@@ -312,26 +312,6 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return cwast.NO_TYPE
 
 
-def _TypifyTopLevel(node, tc: type_corpus.TypeCorpus,
-                    pm: _PolyMap):
-    if isinstance(node, cwast.Import):
-        return
-    elif isinstance(node, cwast.StmtStaticAssert):
-        _TypifyNodeRecursively(node.cond, tc, tc.get_bool_canon_type(), pm)
-        return
-
-    if node.x_type != cwast.NO_TYPE:
-        return
-
-    if isinstance(node, cwast.DefGlobal):
-        _TypifyDefGlobalOrDefVar(node, tc, pm)
-    elif isinstance(node, cwast.DefFun):
-        # note, this does not recurse into the function body
-        _TypifyTypeFunOrDefFun(node, tc, pm)
-    else:
-        assert False, f"unexpected Node {node}"
-
-
 def _TypifyStmtSeq(body: list[Any], tc: type_corpus.TypeCorpus, tt: cwast.CanonType, ctx: _PolyMap):
     for c in body:
         _TypifyStatement(c, tc, tt, ctx)
@@ -420,23 +400,15 @@ def _TypifyId(node: cwast.Id, tc: type_corpus.TypeCorpus,
     def_node = node.x_symbol
     assert cwast.NF.LOCAL_SYM_DEF in def_node.FLAGS or cwast.NF.GLOBAL_SYM_DEF in def_node.FLAGS
     ct = def_node.x_type
-    if isinstance(def_node, cwast.DefVar):
-        if ct == cwast.NO_TYPE:
-            _TypifyStatement(def_node, tc, target_type, pm)
+    if ct == cwast.NO_TYPE:
+        if isinstance(def_node, (cwast.DefVar, cwast.DefGlobal)):
+            _TypifyDefGlobalOrDefVar(def_node, tc, pm)
             ct = def_node.x_type
-    elif isinstance(def_node, (cwast.DefType, cwast.DefFun, cwast.DefEnum, cwast.DefGlobal)):
-        if ct == cwast.NO_TYPE:
-            # assert False, f"{node} {node.x_srcloc}"
-            _TypifyTopLevel(def_node, tc, pm)
+        elif isinstance(def_node, cwast.DefFun):
+            _TypifyTypeFunOrDefFun(node, tc, pm)
             ct = def_node.x_type
-    elif isinstance(def_node, cwast.EnumVal):
-        # TODO: this assert can happen if we use an enum value at the top level
-        #       before the Enum has been defined.
-        #       What needs to happen is to typify the whole Enum which would require a
-        #       some back reference from the EnumVal to the DefEnum
-        assert ct != cwast.NO_TYPE
-    else:
-        assert isinstance(def_node, (cwast.FunParam,  cwast.DefRec))
+        else:
+            assert False, f"symbol should have a type: {node} -> {def_node}"
     assert ct != cwast.NO_TYPE
     return AnnotateNodeType(node, ct)
 
@@ -1253,7 +1225,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
     * some x_symbol for polymorphic invocations
     """
 
-    # The 3 types below have the module name in their canonical type name
+    # phase 1: process types that have the module name in their canonical type name
     # We process them first while we know that module name.
     # We could just do the processing when we encounter them naturally
     # during processing or recursion but then we do not have access to the
@@ -1271,6 +1243,7 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                 ct = tc.InsertWrappedTypePrep(f"{mod_name}/{node.name}")
                 AnnotateNodeType(node, ct)
 
+    # phase 2: finish processing the types from phase 1
     # Now handle the child nodes which have become unvisible to the recursion
     # because parent has a type annotation
     poly_map = _PolyMap(tc)
@@ -1299,16 +1272,27 @@ def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
                 else:
                     AnnotateNodeType(node, ct)
 
-    # deal with the top level stuff - not function bodies
+    # phase 3: deal with remaining top level stuff - but not function bodies
     for mod in mod_topo_order:
         for node in mod.body_mod:
-            if not isinstance(node, (cwast.DefRec, cwast.DefEnum, cwast.DefType)):
-                # we already dealt with DefRecs
-                _TypifyTopLevel(node, tc, poly_map)
-            if isinstance(node, cwast.DefFun) and node.poly:
-                ct = node.x_type
-                assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
-                poly_map.Register(node)
+            if isinstance(node, (cwast.DefEnum, cwast.DefRec, cwast.DefType, cwast.Import)):
+                pass
+            elif isinstance(node, cwast.StmtStaticAssert):
+                _TypifyNodeRecursively(
+                    node.cond, tc, tc.get_bool_canon_type(), poly_map)
+            elif isinstance(node, cwast.DefGlobal):
+                if node.x_type is cwast.NO_TYPE:
+                    _TypifyDefGlobalOrDefVar(node, tc, poly_map)
+            elif isinstance(node, cwast.DefFun):
+                # note, this does not recurse into the function body
+                if node.x_type is cwast.NO_TYPE:
+                    _TypifyTypeFunOrDefFun(node, tc, poly_map)
+                if node.poly:
+                    ct = node.x_type
+                    assert ct.node is cwast.TypeFun, f"{node} -> {ct.name}"
+                    poly_map.Register(node)
+            else:
+                assert False, f"unexpected Node {node}"
 
     # now typify function bodies
     for mod in mod_topo_order:
