@@ -40,6 +40,10 @@ NT CanonType_kind(CanonType n) { return gCanonTypeCore[n].node; }
 
 bool CanonType_untagged(CanonType n) { return gCanonTypeCore[n].untagged; }
 
+BASE_TYPE_KIND CanonType_base_type_kind(CanonType n) {
+  return gCanonTypeCore[n].base_type_kind;
+}
+
 std::vector<CanonType>& CanonType_children(CanonType n) {
   return gCanonTypeCore[n].children;
 }

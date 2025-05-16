@@ -967,6 +967,16 @@ inline BINARY_EXPR_KIND Node_binary_expr_kind(Node n) {
   return gNodeCore[n].binary_expr_kind;
 }
 
+inline bool IsNumber(BASE_TYPE_KIND x) {
+  return int(BASE_TYPE_KIND::SINT) <= int(x) &&
+         int(x) <= int(BASE_TYPE_KIND::R64);
+}
+
+inline bool ResultIsBool(BINARY_EXPR_KIND x) {
+  return int(BINARY_EXPR_KIND::EQ) <= int(x) &&
+         int(x) <= int(BINARY_EXPR_KIND::ORSC);
+}
+
 inline STR_KIND Node_str_kind(Node n) { return gNodeCore[n].str_kind; }
 
 struct NodeDesc {

@@ -20,6 +20,11 @@ constexpr TargetArchConfig STD_TARGET_A32 = {32, 32, 16, 32, 32};
 
 extern Name CanonType_name(CanonType n);
 extern NT CanonType_kind(CanonType n);
+extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
+
+inline bool CanonType_IsNumber(CanonType n) {
+  return IsNumber(CanonType_base_type_kind(n));
+}
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;
@@ -35,6 +40,21 @@ class TypeCorpus {
 
   CanonType get_base_canon_type(BASE_TYPE_KIND kind) {
     return base_type_map_[kind];
+  }
+
+  CanonType get_void_canon_type() {
+    return base_type_map_[BASE_TYPE_KIND::VOID];
+  }
+  CanonType get_bool_canon_type() {
+    return base_type_map_[BASE_TYPE_KIND::BOOL];
+  }
+
+  CanonType get_sint_canon_type() {
+    return base_type_map_[BASE_TYPE_KIND::SINT];
+  }
+
+  CanonType get_uint_canon_type() {
+    return base_type_map_[BASE_TYPE_KIND::UINT];
   }
 
   CanonType InsertPtrType(bool mut, CanonType child);
