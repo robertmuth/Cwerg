@@ -214,7 +214,7 @@ def _GetLValueAddressAsBaseOffset(node, ta: type_corpus.TargetArchConfig,
         x_type: cwast.CanonType = node.container.x_type
         assert x_type.is_vec(), f"{x_type}"
         base = _GetLValueAddress(node.container, ta, id_gen)
-        offset = OffsetScaleToOffset(node.expr_index, x_type.underlying_array_type().size,
+        offset = OffsetScaleToOffset(node.expr_index, x_type.underlying_vec_type().size,
                                      ta, id_gen)
         return BaseOffset(base, offset)
 
@@ -951,7 +951,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 node, (cwast.ValCompound, cwast.ValString)), f"{node}"
             print(f"# array: {ct.name}")
             width = ct.array_dim()
-            x_type = ct.underlying_array_type()
+            x_type = ct.underlying_vec_type()
             if x_type.is_base_type():
                 value = node.x_value
                 if isinstance(value, bytes):

@@ -265,7 +265,7 @@ def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
         return out
     elif ct.is_vec():
         dim = ct.array_dim()
-        v = _GetDefaultForType(ct.underlying_array_type(), srcloc)
+        v = _GetDefaultForType(ct.underlying_vec_type(), srcloc)
         return [v] * dim
     else:
         assert False, f"{ct} {srcloc}"

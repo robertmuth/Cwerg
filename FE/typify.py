@@ -160,7 +160,7 @@ class _PolyMap:
         # TODO: why do we need this - seems unsafe:
         if first_param_type.is_vec():
             span_type = self._type_corpus. InsertSpanType(
-                False, first_param_type.underlying_array_type())
+                False, first_param_type.underlying_vec_type())
             type_name = span_type.name
 
             out = self._map.get((callee_mod, fun_name, type_name))
@@ -355,14 +355,15 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
                        pm: _PolyMap) -> cwast.CanonType:
     ct = _TypifyNodeRecursively(node.type_or_auto, tc, target_type, pm)
     if ct.is_vec():
+        element_type = ct.underlying_vec_type()
         for point in node.inits:
             assert isinstance(point, cwast.ValPoint)
+            AnnotateNodeType(point, element_type)
+            #
             val = point.value_or_undef
             if not isinstance(val, cwast.ValUndef):
-                _TypifyNodeRecursively(
-                    val, tc, ct.underlying_array_type(), pm)
-            AnnotateNodeType(point, ct.underlying_array_type())
-
+                _TypifyNodeRecursively(val, tc, element_type, pm)
+            #
             index = point.point
             uint_type = tc.get_uint_canon_type()
             if isinstance(index, cwast.ValAuto):
@@ -376,11 +377,6 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
                 field_ct = field.x_type
                 AnnotateNodeType(point, field_ct)
                 if isinstance(point.point, cwast.Id):
-                    # an over-eager symbolizer may have found
-                    # a variable name the matches the field name
-                    # an created a link between the two.
-                    # we overwrite it here again
-                    point.point.x_symbol = cwast.INVALID_SYMBOL
                     AnnotateFieldWithTypeAndSymbol(point.point, field)
                 if not isinstance(point.value_or_undef, cwast.ValUndef):
                     _TypifyNodeRecursively(
@@ -470,11 +466,12 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         if not ct.is_rec():
             cwast.CompilerError(
                 node.x_srcloc, f"container type is not record {node.container}")
-        field_node = tc.lookup_rec_field(ct, node.field.GetBaseNameStrict())
+        field_name = node.field
+        field_node = tc.lookup_rec_field(ct, field_name.GetBaseNameStrict())
         if not field_node:
             cwast.CompilerError(
-                node.x_srcloc, f"unknown record field {node.field}")
-        AnnotateFieldWithTypeAndSymbol(node.field, field_node)
+                node.x_srcloc, f"unknown record field {field_name}")
+        AnnotateFieldWithTypeAndSymbol(field_name, field_node)
         return AnnotateNodeType(node, field_node.x_type)
     elif isinstance(node, cwast.ExprDeref):
         ct = _TypifyNodeRecursively(node.expr, tc, cwast.NO_TYPE, pm)
@@ -747,7 +744,7 @@ def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
 def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
     ct: cwast.CanonType = node.type_or_auto.x_type
     if ct.is_vec():
-        _CheckValVec(node, ct.underlying_array_type())
+        _CheckValVec(node, ct.underlying_vec_type())
     else:
         assert ct.is_rec()
         for field, point in symbolize.IterateValRec(node.inits, ct):
@@ -764,7 +761,7 @@ def _CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus
     """Same as above but we no longer permit implicit conversions """
     ct: cwast.CanonType = node.type_or_auto.x_type
     if ct.is_vec():
-        _CheckValVec(node, ct.underlying_array_type())
+        _CheckValVec(node, ct.underlying_vec_type())
     else:
         assert ct.is_rec()
         for field, point in symbolize.IterateValRec(node.inits, ct):

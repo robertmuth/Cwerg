@@ -236,9 +236,6 @@ class BINARY_EXPR_KIND(enum.Enum):
     def ResultIsBool(self) -> bool:
         return BINARY_EXPR_KIND.EQ.value <= self.value <= BINARY_EXPR_KIND.ORSC.value
 
-    def OpsHaveSameType(self) -> bool:
-        return self is not BINARY_EXPR_KIND.PDELTA
-
 
 BINARY_EXPR_SHORTCUT = {
     #
@@ -1040,7 +1037,7 @@ class CanonType:
         assert self.is_span()
         return self.children[0]
 
-    def underlying_array_type(self) -> "CanonType":
+    def underlying_vec_type(self) -> "CanonType":
         assert self.is_vec()
         return self.children[0]
 

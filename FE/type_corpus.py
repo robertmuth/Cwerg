@@ -33,7 +33,7 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
 
     if actual.is_vec() and expected.is_span():
         # TODO: check "ref"
-        return actual.underlying_array_type() == expected.underlying_span_type() and (not expected.is_mutable() or actual_is_lvalue)
+        return actual.underlying_vec_type() == expected.underlying_span_type() and (not expected.is_mutable() or actual_is_lvalue)
 
     if actual.is_pointer() and expected.is_pointer():
         # TODO: check "ref"
@@ -129,7 +129,7 @@ def is_compatible_for_wrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> 
         if wrapped_type in (ct_src, ct_src.original_type):
             return True
         if ct_src.is_vec() and wrapped_type.is_span():
-            return ct_src.underlying_array_type() == wrapped_type.underlying_span_type() and not ct_dst.is_mutable()
+            return ct_src.underlying_vec_type() == wrapped_type.underlying_span_type() and not ct_dst.is_mutable()
 
     return False
 
