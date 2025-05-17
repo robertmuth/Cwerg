@@ -170,25 +170,30 @@ class _PolyMap:
             callee.x_srcloc, f"cannot resolve polymorphic {fun_name} {type_name}")
 
 
-def _ComputeArrayLength(node, kind: cwast.BASE_TYPE_KIND) -> int:
+def _ComputeArrayLength(node) -> int:
+    # TODO: this should be more strict WRT to the exact type/bitwidth of integer
     if isinstance(node, cwast.ValNum):
-        return ParseNumRaw(node, kind)[0]
+        num, target_kind = _NumCleanupAndTypeExtraction(node.number, cwast.BASE_TYPE_KIND.UINT)
+        assert target_kind.IsInt()
+        return int(num.replace("_", ""), 0)
     elif isinstance(node, cwast.Id):
-        node = node.x_symbol
-        return _ComputeArrayLength(node, kind)
-    elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and not node.mut:
-        return _ComputeArrayLength(node.initial_or_undef_or_auto, kind)
+        return _ComputeArrayLength(node.x_symbol)
+    elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
+        assert not node.mut
+        return _ComputeArrayLength(node.initial_or_undef_or_auto)
     elif isinstance(node, cwast.Expr2):
+        op1 = _ComputeArrayLength(node.expr1)
+        op2 = _ComputeArrayLength(node.expr2)
         if node.binary_expr_kind is cwast.BINARY_EXPR_KIND.ADD:
-            return _ComputeArrayLength(node.expr1, kind) + _ComputeArrayLength(node.expr2, kind)
+            return op1 + op2
+        elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.SUB:
+            return op1 - op2
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.MUL:
-            return _ComputeArrayLength(node.expr1, kind) * _ComputeArrayLength(node.expr2, kind)
+            return op1 * op2
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.DIV:
-            return _ComputeArrayLength(node.expr1, kind) // _ComputeArrayLength(node.expr2, kind)
+            return op1 // op2
         else:
             assert False
-    elif isinstance(node, cwast.ValAuto):
-        assert False
     else:
         assert False, f"unexpected dim node: {node}"
 
@@ -284,9 +289,8 @@ def _TypifyUnevaluableNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.TypeVec):
         # note this is the only place where we need a comptime eval for types
         t = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, pm)
-        uint_type = tc.get_uint_canon_type()
-        _TypifyNodeRecursively(node.size, tc, uint_type, pm)
-        dim = _ComputeArrayLength(node.size, uint_type.base_type_kind)
+        _TypifyNodeRecursively(node.size, tc, tc.get_uint_canon_type(), pm)
+        dim = _ComputeArrayLength(node.size)
         return AnnotateNodeType(node, tc.InsertVecType(dim, t))
     elif isinstance(node, cwast.TypeUnion):
         # this is tricky code to ensure that children of TypeUnion
@@ -456,7 +460,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ExprIndex):
         uint_type = tc.get_uint_canon_type()
         _TypifyNodeRecursively(node.expr_index, tc, uint_type, pm)
-        ct = _TypifyNodeRecursively(node.container, tc, target_type, pm)
+        ct = _TypifyNodeRecursively(node.container, tc, cwast.NO_TYPE, pm)
         if not ct.is_vec_or_span():
             cwast.CompilerError(
                 node.container.x_srcloc, f"expected array or span for {node} but got {ct}")
