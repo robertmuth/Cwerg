@@ -1108,6 +1108,18 @@ class CanonType:
         self.alignment = alignment
         self.register_types = register_types
 
+    def lookup_rec_field(self, field_name) -> Optional[RecField]:
+        """Oddball since the node returned is NOT inside corpus
+
+        See implementation of insert_rec_type
+        """
+        assert self.node is DefRec
+        assert isinstance(self.ast_node, DefRec)
+        for x in self.ast_node.fields:
+            if x.name == field_name:
+                return x
+        return None
+
     def __str__(self):
         return self.name + ("☠" if self.replacement_type else " ")
 

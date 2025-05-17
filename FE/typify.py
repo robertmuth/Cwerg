@@ -467,7 +467,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
             cwast.CompilerError(
                 node.x_srcloc, f"container type is not record {node.container}")
         field_name = node.field
-        field_node = tc.lookup_rec_field(ct, field_name.GetBaseNameStrict())
+        field_node = ct.lookup_rec_field(field_name.GetBaseNameStrict())
         if not field_node:
             cwast.CompilerError(
                 node.x_srcloc, f"unknown record field {field_name}")
@@ -611,7 +611,7 @@ def _TypifyNodeRecursively(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, tc.InsertPtrType(mut, cstr_expr))
     elif isinstance(node, cwast.ExprOffsetof):
         ct = _TypifyNodeRecursively(node.type, tc, cwast.NO_TYPE, pm)
-        field_node = tc.lookup_rec_field(ct, node.field.GetBaseNameStrict())
+        field_node = ct.lookup_rec_field(node.field.GetBaseNameStrict())
         if not field_node:
             cwast.CompilerError(
                 node.x_srcloc, f"unknown record field {node.field}")

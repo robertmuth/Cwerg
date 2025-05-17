@@ -501,18 +501,6 @@ class TypeCorpus:
         ct = cwast.CanonType(cwast.TypeVec, name, dim=dim, children=[ct])
         return self._insert(ct)
 
-    def lookup_rec_field(self, ct: cwast.CanonType, field_name) -> Optional[cwast.RecField]:
-        """Oddball since the node returned is NOT inside corpus
-
-        See implementation of insert_rec_type
-        """
-        assert ct.node is cwast.DefRec
-        assert isinstance(ct.ast_node, cwast.DefRec)
-        for x in ct.ast_node.fields:
-            if isinstance(x, cwast.RecField) and x.name == field_name:
-                return x
-        return None
-
     def InsertRecType(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
