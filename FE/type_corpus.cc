@@ -40,12 +40,27 @@ NT CanonType_kind(CanonType n) { return gCanonTypeCore[n].node; }
 
 bool CanonType_untagged(CanonType n) { return gCanonTypeCore[n].untagged; }
 
+Node CanonType_ast_node(CanonType n) { return gCanonTypeCore[n].ast_node; }
+
 BASE_TYPE_KIND CanonType_base_type_kind(CanonType n) {
   return gCanonTypeCore[n].base_type_kind;
 }
 
 std::vector<CanonType>& CanonType_children(CanonType n) {
   return gCanonTypeCore[n].children;
+}
+
+Node CanonType_lookup_rec_field(CanonType ct, Name field_name) {
+  ASSERT(CanonType_kind(ct) == NT::DefRec, "");
+  Node defrec = CanonType_ast_node(ct);
+  ASSERT(Node_kind(defrec) == NT::DefRec, "");
+  for (Node field = Node_fields(defrec); !field.isnull();
+       field = Node_next(field)) {
+    if (Node_name(field) == field_name) {
+      return field;
+    }
+  }
+  return kNodeInvalid;
 }
 
 CanonType CanonTypeNew() {
@@ -60,7 +75,6 @@ CanonType CanonTypeNewBaseType(BASE_TYPE_KIND base_type) {
                          .base_type_kind = base_type};
   return out;
 }
-
 
 CanonType CanonTypeNewPtrType(Name name, bool mut, CanonType child) {
   CanonType out = CanonTypeNew();

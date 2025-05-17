@@ -114,12 +114,13 @@ CanonType TypifyDefGlobalOrDefVar(Node node, TypeCorpus* tc, PolyMap* pm) {
 CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
   Node def_node = Node_x_symbol(id);
   CanonType ct = Node_x_type(def_node);
-
+  // std::cout << "@@ ID: " << NameData(Node_name(id))
+  //           << " t=" << CanonType_name(ct) << "\n";
   if (ct.isnull()) {
     switch (Node_kind(def_node)) {
       case NT::DefVar:
       case NT::DefGlobal:
-        TypifyDefGlobalOrDefVar(def_node, tc, pm);
+        ct = TypifyDefGlobalOrDefVar(def_node, tc, pm);
         break;
       case NT::DefFun:
         ASSERT(false, "");
@@ -132,10 +133,82 @@ CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
   return AnnotateType(id, ct);
 }
 
+Node RecAdvanceField(Node field, Node point) {
+  ASSERT(Node_kind(field) == NT::RecField, "");
+  ASSERT(Node_kind(point) == NT::ValPoint, "");
+  Node field_name = Node_point(point);
+  if (Node_kind(field_name) != NT::ValAuto) {
+    ASSERT(Node_kind(field_name) == NT::Id, "");
+    while (Node_name(field_name) != Node_name(field)) {
+      field = Node_next(field);
+      ASSERT(!field.isnull(), "");
+    }
+  }
+  return field;
+}
+
+void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
+  ASSERT(Node_kind(id) == NT::Id, "");
+  ASSERT(Node_kind(field) == NT::RecField, "");
+  AnnotateType(id, Node_x_type(field));
+  Node_x_symbol(id) = field;
+}
+
+CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
+                            PolyMap* pm) {
+  std::cout << "@@ VALCOMP\n";
+  CanonType ct =
+      TypifyNodeRecursively(Node_type_or_auto(node), tc, ct_target, pm);
+  if (CanonType_kind(ct) == NT::TypeVec) {
+    CanonType element_type = CanonType_underlying_vec_type(ct);
+
+    for (Node point = Node_inits(node); !point.isnull();
+         point = Node_next(point)) {
+      ASSERT(Node_kind(point) == NT::ValPoint, "");
+      AnnotateType(point, element_type);
+      //
+      Node val = Node_value_or_undef(point);
+      if (Node_kind(val) != NT::ValUndef) {
+        TypifyNodeRecursively(val, tc, element_type, pm);
+      }
+      //
+      Node index = Node_point(point);
+      CanonType uint_type = tc->get_uint_canon_type();
+      if (Node_kind(index) == NT::ValAuto) {
+        AnnotateType(index, uint_type);
+      } else {
+        TypifyNodeRecursively(index, tc, uint_type, pm);
+      }
+    }
+  } else {
+    ASSERT(CanonType_kind(ct) == NT::DefRec, "");
+    Node defrec = CanonType_ast_node(ct);
+    ASSERT(Node_kind(defrec) == NT::DefRec, "");
+    Node field = Node_fields(defrec);
+    for (Node point = Node_inits(node); !point.isnull();
+         point = Node_next(point)) {
+      field = RecAdvanceField(field, point);
+
+      CanonType ct_field = Node_x_type(field);
+      AnnotateType(point, ct_field);
+      if (Node_kind(Node_point(point)) == NT::Id) {
+        AnnotateFieldWithTypeAndSymbol(Node_point(point), field);
+      }
+      if (Node_kind(Node_value_or_undef(point)) != NT::ValUndef) {
+        TypifyNodeRecursively(Node_value_or_undef(point), tc, ct_field, pm);
+      }
+    }
+  }
+  return AnnotateType(node, ct);
+}
+
 CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
                                 PolyMap* pm) {
-  std::cout << "@@ TYPIFY: " << EnumToString(Node_kind(node)) << "\n";
-
+  std::cout << "@@ TYPIFY: " << EnumToString(Node_kind(node))
+            << " target: " << CanonType_name(ct_target) << "\n";
+  if (!Node_x_type(node).isnull()) {
+    return Node_x_type(node);
+  }
   switch (Node_kind(node)) {
     case NT::Id:
       return TypifyId(node, tc, ct_target, pm);
@@ -144,8 +217,13 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node,
                           tc->get_base_canon_type(Node_base_type_kind(node)));
     case NT::ValAuto:
-      ASSERT(!ct_target.isnull(), "");
+    case NT::TypeAuto:
+      ASSERT(!ct_target.isnull(), "" << Node_srcloc(node));
       return AnnotateType(node, ct_target);
+
+    case NT::ValTrue:
+    case NT::ValFalse:
+      return AnnotateType(node, tc->get_bool_canon_type());
 
     case NT::ValNum: {
       BASE_TYPE_KIND target = ct_target.isnull()
@@ -165,13 +243,14 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
     }
     case NT::Expr2: {
       BINARY_EXPR_KIND kind = Node_binary_expr_kind(node);
-
       CanonType ct;
       if (ResultIsBool(kind)) {
         ct_target = kCanonTypeInvalid;
       }
+
       CanonType ct_left =
           TypifyNodeRecursively(Node_expr1(node), tc, ct_target, pm);
+
       TypifyNodeRecursively(
           Node_expr2(node), tc,
           CanonType_IsNumber(ct_left) ? ct_left : kCanonTypeInvalid, pm);
@@ -184,8 +263,27 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
       }
       return AnnotateType(node, ct);
     }
+    case NT::ExprField: {
+      CanonType ct =
+          TypifyNodeRecursively(Node_container(node), tc, ct_target, pm);
+      if (CanonType_kind(ct) != NT::DefRec) {
+        CompilerError(Node_srcloc(node)) << "Container is not of type rec";
+      }
+      Node field_name = Node_field(node);
+      Node field_node = CanonType_lookup_rec_field(ct, Node_name(field_name));
+      if (field_node.isnull()) {
+        CompilerError(Node_srcloc(node))
+            << "unknown field name " << Node_name(field_name);
+      }
+      AnnotateFieldWithTypeAndSymbol(field_name, field_node);
+      return AnnotateType(node, Node_x_type(field_node));
+    }
+    case NT::ValCompound:
+      return TypifyValCompound(node, tc, ct_target, pm);
+
     default:
-      ASSERT(false, "unsupported node " << EnumToString(Node_kind(node)));
+      ASSERT(false, "unsupported node " << Node_srcloc(node) << " "
+                                        << EnumToString(Node_kind(node)));
       break;
   }
   return kCanonTypeInvalid;

@@ -2,6 +2,9 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "FE/cwast_gen.h"
+#include "Util/assert.h"
+
+#include <vector>
 namespace cwerg::fe {
 
 struct TargetArchConfig {
@@ -20,6 +23,17 @@ constexpr TargetArchConfig STD_TARGET_A32 = {32, 32, 16, 32, 32};
 
 extern Name CanonType_name(CanonType n);
 extern NT CanonType_kind(CanonType n);
+extern Node CanonType_ast_node(CanonType n);
+
+extern std::vector<CanonType>& CanonType_children(CanonType n);
+
+extern Node CanonType_lookup_rec_field(CanonType ct, Name field);
+
+inline CanonType CanonType_underlying_vec_type(CanonType n) {
+  ASSERT(CanonType_kind(n) == NT::TypeVec, "");
+  return CanonType_children(n)[0];
+}
+
 extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
 
 inline bool CanonType_IsNumber(CanonType n) {
