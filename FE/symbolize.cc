@@ -136,8 +136,8 @@ void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
 void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
     const std::vector<Node>& mods, const SymTab* builtin_symtab) {
   for (Node mod : mods) {
-    //std::cout << "ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros "
-    //          << Node_name(mod) << "\n";
+    // std::cout << "ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros "
+    //           << Node_name(mod) << "\n";
 
     const SymTab* symtab = Node_x_symtab(mod);
     for (Node child = Node_body_mod(mod); !child.isnull();
@@ -152,7 +152,16 @@ void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
 void ResolveSymbolInsideFunction(Node node, const SymTab* builtin_symtab,
                                  std::vector<SymTab>* scopes) {
   ASSERT(Node_kind(node) == NT::Id, "");
-  // TODO
+  if (!Node_x_symbol(node).isnull()) return;
+  Name name = Node_name(node);
+  for (auto it = scopes->rbegin(); it != scopes->rend(); ++it) {
+    auto def_node = it->find(name);
+    if (def_node != it->end()) {
+      AnnotateNodeSymbol(node, def_node->second);
+      return;
+    }
+  }
+  CompilerError(Node_srcloc(node)) << "unknown symbol " << name;
 }
 
 void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,
@@ -174,13 +183,13 @@ void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,
   auto scope_enter = [scopes](Node node) {
     scopes->push_back(SymTab());
     if (Node_kind(node) == NT::DefFun) {
-      for (Node child = Node_params(node); !child.isnull();
-           child = Node_next(child)) {
-        auto ss = Node_name(child);
+      for (Node p = Node_params(node); !p.isnull(); p = Node_next(p)) {
+        // td::cout << "Adding param " << Node_name(p) << "\n";
+        auto ss = Node_name(p);
         if (scopes->back().contains(ss)) {
           CompilerError(Node_srcloc(node)) << "duplicate symbol " << ss;
-          scopes->back()[ss] = node;
         }
+        scopes->back()[ss] = node;
       }
     }
   };
@@ -193,11 +202,10 @@ void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
                                    const SymTab* builtin_symtab) {
   std::vector<SymTab> scopes;
   for (Node mod : mods) {
-    for (Node child = Node_body_mod(mod); !child.isnull();
-         child = Node_next(child)) {
-      if (Node_kind(child) == NT::DefFun) {
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      if (Node_kind(fun) == NT::DefFun) {
         scopes.clear();
-        FunResolveSymbolsInsideFunctions(child, builtin_symtab, &scopes);
+        FunResolveSymbolsInsideFunctions(fun, builtin_symtab, &scopes);
       }
     }
   }
