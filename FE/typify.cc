@@ -32,9 +32,11 @@ class PolyMap {
   PolyMap(TypeCorpus* tc) : tc_(tc) {}
 
   void Register(Node fun) {
+    CanonType ct = Node_x_type(fun);
     ASSERT(Node_kind(fun) == NT::DefFun, "");
     ASSERT(Node_has_flag(fun, BF::POLY), "");
-    CanonType ct_first = CanonType_children(Node_x_type(Node_params(fun)))[0];
+    ASSERT(CanonType_children(ct).size() >= 2, "");
+    CanonType ct_first = CanonType_children(ct)[0];
     PolyMapKey key{Node_x_poly_mod(fun), Node_name(fun), ct_first};
     if (map_.find(key) != map_.end()) {
       CompilerError(Node_srcloc(fun))
@@ -124,8 +126,7 @@ ValAndKind ParseNumRaw(Node num_val, BASE_TYPE_KIND target_kind) {
 CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                            PolyMap* pm);
 
-CanonType TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target,
-                     PolyMap* pm);
+void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm);
 
 CanonType TypifyDefGlobalOrDefVar(Node node, TypeCorpus* tc, PolyMap* pm) {
   Node initial = Node_initial_or_undef_or_auto(node);
@@ -152,7 +153,7 @@ CanonType TypifyTypeFunOrDefFun(Node node, TypeCorpus* tc, PolyMap* pm) {
     ASSERT(Node_kind(p) == NT::FunParam, "");
     CanonType ct = TypifyExprOrType(Node_type(p), tc, kCanonTypeInvalid, pm);
     AnnotateType(p, ct);
-    std::cout << "## Param " << Node_name(p) << " t=" << CanonType_name(ct)
+    std::cout << "@@@@ Param " << Node_name(p) << " t=" << CanonType_name(ct)
               << "\n";
     params.push_back(ct);
   }
@@ -164,9 +165,13 @@ CanonType TypifyTypeFunOrDefFun(Node node, TypeCorpus* tc, PolyMap* pm) {
 
 CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
   Node def_node = Node_x_symbol(id);
+  ASSERT(!def_node.isnull(),
+         "unsymbolized ID " << Node_srcloc(id) << " " << Node_name(id));
+
   CanonType ct = Node_x_type(def_node);
-  // std::cout << "@@ ID: " << NameData(Node_name(id))
-  //           << " t=" << CanonType_name(ct) << "\n";
+  std::cout << "@@ ID: " << NameData(Node_name(id))
+            << " def=" << EnumToString(Node_kind(def_node))
+            << " t=" << CanonType_name(ct) << "\n";
   if (ct.isnull()) {
     switch (Node_kind(def_node)) {
       case NT::DefVar:
@@ -179,6 +184,7 @@ CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
       default:
         ASSERT(false, "Id for unsupported "
                           << Node_name(id) << " -> "
+                          << EnumToString(Node_kind(def_node)) << " "
                           << EnumToString(Node_kind(def_node)));
         break;
     }
@@ -399,7 +405,9 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node,
                           tc->InsertUnionComplement(ct_minuend, ct_subtrahend));
     }
-
+    case NT::TypeOf:
+      ct = TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
+      return AnnotateType(node, ct);
     //
     case NT::Expr2: {
       BINARY_EXPR_KIND kind = Node_binary_expr_kind(node);
@@ -421,6 +429,12 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       }
       return AnnotateType(node, ct);
     }
+    case NT::Expr3:
+      TypifyExprOrType(Node_cond(node), tc, tc->get_bool_canon_type(), pm);
+      ct = TypifyExprOrType(Node_expr_t(node), tc, ct_target, pm);
+      TypifyExprOrType(Node_expr_t(node), tc, ct, pm);
+      return AnnotateType(node, ct);
+
     case NT::ExprAddrOf:
       ct = TypifyExprOrType(Node_expr_lhs(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node,
@@ -428,7 +442,8 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::ExprField: {
       ct = TypifyExprOrType(Node_container(node), tc, ct_target, pm);
       if (CanonType_kind(ct) != NT::DefRec) {
-        CompilerError(Node_srcloc(node)) << "Container is not of type rec";
+        CompilerError(Node_srcloc(node)) << "Container is not of type rec "
+                                         << EnumToString(CanonType_kind(ct));
       }
       Node field_name = Node_field(node);
       Node field_node = CanonType_lookup_rec_field(ct, Node_name(field_name));
@@ -485,15 +500,36 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
   }
 }
 
-CanonType TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target,
-                     PolyMap* pm) {
+void TypifyStmtSeq(Node stmt, TypeCorpus* tc, CanonType ct_target,
+                   PolyMap* pm) {
+  for (; !stmt.isnull(); stmt = Node_next(stmt)) {
+    TypifyStmt(stmt, tc, ct_target, pm);
+  }
+}
+
+void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
   switch (Node_kind(node)) {
     case NT::DefVar:
-      return TypifyDefGlobalOrDefVar(node, tc, pm);
+      TypifyDefGlobalOrDefVar(node, tc, pm);
+      break;
+    case NT::StmtReturn:
+      TypifyExprOrType(Node_expr(node), tc, ct_target, pm);
+      break;
+    case NT::StmtBlock:
+      TypifyStmtSeq(Node_body(node), tc, ct_target, pm);
+      break;
+    case NT::StmtIf:
+      TypifyExprOrType(Node_cond(node), tc, tc->get_bool_canon_type(), pm);
+      TypifyStmtSeq(Node_body_t(node), tc, ct_target, pm);
+      TypifyStmtSeq(Node_body_f(node), tc, ct_target, pm);
+      break;
+    case NT::StmtBreak:
+    case NT::StmtContinue:
+    case NT::StmtTrap:
+      break;
     default:
       ASSERT(false, "unsupported node " << Node_srcloc(node) << " "
                                         << EnumToString(Node_kind(node)));
-      return kCanonTypeInvalid;
   }
 }
 
@@ -585,29 +621,29 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
   }
   //  phase 3
   for (Node mod : mods) {
-    for (Node child = Node_body_mod(mod); !child.isnull();
-         child = Node_next(child)) {
-      std::cout << "@@ Phase 3: " << EnumToString(Node_kind(child)) << "\n";
+    for (Node node = Node_body_mod(mod); !node.isnull();
+         node = Node_next(node)) {
+      std::cout << "@@ Phase 3: " << EnumToString(Node_kind(node)) << "\n";
 
-      switch (Node_kind(child)) {
+      switch (Node_kind(node)) {
         case NT::DefRec:
         case NT::DefEnum:
         case NT::DefType:
         case NT::Import:
           continue;
         case NT::StmtStaticAssert:
-          std::cout << "@@" << EnumToString(Node_kind(child)) << " "
-                    << EnumToString(Node_kind(Node_cond(child))) << "\n";
+          std::cout << "@@" << EnumToString(Node_kind(node)) << " "
+                    << EnumToString(Node_kind(Node_cond(node))) << "\n";
 
-          TypifyExprOrType(Node_cond(child), tc, tc->get_bool_canon_type(),
+          TypifyExprOrType(Node_cond(node), tc, tc->get_bool_canon_type(),
                            &poly_map);
           break;
         case NT::DefFun:
-          if (Node_x_type(child).isnull()) {
-            TypifyTypeFunOrDefFun(child, tc, &poly_map);
+          if (Node_x_type(node).isnull()) {
+            TypifyTypeFunOrDefFun(node, tc, &poly_map);
           }
-          if (Node_has_flag(child, BF::POLY)) {
-            poly_map.Register(child);
+          if (Node_has_flag(node, BF::POLY)) {
+            poly_map.Register(node);
           }
 
           break;

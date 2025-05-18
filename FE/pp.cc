@@ -195,7 +195,7 @@ void EmitValCompound(std::vector<PP::Token>* out, Node node) {
 }
 
 void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
-  // std::cout << "EXPR " << EnumToString(Node_kind(node)) << "\n";
+  // std::cout << "@@ EXPR " << EnumToString(Node_kind(node)) << "\n";
   switch (Node_kind(node)) {
     case NT::Id:
       EmitFullName(out, node);
@@ -609,6 +609,7 @@ void EmitStmtMacroInvoke(std::vector<PP::Token>* out, Node node) {
 }
 
 void EmitStatement(std::vector<PP::Token>* out, Node node) {
+  // std::cout << "@@ STATEMENT " << EnumToString(Node_kind(node)) << "\n";
   MaybeEmitDoc(out, node);
   out->push_back(PP_BEG_STD);
   MaybeEmitAnnotations(out, node);
@@ -854,6 +855,7 @@ void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
       }
       break;
     case NT::DefFun:
+      // std::cout << "\n@@ FUNCTION " << Node_name(node) << "\n";
       out->push_back(PP::Str("fun"));
       out->push_back(PP::NoBreak(1));
       out->push_back(PP::Str(NameData(Node_name(node))));

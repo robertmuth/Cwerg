@@ -189,7 +189,7 @@ void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,
         if (scopes->back().contains(ss)) {
           CompilerError(Node_srcloc(node)) << "duplicate symbol " << ss;
         }
-        scopes->back()[ss] = node;
+        scopes->back()[ss] = p;
       }
     }
   };
