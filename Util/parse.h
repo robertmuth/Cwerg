@@ -2,17 +2,16 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include <charconv>
+#include <cstdint>
 #include <iostream>
 #include <optional>
 #include <string_view>
 #include <vector>
-#include <cstdint>
 
 namespace cwerg {
 
 // Note, if there is a comment it will always be the last token
-extern bool ParseLineWithStrings(std::string_view s,
-                                 bool allow_lists,
+extern bool ParseLineWithStrings(std::string_view s, bool allow_lists,
                                  std::vector<std::string_view>* out);
 
 // returns 0 on error so avoid passing in len = 0 strings
@@ -30,26 +29,48 @@ extern uint64_t Flt64ToBits(double d);
 
 template <typename INT>
 std::optional<INT> ParseInt(std::string_view s) {
-  INT out;
-  unsigned base = 10;
-  if (s.size() > 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X')) {
-    base = 16;
-    s.remove_prefix(2);
-  }
-  const auto last = s.data() + s.size();
-  auto result = std::from_chars(s.data(), last, out, base);
-  if (result.ptr == last && result.ec == std::errc()) {
-    return out;
+  bool neg = s[0] == '-';
+  if (neg) {
+    s.remove_prefix(1);
   }
 
-  return std::nullopt;
+  unsigned base = 10;
+  if (s.size() > 2 && s[0] == '0') {
+    if (s[1] == 'b') {
+      base = 2;
+      s.remove_prefix(2);
+    } else if (s[1] == 'x') {
+      base = 16;
+      s.remove_prefix(2);
+    }
+  }
+  INT out = 0;
+  for (char c : s) {
+    INT digit;
+    if (c >= '0' && c <= '9') {
+      digit = c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+      digit = c - 'a' + 10;
+    } else if (c == '_') {
+      continue;
+    } else {
+      return std::nullopt;
+    }
+
+    if (digit >= base) {
+      return std::nullopt;
+    }
+    out = out * base + digit;
+  }
+  if (neg) {
+    out = -out;
+  }
+  return out;
 }
 
 extern std::optional<double> ParseFlt64(std::string_view s);
 extern std::optional<int64_t> ParseInt64(std::string_view s);
 extern std::optional<uint64_t> ParseUint64(std::string_view s);
-
-
 
 // =================================================================================
 // Number To Canonical String
@@ -61,50 +82,31 @@ extern std::string_view ToDecSignedString(int64_t v, char buf[32]);
 extern std::string_view ToFltString(double v, char buf[32]);
 extern std::string_view ToFltHexString(double v, char buf[32]);
 
-extern std::string_view ToHexDataStringWithSep(std::string_view data,
-                                               char sep,
-                                               char* buf,
-                                               size_t max_len);
+extern std::string_view ToHexDataStringWithSep(std::string_view data, char sep,
+                                               char* buf, size_t max_len);
 
 // =================================================================================
 // Misc
 // =================================================================================
 
-extern std::string_view StrCat(char* buf,
-                               size_t max_len,
-                               std::string_view s0,
-                               std::string_view s1,
-                               std::string_view s2);
+extern std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                               std::string_view s1, std::string_view s2);
 
-extern std::string_view StrCat(char* buf,
-                               size_t max_len,
-                               std::string_view s0,
-                               std::string_view s1,
-                               std::string_view s2,
+extern std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                               std::string_view s1, std::string_view s2,
                                std::string_view s3);
 
-extern std::string_view StrCat(char* buf,
-                               size_t max_len,
-                               std::string_view s0,
-                               std::string_view s1,
-                               std::string_view s2,
+extern std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                               std::string_view s1, std::string_view s2,
                                std::string_view s3);
 
-extern std::string_view StrCat(char* buf,
-                               size_t max_len,
-                               std::string_view s0,
-                               std::string_view s1,
-                               std::string_view s2,
-                               std::string_view s3,
-                               std::string_view s4);
+extern std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                               std::string_view s1, std::string_view s2,
+                               std::string_view s3, std::string_view s4);
 
-extern std::string_view StrCat(char* buf,
-                               size_t max_len,
-                               std::string_view s0,
-                               std::string_view s1,
-                               std::string_view s2,
-                               std::string_view s3,
-                               std::string_view s4,
+extern std::string_view StrCat(char* buf, size_t max_len, std::string_view s0,
+                               std::string_view s1, std::string_view s2,
+                               std::string_view s3, std::string_view s4,
                                std::string_view s5);
 
 // This works well for std::cin
@@ -126,6 +128,5 @@ struct ExpressionOp {
 //  expr:jump24:skip
 //  expr:movw_abs_nc:fmt:0
 extern std::optional<ExpressionOp> ParseExpressionOp(std::string_view expr);
-
 
 }  // namespace cwerg
