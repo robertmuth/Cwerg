@@ -9,14 +9,42 @@
 
 namespace cwerg::fe {
 
-class PolyMap {
- public:
-  PolyMap() {}
+struct PolyMapKey {
+  Node mod;
+  Name fun_name;
+  CanonType first_param_type;
+  bool operator<(const PolyMapKey& other) const {
+    if (mod != other.mod) {
+      return mod < other.mod;
+    }
+    if (fun_name != other.fun_name) {
+      return fun_name < other.fun_name;
+    }
+    return first_param_type < other.first_param_type;
+  }
+};
 
-  void Register(Node fun) { ASSERT(false, "NYI"); }
+class PolyMap {
+  TypeCorpus* tc_;
+  std::map<PolyMapKey, Node> map_;
+
+ public:
+  PolyMap(TypeCorpus* tc) : tc_(tc) {}
+
+  void Register(Node fun) {
+    ASSERT(Node_kind(fun) == NT::DefFun, "");
+    ASSERT(Node_has_flag(fun, BF::POLY), "");
+    CanonType ct_first = CanonType_children(Node_x_type(Node_params(fun)))[0];
+    PolyMapKey key{Node_x_poly_mod(fun), Node_name(fun), ct_first};
+    if (map_.find(key) != map_.end()) {
+      CompilerError(Node_srcloc(fun))
+          << "Duplicate poly fun for " << CanonType_name(ct_first);
+    }
+    map_[key] = fun;
+  }
 
   Node Resolve(Node callee, CanonType first_param_type) {
-    ASSERT(false, "");
+    ASSERT(false, "NYI");
     return kNodeInvalid;
   }
 };
@@ -364,7 +392,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
           tc->InsertUnionType(Node_has_flag(node, BF::UNTAGGED), children));
     }
     case NT::TypeUnionDelta: {
-       CanonType ct_minuend =
+      CanonType ct_minuend =
           TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       CanonType ct_subtrahend =
           TypifyExprOrType(Node_subtrahend(node), tc, kCanonTypeInvalid, pm);
@@ -511,7 +539,7 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
   }
 
   //  phase 2
-  PolyMap poly_map;
+  PolyMap poly_map(tc);
 
   for (Node mod : mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();

@@ -42,6 +42,10 @@ bool CanonType_untagged(CanonType n) { return gCanonTypeCore[n].untagged; }
 
 Node CanonType_ast_node(CanonType n) { return gCanonTypeCore[n].ast_node; }
 
+bool operator<(CanonType a, CanonType b) {
+  return CanonType_name(a) < CanonType_name(b);
+}
+
 BASE_TYPE_KIND CanonType_base_type_kind(CanonType n) {
   return gCanonTypeCore[n].base_type_kind;
 }

@@ -318,6 +318,19 @@ std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
   }
   return out;
 }
+void ResolvePolyMods(const std::vector<Node>& mods_in_topo_order) {
+  for (Node mod : mods_in_topo_order) {
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      if (Node_kind(fun) == NT::DefMod && Node_has_flag(fun, BF::POLY)) {
+        if (Node_x_import(fun).isnull()) {
+          Node_x_poly_mod(fun) = mod;
+        } else {
+          Node_x_poly_mod(fun) = Node_x_module(Node_x_import(fun));
+        }
+      }
+    }
+  }
+}
 
 ModPool ReadModulesRecursively(Path root_path,
                                const std::vector<Path>& seed_modules,
@@ -386,6 +399,7 @@ ModPool ReadModulesRecursively(Path root_path,
     active.swap(new_active);
   }
   out.mods_in_topo_order = ModulesInTopologicalOrder(state.AllMods());
+  ResolvePolyMods(out.mods_in_topo_order);
   ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
       out.mods_in_topo_order, out.builtin_symtab);
   for (Node mod : out.mods_in_topo_order) {

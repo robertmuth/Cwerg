@@ -125,10 +125,10 @@ struct NodeExtra {
   Str comment;
   SrcLoc x_srcloc;
   CanonType x_type;
-  // TODO: add typeninfo
   union {
     Node x_symbol;
     Node x_target;
+    Node x_poly_mod;
     uint32_t x_offset;
   };
 };
@@ -173,6 +173,7 @@ inline Node NodeLastSiblings(Node node) {
 inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
 inline SrcLoc& Node_srcloc(Node node) { return gNodeExtra[node].x_srcloc; }
 inline Node& Node_x_symbol(Node node) { return gNodeExtra[node].x_symbol; }
+inline Node& Node_x_poly_mod(Node node) { return gNodeExtra[node].x_poly_mod; }
 inline Node& Node_x_target(Node node) { return gNodeExtra[node].x_target; }
 inline uint32_t& Node_x_offset(Node node) { return gNodeExtra[node].x_offset; }
 inline CanonType& Node_x_type(Node node) { return gNodeExtra[node].x_type; }
