@@ -951,6 +951,10 @@ class CanonType:
     def __hash__(self):
         return hash(self.name)
 
+    # we need to sort the children of Unions
+    def __lt__(self, other):
+        return self.name < other.name
+
     def is_bool(self) -> bool:
         return self.base_type_kind is BASE_TYPE_KIND.BOOL
 
@@ -1436,7 +1440,6 @@ class TypePtr:
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.type}"
-
 
 @NodeCommon
 @dataclasses.dataclass()
@@ -2818,7 +2821,9 @@ class DefFun:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_import: Import = None  # only used for polymorphic function
+    # x_poly_mod will contain either the enclosing module or
+    # the module referenced by the import statement
+    x_import: Import = None  # only used for polymorphic functions with qualified name
     x_poly_mod: Optional[DefMod] = None  # only used for polymorphic function
 
     def __repr__(self):

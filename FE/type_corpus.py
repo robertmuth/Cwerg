@@ -525,8 +525,8 @@ class TypeCorpus:
                     pp.add(cc)
             else:
                 pp.add(c)
-        sorted_children = sorted(pp, key=lambda x: x.name)
-        sorted_names = [x.name for x in sorted_children]
+        sorted_children = sorted(pp)
+        sorted_names = [x.name for x in sorted(sorted_children)]
         extra = "_untagged" if untagged else ""
         name = f"sum{extra}<{','.join(sorted_names)}>"
         if name in self.corpus:
@@ -555,7 +555,7 @@ class TypeCorpus:
         return self._insert(ct)
 
     def InsertWrappedTypeFinalize(self, ct: cwast.CanonType,
-                                  ct_wrapped: cwast.CanonType) -> cwast.CanonType:
+                                  ct_wrapped: cwast.CanonType):
         assert not ct_wrapped.is_wrapped()
         ct.children = [ct_wrapped]
 

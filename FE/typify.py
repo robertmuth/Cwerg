@@ -131,7 +131,7 @@ class _PolyMap:
 
     def __init__(self, tc: type_corpus.TypeCorpus):
         self._map: dict[Tuple[cwast.DefMod,
-                              cwast.NAME, str], cwast.DefFun] = {}
+                              cwast.NAME, cwast.CanonType], cwast.DefFun] = {}
         self._type_corpus = tc
 
     def Register(self, fun: cwast.DefFun):
@@ -139,9 +139,9 @@ class _PolyMap:
         ct: cwast.CanonType = fun.x_type
         mod: cwast.DefMod = fun.x_poly_mod
         name = fun.name
-        first_param_type = ct.children[0].name
+        first_param_type = ct.children[0]
         logger.info("Register polymorphic fun %s::%s: %s",
-                    str(mod.name), name, first_param_type)
+                    str(mod.name), name, first_param_type.name)
         # TODO: Should this work with parameterized volumes
         key = (mod, name, first_param_type)
         assert key not in self._map, f"duplicate poly def {fun.x_srcloc}"
@@ -150,20 +150,20 @@ class _PolyMap:
     def Resolve(self, callee: cwast.Id, first_param_type: cwast.CanonType) -> cwast.DefFun:
         # TODO: why are we not using the mod_name here?
         fun_name = callee.name
-        type_name = first_param_type.name
-        logger.info("Resolving polymorphic fun %s: %s", fun_name, type_name)
+        type_name = first_param_type
+        logger.info("Resolving polymorphic fun %s: %s",
+                    fun_name, type_name.name)
         callee_mod: cwast.DefMod = callee.x_symbol.x_poly_mod
 
         out = self._map.get((callee_mod, fun_name, type_name))
         if out:
             return out
-        # TODO: why do we need this - seems unsafe:
+        # Handle implicit conversion from vec to span
         if first_param_type.is_vec():
-            span_type = self._type_corpus. InsertSpanType(
+            span_type = self._type_corpus.InsertSpanType(
                 False, first_param_type.underlying_vec_type())
-            type_name = span_type.name
 
-            out = self._map.get((callee_mod, fun_name, type_name))
+            out = self._map.get((callee_mod, fun_name, span_type))
             if out:
                 return out
         cwast.CompilerError(
@@ -295,7 +295,8 @@ def _TypifyType(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.TypeUnion):
         # this is tricky code to ensure that children of TypeUnion
         # are not TypeUnion themselves on the canonical side
-        pieces = [_TypifyExprOrType(f, tc, cwast.NO_TYPE, pm) for f in node.types]
+        pieces = [_TypifyExprOrType(f, tc, cwast.NO_TYPE, pm)
+                  for f in node.types]
         return AnnotateNodeType(node, tc.InsertUnionType(node.untagged, pieces))
     elif isinstance(node, cwast.TypeUnionDelta):
         minuend = _TypifyExprOrType(node.type, tc, cwast.NO_TYPE, pm)
