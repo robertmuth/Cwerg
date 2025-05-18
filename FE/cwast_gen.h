@@ -94,11 +94,6 @@ struct SrcLoc {
   Name file;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
-  os << sl.line << ":" << sl.col;
-  return os;
-}
-
 constexpr SrcLoc kSrcLocInvalid(0, 0, kNameInvalid);
 constexpr int MAX_NODE_CHILDREN = 4;
 
@@ -254,6 +249,10 @@ inline int NameCmp(Name a, Name b) {
   return strcmp(gNamePool.Data(a.index()), gNamePool.Data(b.index()));
 }
 
+inline std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
+  os << sl.file << ":" << sl.line;
+  return os;
+}
 // =======================================
 // Str API
 //
