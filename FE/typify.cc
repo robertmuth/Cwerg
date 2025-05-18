@@ -5,6 +5,7 @@
 #include <map>
 
 #include "Util/assert.h"
+#include "Util/parse.h"
 
 namespace cwerg::fe {
 
@@ -44,6 +45,8 @@ void UpdateType(Node node, CanonType ct) { Node_x_type(node) = ct; }
 
 CanonType AnnotateType(Node node, CanonType ct) {
   ASSERT(Node_x_type(node).isnull(), "");
+  ASSERT(!ct.isnull(), "invalid type at " << Node_srcloc(node) << " for "
+                                          << EnumToString(Node_kind(node)));
   UpdateType(node, ct);
   return ct;
 }
@@ -181,7 +184,9 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
       }
     }
   } else {
-    ASSERT(CanonType_kind(ct) == NT::DefRec, "");
+    ASSERT(CanonType_kind(ct) == NT::DefRec,
+           "expected DefRec " << Node_srcloc(node) << " "
+                              << EnumToString(CanonType_kind(ct)));
     Node defrec = CanonType_ast_node(ct);
     ASSERT(Node_kind(defrec) == NT::DefRec, "");
     Node field = Node_fields(defrec);
@@ -202,6 +207,47 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
   return AnnotateType(node, ct);
 }
 
+uint32_t ComputeArrayLength(Node node) {
+  switch (Node_kind(node)) {
+    case NT::ValNum: {
+      ValAndKind val = NumCleanupAndTypeExtraction(StrData(Node_number(node)),
+                                                   BASE_TYPE_KIND::UINT);
+      ASSERT(IsInt(val.kind), "");
+      // Needs more work
+      auto num = ParseInt<uint32_t>(val.cleaned);
+      ASSERT(num.has_value(), "");
+      return num.value();
+    }
+    case NT::Id:
+      return ComputeArrayLength(Node_x_symbol(node));
+    case NT::DefGlobal:
+    case NT::DefVar:
+      ASSERT(!Node_has_flag(node, BF::MUT), "");
+      return ComputeArrayLength(Node_initial_or_undef_or_auto(node));
+    case NT::Expr2: {
+      uint32_t op1 = ComputeArrayLength(Node_expr1(node));
+      uint32_t op2 = ComputeArrayLength(Node_expr2(node));
+      switch (Node_binary_expr_kind(node)) {
+        case BINARY_EXPR_KIND::ADD:
+          return op1 + op2;
+        case BINARY_EXPR_KIND::SUB:
+          return op1 - op2;
+        case BINARY_EXPR_KIND::MUL:
+          return op1 * op2;
+        case BINARY_EXPR_KIND::DIV:
+          return op1 / op2;
+        default:
+          ASSERT(false, "");
+          return 0;
+      }
+    }
+    default:
+      CompilerError(Node_srcloc(node))
+          << "Vec dim must be a compile time constant";
+      return 0;
+  }
+}
+
 CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
                                 PolyMap* pm) {
   std::cout << "@@ TYPIFY: " << EnumToString(Node_kind(node))
@@ -209,6 +255,8 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
   if (!Node_x_type(node).isnull()) {
     return Node_x_type(node);
   }
+  CanonType ct;
+
   switch (Node_kind(node)) {
     case NT::Id:
       return TypifyId(node, tc, ct_target, pm);
@@ -235,15 +283,19 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
              "cannot parse " << Node_number(node));
       return AnnotateType(node, tc->get_base_canon_type(actual));
     }
-    case NT::TypeSpan: {
-      CanonType ct =
-          TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
+    case NT::TypeVec:
+      ct = TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
+      TypifyNodeRecursively(Node_size(node), tc, tc->get_uint_canon_type(), pm);
+      return AnnotateType(
+          node, tc->InsertVecType(ComputeArrayLength(Node_size(node)), ct));
+
+    case NT::TypeSpan:
+      ct = TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node,
                           tc->InsertSpanType(Node_has_flag(node, BF::MUT), ct));
-    }
+
     case NT::Expr2: {
       BINARY_EXPR_KIND kind = Node_binary_expr_kind(node);
-      CanonType ct;
       if (ResultIsBool(kind)) {
         ct_target = kCanonTypeInvalid;
       }
@@ -264,8 +316,7 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node, ct);
     }
     case NT::ExprField: {
-      CanonType ct =
-          TypifyNodeRecursively(Node_container(node), tc, ct_target, pm);
+      ct = TypifyNodeRecursively(Node_container(node), tc, ct_target, pm);
       if (CanonType_kind(ct) != NT::DefRec) {
         CompilerError(Node_srcloc(node)) << "Container is not of type rec";
       }
@@ -278,15 +329,34 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
       AnnotateFieldWithTypeAndSymbol(field_name, field_node);
       return AnnotateType(node, Node_x_type(field_node));
     }
+    case NT::ExprIndex:
+      TypifyNodeRecursively(Node_expr_index(node), tc,
+                            tc->get_uint_canon_type(), pm);
+      ct = TypifyNodeRecursively(Node_container(node), tc, kCanonTypeInvalid,
+                                 pm);
+      if (CanonType_kind(ct) == NT::TypeVec) {
+        return AnnotateType(node, CanonType_underlying_vec_type(ct));
+      } else if (CanonType_kind(ct) != NT::TypeSpan) {
+        return AnnotateType(node, CanonType_underlying_span_type(ct));
+      } else {
+        CompilerError(Node_srcloc(node)) << "Container is not of type vec";
+        return kCanonTypeInvalid;
+      }
+    case NT::ExprAs:
+    case NT::ExprBitCast:
+    case NT::ExprUnsafeCast:
+    case NT::ExprNarrow:
+      ct = TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
+      TypifyNodeRecursively(Node_expr(node), tc, kCanonTypeInvalid, pm);
+      return AnnotateType(node, ct);
+
     case NT::ValCompound:
       return TypifyValCompound(node, tc, ct_target, pm);
-
     default:
       ASSERT(false, "unsupported node " << Node_srcloc(node) << " "
                                         << EnumToString(Node_kind(node)));
-      break;
+      return kCanonTypeInvalid;
   }
-  return kCanonTypeInvalid;
 }
 
 void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {

@@ -195,6 +195,7 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_(arch) {
 }
 
 CanonType TypeCorpus::Insert(CanonType ct) {
+  ASSERT(!ct.isnull(), "");
   ASSERT(corpus_.find(CanonType_name(ct)) == corpus_.end(), "");
   corpus_[CanonType_name(ct)] = ct;
   return ct;
@@ -238,7 +239,7 @@ CanonType TypeCorpus::InsertPtrType(bool mut, CanonType child) {
   Name name = MakeCanonTypeName(mut ? "mut_ptr" : "ptr",
                                 NameData(CanonType_name(child)));
   auto it = corpus_.find(name);
-  if (it != corpus_.end(), "") return it->second;
+  if (it != corpus_.end()) return it->second;
   CanonType out = CanonTypeNewPtrType(name, mut, child);
   return Insert(out);
 }
@@ -247,7 +248,9 @@ CanonType TypeCorpus::InsertSpanType(bool mut, CanonType child) {
   Name name = MakeCanonTypeName(mut ? "mut_span" : "span",
                                 NameData(CanonType_name(child)));
   auto it = corpus_.find(name);
-  if (it != corpus_.end(), "") return it->second;
+  if (it != corpus_.end()) {
+    return it->second;
+  }
   CanonType out = CanonTypeNewSpanType(name, mut, child);
   return Insert(out);
 }
@@ -268,7 +271,7 @@ CanonType TypeCorpus::InsertVecType(int dim, CanonType child) {
   Name name = MakeCanonTypeName("vec", std::to_string(dim),
                                 NameData(CanonType_name(child)));
   auto it = corpus_.find(name);
-  if (it != corpus_.end(), "") return it->second;
+  if (it != corpus_.end()) return it->second;
   CanonType out = CanonTypeNewVecType(name, dim, child);
   return Insert(out);
 }
@@ -308,7 +311,7 @@ CanonType TypeCorpus::InsertUnionType(
   Name name =
       MakeCanonTypeName(untagged ? "union_untagged" : "union", components);
   auto it = corpus_.find(name);
-  if (it != corpus_.end(), "") return it->second;
+  if (it != corpus_.end()) return it->second;
   std::vector<CanonType> components_sorted(unique.begin(), unique.end());
   CanonType out = CanonTypeNewUnionType(name, untagged, components_sorted);
   return Insert(out);
@@ -318,7 +321,7 @@ CanonType TypeCorpus::InsertFunType(
     const std::vector<CanonType>& params_result) {
   Name name = MakeCanonTypeName("fun", params_result);
   auto it = corpus_.find(name);
-  if (it != corpus_.end(), "") return it->second;
+  if (it != corpus_.end()) return it->second;
   CanonType out = CanonTypeNewFunType(name, params_result);
   return Insert(out);
 }

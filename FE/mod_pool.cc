@@ -275,9 +275,7 @@ struct Candidate {
   Name name;
   Node mod;
 
-  bool operator<(const Candidate& other) const {
-    return NameCmpLt(name, other.name);
-  }
+  bool operator<(const Candidate& other) const { return name < other.name; }
 };
 
 std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {

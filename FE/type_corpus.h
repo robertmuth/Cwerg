@@ -34,6 +34,11 @@ inline CanonType CanonType_underlying_vec_type(CanonType n) {
   return CanonType_children(n)[0];
 }
 
+inline CanonType CanonType_underlying_span_type(CanonType n) {
+  ASSERT(CanonType_kind(n) == NT::TypeSpan, "");
+  return CanonType_children(n)[0];
+}
+
 extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
 
 inline bool CanonType_IsNumber(CanonType n) {

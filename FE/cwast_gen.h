@@ -47,15 +47,30 @@ struct Node : public Handle {
   NT kind() { return NT(raw_kind()); }
 };
 
+extern ImmutablePool gStringPool;
+
 struct Str : public Handle {
   explicit constexpr Str(uint32_t index = 0) : Handle(index, kKindStr) {}
   explicit Str(Handle ref) : Handle(ref.value) {}
+
+  bool operator<(const Str& other) const {
+    if (index() == other.index()) return false;
+    return strcmp(gStringPool.Data(index()), gStringPool.Data(other.index())) <
+           0;
+  }
 };
+
+extern ImmutablePool gNamePool;
 
 struct Name : public Handle {
   explicit constexpr Name(uint32_t index = 0) : Handle(index, kKindName) {}
 
   explicit constexpr Name(Handle ref) : Handle(ref.value) {}
+
+  bool operator<(const Name& other) const {
+    if (index() == other.index()) return false;
+    return strcmp(gNamePool.Data(index()), gNamePool.Data(other.index())) < 0;
+  }
 };
 
 struct CanonType : public Handle {
@@ -69,8 +84,6 @@ constexpr const Str kStrInvalid(0);
 constexpr const Name kNameInvalid(0);
 constexpr const Node kNodeInvalid(kHandleInvalid);
 constexpr const CanonType kCanonTypeInvalid(kHandleInvalid);
-
-extern ImmutablePool gNamePool;
 
 // =======================================
 // Node API
@@ -241,11 +254,6 @@ inline int NameCmp(Name a, Name b) {
   return strcmp(gNamePool.Data(a.index()), gNamePool.Data(b.index()));
 }
 
-inline bool NameCmpLt(Name a, Name b) {
-  if (a == b) return 0;
-  return strcmp(gNamePool.Data(a.index()), gNamePool.Data(b.index())) < 0;
-}
-
 // =======================================
 // Str API
 //
@@ -264,11 +272,6 @@ inline const char* StrData(Str str) { return gStringPool.Data(str.index()); }
 
 inline bool StrIsEmpty(Str str) {
   return gStringPool.Data(str.index())[0] == '\0';
-}
-
-inline int StrCmp(Str a, Str b) {
-  if (a == b) return 0;
-  return strcmp(gStringPool.Data(a.index()), gStringPool.Data(b.index()));
 }
 
 inline bool StrCmpLt(Str a, Str b) {
@@ -970,6 +973,11 @@ inline BINARY_EXPR_KIND Node_binary_expr_kind(Node n) {
 inline bool IsNumber(BASE_TYPE_KIND x) {
   return int(BASE_TYPE_KIND::SINT) <= int(x) &&
          int(x) <= int(BASE_TYPE_KIND::R64);
+}
+
+inline bool IsInt(BASE_TYPE_KIND x) {
+  return int(BASE_TYPE_KIND::SINT) <= int(x) &&
+         int(x) <= int(BASE_TYPE_KIND::U64);
 }
 
 inline bool ResultIsBool(BINARY_EXPR_KIND x) {
