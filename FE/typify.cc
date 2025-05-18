@@ -13,7 +13,7 @@ class PolyMap {
  public:
   PolyMap() {}
 
-  void Register(Node fun) { ASSERT(false, ""); }
+  void Register(Node fun) { ASSERT(false, "NYI"); }
 
   Node Resolve(Node callee, CanonType first_param_type) {
     ASSERT(false, "");
@@ -93,8 +93,8 @@ ValAndKind ParseNumRaw(Node num_val, BASE_TYPE_KIND target_kind) {
 }
 #endif
 
-CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
-                                PolyMap* pm);
+CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
+                           PolyMap* pm);
 
 CanonType TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target,
                      PolyMap* pm);
@@ -106,12 +106,12 @@ CanonType TypifyDefGlobalOrDefVar(Node node, TypeCorpus* tc, PolyMap* pm) {
   CanonType ct;
   if (Node_kind(type) == NT::TypeAuto) {
     ASSERT(Node_kind(initial) != NT::ValUndef, "");
-    ct = TypifyNodeRecursively(initial, tc, kCanonTypeInvalid, pm);
-    TypifyNodeRecursively(type, tc, ct, pm);
+    ct = TypifyExprOrType(initial, tc, kCanonTypeInvalid, pm);
+    TypifyExprOrType(type, tc, ct, pm);
   } else {
-    ct = TypifyNodeRecursively(type, tc, kCanonTypeInvalid, pm);
+    ct = TypifyExprOrType(type, tc, kCanonTypeInvalid, pm);
     if (Node_kind(initial) != NT::ValUndef) {
-      TypifyNodeRecursively(initial, tc, ct, pm);
+      TypifyExprOrType(initial, tc, ct, pm);
     }
   }
   return AnnotateType(node, ct);
@@ -122,15 +122,14 @@ CanonType TypifyTypeFunOrDefFun(Node node, TypeCorpus* tc, PolyMap* pm) {
   std::vector<CanonType> params;
   for (Node p = Node_params(node); !p.isnull(); p = Node_next(p)) {
     ASSERT(Node_kind(p) == NT::FunParam, "");
-    CanonType ct =
-        TypifyNodeRecursively(Node_type(p), tc, kCanonTypeInvalid, pm);
+    CanonType ct = TypifyExprOrType(Node_type(p), tc, kCanonTypeInvalid, pm);
     AnnotateType(p, ct);
     std::cout << "## Param " << Node_name(p) << " t=" << CanonType_name(ct)
               << "\n";
     params.push_back(ct);
   }
   params.push_back(
-      TypifyNodeRecursively(Node_result(node), tc, kCanonTypeInvalid, pm));
+      TypifyExprOrType(Node_result(node), tc, kCanonTypeInvalid, pm));
 
   return AnnotateType(node, tc->InsertFunType(params));
 }
@@ -183,8 +182,7 @@ void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
 CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
                             PolyMap* pm) {
   std::cout << "@@ VALCOMP\n";
-  CanonType ct =
-      TypifyNodeRecursively(Node_type_or_auto(node), tc, ct_target, pm);
+  CanonType ct = TypifyExprOrType(Node_type_or_auto(node), tc, ct_target, pm);
   if (CanonType_kind(ct) == NT::TypeVec) {
     CanonType element_type = CanonType_underlying_vec_type(ct);
 
@@ -195,7 +193,7 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
       //
       Node val = Node_value_or_undef(point);
       if (Node_kind(val) != NT::ValUndef) {
-        TypifyNodeRecursively(val, tc, element_type, pm);
+        TypifyExprOrType(val, tc, element_type, pm);
       }
       //
       Node index = Node_point(point);
@@ -203,7 +201,7 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
       if (Node_kind(index) == NT::ValAuto) {
         AnnotateType(index, uint_type);
       } else {
-        TypifyNodeRecursively(index, tc, uint_type, pm);
+        TypifyExprOrType(index, tc, uint_type, pm);
       }
     }
   } else {
@@ -223,7 +221,7 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
         AnnotateFieldWithTypeAndSymbol(Node_point(point), field);
       }
       if (Node_kind(Node_value_or_undef(point)) != NT::ValUndef) {
-        TypifyNodeRecursively(Node_value_or_undef(point), tc, ct_field, pm);
+        TypifyExprOrType(Node_value_or_undef(point), tc, ct_field, pm);
       }
     }
   }
@@ -289,7 +287,7 @@ CanonType TypifyExprCall(Node node, TypeCorpus* tc, CanonType ct_target,
     ASSERT(false, "NYI");
     return kCanonTypeInvalid;
   } else {
-    CanonType ct_fun = TypifyNodeRecursively(callee, tc, kCanonTypeInvalid, pm);
+    CanonType ct_fun = TypifyExprOrType(callee, tc, kCanonTypeInvalid, pm);
     int num_parameters = CanonType_children(ct_fun).size() - 1;
     int num_args = NodeNumSiblings(Node_args(node));
     if (num_parameters != num_args) {
@@ -297,15 +295,16 @@ CanonType TypifyExprCall(Node node, TypeCorpus* tc, CanonType ct_target,
     }
     int i = 0;
     for (Node arg = Node_args(node); !arg.isnull(); arg = Node_next(arg), ++i) {
-      TypifyNodeRecursively(arg, tc, CanonType_children(ct_fun)[i], pm);
+      TypifyExprOrType(arg, tc, CanonType_children(ct_fun)[i], pm);
     }
     return AnnotateType(node, CanonType_children(ct_fun).back());
   }
 }
 
-CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
-                                PolyMap* pm) {
-  std::cout << "@@ TYPIFY: " << EnumToString(Node_kind(node))
+CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
+                           PolyMap* pm) {
+  std::cout << "@@ TYPIFY: " << Node_srcloc(node) << " "
+            << EnumToString(Node_kind(node))
             << " target: " << CanonType_name(ct_target) << "\n";
   if (!Node_x_type(node).isnull()) {
     return Node_x_type(node);
@@ -342,18 +341,37 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node,
                           tc->get_base_canon_type(Node_base_type_kind(node)));
     case NT::TypeVec:
-      ct = TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
-      TypifyNodeRecursively(Node_size(node), tc, tc->get_uint_canon_type(), pm);
+      ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
+      TypifyExprOrType(Node_size(node), tc, tc->get_uint_canon_type(), pm);
       return AnnotateType(
           node, tc->InsertVecType(ComputeArrayLength(Node_size(node)), ct));
     case NT::TypePtr:
-      ct = TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
+      ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node,
                           tc->InsertPtrType(Node_has_flag(node, BF::MUT), ct));
     case NT::TypeSpan:
-      ct = TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
+      ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node,
                           tc->InsertSpanType(Node_has_flag(node, BF::MUT), ct));
+    case NT::TypeUnion: {
+      std::vector<CanonType> children;
+      for (Node child = Node_types(node); !child.isnull();
+           child = Node_next(child)) {
+        children.push_back(TypifyExprOrType(child, tc, kCanonTypeInvalid, pm));
+      }
+      return AnnotateType(
+          node,
+          tc->InsertUnionType(Node_has_flag(node, BF::UNTAGGED), children));
+    }
+    case NT::TypeUnionDelta: {
+       CanonType ct_minuend =
+          TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
+      CanonType ct_subtrahend =
+          TypifyExprOrType(Node_subtrahend(node), tc, kCanonTypeInvalid, pm);
+      return AnnotateType(node,
+                          tc->InsertUnionComplement(ct_minuend, ct_subtrahend));
+    }
+
     //
     case NT::Expr2: {
       BINARY_EXPR_KIND kind = Node_binary_expr_kind(node);
@@ -361,10 +379,9 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
         ct_target = kCanonTypeInvalid;
       }
 
-      CanonType ct_left =
-          TypifyNodeRecursively(Node_expr1(node), tc, ct_target, pm);
+      CanonType ct_left = TypifyExprOrType(Node_expr1(node), tc, ct_target, pm);
 
-      TypifyNodeRecursively(
+      TypifyExprOrType(
           Node_expr2(node), tc,
           CanonType_IsNumber(ct_left) ? ct_left : kCanonTypeInvalid, pm);
       if (ResultIsBool(kind)) {
@@ -377,12 +394,11 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node, ct);
     }
     case NT::ExprAddrOf:
-      ct =
-          TypifyNodeRecursively(Node_expr_lhs(node), tc, kCanonTypeInvalid, pm);
+      ct = TypifyExprOrType(Node_expr_lhs(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node,
                           tc->InsertPtrType(Node_has_flag(node, BF::MUT), ct));
     case NT::ExprField: {
-      ct = TypifyNodeRecursively(Node_container(node), tc, ct_target, pm);
+      ct = TypifyExprOrType(Node_container(node), tc, ct_target, pm);
       if (CanonType_kind(ct) != NT::DefRec) {
         CompilerError(Node_srcloc(node)) << "Container is not of type rec";
       }
@@ -396,10 +412,9 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node, Node_x_type(field_node));
     }
     case NT::ExprIndex:
-      TypifyNodeRecursively(Node_expr_index(node), tc,
-                            tc->get_uint_canon_type(), pm);
-      ct = TypifyNodeRecursively(Node_container(node), tc, kCanonTypeInvalid,
-                                 pm);
+      TypifyExprOrType(Node_expr_index(node), tc, tc->get_uint_canon_type(),
+                       pm);
+      ct = TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
       if (CanonType_kind(ct) == NT::TypeVec) {
         return AnnotateType(node, CanonType_underlying_vec_type(ct));
       } else if (CanonType_kind(ct) != NT::TypeSpan) {
@@ -409,23 +424,23 @@ CanonType TypifyNodeRecursively(Node node, TypeCorpus* tc, CanonType ct_target,
         return kCanonTypeInvalid;
       }
     case NT::ExprLen:
-      TypifyNodeRecursively(Node_container(node), tc, kCanonTypeInvalid, pm);
+      TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node, tc->get_uint_canon_type());
     case NT::ExprIs:
-      TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
-      TypifyNodeRecursively(Node_expr(node), tc, kCanonTypeInvalid, pm);
+      TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
+      TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node, tc->get_bool_canon_type());
     case NT::ExprAs:
     case NT::ExprBitCast:
     case NT::ExprUnsafeCast:
     case NT::ExprNarrow:
-      ct = TypifyNodeRecursively(Node_type(node), tc, kCanonTypeInvalid, pm);
-      TypifyNodeRecursively(Node_expr(node), tc, kCanonTypeInvalid, pm);
+      ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
+      TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node, ct);
     case NT::ExprCall:
       return TypifyExprCall(node, tc, ct_target, pm);
     case NT::ExprUnwrap:
-      ct = TypifyNodeRecursively(Node_expr(node), tc, kCanonTypeInvalid, pm);
+      ct = TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
       if (CanonType_kind(ct) != NT::DefType) {
         return AnnotateType(node, CanonType_children(ct)[0]);
       } else if (CanonType_kind(ct) != NT::DefEnum) {
@@ -507,8 +522,8 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
         case NT::DefRec: {
           for (Node field = Node_fields(child); !field.isnull();
                field = Node_next(field)) {
-            CanonType ct = TypifyNodeRecursively(Node_value_or_auto(field), tc,
-                                                 kCanonTypeInvalid, &poly_map);
+            CanonType ct = TypifyExprOrType(Node_value_or_auto(field), tc,
+                                            kCanonTypeInvalid, &poly_map);
             AnnotateType(field, ct);
           }
           break;
@@ -517,7 +532,7 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
           CanonType ct = Node_x_type(child);
           for (Node field = Node_items(child); !field.isnull();
                field = Node_next(field)) {
-            TypifyNodeRecursively(
+            TypifyExprOrType(
                 Node_value_or_auto(field), tc,
                 tc->get_base_canon_type(CanonType_base_type_kind(ct)),
                 &poly_map);
@@ -526,8 +541,8 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
           break;
         }
         case NT::DefType: {
-          CanonType ct = TypifyNodeRecursively(Node_type(child), tc,
-                                               kCanonTypeInvalid, &poly_map);
+          CanonType ct = TypifyExprOrType(Node_type(child), tc,
+                                          kCanonTypeInvalid, &poly_map);
           if (Node_has_flag(child, BF::WRAPPED)) {
             tc->InsertWrappedTypeFinalize(Node_x_type(child), ct);
           } else {
@@ -556,8 +571,8 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
           std::cout << "@@" << EnumToString(Node_kind(child)) << " "
                     << EnumToString(Node_kind(Node_cond(child))) << "\n";
 
-          TypifyNodeRecursively(Node_cond(child), tc, tc->get_bool_canon_type(),
-                                &poly_map);
+          TypifyExprOrType(Node_cond(child), tc, tc->get_bool_canon_type(),
+                           &poly_map);
           break;
         case NT::DefFun:
           if (Node_x_type(child).isnull()) {

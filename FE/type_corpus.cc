@@ -124,7 +124,7 @@ CanonType CanonTypeNewEnumType(Name name, BASE_TYPE_KIND base_type,
 CanonType CanonTypeNewUnionType(Name name, bool untagged,
                                 const std::vector<CanonType>& sorted_children) {
   CanonType out = CanonTypeNew();
-  gCanonTypeCore[out] = {.node = NT::TypeVec,
+  gCanonTypeCore[out] = {.node = NT::TypeUnion,
                          .name = name,
                          .children = sorted_children,
                          .untagged = untagged};
@@ -315,6 +315,29 @@ CanonType TypeCorpus::InsertUnionType(
   std::vector<CanonType> components_sorted(unique.begin(), unique.end());
   CanonType out = CanonTypeNewUnionType(name, untagged, components_sorted);
   return Insert(out);
+}
+
+CanonType TypeCorpus::InsertUnionComplement(CanonType all, CanonType part) {
+  ASSERT(CanonType_kind(all) == NT::TypeUnion,
+         "expected union type " << EnumToString(CanonType_kind(all)));
+  std::vector<CanonType> part_children;
+  if (CanonType_kind(part) == NT::TypeUnion) {
+    part_children = CanonType_children(part);
+  } else {
+    part_children.push_back(part);
+  }
+  std::vector<CanonType> children;
+  for (auto c : CanonType_children(all)) {
+    if (std::find(part_children.begin(), part_children.end(), c) ==
+        part_children.end()) {
+      children.push_back(c);
+    }
+  }
+  ASSERT(!children.empty(), "");
+  if (children.size() == 1) {
+    return children[0];
+  }
+  return InsertUnionType(CanonType_untagged(all), children);
 }
 
 CanonType TypeCorpus::InsertFunType(

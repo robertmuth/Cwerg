@@ -1,10 +1,10 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+#include <vector>
+
 #include "FE/cwast_gen.h"
 #include "Util/assert.h"
-
-#include <vector>
 namespace cwerg::fe {
 
 struct TargetArchConfig {
@@ -87,6 +87,7 @@ class TypeCorpus {
   CanonType InsertFunType(const std::vector<CanonType>& params_result);
   CanonType InsertWrappedTypePre(std::string_view name);
   void InsertWrappedTypeFinalize(CanonType ct, CanonType wrapped_type);
+  CanonType InsertUnionComplement(CanonType minuend, CanonType subtrahend);
 
   void Dump();
 };

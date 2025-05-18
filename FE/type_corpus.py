@@ -561,6 +561,7 @@ class TypeCorpus:
 
     def insert_union_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
         assert all.node is cwast.TypeUnion, f"expect sum type: {all.name}"
+        # we could use a set here but the number of union elements will be small
         if part.node is cwast.TypeUnion:
             part_children = part.children
         else:
@@ -569,6 +570,8 @@ class TypeCorpus:
         for x in all.children:
             if x not in part_children:
                 out.append(x)
+        assert out, "empty union complement"
         if len(out) == 1:
             return out[0]
+
         return self.InsertUnionType(all.untagged, out)
