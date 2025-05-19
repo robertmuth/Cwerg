@@ -1042,9 +1042,9 @@ inline void VisitNodesRecursivelyPost(Node node,
 }
 
 inline void VisitNodesRecursivelyPre(Node node,
-                                     std::function<void(Node, Node)> visitor,
+                                     std::function<bool(Node, Node)> visitor,
                                      Node parent) {
-  visitor(node, parent);
+  if (visitor(node, parent)) return;
 
   const auto& core = gNodeCore[node];
 
@@ -1067,7 +1067,7 @@ inline void VisitNodesRecursivelyPost(Node node,
     Node child = core.children_node[i];
     if (child.raw_kind() >= kKindStr) continue;
     while (!child.isnull()) {
-      VisitNodesRecursivelyPre(child, visitor, node);
+      VisitNodesRecursivelyPost(child, visitor, node);
       child = Node_next(child);
     }
   }

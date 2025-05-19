@@ -61,6 +61,12 @@ Node ResolveEnum(Node enum_id, Node enum_type) {
   CompilerError(Node_srcloc(enum_id)) << "enum value not found " << enum_name;
   return kNodeInvalid;
 }
+void UpdateNodeSymbolForPolyCall(Node id, Node new_def) {
+  Node old_def = Node_x_symbol(id);
+  ASSERT(Node_kind(old_def) == NT::DefFun, "");
+  ASSERT(Node_has_flag(old_def, BF::POLY), "");
+  Node_x_symbol(id) = new_def;
+}
 
 void AnnotateNodeSymbol(Node node, Node def_node) {
   ASSERT(Node_kind(node) == NT::Id || Node_kind(node) == NT::MacroInvoke, "");
@@ -71,12 +77,12 @@ void AnnotateNodeSymbol(Node node, Node def_node) {
 void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
                                      const SymTab* builtin_symtab,
                                      bool runs_outside_fun) {
-  auto visitor = [symtab, builtin_symtab, runs_outside_fun](Node node,
-                                                            Node parent) {
+  auto visitor = [symtab, builtin_symtab, runs_outside_fun](
+                     Node node, Node parent) -> bool {
     NT kind = Node_kind(node);
-    if (kind != NT::Id && kind != NT::MacroInvoke) return;
-    if (!Node_x_symbol(node).isnull()) return;
-    if (IsFieldNode(node, parent)) return;
+    if (kind != NT::Id && kind != NT::MacroInvoke) return false;
+    if (!Node_x_symbol(node).isnull()) return false;
+    if (IsFieldNode(node, parent)) return false;
     Node def_node;
     if (!Node_x_import(node).isnull()) {
       Node def_mod = Node_x_module(Node_x_import(node));
@@ -85,7 +91,7 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
           CompilerError(Node_srcloc(node))
               << "module import unresolved for " << Node_name(node);
         }
-        return;
+        return false;
       }
       const SymTab* symtab = Node_x_symtab(def_mod);
       def_node = SymTabResolveImported(symtab, node);
@@ -104,7 +110,7 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
             CompilerError(Node_srcloc(node))
                 << "unknown symbol " << Node_name(node);
           }
-          return;
+          return false;
         }
       }
     }
@@ -114,6 +120,7 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
     }
     // std::cout << "SymTabResolved: " << Node_name(node) << "\n";
     AnnotateNodeSymbol(node, def_node);
+    return false;
   };
   VisitNodesRecursivelyPre(node, visitor, kNodeInvalid);
 }

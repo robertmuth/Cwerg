@@ -24,6 +24,7 @@ constexpr TargetArchConfig STD_TARGET_A32 = {32, 32, 16, 32, 32};
 extern Name CanonType_name(CanonType n);
 extern NT CanonType_kind(CanonType n);
 extern Node CanonType_ast_node(CanonType n);
+extern bool CanonType_mut(CanonType n);
 
 extern std::vector<CanonType>& CanonType_children(CanonType n);
 
@@ -36,6 +37,11 @@ inline CanonType CanonType_underlying_vec_type(CanonType n) {
 
 inline CanonType CanonType_underlying_span_type(CanonType n) {
   ASSERT(CanonType_kind(n) == NT::TypeSpan, "");
+  return CanonType_children(n)[0];
+}
+
+inline CanonType CanonType_underlying_ptr_type(CanonType n) {
+  ASSERT(CanonType_kind(n) == NT::TypePtr, "");
   return CanonType_children(n)[0];
 }
 

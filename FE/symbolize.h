@@ -6,19 +6,21 @@
 #include "FE/cwast_gen.h"
 
 namespace cwerg::fe {
-bool HasImportedSymbolReference(Node node);
+extern bool HasImportedSymbolReference(Node node);
 
-void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
+extern void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
     const std::vector<Node>& mods, const SymTab* builtin_symtab);
 
-void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
+extern void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
     const std::vector<Node>& mods, const SymTab* builtin_symtab);
 
-void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
-                                   const SymTab* builtin_symtab);
+extern void ResolveSymbolsInsideFunctions(const std::vector<Node>& mods,
+                                          const SymTab* builtin_symtab);
 
-void SetTargetFields(const std::vector<Node>& mods);
+extern void SetTargetFields(const std::vector<Node>& mods);
 
-void VerifySymbols(Node node);
+extern void UpdateNodeSymbolForPolyCall(Node callee, Node called_fun);
+
+extern void VerifySymbols(Node node);
 
 }  // namespace cwerg::fe

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <map>
 
+#include "FE/symbolize.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
 
@@ -45,8 +46,22 @@ class PolyMap {
     map_[key] = fun;
   }
 
-  Node Resolve(Node callee, CanonType first_param_type) {
-    ASSERT(false, "NYI");
+  Node Resolve(Node callee, CanonType ct_first) {
+    PolyMapKey key{Node_x_poly_mod(Node_x_symbol(callee)), Node_name(callee),
+                   ct_first};
+    auto it = map_.find(key);
+    if (it != map_.end()) {
+      return it->second;
+    }
+    if (CanonType_kind(ct_first) == NT::TypeVec) {
+      ct_first =
+          tc_->InsertSpanType(false, CanonType_underlying_vec_type(ct_first));
+    }
+    it = map_.find(key);
+    if (it != map_.end()) {
+      return it->second;
+    }
+    CompilerError(Node_srcloc(callee)) << "cannot resolve polymorphic call";
     return kNodeInvalid;
   }
 };
@@ -128,6 +143,13 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
 
 void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm);
 
+void TypifyStmtSeq(Node stmt, TypeCorpus* tc, CanonType ct_target,
+                   PolyMap* pm) {
+  for (; !stmt.isnull(); stmt = Node_next(stmt)) {
+    TypifyStmt(stmt, tc, ct_target, pm);
+  }
+}
+
 CanonType TypifyDefGlobalOrDefVar(Node node, TypeCorpus* tc, PolyMap* pm) {
   Node initial = Node_initial_or_undef_or_auto(node);
   Node type = Node_type_or_auto(node);
@@ -153,8 +175,6 @@ CanonType TypifyTypeFunOrDefFun(Node node, TypeCorpus* tc, PolyMap* pm) {
     ASSERT(Node_kind(p) == NT::FunParam, "");
     CanonType ct = TypifyExprOrType(Node_type(p), tc, kCanonTypeInvalid, pm);
     AnnotateType(p, ct);
-    std::cout << "@@@@ Param " << Node_name(p) << " t=" << CanonType_name(ct)
-              << "\n";
     params.push_back(ct);
   }
   params.push_back(
@@ -317,22 +337,49 @@ bool IsPolymorphicCallee(Node callee) {
 CanonType TypifyExprCall(Node node, TypeCorpus* tc, CanonType ct_target,
                          PolyMap* pm) {
   Node callee = Node_callee(node);
+  CanonType ct_fun;
   if (IsPolymorphicCallee(callee)) {
-    ASSERT(false, "NYI");
-    return kCanonTypeInvalid;
+    ASSERT(Node_kind(callee) == NT::Id, "");
+    Node first_arg = Node_args(node);
+    ASSERT(!first_arg.isnull(), "");
+    CanonType ct = TypifyExprOrType(first_arg, tc, kCanonTypeInvalid, pm);
+    Node called_fun = pm->Resolve(callee, ct);
+    UpdateNodeSymbolForPolyCall(callee, called_fun);
+    ct_fun = Node_x_type(called_fun);
   } else {
-    CanonType ct_fun = TypifyExprOrType(callee, tc, kCanonTypeInvalid, pm);
-    int num_parameters = CanonType_children(ct_fun).size() - 1;
-    int num_args = NodeNumSiblings(Node_args(node));
-    if (num_parameters != num_args) {
-      CompilerError(Node_srcloc(node)) << "call parameter count mismatch";
-    }
-    int i = 0;
-    for (Node arg = Node_args(node); !arg.isnull(); arg = Node_next(arg), ++i) {
-      TypifyExprOrType(arg, tc, CanonType_children(ct_fun)[i], pm);
-    }
-    return AnnotateType(node, CanonType_children(ct_fun).back());
+    ct_fun = TypifyExprOrType(callee, tc, kCanonTypeInvalid, pm);
   }
+  int num_parameters = CanonType_children(ct_fun).size() - 1;
+  int num_args = NodeNumSiblings(Node_args(node));
+  if (num_parameters != num_args) {
+    CompilerError(Node_srcloc(node)) << "call parameter count mismatch";
+  }
+  int i = 0;
+  for (Node arg = Node_args(node); !arg.isnull(); arg = Node_next(arg), ++i) {
+    TypifyExprOrType(arg, tc, CanonType_children(ct_fun)[i], pm);
+  }
+  return AnnotateType(node, CanonType_children(ct_fun).back());
+}
+
+CanonType GetExprStmtType(Node root) {
+  CanonType result = kCanonTypeInvalid;
+
+  auto visitor = [&result, root](Node node, Node parent) -> bool {
+    if (root != node && Node_kind(node) == NT::ExprStmt) {
+      return true;
+    }
+    if (Node_kind(node) != NT::StmtReturn) {
+      return false;
+    }
+    if (result.isnull()) {
+      result = Node_x_type(Node_expr_ret(node));
+    } else {
+      ASSERT(result == Node_x_type(Node_expr_ret(node)), "");
+    }
+    return false;
+  };
+  VisitNodesRecursivelyPre(root, visitor, kNodeInvalid);
+  return result;
 }
 
 CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
@@ -357,7 +404,21 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::ValTrue:
     case NT::ValFalse:
       return AnnotateType(node, tc->get_bool_canon_type());
-
+    case NT::ValSpan:
+      TypifyExprOrType(Node_expr_size(node), tc, tc->get_uint_canon_type(), pm);
+      if (ct_target.isnull()) {
+        CanonType ct_ptr =
+            TypifyExprOrType(Node_pointer(node), tc, kCanonTypeInvalid, pm);
+        ct_target = tc->InsertSpanType(CanonType_mut(ct_ptr),
+                                       CanonType_underlying_ptr_type(ct_ptr));
+      } else {
+        ASSERT(CanonType_kind(ct_target) == NT::TypeSpan, "");
+        CanonType ct_ptr =
+            tc->InsertPtrType(CanonType_mut(ct_target),
+                              CanonType_underlying_span_type(ct_target));
+        TypifyExprOrType(Node_pointer(node), tc, ct_ptr, pm);
+      }
+      return AnnotateType(node, ct_target);
     case NT::ValNum: {
       BASE_TYPE_KIND target = ct_target.isnull()
                                   ? BASE_TYPE_KIND::INVALID
@@ -460,7 +521,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       ct = TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
       if (CanonType_kind(ct) == NT::TypeVec) {
         return AnnotateType(node, CanonType_underlying_vec_type(ct));
-      } else if (CanonType_kind(ct) != NT::TypeSpan) {
+      } else if (CanonType_kind(ct) == NT::TypeSpan) {
         return AnnotateType(node, CanonType_underlying_span_type(ct));
       } else {
         CompilerError(Node_srcloc(node)) << "Container is not of type vec";
@@ -492,7 +553,42 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       } else {
         ASSERT(false, "");
       }
+    case NT::ExprPointer:
+      ct = TypifyExprOrType(Node_expr1(node), tc, ct_target, pm);
+      TypifyExprOrType(Node_expr2(node), tc, tc->get_uint_canon_type(), pm);
+      if (Node_kind(Node_expr_bound_or_undef(node)) != NT::ValUndef) {
+        TypifyExprOrType(Node_expr_bound_or_undef(node), tc,
+                         tc->get_uint_canon_type(), pm);
+      }
+      return AnnotateType(node, ct);
+    case NT::ExprDeref:
+      ct = TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
+      if (CanonType_kind(ct) != NT::TypePtr) {
+        CompilerError(Node_srcloc(node)) << "expected pointer type";
+      }
+      return AnnotateType(node, CanonType_underlying_ptr_type(ct));
+    case NT::ExprFront: {
+      ct = TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
+      if (CanonType_kind(ct) != NT::TypeSpan &&
+          CanonType_kind(ct) != NT::TypeVec) {
+        CompilerError(Node_srcloc(node))
+            << "expected container in front expression";
+      }
+      bool mut = Node_has_flag(node, BF::MUT) ||
+                 (Node_has_flag(node, BF::PRESERVE_MUT) &&
+                  CanonType_kind(ct) == NT::TypeSpan && CanonType_mut(ct));
+      CanonType ct_elem = CanonType_kind(ct) == NT::TypeSpan
+                              ? CanonType_underlying_span_type(ct)
+                              : CanonType_underlying_vec_type(ct);
+      return AnnotateType(node, tc->InsertPtrType(mut, ct_elem));
+    }
 
+    case NT::ExprStmt:
+      TypifyStmtSeq(Node_body(node), tc, ct_target, pm);
+      if (ct_target.isnull()) {
+        ct_target = GetExprStmtType(node);
+      }
+      return AnnotateType(node, ct_target);
     default:
       ASSERT(false, "unsupported node " << Node_srcloc(node) << " "
                                         << EnumToString(Node_kind(node)));
@@ -500,15 +596,14 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
   }
 }
 
-void TypifyStmtSeq(Node stmt, TypeCorpus* tc, CanonType ct_target,
-                   PolyMap* pm) {
-  for (; !stmt.isnull(); stmt = Node_next(stmt)) {
-    TypifyStmt(stmt, tc, ct_target, pm);
-  }
-}
-
 void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
+  CanonType ct;
   switch (Node_kind(node)) {
+    case NT::StmtAssignment:
+    case NT::StmtCompoundAssignment:
+      ct = TypifyExprOrType(Node_expr_lhs(node), tc, kCanonTypeInvalid, pm);
+      TypifyExprOrType(Node_expr_rhs(node), tc, ct, pm);
+      break;
     case NT::DefVar:
       TypifyDefGlobalOrDefVar(node, tc, pm);
       break;
