@@ -62,6 +62,7 @@ Node ResolveEnum(Node enum_id, Node enum_type) {
   return kNodeInvalid;
 }
 void UpdateNodeSymbolForPolyCall(Node id, Node new_def) {
+  ASSERT(!new_def.isnull(), "");
   Node old_def = Node_x_symbol(id);
   ASSERT(Node_kind(old_def) == NT::DefFun, "");
   ASSERT(Node_has_flag(old_def, BF::POLY), "");
@@ -69,8 +70,12 @@ void UpdateNodeSymbolForPolyCall(Node id, Node new_def) {
 }
 
 void AnnotateNodeSymbol(Node node, Node def_node) {
+  ASSERT(!def_node.isnull(), "");
+  // std::cout << "@@@ AnnotateNodeSymbol: " << Node_srcloc(node) << " "
+  //          << node.index() << " " << Node_name(node) << " -> "
+  //          << EnumToString(Node_kind(def_node)) << "\n";
   ASSERT(Node_kind(node) == NT::Id || Node_kind(node) == NT::MacroInvoke, "");
-  ASSERT(Node_x_symbol(node) == kNodeInvalid, "");
+  ASSERT(Node_x_symbol(node).isnull(), "");
   Node_x_symbol(node) = def_node;
 }
 
@@ -108,7 +113,7 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
         } else {
           if (runs_outside_fun && !IsPointNode(node, parent)) {
             CompilerError(Node_srcloc(node))
-                << "unknown symbol " << Node_name(node);
+                << "unknown global symbol " << Node_name(node);
           }
           return false;
         }
@@ -145,7 +150,6 @@ void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
   for (Node mod : mods) {
     // std::cout << "ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros "
     //           << Node_name(mod) << "\n";
-
     const SymTab* symtab = Node_x_symtab(mod);
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(Node(child))) {
@@ -168,7 +172,10 @@ void ResolveSymbolInsideFunction(Node node, const SymTab* builtin_symtab,
       return;
     }
   }
-  CompilerError(Node_srcloc(node)) << "unknown symbol " << name;
+  CompilerError(Node_srcloc(node))
+      << "unknown local symbol " << name << " " << node.index() << " "
+      << EnumToString(Node_kind(Node_x_symbol(node)));
+  return;
 }
 
 void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,

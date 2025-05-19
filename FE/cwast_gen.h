@@ -1204,7 +1204,7 @@ inline void MaybeReplaceAstRecursivelyPost(
 
 inline Node GetWithDefault(const std::map<Node, Node>& m, Node node) {
   auto it = m.find(node);
-  return (it == m.end()) ? it->second : node;
+  return (it == m.end()) ? node: it->second;
 }
 
 void RemoveNodesOfType(Node node, NT kind);
