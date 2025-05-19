@@ -184,9 +184,9 @@ Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
     Node out = NodeNew(NT::ExprPointer);
     ParseFunLikeArgs(lexer, "EEe", &args);
     NodeInitExprPointer(out,
-                    tk.text == "ptr_inc" ? POINTER_EXPR_KIND::INCP
-                                         : POINTER_EXPR_KIND::DECP,
-                    args[0], args[1], args[2], tk.comments, tk.srcloc);
+                        tk.text == "ptr_inc" ? POINTER_EXPR_KIND::INCP
+                                             : POINTER_EXPR_KIND::DECP,
+                        args[0], args[1], args[2], tk.comments, tk.srcloc);
     return out;
   } else if (tk.text == "abs") {
     Node out = NodeNew(NT::Expr1);
@@ -202,19 +202,19 @@ Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
     Node out = NodeNew(NT::Expr1);
     ParseFunLikeArgs(lexer, "EE", &args);
     NodeInitExpr2(out, BINARY_EXPR_KIND::PDELTA, args[0], args[1], tk.comments,
-              tk.srcloc);
+                  tk.srcloc);
     return out;
   } else if (tk.text == "max") {
     Node out = NodeNew(NT::Expr2);
     ParseFunLikeArgs(lexer, "EE", &args);
     NodeInitExpr2(out, BINARY_EXPR_KIND::MAX, args[0], args[1], tk.comments,
-              tk.srcloc);
+                  tk.srcloc);
     return out;
   } else if (tk.text == "min") {
     Node out = NodeNew(NT::Expr2);
     ParseFunLikeArgs(lexer, "EE", &args);
     NodeInitExpr2(out, BINARY_EXPR_KIND::MIN, args[0], args[1], tk.comments,
-              tk.srcloc);
+                  tk.srcloc);
     return out;
   } else {
     ASSERT(false, tk);
@@ -293,8 +293,9 @@ Node MakeNodeId(const TK& tk) {
     enum_name = s.substr(pos + 1);
     s = s.substr(0, pos);
   }
-  NodeInitId(out, NameNew(s), enum_name.empty() ? kNameInvalid : NameNew(enum_name),
-         tk.comments, tk.srcloc);
+  NodeInitId(out, NameNew(s),
+             enum_name.empty() ? kNameInvalid : NameNew(enum_name), tk.comments,
+             tk.srcloc);
   return out;
 }
 
@@ -444,12 +445,22 @@ std::string FullName(Node node) {
   return out;
 }
 
+bool IsMacroExpression(Node lhs) {
+  if (lhs.kind() == NT::Id) {
+    std::string_view name = NameData(Node_name(lhs));
+    return ends_with(name, "#") || name == "span_inc" || name == "span_dec" ||
+           name == "span_diff";
+  }
+  return false;
+}
+
 Node PrattParseExprCall(Lexer* lexer, Node lhs, const TK& tk,
                         uint32_t precedence) {
-  if (lhs.kind() == NT::Id && ends_with(NameData(Node_name(lhs)), "#")) {
+  if (IsMacroExpression(lhs)) {
     Node out = NodeNew(NT::MacroInvoke);
     Node args = ParseMacroArgList(lexer, false);
-    NodeInitMacroInvoke(out, NameNew(FullName(lhs)), args, tk.comments, tk.srcloc);
+    NodeInitMacroInvoke(out, NameNew(FullName(lhs)), args, tk.comments,
+                        tk.srcloc);
     return out;
   }
   Node out = NodeNew(NT::ExprCall);
@@ -531,7 +542,7 @@ Node ParseTypeExpr(Lexer* lexer) {
   if (tk.kind == TK_KIND::BASE_TYPE) {
     Node out = NodeNew(NT::TypeBase);
     NodeInitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text), tk.comments,
-                 tk.srcloc);
+                     tk.srcloc);
     return out;
   } else if (tk.kind == TK_KIND::DEREF_OR_POINTER_OP) {
     Node out = NodeNew(NT::TypePtr);
@@ -675,7 +686,7 @@ Node ParseMacroArgListWithColon(Lexer* lexer, uint32_t outer_col,
     Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
     NodeInitEphemeralList(body, stmts, Mask(BF::COLON), kStrInvalid,
-                      kSrcLocInvalid);
+                          kSrcLocInvalid);
     return body;
   }
 
@@ -697,8 +708,9 @@ Node ParseModParamList(Lexer* lexer, bool want_comma) {
   TK name = lexer->MatchIdOrDie();
   TK kind = lexer->MatchIdOrDie();
   Node out = NodeNew(NT::ModParam);
-  NodeInitModParam(out, NameNew(name.text), MOD_PARAM_KIND_FromString(kind.text),
-               name.comments, name.srcloc);
+  NodeInitModParam(out, NameNew(name.text),
+                   MOD_PARAM_KIND_FromString(kind.text), name.comments,
+                   name.srcloc);
   Node next = ParseModParamList(lexer, true);
   Node_next(out) = next;
   return out;
@@ -716,7 +728,7 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   Node out = NodeNew(NT::ModParam);
 
   NodeInitFunParam(out, NameNew(name.text), type, BitsFromAnnotation(name),
-               name.comments, name.srcloc);
+                   name.comments, name.srcloc);
   Node next = ParseFunParamList(lexer, true);
   Node_next(out) = next;
   return out;
@@ -752,7 +764,8 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     } else {
       Node out = NodeNew(NT::StmtAssignment);
       ASSIGNMENT_KIND kind = ASSIGNMENT_KIND_FromString(op.text);
-      NodeInitStmtCompoundAssignment(out, kind, lhs, rhs, tk.comments, tk.srcloc);
+      NodeInitStmtCompoundAssignment(out, kind, lhs, rhs, tk.comments,
+                                     tk.srcloc);
       return out;
     }
   } else if (tk.text == "tryset") {
@@ -776,7 +789,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     Node stmts = ParseStmtBodyList(lexer, outer_col);
     Node body = NodeNew(NT::EphemeralList);
     NodeInitEphemeralList(body, stmts, Mask(BF::COLON), kStrInvalid,
-                      kSrcLocInvalid);
+                          kSrcLocInvalid);
     //
     Node_next(var) = type;
     Node_next(type) = expr;
@@ -850,7 +863,7 @@ Node ParseStmt(Lexer* lexer) {
       uint16_t bits = BitsFromAnnotation(tk);
       bits |= tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       NodeInitDefVar(out, NameNew(name.text), type, init, bits, tk.comments,
-                 tk.srcloc);
+                     tk.srcloc);
       return out;
     }
     case NT::StmtIf: {
@@ -922,7 +935,7 @@ Node ParseStmt(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = ParseStmtBodyList(lexer, outer_column);
       NodeInitMacroFor(out, NameNew(name.text), NameNew(container.text), body,
-                   tk.comments, tk.srcloc);
+                       tk.comments, tk.srcloc);
       return out;
     }
     default:
@@ -949,7 +962,8 @@ Node ParseMacroInvocation(Lexer* lexer, TK name) {
   }
 
   Node out = NodeNew(NT::MacroInvoke);
-  NodeInitMacroInvoke(out, NameNew(name.text), args, name.comments, name.srcloc);
+  NodeInitMacroInvoke(out, NameNew(name.text), args, name.comments,
+                      name.srcloc);
   return out;
 }
 
@@ -1027,8 +1041,8 @@ Node ParseMacroParamList(Lexer* lexer, bool want_comma) {
   TK kind = lexer->MatchIdOrDie();
   Node out = NodeNew(NT::MacroParam);
   NodeInitMacroParam(out, NameNew(name.text),
-                 MACRO_PARAM_KIND_FromString(kind.text), name.comments,
-                 name.srcloc);
+                     MACRO_PARAM_KIND_FromString(kind.text), name.comments,
+                     name.srcloc);
   Node next = ParseMacroParamList(lexer, true);
   Node_next(out) = next;
   return out;
@@ -1066,7 +1080,7 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = ParseStmtBodyList(lexer, outer_column);
       NodeInitDefFun(out, NameNew(name.text), params, result, body,
-                 BitsFromAnnotation(tk), tk.comments, tk.srcloc);
+                     BitsFromAnnotation(tk), tk.comments, tk.srcloc);
       return out;
     }
     case NT::DefGlobal: {
@@ -1089,7 +1103,7 @@ Node ParseTopLevel(Lexer* lexer) {
       }
       bits |= tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
       NodeInitDefGlobal(out, NameNew(name.text), type, init, bits, tk.comments,
-                    tk.srcloc);
+                        tk.srcloc);
       return out;
     }
     case NT::DefRec: {
@@ -1098,7 +1112,7 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node fields = ParseRecFieldList(lexer, outer_column);
       NodeInitDefRec(out, NameNew(name.text), fields, BitsFromAnnotation(tk),
-                 tk.comments, tk.srcloc);
+                     tk.comments, tk.srcloc);
       return out;
     }
 
@@ -1115,8 +1129,8 @@ Node ParseTopLevel(Lexer* lexer) {
       }
       Node out = NodeNew(NT::Import);
       NodeInitImport(out, NameNew(name.text),
-                 path.size() == 0 ? kStrInvalid : StrNew(path), args,
-                 tk.comments, tk.srcloc);
+                     path.size() == 0 ? kStrInvalid : StrNew(path), args,
+                     tk.comments, tk.srcloc);
       return out;
     }
     case NT::DefEnum: {
@@ -1128,7 +1142,7 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node items = ParseEnumFieldList(lexer, outer_column);
       NodeInitDefEnum(out, NameNew(name.text), bt, items, bits, tk.comments,
-                  tk.srcloc);
+                      tk.srcloc);
       return out;
     }
     case NT::DefType: {
@@ -1136,7 +1150,8 @@ Node ParseTopLevel(Lexer* lexer) {
       const TK name = lexer->MatchIdOrDie();
       lexer->MatchOrDie(TK_KIND::ASSIGN);
       Node type = ParseTypeExpr(lexer);
-      NodeInitDefType(out, NameNew(name.text), type, bits, tk.comments, tk.srcloc);
+      NodeInitDefType(out, NameNew(name.text), type, bits, tk.comments,
+                      tk.srcloc);
       return out;
     }
     case NT::StmtStaticAssert: {
@@ -1150,7 +1165,7 @@ Node ParseTopLevel(Lexer* lexer) {
       const TK name = lexer->Next();
       if (name.kind == TK_KIND::ID) {
         ASSERT(ends_with(name.text, "#") || name.text == "span_inc" ||
-                   name.text == "span_devc" || name.text == "span_diff",
+                   name.text == "span_dec" || name.text == "span_diff",
 
                name);
       } else {
@@ -1175,8 +1190,8 @@ Node ParseTopLevel(Lexer* lexer) {
       } else {
         body = ParseStmtBodyList(lexer, outer_column);
       }
-      NodeInitDefMacro(out, NameNew(name.text), mrk, params, gen_ids, body, bits,
-                   tk.comments, tk.srcloc);
+      NodeInitDefMacro(out, NameNew(name.text), mrk, params, gen_ids, body,
+                       bits, tk.comments, tk.srcloc);
       return out;
     }
     default:
@@ -1208,8 +1223,8 @@ Node ParseDefMod(Lexer* lexer, Name name) {
   }
   lexer->MatchOrDie(TK_KIND::COLON);
   Node body = ParseModBodyList(lexer, 0);
-  NodeInitDefMod(def_mod, name, params, body, BitsFromAnnotation(tk), tk.comments,
-             tk.srcloc);
+  NodeInitDefMod(def_mod, name, params, body, BitsFromAnnotation(tk),
+                 tk.comments, tk.srcloc);
   return def_mod;
 }
 
