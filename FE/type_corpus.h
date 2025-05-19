@@ -45,6 +45,11 @@ inline CanonType CanonType_underlying_ptr_type(CanonType n) {
   return CanonType_children(n)[0];
 }
 
+inline CanonType CanonType_underlying_wrapped_type(CanonType n) {
+  ASSERT(CanonType_kind(n) == NT::DefType, "");
+  return CanonType_children(n)[0];
+}
+
 extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
 
 inline bool CanonType_IsNumber(CanonType n) {
