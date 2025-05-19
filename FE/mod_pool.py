@@ -363,7 +363,7 @@ class ModPool:
         default_factory=list)
 
 
-def ResolvePolyMods(mods: list[cwast.DefMod]):
+def _ResolvePolyMods(mods: list[cwast.DefMod]):
 
     for mod in mods:
         logger.info("Resolving symbols inside module: %s", mod.name)
@@ -481,7 +481,7 @@ def ReadModulesRecursively(root: Path,
         active = new_active
 
     out.mods_in_topo_order = _ModulesInTopologicalOrder(state.AllModInfos())
-    ResolvePolyMods(out.mods_in_topo_order)
+    _ResolvePolyMods(out.mods_in_topo_order)
     symbolize.ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
         out.mods_in_topo_order, out.builtin_symtab)
     # after resolving all global symbols there is not need for Imports

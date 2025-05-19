@@ -228,7 +228,7 @@ def _GetExprStmtType(root: cwast.ExprStmt) -> cwast.CanonType:
     def visitor(node):
         nonlocal result, root
         if node != root and isinstance(node, cwast.ExprStmt):
-            return VerifyTypesRecursively
+            return True  # do not recurse
         if not isinstance(node, cwast.StmtReturn):
             return False
         if result:
@@ -336,10 +336,7 @@ def _TypifyStmt(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue,
                            cwast.StmtTrap)):
         pass
-    elif isinstance(node, cwast.StmtAssignment):
-        ct = _TypifyExprOrType(node.lhs, tc, cwast.NO_TYPE, pm)
-        _TypifyExprOrType(node.expr_rhs, tc, ct, pm)
-    elif isinstance(node, cwast.StmtCompoundAssignment):
+    elif isinstance(node, (cwast.StmtAssignment, cwast.StmtCompoundAssignment)):
         ct = _TypifyExprOrType(node.lhs, tc, cwast.NO_TYPE, pm)
         _TypifyExprOrType(node.expr_rhs, tc, ct, pm)
     elif isinstance(node, cwast.DefVar):
@@ -426,25 +423,17 @@ def _TypifyExprCall(node: cwast.ExprCall, tc: type_corpus.TypeCorpus,
         called_fun = pm.Resolve(callee, t)
         symbolize.UpdateNodeSymbolForPolyCall(callee, called_fun)
         AnnotateNodeType(callee, called_fun.x_type)
-        ct_callee: cwast.CanonType = called_fun.x_type
-        assert ct_callee.is_fun(), f"{ct}"
-        params_ct = ct_callee.parameter_types()
-        if len(params_ct) != len(node.args):
-            cwast.CompilerError(
-                node.x_srcloc, f"parameter size mismatch in call to {callee} - macro issues?")
-        # we already process the first arg
-        for p, a in zip(params_ct[1:], node.args[1:]):
-            _TypifyExprOrType(a, tc, p, pm)
-        return AnnotateNodeType(node, ct_callee.result_type())
+        ct_fun = called_fun.x_type
     else:
-        ct = _TypifyExprOrType(callee, tc, cwast.NO_TYPE, pm)
-        params_ct = ct.parameter_types()
-        if len(params_ct) != len(node.args):
-            cwast.CompilerError(node.x_srcloc,
-                                f"args number mismatch for call to {callee}: {len(params_ct)} vs {len(node.args)}")
-        for p, a in zip(params_ct, node.args):
-            _TypifyExprOrType(a, tc, p, pm)
-        return AnnotateNodeType(node, ct.result_type())
+        ct_fun = _TypifyExprOrType(callee, tc, cwast.NO_TYPE, pm)
+    #
+    params_ct = ct_fun.parameter_types()
+    if len(params_ct) != len(node.args):
+        cwast.CompilerError(node.x_srcloc,
+                            f"args number mismatch for call to {node.callee}: {len(params_ct)} vs {len(node.args)}")
+    for p, a in zip(params_ct, node.args):
+        _TypifyExprOrType(a, tc, p, pm)
+    return AnnotateNodeType(node, ct_fun.result_type())
 
 
 def _TypifyVal(node, tc: type_corpus.TypeCorpus,
@@ -472,17 +461,16 @@ def _TypifyVal(node, tc: type_corpus.TypeCorpus,
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ValSpan):
-        uint_type = tc.get_uint_canon_type()
-        _TypifyExprOrType(node.expr_size, tc, uint_type, pm)
-        if isinstance(target_type, cwast.TypeSpan):
-            ptr_type = tc.InsertPtrType(target_type.mut, target_type.type)
-            _TypifyExprOrType(node.pointer, tc, ptr_type, pm)
-            return AnnotateNodeType(node, target_type)
+        _TypifyExprOrType(node.expr_size, tc, tc.get_uint_canon_type(), pm)
+        if target_type == cwast.NO_TYPE:
+            ct_ptr = _TypifyExprOrType(node.pointer, tc, cwast.NO_TYPE, pm)
+            target_type = tc.InsertSpanType(ct_ptr.mut, ct_ptr.underlying_pointer_type())
         else:
-            ptr_type = _TypifyExprOrType(
-                node.pointer, tc, cwast.NO_TYPE, pm)
-            return AnnotateNodeType(
-                node, tc.InsertSpanType(ptr_type.mut, ptr_type.underlying_pointer_type()))
+            assert target_type.node is cwast.TypeSpan, f"expected span got {target_type}"
+            ct_ptr = tc.InsertPtrType(
+                target_type.mut, target_type.underlying_span_type())
+            _TypifyExprOrType(node.pointer, tc, ct_ptr, pm)
+        return AnnotateNodeType(node, target_type)
     else:
         assert False, f"unexpected node {node}"
 
@@ -537,6 +525,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
             cwast.CompilerError(
                 node.x_srcloc, f"dereferenced expr must be pointer {node} but got {ct}")
         # TODO: how is mutability propagated?
+        # most likely because we only check mutability for assignments
         return AnnotateNodeType(node, ct.underlying_pointer_type())
     elif isinstance(node, cwast.Expr1):
         ct = _TypifyExprOrType(node.expr, tc, target_type, pm)
@@ -568,11 +557,10 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprPointer):
         ct = _TypifyExprOrType(node.expr1, tc, target_type, pm)
-        uint_type = tc.get_uint_canon_type()
-        _TypifyExprOrType(node.expr2, tc, uint_type, pm)
+        _TypifyExprOrType(node.expr2, tc, tc.get_uint_canon_type(), pm)
         if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
             _TypifyExprOrType(
-                node.expr_bound_or_undef, tc, uint_type, pm)
+                node.expr_bound_or_undef, tc, tc.get_uint_canon_type(), pm)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprUnionTag):
         ct = _TypifyExprOrType(node.expr, tc, cwast.NO_TYPE, pm)
@@ -584,9 +572,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         if not ct.is_span() and not ct.is_vec():
             cwast.CompilerError(
                 node.x_srcloc, "expected container in front expression")
-        mut = node.mut
-        if node.preserve_mut and ct.is_span() and ct.mut:
-            mut = True
+        mut = node.mut or (node.preserve_mut and ct.is_span() and ct.mut)
         p_type = tc.InsertPtrType(mut, ct.underlying_vec_or_span_type())
         return AnnotateNodeType(node, p_type)
     elif isinstance(node, cwast.Expr3):
