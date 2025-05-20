@@ -677,8 +677,6 @@ struct StripeGroup gStripeGroupNode("Node", gAllStripesNode, 256 * 1024);
 
 // =======================================
 
-
-
 int string_view_cmp(const char* a, std::string_view b) {
   int x = strncmp(a, b.data(), b.size());
   if (x == 0 && a[b.size()] != 0) return 1;
@@ -790,6 +788,33 @@ Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
     }
   }
   return clone;
+}
+
+std::string ExpandStringConstant(Str s) {
+  ASSERT(false, "NYI");
+  std::string_view payload = StrData(s);
+  uint8_t kind = payload[0];
+  if (kind != '"') {
+    payload.remove_prefix(1);
+  }
+
+  if (payload.starts_with("\"\"\"")) {
+    payload.remove_prefix(3);
+    payload.remove_suffix(3);
+  } else {
+    payload.remove_prefix(1);
+    payload.remove_suffix(1);
+  }
+  if (kind == 'r') {
+    return std::string(payload);
+  }
+
+  std::string out;
+
+  if (kind == 'x') {
+  } else {
+  }
+  return "";
 }
 
 }  // namespace cwerg::fe

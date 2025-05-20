@@ -279,6 +279,8 @@ inline bool StrCmpLt(Str a, Str b) {
   return strcmp(gStringPool.Data(a.index()), gStringPool.Data(b.index())) < 0;
 }
 
+extern std::string ExpandStringConstant(Str s);
+
 inline std::ostream& operator<<(std::ostream& os, Str str) {
   os << StrData(str);
   return os;
