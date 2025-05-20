@@ -17,6 +17,8 @@ extern bool ParseLineWithStrings(std::string_view s, bool allow_lists,
 // returns 0 on error so avoid passing in len = 0 strings
 extern size_t EscapedStringToBytes(std::string_view s, char* out);
 
+extern size_t HexStringToBytes(std::string_view s, char* out);
+
 // buf needs to be at least 4 * size
 extern size_t BytesToEscapedString(std::string_view, char* out);
 
@@ -128,5 +130,6 @@ struct ExpressionOp {
 //  expr:jump24:skip
 //  expr:movw_abs_nc:fmt:0
 extern std::optional<ExpressionOp> ParseExpressionOp(std::string_view expr);
+
 
 }  // namespace cwerg

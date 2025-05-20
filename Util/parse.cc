@@ -98,7 +98,9 @@ size_t AddOct(std::string_view s, size_t i, char* out) {
     if ('0' > s[i] || s[i] > '7') break;
     c = c * 8 + (s[i] - '0');
   }
-  *out = c;
+  if (out != nullptr) {
+    *out = c;
+  }
   return i - 1;
 }
 
@@ -108,7 +110,9 @@ size_t AddHex(std::string_view s, size_t i, char* out) {
   if (s[i] == 0 || a < -1) return 0;
   int b = HexDigit(s[i + 1]);
   if (s[i + 1] == 0 || b < -1) return 0;
-  *out = a * 16 + b;
+  if (out != nullptr) {
+    *out = a * 16 + b;
+  }
   return i + 1;
 }
 
@@ -126,6 +130,7 @@ enum Mode {
 }  // namespace
 
 size_t EscapedStringToBytes(std::string_view s, char* out) {
+  // TODO: handle invalid escapes
   size_t n = 0;
   bool escaped = false;
   for (size_t i = 0; i < s.size() && s[i] != 0; ++i) {
@@ -134,7 +139,9 @@ size_t EscapedStringToBytes(std::string_view s, char* out) {
       if (c == '\\') {
         escaped = true;
       } else {
-        out[n++] = c;
+        if (out != nullptr) {
+          out[n++] = c;
+        }
       }
       continue;
     }
@@ -149,8 +156,34 @@ size_t EscapedStringToBytes(std::string_view s, char* out) {
       if (i == 0) return 0;
       n++;
     } else {
-      out[n++] = MapEscape(c);
+      if (out != nullptr) {
+        out[n++] = MapEscape(c);
+      }
     }
+  }
+  return n;
+}
+
+size_t HexStringToBytes(std::string_view s, char* out) {
+  ASSERT(false, "");
+  size_t n = 0;
+  int nibble = -1;
+  for (size_t i = 0; i < s.size() && s[i] != 0; ++i) {
+    const uint8_t c = s[i];
+    if (c == ' ' || c == '\n' || c == '\n') continue;
+
+    if (nibble < 0) {
+      nibble = HexDigit(c);
+    } else {
+      if (out != nullptr) {
+        out[n] = nibble * 16 + HexDigit(c);
+      }
+      nibble = -1;
+      n += 1;
+    }
+  }
+  if (nibble >= 0) {
+    return SIZE_MAX;
   }
   return n;
 }
