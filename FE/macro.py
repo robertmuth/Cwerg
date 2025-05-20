@@ -10,6 +10,7 @@ import logging
 from typing import Any, Tuple, Union
 
 from FE import cwast
+from FE import checker
 from FE import identifier
 from FE import symbolize
 
@@ -229,7 +230,7 @@ def main(argv: list[str]):
     symbolize.ResolveSymbolsInsideFunctions(
         mod_topo_order, mp.builtin_symtab)
     for ast in mod_topo_order:
-        # cwast.CheckAST(ast, set())
+        # checker.CheckAST(ast, set())
         symbolize.VerifySymbols(ast)
         pp_sexpr.PrettyPrint(ast, sys.stdout)
 

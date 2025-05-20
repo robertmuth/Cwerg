@@ -3049,19 +3049,6 @@ def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post):
     visitor_post(node)
 
 
-def _VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd=None):
-    if visitor(node, parent, nfd):
-        return
-
-    for nfd in node.__class__.NODE_FIELDS:
-        f = nfd.name
-        if nfd.kind is NFK.NODE:
-            child = getattr(node, f)
-            _VisitAstRecursivelyWithParentAndField(child, visitor, node, nfd)
-        else:
-            for child in getattr(node, f):
-                _VisitAstRecursivelyWithParentAndField(
-                    child, visitor, node, nfd)
 
 
 def VisitAstRecursivelyWithParent(node, visitor, parent):
@@ -3306,89 +3293,6 @@ def _IsPermittedNode(node, permitted, parent, toplevel_node, node_mod: DefMod,
     if isinstance(toplevel_node, DefMacro):
         return True  # refine
     return False
-
-
-def CheckAST(node_mod: DefMod, disallowed_nodes, allow_type_auto=False, pre_symbolize=False):
-    """
-    This check is run at various stages of compilation.
-
-    `disallowed_nodes` contains a set of nodes that must not appear.
-
-    `pre_symbolize` indicates that the check is running before symbolization so
-    that the fields `x_symtab`, `x_target`, `x_symbol` are not yet set.
-
-
-    """
-    # this only works with pre-order traversal
-    toplevel_node = None
-
-    def visitor(node: Any, parent: Any, nfd: NFD):
-        nonlocal disallowed_nodes
-        nonlocal toplevel_node
-        nonlocal node_mod
-        nonlocal pre_symbolize
-
-        if type(node) in disallowed_nodes:
-            CompilerError(
-                node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
-
-        assert isinstance(
-            node.x_srcloc, SrcLoc) and node.x_srcloc != INVALID_SRCLOC, f"Node without srcloc node {node} for parent={parent} field={nfd} {node.x_srcloc}"
-
-        if NF.TOP_LEVEL in node.FLAGS:
-            if not isinstance(parent, DefMod):
-                CompilerError(
-                    node.x_srcloc, f"only allowed at toplevel: {node}")
-            toplevel_node = node
-        if NF.MACRO_BODY_ONLY in node.FLAGS:
-            assert isinstance(
-                toplevel_node, DefMacro), f"only allowed in macros: {node}"
-
-        if NF.LOCAL_SYM_DEF in node.FLAGS:
-            assert isinstance(node.name, NAME), f"{node}"
-        if NF.GLOBAL_SYM_DEF in node.FLAGS:
-            if not isinstance(node, DefMod):
-                assert isinstance(node.name, NAME), f"{node}"
-
-        if isinstance(node, DefMacro):
-            if not node.name.IsMacroCall() and node.name.name not in ALL_BUILT_IN_MACROS:
-                CompilerError(
-                    node.x_srcloc, f"macro name must end with `#`: {node.name}")
-            for p in node.params_macro:
-                if isinstance(p, MacroParam):
-                    assert p.name.IsMacroVar()
-            for i in node.gen_ids:
-                assert isinstance(i, MacroId)
-            _CheckMacroRecursively(node, set())
-        elif isinstance(node, Id):
-            assert isinstance(node.name, NAME), f"{node} {node.x_symbol}"
-            if not pre_symbolize:
-                assert node.x_symbol is not INVALID_SYMBOL, f"{
-                    node} without valid x_symbol {node.x_srcloc}"
-            if node.name.IsMacroVar():
-                CompilerError(node.x_srcloc, f"{node} start with $")
-        elif isinstance(node, MacroId):
-            assert node.name.IsMacroVar()
-        elif isinstance(node, StmtBlock):
-            assert isinstance(node.label, NAME), f"{node} {node.x_srcloc}"
-        elif isinstance(node, StmtBreak):
-            assert isinstance(node.target, NAME), f"{node} {node.x_srcloc}"
-        elif isinstance(node, StmtContinue):
-            assert isinstance(node.target, NAME), f"{node} {node.x_srcloc}"
-        elif isinstance(node, Import):
-            if not pre_symbolize:
-                assert node.x_module != INVALID_MOD
-        elif isinstance(node, DefMod):
-            if not pre_symbolize:
-                assert node.x_symtab, f"missing x_symtab {node}"
-        if nfd is not None:
-            if not _IsPermittedNode(node, nfd.node_type, parent, toplevel_node,
-                                    node_mod,
-                                    allow_type_auto):
-                CompilerError(
-                    node.x_srcloc, f"unexpected node for field={nfd.name}: {node.__class__.__name__}")
-
-    _VisitAstRecursivelyWithParentAndField(node_mod, visitor, None)
 
 
 ##########################################################################################

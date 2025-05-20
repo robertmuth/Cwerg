@@ -8,6 +8,7 @@ import logging
 from typing import Any, Callable
 
 from FE import cwast
+from FE import checker
 from Util import pretty as PP
 
 
@@ -766,7 +767,7 @@ def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
 
 
 def PrettyPrint(mod: cwast.DefMod, outp):
-    cwast.CheckAST(mod, set(), pre_symbolize=True)
+    checker.CheckAST(mod, set(), pre_symbolize=True)
     out: list[PP.Token] = [PP.Beg(PP.BreakType.CONSISTENT, 0)]
     EmitTokensModule(out, mod)
     out += [PP.End()]

@@ -31,6 +31,7 @@ from FE import mod_pool
 from FE import dead_code
 from FE import optimize
 from FE import stats
+from FE import checker
 
 logger = logging.getLogger(__name__)
 
@@ -1040,7 +1041,7 @@ def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
         exit(0)
 
     for mod in mods:
-        cwast.CheckAST(mod, eliminated_node_types,
+        checker.CheckAST(mod, eliminated_node_types,
                        allow_type_auto, pre_symbolize=pre_symbolize)
         if verifier:
             symbolize.VerifySymbols(mod)
