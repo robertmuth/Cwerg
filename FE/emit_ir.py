@@ -214,7 +214,7 @@ def _GetLValueAddressAsBaseOffset(node, ta: type_corpus.TargetArchConfig,
         x_type: cwast.CanonType = node.container.x_type
         assert x_type.is_vec(), f"{x_type}"
         base = _GetLValueAddress(node.container, ta, id_gen)
-        offset = OffsetScaleToOffset(node.expr_index, x_type.underlying_vec_type().size,
+        offset = OffsetScaleToOffset(node.expr_index, x_type.underlying_type().size,
                                      ta, id_gen)
         return BaseOffset(base, offset)
 
@@ -391,7 +391,7 @@ def _EmitExpr2(node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
 
         print(f"{TAB}sub {res}:{res_type} = {conv_op1} {conv_op2}")
         print(f"{TAB}div {res} = {res} {
-              node.expr1.x_type.underlying_pointer_type().aligned_size()}")
+              node.expr1.x_type.underlying_type().aligned_size()}")
     elif kind is cwast.BINARY_EXPR_KIND.MAX:
         print(
             f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op2} {op1}")
@@ -514,9 +514,9 @@ def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
         ct: cwast.CanonType = node.expr1.x_type
         if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
             assert ct.is_pointer()
-            # print ("@@@@@ ", ct,  ct.underlying_pointer_type().size)
+            # print ("@@@@@ ", ct,  ct.underlying_type().size)
             offset = OffsetScaleToOffset(
-                node.expr2, ct.underlying_pointer_type().aligned_size(), ta, id_gen)
+                node.expr2, ct.underlying_type().aligned_size(), ta, id_gen)
             kind = ta.get_data_address_reg_type()
             print(f"{TAB}lea {res}:{kind} = {base} {offset}")
         else:
@@ -951,7 +951,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 node, (cwast.ValCompound, cwast.ValString)), f"{node}"
             print(f"# array: {ct.name}")
             width = ct.array_dim()
-            x_type = ct.underlying_vec_type()
+            x_type = ct.underlying_type()
             if x_type.is_base_type():
                 value = node.x_value
                 if isinstance(value, bytes):

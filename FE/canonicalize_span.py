@@ -25,7 +25,7 @@ def _MakeSpanReplacementStruct(span_type: cwast.CanonType,
                                tc: type_corpus.TypeCorpus) -> cwast.DefRec:
     fields = [
         (SLICE_FIELD_POINTER, tc.InsertPtrType(
-            span_type.mut, span_type.underlying_span_type())),
+            span_type.mut, span_type.underlying_type())),
         (SLICE_FIELD_LENGTH,  tc.get_uint_canon_type())
     ]
     return canonicalize.MakeDefRec(f"xtuple_{span_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
@@ -60,11 +60,11 @@ def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.T
             if new_ct:
                 add_replacement(ct, new_ct)
         elif ct.is_pointer():
-            replacement = ct.underlying_pointer_type().replacement_type
+            replacement = ct.underlying_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.InsertPtrType(ct.mut, replacement))
         elif ct.is_vec():
-            replacement = ct.underlying_vec_type().replacement_type
+            replacement = ct.underlying_type().replacement_type
             if replacement is not None:
                 add_replacement(ct,  tc.InsertVecType(
                     ct.array_dim(), replacement))
@@ -163,7 +163,7 @@ def ReplaceSpans(node):
                 elif isinstance(node, (cwast.ExprUnwrap)):
                     ct_src = node.expr.x_type
                     ct_dst = node.x_type
-                    assert ct_src.is_wrapped() and ct_src.underlying_wrapped_type() == ct_dst
+                    assert ct_src.is_wrapped() and ct_src.underlying_type() == ct_dst
                     typify.UpdateNodeType(node, def_rec)
                     return None
 

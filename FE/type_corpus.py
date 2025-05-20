@@ -27,17 +27,17 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
         return True
 
     if actual.is_span() and expected.is_span():
-        if (actual.underlying_span_type() == expected.underlying_span_type() and
+        if (actual.underlying_type() == expected.underlying_type() and
                 actual.is_mutable() or not expected.is_mutable()):
             return True
 
     if actual.is_vec() and expected.is_span():
         # TODO: check "ref"
-        return actual.underlying_vec_type() == expected.underlying_span_type() and (not expected.is_mutable() or actual_is_lvalue)
+        return actual.underlying_type() == expected.underlying_type() and (not expected.is_mutable() or actual_is_lvalue)
 
     if actual.is_pointer() and expected.is_pointer():
         # TODO: check "ref"
-        return actual.underlying_pointer_type() == expected.underlying_pointer_type() and (not expected.is_mutable())
+        return actual.underlying_type() == expected.underlying_type() and (not expected.is_mutable())
 
     if not expected.is_union():
         return False
@@ -54,7 +54,7 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
 # maybe add records if all their fields are comparable?
 def is_comparable(ct: cwast.CanonType) -> bool:
     return (ct.is_base_or_enum_type() or ct.is_pointer() or
-            ct.is_wrapped() and is_comparable(ct.underlying_wrapped_type()))
+            ct.is_wrapped() and is_comparable(ct.underlying_type()))
 
 
 def is_compatible_for_eq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
@@ -125,11 +125,11 @@ def is_compatible_for_wrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> 
     if ct_dst.is_enum():
         return ct_src.is_base_type() and ct_dst.base_type_kind == ct_src.base_type_kind
     elif ct_dst.is_wrapped():
-        wrapped_type = ct_dst.underlying_wrapped_type()
+        wrapped_type = ct_dst.underlying_type()
         if wrapped_type in (ct_src, ct_src.original_type):
             return True
         if ct_src.is_vec() and wrapped_type.is_span():
-            return ct_src.underlying_vec_type() == wrapped_type.underlying_span_type() and not ct_dst.is_mutable()
+            return ct_src.underlying_type() == wrapped_type.underlying_type() and not ct_dst.is_mutable()
 
     return False
 

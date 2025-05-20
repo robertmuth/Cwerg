@@ -100,7 +100,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
             lhs = cwast.ExprDeref(
                 cwast.Id(result_param.name, None, x_srcloc=node.x_srcloc,
                          x_type=result_type, x_symbol=result_param),
-                x_srcloc=node.x_srcloc, x_type=result_type.underlying_pointer_type())
+                x_srcloc=node.x_srcloc, x_type=result_type.underlying_type())
             assign = cwast.StmtAssignment(
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
             node.expr_ret = cwast.ValVoid(x_srcloc=node.x_srcloc,

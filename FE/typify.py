@@ -161,7 +161,7 @@ class _PolyMap:
         # Handle implicit conversion from vec to span
         if first_param_type.is_vec():
             span_type = self._type_corpus.InsertSpanType(
-                False, first_param_type.underlying_vec_type())
+                False, first_param_type.underlying_type())
 
             out = self._map.get((callee_mod, fun_name, span_type))
             if out:
@@ -354,7 +354,7 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
                        pm: _PolyMap) -> cwast.CanonType:
     ct = _TypifyExprOrType(node.type_or_auto, tc, target_type, pm)
     if ct.is_vec():
-        element_type = ct.underlying_vec_type()
+        element_type = ct.underlying_type()
         for point in node.inits:
             assert isinstance(point, cwast.ValPoint)
             AnnotateNodeType(point, element_type)
@@ -464,11 +464,12 @@ def _TypifyVal(node, tc: type_corpus.TypeCorpus,
         _TypifyExprOrType(node.expr_size, tc, tc.get_uint_canon_type(), pm)
         if target_type == cwast.NO_TYPE:
             ct_ptr = _TypifyExprOrType(node.pointer, tc, cwast.NO_TYPE, pm)
-            target_type = tc.InsertSpanType(ct_ptr.mut, ct_ptr.underlying_pointer_type())
+            target_type = tc.InsertSpanType(
+                ct_ptr.mut, ct_ptr.underlying_type())
         else:
             assert target_type.node is cwast.TypeSpan, f"expected span got {target_type}"
             ct_ptr = tc.InsertPtrType(
-                target_type.mut, target_type.underlying_span_type())
+                target_type.mut, target_type.underlying_type())
             _TypifyExprOrType(node.pointer, tc, ct_ptr, pm)
         return AnnotateNodeType(node, target_type)
     else:
@@ -503,7 +504,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         uint_type = tc.get_uint_canon_type()
         _TypifyExprOrType(node.expr_index, tc, uint_type, pm)
         ct = _TypifyExprOrType(node.container, tc, cwast.NO_TYPE, pm)
-        if not ct.is_vec_or_span():
+        if not ct.is_vec() and not ct.is_span():
             cwast.CompilerError(
                 node.container.x_srcloc, f"expected array or span for {node} but got {ct}")
         return AnnotateNodeType(node, ct.contained_type())
@@ -526,7 +527,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
                 node.x_srcloc, f"dereferenced expr must be pointer {node} but got {ct}")
         # TODO: how is mutability propagated?
         # most likely because we only check mutability for assignments
-        return AnnotateNodeType(node, ct.underlying_pointer_type())
+        return AnnotateNodeType(node, ct.underlying_type())
     elif isinstance(node, cwast.Expr1):
         ct = _TypifyExprOrType(node.expr, tc, target_type, pm)
         return AnnotateNodeType(node, ct)
@@ -573,7 +574,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
             cwast.CompilerError(
                 node.x_srcloc, "expected container in front expression")
         mut = node.mut or (node.preserve_mut and ct.is_span() and ct.mut)
-        p_type = tc.InsertPtrType(mut, ct.underlying_vec_or_span_type())
+        p_type = tc.InsertPtrType(mut, ct.underlying_type())
         return AnnotateNodeType(node, p_type)
     elif isinstance(node, cwast.Expr3):
         _TypifyExprOrType(node.cond, tc, tc.get_bool_canon_type(), pm)
@@ -593,19 +594,17 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprWrap):
         ct = _TypifyExprOrType(node.type, tc, cwast.NO_TYPE, pm)
-        assert ct.is_wrapped() or ct.is_enum(), f"Expected wrapped type in {
-            node} {node.x_srcloc}"
         if ct.is_enum():
             expr_ct = tc.get_base_canon_type(ct.base_type_kind)
         else:
-            expr_ct = ct.underlying_wrapped_type()
+            assert ct.is_wrapped()
+            expr_ct = ct.underlying_type()
         _TypifyExprOrType(node.expr, tc, expr_ct, pm)
         return AnnotateNodeType(node, ct)
-
     elif isinstance(node, cwast.ExprUnwrap):
         ct = _TypifyExprOrType(node.expr, tc, cwast.NO_TYPE, pm)
         if ct.is_wrapped():
-            return AnnotateNodeType(node, ct.underlying_wrapped_type())
+            return AnnotateNodeType(node, ct.underlying_type())
         elif ct.is_enum():
             return AnnotateNodeType(node, tc.get_base_canon_type(ct.base_type_kind))
         else:
@@ -717,13 +716,13 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
             if not op2_type.is_pointer():
                 cwast.CompilerError(
                     node.x_srcloc, "rhs of pointer delta must be pointer")
-            _CheckTypeSame(node, op1_type.underlying_pointer_type(),
-                           op2_type.underlying_pointer_type())
+            _CheckTypeSame(node, op1_type.underlying_type(),
+                           op2_type.underlying_type())
 
         elif op1_type.is_span():
             assert op2_type.is_span() and result_type == op1_type
-            _CheckTypeSame(node, op1_type.underlying_span_type(),
-                           op2_type.underlying_span_type())
+            _CheckTypeSame(node, op1_type.underlying_type(),
+                           op2_type.underlying_type())
         else:
             assert False
     else:
@@ -744,7 +743,7 @@ def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
 def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
     ct: cwast.CanonType = node.type_or_auto.x_type
     if ct.is_vec():
-        _CheckValVec(node, ct.underlying_vec_type())
+        _CheckValVec(node, ct.underlying_type())
     else:
         assert ct.is_rec()
         for field, point in symbolize.IterateValRec(node.inits, ct):
@@ -761,7 +760,7 @@ def _CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus
     """Same as above but we no longer permit implicit conversions """
     ct: cwast.CanonType = node.type_or_auto.x_type
     if ct.is_vec():
-        _CheckValVec(node, ct.underlying_vec_type())
+        _CheckValVec(node, ct.underlying_type())
     else:
         assert ct.is_rec()
         for field, point in symbolize.IterateValRec(node.inits, ct):
@@ -785,7 +784,7 @@ def _CheckExpr3(node: cwast.Expr3, _tc: type_corpus.TypeCorpus):
 def _CheckExprDeref(node: cwast.ExprDeref, _):
     expr_type: cwast.CanonType = node.expr.x_type
     assert expr_type.is_pointer()
-    _CheckTypeSame(node, node.x_type, expr_type.underlying_pointer_type())
+    _CheckTypeSame(node, node.x_type, expr_type.underlying_type())
 
 
 def _CheckExprPointer(node: cwast.ExprPointer, _):
@@ -807,22 +806,22 @@ def _CheckExprField(node: cwast.ExprField, _):
 
 
 def _CheckExprFront(node: cwast.ExprFront, _):
-
-    assert node.container.x_type.is_vec_or_span(
-    ), f"unpected front expr {node.container.x_type}"
+    c = node.container
+    assert c.x_type.is_vec() or c.x_type.is_span(
+    ), f"unpected front expr {c.x_type}"
     mut = node.x_type.mut
     if mut:
-        if not type_corpus.is_mutable_array_or_span(node.container):
+        if not type_corpus.is_mutable_array_or_span(c):
             cwast.CompilerError(
-                node.x_srcloc, f"container not mutable: {node} {node.container}")
+                node.x_srcloc, f"container not mutable: {node} {c}")
 
-    if node.container.x_type.is_vec():
+    if c.x_type.is_vec():
         # TODO: check if address can be taken
         pass
 
     assert node.x_type.is_pointer()
-    _CheckTypeSame(node, node.x_type.underlying_pointer_type(),
-                   node.container.x_type.underlying_vec_or_span_type())
+    _CheckTypeSame(node, node.x_type.underlying_type(),
+                   c.x_type.underlying_type())
 
 
 def _CheckExprWiden(node: cwast.ExprWiden, _):
@@ -861,7 +860,7 @@ def _CheckExprAddrOf(node: cwast.ExprAddrOf, _):
     if not address_can_be_taken(node.expr_lhs):
         cwast.CompilerError(node.x_srcloc,
                             f"address cannot be take: {node} {node.expr_lhs.x_type.name}")
-    assert ct.is_pointer() and ct.underlying_pointer_type() == expr_ct
+    assert ct.is_pointer() and ct.underlying_type() == expr_ct
 
 
 def _CheckExprUnionUntagged(node: cwast.ExprUnionUntagged, _):
@@ -899,7 +898,9 @@ def _CheckExprCallStrict(node: cwast.ExprCall,  _):
 
 
 def _CheckExprIndex(node: cwast.ExprIndex, _):
-    assert node.x_type is node.container.x_type.underlying_vec_or_span_type()
+    c = node.container
+    assert c.x_type.is_vec() or c.x_type.is_span()
+    assert node.x_type is c.x_type.underlying_type()
 
 
 def _CheckExprWrap(node: cwast.ExprWrap,  _):
@@ -917,7 +918,7 @@ def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
     if ct_expr.is_enum():
         assert ct_node.is_base_type() and ct_expr.base_type_kind == ct_node.base_type_kind
     elif ct_expr.is_wrapped():
-        assert ct_expr.underlying_wrapped_type() in (
+        assert ct_expr.underlying_type() in (
             ct_node, ct_node.original_type), f"{ct_node} vs {ct_expr}"
     else:
         assert False
@@ -934,8 +935,8 @@ def _CheckDefFunTypeFun(node, _):
 
 def _CheckValSpan(node: cwast.ValSpan, _):
     assert node.x_type.is_mutable() == node.pointer.x_type.is_mutable()
-    _CheckTypeSame(node, node.x_type.underlying_span_type(),
-                   node.pointer.x_type.underlying_pointer_type())
+    _CheckTypeSame(node, node.x_type.underlying_type(),
+                   node.pointer.x_type.underlying_type())
 
 
 def _CheckExprUnionTag(node: cwast.ExprUnionTag, tc: type_corpus.TypeCorpus):

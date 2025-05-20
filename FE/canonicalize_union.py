@@ -61,11 +61,11 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
             if new_ct:
                 add_replacement(ct, new_ct)
         elif ct.is_pointer():
-            replacement = ct.underlying_pointer_type().replacement_type
+            replacement = ct.underlying_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.InsertPtrType(ct.mut, replacement))
         elif ct.is_vec():
-            replacement = ct.underlying_vec_type().replacement_type
+            replacement = ct.underlying_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.InsertVecType(
                     ct.array_dim(), replacement))
@@ -73,7 +73,7 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
             # This is now run this after spans have been eliminated so
             # we do not have to deal with this case anymore
             assert False
-            replacement = ct.underlying_span_type().replacement_type
+            replacement = ct.underlying_type().replacement_type
             if replacement is not None:
                 add_replacement(ct, tc.InsertSpanType(
                     ct.mut, replacement))

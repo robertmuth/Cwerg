@@ -979,8 +979,8 @@ class CanonType:
     def is_wrapped(self) -> bool:
         return self.node is DefType
 
-    def underlying_wrapped_type(self) -> "CanonType":
-        assert self.is_wrapped()
+    def underlying_type(self) -> "CanonType":
+        assert len(self.children) == 1
         return self.children[0]
 
     def is_fun(self) -> bool:
@@ -1032,25 +1032,6 @@ class CanonType:
         if self.node is DefType:
             return self.children[0].is_void()
         return self.is_void()
-
-    def underlying_pointer_type(self) -> "CanonType":
-        assert self.is_pointer()
-        return self.children[0]
-
-    def underlying_span_type(self) -> "CanonType":
-        assert self.is_span()
-        return self.children[0]
-
-    def underlying_vec_type(self) -> "CanonType":
-        assert self.is_vec()
-        return self.children[0]
-
-    def is_vec_or_span(self) -> bool:
-        return self.node is TypeVec or self.node is TypeSpan
-
-    def underlying_vec_or_span_type(self) -> "CanonType":
-        assert self.is_vec() or self.is_span()
-        return self.children[0]
 
     def contained_type(self) -> "CanonType":
         if self.node is TypeVec or self.node is TypeSpan:
@@ -1440,6 +1421,7 @@ class TypePtr:
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.type}"
+
 
 @NodeCommon
 @dataclasses.dataclass()

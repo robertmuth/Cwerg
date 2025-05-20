@@ -393,7 +393,7 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
         assert container_type.is_span()
         mut = container_type.is_mutable()
     ptr_ct = tc.InsertPtrType(
-        mut, container_type.underlying_vec_or_span_type())
+        mut, container_type.underlying_type())
     bound = cwast.ExprLen(cwast.CloneNodeRecursively(
         node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type, x_value=bound)
     start_addr = cwast.ExprFront(
@@ -502,7 +502,7 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
 def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
                          uint_type: cwast.CanonType) -> cwast.ValSpan:
     assert node.x_type.is_vec()
-    p_type = tc.InsertPtrType(dst_type.mut, dst_type.underlying_span_type())
+    p_type = tc.InsertPtrType(dst_type.mut, dst_type.underlying_type())
     value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
         node) or isinstance(node, (cwast.ValCompound, cwast.ValString)) else None
     pointer = cwast.ExprFront(
@@ -565,7 +565,7 @@ def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpu
                         a, p, uint_type, tc)
         elif isinstance(node, cwast.ExprWrap):
             if node.x_type.is_wrapped():
-                target = node.x_type.underlying_wrapped_type()
+                target = node.x_type.underlying_type()
                 actual = node.expr.x_type
                 if not IsSameTypeExceptMut(actual, target):
                     node.expr = _HandleImplicitConversion(

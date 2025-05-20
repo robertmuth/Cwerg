@@ -253,7 +253,7 @@ def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
     if ct.is_base_type():
         return _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
     elif ct.is_wrapped():
-        return _GetDefaultForType(ct.underlying_wrapped_type(), srcloc)
+        return _GetDefaultForType(ct.underlying_type(), srcloc)
     elif ct.is_span():
         return []  # null span
     elif ct.is_pointer():
@@ -265,7 +265,7 @@ def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
         return out
     elif ct.is_vec():
         dim = ct.array_dim()
-        v = _GetDefaultForType(ct.underlying_vec_type(), srcloc)
+        v = _GetDefaultForType(ct.underlying_type(), srcloc)
         return [v] * dim
     else:
         assert False, f"{ct} {srcloc}"
