@@ -241,7 +241,11 @@ inline bool NameIsMacro(Name name) {
 }
 
 inline std::ostream& operator<<(std::ostream& os, Name name) {
-  os << NameData(name);
+  if (name.isnull()) {
+    os << "@NULL@";
+  } else {
+    os << NameData(name);
+  }
   return os;
 }
 
@@ -1206,7 +1210,7 @@ inline void MaybeReplaceAstRecursivelyPost(
 
 inline Node GetWithDefault(const std::map<Node, Node>& m, Node node) {
   auto it = m.find(node);
-  return (it == m.end()) ? node: it->second;
+  return (it == m.end()) ? node : it->second;
 }
 
 void RemoveNodesOfType(Node node, NT kind);

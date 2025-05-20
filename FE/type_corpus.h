@@ -30,8 +30,8 @@ extern std::vector<CanonType>& CanonType_children(CanonType n);
 
 extern Node CanonType_lookup_rec_field(CanonType ct, Name field);
 
-inline CanonType CanonType_underlying_vec_type(CanonType n) {
-  ASSERT(CanonType_kind(n) == NT::TypeVec, "");
+inline CanonType CanonType_underlying_type(CanonType n) {
+  ASSERT(CanonType_children(n).size() == 1, "");
   return CanonType_children(n)[0];
 }
 
@@ -85,6 +85,10 @@ class TypeCorpus {
 
   CanonType get_uint_canon_type() {
     return base_type_map_[BASE_TYPE_KIND::UINT];
+  }
+
+  CanonType get_typeid_canon_type() {
+    return base_type_map_[BASE_TYPE_KIND::TYPEID];
   }
 
   CanonType InsertPtrType(bool mut, CanonType child);

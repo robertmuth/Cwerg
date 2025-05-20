@@ -901,7 +901,7 @@ Node ParseStmt(Lexer* lexer) {
     }
     case NT::StmtBreak: {
       Node out = NodeNew(NT::StmtBreak);
-      Name label = NameNew("");
+      Name label = kNameInvalid;
       if (lexer->Peek().srcloc.line == tk.srcloc.line) {
         label = NameNew(lexer->Next().text);
       }
@@ -910,7 +910,7 @@ Node ParseStmt(Lexer* lexer) {
     }
     case NT::StmtContinue: {
       Node out = NodeNew(NT::StmtContinue);
-      Name label = NameNew("");
+      Name label = kNameInvalid;
       if (lexer->Peek().srcloc.line == tk.srcloc.line) {
         label = NameNew(lexer->Next().text);
       }

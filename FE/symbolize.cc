@@ -241,7 +241,8 @@ void FunSetTargetField(Node fun) {
         }
       }
       CompilerError(Node_srcloc(node))
-          << "cannot find target for " << EnumToString(Node_kind(node));
+          << "cannot find target for " << EnumToString(Node_kind(node))
+          << " to [" <<  Node_label(node) << "]";
     } else if (nt == NT::StmtReturn) {
       for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
         if (Node_kind(*it) == NT::DefFun || Node_kind(*it) == NT::ExprStmt) {

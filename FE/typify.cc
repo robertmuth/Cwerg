@@ -55,7 +55,7 @@ class PolyMap {
     }
     if (CanonType_kind(ct_first) == NT::TypeVec) {
       ct_first =
-          tc_->InsertSpanType(false, CanonType_underlying_vec_type(ct_first));
+          tc_->InsertSpanType(false, CanonType_underlying_type(ct_first));
     }
     it = map_.find(key);
     if (it != map_.end()) {
@@ -238,7 +238,7 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
   std::cout << "@@ VALCOMP\n";
   CanonType ct = TypifyExprOrType(Node_type_or_auto(node), tc, ct_target, pm);
   if (CanonType_kind(ct) == NT::TypeVec) {
-    CanonType element_type = CanonType_underlying_vec_type(ct);
+    CanonType element_type = CanonType_underlying_type(ct);
 
     for (Node point = Node_inits(node); !point.isnull();
          point = Node_next(point)) {
@@ -400,6 +400,8 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::TypeAuto:
       ASSERT(!ct_target.isnull(), "" << Node_srcloc(node));
       return AnnotateType(node, ct_target);
+    case NT::ValVoid:
+      return AnnotateType(node, tc->get_void_canon_type());
     case NT::ValTrue:
     case NT::ValFalse:
       return AnnotateType(node, tc->get_bool_canon_type());
@@ -409,12 +411,11 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
         CanonType ct_ptr =
             TypifyExprOrType(Node_pointer(node), tc, kCanonTypeInvalid, pm);
         ct_target = tc->InsertSpanType(CanonType_mut(ct_ptr),
-                                       CanonType_underlying_ptr_type(ct_ptr));
+                                       CanonType_underlying_type(ct_ptr));
       } else {
         ASSERT(CanonType_kind(ct_target) == NT::TypeSpan, "");
-        CanonType ct_ptr =
-            tc->InsertPtrType(CanonType_mut(ct_target),
-                              CanonType_underlying_span_type(ct_target));
+        CanonType ct_ptr = tc->InsertPtrType(
+            CanonType_mut(ct_target), CanonType_underlying_type(ct_target));
         TypifyExprOrType(Node_pointer(node), tc, ct_ptr, pm);
       }
       return AnnotateType(node, ct_target);
@@ -424,8 +425,12 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                                   : CanonType_base_type_kind(ct_target);
       BASE_TYPE_KIND actual =
           NumCleanupAndTypeExtraction(StrData(Node_number(node)), target).kind;
-      ASSERT(actual != BASE_TYPE_KIND::INVALID,
-             "cannot parse " << Node_number(node));
+      std::cout << "@@@@ target " << EnumToString(target) << " actual "
+                << EnumToString(actual) << "\n";
+      if (actual == BASE_TYPE_KIND::INVALID)
+        ASSERT(actual != BASE_TYPE_KIND::INVALID,
+               "cannot parse " << Node_number(node) << " at "
+                               << Node_srcloc(node));
       return AnnotateType(node, tc->get_base_canon_type(actual));
     }
     case NT::ValCompound:
@@ -443,7 +448,6 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                           tc->get_base_canon_type(Node_base_type_kind(node)));
     case NT::TypeVec:
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
-      TypifyExprOrType(Node_size(node), tc, tc->get_uint_canon_type(), pm);
       return AnnotateType(
           node, tc->InsertVecType(ComputeArrayLength(Node_size(node)), ct));
     case NT::TypePtr:
@@ -475,6 +479,8 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::TypeOf:
       ct = TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(node, ct);
+    case NT::TypeFun:
+      return TypifyTypeFunOrDefFun(node, tc, pm);
       //
     case NT::ExprParen:
       ct = TypifyExprOrType(Node_expr(node), tc, ct_target, pm);
@@ -531,10 +537,9 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       TypifyExprOrType(Node_expr_index(node), tc, tc->get_uint_canon_type(),
                        pm);
       ct = TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
-      if (CanonType_kind(ct) == NT::TypeVec) {
-        return AnnotateType(node, CanonType_underlying_vec_type(ct));
-      } else if (CanonType_kind(ct) == NT::TypeSpan) {
-        return AnnotateType(node, CanonType_underlying_span_type(ct));
+      if (CanonType_kind(ct) == NT::TypeVec ||
+          CanonType_kind(ct) == NT::TypeSpan) {
+        return AnnotateType(node, CanonType_underlying_type(ct));
       } else {
         CompilerError(Node_srcloc(node)) << "Container is not of type vec";
         return kCanonTypeInvalid;
@@ -565,7 +570,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
         ct_expr = tc->get_base_canon_type(CanonType_base_type_kind(ct));
       } else {
         ASSERT(CanonType_kind(ct) == NT::DefType, "");
-        ct_expr = CanonType_underlying_wrapped_type(ct);
+        ct_expr = CanonType_underlying_type(ct);
       }
       TypifyExprOrType(Node_expr(node), tc, ct_expr, pm);
       return AnnotateType(node, ct);
@@ -578,7 +583,8 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
         return AnnotateType(
             node, tc->get_base_canon_type(CanonType_base_type_kind(ct)));
       } else {
-        ASSERT(false, "");
+        CompilerError(Node_srcloc(node))
+            << "unexpected type to unwrap " << EnumToString(CanonType_kind(ct));
         return kCanonTypeInvalid;
       }
     case NT::ExprPointer:
@@ -594,7 +600,24 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       if (CanonType_kind(ct) != NT::TypePtr) {
         CompilerError(Node_srcloc(node)) << "expected pointer type";
       }
-      return AnnotateType(node, CanonType_underlying_ptr_type(ct));
+      return AnnotateType(node, CanonType_underlying_type(ct));
+    case NT::ExprOffsetof: {
+      ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
+      Node field_node =
+          CanonType_lookup_rec_field(ct, Node_name(Node_field(node)));
+      if (field_node.isnull()) {
+        CompilerError(Node_srcloc(node))
+            << "unknown field name " << Node_name(Node_field(node));
+      }
+      AnnotateFieldWithTypeAndSymbol(Node_field(node), field_node);
+      return AnnotateType(node, tc->get_uint_canon_type());
+    }
+    case NT::ExprTypeId:
+      TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
+      return AnnotateType(node, tc->get_typeid_canon_type());
+    case NT::ExprSizeof:
+      ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
+      return AnnotateType(node, tc->get_uint_canon_type());
     case NT::ExprFront: {
       ct = TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
       if (CanonType_kind(ct) != NT::TypeSpan &&
@@ -605,10 +628,8 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       bool mut = Node_has_flag(node, BF::MUT) ||
                  (Node_has_flag(node, BF::PRESERVE_MUT) &&
                   CanonType_kind(ct) == NT::TypeSpan && CanonType_mut(ct));
-      CanonType ct_elem = CanonType_kind(ct) == NT::TypeSpan
-                              ? CanonType_underlying_span_type(ct)
-                              : CanonType_underlying_vec_type(ct);
-      return AnnotateType(node, tc->InsertPtrType(mut, ct_elem));
+      return AnnotateType(
+          node, tc->InsertPtrType(mut, CanonType_underlying_type(ct)));
     }
 
     case NT::ExprStmt:
@@ -634,6 +655,9 @@ void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
       break;
     case NT::DefVar:
       TypifyDefGlobalOrDefVar(node, tc, pm);
+      break;
+    case NT::StmtDefer:
+      TypifyStmtSeq(Node_body(node), tc, ct_target, pm);
       break;
     case NT::StmtReturn:
       TypifyExprOrType(Node_expr(node), tc, ct_target, pm);

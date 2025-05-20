@@ -117,7 +117,7 @@ CanonType CanonTypeNewRecType(Name name, Node ast_node) {
 CanonType CanonTypeNewEnumType(Name name, BASE_TYPE_KIND base_type,
                                Node ast_node) {
   CanonType out = CanonTypeNew();
-  gCanonTypeCore[out] = {.node = NT::DefRec,
+  gCanonTypeCore[out] = {.node = NT::DefEnum,
                          .name = name,
                          .base_type_kind = base_type,
                          .ast_node = ast_node};
