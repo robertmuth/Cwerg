@@ -666,13 +666,19 @@ ImmutablePool gNamePool(4);
 // =======================================
 // All Stripes
 // =======================================
+struct Alloc {
+  uint32_t dummy;
+};
+struct Stripe<Alloc, Node> gNodeAlloc("NodeAlloc");
 
 struct Stripe<NodeCore, Node> gNodeCore("NodeCore");
 struct Stripe<NodeExtra, Node> gNodeExtra("NodeExtra");
 struct Stripe<NodeAuxTyping, Node> gNodeAuxTyping("NodeAuxTyping");
+struct Stripe<NodeValidation, Node> gNodeValidation("NodeValidation");
 
-StripeBase* const gAllStripesNode[] = {&gNodeCore, &gNodeExtra, &gNodeAuxTyping,
-                                       nullptr};
+StripeBase* const gAllStripesNode[] = {&gNodeAlloc,      &gNodeCore,
+                                       &gNodeExtra,      &gNodeAuxTyping,
+                                       &gNodeValidation, nullptr};
 struct StripeGroup gStripeGroupNode("Node", gAllStripesNode, 256 * 1024);
 
 // =======================================
@@ -737,6 +743,7 @@ NT KeywordToNT(std::string_view kw) {
 void RemoveNodesOfType(Node node, NT kind) {
   auto replacer = [kind](Node node, Node parent) -> Node {
     if (Node_kind(node) == kind) {
+      NodeFreeRecursively(node);
       return kNodeInvalid;
     }
     return node;

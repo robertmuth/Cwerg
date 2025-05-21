@@ -143,9 +143,15 @@ struct NodeAuxTyping {
   };
 };
 
+struct NodeValidation {
+  uint32_t dummy;
+  bool ref_count;
+};
+
 extern struct Stripe<NodeCore, Node> gNodeCore;
 extern struct Stripe<NodeExtra, Node> gNodeExtra;
 extern struct Stripe<NodeAuxTyping, Node> gNodeAuxTyping;
+extern struct Stripe<NodeValidation, Node> gNodeValidation;
 
 extern struct StripeGroup gStripeGroupNode;
 
@@ -200,6 +206,10 @@ inline uint16_t& Node_compressed_flags(Node node) {
 inline Node NodeNew(NT kind) {
   Node out = Node(kind, gStripeGroupNode.New().index());
   return out;
+}
+
+inline bool NodeIsNode(Node node) {
+  return node.raw_kind() < kKindStr && !node.isnull();
 }
 
 inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
@@ -1038,11 +1048,11 @@ inline void VisitNodesRecursivelyPost(Node node,
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
-    if (child.raw_kind() >= kKindStr) continue;
-    while (!child.isnull()) {
+    if (!NodeIsNode(child)) continue;
+    do {
       VisitNodesRecursivelyPost(child, visitor);
       child = Node_next(child);
-    }
+    } while (!child.isnull());
   }
   visitor(node);
 }
@@ -1056,11 +1066,11 @@ inline void VisitNodesRecursivelyPre(Node node,
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
-    if (child.raw_kind() >= kKindStr) continue;
-    while (!child.isnull()) {
+    if (!NodeIsNode(child)) continue;
+    do {
       VisitNodesRecursivelyPre(child, visitor, node);
       child = Node_next(child);
-    }
+    } while (!child.isnull());
   }
 }
 
@@ -1071,11 +1081,15 @@ inline void VisitNodesRecursivelyPost(Node node,
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
-    if (child.raw_kind() >= kKindStr) continue;
-    while (!child.isnull()) {
+    if (!NodeIsNode(child)) continue;
+
+    do {
+      // allow the visitor to update the next field
+      // (used by NodeFreeRecursively)
+      Node next = Node_next(child);
       VisitNodesRecursivelyPost(child, visitor, node);
-      child = Node_next(child);
-    }
+      child = next;
+    } while (!child.isnull());
   }
   visitor(node, parent);
 }
@@ -1088,11 +1102,11 @@ inline void VisitNodesRecursivelyPreAndPost(
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
-    if (child.raw_kind() >= kKindStr) continue;
-    while (!child.isnull()) {
+    if (!NodeIsNode(child)) continue;
+    do {
       VisitNodesRecursivelyPreAndPost(child, pre_visitor, post_visitor, node);
       child = Node_next(child);
-    }
+    } while (!child.isnull());
   }
   post_visitor(node, parent);
 }
@@ -1107,7 +1121,7 @@ inline void VisitAstRecursivelyWithScopeTracking(
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
-    if (child.raw_kind() >= kKindStr || child.isnull()) continue;
+    if (!NodeIsNode(child)) continue;
     bool is_new_scope =
         (i == SLOT_BODY) || (Node_kind(node) == NT::StmtIf && i == SLOT_BODY_T);
     if (is_new_scope) {
@@ -1160,9 +1174,7 @@ inline void MaybeReplaceAstRecursively(
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
-    if (child.raw_kind() >= kKindStr || child.isnull()) {
-      continue;
-    }
+    if (!NodeIsNode(child)) continue;
 
     NodeChain new_children;
     do {
@@ -1187,7 +1199,7 @@ inline void MaybeReplaceAstRecursivelyPost(
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
-    if (child.raw_kind() >= kKindStr || child.isnull()) {
+    if (!NodeIsNode(child)) {
       core.children_node[i] = child;
       continue;
     }
@@ -1245,5 +1257,42 @@ struct CompilerError : public std::ostream, private std::streambuf {
     return 0;
   }
 };
+
+inline void NodeFree(Node node) {
+  gNodeCore[node].kind = NT::invalid;
+  gNodeCore[node].next = kNodeInvalid;
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    gNodeCore[node].children_handle[i] = kHandleInvalid;
+  }
+}
+
+inline void NodeFreeRecursively(Node node) {
+  VisitNodesRecursivelyPost(
+      node, [](Node node, Node parent) { NodeFree(node); }, kNodeInvalid);
+}
+
+inline Name Node_name_or_invalid(Node node) {
+  switch (Node_kind(node)) {
+    case NT::Id:
+    case NT::DefGlobal:
+    case NT::DefFun:
+    case NT::DefVar:
+    case NT::DefType:
+    case NT::DefRec:
+    case NT::DefEnum:
+    case NT::DefMacro:
+    //
+    case NT::FunParam:
+    case NT::MacroId:
+    case NT::MacroFor:
+    case NT::MacroInvoke:
+    case NT::MacroParam:
+    case NT::ModParam:
+      return Node_name(node);
+    default:
+      return kNameInvalid;
+  }
+}
 
 }  // namespace cwerg::fe
