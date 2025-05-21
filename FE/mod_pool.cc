@@ -403,7 +403,7 @@ ModPool ReadModulesRecursively(Path root_path,
   ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
       out.mods_in_topo_order, out.builtin_symtab);
   for (Node mod : out.mods_in_topo_order) {
-    RemoveNodesOfType(mod, NT::DefMacro);
+    RemoveNodesOfType(mod, NT::Import);
   }
   return out;
 }
