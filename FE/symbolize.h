@@ -23,4 +23,9 @@ extern void UpdateNodeSymbolForPolyCall(Node callee, Node called_fun);
 
 extern void VerifySymbols(Node node);
 
+extern bool IsFieldNode(Node node, Node parent);
+
+
+extern bool IsPointNode(Node node, Node parent);
+
 }  // namespace cwerg::fe

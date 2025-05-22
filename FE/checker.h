@@ -6,5 +6,5 @@
 
 namespace cwerg::fe {
 
-extern void ValidateAST(const std::vector<Node>& mods);
+extern void ValidateAST(const std::vector<Node>& mods, bool symbolized);
 }  // namespace cwerg::fe

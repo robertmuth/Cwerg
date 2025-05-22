@@ -227,6 +227,8 @@ Node RecAdvanceField(Node field, Node point) {
 }
 
 void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
+  //std::cout << "@@ FIELD ANNOTATION " << Node_srcloc(id) << " " << Node_name(id)
+  //          << "\n";
   ASSERT(Node_kind(id) == NT::Id, "");
   ASSERT(Node_kind(field) == NT::RecField, "");
   AnnotateType(id, Node_x_type(field));
@@ -273,6 +275,8 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
       AnnotateType(point, ct_field);
       if (Node_kind(Node_point(point)) == NT::Id) {
         AnnotateFieldWithTypeAndSymbol(Node_point(point), field);
+      } else {
+        ASSERT(Node_kind(Node_point(point)) == NT::ValAuto, "");
       }
       if (Node_kind(Node_value_or_undef(point)) != NT::ValUndef) {
         TypifyExprOrType(Node_value_or_undef(point), tc, ct_field, pm);

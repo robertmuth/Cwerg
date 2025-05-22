@@ -6,13 +6,14 @@
 #include <set>
 #include <vector>
 
+#include "FE/checker.h"
 #include "FE/cwast_gen.h"
 #include "FE/lexer.h"
 #include "FE/macro.h"
-#include "FE/typify.h"
 #include "FE/mod_pool.h"
 #include "FE/parse.h"
 #include "FE/pp.h"
+#include "FE/typify.h"
 #include "Util/assert.h"
 #include "Util/switch.h"
 
@@ -36,9 +37,12 @@ int main(int argc, const char* argv[]) {
   }
 
   ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
+  ValidateAST(mp.mods_in_topo_order, false);
   ExpandMacrosAndMacroLike(mp.mods_in_topo_order);
+  ValidateAST(mp.mods_in_topo_order, false);
   SetTargetFields(mp.mods_in_topo_order);
   ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
+  ValidateAST(mp.mods_in_topo_order, true);
 
   for (Node mod : mp.mods_in_topo_order) {
     std::cout << "\n\n\n";

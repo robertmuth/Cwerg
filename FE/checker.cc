@@ -4,11 +4,72 @@
 #include <map>
 #include <set>
 
+#include "FE/symbolize.h"
 #include "Util/assert.h"
 
 namespace cwerg::fe {
+bool NodeIsPossibleSymbol(Node symbol) {
+  switch (Node_kind(symbol)) {
+    case NT::DefMacro:
+    case NT::DefFun:
+    case NT::FunParam:
+    case NT::DefType:
+    case NT::DefGlobal:
+    case NT::DefVar:
+    case NT::DefRec:
+    case NT::RecField:
+    case NT::DefEnum:
+    case NT::EnumVal:
 
-void ValidateAST(const std::vector<Node>& mods) {
+      return true;
+
+    default:
+      return false;
+  }
+}
+bool NodeIsPossibleTarget(Node target) {
+  switch (Node_kind(target)) {
+    case NT::DefFun:
+    case NT::StmtBlock:
+    case NT::ExprStmt:
+      return true;
+
+    default:
+      return false;
+  }
+}
+
+bool NodeValidateSymbols(Node node, Node parent) {
+  switch (Node_kind(node)) {
+    // x_symbol
+    case NT::MacroInvoke:
+    case NT::Id: {
+      if (!IsPointNode(node, parent) && !IsFieldNode(node, parent)) {
+        Node symbol = Node_x_symbol(node);
+        ASSERT(!symbol.isnull(), "no symbol for "
+                                     << EnumToString(Node_kind(node)) << " "
+                                     << Node_name_or_invalid(node) << " "
+                                     << Node_srcloc(node));
+        ASSERT(NodeIsPossibleSymbol(symbol),
+               "no symbol but " << EnumToString(Node_kind(symbol)));
+      }
+      break;
+    }
+    // x_target
+    case NT::StmtBreak:
+    case NT::StmtContinue:
+    case NT::StmtReturn: {
+      Node target = Node_x_target(node);
+      ASSERT(NodeIsPossibleTarget(target), "");
+      break;
+    }
+    default:
+      break;
+  }
+  return false;
+}
+
+void ValidateAST(const std::vector<Node>& mods, bool symbolized) {
   bool verbose = true;
   std::cout << "@@@ CHECKING ############\n";
   for (int i = kStripeGroupFirstAlloc; i < gStripeGroupNode.NextAvailable();
@@ -58,6 +119,12 @@ void ValidateAST(const std::vector<Node>& mods) {
       ++total;
     }
   }
+  if (symbolized) {
+    for (Node mod : mods) {
+      VisitNodesRecursivelyPre(mod, NodeValidateSymbols, kNodeInvalid);
+    }
+  }
+
   std::cout << "improperly unlinked nodes " << n << " " << total << "\n";
 }
 
