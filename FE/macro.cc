@@ -1,6 +1,7 @@
 
 #include "FE/macro.h"
 
+#include <set>
 #include <sstream>
 
 #include "FE/cwast_gen.h"
@@ -10,30 +11,51 @@ namespace cwerg::fe {
 
 class MacroContext {
  private:
+  Node invoke_;
   IdGen* id_gen_;
   SrcLoc srcloc_;
   std::map<Name, Node> symtab_;
+  std::map<Name, Node> symtab_not_owned_;
 
  public:
-  MacroContext(IdGen* id_gen, const SrcLoc& srcloc)
-      : id_gen_(id_gen), srcloc_(srcloc) {}
+  MacroContext(Node invoke, IdGen* id_gen, const SrcLoc& srcloc)
+      : invoke_(invoke), id_gen_(id_gen), srcloc_(srcloc) {}
+
+  ~MacroContext() {
+    for (const auto& [name, node] : symtab_) {
+      if (!symtab_not_owned_.contains(name)) NodeFreeRecursively(node);
+    }
+  }
 
   void SetSymbol(Name name, Node value) {
+    // std::cout << "@@ SetSymbol " << Node_name(invoke_) << " " << name << " "
+    //          << EnumToString(Node_kind(value)) << " " << value.index() <<
+    //          "\n";
     ASSERT(NameIsMacro(name), "");
-    symtab_[name] = value;
+    symtab_not_owned_[name] = value;
   }
 
   Node GetSymbol(Name name) {
     auto it = symtab_.find(name);
-    if (it == symtab_.end()) {
-      return kNodeInvalid;
+    if (it != symtab_.end()) {
+      return it->second;
     }
-    return it->second;
+    it = symtab_not_owned_.find(name);
+    if (it != symtab_not_owned_.end()) {
+      return it->second;
+    }
+    ASSERT(false, "unknown name " << name);
+    return kNodeInvalid;
   }
 
-  void RegisterSymbol(Name name, Node value) {
-    ASSERT(GetSymbol(name).isnull(), "");
-    SetSymbol(name, value);
+  void RegisterSymbolWithOwnership(Name name, Node value) {
+    // std::cout << "@@ SetSymbol WO " << Node_name(invoke_) << " " << name << "
+    // "
+    //          << EnumToString(Node_kind(value)) << " " << value.index() <<
+    //          "\n";
+    ASSERT(!symtab_.contains(name), "");
+    ASSERT(NameIsMacro(name), "");
+    symtab_[name] = value;
   }
 
   void GenerateNewSymbol(Name name, const SrcLoc& srcloc) {
@@ -41,7 +63,7 @@ class MacroContext {
     Node id = NodeNew(NT::Id);
     NodeInitId(id, new_name, kNameInvalid, kStrInvalid, srcloc);
 
-    RegisterSymbol(name, id);
+    RegisterSymbolWithOwnership(name, id);
   }
 };
 
@@ -68,7 +90,8 @@ Node FixUpArgsForExprListRest(Node params, Node args) {
     args = Node_next(args);
   }
 
-  NodeInitEphemeralList(rest, Node_next(args), 0, kStrInvalid, Node_srcloc(args));
+  NodeInitEphemeralList(rest, Node_next(args), 0, kStrInvalid,
+                        Node_srcloc(args));
   Node_next(args) = rest;
   return head;
 }
@@ -92,19 +115,25 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
             Node_initial_or_undef_or_auto(node), ctx);
         Node out = NodeNew(NT::DefVar);
         NodeInitDefVar(out, Node_name(new_name), type, initial,
-                   Node_compressed_flags(node), kStrInvalid, Node_srcloc(node));
+                       Node_compressed_flags(node), kStrInvalid,
+                       Node_srcloc(node));
         return out;
       }
 
       break;
     case NT::MacroId: {
       Node arg = ctx->GetSymbol(Node_name(node));
-      // std::cout << "@@ expanding " << Node_name(node) << " " <<
-      // EnumToString(Node_kind(arg)) << "\n";
 
       Node replacement = NodeCloneRecursively(arg, &dummy1, &dummy2);
+      // std::cout << "@@ expanding " << Node_name(node) << " "
+      //          << EnumToString(Node_kind(arg)) << " " << arg.index() << " ->
+      //          "
+      //          << replacement.index() << "\n";
+
       if (Node_kind(replacement) == NT::EphemeralList) {
-        replacement = Node_args(replacement);
+        Node args = Node_args(replacement);
+        NodeFree(replacement);
+        replacement = args;
       }
 
       return replacement;
@@ -177,11 +206,20 @@ Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
         << ": " << NodeNumSiblings(params) << " vs " << NodeNumSiblings(args);
   }
 
-  MacroContext ctx(id_gen, Node_srcloc(macro_invoke));
+  MacroContext ctx(macro_invoke, id_gen, Node_srcloc(macro_invoke));
 
   for (Node p = params, a = args; !p.isnull();
        p = Node_next(p), a = Node_next(a)) {
-    ctx.RegisterSymbol(Node_name(p), a);
+    ctx.RegisterSymbolWithOwnership(Node_name(p), a);
+  }
+
+  // The ctx now "owns" the arg nodes so
+  // we unlink them from each other and the invocation
+  Node_args(macro_invoke) = kNodeInvalid;
+  while (!args.isnull()) {
+    Node next = Node_next(args);
+    Node_next(args) = kNodeInvalid;
+    args = next;
   }
 
   for (Node x = Node_gen_ids(def_macro); !x.isnull(); x = Node_next(x)) {
@@ -196,9 +234,13 @@ Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
   }
 
   Node list = NodeNew(NT::EphemeralList);
-  NodeInitEphemeralList(list, body_clone.First(), 0, kStrInvalid, kSrcLocInvalid);
+  NodeInitEphemeralList(list, body_clone.First(), 0, kStrInvalid,
+                        kSrcLocInvalid);
   ExpandMacrosAndMacroLikeRecursively(list, nesting + 1, id_gen);
-  return Node_args(list);
+  NodeFreeRecursively(macro_invoke);
+  Node out = Node_args(list);
+  NodeFree(list);
+  return out;
 }
 
 void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
@@ -210,14 +252,18 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
         std::stringstream ss;
         ss << Node_srcloc(Node_expr(node));
         Node out = NodeNew(NT::ValString);
-        NodeInitValString(out, StrNew(ss.str()), kStrInvalid, Node_srcloc(node));
+        NodeInitValString(out, StrNew(ss.str()), kStrInvalid,
+                          Node_srcloc(node));
+        NodeFreeRecursively(node);
         return out;
       }
       case NT::ExprStringify: {
         std::stringstream ss;
         ss << EnumToString(Node_kind(Node_expr(node)));
         Node out = NodeNew(NT::ValString);
-        NodeInitValString(out, StrNew(ss.str()), kStrInvalid, Node_srcloc(node));
+        NodeInitValString(out, StrNew(ss.str()), kStrInvalid,
+                          Node_srcloc(node));
+        NodeFreeRecursively(node);
         return out;
       }
 

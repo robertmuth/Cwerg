@@ -461,6 +461,7 @@ Node PrattParseExprCall(Lexer* lexer, Node lhs, const TK& tk,
     Node args = ParseMacroArgList(lexer, false);
     NodeInitMacroInvoke(out, NameNew(FullName(lhs)), args, tk.comments,
                         tk.srcloc);
+    NodeFree(lhs); // we are not using the Id node anymore
     return out;
   }
   Node out = NodeNew(NT::ExprCall);
