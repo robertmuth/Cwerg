@@ -1,8 +1,9 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
-#include "Util/handle.h"
 #include <iostream>
+
+#include "Util/handle.h"
 
 /*
 We employs a number of unconventional mechanism to improve translation
@@ -52,16 +53,15 @@ struct StripeBase {
   void* element(int index) const { return base + index * element_size; }
 };
 
+constexpr uint32_t kStripeGroupFirstAlloc = 256;
+
 // A StripeGroup is a container for all the Stripes of the same Handle type
 // It is responsible for the New'ing/Del'ing of the Handles and the
 // allocation of the backing store in the stripes.
 struct StripeGroup {
   StripeGroup(const char* name, StripeBase* const* stripes,
-              uint32_t max_allocated)
-      : max_instances_(max_allocated), name_(name),
-        stripes_(stripes), next(root) {
-    root = this;
-  }
+              uint32_t max_allocated);
+
   // Get next free index for this group.
   // Will call Reserve if necessary.
   Handle New();
@@ -69,9 +69,9 @@ struct StripeGroup {
   // Delete handle and add it to the free list.
   void Del(Handle ref);
 
-
   uint32_t NumFree() const;  // slow: iterates through the entire free-list
   uint32_t MaxInstances() const { return max_instances_; }
+  uint32_t NextAvailable() const { return next_available_; }
 
   static void AllocateAllStripes(uint32_t multiplier);
 
@@ -83,6 +83,8 @@ struct StripeGroup {
 
  private:
   uint32_t max_instances_;
+  uint32_t next_available_;
+
   Handle first_free_ = Handle(0, kKindFree);
   uint32_t num_dels_ = 0;
   uint32_t num_news_ = 0;
@@ -97,9 +99,7 @@ struct StripeGroup {
   // Singly linked list of StripeGroups
   StripeGroup* const next;
   static StripeGroup* root;
-
 };
-
 
 // Wrapper around StripeBase to enforce some type checking
 // STRUCT is the data structure stored in the stripe
@@ -107,15 +107,18 @@ struct StripeGroup {
 template <typename STRUCT, typename REF>
 struct Stripe : public StripeBase {
   Stripe(const char* name) : StripeBase(sizeof(STRUCT), name) {
-    static_assert(sizeof(STRUCT) % 4 == 0, "stripe sizes must be multiples of 4");
+    static_assert(sizeof(STRUCT) % 4 == 0,
+                  "stripe sizes must be multiples of 4");
     // TODO: explain whether this is important or not
-    //static_assert(std::alignment_of<STRUCT>::value <= 4, "stripe alignment must be at most 4");
-
+    // static_assert(std::alignment_of<STRUCT>::value <= 4, "stripe alignment
+    // must be at most 4");
   }
 
   STRUCT& operator[](REF ref) {
     return *(static_cast<STRUCT*>(element(ref.index())));
   }
+
+  STRUCT& operator[](int i) { return *(static_cast<STRUCT*>(element(i))); }
 };
 
 void InitStripes(uint32_t multiplier);

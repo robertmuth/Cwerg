@@ -1,22 +1,42 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "Util/stripe.h"
-#include "Util/assert.h"
 
 #include <iomanip>
+
+#include "Util/assert.h"
 namespace cwerg {
 
 StripeGroup* StripeGroup::root = nullptr;
 
+StripeGroup::StripeGroup(const char* name, StripeBase* const* stripes,
+                         uint32_t max_allocated)
+    : max_instances_(max_allocated),  //
+      next_available_(kStripeGroupFirstAlloc),
+      name_(name),  //
+      stripes_(stripes),
+      next(root) {
+  ASSERT(max_allocated > kStripeGroupFirstAlloc, "");
+  root = this;
+}
+
 Handle StripeGroup::New() {
-  ASSERT(!first_free_.isnull(),
-         "out of items in " << name_ << ". Maybe re-run with larger multiplier, "
-         "Did you call InitStripes().");
   ++num_news_;
-  Handle out = first_free_;
-  StripeBase* sb = stripes_[0];
-  first_free_ = *static_cast<Handle*>(sb->element(out.index()));
-  return out;
+  if (!first_free_.isnull()) {
+    Handle out = first_free_;
+    StripeBase* sb = stripes_[0];
+    first_free_ = *static_cast<Handle*>(sb->element(out.index()));
+    return out;
+  } else if (next_available_ < max_instances_) {
+    Handle out(next_available_, kKindFree);
+    ++next_available_;
+    return out;
+  }
+
+  ASSERT(false, "depleted " << max_instances_ << " items in " << name_
+                            << ". Maybe re-run with larger multiplier, "
+                               "Did you call InitStripes().");
+  return kHandleInvalid;
 }
 
 void StripeGroup::Del(Handle ref) {
@@ -40,8 +60,8 @@ void StripeGroup::SetBitVecOfFreeInstances(uint8_t* vec) const {
   StripeBase* sb = stripes_[0];
   for (Handle r = first_free_; !r.isnull();
        r = *static_cast<Handle*>(sb->element(r.index()))) {
-       uint32_t index = r.index();
-        vec[index >> 3] |= 1 << (index & 7);
+    uint32_t index = r.index();
+    vec[index >> 3] |= 1 << (index & 7);
   }
 }
 
@@ -77,7 +97,7 @@ void StripeGroup::DumpAllGroups(std::ostream& os) {
          << std::hex << (void*)base.base << std::dec << "\n";
     }
     os << "\n";
-   }
+  }
 }
 
 void StripeGroup::AllocateAllStripes(uint32_t multiplier) {
@@ -106,18 +126,23 @@ void StripeGroup::AllocateAllStripes(uint32_t multiplier) {
       data = Align(data, kStripeAlignment);
     }
   }
-
+#if 0
   // Put everything except the first element into the free list in order.
   for (StripeGroup* sg = StripeGroup::root; sg != nullptr; sg = sg->next) {
     StripeBase* sb = sg->stripes_[0];
     // we do not use the zeroest element!
-    sg->first_free_ = Handle(1, kKindFree);
-    for (unsigned i = 1; i < sg->max_instances_ - 1; i++) {
+    sg->first_free_ = Handle(kStripeGroupFirstAlloc, kKindFree);
+    for (unsigned i = kStripeGroupFirstAlloc; i < sg->max_instances_ - 1; i++) {
       *static_cast<Handle*>(sb->element(i)) = Handle(i + 1, kKindFree);
     }
     *static_cast<Handle*>(sb->element(sg->max_instances_ - 1)) =
         Handle(0, kKindFree);
   }
+#else
+  for (StripeGroup* sg = StripeGroup::root; sg != nullptr; sg = sg->next) {
+    sg->first_free_ = Handle(0, kKindFree);
+  }
+#endif
 }
 
 void InitStripes(uint32_t multiplier) {

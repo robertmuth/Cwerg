@@ -71,11 +71,11 @@ struct StripeGroup gStripeGroupFun("FUN", gAllStripesFun, 4 * 1024);
 
 struct Stripe<UnitCore, Unit> gUnitCore("UnitCore");
 StripeBase* const gAllStripesUnit[] = {&gUnitCore, nullptr};
-struct StripeGroup gStripeGroupUnit("UNIT", gAllStripesUnit, 16);
+struct StripeGroup gStripeGroupUnit("UNIT", gAllStripesUnit, 1024);
 
 struct Stripe<CpuRegCore, CpuReg> gCpuRegCore("CpuRegCore");
 StripeBase* const gAllStripesCpuReg[] = {&gCpuRegCore, nullptr};
-struct StripeGroup gStripeGroupCpuReg("CPU_REG", gAllStripesCpuReg, 512);
+struct StripeGroup gStripeGroupCpuReg("CPU_REG", gAllStripesCpuReg, 1024);
 
 struct Stripe<RegCore, Reg> gRegCore("RegCore");
 struct Stripe<RegBst, Reg> gRegBst("RegBst");
@@ -94,7 +94,7 @@ struct StripeGroup gStripeGroupJen("JEN", gAllStripesJen, 4 * 1024);
 struct Stripe<JtbCore, Jtb> gJtbCore("JtbCore");
 struct Stripe<JtbBst, Jtb> gJtbBst("JtbBst");
 StripeBase* const gAllStripesJtb[] = {&gJtbCore, &gJtbBst, nullptr};
-struct StripeGroup gStripeGroupJtb("JTB", gAllStripesJtb, 512);
+struct StripeGroup gStripeGroupJtb("JTB", gAllStripesJtb, 1024);
 
 struct Stripe<MemCore, Mem> gMemCore("MemCore");
 struct Stripe<MemBst, Mem> gMemBst("MemBst");
