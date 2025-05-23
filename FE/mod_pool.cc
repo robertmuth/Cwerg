@@ -321,12 +321,14 @@ std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
 void ResolvePolyMods(const std::vector<Node>& mods_in_topo_order) {
   for (Node mod : mods_in_topo_order) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
-      if (Node_kind(fun) == NT::DefMod && Node_has_flag(fun, BF::POLY)) {
-        if (Node_x_import(fun).isnull()) {
-          Node_x_poly_mod(fun) = mod;
-        } else {
-          Node_x_poly_mod(fun) = Node_x_module(Node_x_import(fun));
-        }
+      if (Node_kind(fun) == NT::DefFun && Node_has_flag(fun, BF::POLY)) {
+        Node ref_mod = Node_x_import(fun).isnull()
+                           ? mod
+                           : Node_x_module(Node_x_import(fun));
+        ASSERT(!ref_mod.isnull(), "");
+        std::cout << "@@ ResolvePolyMods " << Node_name(ref_mod)
+                  << " "<<  Node_name(fun) << "\n";
+        Node_x_poly_mod(fun) = ref_mod;
       }
     }
   }
@@ -392,7 +394,7 @@ ModPool ReadModulesRecursively(Path root_path,
                     << EnumToString(Node_kind(mi.mod)) << "\n";
           import.ResolveImport(mi.mod);
         } else {
-          ASSERT(false, "");
+          ASSERT(false, "NYI: gen modules");
         }
       }
     }

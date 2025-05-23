@@ -63,6 +63,12 @@ bool NodeValidateSymbols(Node node, Node parent) {
       ASSERT(NodeIsPossibleTarget(target), "");
       break;
     }
+    case NT::DefFun:
+      if (Node_has_flag(node, BF::POLY)) {
+        ASSERT(!Node_x_poly_mod(node).isnull(),
+               "poly DefMod must have valid x_poly_mod " << Node_name(node));
+      }
+      break;
     default:
       break;
   }

@@ -14,6 +14,7 @@ struct PolyMapKey {
   Node mod;
   Name fun_name;
   CanonType first_param_type;
+
   bool operator<(const PolyMapKey& other) const {
     if (mod != other.mod) {
       return mod < other.mod;
@@ -25,6 +26,12 @@ struct PolyMapKey {
   }
 };
 
+std::ostream& operator<<(std::ostream& os, const PolyMapKey& k) {
+  os << Node_name(k.mod) << " " << k.fun_name << " "
+     << CanonType_name(k.first_param_type);
+  return os;
+}
+
 class PolyMap {
   TypeCorpus* tc_;
   std::map<PolyMapKey, Node> map_;
@@ -33,12 +40,14 @@ class PolyMap {
   PolyMap(TypeCorpus* tc) : tc_(tc) {}
 
   void Register(Node fun) {
+    ASSERT(Node_has_flag(fun, BF::POLY), "");
     CanonType ct = Node_x_type(fun);
     ASSERT(Node_kind(fun) == NT::DefFun, "");
     ASSERT(Node_has_flag(fun, BF::POLY), "");
     ASSERT(CanonType_children(ct).size() >= 2, "");
     CanonType ct_first = CanonType_children(ct)[0];
     PolyMapKey key{Node_x_poly_mod(fun), Node_name(fun), ct_first};
+    std::cout << "Registering " << key << "\n";
     if (map_.find(key) != map_.end()) {
       CompilerError(Node_srcloc(fun))
           << "Duplicate poly fun for " << CanonType_name(ct_first);
@@ -54,14 +63,15 @@ class PolyMap {
       return it->second;
     }
     if (CanonType_kind(ct_first) == NT::TypeVec) {
-      ct_first =
+      key.first_param_type =
           tc_->InsertSpanType(false, CanonType_underlying_type(ct_first));
     }
     it = map_.find(key);
     if (it != map_.end()) {
       return it->second;
     }
-    CompilerError(Node_srcloc(callee)) << "cannot resolve polymorphic call";
+    CompilerError(Node_srcloc(callee))
+        << "cannot resolve polymorphic call for " << key;
     return kNodeInvalid;
   }
 };
@@ -227,8 +237,9 @@ Node RecAdvanceField(Node field, Node point) {
 }
 
 void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
-  //std::cout << "@@ FIELD ANNOTATION " << Node_srcloc(id) << " " << Node_name(id)
-  //          << "\n";
+  // std::cout << "@@ FIELD ANNOTATION " << Node_srcloc(id) << " " <<
+  // Node_name(id)
+  //           << "\n";
   ASSERT(Node_kind(id) == NT::Id, "");
   ASSERT(Node_kind(field) == NT::RecField, "");
   AnnotateType(id, Node_x_type(field));

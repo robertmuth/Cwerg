@@ -9,6 +9,9 @@
 
 namespace cwerg::fe {
 
+// TODO: avoid redundant cloning
+// e.g.: if we know a MacroId is only referenced once - we do not
+// need to clone it after lookup
 class MacroContext {
  private:
   Node invoke_;
@@ -28,14 +31,18 @@ class MacroContext {
   }
 
   void SetSymbol(Name name, Node value) {
-    // std::cout << "@@ SetSymbol " << Node_name(invoke_) << " " << name << " "
-    //          << EnumToString(Node_kind(value)) << " " << value.index() <<
-    //          "\n";
+#if 0
+    std::cout << "@@ SetSymbol " << Node_name(invoke_) << " " << name << " "
+              << EnumToString(Node_kind(value)) << " " << value.index() << "\n";
+#endif
     ASSERT(NameIsMacro(name), "");
     symtab_not_owned_[name] = value;
   }
 
   Node GetSymbol(Name name) {
+#if 0
+    std::cout << "@@ GetSymbol " << Node_name(invoke_) << " " << name << "\n";
+#endif
     auto it = symtab_.find(name);
     if (it != symtab_.end()) {
       return it->second;
@@ -49,8 +56,11 @@ class MacroContext {
   }
 
   void RegisterSymbolWithOwnership(Name name, Node value) {
-    std::cout << "@@ SetSymbol WO " << Node_name(invoke_) << " " << name << " "
-              << EnumToString(Node_kind(value)) << " " << value.index() << "\n";
+#if 0
+    std::cout << "@@ RegisterSymbolWithOwnership " << Node_name(invoke_) << " "
+              << name << " " << EnumToString(Node_kind(value)) << " "
+              << value.index() << "\n";
+#endif
     ASSERT(!symtab_.contains(name), "");
     ASSERT(NameIsMacro(name), "");
     symtab_[name] = value;
@@ -145,9 +155,14 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
       ASSERT(NameIsMacro(loop_var), "");
       Node args = ctx->GetSymbol(Node_name_list(node));
       ASSERT(Node_kind(args) == NT::EphemeralList, "");
-      args = Node_args(node);
+      args = Node_args(args);
       NodeChain out;
       for (Node arg = args; !arg.isnull(); arg = Node_next(arg)) {
+#if 0
+        std::cout << "@@ Macro For Processing " << loop_var << " = "
+                  << EnumToString(Node_kind(arg)) << " "
+                  << Node_name_or_invalid(arg) << " " << arg.index() << "\n";
+#endif
         ctx->SetSymbol(loop_var, arg);
         for (Node body = Node_body_for(node); !body.isnull();
              body = Node_next(body)) {
@@ -190,8 +205,10 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
 constexpr int MAX_MACRO_NESTING = 8;
 
 Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
-  // std::cout << "@@ Expand invoke of " << Node_name(macro_invoke)
-  //           << " nesting=" << nesting << "\n";
+#if 1
+  std::cout << "@@ Expand invoke of " << Node_name(macro_invoke)
+            << " nesting=" << nesting << "\n";
+#endif
   if (nesting >= MAX_MACRO_NESTING) {
     CompilerError(Node_srcloc(macro_invoke)) << "too many nested macros";
   }
@@ -202,6 +219,19 @@ Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
   Node params = Node_params_macro(def_macro);
   Node args = Node_args(macro_invoke);
   args = FixUpArgsForExprListRest(params, args);
+#if 0
+  for (Node x = args; !x.isnull(); x = Node_next(x)) {
+    std::cout << "@@ Macro args: " << EnumToString(Node_kind(x)) << " "
+              << Node_name_or_invalid(x) << " " << x.index() << "\n";
+    if (Node_kind(x) == NT::EphemeralList) {
+      for (Node y = Node_args(x); !y.isnull(); y = Node_next(y)) {
+        std::cout << "@@@@ LIST: " << EnumToString(Node_kind(y)) << " "
+                  << Node_name_or_invalid(y) << " " << y.index() << "\n";
+      }
+    }
+  }
+#endif
+
   if (NodeNumSiblings(params) != NodeNumSiblings(args)) {
     CompilerError(Node_srcloc(macro_invoke))
         << "wrong number of macro arguments for " << Node_name(macro_invoke)
