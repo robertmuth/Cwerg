@@ -463,7 +463,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       break;
     default:
       // out->push_back(PP::Str("TODO-UNEXPECTED"));
-      ASSERT(false, EnumToString(Node_kind(node)));
+      ASSERT(false, "unexpected expression: " << EnumToString(Node_kind(node)));
       break;
   }
 }

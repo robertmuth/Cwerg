@@ -49,10 +49,8 @@ class MacroContext {
   }
 
   void RegisterSymbolWithOwnership(Name name, Node value) {
-    // std::cout << "@@ SetSymbol WO " << Node_name(invoke_) << " " << name << "
-    // "
-    //          << EnumToString(Node_kind(value)) << " " << value.index() <<
-    //          "\n";
+    std::cout << "@@ SetSymbol WO " << Node_name(invoke_) << " " << name << " "
+              << EnumToString(Node_kind(value)) << " " << value.index() << "\n";
     ASSERT(!symtab_.contains(name), "");
     ASSERT(NameIsMacro(name), "");
     symtab_[name] = value;
@@ -99,8 +97,11 @@ Node FixUpArgsForExprListRest(Node params, Node args) {
 void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen);
 
 Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
-  // std::cout << "@@   Expand body node " << EnumToString(Node_kind(node))
-  //          << "\n";
+#if 0
+  std::cout << "@@   Expand body node " << node.index() << " "
+            << EnumToString(Node_kind(node)) << Node_name_or_invalid(node)
+            << "\n";
+#endif
   // Note these may be written.
   std::map<Node, Node> dummy1;
   std::map<Node, Node> dummy2;
@@ -125,11 +126,12 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
       Node arg = ctx->GetSymbol(Node_name(node));
 
       Node replacement = NodeCloneRecursively(arg, &dummy1, &dummy2);
-      // std::cout << "@@ expanding " << Node_name(node) << " "
-      //          << EnumToString(Node_kind(arg)) << " " << arg.index() << " ->
-      //          "
-      //          << replacement.index() << "\n";
-
+#if 0
+      std::cout << "@@ expanding ID " << Node_name(node) << " "
+                << EnumToString(Node_kind(arg)) << " "
+                << Node_name_or_invalid(arg) << " -> " << arg.index() << " -> "
+                << replacement.index() << "\n";
+#endif
       if (Node_kind(replacement) == NT::EphemeralList) {
         Node args = Node_args(replacement);
         NodeFree(replacement);
@@ -166,11 +168,11 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
-    if (child.raw_kind() == kKindStr || child.raw_kind() == kKindName ||
-        child.isnull()) {
+    if (!NodeIsNode(child)) {
       core_clone.children_node[i] = child;
       continue;
     }
+
     NodeChain new_children;
 
     do {
@@ -229,6 +231,10 @@ Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
   NodeChain body_clone;
   for (Node body = Node_body_macro(def_macro); !body.isnull();
        body = Node_next(body)) {
+#if 0
+    std::cout << "@@ Expand Macro body " << EnumToString(Node_kind(body))
+              << "\n";
+#endif
     Node exp = ExpandMacroBodyNodeRecursively(body, &ctx);
     body_clone.Append(exp);
   }
