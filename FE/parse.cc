@@ -285,6 +285,7 @@ Node PrattParsePrefix(Lexer* lexer, const TK& tk, uint32_t precedence) {
 
 Node MakeNodeId(const TK& tk) {
   auto s = tk.text;
+  ASSERT(s[0] != '$', s);
   Node out = NodeNew(NT::Id);
   std::string_view enum_name = std::string_view();
 
@@ -301,6 +302,7 @@ Node MakeNodeId(const TK& tk) {
 
 Node MakeNodeMacroId(const TK& tk) {
   std::string_view s = tk.text;
+  ASSERT(s[0] == '$', s);
   Node out = NodeNew(NT::MacroId);
   NodeInitMacroId(out, NameNew(s), tk.comments, tk.srcloc);
   return out;
@@ -461,7 +463,7 @@ Node PrattParseExprCall(Lexer* lexer, Node lhs, const TK& tk,
     Node args = ParseMacroArgList(lexer, false);
     NodeInitMacroInvoke(out, NameNew(FullName(lhs)), args, tk.comments,
                         tk.srcloc);
-    NodeFree(lhs); // we are not using the Id node anymore
+    NodeFree(lhs);  // we are not using the Id node anymore
     return out;
   }
   Node out = NodeNew(NT::ExprCall);
@@ -567,7 +569,7 @@ Node ParseTypeExpr(Lexer* lexer) {
     NodeInitTypeSpan(out, type, bits, tk.comments, tk.srcloc);
     return out;
   } else if (tk.kind == TK_KIND::ID) {
-    return MakeNodeId(tk);
+    return starts_with(tk.text, "$") ? MakeNodeMacroId(tk) : MakeNodeId(tk);
   } else if (tk.kind == TK_KIND::KW) {
     NT nt = KeywordToNT(tk.text);
     ASSERT(nt != NT::invalid, tk);
