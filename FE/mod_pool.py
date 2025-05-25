@@ -80,35 +80,6 @@ def _ExtractSymTabPopulatedWithGlobals(mod: cwast.DefMod) -> symbolize.SymTab:
 EXTENSION_CWS = ".cws"
 EXTENSION_CW = ".cw"
 
-# for now no DefEnum
-_NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.TypeUnion,
-                                  cwast.DefType,
-                                  cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan,
-                                  cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
-
-
-def _IsNormalizeModParam(node):
-    if isinstance(node, _NORMALIZED_NODES_FOR_MOD_ARGS):
-        return True
-    elif isinstance(node, cwast.DefType) and node.wrapped:
-        return True
-    else:
-        return False
-
-
-def _NormalizeModParam(node):
-    if _IsNormalizeModParam(node):
-        return node
-    elif isinstance(node, cwast.DefType) and not node.wrapped:
-        return _NormalizeModParam(node.type)
-    elif isinstance(node, cwast.Id):
-        if node.x_symbol:
-            return _NormalizeModParam(node.x_symbol)
-        else:
-            return None
-    else:
-        assert False, f"NYI: {node}"
-
 
 # def AreEqualNormalizedModParam(a, b) -> bool:
 #     if a is None or b is None:
@@ -122,6 +93,7 @@ def _NormalizeModParam(node):
 
 
 def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
+    """"Note, this only add adds resolved Id Nodes"""
     assert len(mod.params_mod) == len(
         args), f"{len(mod.params_mod)} vs {len(args)} {type(args)}"
     translation: dict[cwast.NAME, Any] = {}
@@ -131,7 +103,7 @@ def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod
             assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
             translation[p.name] = cwast.Id(
                 a.name, None, x_symbol=a, x_srcloc=sl)
-        elif isinstance(a, (cwast.DefRec, cwast.DefType)):
+        elif isinstance(a, (cwast.DefRec, cwast.DefType, cwast.DefEnum)):
             translation[p.name] = cwast.Id(
                 a.name, None, x_symbol=a, x_srcloc=sl)
         elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
@@ -156,22 +128,54 @@ def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod
     return mod
 
 
+_NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.DefEnum,
+                                  #
+                                  cwast.TypeUnion, cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan,
+                                  #
+                                  cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
+
+
+def _NormalizeModArgOneStep(node) -> Any:
+    """Returns `node` if no further normalization is impossible
+
+    Returns `None`, if normalization cannot proceed at the moment
+    because of unresolved symbols.
+
+    In the future this could also include simple exressions.
+    DefGlobal which are constant are probably fine too
+
+    """
+    if isinstance(node, cwast.Id):
+        return node.x_symbol  # note, this may be None
+    elif isinstance(node, cwast.DefType):
+        if node.wrapped:
+            return node
+        else:
+            return node.type
+    elif isinstance(node, _NORMALIZED_NODES_FOR_MOD_ARGS):
+        return node
+    else:
+        assert False, f"unexpected ModParam type: {type(node)}"
+
+
 class _ImportInfo:
     def __init__(self, import_node: cwast.Import):
         self.import_node = import_node
         # the normalized args are None initially because they have not been normalized
-        self.normalized_args = [None] * len(import_node.args_mod)
+        self.normalized_args = import_node.args_mod
 
-    def TryToNormalizeArgs(self) -> bool:
-        all_args_are_normalized = True
+    def TryToNormalizeModArgs(self) -> bool:
         for i, n in enumerate(self.normalized_args):
-            if n is None:
-                n = _NormalizeModParam(self.import_node.args_mod[i])
-                if n:
-                    self.normalized_args[i] = n
+            while True:
+                x = _NormalizeModArgOneStep(n)
+                if not x:
+                    return False
+                elif x is n:
+                    break
                 else:
-                    all_args_are_normalized = False
-        return all_args_are_normalized
+                    self.normalized_args[i] = x  # record incremental progress
+                    n = x
+        return True
 
     def ArgString(self) -> str:
         return ' '.join([f"{_FormatModArg(a)}->{_FormatModArg(n)}"
@@ -303,7 +307,9 @@ class _ModPoolState:
 
     gen_mod_uid: int = 0
 
-    def AddModInfoCommon(self, path: Path, args: list, mod: cwast.DefMod, symtab) -> _ModInfo:
+    def AddModInfo(self, path: Path, args: list, mod: cwast.DefMod) -> _ModInfo:
+        symtab = _ExtractSymTabPopulatedWithGlobals(mod)
+        _ResolveImportsForQualifers(mod)
         mid = (path, *args)
         name = path.name
         mod_info = _ModInfo(mid, mod, symtab)
@@ -326,9 +332,7 @@ class _ModPoolState:
     def AddModInfoSimple(self, path: Path, mod_name: str) -> _ModInfo:
         """Register regular module"""
         mod = self.read_mod_fun(path, mod_name)
-        symtab = _ExtractSymTabPopulatedWithGlobals(mod)
-        _ResolveImportsForQualifers(mod)
-        return self.AddModInfoCommon(path, [], mod, symtab)
+        return self.AddModInfo(path, [], mod)
 
     def AddModInfoForGeneric(self, path: Path, args: list, mod_name: str) -> _ModInfo:
         """Specialize Generic Mod and register it"""
@@ -341,10 +345,9 @@ class _ModPoolState:
         self.gen_mod_uid += 1
         mod.name = cwast.NAME.Make(f"{generic_mod.name}/{self.gen_mod_uid}")
 
+        mod = _SpecializeGenericModule(mod, args)
 
-        symtab = _ExtractSymTabPopulatedWithGlobals(mod)
-        _ResolveImportsForQualifers(mod)
-        return self.AddModInfoCommon(path, args, _SpecializeGenericModule(mod, args), symtab)
+        return self.AddModInfo(path, args, mod)
 
 
 def _MainEntryFun(mod: cwast.DefMod) -> Optional[cwast.DefFun]:
@@ -431,7 +434,7 @@ def ReadModulesRecursively(root: Path,
         for mod_info in active:
             assert isinstance(mod_info, _ModInfo), mod_info
             logger.info("start resolving imports for %s", mod_info)
-            num_unresolved = 0
+            num_unresolved_imports = 0
             for import_info in mod_info.imports:
                 import_node = import_info.import_node
                 if import_node.x_module != cwast.INVALID_MOD:
@@ -445,10 +448,11 @@ def ReadModulesRecursively(root: Path,
                     pathname = str(import_node.name)
                 if import_node.args_mod:
                     # import of generic module
-                    done = import_info.TryToNormalizeArgs()
-                    logger.info(
-                        "generic module: [%s] %s %s", done, import_node.name, import_info.ArgString())
-                    if done:
+                    done = import_info.TryToNormalizeModArgs()
+                    if import_info.TryToNormalizeModArgs():
+                        logger.info(
+                            "generic module: [%s] %s %s", done, import_node.name, import_info.ArgString())
+
                         path = _ModUniquePathName(
                             root, mod_info.mid[0], pathname)
                         mi = state.AddModInfoForGeneric(
@@ -457,7 +461,7 @@ def ReadModulesRecursively(root: Path,
                         new_active.append(mi)
                         seen_change = True
                     else:
-                        num_unresolved += 1
+                        num_unresolved_imports += 1
                 else:
                     path = _ModUniquePathName(
                         root, mod_info.mid[0], pathname)
@@ -471,10 +475,10 @@ def ReadModulesRecursively(root: Path,
                         f"in {mod_info.mod} resolving inport of {mi.mod.name}")
                     import_info.ResolveImport(mi.mod)
 
-            if num_unresolved:
+            if num_unresolved_imports:
                 new_active.append(mod_info)
             logger.info("finish resolving imports for %s - unresolved: %d",
-                        mod_info, num_unresolved)
+                        mod_info, num_unresolved_imports)
 
         if not seen_change and new_active:
             assert False, "module import does not terminate"
