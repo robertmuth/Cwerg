@@ -1,5 +1,5 @@
 
-DIR := build
+DIR := build_py
 QEMU :=
 
 $(info $(shell mkdir -p $(DIR)))

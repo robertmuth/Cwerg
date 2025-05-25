@@ -1,8 +1,7 @@
 # no built-in rules please
 .SUFFIXES:
 
-DIR=build
-
+DIR=build_cc
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -17,17 +16,6 @@ LIB_SOURCES :=  $(wildcard Lib/*.cw)
 ALL_SOURCES := $(LANG_SOURCES) $(LIB_SOURCES) $(DATA_SOURCES)
 ALL_SOURCES_GENERIC :=  $(filter $(wildcard */*gen*.cw), $(ALL_SOURCES))
 ALL_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard */*gen*.cw), $(ALL_SOURCES))
-
-
-tests_meta_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
-	@echo "PASSED $@"
-
-tests: $(EMIT_IR) tests_meta_py
-	@echo "PASSED $@"
-
-$(DIR)/%.cw.meta: %.cw
-	@echo "[typify $@]"
-	$(EMIT_IR)  $<
 
 ############################################################
 # Code Gen
@@ -59,6 +47,7 @@ LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
 PP=$(BUILD_DIR)/pp.exe
 EMIT_IR=$(BUILD_DIR)/emit_ir.exe
 
+
 $(LEXER_BENCH)::
 	@cd $(BUILD_DIR); $(MAKE) -s lexer_bench.exe
 
@@ -70,6 +59,20 @@ $(EMIT_IR)::
 
 run_lexer_bench: $(LEXER_BENCH)
 	/bin/time -p $(LEXER_BENCH)  Lib/*cw TestData/*cw  LangTest/*cw  > /dev/null
+
+############################################################
+# TESTING
+#############################################################
+
+tests_meta_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
+	@echo "PASSED $@"
+
+tests: $(EMIT_IR) tests_meta_py
+	@echo "PASSED $@"
+
+$(DIR)/%.cw.meta: %.cw
+	@echo "[typify $@]"
+	$(EMIT_IR)  $<
 
 ############################################################
 # Profile
@@ -95,3 +98,7 @@ benchmark: $(LEXER_BENCH)
 
 
 all:: $(LEXER_BENCH) $(PP) $(EMIT_IR)
+
+clean:
+	@echo cleaning and setting up build dirs
+	@rm -rf $(DIR)/*
