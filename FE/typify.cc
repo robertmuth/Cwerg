@@ -135,6 +135,9 @@ ValAndKind NumCleanupAndTypeExtraction(std::string_view num,
       return out;
     }
   }
+  if (num[0] == '\'') {
+    out.kind = BASE_TYPE_KIND::U8;
+  }
   return out;
 }
 
@@ -706,7 +709,10 @@ void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
 }
 
 void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
-  //  phase 1
+//  phase 1
+#if 1
+  std::cout << "Phase 1\n";
+#endif
   for (Node mod : mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
@@ -747,6 +753,9 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
   }
 
   //  phase 2
+#if 1
+  std::cout << "Phase 2\n";
+#endif
   PolyMap poly_map(tc);
 
   for (Node mod : mods) {

@@ -92,7 +92,7 @@ std::string_view ReadFile(const char* filename) {
 }
 
 Node ReadMod(const Path& path) {
-  std::cout << "ReadMod [" << path << "] as [" << path.filename() << "]\n";
+  // std::cout << "ReadMod [" << path << "] as [" << path.filename() << "]\n";
 
   Path filename = path.filename();
   Path with_suffix = path;
@@ -234,8 +234,10 @@ class ModPoolState {
  public:
   // TODO: add args argument support
   ModInfo AddModInfoCommon(const Path& path, Node mod, SymTab* symtab) {
+    std::cout << "AddModInfoCommon [" << path << "] " << Node_name(mod) << "\n";
     ASSERT(Node_kind(mod) == NT::DefMod, "");
     ModId mid = ModId(path);
+    ASSERT(!all_mods.contains(mid), "");
     ModInfo mod_info(mid, mod, symtab);
     all_mods.insert({mid, mod_info});
     symtabs.push_back(symtab);
@@ -358,19 +360,23 @@ ModPool ReadModulesRecursively(Path root_path,
     active.push_back(mi);
   }
 
-  std::cout << "Fixpoint For Imports\n" << std::flush;
   std::vector<ModInfo> new_active;
   while (!active.empty()) {
+    std::cout << "Fixpoint Iteration for Imports active=" << active.size()
+              << "\n"
+              << std::flush;
     ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
         state.AllMods(), out.builtin_symtab);
     new_active.clear();
-    for (ModInfo& mi : active) {
-      std::cout << "Handle Imports for Mod: " << mi.mid.path << "\n";
-      for (auto& import : mi.imports) {
-        std::cout << "Imports [" << Node_path(import.import_node) << "] ["
-                  << Node_name(import.import_node) << "]\n";
+    for (ModInfo& mi_importer : active) {
+      std::cout << "\nHandle Imports for Mod: " << mi_importer.mid.path << "\n";
+      for (auto& import : mi_importer.imports) {
+        Name name = Node_name(import.import_node);
+        std::cout << "Import [" << name << "] ["
+                  << Node_path(import.import_node) << "]\n";
 
         if (!Node_x_module(import.import_node).isnull()) {
+          std::cout << "Import [" << name << "] not yet available\n";
           continue;
         }
 
@@ -384,7 +390,8 @@ ModPool ReadModulesRecursively(Path root_path,
           }
         }
         if (import.NumArgs() == 0) {
-          Path path = ModUniquePathName(root_path, mi.mid.path, pathname);
+          Path path =
+              ModUniquePathName(root_path, mi_importer.mid.path, pathname);
           ModId mid(path);
           if (!state.HasModInfo(mid)) {
             SymTab* symtab = new SymTab();
@@ -392,8 +399,8 @@ ModPool ReadModulesRecursively(Path root_path,
             new_active.push_back(mi);
           }
           ModInfo mi = state.GetModInfo(mid);
-          std::cout << "Resolve import " << mi.mid << " "
-                    << EnumToString(Node_kind(mi.mod)) << "\n";
+          std::cout << "Import [" << name << "] resolved to [" << mi.mid
+                    << "]\n";
           import.ResolveImport(mi.mod);
         } else {
           ASSERT(false, "NYI: gen modules");
@@ -402,7 +409,9 @@ ModPool ReadModulesRecursively(Path root_path,
     }
     active.swap(new_active);
   }
-  out.mods_in_topo_order = ModulesInTopologicalOrder(state.AllMods());
+  const auto all_mods = state.AllMods();
+  out.mods_in_topo_order = ModulesInTopologicalOrder(all_mods);
+  ASSERT(out.mods_in_topo_order.size() == all_mods.size(), "");
   ResolvePolyMods(out.mods_in_topo_order);
   ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
       out.mods_in_topo_order, out.builtin_symtab);

@@ -26,7 +26,7 @@ inline Path ModUniquePathName(const Path& root_path, const Path& curr_path,
     // return std::filesystem::canonical(path);
     return path;
   } else if (pathname.starts_with(".")) {
-    return curr_path.parent_path() / path;
+    return std::filesystem::canonical(curr_path.parent_path()) / path;
   } else {
     return root_path / path;
   }
@@ -58,7 +58,6 @@ struct ModPool {
   SymTab* builtin_symtab;
   Node main_fun;
   std::vector<Node> mods_in_topo_order;
-
 };
 
 ModPool ReadModulesRecursively(Path root_path,
