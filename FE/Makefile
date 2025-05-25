@@ -4,26 +4,12 @@ QEMU :=
 
 $(info $(shell mkdir -p $(DIR)))
 
-TEST_SOURCES := $(wildcard TestData/*.cw)
-TEST_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard TestData/*gen.cw), $(wildcard TestData/*.cw))
-
-LANG_TESTS := $(wildcard LangTest/*_test.cw)
+DATA_SOURCES := $(wildcard TestData/*.cw)
 LANG_SOURCES := $(wildcard LangTest/*.cw)
-
-LIB_TESTS := $(wildcard Lib/*_test.cw)
 LIB_SOURCES :=  $(wildcard Lib/*.cw)
-LIB_SOURCES_NO_GENERIC := $(filter-out Lib/builtin.cw $(wildcard Lib/*gen.cw), $(wildcard Lib/*.cw))
-
-TEST_TESTS := \
-	TestData/binary_tree_test.cw \
-	TestData/fibonacci.cw \
-    TestData/fizzbuzz.cw \
-    TestData/hello_world.cw \
-    TestData/nqueens.cw \
-    TestData/ray_tracer.cw
 
 # excludes 64bit tests
-TESTS_A32 := \
+ALL_TESTS_A32 := \
     LangTest/consts_test.cw \
 	LangTest/array_test.cw \
     LangTest/cast_test.cw \
@@ -31,22 +17,23 @@ TESTS_A32 := \
     LangTest/edit_distance_test.cw \
     LangTest/enum_test.cw \
     LangTest/expr_test.cw \
-    LangTest/linked_list_test.cw \
+    LangTest/linked_list_gen_test.cw \
     LangTest/sieve_test.cw \
     LangTest/types_test.cw \
-    TestData/fibonacci.cw \
-    TestData/fizzbuzz.cw \
-    TestData/nqueens.cw \
-    TestData/hello_world.cw \
+    TestData/fibonacci_test.cw \
+    TestData/fizzbuzz_test.cw \
+    TestData/nqueens_test.cw \
+    TestData/hello_world_test.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
     Lib/checksum_test.cw \
     Lib/huffman_test.cw \
     Lib/string_test.cw
 
-ALL_SOURCES := $(LANG_SOURCES) $(TEST_SOURCES) $(LIB_SOURCES)
-ALL_SOURCES_NO_GENERIC := $(LANG_SOURCES) $(TEST_SOURCES_NO_GENERIC) $(LIB_SOURCES_NO_GENERIC)
-
+ALL_SOURCES := $(LANG_SOURCES) $(DATA_SOURCES) $(LIB_SOURCES)
+ALL_SOURCES_NO_GENERIC := $(filter-out Lib/builtin.cw $(wildcard */*gen*.cw), $(ALL_SOURCES))
+ALL_TESTS := $(filter $(wildcard */*_test.cw), $(ALL_SOURCES))
+ALL_EXES := $(filter $(wildcard */*_exe.cw), $(ALL_SOURCES))
 
 # not the clean part will be run out of order but the early targets are not
 # relying on the cleaning so things work out with "make -j"
@@ -88,9 +75,9 @@ STD_LIB_WITH_ARGV_A64 = ../BE/StdLib/startup.a64.asm ../BE/StdLib/syscall.a64.as
 STD_LIB_WITH_ARGV_A32 = ../BE/StdLib/startup.a32.asm ../BE/StdLib/syscall.a32.asm ../BE/StdLib/std_lib.32.asm
 
 # test language
-tests_x64: $(LANG_TESTS:%.cw=$(DIR)/%.x64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.x64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.x64.exe)
-tests_a64: $(LANG_TESTS:%.cw=$(DIR)/%.a64.exe) $(LIB_TESTS:%.cw=$(DIR)/%.a64.exe) $(TEST_TESTS:%.cw=$(DIR)/%.a64.exe)
-tests_a32: $(TESTS_A32:%.cw=$(DIR)/%.a32.exe)
+tests_x64: $(ALL_TESTS:%.cw=$(DIR)/%.x64.exe)
+tests_a64: $(ALL_TESTS:%.cw=$(DIR)/%.a64.exe)
+tests_a32: $(ALL_TESTS_A32:%.cw=$(DIR)/%.a32.exe)
 
 
 # Special due to commandline args
@@ -164,17 +151,17 @@ $(DIR)/%.concrete: %.cws
 
 # Misc Tests
 
-$(DIR)/wordcount.x64.test: build/TestData/wordcount.compile.x64.exe
+$(DIR)/wordcount.x64.test: build/TestData/wordcount_exe.compile.x64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
 
-$(DIR)/wordcount.a64.test: build/TestData/wordcount.compile.a64.exe
+$(DIR)/wordcount.a64.test: build/TestData/wordcount_exe.compile.a64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
 
 
-$(DIR)/print_argv.x64.test: build/TestData/print_argv.compile.x64.exe
+$(DIR)/print_argv.x64.test: build/TestData/print_argv_exe.compile.x64.exe
 	${QEMU} $< arg1 arg2 argc3
 
-$(DIR)/print_argv.a64.test: build/TestData/print_argv.compile.a64.exe
+$(DIR)/print_argv.a64.test: build/TestData/print_argv_exe.compile.a64.exe
 	${QEMU} $< arg1 arg2 argc3
 
 
@@ -190,12 +177,12 @@ $(DIR)/assert.a64.test: build/FailTest/assert.compile.a64.exe
 
 ## Manual tests
 
-manual: $(DIR)/asciiquarium.x64.exe $(DIR)/asciiquarium.a64.exe
+manual: $(DIR)/asciiquarium.x64.exe $(DIR)/asciiquarium_exe.a64.exe
 
-$(DIR)/asciiquarium.x64.exe: build/TestData/asciiquarium.compile.x64.exe
+$(DIR)/asciiquarium.x64.exe: build/TestData/asciiquarium_exe.compile.x64.exe
 	${QEMU} $< 128 48
 
-$(DIR)/asciiquarium.a64.exe: build/TestData/asciiquarium.compile.a64.exe
+$(DIR)/asciiquarium.a64.exe: build/TestData/asciiquarium_exe.compile.a64.exe
 	${QEMU} $< 128 48
 
 
