@@ -25,6 +25,7 @@ extern Name CanonType_name(CanonType n);
 extern NT CanonType_kind(CanonType n);
 extern Node CanonType_ast_node(CanonType n);
 extern bool CanonType_mut(CanonType n);
+extern bool CanonType_untagged(CanonType ct);
 
 extern std::vector<CanonType>& CanonType_children(CanonType n);
 

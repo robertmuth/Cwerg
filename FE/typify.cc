@@ -600,6 +600,11 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
             << "unexpected type to unwrap " << EnumToString(CanonType_kind(ct));
         return kCanonTypeInvalid;
       }
+    case NT::ExprUnionTag:
+      ct = TypifyExprOrType(Node_expr(node), tc, ct_target, pm);
+      ASSERT(CanonType_kind(ct) == NT::TypeUnion && !CanonType_untagged(ct),
+             "");
+      return AnnotateType(node, tc->get_typeid_canon_type());
     case NT::ExprPointer:
       ct = TypifyExprOrType(Node_expr1(node), tc, ct_target, pm);
       TypifyExprOrType(Node_expr2(node), tc, tc->get_uint_canon_type(), pm);
