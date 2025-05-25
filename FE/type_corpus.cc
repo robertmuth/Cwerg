@@ -355,6 +355,7 @@ CanonType TypeCorpus::InsertFunType(
 }
 
 void TypeCorpus::Dump() {
+  std::cout << "Dump of CanonTypes: (" << corpus_.size() << ")\n";
   for (auto it = corpus_.begin(); it != corpus_.end(); ++it) {
     std::cout << NameData(it->first) << "\n";
   }

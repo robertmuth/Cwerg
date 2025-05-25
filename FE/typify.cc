@@ -47,7 +47,6 @@ class PolyMap {
     ASSERT(CanonType_children(ct).size() >= 2, "");
     CanonType ct_first = CanonType_children(ct)[0];
     PolyMapKey key{Node_x_poly_mod(fun), Node_name(fun), ct_first};
-    std::cout << "Registering " << key << "\n";
     if (map_.find(key) != map_.end()) {
       CompilerError(Node_srcloc(fun))
           << "Duplicate poly fun for " << CanonType_name(ct_first);
@@ -202,9 +201,6 @@ CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
          "unsymbolized ID " << Node_srcloc(id) << " " << Node_name(id));
 
   CanonType ct = Node_x_type(def_node);
-  std::cout << "@@ ID: " << NameData(Node_name(id))
-            << " def=" << EnumToString(Node_kind(def_node))
-            << " t=" << CanonType_name(ct) << "\n";
   if (ct.isnull()) {
     switch (Node_kind(def_node)) {
       case NT::DefVar:
@@ -251,7 +247,6 @@ void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
 
 CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
                             PolyMap* pm) {
-  std::cout << "@@ VALCOMP\n";
   CanonType ct = TypifyExprOrType(Node_type_or_auto(node), tc, ct_target, pm);
   if (CanonType_kind(ct) == NT::TypeVec) {
     CanonType element_type = CanonType_underlying_type(ct);
@@ -402,9 +397,11 @@ CanonType GetExprStmtType(Node root) {
 
 CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                            PolyMap* pm) {
+#if 0
   std::cout << "@@ TYPIFY: " << Node_srcloc(node) << " "
             << EnumToString(Node_kind(node))
             << " target: " << CanonType_name(ct_target) << "\n";
+#endif
   if (!Node_x_type(node).isnull()) {
     return Node_x_type(node);
   }
@@ -443,8 +440,6 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                                   : CanonType_base_type_kind(ct_target);
       BASE_TYPE_KIND actual =
           NumCleanupAndTypeExtraction(StrData(Node_number(node)), target).kind;
-      std::cout << "@@@@ target " << EnumToString(target) << " actual "
-                << EnumToString(actual) << "\n";
       if (actual == BASE_TYPE_KIND::INVALID)
         ASSERT(actual != BASE_TYPE_KIND::INVALID,
                "cannot parse " << Node_number(node) << " at "
@@ -761,8 +756,6 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
   for (Node mod : mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
-      std::cout << "@@ Phase 2: " << EnumToString(Node_kind(child)) << "\n";
-
       switch (Node_kind(child)) {
         case NT::DefRec: {
           for (Node field = Node_fields(child); !field.isnull();
@@ -800,12 +793,13 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
       }
     }
   }
-  //  phase 3
+//  phase 3
+#if 1
+  std::cout << "Phase 3\n";
+#endif
   for (Node mod : mods) {
     for (Node node = Node_body_mod(mod); !node.isnull();
          node = Node_next(node)) {
-      std::cout << "@@ Phase 3: " << EnumToString(Node_kind(node)) << "\n";
-
       switch (Node_kind(node)) {
         case NT::DefRec:
         case NT::DefEnum:
@@ -813,9 +807,6 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
         case NT::Import:
           continue;
         case NT::StmtStaticAssert:
-          std::cout << "@@" << EnumToString(Node_kind(node)) << " "
-                    << EnumToString(Node_kind(Node_cond(node))) << "\n";
-
           TypifyExprOrType(Node_cond(node), tc, tc->get_bool_canon_type(),
                            &poly_map);
           break;
@@ -833,11 +824,16 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
       }
     }
   }
-  //  phase 4
+//  phase 4
+#if 1
+  std::cout << "Phase 4\n";
+#endif
   for (Node mod : mods) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
       if (Node_kind(fun) == NT::DefFun && !Node_has_flag(fun, BF::EXTERN)) {
+#if 0
         std::cout << "@@ Phase 4: " << Node_name(fun) << "\n";
+#endif
         for (Node child = Node_body(fun); !child.isnull();
              child = Node_next(child)) {
           TypifyStmt(child, tc, Node_x_type(Node_result(fun)), &poly_map);
