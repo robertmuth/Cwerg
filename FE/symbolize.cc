@@ -164,7 +164,11 @@ void ResolveSymbolInsideFunction(Node node, const SymTab* builtin_symtab,
                                  std::vector<SymTab>* scopes) {
   ASSERT(Node_kind(node) == NT::Id, "");
   if (!Node_x_symbol(node).isnull()) return;
+
   Name name = Node_name(node);
+#if 0
+  std::cout << "@@ resolve local: " << Node_srcloc(node) << " " << name << "\n";
+#endif
   for (auto it = scopes->rbegin(); it != scopes->rend(); ++it) {
     auto def_node = it->find(name);
     if (def_node != it->end()) {
@@ -180,13 +184,17 @@ void ResolveSymbolInsideFunction(Node node, const SymTab* builtin_symtab,
 
 void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,
                                       std::vector<SymTab>* scopes) {
+  std::cout << "FunResolveSymbolsInsideFunctions: " << Node_name(fun) << "\n";
   auto visitor = [builtin_symtab, scopes](Node node, Node parent) {
     if (Node_kind(node) == NT::Id) {
-      if (!IsFieldNode(node, parent)) {
+      if (!IsFieldNode(node, parent) && !IsPointNode(node, parent)) {
         ResolveSymbolInsideFunction(node, builtin_symtab, scopes);
       }
     } else if (Node_kind(node) == NT::DefVar) {
       auto ss = Node_name(node);
+#if 0
+      std::cout << "@@ add local " << Node_srcloc(node) << " " << ss << "\n";
+#endif
       if (scopes->back().contains(ss)) {
         CompilerError(Node_srcloc(node)) << "duplicate symbol " << ss;
       }
@@ -242,7 +250,7 @@ void FunSetTargetField(Node fun) {
       }
       CompilerError(Node_srcloc(node))
           << "cannot find target for " << EnumToString(Node_kind(node))
-          << " to [" <<  Node_label(node) << "]";
+          << " to [" << Node_label(node) << "]";
     } else if (nt == NT::StmtReturn) {
       for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
         if (Node_kind(*it) == NT::DefFun || Node_kind(*it) == NT::ExprStmt) {
