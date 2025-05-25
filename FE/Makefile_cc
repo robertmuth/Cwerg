@@ -6,6 +6,28 @@ DIR=build
 
 $(info $(shell mkdir -p $(DIR)))
 
+LANG_TESTS := $(wildcard LangTest/*_test.cw)
+LANG_SOURCES := $(wildcard LangTest/*.cw)
+
+DATA_SOURCES := $(wildcard TestData/*.cw)
+
+LIB_TESTS := $(wildcard Lib/*_test.cw)
+LIB_SOURCES :=  $(wildcard Lib/*.cw)
+
+ALL_SOURCES := $(LANG_SOURCES) $(LIB_SOURCES) $(DATA_SOURCES)
+ALL_SOURCES_GENERIC :=  $(filter $(wildcard */*gen*.cw), $(ALL_SOURCES))
+ALL_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard */*gen*.cw), $(ALL_SOURCES))
+
+
+tests_meta_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
+	@echo "PASSED $@"
+
+tests: $(EMIT_IR) tests_meta_py
+	@echo "PASSED $@"
+
+$(DIR)/%.cw.meta: %.cw
+	@echo "[typify $@]"
+	$(EMIT_IR)  $<
 
 ############################################################
 # Code Gen
