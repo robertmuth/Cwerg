@@ -151,26 +151,26 @@ $(DIR)/%.concrete: %.cws
 
 # Misc Tests
 
-$(DIR)/wordcount.x64.test: build/TestData/wordcount_exe.compile.x64.exe
+$(DIR)/wordcount.x64.test: $(DIR)/TestData/wordcount_exe.compile.x64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
 
-$(DIR)/wordcount.a64.test: build/TestData/wordcount_exe.compile.a64.exe
+$(DIR)/wordcount.a64.test: $(DIR)/TestData/wordcount_exe.compile.a64.exe
 	echo "hello world\na b c d " | ${QEMU} $<
 
 
-$(DIR)/print_argv.x64.test: build/TestData/print_argv_exe.compile.x64.exe
+$(DIR)/print_argv.x64.test: $(DIR)/TestData/print_argv_exe.compile.x64.exe
 	${QEMU} $< arg1 arg2 argc3
 
-$(DIR)/print_argv.a64.test: build/TestData/print_argv_exe.compile.a64.exe
+$(DIR)/print_argv.a64.test: $(DIR)/TestData/print_argv_exe.compile.a64.exe
 	${QEMU} $< arg1 arg2 argc3
 
 
-$(DIR)/assert.x64.test: build/FailTest/assert.compile.x64.exe
+$(DIR)/assert.x64.test: $(DIR)/FailTest/assert.compile.x64.exe
 	-${QEMU} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
 	sed -i "s| at.*||" $@
 	diff $@ FailTest/assert.golden
 
-$(DIR)/assert.a64.test: build/FailTest/assert.compile.a64.exe
+$(DIR)/assert.a64.test: $(DIR)/FailTest/assert.compile.a64.exe
 	${QEMU} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
 	sed -i "s| at.*||" $@
 	diff $@ FailTest/assert.golden
@@ -179,10 +179,10 @@ $(DIR)/assert.a64.test: build/FailTest/assert.compile.a64.exe
 
 manual: $(DIR)/asciiquarium.x64.exe $(DIR)/asciiquarium_exe.a64.exe
 
-$(DIR)/asciiquarium.x64.exe: build/TestData/asciiquarium_exe.compile.x64.exe
+$(DIR)/asciiquarium.x64.exe: $(DIR)/TestData/asciiquarium_exe.compile.x64.exe
 	${QEMU} $< 128 48
 
-$(DIR)/asciiquarium.a64.exe: build/TestData/asciiquarium_exe.compile.a64.exe
+$(DIR)/asciiquarium.a64.exe: $(DIR)/TestData/asciiquarium_exe.compile.a64.exe
 	${QEMU} $< 128 48
 
 
