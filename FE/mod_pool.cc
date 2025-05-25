@@ -326,8 +326,10 @@ void ResolvePolyMods(const std::vector<Node>& mods_in_topo_order) {
                            ? mod
                            : Node_x_module(Node_x_import(fun));
         ASSERT(!ref_mod.isnull(), "");
+#if 0
         std::cout << "@@ ResolvePolyMods " << Node_name(ref_mod)
                   << " "<<  Node_name(fun) << "\n";
+#endif
         Node_x_poly_mod(fun) = ref_mod;
       }
     }

@@ -37,17 +37,28 @@ int main(int argc, const char* argv[]) {
   }
 
   ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
+  std::cout << "@@@ CHECKING BEFORE MACRO EXPANSION\n";
   ValidateAST(mp.mods_in_topo_order, false);
   ExpandMacrosAndMacroLike(mp.mods_in_topo_order);
+  std::cout << "@@@ CHECKING AFTER MACRO EXPANSION\n";
   ValidateAST(mp.mods_in_topo_order, false);
-  SetTargetFields(mp.mods_in_topo_order);
-  ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
-  ValidateAST(mp.mods_in_topo_order, true);
-
+#if 0
   for (Node mod : mp.mods_in_topo_order) {
     std::cout << "\n\n\n";
     Prettify(mod);
   }
+#endif
+  SetTargetFields(mp.mods_in_topo_order);
+  ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
+  std::cout << "@@@ CHECKING AFTER SYMBOL RESOLUTION EXPANSION\n";
+  ValidateAST(mp.mods_in_topo_order, true);
+
+#if 0
+  for (Node mod : mp.mods_in_topo_order) {
+    std::cout << "\n\n\n";
+    Prettify(mod);
+  }
+#endif
 
   std::set<NT> eliminated_nodes = {
       NT::Import,  NT::DefMacro, NT::MacroInvoke,

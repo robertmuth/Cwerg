@@ -77,7 +77,6 @@ bool NodeValidateSymbols(Node node, Node parent) {
 
 void ValidateAST(const std::vector<Node>& mods, bool symbolized) {
   bool verbose = true;
-  std::cout << "@@@ CHECKING ############\n";
   for (int i = kStripeGroupFirstAlloc; i < gStripeGroupNode.NextAvailable();
        ++i) {
     gNodeValidation[i].ref_count = 0;

@@ -184,7 +184,9 @@ void ResolveSymbolInsideFunction(Node node, const SymTab* builtin_symtab,
 
 void FunResolveSymbolsInsideFunctions(Node fun, const SymTab* builtin_symtab,
                                       std::vector<SymTab>* scopes) {
+#if 0
   std::cout << "FunResolveSymbolsInsideFunctions: " << Node_name(fun) << "\n";
+#endif
   auto visitor = [builtin_symtab, scopes](Node node, Node parent) {
     if (Node_kind(node) == NT::Id) {
       if (!IsFieldNode(node, parent) && !IsPointNode(node, parent)) {

@@ -200,7 +200,8 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_(arch) {
 
 CanonType TypeCorpus::Insert(CanonType ct) {
   ASSERT(!ct.isnull(), "");
-  ASSERT(corpus_.find(CanonType_name(ct)) == corpus_.end(), "");
+  ASSERT(corpus_.find(CanonType_name(ct)) == corpus_.end(),
+         "Duplicate type " << CanonType_name(ct));
   corpus_[CanonType_name(ct)] = ct;
   return ct;
 }

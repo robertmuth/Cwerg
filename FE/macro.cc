@@ -205,7 +205,7 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
 constexpr int MAX_MACRO_NESTING = 8;
 
 Node ExpandMacroInvocation(Node macro_invoke, int nesting, IdGen* id_gen) {
-#if 1
+#if 0
   std::cout << "@@ Expand invoke of " << Node_name(macro_invoke)
             << " nesting=" << nesting << "\n";
 #endif
