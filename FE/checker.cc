@@ -4,7 +4,6 @@
 #include <map>
 #include <set>
 
-#include "FE/symbolize.h"
 #include "Util/assert.h"
 
 namespace cwerg::fe {

@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Util/assert.h"
 #include "Util/handle.h"
 #include "Util/immutable.h"
 #include "Util/stripe.h"
@@ -205,6 +206,7 @@ inline uint16_t& Node_compressed_flags(Node node) {
 
 inline Node NodeNew(NT kind) {
   Node out = Node(kind, gStripeGroupNode.New().index());
+  // ASSERT(out.index() != xxx, "");
   return out;
 }
 
@@ -793,7 +795,7 @@ inline void NodeInitFunParam(Node node, Name name, Node type, uint16_t bits, Str
 }
 
 inline void NodeInitId(Node node, Name name, Name enum_name, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::Id, name, enum_name, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+  NodeInit(node, NT::Id, name, enum_name, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void NodeInitImport(Node node, Name name, Str path, Node args_mod, Str doc, const SrcLoc& srcloc) {
@@ -953,6 +955,14 @@ inline void NodeInitValVoid(Node node, Str doc, const SrcLoc& srcloc) {
 
 // =======================================
 // =======================================
+inline bool IsFieldNode(Node node, Node parent) {
+  return Node_field(parent) == node && (Node_kind(parent) == NT::ExprOffsetof ||
+                                        Node_kind(parent) == NT::ExprField);
+}
+
+inline bool IsPointNode(Node node, Node parent) {
+  return Node_point(parent) == node && Node_kind(parent) == NT::ValPoint;
+}
 
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
   return gNodeCore[n].mod_param_kind;
@@ -1237,6 +1247,7 @@ inline Node NodeCloneBasics(Node node) {
   return clone;
 }
 
+// Note: Node_next(result) will be set to kNodeInvalid
 Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
                           std::map<Node, Node>* target_map);
 

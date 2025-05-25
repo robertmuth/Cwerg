@@ -5,16 +5,6 @@
 
 namespace cwerg::fe {
 
-bool IsFieldNode(Node node, Node parent) {
-  return (Node_kind(parent) == NT::ExprOffsetof ||
-          Node_kind(parent) == NT::ExprField) &&
-         Node_field(parent) == node;
-}
-
-bool IsPointNode(Node node, Node parent) {
-  return (Node_kind(parent) == NT::ValPoint) && Node_point(parent) == node;
-}
-
 bool HasImportedSymbolReference(Node node) {
   return !Node_x_import(node).isnull();
 }
