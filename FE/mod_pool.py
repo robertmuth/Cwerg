@@ -297,15 +297,16 @@ def _ReadMod(path: Path) -> cwast.DefMod:
     assert False, f"module {str(path)} does not exist"
 
 
-@dataclasses.dataclass()
 class _ModPoolState:
-    read_mod_fun: Callable
-    # all modules keyed by ModHandle
-    all_mods: dict[ModId, _ModInfo] = dataclasses.field(default_factory=dict)
-    raw_generic: dict[Path, cwast.DefMod] = dataclasses.field(
-        default_factory=dict)
+    def __init__(self, read_mod_fun: Callable):
+        self._read_mod_fun: Callable = read_mod_fun
+        # all modules keyed by ModHandle
+        self._all_mods: dict[ModId, _ModInfo] = {}
+        self._raw_generic: dict[Path, cwast.DefMod] = {}
+        self.gen_mod_uid: int = 0
 
-    gen_mod_uid: int = 0
+    def ReadMod(self, path: Path) -> cwast.DefMod:
+        return self._read_mod_fun(path)
 
     def AddModInfo(self, path: Path, args: list, mod: cwast.DefMod) -> _ModInfo:
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
@@ -314,26 +315,26 @@ class _ModPoolState:
         mod_info = _ModInfo(mid, mod, symtab)
         # print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
-        self.all_mods[mid] = mod_info
+        self._all_mods[mid] = mod_info
 
         mod.x_symtab = mod_info.symtab
         return mod_info
 
     def GetModInfo(self, mid: ModId) -> Optional[_ModInfo]:
-        return self.all_mods.get(mid)
+        return self._all_mods.get(mid)
 
     def AllMods(self) -> Sequence[cwast.DefMod]:
-        return [info.mod for info in self.all_mods.values()]
+        return [info.mod for info in self._all_mods.values()]
 
     def AllModInfos(self) -> Sequence[_ModInfo]:
-        return self.all_mods.values()
+        return self._all_mods.values()
 
     def GetCloneOfGenericMod(self, path: Path) -> cwast.DefMod:
-        generic_mod = self.raw_generic.get(path)
+        generic_mod = self._raw_generic.get(path)
         if not generic_mod:
             logger.info("reading raw generic from: %s", path)
-            generic_mod = self.read_mod_fun(path)
-            self.raw_generic[path] = generic_mod
+            generic_mod = self._read_mod_fun(path)
+            self._raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         self.gen_mod_uid += 1
         mod.name = cwast.NAME.Make(f"{generic_mod.name}/{self.gen_mod_uid}")
@@ -389,7 +390,7 @@ def ReadModulesRecursively(root: Path,
     active: list[_ModInfo] = []
     if add_builtin:
         path = _ModUniquePathName(root, None, "builtin")
-        mod = state.read_mod_fun(path)
+        mod = state.ReadMod(path)
         mod_info = state.AddModInfo(path, [], mod)
         assert mod_info.mod.builtin
         active.append(mod_info)
@@ -402,7 +403,7 @@ def ReadModulesRecursively(root: Path,
 
         assert state.GetModInfo(
             (path,)) is None, f"duplicate module {pathname}"
-        mod = state.read_mod_fun(path)
+        mod = state.ReadMod(path)
         mod_info = state.AddModInfo(path, [], mod)
         if not out.main_fun:
             out.main_fun = _MainEntryFun(mod_info.mod)
@@ -459,7 +460,7 @@ def ReadModulesRecursively(root: Path,
                     # see if the module has been read already
                     mi = state.GetModInfo((path,))
                     if not mi:
-                        mod = state.read_mod_fun(path)
+                        mod = state.ReadMod(path)
                         mi = state.AddModInfo(path, [], mod)
                         new_active.append(mi)
                     logger.info(
