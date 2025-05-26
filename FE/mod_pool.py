@@ -5,6 +5,7 @@ import pathlib
 import logging
 import collections
 import heapq
+import enum
 
 from FE import cwast
 from FE import parse_sexpr
@@ -163,6 +164,9 @@ class _ImportInfo:
         self.import_node = import_node
         # the normalized args are None initially because they have not been normalized
         self.normalized_args = import_node.args_mod
+
+    def HasBeenResolved(self) -> bool:
+        return self.import_node.x_module != cwast.INVALID_MOD
 
     def TryToNormalizeModArgs(self) -> bool:
         for i, n in enumerate(self.normalized_args):
@@ -427,8 +431,10 @@ def ReadModulesRecursively(root: Path,
             num_unresolved_imports = 0
             for import_info in mod_info.imports:
                 import_node = import_info.import_node
-                if import_node.x_module != cwast.INVALID_MOD:
-                    # import has been processed
+                if import_info.HasBeenResolved():
+                    continue
+                if import_node.args_mod and not import_info.TryToNormalizeModArgs():
+                    num_unresolved_imports += 1
                     continue
                 pathname = import_node.path
                 if pathname:
@@ -436,36 +442,27 @@ def ReadModulesRecursively(root: Path,
                         pathname = pathname[1:-1]
                 else:
                     pathname = str(import_node.name)
+                path = _ModUniquePathName(root, mod_info.mid[0], pathname)
                 if import_node.args_mod:
-                    # import of generic module
-                    done = import_info.TryToNormalizeModArgs()
-                    if import_info.TryToNormalizeModArgs():
-                        logger.info(
-                            "generic module: [%s] %s %s", done, import_node.name, import_info.ArgString())
+                    logger.info(
+                        "generic module: %s %s", import_node.name, import_info.ArgString())
 
-                        path = _ModUniquePathName(
-                            root, mod_info.mid[0], pathname)
-                        mod = state.GetCloneOfGenericMod(path)
-                        mod = _SpecializeGenericModule(
-                            mod, import_info.normalized_args)
-
-                        mi = state.AddModInfo(
-                            path, import_info .normalized_args, mod)
-                        import_info.ResolveImport(mi.mod)
-                        new_active.append(mi)
-                    else:
-                        num_unresolved_imports += 1
+                    mod = state.GetCloneOfGenericMod(path)
+                    mod = _SpecializeGenericModule(
+                        mod, import_info.normalized_args)
+                    mi = state.AddModInfo(
+                        path, import_info.normalized_args, mod)
+                    new_active.append(mi)
                 else:
-                    path = _ModUniquePathName(root, mod_info.mid[0], pathname)
                     # see if the module has been read already
                     mi = state.GetModInfo((path,))
                     if not mi:
                         mod = state.ReadMod(path)
                         mi = state.AddModInfo(path, [], mod)
                         new_active.append(mi)
-                    logger.info(
-                        f"in {mod_info.mod} resolving inport of {mi.mod.name}")
-                    import_info.ResolveImport(mi.mod)
+                logger.info(
+                    f"in {mod_info.mod} resolving inport of {mi.mod.name}")
+                import_info.ResolveImport(mi.mod)
 
             if num_unresolved_imports:
                 new_active.append(mod_info)
