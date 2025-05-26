@@ -281,20 +281,20 @@ def _ModUniquePathName(root: Path,
 _MAIN_FUN_NAME = cwast.NAME.Make("main")
 
 
-def _ReadMod(handle: Path, mod_name: str) -> cwast.DefMod:
+def _ReadMod(path: Path) -> cwast.DefMod:
     """Overload"""
-    fn = str(handle) + EXTENSION_CW
+    fn = str(path) + EXTENSION_CW
     if pathlib.Path(fn).exists():
-        mod = parse.ReadModFromStream(open(fn, encoding="utf8"), fn, mod_name)
+        mod = parse.ReadModFromStream(open(fn, encoding="utf8"), fn, path.name)
         assert isinstance(mod, cwast.DefMod)
         return mod
-    fn = str(handle) + EXTENSION_CWS
+    fn = str(path) + EXTENSION_CWS
     if pathlib.Path(fn).exists():
         mod = parse_sexpr.ReadModFromStream(
-            open(fn, encoding="utf8"), fn, mod_name)
+            open(fn, encoding="utf8"), fn, path.name)
         assert isinstance(mod, cwast.DefMod)
         return mod
-    assert False, f"module {str(handle)} does not exist"
+    assert False, f"module {str(path)} does not exist"
 
 
 @dataclasses.dataclass()
@@ -311,7 +311,6 @@ class _ModPoolState:
         symtab = _ExtractSymTabPopulatedWithGlobals(mod)
         _ResolveImportsForQualifers(mod)
         mid = (path, *args)
-        name = path.name
         mod_info = _ModInfo(mid, mod, symtab)
         # print("Adding new mod: ", mid[0].name, mid[1:])
         logger.info("Adding new mod: %s", mod_info)
@@ -329,25 +328,16 @@ class _ModPoolState:
     def AllModInfos(self) -> Sequence[_ModInfo]:
         return self.all_mods.values()
 
-    def AddModInfoSimple(self, path: Path, mod_name: str) -> _ModInfo:
-        """Register regular module"""
-        mod = self.read_mod_fun(path, mod_name)
-        return self.AddModInfo(path, [], mod)
-
-    def AddModInfoForGeneric(self, path: Path, args: list, mod_name: str) -> _ModInfo:
-        """Specialize Generic Mod and register it"""
+    def GetCloneOfGenericMod(self, path: Path) -> cwast.DefMod:
         generic_mod = self.raw_generic.get(path)
         if not generic_mod:
             logger.info("reading raw generic from: %s", path)
-            generic_mod = self.read_mod_fun(path, mod_name)
+            generic_mod = self.read_mod_fun(path)
             self.raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         self.gen_mod_uid += 1
         mod.name = cwast.NAME.Make(f"{generic_mod.name}/{self.gen_mod_uid}")
-
-        mod = _SpecializeGenericModule(mod, args)
-
-        return self.AddModInfo(path, args, mod)
+        return mod
 
 
 def _MainEntryFun(mod: cwast.DefMod) -> Optional[cwast.DefFun]:
@@ -398,9 +388,9 @@ def ReadModulesRecursively(root: Path,
 
     active: list[_ModInfo] = []
     if add_builtin:
-        mod_name = "builtin"
-        path = _ModUniquePathName(root, None, mod_name)
-        mod_info = state.AddModInfoSimple(path, mod_name)
+        path = _ModUniquePathName(root, None, "builtin")
+        mod = state.read_mod_fun(path)
+        mod_info = state.AddModInfo(path, [], mod)
         assert mod_info.mod.builtin
         active.append(mod_info)
         assert out.builtin_symtab.is_empty()
@@ -409,11 +399,11 @@ def ReadModulesRecursively(root: Path,
     for pathname in seed_modules:
         assert not pathname.startswith(".")
         path = _ModUniquePathName(root, None, pathname)
-        mod_name = path.name
 
         assert state.GetModInfo(
             (path,)) is None, f"duplicate module {pathname}"
-        mod_info = state.AddModInfoSimple(path, mod_name)
+        mod = state.read_mod_fun(path)
+        mod_info = state.AddModInfo(path, [], mod)
         if not out.main_fun:
             out.main_fun = _MainEntryFun(mod_info.mod)
         active.append(mod_info)
@@ -427,7 +417,6 @@ def ReadModulesRecursively(root: Path,
     #  Once all imports have been resolved, the module is no longer "active"
     while active:
         new_active: list[_ModInfo] = []
-        seen_change = False
         # this probably needs to be a fix point computation as well
         symbolize.ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
             state.AllMods(), out.builtin_symtab)
@@ -455,22 +444,24 @@ def ReadModulesRecursively(root: Path,
 
                         path = _ModUniquePathName(
                             root, mod_info.mid[0], pathname)
-                        mi = state.AddModInfoForGeneric(
-                            path, import_info.normalized_args, path.name)
+                        mod = state.GetCloneOfGenericMod(path)
+                        mod = _SpecializeGenericModule(
+                            mod, import_info.normalized_args)
+
+                        mi = state.AddModInfo(
+                            path, import_info .normalized_args, mod)
                         import_info.ResolveImport(mi.mod)
                         new_active.append(mi)
-                        seen_change = True
                     else:
                         num_unresolved_imports += 1
                 else:
-                    path = _ModUniquePathName(
-                        root, mod_info.mid[0], pathname)
+                    path = _ModUniquePathName(root, mod_info.mid[0], pathname)
                     # see if the module has been read already
                     mi = state.GetModInfo((path,))
                     if not mi:
-                        mi = state.AddModInfoSimple(path, path.name)
+                        mod = state.read_mod_fun(path)
+                        mi = state.AddModInfo(path, [], mod)
                         new_active.append(mi)
-                        seen_change = True
                     logger.info(
                         f"in {mod_info.mod} resolving inport of {mi.mod.name}")
                     import_info.ResolveImport(mi.mod)
@@ -480,8 +471,6 @@ def ReadModulesRecursively(root: Path,
             logger.info("finish resolving imports for %s - unresolved: %d",
                         mod_info, num_unresolved_imports)
 
-        if not seen_change and new_active:
-            assert False, "module import does not terminate"
         active = new_active
 
     out.mods_in_topo_order = _ModulesInTopologicalOrder(state.AllModInfos())
