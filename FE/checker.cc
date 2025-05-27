@@ -46,12 +46,10 @@ bool NodeValidateSymbols(Node node, Node parent) {
     case NT::Id: {
       if (!IsPointNode(node, parent) && !IsFieldNode(node, parent)) {
         Node symbol = Node_x_symbol(node);
-        ASSERT(!symbol.isnull(), "no symbol for "
-                                     << EnumToString(Node_kind(node)) << " "
-                                     << Node_name_or_invalid(node) << " "
-                                     << Node_srcloc(node));
-        ASSERT(NodeIsPossibleSymbol(symbol),
-               "no symbol but " << EnumToString(Node_kind(symbol)));
+        ASSERT(!symbol.isnull(), "no symbol for " << node << " "
+                                                  << Node_name_or_invalid(node)
+                                                  << " " << Node_srcloc(node));
+        ASSERT(NodeIsPossibleSymbol(symbol), "no symbol but " << symbol);
       }
       break;
     }
@@ -87,8 +85,8 @@ void ValidateAST(const std::vector<Node>& mods, bool symbolized) {
   // mark
   auto mark = [](Node node, Node parent) -> bool {
     if (Node_kind(node) == NT::invalid) {
-      ASSERT(false, "freed node " << node.index() << "still reference was "
-                                  << EnumToString(node.kind()));
+      ASSERT(false,
+             "freed node " << node.index() << "still reference was " << node);
     }
     if (gNodeValidation[node].ref_count) {
       ASSERT(false, "duplicate linked node");

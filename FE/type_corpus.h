@@ -56,6 +56,10 @@ extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
 inline bool CanonType_IsNumber(CanonType n) {
   return IsNumber(CanonType_base_type_kind(n));
 }
+inline std::ostream& operator<<(std::ostream& os, CanonType ct) {
+  return os << CanonType_name(ct);
+}
+
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;
@@ -70,6 +74,7 @@ class TypeCorpus {
   TypeCorpus(const TargetArchConfig& arch);
 
   CanonType get_base_canon_type(BASE_TYPE_KIND kind) {
+    ASSERT(kind != BASE_TYPE_KIND::INVALID, "");
     return base_type_map_[kind];
   }
 

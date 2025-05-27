@@ -1304,5 +1304,13 @@ inline Name Node_name_or_invalid(Node node) {
       return kNameInvalid;
   }
 }
+inline std::ostream& operator<<(std::ostream& os, Node node) {
+  if (node.isnull()) {
+    os << "@NULL@";
+  } else {
+    os << EnumToString(node.kind()) << "(" << node.index() << ")";
+  }
+  return os;
+}
 
 }  // namespace cwerg::fe
