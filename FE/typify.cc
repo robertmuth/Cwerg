@@ -221,7 +221,7 @@ CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
   return AnnotateType(id, ct);
 }
 
-Node RecAdvanceField(Node field, Node point) {
+Node MaybewAdvanceRecField(Node field, Node point) {
   ASSERT(Node_kind(field) == NT::RecField, "");
   ASSERT(Node_kind(point) == NT::ValPoint, "");
   Node field_name = Node_point(point);
@@ -277,9 +277,9 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
     ASSERT(Node_kind(defrec) == NT::DefRec, "");
     Node field = Node_fields(defrec);
     for (Node point = Node_inits(node); !point.isnull();
-         point = Node_next(point)) {
-      field = RecAdvanceField(field, point);
-
+         point = Node_next(point), field = Node_next(field)) {
+      field = MaybewAdvanceRecField(field, point);
+      ASSERT(Node_kind(field) == NT::RecField, "");
       CanonType ct_field = Node_x_type(field);
       AnnotateType(point, ct_field);
       if (Node_kind(Node_point(point)) == NT::Id) {

@@ -14,8 +14,8 @@ LIB_TESTS := $(wildcard Lib/*_test.cw)
 LIB_SOURCES :=  $(wildcard Lib/*.cw)
 
 ALL_SOURCES := $(LANG_SOURCES) $(LIB_SOURCES) $(DATA_SOURCES)
-ALL_SOURCES_GENERIC :=  $(filter $(wildcard */*gen*.cw), $(ALL_SOURCES))
-ALL_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard */*gen*.cw), $(ALL_SOURCES))
+ALL_SOURCES_GENERIC :=  $(filter $(wildcard */*gen.cw), $(ALL_SOURCES))
+ALL_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard */*gen.cw), $(ALL_SOURCES))
 
 ############################################################
 # Code Gen
