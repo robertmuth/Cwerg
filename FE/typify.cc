@@ -9,7 +9,7 @@
 #include "Util/parse.h"
 
 namespace cwerg::fe {
-
+namespace {
 struct PolyMapKey {
   Node mod;
   Name fun_name;
@@ -707,6 +707,8 @@ void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
                                         << EnumToString(Node_kind(node)));
   }
 }
+
+}  //  namespace
 
 void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
 //  phase 1

@@ -8,7 +8,7 @@
 #include "FE/symbolize.h"
 
 namespace cwerg::fe {
-
+namespace {
 // TODO: avoid redundant cloning
 // e.g.: if we know a MacroId is only referenced once - we do not
 // need to clone it after lookup
@@ -294,6 +294,7 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
         return out;
       }
       case NT::ExprStringify: {
+        // TODO: this is far from complete
         std::stringstream ss;
         ss << EnumToString(Node_kind(Node_expr(node)));
         Node out = NodeNew(NT::ValString);
@@ -309,6 +310,8 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
   };
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
+
+}  // namespace
 
 void ExpandMacrosAndMacroLike(const std::vector<Node>& mods) {
   for (Node mod : mods) {

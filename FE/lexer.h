@@ -13,8 +13,6 @@ namespace cwerg::fe {
 
 void InitLexer();
 
-std::ostream& operator<<(std::ostream& os, const SrcLoc& sl);
-
 struct TK_RAW {
   TK_KIND kind;
   std::string_view text = std::string_view();
@@ -59,7 +57,7 @@ struct TK {
   uint32_t annotation_bits;
 };
 
-std::ostream& operator<<(std::ostream& os, const TK& tk);
+extern std::ostream& operator<<(std::ostream& os, const TK& tk);
 
 class Lexer {
  private:
@@ -78,6 +76,9 @@ class Lexer {
     }
     return peek_cached_;
   }
+
+  int LinesProcessed() { return lexer_raw_.LinesProcessed(); }
+
 
   bool Match(TK_KIND kind, std::string_view text = std::string_view()) {
     Peek();
@@ -154,8 +155,6 @@ class Lexer {
       return current;
     }
   }
-
-  int LinesProcessed() { return lexer_raw_.LinesProcessed(); }
 };
 
 }  // namespace cwerg::fe

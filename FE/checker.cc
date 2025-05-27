@@ -7,6 +7,7 @@
 #include "Util/assert.h"
 
 namespace cwerg::fe {
+namespace {
 bool NodeIsPossibleSymbol(Node symbol) {
   switch (Node_kind(symbol)) {
     case NT::DefMacro:
@@ -73,6 +74,8 @@ bool NodeValidateSymbols(Node node, Node parent) {
   }
   return false;
 }
+
+}  // namespace
 
 void ValidateAST(const std::vector<Node>& mods, bool symbolized) {
   bool verbose = true;

@@ -5,6 +5,7 @@
 #include "FE/lexer.h"
 
 namespace cwerg::fe {
+namespace {
 
 Str MoveComment(Node n) {
   Str comment = Node_comment(n);
@@ -478,44 +479,6 @@ constexpr int MAX_TK_KIND = int(TK_KIND::SPECIAL_EOF) + 1;
 
 std::array<PrattHandlerPrefix, MAX_TK_KIND> PREFIX_EXPR_PARSERS;
 std::array<PrattHandlerInfix, MAX_TK_KIND> INFIX_EXPR_PARSERS;
-
-// Must be called once at start-up
-// Could probably done with C++20 designated array initializers
-// But going for C++17 to C++20 is a major step.
-void InitParser() {
-  // NodeInit Prefix Table
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW)] = {PrattParseKW, 10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW_SIMPLE_VAL)] = {PrattParseSimpleVal,
-                                                           10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::PREFIX_OP)] = {PrattParsePrefix, 13};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADDR_OF_OP)] = {PrattParseAddrOf, 13};
-
-  // only used for '-'
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {PrattParsePrefix, 10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ID)] = {PrattParseId, 10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::NUM)] = {PrattParseNum, 10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::STR)] = {PrattParseStr, 10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CHAR)] = {PrattParseNum, 10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {PrattParseParenGroup,
-                                                        10};
-  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CURLY_OPEN)] = {PrattParseValCompound,
-                                                        10};
-  // NodeInit Infix/Postfix Table
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::OR_SC_OP)] = {PrattParseExpr2, 5};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::AND_SC_OP)] = {PrattParseExpr2, 6};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::COMPARISON_OP)] = {PrattParseExpr2, 7};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {PrattParseExpr2, 10};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::MUL_OP)] = {PrattParseExpr2, 11};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SHIFT_OP)] = {PrattParseExpr2, 12};
-  //
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {PrattParseExprCall, 20};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {PrattParseExprIndex,
-                                                        14};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DEREF_OR_POINTER_OP)] = {
-      PrattParseExprDeref, 14};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DOT_OP)] = {PrattParseExprField, 14};
-  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {PrattParseExpr3, 6};
-}
 
 Node ParseTypeList(Lexer* lexer, bool want_comma) {
   if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
@@ -1203,6 +1166,43 @@ Node ParseModBodyList(Lexer* lexer, uint32_t column) {
   Node_next(top) = next;
   return top;
 }
+}  // namespace
+
+// Could probably done with C++20 designated array initializers
+void InitParser() {
+  // NodeInit Prefix Table
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW)] = {PrattParseKW, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::KW_SIMPLE_VAL)] = {PrattParseSimpleVal,
+                                                           10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::PREFIX_OP)] = {PrattParsePrefix, 13};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADDR_OF_OP)] = {PrattParseAddrOf, 13};
+
+  // only used for '-'
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {PrattParsePrefix, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::ID)] = {PrattParseId, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::NUM)] = {PrattParseNum, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::STR)] = {PrattParseStr, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CHAR)] = {PrattParseNum, 10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {PrattParseParenGroup,
+                                                        10};
+  PREFIX_EXPR_PARSERS[uint32_t(TK_KIND::CURLY_OPEN)] = {PrattParseValCompound,
+                                                        10};
+  // NodeInit Infix/Postfix Table
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::OR_SC_OP)] = {PrattParseExpr2, 5};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::AND_SC_OP)] = {PrattParseExpr2, 6};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::COMPARISON_OP)] = {PrattParseExpr2, 7};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::ADD_OP)] = {PrattParseExpr2, 10};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::MUL_OP)] = {PrattParseExpr2, 11};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SHIFT_OP)] = {PrattParseExpr2, 12};
+  //
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::PAREN_OPEN)] = {PrattParseExprCall, 20};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::SQUARE_OPEN)] = {PrattParseExprIndex,
+                                                        14};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DEREF_OR_POINTER_OP)] = {
+      PrattParseExprDeref, 14};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::DOT_OP)] = {PrattParseExprField, 14};
+  INFIX_EXPR_PARSERS[uint32_t(TK_KIND::TERNARY_OP)] = {PrattParseExpr3, 6};
+}
 
 Node ParseDefMod(Lexer* lexer, Name name) {
   const TK tk = lexer->Peek();
@@ -1218,6 +1218,7 @@ Node ParseDefMod(Lexer* lexer, Name name) {
   Node body = ParseModBodyList(lexer, 0);
   NodeInitDefMod(def_mod, name, params, body, BitsFromAnnotation(tk),
                  tk.comments, tk.srcloc);
+  std::cout << "@@ LinesProcessed: " << lexer->LinesProcessed() << "\n";
   return def_mod;
 }
 

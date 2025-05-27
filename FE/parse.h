@@ -6,9 +6,8 @@
 
 namespace cwerg::fe {
 
-
+// Must be called once at start-up
 extern void InitParser();
-
 
 extern Node ParseDefMod(Lexer* lexer, Name name);
 

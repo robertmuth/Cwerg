@@ -10,6 +10,7 @@
 #include "Util/immutable.h"
 
 namespace cwerg::fe {
+namespace {
 
 const int kCTypeWhitespace = 1;
 const int kCTypeOperator = 2;
@@ -47,7 +48,7 @@ const std::array<uint8_t, 256> CType = InitCType();
 
 bool IsWhitespace(uint8_t c) { return CType[c] & kCTypeWhitespace; }
 
-bool IsOperator(uint8_t c) { return CType[c] & kCTypeOperator; }
+// bool IsOperator(uint8_t c) { return CType[c] & kCTypeOperator; }
 
 bool IsNumberStart(uint8_t c) { return CType[c] & kCTypeNumberStart; }
 
@@ -58,6 +59,8 @@ bool IsNameStart(uint8_t c) { return CType[c] & kCTypeNameStart; }
 bool IsNameRest(uint8_t c) { return CType[c] & kCTypeNameRest; }
 
 typedef std::array<uint8_t, 129> TrieNode;
+
+}  // namespace
 
 // Below is bunch of adhoc lexer helpers
 // These are quite horrible and the only excuse for them
