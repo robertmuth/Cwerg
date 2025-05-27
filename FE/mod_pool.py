@@ -93,40 +93,34 @@ EXTENSION_CW = ".cw"
 #     return False
 
 
-def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]) -> cwast.DefMod:
+def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]):
     """"Note, this only add adds resolved Id Nodes"""
     assert len(mod.params_mod) == len(
         args), f"{len(mod.params_mod)} vs {len(args)} {type(args)}"
-    translation: dict[cwast.NAME, Any] = {}
+    arg_map: dict[cwast.NAME, Any] = {}
     for p, a in zip(mod.params_mod, args):
-        sl = p.x_srcloc
-        if isinstance(a, cwast.DefFun):
-            assert p.mod_param_kind is cwast.MOD_PARAM_KIND.CONST_EXPR
-            translation[p.name] = cwast.Id(
-                a.name, None, x_symbol=a, x_srcloc=sl)
-        elif isinstance(a, (cwast.DefRec, cwast.DefType, cwast.DefEnum)):
-            translation[p.name] = cwast.Id(
-                a.name, None, x_symbol=a, x_srcloc=sl)
+        if isinstance(a, (cwast.DefFun, cwast.DefRec, cwast.DefType, cwast.DefEnum)):
+            arg_map[p.name] = cwast.Id(
+                a.name, None, x_symbol=a, x_srcloc=p.x_srcloc)
         elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
-            translation[p.name] = a
+            arg_map[p.name] = a
         else:
             assert cwast.NF.TYPE_CORPUS in a.FLAGS
-            translation[p.name] = a
+            arg_map[p.name] = a
 
     mod.params_mod.clear()
 
     def replacer(node, _parent):
-        nonlocal translation
+        nonlocal arg_map
         if not isinstance(node, cwast.MacroId):
             return None
         name = node.name
         assert name.IsMacroVar(), f" non macro name: {node}"
-        t = translation[name]
+        t = arg_map[name]
 
         return cwast.CloneNodeRecursively(t, {}, {})
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(mod, replacer)
-    return mod
 
 
 _NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.DefEnum,
@@ -302,8 +296,7 @@ def _ReadMod(path: Path) -> cwast.DefMod:
 
 
 class _ModPoolState:
-    def __init__(self, read_mod_fun: Callable):
-        self._read_mod_fun: Callable = read_mod_fun
+    def __init__(self):
         # all modules keyed by ModHandle
         self._all_mods: dict[ModId, _ModInfo] = {}
         self._raw_generic: dict[Path, cwast.DefMod] = {}
@@ -333,11 +326,11 @@ class _ModPoolState:
     def AllModInfos(self) -> Sequence[_ModInfo]:
         return self._all_mods.values()
 
-    def GetCloneOfGenericMod(self, path: Path) -> cwast.DefMod:
+    def GetCloneOfGenericMod(self, path: Path, read_mod_fun: Callable) -> cwast.DefMod:
         generic_mod = self._raw_generic.get(path)
         if not generic_mod:
             logger.info("reading raw generic from: %s", path)
-            generic_mod = self._read_mod_fun(path)
+            generic_mod = read_mod_fun(path)
             self._raw_generic[path] = generic_mod
         mod = cwast.CloneNodeRecursively(generic_mod, {}, {})
         self.gen_mod_uid += 1
@@ -388,13 +381,13 @@ def ReadModulesRecursively(root: Path,
     After typing it will be replaced with the correct DefFun instance.
 
     """
-    state = _ModPoolState(read_mod_fun)
+    state = _ModPoolState()
     out = ModPool()
 
     active: list[_ModInfo] = []
     if add_builtin:
         path = _ModUniquePathName(root, None, "builtin")
-        mod = state.ReadMod(path)
+        mod = read_mod_fun(path)
         mod_info = state.AddModInfo(path, [], mod)
         assert mod_info.mod.builtin
         active.append(mod_info)
@@ -407,7 +400,7 @@ def ReadModulesRecursively(root: Path,
 
         assert state.GetModInfo(
             (path,)) is None, f"duplicate module {pathname}"
-        mod = state.ReadMod(path)
+        mod = read_mod_fun(path)
         mod_info = state.AddModInfo(path, [], mod)
         if not out.main_fun:
             out.main_fun = _MainEntryFun(mod_info.mod)
@@ -447,9 +440,8 @@ def ReadModulesRecursively(root: Path,
                     logger.info(
                         "generic module: %s %s", import_node.name, import_info.ArgString())
 
-                    mod = state.GetCloneOfGenericMod(path)
-                    mod = _SpecializeGenericModule(
-                        mod, import_info.normalized_args)
+                    mod = state.GetCloneOfGenericMod(path, read_mod_fun)
+                    _SpecializeGenericModule(mod, import_info.normalized_args)
                     mi = state.AddModInfo(
                         path, import_info.normalized_args, mod)
                     new_active.append(mi)
@@ -457,7 +449,7 @@ def ReadModulesRecursively(root: Path,
                     # see if the module has been read already
                     mi = state.GetModInfo((path,))
                     if not mi:
-                        mod = state.ReadMod(path)
+                        mod = read_mod_fun(path)
                         mi = state.AddModInfo(path, [], mod)
                         new_active.append(mi)
                 logger.info(

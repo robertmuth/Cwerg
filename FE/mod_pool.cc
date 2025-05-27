@@ -23,39 +23,83 @@ using namespace cwerg;
 
 const Path PATH_INVALID;
 
+namespace {
+
+Node NormalizeModParamOneStep(Node node) {
+  switch (Node_kind(node)) {
+    case NT::Id:
+      return Node_x_symbol(node);
+    case NT::DefType:
+      return Node_has_flag(node, BF::WRAPPED) ? node : Node_type(node);
+
+    case NT::DefFun:
+    case NT::DefRec:
+    //
+    case NT::TypeUnion:
+    case NT::TypeBase:
+    case NT::TypePtr:
+    case NT::TypeSpan:
+    //
+    case NT::EnumVal:
+    case NT::ValFalse:
+    case NT::ValTrue:
+    case NT::ValVoid:
+      return node;
+
+    default:
+      ASSERT(false, "");
+      return kNodeInvalid;
+  }
+}
+
 struct ImportInfo {
   Node import_node;
   std::vector<Node> normalized_args;
 
   ImportInfo(Node a_import_node) : import_node(a_import_node) {
     ASSERT(Node_kind(a_import_node) == NT::Import, "");
-    // TODO:)
     for (Node child = Node_args_mod(a_import_node); !child.isnull();
          child = Node_next(Node(child))) {
-      normalized_args.push_back(kNodeInvalid);
+      normalized_args.push_back(child);
     }
   }
 
-  int NumArgs() const {
-    int n = 0;
-    for (Node child = Node_args_mod(import_node); !child.isnull();
-         child = Node_next(Node(child))) {
-      ++n;
-    }
-    return n;
-  }
+  bool HasBeenResolved() { return !Node_x_module(import_node).isnull(); }
+
+  size_t NumArgs() const { return normalized_args.size(); }
+  bool IsParameterized() const { return NumArgs() > 0; }
 
   void ResolveImport(Node imported_mod) {
     ASSERT(Node_kind(imported_mod) == NT::DefMod, "");
     Node_x_module(import_node) = imported_mod;
   }
+
+  bool TryNormalizeModArg() {
+    for (size_t i = 0; i < normalized_args.size(); ++i) {
+      Node n = normalized_args[i];
+      while (true) {
+        Node x = NormalizeModParamOneStep(n);
+        if (x.isnull()) {
+          return false;
+        } else if (x == n) {
+          break;
+        } else {
+          normalized_args[i] = x;
+          n = x;
+        }
+      }
+    }
+    return true;
+  }
 };
 
 struct ModInfo {
   ModId mid;
-  Node mod = kNodeInvalid;
-  SymTab* symtab = nullptr;
+  Node mod;
+  SymTab* symtab;
   std::vector<ImportInfo> imports;
+
+  ModInfo() : ModInfo(ModId(), kNodeInvalid, nullptr) {}
 
   ModInfo(ModId a_mid, Node a_mod, SymTab* a_symtab)
       : mid(a_mid), mod(a_mod), symtab(a_symtab) {
@@ -89,43 +133,6 @@ std::string_view ReadFile(const char* filename) {
   close(fd);
 
   return std::string_view(reinterpret_cast<char*>(data_bytes), sb.st_size);
-}
-
-Node ReadMod(const Path& path) {
-  // std::cout << "ReadMod [" << path << "] as [" << path.filename() << "]\n";
-
-  Path filename = path.filename();
-  Path with_suffix = path;
-  with_suffix.replace_extension(".cw");
-  auto data = ReadFile(with_suffix.c_str());
-  std::cout << "ReadMod [" << path << "] size=" << data.size() << "\n";
-
-  // TODO: fix magic number
-  Name name = NameNew(filename.c_str());
-  Lexer lexer(data, name);
-  return ParseDefMod(&lexer, name);
-}
-
-void Dump(Node node) {
-  std::vector<Node> stack;
-  int indent = -4;
-  auto pre_visitor = [&stack, &indent](Node node, Node parent) {
-    if (stack.empty() || stack.back() != parent) {
-      stack.push_back(parent);
-      indent += 4;
-    }
-
-    std::cout << std::setw(indent) << " " << EnumToString(Node_kind(node))
-              << "\n";
-  };
-  auto post_visitor = [&stack, &indent](Node node, Node parent) {
-    if (stack.back() != parent) {
-      stack.pop_back();
-      indent -= 4;
-    }
-  };
-  VisitNodesRecursivelyPreAndPost(node, pre_visitor, post_visitor,
-                                  kNodeInvalid);
 }
 
 Name GetQualifierIfPresent(Name name) {
@@ -218,6 +225,7 @@ void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {
   }
 }
 
+#if 0
 void Dump(const SymTab* symtab) {
   std::cout << "SYMTAB " << symtab << "\n";
   for (auto& kv : *symtab) {
@@ -226,50 +234,67 @@ void Dump(const SymTab* symtab) {
   }
   std::cout << "\n";
 }
+#endif
 
 class ModPoolState {
-  std::vector<SymTab*> symtabs;
-  std::map<ModId, ModInfo> all_mods;
+  std::vector<SymTab*> symtabs_;
+  std::map<ModId, ModInfo> all_mods_;
+  std::map<Path, Node> raw_generic_;
+  int gen_mod_uid = 0;
 
  public:
-  // TODO: add args argument support
-  ModInfo AddModInfoCommon(const Path& path, Node mod, SymTab* symtab) {
-    std::cout << "AddModInfoCommon [" << path << "] " << Node_name(mod) << "\n";
-    ASSERT(Node_kind(mod) == NT::DefMod, "");
-    ModId mid = ModId(path);
-    ASSERT(!all_mods.contains(mid), "");
-    ModInfo mod_info(mid, mod, symtab);
-    all_mods.insert({mid, mod_info});
-    symtabs.push_back(symtab);
-    Node_x_symtab(mod) = symtab;
-    return mod_info;
-  }
-
   ModInfo GetModInfo(const ModId& mid) const {
-    auto it = all_mods.find(mid);
+    auto it = all_mods_.find(mid);
     return it->second;
   }
 
   bool HasModInfo(const ModId& mid) const {
-    return all_mods.find(mid) != all_mods.end();
-    ;
+    return all_mods_.find(mid) != all_mods_.end();
   }
 
   std::vector<Node> AllMods() {
     std::vector<Node> out;
-    for (auto& kv : all_mods) {
+    for (auto& kv : all_mods_) {
       out.push_back(kv.second.mod);
     }
     return out;
   }
 
-  ModInfo AddModInfoSimple(const Path& path, SymTab* symtab) {
-    Node mod = ReadMod(path);
-
-    ResolveImportsForQualifers(mod);
+  ModInfo AddModInfo(const Path& path, const std::vector<Node>& args,
+                     Node mod) {
+    SymTab* symtab = new SymTab();
     ExtractSymTabPopulatedWithGlobals(mod, symtab);
-    // Dump(symtab);
-    return AddModInfoCommon(path, mod, symtab);
+    ResolveImportsForQualifers(mod);
+    std::cout << "AddModInfoCommon [" << path << "] " << Node_name(mod) << "\n";
+    ASSERT(Node_kind(mod) == NT::DefMod, "");
+    ModId mid = ModId(path, args);
+    ASSERT(!all_mods_.contains(mid), "");
+    ModInfo mod_info(mid, mod, symtab);
+    all_mods_.insert({mid, mod_info});
+    symtabs_.push_back(symtab);
+    Node_x_symtab(mod) = symtab;
+    return mod_info;
+  }
+
+  Node GetCloneOfGenericMod(const Path& path,
+                            std::function<Node(Path)> read_mod_fun) {
+    Node generic_mod;
+    if (raw_generic_.contains(path)) {
+      generic_mod = raw_generic_[path];
+    } else {
+      generic_mod = read_mod_fun(path);
+      raw_generic_[path] = generic_mod;
+    }
+    ++gen_mod_uid;
+    std::map<Node, Node> dummy1;
+    std::map<Node, Node> dummy2;
+
+    Node mod = NodeCloneRecursively(generic_mod, &dummy1, &dummy2);
+    std::string s = std::to_string(gen_mod_uid);
+    s += "/";
+    s += std::to_string(gen_mod_uid);
+    Node_name(mod) = NameNew(s);
+    return mod;
   }
 };
 
@@ -338,25 +363,83 @@ void ResolvePolyMods(const std::vector<Node>& mods_in_topo_order) {
   }
 }
 
+void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
+  ASSERT(Node_kind(mod) == NT::DefMod, "");
+  ASSERT(NodeNumSiblings(Node_params_mod(mod)) == args.size(), "");
+  std::map<Name, Node> arg_map;
+  int i = 0;
+  for (Node p = Node_params_mod(mod); !p.isnull(); p = Node_next(p), ++i) {
+    ASSERT(Node_kind(p) == NT::ModParam, "");
+    Node a = args[i];
+    switch (Node_kind(a)) {
+      case NT::DefFun:
+      case NT::DefRec:
+      case NT::DefType:
+      case NT::DefEnum: {
+        Node id = NodeNew(NT::Id);
+        NodeInitId(id, Node_name(a), kNameInvalid, kStrInvalid, Node_srcloc(p));
+        arg_map[Node_name(p)] = id;
+      }
+      case NT::ValFalse:
+      case NT::ValTrue:
+      case NT::ValVoid:
+      case NT::ValNum:
+      // fallthrough
+      default:
+        arg_map[Node_name(p)] = a;
+        break;
+    }
+  }
+  NodeFreeRecursively(Node_params_mod(mod));
+  Node_params_mod(mod) = kNodeInvalid;
+  std::map<Node, Node> dummy1;
+  std::map<Node, Node> dummy2;
+  auto replacer = [&dummy1, &dummy2, &arg_map](Node node, Node parent) {
+    if (Node_kind(node) == NT::MacroId) {
+      auto it = arg_map.find(Node_name(node));
+      ASSERT(it != arg_map.end(), "");
+      return NodeCloneRecursively(it->second, &dummy1, &dummy2);
+    } else {
+      return node;
+    }
+  };
+  MaybeReplaceAstRecursivelyPost(mod, replacer, kNodeInvalid);
+}
+
+}  // namespace
+
+Node ReadMod(const Path& path) {
+  // std::cout << "ReadMod [" << path << "] as [" << path.filename() << "]\n";
+  Path filename = path.filename();
+  Path with_suffix = path;
+  with_suffix.replace_extension(".cw");
+  auto data = ReadFile(with_suffix.c_str());
+  std::cout << "ReadMod [" << path << "] size=" << data.size() << "\n";
+
+  // TODO: fix magic number
+  Name name = NameNew(filename.c_str());
+  Lexer lexer(data, name);
+  return ParseDefMod(&lexer, name);
+}
+
 ModPool ReadModulesRecursively(Path root_path,
                                const std::vector<Path>& seed_modules,
-                               bool add_builtin) {
+                               bool add_builtin,
+                               std::function<Node(Path)> read_mod_fun) {
   ModPoolState state;
   ModPool out;
   std::vector<ModInfo> active;
   if (add_builtin) {
     Path path = ModUniquePathName(root_path, PATH_INVALID, "builtin");
-    SymTab* symtab = new SymTab();
-
-    ModInfo mi = state.AddModInfoSimple(path, symtab);
+    Node mod = read_mod_fun(path);
+    ModInfo mi = state.AddModInfo(path, {}, mod);
     active.push_back(mi);
-    out.builtin_symtab = symtab;
+    out.builtin_symtab = mi.symtab;
   }
   for (const auto& filename : seed_modules) {
     Path path = ModUniquePathName(root_path, PATH_INVALID, filename.c_str());
-
-    SymTab* symtab = new SymTab();
-    ModInfo mi = state.AddModInfoSimple(path, symtab);
+    Node mod = read_mod_fun(path);
+    ModInfo mi = state.AddModInfo(path, {}, mod);
     active.push_back(mi);
   }
 
@@ -370,41 +453,48 @@ ModPool ReadModulesRecursively(Path root_path,
     new_active.clear();
     for (ModInfo& mi_importer : active) {
       std::cout << "\nHandle Imports for Mod: " << mi_importer.mid.path << "\n";
-      for (auto& import : mi_importer.imports) {
-        Name name = Node_name(import.import_node);
-        std::cout << "Import [" << name << "] ["
-                  << Node_path(import.import_node) << "]\n";
-
-        if (!Node_x_module(import.import_node).isnull()) {
-          std::cout << "Import [" << name << "] not yet available\n";
+      size_t num_unresolved_imports = 0;
+      for (auto& import_info : mi_importer.imports) {
+        if (import_info.HasBeenResolved()) {
+          continue;
+        }
+        if (import_info.IsParameterized() &&
+            !import_info.TryNormalizeModArg()) {
+          ++num_unresolved_imports;
           continue;
         }
 
         std::string pathname;
-        if (Node_path(import.import_node) == kStrInvalid) {
-          pathname = NameData(Node_name(import.import_node));
+        if (Node_path(import_info.import_node) == kStrInvalid) {
+          pathname = NameData(Node_name(import_info.import_node));
         } else {
-          pathname = StrData(Node_path(import.import_node));
+          pathname = StrData(Node_path(import_info.import_node));
           if (pathname[0] == '"') {
             pathname = pathname.substr(1, pathname.size() - 2);
           }
         }
-        if (import.NumArgs() == 0) {
-          Path path =
-              ModUniquePathName(root_path, mi_importer.mid.path, pathname);
+        Path path =
+            ModUniquePathName(root_path, mi_importer.mid.path, pathname);
+        ModInfo mi;
+        if (import_info.NumArgs() == 0) {
           ModId mid(path);
-          if (!state.HasModInfo(mid)) {
-            SymTab* symtab = new SymTab();
-            ModInfo mi = state.AddModInfoSimple(path, symtab);
+          if (state.HasModInfo(mid)) {
+            mi = state.GetModInfo(mid);
+          } else {
+            Node mod = read_mod_fun(path);
+            mi = state.AddModInfo(path, {}, mod);
             new_active.push_back(mi);
           }
-          ModInfo mi = state.GetModInfo(mid);
-          std::cout << "Import [" << name << "] resolved to [" << mi.mid
-                    << "]\n";
-          import.ResolveImport(mi.mod);
         } else {
-          ASSERT(false, "NYI: gen modules");
+          Node mod = state.GetCloneOfGenericMod(path, read_mod_fun);
+          SpecializeGenericModule(mod, import_info.normalized_args);
+          mi = state.AddModInfo(path, import_info.normalized_args, mod);
         }
+
+        import_info.ResolveImport(mi.mod);
+      }
+      if (num_unresolved_imports > 0) {
+        new_active.push_back(mi_importer);
       }
     }
     active.swap(new_active);

@@ -60,8 +60,10 @@ struct ModPool {
   std::vector<Node> mods_in_topo_order;
 };
 
-ModPool ReadModulesRecursively(Path root_path,
-                               const std::vector<Path>& seed_modules,
-                               bool add_builtin);
+extern Node ReadMod(const Path& path);
+
+extern ModPool ReadModulesRecursively(
+    Path root_path, const std::vector<Path>& seed_modules, bool add_builtin,
+    std::function<Node(Path)> read_mod_fun = ReadMod);
 
 }  // namespace cwerg::fe
