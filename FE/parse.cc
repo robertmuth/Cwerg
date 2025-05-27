@@ -6,16 +6,6 @@
 
 namespace cwerg::fe {
 
-bool ends_with(std::string_view str, std::string_view suffix) {
-  return str.size() >= suffix.size() &&
-         str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
-}
-
-bool starts_with(std::string_view str, std::string_view prefix) {
-  return str.size() >= prefix.size() &&
-         str.compare(0, prefix.size(), prefix) == 0;
-}
-
 Str MoveComment(Node n) {
   Str comment = Node_comment(n);
   if (comment != kStrInvalid) {
@@ -309,7 +299,7 @@ Node MakeNodeMacroId(const TK& tk) {
 }
 
 Node PrattParseId(Lexer* lexer, const TK& tk, uint32_t precedence) {
-  return starts_with(tk.text, "$") ? MakeNodeMacroId(tk) : MakeNodeId(tk);
+  return tk.text.starts_with("$") ? MakeNodeMacroId(tk) : MakeNodeId(tk);
 }
 
 Node PrattParseNum(Lexer* lexer, const TK& tk, uint32_t precedence) {
@@ -450,7 +440,7 @@ std::string FullName(Node node) {
 bool IsMacroExpression(Node lhs) {
   if (lhs.kind() == NT::Id) {
     std::string_view name = NameData(Node_name(lhs));
-    return ends_with(name, "#") || name == "span_inc" || name == "span_dec" ||
+    return name.ends_with("#") || name == "span_inc" || name == "span_dec" ||
            name == "span_diff";
   }
   return false;
@@ -560,16 +550,16 @@ Node ParseTypeExpr(Lexer* lexer) {
     Node type = ParseTypeExpr(lexer);
     NodeInitTypeVec(out, dim, type, tk.comments, tk.srcloc);
     return out;
-  } else if (starts_with(tk.text, "span")) {
+  } else if (tk.text.starts_with("span")) {
     Node out = NodeNew(NT::TypeSpan);
     lexer->MatchOrDie(TK_KIND::PAREN_OPEN);
     Node type = ParseTypeExpr(lexer);
     lexer->MatchOrDie(TK_KIND::PAREN_CLOSED);
-    uint16_t bits = ends_with(tk.text, "!") ? Mask(BF::MUT) : 0;
+    uint16_t bits = tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
     NodeInitTypeSpan(out, type, bits, tk.comments, tk.srcloc);
     return out;
   } else if (tk.kind == TK_KIND::ID) {
-    return starts_with(tk.text, "$") ? MakeNodeMacroId(tk) : MakeNodeId(tk);
+    return tk.text.starts_with("$") ? MakeNodeMacroId(tk) : MakeNodeId(tk);
   } else if (tk.kind == TK_KIND::KW) {
     NT nt = KeywordToNT(tk.text);
     ASSERT(nt != NT::invalid, tk);
@@ -777,7 +767,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
     return ParseMacroInvocation(lexer, tk);
   } else if (tk.text == "for") {
     return ParseMacroInvocation(lexer, tk);
-  } else if (starts_with(tk.text, "trylet")) {
+  } else if (tk.text.starts_with("trylet")) {
     Node out = NodeNew(NT::MacroInvoke);
     //
     const TK name = lexer->MatchIdOrDie();
@@ -978,12 +968,12 @@ Node ParseStmtList(Lexer* lexer, uint32_t column) {
   Node out = kNodeInvalid;
   if (tk.kind == TK_KIND::ID) {
     lexer->Skip();
-    if (ends_with(tk.text, "#")) {
+    if (tk.text.ends_with("#")) {
       out = ParseMacroInvocation(lexer, tk);
 
     } else {
       // This happens when the macro body contains macro parameter
-      ASSERT(starts_with(tk.text, "$"), tk);
+      ASSERT(tk.text.starts_with("$"), tk);
       out = MakeNodeMacroId(tk);
     }
   } else {
@@ -1167,7 +1157,7 @@ Node ParseTopLevel(Lexer* lexer) {
       Node out = NodeNew(NT::DefMacro);
       const TK name = lexer->Next();
       if (name.kind == TK_KIND::ID) {
-        ASSERT(ends_with(name.text, "#") || name.text == "span_inc" ||
+        ASSERT(name.text.ends_with("#") || name.text == "span_inc" ||
                    name.text == "span_dec" || name.text == "span_diff",
 
                name);
