@@ -299,7 +299,7 @@ class ModPoolState {
     std::map<Node, Node> dummy2;
 
     Node mod = NodeCloneRecursively(generic_mod, &dummy1, &dummy2);
-    std::string s = std::to_string(gen_mod_uid);
+    std::string s = NameData(Node_name(generic_mod));
     s += "/";
     s += std::to_string(gen_mod_uid);
     Node_name(mod) = NameNew(s);
@@ -323,7 +323,10 @@ std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
          child = Node_next(Node(child))) {
       if (Node_kind(child) == NT::Import) {
         Node importee = Node_x_module(child);
-        ASSERT(Node_kind(importee) == NT::DefMod, "");
+        ASSERT(Node_kind(importee) == NT::DefMod,
+               "in " << Node_name(mod) << " :: " << Node_name(child)
+                     << " expected DefMod got "
+                     << EnumToString(Node_kind(importee)));
         deps_in[mod].insert(importee);
         deps_out[importee].insert(mod);
       }
@@ -389,6 +392,7 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
         NodeInitId(id, Node_name(a), kNameInvalid, kStrInvalid, Node_srcloc(p));
         Node_x_symbol(id) = a;
         arg_map[Node_name(p)] = id;
+        break;
       }
       case NT::ValFalse:
       case NT::ValTrue:
@@ -510,6 +514,7 @@ ModPool ReadModulesRecursively(Path root_path,
           Node mod = state.GetCloneOfGenericMod(path, read_mod_fun);
           SpecializeGenericModule(mod, import_info.normalized_args);
           mi = state.AddModInfo(path, import_info.normalized_args, mod);
+          new_active.push_back(mi);
         }
 
         import_info.ResolveImport(mi.mod);
