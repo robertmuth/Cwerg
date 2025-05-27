@@ -1204,7 +1204,7 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
     cwast.VisitAstRecursivelyWithParentPost(node, visitor, None)
 
 
-def DecorateASTWithTypes(mod_topo_order: list[cwast.DefMod],
+def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
                          tc: type_corpus.TypeCorpus):
     """This checks types and maps them to a canonical node
 
@@ -1334,7 +1334,7 @@ def main(argv: list[str]):
         symbolize.VerifySymbols(mod)
 
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
-    DecorateASTWithTypes(mp.mods_in_topo_order, tc)
+    AddTypesToAst(mp.mods_in_topo_order, tc)
     for mod in mp.mods_in_topo_order:
         VerifyTypesRecursively(mod, tc, VERIFIERS_WEAK)
 

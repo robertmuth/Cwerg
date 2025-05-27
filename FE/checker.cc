@@ -99,7 +99,7 @@ void ValidateAST(const std::vector<Node>& mods, bool symbolized) {
 
   for (Node mod : mods) {
     std::cout << "@@ VALIDATE: " << Node_name(mod) << "\n";
-    VisitNodesRecursivelyPre(mod, mark, kNodeInvalid);
+    VisitAstRecursivelyPre(mod, mark, kNodeInvalid);
   }
 
   int n = 0;
@@ -128,7 +128,7 @@ void ValidateAST(const std::vector<Node>& mods, bool symbolized) {
   }
   if (symbolized) {
     for (Node mod : mods) {
-      VisitNodesRecursivelyPre(mod, NodeValidateSymbols, kNodeInvalid);
+      VisitAstRecursivelyPre(mod, NodeValidateSymbols, kNodeInvalid);
     }
   }
 

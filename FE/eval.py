@@ -729,7 +729,7 @@ def main(argv: list[str]):
     for mod in mp.mods_in_topo_order:
         symbolize.VerifySymbols(mod)
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
-    typify.DecorateASTWithTypes(mp.mods_in_topo_order, tc)
+    typify.AddTypesToAst(mp.mods_in_topo_order, tc)
     DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
 
 

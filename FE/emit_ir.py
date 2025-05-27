@@ -1121,7 +1121,7 @@ def main() -> int:
     logger.info("Typify the nodes")
     ta: type_corpus.TargetArchConfig = _ARCH_MAP[args.arch]
     tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(ta)
-    typify.DecorateASTWithTypes(mod_topo_order, tc)
+    typify.AddTypesToAst(mod_topo_order, tc)
     for mod in mod_topo_order:
         typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
 

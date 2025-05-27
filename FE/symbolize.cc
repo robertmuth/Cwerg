@@ -117,7 +117,7 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
     AnnotateNodeSymbol(node, def_node);
     return false;
   };
-  VisitNodesRecursivelyPre(node, visitor, kNodeInvalid);
+  VisitAstRecursivelyPre(node, visitor, kNodeInvalid);
 }
 
 void ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
@@ -254,7 +254,7 @@ void FunSetTargetField(Node fun) {
     }
   };
   auto post_visitor = [&stack](Node node, Node parent) { stack.pop_back(); };
-  VisitNodesRecursivelyPreAndPost(fun, pre_visitor, post_visitor, kNodeInvalid);
+  VisitAstRecursivelyPreAndPost(fun, pre_visitor, post_visitor, kNodeInvalid);
 }
 
 void SetTargetFields(const std::vector<Node>& mods) {

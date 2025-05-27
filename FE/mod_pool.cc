@@ -190,7 +190,7 @@ void ResolveImportsForQualifers(Node mod) {
         break;
     }
   };
-  VisitNodesRecursivelyPost(mod, visitor, kNodeInvalid);
+  VisitAstRecursivelyPost(mod, visitor, kNodeInvalid);
 }
 
 void ExtractSymTabPopulatedWithGlobals(Node mod, SymTab* symtab) {

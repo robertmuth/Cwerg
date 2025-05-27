@@ -391,7 +391,7 @@ CanonType GetExprStmtType(Node root) {
     }
     return false;
   };
-  VisitNodesRecursivelyPre(root, visitor, kNodeInvalid);
+  VisitAstRecursivelyPre(root, visitor, kNodeInvalid);
   return result;
 }
 
@@ -707,10 +707,13 @@ void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
                                         << EnumToString(Node_kind(node)));
   }
 }
+void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
+  // VisitAstRecursivelyWithScopeTracking
+}
 
 }  //  namespace
 
-void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
+void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
 //  phase 1
 #if 1
   std::cout << "Phase 1\n";
@@ -848,6 +851,12 @@ void DecorateASTWithTypes(const std::vector<Node>& mods, TypeCorpus* tc) {
       }
     }
   }
+}
+
+void TypeCheckAST(const std::vector<Node>& mods, TypeCorpus* tc, bool strict) {
+  for (Node mod : mods) {
+    TypeCheckRecursively(mod, tc, strict);
+    }
 }
 
 }  // namespace cwerg::fe

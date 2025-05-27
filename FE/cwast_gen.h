@@ -1051,24 +1051,24 @@ BF BF_FromString(std::string_view name);
 
 NT KeywordToNT(std::string_view kw);
 
-inline void VisitNodesRecursivelyPost(Node node,
-                                      std::function<void(Node)> visitor) {
+inline void VisitAstRecursivelyPost(Node node,
+                                    std::function<void(Node)> visitor) {
   const auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     Node child = core.children_node[i];
     if (!NodeIsNode(child)) continue;
     do {
-      VisitNodesRecursivelyPost(child, visitor);
+      VisitAstRecursivelyPost(child, visitor);
       child = Node_next(child);
     } while (!child.isnull());
   }
   visitor(node);
 }
 
-inline void VisitNodesRecursivelyPre(Node node,
-                                     std::function<bool(Node, Node)> visitor,
-                                     Node parent) {
+inline void VisitAstRecursivelyPre(Node node,
+                                   std::function<bool(Node, Node)> visitor,
+                                   Node parent) {
   if (visitor(node, parent)) return;
 
   const auto& core = gNodeCore[node];
@@ -1077,15 +1077,15 @@ inline void VisitNodesRecursivelyPre(Node node,
     Node child = core.children_node[i];
     if (!NodeIsNode(child)) continue;
     do {
-      VisitNodesRecursivelyPre(child, visitor, node);
+      VisitAstRecursivelyPre(child, visitor, node);
       child = Node_next(child);
     } while (!child.isnull());
   }
 }
 
-inline void VisitNodesRecursivelyPost(Node node,
-                                      std::function<void(Node, Node)> visitor,
-                                      Node parent) {
+inline void VisitAstRecursivelyPost(Node node,
+                                    std::function<void(Node, Node)> visitor,
+                                    Node parent) {
   const auto& core = gNodeCore[node];
 
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
@@ -1096,14 +1096,14 @@ inline void VisitNodesRecursivelyPost(Node node,
       // allow the visitor to update the next field
       // (used by NodeFreeRecursively)
       Node next = Node_next(child);
-      VisitNodesRecursivelyPost(child, visitor, node);
+      VisitAstRecursivelyPost(child, visitor, node);
       child = next;
     } while (!child.isnull());
   }
   visitor(node, parent);
 }
 
-inline void VisitNodesRecursivelyPreAndPost(
+inline void VisitAstRecursivelyPreAndPost(
     Node node, std::function<void(Node, Node)> pre_visitor,
     std::function<void(Node, Node)> post_visitor, Node parent) {
   const auto& core = gNodeCore[node];
@@ -1113,7 +1113,7 @@ inline void VisitNodesRecursivelyPreAndPost(
     Node child = core.children_node[i];
     if (!NodeIsNode(child)) continue;
     do {
-      VisitNodesRecursivelyPreAndPost(child, pre_visitor, post_visitor, node);
+      VisitAstRecursivelyPreAndPost(child, pre_visitor, post_visitor, node);
       child = Node_next(child);
     } while (!child.isnull());
   }
@@ -1278,7 +1278,7 @@ inline void NodeFree(Node node) {
 }
 
 inline void NodeFreeRecursively(Node node) {
-  VisitNodesRecursivelyPost(
+  VisitAstRecursivelyPost(
       node, [](Node node, Node parent) { NodeFree(node); }, kNodeInvalid);
 }
 

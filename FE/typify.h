@@ -7,8 +7,8 @@
 #include "FE/type_corpus.h"
 
 namespace cwerg::fe {
+extern void TypeCheckAST(const std::vector<Node>& mods, TypeCorpus* tc, bool strict);
 
-void DecorateASTWithTypes(const std::vector<Node>& mods,
-                          TypeCorpus* type_corpus);
+extern void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* type_corpus);
 
 }  // namespace cwerg::fe
