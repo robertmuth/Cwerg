@@ -44,7 +44,15 @@ struct ModId {
     if (args.size() != other.args.size()) {
       return args.size() < other.args.size();
     }
-    // TODO: support generic modules
+    for (size_t i = 0; i < args.size(); ++i) {
+      Node a = args[i];
+      Node b = other.args[i];
+      if (a == b) continue;
+      NT ka = Node_kind(a);
+      NT kb = Node_kind(b);
+      if (ka != kb) return ka < kb;
+      ASSERT(false, "ModId operator< not fully implemented");
+    }
     return false;
   }
 };

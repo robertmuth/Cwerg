@@ -248,6 +248,15 @@ class ModPoolState {
     return it->second;
   }
 
+  ~ModPoolState() {
+    for (SymTab* symtab : symtabs_) {
+      delete symtab;
+    }
+    for (auto& kv : raw_generic_) {
+      NodeFreeRecursively(kv.second);
+    }
+  }
+
   bool HasModInfo(const ModId& mid) const {
     return all_mods_.find(mid) != all_mods_.end();
   }
@@ -268,7 +277,7 @@ class ModPoolState {
     std::cout << "AddModInfoCommon [" << path << "] " << Node_name(mod) << "\n";
     ASSERT(Node_kind(mod) == NT::DefMod, "");
     ModId mid = ModId(path, args);
-    ASSERT(!all_mods_.contains(mid), "");
+    ASSERT(!all_mods_.contains(mid), "duplicate module " << mid.path);
     ModInfo mod_info(mid, mod, symtab);
     all_mods_.insert({mid, mod_info});
     symtabs_.push_back(symtab);
@@ -378,6 +387,7 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
       case NT::DefEnum: {
         Node id = NodeNew(NT::Id);
         NodeInitId(id, Node_name(a), kNameInvalid, kStrInvalid, Node_srcloc(p));
+        Node_x_symbol(id) = a;
         arg_map[Node_name(p)] = id;
       }
       case NT::ValFalse:
@@ -390,7 +400,12 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
         break;
     }
   }
-  NodeFreeRecursively(Node_params_mod(mod));
+  Node child = Node_params_mod(mod);
+  while (!child.isnull()) {
+    Node next = Node_next(child);
+    NodeFreeRecursively(child);
+    child = next;
+  }
   Node_params_mod(mod) = kNodeInvalid;
   std::map<Node, Node> dummy1;
   std::map<Node, Node> dummy2;
@@ -398,12 +413,18 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
     if (Node_kind(node) == NT::MacroId) {
       auto it = arg_map.find(Node_name(node));
       ASSERT(it != arg_map.end(), "");
+      NodeFreeRecursively(node);
       return NodeCloneRecursively(it->second, &dummy1, &dummy2);
     } else {
       return node;
     }
   };
   MaybeReplaceAstRecursivelyPost(mod, replacer, kNodeInvalid);
+  for (auto& kv : arg_map) {
+    if (Node_kind(kv.second) == NT::Id) {
+      NodeFreeRecursively(kv.second);
+    }
+  }
 }
 
 }  // namespace
