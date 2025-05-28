@@ -72,6 +72,10 @@ int main(int argc, const char* argv[]) {
   ValidateAST(mp.mods_in_topo_order, CompileStage::AfterTyping);
   TypeCheckAst(mp.mods_in_topo_order, &tc, true);
 
-  tc.Dump();
+  // tc.Dump();
+
+  std::cout << "@@@ files=" << LexerRaw::stats.num_files
+            << " lines=" << LexerRaw::stats.num_lines << "\n";
+
   return 0;
 }

@@ -18,6 +18,11 @@ struct TK_RAW {
   std::string_view text = std::string_view();
 };
 
+struct LexerStats{
+  uint32_t num_files = 0;
+  uint32_t num_lines = 0;
+};
+
 class LexerRaw {
  private:
   SrcLoc srcloc_;
@@ -36,11 +41,20 @@ class LexerRaw {
   TK_RAW HandleMultiStr();
 
  public:
+  // TODO: access to this should synchonized so we can "lex" in parallel
+  static LexerStats stats;
+
   // input is assumed to have a trailing zero byte
   LexerRaw(std::string_view input, Name file_id)
       : input_(input), end_(input.size()) {
     srcloc_.file = file_id;
   }
+
+  ~LexerRaw() {
+    stats.num_files++;
+    stats.num_lines += line_no_;
+  }
+
 
   const SrcLoc& GetSrcLoc() { return srcloc_; }
 

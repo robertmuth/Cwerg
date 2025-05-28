@@ -62,6 +62,8 @@ typedef std::array<uint8_t, 129> TrieNode;
 
 }  // namespace
 
+LexerStats LexerRaw::stats;
+
 // Below is bunch of adhoc lexer helpers
 // These are quite horrible and the only excuse for them
 // is that they let us do without a depenency on a lexer library,

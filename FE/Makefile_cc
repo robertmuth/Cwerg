@@ -90,11 +90,17 @@ XXX5 = $(XXX4) $(XXX4)
 XXX6 = $(XXX5) $(XXX5)
 XXX7 = $(XXX6) $(XXX6)
 
-profile: $(LEXER_BENCH)
+profile_lexer: $(LEXER_BENCH)
 	perf record -g -F max $(LEXER_BENCH) -m parser $(XXX7) $(XXX5) $(XXX1)
 
-benchmark: $(LEXER_BENCH)
+benchmark_lexer: $(LEXER_BENCH)
 	/bin/time -p $(LEXER_BENCH) -m parser $(XXX7) $(XXX5) $(XXX1)
+
+profile_emit_ir: $(EMIT_IR)
+	perf record -g -F max $(EMIT_IR) $(filter-out $(wildcard */*gen.cw), $(LIB_SOURCES))
+
+benchmark_emit_ir: $(EMIT_IR)
+	/bin/time -p $(EMIT_IR) $(filter-out $(wildcard */*gen.cw), $(LIB_SOURCES))
 
 
 all:: $(LEXER_BENCH) $(PP) $(EMIT_IR)
