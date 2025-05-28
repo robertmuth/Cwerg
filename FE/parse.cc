@@ -324,8 +324,8 @@ Node ParseValPointList(Lexer* lexer, bool want_comma) {
     pos = val;
     val = PrattParseExpr(lexer);
   } else {
-    pos = NodeNew(NT::ValAuto);
-    NodeInitValAuto(pos, kStrInvalid, kSrcLocInvalid);
+    pos = NodeNew(NT::ValUndef);
+    NodeInitValUndef(pos, kStrInvalid, Node_srcloc(val));
   }
   Str comment = MoveComment(pos);
   if (comment == kStrInvalid) {

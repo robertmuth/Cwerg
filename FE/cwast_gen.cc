@@ -121,7 +121,7 @@ const NodeDesc GlobalNodeDescs[] = {
     { BIT_N(type_or_auto)| BIT_N(inits), 0, 0 }, // ValCompound
     { 0, 0, 0 }, // ValFalse
     { 0, BIT_S(number), 0 }, // ValNum
-    { BIT_N(value_or_undef)| BIT_N(point), 0, 0 }, // ValPoint
+    { BIT_N(value_or_undef)| BIT_N(point_or_undef), 0, 0 }, // ValPoint
     { BIT_N(pointer)| BIT_N(expr_size), 0, 0 }, // ValSpan
     { 0, BIT_S(string), 0 }, // ValString
     { 0, 0, 0 }, // ValTrue

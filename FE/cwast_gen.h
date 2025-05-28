@@ -338,7 +338,7 @@ enum class NFD_NODE_FIELD : uint8_t {
     params = 31,  // slot: 1
     params_macro = 32,  // slot: 1
     params_mod = 33,  // slot: 1
-    point = 34,  // slot: 1
+    point_or_undef = 34,  // slot: 1
     pointer = 35,  // slot: 0
     result = 36,  // slot: 2
     size = 37,  // slot: 0
@@ -608,7 +608,7 @@ inline Node& Node_cases(Node n) { return gNodeCore[n].children_node[0]; }
 
 // NFK.NODE
 inline Node& Node_field(Node n) { return gNodeCore[n].children_node[2]; }
-inline Node& Node_point(Node n) { return gNodeCore[n].children_node[1]; }
+inline Node& Node_point_or_undef(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_type(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_subtrahend(Node n) { return gNodeCore[n].children_node[0]; }
 inline Node& Node_type_or_auto(Node n) { return gNodeCore[n].children_node[1]; }
@@ -794,7 +794,7 @@ inline void NodeInitFunParam(Node node, Name name, Node type, uint16_t bits, Str
 }
 
 inline void NodeInitId(Node node, Name name, Name enum_name, Str doc, const SrcLoc& srcloc) {
-  NodeInit(node, NT::Id, name, enum_name, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::Id, name, enum_name, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void NodeInitImport(Node node, Name name, Str path, Node args_mod, Str doc, const SrcLoc& srcloc) {
@@ -925,8 +925,8 @@ inline void NodeInitValNum(Node node, Str number, Str doc, const SrcLoc& srcloc)
     NodeInit(node, NT::ValNum, number, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
-inline void NodeInitValPoint(Node node, Node value_or_undef, Node point, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValPoint, value_or_undef, point, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+inline void NodeInitValPoint(Node node, Node value_or_undef, Node point_or_undef, Str doc, const SrcLoc& srcloc) {
+    NodeInit(node, NT::ValPoint, value_or_undef, point_or_undef, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void NodeInitValSpan(Node node, Node pointer, Node expr_size, Str doc, const SrcLoc& srcloc) {
@@ -960,7 +960,7 @@ inline bool IsFieldNode(Node node, Node parent) {
 }
 
 inline bool IsPointNode(Node node, Node parent) {
-  return Node_point(parent) == node && Node_kind(parent) == NT::ValPoint;
+  return Node_point_or_undef(parent) == node && Node_kind(parent) == NT::ValPoint;
 }
 
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {

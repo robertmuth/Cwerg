@@ -180,8 +180,8 @@ void EmitValCompound(std::vector<PP::Token>* out, Node node) {
     first = false;
     ASSERT(Node_kind(child) == NT::ValPoint, "");
     out->push_back(PP_BEG_STD);
-    if (Node_kind(Node_point(child)) != NT::ValAuto) {
-      EmitExprOrType(out, Node_point(child));
+    if (Node_kind(Node_point_or_undef(child)) != NT::ValUndef) {
+      EmitExprOrType(out, Node_point_or_undef(child));
       out->push_back(PP::NoBreak(1));
       out->push_back(PP::Str("="));
       out->push_back(PP::Brk());

@@ -189,18 +189,13 @@ void ValidateAST(const std::vector<Node>& mods, CompileStage stage) {
     CanonType ct = Node_x_type(node);
     if (stage >= CompileStage::AfterTyping) {
       if (IsTyped(core.kind)) {
-        if (ct.isnull()) {
-          std::cout << "missing type for " << node << " " << Node_srcloc(node)
-                    << Node_name_or_invalid(node) << "\n";
-
-          // ASSERT(false,
-          //        "missing type for " << node << " " << Node_srcloc(node));
-        }
-      } else {
-        ASSERT(ct.isnull(), "unexpected type for " << node << " "
-                                                   << Node_srcloc(node) << " "
-                                                   << ct);
+        ASSERT(!ct.isnull(), "missing type for " << node << " "
+                                                 << Node_srcloc(node)
+                                                 << Node_name_or_invalid(node));
       }
+    } else {
+      ASSERT(ct.isnull(), "unexpected type for "
+                              << node << " " << Node_srcloc(node) << " " << ct);
     }
   }
 

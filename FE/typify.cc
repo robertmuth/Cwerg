@@ -225,9 +225,9 @@ CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
 Node MaybewAdvanceRecField(Node field, Node point) {
   ASSERT(Node_kind(field) == NT::RecField, "");
   ASSERT(Node_kind(point) == NT::ValPoint, "");
-  Node field_name = Node_point(point);
-  if (Node_kind(field_name) != NT::ValAuto) {
-    ASSERT(Node_kind(field_name) == NT::Id, "");
+  Node field_name = Node_point_or_undef(point);
+  if (Node_kind(field_name) != NT::ValUndef) {
+    ASSERT(Node_kind(field_name) == NT::Id, "unexpected index " << field_name);
     while (Node_name(field_name) != Node_name(field)) {
       field = Node_next(field);
       ASSERT(!field.isnull(), "");
@@ -262,11 +262,9 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
         TypifyExprOrType(val, tc, element_type, pm);
       }
       //
-      Node index = Node_point(point);
+      Node index = Node_point_or_undef(point);
       CanonType uint_type = tc->get_uint_canon_type();
-      if (Node_kind(index) == NT::ValAuto) {
-        AnnotateType(index, uint_type);
-      } else {
+      if (Node_kind(index) != NT::ValUndef) {
         TypifyExprOrType(index, tc, uint_type, pm);
       }
     }
@@ -283,10 +281,10 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
       ASSERT(Node_kind(field) == NT::RecField, "");
       CanonType ct_field = Node_x_type(field);
       AnnotateType(point, ct_field);
-      if (Node_kind(Node_point(point)) == NT::Id) {
-        AnnotateFieldWithTypeAndSymbol(Node_point(point), field);
+      if (Node_kind(Node_point_or_undef(point)) == NT::Id) {
+        AnnotateFieldWithTypeAndSymbol(Node_point_or_undef(point), field);
       } else {
-        ASSERT(Node_kind(Node_point(point)) == NT::ValAuto, "");
+        ASSERT(Node_kind(Node_point_or_undef(point)) == NT::ValUndef, "");
       }
       if (Node_kind(Node_value_or_undef(point)) != NT::ValUndef) {
         TypifyExprOrType(Node_value_or_undef(point), tc, ct_field, pm);
