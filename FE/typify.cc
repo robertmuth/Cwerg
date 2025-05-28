@@ -720,7 +720,8 @@ void CheckTypeSame(Node node, CanonType actual, CanonType expected) {
 void CheckDefFunTypeFun(Node node) {
   CanonType ct = Node_x_type(node);
   ASSERT(CanonType_kind(ct) == NT::TypeFun,
-         "expected fun type " << EnumToString(CanonType_kind(ct)));
+         "expected fun type " << EnumToString(CanonType_kind(ct)) << " for  "
+                              << node);
   const auto& children = CanonType_children(ct);
 
   ASSERT(children.size() == 1 + NodeNumSiblings(Node_args(node)), "");
@@ -731,9 +732,7 @@ void CheckDefFunTypeFun(Node node) {
   CheckTypeSame(node, Node_x_type(Node_result(node)), children.back());
 }
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
-  Node magic(NT::ValNum, 613);
-  std::cout << "@@ TYPECHECK: " << Node_name(mod) << " " << magic
-            << Node_x_type(magic) << "\n";
+  std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
 
   auto type_checker = [&tc, &strict](Node node, Node parent) {
     //
@@ -760,6 +759,124 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         CheckTypeSame(node, ct, tc->get_base_canon_type(bt));
         break;
       }
+      case NT::TypeOf:
+        // TODO
+        break;
+      case NT::TypeUnion:
+        ASSERT(CanonType_kind(ct) == NT::TypeUnion, "");
+        break;
+      case NT::TypeUnionDelta:
+        // TODO
+        break;
+      case NT::TypeSpan:
+        ASSERT(CanonType_kind(ct) == NT::TypeSpan, "");
+        break;
+      case NT::TypePtr:
+        ASSERT(CanonType_kind(ct) == NT::TypePtr, "");
+        break;
+      case NT::TypeFun:
+        ASSERT(CanonType_kind(ct) == NT::TypeFun, "");
+        break;
+      case NT::TypeVec:
+        ASSERT(CanonType_kind(ct) == NT::TypeVec, "");
+        break;
+      case NT::ValVoid:
+        CheckTypeSame(node, ct, tc->get_void_canon_type());
+        break;
+      case NT::ExprIs:
+      case NT::ValTrue:
+      case NT::ValFalse:
+        CheckTypeSame(node, ct, tc->get_bool_canon_type());
+        break;
+      case NT::ValString:
+        // TODO:
+        break;
+      case NT::ValPoint:
+        // TODO:
+        break;
+      case NT::ValSpan:
+        // TODO:
+        break;
+      case NT::ValCompound:
+        // TODO:
+        break;
+      case NT::EnumVal:
+        // TODO:
+        break;
+      //
+      case NT::ExprWrap:
+        CheckTypeSame(node, ct, Node_x_type(Node_type(node)));
+        // TODO: real checks are missing
+        break;
+      case NT::ExprUnwrap:
+        // TODO:
+        break;
+      case NT::ExprAs:
+        // TODO:
+        break;
+      case NT::ExprBitCast:
+        // TODO:
+        break;
+      case NT::ExprUnsafeCast:
+        // TODO:
+        break;
+      case NT::ExprWiden:
+        // TODO:
+        break;
+      case NT::ExprNarrow:
+        // TODO:
+        break;
+      case NT::ExprFront:
+        // TODO
+        break;
+      case NT::ExprPointer:
+        // TODO
+        break;
+      case NT::ExprStmt:
+        // TODO
+        break;
+      case NT::ExprTypeId:
+      case NT::ExprUnionTag:
+        CheckTypeSame(node, ct, tc->get_typeid_canon_type());
+        // TODO
+        break;
+      case NT::ExprUnionUntagged:
+        // TODO
+        break;
+      case NT::ExprOffsetof:
+      case NT::ExprSizeof:
+      case NT::ExprLen:
+        CheckTypeSame(node, ct, tc->get_uint_canon_type());
+        break;
+      case NT::ExprCall:
+        // TODO
+        break;
+      case NT::Expr1:
+        // TODO
+        break;
+      case NT::Expr2:
+        // TODO
+        break;
+      case NT::Expr3:
+        // TODO
+        break;
+      case NT::ExprField:
+        // TODO
+        break;
+      case NT::ExprIndex:
+        // TODO
+        break;
+      case NT::ExprAddrOf:
+        // TODO
+        break;
+
+      case NT::ExprDeref:
+        // TODO
+        break;
+      case NT::ExprParen:
+        // TODO
+        break;
+      //
       case NT::DefFun:
         CheckDefFunTypeFun(node);
         break;
@@ -774,12 +891,33 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
           CheckTypeSame(node, ct, Node_x_type(Node_type(node)));
         }
         break;
+      case NT::DefGlobal:
+      case NT::DefVar:
+        if (Node_kind(Node_initial_or_undef_or_auto(node)) != NT::ValUndef) {
+          CheckTypeSame(node, ct, Node_x_type(Node_type(node)));
+          // TODO: reall chedcke missing
+        }
+        break;
+      case NT::StmtReturn:
+        // TODO
+        break;
+      case NT::StmtAssignment:
+        // TODO
+        break;
+      case NT::StmtCompoundAssignment:
+        // TODO
+        break;
       //
+      case NT::ValAuto:
+      case NT::DefMod:
+      case NT::ValUndef:
       case NT::RecField:
-      case NT::TypePtr:
       case NT::FunParam:
       case NT::TypeAuto:
-
+      case NT::StmtExpr:
+      case NT::StmtTrap:
+      case NT::StmtBreak:
+      case NT::StmtContinue:
       case NT::StmtDefer:
       case NT::StmtBlock:
       case NT::StmtCond:
@@ -787,6 +925,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         break;
       case NT::StmtIf:
       case NT::Case:
+      case NT::StmtStaticAssert:
         CheckTypeSame(node, Node_x_type(Node_cond(node)),
                       tc->get_bool_canon_type());
         break;
@@ -796,12 +935,8 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
                                  << node << " expected base type "
                                  << EnumToString(CanonType_kind(ct)));
         break;
-      case NT::ValTrue:
-      case NT::ValFalse:
-        CheckTypeSame(node, ct, tc->get_bool_canon_type());
-        break;
       default:
-        // ASSERT(false, "NYI " << EnumToString(Node_kind(node)));
+        ASSERT(false, "NYI " << EnumToString(Node_kind(node)));
         break;
     };
   };

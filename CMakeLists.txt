@@ -412,8 +412,6 @@ add_executable(pp.exe
         $<TARGET_OBJECTS:FE_CORE_LIB>
         Util/pretty.cc
         Util/pretty.h
-        FE/checker.cc
-        FE/checker.h
         FE/parse.cc
         FE/parse.h
         FE/pp.h
