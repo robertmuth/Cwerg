@@ -660,7 +660,7 @@ def _CheckTypeCompatibleForEq(node, actual: cwast.CanonType, expected: cwast.Can
         expected = expected.original_type
     if actual.original_type is not None:
         actual = actual.original_type
-    if not type_corpus.is_compatible_for_eq(actual, expected):
+    if not type_corpus.IsCompatibleForEq(actual, expected):
         cwast.CompilerError(node.x_srcloc,
                             f"{node}: incompatible actual: {actual} expected: {expected}")
 
@@ -1057,7 +1057,7 @@ def _CheckDefVarDefGlobalStrict(node, _):
 def _CheckExprAs(node: cwast.ExprAs, _):
     ct_src = node.expr.x_type
     ct_dst = node.type.x_type
-    if not type_corpus.is_compatible_for_as(ct_src, ct_dst):
+    if not type_corpus.IsCompatibleForAs(ct_src, ct_dst):
         cwast.CompilerError(
             node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
 

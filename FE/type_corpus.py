@@ -52,13 +52,13 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
 
 
 # maybe add records if all their fields are comparable?
-def is_comparable(ct: cwast.CanonType) -> bool:
+def IsComparable(ct: cwast.CanonType) -> bool:
     return (ct.is_base_or_enum_type() or ct.is_pointer() or
-            ct.is_wrapped() and is_comparable(ct.underlying_type()))
+            ct.is_wrapped() and IsComparable(ct.underlying_type()))
 
 
-def is_compatible_for_eq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
-    if is_comparable(actual):
+def IsCompatibleForEq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
+    if IsComparable(actual):
         if actual == expected:
             return True
 
@@ -66,20 +66,13 @@ def is_compatible_for_eq(actual: cwast.CanonType, expected: cwast.CanonType) -> 
             return actual in expected.union_member_types()
 
     if actual.is_tagged_union():
-        return is_comparable(expected) and expected in actual.union_member_types()
+        return IsComparable(expected) and expected in actual.union_member_types()
 
     return False
 
 
-def is_compatible_for_as(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
-
-    if not ct_src.is_int() and not ct_src.is_real() and not ct_src.is_bool():
-        return False
-
-    if not ct_dst.is_int() and not ct_dst.is_real() and not ct_dst.is_bool():
-        return False
-
-    return True
+def IsCompatibleForAs(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    return ct_src.is_number() and ct_dst.is_number()
 
 
 def is_compatible_for_bitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:

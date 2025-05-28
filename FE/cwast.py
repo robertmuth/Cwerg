@@ -90,10 +90,11 @@ class BASE_TYPE_KIND(enum.Enum):
     R32 = 30  # real
     R64 = 31  # real
 
-    VOID = 40
-    NORET = 41
-    BOOL = 42
-    TYPEID = 43
+    BOOL = 40
+    TYPEID = 50
+
+    VOID = 60
+    NORET = 61
 
     def IsUint(self) -> bool:
         return BASE_TYPE_KIND.UINT.value <= self.value <= BASE_TYPE_KIND.U64.value
@@ -108,7 +109,7 @@ class BASE_TYPE_KIND(enum.Enum):
         return self in (BASE_TYPE_KIND.R32, BASE_TYPE_KIND.R64)
 
     def IsNumber(self) -> bool:
-        return BASE_TYPE_KIND.SINT.value <= self.value <= BASE_TYPE_KIND.R64.value
+        return BASE_TYPE_KIND.SINT.value <= self.value <= BASE_TYPE_KIND.BOOL.value
 
     @classmethod
     def MakeUint(cls, size: int) -> "BASE_TYPE_KIND":
@@ -1680,7 +1681,7 @@ class ValPoint:
     FLAGS: ClassVar = NF_EXPR
     #
     value_or_undef: NODES_EXPR_T
-    point_or_undef: NODES_EXPR_OR_UNDEF_T # compile time constant
+    point_or_undef: NODES_EXPR_OR_UNDEF_T  # compile time constant
     #
     doc: str = ""
     x_srcloc: SrcLoc = INVALID_SRCLOC
@@ -3047,8 +3048,6 @@ def VisitAstRecursivelyPreAndPost(node, visitor_pre, visitor_post):
                     child, visitor_pre, visitor_post)
 
     visitor_post(node)
-
-
 
 
 def VisitAstRecursivelyWithParent(node, visitor, parent):
