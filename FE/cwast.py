@@ -667,8 +667,8 @@ ALL_FIELDS = [
 
     #
     NfdNode("field", "record field", "Id"),
-    NfdNode("point",
-            "compound initializer index/field or auto (meaning next pos)", NODES_EXPR_OR_AUTO_T),
+    NfdNode("point_or_undef",
+            "compound initializer index/field or auto (meaning next pos)", NODES_EXPR_OR_UNDEF_T),
     NfdNode("type", "type expression", NODES_TYPES_T),
     NfdNode("subtrahend", "type expression", NODES_TYPES_T),
     NfdNode("type_or_auto", "type expression", NODES_TYPES_OR_AUTO_T),
@@ -706,7 +706,7 @@ NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 TYPE_FIELDS = set(["type", "types", "result", "type_or_auto", "subtrahend"])
 
 
-FIELD_NAME_FIELDS = set(["point", "field"])
+FIELD_NAME_FIELDS = set(["point_or_undef", "field"])
 
 ALL_FIELDS_MAP: dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
 
@@ -719,7 +719,7 @@ _OPTIONAL_FIELDS = {
     "path": "",
     "message": "",
     "initial_or_undef_or_auto": "@ValAuto",
-    "point": "@ValAuto",
+    "point_or_undef": "@ValUndef",
     "inits": "@EmptyList",
     "expr_bound_or_undef": "@ValUndef",
     "args_mod": "@EmptyList",
@@ -1680,7 +1680,7 @@ class ValPoint:
     FLAGS: ClassVar = NF_EXPR
     #
     value_or_undef: NODES_EXPR_T
-    point: NODES_EXPR_OR_AUTO_T  # compile time constant
+    point_or_undef: NODES_EXPR_OR_UNDEF_T # compile time constant
     #
     doc: str = ""
     x_srcloc: SrcLoc = INVALID_SRCLOC
@@ -1688,7 +1688,7 @@ class ValPoint:
     x_value: Optional[Any] = None
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} [{self.point}] = {self.value_or_undef}"
+        return f"{NODE_NAME(self)} [{self.point_or_undef}] = {self.value_or_undef}"
 
 
 @NodeCommon

@@ -93,10 +93,10 @@ def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.Va
 def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc) -> cwast.ValCompound:
     tag_field, union_field = sum_rec.ast_node.fields
     return cwast.ValCompound(_MakeIdForDefRec(sum_rec, srcloc), [
-        cwast.ValPoint(tag_value, cwast.ValAuto(x_srcloc=srcloc),
+        cwast.ValPoint(tag_value, cwast.ValUndef(x_srcloc=srcloc),
                        x_type=tag_field.x_type, x_srcloc=srcloc,
                        x_value=tag_value.x_value),
-        cwast.ValPoint(union_value, cwast.ValAuto(x_srcloc=srcloc),
+        cwast.ValPoint(union_value, cwast.ValUndef(x_srcloc=srcloc),
                        x_type=union_field.x_type,
                        x_srcloc=srcloc, x_value=union_value.x_value)
 

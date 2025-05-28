@@ -366,8 +366,8 @@ def _EmitValCompound(out, node: cwast.ValCompound):
         out += [PP_BEG_STD]
         _MaybeEmitAnnotations(out, e)
         assert isinstance(e, cwast.ValPoint)
-        if not isinstance(e.point, cwast.ValAuto):
-            _EmitExprOrType(out, e.point)
+        if not isinstance(e.point_or_undef, cwast.ValUndef):
+            _EmitExprOrType(out, e.point_or_undef)
             out += [PP.NoBreak(1), PP.Str("="), PP.Brk()]
         _EmitExprOrType(out, e.value_or_undef)
         out += [PP.End()]

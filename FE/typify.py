@@ -363,11 +363,9 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
             if not isinstance(val, cwast.ValUndef):
                 _TypifyExprOrType(val, tc, element_type, pm)
             #
-            index = point.point
+            index = point.point_or_undef
             uint_type = tc.get_uint_canon_type()
-            if isinstance(index, cwast.ValAuto):
-                AnnotateNodeType(index, uint_type)
-            else:
+            if not isinstance(index, cwast.ValUndef):
                 _TypifyExprOrType(index, tc, uint_type, pm)
     else:
         assert ct.is_rec(), f"expected rec got {ct} in {node.x_srcloc}"
@@ -375,8 +373,8 @@ def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
             if point:
                 field_ct = field.x_type
                 AnnotateNodeType(point, field_ct)
-                if isinstance(point.point, cwast.Id):
-                    AnnotateFieldWithTypeAndSymbol(point.point, field)
+                if isinstance(point.point_or_undef, cwast.Id):
+                    AnnotateFieldWithTypeAndSymbol(point.point_or_undef, field)
                 if not isinstance(point.value_or_undef, cwast.ValUndef):
                     _TypifyExprOrType(
                         point.value_or_undef, tc, field_ct, pm)
@@ -734,8 +732,8 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
 def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
     for point in node.inits:
         assert isinstance(point, cwast.ValPoint), f"{point}"
-        if not isinstance(point.point, cwast.ValAuto):
-            assert point.point.x_type.is_int()
+        if not isinstance(point.point_or_undef, cwast.ValUndef):
+            assert point.point_or_undef.x_type.is_int()
         # TODO: this should be  _CheckTypeCompatibleForAssignment
         _CheckTypeSame(point,  point.x_type, ct)
 

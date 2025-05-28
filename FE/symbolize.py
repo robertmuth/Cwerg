@@ -90,7 +90,7 @@ def _IsFieldNode(node, parent) -> bool:
 
 
 def _IsPointNode(node, parent) -> bool:
-    return isinstance(parent, cwast.ValPoint) and parent.point is node
+    return isinstance(parent, cwast.ValPoint) and parent.point_or_undef is node
 
 
 def _ResolveSymbolInsideFunction(node: cwast.Id, symtab: SymTab, builtin_syms: SymTab, scopes) -> Any:
@@ -357,13 +357,13 @@ def IterateValRec(points: list[cwast.ValPoint], def_rec: cwast.CanonType):
     for f in def_rec.ast_node.fields:
         if next_point < len(points):
             p = points[next_point]
-            if isinstance(p.point, cwast.ValAuto):
+            if isinstance(p.point_or_undef, cwast.ValUndef):
                 yield f, p
                 next_point += 1
                 continue
 
-            assert isinstance(p.point, cwast.Id)
-            if p.point.GetBaseNameStrict() == f.name:
+            assert isinstance(p.point_or_undef, cwast.Id)
+            if p.point_or_undef.GetBaseNameStrict() == f.name:
                 yield f, p
                 next_point += 1
                 continue
@@ -381,11 +381,11 @@ def IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
     """Pairs given ValPoints from a ValCompound repesenting a Vec with their indices"""
     curr_index = 0
     for init in points:
-        if isinstance(init.point, cwast.ValAuto):
+        if isinstance(init.point_or_undef, cwast.ValUndef):
             yield curr_index, init
             curr_index += 1
             continue
-        index = init.point.x_value
+        index = init.point_or_undef.x_value
         assert isinstance(index, int)
         while curr_index < index:
             yield curr_index, None

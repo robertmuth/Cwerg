@@ -164,7 +164,7 @@ def _RenderRecursivelyToIR(out, node):
         _RenderMacroInvoke(out, node)
         return
 
-    if isinstance(node, cwast.ValPoint) and isinstance(node.point, cwast.ValAuto) and not node.doc:
+    if isinstance(node, cwast.ValPoint) and isinstance(node.point_or_undef, cwast.ValUndef) and not node.doc:
         _RenderRecursivelyToIR(out, node.value_or_undef)
         return
 

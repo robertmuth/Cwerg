@@ -86,7 +86,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
         is_vec = node.x_type.is_vec()
         for field in node.inits:
             if is_vec:
-                if not isinstance(field.point, (cwast.ValAuto, cwast.ValNum)):
+                if not isinstance(field.point_or_undef, (cwast.ValUndef, cwast.ValNum)):
                     return CONSTANT_KIND.NOT
             o = ValueConstKind(field.value_or_undef)
             if o is CONSTANT_KIND.NOT:
@@ -292,8 +292,8 @@ def _EvalValCompound(ct: cwast.CanonType, inits: list, srcloc) -> Optional[Any]:
         # This could be relaxed if we allow None values in "out"
         for c in inits:
             assert isinstance(c, cwast.ValPoint)
-            index = c.point
-            if not isinstance(index, cwast.ValAuto):
+            index = c.point_or_undef
+            if not isinstance(index, cwast.ValUndef):
                 if index.x_value is None:
                     has_unknown = True
                     break

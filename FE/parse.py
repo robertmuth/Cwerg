@@ -241,7 +241,7 @@ def _ParseValPoint(inp: lexer.Lexer) -> Any:
         index = val
         val = _ParseExpr(inp)
     else:
-        index = cwast.ValAuto(x_srcloc=tk.srcloc)
+        index = cwast.ValUndef(x_srcloc=tk.srcloc)
     return cwast.ValPoint(val, index, **_ExtractAnnotations(tk))
 
 

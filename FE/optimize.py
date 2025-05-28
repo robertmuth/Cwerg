@@ -33,7 +33,7 @@ def MayHaveSideEffects(n: Any):
         return MayHaveSideEffects(n.expr1) or MayHaveSideEffects(n.expr2) or MayHaveSideEffects(n.expr_bound_or_undef)
     elif isinstance(n, (cwast.ValCompound)):
         for item in n.inits:
-            if MayHaveSideEffects(item.point) or MayHaveSideEffects(item.value_or_undef):
+            if MayHaveSideEffects(item.point_or_undef) or MayHaveSideEffects(item.value_or_undef):
                 return True
         return False
     else:
