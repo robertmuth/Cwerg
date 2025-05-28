@@ -98,7 +98,8 @@ class TypeContext {
 void UpdateType(Node node, CanonType ct) { Node_x_type(node) = ct; }
 
 CanonType AnnotateType(Node node, CanonType ct) {
-  ASSERT(Node_x_type(node).isnull(), "");
+  ASSERT(Node_x_type(node).isnull(),
+         "attempt to overwrite type " << Node_srcloc(node) << " " << node);
   ASSERT(!ct.isnull(), "invalid type at " << Node_srcloc(node) << " for "
                                           << EnumToString(Node_kind(node)));
   UpdateType(node, ct);
@@ -359,6 +360,7 @@ CanonType TypifyExprCall(Node node, TypeCorpus* tc, CanonType ct_target,
     Node called_fun = pm->Resolve(callee, ct);
     UpdateNodeSymbolForPolyCall(callee, called_fun);
     ct_fun = Node_x_type(called_fun);
+    AnnotateType(callee, ct_fun);
   } else {
     ct_fun = TypifyExprOrType(callee, tc, kCanonTypeInvalid, pm);
   }
@@ -440,10 +442,10 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                                   : CanonType_base_type_kind(ct_target);
       BASE_TYPE_KIND actual =
           NumCleanupAndTypeExtraction(StrData(Node_number(node)), target).kind;
-      if (actual == BASE_TYPE_KIND::INVALID)
-        ASSERT(actual != BASE_TYPE_KIND::INVALID,
-               "cannot parse " << Node_number(node) << " at "
-                               << Node_srcloc(node));
+      // if (actual == BASE_TYPE_KIND::INVALID)
+      ASSERT(
+          actual != BASE_TYPE_KIND::INVALID,
+          "cannot parse " << Node_number(node) << " at " << Node_srcloc(node));
       return AnnotateType(node, tc->get_base_canon_type(actual));
     }
     case NT::ValCompound:
@@ -460,6 +462,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node,
                           tc->get_base_canon_type(Node_base_type_kind(node)));
     case NT::TypeVec:
+      TypifyExprOrType(Node_size(node), tc, tc->get_uint_canon_type(), pm);
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       return AnnotateType(
           node, tc->InsertVecType(ComputeArrayLength(Node_size(node)), ct));
@@ -524,7 +527,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::Expr3:
       TypifyExprOrType(Node_cond(node), tc, tc->get_bool_canon_type(), pm);
       ct = TypifyExprOrType(Node_expr_t(node), tc, ct_target, pm);
-      TypifyExprOrType(Node_expr_t(node), tc, ct, pm);
+      TypifyExprOrType(Node_expr_f(node), tc, ct, pm);
       return AnnotateType(node, ct);
 
     case NT::ExprAddrOf:
@@ -707,8 +710,104 @@ void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
                                         << EnumToString(Node_kind(node)));
   }
 }
+
+void CheckTypeSame(Node node, CanonType actual, CanonType expected) {
+  if (actual != expected) {
+    CompilerError(Node_srcloc(node))
+        << "type mismatch for " << EnumToString(Node_kind(node))
+        << " actual: " << CanonType_name(actual)
+        << " expected: " << CanonType_name(expected);
+  }
+}
+void CheckDefFunTypeFun(Node node) {
+  CanonType ct = Node_x_type(node);
+  ASSERT(CanonType_kind(ct) == NT::TypeFun,
+         "expected fun type " << EnumToString(CanonType_kind(ct)));
+  const auto& children = CanonType_children(ct);
+
+  ASSERT(children.size() == 1 + NodeNumSiblings(Node_args(node)), "");
+  int i = 0;
+  for (Node arg = Node_args(node); !arg.isnull(); arg = Node_next(arg), ++i) {
+    CheckTypeSame(node, Node_x_type(arg), children[i]);
+  }
+  CheckTypeSame(node, Node_x_type(Node_result(node)), children.back());
+}
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
-  // VisitAstRecursivelyWithScopeTracking
+  Node magic(NT::ValNum, 613);
+  std::cout << "@@ TYPECHECK: " << Node_name(mod) << " " << magic
+            << Node_x_type(magic) << "\n";
+
+  auto type_checker = [&tc, &strict](Node node, Node parent) {
+    //
+    CanonType ct = Node_x_type(node);
+
+    switch (Node_kind(node)) {
+      case NT::Id: {
+        Node def_node = Node_x_symbol(node);
+        switch (Node_kind(def_node)) {
+          case NT::DefVar:
+          case NT::DefGlobal:
+            CheckTypeSame(node, ct, Node_x_type(Node_type_or_auto(def_node)));
+            break;
+          case NT::FunParam:
+            CheckTypeSame(node, ct, Node_x_type(Node_type(def_node)));
+          default:
+            break;
+        }
+        break;
+      }
+      //
+      case NT::TypeBase: {
+        BASE_TYPE_KIND bt = Node_base_type_kind(node);
+        CheckTypeSame(node, ct, tc->get_base_canon_type(bt));
+        break;
+      }
+      case NT::DefFun:
+        CheckDefFunTypeFun(node);
+        break;
+      case NT::DefRec:
+      case NT::DefEnum:
+        ASSERT(node == CanonType_ast_node(ct), "");
+        break;
+      case NT::DefType:
+        if (Node_has_flag(node, BF::WRAPPED)) {
+          // TODO:
+        } else {
+          CheckTypeSame(node, ct, Node_x_type(Node_type(node)));
+        }
+        break;
+      //
+      case NT::RecField:
+      case NT::TypePtr:
+      case NT::FunParam:
+      case NT::TypeAuto:
+
+      case NT::StmtDefer:
+      case NT::StmtBlock:
+      case NT::StmtCond:
+        // no type checking
+        break;
+      case NT::StmtIf:
+      case NT::Case:
+        CheckTypeSame(node, Node_x_type(Node_cond(node)),
+                      tc->get_bool_canon_type());
+        break;
+      case NT::ValNum:
+        ASSERT(CanonType_kind(ct) == NT::TypeBase,
+               Node_srcloc(node) << " " << StrData(Node_number(node)) << " "
+                                 << node << " expected base type "
+                                 << EnumToString(CanonType_kind(ct)));
+        break;
+      case NT::ValTrue:
+      case NT::ValFalse:
+        CheckTypeSame(node, ct, tc->get_bool_canon_type());
+        break;
+      default:
+        // ASSERT(false, "NYI " << EnumToString(Node_kind(node)));
+        break;
+    };
+  };
+  VisitAstRecursivelyPost(mod, type_checker, kNodeInvalid);
 }
 
 }  //  namespace
@@ -792,6 +891,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
           CanonType ct = TypifyExprOrType(Node_type(child), tc,
                                           kCanonTypeInvalid, &poly_map);
           if (Node_has_flag(child, BF::WRAPPED)) {
+            // was annotated in phase1
             tc->InsertWrappedTypeFinalize(Node_x_type(child), ct);
           } else {
             AnnotateType(child, ct);
@@ -816,6 +916,11 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
         case NT::DefType:
         case NT::Import:
           continue;
+        case NT::DefGlobal:
+          if (Node_x_type(node).isnull()) {
+            TypifyDefGlobalOrDefVar(node, tc, &poly_map);
+          }
+          break;
         case NT::StmtStaticAssert:
           TypifyExprOrType(Node_cond(node), tc, tc->get_bool_canon_type(),
                            &poly_map);
@@ -830,6 +935,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
 
           break;
         default:
+          ASSERT(false, "unexpected top level node " << node);
           break;
       }
     }
@@ -853,10 +959,10 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
   }
 }
 
-void TypeCheckAST(const std::vector<Node>& mods, TypeCorpus* tc, bool strict) {
+void TypeCheckAst(const std::vector<Node>& mods, TypeCorpus* tc, bool strict) {
   for (Node mod : mods) {
     TypeCheckRecursively(mod, tc, strict);
-    }
+  }
 }
 
 }  // namespace cwerg::fe
