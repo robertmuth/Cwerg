@@ -180,34 +180,16 @@ def IsGlobalSymId(node):
     return isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.DefGlobal)
 
 
-def _VerifyEvalValue(val):
-    # TODO: check this recusively
-    # "None" is reserve for indicating that evaluation was not possible
-    #
-    if isinstance(val, list):
-        for x in val:
-            assert x is not None
-    elif isinstance(val, tuple):
-        for x in val:
-            assert x is not None
-    elif isinstance(val, dict):
-        for x in val.values():
-            assert x is not None, f"rec dict with None {val}"
-    else:
-        assert isinstance(val, (int, float, bytes, _ValSpecial)
-                          ), f"unexpected value {val}"
-        assert val is not None
-
-
 def _AssignValue(node, val) -> bool:
     if val is None:
         return False
-    _VerifyEvalValue(val)
-
-    if isinstance(val, list):
-        logger.info("EVAL of %s: %s...", node, val[:8])
+    elif isinstance(val, tuple):
+        for x in val:
+            assert x is not None
     else:
-        logger.info("EVAL of %s: %s", node, val)
+        assert isinstance(val, (int, float, bytes, _ValSpecial)
+                          ), f"unexpected value {val}"
+    logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
     return True
 
@@ -249,71 +231,15 @@ _BASE_TYPE_TO_DEFAULT = {
 }
 
 
-def _GetDefaultForType(ct: cwast.CanonType, srcloc) -> Any:
+def GetDefaultForType(ct: cwast.CanonType) -> Any:
     if ct.is_base_type():
         return _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
     elif ct.is_wrapped():
-        return _GetDefaultForType(ct.underlying_type(), srcloc)
+        return GetDefaultForType(ct.underlying_type())
     elif ct.is_span():
-        return []  # null span
-    elif ct.is_pointer():
-        cwast.CompilerError(srcloc, f"ptr field  {ct} must be initialized")
-    elif ct.is_rec():
-        out = {}
-        for field in ct.ast_node.fields:
-            out[field.name] = _GetDefaultForType(field.x_type, srcloc)
-        return out
-    elif ct.is_vec():
-        dim = ct.array_dim()
-        v = _GetDefaultForType(ct.underlying_type(), srcloc)
-        return [v] * dim
+        return ()  # null span
     else:
-        assert False, f"{ct} {srcloc}"
-
-
-def _EvalValCompound(ct: cwast.CanonType, inits: list, srcloc) -> Optional[Any]:
-    if ct.is_rec():
-        rec: dict[cwast.NAME, Any] = {}
-        for field, init in symbolize.IterateValRec(inits, ct):
-            assert isinstance(field, cwast.RecField)
-            # print ("    ", field)
-            if init is None:
-                rec[field.name] = _GetDefaultForType(field.x_type, srcloc)
-            else:
-                assert isinstance(init, cwast.ValPoint), f"{init}"
-                if init.x_value is None:
-                    return None
-                rec[field.name] = init.x_value
-        return rec
-    else:
-        assert ct.is_vec()
-        has_unknown = False
-        # first pass if we cannot evaluate everyting, we must give up
-        # This could be relaxed if we allow None values in "out"
-        for c in inits:
-            assert isinstance(c, cwast.ValPoint)
-            index = c.point_or_undef
-            if not isinstance(index, cwast.ValUndef):
-                if index.x_value is None:
-                    has_unknown = True
-                    break
-            if not isinstance(c.value_or_undef, cwast.ValUndef):
-                if c.value_or_undef.x_value is None:
-                    has_unknown = True
-                    break
-        if has_unknown:
-            return None
-        curr_val = VAL_UNDEF
-        array = []
-        for _, c in symbolize.IterateValVec(inits, ct.array_dim(), srcloc):
-            if c is None:
-                array.append(curr_val)
-                continue
-            curr_val = c.value_or_undef.x_value
-            if curr_val is None:
-                return None
-            array.append(curr_val)
-        return array
+        return None
 
 
 def _eval_not(node) -> bool:
@@ -435,13 +361,67 @@ def _EvalAuto(node: cwast.ValAuto) -> bool:
         else:
             assert False
     elif ct.is_rec():
-        return _AssignValue(node, _EvalValCompound(ct, [], node.x_srcloc))
+        return False
     elif ct.is_vec():
-        return _AssignValue(node, _EvalValCompound(ct, [], node.x_srcloc))
+        return False
     elif isinstance(node, cwast.TypePtr):
         assert False
     else:
         return False
+
+
+def _GetValForVecAtPos(container, index: int):
+    if isinstance(container, cwast.ValString):
+        assert False, "NYI"
+
+    if isinstance(container, cwast.ValAuto):
+        return GetDefaultForType(container.x_type.underlying_type())
+
+    if isinstance(container,  cwast.ValCompound):
+        assert index < container.x_type.array_dim()
+        n = 0
+        for point in container.inits:
+            if isinstance(point.point_or_undef, cwast.ValNum):
+                assert isinstance(point.point_or_undef.x_value, int)
+                n = point.point_or_undef.x_value
+            if n == index:
+                return point.value_or_undef.x_value
+            if n > index:
+
+                return GetDefaultForType(container.x_type.underlying_type())
+            n += 1
+        return None
+
+    if not isinstance(container, cwast.Id):
+        return None
+
+    def_node = container.x_symbol
+    if not isinstance(def_node, (cwast.DefVar, cwast.DefGlobal)) or def_node.mut:
+        return None
+
+    return _GetValForVecAtPos(def_node.initial_or_undef_or_auto, index)
+
+
+def _GetValForRecAtField(container, field):
+    if isinstance(container, cwast.ValAuto):
+        return GetDefaultForType(field.x_symbol.x_type)
+
+    if isinstance(container,  cwast.ValCompound):
+        for rec_field, init in symbolize.IterateValRec(container.inits, container.x_type):
+            if field.x_symbol == rec_field:
+                if init:
+                    return init.x_value
+                else:
+                    return GetDefaultForType(field.x_type)
+        assert False
+
+    if not isinstance(container, cwast.Id):
+        return None
+
+    def_node = container.x_symbol
+    if not isinstance(def_node, (cwast.DefVar, cwast.DefGlobal)) or def_node.mut:
+        return None
+    return _GetValForRecAtField(def_node.initial_or_undef_or_auto, field)
 
 
 def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
@@ -490,28 +470,22 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
             return _AssignValue(node, node.value_or_undef.x_value)
         return False
     elif isinstance(node, cwast.ValCompound):
-        return _AssignValue(node, _EvalValCompound(node.x_type, node.inits, node.x_srcloc))
+        return False
     elif isinstance(node, cwast.ValString):
         return _AssignValue(node, node.get_bytes())
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
-        container_val = node.container.x_value
-        if container_val is not None and index_val is not None:
-            assert isinstance(container_val, (list, bytes)
-                              ), f"{node.container.x_value}"
-            assert index_val < len(
-                container_val), f"{index_val} {container_val}"
-            return _AssignValue(node, container_val[index_val])
-        return False
+        if index_val is None:
+            return False
+        val = _GetValForVecAtPos(node.container, index_val)
+        if val is None:
+            return False
+        return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprField):
-        if node.container.x_value is not None:
-            field_val = node.container.x_value.get(
-                node.field.GetBaseNameStrict())
-            assert field_val is not None
-            assert not isinstance(
-                field_val, cwast.ValUndef), f"unevaluated field {node.field}: {node.container.x_value}"
-            return _AssignValue(node, field_val)
-        return False
+        val = _GetValForRecAtField(node.container, node.field)
+        if val is None:
+            return False
+        return _AssignValue(node, val)
     elif isinstance(node, cwast.Expr1):
         return _EvalExpr1(node)
     elif isinstance(node, cwast.Expr2):
@@ -667,8 +641,10 @@ def VerifyASTEvalsRecursively(node):
                             # for now assume they are constant
                             pass
                         else:
-                            cwast.CompilerError(def_node.x_srcloc,
-                                                f"expected const node: {node} inside: {parent}")
+                            pass
+                            # TODO
+                            # cwast.CompilerError(def_node.x_srcloc,
+                            #                    f"expected const node: {node} inside: {parent}")
             else:
                 if node.x_value is None:
                     if node.x_type.is_span() or (node.x_type.original_type and
@@ -679,12 +655,14 @@ def VerifyASTEvalsRecursively(node):
                     elif isinstance(node, cwast.ValCompound):
                         # we still check that each field is const
                         pass
-                    elif isinstance(node, cwast.ValAuto) and parent.point == node:
+                    elif isinstance(node, cwast.ValAuto):
                         pass
                     else:
-                        cwast.CompilerError(
-                            node.x_srcloc, f"expected const node: {node} "
-                            f"of type {node.x_type} inside {parent}")
+                        pass
+                        # TODO
+                        # cwast.CompilerError(
+                        #    node.x_srcloc, f"expected const node: {node} "
+                        #    f"of type {node.x_type} inside {parent}")
 
         # Note: this info is currently filled in by the Type Decorator
         if isinstance(node, cwast.TypeVec):

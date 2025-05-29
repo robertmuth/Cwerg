@@ -953,23 +953,27 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
             print(f"# array: {ct.name}")
             width = ct.array_dim()
             x_type = ct.underlying_type()
-            if x_type.is_base_type():
+            if isinstance(node, cwast.ValString):
                 value = node.x_value
-                if isinstance(value, bytes):
-                    assert len(
-                        value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
-                    return _EmitMem(value, f"{offset} {ct.name}")
-                else:
+                assert isinstance(value, bytes)
+                assert len(
+                    value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
+                return _EmitMem(value, f"{offset} {ct.name}")
 
-                    x_value = node.x_value
-                    assert x_type.is_base_type()
-                    assert width == len(x_value), f"{width} vs {len(x_value)}"
-                    out = bytearray()
-                    for v in x_value:
-                        out += _InitDataForBaseType(x_type, v)
-                    return _EmitMem(out, ct.name)
+            assert isinstance(node, cwast.ValCompound), f"{node}"
+            assert node.x_value is None
+            if x_type.is_base_or_enum_type():
+                # this special case creates a smaller IR
+                out = bytearray()
+                last = _InitDataForBaseType(
+                    x_type, eval.GetDefaultForType(x_type))
+                for n, init in symbolize.IterateValVec(node.inits, width, node.x_srcloc):
+                    if init is not None:
+                        assert init.x_value is not None
+                        last = _InitDataForBaseType(x_type, init.x_value)
+                    out += last
+                return _EmitMem(out, ct.name)
             else:
-                assert isinstance(node, cwast.ValCompound), f"{node}"
                 last = cwast.ValUndef()
                 stride = ct.size // width
                 assert stride * width == ct.size, f"{ct.size} {width}"
@@ -1042,7 +1046,7 @@ def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
 
     for mod in mods:
         checker.CheckAST(mod, eliminated_node_types,
-                       allow_type_auto, pre_symbolize=pre_symbolize)
+                         allow_type_auto, pre_symbolize=pre_symbolize)
         if verifier:
             symbolize.VerifySymbols(mod)
             typify.VerifyTypesRecursively(mod, tc, verifier)
