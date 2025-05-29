@@ -42,7 +42,11 @@ global c2 u32 = 7
 
 global c3 = 7.0_r32
 
-pub global c4 = "xxxxxx"
+pub global c4 = "axxxxb"
+
+static_assert c4[0] == 'a'
+static_assert size_of(type_of(c4)) == 6
+static_assert c4[size_of(type_of(c4)) - 1] == 'b'
 
 global c10 = c2
 

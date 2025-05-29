@@ -102,20 +102,20 @@ class ReturnResultLocation:
     end_label: str
 
 
-def _InitDataForBaseType(x_type: cwast.CanonType, x_value) -> bytes:
-    assert x_type.is_base_or_enum_type()
+def _InitDataForBaseType(x_type: cwast.CanonType, val) -> bytes:
+    assert x_type.is_base_or_enum_type() and val is not None
     byte_width = x_type.size
-    if x_value is eval.VAL_UNDEF:
+    if val is eval.VAL_UNDEF:
         return ZEROS[byte_width]
     elif x_type.is_uint():
-        return x_value.to_bytes(byte_width, 'little')
+        return val.to_bytes(byte_width, 'little')
     elif x_type.is_sint():
-        return x_value.to_bytes(byte_width, 'little', signed=True)
+        return val.to_bytes(byte_width, 'little', signed=True)
     elif x_type.is_bool():
-        return b"\1" if x_value else b"\0"
+        return b"\1" if val else b"\0"
     elif x_type.is_real():
         fmt = "f" if x_type.base_type_kind is cwast.BASE_TYPE_KIND.R32 else "d"
-        return struct.pack(fmt, x_value)
+        return struct.pack(fmt, val)
     else:
         assert False, f"unsupported type {x_type}"
 
@@ -422,10 +422,10 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 
 def _FormatNumber(val: cwast.ValNum) -> str:
+    num = val.x_value
     if val.x_type.is_int():
-        return str(val.x_value)
+        return str(num)
     elif val.x_type.is_real():
-        num = val.x_value
         if math.isnan(num) or math.isinf(num):
             # note, python renders -nan and +nan as just nan
             sign = math.copysign(1, num)
@@ -968,7 +968,6 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                     x_type, eval.GetDefaultForType(x_type))
                 for n, init in symbolize.IterateValVec(node.inits, width, node.x_srcloc):
                     if init is not None:
-                        assert init.x_value is not None
                         last = _InitDataForBaseType(x_type, init.x_value)
                     out += last
                 return _EmitMem(out, ct.name)
