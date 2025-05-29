@@ -30,6 +30,7 @@ class _ValSpecial:
         return f"VAL-{self._kind}"
 
 
+VAL_EMPTY_SPAN = _ValSpecial("EMPTY_SPAN")
 VAL_UNDEF = _ValSpecial("UNDEF")
 VAL_VOID = _ValSpecial("VOID")
 VAL_GLOBALSYMADDR = _ValSpecial("GLOBALSYMADDR")
@@ -210,33 +211,22 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
     return out
 
 
-_BASE_TYPE_TO_DEFAULT = {
-    cwast.BASE_TYPE_KIND.SINT: 0,
-    cwast.BASE_TYPE_KIND.S8: 0,
-    cwast.BASE_TYPE_KIND.S16: 0,
-    cwast.BASE_TYPE_KIND.S32: 0,
-    cwast.BASE_TYPE_KIND.S64:  0,
-    #
-    cwast.BASE_TYPE_KIND.UINT: 0,
-    cwast.BASE_TYPE_KIND.U8: 0,
-    cwast.BASE_TYPE_KIND.U16: 0,
-    cwast.BASE_TYPE_KIND.U32: 0,
-    cwast.BASE_TYPE_KIND.U64: 0,
-    #
-    cwast.BASE_TYPE_KIND.R32: 0.0,
-    cwast.BASE_TYPE_KIND.R64: 0.0,
-    #
-    cwast.BASE_TYPE_KIND.BOOL: False,
-}
-
-
 def GetDefaultForType(ct: cwast.CanonType) -> Any:
     if ct.is_base_type():
+        bt = ct.base_type_kind
+        if bt.IsReal():
+            return 0.0
+        elif bt.IsInt():
+            return 0
+        elif bt is cwast.BASE_TYPE_KIND.BOOL:
+            return False
+        else:
+            assert False
         return _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
     elif ct.is_wrapped():
         return GetDefaultForType(ct.underlying_type())
     elif ct.is_span():
-        return ()  # null span
+        return VAL_EMPTY_SPAN
     else:
         return None
 
@@ -545,8 +535,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ExprLen):
         if node.container.x_type.is_vec():
             return _AssignValue(node, node.container.x_type.array_dim())
-        elif node.container.x_value is not None:
-            return _AssignValue(node, len(node.container.x_value))
+        elif node.container.x_value is VAL_EMPTY_SPAN:
+            return _AssignValue(node, 0)
         return False
     elif isinstance(node, cwast.ExprAddrOf):
         if IsGlobalSymId(node.expr_lhs):
