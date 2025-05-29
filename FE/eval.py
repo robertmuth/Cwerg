@@ -157,12 +157,11 @@ class GlobalConstantPool:
             # TODO: maybe update str_map for the CONSTANT_KIND.PURE case
             return _IdNodeFromDef(def_node, node.x_srcloc)
         elif isinstance(node, cwast.ValString):
-            assert isinstance(
-                node.x_value, bytes), f"expected str got {node.x_value}"
-            def_node = self._bytes_map.get(node.x_value)
+            s = node.get_bytes()
+            def_node = self._bytes_map.get(s)
             if not def_node:
                 def_node = self._add_def_global(node)
-                self._bytes_map[node.x_value] = def_node
+                self._bytes_map[s] = def_node
             return _IdNodeFromDef(def_node, node.x_srcloc)
 
         return None
@@ -187,7 +186,7 @@ def _AssignValue(node, val) -> bool:
         for x in val:
             assert x is not None
     else:
-        assert isinstance(val, (int, float, bytes, _ValSpecial)
+        assert isinstance(val, (int, float, _ValSpecial)
                           ), f"unexpected value {val}"
     logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
@@ -372,7 +371,9 @@ def _EvalAuto(node: cwast.ValAuto) -> bool:
 
 def _GetValForVecAtPos(container, index: int):
     if isinstance(container, cwast.ValString):
-        assert False, "NYI"
+        s = container.get_bytes()
+        assert index < len(s)
+        return s[index]
 
     if isinstance(container, cwast.ValAuto):
         return GetDefaultForType(container.x_type.underlying_type())
@@ -472,7 +473,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ValCompound):
         return False
     elif isinstance(node, cwast.ValString):
-        return _AssignValue(node, node.get_bytes())
+        return False
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
         if index_val is None:
@@ -623,7 +624,7 @@ def VerifyASTEvalsRecursively(node):
                 node, (cwast.DefGlobal, cwast.DefEnum))
             return
 
-        if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum, cwast.ValString)):
+        if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum)):
             assert node.x_value is not None, f"{node}"
 
         if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
