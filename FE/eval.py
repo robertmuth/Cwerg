@@ -203,6 +203,7 @@ def _AssignValue(node, val) -> bool:
 
 def _EvalDefEnum(node: cwast.DefEnum) -> bool:
     """TBD"""
+    bt = node.x_type.base_type_kind
     out = False
     val = 0
     for c in node.items:
@@ -211,8 +212,8 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
             assert c.value_or_auto.x_value is not None
             val = c.value_or_auto.x_value
         if c.x_value is None:
-            _AssignValue(c.value_or_auto, val)
-            _AssignValue(c, val)
+            _AssignValue(c.value_or_auto, ValNumeric(val, bt))
+            _AssignValue(c, ValNumeric(val, bt))
             out = True
         val += 1
     return out
@@ -222,11 +223,11 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
     if ct.is_base_type():
         bt = ct.base_type_kind
         if bt.IsReal():
-            return 0.0
+            return ValNumeric(0.0, bt)
         elif bt.IsInt():
-            return 0
+            return ValNumeric(0, bt)
         elif bt is cwast.BASE_TYPE_KIND.BOOL:
-            return False
+            return VAL_FALSE
         else:
             assert False
         return _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
@@ -370,7 +371,7 @@ def _GetValForVecAtPos(container, index: int):
     if isinstance(container, cwast.ValString):
         s = container.get_bytes()
         assert index < len(s)
-        return s[index]
+        return ValNumeric(s[index], cwast.BASE_TYPE_KIND.U8)
 
     if isinstance(container, cwast.ValAuto):
         return GetDefaultForType(container.x_type.underlying_type())
@@ -449,11 +450,12 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ValUndef):
         return _AssignValue(node, VAL_UNDEF)
     elif isinstance(node, cwast.ValNum):
-        cstr: cwast.CanonType = node.x_type
-        if cstr.is_base_type() or cstr.is_enum():
-            return _AssignValue(node, typify.ParseNum(node, cstr.base_type_kind))
+        ct: cwast.CanonType = node.x_type
+        if ct.is_base_type() or ct.is_enum():
+            bt = ct.base_type_kind
+            return _AssignValue(node, ValNumeric(typify.ParseNum(node, bt), bt))
         else:
-            assert False, f"unepxected type for ValNum: {cstr}"
+            assert False, f"unepxected type for ValNum: {ct}"
             return False
     elif isinstance(node, cwast.ValAuto):
         # we do not evaluate this during the recursion
@@ -493,7 +495,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ExprTypeId):
         typeid = node.type.x_type.get_original_typeid()
         assert typeid >= 0
-        return _AssignValue(node, typeid)
+        return _AssignValue(node, ValNumeric(typeid, node.x_type.base_type_kind))
     elif isinstance(node, cwast.ExprCall):
         # TODO
         return False
@@ -540,10 +542,13 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
             return _AssignValue(node, VAL_GLOBALSYMADDR)
         return False
     elif isinstance(node, cwast.ExprLen):
-        if node.container.x_type.is_vec():
-            return _AssignValue(node, node.container.x_type.array_dim())
-        elif node.container.x_value is VAL_EMPTY_SPAN:
-            return _AssignValue(node, 0)
+        container = node.container
+        bt = container.x_type.base_type_kind
+        if container.x_type.is_vec():
+            return _AssignValue(node,
+                                ValNumeric(container.x_type.array_dim(), bt))
+        elif container.x_value is VAL_EMPTY_SPAN:
+            return _AssignValue(node, ValNumeric(0, bt))
         return False
     elif isinstance(node, cwast.ExprAddrOf):
         if IsGlobalSymId(node.expr_lhs):
@@ -551,9 +556,10 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return False
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0
-        return _AssignValue(node, node.field.x_symbol.x_offset)
+        return _AssignValue(node, ValNumeric(node.field.x_symbol.x_offset,
+                                             node.x_type.base_type_kind))
     elif isinstance(node, cwast.ExprSizeof):
-        return _AssignValue(node, node.type.x_type.size)
+        return _AssignValue(node, ValNumeric(node.type.x_type.size, node.x_type.base_type_kind))
     elif isinstance(node, cwast.ExprDeref):
         # TODO maybe track symbolic addresses
         return False
