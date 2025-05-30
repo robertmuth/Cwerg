@@ -4,10 +4,9 @@
 
 """
 
-import logging
-
-from typing import Optional, Any, Union
 import enum
+import logging
+from typing import Optional, Any, Union\
 
 from FE import cwast
 from FE import symbolize
@@ -19,7 +18,7 @@ from FE import canonicalize
 logger = logging.getLogger(__name__)
 
 
-class _ValSpecial:
+class ValSpecial:
     def __init__(self, kind: str):
         self._kind = kind
 
@@ -30,10 +29,33 @@ class _ValSpecial:
         return f"VAL-{self._kind}"
 
 
-class _ValSpan:
+class ValSymAddr:
+    def __init__(self, sym):
+        assert isinstance(sym, (cwast.ValCompound, cwast.ValString,
+                          cwast.DefGlobal, cwast.DefVar))
+        self.sym = sym
+
+    def __eq__(self, other):
+        if not isinstance(other, ValSymAddr):
+            return False
+        return self.sym == other.sym
+
+
+class ValFunAddr:
+    def __init__(self, sym):
+        assert isinstance(sym, cwast.DefFun)
+        self.sym = sym
+
+    def __eq__(self, other):
+        if not isinstance(other, ValFunAddr):
+            return False
+        return self.sym == other.sym
+
+
+class ValSpan:
     def __init__(self, pointer, size):
-        assert pointer is not None or size == 0
-        self.pointr = pointer
+        assert pointer is None or isinstance(pointer, ValSymAddr), f"{pointer}"
+        self.pointer = pointer
         self.size = size
 
 
@@ -44,13 +66,11 @@ class ValNumeric:
         self.val = val
 
 
-VAL_EMPTY_SPAN = _ValSpan(None, 0)
-VAL_UNDEF = _ValSpecial("UNDEF")
-VAL_VOID = _ValSpecial("VOID")
+VAL_EMPTY_SPAN = ValSpan(None, 0)
+VAL_UNDEF = ValSpecial("UNDEF")
+VAL_VOID = ValSpecial("VOID")
 VAL_TRUE = ValNumeric(True, cwast.BASE_TYPE_KIND.BOOL)
 VAL_FALSE = ValNumeric(False, cwast.BASE_TYPE_KIND.BOOL)
-VAL_GLOBALSYMADDR = _ValSpecial("GLOBALSYMADDR")
-VAL_GLOBALSLICE = _ValSpecial("GLOBALSLICE")
 
 
 @enum.unique
@@ -200,7 +220,7 @@ def _AssignValue(node, val) -> bool:
     if val is None:
         return False
 
-    assert isinstance(val, (ValNumeric, _ValSpecial, _ValSpan)
+    assert isinstance(val, (ValNumeric, ValSpecial, ValSpan, ValSymAddr)
                       ), f"unexpected value {val}"
     logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
@@ -319,18 +339,18 @@ def _HandleUintOverflow(kind: cwast.BASE_TYPE_KIND, val: int) -> int:
 def _EvalExpr2(node: cwast.Expr2) -> bool:
     e1 = node.expr1.x_value
     e2 = node.expr2.x_value
-    if not isinstance(e1, ValNumeric) or not isinstance(e2, ValNumeric):
+    op = node.binary_expr_kind
+    if e1 is None or e2 is None:
         return False
-    e1 = e1.val
-    e2 = e2.val
     ct = node.x_type
     bt = ct.base_type_kind
     ct_operand = node.expr1.x_type
     if ct_operand.is_pointer():
-        # TODO: at least EQ/NE should be doable
-        return False
+        return _AssignValue(node,  ValNumeric(_EVAL_EQ_NE[op](e1, e2), bt))
+    assert isinstance(e1, ValNumeric) and isinstance(e2, ValNumeric)
+    e1 = e1.val
+    e2 = e2.val
     bt_operand = ct_operand.base_type_kind
-    op = node.binary_expr_kind
     if bt_operand.IsUint():
         v = _EVAL_UINT[op](e1, e2)
         if bt != cwast.BASE_TYPE_KIND.BOOL:
@@ -463,13 +483,19 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
         return False
     elif isinstance(node, cwast.ValPoint):
-        if node.value_or_undef.x_value is None:
-            if (node.x_type.is_span() and node.value_or_undef.x_type.is_vec() and
-                    IsGlobalSymId(node.value_or_undef)):
-                return _AssignValue(node, VAL_GLOBALSLICE)
-        else:
-            return _AssignValue(node, node.value_or_undef.x_value)
-        return False
+        val = node.value_or_undef.x_value
+        if val is None:
+            if node.x_type.is_span() and node.value_or_undef.x_type.is_vec():
+                dim = node.value_or_undef.x_type.array_dim()
+                sym = None
+                if isinstance(node.value_or_undef,
+                              (cwast.ValCompound, cwast.ValString)):
+                    sym = ValSymAddr(node.value_or_undef)
+                elif isinstance(node.value_or_undef, cwast.Id):
+                    sym = ValSymAddr(node.value_or_undef.x_symbol)
+                val = ValSpan(sym, dim)
+
+        return _AssignValue(node, val)
     elif isinstance(node, cwast.ValCompound):
         return False
     elif isinstance(node, cwast.ValString):
@@ -539,21 +565,30 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprFront):
-        if IsGlobalSymId(node.container):
-            return _AssignValue(node, VAL_GLOBALSYMADDR)
-        return False
+        container = node.container
+        ct_container = container.x_type
+        val = None
+        if ct_container.is_vec():
+            if isinstance(container, cwast.Id):
+                val = ValSymAddr(container.x_symbol)
+        else:
+            assert ct_container.is_span()
+            if container.x_value is not None:
+                assert isinstance(container.x_value, ValSpan)
+                val = container.x_value.pointer
+        return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprLen):
         container = node.container
         bt = container.x_type.base_type_kind
+        val = None
         if container.x_type.is_vec():
-            return _AssignValue(node,
-                                ValNumeric(container.x_type.array_dim(), bt))
-        elif isinstance(container.x_value, _ValSpan):
-            return _AssignValue(node, ValNumeric(container.x_value.size, bt))
-        return False
+            val = ValNumeric(container.x_type.array_dim(), bt)
+        elif isinstance(container.x_value, ValSpan):
+            val = ValNumeric(container.x_value.size, bt)
+        return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprAddrOf):
-        if IsGlobalSymId(node.expr_lhs):
-            return _AssignValue(node, VAL_GLOBALSYMADDR)
+        if isinstance(node.expr_lhs, cwast.Id):
+            return _AssignValue(node, ValSymAddr(node.expr_lhs.x_symbol))
         return False
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0
@@ -564,13 +599,10 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ExprDeref):
         # TODO maybe track symbolic addresses
         return False
-    elif isinstance(node, cwast.ExprAddrOf):
-        # TODO maybe track symbolic addresses
-        return False
     elif isinstance(node, cwast.ValSpan):
         if node.pointer.x_value is not None and node.expr_size.x_value is not None:
             return _AssignValue(node,
-                                _ValSpan(node.pointer.x_value, node.expr_size.x_value))
+                                ValSpan(node.pointer.x_value, node.expr_size.x_value))
         return False
     elif isinstance(node, cwast.ExprUnionTag):
         return False
@@ -618,6 +650,10 @@ def VerifyASTEvalsRecursively(node):
             return
 
         if isinstance(node, cwast.StmtStaticAssert):
+            if node.cond.x_value is None:
+                cwast.CompilerError(
+                    node.x_srcloc, f"Cannot evaluate static assert: {node}")
+
             if node.cond.x_value.val is not True:
                 cwast.CompilerError(
                     node.x_srcloc, f"Failed static assert: {node} is {node.cond.x_value}")

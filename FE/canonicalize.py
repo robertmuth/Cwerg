@@ -504,16 +504,19 @@ def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCo
                          uint_type: cwast.CanonType) -> cwast.ValSpan:
     assert node.x_type.is_vec()
     p_type = tc.InsertPtrType(dst_type.mut, dst_type.underlying_type())
-    value = eval.VAL_GLOBALSYMADDR if eval.IsGlobalSymId(
-        node) or isinstance(node, (cwast.ValCompound, cwast.ValString)) else None
+    v_sym = None
+    if isinstance(node, (cwast.ValCompound, cwast.ValString)):
+        v_sym = eval.ValSymAddr(node)
+    elif isinstance(node, cwast.Id):
+        v_sym = eval.ValSymAddr(node.x_symbol)
+
     pointer = cwast.ExprFront(
-        node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=value)
+        node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=v_sym)
     width = node.x_type.array_dim()
     length = cwast.ValNum(f"{width}", x_value=eval.ValNumeric(width, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)
-    if value is not None:
-        value = eval.VAL_GLOBALSLICE
-    return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=value)
+    v_span = eval.ValSpan(v_sym, width)
+    return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=v_span)
 
 
 def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
