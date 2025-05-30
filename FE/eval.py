@@ -619,17 +619,24 @@ def EvalRecursively(node) -> bool:
 
     def visitor(node):
         nonlocal seen_change
-        if isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
-            initial = node.initial_or_undef_or_auto
-            if initial.x_value is not None:
-                return
-            if isinstance(initial, cwast.ValAuto):
-                seen_change |= _EvalAuto(initial)
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return
         if node.x_value is not None:
             return
-
+        if isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
+            initial = node.initial_or_undef_or_auto
+            if initial.x_value is None and isinstance(initial, cwast.ValAuto):
+                # ValAuto has differernt meanings in different context
+                # so we deal with it explicity here and elsewhere
+                seen_change |= _EvalAuto(initial)
+            if node.mut:
+                return
+            # TODO add union handling
+            if node.x_type.is_span() and initial.x_type.is_vec():
+                return
+            elif initial.x_value is not None:
+                seen_change |= _AssignValue(node, initial.x_value)
+            return
         seen_change |= _EvalNode(node)
 
     cwast.VisitAstRecursivelyPost(node, visitor)
