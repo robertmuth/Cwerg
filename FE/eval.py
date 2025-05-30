@@ -35,7 +35,14 @@ class _ValSpecial:
         return f"VAL-{self._kind}"
 
 
-VAL_EMPTY_SPAN = _ValSpecial("EMPTY_SPAN")
+class _ValSpan:
+    def __init__(self, pointer, size):
+        assert pointer is not None or size == 0
+        self.pointr = pointer
+        self.size = size
+
+
+VAL_EMPTY_SPAN = _ValSpan(None, 0)
 VAL_UNDEF = _ValSpecial("UNDEF")
 VAL_VOID = _ValSpecial("VOID")
 VAL_TRUE = ValNumeric(True, cwast.BASE_TYPE_KIND.BOOL)
@@ -190,12 +197,9 @@ def IsGlobalSymId(node):
 def _AssignValue(node, val) -> bool:
     if val is None:
         return False
-    elif isinstance(val, tuple):
-        for x in val:
-            assert x is not None
-    else:
-        assert isinstance(val, (int, float, _ValSpecial)
-                          ), f"unexpected value {val}"
+
+    assert isinstance(val, (int, float, _ValSpecial, _ValSpan)
+                      ), f"unexpected value {val}"
     logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
     return True
@@ -239,58 +243,60 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
         return None
 
 
-def _eval_not(node) -> bool:
-    if node.x_type.is_bool():
-        return not node.x_value
-    else:
-        assert node.x_type.is_uint()
-        return ~node.x_value & ((1 << (node.x_type.size * 8)) - 1)
-
-
-def _eval_minus(node) -> Any:
-    return - node.x_value
-
-
-_EVAL1 = {
-    cwast.UNARY_EXPR_KIND.NOT: _eval_not,
-    cwast.UNARY_EXPR_KIND.NEG: _eval_minus,
-}
-
-
 def _EvalExpr1(node: cwast.Expr1) -> bool:
-    if node.expr.x_value is None:
+    e = node.expr.x_value
+    if e is None:
         return False
-    return _AssignValue(node, _EVAL1[node.unary_expr_kind](node.expr))
+    bt = node.x_type.base_type_kind
+    op = node.unary_expr_kind
+    if bt == cwast.BASE_TYPE_KIND.BOOL:
+        if op == cwast.UNARY_EXPR_KIND.NOT:
+            v = not e
+        elif op == cwast.UNARY_EXPR_KIND.NEG:
+            v = e
+        else:
+            assert False
+    elif bt.IsInt():
+        assert bt.IsUint()
+        if op == cwast.UNARY_EXPR_KIND.NOT:
+            v = ~e & ((1 << (node.x_type.size * 8)) - 1)
+        elif op == cwast.UNARY_EXPR_KIND.NEG:
+            v = -e
+        else:
+            assert False
+    else:
+        return False
+    return _AssignValue(node, ValNumeric(v, bt))
 
 
 # TODO: naive implementation -> needs a lot more scrutiny
 _EVAL2_ANY = {
-    cwast.BINARY_EXPR_KIND.ADD: lambda x, y: x.x_value + y.x_value,
-    cwast.BINARY_EXPR_KIND.SUB: lambda x, y: x.x_value - y.x_value,
-    cwast.BINARY_EXPR_KIND.MUL: lambda x, y: x.x_value * y.x_value,
-    cwast.BINARY_EXPR_KIND.EQ: lambda x, y: x.x_value == y.x_value,
-    cwast.BINARY_EXPR_KIND.NE: lambda x, y: x.x_value != y.x_value,
-    cwast.BINARY_EXPR_KIND.LT: lambda x, y: x.x_value < y.x_value,
-    cwast.BINARY_EXPR_KIND.LE: lambda x, y: x.x_value <= y.x_value,
-    cwast.BINARY_EXPR_KIND.GT: lambda x, y: x.x_value > y.x_value,
-    cwast.BINARY_EXPR_KIND.GE: lambda x, y: x.x_value >= y.x_value,
+    cwast.BINARY_EXPR_KIND.ADD: lambda x, y: x + y,
+    cwast.BINARY_EXPR_KIND.SUB: lambda x, y: x - y,
+    cwast.BINARY_EXPR_KIND.MUL: lambda x, y: x * y,
+    cwast.BINARY_EXPR_KIND.EQ: lambda x, y: x == y,
+    cwast.BINARY_EXPR_KIND.NE: lambda x, y: x != y,
+    cwast.BINARY_EXPR_KIND.LT: lambda x, y: x < y,
+    cwast.BINARY_EXPR_KIND.LE: lambda x, y: x <= y,
+    cwast.BINARY_EXPR_KIND.GT: lambda x, y: x > y,
+    cwast.BINARY_EXPR_KIND.GE: lambda x, y: x >= y,
 }
 
 _EVAL2_REAL = {
-    cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x.x_value / y.x_value,
+    cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x / y,
 }
 
 _EVAL2_INT = {
-    cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x.x_value // y.x_value,
-    cwast.BINARY_EXPR_KIND.MOD: lambda x, y: x.x_value % y.x_value,
-    cwast.BINARY_EXPR_KIND.SHL: lambda x, y: x.x_value << y.x_value,
-    cwast.BINARY_EXPR_KIND.SHR: lambda x, y: x.x_value >> y.x_value,
+    cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x // y,
+    cwast.BINARY_EXPR_KIND.MOD: lambda x, y: x % y,
+    cwast.BINARY_EXPR_KIND.SHL: lambda x, y: x << y,
+    cwast.BINARY_EXPR_KIND.SHR: lambda x, y: x >> y,
 }
 
 _EVAL2_UINT = {
-    cwast.BINARY_EXPR_KIND.OR: lambda x, y: x.x_value | y.x_value,
-    cwast.BINARY_EXPR_KIND.AND: lambda x, y: x.x_value & y.x_value,
-    cwast.BINARY_EXPR_KIND.XOR: lambda x, y: x.x_value ^ y.x_value,
+    cwast.BINARY_EXPR_KIND.OR: lambda x, y: x | y,
+    cwast.BINARY_EXPR_KIND.AND: lambda x, y: x & y,
+    cwast.BINARY_EXPR_KIND.XOR: lambda x, y: x ^ y,
 }
 
 
@@ -300,36 +306,38 @@ def _HandleUintOverflow(kind: cwast.BASE_TYPE_KIND, val: int) -> int:
 
 
 def _EvalExpr2(node: cwast.Expr2) -> bool:
-    if node.expr1.x_value is None or node.expr2.x_value is None:
+    e1 = node.expr1.x_value
+    e2 = node.expr2.x_value
+    if e1 is None or e2 is None:
         return False
     op = node.binary_expr_kind
     x_type = node.x_type
 
     if x_type.is_real():
         if op in _EVAL2_ANY:
-            return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
+            return _AssignValue(node, _EVAL2_ANY[op](e1, e2))
         if op in _EVAL2_REAL:
-            return _AssignValue(node, _EVAL2_REAL[op](node.expr1, node.expr2))
+            return _AssignValue(node, _EVAL2_REAL[op](e1, e2))
     elif x_type.is_sint():
         # TODO: deal with signed overflow
         if op in _EVAL2_ANY:
-            return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
+            return _AssignValue(node, _EVAL2_ANY[op](e1, e2))
         if op in _EVAL2_INT:
-            return _AssignValue(node, _EVAL2_INT[op](node.expr1, node.expr2))
+            return _AssignValue(node, _EVAL2_INT[op](e1, e2))
     elif x_type.is_uint():
         kind = x_type.base_type_kind
         if op in _EVAL2_ANY:
             return _AssignValue(node,
-                                _HandleUintOverflow(kind, _EVAL2_ANY[op](node.expr1, node.expr2)))
+                                _HandleUintOverflow(kind, _EVAL2_ANY[op](e1, e2)))
         if op in _EVAL2_INT:
             return _AssignValue(node,
-                                _HandleUintOverflow(kind, _EVAL2_INT[op](node.expr1, node.expr2)))
+                                _HandleUintOverflow(kind, _EVAL2_INT[op](e1, e2)))
         if op in _EVAL2_UINT:
             return _AssignValue(node,
-                                _HandleUintOverflow(kind, _EVAL2_UINT[op](node.expr1, node.expr2)))
+                                _HandleUintOverflow(kind, _EVAL2_UINT[op](e1, e2)))
     elif x_type.is_bool():
         if op in _EVAL2_ANY:
-            return _AssignValue(node, _EVAL2_ANY[op](node.expr1, node.expr2))
+            return _AssignValue(node, _EVAL2_ANY[op](e1, e2))
 
     return False
 
@@ -348,23 +356,12 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
 
 def _EvalAuto(node: cwast.ValAuto) -> bool:
     ct: cwast.CanonType = node.x_type
-    if ct.is_base_type():
-        if ct.is_bool():
-            return _AssignValue(node, False)
-        elif ct.is_int():
-            return _AssignValue(node, 0)
-        elif ct.is_real():
-            return _AssignValue(node, 0.0)
-        else:
-            assert False
-    elif ct.is_rec():
+    if not ct.is_base_type():
         return False
-    elif ct.is_vec():
+    v = GetDefaultForType(ct)
+    if v is None:
         return False
-    elif isinstance(node, cwast.TypePtr):
-        assert False
-    else:
-        return False
+    return _AssignValue(node, v)
 
 
 def _GetValForVecAtPos(container, index: int):
@@ -547,8 +544,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         if container.x_type.is_vec():
             return _AssignValue(node,
                                 ValNumeric(container.x_type.array_dim(), bt))
-        elif container.x_value is VAL_EMPTY_SPAN:
-            return _AssignValue(node, ValNumeric(0, bt))
+        elif isinstance(container.x_value, _ValSpan):
+            return _AssignValue(node, ValNumeric(container.x_value.size, bt))
         return False
     elif isinstance(node, cwast.ExprAddrOf):
         if IsGlobalSymId(node.expr_lhs):
@@ -569,7 +566,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ValSpan):
         if node.pointer.x_value is not None and node.expr_size.x_value is not None:
             return _AssignValue(node,
-                                (node.pointer.x_value, node.expr_size.x_value))
+                                _ValSpan(node.pointer.x_value, node.expr_size.x_value))
         return False
     elif isinstance(node, cwast.ExprUnionTag):
         return False
