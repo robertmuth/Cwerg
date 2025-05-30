@@ -372,29 +372,3 @@ def IterateValRec(points: list[cwast.ValPoint], def_rec: cwast.CanonType):
     if next_point != len(points):
         cwast.CompilerError(points[-1].x_srcloc,
                             "bad initializer {points[-1]}")
-
-
-_UNDEF = cwast.ValUndef()
-
-
-def IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
-    """Pairs given ValPoints from a ValCompound repesenting a Vec with their indices"""
-    curr_index = 0
-    for init in points:
-        if isinstance(init.point_or_undef, cwast.ValUndef):
-            yield curr_index, init
-            curr_index += 1
-            continue
-        index = init.point_or_undef.x_value
-        assert isinstance(index, int)
-        while curr_index < index:
-            yield curr_index, None
-            curr_index += 1
-        yield curr_index, init
-        curr_index += 1
-    if curr_index > dim:
-        cwast.CompilerError(
-            srcloc, f"Out of bounds array access at {curr_index}. Array size is  {dim}")
-    while curr_index < dim:
-        yield curr_index, None
-        curr_index += 1

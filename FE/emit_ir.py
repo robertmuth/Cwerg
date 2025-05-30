@@ -43,6 +43,28 @@ ZEROS = [b"\0" * i for i in range(128)]
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
+def _IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
+    """Pairs given ValPoints from a ValCompound repesenting a Vec with their indices"""
+    curr_index = 0
+    for init in points:
+        if isinstance(init.point_or_undef, cwast.ValUndef):
+            yield curr_index, init
+            curr_index += 1
+            continue
+        index = init.point_or_undef.x_value.val
+        assert isinstance(index, int)
+        while curr_index < index:
+            yield curr_index, None
+            curr_index += 1
+        yield curr_index, init
+        curr_index += 1
+    if curr_index > dim:
+        cwast.CompilerError(
+            srcloc, f"Out of bounds array access at {curr_index}. Array size is  {dim}")
+    while curr_index < dim:
+        yield curr_index, None
+        curr_index += 1
+
 def _MangledGlobalName(mod: cwast.DefMod, mod_name: str, node: Any, is_cdecl: bool) -> cwast.NAME:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
@@ -107,7 +129,8 @@ def _InitDataForBaseType(x_type: cwast.CanonType, val) -> bytes:
     byte_width = x_type.size
     if val is eval.VAL_UNDEF:
         return ZEROS[byte_width]
-    elif x_type.is_uint():
+    val = val.val
+    if x_type.is_uint():
         return val.to_bytes(byte_width, 'little')
     elif x_type.is_sint():
         return val.to_bytes(byte_width, 'little', signed=True)
@@ -196,7 +219,7 @@ ZERO_INDEX = "0"
 def OffsetScaleToOffset(offset_expr, scale: int, ta: type_corpus.TargetArchConfig,
                         id_gen: identifier.IdGenIR) -> str:
     if offset_expr.x_value is not None:
-        return offset_expr.x_value * scale
+        return offset_expr.x_value.val * scale
     else:
         offset = EmitIRExpr(offset_expr, ta, id_gen)
         if scale == 1:
@@ -292,11 +315,8 @@ def IsUnconditionalBranch(node):
 def EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
                       id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
-    if cond.x_value is True:
-        if not invert:
-            print(f"{TAB}bra {label_false}")
-    elif cond.x_value is False:
-        if invert:
+    if cond.x_value is not None:
+        if cond.x_value.val != invert:
             print(f"{TAB}bra {label_false}")
     elif isinstance(cond, cwast.Expr1):
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
@@ -422,7 +442,7 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 
 def _FormatNumber(val: cwast.ValNum) -> str:
-    num = val.x_value
+    num = val.x_value.val
     if val.x_type.is_int():
         return str(num)
     elif val.x_type.is_real():
@@ -709,7 +729,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         else:
             assert src_type.is_vec()
             element_size: int = src_type.array_element_size()
-            for index, c in symbolize.IterateValVec(init_node.inits,
+            for index, c in _IterateValVec(init_node.inits,
                                                     init_node.x_type.array_dim(),
                                                     init_node.x_srcloc):
                 if c is None:
@@ -966,7 +986,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 out = bytearray()
                 last = _InitDataForBaseType(
                     x_type, eval.GetDefaultForType(x_type))
-                for n, init in symbolize.IterateValVec(node.inits, width, node.x_srcloc):
+                for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
                     if init is not None:
                         last = _InitDataForBaseType(x_type, init.x_value)
                     out += last
@@ -975,7 +995,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 last = cwast.ValUndef()
                 stride = ct.size // width
                 assert stride * width == ct.size, f"{ct.size} {width}"
-                for n, init in symbolize.IterateValVec(node.inits, width, node.x_srcloc):
+                for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
                     if init is None:
                         count = _emit_recursively(
                             last, x_type, offset + n * stride)

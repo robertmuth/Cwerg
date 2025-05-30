@@ -19,11 +19,6 @@ from FE import canonicalize
 logger = logging.getLogger(__name__)
 
 
-def ValNumeric(val, kind):
-    assert isinstance(kind, cwast.BASE_TYPE_KIND)
-    return val
-
-
 class _ValSpecial:
     def __init__(self, kind: str):
         self._kind = kind
@@ -40,6 +35,13 @@ class _ValSpan:
         assert pointer is not None or size == 0
         self.pointr = pointer
         self.size = size
+
+
+class ValNumeric:
+    def __init__(self, val, kind):
+        assert isinstance(kind, cwast.BASE_TYPE_KIND)
+        self.kind = kind
+        self.val = val
 
 
 VAL_EMPTY_SPAN = _ValSpan(None, 0)
@@ -198,7 +200,7 @@ def _AssignValue(node, val) -> bool:
     if val is None:
         return False
 
-    assert isinstance(val, (int, float, _ValSpecial, _ValSpan)
+    assert isinstance(val, (ValNumeric, _ValSpecial, _ValSpan)
                       ), f"unexpected value {val}"
     logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
@@ -214,7 +216,7 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
         assert isinstance(c, cwast.EnumVal)
         if not isinstance(c.value_or_auto, cwast.ValAuto):
             assert c.value_or_auto.x_value is not None
-            val = c.value_or_auto.x_value
+            val = c.value_or_auto.x_value.val
         if c.x_value is None:
             _AssignValue(c.value_or_auto, ValNumeric(val, bt))
             _AssignValue(c, ValNumeric(val, bt))
@@ -234,7 +236,6 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
             return VAL_FALSE
         else:
             assert False
-        return _BASE_TYPE_TO_DEFAULT[ct.base_type_kind]
     elif ct.is_wrapped():
         return GetDefaultForType(ct.underlying_type())
     elif ct.is_span():
@@ -247,6 +248,7 @@ def _EvalExpr1(node: cwast.Expr1) -> bool:
     e = node.expr.x_value
     if e is None:
         return False
+    e = e.val
     bt = node.x_type.base_type_kind
     op = node.unary_expr_kind
     if bt == cwast.BASE_TYPE_KIND.BOOL:
@@ -317,8 +319,10 @@ def _HandleUintOverflow(kind: cwast.BASE_TYPE_KIND, val: int) -> int:
 def _EvalExpr2(node: cwast.Expr2) -> bool:
     e1 = node.expr1.x_value
     e2 = node.expr2.x_value
-    if e1 is None or e2 is None:
+    if not isinstance(e1, ValNumeric) or not isinstance(e2, ValNumeric):
         return False
+    e1 = e1.val
+    e2 = e2.val
     ct = node.x_type
     bt = ct.base_type_kind
     ct_operand = node.expr1.x_type
@@ -333,11 +337,11 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
             v = _HandleUintOverflow(bt_operand, v)
         return _AssignValue(node, ValNumeric(v, bt))
     elif bt_operand.IsSint():
-        return _AssignValue(node, _EVAL_SINT[op](e1, e2))
+        return _AssignValue(node, ValNumeric(_EVAL_SINT[op](e1, e2), bt))
     elif bt_operand.IsReal():
-        return _AssignValue(node, _EVAL_REAL[op](e1, e2))
+        return _AssignValue(node,  ValNumeric(_EVAL_REAL[op](e1, e2), bt))
     elif bt_operand == cwast.BASE_TYPE_KIND.BOOL:
-        return _AssignValue(node, _EVAL_BOOL[op](e1, e2))
+        return _AssignValue(node,  ValNumeric(_EVAL_BOOL[op](e1, e2), bt))
     else:
         assert False, f"unexpected type {ct_operand}"
 
@@ -378,8 +382,8 @@ def _GetValForVecAtPos(container, index: int):
         n = 0
         for point in container.inits:
             if isinstance(point.point_or_undef, cwast.ValNum):
-                assert isinstance(point.point_or_undef.x_value, int)
-                n = point.point_or_undef.x_value
+                assert isinstance(point.point_or_undef.x_value, ValNumeric)
+                n = point.point_or_undef.x_value.val
             if n == index:
                 return point.value_or_undef.x_value
             if n > index:
@@ -474,7 +478,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         index_val = node.expr_index.x_value
         if index_val is None:
             return False
-        val = _GetValForVecAtPos(node.container, index_val)
+        val = _GetValForVecAtPos(node.container, index_val.val)
         if val is None:
             return False
         return _AssignValue(node, val)
@@ -614,7 +618,7 @@ def VerifyASTEvalsRecursively(node):
             return
 
         if isinstance(node, cwast.StmtStaticAssert):
-            if node.cond.x_value is not True:
+            if node.cond.x_value.val is not True:
                 cwast.CompilerError(
                     node.x_srcloc, f"Failed static assert: {node} is {node.cond.x_value}")
 
