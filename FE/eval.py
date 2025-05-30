@@ -19,6 +19,11 @@ from FE import canonicalize
 logger = logging.getLogger(__name__)
 
 
+def ValNumeric(val, kind):
+    assert isinstance(kind, cwast.BASE_TYPE_KIND)
+    return val
+
+
 class _ValSpecial:
     def __init__(self, kind: str):
         self._kind = kind
@@ -33,6 +38,8 @@ class _ValSpecial:
 VAL_EMPTY_SPAN = _ValSpecial("EMPTY_SPAN")
 VAL_UNDEF = _ValSpecial("UNDEF")
 VAL_VOID = _ValSpecial("VOID")
+VAL_TRUE = ValNumeric(True, cwast.BASE_TYPE_KIND.BOOL)
+VAL_FALSE = ValNumeric(False, cwast.BASE_TYPE_KIND.BOOL)
 VAL_GLOBALSYMADDR = _ValSpecial("GLOBALSYMADDR")
 VAL_GLOBALSLICE = _ValSpecial("GLOBALSLICE")
 
@@ -434,9 +441,9 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.DefEnum):
         return _EvalDefEnum(node)
     elif isinstance(node, cwast.ValTrue):
-        return _AssignValue(node, True)
+        return _AssignValue(node, VAL_TRUE)
     if isinstance(node, cwast.ValFalse):
-        return _AssignValue(node, False)
+        return _AssignValue(node, VAL_FALSE)
     elif isinstance(node, cwast.ValVoid):
         return _AssignValue(node, VAL_VOID)
     elif isinstance(node, cwast.ValUndef):
@@ -507,7 +514,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         expr_ct: cwast.CanonType = node.expr.x_type
         test_ct: cwast.CanonType = node.type.x_type
         if expr_ct.get_original_typeid() == test_ct.get_original_typeid():
-            return _AssignValue(node, True)
+            return _AssignValue(node, VAL_TRUE)
         if expr_ct.is_tagged_union():
             if test_ct.is_tagged_union():
                 test_elements = set(
@@ -515,7 +522,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
                 expr_elements = set(
                     [x.name for x in expr_ct.union_member_types()])
                 if expr_elements.issubset(test_elements):
-                    return _AssignValue(node, True)
+                    return _AssignValue(node, VAL_TRUE)
                 return False
             else:
                 return False
@@ -524,7 +531,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
                 [x.name for x in test_ct.union_member_types()])
             return _AssignValue(node, expr_ct.name in test_elements)
         else:
-            return _AssignValue(node, False)
+            return _AssignValue(node, VAL_FALSE)
     elif isinstance(node, cwast.ExprPointer):
         # TODO: we can do better here
         return False

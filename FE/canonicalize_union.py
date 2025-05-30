@@ -14,6 +14,7 @@ from FE import cwast
 from FE import type_corpus
 from FE import typify
 from FE import canonicalize
+from FE import eval
 
 ############################################################
 # Convert Tagged Unions to equvalent struct
@@ -86,8 +87,10 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
 
 def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
     assert typeid >= 0
-    return cwast.ValNum(str(typeid), x_value=typeid, x_srcloc=srcloc,
-                        x_type=ct_typeid)
+    return cwast.ValNum(str(typeid),
+                        x_value=eval.ValNumeric(
+                            typeid, ct_typeid.base_type_kind),
+                        x_type=ct_typeid, x_srcloc=srcloc)
 
 
 def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc) -> cwast.ValCompound:

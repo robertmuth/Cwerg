@@ -108,7 +108,8 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     else:
         typeids.append(dst_ct.get_original_typeid())
     typeidvals = [cwast.ValNum(str(i), x_srcloc=sl,
-                               x_type=typeid_ct, x_value=i) for i in typeids]
+                               x_type=typeid_ct, x_value=eval.ValNumeric(i,
+                                                                         typeid_ct.base_type_kind)) for i in typeids]
     # TODO: store tag in a variable rather than retrieving it each time.
     #       Sadly, this requires ExprStmt
     tag = cwast.ExprUnionTag(node.expr, x_srcloc=sl, x_type=typeid_ct)
@@ -508,7 +509,7 @@ def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCo
     pointer = cwast.ExprFront(
         node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=value)
     width = node.x_type.array_dim()
-    length = cwast.ValNum(f"{width}", x_value=width,
+    length = cwast.ValNum(f"{width}", x_value=eval.ValNumeric(width, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)
     if value is not None:
         value = eval.VAL_GLOBALSLICE
