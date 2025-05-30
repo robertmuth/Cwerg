@@ -88,7 +88,7 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
 def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
     assert typeid >= 0
     return cwast.ValNum(str(typeid),
-                        x_value=eval.ValNumeric(
+                        x_value=eval.EvalNum(
                             typeid, ct_typeid.base_type_kind),
                         x_type=ct_typeid, x_srcloc=srcloc)
 

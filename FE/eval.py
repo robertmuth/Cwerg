@@ -18,59 +18,66 @@ from FE import canonicalize
 logger = logging.getLogger(__name__)
 
 
-class ValSpecial:
-    def __init__(self, kind: str):
-        self._kind = kind
-
-    def __str__(self):
-        return f"VAL-{self._kind}"
-
-    def __repr__(self):
-        return f"VAL-{self._kind}"
+class EvalUndef:
+    def __init__(self):
+        pass
 
 
-class ValSymAddr:
+class EvalVoid:
+    def __init__(self):
+        pass
+
+
+class EvalSymAddr:
     def __init__(self, sym):
         assert isinstance(sym, (cwast.ValCompound, cwast.ValString,
                           cwast.DefGlobal, cwast.DefVar))
         self.sym = sym
 
     def __eq__(self, other):
-        if not isinstance(other, ValSymAddr):
+        if not isinstance(other, EvalSymAddr):
             return False
         return self.sym == other.sym
 
 
-class ValFunAddr:
+class EvalFunAddr:
     def __init__(self, sym):
         assert isinstance(sym, cwast.DefFun)
         self.sym = sym
 
     def __eq__(self, other):
-        if not isinstance(other, ValFunAddr):
+        if not isinstance(other, EvalFunAddr):
             return False
         return self.sym == other.sym
 
 
-class ValSpan:
-    def __init__(self, pointer, size):
-        assert pointer is None or isinstance(pointer, ValSymAddr), f"{pointer}"
+class EvalCompound:
+    def __init__(self, sym):
+        assert isinstance(sym, (cwast.ValString, cwast.ValCompound))
+        self.sym = sym
+
+
+class EvalSpan:
+    def __init__(self, pointer, size, content=None):
+        assert pointer is None or isinstance(
+            pointer, EvalSymAddr), f"{pointer}"
         self.pointer = pointer
         self.size = size
+        self.content = content
 
 
-class ValNumeric:
+class EvalNum:
     def __init__(self, val, kind):
         assert isinstance(kind, cwast.BASE_TYPE_KIND)
         self.kind = kind
         self.val = val
 
 
-VAL_EMPTY_SPAN = ValSpan(None, 0)
-VAL_UNDEF = ValSpecial("UNDEF")
-VAL_VOID = ValSpecial("VOID")
-VAL_TRUE = ValNumeric(True, cwast.BASE_TYPE_KIND.BOOL)
-VAL_FALSE = ValNumeric(False, cwast.BASE_TYPE_KIND.BOOL)
+VAL_EMPTY_SPAN = EvalSpan(None, 0)
+VAL_UNDEF = EvalUndef()
+VAL_VOID = EvalVoid()
+VAL_TRUE = EvalNum(True, cwast.BASE_TYPE_KIND.BOOL)
+VAL_FALSE = EvalNum(False, cwast.BASE_TYPE_KIND.BOOL)
 
 
 @enum.unique
@@ -220,7 +227,7 @@ def _AssignValue(node, val) -> bool:
     if val is None:
         return False
 
-    assert isinstance(val, (ValNumeric, ValSpecial, ValSpan, ValSymAddr)
+    assert isinstance(val, (EvalNum, EvalUndef, EvalVoid, EvalCompound, EvalSpan, EvalSymAddr)
                       ), f"unexpected value {val}"
     logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
@@ -238,8 +245,8 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
             assert c.value_or_auto.x_value is not None
             val = c.value_or_auto.x_value.val
         if c.x_value is None:
-            _AssignValue(c.value_or_auto, ValNumeric(val, bt))
-            _AssignValue(c, ValNumeric(val, bt))
+            _AssignValue(c.value_or_auto, EvalNum(val, bt))
+            _AssignValue(c, EvalNum(val, bt))
             out = True
         val += 1
     return out
@@ -249,9 +256,9 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
     if ct.is_base_type():
         bt = ct.base_type_kind
         if bt.IsReal():
-            return ValNumeric(0.0, bt)
+            return EvalNum(0.0, bt)
         elif bt.IsInt():
-            return ValNumeric(0, bt)
+            return EvalNum(0, bt)
         elif bt is cwast.BASE_TYPE_KIND.BOOL:
             return VAL_FALSE
         else:
@@ -288,7 +295,7 @@ def _EvalExpr1(node: cwast.Expr1) -> bool:
             assert False
     else:
         return False
-    return _AssignValue(node, ValNumeric(v, bt))
+    return _AssignValue(node, EvalNum(v, bt))
 
 
 # TODO: naive implementation -> needs a lot more scrutiny
@@ -346,8 +353,8 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
     bt = ct.base_type_kind
     ct_operand = node.expr1.x_type
     if ct_operand.is_pointer():
-        return _AssignValue(node,  ValNumeric(_EVAL_EQ_NE[op](e1, e2), bt))
-    assert isinstance(e1, ValNumeric) and isinstance(e2, ValNumeric)
+        return _AssignValue(node,  EvalNum(_EVAL_EQ_NE[op](e1, e2), bt))
+    assert isinstance(e1, EvalNum) and isinstance(e2, EvalNum)
     e1 = e1.val
     e2 = e2.val
     bt_operand = ct_operand.base_type_kind
@@ -355,13 +362,13 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
         v = _EVAL_UINT[op](e1, e2)
         if bt != cwast.BASE_TYPE_KIND.BOOL:
             v = _HandleUintOverflow(bt_operand, v)
-        return _AssignValue(node, ValNumeric(v, bt))
+        return _AssignValue(node, EvalNum(v, bt))
     elif bt_operand.IsSint():
-        return _AssignValue(node, ValNumeric(_EVAL_SINT[op](e1, e2), bt))
+        return _AssignValue(node, EvalNum(_EVAL_SINT[op](e1, e2), bt))
     elif bt_operand.IsReal():
-        return _AssignValue(node,  ValNumeric(_EVAL_REAL[op](e1, e2), bt))
+        return _AssignValue(node,  EvalNum(_EVAL_REAL[op](e1, e2), bt))
     elif bt_operand == cwast.BASE_TYPE_KIND.BOOL:
-        return _AssignValue(node,  ValNumeric(_EVAL_BOOL[op](e1, e2), bt))
+        return _AssignValue(node,  EvalNum(_EVAL_BOOL[op](e1, e2), bt))
     else:
         assert False, f"unexpected type {ct_operand}"
 
@@ -392,7 +399,7 @@ def _GetValForVecAtPos(container, index: int):
     if isinstance(container, cwast.ValString):
         s = container.get_bytes()
         assert index < len(s)
-        return ValNumeric(s[index], cwast.BASE_TYPE_KIND.U8)
+        return EvalNum(s[index], cwast.BASE_TYPE_KIND.U8)
 
     if isinstance(container, cwast.ValAuto):
         return GetDefaultForType(container.x_type.underlying_type())
@@ -402,7 +409,7 @@ def _GetValForVecAtPos(container, index: int):
         n = 0
         for point in container.inits:
             if isinstance(point.point_or_undef, cwast.ValNum):
-                assert isinstance(point.point_or_undef.x_value, ValNumeric)
+                assert isinstance(point.point_or_undef.x_value, EvalNum)
                 n = point.point_or_undef.x_value.val
             if n == index:
                 return point.value_or_undef.x_value
@@ -474,7 +481,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         ct: cwast.CanonType = node.x_type
         if ct.is_base_type() or ct.is_enum():
             bt = ct.base_type_kind
-            return _AssignValue(node, ValNumeric(typify.ParseNum(node, bt), bt))
+            return _AssignValue(node, EvalNum(typify.ParseNum(node, bt), bt))
         else:
             assert False, f"unepxected type for ValNum: {ct}"
             return False
@@ -490,10 +497,10 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
                 sym = None
                 if isinstance(node.value_or_undef,
                               (cwast.ValCompound, cwast.ValString)):
-                    sym = ValSymAddr(node.value_or_undef)
+                    sym = EvalSymAddr(node.value_or_undef)
                 elif isinstance(node.value_or_undef, cwast.Id):
-                    sym = ValSymAddr(node.value_or_undef.x_symbol)
-                val = ValSpan(sym, dim)
+                    sym = EvalSymAddr(node.value_or_undef.x_symbol)
+                val = EvalSpan(sym, dim)
 
         return _AssignValue(node, val)
     elif isinstance(node, cwast.ValCompound):
@@ -522,7 +529,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ExprTypeId):
         typeid = node.type.x_type.get_original_typeid()
         assert typeid >= 0
-        return _AssignValue(node, ValNumeric(typeid, node.x_type.base_type_kind))
+        return _AssignValue(node, EvalNum(typeid, node.x_type.base_type_kind))
     elif isinstance(node, cwast.ExprCall):
         # TODO
         return False
@@ -570,11 +577,11 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         val = None
         if ct_container.is_vec():
             if isinstance(container, cwast.Id):
-                val = ValSymAddr(container.x_symbol)
+                val = EvalSymAddr(container.x_symbol)
         else:
             assert ct_container.is_span()
             if container.x_value is not None:
-                assert isinstance(container.x_value, ValSpan)
+                assert isinstance(container.x_value, EvalSpan)
                 val = container.x_value.pointer
         return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprLen):
@@ -582,27 +589,27 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         bt = container.x_type.base_type_kind
         val = None
         if container.x_type.is_vec():
-            val = ValNumeric(container.x_type.array_dim(), bt)
-        elif isinstance(container.x_value, ValSpan):
-            val = ValNumeric(container.x_value.size, bt)
+            val = EvalNum(container.x_type.array_dim(), bt)
+        elif isinstance(container.x_value, EvalSpan):
+            val = EvalNum(container.x_value.size, bt)
         return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprAddrOf):
         if isinstance(node.expr_lhs, cwast.Id):
-            return _AssignValue(node, ValSymAddr(node.expr_lhs.x_symbol))
+            return _AssignValue(node, EvalSymAddr(node.expr_lhs.x_symbol))
         return False
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0
-        return _AssignValue(node, ValNumeric(node.field.x_symbol.x_offset,
-                                             node.x_type.base_type_kind))
+        return _AssignValue(node, EvalNum(node.field.x_symbol.x_offset,
+                                          node.x_type.base_type_kind))
     elif isinstance(node, cwast.ExprSizeof):
-        return _AssignValue(node, ValNumeric(node.type.x_type.size, node.x_type.base_type_kind))
+        return _AssignValue(node, EvalNum(node.type.x_type.size, node.x_type.base_type_kind))
     elif isinstance(node, cwast.ExprDeref):
         # TODO maybe track symbolic addresses
         return False
     elif isinstance(node, cwast.ValSpan):
         if node.pointer.x_value is not None and node.expr_size.x_value is not None:
             return _AssignValue(node,
-                                ValSpan(node.pointer.x_value, node.expr_size.x_value))
+                                EvalSpan(node.pointer.x_value, node.expr_size.x_value))
         return False
     elif isinstance(node, cwast.ExprUnionTag):
         return False
