@@ -270,33 +270,42 @@ def _EvalExpr1(node: cwast.Expr1) -> bool:
 
 
 # TODO: naive implementation -> needs a lot more scrutiny
-_EVAL2_ANY = {
-    cwast.BINARY_EXPR_KIND.ADD: lambda x, y: x + y,
-    cwast.BINARY_EXPR_KIND.SUB: lambda x, y: x - y,
-    cwast.BINARY_EXPR_KIND.MUL: lambda x, y: x * y,
+_EVAL_EQ_NE = {
     cwast.BINARY_EXPR_KIND.EQ: lambda x, y: x == y,
     cwast.BINARY_EXPR_KIND.NE: lambda x, y: x != y,
+}
+
+_EVAL_CMP = _EVAL_EQ_NE | {
     cwast.BINARY_EXPR_KIND.LT: lambda x, y: x < y,
     cwast.BINARY_EXPR_KIND.LE: lambda x, y: x <= y,
     cwast.BINARY_EXPR_KIND.GT: lambda x, y: x > y,
     cwast.BINARY_EXPR_KIND.GE: lambda x, y: x >= y,
 }
 
-_EVAL2_REAL = {
-    cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x / y,
+_EVAL_ADD_SUB_MUL = {
+    cwast.BINARY_EXPR_KIND.ADD: lambda x, y: x + y,
+    cwast.BINARY_EXPR_KIND.SUB: lambda x, y: x - y,
+    cwast.BINARY_EXPR_KIND.MUL: lambda x, y: x * y,
 }
 
-_EVAL2_INT = {
+_EVAL_INT = _EVAL_ADD_SUB_MUL | {
     cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x // y,
     cwast.BINARY_EXPR_KIND.MOD: lambda x, y: x % y,
     cwast.BINARY_EXPR_KIND.SHL: lambda x, y: x << y,
     cwast.BINARY_EXPR_KIND.SHR: lambda x, y: x >> y,
 }
 
-_EVAL2_UINT = {
+_EVAL_UINT_OR_BOOL = {
     cwast.BINARY_EXPR_KIND.OR: lambda x, y: x | y,
     cwast.BINARY_EXPR_KIND.AND: lambda x, y: x & y,
     cwast.BINARY_EXPR_KIND.XOR: lambda x, y: x ^ y,
+}
+
+_EVAL_BOOL = _EVAL_EQ_NE | _EVAL_UINT_OR_BOOL
+_EVAL_SINT = _EVAL_CMP | _EVAL_INT
+_EVAL_UINT = _EVAL_CMP | _EVAL_INT | _EVAL_UINT_OR_BOOL
+_EVAL_REAL = _EVAL_CMP | _EVAL_ADD_SUB_MUL | {
+    cwast.BINARY_EXPR_KIND.DIV: lambda x, y: x / y,
 }
 
 
@@ -310,36 +319,27 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
     e2 = node.expr2.x_value
     if e1 is None or e2 is None:
         return False
+    ct = node.x_type
+    bt = ct.base_type_kind
+    ct_operand = node.expr1.x_type
+    if ct_operand.is_pointer():
+        # TODO: at least EQ/NE should be doable
+        return False
+    bt_operand = ct_operand.base_type_kind
     op = node.binary_expr_kind
-    x_type = node.x_type
-
-    if x_type.is_real():
-        if op in _EVAL2_ANY:
-            return _AssignValue(node, _EVAL2_ANY[op](e1, e2))
-        if op in _EVAL2_REAL:
-            return _AssignValue(node, _EVAL2_REAL[op](e1, e2))
-    elif x_type.is_sint():
-        # TODO: deal with signed overflow
-        if op in _EVAL2_ANY:
-            return _AssignValue(node, _EVAL2_ANY[op](e1, e2))
-        if op in _EVAL2_INT:
-            return _AssignValue(node, _EVAL2_INT[op](e1, e2))
-    elif x_type.is_uint():
-        kind = x_type.base_type_kind
-        if op in _EVAL2_ANY:
-            return _AssignValue(node,
-                                _HandleUintOverflow(kind, _EVAL2_ANY[op](e1, e2)))
-        if op in _EVAL2_INT:
-            return _AssignValue(node,
-                                _HandleUintOverflow(kind, _EVAL2_INT[op](e1, e2)))
-        if op in _EVAL2_UINT:
-            return _AssignValue(node,
-                                _HandleUintOverflow(kind, _EVAL2_UINT[op](e1, e2)))
-    elif x_type.is_bool():
-        if op in _EVAL2_ANY:
-            return _AssignValue(node, _EVAL2_ANY[op](e1, e2))
-
-    return False
+    if bt_operand.IsUint():
+        v = _EVAL_UINT[op](e1, e2)
+        if bt != cwast.BASE_TYPE_KIND.BOOL:
+            v = _HandleUintOverflow(bt_operand, v)
+        return _AssignValue(node, ValNumeric(v, bt))
+    elif bt_operand.IsSint():
+        return _AssignValue(node, _EVAL_SINT[op](e1, e2))
+    elif bt_operand.IsReal():
+        return _AssignValue(node, _EVAL_REAL[op](e1, e2))
+    elif bt_operand == cwast.BASE_TYPE_KIND.BOOL:
+        return _AssignValue(node, _EVAL_BOOL[op](e1, e2))
+    else:
+        assert False, f"unexpected type {ct_operand}"
 
 
 def _EvalExpr3(node: cwast.Expr3) -> bool:
