@@ -443,6 +443,7 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 def _FormatNumber(val: cwast.ValNum) -> str:
     num = val.x_value.val
+    assert num is not None, f"{val.x_value}"
     if val.x_type.is_int():
         return str(num)
     elif val.x_type.is_real():
@@ -980,7 +981,6 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 return _EmitMem(value, f"{offset} {ct.name}")
 
             assert isinstance(node, cwast.ValCompound), f"{node}"
-            assert node.x_value is None
             if x_type.is_base_or_enum_type():
                 # this special case creates a smaller IR
                 out = bytearray()

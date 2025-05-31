@@ -30,8 +30,7 @@ class EvalVoid:
 
 class EvalSymAddr:
     def __init__(self, sym):
-        assert isinstance(sym, (cwast.ValCompound, cwast.ValString,
-                          cwast.DefGlobal, cwast.DefVar))
+        assert isinstance(sym, (cwast.DefGlobal, cwast.DefVar)), f"{sym}"
         self.sym = sym
 
     def __eq__(self, other):
@@ -52,22 +51,26 @@ class EvalFunAddr:
 
 
 class EvalCompound:
-    def __init__(self, sym):
-        assert isinstance(sym, (cwast.ValString, cwast.ValCompound))
+    def __init__(self, compound, sym=None):
+        assert isinstance(compound, (cwast.ValString, cwast.ValCompound))
+        self.compound = compound
+        # if sym is not None it has been materialized as `sym`
         self.sym = sym
 
 
 class EvalSpan:
     def __init__(self, pointer, size, content=None):
         assert pointer is None or isinstance(
-            pointer, EvalSymAddr), f"{pointer}"
+            pointer, (cwast.DefGlobal, cwast.DefVar)), f"{pointer}"
+        assert size is None or isinstance(size, int), f"{size}"
         self.pointer = pointer
         self.size = size
         self.content = content
 
 
 class EvalNum:
-    def __init__(self, val, kind):
+    def __init__(self, val, kind: cwast.BASE_TYPE_KIND):
+        assert isinstance(val, (int, float, bool)), f"{val}"
         assert isinstance(kind, cwast.BASE_TYPE_KIND)
         self.kind = kind
         self.val = val
@@ -227,7 +230,8 @@ def _AssignValue(node, val) -> bool:
     if val is None:
         return False
 
-    assert isinstance(val, (EvalNum, EvalUndef, EvalVoid, EvalCompound, EvalSpan, EvalSymAddr)
+    assert isinstance(val, (EvalNum, EvalUndef, EvalVoid, EvalFunAddr,
+                            EvalCompound, EvalSpan, EvalSymAddr)
                       ), f"unexpected value {val}"
     logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
@@ -459,11 +463,13 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         def_node = node.x_symbol
         assert def_node is not None, f"{node}"
         if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
-            initial = def_node.initial_or_undef_or_auto
-            if not def_node.mut and initial.x_value is not None:
-                return _AssignValue(node, initial.x_value)
+            if def_node.x_value is not None:
+                assert not def_node.mut
+            return _AssignValue(node, def_node.x_value)
         elif isinstance(def_node, cwast.EnumVal):
             return _AssignValue(node, def_node.value_or_auto.x_value)
+        elif isinstance(def_node, cwast.DefFun):
+            return _AssignValue(node, EvalFunAddr(def_node))
         return False
     elif isinstance(node, cwast.EnumVal):
         return False  # handles as part of DefEnum
@@ -490,23 +496,13 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
         return False
     elif isinstance(node, cwast.ValPoint):
-        val = node.value_or_undef.x_value
-        if val is None:
-            if node.x_type.is_span() and node.value_or_undef.x_type.is_vec():
-                dim = node.value_or_undef.x_type.array_dim()
-                sym = None
-                if isinstance(node.value_or_undef,
-                              (cwast.ValCompound, cwast.ValString)):
-                    sym = EvalSymAddr(node.value_or_undef)
-                elif isinstance(node.value_or_undef, cwast.Id):
-                    sym = EvalSymAddr(node.value_or_undef.x_symbol)
-                val = EvalSpan(sym, dim)
-
+        val = _EvalValWithPossibleImplicitConversion(
+            node.x_type, node.value_or_undef)
         return _AssignValue(node, val)
     elif isinstance(node, cwast.ValCompound):
-        return False
+        return _AssignValue(node, EvalCompound(node))
     elif isinstance(node, cwast.ValString):
-        return False
+        return _AssignValue(node, EvalCompound(node))
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
         if index_val is None:
@@ -580,9 +576,10 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
                 val = EvalSymAddr(container.x_symbol)
         else:
             assert ct_container.is_span()
-            if container.x_value is not None:
-                assert isinstance(container.x_value, EvalSpan)
-                val = container.x_value.pointer
+            v_container = container.x_value
+            if v_container is not None and v_container.pointer is not None:
+                assert isinstance(v_container, EvalSpan), f"{v_container}"
+                val = EvalSymAddr(v_container.pointer)
         return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprLen):
         container = node.container
@@ -590,7 +587,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         val = None
         if container.x_type.is_vec():
             val = EvalNum(container.x_type.array_dim(), bt)
-        elif isinstance(container.x_value, EvalSpan):
+        elif isinstance(container.x_value, EvalSpan) and container.x_value.size is not None:
             val = EvalNum(container.x_value.size, bt)
         return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprAddrOf):
@@ -607,10 +604,17 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         # TODO maybe track symbolic addresses
         return False
     elif isinstance(node, cwast.ValSpan):
-        if node.pointer.x_value is not None and node.expr_size.x_value is not None:
-            return _AssignValue(node,
-                                EvalSpan(node.pointer.x_value, node.expr_size.x_value))
-        return False
+        p = node.pointer.x_value
+        s = node.expr_size.x_value
+        if p is None and s is None:
+            return False
+        if p:
+            assert isinstance(p, EvalSymAddr)
+            p = p.sym
+        if s:
+            assert isinstance(s, EvalNum)
+            s = s.val
+        return _AssignValue(node, EvalSpan(p, s))
     elif isinstance(node, cwast.ExprUnionTag):
         return False
     elif isinstance(node, cwast.ExprParen):
@@ -619,6 +623,26 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return False
     else:
         assert False, f"unexpected node {node}"
+
+
+def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
+                                           src_node):
+    src_type: cwast.CanonType = dst_type if isinstance(
+        src_node, cwast.ValUndef) else src_node.x_type
+    src_value = src_node.x_value
+    if type_corpus.IsSameTypeExceptForNut(src_type, dst_type):
+        return src_value
+
+    if src_type.is_vec() and dst_type.is_span():
+        if src_value is None:
+            return EvalSpan(None, src_type.array_dim(), None)
+        else:
+            assert isinstance(src_value, EvalCompound)
+            return EvalSpan(src_value.sym, src_type.array_dim(), src_value)
+    elif src_value is None:
+        return None
+    # assert False, f"{src_node}: {src_node.x_type} -> {dst_type} [{src_value}]"
+    return None
 
 
 def EvalRecursively(node) -> bool:
@@ -638,11 +662,10 @@ def EvalRecursively(node) -> bool:
                 seen_change |= _EvalAuto(initial)
             if node.mut:
                 return
-            # TODO add union handling
-            if node.x_type.is_span() and initial.x_type.is_vec():
-                return
-            elif initial.x_value is not None:
-                seen_change |= _AssignValue(node, initial.x_value)
+            val = _EvalValWithPossibleImplicitConversion(
+                node.x_type, initial)
+            if val is not None:
+                seen_change |= _AssignValue(node, val)
             return
         seen_change |= _EvalNode(node)
 

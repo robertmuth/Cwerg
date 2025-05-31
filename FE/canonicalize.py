@@ -109,7 +109,7 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
         typeids.append(dst_ct.get_original_typeid())
     typeidvals = [cwast.ValNum(str(i), x_srcloc=sl,
                                x_type=typeid_ct, x_value=eval.EvalNum(i,
-                                                                         typeid_ct.base_type_kind)) for i in typeids]
+                                                                      typeid_ct.base_type_kind)) for i in typeids]
     # TODO: store tag in a variable rather than retrieving it each time.
     #       Sadly, this requires ExprStmt
     tag = cwast.ExprUnionTag(node.expr, x_srcloc=sl, x_type=typeid_ct)
@@ -505,17 +505,17 @@ def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCo
     assert node.x_type.is_vec()
     p_type = tc.InsertPtrType(dst_type.mut, dst_type.underlying_type())
     v_sym = None
-    if isinstance(node, (cwast.ValCompound, cwast.ValString)):
-        v_sym = eval.EvalSymAddr(node)
-    elif isinstance(node, cwast.Id):
+    if isinstance(node, cwast.Id):
         v_sym = eval.EvalSymAddr(node.x_symbol)
 
+    # assert not isinstance(node, (cwast.ValCompound, cwast.ValString)), f"{node.x_srcloc}"
     pointer = cwast.ExprFront(
-        node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type, x_value=v_sym)
+        node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type,
+        x_value=v_sym)
     width = node.x_type.array_dim()
     length = cwast.ValNum(f"{width}", x_value=eval.EvalNum(width, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)
-    v_span = eval.EvalSpan(v_sym, width)
+    v_span = eval.EvalSpan(v_sym.sym if v_sym else None, width)
     return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=v_span)
 
 
@@ -539,7 +539,7 @@ def IsSameTypeExceptMut(src: cwast.CanonType, dst: cwast.CanonType) -> bool:
     if src is dst:
         return True
     if src.node is dst.node and src.mut and not dst.mut:
-        return (src.node in (cwast.TypePtr, cwast.TypeSpan, cwast.TypeVec, cwast.TypePtr) and
+        return (src.node in (cwast.TypePtr, cwast.TypeSpan, cwast.TypeVec) and
                 src.children[0] == dst.children[0])
     return False
 

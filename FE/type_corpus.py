@@ -21,6 +21,14 @@ def align(x, a):
     return (x + a - 1) // a * a
 
 
+def IsSameTypeExceptForNut(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
+    if actual == expected:
+        return True
+    if (actual.is_pointer() and expected.is_pointer() or
+            actual.is_span() and expected.is_span()):
+        return actual.underlying_type() == expected.underlying_type() and (not expected.is_mutable())
+    return False
+
 def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
                   actual_is_lvalue=False) -> bool:
     if actual == expected:
