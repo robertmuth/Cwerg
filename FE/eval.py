@@ -400,59 +400,52 @@ def _EvalAuto(node: cwast.ValAuto) -> bool:
 
 
 def _GetValForVecAtPos(container, index: int):
-    if isinstance(container, cwast.ValString):
-        s = container.get_bytes()
-        assert index < len(s)
-        return EvalNum(s[index], cwast.BASE_TYPE_KIND.U8)
-
     if isinstance(container, cwast.ValAuto):
         return GetDefaultForType(container.x_type.underlying_type())
 
-    if isinstance(container,  cwast.ValCompound):
-        assert index < container.x_type.array_dim()
-        n = 0
-        for point in container.inits:
-            if isinstance(point.point_or_undef, cwast.ValNum):
-                assert isinstance(point.point_or_undef.x_value, EvalNum)
-                n = point.point_or_undef.x_value.val
-            if n == index:
-                return point.value_or_undef.x_value
-            if n > index:
+    val = container.x_value
+    if isinstance(val, EvalCompound):
+        container = val.compound
 
-                return GetDefaultForType(container.x_type.underlying_type())
-            n += 1
-        return None
+        if isinstance(container, cwast.ValString):
 
-    if not isinstance(container, cwast.Id):
-        return None
+            s = container.get_bytes()
+            assert index < len(s)
+            return EvalNum(s[index], cwast.BASE_TYPE_KIND.U8)
 
-    def_node = container.x_symbol
-    if not isinstance(def_node, (cwast.DefVar, cwast.DefGlobal)) or def_node.mut:
-        return None
+        if isinstance(val, EvalCompound):
+            container = val.compound
+            assert isinstance(container, cwast.ValCompound), f"{container}"
+            assert index < container.x_type.array_dim()
+            n = 0
+            for point in container.inits:
+                if isinstance(point.point_or_undef, cwast.ValNum):
+                    assert isinstance(point.point_or_undef.x_value, EvalNum)
+                    n = point.point_or_undef.x_value.val
+                if n == index:
+                    return point.value_or_undef.x_value
+                if n > index:
 
-    return _GetValForVecAtPos(def_node.initial_or_undef_or_auto, index)
+                    return GetDefaultForType(container.x_type.underlying_type())
+                n += 1
+    return None
 
 
 def _GetValForRecAtField(container, field):
     if isinstance(container, cwast.ValAuto):
         return GetDefaultForType(field.x_symbol.x_type)
 
-    if isinstance(container,  cwast.ValCompound):
-        for rec_field, init in symbolize.IterateValRec(container.inits, container.x_type):
+    val = container.x_value
+    if isinstance(val, EvalCompound):
+        val = val.compound
+        for rec_field, init in symbolize.IterateValRec(val.inits, val.x_type):
             if field.x_symbol == rec_field:
                 if init:
                     return init.x_value
                 else:
                     return GetDefaultForType(field.x_type)
         assert False
-
-    if not isinstance(container, cwast.Id):
-        return None
-
-    def_node = container.x_symbol
-    if not isinstance(def_node, (cwast.DefVar, cwast.DefGlobal)) or def_node.mut:
-        return None
-    return _GetValForRecAtField(def_node.initial_or_undef_or_auto, field)
+    return None
 
 
 def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
