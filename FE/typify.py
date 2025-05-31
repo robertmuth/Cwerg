@@ -660,7 +660,7 @@ def _CheckTypeCompatibleForEq(node, actual: cwast.CanonType, expected: cwast.Can
         expected = expected.original_type
     if actual.original_type is not None:
         actual = actual.original_type
-    if not type_corpus.IsCompatibleForEq(actual, expected):
+    if not type_corpus.IsCompatibleTypeForEq(actual, expected):
         cwast.CompilerError(node.x_srcloc,
                             f"{node}: incompatible actual: {actual} expected: {expected}")
 
@@ -685,14 +685,14 @@ def _CheckTypeCompatible(node, actual: cwast.CanonType, expected: cwast.CanonTyp
                          srcloc=None):
     if expected.original_type is not None:
         expected = expected.original_type
-    if not type_corpus.is_compatible(actual, expected):
+    if not type_corpus.IsCompatibleType(actual, expected):
         cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
                             f"{node}: incompatible actual: {actual} expected: {expected}")
 
 
 def _CheckTypeCompatibleForAssignment(node, actual: cwast.CanonType,
                                       expected: cwast.CanonType, mutable: bool, srcloc=None):
-    if not type_corpus.is_compatible(actual, expected, mutable):
+    if not type_corpus.IsCompatibleType(actual, expected, mutable):
         cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
                             f"{node}:\n incompatible actual: {actual} expected: {expected}")
 
@@ -827,7 +827,7 @@ def _CheckExprWiden(node: cwast.ExprWiden, _):
     if ct_src.original_type:
         ct_src = ct_src.original_type
     ct_dst: cwast.CanonType = node.type.x_type
-    if not type_corpus.is_compatible_for_widen(ct_src, ct_dst):
+    if not type_corpus.IsCompatibleTypeForWiden(ct_src, ct_dst):
         cwast.CompilerError(
             node.x_srcloc,  f"bad widen {ct_src} -> {ct_dst}: {node.expr}")
 
@@ -835,7 +835,7 @@ def _CheckExprWiden(node: cwast.ExprWiden, _):
 def _CheckExprNarrow(node: cwast.ExprNarrow, _):
     ct_src: cwast.CanonType = node.expr.x_type
     ct_dst: cwast.CanonType = node.type.x_type
-    if not type_corpus.is_compatible_for_narrow(ct_src, ct_dst, node.x_srcloc):
+    if not type_corpus.IsCompatibleTypeForNarrow(ct_src, ct_dst, node.x_srcloc):
         cwast.CompilerError(
             node.x_srcloc,  f"bad narrow {ct_src.original_type} -> {ct_dst}: {node.expr}")
 
@@ -905,7 +905,7 @@ def _CheckExprWrap(node: cwast.ExprWrap,  _):
     ct_node: cwast.CanonType = node.x_type
     ct_expr: cwast.CanonType = node.expr.x_type
     assert ct_node == node.type.x_type
-    if not type_corpus.is_compatible_for_wrap(ct_expr, ct_node):
+    if not type_corpus.IsCompatibleTypeForWrap(ct_expr, ct_node):
         cwast.CompilerError(
             node.x_srcloc, f"bad wrap {ct_expr} -> {ct_node}")
 
@@ -1057,7 +1057,7 @@ def _CheckDefVarDefGlobalStrict(node, _):
 def _CheckExprAs(node: cwast.ExprAs, _):
     ct_src = node.expr.x_type
     ct_dst = node.type.x_type
-    if not type_corpus.IsCompatibleForAs(ct_src, ct_dst):
+    if not type_corpus.IsCompatibleTypeForAs(ct_src, ct_dst):
         cwast.CompilerError(
             node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
 
@@ -1071,7 +1071,7 @@ def _CheckExprUnsafeCast(node: cwast.ExprUnsafeCast,  tc: type_corpus.TypeCorpus
 def _CheckExprBitCast(node: cwast.ExprAs, _):
     ct_src = node.expr.x_type
     ct_dst = node.type.x_type
-    if not type_corpus.is_compatible_for_bitcast(ct_src, ct_dst):
+    if not type_corpus.IsCompatibleTypeForBitcast(ct_src, ct_dst):
         cwast.CompilerError(
             node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
 

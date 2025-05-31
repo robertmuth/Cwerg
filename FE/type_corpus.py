@@ -21,7 +21,7 @@ def align(x, a):
     return (x + a - 1) // a * a
 
 
-def IsSameTypeExceptForNut(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
+def IsSameTypeExceptMut(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
     if actual == expected:
         return True
     if (actual.is_pointer() and expected.is_pointer() or
@@ -29,8 +29,9 @@ def IsSameTypeExceptForNut(actual: cwast.CanonType, expected: cwast.CanonType) -
         return actual.underlying_type() == expected.underlying_type() and (not expected.is_mutable())
     return False
 
-def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
-                  actual_is_lvalue=False) -> bool:
+
+def IsCompatibleType(actual: cwast.CanonType, expected: cwast.CanonType,
+                     actual_is_lvalue=False) -> bool:
     if actual == expected:
         return True
 
@@ -60,13 +61,13 @@ def is_compatible(actual: cwast.CanonType, expected: cwast.CanonType,
 
 
 # maybe add records if all their fields are comparable?
-def IsComparable(ct: cwast.CanonType) -> bool:
+def IsComparableType(ct: cwast.CanonType) -> bool:
     return (ct.is_base_or_enum_type() or ct.is_pointer() or
-            ct.is_wrapped() and IsComparable(ct.underlying_type()))
+            ct.is_wrapped() and IsComparableType(ct.underlying_type()))
 
 
-def IsCompatibleForEq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
-    if IsComparable(actual):
+def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
+    if IsComparableType(actual):
         if actual == expected:
             return True
 
@@ -74,16 +75,16 @@ def IsCompatibleForEq(actual: cwast.CanonType, expected: cwast.CanonType) -> boo
             return actual in expected.union_member_types()
 
     if actual.is_tagged_union():
-        return IsComparable(expected) and expected in actual.union_member_types()
+        return IsComparableType(expected) and expected in actual.union_member_types()
 
     return False
 
 
-def IsCompatibleForAs(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+def IsCompatibleTypeForAs(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
     return ct_src.is_number() and ct_dst.is_number()
 
 
-def is_compatible_for_bitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+def IsCompatibleTypeForBitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
     if not ct_src.is_base_or_enum_type() and not ct_src.is_pointer():
         return False
     if not ct_dst.is_base_or_enum_type() and not ct_dst.is_pointer():
@@ -91,7 +92,7 @@ def is_compatible_for_bitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) 
     return ct_src.aligned_size() == ct_dst.aligned_size()
 
 
-def is_compatible_for_widen(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+def IsCompatibleTypeForWiden(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
     if ct_dst.is_union():
         dst_children = set([x.name for x in ct_dst.union_member_types()])
         if ct_src.is_union():
@@ -105,7 +106,7 @@ def is_compatible_for_widen(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) ->
     return False
 
 
-def is_compatible_for_narrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, sl: cwast.SrcLoc) -> bool:
+def IsCompatibleTypeForNarrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, sl: cwast.SrcLoc) -> bool:
 
     if ct_src.original_type is not None:
         ct_src = ct_src.original_type
@@ -122,7 +123,7 @@ def is_compatible_for_narrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, s
     return dst_children.issubset(src_children)
 
 
-def is_compatible_for_wrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+def IsCompatibleTypeForWrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
     if ct_dst.is_enum():
         return ct_src.is_base_type() and ct_dst.base_type_kind == ct_src.base_type_kind
     elif ct_dst.is_wrapped():
