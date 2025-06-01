@@ -67,7 +67,7 @@ def IsComparableType(ct: cwast.CanonType) -> bool:
 
 
 def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
-    if IsComparableType(actual):
+    if IsComparableType(actual) or actual.is_fun():
         if actual == expected:
             return True
 

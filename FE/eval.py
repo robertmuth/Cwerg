@@ -28,6 +28,11 @@ class EvalVoid:
         pass
 
 
+class EvalZeroCompound:
+    def __init__(self):
+        pass
+
+
 class EvalSymAddr:
     def __init__(self, sym):
         assert isinstance(sym, (cwast.DefGlobal, cwast.DefVar)), f"{sym}"
@@ -79,6 +84,7 @@ class EvalNum:
 VAL_EMPTY_SPAN = EvalSpan(None, 0)
 VAL_UNDEF = EvalUndef()
 VAL_VOID = EvalVoid()
+VAL_ZERO_COMPOUND = EvalZeroCompound()
 VAL_TRUE = EvalNum(True, cwast.BASE_TYPE_KIND.BOOL)
 VAL_FALSE = EvalNum(False, cwast.BASE_TYPE_KIND.BOOL)
 
@@ -230,8 +236,8 @@ def _AssignValue(node, val) -> bool:
     if val is None:
         return False
 
-    assert isinstance(val, (EvalNum, EvalUndef, EvalVoid, EvalFunAddr,
-                            EvalCompound, EvalSpan, EvalSymAddr)
+    assert isinstance(val, (EvalNum, EvalUndef, EvalZeroCompound, EvalVoid,
+                            EvalFunAddr, EvalCompound, EvalSpan, EvalSymAddr)
                       ), f"unexpected value {val}"
     logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
@@ -256,17 +262,20 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
     return out
 
 
+def GetDefaultForBaseType(bt: cwast.BASE_TYPE_KIND) -> Any:
+    if bt.IsReal():
+        return EvalNum(0.0, bt)
+    elif bt.IsInt():
+        return EvalNum(0, bt)
+    elif bt is cwast.BASE_TYPE_KIND.BOOL:
+        return VAL_FALSE
+    else:
+        assert False
+
+
 def GetDefaultForType(ct: cwast.CanonType) -> Any:
     if ct.is_base_type():
-        bt = ct.base_type_kind
-        if bt.IsReal():
-            return EvalNum(0.0, bt)
-        elif bt.IsInt():
-            return EvalNum(0, bt)
-        elif bt is cwast.BASE_TYPE_KIND.BOOL:
-            return VAL_FALSE
-        else:
-            assert False
+        return GetDefaultForBaseType(ct.base_type_kind)
     elif ct.is_wrapped():
         return GetDefaultForType(ct.underlying_type())
     elif ct.is_span():
@@ -389,14 +398,15 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
     return False
 
 
-def _EvalAuto(node: cwast.ValAuto) -> bool:
+def _GetValForAuto(node: cwast.ValAuto) -> bool:
     ct: cwast.CanonType = node.x_type
-    if not ct.is_base_type():
-        return False
-    v = GetDefaultForType(ct)
-    if v is None:
-        return False
-    return _AssignValue(node, v)
+    if ct.is_rec():
+        return VAL_ZERO_COMPOUND
+    elif ct.is_vec():
+        return VAL_ZERO_COMPOUND
+    elif ct.is_base_type():
+        return GetDefaultForBaseType(ct.base_type_kind)
+    return None
 
 
 def _GetValForVecAtPos(container, index: int):
@@ -652,7 +662,8 @@ def EvalRecursively(node) -> bool:
             if initial.x_value is None and isinstance(initial, cwast.ValAuto):
                 # ValAuto has differernt meanings in different context
                 # so we deal with it explicity here and elsewhere
-                seen_change |= _EvalAuto(initial)
+                val = _GetValForAuto(initial)
+                seen_change |= _AssignValue(initial, val)
             if node.mut:
                 return
             val = _EvalValWithPossibleImplicitConversion(

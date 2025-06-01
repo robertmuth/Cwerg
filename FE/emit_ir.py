@@ -985,7 +985,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 # this special case creates a smaller IR
                 out = bytearray()
                 last = _InitDataForBaseType(
-                    x_type, eval.GetDefaultForType(x_type))
+                    x_type, eval.GetDefaultForBaseType(x_type.base_type_kind))
                 for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
                     if init is not None:
                         last = _InitDataForBaseType(x_type, init.x_value)
