@@ -643,12 +643,6 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         assert False, f"unexpected node {node}"
 
 
-def _CheckTypeUint(node, actual: cwast.CanonType):
-    if not actual.is_uint():
-        cwast.CompilerError(node.x_srcloc,
-                            f"{node}: not uint: {actual}")
-
-
 def _CheckTypeSame(node, actual: cwast.CanonType, expected: cwast.CanonType):
     if actual is not expected:
         cwast.CompilerError(node.x_srcloc,
@@ -732,8 +726,9 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
 def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
     for point in node.inits:
         assert isinstance(point, cwast.ValPoint), f"{point}"
-        if not isinstance(point.point_or_undef, cwast.ValUndef):
-            assert point.point_or_undef.x_type.is_int()
+        index = point.point_or_undef
+        if not isinstance(index, cwast.ValUndef):
+            assert index.x_type.is_base_type() and index.x_type.base_type_kind.IsUint()
         # TODO: this should be  _CheckTypeCompatibleForAssignment
         _CheckTypeSame(point,  point.x_type, ct)
 
@@ -786,8 +781,11 @@ def _CheckExprDeref(node: cwast.ExprDeref, _):
 
 
 def _CheckExprPointer(node: cwast.ExprPointer, _):
-    if not isinstance(node.expr_bound_or_undef, cwast.ValUndef):
-        _CheckTypeUint(node, node.expr_bound_or_undef.x_type)
+    bound = node.expr_bound_or_undef
+    if not isinstance(bound, cwast.ValUndef):
+        if not bound.x_type.is_base_type() or not bound.x_type.base_type_kind.IsUint():
+            cwast.CompilerError(
+                bound.x_srcloc, f"{bound}: not uint: {bound.x_type}")
     ct: cwast.CanonType = node.expr1.x_type
     if not ct.is_pointer():
         cwast.CompilerError(
@@ -1203,7 +1201,7 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
 
 
 def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
-                         tc: type_corpus.TypeCorpus):
+                  tc: type_corpus.TypeCorpus):
     """This checks types and maps them to a canonical node
 
     Since array type include a fixed bound this also also includes

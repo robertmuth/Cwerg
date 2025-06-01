@@ -339,7 +339,7 @@ def ReplaceConstExpr(node):
             return cwast.ValNum(str(node.x_value),
                                 x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
         if node.x_type.is_bool() and not isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
-            # assert False, f"unimplemented opt {node}"
+            # assert False, f"unimplemented opt {node} {parent} {node.x_value.kind}"
             # TODO
             pass
         return None

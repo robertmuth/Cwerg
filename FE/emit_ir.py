@@ -127,16 +127,19 @@ class ReturnResultLocation:
 def _InitDataForBaseType(x_type: cwast.CanonType, val) -> bytes:
     assert x_type.is_base_or_enum_type() and val is not None
     byte_width = x_type.size
-    if val is eval.VAL_UNDEF:
+    if isinstance(val, eval.EvalUndef):
         return ZEROS[byte_width]
+    assert isinstance(val, eval.EvalNum)
+    bt = val.kind
+    assert bt == x_type.base_type_kind, f"{bt} {x_type} {val.val}"
     val = val.val
-    if x_type.is_uint():
+    if bt.IsUint():
         return val.to_bytes(byte_width, 'little')
-    elif x_type.is_sint():
+    elif bt.IsSint():
         return val.to_bytes(byte_width, 'little', signed=True)
-    elif x_type.is_bool():
+    elif bt is cwast.BASE_TYPE_KIND.BOOL:
         return b"\1" if val else b"\0"
-    elif x_type.is_real():
+    elif bt.IsReal():
         fmt = "f" if x_type.base_type_kind is cwast.BASE_TYPE_KIND.R32 else "d"
         return struct.pack(fmt, val)
     else:
@@ -442,11 +445,14 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 
 def _FormatNumber(val: cwast.ValNum) -> str:
+    assert isinstance(val.x_value, eval.EvalNum)
+    bt = val.x_type.base_type_kind
     num = val.x_value.val
     assert num is not None, f"{val.x_value}"
-    if val.x_type.is_int():
+
+    if bt.IsInt():
         return str(num)
-    elif val.x_type.is_real():
+    elif bt.IsReal():
         if math.isnan(num) or math.isinf(num):
             # note, python renders -nan and +nan as just nan
             sign = math.copysign(1, num)

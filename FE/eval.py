@@ -536,8 +536,14 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return False
     elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprWiden, cwast.ExprWrap, cwast.ExprUnwrap)):
         # TODO: some transforms may need to be applied
-        if node.expr.x_value is not None:
-            return _AssignValue(node, node.expr.x_value)
+        ct = node.x_type
+        val = node.expr.x_value
+        if isinstance(val, EvalNum):
+            new_bt = ct.get_base_type_fancy()
+            assert new_bt is not None, f"{node.expr.x_type} -> {ct.x_type}"
+            return _AssignValue(node, EvalNum(val.val, new_bt))
+        elif isinstance(val, EvalVoid):
+            return _AssignValue(node, val)
         return False
     elif isinstance(node, cwast.ExprUnionUntagged):
         # TODO: we can do better here
