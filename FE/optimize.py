@@ -18,14 +18,15 @@ def MayHaveSideEffects(n: Any):
     # we could try harder but it is probably not worth it.
     if isinstance(n, (cwast.ExprCall, cwast.ExprStmt)):
         return True
-    elif isinstance(n, (cwast.Id, cwast.ValAuto, cwast.ValTrue, cwast.ValFalse, cwast.ValUndef, cwast.ValNum)):
+    elif isinstance(n, (cwast.Id, cwast.ValAuto, cwast.ValTrue, cwast.ValFalse,
+                        cwast.ValUndef, cwast.ValNum)):
         return False
     elif isinstance(n, (cwast.ExprAddrOf)):
         return MayHaveSideEffects(n.expr_lhs)
     elif isinstance(n, (cwast.ExprDeref, cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast,
                         cwast.ExprWiden, cwast.ExprNarrow, cwast.ExprUnionUntagged)):
         return MayHaveSideEffects(n.expr)
-    elif isinstance(n, (cwast.ExprFront, cwast.ExprField)):
+    elif isinstance(n, (cwast.ExprFront, cwast.ExprField, cwast.ExprLen)):
         return MayHaveSideEffects(n.container)
     elif isinstance(n, (cwast.Expr2)):
         return MayHaveSideEffects(n.expr1) or MayHaveSideEffects(n.expr2)

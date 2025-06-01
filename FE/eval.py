@@ -22,15 +22,24 @@ class EvalUndef:
     def __init__(self):
         pass
 
+    def __str__(self):
+        return "EvalUndef"
+
 
 class EvalVoid:
     def __init__(self):
         pass
 
+    def __str__(self):
+        return "EvalVoid"
+
 
 class EvalComplexDefault:
     def __init__(self):
         pass
+
+    def __str__(self):
+        return "EvalComplexDefault"
 
 
 class EvalSymAddr:
@@ -43,6 +52,9 @@ class EvalSymAddr:
             return False
         return self.sym == other.sym
 
+    def __str__(self):
+        return f"EvalSymAddress[{self.sym.name}]"
+
 
 class EvalFunAddr:
     def __init__(self, sym):
@@ -54,6 +66,9 @@ class EvalFunAddr:
             return False
         return self.sym == other.sym
 
+    def __str__(self):
+        return f"EvalFunAddress[{self.sym.name}]"
+
 
 class EvalCompound:
     def __init__(self, compound, sym=None):
@@ -61,6 +76,9 @@ class EvalCompound:
         self.compound = compound
         # if sym is not None it has been materialized as `sym`
         self.sym = sym
+
+    def __str__(self):
+        return "EvalCompound"
 
 
 class EvalSpan:
@@ -72,6 +90,9 @@ class EvalSpan:
         self.size = size
         self.content = content
 
+    def __str__(self):
+        return f"EvalSpan[{self.pointer}, {self.size}]"
+
 
 class EvalNum:
     def __init__(self, val, kind: cwast.BASE_TYPE_KIND):
@@ -79,6 +100,9 @@ class EvalNum:
         assert isinstance(kind, cwast.BASE_TYPE_KIND)
         self.kind = kind
         self.val = val
+
+    def __str__(self):
+        return f"EvalNum[{self.val}]"
 
 
 VAL_EMPTY_SPAN = EvalSpan(None, 0)
