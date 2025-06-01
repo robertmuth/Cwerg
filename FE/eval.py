@@ -28,7 +28,7 @@ class EvalVoid:
         pass
 
 
-class EvalZeroCompound:
+class EvalComplexDefault:
     def __init__(self):
         pass
 
@@ -84,7 +84,7 @@ class EvalNum:
 VAL_EMPTY_SPAN = EvalSpan(None, 0)
 VAL_UNDEF = EvalUndef()
 VAL_VOID = EvalVoid()
-VAL_ZERO_COMPOUND = EvalZeroCompound()
+VAL_COMPLEX_DEFAULT = EvalComplexDefault()
 VAL_TRUE = EvalNum(True, cwast.BASE_TYPE_KIND.BOOL)
 VAL_FALSE = EvalNum(False, cwast.BASE_TYPE_KIND.BOOL)
 
@@ -236,7 +236,7 @@ def _AssignValue(node, val) -> bool:
     if val is None:
         return False
 
-    assert isinstance(val, (EvalNum, EvalUndef, EvalZeroCompound, EvalVoid,
+    assert isinstance(val, (EvalNum, EvalUndef, EvalComplexDefault, EvalVoid,
                             EvalFunAddr, EvalCompound, EvalSpan, EvalSymAddr)
                       ), f"unexpected value {val}"
     logger.info("EVAL of %s: %s", node, val)
@@ -400,10 +400,10 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
 
 def _GetValForAuto(node: cwast.ValAuto) -> bool:
     ct: cwast.CanonType = node.x_type
-    if ct.is_rec():
-        return VAL_ZERO_COMPOUND
-    elif ct.is_vec():
-        return VAL_ZERO_COMPOUND
+    if ct.is_complex():
+        return VAL_COMPLEX_DEFAULT
+    elif ct.is_span():
+        return VAL_EMPTY_SPAN
     elif ct.is_base_type():
         return GetDefaultForBaseType(ct.base_type_kind)
     return None

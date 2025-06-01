@@ -965,15 +965,6 @@ class CanonType:
     def is_int(self) -> bool:
         return self.base_type_kind.IsInt()
 
-    def is_uint(self) -> bool:
-        return self.base_type_kind.IsUint()
-
-    def is_sint(self) -> bool:
-        return self.base_type_kind.IsSint()
-
-    def is_real(self) -> bool:
-        return self.base_type_kind.IsReal()
-
     def is_number(self) -> bool:
         return self.base_type_kind.IsNumber()
 
@@ -1010,6 +1001,14 @@ class CanonType:
     def is_base_type(self) -> bool:
         return self.node is TypeBase
 
+    def get_base_type_fancy(self) -> Optional[BASE_TYPE_KIND]:
+        if self.node is TypeBase or self.is_enum():
+            return self.base_type_kind
+        elif self.is_wrapped():
+            return self.children[0].get_base_type_fancy()
+        else:
+            return None
+
     def is_base_or_enum_type(self) -> bool:
         return self.node is TypeBase or self.node is DefEnum
 
@@ -1028,6 +1027,13 @@ class CanonType:
 
     def is_vec(self) -> bool:
         return self.node is TypeVec
+
+    def is_complex(self) -> bool:
+        if self.node in (TypeVec, DefRec, TypeUnion):
+            return True
+        if self.is_wrapped():
+            return self.children[0].is_complex()
+        return False
 
     def is_void_or_wrapped_void(self) -> bool:
         if self.node is DefType:
@@ -2735,7 +2741,6 @@ class DefVar:
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
-
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"

@@ -322,17 +322,21 @@ def ReplaceConstExpr(node):
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
     def replacer(node, parent):
+        if isinstance(node, cwast.ValAuto):
+            assert node.x_value is not None, f"{node} {parent}"
         if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
             assert node.x_value is not None
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS or node.x_value is None:
             return None
+        if isinstance(node, (cwast.ValNum, cwast.ValTrue, cwast.ValFalse)):
+            return None
+        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal)):
+            return
         # TODO: add comments for the exception
         # hack:  "node not in parent.inits" would be slower:
         if isinstance(parent, cwast.ValCompound) and node is not parent.type_or_auto:
             return
         if isinstance(parent, cwast.ExprAddrOf) and node is parent.expr_lhs:
-            return
-        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal)):
             return
 
         if node.x_type.is_int() and not isinstance(node, cwast.ValNum):
