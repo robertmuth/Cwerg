@@ -356,7 +356,7 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
     ct = node.x_type
     bt = ct.base_type_kind
     ct_operand = node.expr1.x_type
-    if ct_operand.is_pointer():
+    if ct_operand.is_pointer() or ct_operand.is_fun():
         return _AssignValue(node,  EvalNum(_EVAL_EQ_NE[op](e1, e2), bt))
     assert isinstance(e1, EvalNum) and isinstance(e2, EvalNum)
     e1 = e1.val

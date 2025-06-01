@@ -157,7 +157,12 @@ static_assert is(p1, ^!r32) == false
 
 static_assert is(p1, ^r32) == true
 
+fun foo(x u16) u16:
+    return x
 
+static_assert foo == foo
+
+static_assert @Real == @Real
 
 ; just a compilation test
 fun main(argc s32, argv ^^u8) s32:
