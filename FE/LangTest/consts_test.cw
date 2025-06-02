@@ -89,7 +89,7 @@ pub enum type_enum s32:
 
 global c20 = type_enum:e3
 
-static_assert as(c20, s32) == 19
+static_assert unwrap(c20) == 19
 
 global c41 = c32.s1
 
