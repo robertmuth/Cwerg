@@ -559,26 +559,26 @@ def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpu
 
         if isinstance(node, cwast.ValPoint):
             if not isinstance(node.value_or_undef, cwast.ValUndef):
-                if not type_corpus.IsSameTypeExceptMut(node.value_or_undef.x_type, node.x_type):
+                if not type_corpus.IsDropMutConversion(node.value_or_undef.x_type, node.x_type):
                     node.value_or_undef = _HandleImplicitConversion(
                         node.value_or_undef, node.x_type, uint_type, tc)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
             initial = node.initial_or_undef_or_auto
             if not isinstance(initial, cwast.ValUndef):
-                if not type_corpus.IsSameTypeExceptMut(initial.x_type, node.type_or_auto.x_type):
+                if not type_corpus.IsDropMutConversion(initial.x_type, node.type_or_auto.x_type):
                     node.initial_or_undef_or_auto = _HandleImplicitConversion(
                         initial, node.type_or_auto.x_type, uint_type, tc)
         elif isinstance(node, cwast.ExprCall):
             fun_sig: cwast.CanonType = node.callee.x_type
             for n, (p, a) in enumerate(zip(fun_sig.parameter_types(), node.args)):
-                if not type_corpus.IsSameTypeExceptMut(a.x_type, p):
+                if not type_corpus.IsDropMutConversion(a.x_type, p):
                     node.args[n] = _HandleImplicitConversion(
                         a, p, uint_type, tc)
         elif isinstance(node, cwast.ExprWrap):
             if node.x_type.is_wrapped():
                 target = node.x_type.underlying_type()
                 actual = node.expr.x_type
-                if not type_corpus.IsSameTypeExceptMut(actual, target):
+                if not type_corpus.IsDropMutConversion(actual, target):
                     node.expr = _HandleImplicitConversion(
                         node.expr, target, uint_type, tc)
             else:
@@ -592,11 +592,11 @@ def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpu
             else:
                 assert isinstance(target, cwast.ExprStmt)
                 expected = target.x_type
-            if not type_corpus.IsSameTypeExceptMut(actual, expected):
+            if not type_corpus.IsDropMutConversion(actual, expected):
                 node.expr_ret = _HandleImplicitConversion(
                     node.expr_ret, expected, uint_type, tc)
         elif isinstance(node, cwast.StmtAssignment):
-            if not type_corpus.IsSameTypeExceptMut(node.expr_rhs.x_type, node.lhs.x_type):
+            if not type_corpus.IsDropMutConversion(node.expr_rhs.x_type, node.lhs.x_type):
                 node.expr_rhs = _HandleImplicitConversion(
                     node.expr_rhs, node.lhs.x_type, uint_type, tc)
 

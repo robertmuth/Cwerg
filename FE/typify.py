@@ -822,7 +822,7 @@ def _CheckExprWiden(node: cwast.ExprWiden, _):
     if ct_src.original_type:
         ct_src = ct_src.original_type
     ct_dst: cwast.CanonType = node.type.x_type
-    if not type_corpus.IsCompatibleTypeForWiden(ct_src, ct_dst):
+    if not type_corpus.IsSubtypeToUnionConversion(ct_src, ct_dst):
         cwast.CompilerError(
             node.x_srcloc,  f"bad widen {ct_src} -> {ct_dst}: {node.expr}")
 

@@ -21,43 +21,52 @@ def align(x, a):
     return (x + a - 1) // a * a
 
 
-def IsSameTypeExceptMut(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
-    if actual == expected:
+def IsVecToSpanConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if not ct_src.is_vec():
+        # TODO: check "ref"
+        return False
+    if not ct_dst.is_span():
+        return False
+    return ct_src.underlying_type() == ct_dst.underlying_type()
+
+
+def IsDropMutConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if ct_src == ct_dst:
         return True
-    if (actual.is_pointer() and expected.is_pointer() or
-            actual.is_span() and expected.is_span()):
-        return actual.underlying_type() == expected.underlying_type() and (not expected.is_mutable())
+    if (ct_src.is_pointer() and ct_dst.is_pointer() or
+            ct_src.is_span() and ct_dst.is_span()):
+        return ct_src.underlying_type() == ct_dst.underlying_type() and not ct_dst.is_mutable()
     return False
 
 
-def IsCompatibleType(actual: cwast.CanonType, expected: cwast.CanonType,
+def IsSubtypeToUnionConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if ct_dst.is_union():
+        dst_children = set([x.name for x in ct_dst.union_member_types()])
+        if ct_src.is_union():
+            if ct_dst.untagged != ct_src.untagged:
+                return False
+            return set([x.name for x in ct_src.union_member_types()]).issubset(dst_children)
+        else:
+            return ct_src.name in dst_children
+    return False
+
+
+def IsCompatibleType(src_ct: cwast.CanonType, ct_dst: cwast.CanonType,
                      actual_is_lvalue=False) -> bool:
-    if actual == expected:
+    if src_ct == ct_dst:
         return True
 
-    if actual.is_span() and expected.is_span():
-        if (actual.underlying_type() == expected.underlying_type() and
-                actual.is_mutable() or not expected.is_mutable()):
+    if IsDropMutConversion(src_ct, ct_dst):
+        return True
+
+    if actual_is_lvalue or not ct_dst.mut:
+        if IsVecToSpanConversion(src_ct, ct_dst):
             return True
 
-    if actual.is_vec() and expected.is_span():
-        # TODO: check "ref"
-        return actual.underlying_type() == expected.underlying_type() and (not expected.is_mutable() or actual_is_lvalue)
-
-    if actual.is_pointer() and expected.is_pointer():
-        # TODO: check "ref"
-        return actual.underlying_type() == expected.underlying_type() and (not expected.is_mutable())
-
-    if not expected.is_union():
+    if not ct_dst.is_union():
         return False
 
-    expected_children = set([x.name for x in expected.union_member_types()])
-    if actual.is_union():
-        if actual.untagged != expected.untagged:
-            return False
-        return set([x.name for x in actual.union_member_types()]).issubset(expected_children)
-    else:
-        return actual.name in expected_children
+    return IsSubtypeToUnionConversion(src_ct, ct_dst)
 
 
 # maybe add records if all their fields are comparable?
@@ -94,20 +103,6 @@ def IsCompatibleTypeForBitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType)
     return ct_src.aligned_size() == ct_dst.aligned_size()
 
 
-def IsCompatibleTypeForWiden(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
-    if ct_dst.is_union():
-        dst_children = set([x.name for x in ct_dst.union_member_types()])
-        if ct_src.is_union():
-            if ct_dst.untagged != ct_src.untagged:
-                return False
-            src_children = set([x.name for x in ct_src.union_member_types()])
-        else:
-            src_children = set(
-                [ct_src.original_type.name if ct_src.original_type else ct_src.name])
-        return src_children.issubset(dst_children)
-    return False
-
-
 def IsCompatibleTypeForNarrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, sl: cwast.SrcLoc) -> bool:
 
     if ct_src.original_type is not None:
@@ -132,9 +127,13 @@ def IsCompatibleTypeForWrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) ->
         wrapped_type = ct_dst.underlying_type()
         if wrapped_type in (ct_src, ct_src.original_type):
             return True
-        if ct_src.is_vec() and wrapped_type.is_span():
-            return ct_src.underlying_type() == wrapped_type.underlying_type() and not ct_dst.is_mutable()
-
+        if not ct_dst.mut:
+            if IsVecToSpanConversion(ct_src, wrapped_type):
+                return True
+        if IsDropMutConversion(ct_src, wrapped_type):
+            return True
+        if IsSubtypeToUnionConversion(ct_src, wrapped_type):
+            return True
     return False
 
 
