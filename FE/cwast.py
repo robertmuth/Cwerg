@@ -965,7 +965,6 @@ class CanonType:
     def is_int(self) -> bool:
         return self.base_type_kind.IsInt()
 
-
     def is_wrapped(self) -> bool:
         return self.node is DefType
 

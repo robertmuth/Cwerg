@@ -551,6 +551,17 @@ def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type
     return orig_node
 
 
+def _MaybeEliminateImplicitConversions(orig_node, target_type: cwast.CanonType, uint_type, tc):
+    if isinstance(orig_node, cwast.ValUndef):
+        return orig_node
+    orig_type = orig_node.x_type
+    if orig_type is target_type or type_corpus.IsDropMutConversion(orig_type, target_type):
+        # no change
+        return orig_node
+
+    return _HandleImplicitConversion(orig_node, target_type, uint_type, tc)
+
+
 def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
@@ -558,32 +569,23 @@ def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpu
         nonlocal tc, uint_type
 
         if isinstance(node, cwast.ValPoint):
-            if not isinstance(node.value_or_undef, cwast.ValUndef):
-                if not type_corpus.IsDropMutConversion(node.value_or_undef.x_type, node.x_type):
-                    node.value_or_undef = _HandleImplicitConversion(
-                        node.value_or_undef, node.x_type, uint_type, tc)
+            node.value_or_undef = _MaybeEliminateImplicitConversions(
+                node.value_or_undef, node.x_type, uint_type, tc)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-            initial = node.initial_or_undef_or_auto
-            if not isinstance(initial, cwast.ValUndef):
-                if not type_corpus.IsDropMutConversion(initial.x_type, node.type_or_auto.x_type):
-                    node.initial_or_undef_or_auto = _HandleImplicitConversion(
-                        initial, node.type_or_auto.x_type, uint_type, tc)
+            node.initial_or_undef_or_auto = _MaybeEliminateImplicitConversions(
+                node.initial_or_undef_or_auto, node.type_or_auto.x_type, uint_type, tc)
         elif isinstance(node, cwast.ExprCall):
             fun_sig: cwast.CanonType = node.callee.x_type
             for n, (p, a) in enumerate(zip(fun_sig.parameter_types(), node.args)):
-                if not type_corpus.IsDropMutConversion(a.x_type, p):
-                    node.args[n] = _HandleImplicitConversion(
-                        a, p, uint_type, tc)
-        elif isinstance(node, cwast.ExprWrap):
-            if node.x_type.is_wrapped():
-                target = node.x_type.underlying_type()
-                actual = node.expr.x_type
-                if not type_corpus.IsDropMutConversion(actual, target):
-                    node.expr = _HandleImplicitConversion(
-                        node.expr, target, uint_type, tc)
-            else:
-                # nothing to be done here
-                assert node.x_type.is_enum()
+                node.args[n] = _MaybeEliminateImplicitConversions(
+                    a, p, uint_type, tc)
+        elif isinstance(node, cwast.ExprWrap) and not node.x_type.is_enum():
+            assert node.x_type.is_wrapped()
+            target = node.x_type.underlying_type()
+            actual = node.expr.x_type
+            node.expr = _MaybeEliminateImplicitConversions(
+                node.expr, target, uint_type, tc)
+
         elif isinstance(node, cwast.StmtReturn):
             target = node.x_target
             actual = node.expr_ret.x_type
@@ -592,13 +594,11 @@ def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpu
             else:
                 assert isinstance(target, cwast.ExprStmt)
                 expected = target.x_type
-            if not type_corpus.IsDropMutConversion(actual, expected):
-                node.expr_ret = _HandleImplicitConversion(
-                    node.expr_ret, expected, uint_type, tc)
+            node.expr_ret = _MaybeEliminateImplicitConversions(
+                node.expr_ret, expected, uint_type, tc)
         elif isinstance(node, cwast.StmtAssignment):
-            if not type_corpus.IsDropMutConversion(node.expr_rhs.x_type, node.lhs.x_type):
-                node.expr_rhs = _HandleImplicitConversion(
-                    node.expr_rhs, node.lhs.x_type, uint_type, tc)
+            node.expr_rhs = _MaybeEliminateImplicitConversions(
+                node.expr_rhs, node.lhs.x_type, uint_type, tc)
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
 

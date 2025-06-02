@@ -31,8 +31,6 @@ def IsVecToSpanConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> b
 
 
 def IsDropMutConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
-    if ct_src == ct_dst:
-        return True
     if (ct_src.is_pointer() and ct_dst.is_pointer() or
             ct_src.is_span() and ct_dst.is_span()):
         return ct_src.underlying_type() == ct_dst.underlying_type() and not ct_dst.is_mutable()
@@ -121,6 +119,8 @@ def IsCompatibleTypeForNarrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, 
 
 
 def IsCompatibleTypeForWrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if ct_src is ct_dst:
+        return True
     if ct_dst.is_enum():
         return ct_src.is_base_type() and ct_dst.base_type_kind == ct_src.base_type_kind
     elif ct_dst.is_wrapped():

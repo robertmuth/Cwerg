@@ -664,10 +664,10 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
     src_type: cwast.CanonType = dst_type if isinstance(
         src_node, cwast.ValUndef) else src_node.x_type
     src_value = src_node.x_value
-    if type_corpus.IsDropMutConversion(src_type, dst_type):
+    if src_type is dst_type or type_corpus.IsDropMutConversion(src_type, dst_type):
         return src_value
 
-    if src_type.is_vec() and dst_type.is_span():
+    if type_corpus.IsVecToSpanConversion(src_type, dst_type):
         if src_value is None:
             return EvalSpan(None, src_type.array_dim(), None)
         else:
