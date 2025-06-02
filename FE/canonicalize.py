@@ -85,9 +85,9 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
         cstr_bool = tc.get_bool_canon_type()
         return cwast.Expr3(node,
                            cwast.ValTrue(x_srcloc=node.x_srcloc,
-                                         x_type=cstr_bool, x_value=True),
+                                         x_type=cstr_bool, x_value=eval.VAL_TRUE),
                            cwast.ValFalse(
-                               x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=False),
+                               x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=eval.VAL_FALSE),
                            x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
@@ -326,8 +326,13 @@ def ReplaceConstExpr(node):
             assert node.x_value is not None, f"{node} {parent}"
         if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
             assert node.x_value is not None
-        if cwast.NF.VALUE_ANNOTATED not in node.FLAGS or node.x_value is None:
+        if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return None
+        val = node.x_value
+        if val is None:
+            return None
+        assert isinstance(val, eval.EvalBase), f"{node} <- {parent}"
+
         if isinstance(node, (cwast.ValNum, cwast.ValTrue, cwast.ValFalse)):
             return None
         if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal)):
@@ -340,7 +345,7 @@ def ReplaceConstExpr(node):
             return
 
         if node.x_type.is_int() and not isinstance(node, cwast.ValNum):
-            return cwast.ValNum(str(node.x_value),
+            return cwast.ValNum(str(node.x_value.val),
                                 x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
         if node.x_type.is_bool() and not isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
             # assert False, f"unimplemented opt {node} {parent} {node.x_value.kind}"
@@ -392,7 +397,7 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
     bound = None
     mut = False
     if container_type.is_vec():
-        bound = container_type.dim
+        bound = eval.EvalNum(container_type.dim, tc.get_uint_canon_type().base_type_kind)
         mut = type_corpus.is_mutable_array(node.container)
     else:
         assert container_type.is_span()

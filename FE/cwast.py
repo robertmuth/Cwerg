@@ -2836,8 +2836,7 @@ class ExprSrcLoc:
     """
     ALIAS: ClassVar = "srcloc"
     GROUP: ClassVar = GROUP.Expression
-    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF_EXPR
-    #
+    FLAGS: ClassVar = NF.TO_BE_EXPANDED | NF.NON_CORE | NF.TYPE_ANNOTATED   #
     expr: NODES_EXPR_T
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC

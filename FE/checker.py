@@ -4,6 +4,7 @@ from typing import Tuple, Any, Optional
 
 
 from FE import cwast
+from FE import eval
 
 
 def _VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd=None):
@@ -71,7 +72,7 @@ def CheckAST(node_mod: cwast.DefMod, disallowed_nodes, allow_type_auto=False, pr
 
         if type(node) in disallowed_nodes:
             cwast.CompilerError(
-                node.x_srcloc, f"Disallowed node: {type(node)} in {toplevel_node}")
+                node.x_srcloc, f"Disallowed node: {type(node)} in {type(toplevel_node)}")
 
         assert isinstance(
             node.x_srcloc, cwast. SrcLoc) and node.x_srcloc != cwast.INVALID_SRCLOC, f"Node without srcloc node {node} for parent={parent} field={nfd} {node.x_srcloc}"
@@ -90,6 +91,9 @@ def CheckAST(node_mod: cwast.DefMod, disallowed_nodes, allow_type_auto=False, pr
         if cwast.NF.GLOBAL_SYM_DEF in node.FLAGS:
             if not isinstance(node, cwast.DefMod):
                 assert isinstance(node.name, cwast.NAME), f"{node}"
+        if (cwast.NF.VALUE_ANNOTATED in node.FLAGS):
+            assert node.x_value is None or isinstance(
+                node.x_value,  eval.EvalBase), f"node={node} x_value={node.x_value}"
 
         if isinstance(node, cwast.DefMacro):
             if not node.name.IsMacroCall() and node.name.name not in cwast.ALL_BUILT_IN_MACROS:
@@ -111,11 +115,14 @@ def CheckAST(node_mod: cwast.DefMod, disallowed_nodes, allow_type_auto=False, pr
         elif isinstance(node, cwast.MacroId):
             assert node.name.IsMacroVar()
         elif isinstance(node, cwast.StmtBlock):
-            assert isinstance(node.label, cwast.NAME), f"{node} {node.x_srcloc}"
+            assert isinstance(
+                node.label, cwast.NAME), f"{node} {node.x_srcloc}"
         elif isinstance(node, cwast.StmtBreak):
-            assert isinstance(node.target,cwast. NAME), f"{node} {node.x_srcloc}"
+            assert isinstance(
+                node.target, cwast. NAME), f"{node} {node.x_srcloc}"
         elif isinstance(node, cwast.StmtContinue):
-            assert isinstance(node.target, cwast.NAME), f"{node} {node.x_srcloc}"
+            assert isinstance(
+                node.target, cwast.NAME), f"{node} {node.x_srcloc}"
         elif isinstance(node, cwast.Import):
             if not pre_symbolize:
                 assert node.x_module != cwast.INVALID_MOD

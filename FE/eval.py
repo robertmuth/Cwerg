@@ -18,7 +18,11 @@ from FE import canonicalize
 logger = logging.getLogger(__name__)
 
 
-class EvalUndef:
+class EvalBase:
+    pass
+
+
+class EvalUndef(EvalBase):
     def __init__(self):
         pass
 
@@ -26,7 +30,7 @@ class EvalUndef:
         return "EvalUndef"
 
 
-class EvalVoid:
+class EvalVoid(EvalBase):
     def __init__(self):
         pass
 
@@ -34,7 +38,7 @@ class EvalVoid:
         return "EvalVoid"
 
 
-class EvalComplexDefault:
+class EvalComplexDefault(EvalBase):
     def __init__(self):
         pass
 
@@ -42,7 +46,7 @@ class EvalComplexDefault:
         return "EvalComplexDefault"
 
 
-class EvalSymAddr:
+class EvalSymAddr(EvalBase):
     def __init__(self, sym):
         assert isinstance(sym, (cwast.DefGlobal, cwast.DefVar)), f"{sym}"
         self.sym = sym
@@ -56,7 +60,7 @@ class EvalSymAddr:
         return f"EvalSymAddress[{self.sym.name}]"
 
 
-class EvalFunAddr:
+class EvalFunAddr(EvalBase):
     def __init__(self, sym):
         assert isinstance(sym, cwast.DefFun)
         self.sym = sym
@@ -70,7 +74,7 @@ class EvalFunAddr:
         return f"EvalFunAddress[{self.sym.name}]"
 
 
-class EvalCompound:
+class EvalCompound(EvalBase):
     def __init__(self, compound, sym=None):
         assert isinstance(compound, (cwast.ValString, cwast.ValCompound))
         self.compound = compound
@@ -81,7 +85,7 @@ class EvalCompound:
         return "EvalCompound"
 
 
-class EvalSpan:
+class EvalSpan(EvalBase):
     def __init__(self, pointer, size, content=None):
         assert pointer is None or isinstance(
             pointer, (cwast.DefGlobal, cwast.DefVar)), f"{pointer}"
@@ -94,7 +98,7 @@ class EvalSpan:
         return f"EvalSpan[{self.pointer}, {self.size}]"
 
 
-class EvalNum:
+class EvalNum(EvalBase):
     def __init__(self, val, kind: cwast.BASE_TYPE_KIND):
         assert isinstance(val, (int, float, bool)), f"{val}"
         assert isinstance(kind, cwast.BASE_TYPE_KIND)
@@ -111,6 +115,15 @@ VAL_VOID = EvalVoid()
 VAL_COMPLEX_DEFAULT = EvalComplexDefault()
 VAL_TRUE = EvalNum(True, cwast.BASE_TYPE_KIND.BOOL)
 VAL_FALSE = EvalNum(False, cwast.BASE_TYPE_KIND.BOOL)
+
+
+def _AssignValue(node, val) -> bool:
+    if val is None:
+        return False
+    assert isinstance(val, EvalBase), f"unexpected value {val}"
+    logger.info("EVAL of %s: %s", node, val)
+    node.x_value = val
+    return True
 
 
 @enum.unique
@@ -254,18 +267,6 @@ class GlobalConstantPool:
 def IsGlobalSymId(node):
     # TODO: maybe include DefFun
     return isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.DefGlobal)
-
-
-def _AssignValue(node, val) -> bool:
-    if val is None:
-        return False
-
-    assert isinstance(val, (EvalNum, EvalUndef, EvalComplexDefault, EvalVoid,
-                            EvalFunAddr, EvalCompound, EvalSpan, EvalSymAddr)
-                      ), f"unexpected value {val}"
-    logger.info("EVAL of %s: %s", node, val)
-    node.x_value = val
-    return True
 
 
 def _EvalDefEnum(node: cwast.DefEnum) -> bool:
