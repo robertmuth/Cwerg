@@ -819,8 +819,12 @@ def main(argv: list[str]):
         mp.mods_in_topo_order, mp.builtin_symtab)
     for mod in mp.mods_in_topo_order:
         symbolize.VerifySymbols(mod)
+
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
     typify.AddTypesToAst(mp.mods_in_topo_order, tc)
+    for mod in mp.mods_in_topo_order:
+        typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
+
     DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
 
 

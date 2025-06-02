@@ -1202,7 +1202,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.TypeUnionDelta)
 
     SanityCheckMods("after_initial_lowering", args,
-                    mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
+                    mod_topo_order, tc,  typify.VERIFIERS_STRICT, eliminated_nodes)
 
     constant_pool = eval.GlobalConstantPool()
 
@@ -1241,7 +1241,7 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprUnionUntagged)
 
     SanityCheckMods("after_span_elimination", args,
-                    [mod_gen] + mod_topo_order, tc, typify.VERIFIERS, eliminated_nodes)
+                    [mod_gen] + mod_topo_order, tc, typify.VERIFIERS_STRICT, eliminated_nodes)
 
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
@@ -1256,7 +1256,7 @@ def main() -> int:
                     fun, fun_sigs_with_large_args[fun.x_type], tc)
 
     SanityCheckMods("after_large_arg_conversion", args,
-                    mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
+                    mod_topo_order, tc,  typify.VERIFIERS_STRICT, eliminated_nodes)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
@@ -1282,7 +1282,7 @@ def main() -> int:
                 node} must be eliminated before codegen"
 
     SanityCheckMods("after_canonicalization", args,
-                    [mod_gen] + mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
+                    [mod_gen] + mod_topo_order, tc,  typify.VERIFIERS_STRICT, eliminated_nodes)
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
@@ -1297,7 +1297,7 @@ def main() -> int:
                     mod, str(mod.name), node, node.cdecl or node == main_entry_fun)
 
     SanityCheckMods("after_name_cleanup", args,
-                    mod_topo_order, tc,  typify.VERIFIERS, eliminated_nodes)
+                    mod_topo_order, tc,  typify.VERIFIERS_STRICT, eliminated_nodes)
 
     # Emit Cwert IR
     # print ("# TOPO-ORDER")
