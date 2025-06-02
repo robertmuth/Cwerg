@@ -956,7 +956,7 @@ def _CheckDefRecDefEnum(node, _):
 
 
 def _CheckIsBool(node: Any, _):
-    assert node.x_type.is_bool()
+    assert node.x_type.is_bool(), f"expected bool got: {node.x_type}  in {node.x_srcloc}"
 
 
 def _CheckIsVoid(node: Any, _):

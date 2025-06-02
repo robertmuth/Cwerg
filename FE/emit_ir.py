@@ -946,7 +946,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
 
         if isinstance(node, cwast.Id):
             node_def = node.x_symbol
-            assert isinstance(node_def, cwast.DefGlobal)
+            assert isinstance(node_def, cwast.DefGlobal), f"{node_def}"
             return _emit_recursively(node_def.initial_or_undef_or_auto, ct, offset)
         elif isinstance(node, cwast.ExprFront):
             # we need to emit an address
@@ -1180,7 +1180,7 @@ def main() -> int:
         for fun in mod.body_mod:
             canonicalize.FunReplaceTypeOfAndTypeUnionDelta(fun)  # maybe Mod...
             canonicalize.FunReplaceExprIndex(fun, tc)
-            canonicalize.ReplaceConstExpr(fun)
+            canonicalize.ReplaceConstExpr(fun, tc)
             canonicalize.MakeImplicitConversionsExplicit(fun, tc)
             canonicalize.EliminateComparisonConversionsForTaggedUnions(fun)
             canonicalize_span.ReplaceExplicitSpanCast(fun, tc)

@@ -317,7 +317,7 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def ReplaceConstExpr(node):
+def ReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
     """
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
@@ -329,28 +329,34 @@ def ReplaceConstExpr(node):
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return None
         val = node.x_value
+        if isinstance(node, (cwast.ValNum, cwast.ValTrue, cwast.ValFalse)):
+            assert val is not None
+            return
         if val is None:
             return None
         assert isinstance(val, eval.EvalBase), f"{node} <- {parent}"
 
-        if isinstance(node, (cwast.ValNum, cwast.ValTrue, cwast.ValFalse)):
+        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal,
+                             cwast.ValPoint, cwast.ValCompound)):
             return None
-        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal)):
-            return
-        # TODO: add comments for the exception
-        # hack:  "node not in parent.inits" would be slower:
-        if isinstance(parent, cwast.ValCompound) and node is not parent.type_or_auto:
-            return
         if isinstance(parent, cwast.ExprAddrOf) and node is parent.expr_lhs:
-            return
+            # for the case of "@id" we do not want to replace id by its value
+            return None
 
-        if node.x_type.is_int() and not isinstance(node, cwast.ValNum):
+        if not isinstance(val, eval.EvalNum):
+            return None
+
+        if val.kind is cwast.BASE_TYPE_KIND.BOOL:
+            ct = tc.get_bool_canon_type()
+            return None
+            # TODO
+            if val.val:
+                return cwast.ValTrue(x_srcloc=node.x_srcloc,
+                                     x_type=ct, x_value=node.x_value)
+
+        elif node.x_type.is_int():  # TODO: handle wrapped type
             return cwast.ValNum(str(node.x_value.val),
                                 x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
-        if node.x_type.is_bool() and not isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
-            # assert False, f"unimplemented opt {node} {parent} {node.x_value.kind}"
-            # TODO
-            pass
         return None
 
     # no neeed to siplify interior subtrees if we we rewrite a node
@@ -397,7 +403,8 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
     bound = None
     mut = False
     if container_type.is_vec():
-        bound = eval.EvalNum(container_type.dim, tc.get_uint_canon_type().base_type_kind)
+        bound = eval.EvalNum(container_type.dim,
+                             tc.get_uint_canon_type().base_type_kind)
         mut = type_corpus.is_mutable_array(node.container)
     else:
         assert container_type.is_span()
