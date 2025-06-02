@@ -1010,18 +1010,11 @@ VERIFIERS_COMMON = {
 
 }
 
-def _CheckTypeCompatible(node, actual: cwast.CanonType, expected: cwast.CanonType,
-                         srcloc=None):
-    if expected.original_type is not None:
-        expected = expected.original_type
-    if not type_corpus.IsCompatibleType(actual, expected):
-        cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
-                            f"{node}: incompatible actual: {actual} expected: {expected}")
 
 def _CheckTypeCompatibleForAssignment(node, actual: cwast.CanonType,
-                                      expected: cwast.CanonType, mutable: bool, srcloc=None):
+                                      expected: cwast.CanonType, mutable: bool, srcloc):
     if not type_corpus.IsCompatibleType(actual, expected, mutable):
-        cwast.CompilerError(srcloc if srcloc else node.x_srcloc,
+        cwast.CompilerError(srcloc,
                             f"{node}:\n incompatible actual: {actual} expected: {expected}")
 
 
@@ -1110,7 +1103,7 @@ def _CheckStmtReturn(node: cwast.StmtReturn, _):
     else:
         assert isinstance(target, cwast.ExprStmt)
         expected = target.x_type
-    _CheckTypeCompatible(node,  actual, expected)
+    _CheckTypeCompatibleForAssignment(node,  actual, expected, False, node.x_srcloc)
 
 
 def _CheckStmtReturnStrict(node: cwast.StmtReturn, _):
