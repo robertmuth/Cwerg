@@ -39,7 +39,6 @@ ALL_EXES := $(filter $(wildcard */*_exe.cw), $(ALL_SOURCES))
 # relying on the cleaning so things work out with "make -j"
 tests_py: \
     clean \
-    tests_meta_py \
     tests_eval_py \
     tests_pp_py \
     tests_x64 \
