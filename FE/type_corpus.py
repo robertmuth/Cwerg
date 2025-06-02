@@ -81,7 +81,9 @@ def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) ->
 
 
 def IsCompatibleTypeForAs(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
-    return ct_src.is_number() and ct_dst.is_number()
+    return (ct_src.is_base_type() and ct_dst.is_base_type() and
+            ct_src.base_type_kind.IsNumber() and
+            ct_dst.base_type_kind.IsNumber())
 
 
 def IsCompatibleTypeForBitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:

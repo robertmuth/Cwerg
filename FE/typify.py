@@ -535,10 +535,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
             # the type of the operands
             target_type = cwast.NO_TYPE
         ct_left = _TypifyExprOrType(node.expr1, tc, target_type, pm)
-        if ct_left.is_number():
-            ct_right = _TypifyExprOrType(node.expr2, tc, ct_left, pm)
-        else:
-            ct_right = _TypifyExprOrType(node.expr2, tc, cwast.NO_TYPE, pm)
+        ct_right = _TypifyExprOrType(node.expr2, tc, ct_left, pm)
 
         if node.binary_expr_kind.ResultIsBool():
             ct = tc.get_bool_canon_type()
