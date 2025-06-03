@@ -405,7 +405,7 @@ def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
     if container_type.is_vec():
         bound = eval.EvalNum(container_type.dim,
                              tc.get_uint_canon_type().base_type_kind)
-        mut = type_corpus.is_mutable_array(node.container)
+        mut = type_corpus.IsWritableVec(node.container)
     else:
         assert container_type.is_span()
         mut = container_type.is_mutable()

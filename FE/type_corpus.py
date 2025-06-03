@@ -50,14 +50,15 @@ def IsSubtypeToUnionConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType)
 
 
 def IsCompatibleType(src_ct: cwast.CanonType, ct_dst: cwast.CanonType,
-                     actual_is_lvalue=False) -> bool:
+                     src_is_writable) -> bool:
     if src_ct == ct_dst:
         return True
 
     if IsDropMutConversion(src_ct, ct_dst):
         return True
 
-    if actual_is_lvalue or not ct_dst.mut:
+    if src_is_writable or not ct_dst.mut:
+        # only a write source of type vec can be converted to mutable span
         if IsVecToSpanConversion(src_ct, ct_dst):
             return True
 
@@ -173,7 +174,7 @@ def is_proper_lhs(node) -> bool:
         return False
 
 
-def is_mutable_array(node) -> bool:
+def IsWritableVec(node) -> bool:
     """"""
     if not node.x_type.is_vec():
         return False
