@@ -732,6 +732,13 @@ void CheckDefFunTypeFun(Node node) {
   CheckTypeSame(node, Node_x_type(Node_result(node)), children.back());
 }
 
+void CheckTypeKind(Node node, NT kind) {
+  CanonType ct = Node_x_type(node);
+  ASSERT(CanonType_kind(ct) == kind, "expected "
+                                         << EnumToString(kind) << " got "
+                                         << EnumToString(CanonType_kind(ct)));
+}
+
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
   std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
 
@@ -757,6 +764,25 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return CheckTypeSame(node, ct, tc->get_void_canon_type());
       case NT::ExprTypeId:
         return CheckTypeSame(node, ct, tc->get_typeid_canon_type());
+      case NT::Expr1:
+        return CheckTypeSame(node, ct, Node_x_type(Node_expr(node)));
+      case NT::TypeOf:
+        return CheckTypeSame(node, ct, Node_x_type(Node_expr(node)));
+      case NT::ExprParen:
+        return CheckTypeSame(node, ct, Node_x_type(Node_expr(node)));
+
+        //
+      case NT::TypeBase:
+        return CheckTypeKind(node, NT::TypeBase);
+      case NT::TypeSpan:
+        return CheckTypeKind(node, NT::TypeSpan);
+      case NT::TypeVec:
+        return CheckTypeKind(node, NT::TypeVec);
+      case NT::TypePtr:
+        return CheckTypeKind(node, NT::TypePtr);
+      case NT::ValString:
+        return CheckTypeKind(node, NT::TypeVec);
+
       //
       // ---------------------------
       //
@@ -774,36 +800,18 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         }
         break;
       }
-      //
-      case NT::TypeBase: {
-        BASE_TYPE_KIND bt = Node_base_type_kind(node);
-        return CheckTypeSame(node, ct, tc->get_base_canon_type(bt));
-      }
-      case NT::TypeOf:
-        return CheckTypeSame(node, ct, Node_x_type((node)));
+        //
+      case NT::TypeFun:
+        ASSERT(CanonType_kind(ct) == NT::TypeFun, "");
+        break;
+
       case NT::TypeUnion:
         ASSERT(CanonType_kind(ct) == NT::TypeUnion, "");
         break;
       case NT::TypeUnionDelta:
         // TODO
         break;
-      case NT::TypeSpan:
-        ASSERT(CanonType_kind(ct) == NT::TypeSpan, "");
-        break;
-      case NT::TypePtr:
-        ASSERT(CanonType_kind(ct) == NT::TypePtr, "");
-        break;
-      case NT::TypeFun:
-        ASSERT(CanonType_kind(ct) == NT::TypeFun, "");
-        break;
-      case NT::TypeVec:
-        ASSERT(CanonType_kind(ct) == NT::TypeVec, "");
-        break;
 
-      case NT::ValString:
-        ASSERT(CanonType_kind(ct) == NT::TypeVec, "");
-        return CheckTypeSame(node, CanonType_underlying_type(ct),
-                             tc->get_base_canon_type(BASE_TYPE_KIND::U8));
       case NT::ValPoint:
         // TODO: checked as part of ValCompound
         break;
@@ -864,9 +872,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprCall:
         // TODO
         break;
-      case NT::Expr1:
-        // TODO
-        break;
+
       case NT::Expr2:
         // TODO
         break;
@@ -886,9 +892,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprDeref:
         // TODO
         break;
-      case NT::ExprParen:
-        // TODO
-        break;
+
       //
       case NT::DefFun:
         CheckDefFunTypeFun(node);

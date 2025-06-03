@@ -908,7 +908,7 @@ def _CheckNothing(_, _2):
     pass
 
 
-def _CheckNode(node, kind):
+def _CheckTypeKind(node, kind):
     assert node.x_type.node is kind
 
 
@@ -933,6 +933,14 @@ VERIFIERS_COMMON = {
     cwast.Expr1: lambda n, tc: _CheckTypeSame(n, n.x_type, n.expr.x_type),
 
     cwast.TypeOf: lambda n, tc: _CheckTypeSame(n, n.x_type, n.expr.x_type),
+
+    #
+    cwast.TypeBase: lambda node, tc: _CheckTypeKind(node, cwast.TypeBase),
+    cwast.TypeSpan: lambda node, tc: _CheckTypeKind(node, cwast.TypeSpan),
+    cwast.TypeVec: lambda node, tc: _CheckTypeKind(node, cwast.TypeVec),
+    cwast.TypePtr: lambda node, tc: _CheckTypeKind(node, cwast.TypePtr),
+    cwast.ValString: lambda node, tc: _CheckTypeKind(node, cwast.TypeVec),  # TODO: check underlying
+    #
     cwast.Expr2: lambda n, tc:  _CheckExpr2Types(n, n.x_type,  n.expr1.x_type,
                                                  n.expr2.x_type, n.binary_expr_kind, tc),
     cwast.Expr3: _CheckExpr3,
@@ -968,11 +976,7 @@ VERIFIERS_COMMON = {
 
     #
     cwast.DefType: _CheckNothing,
-    cwast.TypeBase: lambda node, tc: _CheckNode(node, cwast.TypeBase),
-    cwast.TypeSpan: lambda node, tc: _CheckNode(node, cwast.TypeSpan),
-    cwast.TypeVec: lambda node, tc: _CheckNode(node, cwast.TypeVec),
-    cwast.TypePtr: lambda node, tc: _CheckNode(node, cwast.TypePtr),
-    cwast.ValString: lambda node, tc: _CheckNode(node, cwast.TypeVec),
+
     #
     cwast.ValPoint: _CheckNothing,  # taken care of by previous
     cwast.TypeAuto: _CheckNothing,
