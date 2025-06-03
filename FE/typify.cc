@@ -709,7 +709,9 @@ void TypifyStmt(Node node, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
   }
 }
 
-void CheckTypeSame(Node node, CanonType actual, CanonType expected) {
+void CheckTypeIs(Node node, CanonType expected) {
+  CanonType actual = Node_x_type(node);
+
   if (actual != expected) {
     CompilerError(Node_srcloc(node))
         << "type mismatch for " << EnumToString(Node_kind(node))
@@ -727,9 +729,9 @@ void CheckDefFunTypeFun(Node node) {
   ASSERT(children.size() == 1 + NodeNumSiblings(Node_args(node)), "");
   int i = 0;
   for (Node arg = Node_args(node); !arg.isnull(); arg = Node_next(arg), ++i) {
-    CheckTypeSame(node, Node_x_type(arg), children[i]);
+    CheckTypeIs(arg, children[i]);
   }
-  CheckTypeSame(node, Node_x_type(Node_result(node)), children.back());
+  CheckTypeIs(Node_result(node), children.back());
 }
 
 void CheckTypeKind(Node node, NT kind) {
@@ -749,26 +751,25 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprIs:
       case NT::ValTrue:
       case NT::ValFalse:
-        return CheckTypeSame(node, ct, tc->get_bool_canon_type());
+        return CheckTypeIs(node, tc->get_bool_canon_type());
       case NT::ExprOffsetof:
       case NT::ExprSizeof:
       case NT::ExprLen:
-        return CheckTypeSame(node, ct, tc->get_uint_canon_type());
+        return CheckTypeIs(node, tc->get_uint_canon_type());
       case NT::StmtIf:
       case NT::Case:
       case NT::StmtStaticAssert:
-        return CheckTypeSame(node, Node_x_type(Node_cond(node)),
-                             tc->get_bool_canon_type());
+        return CheckTypeIs(Node_cond(node), tc->get_bool_canon_type());
       case NT::ValVoid:
-        return CheckTypeSame(node, ct, tc->get_void_canon_type());
+        return CheckTypeIs(node, tc->get_void_canon_type());
       case NT::ExprTypeId:
-        return CheckTypeSame(node, ct, tc->get_typeid_canon_type());
+        return CheckTypeIs(node, tc->get_typeid_canon_type());
       case NT::Expr1:
-        return CheckTypeSame(node, ct, Node_x_type(Node_expr(node)));
+        return CheckTypeIs(node, Node_x_type(Node_expr(node)));
       case NT::TypeOf:
-        return CheckTypeSame(node, ct, Node_x_type(Node_expr(node)));
+        return CheckTypeIs(node, Node_x_type(Node_expr(node)));
       case NT::ExprParen:
-        return CheckTypeSame(node, ct, Node_x_type(Node_expr(node)));
+        return CheckTypeIs(node, Node_x_type(Node_expr(node)));
         //
       case NT::TypeBase:
         return CheckTypeKind(node, NT::TypeBase);
@@ -788,36 +789,32 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprUnionTag:
         CheckTypeKind(Node_expr(node), NT::TypeUnion);
         ASSERT(!CanonType_untagged(Node_x_type(Node_expr(node))), "");
-        return CheckTypeSame(node, ct, tc->get_typeid_canon_type());
+        return CheckTypeIs(node, tc->get_typeid_canon_type());
         break;
       case NT::ExprDeref:
         CheckTypeKind(Node_expr(node), NT::TypePtr);
-        return CheckTypeSame(
-            node, ct, CanonType_underlying_type(Node_x_type(Node_expr(node))));
+        return CheckTypeIs(
+            node, CanonType_underlying_type(Node_x_type(Node_expr(node))));
       case NT::Expr3:
-        CheckTypeSame(Node_expr_t(node), Node_x_type(Node_expr_t(node)),
-                      Node_x_type(node));
-        CheckTypeSame(Node_expr_f(node), Node_x_type(Node_expr_f(node)),
-                      Node_x_type(node));
-        return CheckTypeSame(Node_cond(node), Node_x_type(Node_cond(node)),
-                             tc->get_bool_canon_type());
+        CheckTypeIs(Node_expr_t(node), Node_x_type(node));
+        CheckTypeIs(Node_expr_f(node), Node_x_type(node));
+        return CheckTypeIs(Node_cond(node), tc->get_bool_canon_type());
 
       case NT::Id: {
         Node def_node = Node_x_symbol(node);
         switch (Node_kind(def_node)) {
           case NT::DefVar:
           case NT::DefGlobal:
-            return CheckTypeSame(node, ct,
-                                 Node_x_type(Node_type_or_auto(def_node)));
+            return CheckTypeIs(node, Node_x_type(Node_type_or_auto(def_node)));
           case NT::FunParam:
-            return CheckTypeSame(node, ct, Node_x_type(Node_type(def_node)));
+            return CheckTypeIs(node, Node_x_type(Node_type(def_node)));
           case NT::DefRec:
           case NT::DefFun:
           case NT::DefType:
           case NT::DefEnum:
           case NT::EnumVal:
           case NT::RecField:
-            return CheckTypeSame(node, ct, Node_x_type(def_node));
+            return CheckTypeIs(node, Node_x_type(def_node));
           default:
             ASSERT(false, "unexpected " << EnumToString(Node_kind(def_node)));
             break;
@@ -851,7 +848,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         break;
       //
       case NT::ExprWrap:
-        CheckTypeSame(node, ct, Node_x_type(Node_type(node)));
+        CheckTypeIs(node, Node_x_type(Node_type(node)));
         // TODO: real checks are missing
         break;
       case NT::ExprUnwrap:
@@ -884,9 +881,10 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ValSpan:
         // TODO: does not work after constant folding
         CheckTypeKind(node, NT::TypeSpan);
-        return CheckTypeSame(
-            node, CanonType_underlying_type(Node_x_type(node)),
-            CanonType_underlying_type(Node_x_type(Node_pointer(node))));
+        //return CheckTypeIs(
+        //    node, CanonType_underlying_type(Node_x_type(node)),
+        //    CanonType_underlying_type(Node_x_type(Node_pointer(node))));
+        break;
       case NT::ExprUnionUntagged:
         // TODO
         break;
@@ -920,13 +918,13 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         if (Node_has_flag(node, BF::WRAPPED)) {
           // TODO:
         } else {
-          CheckTypeSame(node, ct, Node_x_type(Node_type(node)));
+          CheckTypeIs(node, Node_x_type(Node_type(node)));
         }
         break;
       case NT::DefGlobal:
       case NT::DefVar:
         if (Node_kind(Node_initial_or_undef_or_auto(node)) != NT::ValUndef) {
-          CheckTypeSame(node, ct, Node_x_type(Node_type(node)));
+          CheckTypeIs(node, Node_x_type(Node_type(node)));
           // TODO: reall chedcke missing
         }
         break;
