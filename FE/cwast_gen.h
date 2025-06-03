@@ -997,11 +997,20 @@ inline BINARY_EXPR_KIND Node_binary_expr_kind(Node n) {
 
 inline bool IsNumber(BASE_TYPE_KIND x) {
   return int(BASE_TYPE_KIND::SINT) <= int(x) &&
-         int(x) <= int(BASE_TYPE_KIND::R64);
+         int(x) <= int(BASE_TYPE_KIND::BOOL);
 }
 
 inline bool IsInt(BASE_TYPE_KIND x) {
   return int(BASE_TYPE_KIND::SINT) <= int(x) &&
+         int(x) <= int(BASE_TYPE_KIND::U64);
+}
+inline bool IsSint(BASE_TYPE_KIND x) {
+  return int(BASE_TYPE_KIND::SINT) <= int(x) &&
+         int(x) <= int(BASE_TYPE_KIND::S64);
+}
+
+inline bool IsUint(BASE_TYPE_KIND x) {
+  return int(BASE_TYPE_KIND::UINT) <= int(x) &&
          int(x) <= int(BASE_TYPE_KIND::U64);
 }
 

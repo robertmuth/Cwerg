@@ -912,17 +912,24 @@ def _CheckNode(node, kind):
     assert node.x_type.node is kind
 
 
-def _CheckBaseType(node, kind):
-    assert node.x_type.is_base_type() and node.x_type.base_type_kind is kind
-
-
-def _CheckHasType(node, kind):
-    assert node.x_type is kind
-
-
 VERIFIERS_COMMON = {
-    cwast.ValPoint: _CheckNothing,  # taken care of by previous
+    cwast.ExprIs: lambda n, tc: _CheckTypeSame(n, n.x_type, tc.get_bool_canon_type()),
+    cwast.ValTrue: lambda n, tc: _CheckTypeSame(n, n.x_type, tc.get_bool_canon_type()),
+    cwast.ValFalse: lambda n, tc:  _CheckTypeSame(n, n.x_type, tc.get_bool_canon_type()),
+    #
+    cwast.ExprOffsetof: lambda n, tc: _CheckTypeSame(n, n.x_type, tc.get_uint_canon_type()),
+    cwast.ExprSizeof: lambda n, tc: _CheckTypeSame(n, n.x_type, tc.get_uint_canon_type()),
+    cwast.ExprLen: lambda n, tc: _CheckTypeSame(n, n.x_type, tc.get_uint_canon_type()),
+    #
+    cwast.StmtIf: lambda n, tc:   _CheckTypeSame(n.cond, n.cond.x_type, tc.get_bool_canon_type()),
+    cwast.Case: lambda n, tc:   _CheckTypeSame(n.cond, n.cond.x_type, tc.get_bool_canon_type()),
+    cwast.StmtStaticAssert: lambda n, tc:   _CheckTypeSame(n.cond, n.cond.x_type, tc.get_bool_canon_type()),
+    #
+    cwast.ValVoid: lambda n, tc: _CheckTypeSame(n, n.x_type, tc.get_void_canon_type()),
+    #
+    cwast.ExprTypeId: lambda n, tc: _CheckTypeSame(n, n.x_type, tc.get_typeid_canon_type()),
 
+    #
     cwast.Expr1: lambda n, tc: _CheckTypeSame(n, n.x_type, n.expr.x_type),
 
     cwast.TypeOf: lambda n, tc: _CheckTypeSame(n, n.x_type, n.expr.x_type),
@@ -957,17 +964,8 @@ VERIFIERS_COMMON = {
     #
     cwast.ValNum: _CheckValNum,
     #
-    cwast.ExprIs: lambda n, tc: _CheckBaseType(n, cwast.BASE_TYPE_KIND.BOOL),
-    cwast.ValTrue: lambda n, tc: _CheckBaseType(n, cwast.BASE_TYPE_KIND.BOOL),
-    cwast.ValFalse: lambda n, tc: _CheckBaseType(n, cwast.BASE_TYPE_KIND.BOOL),
-    #
-    cwast.ValVoid: lambda n, tc: _CheckBaseType(n, cwast.BASE_TYPE_KIND.VOID),
-    #
-    cwast.ExprTypeId: lambda n, tc: _CheckHasType(n, tc.get_typeid_canon_type()),
-    #
-    cwast.ExprOffsetof: lambda n, tc: _CheckHasType(n, tc.get_uint_canon_type()),
-    cwast.ExprSizeof: lambda n, tc: _CheckHasType(n, tc.get_uint_canon_type()),
-    cwast.ExprLen: lambda n, tc: _CheckHasType(n, tc.get_uint_canon_type()),
+
+
     #
     cwast.DefType: _CheckNothing,
     cwast.TypeBase: lambda node, tc: _CheckNode(node, cwast.TypeBase),
@@ -976,6 +974,7 @@ VERIFIERS_COMMON = {
     cwast.TypePtr: lambda node, tc: _CheckNode(node, cwast.TypePtr),
     cwast.ValString: lambda node, tc: _CheckNode(node, cwast.TypeVec),
     #
+    cwast.ValPoint: _CheckNothing,  # taken care of by previous
     cwast.TypeAuto: _CheckNothing,
     cwast.ValAuto: _CheckNothing,
     cwast.ExprStmt: _CheckNothing,
@@ -990,8 +989,7 @@ VERIFIERS_COMMON = {
     # Typed Statements:
 
     # Statements
-    cwast.StmtIf: lambda n, tc:  _CheckBaseType(n.cond, cwast.BASE_TYPE_KIND.BOOL),
-    cwast.Case: lambda n, tc: _CheckBaseType(n.cond, cwast.BASE_TYPE_KIND.BOOL),
+
     cwast.StmtExpr:  _CheckNothing,
     cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
 

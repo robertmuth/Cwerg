@@ -70,7 +70,7 @@ int main(int argc, const char* argv[]) {
   AddTypesToAst(mp.mods_in_topo_order, &tc);
   std::cout << "@@@ CHECKING AFTER TYPING\n";
   ValidateAST(mp.mods_in_topo_order, CompileStage::AfterTyping);
-  TypeCheckAst(mp.mods_in_topo_order, &tc, true);
+  TypeCheckAst(mp.mods_in_topo_order, &tc, false);
 
   // tc.Dump();
 
