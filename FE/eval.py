@@ -264,11 +264,6 @@ class GlobalConstantPool:
         return self._all_globals
 
 
-def IsGlobalSymId(node):
-    # TODO: maybe include DefFun
-    return isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.DefGlobal)
-
-
 def _EvalDefEnum(node: cwast.DefEnum) -> bool:
     """TBD"""
     bt = node.x_type.base_type_kind

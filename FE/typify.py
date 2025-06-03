@@ -656,17 +656,17 @@ def _CheckTypeCompatibleForEq(node, actual: cwast.CanonType, expected: cwast.Can
                             f"{node}: incompatible actual: {actual} expected: {expected}")
 
 
-def _CheckTypeSameExceptMut(node, src_ct: cwast.CanonType, dst_ct: cwast.CanonType):
+def _CheckTypeSameExceptMut(src_node, dst_ct: cwast.CanonType):
+    src_ct = src_node.x_type
     if src_ct is dst_ct:
         return
     if type_corpus.IsDropMutConversion(src_ct, dst_ct):
         return
     if src_ct.original_type and dst_ct.original_type:
-        _CheckTypeSameExceptMut(
-            node, src_ct.original_type, dst_ct.original_type)
-        return
-    cwast.CompilerError(node.x_srcloc,
-                        f"{node}: not the same actual: {src_ct} expected: {dst_ct}")
+        if type_corpus.IsDropMutConversion(src_ct.original_type, dst_ct.original_type):
+            return
+    cwast.CompilerError(src_node.x_srcloc,
+                        f"{src_node}: not the same actual: {src_ct} expected: {dst_ct}")
 
 
 def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonType,
@@ -1030,8 +1030,7 @@ def _CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus
             if point:
                 _CheckTypeSame(point, field.x_type, point.x_type)
                 if not isinstance(point.value_or_undef, cwast.ValUndef):
-                    _CheckTypeSameExceptMut(
-                        point, point.value_or_undef.x_type, point.x_type)
+                    _CheckTypeSameExceptMut(point.value_or_undef, point.x_type)
 
 
 def _CheckExprCall(node: cwast.ExprCall,  _):
@@ -1050,7 +1049,7 @@ def _CheckExprCallStrict(node: cwast.ExprCall,  _):
     assert fun_sig.result_type(
     ) == node.x_type, f"{fun_sig.result_type()} {node.x_type}"
     for p, a in zip(fun_sig.parameter_types(), node.args):
-        _CheckTypeSameExceptMut(a,  a.x_type, p)
+        _CheckTypeSameExceptMut(a, p)
 
 
 def _CheckStmtAssignment(node: cwast.StmtAssignment, _):
@@ -1063,10 +1062,7 @@ def _CheckStmtAssignment(node: cwast.StmtAssignment, _):
 
 def _CheckStmtAssignmentStrict(node: cwast.StmtAssignment, _):
     """Same as above but we no longer permit implicit conversions """
-    var_ct = node.lhs.x_type
-    expr_ct = node.expr_rhs.x_type
-
-    _CheckTypeSameExceptMut(node, expr_ct, var_ct)
+    _CheckTypeSameExceptMut(node.expr_rhs, node.lhs.x_type)
     if not type_corpus.is_proper_lhs(node.lhs):
         cwast.CompilerError(
             node.x_srcloc, f"cannot assign to readonly data: {node}")
@@ -1085,13 +1081,12 @@ def _CheckStmtReturn(node: cwast.StmtReturn, _):
 def _CheckStmtReturnStrict(node: cwast.StmtReturn, _):
     """Same as above but we no longer permit implicit conversions """
     target = node.x_target
-    actual = node.expr_ret.x_type
     if isinstance(target, cwast.DefFun):
         expected = target.result.x_type
     else:
         assert isinstance(target, cwast.ExprStmt)
         expected = target.x_type
-    _CheckTypeSameExceptMut(node,  actual, expected)
+    _CheckTypeSameExceptMut(node.expr_ret,  expected)
 
 
 def _CheckDefVarDefGlobal(node, _):
@@ -1110,7 +1105,7 @@ def _CheckDefVarDefGlobalStrict(node, _):
     ct = node.type_or_auto.x_type
     if not isinstance(initial, cwast.ValUndef):
         ct = node.type_or_auto.x_type
-        _CheckTypeSameExceptMut(node, initial.x_type, ct)
+        _CheckTypeSameExceptMut(initial, ct)
     _CheckTypeSame(node, node.x_type, ct)
 
 
