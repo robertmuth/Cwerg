@@ -658,7 +658,7 @@ def _CheckTypeCompatibleForEq(node, actual: cwast.CanonType, expected: cwast.Can
 
 def _CheckTypeSameExceptMut(src_node, dst_ct: cwast.CanonType):
     src_ct = src_node.x_type
-    if src_ct is dst_ct:
+    if src_ct is dst_ct or src_ct.original_type is dst_ct:
         return
     if type_corpus.IsDropMutConversion(src_ct, dst_ct):
         return
@@ -1005,7 +1005,7 @@ def _CheckTypeCompatibleImplictConvAllowed(src_node, dst_ct: cwast.CanonType):
                             f"incompatible type for {src_node}: {src_node.x_type} expected: {dst_ct}")
 
 
-def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
+def _CheckValCompound(node: cwast.ValCompound, strict: bool):
     ct: cwast.CanonType = node.type_or_auto.x_type
     if ct.is_vec():
         _CheckValVec(node, ct.underlying_type())
@@ -1015,108 +1015,70 @@ def _CheckValCompound(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
             if point:
                 _CheckTypeSame(point, field.x_type, point.x_type)
                 if not isinstance(point.value_or_undef, cwast.ValUndef):
-                    _CheckTypeCompatibleImplictConvAllowed(
-                        point.value_or_undef, point.x_type)
+                    if strict:
+                        _CheckTypeSameExceptMut(
+                            point.value_or_undef, point.x_type)
+                    else:
+                        _CheckTypeCompatibleImplictConvAllowed(
+                            point.value_or_undef, point.x_type)
 
 
-def _CheckValCompoundStrict(node: cwast.ValCompound, _tc: type_corpus.TypeCorpus):
-    """Same as above but we no longer permit implicit conversions """
-    ct: cwast.CanonType = node.type_or_auto.x_type
-    if ct.is_vec():
-        _CheckValVec(node, ct.underlying_type())
+def _CheckExprCall(node: cwast.ExprCall, strict: bool):
+    fun_sig: cwast.CanonType = node.callee.x_type
+    assert fun_sig.is_fun(), f"{fun_sig}"
+    assert fun_sig.result_type(
+    ) == node.x_type, f"{fun_sig.result_type()} {node.x_type}"
+    for p, a in zip(fun_sig.parameter_types(), node.args):
+        if strict:
+            _CheckTypeSameExceptMut(a, p)
+        else:
+            _CheckTypeCompatibleImplictConvAllowed(a, p)
+
+
+def _CheckStmtAssignment(node: cwast.StmtAssignment, strict: bool):
+    if not type_corpus.is_proper_lhs(node.lhs):
+        cwast.CompilerError(
+            node.x_srcloc, f"cannot assign to readonly data: {node}")
+    if strict:
+        _CheckTypeSameExceptMut(node.expr_rhs, node.lhs.x_type)
     else:
-        assert ct.is_rec()
-        for field, point in symbolize.IterateValRec(node.inits, ct):
-            if point:
-                _CheckTypeSame(point, field.x_type, point.x_type)
-                if not isinstance(point.value_or_undef, cwast.ValUndef):
-                    _CheckTypeSameExceptMut(point.value_or_undef, point.x_type)
+        _CheckTypeCompatibleImplictConvAllowed(node.expr_rhs, node.lhs.x_type)
 
 
-def _CheckExprCall(node: cwast.ExprCall,  _):
-    fun_sig: cwast.CanonType = node.callee.x_type
-    assert fun_sig.is_fun(), f"{fun_sig}"
-    assert fun_sig.result_type(
-    ) == node.x_type, f"{fun_sig.result_type()} {node.x_type}"
-    for p, a in zip(fun_sig.parameter_types(), node.args):
-        _CheckTypeCompatibleImplictConvAllowed(a, p)
-
-
-def _CheckExprCallStrict(node: cwast.ExprCall,  _):
-    """Same as above but we no longer permit implicit conversions """
-    fun_sig: cwast.CanonType = node.callee.x_type
-    assert fun_sig.is_fun(), f"{fun_sig}"
-    assert fun_sig.result_type(
-    ) == node.x_type, f"{fun_sig.result_type()} {node.x_type}"
-    for p, a in zip(fun_sig.parameter_types(), node.args):
-        _CheckTypeSameExceptMut(a, p)
-
-
-def _CheckStmtAssignment(node: cwast.StmtAssignment, _):
-    _CheckTypeCompatibleImplictConvAllowed(node.expr_rhs, node.lhs.x_type)
-
-    if not type_corpus.is_proper_lhs(node.lhs):
-        cwast.CompilerError(
-            node.x_srcloc, f"cannot assign to readonly data: {node}")
-
-
-def _CheckStmtAssignmentStrict(node: cwast.StmtAssignment, _):
-    """Same as above but we no longer permit implicit conversions """
-    _CheckTypeSameExceptMut(node.expr_rhs, node.lhs.x_type)
-    if not type_corpus.is_proper_lhs(node.lhs):
-        cwast.CompilerError(
-            node.x_srcloc, f"cannot assign to readonly data: {node}")
-
-
-def _CheckStmtReturn(node: cwast.StmtReturn, _):
+def _CheckStmtReturn(node: cwast.StmtReturn, strict: bool):
     target = node.x_target
     if isinstance(target, cwast.DefFun):
         expected = target.result.x_type
     else:
         assert isinstance(target, cwast.ExprStmt)
         expected = target.x_type
-    _CheckTypeCompatibleImplictConvAllowed(node.expr_ret, expected)
-
-
-def _CheckStmtReturnStrict(node: cwast.StmtReturn, _):
-    """Same as above but we no longer permit implicit conversions """
-    target = node.x_target
-    if isinstance(target, cwast.DefFun):
-        expected = target.result.x_type
+    if strict:
+        _CheckTypeSameExceptMut(node.expr_ret,  expected)
     else:
-        assert isinstance(target, cwast.ExprStmt)
-        expected = target.x_type
-    _CheckTypeSameExceptMut(node.expr_ret,  expected)
+        _CheckTypeCompatibleImplictConvAllowed(node.expr_ret, expected)
 
 
-def _CheckDefVarDefGlobal(node, _):
-    initial = node.initial_or_undef_or_auto
-    ct = node.type_or_auto.x_type
-
-    if not isinstance(initial, cwast.ValUndef):
-        _CheckTypeCompatibleImplictConvAllowed(
-            node.initial_or_undef_or_auto, ct)
-    _CheckTypeSame(node, node.x_type, ct)
-
-
-def _CheckDefVarDefGlobalStrict(node, _):
-    """Same as above but we no longer permit implicit conversions """
+def _CheckDefVarDefGlobal(node, strict: bool):
     initial = node.initial_or_undef_or_auto
     ct = node.type_or_auto.x_type
     if not isinstance(initial, cwast.ValUndef):
-        ct = node.type_or_auto.x_type
-        _CheckTypeSameExceptMut(initial, ct)
+        if strict:
+            _CheckTypeSameExceptMut(initial, ct)
+        else:
+            _CheckTypeCompatibleImplictConvAllowed(initial, ct)
     _CheckTypeSame(node, node.x_type, ct)
 
 
-def _CheckExprWrap(node: cwast.ExprWrap,  _):
+def _CheckExprWrap(node: cwast.ExprWrap,  strict: bool):
     ct_dst: cwast.CanonType = node.type.x_type
     ct_src: cwast.CanonType = node.expr.x_type
     assert ct_dst == node.x_type
     if ct_dst.is_wrapped():
         ct_dst = ct_dst.underlying_type()
-        _CheckTypeCompatibleImplictConvAllowed(
-            node.expr, ct_dst)
+        if strict:
+            _CheckTypeSameExceptMut(node.expr, ct_dst)
+        else:
+            _CheckTypeCompatibleImplictConvAllowed(node.expr, ct_dst)
         return
     assert ct_dst.is_enum()
     if not ct_src.is_base_type() or ct_dst.base_type_kind != ct_src.base_type_kind:
@@ -1126,24 +1088,24 @@ def _CheckExprWrap(node: cwast.ExprWrap,  _):
 
 VERIFIERS_WEAK = VERIFIERS_COMMON | {
     cwast.ExprNarrow: _CheckExprNarrow,
-    cwast.ValCompound: _CheckValCompound,
-    cwast.ExprCall: _CheckExprCall,
-    cwast.StmtAssignment: _CheckStmtAssignment,
-    cwast.StmtReturn: _CheckStmtReturn,
-    cwast.DefGlobal: _CheckDefVarDefGlobal,
-    cwast.DefVar: _CheckDefVarDefGlobal,
-    cwast.ExprWrap: _CheckExprWrap,
+    cwast.ValCompound: lambda n, tc: _CheckValCompound(n, False),
+    cwast.ExprCall: lambda n, tc: _CheckExprCall(n, False),
+    cwast.StmtAssignment: lambda n, tc:  _CheckStmtAssignment(n, False),
+    cwast.StmtReturn: lambda n, tc: _CheckStmtReturn(n, False),
+    cwast.DefGlobal: lambda n, tc: _CheckDefVarDefGlobal(n, False),
+    cwast.DefVar: lambda n, tc: _CheckDefVarDefGlobal(n, False),
+    cwast.ExprWrap: lambda n, tc: _CheckExprWrap(n, False),
 }
 
 VERIFIERS_STRICT = VERIFIERS_COMMON | {
     cwast.ExprNarrow: _CheckExprNarrowUnchecked,
-    cwast.ValCompound: _CheckValCompoundStrict,
-    cwast.ExprCall: _CheckExprCallStrict,
-    cwast.StmtAssignment: _CheckStmtAssignmentStrict,
-    cwast.StmtReturn: _CheckStmtReturnStrict,
-    cwast.DefGlobal: _CheckDefVarDefGlobalStrict,
-    cwast.DefVar: _CheckDefVarDefGlobalStrict,
-    cwast.ExprWrap: _CheckExprWrap,
+    cwast.ValCompound: lambda n, tc: _CheckValCompound(n, True),
+    cwast.ExprCall: lambda n, tc: _CheckExprCall(n, True),
+    cwast.StmtAssignment: lambda n, tc:  _CheckStmtAssignment(n, True),
+    cwast.StmtReturn: lambda n, tc: _CheckStmtReturn(n, True),
+    cwast.DefGlobal: lambda n, tc: _CheckDefVarDefGlobal(n, True),
+    cwast.DefVar: lambda n, tc: _CheckDefVarDefGlobal(n, True),
+    cwast.ExprWrap: lambda n, tc: _CheckExprWrap(n, True),
 }
 
 
