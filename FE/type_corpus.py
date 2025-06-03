@@ -49,23 +49,23 @@ def IsSubtypeToUnionConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType)
     return False
 
 
-def IsCompatibleType(src_ct: cwast.CanonType, ct_dst: cwast.CanonType,
+def IsCompatibleType(src_ct: cwast.CanonType, dst_ct: cwast.CanonType,
                      src_is_writable) -> bool:
-    if src_ct == ct_dst:
+    if src_ct == dst_ct or src_ct.original_type == dst_ct:
         return True
 
-    if IsDropMutConversion(src_ct, ct_dst):
+    if IsDropMutConversion(src_ct, dst_ct):
         return True
 
-    if src_is_writable or not ct_dst.mut:
+    if src_is_writable or not dst_ct.mut:
         # only a write source of type vec can be converted to mutable span
-        if IsVecToSpanConversion(src_ct, ct_dst):
+        if IsVecToSpanConversion(src_ct, dst_ct):
             return True
 
-    if not ct_dst.is_union():
+    if not dst_ct.is_union():
         return False
 
-    return IsSubtypeToUnionConversion(src_ct, ct_dst)
+    return IsSubtypeToUnionConversion(src_ct, dst_ct)
 
 
 # maybe add records if all their fields are comparable?
@@ -117,25 +117,6 @@ def IsCompatibleTypeForNarrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, 
     else:
         dst_children = set([ct_dst.name])
     return dst_children.issubset(src_children)
-
-
-def IsCompatibleTypeForWrap(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
-    if ct_src is ct_dst:
-        return True
-    if ct_dst.is_enum():
-        return ct_src.is_base_type() and ct_dst.base_type_kind == ct_src.base_type_kind
-    elif ct_dst.is_wrapped():
-        wrapped_type = ct_dst.underlying_type()
-        if wrapped_type in (ct_src, ct_src.original_type):
-            return True
-        if not ct_dst.mut:
-            if IsVecToSpanConversion(ct_src, wrapped_type):
-                return True
-        if IsDropMutConversion(ct_src, wrapped_type):
-            return True
-        if IsSubtypeToUnionConversion(ct_src, wrapped_type):
-            return True
-    return False
 
 
 def is_proper_lhs(node) -> bool:

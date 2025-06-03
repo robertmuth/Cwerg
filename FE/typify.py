@@ -656,18 +656,17 @@ def _CheckTypeCompatibleForEq(node, actual: cwast.CanonType, expected: cwast.Can
                             f"{node}: incompatible actual: {actual} expected: {expected}")
 
 
-def _CheckTypeSameExceptMut(node, actual: cwast.CanonType, dst_ct: cwast.CanonType):
-    if actual is dst_ct:
+def _CheckTypeSameExceptMut(node, src_ct: cwast.CanonType, dst_ct: cwast.CanonType):
+    if src_ct is dst_ct:
         return
-    if actual.node is dst_ct.node and actual.mut and not dst_ct.mut:
-        if (actual.node in (cwast.TypePtr, cwast.TypeSpan, cwast.TypeVec, cwast.TypePtr) and
-                actual.children[0] == dst_ct.children[0]):
-            return
-    if actual.original_type and dst_ct.original_type:
-        _CheckTypeSameExceptMut(node, actual.original_type, dst_ct.original_type)
+    if type_corpus.IsDropMutConversion(src_ct, dst_ct):
+        return
+    if src_ct.original_type and dst_ct.original_type:
+        _CheckTypeSameExceptMut(
+            node, src_ct.original_type, dst_ct.original_type)
         return
     cwast.CompilerError(node.x_srcloc,
-                        f"{node}: not the same actual: {actual} expected: {dst_ct}")
+                        f"{node}: not the same actual: {src_ct} expected: {dst_ct}")
 
 
 def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonType,
@@ -826,15 +825,6 @@ def _CheckExprIndex(node: cwast.ExprIndex, _):
     assert node.x_type is c.x_type.underlying_type()
 
 
-def _CheckExprWrap(node: cwast.ExprWrap,  _):
-    ct_node: cwast.CanonType = node.x_type
-    ct_expr: cwast.CanonType = node.expr.x_type
-    assert ct_node == node.type.x_type
-    if not type_corpus.IsCompatibleTypeForWrap(ct_expr, ct_node):
-        cwast.CompilerError(
-            node.x_srcloc, f"bad wrap {ct_expr} -> {ct_node}")
-
-
 def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
     ct_node: cwast.CanonType = node.x_type
     ct_expr: cwast.CanonType = node.expr.x_type
@@ -948,7 +938,6 @@ VERIFIERS_COMMON = {
     cwast.ExprAddrOf: _CheckExprAddrOf,
     cwast.ExprUnionTag: _CheckExprUnionTag,
     cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
-    cwast.ExprWrap: _CheckExprWrap,
     cwast.ExprUnwrap: _CheckExprUnwrap,
 
     cwast.Id: CheckId,
@@ -1125,6 +1114,21 @@ def _CheckDefVarDefGlobalStrict(node, _):
     _CheckTypeSame(node, node.x_type, ct)
 
 
+def _CheckExprWrap(node: cwast.ExprWrap,  _):
+    ct_dst: cwast.CanonType = node.type.x_type
+    ct_src: cwast.CanonType = node.expr.x_type
+    assert ct_dst == node.x_type
+    if ct_dst.is_wrapped():
+        ct_dst = ct_dst.underlying_type()
+        _CheckTypeCompatibleImplictConvAllowed(
+            node.expr, ct_dst)
+        return
+    assert ct_dst.is_enum()
+    if not ct_src.is_base_type() or ct_dst.base_type_kind != ct_src.base_type_kind:
+        cwast.CompilerError(
+            node.x_srcloc, f"bad wrap {ct_src} -> {ct_dst}")
+
+
 VERIFIERS_WEAK = VERIFIERS_COMMON | {
     cwast.ExprNarrow: _CheckExprNarrow,
     cwast.ValCompound: _CheckValCompound,
@@ -1133,6 +1137,7 @@ VERIFIERS_WEAK = VERIFIERS_COMMON | {
     cwast.StmtReturn: _CheckStmtReturn,
     cwast.DefGlobal: _CheckDefVarDefGlobal,
     cwast.DefVar: _CheckDefVarDefGlobal,
+    cwast.ExprWrap: _CheckExprWrap,
 }
 
 VERIFIERS_STRICT = VERIFIERS_COMMON | {
@@ -1143,6 +1148,7 @@ VERIFIERS_STRICT = VERIFIERS_COMMON | {
     cwast.StmtReturn: _CheckStmtReturnStrict,
     cwast.DefGlobal: _CheckDefVarDefGlobalStrict,
     cwast.DefVar: _CheckDefVarDefGlobalStrict,
+    cwast.ExprWrap: _CheckExprWrap,
 }
 
 
