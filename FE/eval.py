@@ -102,6 +102,7 @@ class EvalNum(EvalBase):
     def __init__(self, val, kind: cwast.BASE_TYPE_KIND):
         assert isinstance(val, (int, float, bool)), f"{val}"
         assert isinstance(kind, cwast.BASE_TYPE_KIND)
+        assert kind != cwast.BASE_TYPE_KIND.INVALID
         self.kind = kind
         self.val = val
 
@@ -266,7 +267,7 @@ class GlobalConstantPool:
 
 def _EvalDefEnum(node: cwast.DefEnum) -> bool:
     """TBD"""
-    bt = node.x_type.base_type_kind
+    bt = node.x_type.get_unwrapped_base_type_kind()
     out = False
     val = 0
     for c in node.items:
@@ -559,7 +560,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         ct = node.x_type
         val = node.expr.x_value
         if isinstance(val, EvalNum):
-            new_bt = ct.get_base_type_fancy()
+            new_bt = ct.get_unwrapped_base_type_kind()
             assert new_bt is not None, f"{node.expr.x_type} -> {ct.x_type}"
             return _AssignValue(node, EvalNum(val.val, new_bt))
         elif isinstance(val, EvalVoid):
@@ -612,7 +613,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprLen):
         container = node.container
-        bt = container.x_type.base_type_kind
+        bt = node.x_type.base_type_kind
         val = None
         if container.x_type.is_vec():
             val = EvalNum(container.x_type.array_dim(), bt)

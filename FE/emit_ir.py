@@ -125,13 +125,13 @@ class ReturnResultLocation:
 
 
 def _InitDataForBaseType(x_type: cwast.CanonType, val) -> bytes:
-    assert x_type.is_base_or_enum_type() and val is not None
+    assert (x_type.is_base_type() or x_type.is_enum()) and val is not None
     byte_width = x_type.size
     if isinstance(val, eval.EvalUndef):
         return ZEROS[byte_width]
     assert isinstance(val, eval.EvalNum)
     bt = val.kind
-    assert bt == x_type.base_type_kind, f"{bt} {x_type} {val.val}"
+    assert bt == x_type.get_unwrapped_base_type_kind(), f"{bt} {x_type} {val.val}"
     val = val.val
     if bt.IsUint():
         return val.to_bytes(byte_width, 'little')
@@ -140,10 +140,10 @@ def _InitDataForBaseType(x_type: cwast.CanonType, val) -> bytes:
     elif bt is cwast.BASE_TYPE_KIND.BOOL:
         return b"\1" if val else b"\0"
     elif bt.IsReal():
-        fmt = "f" if x_type.base_type_kind is cwast.BASE_TYPE_KIND.R32 else "d"
+        fmt = "f" if bt is cwast.BASE_TYPE_KIND.R32 else "d"
         return struct.pack(fmt, val)
     else:
-        assert False, f"unsupported type {x_type}"
+        assert False, f"unsupported type {bt} {x_type}"
 
 
 def RenderList(items):
@@ -446,7 +446,8 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 def _FormatNumber(val: cwast.ValNum) -> str:
     assert isinstance(val.x_value, eval.EvalNum)
-    bt = val.x_type.base_type_kind
+    bt = val.x_type.get_unwrapped_base_type_kind()
+    assert bt == val.x_value.kind
     num = val.x_value.val
     assert num is not None, f"{val.x_value}"
 
@@ -460,7 +461,7 @@ def _FormatNumber(val: cwast.ValNum) -> str:
             return ("+" if sign >= 0 else "-") + str(num)
         return str(num)
     else:
-        assert False, f"unsupported scalar: {val}"
+        assert False, f"unsupported scalar: {bt} {val}"
 
 
 def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
@@ -970,7 +971,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                          f"{target - count} padding")
             return target
 
-        if ct.is_base_or_enum_type():
+        if ct.is_base_type() or ct.is_enum():
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
         elif ct.is_vec():
             if isinstance(node, cwast.ValAuto):
@@ -987,7 +988,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 return _EmitMem(value, f"{offset} {ct.name}")
 
             assert isinstance(node, cwast.ValCompound), f"{node}"
-            if x_type.is_base_or_enum_type():
+            if x_type.is_base_type() or x_type.is_enum():
                 # this special case creates a smaller IR
                 out = bytearray()
                 last = _InitDataForBaseType(

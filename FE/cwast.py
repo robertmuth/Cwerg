@@ -1004,16 +1004,21 @@ class CanonType:
     def is_base_type(self) -> bool:
         return self.node is TypeBase
 
-    def get_base_type_fancy(self) -> Optional[BASE_TYPE_KIND]:
-        if self.node is TypeBase or self.is_enum():
+    def get_unwrapped_base_type_kind(self) -> Optional[BASE_TYPE_KIND]:
+        if self.node is TypeBase:
             return self.base_type_kind
-        elif self.is_wrapped():
-            return self.children[0].get_base_type_fancy()
+        elif self.node is DefEnum or self.node is DefType:
+            return self.children[0].get_unwrapped_base_type_kind()
         else:
             return None
 
-    def is_base_or_enum_type(self) -> bool:
-        return self.node is TypeBase or self.node is DefEnum
+    def get_unwrapped(self) -> CanonType:
+        if self.node is DefEnum:
+            return self.children[0]
+        elif self.node is DefType:
+            return self.children[0].get_unwrapped()
+        else:
+            return self
 
     def is_union(self) -> bool:
         return self.node is TypeUnion

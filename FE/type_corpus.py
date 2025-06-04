@@ -72,10 +72,23 @@ def IsCompatibleType(src_ct: cwast.CanonType, dst_ct: cwast.CanonType,
     return IsSubtypeToUnionConversion(src_ct, dst_ct)
 
 
+def UnwrapType(ct: cwast.CanonType, tc: "TypeCorpus") -> cwast.CanonType:
+    if ct.is_wrapped():
+        return UnwrapType(ct.underlying_type())
+    elif ct.is_enum():
+        return None
+    return ct
+
+
 # maybe add records if all their fields are comparable?
-def IsComparableType(ct: cwast.CanonType) -> bool:
-    return (ct.is_base_or_enum_type() or ct.is_pointer() or
-            ct.is_wrapped() and IsComparableType(ct.underlying_type()))
+def IsTypeForCmp(ct: cwast.CanonType) -> bool:
+    unwrapped_ct = ct.get_unwrapped()
+    return unwrapped_ct.is_base_type() or unwrapped_ct.is_pointer()
+
+
+def IsTypeForEq(ct: cwast.CanonType) -> bool:
+    unwrapped_ct = ct.get_unwrapped()
+    return unwrapped_ct.is_base_type() or unwrapped_ct.is_pointer() or unwrapped_ct.is_fun()
 
 
 def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
@@ -84,17 +97,24 @@ def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) ->
     if expected.original_type is not None:
         expected = expected.original_type
 
-    if IsComparableType(actual) or actual.is_fun():
-        if actual == expected:
+    if IsTypeForEq(actual):
+        if actual == expected or IsDropMutConversion(actual, expected):
             return True
 
         if expected.is_tagged_union():
             return actual in expected.union_member_types()
 
     if actual.is_tagged_union():
-        return IsComparableType(expected) and expected in actual.union_member_types()
+        return IsTypeForEq(expected) and expected in actual.union_member_types()
 
     return False
+
+
+def IsCompatibleTypeForCmp(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
+    if not IsTypeForCmp(actual):
+        return False
+
+    return actual == expected or IsDropMutConversion(actual, expected)
 
 
 def IsCompatibleTypeForAs(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
@@ -104,9 +124,12 @@ def IsCompatibleTypeForAs(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> b
 
 
 def IsCompatibleTypeForBitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
-    if not ct_src.is_base_or_enum_type() and not ct_src.is_pointer():
+    unwrapped_src = ct_src.get_unwrapped()
+    unwrapped_dst = ct_dst.get_unwrapped()
+
+    if not unwrapped_src.is_base_type() and not unwrapped_src.is_pointer():
         return False
-    if not ct_dst.is_base_or_enum_type() and not ct_dst.is_pointer():
+    if not unwrapped_dst.is_base_type() and not unwrapped_dst.is_pointer():
         return False
     return ct_src.aligned_size() == ct_dst.aligned_size()
 
@@ -290,7 +313,7 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[li
     elif ct.node is cwast.TypeVec:
         return None
     elif ct.node is cwast.DefEnum:
-        return _BASE_TYPE_MAP[ct.base_type_kind]
+        return _BASE_TYPE_MAP[ct.children[0].base_type_kind]
     elif ct.node is cwast.TypeUnion:
         return _get_register_type_for_union_type(ct, ta)
     elif ct.node is cwast.DefType:
@@ -379,7 +402,7 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
         size, alignment = _SetAbiInfoRecursivelyForSum(ct, ta)
         ct.finalize(size, alignment, _get_register_type(ct, ta))
     elif ct.node is cwast.DefEnum:
-        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
+        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.children[0].base_type_kind]
         ct.finalize(size, size, _get_register_type(ct, ta))
     elif ct.node is cwast.TypeFun:
         size = ta.code_addr_bitwidth // 8
@@ -506,8 +529,9 @@ class TypeCorpus:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefEnum)
         name = f"enum<{name}>"
+        bt = self.get_base_canon_type(ast_node.base_type_kind)
         ct = cwast.CanonType(cwast.DefEnum, name,
-                             base_type_kind=ast_node.base_type_kind, ast_node=ast_node)
+                             ast_node=ast_node, children=[bt])
         return self._insert(ct)
 
     def InsertUnionType(self, untagged: bool, components: list[cwast.CanonType]) -> cwast.CanonType:

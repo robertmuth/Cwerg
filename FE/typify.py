@@ -584,11 +584,8 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprWrap):
         ct = _TypifyExprOrType(node.type, tc, cwast.NO_TYPE, pm)
-        if ct.is_enum():
-            expr_ct = tc.get_base_canon_type(ct.base_type_kind)
-        else:
-            assert ct.is_wrapped()
-            expr_ct = ct.underlying_type()
+        assert ct.is_enum() or ct.is_wrapped()
+        expr_ct = ct.underlying_type()
         _TypifyExprOrType(node.expr, tc, expr_ct, pm)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.ExprUnwrap):
@@ -596,7 +593,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         if ct.is_wrapped():
             return AnnotateNodeType(node, ct.underlying_type())
         elif ct.is_enum():
-            return AnnotateNodeType(node, tc.get_base_canon_type(ct.base_type_kind))
+            return AnnotateNodeType(node, ct.underlying_type())
         else:
             assert False
     elif isinstance(node, cwast.ExprIs):
@@ -668,12 +665,6 @@ def _CheckTypeKind(node, kind):
     assert node.x_type.node is kind, f"Expect {kind} got {node.x_type.node}"
 
 
-def _CheckTypeCompatibleForEq(node, actual: cwast.CanonType, expected: cwast.CanonType):
-    if not type_corpus.IsCompatibleTypeForEq(actual, expected):
-        cwast.CompilerError(node.x_srcloc,
-                            f"{node}: incompatible actual: {actual} expected: {expected}")
-
-
 def _CheckTypeSameExceptMut(src_node, dst_ct: cwast.CanonType):
     src_ct = src_node.x_type
     if src_ct == dst_ct:
@@ -696,12 +687,13 @@ def _CheckExpr2Types(node, op1, op2, kind: cwast.BINARY_EXPR_KIND,
     elif kind.IsComparison():
         _CheckTypeIs(node, tc.get_bool_canon_type())
         if kind in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
-            _CheckTypeCompatibleForEq(node, op1.x_type, op2.x_type)
+            if not type_corpus.IsCompatibleTypeForEq(op1.x_type, op2.x_type):
+                cwast.CompilerError(op1.x_srcloc,
+                                    f"incompatible type for equality testing")
         else:
-            assert op1.x_type.is_base_type()
-            if op1.x_type != op2.x_type:
-                cwast.CompilerError(
-                    node.x_srcloc, "invalid ops for comparison")
+            if not type_corpus.IsCompatibleTypeForCmp(op1.x_type, op2.x_type):
+                cwast.CompilerError(op1.x_srcloc,
+                                    f"incompatible type for comparison")
     elif kind.IsShortCircuit():
         ct_bool = tc.get_bool_canon_type()
         _CheckTypeIs(op1, ct_bool)
@@ -709,9 +701,8 @@ def _CheckExpr2Types(node, op1, op2, kind: cwast.BINARY_EXPR_KIND,
         _CheckTypeIs(node, ct_bool)
     elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
         # note: we ignore mutability
-        ct_sint = tc.get_sint_canon_type()
         _CheckTypeKind(op1, cwast.TypePtr)
-        _CheckTypeIs(node, ct_sint)
+        _CheckTypeIs(node, tc.get_sint_canon_type())
         _CheckTypeKind(op2, cwast.TypePtr)
         if op1.x_type.underlying_type() != op2.x_type.underlying_type():
             cwast.CompilerError(op1.x_srcloc, "invalid ops to PDELTA")
@@ -838,9 +829,7 @@ def _CheckExprIndex(node: cwast.ExprIndex, _):
 def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
     ct_node: cwast.CanonType = node.x_type
     ct_expr: cwast.CanonType = node.expr.x_type
-    if ct_expr.is_enum():
-        assert ct_node.is_base_type() and ct_expr.base_type_kind == ct_node.base_type_kind
-    elif ct_expr.is_wrapped():
+    if ct_expr.is_wrapped() or ct_expr.is_enum():
         assert ct_expr.underlying_type() in (
             ct_node, ct_node.original_type), f"{ct_node} vs {ct_expr}"
     else:
@@ -1078,7 +1067,7 @@ def _CheckExprWrap(node: cwast.ExprWrap,  strict: bool):
             _CheckTypeCompatibleImplictConvAllowed(node.expr, ct_dst)
         return
     assert ct_dst.is_enum()
-    if not ct_src.is_base_type() or ct_dst.base_type_kind != ct_src.base_type_kind:
+    if ct_src is not ct_dst.underlying_type():
         cwast.CompilerError(
             node.x_srcloc, f"bad wrap {ct_src} -> {ct_dst}")
 
@@ -1181,11 +1170,10 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
                     AnnotateNodeType(f, ct)
             elif isinstance(node, cwast.DefEnum):
                 ct = node.x_type
+                bt = ct.underlying_type()
                 for f in node.items:
                     assert isinstance(f,  cwast.EnumVal)
-                    _TypifyExprOrType(
-                        f.value_or_auto, tc,
-                        tc.get_base_canon_type(ct.base_type_kind), poly_map)
+                    _TypifyExprOrType(f.value_or_auto, tc, bt, poly_map)
                     AnnotateNodeType(f, ct)
             elif isinstance(node, cwast.DefType):
                 ct = _TypifyExprOrType(
