@@ -204,38 +204,47 @@ class GROUP(enum.IntEnum):
 class BINARY_EXPR_KIND(enum.Enum):
     """same type two operand expressions"""
     INVALID = 0
-    ADD = 1
-    SUB = 2
-    DIV = 3
-    MUL = 4
-    MOD = 5
-    MIN = 6
-    MAX = 7
+    ADD = enum.auto()
+    SUB = enum.auto()
+    DIV = enum.auto()
+    MUL = enum.auto()
+    MOD = enum.auto()
+    MIN = enum.auto()
+    MAX = enum.auto()
 
-    AND = 10
-    OR = 11
-    XOR = 12
+    SHR = enum.auto()   # >>
+    SHL = enum.auto()   # <<
 
-    EQ = 20
-    NE = 21
-    LT = 22
-    LE = 23
-    GT = 24
-    GE = 25
+    ROTR = enum.auto()  # >>>
+    ROTL = enum.auto()   # <<<
 
-    ANDSC = 30  # && (SC = short circuit)
-    ORSC = 31   # || (SC = short circuit)
+    AND = enum.auto()
+    OR = enum.auto()
+    XOR = enum.auto()
 
-    SHR = 40    # >>
-    SHL = 41    # <<
+    EQ = enum.auto()
+    NE = enum.auto()
+    LT = enum.auto()
+    LE = enum.auto()
+    GT = enum.auto()
+    GE = enum.auto()
 
-    ROTR = 42    # >>>
-    ROTL = 43    # <<<
+    ANDSC = enum.auto()  # && (SC = short circuit)
+    ORSC = enum.auto()  # || (SC = short circuit)
 
-    PDELTA = 52  # pointer delta result is sint
+    PDELTA = enum.auto()  # pointer delta result is sint
 
     def ResultIsBool(self) -> bool:
         return BINARY_EXPR_KIND.EQ.value <= self.value <= BINARY_EXPR_KIND.ORSC.value
+
+    def IsArithmetic(self) -> bool:
+        return BINARY_EXPR_KIND.ADD.value <= self.value <= BINARY_EXPR_KIND.XOR.value
+
+    def IsComparison(self) -> bool:
+        return BINARY_EXPR_KIND.EQ.value <= self.value <= BINARY_EXPR_KIND.GE.value
+
+    def IsShortCircuit(self) -> bool:
+        return self in (BINARY_EXPR_KIND.ANDSC, BINARY_EXPR_KIND.ORSC)
 
 
 BINARY_EXPR_SHORTCUT = {

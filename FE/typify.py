@@ -688,35 +688,46 @@ def _CheckTypeSameExceptMut(src_node, dst_ct: cwast.CanonType):
                             f"{src_node}: not the same actual: {src_ct} expected: {dst_ct}")
 
 
-def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonType,
-                     op2_type: cwast.CanonType, kind: cwast.BINARY_EXPR_KIND,
-                     tc: type_corpus.TypeCorpus):
-    if kind in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
-        assert result_type.is_bool()
-        _CheckTypeCompatibleForEq(node, op1_type, op2_type)
-    elif kind.ResultIsBool():
-        assert op1_type.is_base_type() and result_type.is_bool()
-        if op1_type != op2_type:
-            cwast.CompilerError(node.x_srcloc, "invalid ops for comparison")
-    elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
-        if op1_type.is_pointer():
-            if result_type != tc.get_sint_canon_type():
-                cwast.CompilerError(
-                    node.x_srcloc, "result of pointer delta must SINT")
-            if not op2_type.is_pointer():
-                cwast.CompilerError(
-                    node.x_srcloc, "rhs of pointer delta must be pointer")
+def _CheckExpr2TypesArithmetic(result_type: cwast.CanonType, op1, op2):
+    assert result_type.is_base_type(), f"{result_type}"
+    _CheckTypeIs(op1, result_type)
+    _CheckTypeIs(op2, result_type)
 
-        elif op1_type.is_span():
-            assert op2_type.is_span() and result_type == op1_type
+
+def _CheckExpr2TypesPdelta(node, op1, op2, ct_sint: cwast.CanonType):
+    # note: we ignore mutability
+    _CheckTypeKind(op1, cwast.TypePtr)
+    _CheckTypeIs(node, ct_sint)
+    _CheckTypeKind(op2, cwast.TypePtr)
+    if op1.x_type.underlying_type() != op2.x_type.underlying_type():
+        cwast.CompilerError(op1.x_srcloc, "invalid ops to PDELTA")
+
+
+def _CheckExpr2TypesShortCircuit(node, op1, op2, ct_bool: cwast.CanonType):
+    _CheckTypeIs(op1, ct_bool)
+    _CheckTypeIs(op2, ct_bool)
+    _CheckTypeIs(node, ct_bool)
+
+
+def _CheckExpr2Types(node, op1, op2, kind: cwast.BINARY_EXPR_KIND,
+                     tc: type_corpus.TypeCorpus):
+    if kind.IsArithmetic():
+        _CheckExpr2TypesArithmetic(node.x_type, op1, op2)
+    elif kind.IsComparison():
+        _CheckTypeIs(node, tc.get_bool_canon_type())
+        if kind in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
+            _CheckTypeCompatibleForEq(node, op1.x_type, op2.x_type)
         else:
-            assert False
-        if op1_type.underlying_type() != op2_type.underlying_type():
-            cwast.CompilerError(node.x_srcloc, "invalid ops to PDELTA")
+            assert op1.x_type.is_base_type()
+            if op1.x_type != op2.x_type:
+                cwast.CompilerError(
+                    node.x_srcloc, "invalid ops for comparison")
+    elif kind.IsShortCircuit():
+        _CheckExpr2TypesShortCircuit(node, op1, op2, tc.get_bool_canon_type())
+    elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
+        _CheckExpr2TypesPdelta(node, op1, op2, tc.get_sint_canon_type())
     else:
-        assert op1_type.is_base_type(), f"{node}"
-        _CheckTypeIsOld(node, op1_type, result_type)
-        _CheckTypeIsOld(node, op2_type, result_type)
+        assert False, f"{kind}"
 
 
 def _CheckValCompound(node: cwast.ValCompound):
@@ -850,7 +861,7 @@ def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
 def _CheckDefFunTypeFun(node, _):
     _CheckTypeKind(node, cwast.TypeFun)
     ct = node.x_type
-    _CheckTypeIsOld(node.result, ct.result_type(), node.result.x_type)
+    _CheckTypeIs(node.result, ct.result_type())
     for a, b in zip(ct.parameter_types(), node.params):
         _CheckTypeIs(b.type, a)
     # We should also ensure three is a proper return but that requires dataflow
@@ -890,9 +901,8 @@ def _CheckStmtCompoundAssignment(node: cwast.StmtCompoundAssignment,  tc: type_c
         cwast.CompilerError(
             node.x_srcloc, f"cannot assign to readonly data: {node}")
     kind = cwast.COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind]
-    var_ct = node.lhs.x_type
-    expr_ct = node.expr_rhs.x_type
-    _CheckExpr2Types(node, var_ct, var_ct, expr_ct, kind, tc)
+    assert kind.IsArithmetic(), f"{kind}"
+    _CheckExpr2TypesArithmetic(node.lhs.x_type, node.lhs, node.expr_rhs)
 
 
 def _CheckExprAs(node: cwast.ExprAs, _):
@@ -965,8 +975,8 @@ VERIFIERS_COMMON = {
     cwast.EnumVal: _CheckNothing,
     # -----------------
     #
-    cwast.Expr2: lambda n, tc:  _CheckExpr2Types(n, n.x_type,  n.expr1.x_type,
-                                                 n.expr2.x_type, n.binary_expr_kind, tc),
+    cwast.Expr2: lambda n, tc:  _CheckExpr2Types(n,  n.expr1,
+                                                 n.expr2, n.binary_expr_kind, tc),
     cwast.FunParam: _CheckNothing,
 
     cwast.ExprDeref: _CheckExprDeref,
