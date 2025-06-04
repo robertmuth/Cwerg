@@ -541,13 +541,8 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
             ct = tc.get_bool_canon_type()
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
             ct = tc.get_sint_canon_type()
-            if ct_left.is_pointer():
-                assert ct_right.is_pointer()
-            elif ct_left.is_span():
-                # TODO: is this still used
-                assert ct_right.is_span()
-            else:
-                assert False
+            assert ct_left.is_pointer()
+            assert ct_right.is_pointer()
         else:
             ct = ct_left
         return AnnotateNodeType(node, ct)
@@ -694,21 +689,6 @@ def _CheckExpr2TypesArithmetic(result_type: cwast.CanonType, op1, op2):
     _CheckTypeIs(op2, result_type)
 
 
-def _CheckExpr2TypesPdelta(node, op1, op2, ct_sint: cwast.CanonType):
-    # note: we ignore mutability
-    _CheckTypeKind(op1, cwast.TypePtr)
-    _CheckTypeIs(node, ct_sint)
-    _CheckTypeKind(op2, cwast.TypePtr)
-    if op1.x_type.underlying_type() != op2.x_type.underlying_type():
-        cwast.CompilerError(op1.x_srcloc, "invalid ops to PDELTA")
-
-
-def _CheckExpr2TypesShortCircuit(node, op1, op2, ct_bool: cwast.CanonType):
-    _CheckTypeIs(op1, ct_bool)
-    _CheckTypeIs(op2, ct_bool)
-    _CheckTypeIs(node, ct_bool)
-
-
 def _CheckExpr2Types(node, op1, op2, kind: cwast.BINARY_EXPR_KIND,
                      tc: type_corpus.TypeCorpus):
     if kind.IsArithmetic():
@@ -723,9 +703,18 @@ def _CheckExpr2Types(node, op1, op2, kind: cwast.BINARY_EXPR_KIND,
                 cwast.CompilerError(
                     node.x_srcloc, "invalid ops for comparison")
     elif kind.IsShortCircuit():
-        _CheckExpr2TypesShortCircuit(node, op1, op2, tc.get_bool_canon_type())
+        ct_bool = tc.get_bool_canon_type()
+        _CheckTypeIs(op1, ct_bool)
+        _CheckTypeIs(op2, ct_bool)
+        _CheckTypeIs(node, ct_bool)
     elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
-        _CheckExpr2TypesPdelta(node, op1, op2, tc.get_sint_canon_type())
+        # note: we ignore mutability
+        ct_sint = tc.get_sint_canon_type()
+        _CheckTypeKind(op1, cwast.TypePtr)
+        _CheckTypeIs(node, ct_sint)
+        _CheckTypeKind(op2, cwast.TypePtr)
+        if op1.x_type.underlying_type() != op2.x_type.underlying_type():
+            cwast.CompilerError(op1.x_srcloc, "invalid ops to PDELTA")
     else:
         assert False, f"{kind}"
 
