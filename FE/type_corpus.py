@@ -31,6 +31,10 @@ def IsVecToSpanConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> b
 
 
 def IsDropMutConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> bool:
+    if ct_src.original_type is not None:
+        ct_src = ct_src.original_type
+    if ct_dst.original_type is not None:
+        ct_dst = ct_dst.original_type
     if (ct_src.is_pointer() and ct_dst.is_pointer() or
             ct_src.is_span() and ct_dst.is_span()):
         return ct_src.underlying_type() == ct_dst.underlying_type() and not ct_dst.is_mutable()
@@ -75,6 +79,11 @@ def IsComparableType(ct: cwast.CanonType) -> bool:
 
 
 def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
+    if actual.original_type is not None:
+        actual = actual.original_type
+    if expected.original_type is not None:
+        expected = expected.original_type
+
     if IsComparableType(actual) or actual.is_fun():
         if actual == expected:
             return True
