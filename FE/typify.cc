@@ -740,6 +740,49 @@ void CheckTypeKind(Node node, NT kind) {
                                          << EnumToString(kind) << " got "
                                          << EnumToString(CanonType_kind(ct)));
 }
+void CheckExpr2TypesArithmetic(CanonType result, Node op1, Node op2) {
+  ASSERT(CanonType_kind(result) == NT::TypeBase, "");
+  CheckTypeIs(op1, result);
+  CheckTypeIs(op2, result);
+}
+
+void CheckExpr2Types(Node node, Node op1, Node op2, BINARY_EXPR_KIND kind,
+                     TypeCorpus* tc) {
+  if (IsArithmetic(kind)) {
+    CheckExpr2TypesArithmetic(Node_x_type(node), op1, op2);
+  } else if (IsComparison(kind)) {
+    CheckTypeIs(node, tc->get_bool_canon_type());
+#if 0
+    if (kind == BINARY_EXPR_KIND::EQ || kind == BINARY_EXPR_KIND::NE) {
+      if (!IsCompatibleTypeForEq(Node_x_type(op1), Node_x_type(op2))) {
+        CompilerError(Node_srcloc(op1))
+            << "incompatible types for comparison testing";
+      }
+    } else {
+      if (!IsCompatibleTypeForCmp(Node_x_type(op1), Node_x_type(op2))) {
+        CompilerError(Node_srcloc(op1))
+            << "incompatible types for comparison testing";
+      }
+    }
+#endif
+  } else if (IsShortCircuit(kind)) {
+    auto ct = tc->get_bool_canon_type();
+    CheckTypeIs(node, ct);
+    CheckTypeIs(op1, ct);
+    CheckTypeIs(op2, ct);
+  } else if (kind == BINARY_EXPR_KIND::PDELTA) {
+    CheckTypeIs(node, tc->get_sint_canon_type());
+    CheckTypeKind(op1, NT::TypePtr);
+    CheckTypeKind(op2, NT::TypePtr);
+    if (CanonType_underlying_type(Node_x_type(op1)) !=
+        CanonType_underlying_type(Node_x_type(op2))) {
+      CompilerError(Node_srcloc(node))
+          << "pointers must have same underlying type";
+    }
+  } else {
+    ASSERT(false, "NYI " << EnumToString(kind));
+  }
+}
 
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
   std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
@@ -821,6 +864,9 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         }
         break;
       }
+      case NT::Expr2:
+        return CheckExpr2Types(node, Node_expr1(node), Node_expr2(node),
+                               Node_binary_expr_kind(node), tc);
         //
         // ---------------------------
         //
@@ -881,22 +927,16 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ValSpan:
         // TODO: does not work after constant folding
         CheckTypeKind(node, NT::TypeSpan);
-        //return CheckTypeIs(
-        //    node, CanonType_underlying_type(Node_x_type(node)),
-        //    CanonType_underlying_type(Node_x_type(Node_pointer(node))));
+        // return CheckTypeIs(
+        //     node, CanonType_underlying_type(Node_x_type(node)),
+        //     CanonType_underlying_type(Node_x_type(Node_pointer(node))));
         break;
       case NT::ExprUnionUntagged:
         // TODO
         break;
-
       case NT::ExprCall:
         // TODO
         break;
-
-      case NT::Expr2:
-        // TODO
-        break;
-
       case NT::ExprField:
         // TODO
         break;
