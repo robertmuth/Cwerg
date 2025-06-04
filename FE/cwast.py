@@ -234,9 +234,6 @@ class BINARY_EXPR_KIND(enum.Enum):
 
     PDELTA = enum.auto()  # pointer delta result is sint
 
-    def ResultIsBool(self) -> bool:
-        return BINARY_EXPR_KIND.EQ.value <= self.value <= BINARY_EXPR_KIND.ORSC.value
-
     def IsArithmetic(self) -> bool:
         return BINARY_EXPR_KIND.ADD.value <= self.value <= BINARY_EXPR_KIND.XOR.value
 

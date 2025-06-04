@@ -530,14 +530,14 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         ct = _TypifyExprOrType(node.expr, tc, target_type, pm)
         return AnnotateNodeType(node, ct)
     elif isinstance(node, cwast.Expr2):
-        if node.binary_expr_kind.ResultIsBool():
+        if node.binary_expr_kind.IsComparison():
             # for comparisons the type of the expressions has nothing to do with
             # the type of the operands
             target_type = cwast.NO_TYPE
         ct_left = _TypifyExprOrType(node.expr1, tc, target_type, pm)
         ct_right = _TypifyExprOrType(node.expr2, tc, ct_left, pm)
 
-        if node.binary_expr_kind.ResultIsBool():
+        if node.binary_expr_kind.IsComparison():
             ct = tc.get_bool_canon_type()
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
             ct = tc.get_sint_canon_type()

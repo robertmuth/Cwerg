@@ -474,22 +474,22 @@ enum class BINARY_EXPR_KIND : uint8_t {
     MOD = 5,
     MIN = 6,
     MAX = 7,
-    AND = 10,
-    OR = 11,
-    XOR = 12,
-    EQ = 20,
-    NE = 21,
-    LT = 22,
-    LE = 23,
-    GT = 24,
-    GE = 25,
-    ANDSC = 30,
-    ORSC = 31,
-    SHR = 40,
-    SHL = 41,
-    ROTR = 42,
-    ROTL = 43,
-    PDELTA = 52,
+    SHR = 8,
+    SHL = 9,
+    ROTR = 10,
+    ROTL = 11,
+    AND = 12,
+    OR = 13,
+    XOR = 14,
+    EQ = 15,
+    NE = 16,
+    LT = 17,
+    LE = 18,
+    GT = 19,
+    GE = 20,
+    ANDSC = 21,
+    ORSC = 22,
+    PDELTA = 23,
 };
 
 enum class UNARY_EXPR_KIND : uint8_t {
@@ -520,10 +520,10 @@ enum class BASE_TYPE_KIND : uint8_t {
     U64 = 24,
     R32 = 30,
     R64 = 31,
-    VOID = 40,
-    NORET = 41,
-    BOOL = 42,
-    TYPEID = 43,
+    BOOL = 40,
+    TYPEID = 50,
+    VOID = 60,
+    NORET = 61,
 };
 
 enum class MACRO_PARAM_KIND : uint8_t {
@@ -960,7 +960,8 @@ inline bool IsFieldNode(Node node, Node parent) {
 }
 
 inline bool IsPointNode(Node node, Node parent) {
-  return Node_point_or_undef(parent) == node && Node_kind(parent) == NT::ValPoint;
+  return Node_point_or_undef(parent) == node &&
+         Node_kind(parent) == NT::ValPoint;
 }
 
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
@@ -1014,8 +1015,18 @@ inline bool IsUint(BASE_TYPE_KIND x) {
          int(x) <= int(BASE_TYPE_KIND::U64);
 }
 
-inline bool ResultIsBool(BINARY_EXPR_KIND x) {
+inline bool IsArithmetic(BINARY_EXPR_KIND x) {
+  return int(BINARY_EXPR_KIND::ADD) <= int(x) &&
+         int(x) <= int(BINARY_EXPR_KIND::XOR);
+}
+
+inline bool IsComparison(BINARY_EXPR_KIND x) {
   return int(BINARY_EXPR_KIND::EQ) <= int(x) &&
+         int(x) <= int(BINARY_EXPR_KIND::GE);
+}
+
+inline bool IsShortCircuit(BINARY_EXPR_KIND x) {
+  return int(BINARY_EXPR_KIND::ANDSC) <= int(x) &&
          int(x) <= int(BINARY_EXPR_KIND::ORSC);
 }
 

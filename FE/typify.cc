@@ -504,7 +504,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node, ct);
     case NT::Expr2: {
       BINARY_EXPR_KIND kind = Node_binary_expr_kind(node);
-      if (ResultIsBool(kind)) {
+      if (IsComparison(kind)) {
         ct_target = kCanonTypeInvalid;
       }
 
@@ -513,7 +513,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       TypifyExprOrType(
           Node_expr2(node), tc,
           CanonType_IsNumber(ct_left) ? ct_left : kCanonTypeInvalid, pm);
-      if (ResultIsBool(kind)) {
+      if (IsComparison(kind)) {
         ct = tc->get_bool_canon_type();
       } else if (kind == BINARY_EXPR_KIND::PDELTA) {
         ct = tc->get_sint_canon_type();
