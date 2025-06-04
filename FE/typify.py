@@ -640,8 +640,15 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         assert False, f"unexpected node {node}"
 
 
-def _CheckTypeIs(node, actual: cwast.CanonType, expected: cwast.CanonType):
+def _CheckTypeIsOld(node, actual: cwast.CanonType, expected: cwast.CanonType):
     # assert node.x_type == actual
+    if actual is not expected:
+        cwast.CompilerError(node.x_srcloc,
+                            f"{node}: not the same actual: {actual} expected: {expected}")
+
+
+def _CheckTypeIs(node, expected: cwast.CanonType):
+    actual = node.x_type
     if actual is not expected:
         cwast.CompilerError(node.x_srcloc,
                             f"{node}: not the same actual: {actual} expected: {expected}")
@@ -708,8 +715,8 @@ def _CheckExpr2Types(node, result_type: cwast.CanonType, op1_type: cwast.CanonTy
             cwast.CompilerError(node.x_srcloc, "invalid ops to PDELTA")
     else:
         assert op1_type.is_base_type(), f"{node}"
-        _CheckTypeIs(node, op1_type, result_type)
-        _CheckTypeIs(node, op2_type, result_type)
+        _CheckTypeIsOld(node, op1_type, result_type)
+        _CheckTypeIsOld(node, op2_type, result_type)
 
 
 def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
@@ -719,19 +726,19 @@ def _CheckValVec(node: cwast.ValCompound, ct: cwast.CanonType):
         if not isinstance(index, cwast.ValUndef):
             assert index.x_type.is_base_type() and index.x_type.base_type_kind.IsUint()
         # TODO: this should be  _CheckTypeCompatibleForAssignment
-        _CheckTypeIs(point,  point.x_type, ct)
+        _CheckTypeIs(point, ct)
 
 
 def _CheckExpr3(node: cwast.Expr3, tc: type_corpus.TypeCorpus):
     ct = node.x_type
-    _CheckTypeIs(node.expr_t, node.expr_t.x_type, ct)
-    _CheckTypeIs(node.expr_f, node.expr_f.x_type, ct)
-    _CheckTypeIs(node.cond, node.cond.x_type, tc.get_bool_canon_type())
+    _CheckTypeIs(node.expr_t, ct)
+    _CheckTypeIs(node.expr_f, ct)
+    _CheckTypeIs(node.cond, tc.get_bool_canon_type())
 
 
 def _CheckExprDeref(node: cwast.ExprDeref, _):
     _CheckTypeKind(node.expr, cwast.TypePtr)
-    _CheckTypeIs(node, node.x_type, node.expr.x_type.underlying_type())
+    _CheckTypeIs(node, node.expr.x_type.underlying_type())
 
 
 def _CheckExprPointer(node: cwast.ExprPointer, _):
@@ -740,12 +747,9 @@ def _CheckExprPointer(node: cwast.ExprPointer, _):
         if not bound.x_type.is_base_type() or not bound.x_type.base_type_kind.IsUint():
             cwast.CompilerError(
                 bound.x_srcloc, f"{bound}: not uint: {bound.x_type}")
-    ct: cwast.CanonType = node.expr1.x_type
-    if not ct.is_pointer():
-        cwast.CompilerError(
-            node.x_srcloc, f"expected pointer got {node.expr1.x_type}")
+    _CheckTypeKind(node.expr1, cwast.TypePtr)
     # _CheckTypeUint(node, tc, node.expr2.x_type)
-    _CheckTypeIs(node, node.expr1.x_type, node.x_type)
+    _CheckTypeIs(node.expr1, node.x_type)
 
 
 def _CheckExprField(node: cwast.ExprField, _):
@@ -769,7 +773,7 @@ def _CheckExprFront(node: cwast.ExprFront, _):
         # TODO: check if address can be taken
         pass
 
-    assert node.x_type.is_pointer()
+    _CheckTypeKind(node, cwast.TypePtr)
     _CheckUnderlyingTypeIs(node, c.x_type.underlying_type())
 
 
@@ -817,7 +821,7 @@ def _CheckExprUnionUntagged(node: cwast.ExprUnionUntagged, _):
     assert node.x_type.is_untagged_union()
     assert node.expr.x_type.is_tagged_union(), f"{node.expr.x_type}"
     for c1, c2 in zip(node.x_type.union_member_types(), node.expr.x_type.union_member_types()):
-        _CheckTypeIs(node, c1, c2)
+        _CheckTypeIsOld(node, c1, c2)
 
 
 def _CheckValNum(node: cwast.ValNum, _):
@@ -829,7 +833,7 @@ def _CheckValNum(node: cwast.ValNum, _):
 def _CheckExprIndex(node: cwast.ExprIndex, _):
     c = node.container
     assert c.x_type.is_vec() or c.x_type.is_span()
-    _CheckTypeIs(node, node.x_type, node.container.x_type.underlying_type())
+    _CheckTypeIs(node, node.container.x_type.underlying_type())
 
 
 def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
@@ -847,34 +851,33 @@ def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
 def _CheckDefFunTypeFun(node, _):
     ct = node.x_type
     assert ct.is_fun()
-    _CheckTypeIs(node.result, ct.result_type(), node.result.x_type)
+    _CheckTypeIsOld(node.result, ct.result_type(), node.result.x_type)
     for a, b in zip(ct.parameter_types(), node.params):
-        _CheckTypeIs(b, a, b.type.x_type)
+        _CheckTypeIs(b.type, a)
     # We should also ensure three is a proper return but that requires dataflow
 
 
 def _CheckValSpan(node: cwast.ValSpan, _):
     _CheckTypeKind(node, cwast.TypeSpan),
-    _CheckTypeIs(node, node.x_type.underlying_type(),
-                 node.pointer.x_type.underlying_type())
+    _CheckUnderlyingTypeIs(node, node.pointer.x_type.underlying_type())
 
 
 def _CheckExprUnionTag(node: cwast.ExprUnionTag, tc: type_corpus.TypeCorpus):
     _CheckTypeKind(node.expr, cwast.TypeUnion),
     assert not node.expr.x_type.untagged
-    _CheckTypeIs(node, node.x_type, tc.get_typeid_canon_type())
+    _CheckTypeIsOld(node, node.x_type, tc.get_typeid_canon_type())
 
 
 def _CheckId(node: cwast.Id,  _):
     ct = node.x_type
     def_node = node.x_symbol
     if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
-        _CheckTypeIs(node, ct, def_node.type_or_auto.x_type)
+        _CheckTypeIs(node, def_node.type_or_auto.x_type)
     elif isinstance(def_node, (cwast.FunParam)):
-        _CheckTypeIs(node,  ct, def_node.type.x_type)
+        _CheckTypeIs(node, def_node.type.x_type)
     elif isinstance(def_node, (cwast.DefRec, cwast.DefType, cwast.DefFun,
                                cwast.DefEnum, cwast.EnumVal, cwast.RecField)):
-        _CheckTypeIs(node,  ct, def_node.x_type)
+        _CheckTypeIs(node, def_node.x_type)
     else:
         assert False, f"{def_node}"
 
@@ -891,6 +894,7 @@ def _CheckStmtCompoundAssignment(node: cwast.StmtCompoundAssignment,  tc: type_c
     var_ct = node.lhs.x_type
     expr_ct = node.expr_rhs.x_type
     _CheckExpr2Types(node, var_ct, var_ct, expr_ct, kind, tc)
+
 
 def _CheckExprAs(node: cwast.ExprAs, _):
     ct_src = node.expr.x_type
@@ -919,26 +923,26 @@ def _CheckNothing(_, _2):
 
 
 VERIFIERS_COMMON = {
-    cwast.ExprIs: lambda n, tc: _CheckTypeIs(n, n.x_type, tc.get_bool_canon_type()),
-    cwast.ValTrue: lambda n, tc: _CheckTypeIs(n, n.x_type, tc.get_bool_canon_type()),
-    cwast.ValFalse: lambda n, tc:  _CheckTypeIs(n, n.x_type, tc.get_bool_canon_type()),
+    cwast.ExprIs: lambda n, tc: _CheckTypeIs(n, tc.get_bool_canon_type()),
+    cwast.ValTrue: lambda n, tc: _CheckTypeIs(n, tc.get_bool_canon_type()),
+    cwast.ValFalse: lambda n, tc:  _CheckTypeIs(n, tc.get_bool_canon_type()),
     #
-    cwast.ExprOffsetof: lambda n, tc: _CheckTypeIs(n, n.x_type, tc.get_uint_canon_type()),
-    cwast.ExprSizeof: lambda n, tc: _CheckTypeIs(n, n.x_type, tc.get_uint_canon_type()),
-    cwast.ExprLen: lambda n, tc: _CheckTypeIs(n, n.x_type, tc.get_uint_canon_type()),
+    cwast.ExprOffsetof: lambda n, tc: _CheckTypeIs(n, tc.get_uint_canon_type()),
+    cwast.ExprSizeof: lambda n, tc: _CheckTypeIs(n, tc.get_uint_canon_type()),
+    cwast.ExprLen: lambda n, tc: _CheckTypeIs(n, tc.get_uint_canon_type()),
     #
-    cwast.StmtIf: lambda n, tc:   _CheckTypeIs(n.cond, n.cond.x_type, tc.get_bool_canon_type()),
-    cwast.Case: lambda n, tc:   _CheckTypeIs(n.cond, n.cond.x_type, tc.get_bool_canon_type()),
-    cwast.StmtStaticAssert: lambda n, tc:   _CheckTypeIs(n.cond, n.cond.x_type, tc.get_bool_canon_type()),
+    cwast.StmtIf: lambda n, tc:   _CheckTypeIs(n.cond, tc.get_bool_canon_type()),
+    cwast.Case: lambda n, tc:   _CheckTypeIs(n.cond, tc.get_bool_canon_type()),
+    cwast.StmtStaticAssert: lambda n, tc:   _CheckTypeIs(n.cond, tc.get_bool_canon_type()),
     #
-    cwast.ValVoid: lambda n, tc: _CheckTypeIs(n, n.x_type, tc.get_void_canon_type()),
+    cwast.ValVoid: lambda n, tc: _CheckTypeIs(n, tc.get_void_canon_type()),
     #
-    cwast.ExprTypeId: lambda n, tc: _CheckTypeIs(n, n.x_type, tc.get_typeid_canon_type()),
+    cwast.ExprTypeId: lambda n, tc: _CheckTypeIs(n, tc.get_typeid_canon_type()),
     #
-    cwast.Expr1: lambda n, tc: _CheckTypeIs(n, n.x_type, n.expr.x_type),
+    cwast.Expr1: lambda n, tc: _CheckTypeIs(n, n.expr.x_type),
 
-    cwast.TypeOf: lambda n, tc: _CheckTypeIs(n, n.x_type, n.expr.x_type),
-    cwast.ExprParen: lambda n, tc: _CheckTypeIs(n, n.x_type, n.expr.x_type),
+    cwast.TypeOf: lambda n, tc: _CheckTypeIs(n, n.expr.x_type),
+    cwast.ExprParen: lambda n, tc: _CheckTypeIs(n, n.expr.x_type),
 
     #
     cwast.TypeBase: lambda n, tc: _CheckTypeKind(n, cwast.TypeBase),
@@ -1018,7 +1022,7 @@ def _CheckValCompound(node: cwast.ValCompound, strict: bool):
         assert ct.is_rec()
         for field, point in symbolize.IterateValRec(node.inits, ct):
             if point:
-                _CheckTypeIs(point, field.x_type, point.x_type)
+                _CheckTypeIs(point, point.x_type)
                 if not isinstance(point.value_or_undef, cwast.ValUndef):
                     if strict:
                         _CheckTypeSameExceptMut(
@@ -1071,7 +1075,7 @@ def _CheckDefVarDefGlobal(node, strict: bool):
             _CheckTypeSameExceptMut(initial, ct)
         else:
             _CheckTypeCompatibleImplictConvAllowed(initial, ct)
-    _CheckTypeIs(node, node.x_type, ct)
+    _CheckTypeIs(node, ct)
 
 
 def _CheckExprWrap(node: cwast.ExprWrap,  strict: bool):
