@@ -802,6 +802,9 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return CheckTypeIs(node, Node_x_type(Node_expr(node)));
       case NT::ExprParen:
         return CheckTypeIs(node, Node_x_type(Node_expr(node)));
+      case NT::FunParam:
+        // return CheckTypeIs(node, Node_x_type(Node_type(node)));
+        return;
         //
       case NT::TypeBase:
         return CheckTypeKind(node, NT::TypeBase);
@@ -856,6 +859,9 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::Expr2:
         return CheckExpr2Types(node, Node_expr1(node), Node_expr2(node),
                                Node_binary_expr_kind(node), tc);
+      case NT::ExprField:
+        CheckTypeKind(Node_container(node), NT::DefRec);
+        return CheckTypeIs(node, Node_x_type(Node_x_symbol(Node_field(node))));
         //
         // ---------------------------
         //
@@ -926,9 +932,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprCall:
         // TODO
         break;
-      case NT::ExprField:
-        // TODO
-        break;
+
       case NT::ExprIndex:
         // TODO
         break;
@@ -969,9 +973,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::RecField:
         // TODO
         break;
-      case NT::FunParam:
-        // TODO
-        break;
+
       case NT::TypeAuto:
         // TODO
         break;

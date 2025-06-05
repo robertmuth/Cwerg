@@ -644,7 +644,7 @@ def _CheckTypeIs(node, expected: cwast.CanonType):
     actual = node.x_type
     if actual is not expected:
         cwast.CompilerError(node.x_srcloc,
-                            f"{node}: not the same actual: {actual} expected: {expected}")
+                            f"{node}: not the same actual: {actual}  original={actual.original_type} expected: {expected}")
 
 
 def _CheckValUndefOrTypeIsUint(node):
@@ -931,7 +931,10 @@ VERIFIERS_COMMON = {
 
     cwast.TypeOf: lambda n, tc: _CheckTypeIs(n, n.expr.x_type),
     cwast.ExprParen: lambda n, tc: _CheckTypeIs(n, n.expr.x_type),
-
+    cwast.FunParam: _CheckNothing,
+    # this needs more work because we do not properly update the type
+    # when rewriting complex function args
+    # cwast.FunParam: lambda n, tc: _CheckTypeIs(n, n.type.x_type),
     #
     cwast.TypeBase: lambda n, tc: _CheckTypeKind(n, cwast.TypeBase),
     cwast.TypeSpan: lambda n, tc: _CheckTypeKind(n, cwast.TypeSpan),
@@ -944,7 +947,10 @@ VERIFIERS_COMMON = {
     cwast.ValSpan: _CheckValSpan,
     cwast.Expr3: _CheckExpr3,
     cwast.Id: _CheckId,
-
+    cwast.Expr2: lambda n, tc:  _CheckExpr2Types(n,  n.expr1,
+                                                 n.expr2, n.binary_expr_kind, tc),
+    cwast.ExprField: _CheckExprField,
+    # -----------------
     #
     cwast.ExprUnionTag: _CheckExprUnionTag,
     cwast.DefRec: _CheckDefRecDefEnum,
@@ -952,16 +958,12 @@ VERIFIERS_COMMON = {
     #
     cwast.DefEnum: _CheckDefRecDefEnum,
     cwast.EnumVal: _CheckNothing,
-    # -----------------
     #
-    cwast.Expr2: lambda n, tc:  _CheckExpr2Types(n,  n.expr1,
-                                                 n.expr2, n.binary_expr_kind, tc),
-    cwast.FunParam: _CheckNothing,
+
 
     cwast.ExprDeref: _CheckExprDeref,
     cwast.ExprPointer: _CheckExprPointer,
     cwast.ExprIndex: _CheckExprIndex,
-    cwast.ExprField: _CheckExprField,
     cwast.ExprFront: _CheckExprFront,
     cwast.ExprWiden: _CheckExprWiden,
     cwast.ExprAddrOf: _CheckExprAddrOf,
