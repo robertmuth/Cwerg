@@ -98,14 +98,17 @@ def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) ->
         expected = expected.original_type
 
     if IsTypeForEq(actual):
-        if actual == expected or IsDropMutConversion(actual, expected):
+        if actual == expected:
             return True
 
-        if expected.is_tagged_union():
-            return actual in expected.union_member_types()
+        if actual.is_pointer() and expected.is_pointer():
+            return actual.underlying_type() == expected.underlying_type()
 
-    if actual.is_tagged_union():
-        return IsTypeForEq(expected) and expected in actual.union_member_types()
+        if expected.tagged_union_contains(actual):
+            return True
+
+    if IsTypeForEq(expected) and actual.tagged_union_contains(expected):
+        return True
 
     return False
 

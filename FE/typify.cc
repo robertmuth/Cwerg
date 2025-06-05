@@ -743,7 +743,6 @@ void CheckExpr2Types(Node node, Node op1, Node op2, BINARY_EXPR_KIND kind,
     CheckExpr2TypesArithmetic(Node_x_type(node), op1, op2);
   } else if (IsComparison(kind)) {
     CheckTypeIs(node, tc->get_bool_canon_type());
-#if 0
     if (kind == BINARY_EXPR_KIND::EQ || kind == BINARY_EXPR_KIND::NE) {
       if (!IsCompatibleTypeForEq(Node_x_type(op1), Node_x_type(op2))) {
         CompilerError(Node_srcloc(op1))
@@ -755,7 +754,6 @@ void CheckExpr2Types(Node node, Node op1, Node op2, BINARY_EXPR_KIND kind,
             << "incompatible types for comparison testing";
       }
     }
-#endif
   } else if (IsShortCircuit(kind)) {
     auto ct = tc->get_bool_canon_type();
     CheckTypeIs(node, ct);
