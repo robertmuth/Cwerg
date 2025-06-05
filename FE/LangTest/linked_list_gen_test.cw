@@ -38,11 +38,11 @@ fun DumpNode(i u32) void:
         fmt::print#(" next: NULL\n")
     else:
         fmt::print#(" next: ",
-                    unsafe_as(narrow_as(NodePool[i].next, ^!LinkedListNode),
+                    bitwise_as(narrow_as(NodePool[i].next, ^!LinkedListNode),
                       ^void), "\n")
 
 fun main(argc s32, argv ^^u8) s32:
-    fmt::print#("start: ", unsafe_as(front(NodePool), ^void), "\n")
+    fmt::print#("start: ", bitwise_as(front(NodePool), ^void), "\n")
     for i = 0, N, 1:
         set NodePool[i].payload = as(i, u32)
         if i == N - 1:

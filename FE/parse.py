@@ -133,7 +133,6 @@ _FUN_LIKE: dict[str, tuple[Callable, str]] = {
     cwast.ExprNarrow.ALIAS: (cwast.ExprNarrow, "ET"),
     cwast.ExprNarrow.ALIAS + "!": (cwast.ExprNarrow, "ET"),
     cwast.ExprWiden.ALIAS: (cwast.ExprWiden, "ET"),
-    cwast.ExprUnsafeCast.ALIAS: (cwast.ExprUnsafeCast, "ET"),
     cwast.ExprBitCast.ALIAS: (cwast.ExprBitCast, "ET"),
     #
 

@@ -23,7 +23,7 @@ def MayHaveSideEffects(n: Any):
         return False
     elif isinstance(n, (cwast.ExprAddrOf)):
         return MayHaveSideEffects(n.expr_lhs)
-    elif isinstance(n, (cwast.ExprDeref, cwast.ExprAs, cwast.ExprBitCast, cwast.ExprUnsafeCast,
+    elif isinstance(n, (cwast.ExprDeref, cwast.ExprAs, cwast.ExprBitCast,
                         cwast.ExprWiden, cwast.ExprNarrow, cwast.ExprUnionUntagged)):
         return MayHaveSideEffects(n.expr)
     elif isinstance(n, (cwast.ExprFront, cwast.ExprField, cwast.ExprLen)):
@@ -160,7 +160,7 @@ def FunInlineSmallFuns(fun: cwast.DefFun):
         if not isinstance(fun_def, cwast.DefFun):
             return None
         # TODO
-        #if fun_def.name.name != "fib":
+        # if fun_def.name.name != "fib":
         #    return None
         if fun_def.extern:
             return None

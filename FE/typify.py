@@ -579,7 +579,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         return AnnotateNodeType(node, target_type)
     elif isinstance(node, cwast.ExprCall):
         return _TypifyExprCall(node, tc, target_type, pm)
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprBitCast)):
         ct = _TypifyExprOrType(node.type, tc, cwast.NO_TYPE, pm)
         _TypifyExprOrType(node.expr, tc, cwast.NO_TYPE, pm)
         return AnnotateNodeType(node, ct)
@@ -886,24 +886,20 @@ def _CheckStmtCompoundAssignment(node: cwast.StmtCompoundAssignment,  tc: type_c
 
 def _CheckExprAs(node: cwast.ExprAs, _):
     ct_src = node.expr.x_type
-    ct_dst = node.type.x_type
+    ct_dst = node.x_type
     if not type_corpus.IsCompatibleTypeForAs(ct_src, ct_dst):
         cwast.CompilerError(
             node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
-
-
-def _CheckExprUnsafeCast(node: cwast.ExprUnsafeCast,  tc: type_corpus.TypeCorpus):
-    if not node.x_type.is_pointer() or not node.expr.x_type.is_pointer():
-        cwast.CompilerError(
-            node.x_srcloc, "unsafe_cast must convert pointer to pointer")
+    _CheckTypeIs(node, node.type.x_type)
 
 
 def _CheckExprBitCast(node: cwast.ExprAs, _):
     ct_src = node.expr.x_type
-    ct_dst = node.type.x_type
+    ct_dst = node.x_type
     if not type_corpus.IsCompatibleTypeForBitcast(ct_src, ct_dst):
         cwast.CompilerError(
             node.x_srcloc,  f"bad cast {ct_src} -> {ct_dst}: {node.expr}")
+    _CheckTypeIs(node, node.type.x_type)
 
 
 def _CheckNothing(_, _2):
@@ -943,26 +939,32 @@ VERIFIERS_COMMON = {
     cwast.TypeUnion: lambda n, tc: _CheckTypeKind(n, cwast.TypeUnion),
     # TODO: check underlying
     cwast.ValString: lambda n, tc: _CheckTypeKind(n, cwast.TypeVec),
-    #
     cwast.ValSpan: _CheckValSpan,
+    #
+    cwast.ExprUnionTag: _CheckExprUnionTag,
+    cwast.ExprDeref: _CheckExprDeref,
+
     cwast.Expr3: _CheckExpr3,
     cwast.Id: _CheckId,
     cwast.Expr2: lambda n, tc:  _CheckExpr2Types(n,  n.expr1,
                                                  n.expr2, n.binary_expr_kind, tc),
     cwast.ExprField: _CheckExprField,
+    cwast.ExprPointer: _CheckExprPointer,
+    cwast.DefType: lambda n, tc: _CheckTypeKind(n, cwast.DefType) if n.wrapped else
+    _CheckTypeIs(n.type, n.x_type),
+    # TODO: need to use original types if available
+    cwast.ExprAs: _CheckExprAs,
+    cwast.ExprBitCast: _CheckExprBitCast,
     # -----------------
     #
-    cwast.ExprUnionTag: _CheckExprUnionTag,
     cwast.DefRec: _CheckDefRecDefEnum,
-    cwast.RecField: _CheckNothing,
+    cwast.RecField: lambda n, tc:  _CheckTypeIs(n.type, n.x_type),
     #
     cwast.DefEnum: _CheckDefRecDefEnum,
-    cwast.EnumVal: _CheckNothing,
+    cwast.EnumVal: _CheckNothing,    # checked as part of DefEnum
     #
 
 
-    cwast.ExprDeref: _CheckExprDeref,
-    cwast.ExprPointer: _CheckExprPointer,
     cwast.ExprIndex: _CheckExprIndex,
     cwast.ExprFront: _CheckExprFront,
     cwast.ExprWiden: _CheckExprWiden,
@@ -981,12 +983,8 @@ VERIFIERS_COMMON = {
     cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
     # minuned = node.type.x_type
     #  subtrahend = node.subtrahend.x_type
-    # TODO: need to use original types if available
-    cwast.ExprUnsafeCast: _CheckExprUnsafeCast,
-    cwast.ExprAs: _CheckExprAs,
-    cwast.ExprBitCast: _CheckExprBitCast,
+
     #
-    cwast.DefType: _CheckNothing,
     # cwast.ValPoint: _CheckNothing,  # taken care of by previous
     cwast.TypeAuto: _CheckNothing,
     cwast.ValAuto: _CheckNothing,

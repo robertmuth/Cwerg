@@ -561,8 +561,6 @@ def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
         else:
             print(f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
         return res
-    elif isinstance(node, cwast.ExprUnsafeCast):
-        return EmitIRExpr(node.expr, ta, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
         if ct_dst.is_void_or_wrapped_void():
             return None
@@ -663,7 +661,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
                               cwast.ExprPointer, cwast.ExprFront)):
         reg = EmitIRExpr(init_node, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
-    elif isinstance(init_node, (cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+    elif isinstance(init_node, cwast.ExprBitCast):
         # both imply scalar and both do not change the bits
         reg = EmitIRExpr(init_node.expr, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")

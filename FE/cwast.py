@@ -544,7 +544,7 @@ NODES_EXPR_T = Union[NODES_VAL_T,
                      "ExprLen", "ExprFront",
                      "ExprTypeId", "ExprSizeof", "ExprOffsetof", "ExprStmt",
                      "ExprStringify",
-                     "ExprUnionTag", "ExprUnionUntagged", "ExprUnsafeCast",
+                     "ExprUnionTag", "ExprUnionUntagged",
                      "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow",
                      "ExprWiden", "ExprBitCast"]
 
@@ -2210,30 +2210,6 @@ class ExprWiden:
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr} {self.expr.x_type} -> {self.type.x_type}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class ExprUnsafeCast:
-    """Unsafe Cast
-
-    Allowed:
-    ptr a <-> ptr b
-
-    """
-    ALIAS: ClassVar = "unsafe_as"
-    GROUP: ClassVar = GROUP.Expression
-    FLAGS: ClassVar = NF_EXPR
-    #
-    expr: NODES_EXPR_T
-    type: NODES_TYPES_T
-    #
-    x_srcloc: SrcLoc = INVALID_SRCLOC
-    x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
-
-    def __repr__(self):
-        return f"{NODE_NAME(self)} {self.expr} -> {self.type}"
 
 
 @NodeCommon

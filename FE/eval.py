@@ -569,7 +569,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ExprUnionUntagged):
         # TODO: we can do better here
         return False
-    elif isinstance(node, (cwast.ExprBitCast, cwast.ExprUnsafeCast)):
+    elif isinstance(node, cwast.ExprBitCast):
         # TODO: we can do better here
         return False
     elif isinstance(node, cwast.ExprIs):

@@ -160,7 +160,7 @@ fun KeccakF(x ^![25]u64) void:
 
 pub fun KeccakAdd(state ^!StateKeccak, tail span!(u64), data span(u8)) void:
     ; (fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")
-    let tail_u8 = unsafe_as(front!(tail), ^!u8)
+    let tail_u8 = bitwise_as(front!(tail), ^!u8)
     let block_size uint = len(tail) * 8
     let tail_use uint = state^.msglen % block_size
     let! offset uint = 0
@@ -188,7 +188,7 @@ pub fun KeccakAdd(state ^!StateKeccak, tail span!(u64), data span(u8)) void:
     set state^.msglen += len(data)
 
 pub fun KeccakFinalize(state ^!StateKeccak, tail span!(u64), padding u8) void:
-    let tail_u8 = unsafe_as(front!(tail), ^!u8)
+    let tail_u8 = bitwise_as(front!(tail), ^!u8)
     let block_size = len(tail) * 8
     let padding_start uint = state^.msglen % block_size
     for i = padding_start, block_size, 1:
@@ -203,11 +203,11 @@ pub fun Keccak512(data span(u8)) [64]u8:
     ref let! state = {StateKeccak512:}
     do KeccakAdd(@!state.base, state.tail, data)
     do KeccakFinalize(@!state.base, state.tail, KeccakPadding)
-    return unsafe_as(@state.base.x, ^[64]u8)^
+    return bitwise_as(@state.base.x, ^[64]u8)^
 
 ; returns 512 bit cryptographic hash of data
 pub fun Sha3512(data span(u8)) [64]u8:
     ref let! state = {StateKeccak512:}
     do KeccakAdd(@!state.base, state.tail, data)
     do KeccakFinalize(@!state.base, state.tail, Sha3Padding)
-    return unsafe_as(@state.base.x, ^[64]u8)^
+    return bitwise_as(@state.base.x, ^[64]u8)^

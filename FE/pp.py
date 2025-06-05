@@ -397,7 +397,6 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     #
     cwast.ExprAs: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
     cwast.ExprIs: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
-    cwast.ExprUnsafeCast: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
     cwast.ExprWiden: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
     cwast.ExprWrap: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
     cwast.ExprBitCast: lambda out, n: _EmitFunctionalKW(out, n, [n.expr, n.type]),
