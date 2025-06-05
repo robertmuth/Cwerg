@@ -1004,13 +1004,14 @@ class CanonType:
     def is_base_type(self) -> bool:
         return self.node is TypeBase
 
-    def get_unwrapped_base_type_kind(self) -> Optional[BASE_TYPE_KIND]:
+    def get_unwrapped_base_type_kind(self) -> BASE_TYPE_KIND:
         if self.node is TypeBase:
             return self.base_type_kind
         elif self.node is DefEnum or self.node is DefType:
             return self.children[0].get_unwrapped_base_type_kind()
         else:
-            return None
+            return BASE_TYPE_KIND.INVALID
+
 
     def get_unwrapped(self) -> CanonType:
         if self.node is DefEnum:

@@ -435,9 +435,10 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       }
       return AnnotateType(node, ct_target);
     case NT::ValNum: {
-      BASE_TYPE_KIND target = ct_target.isnull()
-                                  ? BASE_TYPE_KIND::INVALID
-                                  : CanonType_base_type_kind(ct_target);
+      BASE_TYPE_KIND target =
+          ct_target.isnull()
+              ? BASE_TYPE_KIND::INVALID
+              : CanonType_get_unwrapped_base_type_kind(ct_target);
       BASE_TYPE_KIND actual =
           NumCleanupAndTypeExtraction(StrData(Node_number(node)), target).kind;
       // if (actual == BASE_TYPE_KIND::INVALID)
@@ -510,9 +511,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
 
       CanonType ct_left = TypifyExprOrType(Node_expr1(node), tc, ct_target, pm);
 
-      TypifyExprOrType(
-          Node_expr2(node), tc,
-          CanonType_IsNumber(ct_left) ? ct_left : kCanonTypeInvalid, pm);
+      TypifyExprOrType(Node_expr2(node), tc, ct_left, pm);
       if (IsComparison(kind)) {
         ct = tc->get_bool_canon_type();
       } else if (kind == BINARY_EXPR_KIND::PDELTA) {
@@ -579,14 +578,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       ASSERT(CanonType_kind(ct) == NT::DefEnum ||
                  CanonType_kind(ct) == NT::DefType,
              "");
-      CanonType ct_expr;
-      if (CanonType_kind(ct) == NT::DefEnum) {
-        ct_expr = tc->get_base_canon_type(CanonType_base_type_kind(ct));
-      } else {
-        ASSERT(CanonType_kind(ct) == NT::DefType, "");
-        ct_expr = CanonType_underlying_type(ct);
-      }
-      TypifyExprOrType(Node_expr(node), tc, ct_expr, pm);
+      TypifyExprOrType(Node_expr(node), tc, CanonType_underlying_type(ct), pm);
       return AnnotateType(node, ct);
     }
     case NT::ExprUnwrap:
@@ -594,8 +586,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       if (CanonType_kind(ct) == NT::DefType) {
         return AnnotateType(node, CanonType_children(ct)[0]);
       } else if (CanonType_kind(ct) == NT::DefEnum) {
-        return AnnotateType(
-            node, tc->get_base_canon_type(CanonType_base_type_kind(ct)));
+        return AnnotateType(node, CanonType_underlying_type(ct));
       } else {
         CompilerError(Node_srcloc(node))
             << "unexpected type to unwrap " << EnumToString(CanonType_kind(ct));
@@ -1078,12 +1069,11 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
         }
         case NT::DefEnum: {
           CanonType ct = Node_x_type(child);
+          CanonType underlying_ct = CanonType_underlying_type(ct);
           for (Node field = Node_items(child); !field.isnull();
                field = Node_next(field)) {
-            TypifyExprOrType(
-                Node_value_or_auto(field), tc,
-                tc->get_base_canon_type(CanonType_base_type_kind(ct)),
-                &poly_map);
+            TypifyExprOrType(Node_value_or_auto(field), tc, underlying_ct,
+                             &poly_map);
             AnnotateType(field, ct);
           }
           break;

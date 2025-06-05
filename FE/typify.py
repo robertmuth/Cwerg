@@ -444,6 +444,7 @@ def _TypifyVal(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValUndef):
         assert False, "Must not try to typify UNDEF"
     elif isinstance(node, cwast.ValNum):
+        # note, ct_target may be a union
         target_kind = cwast.BASE_TYPE_KIND.INVALID if target_type == cwast.NO_TYPE else target_type.base_type_kind
         actual_kind = _NumCleanupAndTypeExtraction(node.number, target_kind)[1]
         ct = tc.get_base_canon_type(actual_kind)

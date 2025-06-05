@@ -36,28 +36,41 @@ inline CanonType CanonType_underlying_type(CanonType n) {
   return CanonType_children(n)[0];
 }
 
-extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
+extern BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType n);
 
-inline bool CanonType_IsNumber(CanonType n) {
-  return IsNumber(CanonType_base_type_kind(n));
-}
+extern CanonType CanonType_get_unwrapped(CanonType n);
 
 inline std::ostream& operator<<(std::ostream& os, CanonType ct) {
   return os << CanonType_name(ct);
 }
 
-inline bool IsComparable(CanonType ct) {
+inline bool IsComparableType(CanonType ct) {
   switch (CanonType_kind(ct)) {
     case NT::DefEnum:
     case NT::TypePtr:
       return true;
     case NT::DefType:
-      return IsComparable(CanonType_underlying_type(ct));
+      return IsComparableType(CanonType_underlying_type(ct));
     default:
       return false;
   }
 }
 
+inline bool IsTypeForCmp(CanonType ct) {
+  CanonType unwrapped = CanonType_get_unwrapped(ct);
+  return CanonType_kind(unwrapped) == NT::TypeBase ||
+         CanonType_kind(unwrapped) == NT::TypePtr;
+}
+
+inline bool IsTypeForEq(CanonType ct) {
+  CanonType unwrapped = CanonType_get_unwrapped(ct);
+  return CanonType_kind(unwrapped) == NT::TypeFun ||
+         CanonType_kind(unwrapped) == NT::TypeBase ||
+         CanonType_kind(unwrapped) == NT::TypePtr;
+}
+
+extern bool IsCompatibleTypeForEq(CanonType op1, CanonType op2);
+extern bool IsCompatibleTypeForCmp(CanonType op1, CanonType op2);
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;

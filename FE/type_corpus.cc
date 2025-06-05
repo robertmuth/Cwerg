@@ -46,8 +46,31 @@ bool operator<(CanonType a, CanonType b) {
   return CanonType_name(a) < CanonType_name(b);
 }
 
-BASE_TYPE_KIND CanonType_base_type_kind(CanonType n) {
-  return gCanonTypeCore[n].base_type_kind;
+BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType ct) {
+  while (CanonType_kind(ct) == NT::DefType) {
+    ct = CanonType_children(ct)[0];
+  }
+
+  if (CanonType_kind(ct) == NT::DefEnum) {
+    ct = CanonType_children(ct)[0];
+  }
+  if (CanonType_kind(ct) == NT::TypeBase) {
+    return gCanonTypeCore[ct].base_type_kind;
+  }
+
+  return BASE_TYPE_KIND::INVALID;
+}
+
+CanonType CanonType_get_unwrapped(CanonType ct) {
+  while (CanonType_kind(ct) == NT::DefType) {
+    ct = CanonType_children(ct)[0];
+  }
+
+  if (CanonType_kind(ct) == NT::DefEnum) {
+    return CanonType_children(ct)[0];
+  }
+
+  return ct;
 }
 
 std::vector<CanonType>& CanonType_children(CanonType n) {
@@ -114,12 +137,11 @@ CanonType CanonTypeNewRecType(Name name, Node ast_node) {
   return out;
 }
 
-CanonType CanonTypeNewEnumType(Name name, BASE_TYPE_KIND base_type,
-                               Node ast_node) {
+CanonType CanonTypeNewEnumType(Name name, Node ast_node, CanonType child) {
   CanonType out = CanonTypeNew();
   gCanonTypeCore[out] = {.node = NT::DefEnum,
                          .name = name,
-                         .base_type_kind = base_type,
+                         .children = {child},
                          .ast_node = ast_node};
 
   return out;
@@ -289,8 +311,8 @@ CanonType TypeCorpus::InsertRecType(std::string_view name, Node ast_node) {
 
 CanonType TypeCorpus::InsertEnumType(std::string_view name, Node ast_node) {
   Name n = MakeCanonTypeName("enum", name);
-  CanonType out =
-      CanonTypeNewEnumType(n, Node_base_type_kind(ast_node), ast_node);
+  CanonType out = CanonTypeNewEnumType(
+      n, ast_node, get_base_canon_type(Node_base_type_kind(ast_node)));
   return Insert(out);
 }
 
@@ -359,6 +381,49 @@ void TypeCorpus::Dump() {
   for (auto it = corpus_.begin(); it != corpus_.end(); ++it) {
     std::cout << NameData(it->first) << "\n";
   }
+}
+
+bool CanonType_tagged_union_contains(CanonType haystack, CanonType needle) {
+  if (CanonType_kind(haystack) != NT::TypeUnion ||
+      CanonType_untagged(haystack)) {
+    return false;
+  }
+  for (const auto x : CanonType_children(haystack)) {
+    if (x == needle) return true;
+  }
+  return false;
+}
+
+bool IsCompatibleTypeForEq(CanonType op1, CanonType op2) {
+  if (IsTypeForEq(op1)) {
+    if (op1 == op2) return true;
+
+    if (CanonType_kind(op1) == NT::TypePtr &&
+        CanonType_kind(op2) == NT::TypePtr) {
+      return CanonType_underlying_type(op1) == CanonType_underlying_type(op2);
+    }
+
+    if (CanonType_tagged_union_contains(op2, op1)) {
+      return true;
+    }
+  } else if (IsTypeForEq(op2)) {
+    if (CanonType_tagged_union_contains(op1, op2)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IsCompatibleTypeForCmp(CanonType op1, CanonType op2) {
+  if (IsTypeForCmp(op1)) {
+    if (op1 == op2) return true;
+
+    if (CanonType_kind(op1) == CanonType_kind(op2) &&
+        CanonType_kind(op1) == NT::TypePtr) {
+      return CanonType_underlying_type(op1) == CanonType_underlying_type(op2);
+    }
+  }
+  return false;
 }
 
 }  // namespace cwerg::fe
