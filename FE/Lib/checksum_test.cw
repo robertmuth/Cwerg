@@ -6,9 +6,9 @@ import fmt
 
 import checksum
 
-global! Crc32Tab checksum::CrcTab = undef
+ref global! Crc32Tab checksum::CrcTab = undef
 
-global! Crc32cTab checksum::CrcTab = undef
+ref global! Crc32cTab checksum::CrcTab = undef
 
 global Data00k = {[1024]u8: 0x00}
 

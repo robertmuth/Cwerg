@@ -22,7 +22,7 @@ global! keys = {[SIZE]u32: 0}
 
 global! vals = {[SIZE]u32: 0}
 
-global! ht = {hashtab::HashTab32: front!(meta), front!(keys), front!(vals),
+ref global! ht = {hashtab::HashTab32: front!(meta), front!(keys), front!(vals),
               SIZE, 0}
 
 fun main(argc s32, argv ^^u8) s32:
@@ -41,7 +41,7 @@ fun main(argc s32, argv ^^u8) s32:
         test::AssertEq#(pval^, v_expected)
     ; if we delete one element and re-insert, it should
     ;     end up in the same spit
-    ;     
+    ;
     set key = 6
     trylet lookup1 ^!u32 = hashtab::Lookup(@!ht, @key), err:
     test::AssertTrue#(hashtab::DeleteIfPresent(@!ht, @key))

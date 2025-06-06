@@ -45,18 +45,19 @@ logger = logging.getLogger(__name__)
 def is_ref_def(node) -> bool:
     if isinstance(node, cwast.Id):
         s = node.x_symbol
-        return isinstance(s, cwast.DefGlobal) or isinstance(s, cwast.DefVar) and s.ref
+        return (isinstance(s, cwast.DefGlobal) or isinstance(s, cwast.DefVar)) and s.ref
     return False
 
 
-def address_can_be_taken(node) -> bool:
+def AddressCanBeTaken(node) -> bool:
+    # handle ExprNarrow
     return (is_ref_def(node) or
             isinstance(node, cwast.ExprField) or
             isinstance(node, cwast.ExprDeref) or
             isinstance(node, cwast.ExprIndex) and
             node.container.x_type.is_span() or
             isinstance(node, cwast.ExprIndex) and
-            address_can_be_taken(node.container))
+            AddressCanBeTaken(node.container))
 
 
 def _NumCleanupAndTypeExtraction(num: str, target_kind: cwast.BASE_TYPE_KIND) -> tuple[str, cwast.BASE_TYPE_KIND]:
@@ -657,7 +658,7 @@ def _CheckValUndefOrTypeIsUint(node):
 
 def _CheckUnderlyingTypeIs(node, expected: cwast.CanonType):
     actual = node.x_type.underlying_type()
-    if node.x_type.underlying_type() != expected:
+    if actual != expected:
         cwast.CompilerError(node.x_srcloc,
                             f"{node}: unerlying types not the same actual: {actual} expected: {expected}")
 
@@ -751,21 +752,22 @@ def _CheckExprField(node: cwast.ExprField, _):
 
 
 def _CheckExprFront(node: cwast.ExprFront, _):
-    c = node.container
-    assert c.x_type.is_vec() or c.x_type.is_span(
-    ), f"unpected front expr {c.x_type}"
-    mut = node.x_type.mut
-    if mut:
-        if not type_corpus.is_mutable_array_or_span(c):
-            cwast.CompilerError(
-                node.x_srcloc, f"container not mutable: {node} {c}")
-
-    if c.x_type.is_vec():
-        # TODO: check if address can be taken
-        pass
-
     _CheckTypeKind(node, cwast.TypePtr)
-    _CheckUnderlyingTypeIs(node, c.x_type.underlying_type())
+    container = node.container
+    container_ct = container.x_type
+    mut = node.x_type.mut
+    if container_ct.is_span():
+        if mut and not container_ct.mut:
+            cwast.CompilerError(
+                node.x_srcloc, f"span not mutable: {node} {container}")
+    else:
+        assert container_ct.is_vec()
+        if mut and not type_corpus.IsProperLhs(container):
+            cwast.CompilerError(
+                node.x_srcloc, f"vec not mutable: {node} {container}")
+        # TODO: check if address can be taken
+
+    _CheckUnderlyingTypeIs(node, container_ct.underlying_type())
 
 
 def _CheckExprWiden(node: cwast.ExprWiden, _):
@@ -797,15 +799,15 @@ def _CheckExprNarrowUnchecked(node: cwast.ExprNarrow, _):
 def _CheckExprAddrOf(node: cwast.ExprAddrOf, _):
     _CheckTypeKind(node, cwast.TypePtr)
     ct = node.x_type
-    expr_ct = node.expr_lhs.x_type
+    lhs = node.expr_lhs
+    lhs_ct = node.expr_lhs.x_type
     if node.mut:
-        if not type_corpus.is_proper_lhs(node.expr_lhs):
-            cwast.CompilerError(node.x_srcloc,
-                                f"not mutable: {node.expr_lhs}")
-    if not address_can_be_taken(node.expr_lhs):
-        cwast.CompilerError(node.x_srcloc,
-                            f"address cannot be take: {node} {node.expr_lhs.x_type.name}")
-    assert ct.underlying_type() == expr_ct
+        if not type_corpus.IsProperLhs(lhs):
+            cwast.CompilerError(node.x_srcloc, f"not mutable: {lhs}")
+    if not AddressCanBeTaken(node.expr_lhs):
+        cwast.CompilerError(
+            node.x_srcloc, f"address cannot be take: {node} {lhs_ct}")
+    _CheckUnderlyingTypeIs(node, lhs_ct)
 
 
 def _CheckExprUnionUntagged(node: cwast.ExprUnionUntagged, _):
@@ -824,7 +826,7 @@ def _CheckValNum(node: cwast.ValNum, _):
 def _CheckExprIndex(node: cwast.ExprIndex, _):
     c = node.container
     assert c.x_type.is_vec() or c.x_type.is_span()
-    _CheckTypeIs(node, node.container.x_type.underlying_type())
+    _CheckUnderlyingTypeIs(node.container, node.x_type)
 
 
 def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
@@ -876,11 +878,10 @@ def _CheckDefRecDefEnum(node, _):
 
 
 def _CheckStmtCompoundAssignment(node: cwast.StmtCompoundAssignment,  tc: type_corpus.TypeCorpus):
-    if not type_corpus.is_proper_lhs(node.lhs):
+    if not type_corpus.IsProperLhs(node.lhs):
         cwast.CompilerError(
             node.x_srcloc, f"cannot assign to readonly data: {node}")
-    kind = cwast.COMPOUND_KIND_TO_EXPR_KIND[node.assignment_kind]
-    assert kind.IsArithmetic(), f"{kind}"
+    assert node.binary_expr_kind.IsArithmetic(), f"{node.binary_expr_kind}"
     _CheckExpr2TypesArithmetic(node.lhs.x_type, node.lhs, node.expr_rhs)
 
 
@@ -955,6 +956,8 @@ VERIFIERS_COMMON = {
     # TODO: need to use original types if available
     cwast.ExprAs: _CheckExprAs,
     cwast.ExprBitCast: _CheckExprBitCast,
+    cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
+
     # -----------------
     #
     cwast.DefRec: _CheckDefRecDefEnum,
@@ -980,7 +983,6 @@ VERIFIERS_COMMON = {
     #
     #
     #
-    cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
     # minuned = node.type.x_type
     #  subtrahend = node.subtrahend.x_type
 
@@ -1023,7 +1025,7 @@ def _CheckExprCall(node: cwast.ExprCall, strict: bool):
 
 
 def _CheckStmtAssignment(node: cwast.StmtAssignment, strict: bool):
-    if not type_corpus.is_proper_lhs(node.lhs):
+    if not type_corpus.IsProperLhs(node.lhs):
         cwast.CompilerError(
             node.x_srcloc, f"cannot assign to readonly data: {node}")
     if strict:

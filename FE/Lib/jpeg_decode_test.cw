@@ -202,7 +202,7 @@ fun dump() void:
 
 ref global! gByteBuffer [1024 * 1024]u8 = undef
 
-global! Crc32Tab checksum::CrcTab = undef
+ref global! Crc32Tab checksum::CrcTab = undef
 
 fun main(argc s32, argv ^^u8) s32:
     do checksum::InitCrcTab(checksum::PolyCrc32LE, @!Crc32Tab)

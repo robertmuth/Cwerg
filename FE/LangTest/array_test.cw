@@ -6,12 +6,12 @@ type type_array = [3]bool
 
 type type_slice = span(s32)
 
-global c1 = {[10]s32: 1, 2, 3}
+ref pub global c1 = {[10]s32: 1, 2, 3}
 
-global! c2 = {[10]s32: 1, 2, 3}
+ref global! c2 = {[10]s32: 1, 2, 3}
 
 ;  (let c20 auto (len c1)")
-;          "(let c21 auto (at c1 2))") 
+;          "(let c21 auto (at c1 2))")
 global dim = 5_u16
 
 fun foo(a [10]u8, b [dim]u64) u8:

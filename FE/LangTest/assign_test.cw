@@ -3,7 +3,7 @@ module:
 import test
 
 pub rec type_rec1:
-    ; this is a comment with \" with quotes \t 
+    ; this is a comment with \" with quotes \t
     i1 s64
     i2 u64
     i3 s32
@@ -37,7 +37,7 @@ pub rec type_rec3:
 
 global! ga1 [5]s64 = undef
 
-global! gr1 type_rec1 = undef
+ref global! gr1 type_rec1 = undef
 
 global! gar1 [5]type_rec1 = undef
 

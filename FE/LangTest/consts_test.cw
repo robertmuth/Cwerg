@@ -38,7 +38,7 @@ global c0 void = void_val
 
 global c1 = 7_u32
 
-global c2 u32 = 7
+ref global c2 u32 = 7
 
 global c3 = 7.0_r32
 
@@ -53,7 +53,7 @@ static_assert c4[0] == 'a'
 static_assert size_of(type_of(c4)) == 6
 static_assert c4[size_of(type_of(c4)) - 1] == 'b'
 
-global c10 = c2
+ref global c10 = c2
 
 pub rec type_rec:
     s1 s32
@@ -65,7 +65,7 @@ pub rec type_rec:
     u2 u64
 
 ; rec literal with explicit field name
-global c32 = {type_rec: 7, 9, 7}
+ref global c32 = {type_rec: 7, 9, 7}
 
 static_assert c32.s1 == 7
 
@@ -145,7 +145,7 @@ static_assert is(a8, s32) != true
 
 static_assert is(a8, bool) == true
 
-global! Real r32
+ref global! Real r32
 
 global p1 ^r32 = @Real
 

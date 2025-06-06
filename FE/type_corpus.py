@@ -154,38 +154,27 @@ def IsCompatibleTypeForNarrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, 
     return dst_children.issubset(src_children)
 
 
-def is_proper_lhs(node) -> bool:
+def IsProperLhs(node) -> bool:
     if isinstance(node, cwast.Id):
         s = node.x_symbol
         if isinstance(s, (cwast.DefVar, cwast.DefGlobal)):
             return s.mut
         return False
     elif isinstance(node, cwast.ExprDeref):
-        # this assert is necessary to satisfy the mypy type checker
-        assert not isinstance(
-            node.expr, (cwast.MacroInvoke, cwast.ExprStringify))
+        assert node.expr.x_type.is_pointer()
         return node.expr.x_type.is_mutable()
         # isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
     elif isinstance(node, cwast.ExprField):
-        return is_proper_lhs(node.container)
+        return IsProperLhs(node.container)
     elif isinstance(node, cwast.ExprIndex):
-        # this assert is necessary to satisfy the mypy type checker
-        assert not isinstance(
-            node.container,  (cwast.MacroInvoke, cwast.ExprStringify))
         container_ct: cwast.CanonType = node.container.x_type
         if container_ct.is_span():
             return container_ct.mut
         else:
             assert container_ct.is_vec()
-            return is_proper_lhs(node.container)
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow)):
-        # this assert is necessary to satisfy the mypy type checker
-        assert not isinstance(
-            node.expr,  (cwast.MacroInvoke, cwast.ExprStringify))
-        if node.expr.x_type.is_untagged_union():
-            return is_proper_lhs(node.expr)
-        else:
-            return False
+            return IsProperLhs(node.container)
+    elif isinstance(node, (cwast.ExprNarrow)):
+        return IsProperLhs(node.expr)
     else:
         return False
 
@@ -195,18 +184,7 @@ def IsWritableVec(node) -> bool:
     if not node.x_type.is_vec():
         return False
 
-    return is_proper_lhs(node)
-
-
-def is_mutable_array_or_span(node) -> bool:
-    """Mutable refers to the elements of the array/span"""
-    ct: cwast.CanonType = node.x_type
-    if ct.is_span():
-        return ct.mut
-    elif ct.is_vec():
-        return is_proper_lhs(node)
-    else:
-        assert False
+    return IsProperLhs(node)
 
 
 # maps FE types to BE names.
