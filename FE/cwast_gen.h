@@ -33,7 +33,6 @@ enum class STR_KIND : uint8_t;
 enum class MACRO_PARAM_KIND : uint8_t;
 enum class MACRO_RESULT_KIND : uint8_t;
 enum class MOD_PARAM_KIND : uint8_t;
-enum class ASSIGNMENT_KIND : uint8_t;
 
 extern const std::array<uint16_t, 17> BF2MASK;
 
@@ -106,7 +105,6 @@ struct NodeCore {
     MACRO_PARAM_KIND macro_param_kind;
     MACRO_RESULT_KIND macro_result_kind;
     MOD_PARAM_KIND mod_param_kind;
-    ASSIGNMENT_KIND assignment_kind;
     BASE_TYPE_KIND base_type_kind;
     POINTER_EXPR_KIND pointer_expr_kind;
     STR_KIND str_kind;
@@ -551,24 +549,6 @@ enum class MOD_PARAM_KIND : uint8_t {
     TYPE = 2,
 };
 
-enum class ASSIGNMENT_KIND : uint8_t {
-    INVALID = 0,
-    ADD = 1,
-    SUB = 2,
-    DIV = 3,
-    MUL = 4,
-    MOD = 5,
-    MIN = 6,
-    MAX = 7,
-    AND = 10,
-    OR = 11,
-    XOR = 12,
-    SHR = 40,
-    SHL = 41,
-    ROTR = 42,
-    ROTL = 43,
-};
-
 constexpr int SLOT_BODY = 3;
 
 constexpr int SLOT_BODY_T = 2;
@@ -832,8 +812,8 @@ inline void NodeInitStmtBreak(Node node, Name target, Str doc, const SrcLoc& src
     NodeInit(node, NT::StmtBreak, target, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
-inline void NodeInitStmtCompoundAssignment(Node node, ASSIGNMENT_KIND assignment_kind, Node lhs, Node expr_rhs, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtCompoundAssignment, lhs, expr_rhs, kHandleInvalid, kHandleInvalid, uint8_t(assignment_kind), 0, doc, srcloc);
+inline void NodeInitStmtCompoundAssignment(Node node, BINARY_EXPR_KIND binary_expr_kind, Node lhs, Node expr_rhs, Str doc, const SrcLoc& srcloc) {
+    NodeInit(node, NT::StmtCompoundAssignment, lhs, expr_rhs, kHandleInvalid, kHandleInvalid, uint8_t(binary_expr_kind), 0, doc, srcloc);
 }
 
 inline void NodeInitStmtCond(Node node, Node cases, Str doc, const SrcLoc& srcloc) {
@@ -971,10 +951,6 @@ inline MACRO_RESULT_KIND& Node_macro_result_kind(Node n) {
   return gNodeCore[n].macro_result_kind;
 }
 
-inline ASSIGNMENT_KIND Node_assignment_kind(Node n) {
-  return gNodeCore[n].assignment_kind;
-}
-
 inline BASE_TYPE_KIND Node_base_type_kind(Node n) {
   return gNodeCore[n].base_type_kind;
 }
@@ -1046,7 +1022,6 @@ const char* EnumToString(BF x);
 const char* EnumToString(NT x);
 const char* EnumToString(POINTER_EXPR_KIND x);
 const char* EnumToString(BINARY_EXPR_KIND x);
-const char* EnumToString(ASSIGNMENT_KIND x);
 
 // default is MACRO_PARAM_KIND::INVALID
 MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name);
@@ -1060,7 +1035,7 @@ MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name);
 // default is BASE_TYPE_KIND::INVALID
 BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name);
 
-ASSIGNMENT_KIND ASSIGNMENT_KIND_FromString(std::string_view name);
+BINARY_EXPR_KIND ASSIGNMENT_KIND_FromString(std::string_view name);
 
 BF BF_FromString(std::string_view name);
 

@@ -640,7 +640,7 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       EmitStmtSet(out, "=", Node_lhs(node), Node_expr_rhs(node));
       break;
     case NT::StmtCompoundAssignment:
-      EmitStmtSet(out, EnumToString(Node_assignment_kind(node)), Node_lhs(node),
+      EmitStmtSet(out, EnumToString(Node_binary_expr_kind(node)) + std::string("="), Node_lhs(node),
                   Node_expr_rhs(node));
       break;
     case NT::DefVar:

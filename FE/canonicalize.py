@@ -275,8 +275,8 @@ def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
 
 
 def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
-
-    rhs = cwast.Expr2(cwast.COMPOUND_KIND_TO_EXPR_KIND[assignment_kind],
+    assert assignment_kind.IsArithmetic()
+    rhs = cwast.Expr2(assignment_kind,
                       cwast.CloneNodeRecursively(lhs, {}, {}),
                       expr, x_srcloc=x_srcloc, x_type=lhs.x_type)
     return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)
@@ -307,8 +307,8 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
                 node.lhs, stmts, True)
             assert IsNodeCopyableWithoutRiskOfSideEffects(
                 new_lhs), f"{new_lhs}"
-            assignment = _AssigmemtNode(node.assignment_kind, new_lhs,
-                                        node.expr_rhs, node.x_srcloc)
+            assignment = _AssigmemtNode(node.binary_expr_kind,
+                                        new_lhs, node.expr_rhs, node.x_srcloc)
             if not stmts:
                 return assignment
             stmts.append(assignment)

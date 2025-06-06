@@ -321,70 +321,22 @@ const uint8_t BASE_TYPE_KIND_Jumper[128] = {
  255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
-const char* const ASSIGNMENT_KIND_ToStringMap[] = {
-    "", // 0
-    "+=", // 1
-    "-=", // 2
-    "/=", // 3
-    "*=", // 4
-    "%=", // 5
-    "min=", // 6
-    "max=", // 7
-    "", // 8
-    "", // 9
-    "&=", // 10
-    "|=", // 11
-    "~=", // 12
-    "", // 13
-    "", // 14
-    "", // 15
-    "", // 16
-    "", // 17
-    "", // 18
-    "", // 19
-    "", // 20
-    "", // 21
-    "", // 22
-    "", // 23
-    "", // 24
-    "", // 25
-    "", // 26
-    "", // 27
-    "", // 28
-    "", // 29
-    "", // 30
-    "", // 31
-    "", // 32
-    "", // 33
-    "", // 34
-    "", // 35
-    "", // 36
-    "", // 37
-    "", // 38
-    "", // 39
-    ">>=", // 40
-    "<<=", // 41
-    ">>>=", // 42
-    "<<<=", // 43
-};
-const char* EnumToString(ASSIGNMENT_KIND x) { return ASSIGNMENT_KIND_ToStringMap[unsigned(x)]; }
-
 
 const struct StringKind ASSIGNMENT_KIND_FromStringMap[] = {
     {"%=", 5},
-    {"&=", 10},
+    {"&=", 12},
     {"*=", 4},
     {"+=", 1},
     {"-=", 2},
     {"/=", 3},
-    {"<<<=", 43},
-    {"<<=", 41},
-    {">>=", 40},
-    {">>>=", 42},
+    {"<<<=", 11},
+    {"<<=", 9},
+    {">>=", 8},
+    {">>>=", 10},
     {"max=", 7},
     {"min=", 6},
-    {"|=", 11},
-    {"~=", 12},
+    {"|=", 13},
+    {"~=", 14},
     {"ZZZ", 0},
 };
 
@@ -711,9 +663,9 @@ BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name) {
                                      BASE_TYPE_KIND_Jumper, name, 0));
 }
 
-ASSIGNMENT_KIND ASSIGNMENT_KIND_FromString(std::string_view name) {
-  return ASSIGNMENT_KIND(LinearSearch(ASSIGNMENT_KIND_FromStringMap,
-                                      ASSIGNMENT_KIND_Jumper, name, 0));
+BINARY_EXPR_KIND ASSIGNMENT_KIND_FromString(std::string_view name) {
+  return BINARY_EXPR_KIND(LinearSearch(ASSIGNMENT_KIND_FromStringMap,
+                                       ASSIGNMENT_KIND_Jumper, name, 0));
 }
 
 BF BF_FromString(std::string_view name) {

@@ -235,6 +235,7 @@ class BINARY_EXPR_KIND(enum.Enum):
     PDELTA = enum.auto()  # pointer delta result is sint
 
     def IsArithmetic(self) -> bool:
+        """This is also the set supported by compound assignments"""
         return BINARY_EXPR_KIND.ADD.value <= self.value <= BINARY_EXPR_KIND.XOR.value
 
     def IsComparison(self) -> bool:
@@ -281,6 +282,11 @@ BINARY_EXPR_SHORTCUT = {
 BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
 
 
+ASSIGNMENT_SHORTCUT = {k + "=": v for k, v in BINARY_EXPR_SHORTCUT.items() if v.IsArithmetic()}
+
+ASSIGNMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
+
+
 @enum.unique
 class POINTER_EXPR_KIND(enum.Enum):
     """pointer and int two operand expressions"""
@@ -296,72 +302,6 @@ POINTER_EXPR_SHORTCUT = {
 }
 
 POINTER_EXPR_SHORTCUT_INV = {v: k for k, v in POINTER_EXPR_SHORTCUT.items()}
-
-
-@enum.unique
-class ASSIGNMENT_KIND(enum.Enum):
-    """Compound Assignment Kinds"""
-    INVALID = 0
-    ADD = 1
-    SUB = 2
-    DIV = 3
-    MUL = 4
-    MOD = 5
-    #
-    MIN = 6
-    MAX = 7
-    #
-    AND = 10
-    OR = 11
-    XOR = 12
-    #
-    SHR = 40    # >>
-    SHL = 41    # <<
-    ROTR = 42    # >>
-    ROTL = 43    # <<
-
-
-ASSIGNMENT_SHORTCUT = {
-    #
-    "+=": ASSIGNMENT_KIND.ADD,
-    "-=": ASSIGNMENT_KIND.SUB,
-    "*=": ASSIGNMENT_KIND.MUL,
-    "/=": ASSIGNMENT_KIND.DIV,
-    "%=": ASSIGNMENT_KIND.MOD,
-    "min=": ASSIGNMENT_KIND.MIN,
-    "max=": ASSIGNMENT_KIND.MAX,
-    #
-    "&=": ASSIGNMENT_KIND.AND,
-    "|=": ASSIGNMENT_KIND.OR,
-    "~=": ASSIGNMENT_KIND.XOR,
-    #
-    "<<=": ASSIGNMENT_KIND.SHL,
-    ">>=": ASSIGNMENT_KIND.SHR,
-    "<<<=": ASSIGNMENT_KIND.ROTL,
-    ">>>=": ASSIGNMENT_KIND.ROTR,
-}
-
-ASSIGNMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
-
-COMPOUND_KIND_TO_EXPR_KIND = {
-    ASSIGNMENT_KIND.ADD: BINARY_EXPR_KIND.ADD,
-    ASSIGNMENT_KIND.SUB: BINARY_EXPR_KIND.SUB,
-    ASSIGNMENT_KIND.DIV: BINARY_EXPR_KIND.DIV,
-    ASSIGNMENT_KIND.MUL: BINARY_EXPR_KIND.MUL,
-    ASSIGNMENT_KIND.MOD: BINARY_EXPR_KIND.MOD,
-    #
-    ASSIGNMENT_KIND.AND: BINARY_EXPR_KIND.AND,
-    ASSIGNMENT_KIND.OR: BINARY_EXPR_KIND.OR,
-    ASSIGNMENT_KIND.XOR: BINARY_EXPR_KIND.XOR,
-    #
-    ASSIGNMENT_KIND.MAX: BINARY_EXPR_KIND.MAX,
-    ASSIGNMENT_KIND.MIN: BINARY_EXPR_KIND.MIN,
-    #
-    ASSIGNMENT_KIND.SHR: BINARY_EXPR_KIND.SHR,
-    ASSIGNMENT_KIND.SHL: BINARY_EXPR_KIND.SHL,
-    ASSIGNMENT_KIND.ROTL: BINARY_EXPR_KIND.ROTL,
-    ASSIGNMENT_KIND.ROTR: BINARY_EXPR_KIND.ROTR,
-}
 
 
 @enum.unique
@@ -625,10 +565,6 @@ ALL_FIELDS = [
     NfdKind("mod_param_kind",
             f"one of: [{_EnumValues(MOD_PARAM_KIND)}](#modparam-kind)",
             MOD_PARAM_KIND),
-    NfdKind("assignment_kind",
-            f"one of: [{_EnumValues(ASSIGNMENT_KIND)
-                        }](#stmtcompoundassignment-kind)",
-            ASSIGNMENT_KIND),
     NfdKind("macro_param_kind",
             f"one of: [{_EnumValues(MACRO_PARAM_KIND)}](#macro-param-kind)",
             MACRO_PARAM_KIND),
@@ -1012,7 +948,6 @@ class CanonType:
         else:
             return BASE_TYPE_KIND.INVALID
 
-
     def get_unwrapped(self) -> CanonType:
         if self.node is DefEnum:
             return self.children[0]
@@ -1032,7 +967,6 @@ class CanonType:
 
     def tagged_union_contains(self, ct) -> bool:
         return self.node is TypeUnion and not self.untagged and ct in self.children
-
 
     def union_member_types(self) -> list["CanonType"]:
         assert self.is_union()
@@ -2172,6 +2106,7 @@ class ExprNarrow:
     """Narrowing Cast (for unions)
 
     `narrow_as!` forces an unchecked narrowing
+    Note: a narrow_as can be an l-value
     """
     ALIAS: ClassVar = "narrow_as"
     GROUP: ClassVar = GROUP.Expression
@@ -2597,7 +2532,7 @@ class StmtCompoundAssignment:
     GROUP: ClassVar = GROUP.Statement
     FLAGS: ClassVar = NF.NON_CORE
     #
-    assignment_kind: ASSIGNMENT_KIND
+    binary_expr_kind: BINARY_EXPR_KIND
     lhs: NODES_LHS_T
     expr_rhs: NODES_EXPR_T
     #
@@ -3370,7 +3305,7 @@ code generation.
 
 Misc enums used inside of nodes.
 """,  file=fout)
-    for cls in ["Expr1", "Expr2", "StmtCompoundAssignment", "Base Type",
+    for cls in ["Expr1", "Expr2", "Base Type",
                 "ModParam", "MacroParam"]:
         name = cls + " Kind"
         anchor = MakeAnchor(name, None)
@@ -3425,8 +3360,6 @@ Misc enums used inside of nodes.
                 BINARY_EXPR_SHORTCUT_INV, fout)
     _RenderKind(ExprPointer.__name__, POINTER_EXPR_KIND,
                 POINTER_EXPR_SHORTCUT_INV, fout)
-    _RenderKind(StmtCompoundAssignment.__name__,
-                ASSIGNMENT_KIND, ASSIGNMENT_SHORTCUT_INV, fout)
     _RenderKindSimple("Base Type",
                       BASE_TYPE_KIND, fout)
     _RenderKindSimple("ModParam",
@@ -3642,8 +3575,6 @@ def GenerateCodeH(fout: Any):
         MACRO_RESULT_KIND), "MACRO_RESULT_KIND", fout)
     cgen.RenderEnumClass(cgen.NameValues(
         MOD_PARAM_KIND), "MOD_PARAM_KIND", fout)
-    cgen.RenderEnumClass(cgen.NameValues(
-        ASSIGNMENT_KIND), "ASSIGNMENT_KIND", fout)
 
     print(f"\nconstexpr int SLOT_BODY = {_FIELD_2_SLOT['body']};")
     print(f"\nconstexpr int SLOT_BODY_T = {_FIELD_2_SLOT['body_t']};")
@@ -3669,7 +3600,7 @@ def EnumStringConversions(fout: Any):
 
     render(BASE_TYPE_KIND.__name__,  cgen.NameValuesLower(BASE_TYPE_KIND))
 
-    render(ASSIGNMENT_KIND.__name__,
+    render("ASSIGNMENT_KIND",
            [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()])
 
     render(POINTER_EXPR_KIND.__name__,
