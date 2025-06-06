@@ -709,6 +709,18 @@ void CheckTypeIs(Node node, CanonType expected) {
         << " expected: " << CanonType_name(expected);
   }
 }
+
+void CheckUnderlyingTypeIs(Node node, CanonType expected) {
+  CanonType actual = CanonType_underlying_type(Node_x_type(node));
+
+  if (actual != expected) {
+    CompilerError(Node_srcloc(node))
+        << "type mismatch for " << EnumToString(Node_kind(node))
+        << " actual: " << CanonType_name(actual)
+        << " expected: " << CanonType_name(expected);
+  }
+}
+
 void CheckDefFunTypeFun(Node node) {
   CanonType ct = Node_x_type(node);
   ASSERT(CanonType_kind(ct) == NT::TypeFun,
@@ -778,6 +790,31 @@ void CheckExpr2Types(Node node, Node op1, Node op2, BINARY_EXPR_KIND kind,
     }
   } else {
     ASSERT(false, "NYI " << EnumToString(kind));
+  }
+}
+
+bool AddressCanBeTaken(Node node) {
+  switch (Node_kind(node)) {
+    case NT::Id: {
+      Node sym = Node_x_symbol(node);
+      return (Node_kind(sym) == NT::DefVar ||
+              Node_kind(sym) == NT::DefGlobal) &&
+             Node_has_flag(sym, BF::REF);
+    }
+    case NT::ExprField:
+    case NT::ExprDeref:
+      return true;
+    case NT::ExprIndex:
+
+      if (CanonType_kind(Node_x_type(Node_container(node))) == NT::TypeSpan) {
+        return true;
+      } else {
+        ASSERT(CanonType_kind(Node_x_type(Node_container(node))) == NT::TypeVec,
+               "");
+        return AddressCanBeTaken(Node_container(node));
+      }
+    default:
+      return false;
   }
 }
 
@@ -900,6 +937,58 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         }
         return CheckTypeIs(Node_type(node), Node_x_type(node));
 
+      case NT::StmtCompoundAssignment:
+        if (!IsProperLhs(Node_expr_lhs(node))) {
+          CompilerError(Node_srcloc(node)) << "cannot assign to readonly data";
+        }
+        ASSERT(IsArithmetic(Node_binary_expr_kind(node)), "");
+        return CheckExpr2TypesArithmetic(Node_x_type(Node_expr_lhs(node)),
+                                         Node_expr_lhs(node),
+                                         Node_expr_rhs(node));
+      case NT::ExprIndex: {
+        NT kind = CanonType_kind(Node_x_type(Node_container(node)));
+        ASSERT(kind == NT::TypeVec || kind == NT::TypeSpan, "");
+        return CheckUnderlyingTypeIs(Node_container(node), ct);
+      }
+
+      case NT::ExprFront: {
+        CheckTypeKind(node, NT::TypePtr);
+        Node container = Node_container(node);
+        CanonType container_ct = Node_x_type(container);
+        bool mut = CanonType_mut(Node_x_type(node));
+
+        if (CanonType_kind(container_ct) == NT::TypeSpan) {
+          if (mut && !CanonType_mut(container_ct)) {
+            CompilerError(Node_srcloc(node)) << "span not mutable";
+          }
+        } else {
+          ASSERT(CanonType_kind(container_ct) == NT::TypeVec, "");
+          if (mut && !IsProperLhs(container)) {
+            CompilerError(Node_srcloc(node)) << "vec not mutable";
+          }
+          // TODO: check if address can be taken
+        }
+
+        return CheckUnderlyingTypeIs(node,
+                                     CanonType_underlying_type(container_ct));
+      }
+
+      case NT::ExprAddrOf: {
+        break;
+        CheckTypeKind(node, NT::TypePtr);
+        Node lhs = Node_expr_lhs(node);
+        CanonType lhs_ct = Node_x_type(lhs);
+        if (Node_has_flag(node, BF::MUT)) {
+          if (!IsProperLhs(lhs)) {
+            CompilerError(Node_srcloc(node))
+                << "not mutable " << EnumToString(Node_kind(lhs));
+          }
+        }
+
+        if (!AddressCanBeTaken(lhs))
+          CompilerError(Node_srcloc(node)) << "address cannot be taken";
+        return CheckUnderlyingTypeIs(node, lhs_ct);
+      }
         //
         // ---------------------------
         //
@@ -940,9 +1029,6 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprNarrow:
         // TODO:
         break;
-      case NT::ExprFront:
-        // TODO
-        break;
 
       case NT::ExprStmt:
         // TODO
@@ -955,12 +1041,6 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         // TODO
         break;
 
-      case NT::ExprIndex:
-        // TODO
-        break;
-      case NT::ExprAddrOf:
-        // TODO
-        break;
       //
       case NT::DefFun:
         CheckDefFunTypeFun(node);
@@ -983,9 +1063,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::StmtAssignment:
         // TODO
         break;
-      case NT::StmtCompoundAssignment:
-        // TODO
-        break;
+
       case NT::RecField:
         return CheckTypeIs(Node_type(node), Node_x_type(node));
       case NT::TypeAuto:

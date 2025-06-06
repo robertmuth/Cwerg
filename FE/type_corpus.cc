@@ -445,4 +445,32 @@ bool IsCompatibleTypeForBitcast(CanonType src, CanonType dst) {
   return CanonType_size(src) == CanonType_size(dst);
 }
 
+bool IsProperLhs(Node node) {
+  switch (Node_kind(node)) {
+    case NT::Id: {
+      Node def_node = Node_x_symbol(node);
+      if (Node_kind(def_node) == NT::DefVar ||
+          Node_kind(def_node) == NT::DefGlobal) {
+        return Node_has_flag(def_node, BF::MUT);
+      }
+      return false;
+    }
+    case NT::ExprDeref:
+      return CanonType_mut(Node_x_type(Node_expr(node)));
+    case NT::ExprField:
+      return IsProperLhs(Node_container(node));
+    case NT::ExprIndex: {
+      Node container = Node_container(node);
+      NT kind = CanonType_kind(Node_x_type(container));
+      if (kind == NT::TypeSpan) return CanonType_mut(Node_x_type(container));
+      ASSERT(kind == NT::TypeVec, "");
+      return IsProperLhs(container);
+    }
+    case NT::ExprNarrow:
+      return IsProperLhs(Node_expr(node));
+    default:
+      return false;
+  }
+}
+
 }  // namespace cwerg::fe

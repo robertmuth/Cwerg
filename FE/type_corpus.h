@@ -62,6 +62,7 @@ extern bool IsCompatibleTypeForEq(CanonType op1, CanonType op2);
 extern bool IsCompatibleTypeForCmp(CanonType op1, CanonType op2);
 extern bool IsCompatibleTypeForAs(CanonType src, CanonType dst);
 extern bool IsCompatibleTypeForBitcast(CanonType src, CanonType dst);
+extern bool IsProperLhs(Node node);
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;
