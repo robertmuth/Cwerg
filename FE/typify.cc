@@ -566,7 +566,6 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node, tc->get_bool_canon_type());
     case NT::ExprAs:
     case NT::ExprBitCast:
-    case NT::ExprUnsafeCast:
     case NT::ExprNarrow:
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
@@ -737,6 +736,15 @@ void CheckExpr2TypesArithmetic(CanonType result, Node op1, Node op2) {
   CheckTypeIs(op2, result);
 }
 
+void CheckValUndefOrTypeIsUint(Node node) {
+  if (Node_kind(node) == NT::ValUndef) return;
+  CanonType ct = Node_x_type(node);
+  if (CanonType_kind(ct) != NT::TypeBase ||
+      !IsUint(CanonType_get_unwrapped_base_type_kind(ct))) {
+    CompilerError(Node_srcloc(node)) << "expected uint type";
+  }
+}
+
 void CheckExpr2Types(Node node, Node op1, Node op2, BINARY_EXPR_KIND kind,
                      TypeCorpus* tc) {
   if (IsArithmetic(kind)) {
@@ -820,7 +828,13 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return CheckTypeKind(node, NT::TypeBase);
       case NT::ValString:
         return CheckTypeKind(node, NT::TypeVec);
-
+      case NT::ValSpan:
+        // TODO: does not work after constant folding
+        CheckTypeKind(node, NT::TypeSpan);
+        // return CheckTypeIs(
+        //     node, CanonType_underlying_type(Node_x_type(node)),
+        //     CanonType_underlying_type(Node_x_type(Node_pointer(node))));
+        return;
       case NT::ExprUnionTag:
         CheckTypeKind(Node_expr(node), NT::TypeUnion);
         ASSERT(!CanonType_untagged(Node_x_type(Node_expr(node))), "");
@@ -862,6 +876,30 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprField:
         CheckTypeKind(Node_container(node), NT::DefRec);
         return CheckTypeIs(node, Node_x_type(Node_x_symbol(Node_field(node))));
+      case NT::ExprPointer:
+        CheckValUndefOrTypeIsUint(Node_expr_bound_or_undef(node));
+        CheckTypeKind(node, NT::TypePtr);
+        return CheckTypeIs(Node_expr1(node), Node_x_type(node));
+      case NT::DefType:
+        if (Node_has_flag(node, BF::WRAPPED)) {
+          return CheckTypeKind(node, NT::DefType);
+        } else {
+          return CheckTypeIs(Node_type(node), Node_x_type(node));
+        }
+      case NT::ExprAs:
+        if (!IsCompatibleTypeForAs(Node_x_type(Node_expr(node)),
+                                   Node_x_type(node))) {
+          CompilerError(Node_srcloc(node)) << "bad cast";
+        }
+        return CheckTypeIs(Node_type(node), Node_x_type(node));
+
+      case NT::ExprBitCast:
+        if (!IsCompatibleTypeForBitcast(Node_x_type(node),
+                                        Node_x_type(Node_expr(node)))) {
+          CompilerError(Node_srcloc(node)) << "bad cast";
+        }
+        return CheckTypeIs(Node_type(node), Node_x_type(node));
+
         //
         // ---------------------------
         //
@@ -895,15 +933,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprUnwrap:
         // TODO:
         break;
-      case NT::ExprAs:
-        // TODO:
-        break;
-      case NT::ExprBitCast:
-        // TODO:
-        break;
-      case NT::ExprUnsafeCast:
-        // TODO:
-        break;
+
       case NT::ExprWiden:
         // TODO:
         break;
@@ -913,19 +943,11 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprFront:
         // TODO
         break;
-      case NT::ExprPointer:
-        // TODO
-        break;
+
       case NT::ExprStmt:
         // TODO
         break;
-      case NT::ValSpan:
-        // TODO: does not work after constant folding
-        CheckTypeKind(node, NT::TypeSpan);
-        // return CheckTypeIs(
-        //     node, CanonType_underlying_type(Node_x_type(node)),
-        //     CanonType_underlying_type(Node_x_type(Node_pointer(node))));
-        break;
+
       case NT::ExprUnionUntagged:
         // TODO
         break;
@@ -947,13 +969,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::DefEnum:
         ASSERT(node == CanonType_ast_node(ct), "");
         break;
-      case NT::DefType:
-        if (Node_has_flag(node, BF::WRAPPED)) {
-          // TODO:
-        } else {
-          CheckTypeIs(node, Node_x_type(Node_type(node)));
-        }
-        break;
+
       case NT::DefGlobal:
       case NT::DefVar:
         if (Node_kind(Node_initial_or_undef_or_auto(node)) != NT::ValUndef) {
@@ -971,9 +987,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         // TODO
         break;
       case NT::RecField:
-        // TODO
-        break;
-
+        return CheckTypeIs(Node_type(node), Node_x_type(node));
       case NT::TypeAuto:
         // TODO
         break;

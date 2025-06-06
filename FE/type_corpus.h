@@ -26,7 +26,8 @@ extern NT CanonType_kind(CanonType n);
 extern Node CanonType_ast_node(CanonType n);
 extern bool CanonType_mut(CanonType n);
 extern bool CanonType_untagged(CanonType ct);
-
+extern int CanonType_alignment(CanonType n);
+extern int CanonType_size(CanonType n);
 extern std::vector<CanonType>& CanonType_children(CanonType n);
 
 extern Node CanonType_lookup_rec_field(CanonType ct, Name field);
@@ -44,18 +45,6 @@ inline std::ostream& operator<<(std::ostream& os, CanonType ct) {
   return os << CanonType_name(ct);
 }
 
-inline bool IsComparableType(CanonType ct) {
-  switch (CanonType_kind(ct)) {
-    case NT::DefEnum:
-    case NT::TypePtr:
-      return true;
-    case NT::DefType:
-      return IsComparableType(CanonType_underlying_type(ct));
-    default:
-      return false;
-  }
-}
-
 inline bool IsTypeForCmp(CanonType ct) {
   CanonType unwrapped = CanonType_get_unwrapped(ct);
   return CanonType_kind(unwrapped) == NT::TypeBase ||
@@ -71,6 +60,8 @@ inline bool IsTypeForEq(CanonType ct) {
 
 extern bool IsCompatibleTypeForEq(CanonType op1, CanonType op2);
 extern bool IsCompatibleTypeForCmp(CanonType op1, CanonType op2);
+extern bool IsCompatibleTypeForAs(CanonType src, CanonType dst);
+extern bool IsCompatibleTypeForBitcast(CanonType src, CanonType dst);
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;

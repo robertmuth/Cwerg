@@ -83,7 +83,6 @@ const NodeDesc GlobalNodeDescs[] = {
     { BIT_N(type), 0, 0 }, // ExprTypeId
     { BIT_N(expr), 0, 0 }, // ExprUnionTag
     { BIT_N(expr), 0, 0 }, // ExprUnionUntagged
-    { BIT_N(expr)| BIT_N(type), 0, 0 }, // ExprUnsafeCast
     { BIT_N(expr), 0, 0 }, // ExprUnwrap
     { BIT_N(expr)| BIT_N(type), 0, 0 }, // ExprWiden
     { BIT_N(expr)| BIT_N(type), 0, 0 }, // ExprWrap
@@ -474,50 +473,49 @@ const char* const NT_ToStringMap[] = {
     "ExprTypeId", // 33
     "ExprUnionTag", // 34
     "ExprUnionUntagged", // 35
-    "ExprUnsafeCast", // 36
-    "ExprUnwrap", // 37
-    "ExprWiden", // 38
-    "ExprWrap", // 39
-    "FunParam", // 40
-    "Id", // 41
-    "Import", // 42
-    "MacroFor", // 43
-    "MacroId", // 44
-    "MacroInvoke", // 45
-    "MacroParam", // 46
-    "ModParam", // 47
-    "RecField", // 48
-    "StmtAssignment", // 49
-    "StmtBlock", // 50
-    "StmtBreak", // 51
-    "StmtCompoundAssignment", // 52
-    "StmtCond", // 53
-    "StmtContinue", // 54
-    "StmtDefer", // 55
-    "StmtExpr", // 56
-    "StmtIf", // 57
-    "StmtReturn", // 58
-    "StmtStaticAssert", // 59
-    "StmtTrap", // 60
-    "TypeAuto", // 61
-    "TypeBase", // 62
-    "TypeFun", // 63
-    "TypeOf", // 64
-    "TypePtr", // 65
-    "TypeSpan", // 66
-    "TypeUnion", // 67
-    "TypeUnionDelta", // 68
-    "TypeVec", // 69
-    "ValAuto", // 70
-    "ValCompound", // 71
-    "ValFalse", // 72
-    "ValNum", // 73
-    "ValPoint", // 74
-    "ValSpan", // 75
-    "ValString", // 76
-    "ValTrue", // 77
-    "ValUndef", // 78
-    "ValVoid", // 79
+    "ExprUnwrap", // 36
+    "ExprWiden", // 37
+    "ExprWrap", // 38
+    "FunParam", // 39
+    "Id", // 40
+    "Import", // 41
+    "MacroFor", // 42
+    "MacroId", // 43
+    "MacroInvoke", // 44
+    "MacroParam", // 45
+    "ModParam", // 46
+    "RecField", // 47
+    "StmtAssignment", // 48
+    "StmtBlock", // 49
+    "StmtBreak", // 50
+    "StmtCompoundAssignment", // 51
+    "StmtCond", // 52
+    "StmtContinue", // 53
+    "StmtDefer", // 54
+    "StmtExpr", // 55
+    "StmtIf", // 56
+    "StmtReturn", // 57
+    "StmtStaticAssert", // 58
+    "StmtTrap", // 59
+    "TypeAuto", // 60
+    "TypeBase", // 61
+    "TypeFun", // 62
+    "TypeOf", // 63
+    "TypePtr", // 64
+    "TypeSpan", // 65
+    "TypeUnion", // 66
+    "TypeUnionDelta", // 67
+    "TypeVec", // 68
+    "ValAuto", // 69
+    "ValCompound", // 70
+    "ValFalse", // 71
+    "ValNum", // 72
+    "ValPoint", // 73
+    "ValSpan", // 74
+    "ValString", // 75
+    "ValTrue", // 76
+    "ValUndef", // 77
+    "ValVoid", // 78
 };
 const char* EnumToString(NT x) { return NT_ToStringMap[unsigned(x)]; }
 
@@ -606,7 +604,6 @@ const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
     {"typeid_of", NT::ExprTypeId},
     {"union_tag", NT::ExprUnionTag},
     {"union_untagged", NT::ExprUnionUntagged},
-    {"unsafe_as", NT::ExprUnsafeCast},
     {"unwrap", NT::ExprUnwrap},
     {"widen_as", NT::ExprWiden},
     {"wrap_as", NT::ExprWrap},

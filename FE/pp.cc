@@ -255,9 +255,6 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     case NT::ExprIs:
       EmitFunctional(out, node, "is", Node_expr(node), Node_type(node));
       break;
-    case NT::ExprUnsafeCast:
-      EmitFunctional(out, node, "unsafe_as", Node_expr(node), Node_type(node));
-      break;
     case NT::ExprWiden:
       EmitFunctional(out, node, "widen_as", Node_expr(node), Node_type(node));
       break;

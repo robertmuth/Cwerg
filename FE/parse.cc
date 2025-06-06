@@ -147,10 +147,6 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
       ParseFunLikeArgs(lexer, "ET", &args);
       NodeInitExprWiden(out, args[0], args[1], tk.comments, tk.srcloc);
       return out;
-    case NT::ExprUnsafeCast:
-      ParseFunLikeArgs(lexer, "ET", &args);
-      NodeInitExprUnsafeCast(out, args[0], args[1], tk.comments, tk.srcloc);
-      return out;
     case NT::ExprBitCast:
       ParseFunLikeArgs(lexer, "ET", &args);
       NodeInitExprBitCast(out, args[0], args[1], tk.comments, tk.srcloc);

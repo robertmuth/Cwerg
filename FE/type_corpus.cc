@@ -21,6 +21,8 @@ struct CanonTypeCore {
   int dim = -1;
   BASE_TYPE_KIND base_type_kind = BASE_TYPE_KIND::INVALID;
   Node ast_node = kNodeInvalid;
+  int alignment = -1;
+  int size = -1;
 };
 
 struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore("CanonTypeCore");
@@ -35,6 +37,8 @@ Name CanonType_name(CanonType n) { return gCanonTypeCore[n].name; }
 bool CanonType_mut(CanonType n) { return gCanonTypeCore[n].mut; }
 
 int CanonType_dim(CanonType n) { return gCanonTypeCore[n].dim; }
+int CanonType_alignment(CanonType n) { return gCanonTypeCore[n].alignment; }
+int CanonType_size(CanonType n) { return gCanonTypeCore[n].size; }
 
 NT CanonType_kind(CanonType n) { return gCanonTypeCore[n].node; }
 
@@ -424,6 +428,21 @@ bool IsCompatibleTypeForCmp(CanonType op1, CanonType op2) {
     }
   }
   return false;
+}
+
+bool IsCompatibleTypeForAs(CanonType src, CanonType dst) {
+  return CanonType_kind(src) == NT::TypeBase &&
+         CanonType_kind(dst) == NT::TypeBase &&
+         IsNumber(CanonType_get_unwrapped_base_type_kind(src)) &&
+         IsNumber(CanonType_get_unwrapped_base_type_kind(dst));
+}
+
+bool IsCompatibleTypeForBitcast(CanonType src, CanonType dst) {
+  if (CanonType_kind(src) != NT::TypeBase && CanonType_kind(src) != NT::TypePtr)
+    return false;
+  if (CanonType_kind(dst) != NT::TypeBase && CanonType_kind(dst) != NT::TypePtr)
+    return false;
+  return CanonType_size(src) == CanonType_size(dst);
 }
 
 }  // namespace cwerg::fe

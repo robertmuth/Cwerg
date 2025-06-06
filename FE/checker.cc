@@ -79,7 +79,6 @@ bool IsTyped(NT nt) {
     case NT::ExprAs:
     case NT::ExprNarrow:
     case NT::ExprWiden:
-    case NT::ExprUnsafeCast:
     case NT::ExprBitCast:
     case NT::ExprTypeId:
     case NT::ExprUnionTag:
