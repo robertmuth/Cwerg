@@ -36,7 +36,6 @@ module:
 
 import fmt
 
-
 pub wrapped type Success = void
 
 pub global SuccessVal = wrap_as(void_val, Success)

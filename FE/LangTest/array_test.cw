@@ -6,7 +6,7 @@ type type_array = [3]bool
 
 type type_slice = span(s32)
 
-ref pub global c1 = {[10]s32: 1, 2, 3}
+pub ref global c1 = {[10]s32: 1, 2, 3}
 
 ref global! c2 = {[10]s32: 1, 2, 3}
 

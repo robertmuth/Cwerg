@@ -578,7 +578,7 @@ def _EmitStatement(out, n):
         _EmitStmtSet(out, "=", n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.StmtCompoundAssignment):
         _EmitStmtSet(out,
-                     cwast.ASSIGNMENT_SHORTCUT_INV[n.assignment_kind],
+                     cwast.ASSIGNMENT_SHORTCUT_INV[n.binary_expr_kind],
                      n.lhs, n.expr_rhs)
     elif isinstance(n, cwast.DefVar):
         _EmitStmtLetOrGlobal(out, WithExcl("let", n.mut),
@@ -602,8 +602,12 @@ def _EmitStatement(out, n):
     elif isinstance(n, cwast.MacroId):
         out += [PP.Str(str(n.name))]
     elif isinstance(n, cwast.StmtBlock):
-        out += [PP.Str("block"), PP.Brk(), PP.Str(str(n.label)),
-                PP.Brk(0), PP.Str(":")]
+        if n.label is cwast.EMPTY_NAME:
+            out += [PP.Str("block"), PP.Brk(0), PP.Str(":")]
+
+        else:
+            out += [PP.Str("block"), PP.Brk(), PP.Str(str(n.label)),
+                    PP.Brk(0), PP.Str(":")]
         _EmitStatementsSpecial(out, n.body)
     elif isinstance(n, cwast.StmtIf):
         out += [PP.Str("if"), PP.Brk()]
@@ -781,7 +785,7 @@ if __name__ == "__main__":
     from FE import parse
 
     def process_file(inp, _outp):
-        mod = parse.ReadModFromStream(inp, "stdin")
+        mod = parse.ReadModFromStream(inp, "stdin", "")
         # cwast.AnnotateRoleForMacroInvoke(mod)
         # AddMissingParens(mod)
         PrettyPrint(mod, sys.stdout)

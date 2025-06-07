@@ -45,12 +45,15 @@ global c3 = 7.0_r32
 global c4 = "axxxxb"
 
 global c4_span span(u8) = c4
+
 static_assert len(c4) == 6
+
 ; static_assert len(c4_span) == 6
 ; static_assert len(c4_span) == len(c4)
-
 static_assert c4[0] == 'a'
+
 static_assert size_of(type_of(c4)) == 6
+
 static_assert c4[size_of(type_of(c4)) - 1] == 'b'
 
 ref global c10 = c2

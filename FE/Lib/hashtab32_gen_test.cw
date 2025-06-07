@@ -23,7 +23,7 @@ global! keys = {[SIZE]u32: 0}
 global! vals = {[SIZE]u32: 0}
 
 ref global! ht = {hashtab::HashTab32: front!(meta), front!(keys), front!(vals),
-              SIZE, 0}
+                  SIZE, 0}
 
 fun main(argc s32, argv ^^u8) s32:
     ref let! key u32 = 6
