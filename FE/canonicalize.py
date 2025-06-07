@@ -96,11 +96,17 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
 def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     src_ct: cwast.CanonType = node.expr.x_type
     dst_ct: cwast.CanonType = node.type.x_type
-    typeid_ct = tc.get_typeid_canon_type()
     bool_ct = tc.get_bool_canon_type()
     sl = node.x_srcloc
     # if src_ct is not a tagged union ExprIs has been compile time evaluated
-    assert src_ct.is_tagged_union()
+    if src_ct.is_union():
+        assert not src_ct.untagged, f"{node.x_srcloc} {src_ct} {dst_ct}"
+    else:
+        if src_ct == dst_ct:
+            return cwast.ValNum("true", x_srcloc=sl, x_type=bool_ct, x_value=eval.VAL_TRUE)
+        else:
+            return cwast.ValNum("false", x_srcloc=sl, x_type=bool_ct, x_value=eval.VAL_FALSE)
+    typeid_ct = tc.get_typeid_canon_type()
     typeids = []
     if dst_ct.is_union():
         for ct in dst_ct.union_member_types():
@@ -331,10 +337,11 @@ def ReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
         val = node.x_value
         if isinstance(node, cwast.ValNum):
             assert val is not None
-            return
-
-        if val is None:
             return None
+
+        if val is None or isinstance(val, eval.EvalUndef):
+            return None
+        ct = node.x_type
 
         assert isinstance(val, eval.EvalBase), f"{node} <- {parent}"
 
@@ -348,18 +355,13 @@ def ReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
         if not isinstance(val, eval.EvalNum):
             return None
 
-        if node.x_type.get_unwrapped().is_base_type():
-            return cwast.ValNum(str(node.x_value.val),
-                                x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
-
-        if val.kind is cwast.BASE_TYPE_KIND.BOOL:
-            ct = tc.get_bool_canon_type()
-            return None
-
-        elif node.x_type.is_int():  # TODO: handle wrapped type
-            return cwast.ValNum(str(node.x_value.val),
-                                x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
-        return None
+        if ct.get_unwrapped().is_base_type():
+            return cwast.ValNum(str(val.val), x_srcloc=node.x_srcloc, x_type=ct, x_value=val)
+        else:
+            assert ct.is_union() and tc.get_base_canon_type(
+                val.kind) in ct.children, f"{ct}"
+            return cwast.ValNum(str(val.val),
+                                x_srcloc=node.x_srcloc, x_type=tc.get_base_canon_type(val.kind), x_value=val)
 
     # no neeed to siplify interior subtrees if we we rewrite a node
     cwast.MaybeReplaceAstRecursively(node, replacer)
@@ -391,7 +393,8 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     def visit(node):
         if isinstance(node, cwast.StmtIf):
             if isinstance(node.cond, cwast.ValNum):
-                assert isinstance(node.cond.x_value, eval.EvalNum), f"{node.cond.x_value} {node.cond}"
+                assert isinstance(
+                    node.cond.x_value, eval.EvalNum), f"{node.cond.x_value} {node.cond}"
                 if node.cond.x_value.val:
                     node.body_f.clear()
                 else:
