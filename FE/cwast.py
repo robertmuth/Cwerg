@@ -3314,8 +3314,8 @@ Misc enums used inside of nodes.
             if cls.ATTRS:
                 print("", file=fout)
                 print("Flags:",  file=fout)
-                for field, nfd in cls.ATTRS:
-                    print(f"* {field}: {nfd.doc}", file=fout)
+                for nfd in cls.ATTRS:
+                    print(f"* {nfd.name}: {nfd.doc}", file=fout)
             print("", file=fout)
 
     print("## Enum Details",  file=fout)

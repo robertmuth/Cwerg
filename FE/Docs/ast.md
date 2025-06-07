@@ -10,29 +10,28 @@ Core nodes are the ones that are known to the code generator.
 [DefFun&nbsp;(fun)](#deffun-fun) &ensp;
 [DefGlobal&nbsp;(global)](#defglobal-global) &ensp;
 [DefMod&nbsp;(module)](#defmod-module) &ensp;
-[DefRec&nbsp;(defrec)](#defrec-defrec) &ensp;
+[DefRec&nbsp;(rec)](#defrec-rec) &ensp;
 [DefType&nbsp;(type)](#deftype-type) &ensp;
 [DefVar&nbsp;(let)](#defvar-let) &ensp;
-[EnumVal&nbsp;(entry)](#enumval-entry) &ensp;
+[EnumVal](#enumval) &ensp;
 [Expr1](#expr1) &ensp;
 [Expr2](#expr2) &ensp;
-[ExprAddrOf&nbsp;(&)](#expraddrof-) &ensp;
+[ExprAddrOf&nbsp;(@)](#expraddrof-) &ensp;
 [ExprAs&nbsp;(as)](#expras-as) &ensp;
 [ExprBitCast&nbsp;(bitwise_as)](#exprbitcast-bitwise_as) &ensp;
-[ExprCall&nbsp;(call)](#exprcall-call) &ensp;
+[ExprCall](#exprcall) &ensp;
 [ExprDeref&nbsp;(^)](#exprderef-) &ensp;
 [ExprField&nbsp;(.)](#exprfield-.) &ensp;
 [ExprFront&nbsp;(front)](#exprfront-front) &ensp;
 [ExprNarrow&nbsp;(narrow_as)](#exprnarrow-narrow_as) &ensp;
 [ExprPointer](#exprpointer) &ensp;
 [ExprStmt&nbsp;(expr)](#exprstmt-expr) &ensp;
-[ExprUnsafeCast&nbsp;(unsafe_as)](#exprunsafecast-unsafe_as) &ensp;
 [ExprUnwrap&nbsp;(unwrap)](#exprunwrap-unwrap) &ensp;
 [ExprWiden&nbsp;(widen_as)](#exprwiden-widen_as) &ensp;
 [ExprWrap&nbsp;(wrap_as)](#exprwrap-wrap_as) &ensp;
-[FunParam&nbsp;(param)](#funparam-param) &ensp;
-[Id&nbsp;(id)](#id-id) &ensp;
-[RecField&nbsp;(field)](#recfield-field) &ensp;
+[FunParam](#funparam) &ensp;
+[Id](#id) &ensp;
+[RecField](#recfield) &ensp;
 [StmtAssignment&nbsp;(=)](#stmtassignment-) &ensp;
 [StmtBlock&nbsp;(block)](#stmtblock-block) &ensp;
 [StmtBreak&nbsp;(break)](#stmtbreak-break) &ensp;
@@ -43,20 +42,18 @@ Core nodes are the ones that are known to the code generator.
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
 [TypeAuto&nbsp;(auto)](#typeauto-auto) &ensp;
 [TypeBase](#typebase) &ensp;
-[TypeFun&nbsp;(sig)](#typefun-sig) &ensp;
-[TypePtr&nbsp;(ptr)](#typeptr-ptr) &ensp;
+[TypeFun&nbsp;(funtype)](#typefun-funtype) &ensp;
+[TypePtr](#typeptr) &ensp;
 [TypeUnion&nbsp;(union)](#typeunion-union) &ensp;
 [TypeVec&nbsp;(vec)](#typevec-vec) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
-[ValCompound&nbsp;(compound_val)](#valcompound-compound_val) &ensp;
-[ValFalse&nbsp;(false)](#valfalse-false) &ensp;
+[ValCompound](#valcompound) &ensp;
 [ValNum](#valnum) &ensp;
-[ValPoint&nbsp;(point_val)](#valpoint-point_val) &ensp;
+[ValPoint](#valpoint) &ensp;
 [ValString](#valstring) &ensp;
-[ValTrue&nbsp;(true)](#valtrue-true) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
 [ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
-(50 nodes)
+(47 nodes)
 
 ## Node Overview (Non-Core)
 
@@ -71,7 +68,7 @@ code generation.
 [ExprIs&nbsp;(is)](#expris-is) &ensp;
 [ExprLen&nbsp;(len)](#exprlen-len) &ensp;
 [ExprOffsetof&nbsp;(offset_of)](#exproffsetof-offset_of) &ensp;
-[ExprParen&nbsp;(paren)](#exprparen-paren) &ensp;
+[ExprParen](#exprparen) &ensp;
 [ExprSizeof&nbsp;(size_of)](#exprsizeof-size_of) &ensp;
 [ExprSrcLoc&nbsp;(srcloc)](#exprsrcloc-srcloc) &ensp;
 [ExprStringify&nbsp;(stringify)](#exprstringify-stringify) &ensp;
@@ -80,11 +77,10 @@ code generation.
 [ExprUnionUntagged&nbsp;(union_untagged)](#exprunionuntagged-union_untagged) &ensp;
 [Import&nbsp;(import)](#import-import) &ensp;
 [MacroFor&nbsp;(mfor)](#macrofor-mfor) &ensp;
-[MacroId&nbsp;(macro_id)](#macroid-macro_id) &ensp;
-[MacroInvoke&nbsp;(macro_invoke)](#macroinvoke-macro_invoke) &ensp;
-[MacroParam&nbsp;(mparam)](#macroparam-mparam) &ensp;
-[MacroVar&nbsp;(mlet)](#macrovar-mlet) &ensp;
-[ModParam&nbsp;(modparam)](#modparam-modparam) &ensp;
+[MacroId](#macroid) &ensp;
+[MacroInvoke](#macroinvoke) &ensp;
+[MacroParam](#macroparam) &ensp;
+[ModParam](#modparam) &ensp;
 [StmtCompoundAssignment](#stmtcompoundassignment) &ensp;
 [StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
 [StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
@@ -92,8 +88,8 @@ code generation.
 [TypeOf&nbsp;(type_of)](#typeof-type_of) &ensp;
 [TypeSpan&nbsp;(span)](#typespan-span) &ensp;
 [TypeUnionDelta&nbsp;(union_delta)](#typeuniondelta-union_delta) &ensp;
-[ValSpan&nbsp;(span_val)](#valspan-span_val) &ensp;
-(30 nodes)
+[ValSpan&nbsp;(make_span)](#valspan-make_span) &ensp;
+(29 nodes)
 
 ## Enum Overview
 
@@ -101,98 +97,40 @@ Misc enums used inside of nodes.
 
 [Expr1 Kind](#expr1-kind) &ensp;
 [Expr2 Kind](#expr2-kind) &ensp;
-[StmtCompoundAssignment Kind](#stmtcompoundassignment-kind) &ensp;
 [Base Type Kind](#base-type-kind) &ensp;
 [ModParam Kind](#modparam-kind) &ensp;
 [MacroParam Kind](#macroparam-kind) &ensp;
 
 ## Misc Node Details
 
-### Id (id)
+### Id
 Refers to a type, variable, constant, function, module by name.
 
     Ids may contain a path component indicating which modules they reference.
     If the path component is missing the Id refers to the current module.
 
+    id or mod::id or enum::id or mod::enum:id
     
 
 Fields:
-* mod_name [STR]: optional module qualifier
-* base_name [STR]: name of the object
-* enum_name [STR]: optional enum element name
+* name [NAME]: name of the object
+* enum_name [NAME]: optional enum element name
 
 
 ## Type Node Details
 
-### DefEnum (enum)
-Enum definition
-
-Allowed at top level only
-
-Fields:
-* name [STR]: name of the object
-* base_type_kind [KIND]: one of: [SINT, S8, S16, S32, S64, UINT, U8, U16, U32, U64, R32, R64, VOID, NORET, BOOL, TYPEID](#base-type-kind)
-* items [LIST]: enum items and/or comments
-
-Flags:
-* pub: has public visibility
-* doc: possibly multi-line comment
-
-
-### DefRec (defrec)
-Record definition
-
-Allowed at top level only
-
-Fields:
-* name [STR]: name of the object
-* fields [LIST]: record fields and/or comments
-
-Flags:
-* pub: has public visibility
-* doc: possibly multi-line comment
-
-
-### EnumVal (entry)
- Enum element.
-
-     `value: ValAuto` means previous value + 1
-
-Fields:
-* name [STR]: name of the object
-* value_or_auto [NODE] (default ValAuto): enum constant or auto
-
-Flags:
-* doc: possibly multi-line comment
-
-
-### FunParam (param)
+### FunParam
 Function parameter
 
     
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 * type [NODE]: type expression
 
 Flags:
 * arg_ref: in parameter was converted for by-val to pointer
 * res_ref: in parameter was converted for by-val to pointer
-* doc: possibly multi-line comment
-
-
-### RecField (field)
-Record field
-
-    All fields must be explicitly initialized. Use `ValUndef` in performance
-    sensitive situations.
-    
-
-Fields:
-* name [STR]: name of the object
-* type [NODE]: type expression
-
-Flags:
 * doc: possibly multi-line comment
 
 
@@ -212,10 +150,10 @@ Base type
     
 
 Fields:
-* base_type_kind [KIND]: one of: [SINT, S8, S16, S32, S64, UINT, U8, U16, U32, U64, R32, R64, VOID, NORET, BOOL, TYPEID](#base-type-kind)
+* base_type_kind [KIND]: one of: [SINT, S8, S16, S32, S64, UINT, U8, U16, U32, U64, R32, R64, BOOL, TYPEID, VOID, NORET](#base-type-kind)
 
 
-### TypeFun (sig)
+### TypeFun (funtype)
 A function signature
 
     The `FunParam.name` field is ignored and should be `_`
@@ -235,7 +173,7 @@ Fields:
 * expr [NODE]: expression
 
 
-### TypePtr (ptr)
+### TypePtr
 Pointer type
     
 
@@ -250,7 +188,7 @@ Flags:
 A span (view) of a vec with compile-time unknown dimensions
 
     Internally, this is tuple of `start` and `length`
-    (mutable/non-mutable)
+    (mutable/non-mutable)"union
     
 
 Fields:
@@ -264,7 +202,9 @@ Flags:
 Union types (tagged unions)
 
     Unions are "auto flattening", e.g.
-    Union(a, Union(b,c), Union(a, d)) = Union(a, b, c, d)
+    union(a, union(b,c), union(a, d)) == union(a, b, c, d)
+
+    union! indicates an untagged union
     
 
 Fields:
@@ -306,6 +246,21 @@ Flags:
 * doc: possibly multi-line comment
 
 
+### DefEnum (enum)
+Enum definition
+
+Allowed at top level only
+
+Fields:
+* name [NAME]: name of the object
+* base_type_kind [KIND]: one of: [SINT, S8, S16, S32, S64, UINT, U8, U16, U32, U64, R32, R64, BOOL, TYPEID, VOID, NORET](#base-type-kind)
+* items [LIST]: enum items and/or comments
+
+Flags:
+* pub: has public visibility
+* doc: possibly multi-line comment
+
+
 ### DefFun (fun)
 Function definition
 
@@ -321,7 +276,7 @@ Function definition
 Allowed at top level only
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 * params [LIST]: function parameters and/or comments
 * result [NODE]: return type
 * body [LIST]: new scope: statement list and/or comments
@@ -329,10 +284,11 @@ Fields:
 Flags:
 * init: run function at startup
 * fini: run function at shutdown
-* pub: has public visibility
-* ref: address may be taken
 * extern: is external function (empty body)
 * cdecl: use c-linkage (no module prefix)
+* poly: is polymorphic function
+* pub: has public visibility
+* ref: address may be taken
 * doc: possibly multi-line comment
 
 
@@ -340,13 +296,14 @@ Flags:
 Variable definition at global scope (DefVar is used for local scope)
 
     Allocates space in static memory and initializes it with `initial_or_undef`.
-    `mut` makes the allocated space read/write otherwise it is readonly.
+    `let!` makes the allocated space read/write otherwise it is readonly.
+    The attribute `ref` allows the address of the variable to be taken and prevents register allocation.
     
 
 Allowed at top level only
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 * type_or_auto [NODE]: type expression
 * initial_or_undef_or_auto [NODE] (default ValAuto): initializer
 
@@ -372,13 +329,14 @@ Define a macro
 Allowed at top level only
 
 Fields:
-* name [STR]: name of the object
-* macro_result_kind [KIND]: one of: [ID, STMT_LIST, EXPR_LIST, EXPR, STMT, FIELD, TYPE, EXPR_LIST_REST](#MacroParam-kind)
+* name [NAME]: name of the object
+* macro_result_kind [KIND]: one of: [STMT, STMT_LIST, EXPR, EXPR_LIST, TYPE](#macro-result-kind)
 * params_macro [LIST]: macro parameters
-* gen_ids [STR_LIST]: name placeholder ids to be generated at macro instantiation time
+* gen_ids [LIST]: name placeholder ids to be generated at macro instantiation time
 * body_macro [LIST]: new scope: macro statments/expression
 
 Flags:
+* builtin: module is the builtin module
 * pub: has public visibility
 * doc: possibly multi-line comment
 
@@ -392,12 +350,27 @@ Module Definition
     
 
 Fields:
+* name [NAME]: name of the object
 * params_mod [LIST]: module template parameters
 * body_mod [LIST]: toplevel module definitions and/or comments
 
 Flags:
 * doc: possibly multi-line comment
 * builtin: module is the builtin module
+
+
+### DefRec (rec)
+Record definition
+
+Allowed at top level only
+
+Fields:
+* name [NAME]: name of the object
+* fields [LIST]: record fields and/or comments
+
+Flags:
+* pub: has public visibility
+* doc: possibly multi-line comment
 
 
 ### DefType (type)
@@ -410,7 +383,7 @@ Type definition
 Allowed at top level only
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 * type [NODE]: type expression
 
 Flags:
@@ -423,13 +396,13 @@ Flags:
 Variable definition at local scope (DefGlobal is used for global scope)
 
     Allocates space on stack (or in a register) and initializes it with `initial_or_undef_or_auto`.
-    `mut` makes the allocated space read/write otherwise it is readonly.
-    `ref` allows the address of the  variable to be taken and prevents register allocation.
+    `let!` makes the allocated space read/write otherwise it is readonly.
+    The attribute `ref` allows the address of the variable to be taken and prevents register allocation.
 
     
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 * type_or_auto [NODE]: type expression
 * initial_or_undef_or_auto [NODE] (default ValAuto): initializer
 
@@ -439,11 +412,24 @@ Flags:
 * doc: possibly multi-line comment
 
 
+### EnumVal
+ Enum element.
+
+     `value: ValAuto` means previous value + 1
+
+Fields:
+* name [NAME]: name of the object
+* value_or_auto [NODE] (default ValAuto): enum constant or auto
+
+Flags:
+* doc: possibly multi-line comment
+
+
 ### Import (import)
 Import another Module from `path` as `name`
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 * path [STR] (default ""): TBD
 * args_mod [LIST] (default list): module arguments
 
@@ -451,12 +437,43 @@ Flags:
 * doc: possibly multi-line comment
 
 
-### ModParam (modparam)
+### MacroFor (mfor)
+Macro for-loop like statement
+
+    loops over the macro parameter `name_list` which must be a list and
+    binds each list element to `name` while expanding the AST nodes in `body_for`.
+    
+
+Fields:
+* name [NAME]: name of the object
+* name_list [NAME]: name of the object list
+* body_for [LIST]: statement list for macro_loop
+
+Flags:
+* doc: possibly multi-line comment
+
+
+### ModParam
 Module Parameters
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 * mod_param_kind [KIND]: one of: [CONST_EXPR, TYPE](#modparam-kind)
+
+Flags:
+* doc: possibly multi-line comment
+
+
+### RecField
+Record field
+
+    All fields must be explicitly initialized. Use `ValUndef` in performance
+    sensitive situations.
+    
+
+Fields:
+* name [NAME]: name of the object
+* type [NODE]: type expression
 
 Flags:
 * doc: possibly multi-line comment
@@ -480,7 +497,7 @@ Block statement.
     
 
 Fields:
-* label [STR]: block  name (if not empty)
+* label [NAME]: block  name (if not empty)
 * body [LIST]: new scope: statement list and/or comments
 
 Flags:
@@ -493,7 +510,7 @@ Break statement
     use "" if the target is the nearest for/while/block 
 
 Fields:
-* target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
+* target [NAME] (default NAME): name of enclosing while/for/block to brach to (empty means nearest)
 
 Flags:
 * doc: possibly multi-line comment
@@ -506,7 +523,7 @@ Compound assignment statement
     
 
 Fields:
-* assignment_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, AND, OR, XOR, SHR, SHL, ROTR, ROTL](#stmtcompoundassignment-kind)
+* binary_expr_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, SHR, SHL, ROTR, ROTL, AND, OR, XOR, EQ, NE, LT, LE, GT, GE, ANDSC, ORSC, PDELTA](#expr2-kind)
 * lhs [NODE]: l-value expression
 * expr_rhs [NODE]: rhs of assignment
 
@@ -530,7 +547,7 @@ Continue statement
     use "" if the target is the nearest for/while/block 
 
 Fields:
-* target [STR] (default ""): name of enclosing while/for/block to brach to (empty means nearest)
+* target [NAME] (default NAME): name of enclosing while/for/block to brach to (empty means nearest)
 
 Flags:
 * doc: possibly multi-line comment
@@ -622,7 +639,7 @@ Placeholder for an unspecified (auto derived) value
 Fields:
 
 
-### ValCompound (compound_val)
+### ValCompound
 A compound (Rec or Vec) literal
     e.g.
     `{[10]int : 1 = 5, 2 = 6, 77}`
@@ -638,12 +655,6 @@ Flags:
 * doc: possibly multi-line comment
 
 
-### ValFalse (false)
-Bool constant `false`
-
-Fields:
-
-
 ### ValNum
 Numeric constant (signed int, unsigned int, real
 
@@ -655,7 +666,7 @@ Fields:
 * number [STR]: a number
 
 
-### ValPoint (point_val)
+### ValPoint
 Component of a ValCompound
 
     The `point` is optional and `ValAuto` if not used.
@@ -666,13 +677,13 @@ Component of a ValCompound
 
 Fields:
 * value_or_undef [NODE]: 
-* point [NODE] (default ValAuto): compound initializer index/field or auto (meaning next pos)
+* point_or_undef [NODE] (default ValUndef): compound initializer index/field or auto (meaning next pos)
 
 Flags:
 * doc: possibly multi-line comment
 
 
-### ValSpan (span_val)
+### ValSpan (make_span)
 A span value comprised of a pointer and length
 
     type and mutability is defined by the pointer
@@ -691,14 +702,6 @@ An vec_val encoded as a string
 
 Fields:
 * string [STR]: string literal
-* strkind [INTERNAL_STR]: raw: ignore escape sequences in string, hex:
-* triplequoted [INTERNAL_BOOL]: string is using 3 double quotes
-
-
-### ValTrue (true)
-Bool constant `true`
-
-Fields:
 
 
 ### ValUndef (undef)
@@ -723,7 +726,7 @@ Fields:
 Unary expression.
 
 Fields:
-* unary_expr_kind [KIND]: one of: [NOT, MINUS, ABS, SQRT](#expr1-kind)
+* unary_expr_kind [KIND]: one of: [NOT, NEG, ABS, SQRT](#expr1-kind)
 * expr [NODE]: expression
 
 
@@ -731,7 +734,7 @@ Fields:
 Binary expression.
 
 Fields:
-* binary_expr_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, AND, OR, XOR, EQ, NE, LT, LE, GT, GE, ANDSC, ORSC, SHR, SHL, ROTR, ROTL, PDELTA](#expr2-kind)
+* binary_expr_kind [KIND]: one of: [ADD, SUB, DIV, MUL, MOD, MIN, MAX, SHR, SHL, ROTR, ROTL, AND, OR, XOR, EQ, NE, LT, LE, GT, GE, ANDSC, ORSC, PDELTA](#expr2-kind)
 * expr1 [NODE]: left operand expression
 * expr2 [NODE]: right operand expression
 
@@ -746,11 +749,11 @@ Fields:
 * expr_f [NODE]: expression (will only be evaluated if cond == false)
 
 
-### ExprAddrOf (&)
+### ExprAddrOf (@)
 Create a pointer to object represented by `expr`
 
     Pointer can optionally point to a mutable object if the
-    pointee is mutable.
+    pointee is mutable. This is indicated using `@!`.
     
 
 Fields:
@@ -782,7 +785,7 @@ Bit cast.
     s64,u64, f64 <-> s64,u64, f64
     sint, uint <-> ptr(x)
     ptr(a) <-> ptr(b)
-    It is also ok to bitcase complex objects like recs
+    (Probably not true anymore: It is also ok to bitcast complex objects like recs
     
 
 Fields:
@@ -790,7 +793,7 @@ Fields:
 * type [NODE]: type expression
 
 
-### ExprCall (call)
+### ExprCall
 Function call expression.
     
 
@@ -818,7 +821,9 @@ Fields:
 ### ExprFront (front)
 Address of the first element of an vec or span
 
-    Similar to `(& (at container 0))` but will not fail if container has zero size
+    Similar to `@container[0]` but will not fail if container has zero size
+    If the underlying container is mutable, then `front!` can be  used to
+    obtain a mutable pointer.
     
 
 Fields:
@@ -826,6 +831,7 @@ Fields:
 
 Flags:
 * mut: is mutable
+* preserve_mut: result type is mutable if underlying type is
 
 
 ### ExprIndex (at)
@@ -867,7 +873,8 @@ Fields:
 ### ExprNarrow (narrow_as)
 Narrowing Cast (for unions)
 
-    optionally unchecked
+    `narrow_as!` forces an unchecked narrowing
+    Note: a narrow_as can be an l-value
     
 
 Fields:
@@ -888,7 +895,7 @@ Fields:
 * field [NODE]: record field
 
 
-### ExprParen (paren)
+### ExprParen
 Used for preserving parenthesis in the source
     
 
@@ -972,19 +979,6 @@ Fields:
 * expr [NODE]: expression
 
 
-### ExprUnsafeCast (unsafe_as)
-Unsafe Cast
-
-    Allowed:
-    ptr a <-> ptr b
-
-    
-
-Fields:
-* expr [NODE]: expression
-* type [NODE]: type expression
-
-
 ### ExprUnwrap (unwrap)
 Cast: enum/wrapped -> underlying type
     
@@ -1016,9 +1010,11 @@ Fields:
 ## Macro Node Details
 
 ### EphemeralList
-Only exist temporarily after a replacement strep
+Only exist in the context of macro parameters:
+       STMT_LIST, EXPR_LIST, EXPR_LIST_REST
+       and is not used after macro expansion
 
-    will removed (flattened) in the next cleanup list
+
     
 
 Fields:
@@ -1028,69 +1024,35 @@ Flags:
 * colon: colon style list
 
 
-### MacroFor (mfor)
-Macro for-loop like statement
-
-    loops over the macro parameter `name_list` which must be a list and
-    binds each list element to `name` while expanding the AST nodes in `body_for`.
-    
-
-Fields:
-* name [STR]: name of the object
-* name_list [STR]: name of the object list
-* body_for [LIST]: statement list for macro_loop
-
-Flags:
-* doc: possibly multi-line comment
-
-
-### MacroId (macro_id)
+### MacroId
 Placeholder for a parameter
 
     This node will be expanded with the actual argument
     
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 
 
-### MacroInvoke (macro_invoke)
+### MacroInvoke
 Macro Invocation
 
 Fields:
-* name [STR]: name of the object
+* name [NAME]: name of the object
 * args [LIST]: function call arguments
 
 Flags:
 * doc: possibly multi-line comment
 
 
-### MacroParam (mparam)
+### MacroParam
 Macro Parameter
 
 Fields:
-* name [STR]: name of the object
-* macro_param_kind [KIND]: one of: [ID, STMT_LIST, EXPR_LIST, EXPR, STMT, FIELD, TYPE, EXPR_LIST_REST](#MacroParam-kind)
+* name [NAME]: name of the object
+* macro_param_kind [KIND]: one of: [ID, EXPR, FIELD, TYPE, ID_DEF, STMT_LIST, EXPR_LIST_REST](#macro-param-kind)
 
 Flags:
-* doc: possibly multi-line comment
-
-
-### MacroVar (mlet)
-Macro Variable definition whose name stems from a macro parameter or macro_gen_id"
-
-    `name` must start with a `$`.
-
-    
-
-Fields:
-* name [STR]: name of the object
-* type_or_auto [NODE]: type expression
-* initial_or_undef_or_auto [NODE] (default ValAuto): initializer
-
-Flags:
-* mut: is mutable
-* ref: address may be taken
 * doc: possibly multi-line comment
 
 ## Enum Details
@@ -1100,7 +1062,7 @@ Flags:
 |Kind|Abbrev|
 |----|------|
 |NOT       |!|
-|MINUS     |~|
+|NEG       |neg|
 |ABS       |abs|
 |SQRT      |sqrt|
 
@@ -1115,9 +1077,13 @@ Flags:
 |MOD       |%|
 |MIN       |min|
 |MAX       |max|
-|AND       |and|
-|OR        |or|
-|XOR       |xor|
+|SHR       |>>|
+|SHL       |<<|
+|ROTR      |>>>|
+|ROTL      |<<<|
+|AND       |&|
+|OR        |||
+|XOR       |~|
 |EQ        |==|
 |NE        |!=|
 |LT        |<|
@@ -1126,37 +1092,14 @@ Flags:
 |GE        |>=|
 |ANDSC     |&&|
 |ORSC      ||||
-|SHR       |>>|
-|SHL       |<<|
-|ROTR      |>>>|
-|ROTL      |<<<|
-|PDELTA    |&-&|
+|PDELTA    |ptr_diff|
 
 ### ExprPointer Kind
 
 |Kind|Abbrev|
 |----|------|
-|INCP      |pinc|
-|DECP      |pdec|
-
-### StmtCompoundAssignment Kind
-
-|Kind|Abbrev|
-|----|------|
-|ADD       |+=|
-|SUB       |-=|
-|DIV       |/=|
-|MUL       |*=|
-|MOD       |%=|
-|MIN       |min=|
-|MAX       |max=|
-|AND       |and=|
-|OR        |or=|
-|XOR       |xor=|
-|SHR       |>>=|
-|SHL       |<<=|
-|ROTR      |>>>=|
-|ROTL      |<<<=|
+|INCP      |ptr_inc|
+|DECP      |ptr_dec|
 
 ### Base Type Kind
 
@@ -1174,10 +1117,10 @@ Flags:
 |U64       |
 |R32       |
 |R64       |
-|VOID      |
-|NORET     |
 |BOOL      |
 |TYPEID    |
+|VOID      |
+|NORET     |
 
 ### ModParam Kind
 
@@ -1191,10 +1134,19 @@ Flags:
 |Kind|
 |----|
 |ID        |
-|STMT_LIST |
-|EXPR_LIST |
 |EXPR      |
-|STMT      |
 |FIELD     |
 |TYPE      |
+|ID_DEF    |
+|STMT_LIST |
 |EXPR_LIST_REST|
+
+### MacroResult Kind
+
+|Kind|
+|----|
+|STMT      |
+|STMT_LIST |
+|EXPR      |
+|EXPR_LIST |
+|TYPE      |
