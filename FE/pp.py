@@ -378,8 +378,6 @@ _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
     cwast.Id: lambda out, n:  out.extend([PP.Str(n.FullName())]),
     cwast.MacroId: lambda out, n: out.extend([PP.Str(str(n.name))]),
     #
-    cwast.ValTrue: lambda out, n: out.append(PP.Str(KW(n))),
-    cwast.ValFalse: lambda out, n: out.append(PP.Str(KW(n))),
     cwast.ValUndef: lambda out, n: out.append(PP.Str(KW(n))),
     cwast.ValVoid: lambda out, n: out.append(PP.Str(KW(n))),
     cwast.ValAuto: lambda out, n: out.append(PP.Str(KW(n))),

@@ -170,8 +170,8 @@ _SHORT_HAND_NODES: dict[str, Callable] = {
     "auto_val": cwast.ValAuto,
     "void_val": cwast.ValVoid,
     "undef": cwast.ValUndef,
-    "true": cwast.ValTrue,
-    "false": cwast.ValFalse,
+    "true": lambda **args: cwast.ValNum("true", **args),
+    "false": lambda **args: cwast.ValNum("false", **args),
     # see cwast.OPTIONAL_FIELDS
     "break": lambda **args: cwast.StmtBreak(target=cwast.EMPTY_NAME, **args),
     "continue": lambda **args: cwast.StmtContinue(target=cwast.EMPTY_NAME, **args),

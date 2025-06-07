@@ -102,7 +102,7 @@ def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]):
         if isinstance(a, (cwast.DefFun, cwast.DefRec, cwast.DefType, cwast.DefEnum)):
             arg_map[p.name] = cwast.Id(
                 a.name, None, x_symbol=a, x_srcloc=p.x_srcloc)
-        elif isinstance(a, (cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)):
+        elif isinstance(a, (cwast.ValNum, cwast.ValVoid)):
             arg_map[p.name] = a
         else:
             assert cwast.NF.TYPE_CORPUS in a.FLAGS
@@ -127,7 +127,7 @@ _NORMALIZED_NODES_FOR_MOD_ARGS = (cwast.DefFun, cwast.DefRec, cwast.DefEnum,
                                   #
                                   cwast.TypeUnion, cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan,
                                   #
-                                  cwast.ValFalse, cwast.ValTrue, cwast.ValNum, cwast.ValVoid)
+                                  cwast.ValNum, cwast.ValVoid)
 
 
 def _NormalizeModArgOneStep(node) -> Any:

@@ -84,10 +84,10 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
             return None
         cstr_bool = tc.get_bool_canon_type()
         return cwast.Expr3(node,
-                           cwast.ValTrue(x_srcloc=node.x_srcloc,
-                                         x_type=cstr_bool, x_value=eval.VAL_TRUE),
-                           cwast.ValFalse(
-                               x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=eval.VAL_FALSE),
+                           cwast.ValNum("true", x_srcloc=node.x_srcloc,
+                                        x_type=cstr_bool, x_value=eval.VAL_TRUE),
+                           cwast.ValNum("false",
+                                        x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=eval.VAL_FALSE),
                            x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
@@ -329,7 +329,7 @@ def ReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return None
         val = node.x_value
-        if isinstance(node, (cwast.ValNum, cwast.ValTrue, cwast.ValFalse)):
+        if isinstance(node, cwast.ValNum):
             assert val is not None
             return
 
@@ -349,25 +349,12 @@ def ReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
             return None
 
         if node.x_type.get_unwrapped().is_base_type():
-            if val.kind is cwast.BASE_TYPE_KIND.BOOL:
-                ct = tc.get_bool_canon_type()
-                if val.val:
-                    return cwast.ValTrue(x_srcloc=node.x_srcloc,
-                                         x_type=ct, x_value=node.x_value)
-                else:
-                    return cwast.ValFalse(x_srcloc=node.x_srcloc,
-                                          x_type=ct, x_value=node.x_value)
-            else:
-                return cwast.ValNum(str(node.x_value.val),
-                                    x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
+            return cwast.ValNum(str(node.x_value.val),
+                                x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
         if val.kind is cwast.BASE_TYPE_KIND.BOOL:
             ct = tc.get_bool_canon_type()
             return None
-            # TODO
-            if val.val:
-                return cwast.ValTrue(x_srcloc=node.x_srcloc,
-                                     x_type=ct, x_value=node.x_value)
 
         elif node.x_type.is_int():  # TODO: handle wrapped type
             return cwast.ValNum(str(node.x_value.val),
@@ -403,10 +390,12 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     """
     def visit(node):
         if isinstance(node, cwast.StmtIf):
-            if isinstance(node.cond, cwast.ValTrue):
-                node.body_f.clear()
-            elif isinstance(node.cond, cwast.ValFalse):
-                node.body_t.clear()
+            if isinstance(node.cond, cwast.ValNum):
+                assert isinstance(node.cond.x_value, eval.EvalNum), f"{node.cond.x_value} {node.cond}"
+                if node.cond.x_value.val:
+                    node.body_f.clear()
+                else:
+                    node.body_t.clear()
         return None
 
     cwast.VisitAstRecursivelyPost(fun, visit)
@@ -682,8 +671,7 @@ def FunReplaceTypeOfAndTypeUnionDelta(fun: cwast.DefFun):
 
 
 def _IsSimpleInitializer(expr) -> bool:
-    if isinstance(expr, (cwast.ValUndef, cwast.ValFalse, cwast.ValTrue, cwast.ValNum,
-                         cwast.ValVoid, cwast.Id)):
+    if isinstance(expr, (cwast.ValUndef, cwast.ValNum, cwast.ValVoid, cwast.Id)):
         return True
     elif isinstance(expr, (cwast.ExprWiden,  cwast.ExprBitCast, cwast.ExprWrap,
                            cwast.ExprUnwrap, cwast.ExprAs)):

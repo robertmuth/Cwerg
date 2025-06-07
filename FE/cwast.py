@@ -282,7 +282,8 @@ BINARY_EXPR_SHORTCUT = {
 BINARY_EXPR_SHORTCUT_INV = {v: k for k, v in BINARY_EXPR_SHORTCUT.items()}
 
 
-ASSIGNMENT_SHORTCUT = {k + "=": v for k, v in BINARY_EXPR_SHORTCUT.items() if v.IsArithmetic()}
+ASSIGNMENT_SHORTCUT = {k + "=": v for k,
+                       v in BINARY_EXPR_SHORTCUT.items() if v.IsArithmetic()}
 
 ASSIGNMENT_SHORTCUT_INV = {v: k for k, v in ASSIGNMENT_SHORTCUT.items()}
 
@@ -473,8 +474,7 @@ NODES_TYPES_T = Union["TypeBase", "TypeSpan", "TypeVec", "TypePtr", "TypeFun", "
 
 NODES_TYPES_OR_AUTO_T = Union[NODES_TYPES_T, "TypeAuto"]
 
-NODES_VAL_T = Union["ValFalse", "ValTrue", "ValNum",
-                    "ValVoid", "ValCompound", "ValString", "ValSpan"]
+NODES_VAL_T = Union["ValNum", "ValVoid", "ValCompound", "ValString", "ValSpan"]
 
 NODES_EXPR_T = Union[NODES_VAL_T,
                      #
@@ -497,9 +497,7 @@ NODES_EXPR_OR_UNDEF_OR_AUTO_T = Union[NODES_EXPR_T, "ValUndef", "ValAuto"]
 NODES_BODY_MACRO_T = Union[NODES_BODY_T, NODES_EXPR_T, "MacroFor", "MacroId"]
 
 
-NODES_COND_T = Union["ValFalse", "ValTrue",
-                     #
-                     "Id", "ExprDeref", "ExprIndex",
+NODES_COND_T = Union["Id", "ExprDeref", "ExprIndex", "ValNum",
                      "ExprField", "ExprCall", "ExprParen",
                      "Expr1", "Expr2", "Expr3",
                      "ExprStmt", "ExprIs", "ExprNarrow"]
@@ -1525,38 +1523,6 @@ class ValAuto:
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
     x_value: Optional[Any] = None
-
-    def __repr__(self):
-        return f"{NODE_NAME(self)}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class ValTrue:
-    """Bool constant `true`"""
-    ALIAS: ClassVar = "true"
-    GROUP: ClassVar = GROUP.Value
-    FLAGS: ClassVar = NF_EXPR
-    #
-    x_srcloc: SrcLoc = INVALID_SRCLOC
-    x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
-
-    def __repr__(self):
-        return f"{NODE_NAME(self)}"
-
-
-@NodeCommon
-@dataclasses.dataclass()
-class ValFalse:
-    """Bool constant `false`"""
-    ALIAS: ClassVar = "false"
-    GROUP: ClassVar = GROUP.Value
-    FLAGS: ClassVar = NF_EXPR
-    #
-    x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
-    x_srcloc: SrcLoc = INVALID_SRCLOC
 
     def __repr__(self):
         return f"{NODE_NAME(self)}"
@@ -3677,7 +3643,7 @@ def GenerateCodeCC(fout: Any):
 _NAMED_OP_RE = re.compile(r"[_a-zA-Z]+")
 
 
-_SIMPLE_VAL = set([ValTrue, ValFalse, ValAuto, ValUndef, ValVoid])
+_SIMPLE_VAL = set([ValAuto, ValUndef, ValVoid])
 
 
 def KeyWordsForConcreteSyntax():
@@ -3705,7 +3671,7 @@ def KeyWordsForConcreteSyntax():
 
 
 def KeyWordsSimpleVal():
-    return [x.ALIAS for x in _SIMPLE_VAL]
+    return [x.ALIAS for x in _SIMPLE_VAL] + ["true", "false"]
 
 
 def KeywordsBaseTypes():

@@ -62,7 +62,9 @@ def AddressCanBeTaken(node) -> bool:
 
 def _NumCleanupAndTypeExtraction(num: str, target_kind: cwast.BASE_TYPE_KIND) -> tuple[str, cwast.BASE_TYPE_KIND]:
     suffix = ""
-    if num[-4:] in ("uint", "sint"):
+    if num in ("true", "false"):
+        return num, cwast.BASE_TYPE_KIND.BOOL
+    elif num[-4:] in ("uint", "sint"):
         suffix = num[-4:]
     elif num[-3:] in ("u16", "u32", "u64", "s16", "s32", "s64", "r32", "r64"):
         suffix = num[-3:]
@@ -102,6 +104,11 @@ def ParseNumRaw(num_val: cwast.ValNum, target_kind: cwast.BASE_TYPE_KIND) -> Tup
         if "0x" in num:
             return float.fromhex(num), target_kind
         return float(num), target_kind
+    elif target_kind == cwast.BASE_TYPE_KIND.BOOL:
+        if num == "true":
+            return True, target_kind
+        assert num == "false"
+        return False, target_kind
     else:
         cwast.CompilerError(
             num_val.x_srcloc, f"cannot parse number: {num} {target_kind}")
@@ -438,9 +445,7 @@ def _TypifyExprCall(node: cwast.ExprCall, tc: type_corpus.TypeCorpus,
 def _TypifyVal(node, tc: type_corpus.TypeCorpus,
                target_type: cwast.CanonType,
                pm: _PolyMap) -> cwast.CanonType:
-    if isinstance(node, (cwast.ValTrue, cwast.ValFalse)):
-        return AnnotateNodeType(node, tc.get_bool_canon_type())
-    elif isinstance(node, cwast.ValVoid):
+    if isinstance(node, cwast.ValVoid):
         return AnnotateNodeType(node, tc.get_void_canon_type())
     elif isinstance(node, cwast.ValUndef):
         assert False, "Must not try to typify UNDEF"
@@ -908,8 +913,6 @@ def _CheckNothing(_, _2):
 
 VERIFIERS_COMMON = {
     cwast.ExprIs: lambda n, tc: _CheckTypeIs(n, tc.get_bool_canon_type()),
-    cwast.ValTrue: lambda n, tc: _CheckTypeIs(n, tc.get_bool_canon_type()),
-    cwast.ValFalse: lambda n, tc:  _CheckTypeIs(n, tc.get_bool_canon_type()),
     #
     cwast.ExprOffsetof: lambda n, tc: _CheckTypeIs(n, tc.get_uint_canon_type()),
     cwast.ExprSizeof: lambda n, tc: _CheckTypeIs(n, tc.get_uint_canon_type()),

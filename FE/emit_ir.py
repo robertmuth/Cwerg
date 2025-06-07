@@ -451,7 +451,9 @@ def _FormatNumber(val: cwast.ValNum) -> str:
     num = val.x_value.val
     assert num is not None, f"{val.x_value}"
 
-    if bt.IsInt():
+    if bt is cwast.BASE_TYPE_KIND.BOOL:
+        return "1" if num else "0"
+    elif bt.IsInt():
         return str(num)
     elif bt.IsReal():
         if math.isnan(num) or math.isinf(num):
@@ -495,10 +497,6 @@ def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
             return res
     elif isinstance(node, cwast.ValNum):
         return f"{_FormatNumber(node)}:{node.x_type.get_single_register_type()}"
-    elif isinstance(node, cwast.ValFalse):
-        return "0:U8"
-    elif isinstance(node, cwast.ValTrue):
-        return "1:U8"
     elif isinstance(node, cwast.Id):
         if node.x_type.size == 0:
             return "@@@@@ BAD, DO NOT USE @@@@@@ "
@@ -655,10 +653,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
        (this works in conjunction with the GlobalConstantPool)
     """
     assert init_node.x_type.size > 0, f"{init_node}"
-    if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ValFalse,
-                              cwast.ValTrue, cwast.ExprLen, cwast.ExprAddrOf,
-                              cwast.Expr1, cwast.Expr2,
-                              cwast.ExprPointer, cwast.ExprFront)):
+    if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ExprLen, cwast.ExprAddrOf,
+                              cwast.Expr1, cwast.Expr2, cwast.ExprPointer, cwast.ExprFront)):
         reg = EmitIRExpr(init_node, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, cwast.ExprBitCast):
@@ -736,8 +732,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
             assert src_type.is_vec()
             element_size: int = src_type.array_element_size()
             for index, c in _IterateValVec(init_node.inits,
-                                                    init_node.x_type.array_dim(),
-                                                    init_node.x_srcloc):
+                                           init_node.x_type.array_dim(),
+                                           init_node.x_srcloc):
                 if c is None:
                     continue
                 if isinstance(c.value_or_undef, cwast.ValUndef):
@@ -968,7 +964,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 _EmitMem(_BYTE_PADDING * (target - count),
                          f"{target - count} padding")
             return target
-        elif isinstance(node, (cwast.ValNum, cwast.ValTrue, cwast.ValFalse)):
+        elif isinstance(node, cwast.ValNum):
             assert ct.get_unwrapped().is_base_type()
             assert node.x_value
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")

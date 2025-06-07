@@ -161,8 +161,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
     PURE: pure constant
     """
     assert cwast.NF.VALUE_ANNOTATED in node.FLAGS
-    if isinstance(node, (cwast.ValString, cwast.ValFalse, cwast.ValTrue,
-                         cwast.ValVoid, cwast.ValUndef, cwast.ValNum)):
+    if isinstance(node, (cwast.ValString, cwast.ValVoid, cwast.ValUndef, cwast.ValNum)):
         return CONSTANT_KIND.PURE
     if isinstance(node, cwast.ExprAddrOf):
         return AddressConstKind(node.expr_lhs)
@@ -499,10 +498,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return False  # handles as part of DefEnum
     elif isinstance(node, cwast.DefEnum):
         return _EvalDefEnum(node)
-    elif isinstance(node, cwast.ValTrue):
-        return _AssignValue(node, VAL_TRUE)
-    if isinstance(node, cwast.ValFalse):
-        return _AssignValue(node, VAL_FALSE)
     elif isinstance(node, cwast.ValVoid):
         return _AssignValue(node, VAL_VOID)
     elif isinstance(node, cwast.ValUndef):
@@ -732,7 +727,7 @@ def VerifyASTEvalsRecursively(node):
                 node, (cwast.DefGlobal, cwast.DefEnum))
             return
 
-        if isinstance(node, (cwast.ValTrue, cwast.ValFalse, cwast.ValNum)):
+        if isinstance(node, cwast.ValNum):
             assert node.x_value is not None, f"{node}"
 
         if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:

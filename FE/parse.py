@@ -35,6 +35,7 @@ _KEYWORDS_WITH_EXCL_SUFFIX = {
     "narrow_as": "unchecked"
 }
 
+
 def _ExtractAnnotations(tk: lexer.TK) -> dict[str, Any]:
     out: dict[str, Any] = {"x_srcloc": tk.srcloc}
     # print ("@@@@",tk)
@@ -174,8 +175,8 @@ def _ParseFunLike(inp: lexer.Lexer, name: lexer.TK) -> Any:
 
 
 _SIMPLE_VAL_NODES: dict[str, Callable] = {
-    "true": cwast.ValTrue,
-    "false": cwast.ValFalse,
+    "true": lambda **args: cwast.ValNum("true", **args),
+    "false": lambda **args: cwast.ValNum("false", **args),
     "void_val": cwast.ValVoid,
     "auto_val": cwast.ValAuto,
     "undef": cwast.ValUndef
@@ -813,7 +814,8 @@ def _ParseDefMod(inp: lexer.Lexer, name: str):
                                          cwast.MOD_PARAM_KIND[pkind.text],
                                          **_ExtractAnnotations(pname)))
     inp.match_or_die(lexer.TK_KIND.COLON)
-    out = cwast.DefMod(cwast.NAME.Make(name), params, [], **_ExtractAnnotations(kw))
+    out = cwast.DefMod(cwast.NAME.Make(name), params,
+                       [], **_ExtractAnnotations(kw))
 
     while True:
         if inp.peek().kind is lexer.TK_KIND.SPECIAL_EOF:

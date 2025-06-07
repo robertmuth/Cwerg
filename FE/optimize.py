@@ -18,8 +18,7 @@ def MayHaveSideEffects(n: Any):
     # we could try harder but it is probably not worth it.
     if isinstance(n, (cwast.ExprCall, cwast.ExprStmt)):
         return True
-    elif isinstance(n, (cwast.Id, cwast.ValAuto, cwast.ValTrue, cwast.ValFalse,
-                        cwast.ValUndef, cwast.ValNum)):
+    elif isinstance(n, (cwast.Id, cwast.ValAuto, cwast.ValUndef, cwast.ValNum)):
         return False
     elif isinstance(n, (cwast.ExprAddrOf)):
         return MayHaveSideEffects(n.expr_lhs)
