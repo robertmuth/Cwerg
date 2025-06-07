@@ -3549,10 +3549,11 @@ def GenerateCodeH(fout: Any):
 
 
 def EnumStringConversions(fout: Any):
-    def render(name: str, name_vals: list, both_ways=True):
-        cgen.RenderEnumToStringMap(name_vals, name, fout)
-        cgen.RenderEnumToStringFun(name, fout)
-        if both_ways:
+    def render(name: str, name_vals: list, enum_to_str=True,  str_to_enum=True):
+        if enum_to_str:
+            cgen.RenderEnumToStringMap(name_vals, name, fout)
+            cgen.RenderEnumToStringFun(name, fout)
+        if str_to_enum:
             cgen.RenderStringToEnumMap(name_vals,
                                        name + "_FromStringMap",
                                        name + "_Jumper", fout)
@@ -3567,18 +3568,18 @@ def EnumStringConversions(fout: Any):
     render(BASE_TYPE_KIND.__name__,  cgen.NameValuesLower(BASE_TYPE_KIND))
 
     render("ASSIGNMENT_KIND",
-           [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()])
+           [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()], enum_to_str=False)
 
     render(POINTER_EXPR_KIND.__name__,
-           [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()], both_ways=False)
+           [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()], str_to_enum=False)
 
     render(BINARY_EXPR_KIND.__name__,
-           [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()], both_ways=False)
-    render("NT",  _NameValuesForNT(), both_ways=False)
+           [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()], str_to_enum=False)
+    render("NT",  _NameValuesForNT(), str_to_enum=False)
     # intentionally not sorted - order is "print-order"
     render("BF", _MakeNameValues(
         _FieldNamesForKind(NFK.ATTR_BOOL), to_upper=False),
-        both_ways=True)
+        str_to_enum=True)
 
 
 def NodeAliasStringConversion(fout: Any):

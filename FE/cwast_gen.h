@@ -452,14 +452,12 @@ enum class NT : uint8_t {
     TypeVec = 68,
     ValAuto = 69,
     ValCompound = 70,
-    ValFalse = 71,
-    ValNum = 72,
-    ValPoint = 73,
-    ValSpan = 74,
-    ValString = 75,
-    ValTrue = 76,
-    ValUndef = 77,
-    ValVoid = 78,
+    ValNum = 71,
+    ValPoint = 72,
+    ValSpan = 73,
+    ValString = 74,
+    ValUndef = 75,
+    ValVoid = 76,
 };
 
 enum class BINARY_EXPR_KIND : uint8_t {
@@ -892,10 +890,6 @@ inline void NodeInitValCompound(Node node, Node type_or_auto, Node inits, Str do
     NodeInit(node, NT::ValCompound, inits, type_or_auto, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
-inline void NodeInitValFalse(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValFalse, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
-}
-
 inline void NodeInitValNum(Node node, Str number, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::ValNum, number, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
@@ -910,10 +904,6 @@ inline void NodeInitValSpan(Node node, Node pointer, Node expr_size, Str doc, co
 
 inline void NodeInitValString(Node node, Str string, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::ValString, string, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
-}
-
-inline void NodeInitValTrue(Node node, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::ValTrue, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void NodeInitValUndef(Node node, Str doc, const SrcLoc& srcloc) {

@@ -122,8 +122,10 @@ struct ValAndKind {
 
 ValAndKind NumCleanupAndTypeExtraction(std::string_view num,
                                        BASE_TYPE_KIND target_kind) {
-  ValAndKind out = {.u32 = 0, .cleaned = num, .kind = target_kind};
+  if (num == "false") return {.b = false, .kind = BASE_TYPE_KIND::BOOL};
+  if (num == "true") return {.b = true, .kind = BASE_TYPE_KIND::BOOL};
 
+  ValAndKind out = {.u32 = 0, .cleaned = num, .kind = target_kind};
   for (int i = 2; i <= 4 && i <= num.size(); i++) {
     // std::cout << "@@@ Trying " << num.substr(num.size() - i, i) << "\n" <<
     // std::flush;
@@ -417,9 +419,6 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       return AnnotateType(node, ct_target);
     case NT::ValVoid:
       return AnnotateType(node, tc->get_void_canon_type());
-    case NT::ValTrue:
-    case NT::ValFalse:
-      return AnnotateType(node, tc->get_bool_canon_type());
     case NT::ValSpan:
       TypifyExprOrType(Node_expr_size(node), tc, tc->get_uint_canon_type(), pm);
       if (ct_target.isnull()) {
@@ -826,8 +825,6 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
 
     switch (Node_kind(node)) {
       case NT::ExprIs:
-      case NT::ValTrue:
-      case NT::ValFalse:
         return CheckTypeIs(node, tc->get_bool_canon_type());
       case NT::ExprOffsetof:
       case NT::ExprSizeof:

@@ -203,12 +203,6 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     case NT::MacroId:
       out->push_back(PP::Str(NameData(Node_name(node))));
       break;
-    case NT::ValTrue:
-      out->push_back(PP::Str("true"));
-      break;
-    case NT::ValFalse:
-      out->push_back(PP::Str("false"));
-      break;
     case NT::ValUndef:
       out->push_back(PP::Str("undef"));
       break;

@@ -53,8 +53,6 @@ bool IsTyped(NT nt) {
     case NT::TypeUnionDelta:
     case NT::TypeOf:
     case NT::ValAuto:
-    case NT::ValTrue:
-    case NT::ValFalse:
     case NT::ValNum:
     case NT::ValVoid:
     case NT::ValPoint:

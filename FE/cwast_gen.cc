@@ -118,12 +118,10 @@ const NodeDesc GlobalNodeDescs[] = {
     { BIT_N(size)| BIT_N(type), 0, 0 }, // TypeVec
     { 0, 0, 0 }, // ValAuto
     { BIT_N(type_or_auto)| BIT_N(inits), 0, 0 }, // ValCompound
-    { 0, 0, 0 }, // ValFalse
     { 0, BIT_S(number), 0 }, // ValNum
     { BIT_N(value_or_undef)| BIT_N(point_or_undef), 0, 0 }, // ValPoint
     { BIT_N(pointer)| BIT_N(expr_size), 0, 0 }, // ValSpan
     { 0, BIT_S(string), 0 }, // ValString
-    { 0, 0, 0 }, // ValTrue
     { 0, 0, 0 }, // ValUndef
     { 0, 0, 0 }, // ValVoid
 };
@@ -321,7 +319,6 @@ const uint8_t BASE_TYPE_KIND_Jumper[128] = {
  255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
-
 const struct StringKind ASSIGNMENT_KIND_FromStringMap[] = {
     {"%=", 5},
     {"&=", 12},
@@ -460,14 +457,12 @@ const char* const NT_ToStringMap[] = {
     "TypeVec", // 68
     "ValAuto", // 69
     "ValCompound", // 70
-    "ValFalse", // 71
-    "ValNum", // 72
-    "ValPoint", // 73
-    "ValSpan", // 74
-    "ValString", // 75
-    "ValTrue", // 76
-    "ValUndef", // 77
-    "ValVoid", // 78
+    "ValNum", // 71
+    "ValPoint", // 72
+    "ValSpan", // 73
+    "ValString", // 74
+    "ValUndef", // 75
+    "ValVoid", // 76
 };
 const char* EnumToString(NT x) { return NT_ToStringMap[unsigned(x)]; }
 
@@ -581,9 +576,7 @@ const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
     {"union_delta", NT::TypeUnionDelta},
     {"vec", NT::TypeVec},
     {"auto_val", NT::ValAuto},
-    {"false", NT::ValFalse},
     {"make_span", NT::ValSpan},
-    {"true", NT::ValTrue},
     {"undef", NT::ValUndef},
     {"void_val", NT::ValVoid},
 };

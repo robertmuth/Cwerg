@@ -41,8 +41,7 @@ Node NormalizeModParamOneStep(Node node) {
     case NT::TypeSpan:
     //
     case NT::EnumVal:
-    case NT::ValFalse:
-    case NT::ValTrue:
+    case NT::ValNum:
     case NT::ValVoid:
       return node;
 
@@ -394,8 +393,6 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
         arg_map[Node_name(p)] = id;
         break;
       }
-      case NT::ValFalse:
-      case NT::ValTrue:
       case NT::ValVoid:
       case NT::ValNum:
       // fallthrough

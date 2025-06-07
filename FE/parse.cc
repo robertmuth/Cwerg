@@ -233,12 +233,12 @@ Node PrattParseSimpleVal(Lexer* lexer, const TK& tk, uint32_t precedence) {
       NodeInitValAuto(out, tk.comments, tk.srcloc);
       return out;
     case 't':
-      out = NodeNew(NT::ValTrue);
-      NodeInitValTrue(out, tk.comments, tk.srcloc);
+      out = NodeNew(NT::ValNum);
+      NodeInitValNum(out, StrNew("true"), tk.comments, tk.srcloc);
       return out;
     case 'f':
-      out = NodeNew(NT::ValFalse);
-      NodeInitValFalse(out, tk.comments, tk.srcloc);
+      out = NodeNew(NT::ValNum);
+      NodeInitValNum(out, StrNew("false"), tk.comments, tk.srcloc);
       return out;
     case 'u':
       out = NodeNew(NT::ValUndef);
