@@ -65,6 +65,7 @@ def _IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
         yield curr_index, None
         curr_index += 1
 
+
 def _MangledGlobalName(mod: cwast.DefMod, mod_name: str, node: Any, is_cdecl: bool) -> cwast.NAME:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
@@ -124,14 +125,13 @@ class ReturnResultLocation:
     end_label: str
 
 
-def _InitDataForBaseType(x_type: cwast.CanonType, val) -> bytes:
-    assert (x_type.is_base_type() or x_type.is_enum()) and val is not None
+def _InitDataForBaseType(x_type: cwast.CanonType, val: Union[eval.EvalNum, eval.EvalUndef]) -> bytes:
     byte_width = x_type.size
     if isinstance(val, eval.EvalUndef):
         return ZEROS[byte_width]
-    assert isinstance(val, eval.EvalNum)
+    assert isinstance(val, eval.EvalNum), f"{val} {x_type}"
+    assert (x_type.get_unwrapped_base_type_kind() == val.kind)
     bt = val.kind
-    assert bt == x_type.get_unwrapped_base_type_kind(), f"{bt} {x_type} {val.val}"
     val = val.val
     if bt.IsUint():
         return val.to_bytes(byte_width, 'little')
@@ -968,9 +968,14 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                 _EmitMem(_BYTE_PADDING * (target - count),
                          f"{target - count} padding")
             return target
-
-        if ct.is_base_type() or ct.is_enum():
+        elif isinstance(node, (cwast.ValNum, cwast.ValTrue, cwast.ValFalse)):
+            assert ct.get_unwrapped().is_base_type()
+            assert node.x_value
             return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
+
+        if ct.is_wrapped():
+            assert isinstance(node, cwast.ExprWrap)
+            return _emit_recursively(node.expr, node.expr.x_type, offset)
         elif ct.is_vec():
             if isinstance(node, cwast.ValAuto):
                 return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
@@ -1032,9 +1037,6 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                     rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.size,
                                         f.type.x_type.name)
             return rel_off
-        elif ct.is_wrapped():
-            assert isinstance(node, cwast.ExprWrap)
-            return _emit_recursively(node.expr, node.expr.x_type, offset)
         else:
             assert False, f"unhandled node: {node} {ct.name}"
 

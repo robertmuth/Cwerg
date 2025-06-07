@@ -798,7 +798,6 @@ def _CheckExprNarrowUnchecked(node: cwast.ExprNarrow, _):
 
 def _CheckExprAddrOf(node: cwast.ExprAddrOf, _):
     _CheckTypeKind(node, cwast.TypePtr)
-    ct = node.x_type
     lhs = node.expr_lhs
     lhs_ct = node.expr_lhs.x_type
     if node.mut:
@@ -819,7 +818,7 @@ def _CheckExprUnionUntagged(node: cwast.ExprUnionUntagged, _):
 
 def _CheckValNum(node: cwast.ValNum, _):
     ct = node.x_type
-    if not ct.is_base_type() and not ct.is_enum():
+    if not ct.get_unwrapped().is_base_type():
         cwast.CompilerError(node.x_srcloc, f"type mismatch {node} vs {ct}")
 
 
@@ -957,6 +956,9 @@ VERIFIERS_COMMON = {
     cwast.ExprAs: _CheckExprAs,
     cwast.ExprBitCast: _CheckExprBitCast,
     cwast.StmtCompoundAssignment: _CheckStmtCompoundAssignment,
+    cwast.ExprIndex: _CheckExprIndex,
+    cwast.ExprFront: _CheckExprFront,
+    cwast.ExprAddrOf: _CheckExprAddrOf,
 
     # -----------------
     #
@@ -968,10 +970,8 @@ VERIFIERS_COMMON = {
     #
 
 
-    cwast.ExprIndex: _CheckExprIndex,
-    cwast.ExprFront: _CheckExprFront,
+
     cwast.ExprWiden: _CheckExprWiden,
-    cwast.ExprAddrOf: _CheckExprAddrOf,
     cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
     cwast.ExprUnwrap: _CheckExprUnwrap,
     cwast.ValNum: _CheckValNum,

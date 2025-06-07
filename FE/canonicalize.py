@@ -348,10 +348,18 @@ def ReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
         if not isinstance(val, eval.EvalNum):
             return None
 
-        if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.EnumVal):
-            assert node.x_value
-            return cwast.ValNum(str(node.x_value.val),
-                                x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
+        if node.x_type.get_unwrapped().is_base_type():
+            if val.kind is cwast.BASE_TYPE_KIND.BOOL:
+                ct = tc.get_bool_canon_type()
+                if val.val:
+                    return cwast.ValTrue(x_srcloc=node.x_srcloc,
+                                         x_type=ct, x_value=node.x_value)
+                else:
+                    return cwast.ValFalse(x_srcloc=node.x_srcloc,
+                                          x_type=ct, x_value=node.x_value)
+            else:
+                return cwast.ValNum(str(node.x_value.val),
+                                    x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
 
         if val.kind is cwast.BASE_TYPE_KIND.BOOL:
             ct = tc.get_bool_canon_type()
