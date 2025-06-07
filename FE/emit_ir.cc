@@ -6,6 +6,7 @@
 #include <set>
 #include <vector>
 
+#include "FE/canonicalize.h"
 #include "FE/checker.h"
 #include "FE/cwast_gen.h"
 #include "FE/lexer.h"
@@ -59,15 +60,17 @@ int main(int argc, const char* argv[]) {
     Prettify(mod);
   }
 #endif
-
-  std::set<NT> eliminated_nodes = {
-      NT::Import,  NT::DefMacro, NT::MacroInvoke,
-      NT::MacroId, NT::MacroFor, NT::ModParam,
-  };
+  for (Node mod : mp.mods_in_topo_order) {
+    FunRemoveParentheses(mod);
+  }
+  std::set<NT> eliminated_nodes = {NT::Import,   NT::DefMacro, NT::MacroInvoke,
+                                   NT::MacroId,  NT::MacroFor, NT::ModParam,
+                                   NT::ExprParen};
 
   TypeCorpus tc(STD_TARGET_X64);
 
   AddTypesToAst(mp.mods_in_topo_order, &tc);
+
   std::cout << "@@@ CHECKING AFTER TYPING\n";
   ValidateAST(mp.mods_in_topo_order, CompileStage::AfterTyping);
   TypeCheckAst(mp.mods_in_topo_order, &tc, false);

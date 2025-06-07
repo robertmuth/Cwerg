@@ -804,9 +804,9 @@ def _CheckExprAddrOf(node: cwast.ExprAddrOf, _):
     if node.mut:
         if not type_corpus.IsProperLhs(lhs):
             cwast.CompilerError(node.x_srcloc, f"not mutable: {lhs}")
-    if not AddressCanBeTaken(node.expr_lhs):
+    if not AddressCanBeTaken(lhs):
         cwast.CompilerError(
-            node.x_srcloc, f"address cannot be take: {node} {lhs_ct}")
+            node.x_srcloc, f"address cannot be taken: {node} {lhs_ct}")
     _CheckUnderlyingTypeIs(node, lhs_ct)
 
 

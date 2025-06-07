@@ -173,7 +173,7 @@ def IsProperLhs(node) -> bool:
         else:
             assert container_ct.is_vec()
             return IsProperLhs(node.container)
-    elif isinstance(node, (cwast.ExprNarrow)):
+    elif isinstance(node, cwast.ExprNarrow):
         return IsProperLhs(node.expr)
     else:
         return False
