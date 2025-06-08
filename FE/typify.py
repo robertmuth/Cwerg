@@ -764,6 +764,7 @@ def _CheckExprWiden(node: cwast.ExprWiden, _):
     if ct_src.original_type:
         ct_src = ct_src.original_type
     ct_dst: cwast.CanonType = node.type.x_type
+    _CheckTypeIs(node, ct_dst)
     if not type_corpus.IsSubtypeToUnionConversion(ct_src, ct_dst):
         cwast.CompilerError(
             node.x_srcloc,  f"bad widen {ct_src} -> {ct_dst}: {node.expr}")
@@ -771,13 +772,18 @@ def _CheckExprWiden(node: cwast.ExprWiden, _):
 
 def _CheckExprNarrow(node: cwast.ExprNarrow, _):
     ct_src: cwast.CanonType = node.expr.x_type
+    if ct_src.original_type is not None:
+        ct_src = ct_src.original_type
     ct_dst: cwast.CanonType = node.type.x_type
-    if not type_corpus.IsCompatibleTypeForNarrow(ct_src, ct_dst, node.x_srcloc):
+    _CheckTypeIs(node, ct_dst)
+    # note: inverse from widen
+    if not type_corpus.IsSubtypeToUnionConversion(ct_dst, ct_src):
         cwast.CompilerError(
-            node.x_srcloc,  f"bad narrow {ct_src.original_type} -> {ct_dst}: {node.expr}")
+            node.x_srcloc,  f"bad narrow {ct_src} -> {ct_dst}: {node.expr}")
 
 
 def _CheckExprNarrowUnchecked(node: cwast.ExprNarrow, _):
+    # TODO: explain logic
     ct_src: cwast.CanonType = node.expr.x_type
     ct_dst: cwast.CanonType = node.type.x_type
     if ct_src.is_tagged_union() and not node.unchecked:

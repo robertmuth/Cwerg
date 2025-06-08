@@ -134,23 +134,6 @@ def IsCompatibleTypeForBitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType)
     return ct_src.aligned_size() == ct_dst.aligned_size()
 
 
-def IsCompatibleTypeForNarrow(ct_src: cwast.CanonType, ct_dst: cwast.CanonType, sl: cwast.SrcLoc) -> bool:
-
-    if ct_src.original_type is not None:
-        ct_src = ct_src.original_type
-    if ct_dst.original_type is not None:
-        ct_dst = ct_dst.original_type
-    assert ct_src.is_union(), F"{ct_src} VS {ct_dst} {sl}"
-    src_children = set([x.name for x in ct_src.union_member_types()])
-    if ct_dst.is_union():
-        if ct_dst.untagged != ct_src.untagged:
-            return False
-        dst_children = set([x.name for x in ct_dst.union_member_types()])
-    else:
-        dst_children = set([ct_dst.name])
-    return dst_children.issubset(src_children)
-
-
 def IsProperLhs(node) -> bool:
     if isinstance(node, cwast.Id):
         s = node.x_symbol

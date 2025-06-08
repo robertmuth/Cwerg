@@ -882,7 +882,8 @@ void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
         CanonType_kind(src_ct) == NT::TypeVec && IsProperLhs(src_node);
     if (!IsCompatibleType(src_ct, dst_ct, writable)) {
       CompilerError(Node_srcloc(src_node))
-          << "type mismatch for " << src_node << ": " << src_ct << " -> " << dst_ct;
+          << "type mismatch for " << src_node << ": " << src_ct << " -> "
+          << dst_ct;
     }
   }
 }
@@ -1135,7 +1136,23 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         // ========= behavior changes when "strict"
 
       case NT::ExprNarrow:
-        // TODO:
+        if (strict) {
+          // unchecked
+          CanonType src_ct = Node_x_type(Node_expr(node));
+
+          if (!CanonType_untagged(src_ct) &&
+              !Node_has_flag(node, BF::UNCHECKED)) {
+            CompilerError(Node_srcloc(node))
+                << "incompatible typed for narrowing";
+          }
+        } else {
+          // checked
+          CheckTypeIs(node, Node_x_type(Node_type(node)));
+          if (!IsSubtypeOfUnion(ct, Node_x_type(Node_expr(node)))) {
+            CompilerError(Node_srcloc(node))
+                << "incompatible typed for narrowing";
+          }
+        }
         return;
       case NT::ExprCall: {
         CanonType fun_sig = Node_x_type(Node_callee(node));
