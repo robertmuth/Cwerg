@@ -665,15 +665,6 @@ def _CheckTypeKind(node, kind):
     assert node.x_type.node is kind, f"Expect {kind} got {node.x_type.node}"
 
 
-def _CheckTypeSameExceptMut(src_node, dst_ct: cwast.CanonType):
-    src_ct = src_node.x_type
-    if src_ct == dst_ct:
-        return
-    if not type_corpus.IsDropMutConversion(src_ct, dst_ct):
-        cwast.CompilerError(src_node.x_srcloc,
-                            f"{src_node}: not the same actual: {src_ct} expected: {dst_ct}")
-
-
 def _CheckExpr2TypesArithmetic(result_type: cwast.CanonType, op1, op2):
     assert result_type.is_base_type(), f"{result_type}"
     _CheckTypeIs(op1, result_type)
@@ -902,6 +893,21 @@ def _CheckExprBitCast(node: cwast.ExprAs, _):
     _CheckTypeIs(node, node.type.x_type)
 
 
+def _CheckExprWrap(node: cwast.ExprWrap,  _):
+    ct_dst: cwast.CanonType = node.type.x_type
+    _CheckTypeIs(node, ct_dst)
+    ct_target = ct_dst.underlying_type()
+    src_ct = node.expr.x_type
+
+    if ct_target is src_ct:
+        return
+    if ct_dst.is_wrapped() and type_corpus.IsDropMutConversion(src_ct, ct_target):
+        return
+
+    cwast.CompilerError(node.expr.x_srcloc,
+                        f"not the same actual: {src_ct} expected: {ct_dst}")
+
+
 def _CheckNothing(_, _2):
     pass
 
@@ -968,6 +974,7 @@ VERIFIERS_COMMON = {
     cwast.ValCompound: lambda n, tc: _CheckValCompound(n),
     cwast.TypeFun: _CheckDefFunTypeFun,
     cwast.DefFun: _CheckDefFunTypeFun,
+    cwast.ExprWrap: _CheckExprWrap,
     #
     cwast.TypeAuto: _CheckNothing,
     cwast.ValAuto: _CheckNothing,
@@ -976,18 +983,19 @@ VERIFIERS_COMMON = {
 }
 
 
-def _CheckTypeCompatibleImplictConvAllowed(src_node, dst_ct: cwast.CanonType):
-    mutable = type_corpus.IsWritableVec(src_node)
-    if not type_corpus.IsCompatibleType(src_node.x_type, dst_ct, mutable):
-        cwast.CompilerError(src_node.x_srcloc,
-                            f"incompatible type for {src_node}: {src_node.x_type} expected: {dst_ct}")
-
-
 def _CheckTypeCompatibleWithOptionalStrict(src_node, dst_ct: cwast.CanonType, strict: bool):
+    src_ct = src_node.x_type
+    if src_ct == dst_ct:
+        return
     if strict:
-        _CheckTypeSameExceptMut(src_node, dst_ct)
+        if not type_corpus.IsDropMutConversion(src_ct, dst_ct):
+            cwast.CompilerError(src_node.x_srcloc,
+                                f"{src_node}: not the same actual: {src_ct} expected: {dst_ct}")
     else:
-        _CheckTypeCompatibleImplictConvAllowed(src_node, dst_ct)
+        mutable = type_corpus.IsWritableVec(src_node)
+        if not type_corpus.IsCompatibleType(src_ct, dst_ct, mutable):
+            cwast.CompilerError(src_node.x_srcloc,
+                                f"incompatible type for {src_node}: {src_ct} expected: {dst_ct}")
 
 
 def _CheckValPoint(point: cwast.ValPoint, strict: bool):
@@ -1009,7 +1017,8 @@ def _CheckStmtAssignment(node: cwast.StmtAssignment, strict: bool):
     if not type_corpus.IsProperLhs(node.lhs):
         cwast.CompilerError(
             node.x_srcloc, f"cannot assign to readonly data: {node}")
-    _CheckTypeCompatibleWithOptionalStrict(node.expr_rhs, node.lhs.x_type, strict)
+    _CheckTypeCompatibleWithOptionalStrict(
+        node.expr_rhs, node.lhs.x_type, strict)
 
 
 def _CheckStmtReturn(node: cwast.StmtReturn, strict: bool):
@@ -1030,20 +1039,6 @@ def _CheckDefVarDefGlobal(node, strict: bool):
     _CheckTypeIs(node, ct)
 
 
-def _CheckExprWrap(node: cwast.ExprWrap,  strict: bool):
-    ct_dst: cwast.CanonType = node.type.x_type
-    ct_src: cwast.CanonType = node.expr.x_type
-    _CheckTypeIs(node, ct_dst)
-    if ct_dst.is_wrapped():
-        ct_dst = ct_dst.underlying_type()
-        _CheckTypeCompatibleWithOptionalStrict(node.expr, ct_dst, strict)
-        return
-    assert ct_dst.is_enum()
-    if ct_src is not ct_dst.underlying_type():
-        cwast.CompilerError(
-            node.x_srcloc, f"bad wrap {ct_src} -> {ct_dst}")
-
-
 VERIFIERS_WEAK = VERIFIERS_COMMON | {
     cwast.ExprNarrow: _CheckExprNarrow,
     cwast.ExprCall: lambda n, tc: _CheckExprCall(n, False),
@@ -1051,7 +1046,6 @@ VERIFIERS_WEAK = VERIFIERS_COMMON | {
     cwast.StmtReturn: lambda n, tc: _CheckStmtReturn(n, False),
     cwast.DefGlobal: lambda n, tc: _CheckDefVarDefGlobal(n, False),
     cwast.DefVar: lambda n, tc: _CheckDefVarDefGlobal(n, False),
-    cwast.ExprWrap: lambda n, tc: _CheckExprWrap(n, False),
     cwast.ValPoint: lambda n, tc: _CheckValPoint(n, False),
 }
 
@@ -1062,7 +1056,6 @@ VERIFIERS_STRICT = VERIFIERS_COMMON | {
     cwast.StmtReturn: lambda n, tc: _CheckStmtReturn(n, True),
     cwast.DefGlobal: lambda n, tc: _CheckDefVarDefGlobal(n, True),
     cwast.DefVar: lambda n, tc: _CheckDefVarDefGlobal(n, True),
-    cwast.ExprWrap: lambda n, tc: _CheckExprWrap(n, True),
     cwast.ValPoint: lambda n, tc: _CheckValPoint(n, True),
 }
 
