@@ -138,7 +138,7 @@ ValAndKind NumCleanupAndTypeExtraction(std::string_view num,
     }
   }
   if (num[0] == '\'') {
-    out.kind = BASE_TYPE_KIND::U8;
+    ASSERT(target_kind != BASE_TYPE_KIND::INVALID, "");
   }
   return out;
 }
@@ -355,7 +355,7 @@ uint32_t ComputeStringLengthEscaped(std::string_view str) {
     if (escape > 0) {
       --escape;
       // handle \x - (note this has problems e.g. \x0x which is illegal)
-      if (escape == 0 && c == 'x') escape  = 2;
+      if (escape == 0 && c == 'x') escape = 2;
       continue;
     }
     ++n;
@@ -882,7 +882,7 @@ void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
         CanonType_kind(src_ct) == NT::TypeVec && IsProperLhs(src_node);
     if (!IsCompatibleType(src_ct, dst_ct, writable)) {
       CompilerError(Node_srcloc(src_node))
-          << "type mismatch " << src_ct << " " << dst_ct;
+          << "type mismatch for " << src_node << ": " << src_ct << " -> " << dst_ct;
     }
   }
 }
@@ -972,7 +972,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
             ASSERT(false, "unexpected " << EnumToString(Node_kind(def_node)));
             break;
         }
-        break;
+        return;
       }
       case NT::Expr2:
         return CheckExpr2Types(node, Node_expr1(node), Node_expr2(node),
@@ -1062,7 +1062,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
                               Node_x_type(node))) {
           CompilerError(Node_srcloc(node)) << "incompatible typed for widening";
         }
-        break;
+        return;
       case NT::ExprUnionUntagged: {
         CanonType ct_expr = Node_x_type(Node_expr(node));
         CheckTypeKind(Node_expr(node), NT::TypeUnion);
@@ -1075,7 +1075,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
                                  CanonType_children(ct))) {
           CompilerError(Node_srcloc(node)) << "unions are not compatible";
         }
-        break;
+        return;
       }
       case NT::ExprUnwrap: {
         CanonType ct_expr = Node_x_type(Node_expr(node));
@@ -1127,19 +1127,33 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
             CheckTypeIs(point, ct_field);
           }
         }
-        break;
+        return;
       case NT::TypeFun:
       case NT::DefFun:
         CheckDefFunTypeFun(node);
-        break;
+        return;
         // ========= behavior changes when "strict"
 
       case NT::ExprNarrow:
         // TODO:
-        break;
-      case NT::ExprCall:
-        // TODO
-        break;
+        return;
+      case NT::ExprCall: {
+        CanonType fun_sig = Node_x_type(Node_callee(node));
+        ASSERT(CanonType_kind(fun_sig) == NT::TypeFun, "");
+        CheckTypeIs(node, CanonType_result_type(fun_sig));
+        int num_parameters = CanonType_children(fun_sig).size() - 1;
+        int num_args = NodeNumSiblings(Node_args(node));
+        if (num_parameters != num_args) {
+          CompilerError(Node_srcloc(node)) << "call parameter count mismatch";
+        }
+        int i = 0;
+        for (Node arg = Node_args(node); !arg.isnull();
+             arg = Node_next(arg), ++i) {
+          CanonType ct_target = CanonType_children(fun_sig)[i];
+          CheckTypeCompatibleWithOptionalStrict(arg, ct_target, strict);
+        }
+        return;
+      }
       case NT::StmtAssignment:
         if (!IsProperLhs(Node_lhs(node))) {
           CompilerError(Node_srcloc(node)) << "cannot assign to readonly data";
@@ -1163,16 +1177,19 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         }
         return CheckTypeIs(node, Node_x_type(Node_type(node)));
       }
-      case NT::ValPoint:
-        // TODO: checked as part of ValCompound
-        break;
-
+      case NT::ValPoint: {
+        Node val = Node_value_or_undef(node);
+        if (Node_kind(val) != NT::ValUndef) {
+          CheckTypeCompatibleWithOptionalStrict(val, ct, strict);
+        }
+        return;
+      }
         // ========= nothing to check yet
       case NT::ExprStmt:
       case NT::TypeAuto:
       case NT::ValAuto:
       case NT::TypeUnionDelta:
-        break;
+        return;
         //  ========= No type annotation
       case NT::ValUndef:
       case NT::DefMod:
@@ -1186,10 +1203,10 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         ASSERT(ct.isnull(),
                "no type info expected for " << EnumToString(Node_kind(node)));
         // no type checking
-        break;
+        return;
       default:
         ASSERT(false, "NYI " << EnumToString(Node_kind(node)));
-        break;
+        return;
     };
   };
   VisitAstRecursivelyPost(mod, type_checker, kNodeInvalid);

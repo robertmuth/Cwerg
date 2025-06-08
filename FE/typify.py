@@ -1008,8 +1008,7 @@ def _CheckValPoint(point: cwast.ValPoint, strict: bool):
 def _CheckExprCall(node: cwast.ExprCall, strict: bool):
     fun_sig: cwast.CanonType = node.callee.x_type
     assert fun_sig.is_fun(), f"{fun_sig}"
-    assert fun_sig.result_type(
-    ) == node.x_type, f"{fun_sig.result_type()} {node.x_type}"
+    _CheckTypeIs(node, fun_sig.result_type())
     for p, a in zip(fun_sig.parameter_types(), node.args):
         _CheckTypeCompatibleWithOptionalStrict(a, p, strict)
 

@@ -32,9 +32,15 @@ extern std::vector<CanonType>& CanonType_children(CanonType n);
 
 extern Node CanonType_lookup_rec_field(CanonType ct, Name field);
 
-inline CanonType CanonType_underlying_type(CanonType n) {
-  ASSERT(CanonType_children(n).size() == 1, "");
-  return CanonType_children(n)[0];
+inline CanonType CanonType_underlying_type(CanonType ct) {
+  ASSERT(CanonType_children(ct).size() == 1, "");
+  return CanonType_children(ct)[0];
+}
+
+inline CanonType CanonType_result_type(CanonType ct) {
+  auto& children = CanonType_children(ct);
+  ASSERT(CanonType_kind(ct) == NT::TypeFun, "");
+  return children[children.size() - 1];
 }
 
 extern BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType n);
@@ -63,10 +69,10 @@ extern bool IsCompatibleTypeForCmp(CanonType op1, CanonType op2);
 extern bool IsCompatibleTypeForAs(CanonType src, CanonType dst);
 extern bool IsCompatibleTypeForBitcast(CanonType src, CanonType dst);
 extern bool IsDropMutConversion(CanonType src, CanonType dst);
-extern bool IsCompatibleType(CanonType src, CanonType dst, bool src_is_writable);
+extern bool IsCompatibleType(CanonType src, CanonType dst,
+                             bool src_is_writable);
 extern bool IsSubtypeOfUnion(CanonType src_ct, CanonType dst_src);
 extern bool IsVecToSpanConversion(CanonType src_ct, CanonType dst_src);
-
 
 extern bool IsProperLhs(Node node);
 
@@ -76,8 +82,8 @@ extern bool TypeListIsSuperSet(const std::vector<CanonType>& children1,
                                const std::vector<CanonType>& children2);
 
 extern void TypeListDelta(const std::vector<CanonType>& children1,
-                           const std::vector<CanonType>& children2,
-                           std::vector<CanonType>* out);
+                          const std::vector<CanonType>& children2,
+                          std::vector<CanonType>* out);
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;
