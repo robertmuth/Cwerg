@@ -3,25 +3,24 @@
 ```
 File                                         blank        comment           code
 --------------------------------------------------------------------------------
-FE/emit_ir.py                                  149             54           1108
-FE/typify.py                                   209             58           1087
-FE/parse.py                                    137             33            689
-FE/pp.py                                       117             49            630
-FE/eval.py                                      99             48            598
-FE/canonicalize.py                             123             45            561
-FE/type_corpus.py                               96             22            459
-FE/mod_pool.py                                  98             35            377
+FE/emit_ir.py                                  152             55           1129
+FE/typify.py                                   188             58           1001
+FE/parse.py                                    138             33            689
+FE/eval.py                                     123             47            661
+FE/pp.py                                       118             49            630
+FE/canonicalize.py                             129             43            574
+FE/type_corpus.py                               94             19            435
+FE/mod_pool.py                                  99             34            360
 FE/parse_sexpr.py                               69             36            335
-FE/symbolize.py                                 81              7            312
-FE/canonicalize_union.py                        52             24            253
-FE/pp_sexpr.py                                  51             13            201
+FE/symbolize.py                                 77              7            290
+FE/canonicalize_union.py                        52             24            256
+FE/pp_sexpr.py                                  51             13            197
 FE/macro.py                                     38             21            191
 FE/optimize.py                                  36             10            159
 FE/canonicalize_large_args.py                   25              8            152
 FE/canonicalize_span.py                         27             13            135
 FE/pp_html.py                                   30              7            132
-FE/checker.py                                   24              2            106
-FE/tokens.py                                    32              1             69
+FE/checker.py                                   24              2            113
 FE/dead_code.py                                 10              4             55
 FE/identifier.py                                12              1             30
 FE/stats.py                                     16              0             29
@@ -31,7 +30,7 @@ FE/cw2cws.py                                     9              1             13
 FE/xdump.py                                      5              0             13
 FE/string_re.py                                  4              3             11
 --------------------------------------------------------------------------------
-SUM:                                          1564            495           7740
+SUM:                                          1541            488           7625
 --------------------------------------------------------------------------------
 ```
 
@@ -40,42 +39,44 @@ SUM:                                          1564            495           7740
 ```
 File                             blank        comment           code
 -------------------------------------------------------------------------------
-FE/cwast.py                        691            365           2777
+FE/cwast.py                        679            350           2699
 FE/lexer_tab.py                     93             37            531
 -------------------------------------------------------------------------------
-SUM:                               784            402           3308
+SUM:                               772            387           3230
 -------------------------------------------------------------------------------
 ```
 ### Regular Code (C++)
 
 ```
-File                             blank        comment           code
--------------------------------------------------------------------------------
-FE/parse.cc                         79             29           1126
-FE/pp.cc                            41             10            886
-FE/typify.cc                        58             18            774
-FE/mod_pool.cc                      47             10            367
-FE/type_corpus.cc                   50              9            304
-FE/macro.cc                         41              7            280
-FE/lexer.cc                         30             17            264
-FE/symbolize.cc                     23              9            241
-FE/lexer.h                          26              4            131
-FE/checker.cc                       13              3            119
-FE/lexer_bench.cc                   23              5             90
-FE/type_corpus.h                    27              1             82
-FE/emit_ir.cc                       11              0             61
-FE/mod_pool.h                       11              4             52
-FE/identifier.h                      6              1             20
-FE/pp_tool.cc                        6              5             20
-FE/symbolize.h                      10              1             15
-FE/macro.h                           3              1              8
-FE/typify.h                          5              1              8
-FE/parse.h                           7              1              7
-FE/checker.h                         3              1              6
-FE/pp.h                              3              1              5
--------------------------------------------------------------------------------
-SUM:                               523            138           4866
--------------------------------------------------------------------------------
+File                              blank        comment           code
+--------------------------------------------------------------------------------
+FE/typify.cc                         89             33           1264
+FE/parse.cc                          77             27           1117
+FE/pp.cc                             41             10            877
+FE/mod_pool.cc                       52             10            475
+FE/type_corpus.cc                    75              9            472
+FE/macro.cc                          41              8            282
+FE/lexer.cc                          32             18            266
+FE/symbolize.cc                      23              9            241
+FE/checker.cc                        18              3            188
+FE/lexer.h                           30              5            139
+FE/type_corpus.h                     31              1            108
+FE/lexer_bench.cc                    23              5             90
+FE/emit_ir.cc                        15              1             68
+FE/mod_pool.h                        12              3             62
+FE/identifier.h                       6              1             20
+FE/pp_tool.cc                         6              5             20
+FE/symbolize.h                       10              1             15
+FE/canonicalize.cc                    4              0             14
+FE/checker.h                          4              1             11
+FE/macro.h                            3              1              8
+FE/typify.h                           5              1              8
+FE/parse.h                            5              2              7
+FE/canonicalize.h                     5              1              5
+FE/pp.h                               3              1              5
+--------------------------------------------------------------------------------
+SUM:                                610            156           5762
+--------------------------------------------------------------------------------
 ```
 
 ### Generated Files (C++)
@@ -84,10 +85,10 @@ SUM:                               523            138           4866
 File                             blank        comment           code
 -------------------------------------------------------------------------------
 FE/lexer_gen.cc                    225              5           1850
-FE/cwast_gen.h                     212             50           1047
-FE/cwast_gen.cc                     66             19            742
+FE/cwast_gen.h                     210             50           1036
+FE/cwast_gen.cc                     64             19            675
 FE/lexer_gen.h                      11              3             48
 -------------------------------------------------------------------------------
-SUM:                               514             77           3687
+SUM:                               510             77           3609
 -------------------------------------------------------------------------------
 ```
