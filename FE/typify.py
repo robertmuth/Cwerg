@@ -897,15 +897,15 @@ def _CheckExprWrap(node: cwast.ExprWrap,  _):
     ct_dst: cwast.CanonType = node.type.x_type
     _CheckTypeIs(node, ct_dst)
     ct_target = ct_dst.underlying_type()
-    src_ct = node.expr.x_type
+    ct_src = node.expr.x_type
 
-    if ct_target is src_ct:
+    if ct_target is ct_src:
         return
-    if ct_dst.is_wrapped() and type_corpus.IsDropMutConversion(src_ct, ct_target):
+    if ct_dst.is_wrapped() and type_corpus.IsDropMutConversion(ct_src, ct_target):
         return
 
     cwast.CompilerError(node.expr.x_srcloc,
-                        f"not the same actual: {src_ct} expected: {ct_dst}")
+                        f"not the same actual: {ct_src} expected: {ct_dst}")
 
 
 def _CheckNothing(_, _2):
@@ -966,6 +966,8 @@ VERIFIERS_COMMON = {
     cwast.ExprWiden: _CheckExprWiden,
     cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
     cwast.ExprUnwrap: _CheckExprUnwrap,
+    cwast.ExprWrap: _CheckExprWrap,
+
     cwast.ValNum: _CheckValNum,
     cwast.EnumVal: lambda n, tc: _CheckTypeKind(n, cwast.DefEnum),
     cwast.DefRec: _CheckAstNode,
@@ -974,7 +976,6 @@ VERIFIERS_COMMON = {
     cwast.ValCompound: lambda n, tc: _CheckValCompound(n),
     cwast.TypeFun: _CheckDefFunTypeFun,
     cwast.DefFun: _CheckDefFunTypeFun,
-    cwast.ExprWrap: _CheckExprWrap,
     #
     cwast.TypeAuto: _CheckNothing,
     cwast.ValAuto: _CheckNothing,
@@ -992,7 +993,7 @@ def _CheckTypeCompatibleWithOptionalStrict(src_node, dst_ct: cwast.CanonType, st
             cwast.CompilerError(src_node.x_srcloc,
                                 f"{src_node}: not the same actual: {src_ct} expected: {dst_ct}")
     else:
-        mutable = type_corpus.IsWritableVec(src_node)
+        mutable = src_ct.is_vec() and type_corpus.IsProperLhs(src_node)
         if not type_corpus.IsCompatibleType(src_ct, dst_ct, mutable):
             cwast.CompilerError(src_node.x_srcloc,
                                 f"incompatible type for {src_node}: {src_ct} expected: {dst_ct}")
@@ -1041,6 +1042,9 @@ def _CheckDefVarDefGlobal(node, strict: bool):
 
 VERIFIERS_WEAK = VERIFIERS_COMMON | {
     cwast.ExprNarrow: _CheckExprNarrow,
+    # These reflect all the node where implicit conversion beyond the
+    # drop of "mut" may occur. This includes:
+    # *
     cwast.ExprCall: lambda n, tc: _CheckExprCall(n, False),
     cwast.StmtAssignment: lambda n, tc:  _CheckStmtAssignment(n, False),
     cwast.StmtReturn: lambda n, tc: _CheckStmtReturn(n, False),

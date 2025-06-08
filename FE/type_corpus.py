@@ -66,9 +66,6 @@ def IsCompatibleType(src_ct: cwast.CanonType, dst_ct: cwast.CanonType,
         if IsVecToSpanConversion(src_ct, dst_ct):
             return True
 
-    if not dst_ct.is_union():
-        return False
-
     return IsSubtypeToUnionConversion(src_ct, dst_ct)
 
 
@@ -177,16 +174,6 @@ def IsProperLhs(node) -> bool:
         return IsProperLhs(node.expr)
     else:
         return False
-
-
-def IsWritableVec(node) -> bool:
-    """"""
-    if not node.x_type.is_vec():
-        return False
-
-    return IsProperLhs(node)
-
-
 
 
 # maps FE types to BE names.

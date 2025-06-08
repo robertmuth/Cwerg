@@ -817,7 +817,6 @@ bool AddressCanBeTaken(Node node) {
   }
 }
 
-#if 0
 void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
                                            bool strict) {
   CanonType src_ct = Node_x_type(src_node);
@@ -828,10 +827,14 @@ void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
       CompilerError(Node_srcloc(src_node)) << "drop conversion";
     }
   } else {
-    //
+    bool writable =
+        CanonType_kind(src_ct) == NT::TypeVec && IsProperLhs(src_node);
+    if (!IsCompatibleType(src_ct, dst_ct, writable)) {
+      CompilerError(Node_srcloc(src_node)) << "type mismatch " << src_ct << " "
+                                           << dst_ct;
+    }
   }
 }
-#endif
 
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
   std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
@@ -1005,7 +1008,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprWiden:
         CheckTypeIs(node, Node_x_type(Node_type(node)));
         if (!IsSubtypeOfUnion(Node_x_type(Node_expr(node)),
-                                        Node_x_type(node))) {
+                              Node_x_type(node))) {
           CompilerError(Node_srcloc(node)) << "incompatible typed for widening";
         }
         break;
@@ -1087,8 +1090,12 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         // TODO
         break;
       case NT::StmtAssignment:
-        // TODO
-        break;
+        if (!IsProperLhs(Node_lhs(node))) {
+          CompilerError(Node_srcloc(node)) << "cannot assign to readonly data";
+        }
+        return CheckTypeCompatibleWithOptionalStrict(
+            Node_expr_rhs(node), Node_x_type(Node_lhs(node)), strict);
+
       case NT::StmtReturn:
         // TODO
         break;

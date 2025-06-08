@@ -454,93 +454,103 @@ bool IsSubtypeOfUnion(CanonType src_ct, CanonType dst_ct) {
   }
 }
 
-  bool IsDropMutConversion(CanonType src, CanonType dst) {
-    if ((CanonType_kind(src) == NT::TypePtr &&
-         CanonType_kind(dst) == NT::TypePtr) ||
-        (CanonType_kind(src) == NT::TypeSpan &&
-         CanonType_kind(dst) == NT::TypeSpan)) {
-      return CanonType_underlying_type(src) == CanonType_underlying_type(dst) &&
-             !CanonType_mut(dst);
-    }
-    return false;
+bool IsDropMutConversion(CanonType src, CanonType dst) {
+  if ((CanonType_kind(src) == NT::TypePtr &&
+       CanonType_kind(dst) == NT::TypePtr) ||
+      (CanonType_kind(src) == NT::TypeSpan &&
+       CanonType_kind(dst) == NT::TypeSpan)) {
+    return CanonType_underlying_type(src) == CanonType_underlying_type(dst) &&
+           !CanonType_mut(dst);
+  }
+  return false;
+}
+
+bool IsCompatibleType(CanonType src, CanonType dst, bool src_is_writable) {
+  if (IsDropMutConversion(src, dst)) return true;
+  if (src_is_writable || !CanonType_mut(dst)) {
+    if (IsVecToSpanConversion(src, dst)) return true;
   }
 
-  bool IsCompatibleType(CanonType src, CanonType dst, bool src_is_writable) {
-    if (IsDropMutConversion(src, dst)) return true;
+  return IsSubtypeOfUnion(src, dst);
+}
 
-    return TypeListIsSuperSet(CanonType_children(dst), CanonType_children(src));
-  }
+bool IsVecToSpanConversion(CanonType src_ct, CanonType dst_src) {
+  if (CanonType_kind(src_ct) != NT::TypeVec) return false;
+  if (CanonType_kind(dst_src) != NT::TypeSpan) return false;
+  return CanonType_underlying_type(src_ct) ==
+         CanonType_underlying_type(dst_src);
+}
 
-  bool IsProperLhs(Node node) {
-    switch (Node_kind(node)) {
-      case NT::Id: {
-        Node def_node = Node_x_symbol(node);
-        if (Node_kind(def_node) == NT::DefVar ||
-            Node_kind(def_node) == NT::DefGlobal) {
-          return Node_has_flag(def_node, BF::MUT);
-        }
-        return false;
+bool IsProperLhs(Node node) {
+  switch (Node_kind(node)) {
+    case NT::Id: {
+      Node def_node = Node_x_symbol(node);
+      if (Node_kind(def_node) == NT::DefVar ||
+          Node_kind(def_node) == NT::DefGlobal) {
+        return Node_has_flag(def_node, BF::MUT);
       }
-      case NT::ExprDeref:
-        return CanonType_mut(Node_x_type(Node_expr(node)));
-      case NT::ExprField:
-        return IsProperLhs(Node_container(node));
-      case NT::ExprIndex: {
-        Node container = Node_container(node);
-        NT kind = CanonType_kind(Node_x_type(container));
-        if (kind == NT::TypeSpan) return CanonType_mut(Node_x_type(container));
-        ASSERT(kind == NT::TypeVec, "");
-        return IsProperLhs(container);
-      }
-      case NT::ExprNarrow:
-        return IsProperLhs(Node_expr(node));
-      default:
-        return false;
+      return false;
     }
-  }
-
-  bool TypeListsAreTheSame(const std::vector<CanonType>& children1,
-                           const std::vector<CanonType>& children2) {
-    int size1 = children1.size();
-    int size2 = children2.size();
-    if (size1 != size2) return false;
-
-    for (int i = 0; i < size1; i++) {
-      if (children1[i] != children2[i]) return false;
+    case NT::ExprDeref:
+      return CanonType_mut(Node_x_type(Node_expr(node)));
+    case NT::ExprField:
+      return IsProperLhs(Node_container(node));
+    case NT::ExprIndex: {
+      Node container = Node_container(node);
+      NT kind = CanonType_kind(Node_x_type(container));
+      if (kind == NT::TypeSpan) return CanonType_mut(Node_x_type(container));
+      ASSERT(kind == NT::TypeVec, "");
+      return IsProperLhs(container);
     }
-    return true;
+    case NT::ExprNarrow:
+      return IsProperLhs(Node_expr(node));
+    default:
+      return false;
   }
+}
 
-  bool TypeListIsSuperSet(const std::vector<CanonType>& children1,
-                          const std::vector<CanonType>& children2) {
-    int size1 = children1.size();
-    int size2 = children2.size();
-    if (size1 < size2) return false;
+bool TypeListsAreTheSame(const std::vector<CanonType>& children1,
+                         const std::vector<CanonType>& children2) {
+  int size1 = children1.size();
+  int size2 = children2.size();
+  if (size1 != size2) return false;
 
-    for (int i2 = 0, i1 = 0; i2 < size2; ++i2, ++i1) {
+  for (int i = 0; i < size1; i++) {
+    if (children1[i] != children2[i]) return false;
+  }
+  return true;
+}
+
+bool TypeListIsSuperSet(const std::vector<CanonType>& children1,
+                        const std::vector<CanonType>& children2) {
+  int size1 = children1.size();
+  int size2 = children2.size();
+  if (size1 < size2) return false;
+
+  for (int i2 = 0, i1 = 0; i2 < size2; ++i2, ++i1) {
+    if (i1 == size1) return false;
+
+    while (children1[i1] != children2[i2]) {
+      i1++;
       if (i1 == size1) return false;
-
-      while (children1[i1] != children2[i2]) {
-        i1++;
-        if (i1 == size1) return false;
-      }
-    }
-    return true;
-  }
-
-  void TypeListDelta(const std::vector<CanonType>& children1,
-                     const std::vector<CanonType>& children2,
-                     std::vector<CanonType>* out) {
-    int size1 = children1.size();
-    int size2 = children2.size();
-    ASSERT(size1 >= size2, "");
-    for (int i1 = 0, i2 = 0; i1 < size1; ++i1) {
-      if (i2 < size2 && children1[i1] == children2[i2]) {
-        ++i2;
-        continue;
-      }
-      out->push_back(children1[i1]);
     }
   }
+  return true;
+}
+
+void TypeListDelta(const std::vector<CanonType>& children1,
+                   const std::vector<CanonType>& children2,
+                   std::vector<CanonType>* out) {
+  int size1 = children1.size();
+  int size2 = children2.size();
+  ASSERT(size1 >= size2, "");
+  for (int i1 = 0, i2 = 0; i1 < size1; ++i1) {
+    if (i2 < size2 && children1[i1] == children2[i2]) {
+      ++i2;
+      continue;
+    }
+    out->push_back(children1[i1]);
+  }
+}
 
 }  // namespace cwerg::fe
