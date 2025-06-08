@@ -286,7 +286,7 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
         return ExpandMacroInvocation(node, nesting, id_gen);
       case NT::ExprSrcLoc: {
         std::stringstream ss;
-        ss << Node_srcloc(Node_expr(node));
+        ss << "\"" << Node_srcloc(Node_expr(node)) << "\"";
         Node out = NodeNew(NT::ValString);
         NodeInitValString(out, StrNew(ss.str()), kStrInvalid,
                           Node_srcloc(node));
@@ -296,7 +296,7 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
       case NT::ExprStringify: {
         // TODO: this is far from complete
         std::stringstream ss;
-        ss << EnumToString(Node_kind(Node_expr(node)));
+        ss << "\"" << EnumToString(Node_kind(Node_expr(node))) << "\"";
         Node out = NodeNew(NT::ValString);
         NodeInitValString(out, StrNew(ss.str()), kStrInvalid,
                           Node_srcloc(node));

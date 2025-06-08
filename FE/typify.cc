@@ -337,6 +337,58 @@ uint32_t ComputeArrayLength(Node node) {
   }
 }
 
+uint32_t ComputeStringLengthHex(std::string_view str) {
+  int n = 0;
+  for (int c : str) {
+    if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+      ++n;
+    }
+  }
+  ASSERT(n / 2 * 2 == n, "");
+  return n / 2;
+}
+
+uint32_t ComputeStringLengthEscaped(std::string_view str) {
+  int n = 0;
+  int escape = 0;
+  for (int c : str) {
+    if (escape > 0) {
+      --escape;
+      // handle \x - (note this has problems e.g. \x0x which is illegal)
+      if (escape == 0 && c == 'x') escape  = 2;
+      continue;
+    }
+    ++n;
+    if (c == '\\') escape = 1;
+  }
+  return n;
+}
+
+uint32_t ComputeStringLength(std::string_view str) {
+  std::string_view paylaod = str;
+  int k = paylaod[0];
+  if (k != '"') {
+    paylaod = paylaod.substr(1);
+  }
+  if (str.starts_with("\"\"\"")) {
+    paylaod = paylaod.substr(3, paylaod.size() - 6);
+  } else {
+    paylaod = paylaod.substr(1, paylaod.size() - 2);
+  }
+
+  switch (k) {
+    case 'r':
+      return str.size();
+    case 'x':
+      return ComputeStringLengthHex(paylaod);
+    case '"':
+      return ComputeStringLengthEscaped(paylaod);
+    default:
+      ASSERT(false, "bad string literal [" << str << "]");
+      return 0;
+  }
+}
+
 bool IsPolymorphicCallee(Node callee) {
   if (Node_kind(callee) != NT::Id) {
     return false;
@@ -449,8 +501,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::ValCompound:
       return TypifyValCompound(node, tc, ct_target, pm);
     case NT::ValString: {
-      // TODO: hack
-      int dim = 10;
+      int dim = ComputeStringLength(StrData(Node_string(node)));
       ct = tc->InsertVecType(dim, tc->get_base_canon_type(BASE_TYPE_KIND::U8));
       return AnnotateType(node, ct);
     }
@@ -830,8 +881,8 @@ void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
     bool writable =
         CanonType_kind(src_ct) == NT::TypeVec && IsProperLhs(src_node);
     if (!IsCompatibleType(src_ct, dst_ct, writable)) {
-      CompilerError(Node_srcloc(src_node)) << "type mismatch " << src_ct << " "
-                                           << dst_ct;
+      CompilerError(Node_srcloc(src_node))
+          << "type mismatch " << src_ct << " " << dst_ct;
     }
   }
 }
@@ -1096,17 +1147,22 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return CheckTypeCompatibleWithOptionalStrict(
             Node_expr_rhs(node), Node_x_type(Node_lhs(node)), strict);
 
-      case NT::StmtReturn:
-        // TODO
-        break;
+      case NT::StmtReturn: {
+        Node target = Node_x_target(node);
+        CanonType ct_target = Node_kind(target) == NT::DefFun
+                                  ? Node_x_type(Node_result(target))
+                                  : Node_x_type(target);
+        return CheckTypeCompatibleWithOptionalStrict(Node_expr_ret(node),
+                                                     ct_target, strict);
+      }
       case NT::DefGlobal:
-      case NT::DefVar:
-        if (Node_kind(Node_initial_or_undef_or_auto(node)) != NT::ValUndef) {
-          CheckTypeIs(node, Node_x_type(Node_type(node)));
-          // TODO: reall chedcke missing
+      case NT::DefVar: {
+        Node initial = Node_initial_or_undef_or_auto(node);
+        if (Node_kind(initial) != NT::ValUndef) {
+          CheckTypeCompatibleWithOptionalStrict(initial, ct, strict);
         }
-        break;
-
+        return CheckTypeIs(node, Node_x_type(Node_type(node)));
+      }
       case NT::ValPoint:
         // TODO: checked as part of ValCompound
         break;
