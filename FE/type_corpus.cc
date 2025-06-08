@@ -473,4 +473,48 @@ bool IsProperLhs(Node node) {
   }
 }
 
+bool TypeListsAreTheSame(const std::vector<CanonType>& children1,
+                         const std::vector<CanonType>& children2) {
+  int size1 = children1.size();
+  int size2 = children2.size();
+  if (size1 != size2) return false;
+
+  for (int i = 0; i < size1; i++) {
+    if (children1[i] != children2[i]) return false;
+  }
+  return true;
+}
+
+bool TypeListIsSuperSet(const std::vector<CanonType>& children1,
+                        const std::vector<CanonType>& children2) {
+  int size1 = children1.size();
+  int size2 = children2.size();
+  if (size1 < size2) return false;
+
+  for (int i2 = 0, i1 = 0; i2 < size2; ++i2, ++i1) {
+    if (i1 == size1) return false;
+
+    while (children1[i1] != children2[i2]) {
+      i1++;
+      if (i1 == size1) return false;
+    }
+  }
+  return true;
+}
+
+void TypeListDelta(const std::vector<CanonType>& children1,
+                   const std::vector<CanonType>& children2,
+                   std::vector<CanonType>* out) {
+  int size1 = children1.size();
+  int size2 = children2.size();
+  ASSERT(size1 >= size2, "");
+  for (int i1 = 0, i2 = 0; i1 < size1; ++i1) {
+    if (i2 < size2 && children1[i1] == children2[i2]) {
+      ++i2;
+      continue;
+    }
+    out->push_back(children1[i1]);
+  }
+}
+
 }  // namespace cwerg::fe

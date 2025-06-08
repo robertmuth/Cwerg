@@ -639,13 +639,6 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         assert False, f"unexpected node {node}"
 
 
-def _CheckTypeIsOld(node, actual: cwast.CanonType, expected: cwast.CanonType):
-    # assert node.x_type == actual
-    if actual is not expected:
-        cwast.CompilerError(node.x_srcloc,
-                            f"{node}: not the same actual: {actual} expected: {expected}")
-
-
 def _CheckTypeIs(node, expected: cwast.CanonType):
     actual = node.x_type
     if actual is not expected:
@@ -818,7 +811,9 @@ def _CheckExprUnionUntagged(node: cwast.ExprUnionUntagged, _):
     assert node.x_type.is_untagged_union()
     assert node.expr.x_type.is_tagged_union(), f"{node.expr.x_type}"
     for c1, c2 in zip(node.x_type.union_member_types(), node.expr.x_type.union_member_types()):
-        _CheckTypeIsOld(node, c1, c2)
+        if c1 is not c2:
+            cwast.CompilerError(node.x_srcloc,
+                                f"{node}: union member mismatch actual: {c1} expected: {c1}")
 
 
 def _CheckValNum(node: cwast.ValNum, _):
@@ -860,7 +855,7 @@ def _CheckValSpan(node: cwast.ValSpan, _):
 def _CheckExprUnionTag(node: cwast.ExprUnionTag, tc: type_corpus.TypeCorpus):
     _CheckTypeKind(node.expr, cwast.TypeUnion),
     assert not node.expr.x_type.untagged
-    _CheckTypeIsOld(node, node.x_type, tc.get_typeid_canon_type())
+    _CheckTypeIs(node, tc.get_typeid_canon_type())
 
 
 def _CheckId(node: cwast.Id,  _):
@@ -962,7 +957,10 @@ VERIFIERS_COMMON = {
     cwast.ExprIndex: _CheckExprIndex,
     cwast.ExprFront: _CheckExprFront,
     cwast.ExprAddrOf: _CheckExprAddrOf,
-
+    cwast.ExprWiden: _CheckExprWiden,
+    cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
+    cwast.ExprUnwrap: _CheckExprUnwrap,
+    cwast.ValNum: _CheckValNum,
     # -----------------
     #
     cwast.DefRec: _CheckDefRecDefEnum,
@@ -970,14 +968,6 @@ VERIFIERS_COMMON = {
     #
     cwast.DefEnum: _CheckDefRecDefEnum,
     cwast.EnumVal: _CheckNothing,    # checked as part of DefEnum
-    #
-
-
-
-    cwast.ExprWiden: _CheckExprWiden,
-    cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
-    cwast.ExprUnwrap: _CheckExprUnwrap,
-    cwast.ValNum: _CheckValNum,
     #
     cwast.TypeFun: _CheckDefFunTypeFun,
     cwast.ValCompound: lambda n, tc: _CheckValCompound(n),

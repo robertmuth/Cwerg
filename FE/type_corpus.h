@@ -63,6 +63,13 @@ extern bool IsCompatibleTypeForCmp(CanonType op1, CanonType op2);
 extern bool IsCompatibleTypeForAs(CanonType src, CanonType dst);
 extern bool IsCompatibleTypeForBitcast(CanonType src, CanonType dst);
 extern bool IsProperLhs(Node node);
+extern bool TypeListsAreTheSame(const std::vector<CanonType>& children1,
+                                const std::vector<CanonType>& children2);
+extern bool TypeListIsSuperSet(const std::vector<CanonType>& children1,
+                               const std::vector<CanonType>& children2);
+extern void TypeListDelta(const std::vector<CanonType>& children1,
+                           const std::vector<CanonType>& children2,
+                           std::vector<CanonType>* out);
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;

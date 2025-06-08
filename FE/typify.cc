@@ -986,6 +986,54 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
           CompilerError(Node_srcloc(node)) << "address cannot be taken";
         return CheckUnderlyingTypeIs(node, lhs_ct);
       }
+      case NT::ExprWiden: {
+        CanonType ct_expr = Node_x_type(Node_expr(node));
+
+        CheckTypeKind(node, NT::TypeUnion);
+        if (CanonType_kind(ct_expr) == NT::TypeUnion) {
+          if (CanonType_untagged(ct_expr) != CanonType_untagged(ct)) {
+            CompilerError(Node_srcloc(node)) << "incompatible unions (tagged)";
+          }
+          if (!TypeListIsSuperSet(CanonType_children(ct),
+                                  CanonType_children(ct_expr))) {
+            CompilerError(Node_srcloc(node))
+                << "incompatible unions (children)";
+          }
+        } else {
+        }
+        break;
+      }
+      case NT::ExprUnionUntagged: {
+        CanonType ct_expr = Node_x_type(Node_expr(node));
+        CheckTypeKind(Node_expr(node), NT::TypeUnion);
+        CheckTypeKind(node, NT::TypeUnion);
+        if (CanonType_untagged(ct_expr) || !CanonType_untagged(ct)) {
+          CompilerError(Node_srcloc(node))
+              << "expected conversion from tagged to untagged";
+        }
+        if (!TypeListsAreTheSame(CanonType_children(ct_expr),
+                                 CanonType_children(ct))) {
+          CompilerError(Node_srcloc(node)) << "unions are not compatible";
+        }
+        break;
+      }
+      case NT::ExprUnwrap: {
+        CanonType ct_expr = Node_x_type(Node_expr(node));
+        if (CanonType_kind(ct_expr) != NT::DefType &&
+            CanonType_kind(ct_expr) != NT::DefEnum) {
+          CompilerError(Node_srcloc(node)) << "expected a type or enum";
+        }
+        return CheckUnderlyingTypeIs(Node_expr(node), ct);
+      }
+
+      case NT::EnumVal:
+        if (CanonType_kind(CanonType_get_unwrapped(ct)) != NT::TypeBase) {
+          CompilerError(Node_srcloc(node)) << "expected a base type";
+        }
+        break;
+      case NT::TypeUnionDelta:
+        // TODO
+        break;
         //
         // ---------------------------
         //
@@ -993,52 +1041,13 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::TypeFun:
         ASSERT(CanonType_kind(ct) == NT::TypeFun, "");
         break;
-      case NT::TypeUnionDelta:
-        // TODO
-        break;
-
-      case NT::ValPoint:
-        // TODO: checked as part of ValCompound
-        break;
 
       case NT::ValCompound:
         ASSERT(CanonType_kind(ct) == NT::TypeVec ||
                    CanonType_kind(ct) == NT::DefRec,
                "");
-
         // TODO:
         break;
-      case NT::EnumVal:
-        // TODO: checked as part of DefEnum
-        break;
-      //
-      case NT::ExprWrap:
-        CheckTypeIs(node, Node_x_type(Node_type(node)));
-        // TODO: real checks are missing
-        break;
-      case NT::ExprUnwrap:
-        // TODO:
-        break;
-
-      case NT::ExprWiden:
-        // TODO:
-        break;
-      case NT::ExprNarrow:
-        // TODO:
-        break;
-
-      case NT::ExprStmt:
-        // TODO
-        break;
-
-      case NT::ExprUnionUntagged:
-        // TODO
-        break;
-      case NT::ExprCall:
-        // TODO
-        break;
-
-      //
       case NT::DefFun:
         CheckDefFunTypeFun(node);
         break;
@@ -1047,6 +1056,23 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         ASSERT(node == CanonType_ast_node(ct), "");
         break;
 
+      case NT::RecField:
+        return CheckTypeIs(Node_type(node), Node_x_type(node));
+        // TODO
+        break;
+        // ============================
+      case NT::ExprNarrow:
+        // TODO:
+        break;
+      case NT::ExprCall:
+        // TODO
+        break;
+      case NT::StmtAssignment:
+        // TODO
+        break;
+      case NT::StmtReturn:
+        // TODO
+        break;
       case NT::DefGlobal:
       case NT::DefVar:
         if (Node_kind(Node_initial_or_undef_or_auto(node)) != NT::ValUndef) {
@@ -1054,24 +1080,23 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
           // TODO: reall chedcke missing
         }
         break;
-      case NT::StmtReturn:
-        // TODO
+      case NT::ExprWrap:
+        CheckTypeIs(node, Node_x_type(Node_type(node)));
+        // TODO: real checks are missing
         break;
-      case NT::StmtAssignment:
-        // TODO
+      case NT::ValPoint:
+        // TODO: checked as part of ValCompound
         break;
 
-      case NT::RecField:
-        return CheckTypeIs(Node_type(node), Node_x_type(node));
-      case NT::TypeAuto:
-        // TODO
-        break;
-      case NT::ValAuto:
-        // TODO
-        break;
         //
-      case NT::DefMod:
+      case NT::ExprStmt:
+      case NT::TypeAuto:
       case NT::ValUndef:
+      case NT::ValAuto:
+
+        // nothing to check
+        break;
+      case NT::DefMod:
       case NT::StmtExpr:
       case NT::StmtTrap:
       case NT::StmtBreak:

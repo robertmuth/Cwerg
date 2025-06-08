@@ -187,6 +187,8 @@ def IsWritableVec(node) -> bool:
     return IsProperLhs(node)
 
 
+
+
 # maps FE types to BE names.
 # Note: it would be cleaner to use the BE enum
 _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, list[str]] = {
