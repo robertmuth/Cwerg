@@ -358,12 +358,7 @@ CanonType TypeCorpus::InsertUnionComplement(CanonType all, CanonType part) {
     part_children.push_back(part);
   }
   std::vector<CanonType> children;
-  for (auto c : CanonType_children(all)) {
-    if (std::find(part_children.begin(), part_children.end(), c) ==
-        part_children.end()) {
-      children.push_back(c);
-    }
-  }
+  TypeListDelta(CanonType_children(all), part_children, &children);
   ASSERT(!children.empty(), "");
   if (children.size() == 1) {
     return children[0];

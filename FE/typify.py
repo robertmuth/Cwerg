@@ -961,13 +961,14 @@ VERIFIERS_COMMON = {
     cwast.ExprUnionUntagged: _CheckExprUnionUntagged,
     cwast.ExprUnwrap: _CheckExprUnwrap,
     cwast.ValNum: _CheckValNum,
+    cwast.EnumVal: lambda n, tc: _CheckTypeKind(n, cwast.DefEnum),
+
     # -----------------
     #
     cwast.DefRec: _CheckDefRecDefEnum,
     cwast.RecField: lambda n, tc:  _CheckTypeIs(n.type, n.x_type),
     #
     cwast.DefEnum: _CheckDefRecDefEnum,
-    cwast.EnumVal: _CheckNothing,    # checked as part of DefEnum
     #
     cwast.TypeFun: _CheckDefFunTypeFun,
     cwast.ValCompound: lambda n, tc: _CheckValCompound(n),
@@ -984,8 +985,8 @@ VERIFIERS_COMMON = {
     cwast.TypeAuto: _CheckNothing,
     cwast.ValAuto: _CheckNothing,
     cwast.ExprStmt: _CheckNothing,
-    cwast.TypeUnionDelta:  _CheckNothing,
     cwast.StmtExpr:  _CheckNothing,
+    cwast.TypeUnionDelta:  _CheckNothing,
 }
 
 

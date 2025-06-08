@@ -1027,12 +1027,18 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       }
 
       case NT::EnumVal:
-        if (CanonType_kind(CanonType_get_unwrapped(ct)) != NT::TypeBase) {
-          CompilerError(Node_srcloc(node)) << "expected a base type";
-        }
+        return CheckTypeKind(node, NT::DefEnum);
+      case NT::DefRec:
+      case NT::DefEnum:
+        ASSERT(node == CanonType_ast_node(ct), "");
         break;
-      case NT::TypeUnionDelta:
-        // TODO
+      case NT::RecField:
+        return CheckTypeIs(Node_type(node), Node_x_type(node));
+      case NT::ValCompound:
+        if (CanonType_kind(ct) == NT::TypeVec) {
+        } else {
+          ASSERT(CanonType_kind(ct) == NT::DefRec, "");
+        }
         break;
         //
         // ---------------------------
@@ -1042,24 +1048,10 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         ASSERT(CanonType_kind(ct) == NT::TypeFun, "");
         break;
 
-      case NT::ValCompound:
-        ASSERT(CanonType_kind(ct) == NT::TypeVec ||
-                   CanonType_kind(ct) == NT::DefRec,
-               "");
-        // TODO:
-        break;
       case NT::DefFun:
         CheckDefFunTypeFun(node);
         break;
-      case NT::DefRec:
-      case NT::DefEnum:
-        ASSERT(node == CanonType_ast_node(ct), "");
-        break;
 
-      case NT::RecField:
-        return CheckTypeIs(Node_type(node), Node_x_type(node));
-        // TODO
-        break;
         // ============================
       case NT::ExprNarrow:
         // TODO:
@@ -1093,6 +1085,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::TypeAuto:
       case NT::ValUndef:
       case NT::ValAuto:
+      case NT::TypeUnionDelta:
 
         // nothing to check
         break;
