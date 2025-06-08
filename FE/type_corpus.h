@@ -62,11 +62,17 @@ extern bool IsCompatibleTypeForEq(CanonType op1, CanonType op2);
 extern bool IsCompatibleTypeForCmp(CanonType op1, CanonType op2);
 extern bool IsCompatibleTypeForAs(CanonType src, CanonType dst);
 extern bool IsCompatibleTypeForBitcast(CanonType src, CanonType dst);
+extern bool IsDropMutConversion(CanonType src, CanonType dst);
+extern bool IsCompatibleType(CanonType src, CanonType dst, bool src_is_writable);
+extern bool IsSubtypeOfUnion(CanonType src_ct, CanonType dst_src);
+
+
 extern bool IsProperLhs(Node node);
 extern bool TypeListsAreTheSame(const std::vector<CanonType>& children1,
                                 const std::vector<CanonType>& children2);
 extern bool TypeListIsSuperSet(const std::vector<CanonType>& children1,
                                const std::vector<CanonType>& children2);
+
 extern void TypeListDelta(const std::vector<CanonType>& children1,
                            const std::vector<CanonType>& children2,
                            std::vector<CanonType>* out);

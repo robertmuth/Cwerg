@@ -817,6 +817,22 @@ bool AddressCanBeTaken(Node node) {
   }
 }
 
+#if 0
+void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
+                                           bool strict) {
+  CanonType src_ct = Node_x_type(src_node);
+  if (src_ct == dst_ct) return;
+
+  if (strict) {
+    if (IsDropMutConversion(src_ct, dst_ct)) {
+      CompilerError(Node_srcloc(src_node)) << "drop conversion";
+    }
+  } else {
+    //
+  }
+}
+#endif
+
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
   std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
 
@@ -986,23 +1002,13 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
           CompilerError(Node_srcloc(node)) << "address cannot be taken";
         return CheckUnderlyingTypeIs(node, lhs_ct);
       }
-      case NT::ExprWiden: {
-        CanonType ct_expr = Node_x_type(Node_expr(node));
-
-        CheckTypeKind(node, NT::TypeUnion);
-        if (CanonType_kind(ct_expr) == NT::TypeUnion) {
-          if (CanonType_untagged(ct_expr) != CanonType_untagged(ct)) {
-            CompilerError(Node_srcloc(node)) << "incompatible unions (tagged)";
-          }
-          if (!TypeListIsSuperSet(CanonType_children(ct),
-                                  CanonType_children(ct_expr))) {
-            CompilerError(Node_srcloc(node))
-                << "incompatible unions (children)";
-          }
-        } else {
+      case NT::ExprWiden:
+        CheckTypeIs(node, Node_x_type(Node_type(node)));
+        if (!IsSubtypeOfUnion(Node_x_type(Node_expr(node)),
+                                        Node_x_type(node))) {
+          CompilerError(Node_srcloc(node)) << "incompatible typed for widening";
         }
         break;
-      }
       case NT::ExprUnionUntagged: {
         CanonType ct_expr = Node_x_type(Node_expr(node));
         CheckTypeKind(Node_expr(node), NT::TypeUnion);
@@ -1024,6 +1030,18 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
           CompilerError(Node_srcloc(node)) << "expected a type or enum";
         }
         return CheckUnderlyingTypeIs(Node_expr(node), ct);
+      }
+      case NT::ExprWrap: {
+        CanonType ct_dst = Node_x_type(Node_type(node));
+        CheckTypeIs(node, Node_x_type(Node_type(node)));
+        CanonType ct_target = CanonType_underlying_type(ct_dst);
+        CanonType ct_src = Node_x_type(Node_expr(node));
+        if (ct_target == ct_src) return;
+
+        if (CanonType_kind(ct_dst) == NT::DefType &&
+            IsDropMutConversion(ct_src, ct_target))
+          return;
+        CompilerError(Node_srcloc(node)) << "unions are not compatible";
       }
 
       case NT::EnumVal:
@@ -1061,16 +1079,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         CheckDefFunTypeFun(node);
         break;
         // ========= behavior changes when "strict"
-      case NT::ExprWrap: {
-        CanonType ct_dst = Node_x_type(Node_type(node));
-        CanonType ct_src = Node_x_type(Node_expr(node));
-        CheckTypeIs(node, Node_x_type(Node_type(node)));
-        if (CanonType_kind(ct_dst) == NT::DefType) {
-        } else {
-          ASSERT(CanonType_kind(ct_dst) == NT::DefEnum, "");
-        }
-        break;
-      }
+
       case NT::ExprNarrow:
         // TODO:
         break;
