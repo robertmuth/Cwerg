@@ -1036,23 +1036,41 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return CheckTypeIs(Node_type(node), Node_x_type(node));
       case NT::ValCompound:
         if (CanonType_kind(ct) == NT::TypeVec) {
+          CanonType ct_underlying = CanonType_underlying_type(ct);
+          for (Node field = Node_inits(node); !field.isnull();
+               field = Node_next(field)) {
+            CheckTypeIs(field, ct_underlying);
+            CheckValUndefOrTypeIsUint(Node_point_or_undef(field));
+          }
         } else {
           ASSERT(CanonType_kind(ct) == NT::DefRec, "");
+          Node defrec = CanonType_ast_node(ct);
+          Node field = Node_fields(defrec);
+
+          for (Node point = Node_inits(node); !point.isnull();
+               point = Node_next(point), field = Node_next(field)) {
+            field = MaybewAdvanceRecField(field, point);
+            ASSERT(Node_kind(field) == NT::RecField, "");
+            CanonType ct_field = Node_x_type(field);
+            CheckTypeIs(point, ct_field);
+          }
         }
         break;
-        //
-        // ---------------------------
-        //
-
       case NT::TypeFun:
-        ASSERT(CanonType_kind(ct) == NT::TypeFun, "");
-        break;
-
       case NT::DefFun:
         CheckDefFunTypeFun(node);
         break;
-
-        // ============================
+        // ========= behavior changes when "strict"
+      case NT::ExprWrap: {
+        CanonType ct_dst = Node_x_type(Node_type(node));
+        CanonType ct_src = Node_x_type(Node_expr(node));
+        CheckTypeIs(node, Node_x_type(Node_type(node)));
+        if (CanonType_kind(ct_dst) == NT::DefType) {
+        } else {
+          ASSERT(CanonType_kind(ct_dst) == NT::DefEnum, "");
+        }
+        break;
+      }
       case NT::ExprNarrow:
         // TODO:
         break;
@@ -1072,23 +1090,19 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
           // TODO: reall chedcke missing
         }
         break;
-      case NT::ExprWrap:
-        CheckTypeIs(node, Node_x_type(Node_type(node)));
-        // TODO: real checks are missing
-        break;
+
       case NT::ValPoint:
         // TODO: checked as part of ValCompound
         break;
 
-        //
+        // ========= nothing to check yet
       case NT::ExprStmt:
       case NT::TypeAuto:
-      case NT::ValUndef:
       case NT::ValAuto:
       case NT::TypeUnionDelta:
-
-        // nothing to check
         break;
+        //  ========= No type annotation
+      case NT::ValUndef:
       case NT::DefMod:
       case NT::StmtExpr:
       case NT::StmtTrap:

@@ -872,7 +872,7 @@ def _CheckId(node: cwast.Id,  _):
         assert False, f"{def_node}"
 
 
-def _CheckDefRecDefEnum(node, _):
+def _CheckAstNode(node, _):
     assert node.x_type.ast_node is node
 
 
@@ -962,30 +962,16 @@ VERIFIERS_COMMON = {
     cwast.ExprUnwrap: _CheckExprUnwrap,
     cwast.ValNum: _CheckValNum,
     cwast.EnumVal: lambda n, tc: _CheckTypeKind(n, cwast.DefEnum),
-
-    # -----------------
-    #
-    cwast.DefRec: _CheckDefRecDefEnum,
+    cwast.DefRec: _CheckAstNode,
+    cwast.DefEnum: _CheckAstNode,
     cwast.RecField: lambda n, tc:  _CheckTypeIs(n.type, n.x_type),
-    #
-    cwast.DefEnum: _CheckDefRecDefEnum,
-    #
-    cwast.TypeFun: _CheckDefFunTypeFun,
     cwast.ValCompound: lambda n, tc: _CheckValCompound(n),
-    #
+    cwast.TypeFun: _CheckDefFunTypeFun,
     cwast.DefFun: _CheckDefFunTypeFun,
     #
-    #
-    #
-    # minuned = node.type.x_type
-    #  subtrahend = node.subtrahend.x_type
-
-    #
-    # cwast.ValPoint: _CheckNothing,  # taken care of by previous
     cwast.TypeAuto: _CheckNothing,
     cwast.ValAuto: _CheckNothing,
     cwast.ExprStmt: _CheckNothing,
-    cwast.StmtExpr:  _CheckNothing,
     cwast.TypeUnionDelta:  _CheckNothing,
 }
 
@@ -997,13 +983,17 @@ def _CheckTypeCompatibleImplictConvAllowed(src_node, dst_ct: cwast.CanonType):
                             f"incompatible type for {src_node}: {src_node.x_type} expected: {dst_ct}")
 
 
+def _CheckTypeCompatibleWithOptionalStrict(src_node, dst_ct: cwast.CanonType, strict: bool):
+    if strict:
+        _CheckTypeSameExceptMut(src_node, dst_ct)
+    else:
+        _CheckTypeCompatibleImplictConvAllowed(src_node, dst_ct)
+
+
 def _CheckValPoint(point: cwast.ValPoint, strict: bool):
     val = point.value_or_undef
     if not isinstance(val, cwast.ValUndef):
-        if strict:
-            _CheckTypeSameExceptMut(val, point.x_type)
-        else:
-            _CheckTypeCompatibleImplictConvAllowed(val, point.x_type)
+        _CheckTypeCompatibleWithOptionalStrict(val, point.x_type, strict)
 
 
 def _CheckExprCall(node: cwast.ExprCall, strict: bool):
@@ -1012,20 +1002,14 @@ def _CheckExprCall(node: cwast.ExprCall, strict: bool):
     assert fun_sig.result_type(
     ) == node.x_type, f"{fun_sig.result_type()} {node.x_type}"
     for p, a in zip(fun_sig.parameter_types(), node.args):
-        if strict:
-            _CheckTypeSameExceptMut(a, p)
-        else:
-            _CheckTypeCompatibleImplictConvAllowed(a, p)
+        _CheckTypeCompatibleWithOptionalStrict(a, p, strict)
 
 
 def _CheckStmtAssignment(node: cwast.StmtAssignment, strict: bool):
     if not type_corpus.IsProperLhs(node.lhs):
         cwast.CompilerError(
             node.x_srcloc, f"cannot assign to readonly data: {node}")
-    if strict:
-        _CheckTypeSameExceptMut(node.expr_rhs, node.lhs.x_type)
-    else:
-        _CheckTypeCompatibleImplictConvAllowed(node.expr_rhs, node.lhs.x_type)
+    _CheckTypeCompatibleWithOptionalStrict(node.expr_rhs, node.lhs.x_type, strict)
 
 
 def _CheckStmtReturn(node: cwast.StmtReturn, strict: bool):
@@ -1035,33 +1019,24 @@ def _CheckStmtReturn(node: cwast.StmtReturn, strict: bool):
     else:
         assert isinstance(target, cwast.ExprStmt)
         expected = target.x_type
-    if strict:
-        _CheckTypeSameExceptMut(node.expr_ret,  expected)
-    else:
-        _CheckTypeCompatibleImplictConvAllowed(node.expr_ret, expected)
+    _CheckTypeCompatibleWithOptionalStrict(node.expr_ret, expected, strict)
 
 
 def _CheckDefVarDefGlobal(node, strict: bool):
     initial = node.initial_or_undef_or_auto
     ct = node.type_or_auto.x_type
     if not isinstance(initial, cwast.ValUndef):
-        if strict:
-            _CheckTypeSameExceptMut(initial, ct)
-        else:
-            _CheckTypeCompatibleImplictConvAllowed(initial, ct)
+        _CheckTypeCompatibleWithOptionalStrict(initial, ct, strict)
     _CheckTypeIs(node, ct)
 
 
 def _CheckExprWrap(node: cwast.ExprWrap,  strict: bool):
     ct_dst: cwast.CanonType = node.type.x_type
     ct_src: cwast.CanonType = node.expr.x_type
-    assert ct_dst == node.x_type
+    _CheckTypeIs(node, ct_dst)
     if ct_dst.is_wrapped():
         ct_dst = ct_dst.underlying_type()
-        if strict:
-            _CheckTypeSameExceptMut(node.expr, ct_dst)
-        else:
-            _CheckTypeCompatibleImplictConvAllowed(node.expr, ct_dst)
+        _CheckTypeCompatibleWithOptionalStrict(node.expr, ct_dst, strict)
         return
     assert ct_dst.is_enum()
     if ct_src is not ct_dst.underlying_type():
