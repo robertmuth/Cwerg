@@ -8,13 +8,13 @@
 
 Cwerg aims to be a complete, compact and fast "from-scratch" compiler for a C-like language.
 It has no dependencies and consists of the following components:
-* **[Frontend FE/](FE/)**: [Overview](FE/Docs/tutorial.md), [Additional Docs](FE/Docs/)
+* **Frontend (FE)**: [Overview](FE/Docs/tutorial.md), [Additional Docs](FE/Docs/), [Code](FE/)
 
   A low-level C-like language with a Python inspired concrete syntax.
   Still under active development
 
 
-* **[Backend BE/](BE/)**: [Overview](BE/README.md),  [Backend IR](BE/Docs/opcodes.md), [Additional Docs](BE/Docs/)
+* **Backend (BE)**: [Overview](BE/README.md),  [Backend IR](BE/Docs/opcodes.md), [Additional Docs](BE/Docs/), [Code](BE/)
 
   Muti-target (currently: X86-64, Aarch64, Arm32).
 
@@ -43,7 +43,7 @@ Explicit line number targets are in place to prevent feature creep:
 * backend 10kLOC (target independent code) + 5kLOC(per target
   ([current counts](BE/CLOC.md))
 
-The translation speed target is 1000k LOC per sec using at most 4 cores 
+The translation speed target is 1000k LOC per sec using at most 4 cores
 on a 2020 era midrange desktop or high end laptop.
 
 ## Inspirations

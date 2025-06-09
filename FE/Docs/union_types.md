@@ -11,11 +11,12 @@ Unions must have at least two members.
 Example:
 
 ```
-type Union1 @untagged union(s32 void ^!s32)
+type Union1 = union!(s32, void, ^s32)
 ```
-This represents a union of 3 members: s32, void and ^!s32.
+This represents a union of 3 members: s32, void and ^s32.
 Note that void is valid member for unions.
-
+The exclamation mark at the end of the 'union' keyword changes default of a
+tagged union to an untagged one.
 
 A `tagged union` can be thought of as a pair of
 * a `tag` (a small interger of type `typeid`) and
@@ -29,23 +30,23 @@ Example:
 
 ```
 -- working around the distinct type requirement
-@wrapped type t1 s32
-type Union1 union(s32, t1)
+wrapped type t1 = s32
+type Union1 = union(s32, t1)
 
 -- one or more wrapped void types can be used as error code
-@wrapped type error1 void
-@wrapped type error2 void
+wrapped type error1 = void
+wrapped type error2 = void
 
-type Union2 union(void, error1, error2)
+type Union2 = union(void, error1, error2)
 
 -- nullable pointers can be modelled like so
-type Union3 union(void, ^!u8)
+type Union3 = union(void, ^u8)
 ```
 
 Union types are order independent:
 ```
-type Union1 union(s32. void, type_ptr)
-type Union2 union(void. s32. type_ptr)
+type Union1 = union(s32, void, ^u8)
+type Union2 = union(void, s32, ^u8)
 
 static_assert typeidof(Union1) ==  typeidof(Union2)
 ```
@@ -53,9 +54,9 @@ static_assert typeidof(Union1) ==  typeidof(Union2)
 Union types are duplicate eliminating
 
 ```
-type Union1 union(void, type_ptr)
+type Union1 = union(void, ^u8)
 
-type Union2 union(void, void, type_ptr)
+type Union2 = union(void, void, ^u8)
 
 static_assert typeidof(Union1) ==  typeidof(Union2)
 ```
@@ -63,11 +64,11 @@ static_assert typeidof(Union1) ==  typeidof(Union2)
 Unions are "auto flattening", e.g.:
 
 ```
-type Union1 union(s32, void, type_ptr)
+type Union1 = union(s32, void, ^u8)
 
-type Union2 union(s32, void, union(Union1, u8))
+type Union2 = union(s32, void, union(Union1, u8))
 
-type Union3 union(s32, void, u8, type_ptr)
+type Union3 = union(s32, void, u8, ^u8)
 
 static_assert typeid_of(Union2) ==  typeid_of(Union3)
 
@@ -77,20 +78,20 @@ One can create a new union that is the set difference
 of two unions or a union and an individual type:
 
 ```
-type Union1 union(s32, void, s64, u8)
-type Union2 union(s32, void)
+type Union1 = union(s32, void, s64, u8)
+type Union2 = union(s32, void)
 
-type Delta1 union_delta(Union1, Union2)
+type Delta1 = union_delta(Union1, Union2)
 static_assert typeid_of(Delta1) == typeid_of(union(u8, s64))
 
-type Delta2 union_delta(Union2, void))
+type Delta2 = union_delta(Union2, void))
 static_assert typeid_of(Delta2) == typeid_of(s32)
 
 ```
 
 ## Initialization and Implicit Widening
 
-A typed variable, parameter, field-element, return value, etc. of type union `u` can be initialized using an expression whose type is
+A variable declartion, call argument, field-element, return value, etc. of type union `u` can be initialized using an expression whose type is
 
 * any of the underlying types of `u`
 * another union `v` where
@@ -110,7 +111,7 @@ the tagged union and compare the resulting value;
 
 Assuming
 ```
-type Union1 union(s16, void, u32)
+type Union1 = union(s16, void, u32)
 
 let! u  Union1 = ...
 let! v  Union1 = ...
@@ -146,7 +147,7 @@ The `is` operator can be used to test if the run-time type of a tagged union bel
 
 Examples
 ```
-type Union1 union(s16, void, u32)
+type Union1 = union(s16, void, u32)
 
 let! u  Union = ...
 
@@ -160,7 +161,9 @@ let! u  Union = ...
 
 Narrowing of values of a union type is possible with the `narrow_as` operator.
 
-For `tagged unions` the narrowing can be explicitly marked as `@unchecked`.
+For `tagged unions` the narrowing can be explicitly marked as unchecked by using
+ `narrow_as!` (note the extra exclamation mark).
+
 
 For `untagged unions` there is nothing to check.
 

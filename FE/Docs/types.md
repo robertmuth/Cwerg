@@ -37,39 +37,41 @@ Note:
 
 ### Pointer Types
 
+* `^u32` pointer to a readonly `u32`
+*`^!u32` pointer to a writable `u32`
 
-`(ptr t)` or `(ptr @mut t)`
 
 ### vecs
 
-`(vec dim t)`
+* `[dim]u32`  vector of length `dim` of elements of type `u32`
+   `dim` must be evaluable at compile-time
 
 Note the dimesion is part of the type.
 
-`(len array)` will return the dimension of the array
+`len(v)` will return the dimension of the vetor `v`
 which is a compile time constant.
 
-`(front vec)`  or  `(front @mut vec)`  will return
+`front(v)`  or  `(front!(v)`  will return
 a pointer to the first element of the vec.
 
 
 
 ### spans
 
-`(span t)`
-`(span @mut t)`
+`span(t)`
+`span!(t)`
 
 
-`(len span)` will return the length of the span.
-`(front span)`  or  `(front @mut span)`  will return
+`len(span)` will return the length of the span.
+`front(span)`  or  `front!(span)`  will return
 a pointer to the first element of the span.
 
-`(front @mut span)`  can only be applied to `(span @mut t)`.
+`front!(span)`  can only be applied to `span!(t)`.
 
 spans are essentially records of the form
 
-`((ptr  t), uint)`
-`((ptr  @mut t), uint)`
+`(^t, uint)`
+`(^!t), uint)`
 
 
 and will be lowered as such.
@@ -79,16 +81,18 @@ and will be lowered as such.
 
 ### Untagged Sum Types
 
-`(sum @untagged [t1 t2 t3])`
+`union!(t1, t2, t3)`
 
 * untagged sums are like unions in C
 
 
 ### (Tagged) Sum Types
 
-`(sum @untagged [t1 t2 t3])`
+`union!(t1, t2, t3)`
 
 ### Function Types
+
+`type type_fun = funtype(a bool, b bool, c s32) s32`
 
 
 ### Adhoc Polymorphism
