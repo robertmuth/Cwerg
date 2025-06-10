@@ -261,23 +261,6 @@ class GlobalConstantPool:
         return self._all_globals
 
 
-def _EvalDefEnum(node: cwast.DefEnum):
-    """TBD"""
-    bt = node.x_type.get_unwrapped_base_type_kind()
-    val = 0
-    for c in node.items:
-        assert isinstance(c, cwast.EnumVal)
-        if not isinstance(c.value_or_auto, cwast.ValAuto):
-            assert c.value_or_auto.x_value is not None
-            val = c.value_or_auto.x_value.val
-        if c.x_value is None:
-            _AssignValue(c.value_or_auto, EvalNum(val, bt))
-            _AssignValue(c, EvalNum(val, bt))
-            out = True
-        val += 1
-    return None
-
-
 def GetDefaultForBaseType(bt: cwast.BASE_TYPE_KIND) -> Any:
     if bt.IsReal():
         return EvalNum(0.0, bt)
@@ -402,6 +385,7 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
         assert False, f"unexpected type {ct_operand}"
         return None
 
+
 def _EvalExpr3(node: cwast.Expr3) -> bool:
     if node.cond.x_value is None:
         return None
@@ -414,8 +398,7 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
     return False
 
 
-def _GetValForAuto(node: cwast.ValAuto) -> Optional[EvalBase]:
-    ct: cwast.CanonType = node.x_type
+def _GetValForAuto(ct: cwast.CanonType) -> Optional[EvalBase]:
     if ct.is_complex():
         return VAL_COMPLEX_DEFAULT
     elif ct.is_span():
@@ -474,6 +457,26 @@ def _GetValForRecAtField(container, field):
     return None
 
 
+def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
+                                           src_node):
+    src_type: cwast.CanonType = dst_type if isinstance(
+        src_node, cwast.ValUndef) else src_node.x_type
+    src_value = src_node.x_value
+    if src_type is dst_type or type_corpus.IsDropMutConversion(src_type, dst_type):
+        return src_value
+
+    if type_corpus.IsVecToSpanConversion(src_type, dst_type):
+        if src_value is None:
+            return EvalSpan(None, src_type.array_dim(), None)
+        else:
+            assert isinstance(src_value, EvalCompound)
+            return EvalSpan(src_value.sym, src_type.array_dim(), src_value)
+    elif src_value is None:
+        return None
+    # assert False, f"{src_node}: {src_node.x_type} -> {dst_type} [{src_value}]"
+    return None
+
+
 def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     """Returns True if node could be evaluated."""
 
@@ -493,7 +496,18 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.EnumVal):
         return None  # handles as part of DefEnum
     elif isinstance(node, cwast.DefEnum):
-        return _EvalDefEnum(node)
+        bt = node.x_type.get_unwrapped_base_type_kind()
+        val = 0
+        for c in node.items:
+            assert isinstance(c, cwast.EnumVal)
+            if not isinstance(c.value_or_auto, cwast.ValAuto):
+                assert c.value_or_auto.x_value is not None
+                val = c.value_or_auto.x_value.val
+            if c.x_value is None:
+                _AssignValue(c.value_or_auto, EvalNum(val, bt))
+                _AssignValue(c, EvalNum(val, bt))
+            val += 1
+        return None
     elif isinstance(node, cwast.ValVoid):
         return VAL_VOID
     elif isinstance(node, cwast.ValUndef):
@@ -521,7 +535,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         if initial.x_value is None and isinstance(initial, cwast.ValAuto):
             # ValAuto has differernt meanings in different context
             # so we deal with it explicity here and elsewhere
-            _AssignValue(initial, _GetValForAuto(initial))
+            _AssignValue(initial, _GetValForAuto(initial.x_type))
         if node.mut:
             return None
         return _EvalValWithPossibleImplicitConversion(node.x_type, initial)
@@ -641,26 +655,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     else:
         assert False, f"unexpected node {node}"
         return None
-
-
-def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
-                                           src_node):
-    src_type: cwast.CanonType = dst_type if isinstance(
-        src_node, cwast.ValUndef) else src_node.x_type
-    src_value = src_node.x_value
-    if src_type is dst_type or type_corpus.IsDropMutConversion(src_type, dst_type):
-        return src_value
-
-    if type_corpus.IsVecToSpanConversion(src_type, dst_type):
-        if src_value is None:
-            return EvalSpan(None, src_type.array_dim(), None)
-        else:
-            assert isinstance(src_value, EvalCompound)
-            return EvalSpan(src_value.sym, src_type.array_dim(), src_value)
-    elif src_value is None:
-        return None
-    # assert False, f"{src_node}: {src_node.x_type} -> {dst_type} [{src_value}]"
-    return None
 
 
 def EvalRecursively(node) -> bool:
