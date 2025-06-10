@@ -522,6 +522,17 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         return _AssignValue(node, EvalCompound(node))
     elif isinstance(node, cwast.ValString):
         return _AssignValue(node, EvalCompound(node))
+    elif isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
+        initial = node.initial_or_undef_or_auto
+        if initial.x_value is None and isinstance(initial, cwast.ValAuto):
+            # ValAuto has differernt meanings in different context
+            # so we deal with it explicity here and elsewhere
+            val = _GetValForAuto(initial)
+            _AssignValue(initial, val)
+        if node.mut:
+            return False
+        val = _EvalValWithPossibleImplicitConversion(node.x_type, initial)
+        return _AssignValue(node, val)
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
         if index_val is None:
@@ -643,9 +654,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ExprUnionTag):
         return False
     elif isinstance(node, cwast.ExprParen):
-        if _EvalNode(node.expr):
-            return _AssignValue(node, node.expr.x_value)
-        return False
+        return _AssignValue(node, node.expr.x_value)
     else:
         assert False, f"unexpected node {node}"
 
@@ -678,20 +687,6 @@ def EvalRecursively(node) -> bool:
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return
         if node.x_value is not None:
-            return
-        if isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
-            initial = node.initial_or_undef_or_auto
-            if initial.x_value is None and isinstance(initial, cwast.ValAuto):
-                # ValAuto has differernt meanings in different context
-                # so we deal with it explicity here and elsewhere
-                val = _GetValForAuto(initial)
-                seen_change |= _AssignValue(initial, val)
-            if node.mut:
-                return
-            val = _EvalValWithPossibleImplicitConversion(
-                node.x_type, initial)
-            if val is not None:
-                seen_change |= _AssignValue(node, val)
             return
         seen_change |= _EvalNode(node)
 
