@@ -1,6 +1,6 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
-#include <map>
+#include <vector>
 
 #include "FE/cwast_gen.h"
 #include "FE/identifier.h"
@@ -48,7 +48,6 @@ struct ConstCore {
   union {
     float val_r32;
     double val_r64;
-    bool val_bool;
     uint32_t val_u32;
     uint64_t val_u64;
     int32_t val_s32;
@@ -166,4 +165,5 @@ inline Const ConstNewCompound(Node sym) {
   return out;
 }
 
+void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
 }  // namespace cwerg::fe

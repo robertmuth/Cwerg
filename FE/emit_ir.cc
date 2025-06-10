@@ -15,6 +15,7 @@
 #include "FE/parse.h"
 #include "FE/pp.h"
 #include "FE/typify.h"
+#include "FE/eval.h"
 #include "Util/assert.h"
 #include "Util/switch.h"
 
@@ -74,7 +75,7 @@ int main(int argc, const char* argv[]) {
   std::cout << "@@@ CHECKING AFTER TYPING\n";
   ValidateAST(mp.mods_in_topo_order, CompileStage::AfterTyping);
   TypeCheckAst(mp.mods_in_topo_order, &tc, false);
-
+  DecorateASTWithPartialEvaluation(mp.mods_in_topo_order);
   // tc.Dump();
 
   std::cout << "@@@ files=" << LexerRaw::stats.num_files
