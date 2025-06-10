@@ -118,13 +118,10 @@ VAL_TRUE = EvalNum(True, cwast.BASE_TYPE_KIND.BOOL)
 VAL_FALSE = EvalNum(False, cwast.BASE_TYPE_KIND.BOOL)
 
 
-def _AssignValue(node, val) -> bool:
-    if val is None:
-        return False
-    assert isinstance(val, EvalBase), f"unexpected value {val}"
+def _AssignValue(node, val: EvalBase):
+    assert isinstance(val, EvalBase), f"unexpected value {val} for {node}"
     logger.info("EVAL of %s: %s", node, val)
     node.x_value = val
-    return True
 
 
 @enum.unique
@@ -264,10 +261,9 @@ class GlobalConstantPool:
         return self._all_globals
 
 
-def _EvalDefEnum(node: cwast.DefEnum) -> bool:
+def _EvalDefEnum(node: cwast.DefEnum):
     """TBD"""
     bt = node.x_type.get_unwrapped_base_type_kind()
-    out = False
     val = 0
     for c in node.items:
         assert isinstance(c, cwast.EnumVal)
@@ -279,7 +275,7 @@ def _EvalDefEnum(node: cwast.DefEnum) -> bool:
             _AssignValue(c, EvalNum(val, bt))
             out = True
         val += 1
-    return out
+    return None
 
 
 def GetDefaultForBaseType(bt: cwast.BASE_TYPE_KIND) -> Any:
@@ -304,10 +300,10 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
         return None
 
 
-def _EvalExpr1(node: cwast.Expr1) -> bool:
+def _EvalExpr1(node: cwast.Expr1) -> Optional[EvalBase]:
     e = node.expr.x_value
     if e is None:
-        return False
+        return None
     e = e.val
     bt = node.x_type.base_type_kind
     op = node.unary_expr_kind
@@ -327,8 +323,8 @@ def _EvalExpr1(node: cwast.Expr1) -> bool:
         else:
             assert False
     else:
-        return False
-    return _AssignValue(node, EvalNum(v, bt))
+        return None
+    return EvalNum(v, bt)
 
 
 # TODO: naive implementation -> needs a lot more scrutiny
@@ -376,17 +372,17 @@ def _HandleUintOverflow(kind: cwast.BASE_TYPE_KIND, val: int) -> int:
     return val & mask
 
 
-def _EvalExpr2(node: cwast.Expr2) -> bool:
+def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
     e1 = node.expr1.x_value
     e2 = node.expr2.x_value
     op = node.binary_expr_kind
     if e1 is None or e2 is None:
-        return False
+        return None
     ct = node.x_type
     bt = ct.base_type_kind
     ct_operand = node.expr1.x_type
     if ct_operand.is_pointer() or ct_operand.is_fun():
-        return _AssignValue(node,  EvalNum(_EVAL_EQ_NE[op](e1, e2), bt))
+        return EvalNum(_EVAL_EQ_NE[op](e1, e2), bt)
     assert isinstance(e1, EvalNum) and isinstance(e2, EvalNum)
     e1 = e1.val
     e2 = e2.val
@@ -395,30 +391,30 @@ def _EvalExpr2(node: cwast.Expr2) -> bool:
         v = _EVAL_UINT[op](e1, e2)
         if bt != cwast.BASE_TYPE_KIND.BOOL:
             v = _HandleUintOverflow(bt_operand, v)
-        return _AssignValue(node, EvalNum(v, bt))
+        return EvalNum(v, bt)
     elif bt_operand.IsSint():
-        return _AssignValue(node, EvalNum(_EVAL_SINT[op](e1, e2), bt))
+        return EvalNum(_EVAL_SINT[op](e1, e2), bt)
     elif bt_operand.IsReal():
-        return _AssignValue(node,  EvalNum(_EVAL_REAL[op](e1, e2), bt))
+        return EvalNum(_EVAL_REAL[op](e1, e2), bt)
     elif bt_operand == cwast.BASE_TYPE_KIND.BOOL:
-        return _AssignValue(node,  EvalNum(_EVAL_BOOL[op](e1, e2), bt))
+        return EvalNum(_EVAL_BOOL[op](e1, e2), bt)
     else:
         assert False, f"unexpected type {ct_operand}"
-
+        return None
 
 def _EvalExpr3(node: cwast.Expr3) -> bool:
     if node.cond.x_value is None:
-        return False
+        return None
     if node.cond.x_value:
         if node.expr_t.x_value is not None:
-            return _AssignValue(node, node.expr_t.x_value)
+            return node.expr_t.x_value
     else:
         if node.expr_f.x_value is not None:
-            return _AssignValue(node, node.expr_f.x_value)
+            return node.expr_f.x_value
     return False
 
 
-def _GetValForAuto(node: cwast.ValAuto) -> bool:
+def _GetValForAuto(node: cwast.ValAuto) -> Optional[EvalBase]:
     ct: cwast.CanonType = node.x_type
     if ct.is_complex():
         return VAL_COMPLEX_DEFAULT
@@ -478,7 +474,7 @@ def _GetValForRecAtField(container, field):
     return None
 
 
-def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
+def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     """Returns True if node could be evaluated."""
 
     if isinstance(node, cwast.Id):
@@ -488,64 +484,54 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
             if def_node.x_value is not None:
                 assert not def_node.mut
-            return _AssignValue(node, def_node.x_value)
+            return def_node.x_value
         elif isinstance(def_node, cwast.EnumVal):
-            return _AssignValue(node, def_node.value_or_auto.x_value)
+            return def_node.value_or_auto.x_value
         elif isinstance(def_node, cwast.DefFun):
-            return _AssignValue(node, EvalFunAddr(def_node))
-        return False
+            return EvalFunAddr(def_node)
+        return None
     elif isinstance(node, cwast.EnumVal):
-        return False  # handles as part of DefEnum
+        return None  # handles as part of DefEnum
     elif isinstance(node, cwast.DefEnum):
         return _EvalDefEnum(node)
     elif isinstance(node, cwast.ValVoid):
-        return _AssignValue(node, VAL_VOID)
+        return VAL_VOID
     elif isinstance(node, cwast.ValUndef):
-        return _AssignValue(node, VAL_UNDEF)
+        return VAL_UNDEF
     elif isinstance(node, cwast.ValNum):
         ct: cwast.CanonType = node.x_type
         if ct.is_base_type() or ct.is_enum():
             bt = ct.base_type_kind
-            return _AssignValue(node, EvalNum(typify.ParseNum(node, bt), bt))
-        else:
-            assert False, f"unepxected type for ValNum: {ct}"
-            return False
+            return EvalNum(typify.ParseNum(node, bt), bt)
+
+        assert False, f"unepxected type for ValNum: {ct}"
     elif isinstance(node, cwast.ValAuto):
         # we do not evaluate this during the recursion
         # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
-        return False
+        return None
     elif isinstance(node, cwast.ValPoint):
-        val = _EvalValWithPossibleImplicitConversion(
+        return _EvalValWithPossibleImplicitConversion(
             node.x_type, node.value_or_undef)
-        return _AssignValue(node, val)
     elif isinstance(node, cwast.ValCompound):
-        return _AssignValue(node, EvalCompound(node))
+        return EvalCompound(node)
     elif isinstance(node, cwast.ValString):
-        return _AssignValue(node, EvalCompound(node))
+        return EvalCompound(node)
     elif isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
         initial = node.initial_or_undef_or_auto
         if initial.x_value is None and isinstance(initial, cwast.ValAuto):
             # ValAuto has differernt meanings in different context
             # so we deal with it explicity here and elsewhere
-            val = _GetValForAuto(initial)
-            _AssignValue(initial, val)
+            _AssignValue(initial, _GetValForAuto(initial))
         if node.mut:
-            return False
-        val = _EvalValWithPossibleImplicitConversion(node.x_type, initial)
-        return _AssignValue(node, val)
+            return None
+        return _EvalValWithPossibleImplicitConversion(node.x_type, initial)
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
         if index_val is None:
-            return False
-        val = _GetValForVecAtPos(node.container, index_val.val)
-        if val is None:
-            return False
-        return _AssignValue(node, val)
+            return None
+        return _GetValForVecAtPos(node.container, index_val.val)
     elif isinstance(node, cwast.ExprField):
-        val = _GetValForRecAtField(node.container, node.field)
-        if val is None:
-            return False
-        return _AssignValue(node, val)
+        return _GetValForRecAtField(node.container, node.field)
     elif isinstance(node, cwast.Expr1):
         return _EvalExpr1(node)
     elif isinstance(node, cwast.Expr2):
@@ -555,12 +541,12 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
     elif isinstance(node, cwast.ExprTypeId):
         typeid = node.type.x_type.get_original_typeid()
         assert typeid >= 0
-        return _AssignValue(node, EvalNum(typeid, node.x_type.base_type_kind))
+        return EvalNum(typeid, node.x_type.base_type_kind)
     elif isinstance(node, cwast.ExprCall):
         # TODO
-        return False
+        return None
     elif isinstance(node, cwast.ExprStmt):
-        return False
+        return None
     elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprWiden, cwast.ExprWrap, cwast.ExprUnwrap)):
         # TODO: some transforms may need to be applied
         ct = node.x_type
@@ -568,21 +554,21 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
         if isinstance(val, EvalNum):
             new_bt = ct.get_unwrapped_base_type_kind()
             assert new_bt is not None, f"{node.expr.x_type} -> {ct.x_type}"
-            return _AssignValue(node, EvalNum(val.val, new_bt))
+            return EvalNum(val.val, new_bt)
         elif isinstance(val, EvalVoid):
-            return _AssignValue(node, val)
-        return False
+            return val
+        return None
     elif isinstance(node, cwast.ExprUnionUntagged):
         # TODO: we can do better here
-        return False
+        return None
     elif isinstance(node, cwast.ExprBitCast):
         # TODO: we can do better here
-        return False
+        return None
     elif isinstance(node, cwast.ExprIs):
         expr_ct: cwast.CanonType = node.expr.x_type
         test_ct: cwast.CanonType = node.type.x_type
         if expr_ct.get_original_typeid() == test_ct.get_original_typeid():
-            return _AssignValue(node, VAL_TRUE)
+            return VAL_TRUE
         if expr_ct.is_tagged_union():
             if test_ct.is_tagged_union():
                 test_elements = set(
@@ -590,73 +576,71 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> bool:
                 expr_elements = set(
                     [x.name for x in expr_ct.union_member_types()])
                 if expr_elements.issubset(test_elements):
-                    return _AssignValue(node, VAL_TRUE)
-                return False
+                    return VAL_TRUE
+                return None
             else:
-                return False
+                return None
         elif test_ct.is_tagged_union():
             test_elements = set(
                 [x.name for x in test_ct.union_member_types()])
-            return _AssignValue(node, expr_ct.name in test_elements)
+            return VAL_TRUE if expr_ct.name in test_elements else VAL_FALSE
         else:
-            return _AssignValue(node, VAL_FALSE)
+            return VAL_FALSE
     elif isinstance(node, cwast.ExprPointer):
         # TODO: we can do better here
-        return False
+        return None
     elif isinstance(node, cwast.ExprFront):
         container = node.container
         ct_container = container.x_type
-        val = None
         if ct_container.is_vec():
             if isinstance(container, cwast.Id):
-                val = EvalSymAddr(container.x_symbol)
+                return EvalSymAddr(container.x_symbol)
         else:
             assert ct_container.is_span()
             v_container = container.x_value
             if v_container is not None and v_container.pointer is not None:
                 assert isinstance(v_container, EvalSpan), f"{v_container}"
-                val = EvalSymAddr(v_container.pointer)
-        return _AssignValue(node, val)
+                return EvalSymAddr(v_container.pointer)
+        return None
     elif isinstance(node, cwast.ExprLen):
         container = node.container
         bt = node.x_type.base_type_kind
-        val = None
         if container.x_type.is_vec():
-            val = EvalNum(container.x_type.array_dim(), bt)
+            return EvalNum(container.x_type.array_dim(), bt)
         elif isinstance(container.x_value, EvalSpan) and container.x_value.size is not None:
-            val = EvalNum(container.x_value.size, bt)
-        return _AssignValue(node, val)
+            return EvalNum(container.x_value.size, bt)
+        return None
     elif isinstance(node, cwast.ExprAddrOf):
         if isinstance(node.expr_lhs, cwast.Id):
-            return _AssignValue(node, EvalSymAddr(node.expr_lhs.x_symbol))
-        return False
+            return EvalSymAddr(node.expr_lhs.x_symbol)
+        return None
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0
-        return _AssignValue(node, EvalNum(node.field.x_symbol.x_offset,
-                                          node.x_type.base_type_kind))
+        return EvalNum(node.field.x_symbol.x_offset, node.x_type.base_type_kind)
     elif isinstance(node, cwast.ExprSizeof):
-        return _AssignValue(node, EvalNum(node.type.x_type.size, node.x_type.base_type_kind))
+        return EvalNum(node.type.x_type.size, node.x_type.base_type_kind)
     elif isinstance(node, cwast.ExprDeref):
         # TODO maybe track symbolic addresses
-        return False
+        return None
     elif isinstance(node, cwast.ValSpan):
         p = node.pointer.x_value
         s = node.expr_size.x_value
         if p is None and s is None:
-            return False
+            return None
         if p:
             assert isinstance(p, EvalSymAddr)
             p = p.sym
         if s:
             assert isinstance(s, EvalNum)
             s = s.val
-        return _AssignValue(node, EvalSpan(p, s))
+        return EvalSpan(p, s)
     elif isinstance(node, cwast.ExprUnionTag):
-        return False
+        return None
     elif isinstance(node, cwast.ExprParen):
-        return _AssignValue(node, node.expr.x_value)
+        return node.expr.x_value
     else:
         assert False, f"unexpected node {node}"
+        return None
 
 
 def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
@@ -688,8 +672,10 @@ def EvalRecursively(node) -> bool:
             return
         if node.x_value is not None:
             return
-        seen_change |= _EvalNode(node)
-
+        val = _EvalNode(node)
+        if val is not None:
+            seen_change = True
+            _AssignValue(node, val)
     cwast.VisitAstRecursivelyPost(node, visitor)
 
     if seen_change:
