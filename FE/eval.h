@@ -8,42 +8,6 @@
 
 namespace cwerg::fe {
 
-enum class CONST_KIND {
-  INVALID = 0,
-  //
-  S8 = 11,
-  S16 = 12,
-  S32 = 13,
-  S64 = 14,
-  //
-  U8 = 21,
-  U16 = 22,
-  U32 = 23,
-  U64 = 24,
-  //
-  R32 = 30,
-  R64 = 31,
-  //
-  BOOL = 41,
-  TYPEID = 42,
-  VOID = 43,
-  UNDEF = 44,
-  COMPLEX_DEFAULT = 45,
-  //
-  SYM_ADDR = 50,
-  FUN_ADDR = 51,
-  COMPOUND = 52,
-  //
-  SPAN = 60,
-};
-
-struct Const : public Handle {
-  explicit constexpr Const(uint32_t index = 0,
-                           CONST_KIND kind = CONST_KIND::INVALID)
-      : Handle(index, uint8_t(kind)) {}
-  explicit constexpr Const(Handle ref) : Handle(ref.value) {}
-};
-
 struct ConstCore {
   union {
     float val_r32;

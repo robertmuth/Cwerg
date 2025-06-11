@@ -9,10 +9,24 @@
 namespace cwerg::fe {
 namespace {
 
+Const EvalNode(Node node) {
+  switch (Node_kind(node)) {
+    case NT::DefVar:
+      return kConstInvalid;
+
+    default:
+      return kConstInvalid;
+  }
+}
+
 bool _EvalRecursively(Node mod) {
   bool seen_change = false;
-  auto evaluator = [](Node node, Node) {
-
+  auto evaluator = [&seen_change](Node node, Node parent) {
+    Const c = EvalNode(node);
+    if (!c.isnull()) {
+      Node_x_eval(node) = c;
+      seen_change = true;
+    }
   };
 
   VisitAstRecursivelyPost(mod, evaluator, kNodeInvalid);

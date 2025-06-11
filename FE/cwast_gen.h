@@ -34,6 +34,35 @@ enum class MACRO_PARAM_KIND : uint8_t;
 enum class MACRO_RESULT_KIND : uint8_t;
 enum class MOD_PARAM_KIND : uint8_t;
 
+enum class CONST_KIND : uint8_t {
+  INVALID = 0,
+  //
+  S8 = 11,
+  S16 = 12,
+  S32 = 13,
+  S64 = 14,
+  //
+  U8 = 21,
+  U16 = 22,
+  U32 = 23,
+  U64 = 24,
+  //
+  R32 = 30,
+  R64 = 31,
+  //
+  BOOL = 41,
+  TYPEID = 42,
+  VOID = 43,
+  UNDEF = 44,
+  COMPLEX_DEFAULT = 45,
+  //
+  SYM_ADDR = 50,
+  FUN_ADDR = 51,
+  COMPOUND = 52,
+  //
+  SPAN = 60,
+};
+
 extern const std::array<uint16_t, 17> BF2MASK;
 
 inline uint16_t Mask(BF val) { return BF2MASK[int(val)]; }
@@ -79,10 +108,18 @@ struct CanonType : public Handle {
   explicit constexpr CanonType(Handle ref) : Handle(ref.value) {}
 };
 
+struct Const : public Handle {
+  explicit constexpr Const(uint32_t index = 0,
+                           CONST_KIND kind = CONST_KIND::INVALID)
+      : Handle(index, uint8_t(kind)) {}
+  explicit constexpr Const(Handle ref) : Handle(ref.value) {}
+};
+
 constexpr const Str kStrInvalid(0);
 constexpr const Name kNameInvalid(0);
 constexpr const Node kNodeInvalid(kHandleInvalid);
 constexpr const CanonType kCanonTypeInvalid(kHandleInvalid);
+constexpr const Const kConstInvalid(0);
 
 // =======================================
 // Node API
@@ -123,6 +160,7 @@ struct NodeExtra {
   Str comment;
   SrcLoc x_srcloc;
   CanonType x_type;
+  Const x_eval;
   union {
     Node x_symbol;
     Node x_target;
@@ -177,6 +215,7 @@ inline Node NodeLastSiblings(Node node) {
 inline Str& Node_comment(Node node) { return gNodeExtra[node].comment; }
 inline SrcLoc& Node_srcloc(Node node) { return gNodeExtra[node].x_srcloc; }
 inline Node& Node_x_symbol(Node node) { return gNodeExtra[node].x_symbol; }
+inline Const& Node_x_eval(Node node) { return gNodeExtra[node].x_eval; }
 inline Node& Node_x_poly_mod(Node node) { return gNodeExtra[node].x_poly_mod; }
 inline Node& Node_x_target(Node node) { return gNodeExtra[node].x_target; }
 inline uint32_t& Node_x_offset(Node node) { return gNodeExtra[node].x_offset; }
