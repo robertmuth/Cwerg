@@ -10,6 +10,10 @@ based Linux distributions.
 First you need to install (cross) tool chains and emulators.
 
 Cwerg requires C++20 compatible compilers and Python 3.10 or higher.
+
+The emulators are needed for testing of ARM executables produced by Cwerg.
+
+
 ```
 sudo apt install cmake
 sudo apt install gcc g++

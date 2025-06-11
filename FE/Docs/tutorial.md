@@ -1,6 +1,7 @@
 # Cwerg Language Overview
 
-Cwerg tries to find the right balance between language expressiveness and compiler implementation complexity.
+Cwerg tries to find the right balance between language expressiveness and compiler
+implementation complexity.
 The hope is to reach a sweet spot above what C gives us today:
 A small language that can be maintained by a single person and which is
 convenient for writing system software like operating systems and compilers.

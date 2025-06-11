@@ -199,7 +199,7 @@ The value of `z` are the bits of `u` truncated to `size_of(tv)`.
 ####  tv is not a union but tv ∈ member-types(tu)
 
 ```
-   set z = @unchecked narrow_as(u, tv)
+   set z = narrow_as!(u, tv)
 ```
 
 This is only valid if  `union_tag(u) == typeid_of(tv)`:
@@ -210,7 +210,7 @@ The value of `z` are the bits of `union_untagged(u)` truncated to `size_of(tv)`.
 ####  tv is tagged union where member-types(tv) ⊆ member-types(tu)
 
 ```
-   set z = @unchecked narrow_as(u, tv)
+   set z = narrow_as!(u, tv)
 ```
 
 This is onlt valid if `union_tag(u) ∈  member-type-ids(tv)`:
@@ -265,7 +265,6 @@ to `union_tag(u) ∉  member-type-ids((union_delta(tu, tv))` which may be faster
   * DefVar (initial_or_undef)
   * DefGlobal (initial_or_undef)
   * ExprCall (args)
-  * ExprWrap (expr)
   * StmtReturn (expr)
   * StmtAssignment (expr_rhs)
 
