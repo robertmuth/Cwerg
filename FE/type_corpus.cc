@@ -23,6 +23,7 @@ struct CanonTypeCore {
   Node ast_node = kNodeInvalid;
   int alignment = -1;
   int size = -1;
+  int type_id = -1;
 };
 
 struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore("CanonTypeCore");
@@ -80,6 +81,11 @@ CanonType CanonType_get_unwrapped(CanonType ct) {
 std::vector<CanonType>& CanonType_children(CanonType n) {
   return gCanonTypeCore[n].children;
 }
+
+int CanonType_get_original_typeid(CanonType n) {
+  return gCanonTypeCore[n].type_id;
+}
+int& CanonType_typeid(CanonType n) { return gCanonTypeCore[n].type_id; }
 
 Node CanonType_lookup_rec_field(CanonType ct, Name field_name) {
   ASSERT(CanonType_kind(ct) == NT::DefRec, "");
@@ -229,6 +235,8 @@ CanonType TypeCorpus::Insert(CanonType ct) {
   ASSERT(corpus_.find(CanonType_name(ct)) == corpus_.end(),
          "Duplicate type " << CanonType_name(ct));
   corpus_[CanonType_name(ct)] = ct;
+  CanonType_typeid(ct) = typeid_curr_;
+  ++typeid_curr_;
   return ct;
 }
 

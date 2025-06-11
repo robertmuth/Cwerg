@@ -4,6 +4,7 @@
 
 #include "FE/cwast_gen.h"
 #include "FE/identifier.h"
+
 #include "Util/assert.h"
 
 namespace cwerg::fe {
@@ -82,6 +83,9 @@ inline Const ConstNewU64(uint64_t val) {
   ConstGetCore(out).val_u64 = val;
   return out;
 }
+
+extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
+extern Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt);
 
 inline Const ConstNewS8(int8_t val) {
   return ConstNewShortSigned(val, CONST_KIND::S8);

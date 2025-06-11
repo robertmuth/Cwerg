@@ -28,6 +28,9 @@ extern bool CanonType_mut(CanonType n);
 extern bool CanonType_untagged(CanonType ct);
 extern int CanonType_alignment(CanonType n);
 extern int CanonType_size(CanonType n);
+extern int CanonType_get_original_typeid(CanonType n);
+extern int& CanonType_typeid(CanonType n);
+
 extern std::vector<CanonType>& CanonType_children(CanonType n);
 
 extern Node CanonType_lookup_rec_field(CanonType ct, Name field);
@@ -90,9 +93,10 @@ class TypeCorpus {
 
   std::map<BASE_TYPE_KIND, CanonType> base_type_map_;
   const TargetArchConfig& arch_;
-
+  int typeid_curr_ = 0;
   CanonType Insert(CanonType ct);
   CanonType InsertBaseType(BASE_TYPE_KIND kind);
+
 
  public:
   TypeCorpus(const TargetArchConfig& arch);

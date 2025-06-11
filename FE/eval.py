@@ -493,21 +493,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         elif isinstance(def_node, cwast.DefFun):
             return EvalFunAddr(def_node)
         return None
-    elif isinstance(node, cwast.EnumVal):
-        return None  # handles as part of DefEnum
-    elif isinstance(node, cwast.DefEnum):
-        bt = node.x_type.get_unwrapped_base_type_kind()
-        val = 0
-        for c in node.items:
-            assert isinstance(c, cwast.EnumVal)
-            if not isinstance(c.value_or_auto, cwast.ValAuto):
-                assert c.value_or_auto.x_value is not None
-                val = c.value_or_auto.x_value.val
-            if c.x_value is None:
-                _AssignValue(c.value_or_auto, EvalNum(val, bt))
-                _AssignValue(c, EvalNum(val, bt))
-            val += 1
-        return None
     elif isinstance(node, cwast.ValVoid):
         return VAL_VOID
     elif isinstance(node, cwast.ValUndef):
@@ -519,10 +504,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             return EvalNum(typify.ParseNum(node, bt), bt)
 
         assert False, f"unepxected type for ValNum: {ct}"
-    elif isinstance(node, cwast.ValAuto):
-        # we do not evaluate this during the recursion
-        # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
-        return None
+
     elif isinstance(node, cwast.ValPoint):
         return _EvalValWithPossibleImplicitConversion(
             node.x_type, node.value_or_undef)
@@ -556,11 +538,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         typeid = node.type.x_type.get_original_typeid()
         assert typeid >= 0
         return EvalNum(typeid, node.x_type.base_type_kind)
-    elif isinstance(node, cwast.ExprCall):
-        # TODO
-        return None
-    elif isinstance(node, cwast.ExprStmt):
-        return None
     elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprWiden, cwast.ExprWrap, cwast.ExprUnwrap)):
         # TODO: some transforms may need to be applied
         ct = node.x_type
@@ -572,12 +549,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         elif isinstance(val, EvalVoid):
             return val
         return None
-    elif isinstance(node, cwast.ExprUnionUntagged):
-        # TODO: we can do better here
-        return None
-    elif isinstance(node, cwast.ExprBitCast):
-        # TODO: we can do better here
-        return None
+
     elif isinstance(node, cwast.ExprIs):
         expr_ct: cwast.CanonType = node.expr.x_type
         test_ct: cwast.CanonType = node.type.x_type
@@ -600,9 +572,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             return VAL_TRUE if expr_ct.name in test_elements else VAL_FALSE
         else:
             return VAL_FALSE
-    elif isinstance(node, cwast.ExprPointer):
-        # TODO: we can do better here
-        return None
     elif isinstance(node, cwast.ExprFront):
         container = node.container
         ct_container = container.x_type
@@ -633,9 +602,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return EvalNum(node.field.x_symbol.x_offset, node.x_type.base_type_kind)
     elif isinstance(node, cwast.ExprSizeof):
         return EvalNum(node.type.x_type.size, node.x_type.base_type_kind)
-    elif isinstance(node, cwast.ExprDeref):
-        # TODO maybe track symbolic addresses
-        return None
+
     elif isinstance(node, cwast.ValSpan):
         p = node.pointer.x_value
         s = node.expr_size.x_value
@@ -648,10 +615,46 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             assert isinstance(s, EvalNum)
             s = s.val
         return EvalSpan(p, s)
-    elif isinstance(node, cwast.ExprUnionTag):
-        return None
     elif isinstance(node, cwast.ExprParen):
         return node.expr.x_value
+    elif isinstance(node, cwast.DefEnum):
+        bt = node.x_type.get_unwrapped_base_type_kind()
+        val = 0
+        for c in node.items:
+            assert isinstance(c, cwast.EnumVal)
+            if not isinstance(c.value_or_auto, cwast.ValAuto):
+                assert c.value_or_auto.x_value is not None
+                val = c.value_or_auto.x_value.val
+            if c.x_value is None:
+                _AssignValue(c.value_or_auto, EvalNum(val, bt))
+                _AssignValue(c, EvalNum(val, bt))
+            val += 1
+        return None
+    elif isinstance(node, cwast.ExprCall):
+        # TODO
+        return None
+    elif isinstance(node, cwast.ExprStmt):
+        return None
+    elif isinstance(node, cwast.ExprUnionUntagged):
+        # TODO: we can do better here
+        return None
+    elif isinstance(node, cwast.ExprBitCast):
+        # TODO: we can do better here
+        return None
+    elif isinstance(node, cwast.ExprUnionTag):
+        return None
+    elif isinstance(node, cwast.ExprPointer):
+        # TODO: we can do better here
+        return None
+    elif isinstance(node, cwast.ExprDeref):
+        # TODO maybe track symbolic addresses
+        return None
+    elif isinstance(node, cwast.EnumVal):
+        return None  # handles as part of DefEnum
+    elif isinstance(node, cwast.ValAuto):
+        # we do not evaluate this during the recursion
+        # Instead we evaluate this inside DefGlobal, DefVar, DefEnum
+        return None
     else:
         assert False, f"unexpected node {node}"
         return None

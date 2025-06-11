@@ -1040,7 +1040,6 @@ class CanonType:
         return UnionKind.TAG_ONLY
 
     def finalize(self, size: int, alignment: int, register_types):
-        # self.typeid = typeid
         self.size = size
         self.alignment = alignment
         self.register_types = register_types

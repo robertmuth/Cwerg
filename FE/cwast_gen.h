@@ -1328,6 +1328,7 @@ inline std::ostream& operator<<(std::ostream& os, Node node) {
   if (node.isnull()) {
     os << "@NULL@";
   } else {
+    ASSERT(node.kind() == Node_kind(node), "");
     os << EnumToString(node.kind()) << "(" << node.index() << ")";
   }
   return os;
