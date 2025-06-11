@@ -186,7 +186,7 @@ Node ParseFunLikeSpecial(Lexer* lexer, const TK& tk) {
     NodeInitExpr1(out, UNARY_EXPR_KIND::SQRT, args[0], tk.comments, tk.srcloc);
     return out;
   } else if (tk.text == "ptr_diff") {
-    Node out = NodeNew(NT::Expr1);
+    Node out = NodeNew(NT::Expr2);
     ParseFunLikeArgs(lexer, "EE", &args);
     NodeInitExpr2(out, BINARY_EXPR_KIND::PDELTA, args[0], args[1], tk.comments,
                   tk.srcloc);
@@ -677,7 +677,7 @@ Node ParseFunParamList(Lexer* lexer, bool want_comma) {
   }
   TK name = lexer->MatchIdOrDie();
   Node type = ParseTypeExpr(lexer);
-  Node out = NodeNew(NT::ModParam);
+  Node out = NodeNew(NT::FunParam);
 
   NodeInitFunParam(out, NameNew(name.text), type, BitsFromAnnotation(name),
                    name.comments, name.srcloc);
@@ -714,7 +714,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
       NodeInitStmtAssignment(out, lhs, rhs, tk.comments, tk.srcloc);
       return out;
     } else {
-      Node out = NodeNew(NT::StmtAssignment);
+      Node out = NodeNew(NT::StmtCompoundAssignment);
       BINARY_EXPR_KIND kind = ASSIGNMENT_KIND_FromString(op.text);
       NodeInitStmtCompoundAssignment(out, kind, lhs, rhs, tk.comments,
                                      tk.srcloc);

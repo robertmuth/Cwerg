@@ -179,6 +179,14 @@ void ValidateAST(const std::vector<Node>& mods, CompileStage stage) {
                               << Node_srcloc(node) << "\n");
       continue;
     }
+    for (int j = 0; j < MAX_NODE_CHILDREN; ++j) {
+      Node child = core.children_node[j];
+      if (!NodeIsNode(child)) continue;
+      ASSERT(child.kind() == Node_kind(child),
+             "node mismatch " << child << " vs "
+             << EnumToString(Node_kind(child)) << " kind=" << int(child.kind()) << " " <<
+             int(Node_kind(child)));
+    }
     ASSERT(core.kind != NT::invalid, "");
     ++live;
 

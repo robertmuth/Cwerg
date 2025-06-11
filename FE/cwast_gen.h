@@ -254,6 +254,7 @@ inline void NodeInit(Node node, NT kind, Handle child0, Handle child1,
                      Handle child2, Handle child3, uint8_t other_kind,
                      uint16_t bits, Str doc, const SrcLoc& srcloc) {
   NodeCore& core = gNodeCore[node];
+  ASSERT(node.kind() == kind, node);
   core.kind = kind;
   core.other_kind = other_kind;
   core.children_handle[0] = child0;
