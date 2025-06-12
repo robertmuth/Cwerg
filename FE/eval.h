@@ -4,38 +4,17 @@
 
 #include "FE/cwast_gen.h"
 #include "FE/identifier.h"
-
 #include "Util/assert.h"
 
 namespace cwerg::fe {
 
-struct ConstCore {
-  union {
-    float val_r32;
-    double val_r64;
-    uint32_t val_u32;
-    uint64_t val_u64;
-    int32_t val_s32;
-    int64_t val_s64;
-    Node symbol;
-    struct {
-      Node pointers;
-      Const size;
-      Node content;
-    } span;
-  };
+extern ImmutablePool ConstPool;
+
+struct EvalSpan {
+  Node pointer;
+  int32_t size;  // invalid if < 0
+  Const content;
 };
-
-extern struct Stripe<ConstCore, Const> gConstCore;
-extern struct StripeGroup gStripeGroupConst;
-
-inline ConstCore& ConstGetCore(Const c) { return gConstCore[c]; }
-
-inline Const ConstNewLong(CONST_KIND kind) {
-  Const out = Const(gStripeGroupConst.New().index(), kind);
-  // ASSERT(out.index() != xxx, "");
-  return out;
-}
 
 inline bool ConstIsShort(Const num) { return int32_t(num.value) < 0; }
 inline bool ValIsShortConstUnsigned(uint32_t val) { return val < (1U << 23U); }
@@ -67,24 +46,25 @@ inline Const ConstNewU8(uint8_t val) {
 inline Const ConstNewU16(uint16_t val) {
   return ConstNewShortUnsigned(val, CONST_KIND::U16);
 }
+
 inline Const ConstNewU32(uint32_t val) {
   if (ValIsShortConstUnsigned(val)) {
     return ConstNewShortUnsigned(val, CONST_KIND::U32);
   }
-  Const out = ConstNewLong(CONST_KIND::U32);
-  ConstGetCore(out).val_u32 = val;
-  return out;
+  return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
+               CONST_KIND::U32);
 }
+
 inline Const ConstNewU64(uint64_t val) {
   if (ValIsShortConstUnsigned(val)) {
     return ConstNewShortUnsigned(val, CONST_KIND::U64);
   }
-  Const out = ConstNewLong(CONST_KIND::U64);
-  ConstGetCore(out).val_u64 = val;
-  return out;
+  return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
+               CONST_KIND::U64);
 }
 
 extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
+
 extern Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt);
 
 inline Const ConstNewS8(int8_t val) {
@@ -93,44 +73,43 @@ inline Const ConstNewS8(int8_t val) {
 inline Const ConstNewS16(int16_t val) {
   return ConstNewShortSigned(val, CONST_KIND::S16);
 }
+
 inline Const ConstNewS32(int32_t val) {
   if (ValIsShortConstSigned(val)) {
-    return ConstNewShortSigned(val, CONST_KIND::U32);
+    return ConstNewShortUnsigned(val, CONST_KIND::S32);
   }
-  Const out = ConstNewLong(CONST_KIND::S32);
-  ConstGetCore(out).val_s32 = val;
-  return out;
+  return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
+               CONST_KIND::U32);
 }
+
 inline Const ConstNewS64(int64_t val) {
   if (ValIsShortConstSigned(val)) {
-    return ConstNewShortSigned(val, CONST_KIND::S64);
+    return ConstNewShortUnsigned(val, CONST_KIND::S64);
   }
-  Const out = ConstNewLong(CONST_KIND::S64);
-  ConstGetCore(out).val_s64 = val;
-  return out;
+  return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
+               CONST_KIND::U64);
 }
+
 inline Const ConstNewUndef() { return Const(0, CONST_KIND::UNDEF); }
 inline Const ConstNewVoid() { return Const(0, CONST_KIND::VOID); }
+
 inline Const ConstNewComplexDefault() {
   return Const(0, CONST_KIND::COMPLEX_DEFAULT);
 }
 
 inline Const ConstNewSymAddr(Node sym) {
-  Const out = ConstNewLong(CONST_KIND::SYM_ADDR);
-  ConstGetCore(out).symbol = sym;
-  return out;
+  return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
+               CONST_KIND::SYM_ADDR);
 }
 
 inline Const ConstNewFunAddr(Node sym) {
-  Const out = ConstNewLong(CONST_KIND::FUN_ADDR);
-  ConstGetCore(out).symbol = sym;
-  return out;
+  return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
+               CONST_KIND::FUN_ADDR);
 }
 
 inline Const ConstNewCompound(Node sym) {
-  Const out = ConstNewLong(CONST_KIND::COMPOUND);
-  ConstGetCore(out).symbol = sym;
-  return out;
+  return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
+               CONST_KIND::COMPOUND);
 }
 
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);

@@ -279,6 +279,8 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
         return GetDefaultForType(ct.underlying_type())
     elif ct.is_span():
         return VAL_EMPTY_SPAN
+    elif ct.is_complex():
+        return VAL_COMPLEX_DEFAULT
     else:
         return None
 
@@ -398,16 +400,6 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
     return False
 
 
-def _GetValForAuto(ct: cwast.CanonType) -> Optional[EvalBase]:
-    if ct.is_complex():
-        return VAL_COMPLEX_DEFAULT
-    elif ct.is_span():
-        return VAL_EMPTY_SPAN
-    elif ct.is_base_type():
-        return GetDefaultForBaseType(ct.base_type_kind)
-    return None
-
-
 def _GetValForVecAtPos(container, index: int):
     if isinstance(container, cwast.ValAuto):
         return GetDefaultForType(container.x_type.underlying_type())
@@ -517,7 +509,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         if initial.x_value is None and isinstance(initial, cwast.ValAuto):
             # ValAuto has differernt meanings in different context
             # so we deal with it explicity here and elsewhere
-            _AssignValue(initial, _GetValForAuto(initial.x_type))
+            _AssignValue(initial, GetDefaultForType(initial.x_type))
         if node.mut:
             return None
         return _EvalValWithPossibleImplicitConversion(node.x_type, initial)

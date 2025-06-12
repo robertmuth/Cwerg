@@ -447,7 +447,7 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 def _FormatNumber(val: cwast.ValNum) -> str:
     assert isinstance(val.x_value, eval.EvalNum)
     bt = val.x_type.get_unwrapped_base_type_kind()
-    assert bt == val.x_value.kind
+    assert bt == val.x_value.kind, f"{val.x_value} {bt} {val.x_value.kind}"
     num = val.x_value.val
     assert num is not None, f"{val.x_value}"
 

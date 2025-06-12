@@ -6,9 +6,14 @@
 #include "FE/symbolize.h"
 #include "FE/type_corpus.h"
 #include "Util/handle.h"
+#include "Util/immutable.h"
 
 namespace cwerg::fe {
+
+ImmutablePool ConstPool(alignof(uint64_t));
+
 namespace {
+
 constexpr std::array<CONST_KIND, 64> MakeBaseTypeToConstType() {
   std::array<CONST_KIND, 64> out;
   out[int(BASE_TYPE_KIND::VOID)] = CONST_KIND::VOID;
@@ -171,11 +176,6 @@ bool _EvalRecursively(Node mod) {
 
 }  // namespace
 
-struct Stripe<ConstCore, Const> gConstCore("ConstCore");
-
-StripeBase* const gAllStripesConst[] = {&gConstCore, nullptr};
-struct StripeGroup gStripeGroupConst("Const", gAllStripesConst, 256 * 1024);
-
 Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt) {
   CONST_KIND kind = gBaseTypeToConstType[int(bt)];
   ASSERT(kind != CONST_KIND::INVALID,
@@ -183,19 +183,23 @@ Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt) {
   if (ValIsShortConstUnsigned(val)) {
     return ConstNewShortUnsigned(val, kind);
   }
-  Const out = ConstNewLong(kind);
   switch (kind) {
-    case CONST_KIND::U32:
-      ConstGetCore(out).val_u32 = val;
-      break;
-    case CONST_KIND::U64:
-      ConstGetCore(out).val_u64 = val;
-      break;
+    case CONST_KIND::U32: {
+      uint32_t v = val;
+      return Const(ConstPool.Intern(std::string_view((char*)&v, sizeof(v))),
+                   kind);
+    }
+    case CONST_KIND::U64: {
+      uint64_t v = val;
+      return Const(ConstPool.Intern(std::string_view((char*)&v, sizeof(v))),
+                   kind);
+    }
     default:
       ASSERT(false, "");
+      return kConstInvalid;
   }
-  return out;
 }
+
 
 Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt) {
   CONST_KIND kind = gBaseTypeToConstType[int(bt)];
@@ -203,19 +207,23 @@ Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt) {
   if (ValIsShortConstSigned(val)) {
     return ConstNewShortSigned(val, kind);
   }
-  Const out = ConstNewLong(kind);
   switch (kind) {
-    case CONST_KIND::S32:
-      ConstGetCore(out).val_s32 = val;
-      break;
-    case CONST_KIND::S64:
-      ConstGetCore(out).val_s64 = val;
-      break;
+    case CONST_KIND::S32: {
+      int32_t v = val;
+      return Const(ConstPool.Intern(std::string_view((char*)&v, sizeof(v))),
+                   kind);
+    }
+    case CONST_KIND::S64: {
+      int64_t v = val;
+      return Const(ConstPool.Intern(std::string_view((char*)&v, sizeof(v))),
+                   kind);
+    }
     default:
       ASSERT(false, "");
+      return kConstInvalid;
   }
-  return out;
 }
+
 
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
   int iteration = 0;
