@@ -103,11 +103,32 @@ Const EvalNode(Node node) {
           Node_x_offset(Node_x_symbol(Node_field(node))),
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
     case NT::ValSpan:
-    case NT::ExprParen:
-    case NT::DefEnum:
       // TODO
       return kConstInvalid;
-
+    case NT::ExprParen:
+      return Node_x_eval(Node_expr(node));
+    case NT::DefEnum: {
+      BASE_TYPE_KIND bt =
+          CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
+      Const val = kConstInvalid;
+      for (Node c = Node_items(node); c.isnull(); c = Node_next(c)) {
+        if (Node_x_eval(c).isnull()) break;
+        Node v = Node_value_or_auto(c);
+        if (Node_kind(v) == NT::ValAuto) {
+          if (val.isnull()) {
+            val = IsSint(bt) ? ConstNewSigned(0, bt) : ConstNewUnsigned(0, bt);
+          } else {
+            val = IsSint(bt) ? ConstNewSigned(ConstGetSigned(val) + 1, bt)
+                             : ConstNewUnsigned(ConstGetUnsigned(val) + 1, bt);
+          }
+        } else {
+          val = Node_x_eval(v);
+        }
+        Node_x_eval(c) = val;
+        Node_x_eval(v) = val;
+      }
+      return kConstInvalid;
+    }
     case NT::ExprCall:
     case NT::ExprStmt:
     case NT::ExprUnionUntagged:
@@ -200,7 +221,6 @@ Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt) {
   }
 }
 
-
 Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt) {
   CONST_KIND kind = gBaseTypeToConstType[int(bt)];
   ASSERT(kind != CONST_KIND::INVALID, "");
@@ -224,6 +244,27 @@ Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt) {
   }
 }
 
+int64_t ConstGetSigned(Const c) {
+  if (c.IsShort()) {
+    return ConstShortGetSigned(c);
+  }
+  if (c.kind() == CONST_KIND::S32) {
+    return *(int32_t*)ConstPool.Data(c.index());
+  }
+  ASSERT(c.kind() == CONST_KIND::S64, "");
+  return *(int64_t*)ConstPool.Data(c.index());
+}
+
+uint64_t ConstGetUnsigned(Const c) {
+  if (c.IsShort()) {
+    return ConstShortGetUnsigned(c);
+  }
+  if (c.kind() == CONST_KIND::U32) {
+    return *(uint32_t*)ConstPool.Data(c.index());
+  }
+  ASSERT(c.kind() == CONST_KIND::U64, "");
+  return *(uint64_t*)ConstPool.Data(c.index());
+}
 
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
   int iteration = 0;

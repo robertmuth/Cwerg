@@ -24,15 +24,21 @@ inline bool ValIsShortConstSigned(uint64_t val) {
 }
 
 inline Const ConstNewShortSigned(int64_t val, CONST_KIND kind) {
+  ASSERT(IsSint(kind), "");
   return Const(1U << 23U | (uint32_t)val, kind);
 }
 
 inline Const ConstNewShortUnsigned(uint32_t val, CONST_KIND kind) {
+  ASSERT(IsUint(kind), "");
   return Const(1U << 23U | val, kind);
 }
 
-inline uint32_t ConstShortGetUnsigned(Const c) { return c.value << 1U >> 9U; }
+inline uint32_t ConstShortGetUnsigned(Const c) {
+  ASSERT(IsUint(c.kind()), "");
+  return c.value << 1U >> 9U;
+}
 inline int32_t ConstShortGetSigned(Const c) {
+  ASSERT(IsSint(c.kind()), "");
   return int32_t(c.value) << 1U >> 9U;
 }
 
@@ -64,8 +70,10 @@ inline Const ConstNewU64(uint64_t val) {
 }
 
 extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
-
 extern Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt);
+
+extern int64_t ConstGetSigned(Const c);
+extern uint64_t ConstGetUnsigned(Const c);
 
 inline Const ConstNewS8(int8_t val) {
   return ConstNewShortSigned(val, CONST_KIND::S8);

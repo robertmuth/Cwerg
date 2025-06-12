@@ -63,6 +63,14 @@ enum class CONST_KIND : uint8_t {
   SPAN = 60,
 };
 
+inline bool IsSint(CONST_KIND k) {
+  return CONST_KIND::S8 <= k && k <= CONST_KIND::S64;
+}
+
+inline bool IsUint(CONST_KIND k) {
+  return CONST_KIND::U8 <= k && k <= CONST_KIND::U64;
+}
+
 extern const std::array<uint16_t, 17> BF2MASK;
 
 inline uint16_t Mask(BF val) { return BF2MASK[int(val)]; }
@@ -72,7 +80,7 @@ struct Node : public Handle {
       : Handle(index, uint8_t(kind)) {}
 
   explicit constexpr Node(Handle ref) : Handle(ref.value) {}
-  NT kind() { return NT(raw_kind()); }
+  NT kind() const { return NT(raw_kind()); }
 };
 
 extern ImmutablePool gStringPool;
@@ -113,6 +121,10 @@ struct Const : public Handle {
                            CONST_KIND kind = CONST_KIND::INVALID)
       : Handle(index, uint8_t(kind)) {}
   explicit constexpr Const(Handle ref) : Handle(ref.value) {}
+
+  CONST_KIND kind() const { return CONST_KIND(raw_kind()); }
+  bool IsShort() const { return int32_t(value) < 0; }
+
 };
 
 constexpr const Str kStrInvalid(0);

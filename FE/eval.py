@@ -611,16 +611,23 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return node.expr.x_value
     elif isinstance(node, cwast.DefEnum):
         bt = node.x_type.get_unwrapped_base_type_kind()
-        val = 0
+        val = None
         for c in node.items:
+            if c.x_value is not None:
+                break
+
             assert isinstance(c, cwast.EnumVal)
-            if not isinstance(c.value_or_auto, cwast.ValAuto):
-                assert c.value_or_auto.x_value is not None
-                val = c.value_or_auto.x_value.val
-            if c.x_value is None:
-                _AssignValue(c.value_or_auto, EvalNum(val, bt))
-                _AssignValue(c, EvalNum(val, bt))
-            val += 1
+            v = c.value_or_auto
+            if isinstance(v, cwast.ValAuto):
+                if val is None:
+                    val = EvalNum(0, bt)
+                else:
+                    val = EvalNum(val.val + 1, bt)
+            else:
+                val = v.x_value
+            assert val
+            _AssignValue(v, val)
+            _AssignValue(c, val)
         return None
     elif isinstance(node, cwast.ExprCall):
         # TODO
