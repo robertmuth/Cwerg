@@ -2,6 +2,10 @@
 .SUFFIXES:
 
 DIR=build_cc
+BUILD_DIR=../build
+LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
+PP=$(BUILD_DIR)/pp.exe
+EMIT_IR=$(BUILD_DIR)/emit_ir.exe
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -17,7 +21,7 @@ ALL_SOURCES := $(LANG_SOURCES) $(LIB_SOURCES) $(DATA_SOURCES)
 ALL_SOURCES_GENERIC :=  $(filter $(wildcard */*gen.cw), $(ALL_SOURCES))
 ALL_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard */*gen.cw), $(ALL_SOURCES))
 
-tests: $(EMIT_IR) tests_meta_py
+tests: $(EMIT_IR) tests_meta
 	@echo "PASSED $@"
 ############################################################
 # Code Gen
@@ -44,11 +48,6 @@ GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc
 ############################################################
 # C++
 ############################################################
-BUILD_DIR=../build
-LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
-PP=$(BUILD_DIR)/pp.exe
-EMIT_IR=$(BUILD_DIR)/emit_ir.exe
-
 
 $(LEXER_BENCH)::
 	@cd $(BUILD_DIR); $(MAKE) -s lexer_bench.exe
@@ -66,7 +65,7 @@ run_lexer_bench: $(LEXER_BENCH)
 # TESTING
 #############################################################
 
-tests_meta_py: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
+tests_meta: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
 	@echo "PASSED $@"
 
 $(DIR)/%.cw.meta: %.cw
