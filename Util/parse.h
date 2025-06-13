@@ -71,8 +71,8 @@ std::optional<INT> ParseInt(std::string_view s) {
 }
 
 extern std::optional<double> ParseFlt64(std::string_view s);
-extern std::optional<int64_t> ParseInt64(std::string_view s);
-extern std::optional<uint64_t> ParseUint64(std::string_view s);
+
+extern std::optional<uint64_t> ParseChar(std::string_view s);
 
 // =================================================================================
 // Number To Canonical String

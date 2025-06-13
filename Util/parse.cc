@@ -188,6 +188,26 @@ size_t HexStringToBytes(std::string_view s, char* out) {
   return n;
 }
 
+std::optional<uint64_t> ParseChar(std::string_view s) {
+  if (s.size() <= 2 || s[0] != '\'' || s[s.size() - 1] != '\'')
+    return std::nullopt;
+  s = s.substr(1, s.size() - 2);
+  if (s[0] != '\\') {
+    if (s.size() != 1) return std::nullopt;
+    return s[0];
+  }
+
+  if (s.size() < 2) return std::nullopt;
+  int c = s[1];
+  if (c == 'x') {
+    if (s.size() != 4) return std::nullopt;
+    return (HexDigit(s[2]) << 4) | HexDigit(s[3]);
+  } else {
+    if (s.size() != 2) return std::nullopt;
+    return MapEscape(c);
+  }
+}
+
 size_t BytesToEscapedString(std::string_view s, char* out) {
   size_t n = 0;
   for (size_t i = 0; i < s.size(); ++i) {
@@ -326,18 +346,6 @@ std::optional<double> ParseFlt64(std::string_view s) {
   double out = strtod(buf, &end);
   if (end != buf + s.size()) return std::nullopt;
   return out;
-}
-
-std::optional<int64_t> ParseInt64(std::string_view s) {
-  if (IsHex(s)) {
-    // ParseInt<int64_t> does not support hex
-    return ParseInt<uint64_t>(s);
-  }
-  return ParseInt<int64_t>(s);
-}
-
-std::optional<uint64_t> ParseUint64(std::string_view s) {
-  return ParseInt<uint64_t>(s);
 }
 
 std::string_view ToDecString(uint64_t v, char buf[32]) {

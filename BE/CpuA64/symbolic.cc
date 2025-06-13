@@ -122,7 +122,7 @@ uint32_t UnsymbolizeOperand(OK ok, std::string_view op) {
       break;
     }
     case FK::INT_SIGNED: {
-      auto maybe = ParseInt64(op);
+      auto maybe = ParseInt<int64_t>(op);
       if (!maybe) return kEncodeFailure;
       val = maybe.value();
       break;
@@ -130,7 +130,7 @@ uint32_t UnsymbolizeOperand(OK ok, std::string_view op) {
     case FK::INT:  // TODO: add unsigned version
     case FK::INT_HEX_CUSTOM:
     case FK::INT_HEX: {
-      auto maybe = ParseUint64(op);
+      auto maybe = ParseInt<uint64_t>(op);
       if (!maybe) return kEncodeFailure;
       val = maybe.value();
       break;

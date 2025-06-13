@@ -275,7 +275,7 @@ bool UnsymbolizeOperand(OK ok, std::string_view op, int64_t* val) {
       return op == "cl";
     case OK::IMPLICIT_1: {
       *val = 0;
-      auto maybe = ParseInt64(op);
+      auto maybe = ParseInt<int64_t>(op);
       if (!maybe) return false;
       return maybe.value() == 1;
     }
@@ -333,7 +333,7 @@ bool UnsymbolizeOperand(OK ok, std::string_view op, int64_t* val) {
     case OK::IMM8_64:
     case OK::IMM32_64:
     case OK::IMM64: {
-      auto maybe = ParseInt64(op);
+      auto maybe = ParseInt<int64_t>(op);
       if (!maybe) return false;
       *val = maybe.value();
       return true;

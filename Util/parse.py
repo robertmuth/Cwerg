@@ -76,6 +76,41 @@ def EscapedStringToBytes(s) -> bytes:
 
     return bytes(out)
 
+
+def _MapEscape(char) -> int:
+    if char == "n":
+        return ord("\n")
+    elif char == "r":
+        return ord("\r")
+    elif char == "t":
+        return ord("\t")
+    elif char == "b":
+        return ord("\b")
+    elif char == "f":
+        return ord("\f")
+    else:
+        return ord(char)
+
+
+def ParseChar(s) -> Optional[int]:
+    if len(s) <= 2 or s[0] != "'" or s[-1] != "'":
+        return None
+    if s[1] != "\\":
+        if len(s) != 3:
+            return None
+        return ord(s[1])
+    if len(s) <= 2:
+        return None
+    char = s[2]
+    if char == "x":
+        if len(s) != 6:
+            return None
+        return int(s[3:5], 16)
+    if len(s) != 4:
+        return None
+    return _MapEscape(char)
+
+
 def HexStringToBytes(s) -> bytes:
     out = bytearray()
     last = None
@@ -90,6 +125,7 @@ def HexStringToBytes(s) -> bytes:
             last = None
     assert last is None
     return bytes(out)
+
 
 def QuotedEscapedStringToBytes(s: str) -> bytes:
     r"""Note: this does NOT support many c-escape sequences.
@@ -204,7 +240,8 @@ def ParseLine(line: str) -> List[str]:
         if t == "=":
             continue
         if t == "," or t == ";":
-            raise ValueError(f"commas and semicolons are not allowed {line}: {tokens}")
+            raise ValueError(
+                f"commas and semicolons are not allowed {line}: {tokens}")
         elif t == "[":
             assert not in_list
             in_list = True

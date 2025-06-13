@@ -1,8 +1,9 @@
 #include "Util/parse.h"
-#include "Util/assert.h"
 
 #include <iostream>
 #include <string>
+
+#include "Util/assert.h"
 
 using namespace cwerg;
 using namespace std;
@@ -30,56 +31,89 @@ void EmitString(string_view s) {
   cout << "\"" << buffer2 << "\"";
 }
 
-int main() {
-  std::vector<string_view> vec;
+std::vector<std::string_view> split(const std::string_view& s, char delim) {
+  std::vector<std::string_view> out;
+  int token_start = -1;
+  for (int i = 0; i < s.size(); ++i) {
+    char c = s[i];
+    if (c == delim) {
+      if (token_start >= 0) {
+        out.push_back(s.substr(token_start, i - token_start));
+        token_start = -1;
+      }
+    } else if (token_start < 0) {
+      token_start = i;
+    }
+  }
+  if (token_start >= 0) {
+    out.push_back(s.substr(token_start, s.size() - token_start));
+  }
+  return out;
+}
+
+int main(int argc, char* argv[]) {
+  std::string mode = argv[1];
   for (string line; getline(std::cin, line);) {
     cout << "\n" << line << "\n";
-    vec.clear();
-    if (!ParseLineWithStrings(line.c_str(), false, &vec)) {
-      cout << "@FAILED@\n";
-      continue;
-    }
-    const char* sep = "";
-    for (const string_view& s : vec) {
-      cout << sep;
-      sep = " ";
-      ASSERT(s.size() > 0, "");
-      if (s[0] == '"') {
-        EmitString(s);
-      } else {
-        EmitId(s);
+    std::vector<std::string_view> vec;
+    if (mode == "lex") {
+      if (!ParseLineWithStrings(line.c_str(), false, &vec)) {
+        cout << "@FAILED@\n\n";
+        continue;
       }
-    }
-    cout << "\n";
-    if (vec.size() == 2) {
-      char buf[32];
-      if (vec[0] == "int64") {
-        cout << "[INT64] ";
-        auto val = ParseInt64(vec[1]);
-        if (!val.has_value()) {
-          cout << "@BAD VALUE@\n";
-          continue;
+      const char* sep = "";
+      for (const string_view& s : vec) {
+        cout << sep;
+        sep = " ";
+        ASSERT(s.size() > 0, "");
+        if (s[0] == '"') {
+          EmitString(s);
+        } else {
+          EmitId(s);
         }
-        cout << ToDecSignedString(val.value(), buf) << " "
-             << ToHexString(val.value(), buf) << "\n";
-      } else if (vec[0] == "uint64") {
-        cout << "[UINT64] ";
-        auto val = ParseUint64(vec[1]);
-        if (!val.has_value()) {
-          cout << "@BAD VALUE@\n";
-          continue;
+      }
+      cout << "\n";
+    } else {
+      ASSERT(mode == "num", "");
+      std::vector<std::string_view> vec = split(line, ' ');
+      if (vec.size() == 2) {
+        char buf[32];
+        if (vec[0] == "int64") {
+          cout << "[INT64] ";
+          auto val = ParseInt<int64_t>(vec[1]);
+          if (!val.has_value()) {
+            cout << "@BAD VALUE@\n";
+            continue;
+          }
+          cout << ToDecSignedString(val.value(), buf) << " "
+               << ToHexString(val.value(), buf) << "\n";
+        } else if (vec[0] == "uint64") {
+          cout << "[UINT64] ";
+          auto val = ParseInt<uint64_t>(vec[1]);
+          if (!val.has_value()) {
+            cout << "@BAD VALUE@\n";
+            continue;
+          }
+          cout << ToDecString(val.value(), buf) << " "
+               << ToHexString(val.value(), buf) << "\n";
+        } else if (vec[0] == "flt64") {
+          cout << "[FLT64] ";
+          auto val = ParseFlt64(vec[1]);
+          if (!val.has_value()) {
+            cout << "@BAD VALUE@\n";
+            continue;
+          }
+          cout << ToFltString(val.value(), buf) << " "
+               << ToFltHexString(val.value(), buf) << "\n";
+        } else if (vec[0] == "char") {
+          cout << "[CHAR] ";
+          auto val = ParseChar(vec[1]);
+          if (!val.has_value()) {
+            cout << "@BAD VALUE@\n";
+            continue;
+          }
+          cout << val.value() << "\n";
         }
-        cout << ToDecString(val.value(), buf) << " "
-             << ToHexString(val.value(), buf) << "\n";
-      } else if (vec[0] == "flt64") {
-        cout << "[FLT64] ";
-        auto val = ParseFlt64(vec[1]);
-        if (!val.has_value()) {
-          cout << "@BAD VALUE@\n";
-          continue;
-        }
-        cout << ToFltString(val.value(), buf) << " "
-             << ToFltHexString(val.value(), buf) << "\n";
       }
     }
   }

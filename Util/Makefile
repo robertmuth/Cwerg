@@ -17,9 +17,10 @@ tests_c:  $(DIR)/parse_test_c handle_test bitvec_test handlevec_test mem_pool_te
 
  $(DIR)/parse_test: parse_test.py
 	@echo "[$@]"
-	$(PYPY) ./parse_test.py < TestData/lines.txt  > $@.actual.out
-	diff $@.actual.out TestData/lines.golden
-
+	$(PYPY) ./parse_test.py lex < TestData/lines_lex.txt  > $@.actual_lex.out
+	diff $@.actual_lex.out TestData/lines_lex.golden
+	$(PYPY) ./parse_test.py num < TestData/lines_num.txt  > $@.actual_num.out
+	diff $@.actual_num.out TestData/lines_num.golden
 ############################################################
 # C++ Port
 ############################################################
@@ -28,8 +29,10 @@ BUILD_DIR=../build
  $(DIR)/parse_test_c:
 	@echo "[$@]"
 	@cd $(BUILD_DIR); $(MAKE) -s parse_test.exe
-	$(BUILD_DIR)/parse_test.exe < TestData/lines.txt  > $@.actual.out
-	diff $@.actual.out TestData/lines.golden
+	$(BUILD_DIR)/parse_test.exe lex < TestData/lines_lex.txt  > $@.actual_lex.out
+	diff $@.actual_lex.out TestData/lines_lex.golden
+	$(BUILD_DIR)/parse_test.exe num < TestData/lines_num.txt  > $@.actual_num.out
+	diff $@.actual_num.out TestData/lines_num.golden
 
 handle_test:
 	@echo "[$@]"
@@ -58,4 +61,3 @@ immutable_test:
 
 clean:
 	rm -f $(DIR)/*
-
