@@ -37,7 +37,7 @@ ALL_EXES := $(filter $(wildcard */*_exe.cw), $(ALL_SOURCES))
 
 # not the clean part will be run out of order but the early targets are not
 # relying on the cleaning so things work out with "make -j"
-tests_py: \
+tests: \
     clean \
     tests_eval_py \
     tests_pp_py \

@@ -25,7 +25,7 @@ tests:
 	cd BE &&  $(MAKE) -f Makefile_cc tests
 	cd Util && $(MAKE) -s tests && $(MAKE) -s clean
 	cd FE &&  $(MAKE) -f Makefile_cc tests
-	cd FE && $(MAKE) -s tests_py && $(MAKE) -s clean
+	cd FE && $(MAKE)  -f Makefile_py-s tests && $(MAKE) -s clean
 	cd FE_WASM && $(MAKE) -s tests && $(MAKE) -s clean
 
 cmake_setup:
