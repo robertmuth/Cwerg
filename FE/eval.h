@@ -132,6 +132,13 @@ inline Const ConstNewCompound(Node sym) {
                CONST_KIND::COMPOUND);
 }
 
+inline Node ConstGetSymbol(Const c) {
+  ASSERT(c.kind() == CONST_KIND::SYM_ADDR || c.kind() == CONST_KIND::FUN_ADDR ||
+             c.kind() == CONST_KIND::COMPOUND,
+         "");
+  return *(Node*)ConstPool.Data(c.index());
+}
+
 inline Const ConstNewSpan(EvalSpan span) {
   return Const(ConstPool.Intern(std::string_view((char*)&span, sizeof(span))),
                CONST_KIND::SPAN);

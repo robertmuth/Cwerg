@@ -451,9 +451,10 @@ def _GetValForRecAtField(container, field):
 
 def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
                                            src_node):
-    src_type: cwast.CanonType = dst_type if isinstance(
-        src_node, cwast.ValUndef) else src_node.x_type
     src_value = src_node.x_value
+    if isinstance(src_node, cwast.ValUndef):
+        return src_value
+    src_type: cwast.CanonType = src_node.x_type
     if src_type is dst_type or type_corpus.IsDropMutConversion(src_type, dst_type):
         return src_value
 
@@ -466,7 +467,7 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
     elif src_value is None:
         return None
     # assert False, f"{src_node}: {src_node.x_type} -> {dst_type} [{src_value}]"
-    return None
+    return src_value
 
 
 def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
@@ -498,9 +499,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.ValPoint):
         return _EvalValWithPossibleImplicitConversion(
             node.x_type, node.value_or_undef)
-    elif isinstance(node, cwast.ValCompound):
-        return EvalCompound(node)
-    elif isinstance(node, cwast.ValString):
+    elif isinstance(node, (cwast.ValCompound, cwast.ValString)):
         return EvalCompound(node)
     elif isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
         initial = node.initial_or_undef_or_auto

@@ -7,8 +7,6 @@
 #include "Util/assert.h"
 namespace cwerg::fe {
 
-
-
 struct TargetArchConfig {
   int uint_bitwidth;
   int sint_bitwidth;
@@ -28,8 +26,6 @@ struct TargetArchConfig {
   }
 };
 
-
-
 constexpr TargetArchConfig STD_TARGET_X64 = {64, 64, 16, 64, 64};
 constexpr TargetArchConfig STD_TARGET_A64 = {64, 64, 16, 64, 64};
 constexpr TargetArchConfig STD_TARGET_A32 = {32, 32, 16, 32, 32};
@@ -43,6 +39,7 @@ extern int CanonType_alignment(CanonType n);
 extern int CanonType_size(CanonType n);
 extern int CanonType_get_original_typeid(CanonType n);
 extern int& CanonType_typeid(CanonType n);
+extern int CanonType_dim(CanonType n);
 
 extern std::vector<CanonType>& CanonType_children(CanonType n);
 
@@ -60,6 +57,8 @@ inline CanonType CanonType_result_type(CanonType ct) {
 }
 
 extern BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType n);
+extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
+extern bool CanonType_is_complex(CanonType n);
 
 extern CanonType CanonType_get_unwrapped(CanonType n);
 
@@ -78,6 +77,19 @@ inline bool IsTypeForEq(CanonType ct) {
   return CanonType_kind(unwrapped) == NT::TypeFun ||
          CanonType_kind(unwrapped) == NT::TypeBase ||
          CanonType_kind(unwrapped) == NT::TypePtr;
+}
+
+inline bool CanonType_is_complex(CanonType ct) {
+  switch (CanonType_kind(ct)) {
+    case NT::TypeVec:
+    case NT::DefRec:
+    case NT::TypeUnion:
+      return true;
+    case NT::DefType:
+      return CanonType_is_complex(CanonType_children(ct)[0]);
+    default:
+      return false;
+  }
 }
 
 extern bool IsCompatibleTypeForEq(CanonType op1, CanonType op2);
@@ -108,7 +120,6 @@ class TypeCorpus {
   int typeid_curr_ = 0;
   CanonType Insert(CanonType ct);
   CanonType InsertBaseType(BASE_TYPE_KIND kind);
-
 
  public:
   TypeCorpus(const TargetArchConfig& arch);

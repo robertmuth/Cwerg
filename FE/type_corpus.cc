@@ -37,7 +37,11 @@ Name CanonType_name(CanonType n) { return gCanonTypeCore[n].name; }
 
 bool CanonType_mut(CanonType n) { return gCanonTypeCore[n].mut; }
 
-int CanonType_dim(CanonType n) { return gCanonTypeCore[n].dim; }
+int CanonType_dim(CanonType n) {
+  ASSERT(CanonType_kind(n) == NT::TypeVec, "");
+  return gCanonTypeCore[n].dim;
+}
+
 int CanonType_alignment(CanonType n) { return gCanonTypeCore[n].alignment; }
 int CanonType_size(CanonType n) { return gCanonTypeCore[n].size; }
 
@@ -64,6 +68,11 @@ BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType ct) {
   }
 
   return BASE_TYPE_KIND::INVALID;
+}
+
+BASE_TYPE_KIND CanonType_base_type_kind(CanonType ct) {
+  ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
+  return gCanonTypeCore[ct].base_type_kind;
 }
 
 CanonType CanonType_get_unwrapped(CanonType ct) {

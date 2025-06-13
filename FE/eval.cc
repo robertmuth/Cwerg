@@ -74,11 +74,67 @@ constexpr std::array<CONST_KIND, 64> MakeBaseTypeToConstType() {
   out[int(BASE_TYPE_KIND::U16)] = CONST_KIND::U16;
   out[int(BASE_TYPE_KIND::U32)] = CONST_KIND::U32;
   out[int(BASE_TYPE_KIND::U64)] = CONST_KIND::U64;
+
   return out;
 }
 
 const std::array<CONST_KIND, 64> gBaseTypeToConstType =
     MakeBaseTypeToConstType();
+
+Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
+  Const src_value = Node_x_eval(src_node);
+  if (Node_kind(src_node) == NT::ValUndef) return src_value;
+  CanonType src_type = Node_x_type(src_node);
+  if (src_type == dst_type || IsDropMutConversion(src_type, dst_type)) {
+    return src_value;
+  }
+  if (IsVecToSpanConversion(src_type, dst_type)) {
+    if (src_value.isnull()) {
+      return ConstNewSpan(
+          {kNodeInvalid, CanonType_dim(src_type), kConstInvalid});
+    } else {
+      ASSERT(src_value.kind() == CONST_KIND::COMPOUND,
+             "unxpected kind " << int(src_value.kind()));
+      return ConstNewSpan(
+          {ConstGetSymbol(src_value), CanonType_dim(src_type), src_value});
+    }
+  }
+
+  return src_value;
+}
+
+void AssignValue(Node node, Const val) { Node_x_eval(node) = val; }
+
+Const GetDefaultForBaseType(BASE_TYPE_KIND bt) {
+  if (IsUint(bt))
+    return ConstNewUnsigned(0, bt);
+  else if (IsSint(bt))
+    return ConstNewSigned(0, bt);
+  else if (IsFlt(bt))
+    return ConstNewFloat(0.0, bt);
+  else if (bt == BASE_TYPE_KIND::BOOL)
+    return ConstNewBool(false);
+  else {
+    ASSERT(false, "");
+    return kConstInvalid;
+  }
+}
+
+Const GetDefaultForType(CanonType ct) {
+  switch (CanonType_kind(ct)) {
+    case NT::TypeBase:
+      return GetDefaultForBaseType(CanonType_get_unwrapped_base_type_kind(ct));
+    case NT::DefType:
+      return GetDefaultForType(CanonType_underlying_type(ct));
+    case NT::TypeSpan:
+      return ConstNewSpan({kNodeInvalid, -1, kConstInvalid});
+    default:
+      if (CanonType_is_complex(ct))
+        return ConstNewComplexDefault();
+      else
+        return kConstInvalid;
+  }
+}
 
 Const EvalNode(Node node) {
   // std::cout << "@@@ " << node << "\n";
@@ -107,13 +163,23 @@ Const EvalNode(Node node) {
       return ParseNum(node);
     }
     case NT::ValPoint:
-      // TODO
-      return kConstInvalid;
+      return EvalValWithPossibleImplicitConversion(Node_x_type(node),
+                                                   Node_value_or_undef(node));
     case NT::ValCompound:
-      return ConstNewCompound(node);
     case NT::ValString:
+      return ConstNewCompound(node);
     case NT::DefVar:
     case NT::DefGlobal:
+#if 0
+    {
+      Node initial = Node_initial_or_undef_or_auto(node);
+      if (Node_x_eval(initial).isnull() && Node_kind(initial) != NT::ValAuto) {
+        AssignValue(initial, GetDefaultForType(Node_x_type(node)));
+      }
+      if (Node_has_flag(node, BF::MUT)) return kConstInvalid;
+      return EvalValWithPossibleImplicitConversion(Node_x_type(node), initial);
+    }
+#endif
     case NT::ExprIndex:
     case NT::ExprField:
     case NT::Expr1:
@@ -175,8 +241,8 @@ Const EvalNode(Node node) {
         } else {
           val = Node_x_eval(v);
         }
-        Node_x_eval(c) = val;
-        Node_x_eval(v) = val;
+        AssignValue(c, val);
+        AssignValue(v, val);
       }
       return kConstInvalid;
     }

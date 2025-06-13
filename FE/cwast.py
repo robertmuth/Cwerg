@@ -976,7 +976,7 @@ class CanonType:
     def is_complex(self) -> bool:
         if self.node in (TypeVec, DefRec, TypeUnion):
             return True
-        if self.is_wrapped():
+        if self.node is DefType:
             return self.children[0].is_complex()
         return False
 
