@@ -37,6 +37,9 @@ enum class MOD_PARAM_KIND : uint8_t;
 enum class CONST_KIND : uint8_t {
   INVALID = 0,
   //
+  R32 = 1,
+  R64 = 2,
+  //
   S8 = 11,
   S16 = 12,
   S32 = 13,
@@ -47,20 +50,17 @@ enum class CONST_KIND : uint8_t {
   U32 = 23,
   U64 = 24,
   //
-  R32 = 30,
-  R64 = 31,
+  BOOL = 31,
+  TYPEID = 32,
+  VOID = 33,
+  UNDEF = 34,
+  COMPLEX_DEFAULT = 35,
   //
-  BOOL = 41,
-  TYPEID = 42,
-  VOID = 43,
-  UNDEF = 44,
-  COMPLEX_DEFAULT = 45,
+  SYM_ADDR = 41,
+  FUN_ADDR = 42,
+  COMPOUND = 43,
   //
-  SYM_ADDR = 50,
-  FUN_ADDR = 51,
-  COMPOUND = 52,
-  //
-  SPAN = 60,
+  SPAN = 51,
 };
 
 inline bool IsSint(CONST_KIND k) {
@@ -69,6 +69,10 @@ inline bool IsSint(CONST_KIND k) {
 
 inline bool IsUint(CONST_KIND k) {
   return CONST_KIND::U8 <= k && k <= CONST_KIND::U64;
+}
+
+inline bool IsUintOrBool(CONST_KIND k) {
+  return CONST_KIND::U8 <= k && k <= CONST_KIND::BOOL;
 }
 
 extern const std::array<uint16_t, 17> BF2MASK;
@@ -124,7 +128,6 @@ struct Const : public Handle {
 
   CONST_KIND kind() const { return CONST_KIND(raw_kind()); }
   bool IsShort() const { return int32_t(value) < 0; }
-
 };
 
 constexpr const Str kStrInvalid(0);
@@ -1010,37 +1013,35 @@ inline BINARY_EXPR_KIND Node_binary_expr_kind(Node n) {
 }
 
 inline bool IsNumber(BASE_TYPE_KIND x) {
-  return int(BASE_TYPE_KIND::SINT) <= int(x) &&
-         int(x) <= int(BASE_TYPE_KIND::BOOL);
+  return BASE_TYPE_KIND::SINT <= x && x <= BASE_TYPE_KIND::BOOL;
 }
 
 inline bool IsInt(BASE_TYPE_KIND x) {
-  return int(BASE_TYPE_KIND::SINT) <= int(x) &&
-         int(x) <= int(BASE_TYPE_KIND::U64);
+  return BASE_TYPE_KIND::SINT <= x && x <= BASE_TYPE_KIND::U64;
 }
+
 inline bool IsSint(BASE_TYPE_KIND x) {
-  return int(BASE_TYPE_KIND::SINT) <= int(x) &&
-         int(x) <= int(BASE_TYPE_KIND::S64);
+  return BASE_TYPE_KIND::SINT <= x && x <= BASE_TYPE_KIND::S64;
+}
+
+inline bool IsFlt(BASE_TYPE_KIND x) {
+  return BASE_TYPE_KIND::R32 <= x && x <= BASE_TYPE_KIND::R64;
 }
 
 inline bool IsUint(BASE_TYPE_KIND x) {
-  return int(BASE_TYPE_KIND::UINT) <= int(x) &&
-         int(x) <= int(BASE_TYPE_KIND::U64);
+  return BASE_TYPE_KIND::UINT <= x && x <= BASE_TYPE_KIND::U64;
 }
 
 inline bool IsArithmetic(BINARY_EXPR_KIND x) {
-  return int(BINARY_EXPR_KIND::ADD) <= int(x) &&
-         int(x) <= int(BINARY_EXPR_KIND::XOR);
+  return BINARY_EXPR_KIND::ADD <= x && x <= BINARY_EXPR_KIND::XOR;
 }
 
 inline bool IsComparison(BINARY_EXPR_KIND x) {
-  return int(BINARY_EXPR_KIND::EQ) <= int(x) &&
-         int(x) <= int(BINARY_EXPR_KIND::GE);
+  return BINARY_EXPR_KIND::EQ <= x && x <= BINARY_EXPR_KIND::GE;
 }
 
 inline bool IsShortCircuit(BINARY_EXPR_KIND x) {
-  return int(BINARY_EXPR_KIND::ANDSC) <= int(x) &&
-         int(x) <= int(BINARY_EXPR_KIND::ORSC);
+  return BINARY_EXPR_KIND::ANDSC <= x && x <= BINARY_EXPR_KIND::ORSC;
 }
 
 inline STR_KIND Node_str_kind(Node n) { return gNodeCore[n].str_kind; }

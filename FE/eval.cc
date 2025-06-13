@@ -1,16 +1,62 @@
 #include "FE/eval.h"
 
 #include <set>
+#include <string_view>
 
 #include "FE/cwast_gen.h"
 #include "FE/symbolize.h"
 #include "FE/type_corpus.h"
 #include "Util/handle.h"
 #include "Util/immutable.h"
+#include "Util/parse.h"
 
 namespace cwerg::fe {
 
 ImmutablePool ConstPool(alignof(uint64_t));
+
+Const ParseNum(Node node) {
+  ASSERT(Node_kind(node) == NT::ValNum, "");
+  CanonType ct = Node_x_type(node);
+  ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
+
+  std::string_view num = StrData(Node_number(node));
+  if (num == "false") return ConstNewBool(false);
+  if (num == "true") return ConstNewBool(true);
+
+  BASE_TYPE_KIND target_kind = CanonType_get_unwrapped_base_type_kind(ct);
+  ASSERT(target_kind != BASE_TYPE_KIND::UINT, "");
+
+  for (int i = 2; i <= 4 && i <= num.size(); i++) {
+    // std::cout << "@@@ Trying " << num.substr(num.size() - i, i) << "\n" <<
+    // std::flush;
+    BASE_TYPE_KIND kind =
+        BASE_TYPE_KIND_FromString(num.substr(num.size() - i, i));
+    if (kind != BASE_TYPE_KIND::INVALID) {
+      num.remove_suffix(i);
+      break;
+    }
+  }
+
+  if (num[0] == '\'') {
+    auto val = ParseChar(num);
+    if (!val) return kConstInvalid;
+    return ConstNewUnsigned(val.value(), target_kind);
+  }
+
+  if (IsSint(target_kind)) {
+    auto val = ParseInt<int64_t>(num);
+    if (!val) return kConstInvalid;
+    return ConstNewSigned(val.value(), target_kind);
+  } else if (IsUint(target_kind)) {
+    auto val = ParseInt<uint64_t>(num);
+    if (!val) return kConstInvalid;
+    return ConstNewUnsigned(val.value(), target_kind);
+  }
+  ASSERT(IsFlt(target_kind), "");
+  auto val = ParseFlt64(num);
+  if (!val) return kConstInvalid;
+  return ConstNewFloat(val.value(), target_kind);
+}
 
 namespace {
 
@@ -35,6 +81,7 @@ const std::array<CONST_KIND, 64> gBaseTypeToConstType =
     MakeBaseTypeToConstType();
 
 Const EvalNode(Node node) {
+  // std::cout << "@@@ " << node << "\n";
   switch (Node_kind(node)) {
     case NT::Id: {
       Node def = Node_x_symbol(node);
@@ -54,7 +101,11 @@ Const EvalNode(Node node) {
       return ConstNewVoid();
     case NT::ValUndef:
       return ConstNewUndef();
-    case NT::ValNum:
+    case NT::ValNum: {
+      CanonType ct = Node_x_type(node);
+      ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
+      return ParseNum(node);
+    }
     case NT::ValPoint:
       // TODO
       return kConstInvalid;
@@ -239,7 +290,7 @@ Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt) {
                    kind);
     }
     default:
-      ASSERT(false, "");
+      ASSERT(false, "bad sint " << EnumToString(bt) << " for " << val);
       return kConstInvalid;
   }
 }

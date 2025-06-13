@@ -107,25 +107,16 @@ CanonType AnnotateType(Node node, CanonType ct) {
 }
 
 struct ValAndKind {
-  union {
-    bool b;
-    uint32_t u32;
-    uint64_t u64;
-    int32_t s32;
-    int64_t s64;
-    float f32;
-    double f64;
-  };
   std::string_view cleaned;
   BASE_TYPE_KIND kind;
 };
 
 ValAndKind NumCleanupAndTypeExtraction(std::string_view num,
                                        BASE_TYPE_KIND target_kind) {
-  if (num == "false") return {.b = false, .kind = BASE_TYPE_KIND::BOOL};
-  if (num == "true") return {.b = true, .kind = BASE_TYPE_KIND::BOOL};
+  if (num == "false") return {num, BASE_TYPE_KIND::BOOL};
+  if (num == "true") return {num, BASE_TYPE_KIND::BOOL};
 
-  ValAndKind out = {.u32 = 0, .cleaned = num, .kind = target_kind};
+  ValAndKind out = {.cleaned = num, .kind = target_kind};
   for (int i = 2; i <= 4 && i <= num.size(); i++) {
     // std::cout << "@@@ Trying " << num.substr(num.size() - i, i) << "\n" <<
     // std::flush;
@@ -142,16 +133,6 @@ ValAndKind NumCleanupAndTypeExtraction(std::string_view num,
   }
   return out;
 }
-
-#if 0
-ValAndKind ParseNumRaw(Node num_val, BASE_TYPE_KIND target_kind) {
-  std::string_view num = StrData(Node_number(num_val));
-  if (num[0] == '\'') {
-    ASSERT(false, num);
-    return {.u32 = 0, .kind = target_kind};
-  }
-}
-#endif
 
 CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                            PolyMap* pm);

@@ -115,7 +115,9 @@ def ParseNumRaw(num_val: cwast.ValNum, target_kind: cwast.BASE_TYPE_KIND) -> Tup
         return (None, cwast.BASE_TYPE_KIND.INVALID)
 
 
-def ParseNum(num: cwast.ValNum, kind: cwast.BASE_TYPE_KIND) -> Any:
+def ParseNum(num: cwast.ValNum) -> Any:
+    assert num.x_type.is_base_type()
+    kind = num.x_type.base_type_kind
     val, _ = ParseNumRaw(num, kind)
     bitsize = cwast.BASE_TYPE_KIND_TO_SIZE[kind] * 8
     if kind.IsUint():

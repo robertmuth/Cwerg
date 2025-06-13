@@ -490,13 +490,11 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.ValUndef):
         return VAL_UNDEF
     elif isinstance(node, cwast.ValNum):
+        # Note, later we use ValNum with other times
+        # but at this point they are all of type TypeBase
         ct: cwast.CanonType = node.x_type
-        if ct.is_base_type() or ct.is_enum():
-            bt = ct.base_type_kind
-            return EvalNum(typify.ParseNum(node, bt), bt)
-
-        assert False, f"unepxected type for ValNum: {ct}"
-
+        assert ct.is_base_type()
+        return EvalNum(typify.ParseNum(node), ct.base_type_kind)
     elif isinstance(node, cwast.ValPoint):
         return _EvalValWithPossibleImplicitConversion(
             node.x_type, node.value_or_undef)

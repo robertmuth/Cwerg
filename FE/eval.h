@@ -12,15 +12,13 @@ extern ImmutablePool ConstPool;
 
 struct EvalSpan {
   Node pointer;
-  int32_t size;  // invalid if < 0
-  Const content;
+  int32_t size;   // invalid if < 0
+  Const content;  // usually a compound
 };
 
-inline bool ConstIsShort(Const num) { return int32_t(num.value) < 0; }
-inline bool ValIsShortConstUnsigned(uint32_t val) { return val < (1U << 23U); }
-
-inline bool ValIsShortConstSigned(uint64_t val) {
-  return -(1U << 12U) <= val && val < (1U << 22U);
+inline bool ValIsShortConstUnsigned(uint32_t val) { return val < (1 << 23U); }
+inline bool ValIsShortConstSigned(int64_t val) {
+  return -(1 << 12U) <= val && val < (1 << 22U);
 }
 
 inline Const ConstNewShortSigned(int64_t val, CONST_KIND kind) {
@@ -29,7 +27,7 @@ inline Const ConstNewShortSigned(int64_t val, CONST_KIND kind) {
 }
 
 inline Const ConstNewShortUnsigned(uint32_t val, CONST_KIND kind) {
-  ASSERT(IsUint(kind), "");
+  ASSERT(IsUintOrBool(kind), "not a uint " << int(kind));
   return Const(1U << 23U | val, kind);
 }
 
@@ -37,6 +35,7 @@ inline uint32_t ConstShortGetUnsigned(Const c) {
   ASSERT(IsUint(c.kind()), "");
   return c.value << 1U >> 9U;
 }
+
 inline int32_t ConstShortGetSigned(Const c) {
   ASSERT(IsSint(c.kind()), "");
   return int32_t(c.value) << 1U >> 9U;
@@ -72,9 +71,6 @@ inline Const ConstNewU64(uint64_t val) {
 extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
 extern Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt);
 
-extern int64_t ConstGetSigned(Const c);
-extern uint64_t ConstGetUnsigned(Const c);
-
 inline Const ConstNewS8(int8_t val) {
   return ConstNewShortSigned(val, CONST_KIND::S8);
 }
@@ -98,6 +94,22 @@ inline Const ConstNewS64(int64_t val) {
                CONST_KIND::U64);
 }
 
+inline Const ConstNewR32(float val) {
+  return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
+               CONST_KIND::R32);
+}
+
+inline Const ConstNewR64(double val) {
+  return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
+               CONST_KIND::R64);
+}
+
+inline Const ConstNewFloat(double val, BASE_TYPE_KIND bt) {
+  if (bt == BASE_TYPE_KIND::R32) return ConstNewR32(val);
+  ASSERT(bt == BASE_TYPE_KIND::R64, "");
+  return ConstNewR64(val);
+}
+
 inline Const ConstNewUndef() { return Const(0, CONST_KIND::UNDEF); }
 inline Const ConstNewVoid() { return Const(0, CONST_KIND::VOID); }
 
@@ -118,6 +130,20 @@ inline Const ConstNewFunAddr(Node sym) {
 inline Const ConstNewCompound(Node sym) {
   return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
                CONST_KIND::COMPOUND);
+}
+
+inline Const ConstNewSpan(EvalSpan span) {
+  return Const(ConstPool.Intern(std::string_view((char*)&span, sizeof(span))),
+               CONST_KIND::SPAN);
+}
+
+extern int64_t ConstGetSigned(Const c);
+extern uint64_t ConstGetUnsigned(Const c);
+extern double ConstGetFloat(Const c);
+
+inline EvalSpan ConstGetSpan(Const c) {
+  ASSERT(c.kind() == CONST_KIND::SPAN, "");
+  return *(EvalSpan*)ConstPool.Data(c.index());
 }
 
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
