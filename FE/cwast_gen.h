@@ -63,6 +63,9 @@ enum class CONST_KIND : uint8_t {
   SPAN = 51,
 };
 
+extern BASE_TYPE_KIND MakeSint(int bitwidth);
+extern BASE_TYPE_KIND MakeUint(int bitwidth);
+
 inline bool IsSint(CONST_KIND k) {
   return CONST_KIND::S8 <= k && k <= CONST_KIND::S64;
 }

@@ -755,4 +755,35 @@ std::string ExpandStringConstant(Str s) {
   return "";
 }
 
+BASE_TYPE_KIND MakeSint(int bitwidth) {
+  switch (bitwidth) {
+    case 8:
+      return BASE_TYPE_KIND::S8;
+    case 16:
+      return BASE_TYPE_KIND::S16;
+    case 32:
+      return BASE_TYPE_KIND::S32;
+    case 64:
+      return BASE_TYPE_KIND::S64;
+    default:
+      ASSERT(false, "");
+      return BASE_TYPE_KIND::INVALID;
+  }
+}
+BASE_TYPE_KIND MakeUint(int bitwidth) {
+  switch (bitwidth) {
+    case 8:
+      return BASE_TYPE_KIND::U8;
+    case 16:
+      return BASE_TYPE_KIND::U16;
+    case 32:
+      return BASE_TYPE_KIND::U32;
+    case 64:
+      return BASE_TYPE_KIND::U64;
+    default:
+      ASSERT(false, "");
+      return BASE_TYPE_KIND::INVALID;
+  }
+}
+
 }  // namespace cwerg::fe

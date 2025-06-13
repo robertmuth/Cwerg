@@ -177,38 +177,8 @@ CanonType CanonTypeNewFunType(Name name,
 }
 
 // ====================================================================
-BASE_TYPE_KIND MakeSint(int bitwidth) {
-  switch (bitwidth) {
-    case 8:
-      return BASE_TYPE_KIND::S8;
-    case 16:
-      return BASE_TYPE_KIND::S16;
-    case 32:
-      return BASE_TYPE_KIND::S32;
-    case 64:
-      return BASE_TYPE_KIND::S64;
-    default:
-      ASSERT(false, "");
-      return BASE_TYPE_KIND::INVALID;
-  }
-}
-BASE_TYPE_KIND MakeUint(int bitwidth) {
-  switch (bitwidth) {
-    case 8:
-      return BASE_TYPE_KIND::U8;
-    case 16:
-      return BASE_TYPE_KIND::U16;
-    case 32:
-      return BASE_TYPE_KIND::U32;
-    case 64:
-      return BASE_TYPE_KIND::U64;
-    default:
-      ASSERT(false, "");
-      return BASE_TYPE_KIND::INVALID;
-  }
-}
 
-TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_(arch) {
+TypeCorpus::TypeCorpus(const TargetArchConfig& arch) {
   for (BASE_TYPE_KIND kind : {BASE_TYPE_KIND::VOID,
                               //
                               BASE_TYPE_KIND::S8, BASE_TYPE_KIND::S16,
@@ -222,12 +192,10 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_(arch) {
                               BASE_TYPE_KIND::BOOL}) {
     base_type_map_[kind] = InsertBaseType(kind);
   }
-  base_type_map_[BASE_TYPE_KIND::SINT] =
-      base_type_map_[MakeSint(arch_.sint_bitwidth)];
-  base_type_map_[BASE_TYPE_KIND::UINT] =
-      base_type_map_[MakeUint(arch_.uint_bitwidth)];
+  base_type_map_[BASE_TYPE_KIND::SINT] = base_type_map_[arch.get_sint_kind()];
+  base_type_map_[BASE_TYPE_KIND::UINT] = base_type_map_[arch.get_uint_kind()];
   base_type_map_[BASE_TYPE_KIND::TYPEID] =
-      base_type_map_[MakeUint(arch_.typeid_bitwidth)];
+      base_type_map_[arch.get_typeid_kind()];
 }
 
 CanonType TypeCorpus::Insert(CanonType ct) {

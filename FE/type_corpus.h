@@ -7,6 +7,8 @@
 #include "Util/assert.h"
 namespace cwerg::fe {
 
+
+
 struct TargetArchConfig {
   int uint_bitwidth;
   int sint_bitwidth;
@@ -15,7 +17,18 @@ struct TargetArchConfig {
   int code_addr_bitwidth;
 
   inline int get_address_size() const { return data_addr_bitwidth / 8; }
+  inline BASE_TYPE_KIND get_uint_kind() const {
+    return MakeUint(uint_bitwidth);
+  }
+  inline BASE_TYPE_KIND get_sint_kind() const {
+    return MakeSint(sint_bitwidth);
+  }
+  inline BASE_TYPE_KIND get_typeid_kind() const {
+    return MakeUint(typeid_bitwidth);
+  }
 };
+
+
 
 constexpr TargetArchConfig STD_TARGET_X64 = {64, 64, 16, 64, 64};
 constexpr TargetArchConfig STD_TARGET_A64 = {64, 64, 16, 64, 64};
@@ -92,7 +105,6 @@ class TypeCorpus {
   std::map<Name, CanonType> corpus_;
 
   std::map<BASE_TYPE_KIND, CanonType> base_type_map_;
-  const TargetArchConfig& arch_;
   int typeid_curr_ = 0;
   CanonType Insert(CanonType ct);
   CanonType InsertBaseType(BASE_TYPE_KIND kind);
