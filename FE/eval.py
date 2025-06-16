@@ -38,14 +38,6 @@ class EvalVoid(EvalBase):
         return "EvalVoid"
 
 
-class EvalComplexDefault(EvalBase):
-    def __init__(self, sym=None):
-        # if sym is not None it has been materialized as `sym`
-        self.sym = sym
-
-    def __str__(self):
-        return "EvalComplexDefault"
-
 
 class EvalSymAddr(EvalBase):
     def __init__(self, sym):
@@ -76,10 +68,14 @@ class EvalFunAddr(EvalBase):
 
 
 class EvalCompound(EvalBase):
-    def __init__(self, compound, sym=None):
-        assert isinstance(compound, (cwast.ValString, cwast.ValCompound))
+    def __init__(self, compound, sym):
+        # if compound is None, the default initialization is used
+        if compound is not None:
+            assert isinstance(compound, (cwast.ValString, cwast.ValCompound))
         self.compound = compound
         # if sym is not None it has been materialized as `sym`
+        if sym is not None:
+            assert isinstance(sym, (cwast.DefVar, cwast.DefGlobal))
         self.sym = sym
 
     def __str__(self):
@@ -114,7 +110,6 @@ class EvalNum(EvalBase):
 VAL_EMPTY_SPAN = EvalSpan(None, 0)
 VAL_UNDEF = EvalUndef()
 VAL_VOID = EvalVoid()
-VAL_COMPLEX_DEFAULT = EvalComplexDefault()
 VAL_TRUE = EvalNum(True, cwast.BASE_TYPE_KIND.BOOL)
 VAL_FALSE = EvalNum(False, cwast.BASE_TYPE_KIND.BOOL)
 
@@ -281,7 +276,7 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
     elif ct.is_span():
         return VAL_EMPTY_SPAN
     elif ct.is_complex():
-        return VAL_COMPLEX_DEFAULT
+        return EvalCompound(None, None)
     else:
         return None
 
@@ -401,7 +396,7 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
     return False
 
 
-def _GetValForVecAtPos(container_val, index: int):
+def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
     if isinstance(container_val, EvalSpan):
         container_val = container_val.content
         if container_val is None:
@@ -410,6 +405,8 @@ def _GetValForVecAtPos(container_val, index: int):
     assert isinstance(container_val, EvalCompound)
     compound = container_val.compound
 
+    if compound is None:
+        return GetDefaultForType(ct)
     if isinstance(compound, cwast.ValString):
         s = compound.get_bytes()
         assert index < len(s)
@@ -459,7 +456,7 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
         if src_value is None:
             return EvalSpan(None, src_type.array_dim(), None)
         else:
-            assert isinstance(src_value, (EvalCompound, EvalComplexDefault)
+            assert isinstance(src_value, EvalCompound
                               ), f"{src_value} {src_node.x_srcloc}"
             return EvalSpan(src_value.sym, src_type.array_dim(), src_value)
     elif src_value is None:
@@ -498,7 +495,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return _EvalValWithPossibleImplicitConversion(
             node.x_type, node.value_or_undef)
     elif isinstance(node, (cwast.ValCompound, cwast.ValString)):
-        return EvalCompound(node)
+        return EvalCompound(node, None)
     elif isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
         initial = node.initial_or_undef_or_auto
         if initial.x_value is None and isinstance(initial, cwast.ValAuto):
@@ -510,8 +507,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         val = _EvalValWithPossibleImplicitConversion(node.x_type, initial)
         if isinstance(val, EvalCompound):
             val = EvalCompound(val.compound, node)
-        elif isinstance(val, EvalComplexDefault):
-            val = EvalComplexDefault(node)
         return val
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
@@ -521,7 +516,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         if container_val is None:
             return None
 
-        return _GetValForVecAtPos(container_val, index_val.val)
+        return _GetValForVecAtPos(container_val, index_val.val, node.x_type)
     elif isinstance(node, cwast.ExprField):
         container_val = node.container.x_value
         if container_val is None:
