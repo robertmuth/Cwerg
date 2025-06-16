@@ -81,7 +81,7 @@ constexpr std::array<CONST_KIND, 64> MakeBaseTypeToConstType() {
 const std::array<CONST_KIND, 64> gBaseTypeToConstType =
     MakeBaseTypeToConstType();
 
-    #if 0
+#if 0
 Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
   Const src_value = Node_x_eval(src_node);
   if (Node_kind(src_node) == NT::ValUndef) return src_value;
@@ -190,6 +190,35 @@ Const GetValForRecAtField(Const container, Node field) {
 }
 #endif
 
+Const EvalExpr1(Node node) {
+  Const e = Node_x_eval(Node_expr(node));
+  if (e.isnull()) return kConstInvalid;
+  BASE_TYPE_KIND bt = CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
+  switch (Node_unary_expr_kind(node)) {
+    case UNARY_EXPR_KIND::NOT:
+      if (bt == BASE_TYPE_KIND::BOOL) {
+        return ConstNewBool(!ConstGetUnsigned(e));
+      } else {
+        ASSERT(IsUint(bt), "");
+        return ConstNewUnsigned(~ConstGetUnsigned(e), bt);
+      }
+    case UNARY_EXPR_KIND::NEG:
+      if (bt == BASE_TYPE_KIND::BOOL) {
+        return e;
+      } else if (IsSint(bt)) {
+        return ConstNewSigned(-ConstGetSigned(e), bt);
+      } else if (IsUint(bt)) {
+        return ConstNewUnsigned(-ConstGetUnsigned(e), bt);
+      } else {
+        ASSERT(IsFlt(bt), "");
+        return ConstNewFloat(-ConstGetFloat(e), bt);
+      }
+    default:
+      ASSERT(false, "UNREACHABLE");
+      return kConstInvalid;
+  }
+}
+
 Const EvalNode(Node node) {
   // std::cout << "@@@ " << node << "\n";
   switch (Node_kind(node)) {
@@ -261,6 +290,7 @@ Const EvalNode(Node node) {
       return kConstInvalid;
 
     case NT::Expr1:
+      return EvalExpr1(node);
     case NT::Expr2:
     case NT::Expr3:
       // TODO
@@ -459,6 +489,15 @@ uint64_t ConstGetUnsigned(Const c) {
   }
   ASSERT(c.kind() == CONST_KIND::U64, "");
   return *(uint64_t*)ConstPool.Data(c.index());
+}
+
+double ConstGetFloat(Const c) {
+  if (c.kind() == CONST_KIND::R32) {
+    return *(float*)ConstPool.Data(c.index());
+  } else {
+    ASSERT(c.kind() == CONST_KIND::R64, "");
+    return *(double*)ConstPool.Data(c.index());
+  }
 }
 
 std::ostream& operator<<(std::ostream& os, Const c) {

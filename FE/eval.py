@@ -287,23 +287,22 @@ def _EvalExpr1(node: cwast.Expr1) -> Optional[EvalBase]:
     e = e.val
     bt = node.x_type.base_type_kind
     op = node.unary_expr_kind
-    if bt == cwast.BASE_TYPE_KIND.BOOL:
-        if op == cwast.UNARY_EXPR_KIND.NOT:
+    if op == cwast.UNARY_EXPR_KIND.NOT:
+        if bt == cwast.BASE_TYPE_KIND.BOOL:
             v = not e
-        elif op == cwast.UNARY_EXPR_KIND.NEG:
-            v = e
+        elif bt.IsUint():
+            v = ~e & ((1 << (node.x_type.size * 8)) - 1)
         else:
             assert False
-    elif bt.IsInt():
-        assert bt.IsUint()
-        if op == cwast.UNARY_EXPR_KIND.NOT:
-            v = ~e & ((1 << (node.x_type.size * 8)) - 1)
-        elif op == cwast.UNARY_EXPR_KIND.NEG:
+    elif op == cwast.UNARY_EXPR_KIND.NEG:
+        if bt == cwast.BASE_TYPE_KIND.BOOL:
+            v = e
+        elif bt.IsNumber():
             v = -e
         else:
-            assert False
+            assert False, f"{bt} {op}"
     else:
-        return None
+        assert False
     return EvalNum(v, bt)
 
 

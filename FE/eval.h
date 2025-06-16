@@ -37,7 +37,7 @@ inline Const ConstNewShortUnsigned(uint32_t val, CONST_KIND kind) {
 }
 
 inline uint32_t ConstShortGetUnsigned(Const c) {
-  ASSERT(IsUint(c.kind()), "");
+  ASSERT(IsUintOrBool(c.kind()), "not unsigned " << int(c.kind()));
   return c.value << 1U >> 9U;
 }
 
