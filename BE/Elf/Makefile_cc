@@ -47,7 +47,7 @@ $(DIR)/clone_a32_test_c: $(ELF_TOOL)
 	@echo "[$@]"
 	$(ELF_TOOL) TestData/hello_barebones-a32
 
-$(DIR)/clone_x64_test_c:
+$(DIR)/clone_x64_test_c: $(ELF_TOOL)
 	@echo "[$@]"
 	$(ELF_TOOL) TestData/hello-x64
 
