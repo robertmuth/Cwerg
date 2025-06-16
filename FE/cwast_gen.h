@@ -54,7 +54,6 @@ enum class CONST_KIND : uint8_t {
   TYPEID = 32,
   VOID = 33,
   UNDEF = 34,
-  COMPLEX_DEFAULT = 35,
   //
   SYM_ADDR = 41,
   FUN_ADDR = 42,

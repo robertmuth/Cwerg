@@ -7,17 +7,27 @@
 #include <optional>
 #include <string_view>
 #include <vector>
+#include <string>
 
 namespace cwerg {
 
+// This is the line parser for the BE
 // Note, if there is a comment it will always be the last token
 extern bool ParseLineWithStrings(std::string_view s, bool allow_lists,
                                  std::vector<std::string_view>* out);
 
-// returns 0 on error so avoid passing in len = 0 strings
-extern size_t EscapedStringToBytes(std::string_view s, char* out);
+// returns this on error s
+constexpr size_t STRING_LITERAL_PARSE_ERROR = SIZE_MAX;
 
-extern size_t HexStringToBytes(std::string_view s, char* out);
+// buffer pointed to by out must be  >= s.size()
+extern size_t EscapedStringToBytes(std::string_view s, char* out);
+// string with quotes,.e.g.
+// "..." or """..."""
+// x"..." or x"""..."""
+// r"..." or r"""..."""
+extern size_t StringLiteralToBytes(std::string_view str, char* out);
+
+extern size_t ComputeStringLiteralLength(std::string_view str);
 
 // buf needs to be at least 4 * size
 extern size_t BytesToEscapedString(std::string_view, char* out);

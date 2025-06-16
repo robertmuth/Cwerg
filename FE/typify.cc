@@ -318,57 +318,6 @@ uint32_t ComputeArrayLength(Node node) {
   }
 }
 
-uint32_t ComputeStringLengthHex(std::string_view str) {
-  int n = 0;
-  for (int c : str) {
-    if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-      ++n;
-    }
-  }
-  ASSERT(n / 2 * 2 == n, "");
-  return n / 2;
-}
-
-uint32_t ComputeStringLengthEscaped(std::string_view str) {
-  int n = 0;
-  int escape = 0;
-  for (int c : str) {
-    if (escape > 0) {
-      --escape;
-      // handle \x - (note this has problems e.g. \x0x which is illegal)
-      if (escape == 0 && c == 'x') escape = 2;
-      continue;
-    }
-    ++n;
-    if (c == '\\') escape = 1;
-  }
-  return n;
-}
-
-uint32_t ComputeStringLength(std::string_view str) {
-  std::string_view paylaod = str;
-  int k = paylaod[0];
-  if (k != '"') {
-    paylaod = paylaod.substr(1);
-  }
-  if (str.starts_with("\"\"\"")) {
-    paylaod = paylaod.substr(3, paylaod.size() - 6);
-  } else {
-    paylaod = paylaod.substr(1, paylaod.size() - 2);
-  }
-
-  switch (k) {
-    case 'r':
-      return str.size();
-    case 'x':
-      return ComputeStringLengthHex(paylaod);
-    case '"':
-      return ComputeStringLengthEscaped(paylaod);
-    default:
-      ASSERT(false, "bad string literal [" << str << "]");
-      return 0;
-  }
-}
 
 bool IsPolymorphicCallee(Node callee) {
   if (Node_kind(callee) != NT::Id) {
@@ -482,7 +431,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::ValCompound:
       return TypifyValCompound(node, tc, ct_target, pm);
     case NT::ValString: {
-      int dim = ComputeStringLength(StrData(Node_string(node)));
+      int dim = ComputeStringLiteralLength(StrData(Node_string(node)));
       ct = tc->InsertVecType(dim, tc->get_base_canon_type(BASE_TYPE_KIND::U8));
       return AnnotateType(node, ct);
     }

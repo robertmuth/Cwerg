@@ -7,6 +7,7 @@
 #include "Util/parse.h"
 
 #include "Util/assert.h"
+#include <string.h>
 
 namespace cwerg {
 namespace {
@@ -147,13 +148,14 @@ size_t EscapedStringToBytes(std::string_view s, char* out) {
     }
 
     escaped = false;
+    // TODO: drop support for octal
     if ('0' <= c && c <= '7') {
       i = AddOct(s, i, out + n);
-      if (i == 0) return 0;
+      if (i == 0) return STRING_LITERAL_PARSE_ERROR;
       n++;
     } else if (c == 'x') {
       i = AddHex(s, i + 1, out + n);
-      if (i == 0) return 0;
+      if (i == 0) return STRING_LITERAL_PARSE_ERROR;
       n++;
     } else {
       if (out != nullptr) {
@@ -183,9 +185,88 @@ size_t HexStringToBytes(std::string_view s, char* out) {
     }
   }
   if (nibble >= 0) {
-    return SIZE_MAX;
+    return STRING_LITERAL_PARSE_ERROR;
   }
   return n;
+}
+
+size_t StringLiteralToBytes(std::string_view str, char* out) {
+  std::string_view payload = str;
+
+  int k = payload[0];
+  if (k != '"') {
+    payload = payload.substr(1);
+  }
+  if (payload.starts_with("\"\"\"")) {
+    payload = payload.substr(3, payload.size() - 6);
+  } else {
+    payload = payload.substr(1, payload.size() - 2);
+  }
+
+  switch (k) {
+    case 'r':
+      memcpy(out, payload.data(), payload.size());
+      return payload.size();
+    case 'x':
+      return HexStringToBytes(payload, out);
+    case '"':
+      return EscapedStringToBytes(payload, out);
+    default:
+      ASSERT(false, "bad string literal [" << str << "]");
+      return STRING_LITERAL_PARSE_ERROR;
+  }
+}
+
+size_t ComputeStringLengthHex(std::string_view str) {
+  size_t n = 0;
+  for (int c : str) {
+    if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+      ++n;
+    }
+  }
+  ASSERT(n / 2 * 2 == n, "");
+  return n / 2;
+}
+
+size_t ComputeStringLengthEscaped(std::string_view str) {
+  size_t n = 0;
+  int escape = 0;
+  for (int c : str) {
+    if (escape > 0) {
+      --escape;
+      // handle \x - (note this has problems e.g. \x0x which is illegal)
+      if (escape == 0 && c == 'x') escape = 2;
+      continue;
+    }
+    ++n;
+    if (c == '\\') escape = 1;
+  }
+  return n;
+}
+
+size_t ComputeStringLiteralLength(std::string_view str) {
+  std::string_view payload = str;
+  int k = payload[0];
+  if (k != '"') {
+    payload = payload.substr(1);
+  }
+  if (str.starts_with("\"\"\"")) {
+    payload = payload.substr(3, payload.size() - 6);
+  } else {
+    payload = payload.substr(1, payload.size() - 2);
+  }
+
+  switch (k) {
+    case 'r':
+      return str.size();
+    case 'x':
+      return ComputeStringLengthHex(payload);
+    case '"':
+      return ComputeStringLengthEscaped(payload);
+    default:
+      ASSERT(false, "bad string literal [" << str << "]");
+      return 0;
+  }
 }
 
 std::optional<uint64_t> ParseChar(std::string_view s) {

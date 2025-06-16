@@ -38,7 +38,6 @@ class EvalVoid(EvalBase):
         return "EvalVoid"
 
 
-
 class EvalSymAddr(EvalBase):
     def __init__(self, sym):
         assert isinstance(sym, (cwast.DefGlobal, cwast.DefVar)), f"{sym}"
@@ -68,11 +67,11 @@ class EvalFunAddr(EvalBase):
 
 
 class EvalCompound(EvalBase):
-    def __init__(self, compound, sym):
+    def __init__(self, init_node, sym):
         # if compound is None, the default initialization is used
-        if compound is not None:
-            assert isinstance(compound, (cwast.ValString, cwast.ValCompound))
-        self.compound = compound
+        if init_node is not None:
+            assert isinstance(init_node, (cwast.ValString, cwast.ValCompound))
+        self.init_node = init_node
         # if sym is not None it has been materialized as `sym`
         if sym is not None:
             assert isinstance(sym, (cwast.DefVar, cwast.DefGlobal))
@@ -403,36 +402,35 @@ def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
             return None
 
     assert isinstance(container_val, EvalCompound)
-    compound = container_val.compound
+    init_node = container_val.init_node
 
-    if compound is None:
+    if init_node is None:
         return GetDefaultForType(ct)
-    if isinstance(compound, cwast.ValString):
-        s = compound.get_bytes()
+
+    assert index < init_node.x_type.array_dim()
+
+    if isinstance(init_node, cwast.ValString):
+        s = init_node.get_bytes()
         assert index < len(s)
         return EvalNum(s[index], cwast.BASE_TYPE_KIND.U8)
 
-    assert isinstance(container_val, EvalCompound), f"{container_val}"
-    compound = container_val.compound
-    assert isinstance(compound, cwast.ValCompound), f"{compound}"
-    assert index < compound.x_type.array_dim()
+    assert isinstance(init_node, cwast.ValCompound), f"{init_node}"
     n = 0
-    for point in compound.inits:
+    for point in init_node.inits:
         if isinstance(point.point_or_undef, cwast.ValNum):
             assert isinstance(point.point_or_undef.x_value, EvalNum)
             n = point.point_or_undef.x_value.val
         if n == index:
             return point.value_or_undef.x_value
         if n > index:
-
-            return GetDefaultForType(compound.x_type.underlying_type())
+            break
         n += 1
-    return None
+    return GetDefaultForType(ct)
 
 
 def _GetValForRecAtField(container_val, field: cwast.RecField):
     assert isinstance(container_val, EvalCompound)
-    container_val = container_val.compound
+    container_val = container_val.init_node
     if container_val is None:
         return GetDefaultForType(field.x_type)
     for rec_field, init in symbolize.IterateValRec(container_val.inits, container_val.x_type):
@@ -508,7 +506,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             return None
         val = _EvalValWithPossibleImplicitConversion(node.x_type, initial)
         if isinstance(val, EvalCompound):
-            val = EvalCompound(val.compound, node)
+            val = EvalCompound(val.init_node, node)
         return val
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value

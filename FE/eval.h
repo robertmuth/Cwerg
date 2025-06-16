@@ -16,6 +16,11 @@ struct EvalSpan {
   Const content;  // usually a compound
 };
 
+struct EvalCompound {
+  Node init_node;
+  Node symbol;
+};
+
 inline bool ValIsShortConstUnsigned(uint32_t val) { return val < (1 << 23U); }
 inline bool ValIsShortConstSigned(int64_t val) {
   return -(1 << 12U) <= val && val < (1 << 22U);
@@ -113,9 +118,6 @@ inline Const ConstNewFloat(double val, BASE_TYPE_KIND bt) {
 inline Const ConstNewUndef() { return Const(0, CONST_KIND::UNDEF); }
 inline Const ConstNewVoid() { return Const(0, CONST_KIND::VOID); }
 
-inline Const ConstNewComplexDefault() {
-  return Const(0, CONST_KIND::COMPLEX_DEFAULT);
-}
 
 inline Const ConstNewSymAddr(Node sym) {
   return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
@@ -127,15 +129,18 @@ inline Const ConstNewFunAddr(Node sym) {
                CONST_KIND::FUN_ADDR);
 }
 
-inline Const ConstNewCompound(Node sym) {
-  return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
+inline Const ConstNewCompound(EvalCompound compound) {
+  return Const(ConstPool.Intern(std::string_view((char*)&compound, sizeof(compound))),
                CONST_KIND::COMPOUND);
 }
 
+inline EvalCompound ConstGetCompound(Const c) {
+  ASSERT(c.kind() == CONST_KIND::COMPOUND, "");
+  return *(EvalCompound*)ConstPool.Data(c.index());
+}
+
 inline Node ConstGetSymbol(Const c) {
-  ASSERT(c.kind() == CONST_KIND::SYM_ADDR || c.kind() == CONST_KIND::FUN_ADDR ||
-             c.kind() == CONST_KIND::COMPOUND,
-         "");
+  ASSERT(c.kind() == CONST_KIND::SYM_ADDR || c.kind() == CONST_KIND::FUN_ADDR, "cannot get symbol");
   return *(Node*)ConstPool.Data(c.index());
 }
 
@@ -152,6 +157,8 @@ inline EvalSpan ConstGetSpan(Const c) {
   ASSERT(c.kind() == CONST_KIND::SPAN, "");
   return *(EvalSpan*)ConstPool.Data(c.index());
 }
+
+extern std::ostream& operator<<(std::ostream& os, Const c);
 
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
 }  // namespace cwerg::fe

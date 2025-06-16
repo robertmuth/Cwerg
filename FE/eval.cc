@@ -81,6 +81,7 @@ constexpr std::array<CONST_KIND, 64> MakeBaseTypeToConstType() {
 const std::array<CONST_KIND, 64> gBaseTypeToConstType =
     MakeBaseTypeToConstType();
 
+    #if 0
 Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
   Const src_value = Node_x_eval(src_node);
   if (Node_kind(src_node) == NT::ValUndef) return src_value;
@@ -102,6 +103,7 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
 
   return src_value;
 }
+#endif
 
 void AssignValue(Node node, Const val) { Node_x_eval(node) = val; }
 
@@ -130,11 +132,63 @@ Const GetDefaultForType(CanonType ct) {
       return ConstNewSpan({kNodeInvalid, -1, kConstInvalid});
     default:
       if (CanonType_is_complex(ct))
-        return ConstNewComplexDefault();
+        return ConstNewCompound({kNodeInvalid, kNodeInvalid});
       else
         return kConstInvalid;
   }
 }
+
+#if 0
+Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
+  if (container_val.kind() == CONST_KIND::SPAN) {
+    container_val = ConstGetSpan(container_val).content;
+    if (container_val.isnull()) return kConstInvalid;
+  }
+
+  ASSERT(container_val.kind() == CONST_KIND::COMPOUND,
+         "" << int(container_val.kind()));
+  Node init_node = ConstGetCompound(container_val).init_node;
+  if (init_node.isnull()) {
+    return GetDefaultForType(ct);
+  }
+
+  size_t dim = CanonType_size(Node_x_type(init_node));
+  ASSERT(index < dim, "");
+  if (init_node.kind() != NT::ValString) {
+    char* buffer = new char[dim];
+    size_t size = StringLiteralToBytes(StrData(Node_string(init_node)), buffer);
+    ASSERT(size != STRING_LITERAL_PARSE_ERROR, "");
+    ASSERT(index < size, "");
+    Const out = ConstNewUnsigned(uint8_t(buffer[index]), BASE_TYPE_KIND::U8);
+    delete[] buffer;
+    return out;
+  }
+
+  ASSERT(init_node.kind() == NT::ValCompound, "");
+  uint64_t n = 0;
+  for (Node point = Node_inits(init_node); !point.isnull();
+       point = Node_next(point)) {
+    ASSERT(point.kind() == NT::ValPoint, "");
+    Node p = Node_point_or_undef(point);
+    if (!p.isnull()) {
+      n = ConstGetUnsigned(Node_x_eval(p));
+    }
+    if (n == index) return Node_x_eval(Node_value_or_undef(point));
+    if (n > index) return GetDefaultForType(ct);
+    ++n;
+  }
+  return kConstInvalid;
+}
+
+Const GetValForRecAtField(Const container, Node field) {
+  ASSERT(container.kind() == CONST_KIND::COMPOUND, "");
+  ASSERT(field.kind() == NT::RecField, "");
+  Node compound = ConstGetSymbol(container);
+  ASSERT(compound.kind() == NT::ValCompound, "");
+
+  return kConstInvalid;
+}
+#endif
 
 Const EvalNode(Node node) {
   // std::cout << "@@@ " << node << "\n";
@@ -163,11 +217,13 @@ Const EvalNode(Node node) {
       return ParseNum(node);
     }
     case NT::ValPoint:
+#if 0
       return EvalValWithPossibleImplicitConversion(Node_x_type(node),
                                                    Node_value_or_undef(node));
+#endif
     case NT::ValCompound:
     case NT::ValString:
-      return ConstNewCompound(node);
+      return ConstNewCompound({node, kNodeInvalid});
     case NT::DefVar:
     case NT::DefGlobal:
 #if 0
@@ -181,7 +237,29 @@ Const EvalNode(Node node) {
     }
 #endif
     case NT::ExprIndex:
+#if 0
+
+    {
+      if 0
+      Const index_val = Node_x_eval(Node_expr_index(node));
+      if (index_val.isnull()) return kConstInvalid;
+      Const container_val = Node_x_eval(Node_container(node));
+      if (container_val.isnull()) return kConstInvalid;
+      return GetValForVecAtPos(container_val, ConstGetUnsigned(index_val),
+                               Node_x_type(node));
+    }
+#endif
+
     case NT::ExprField:
+#if 0
+    {
+      Const container_val = Node_x_eval(Node_container(node));
+      if (container_val.isnull()) return kConstInvalid;
+      return GetValForRecAtField(container_val, Node_field(node));
+    }
+#endif
+      return kConstInvalid;
+
     case NT::Expr1:
     case NT::Expr2:
     case NT::Expr3:
@@ -381,6 +459,30 @@ uint64_t ConstGetUnsigned(Const c) {
   }
   ASSERT(c.kind() == CONST_KIND::U64, "");
   return *(uint64_t*)ConstPool.Data(c.index());
+}
+
+std::ostream& operator<<(std::ostream& os, Const c) {
+  return os;
+  switch (c.kind()) {
+    case CONST_KIND::VOID:
+      return os << "EvalVoid";
+    case CONST_KIND::U8:
+    case CONST_KIND::U16:
+    case CONST_KIND::U32:
+    case CONST_KIND::U64:
+    case CONST_KIND::BOOL:
+      return os << "EvalNum[" << ConstGetUnsigned(c) << "]";
+    case CONST_KIND::S8:
+    case CONST_KIND::S16:
+    case CONST_KIND::S32:
+    case CONST_KIND::S64:
+      return os << "EvalNum[" << ConstGetSigned(c) << "]";
+    case CONST_KIND::R32:
+    case CONST_KIND::R64:
+      return os << "EvalNum[" << ConstGetFloat(c) << "]";
+    default:
+      return os;
+  }
 }
 
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {

@@ -790,12 +790,10 @@ def _CheckNodeFieldOrder(cls):
         if field in ('ALIAS', 'GROUP', 'FLAGS'):
             continue
         if field.startswith("x_"):
-            assert field in X_FIELDS, f"unexpected x-field: {
-                field} in node {node_type}"
+            assert field in X_FIELDS, f"unexpected x-field: {field} in node {node_type}"
             if field != "x_srcloc":
                 flag_kind = X_FIELDS[field]
-                assert flag_kind in cls.FLAGS, f"{cls}: {
-                    field} missing flag {flag_kind}"
+                assert flag_kind in cls.FLAGS, f"{cls}: {field} missing flag {flag_kind}"
             xs += 1
             continue
         nfd = ALL_FIELDS_MAP[field]
@@ -1012,8 +1010,8 @@ class CanonType:
 
     def get_single_register_type(self) -> str:
         reg_type = self.register_types
-        assert reg_type is not None and len(reg_type) == 1, f"{
-            self} {reg_type}"
+        assert reg_type is not None and len(
+            reg_type) == 1, f"{self} {reg_type}"
         return reg_type[0]
 
     def get_original_typeid(self):
@@ -3388,8 +3386,7 @@ def _ComputeRemainingSlotsForFields():
             field = nfd.name
             if field in _FIELD_2_SLOT:
                 slot = _FIELD_2_SLOT[field]
-                assert slots[slot] is None, f"[{cls.__name__}] slot {
-                    slot} already used for [{slots[slot].name}] trying for [{field}]"
+                assert slots[slot] is None, f"[{cls.__name__}] slot {slot} already used for [{slots[slot].name}] trying for [{field}]"
                 slots[slot] = nfd
             else:
                 for i in range(4):
@@ -3420,8 +3417,7 @@ def GenerateAccessors():
             last = k
 
         dst = _KIND_TO_HANDLE[k]
-        print(f"inline {dst}& Node_{
-            nfd.name}(Node n) {{ return gNodeCore[n].children_{dst.lower()}[{_FIELD_2_SLOT[nfd.name]}]; }}")
+        print(f"inline {dst}& Node_{nfd.name}(Node n) {{ return gNodeCore[n].children_{dst.lower()}[{_FIELD_2_SLOT[nfd.name]}]; }}")
 
 
 def GenerateInits():
@@ -3629,8 +3625,7 @@ def EmitNodeDesc(fout: Any):
         else:
             bool_fields = "0"
 
-        print(f"    {{ {node_fields}, {string_fields}, {
-              bool_fields} }}, // {cls.__name__}")
+        print(f"    {{ {node_fields}, {string_fields}, {bool_fields} }}, // {cls.__name__}")
     print("};")
 
 
