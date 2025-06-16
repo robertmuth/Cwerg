@@ -39,8 +39,9 @@ class EvalVoid(EvalBase):
 
 
 class EvalComplexDefault(EvalBase):
-    def __init__(self):
-        pass
+    def __init__(self, sym=None):
+        # if sym is not None it has been materialized as `sym`
+        self.sym = sym
 
     def __str__(self):
         return "EvalComplexDefault"
@@ -400,52 +401,48 @@ def _EvalExpr3(node: cwast.Expr3) -> bool:
     return False
 
 
-def _GetValForVecAtPos(container, index: int):
-    if isinstance(container, cwast.ValAuto):
-        return GetDefaultForType(container.x_type.underlying_type())
+def _GetValForVecAtPos(container_val, index: int):
+    if isinstance(container_val, EvalSpan):
+        container_val = container_val.content
+        if container_val is None:
+            return None
 
-    val = container.x_value
-    if isinstance(val, EvalCompound):
-        container = val.compound
+    assert isinstance(container_val, EvalCompound)
+    compound = container_val.compound
 
-        if isinstance(container, cwast.ValString):
+    if isinstance(compound, cwast.ValString):
+        s = compound.get_bytes()
+        assert index < len(s)
+        return EvalNum(s[index], cwast.BASE_TYPE_KIND.U8)
 
-            s = container.get_bytes()
-            assert index < len(s)
-            return EvalNum(s[index], cwast.BASE_TYPE_KIND.U8)
+    assert isinstance(container_val, EvalCompound), f"{container_val}"
+    compound = container_val.compound
+    assert isinstance(compound, cwast.ValCompound), f"{compound}"
+    assert index < compound.x_type.array_dim()
+    n = 0
+    for point in compound.inits:
+        if isinstance(point.point_or_undef, cwast.ValNum):
+            assert isinstance(point.point_or_undef.x_value, EvalNum)
+            n = point.point_or_undef.x_value.val
+        if n == index:
+            return point.value_or_undef.x_value
+        if n > index:
 
-        if isinstance(val, EvalCompound):
-            container = val.compound
-            assert isinstance(container, cwast.ValCompound), f"{container}"
-            assert index < container.x_type.array_dim()
-            n = 0
-            for point in container.inits:
-                if isinstance(point.point_or_undef, cwast.ValNum):
-                    assert isinstance(point.point_or_undef.x_value, EvalNum)
-                    n = point.point_or_undef.x_value.val
-                if n == index:
-                    return point.value_or_undef.x_value
-                if n > index:
-
-                    return GetDefaultForType(container.x_type.underlying_type())
-                n += 1
+            return GetDefaultForType(compound.x_type.underlying_type())
+        n += 1
     return None
 
 
-def _GetValForRecAtField(container, field):
-    if isinstance(container, cwast.ValAuto):
-        return GetDefaultForType(field.x_symbol.x_type)
-
-    val = container.x_value
-    if isinstance(val, EvalCompound):
-        val = val.compound
-        for rec_field, init in symbolize.IterateValRec(val.inits, val.x_type):
-            if field.x_symbol == rec_field:
-                if init:
-                    return init.x_value
-                else:
-                    return GetDefaultForType(field.x_type)
-        assert False
+def _GetValForRecAtField(container_val, field):
+    assert isinstance(container_val, EvalCompound)
+    container_val = container_val.compound
+    for rec_field, init in symbolize.IterateValRec(container_val.inits, container_val.x_type):
+        if field.x_symbol == rec_field:
+            if init:
+                return init.x_value
+            else:
+                return GetDefaultForType(field.x_type)
+    assert False
     return None
 
 
@@ -462,7 +459,8 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
         if src_value is None:
             return EvalSpan(None, src_type.array_dim(), None)
         else:
-            assert isinstance(src_value, EvalCompound)
+            assert isinstance(src_value, (EvalCompound, EvalComplexDefault)
+                              ), f"{src_value} {src_node.x_srcloc}"
             return EvalSpan(src_value.sym, src_type.array_dim(), src_value)
     elif src_value is None:
         return None
@@ -509,14 +507,26 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             _AssignValue(initial, GetDefaultForType(initial.x_type))
         if node.mut:
             return None
-        return _EvalValWithPossibleImplicitConversion(node.x_type, initial)
+        val = _EvalValWithPossibleImplicitConversion(node.x_type, initial)
+        if isinstance(val, EvalCompound):
+            val = EvalCompound(val.compound, node)
+        elif isinstance(val, EvalComplexDefault):
+            val = EvalComplexDefault(node)
+        return val
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_value
         if index_val is None:
             return None
-        return _GetValForVecAtPos(node.container, index_val.val)
+        container_val = node.container.x_value
+        if container_val is None:
+            return None
+
+        return _GetValForVecAtPos(container_val, index_val.val)
     elif isinstance(node, cwast.ExprField):
-        return _GetValForRecAtField(node.container, node.field)
+        container_val = node.container.x_value
+        if container_val is None:
+            return None
+        return _GetValForRecAtField(container_val, node.field)
     elif isinstance(node, cwast.Expr1):
         return _EvalExpr1(node)
     elif isinstance(node, cwast.Expr2):

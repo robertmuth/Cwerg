@@ -48,9 +48,15 @@ global c4_span span(u8) = c4
 
 static_assert len(c4) == 6
 
-; static_assert len(c4_span) == 6
-; static_assert len(c4_span) == len(c4)
+static_assert len(c4_span) == 6
+static_assert len(c4_span) == len(c4)
 static_assert c4[0] == 'a'
+static_assert c4_span[0] == 'a'
+
+global c_zero [10]u16
+
+global zero_span span(u16) = c_zero
+
 
 static_assert size_of(type_of(c4)) == 6
 
