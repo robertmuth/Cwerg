@@ -430,11 +430,13 @@ def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
     return None
 
 
-def _GetValForRecAtField(container_val, field):
+def _GetValForRecAtField(container_val, field: cwast.RecField):
     assert isinstance(container_val, EvalCompound)
     container_val = container_val.compound
+    if container_val is None:
+        return GetDefaultForType(field.x_type)
     for rec_field, init in symbolize.IterateValRec(container_val.inits, container_val.x_type):
-        if field.x_symbol == rec_field:
+        if field == rec_field:
             if init:
                 return init.x_value
             else:
@@ -521,7 +523,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         container_val = node.container.x_value
         if container_val is None:
             return None
-        return _GetValForRecAtField(container_val, node.field)
+        return _GetValForRecAtField(container_val, node.field.x_symbol)
     elif isinstance(node, cwast.Expr1):
         return _EvalExpr1(node)
     elif isinstance(node, cwast.Expr2):

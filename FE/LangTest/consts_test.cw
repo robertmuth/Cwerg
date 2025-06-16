@@ -128,9 +128,25 @@ pub rec type_rec2:
 global r01 = {type_rec2: "aaa", 9, 7}
 
 ; rec literal
-global r02 = {type_rec2: s2 = 9, 7}
+global r02 = {type_rec2: s2 = 99, 7}
 
 static_assert len(r02.s1) == 0
+
+
+global type_rec2_vec = {[2]type_rec2: r01, r02}
+
+static_assert len(type_rec2_vec) == 2
+
+static_assert type_rec2_vec[0].s2 == 9
+
+static_assert type_rec2_vec[1].s2 == 99
+
+global type_rec2_vec_zero [2]type_rec2
+
+static_assert len(type_rec2_vec_zero) == 2
+
+static_assert type_rec2_vec_zero[1].s2 == 0
+static_assert len(type_rec2_vec_zero[1].s1) == 0
 
 global auto1 s32
 
