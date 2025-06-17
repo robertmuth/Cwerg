@@ -77,6 +77,18 @@ inline bool IsUintOrBool(CONST_KIND k) {
   return CONST_KIND::U8 <= k && k <= CONST_KIND::BOOL;
 }
 
+inline bool IsInt(CONST_KIND k) {
+  return CONST_KIND::S8 <= k && k <= CONST_KIND::U64;
+}
+
+inline bool IsNumber(CONST_KIND x) {
+  return CONST_KIND::R32 <= x && x <= CONST_KIND::U64;
+}
+
+inline bool IsNumberOrBool(CONST_KIND x) {
+  return CONST_KIND::R32 <= x && x <= CONST_KIND::BOOL;
+}
+
 extern const std::array<uint16_t, 17> BF2MASK;
 
 inline uint16_t Mask(BF val) { return BF2MASK[int(val)]; }

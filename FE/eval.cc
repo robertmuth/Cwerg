@@ -190,11 +190,9 @@ Const GetValForRecAtField(Const container, Node field) {
 }
 #endif
 
-Const EvalExpr1(Node node) {
-  Const e = Node_x_eval(Node_expr(node));
-  if (e.isnull()) return kConstInvalid;
-  BASE_TYPE_KIND bt = CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
-  switch (Node_unary_expr_kind(node)) {
+Const EvalExpr1(UNARY_EXPR_KIND op, Const e, CanonType ct) {
+  BASE_TYPE_KIND bt = CanonType_get_unwrapped_base_type_kind(ct);
+  switch (op) {
     case UNARY_EXPR_KIND::NOT:
       if (bt == BASE_TYPE_KIND::BOOL) {
         return ConstNewBool(!ConstGetUnsigned(e));
@@ -203,9 +201,7 @@ Const EvalExpr1(Node node) {
         return ConstNewUnsigned(~ConstGetUnsigned(e), bt);
       }
     case UNARY_EXPR_KIND::NEG:
-      if (bt == BASE_TYPE_KIND::BOOL) {
-        return e;
-      } else if (IsSint(bt)) {
+      if (IsSint(bt)) {
         return ConstNewSigned(-ConstGetSigned(e), bt);
       } else if (IsUint(bt)) {
         return ConstNewUnsigned(-ConstGetUnsigned(e), bt);
@@ -217,6 +213,57 @@ Const EvalExpr1(Node node) {
       ASSERT(false, "UNREACHABLE");
       return kConstInvalid;
   }
+}
+
+Const EvalExpr2(BINARY_EXPR_KIND op, Const e1, Const e2, CanonType ct,
+                CanonType ct_operand) {
+  if (CanonType_kind(ct_operand) == NT::TypeFun ||
+      CanonType_kind(ct_operand) == NT::TypePtr) {
+    if (op == BINARY_EXPR_KIND::EQ) {
+      return ConstNewBool(e1 == e2);
+    } else if (op == BINARY_EXPR_KIND::NE) {
+      return ConstNewBool(e1 != e2);
+    } else {
+      ASSERT(false, "UNREACHABLE");
+      return kConstInvalid;
+    }
+    switch (op) {
+      case BINARY_EXPR_KIND::EQ:
+        return ConstNewBool(e1 == e2);
+      case BINARY_EXPR_KIND::NE:
+        return ConstNewBool(e1 != e2);
+      case BINARY_EXPR_KIND::LT:
+      case BINARY_EXPR_KIND::LE:
+      case BINARY_EXPR_KIND::GT:
+      case BINARY_EXPR_KIND::GE:
+        ASSERT(IsNumber(e1.kind()), "");
+        return kConstInvalid;
+      case BINARY_EXPR_KIND::ADD:
+      case BINARY_EXPR_KIND::SUB:
+      case BINARY_EXPR_KIND::MUL:
+      case BINARY_EXPR_KIND::DIV:
+        ASSERT(IsNumber(e1.kind()), "");
+        return kConstInvalid;
+      case BINARY_EXPR_KIND::MOD:
+      case BINARY_EXPR_KIND::SHL:
+      case BINARY_EXPR_KIND::SHR:
+        ASSERT(IsInt(e1.kind()), "");
+        return kConstInvalid;
+      case BINARY_EXPR_KIND::AND:
+      case BINARY_EXPR_KIND::OR:
+      case BINARY_EXPR_KIND::XOR:
+        ASSERT(IsUintOrBool(e1.kind()), "");
+        return kConstInvalid;
+      default:
+        ASSERT(false, "UNREACHABLE");
+        return kConstInvalid;
+    }
+  }
+
+  ASSERT(IsNumberOrBool(e1.kind()) && IsNumberOrBool(e2.kind()),
+         "bad consts: " << e1 << " " << e2 << " " << ct_operand);
+
+  return kConstInvalid;
 }
 
 Const EvalNode(Node node) {
@@ -289,11 +336,27 @@ Const EvalNode(Node node) {
 #endif
       return kConstInvalid;
 
-    case NT::Expr1:
-      return EvalExpr1(node);
-    case NT::Expr2:
+    case NT::Expr1: {
+      Const e = Node_x_eval(Node_expr(node));
+      if (e.isnull()) return kConstInvalid;
+      return EvalExpr1(Node_unary_expr_kind(node), e, Node_x_type(node));
+    }
+    case NT::Expr2: {
+      Const e1 = Node_x_eval(Node_expr1(node));
+      Const e2 = Node_x_eval(Node_expr2(node));
+
+      if (e1.isnull() || e2.isnull()) return kConstInvalid;
+      return EvalExpr2(Node_binary_expr_kind(node), e1, e2, Node_x_type(node),
+                       Node_x_type(Node_expr1(node)));
+    }
     case NT::Expr3:
-      // TODO
+      if (!Node_x_eval(Node_cond(node)).isnull()) {
+        if (ConstGetUnsigned(Node_x_eval(Node_cond(node)))) {
+          return Node_x_eval(Node_expr_t(node));
+        } else {
+          return Node_x_eval(Node_expr_f(node));
+        }
+      }
       return kConstInvalid;
     case NT::ExprTypeId:
       return ConstNewUnsigned(
@@ -501,7 +564,7 @@ double ConstGetFloat(Const c) {
 }
 
 std::ostream& operator<<(std::ostream& os, Const c) {
-  return os;
+  if (c.isnull()) return os << "EvalNull";
   switch (c.kind()) {
     case CONST_KIND::VOID:
       return os << "EvalVoid";
@@ -520,7 +583,7 @@ std::ostream& operator<<(std::ostream& os, Const c) {
     case CONST_KIND::R64:
       return os << "EvalNum[" << ConstGetFloat(c) << "]";
     default:
-      return os;
+      return os << " unknown eval " << int(c.kind());
   }
 }
 

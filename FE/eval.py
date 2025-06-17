@@ -295,12 +295,8 @@ def _EvalExpr1(node: cwast.Expr1) -> Optional[EvalBase]:
         else:
             assert False
     elif op == cwast.UNARY_EXPR_KIND.NEG:
-        if bt == cwast.BASE_TYPE_KIND.BOOL:
-            v = e
-        elif bt.IsNumber():
-            v = -e
-        else:
-            assert False, f"{bt} {op}"
+        assert bt.IsNumber()
+        v = -e
     else:
         assert False
     return EvalNum(v, bt)
@@ -362,6 +358,8 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
     ct_operand = node.expr1.x_type
     if ct_operand.is_pointer() or ct_operand.is_fun():
         return EvalNum(_EVAL_EQ_NE[op](e1, e2), bt)
+    # Note, we can compare pointers but there seem to few useful case
+    # where we want to compare them at compile time.
     assert isinstance(e1, EvalNum) and isinstance(e2, EvalNum)
     e1 = e1.val
     e2 = e2.val
@@ -381,17 +379,6 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
         assert False, f"unexpected type {ct_operand}"
         return None
 
-
-def _EvalExpr3(node: cwast.Expr3) -> bool:
-    if node.cond.x_value is None:
-        return None
-    if node.cond.x_value:
-        if node.expr_t.x_value is not None:
-            return node.expr_t.x_value
-    else:
-        if node.expr_f.x_value is not None:
-            return node.expr_f.x_value
-    return False
 
 
 def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
@@ -526,7 +513,12 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.Expr2):
         return _EvalExpr2(node)
     elif isinstance(node, cwast.Expr3):
-        return _EvalExpr3(node)
+        if node.cond.x_value is not None:
+            if node.cond.x_value:
+                return node.expr_t.x_value
+            else:
+                return node.expr_f.x_value
+        return None
     elif isinstance(node, cwast.ExprTypeId):
         typeid = node.type.x_type.get_original_typeid()
         assert typeid >= 0
