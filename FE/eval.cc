@@ -81,7 +81,6 @@ constexpr std::array<CONST_KIND, 64> MakeBaseTypeToConstType() {
 const std::array<CONST_KIND, 64> gBaseTypeToConstType =
     MakeBaseTypeToConstType();
 
-#if 0
 Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
   Const src_value = Node_x_eval(src_node);
   if (Node_kind(src_node) == NT::ValUndef) return src_value;
@@ -96,14 +95,12 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
     } else {
       ASSERT(src_value.kind() == CONST_KIND::COMPOUND,
              "unxpected kind " << int(src_value.kind()));
-      return ConstNewSpan(
-          {ConstGetSymbol(src_value), CanonType_dim(src_type), src_value});
+      return ConstNewSpan({ConstGetCompound(src_value).symbol,
+                           CanonType_dim(src_type), src_value});
     }
   }
-
   return src_value;
 }
-#endif
 
 void AssignValue(Node node, Const val) { Node_x_eval(node) = val; }
 
@@ -318,10 +315,8 @@ Const EvalNode(Node node) {
       return ParseNum(node);
     }
     case NT::ValPoint:
-#if 0
       return EvalValWithPossibleImplicitConversion(Node_x_type(node),
                                                    Node_value_or_undef(node));
-#endif
     case NT::ValCompound:
     case NT::ValString:
       return ConstNewCompound({node, kNodeInvalid});
@@ -397,7 +392,22 @@ Const EvalNode(Node node) {
     case NT::ExprIs:
       return EvalExprIs(node);
 
-    case NT::ExprFront:
+    case NT::ExprFront: {
+      Node cont = Node_container(node);
+      if (CanonType_kind(Node_x_type(cont)) == NT::TypeVec) {
+        if (Node_kind(cont) == NT::Id) {
+          return ConstNewSymAddr(Node_x_symbol(cont));
+        }
+      } else {
+        ASSERT(CanonType_kind(Node_x_type(cont)) == NT::TypeSpan,
+               "unexpected " << Node_x_type(cont));
+        Const val_cont = Node_x_eval(cont);
+        if (!val_cont.isnull() && !ConstGetSpan(val_cont).pointer.isnull()) {
+          return ConstNewSymAddr(ConstGetSpan(val_cont).pointer);
+        }
+      }
+      return kConstInvalid;
+    }
     case NT::ExprLen:
       // TODO
       return kConstInvalid;

@@ -463,9 +463,7 @@ def _EvalExprIs(node: cwast.ExprIs) -> Optional[EvalBase]:
                 [x.name for x in expr_ct.union_member_types()])
             if expr_elements.issubset(test_elements):
                 return VAL_TRUE
-            return None
-        else:
-            return None
+        return None
     elif test_ct.is_tagged_union():
         test_elements = set(
             [x.name for x in test_ct.union_member_types()])
@@ -561,25 +559,25 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.ExprIs):
         return _EvalExprIs(node)
     elif isinstance(node, cwast.ExprFront):
-        container = node.container
-        ct_container = container.x_type
+        cont = node.container
+        ct_container = cont.x_type
         if ct_container.is_vec():
-            if isinstance(container, cwast.Id):
-                return EvalSymAddr(container.x_symbol)
+            if isinstance(cont, cwast.Id):
+                return EvalSymAddr(cont.x_symbol)
         else:
             assert ct_container.is_span()
-            v_container = container.x_value
-            if v_container is not None and v_container.pointer is not None:
-                assert isinstance(v_container, EvalSpan), f"{v_container}"
-                return EvalSymAddr(v_container.pointer)
+            val_cont = cont.x_value
+            if val_cont is not None and val_cont.pointer is not None:
+                assert isinstance(val_cont, EvalSpan), f"{val_cont}"
+                return EvalSymAddr(val_cont.pointer)
         return None
     elif isinstance(node, cwast.ExprLen):
-        container = node.container
+        cont = node.container
         bt = node.x_type.base_type_kind
-        if container.x_type.is_vec():
-            return EvalNum(container.x_type.array_dim(), bt)
-        elif isinstance(container.x_value, EvalSpan) and container.x_value.size is not None:
-            return EvalNum(container.x_value.size, bt)
+        if cont.x_type.is_vec():
+            return EvalNum(cont.x_type.array_dim(), bt)
+        elif isinstance(cont.x_value, EvalSpan) and cont.x_value.size is not None:
+            return EvalNum(cont.x_value.size, bt)
         return None
     elif isinstance(node, cwast.ExprAddrOf):
         if isinstance(node.expr_lhs, cwast.Id):
