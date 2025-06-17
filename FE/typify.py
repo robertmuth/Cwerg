@@ -119,7 +119,7 @@ def ParseNum(num: cwast.ValNum) -> Any:
     assert num.x_type.is_base_type()
     kind = num.x_type.base_type_kind
     val, _ = ParseNumRaw(num, kind)
-    bitsize = cwast.BASE_TYPE_KIND_TO_SIZE[kind] * 8
+    bitsize = kind.ByteSize() * 8
     if kind.IsUint():
         assert 0 <= val < (1 << bitsize), f"val {num} out of bounds for {kind}"
     elif kind.IsSint():

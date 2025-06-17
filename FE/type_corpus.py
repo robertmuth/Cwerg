@@ -334,7 +334,7 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
     if ct.alignment >= 0:
         return
     if ct.node is cwast.TypeBase:
-        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.base_type_kind]
+        size = ct.base_type_kind.ByteSize()
         ct.finalize(size, size, _get_register_type(ct, ta))
     elif ct.node is cwast.TypePtr:
         size = ta.code_addr_bitwidth // 8
@@ -355,7 +355,7 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
         size, alignment = _SetAbiInfoRecursivelyForSum(ct, ta)
         ct.finalize(size, alignment, _get_register_type(ct, ta))
     elif ct.node is cwast.DefEnum:
-        size = cwast.BASE_TYPE_KIND_TO_SIZE[ct.children[0].base_type_kind]
+        size = ct.children[0].base_type_kind.ByteSize()
         ct.finalize(size, size, _get_register_type(ct, ta))
     elif ct.node is cwast.TypeFun:
         size = ta.code_addr_bitwidth // 8
@@ -387,6 +387,8 @@ class TypeCorpus:
         # maps to ast
         self.topo_order: list[cwast.CanonType] = []
         self.corpus: dict[str, cwast.CanonType] = {}  # name to canonical type
+        # will be set to False by SetAbiInfoForall() after which the AbiInfo
+        # will be set as soon as a new CanonType is created.
         self._initial_typing = True
 
         # VOID should get typeid zero

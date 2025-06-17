@@ -343,7 +343,7 @@ _EVAL_REAL = _EVAL_CMP | _EVAL_ADD_SUB_MUL | {
 
 
 def _HandleUintOverflow(kind: cwast.BASE_TYPE_KIND, val: int) -> int:
-    mask = (1 << (8 * cwast.BASE_TYPE_KIND_TO_SIZE[kind])) - 1
+    mask = (1 << (8 * kind.ByteSize())) - 1
     return val & mask
 
 
