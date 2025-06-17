@@ -266,6 +266,31 @@ Const EvalExpr2(BINARY_EXPR_KIND op, Const e1, Const e2, CanonType ct,
   return kConstInvalid;
 }
 
+Const EvalExprIs(Node node) {
+  CanonType expr_ct = Node_x_type(Node_expr(node));
+  CanonType test_ct = Node_x_type(Node_type(node));
+  if (CanonType_get_original_typeid(expr_ct) ==
+      CanonType_get_original_typeid(test_ct)) {
+    return ConstNewBool(true);
+  }
+
+  if (CanonType_kind(expr_ct) == NT::TypeUnion &&
+      !CanonType_untagged(expr_ct)) {
+    if (CanonType_kind(test_ct) == NT::TypeUnion &&
+        !CanonType_untagged(test_ct)) {
+      if (TypeListIsSuperSet(CanonType_children(test_ct),
+                             CanonType_children(expr_ct))) {
+        return ConstNewBool(true);
+      }
+      return kConstInvalid;
+    }
+  } else if (CanonType_kind(test_ct) == NT::TypeUnion &&
+             !CanonType_untagged(test_ct)) {
+    return ConstNewBool(CanonType_tagged_union_contains(test_ct, expr_ct));
+  }
+  return ConstNewBool(false);
+}
+
 Const EvalNode(Node node) {
   // std::cout << "@@@ " << node << "\n";
   switch (Node_kind(node)) {
@@ -370,8 +395,7 @@ Const EvalNode(Node node) {
       // TODO
       return kConstInvalid;
     case NT::ExprIs:
-      // TODO
-      return kConstInvalid;
+      return EvalExprIs(node);
 
     case NT::ExprFront:
     case NT::ExprLen:

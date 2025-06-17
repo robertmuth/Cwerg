@@ -61,6 +61,7 @@ extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
 extern bool CanonType_is_complex(CanonType n);
 
 extern CanonType CanonType_get_unwrapped(CanonType n);
+extern bool CanonType_tagged_union_contains(CanonType haystack, CanonType needle);
 
 inline std::ostream& operator<<(std::ostream& os, CanonType ct) {
   return os << CanonType_name(ct);

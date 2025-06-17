@@ -380,7 +380,6 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
         return None
 
 
-
 def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
     if isinstance(container_val, EvalSpan):
         container_val = container_val.content
@@ -449,6 +448,30 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
         return None
     # assert False, f"{src_node}: {src_node.x_type} -> {dst_type} [{src_value}]"
     return src_value
+
+
+def _EvalExprIs(node: cwast.ExprIs) -> Optional[EvalBase]:
+    expr_ct: cwast.CanonType = node.expr.x_type
+    test_ct: cwast.CanonType = node.type.x_type
+    if expr_ct.get_original_typeid() == test_ct.get_original_typeid():
+        return VAL_TRUE
+    if expr_ct.is_tagged_union():
+        if test_ct.is_tagged_union():
+            test_elements = set(
+                [x.name for x in test_ct.union_member_types()])
+            expr_elements = set(
+                [x.name for x in expr_ct.union_member_types()])
+            if expr_elements.issubset(test_elements):
+                return VAL_TRUE
+            return None
+        else:
+            return None
+    elif test_ct.is_tagged_union():
+        test_elements = set(
+            [x.name for x in test_ct.union_member_types()])
+        return VAL_TRUE if expr_ct.name in test_elements else VAL_FALSE
+    else:
+        return VAL_FALSE
 
 
 def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
@@ -536,27 +559,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return None
 
     elif isinstance(node, cwast.ExprIs):
-        expr_ct: cwast.CanonType = node.expr.x_type
-        test_ct: cwast.CanonType = node.type.x_type
-        if expr_ct.get_original_typeid() == test_ct.get_original_typeid():
-            return VAL_TRUE
-        if expr_ct.is_tagged_union():
-            if test_ct.is_tagged_union():
-                test_elements = set(
-                    [x.name for x in test_ct.union_member_types()])
-                expr_elements = set(
-                    [x.name for x in expr_ct.union_member_types()])
-                if expr_elements.issubset(test_elements):
-                    return VAL_TRUE
-                return None
-            else:
-                return None
-        elif test_ct.is_tagged_union():
-            test_elements = set(
-                [x.name for x in test_ct.union_member_types()])
-            return VAL_TRUE if expr_ct.name in test_elements else VAL_FALSE
-        else:
-            return VAL_FALSE
+        return _EvalExprIs(node)
     elif isinstance(node, cwast.ExprFront):
         container = node.container
         ct_container = container.x_type
