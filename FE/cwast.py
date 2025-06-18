@@ -980,7 +980,7 @@ class CanonType:
             assert False, f"expected vec or span type: {self.name}"
 
     def aligned_size(self) -> int:
-        # somtimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding
+        # sometimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding
         return align(self.size, self.alignment)
 
     def array_dim(self):
@@ -1032,8 +1032,8 @@ class CanonType:
     def is_finalized(self) -> bool:
         return self.alignment != -1
 
-    def finalize(self, size: int, alignment: int, register_types):
-        assert not self.is_finalized()
+    def Finalize(self, size: int, alignment: int, register_types):
+        assert self.alignment == -1
         if size == 0:
             # TODO
             # assert not register_types

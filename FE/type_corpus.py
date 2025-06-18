@@ -285,6 +285,9 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[li
 
 
 def _SetAbiInfoRecursivelyForSum(ct: cwast.CanonType, ta: TargetArchConfig):
+    for ct_chicld in ct.children:
+        SetAbiInfoRecursively(ct_chicld, ta)
+
     tag_size = ta.typeid_bitwidth // 8
     ptr_size = ta.data_addr_bitwidth // 8
     assert ct.node is cwast.TypeUnion
@@ -294,12 +297,12 @@ def _SetAbiInfoRecursivelyForSum(ct: cwast.CanonType, ta: TargetArchConfig):
     max_size = 0
     max_alignment = 1
     for t in ct.union_member_types():
-        if t.is_wrapped():
-            t = t.children[0]
-        SetAbiInfoRecursively(t, ta)
-        if t.is_void():
+        if t.is_zero_sized():
             num_void += 1
-        elif t.is_pointer():
+            continue
+        while t.is_wrapped():
+            t = t.children[0]
+        if t.is_pointer():
             num_pointer += 1
             max_size = max(max_size, ptr_size)
             max_alignment = max(max_alignment, ptr_size)
@@ -320,14 +323,18 @@ def _SetAbiInfoRecursivelyForSum(ct: cwast.CanonType, ta: TargetArchConfig):
 
 
 def _SetAbiInfoRecursivelyForRec(ct: cwast.CanonType, ta: TargetArchConfig):
-    size = 0
-    alignment = 1
     assert isinstance(ct.ast_node, cwast.DefRec)
     def_rec: cwast.DefRec = ct.ast_node
+    assert ct.children, f"{def_rec}"
+    for ct_field in ct.children:
+        SetAbiInfoRecursively(ct_field, ta)
+
+    size = 0
+    alignment = 1
+
     for rf in def_rec.fields:
         assert isinstance(rf, cwast.RecField)
         field_ct: cwast.CanonType = rf.type.x_type
-        SetAbiInfoRecursively(field_ct, ta)
         size = align(size, field_ct.alignment)
         # only place where x_offset is set
         rf.x_offset = size
@@ -341,38 +348,38 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
         return
     if ct.node is cwast.TypeBase:
         size = ct.base_type_kind.ByteSize()
-        ct.finalize(size, size, _get_register_type(ct, ta))
+        ct.Finalize(size, size, _get_register_type(ct, ta))
     elif ct.node is cwast.TypePtr:
         size = ta.code_addr_bitwidth // 8
-        ct.finalize(size, size, _get_register_type(ct, ta))
+        ct.Finalize(size, size, _get_register_type(ct, ta))
     elif ct.node is cwast.TypeSpan:
         # span is converted to (pointer, length) tuple
         ptr_field_size = ta.data_addr_bitwidth // 8
         len_field_size = ta.uint_bitwidth // 8
-        ct.finalize(ptr_field_size + len_field_size,
+        ct.Finalize(ptr_field_size + len_field_size,
                     ptr_field_size, _get_register_type(ct, ta))
 
     elif ct.node is cwast.TypeVec:
         ct_dep = ct.children[0]
         SetAbiInfoRecursively(ct_dep, ta)
-        ct.finalize(ct_dep.aligned_size() * ct.dim,
+        ct.Finalize(ct_dep.aligned_size() * ct.dim,
                     ct_dep.alignment,  _get_register_type(ct, ta))
     elif ct.node is cwast.TypeUnion:
         size, alignment = _SetAbiInfoRecursivelyForSum(ct, ta)
-        ct.finalize(size, alignment, _get_register_type(ct, ta))
+        ct.Finalize(size, alignment, _get_register_type(ct, ta))
     elif ct.node is cwast.DefEnum:
         size = ct.children[0].base_type_kind.ByteSize()
-        ct.finalize(size, size, _get_register_type(ct, ta))
+        ct.Finalize(size, size, _get_register_type(ct, ta))
     elif ct.node is cwast.TypeFun:
         size = ta.code_addr_bitwidth // 8
-        ct.finalize(size, size, _get_register_type(ct, ta))
+        ct.Finalize(size, size, _get_register_type(ct, ta))
     elif ct.node is cwast.DefType:
         ct_dep = ct.children[0]
         SetAbiInfoRecursively(ct_dep, ta)
-        ct.finalize(ct_dep.size, ct_dep.alignment, _get_register_type(ct, ta))
+        ct.Finalize(ct_dep.size, ct_dep.alignment, _get_register_type(ct, ta))
     elif ct.node is cwast.DefRec:
         size, alignment = _SetAbiInfoRecursivelyForRec(ct, ta)
-        ct.finalize(size, alignment, _get_register_type(ct, ta))
+        ct.Finalize(size, alignment, _get_register_type(ct, ta))
     else:
         assert False, f"unknown type {ct}"
 
@@ -479,11 +486,18 @@ class TypeCorpus:
         ct = cwast.CanonType(cwast.TypeVec, name, dim=dim, children=[ct])
         return self._insert(ct)
 
-    def InsertRecType(self, name: str, ast_node: cwast.DefRec) -> cwast.CanonType:
+    def InsertRecType(self, name: str, ast_node: cwast.DefRec, process_children=True) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"
-        ct = cwast.CanonType(cwast.DefRec, name, ast_node=ast_node)
+        children = []
+        if process_children:
+            for rf in ast_node.fields:
+                assert isinstance(rf, cwast.RecField)
+                assert rf.x_type is not cwast.NO_TYPE
+                children.append(rf.type.x_type)
+        ct = cwast.CanonType(cwast.DefRec, name,
+                             ast_node=ast_node, children=children)
         return self._insert(ct)
 
     def InsertEnumType(self, name: str, ast_node: cwast.DefEnum) -> cwast.CanonType:

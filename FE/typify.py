@@ -1123,7 +1123,7 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
         mod_name = str(mod.name)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
-                ct = tc.InsertRecType(f"{mod_name}/{node.name}", node)
+                ct = tc.InsertRecType(f"{mod_name}/{node.name}", node, process_children=False)
                 AnnotateNodeType(node, ct)
             elif isinstance(node, cwast.DefEnum):
                 ct = tc.InsertEnumType(f"{mod_name}/{node.name}", node)
@@ -1139,11 +1139,14 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
+                children = []
                 for f in node.fields:
                     assert isinstance(f,  cwast.RecField)
-                    ct = _TypifyExprOrType(
-                        f.type, tc, cwast.NO_TYPE, poly_map)
+                    ct = _TypifyExprOrType(f.type, tc, cwast.NO_TYPE, poly_map)
+                    children.append(ct)
                     AnnotateNodeType(f, ct)
+                # HACK: sinxe we did not process the children in pass 1
+                node.x_type.children = children
             elif isinstance(node, cwast.DefEnum):
                 ct = node.x_type
                 bt = ct.underlying_type()
