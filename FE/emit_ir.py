@@ -154,7 +154,7 @@ def _FunTypeStrings(ct: cwast.CanonType) -> tuple[str, list[str]]:
     assert ct.is_fun()
     arg_types: list[Any] = []
     for p in ct.parameter_types():
-        arg_types += p.register_types
+        arg_types.append(p.get_single_register_type())
     result_type = ""
     if not ct.result_type().is_void():
         result_type = ct.result_type().get_single_register_type()
@@ -184,14 +184,8 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
         # this uniquifies names
         # Name translation!
         p.name = id_gen.NewName(str(p.name))
-        reg_types = p.type.x_type.register_types
-        if len(reg_types) == 1:
-            print(f"{TAB}poparg {p.name}:{reg_types[0]}")
-        else:
-            assert False
-            assert len(reg_types) == 2
-            print(f"{TAB}poparg {p.name}..1:{reg_types[0]}")
-            print(f"{TAB}poparg {p.name}..2:{reg_types[1]}")
+        print(f"{TAB}poparg {p.name}:{p.type.x_type.get_single_register_type()}")
+
 
 
 def RLE(data: bytes):
@@ -469,8 +463,7 @@ def _FormatNumber(val: cwast.ValNum) -> str:
 def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
-    assert ct_dst.is_void_or_wrapped_void(
-    ) or ct_dst.fits_in_register(), f"{node} ct={ct_dst}"
+    assert ct_dst.size == 0  or ct_dst.fits_in_register(), f"{node} ct={ct_dst}"
     if isinstance(node, cwast.ExprCall):
         sig: cwast.CanonType = node.callee.x_type
         assert sig.is_fun()
@@ -560,11 +553,11 @@ def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
             print(f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
         return res
     elif isinstance(node, cwast.ExprNarrow):
-        if ct_dst.is_void_or_wrapped_void():
+        addr = _GetLValueAddress(node.expr, ta, id_gen)
+        if ct_dst.is_zero_sized():
             return None
         ct_src: cwast.CanonType = node.expr.x_type
         assert ct_src.is_union() or ct_src.original_type.is_union()
-        addr = _GetLValueAddress(node.expr, ta, id_gen)
         res = id_gen.NewName("union_access")
         print(
             f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
@@ -592,7 +585,7 @@ def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
-        if node.x_type.is_void_or_wrapped_void():
+        if node.x_type.is_zero_sized():
             result = _DUMMY_VOID_REG
         else:
             result = id_gen.NewName("expr")
@@ -616,6 +609,8 @@ def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
         recfield: cwast.RecField = node.field.GetRecFieldRef()
         res = id_gen.NewName(f"field_{recfield.name}")
         addr = _GetLValueAddress(node.container, ta, id_gen)
+        if node.x_type.size == 0:
+            return None
         print(
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {recfield.x_offset}")
         return res
@@ -625,7 +620,10 @@ def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
         # make sure we evaluate the rest for side-effects
         return EmitIRExpr(node.expr, ta, id_gen)
     elif isinstance(node, cwast.ValVoid):
-        pass
+        return None
+    #elif isinstance(node, cwast.ValCompound):
+    #    assert node.x_type.size == 0, f"{node} {node.x_type} {node.x_type.size}"
+    #    return None
     else:
         assert False, f"unsupported expression {node.x_srcloc} {node}"
 
@@ -824,7 +822,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Tar
 
             # for this kind of return we need to save the computed value
             # and the branch to the end of the ExprStmt
-            if not node.expr_ret.x_type.is_void_or_wrapped_void():
+            if not node.expr_ret.x_type.is_zero_sized():
                 if isinstance(result.dst, str):
                     out = EmitIRExpr(node.expr_ret, ta, id_gen)
                     print(f"{TAB}mov {result.dst} {out}")
@@ -836,7 +834,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Tar
             print(f"{TAB}bra {result.end_label}  # end of expr")
         else:
             out = EmitIRExpr(node.expr_ret, ta, id_gen)
-            if not node.expr_ret.x_type.is_void_or_wrapped_void():
+            if not node.expr_ret.x_type.is_zero_sized():
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
@@ -847,7 +845,7 @@ def EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Tar
         print(f"{TAB}bra {block}  # continue")
     elif isinstance(node, cwast.StmtExpr):
         ct: cwast.CanonType = node.expr.x_type
-        if ct.is_void_or_wrapped_void() or ct.fits_in_register():
+        if ct.is_zero_sized() or ct.fits_in_register():
             EmitIRExpr(node.expr, ta, id_gen)
         else:
             name = id_gen.NewName("stmt_stk_var")
@@ -933,7 +931,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
 
     def _emit_recursively(node, ct: cwast.CanonType, offset: int) -> int:
         """When does  node.x_type != ct not hold?"""
-        if ct.is_void_or_wrapped_void():
+        if ct.is_zero_sized():
+            # global data initialization may not have side-effects
             return 0
         assert offset == type_corpus.align(offset, ct.alignment)
         if isinstance(node, cwast.ValUndef):

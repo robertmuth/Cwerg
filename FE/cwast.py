@@ -965,6 +965,9 @@ class CanonType:
             return self.children[0].is_complex()
         return False
 
+    def is_zero_sized(self):
+        return self.size == 0
+
     def is_void_or_wrapped_void(self) -> bool:
         if self.node is DefType:
             return self.children[0].is_void()
@@ -992,10 +995,12 @@ class CanonType:
         return self.mut
 
     def fits_in_register(self) -> bool:
+        assert self.size > 0
         reg_type = self.register_types
         return reg_type is not None and len(reg_type) == 1
 
     def get_single_register_type(self) -> str:
+        assert self.size > 0, f"{self} is zero size type {self.size} {self.register_types}"
         reg_type = self.register_types
         assert reg_type is not None and len(
             reg_type) == 1, f"{self} {reg_type}"
@@ -1029,6 +1034,10 @@ class CanonType:
 
     def finalize(self, size: int, alignment: int, register_types):
         assert not self.is_finalized()
+        if size == 0:
+            # TODO
+            # assert not register_types
+            pass
         self.size = size
         self.alignment = alignment
         self.register_types = register_types

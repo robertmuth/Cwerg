@@ -236,9 +236,15 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
     if ENABLE_UNION_OPTIMIZATIONS and len(scalars) == 1 and scalars[0].is_pointer():
         return scalars[0].register_types
 
-    if largest == 0:
-        return [f"U{ta.typeid_bitwidth}"]
-    return [f"U{largest}", f"U{ta.typeid_bitwidth}"]
+    # TODO
+    if ct.untagged and False:
+        if largest == 0:
+            return []
+        return [f"U{largest}"]
+    else:
+        if largest == 0:
+            return [f"U{ta.typeid_bitwidth}"]
+        return [f"U{largest}", f"U{ta.typeid_bitwidth}"]
 
 
 def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[list[str]]:
