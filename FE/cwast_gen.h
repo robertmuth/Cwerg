@@ -64,6 +64,7 @@ enum class CONST_KIND : uint8_t {
 
 extern BASE_TYPE_KIND MakeSint(int bitwidth);
 extern BASE_TYPE_KIND MakeUint(int bitwidth);
+extern int BaseTypeKindByteSize(BASE_TYPE_KIND kind);
 
 inline bool IsSint(CONST_KIND k) {
   return CONST_KIND::S8 <= k && k <= CONST_KIND::S64;
@@ -572,22 +573,22 @@ enum class POINTER_EXPR_KIND : uint8_t {
 
 enum class BASE_TYPE_KIND : uint8_t {
     INVALID = 0,
-    SINT = 10,
-    S8 = 11,
-    S16 = 12,
-    S32 = 13,
-    S64 = 14,
-    UINT = 20,
-    U8 = 21,
-    U16 = 22,
-    U32 = 23,
-    U64 = 24,
-    R32 = 30,
-    R64 = 31,
-    BOOL = 40,
-    TYPEID = 50,
-    VOID = 60,
-    NORET = 61,
+    SINT = 16,
+    S8 = 17,
+    S16 = 18,
+    S32 = 19,
+    S64 = 20,
+    UINT = 32,
+    U8 = 33,
+    U16 = 34,
+    U32 = 35,
+    U64 = 36,
+    R32 = 51,
+    R64 = 52,
+    BOOL = 65,
+    TYPEID = 80,
+    VOID = 96,
+    NORET = 112,
 };
 
 enum class MACRO_PARAM_KIND : uint8_t {

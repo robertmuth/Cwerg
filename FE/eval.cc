@@ -408,9 +408,22 @@ Const EvalNode(Node node) {
       }
       return kConstInvalid;
     }
-    case NT::ExprLen:
-      // TODO
+    case NT::ExprLen: {
+      Node cont = Node_container(node);
+      BASE_TYPE_KIND bt =
+          CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
+      if (CanonType_kind(Node_x_type(cont)) == NT::TypeVec) {
+        return ConstNewUnsigned(CanonType_size(Node_x_type(cont)), bt);
+      } else {
+        Const val_cont = Node_x_eval(cont);
+        ASSERT(CanonType_kind(Node_x_type(cont)) == NT::TypeSpan,
+               "unexpected " << Node_x_type(cont));
+        if (!val_cont.isnull() && ConstGetSpan(val_cont).size != -1) {
+          return ConstNewUnsigned(ConstGetSpan(val_cont).size, bt);
+        }
+      }
       return kConstInvalid;
+    }
     case NT::ExprAddrOf:
       if (Node_kind(Node_expr_lhs(node)) == NT::Id) {
         return ConstNewSymAddr(Node_x_symbol(Node_expr_lhs(node)));
