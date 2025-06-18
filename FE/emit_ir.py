@@ -1135,8 +1135,6 @@ def main() -> int:
     eliminated_nodes.add(cwast.DefMacro)
     symbolize.SetTargetFields(mod_topo_order)
     symbolize.ResolveSymbolsInsideFunctions(mod_topo_order, mp.builtin_symtab)
-    for mod in mp.mods_in_topo_order:
-        symbolize.VerifySymbols(mod)
 
     # Before Typing we cannot set the symbol links for rec fields
     SanityCheckMods("after_symbolizing", args, mod_topo_order, None, None, eliminated_nodes,

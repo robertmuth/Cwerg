@@ -207,7 +207,7 @@ CanonType CanonTypeNewFunType(Name name,
 
 // ====================================================================
 
-TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch){
+TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch) {
   for (BASE_TYPE_KIND kind : {BASE_TYPE_KIND::VOID,
                               //
                               BASE_TYPE_KIND::S8, BASE_TYPE_KIND::S16,
@@ -498,7 +498,12 @@ void TypeCorpus::SetAbiInfoForAll() {
 void TypeCorpus::Dump() {
   std::cout << "Dump of CanonTypes: (" << corpus_.size() << ")\n";
   for (auto it = corpus_.begin(); it != corpus_.end(); ++it) {
-    std::cout << NameData(it->first) << "\n";
+    CanonType ct = it->second;
+    std::cout << CanonType_name(ct)
+              // << " " << EnumToString(CanonType_kind(ct))
+              << " id=" << CanonType_typeid(ct)
+              << " size=" << CanonType_size(ct)
+              << " align=" << CanonType_alignment(ct) << "\n";
   }
 }
 

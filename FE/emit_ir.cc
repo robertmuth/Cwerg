@@ -9,13 +9,13 @@
 #include "FE/canonicalize.h"
 #include "FE/checker.h"
 #include "FE/cwast_gen.h"
+#include "FE/eval.h"
 #include "FE/lexer.h"
 #include "FE/macro.h"
 #include "FE/mod_pool.h"
 #include "FE/parse.h"
 #include "FE/pp.h"
 #include "FE/typify.h"
-#include "FE/eval.h"
 #include "Util/assert.h"
 #include "Util/switch.h"
 
@@ -26,6 +26,31 @@ SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
 
 SwitchString sw_stdlib("stdlib", "path to stdlib directory", "./Lib");
+
+SwitchString sw_dump_ast("dump_ast", "dump AST after stage and stop", "");
+
+SwitchString sw_dump_types("dump_types", "dump types after stage and stop", "");
+
+void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
+                     const std::set<NT>& eliminated_nodes, CompileStage stage,
+                     TypeCorpus* tc) {
+  ValidateAST(mods, stage);
+  if (tc != nullptr) {
+    TypeCheckAst(mods, tc, false);
+    if (sw_dump_types.Value() == phase) {
+      tc->Dump();
+      exit(0);
+    }
+  }
+
+  if (sw_dump_ast.Value() == phase) {
+    for (Node mod : mods) {
+      std::cout << "\n\n\n";
+      Prettify(mod);
+    }
+    exit(0);
+  }
+}
 
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
@@ -39,44 +64,36 @@ int main(int argc, const char* argv[]) {
   }
 
   ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
-  std::cout << "@@@ CHECKING BEFORE MACRO EXPANSION\n";
-  ValidateAST(mp.mods_in_topo_order, CompileStage::AfterParsing);
-  ExpandMacrosAndMacroLike(mp.mods_in_topo_order);
-  std::cout << "@@@ CHECKING AFTER MACRO EXPANSION\n";
-  ValidateAST(mp.mods_in_topo_order, CompileStage::AfterParsing);
-#if 0
-  for (Node mod : mp.mods_in_topo_order) {
-    std::cout << "\n\n\n";
-    Prettify(mod);
-  }
-#endif
-  SetTargetFields(mp.mods_in_topo_order);
-  ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
-  std::cout << "@@@ CHECKING AFTER SYMBOL RESOLUTION EXPANSION\n";
-  ValidateAST(mp.mods_in_topo_order, CompileStage::AfterSymbolization);
-
-#if 0
-  for (Node mod : mp.mods_in_topo_order) {
-    std::cout << "\n\n\n";
-    Prettify(mod);
-  }
-#endif
+  std::set<NT> eliminated_nodes = {NT::Import, NT::ModParam};
+  SanityCheckMods("after_parsing", mp.mods_in_topo_order, eliminated_nodes,
+                  CompileStage::AfterParsing, nullptr);
+  //
   for (Node mod : mp.mods_in_topo_order) {
     FunRemoveParentheses(mod);
   }
-  std::set<NT> eliminated_nodes = {NT::Import,   NT::DefMacro, NT::MacroInvoke,
-                                   NT::MacroId,  NT::MacroFor, NT::ModParam,
-                                   NT::ExprParen};
+  eliminated_nodes.insert(NT::ExprParen);
+
+  ExpandMacrosAndMacroLike(mp.mods_in_topo_order);
+  eliminated_nodes.insert(NT::DefMacro);
+  eliminated_nodes.insert(NT::MacroInvoke);
+  eliminated_nodes.insert(NT::MacroId);
+  eliminated_nodes.insert(NT::MacroFor);
+  eliminated_nodes.insert(NT::ExprSrcLoc);
+  eliminated_nodes.insert(NT::ExprStringify);
+  eliminated_nodes.insert(NT::EphemeralList);
+
+  SetTargetFields(mp.mods_in_topo_order);
+  ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
+  SanityCheckMods("after_symbolizing", mp.mods_in_topo_order, eliminated_nodes,
+                  CompileStage::AfterSymbolization, nullptr);
 
   TypeCorpus tc(STD_TARGET_X64);
-
   AddTypesToAst(mp.mods_in_topo_order, &tc);
-
-  std::cout << "@@@ CHECKING AFTER TYPING\n";
+  SanityCheckMods("after_typing", mp.mods_in_topo_order, eliminated_nodes,
+                  CompileStage::AfterTyping, &tc);
   ValidateAST(mp.mods_in_topo_order, CompileStage::AfterTyping);
-  TypeCheckAst(mp.mods_in_topo_order, &tc, false);
+  //
   DecorateASTWithPartialEvaluation(mp.mods_in_topo_order);
-  // tc.Dump();
 
   std::cout << "@@@ files=" << LexerRaw::stats.num_files
             << " lines=" << LexerRaw::stats.num_lines << "\n";

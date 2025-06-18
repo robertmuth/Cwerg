@@ -17,8 +17,8 @@ SwitchBase* SwitchBase::Find(std::string_view name) {
 
 void SwitchBase::EmitSummary(std::ostream* output) {
   for (const SwitchBase* sw = list_; sw != nullptr; sw = sw->next_) {
-    *output << std::setw(20) << sw->name_ << " value: " << sw->Get() << "\n\n"
-            << sw->purpose_ << "\n";
+    *output << std::setw(-20) << sw->name_ << " value: " << sw->Get() << "\n\n"
+            << sw->purpose_ << "\n\n\n";
   }
 }
 
