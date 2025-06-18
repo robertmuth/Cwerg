@@ -5,9 +5,12 @@
 #include <set>
 
 #include "Util/assert.h"
+#include "Util/switch.h"
 
 namespace cwerg::fe {
 namespace {
+SwitchBool sw_verbose("verbose_checks", "make checking more verbose");
+
 bool NodeIsPossibleSymbol(Node symbol) {
   switch (Node_kind(symbol)) {
     case NT::DefMacro:
@@ -156,7 +159,8 @@ void ValidateAST(const std::vector<Node>& mods, CompileStage stage) {
   };
 
   for (Node mod : mods) {
-    std::cout << "@@ VALIDATE: " << Node_name(mod) << "\n";
+    if (sw_verbose.Value())
+      std::cout << "Validate Mod: " << Node_name(mod) << "\n";
     VisitAstRecursivelyPre(mod, mark, kNodeInvalid);
   }
 
@@ -184,8 +188,9 @@ void ValidateAST(const std::vector<Node>& mods, CompileStage stage) {
       if (!NodeIsNode(child)) continue;
       ASSERT(child.kind() == Node_kind(child),
              "node mismatch " << child << " vs "
-             << EnumToString(Node_kind(child)) << " kind=" << int(child.kind()) << " " <<
-             int(Node_kind(child)));
+                              << EnumToString(Node_kind(child))
+                              << " kind=" << int(child.kind()) << " "
+                              << int(Node_kind(child)));
     }
     ASSERT(core.kind != NT::invalid, "");
     ++live;
@@ -210,8 +215,10 @@ void ValidateAST(const std::vector<Node>& mods, CompileStage stage) {
     }
   }
 
-  std::cout << "@@ Nodes live=" << live << " freed=" << freed
-            << " total=" << live + freed << "\n";
+  if (sw_verbose.Value()) {
+    std::cout << "Node Stats: live=" << live << " freed=" << freed
+              << " total=" << live + freed << "\n";
+  }
 }
 
 }  // namespace cwerg::fe

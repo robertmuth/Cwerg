@@ -818,7 +818,7 @@ void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
 }
 
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
-  std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
+  // std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
 
   auto type_checker = [&tc, &strict](Node node, Node parent) {
     CanonType ct = Node_x_type(node);
@@ -1162,7 +1162,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
 
 void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
 //  phase 1
-#if 1
+#if 0
   std::cout << "Phase 1\n";
 #endif
   for (Node mod : mods) {
@@ -1205,7 +1205,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
   }
 
   //  phase 2
-#if 1
+#if 0
   std::cout << "Phase 2\n";
 #endif
   PolyMap poly_map(tc);
@@ -1254,7 +1254,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
     }
   }
 //  phase 3
-#if 1
+#if 0
   std::cout << "Phase 3\n";
 #endif
   for (Node mod : mods) {
@@ -1291,7 +1291,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
     }
   }
 //  phase 4
-#if 1
+#if 0
   std::cout << "Phase 4\n";
 #endif
   for (Node mod : mods) {

@@ -70,7 +70,7 @@ tests_meta: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
 
 $(DIR)/%.cw.meta: %.cw
 	@echo "[typify $@]"
-	$(EMIT_IR)  $<
+	$(EMIT_IR) -dump_stats $<
 
 ############################################################
 # Profile

@@ -16,6 +16,7 @@
 #include "FE/lexer.h"
 #include "FE/mod_pool.h"
 #include "FE/parse.h"
+#include "Util/switch.h"
 
 namespace cwerg::fe {
 
@@ -24,6 +25,8 @@ using namespace cwerg;
 const Path PATH_INVALID;
 
 namespace {
+
+SwitchBool sw_verbose("verbose_read", "make reading more verbose");
 
 Node NormalizeModParamOneStep(Node node) {
   switch (Node_kind(node)) {
@@ -273,7 +276,10 @@ class ModPoolState {
     SymTab* symtab = new SymTab();
     ExtractSymTabPopulatedWithGlobals(mod, symtab);
     ResolveImportsForQualifers(mod);
-    std::cout << "AddModInfoCommon [" << path << "] " << Node_name(mod) << "\n";
+    if (sw_verbose.Value()) {
+      std::cout << "AddModInfoCommon [" << path << "] " << Node_name(mod)
+                << "\n";
+    }
     ASSERT(Node_kind(mod) == NT::DefMod, "");
     ModId mid = ModId(path, args);
     ASSERT(!all_mods_.contains(mid), "duplicate module " << mid.path);
@@ -436,12 +442,18 @@ Node ReadMod(const Path& path) {
   Path with_suffix = path;
   with_suffix.replace_extension(".cw");
   auto data = ReadFile(with_suffix.c_str());
-  std::cout << "ReadMod [" << path << "] size=" << data.size() << "\n";
 
   // TODO: fix magic number
   Name name = NameNew(filename.c_str());
   Lexer lexer(data, name);
-  return ParseDefMod(&lexer, name);
+  int before = gStripeGroupNode.NextAvailable();
+  Node mod = ParseDefMod(&lexer, name);
+  if (sw_verbose.Value()) {
+    std::cout << "ReadMod [" << path << "] bytes=" << data.size()
+              << " lines=" << lexer.LinesProcessed()
+              << " nodes=" << gStripeGroupNode.NextAvailable() - before << "\n";
+  }
+  return mod;
 }
 
 ModPool ReadModulesRecursively(Path root_path,
@@ -467,14 +479,12 @@ ModPool ReadModulesRecursively(Path root_path,
 
   std::vector<ModInfo> new_active;
   while (!active.empty()) {
-    std::cout << "Fixpoint Iteration for Imports active=" << active.size()
-              << "\n"
-              << std::flush;
     ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(
         state.AllMods(), out.builtin_symtab);
     new_active.clear();
     for (ModInfo& mi_importer : active) {
-      std::cout << "\nHandle Imports for Mod: " << mi_importer.mid.path << "\n";
+      // std::cout << "\nHandle Imports for Mod: " << mi_importer.mid.path <<
+      // "\n";
       size_t num_unresolved_imports = 0;
       for (auto& import_info : mi_importer.imports) {
         if (import_info.HasBeenResolved()) {
@@ -508,6 +518,9 @@ ModPool ReadModulesRecursively(Path root_path,
             new_active.push_back(mi);
           }
         } else {
+          if (sw_verbose.Value()) {
+            std::cout << "SpecialGenericMod [" << path << "] " << "\n";
+          }
           Node mod = state.GetCloneOfGenericMod(path, read_mod_fun);
           SpecializeGenericModule(mod, import_info.normalized_args);
           mi = state.AddModInfo(path, import_info.normalized_args, mod);

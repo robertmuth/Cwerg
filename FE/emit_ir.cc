@@ -31,6 +31,8 @@ SwitchString sw_dump_ast("dump_ast", "dump AST after stage and stop", "");
 
 SwitchString sw_dump_types("dump_types", "dump types after stage and stop", "");
 
+SwitchBool sw_dump_stats("dump_stats", "dump stats before exiting");
+
 void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
                      const std::set<NT>& eliminated_nodes, CompileStage stage,
                      TypeCorpus* tc) {
@@ -95,8 +97,10 @@ int main(int argc, const char* argv[]) {
   //
   DecorateASTWithPartialEvaluation(mp.mods_in_topo_order);
 
-  std::cout << "@@@ files=" << LexerRaw::stats.num_files
-            << " lines=" << LexerRaw::stats.num_lines << "\n";
-
+  if (sw_dump_stats.Value()) {
+    std::cout << "Stats:  files=" << LexerRaw::stats.num_files
+              << " lines=" << LexerRaw::stats.num_lines
+              << " nodes=" << gStripeGroupNode.NextAvailable() << "\n";
+  }
   return 0;
 }

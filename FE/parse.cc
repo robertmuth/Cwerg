@@ -1214,7 +1214,6 @@ Node ParseDefMod(Lexer* lexer, Name name) {
   Node body = ParseModBodyList(lexer, 0);
   NodeInitDefMod(def_mod, name, params, body, BitsFromAnnotation(tk),
                  tk.comments, tk.srcloc);
-  std::cout << "@@ LinesProcessed: " << lexer->LinesProcessed() << "\n";
   return def_mod;
 }
 

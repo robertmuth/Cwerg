@@ -9,8 +9,10 @@
 #include "Util/handle.h"
 #include "Util/immutable.h"
 #include "Util/parse.h"
+#include "Util/switch.h"
 
 namespace cwerg::fe {
+SwitchBool sw_verbose("verbose_eval", "make eval more verbose");
 
 ImmutablePool ConstPool(alignof(uint64_t));
 
@@ -638,7 +640,9 @@ void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
   int iteration = 0;
   while (true) {
     ++iteration;
-    std::cout << "Eval Iteration " << iteration << "\n";
+    if (sw_verbose.Value()) {
+      std::cout << "Eval Iteration " << iteration << "\n";
+    }
     bool seen_change = false;
     for (Node mod : mods) {
       for (Node node = Node_body_mod(mod); !node.isnull();
