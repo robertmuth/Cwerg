@@ -33,23 +33,40 @@ StripeBase* const gAllStripesCanonType[] = {&gCanonTypeCore, nullptr};
 struct StripeGroup gStripeGroupCanonType("CanonType", &gAllStripesCanonType[0],
                                          128 * 1024);
 
-Name CanonType_name(CanonType n) { return gCanonTypeCore[n].name; }
+Name CanonType_name(CanonType ct) { return gCanonTypeCore[ct].name; }
 
-bool CanonType_mut(CanonType n) { return gCanonTypeCore[n].mut; }
+bool CanonType_mut(CanonType ct) { return gCanonTypeCore[ct].mut; }
 
-int CanonType_dim(CanonType n) {
-  ASSERT(CanonType_kind(n) == NT::TypeVec, "");
-  return gCanonTypeCore[n].dim;
+int CanonType_dim(CanonType ct) {
+  ASSERT(CanonType_kind(ct) == NT::TypeVec, "");
+  return gCanonTypeCore[ct].dim;
 }
 
-int CanonType_alignment(CanonType n) { return gCanonTypeCore[n].alignment; }
-int CanonType_size(CanonType n) { return gCanonTypeCore[n].size; }
+int align(int size, int alignment) {
+  return (size + alignment - 1) / alignment * alignment;
+}
 
-NT CanonType_kind(CanonType n) { return gCanonTypeCore[n].node; }
+int CanonType_alignment(CanonType ct) { return gCanonTypeCore[ct].alignment; }
+int CanonType_size(CanonType ct) { return gCanonTypeCore[ct].size; }
+int CanonType_aligned_size(CanonType ct) {
+  return align(gCanonTypeCore[ct].size, gCanonTypeCore[ct].alignment);
+}
 
-bool CanonType_untagged(CanonType n) { return gCanonTypeCore[n].untagged; }
+bool CanonType_is_finalize(CanonType ct) {
+  return gCanonTypeCore[ct].alignment != -1;
+}
 
-Node CanonType_ast_node(CanonType n) { return gCanonTypeCore[n].ast_node; }
+void CanonType_Finalize(CanonType ct, size_t size, size_t alignment) {
+  ASSERT(alignment < 0, "already finalized " << ct);
+  gCanonTypeCore[ct].alignment = alignment;
+  gCanonTypeCore[ct].size = size;
+}
+
+NT CanonType_kind(CanonType ct) { return gCanonTypeCore[ct].node; }
+
+bool CanonType_untagged(CanonType ct) { return gCanonTypeCore[ct].untagged; }
+
+Node CanonType_ast_node(CanonType ct) { return gCanonTypeCore[ct].ast_node; }
 
 bool operator<(CanonType a, CanonType b) {
   return CanonType_name(a) < CanonType_name(b);
@@ -149,10 +166,13 @@ CanonType CanonTypeNewVecType(Name name, int dim, CanonType child) {
   return out;
 }
 
-CanonType CanonTypeNewRecType(Name name, Node ast_node) {
+CanonType CanonTypeNewRecType(Name name, Node ast_node,
+                              const std::vector<CanonType>& children) {
   CanonType out = CanonTypeNew();
-  gCanonTypeCore[out] = {
-      .node = NT::DefRec, .name = name, .ast_node = ast_node};
+  gCanonTypeCore[out] = {.node = NT::DefRec,
+                         .name = name,
+                         .children = children,
+                         .ast_node = ast_node};
   return out;
 }
 
@@ -187,7 +207,7 @@ CanonType CanonTypeNewFunType(Name name,
 
 // ====================================================================
 
-TypeCorpus::TypeCorpus(const TargetArchConfig& arch) {
+TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch){
   for (BASE_TYPE_KIND kind : {BASE_TYPE_KIND::VOID,
                               //
                               BASE_TYPE_KIND::S8, BASE_TYPE_KIND::S16,
@@ -205,6 +225,104 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) {
   base_type_map_[BASE_TYPE_KIND::UINT] = base_type_map_[arch.get_uint_kind()];
   base_type_map_[BASE_TYPE_KIND::TYPEID] =
       base_type_map_[arch.get_typeid_kind()];
+}
+
+void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
+  if (CanonType_alignment(ct) == -1) return;
+  if (CanonType_kind(ct) != NT::TypePtr && CanonType_kind(ct) != NT::TypeFun) {
+    for (CanonType child : CanonType_children(ct)) {
+      SetAbiInfoRecursively(child, ta);
+    }
+  }
+
+  switch (CanonType_kind(ct)) {
+    case NT::TypeBase: {
+      size_t size = BaseTypeKindByteSize(CanonType_base_type_kind(ct));
+      return CanonType_Finalize(ct, size, size);
+    }
+    case NT::TypePtr: {
+      size_t size = ta.data_addr_bitwidth / 8;
+      return CanonType_Finalize(ct, size, size);
+    }
+    case NT::TypeSpan: {
+      size_t ptr_size = ta.data_addr_bitwidth / 8;
+      size_t len_size = ta.uint_bitwidth / 8;
+      ASSERT(ptr_size == len_size, "TODO: needs more work");
+      return CanonType_Finalize(ct, ptr_size + len_size, ptr_size);
+    }
+    case NT::TypeVec: {
+      CanonType ct_dep = CanonType_underlying_type(ct);
+      size_t dim = CanonType_dim(ct);
+      return CanonType_Finalize(ct, CanonType_aligned_size(ct_dep) * dim,
+                                CanonType_alignment(ct_dep));
+    }
+    case NT::TypeUnion: {
+      int num_pointer = 0;
+      int num_other = 0;
+      int max_size = 0;
+      int max_alignment = 1;
+      int ptr_size = ta.code_addr_bitwidth / 8;
+      for (CanonType child_ct : CanonType_children(ct)) {
+        if (CanonType_size(child_ct) == 0) continue;
+        while (CanonType_kind(child_ct) == NT::DefType) {
+          child_ct = CanonType_children(child_ct)[0];
+        }
+        if (CanonType_kind(child_ct) == NT::TypePtr) {
+          ++num_pointer;
+          max_size = std::max(max_size, ptr_size);
+          max_alignment = std::max(max_alignment, ptr_size);
+        } else {
+          ++num_other;
+          max_size = std::max(max_size, CanonType_size(child_ct));
+          max_alignment =
+              std::max(max_alignment, CanonType_alignment(child_ct));
+        }
+      }
+      if (CanonType_untagged(ct)) {
+        return CanonType_Finalize(ct, max_size, max_alignment);
+      }
+
+      if (num_pointer == 1 && num_other == 0) {
+        return CanonType_Finalize(ct, ptr_size, ptr_size);
+      }
+      int tag_size = ta.typeid_bitwidth / 8;
+      max_alignment = std::max(max_alignment, tag_size);
+
+      return CanonType_Finalize(ct, align(tag_size, max_alignment) + max_size,
+                                max_alignment);
+    }
+    case NT::DefEnum: {
+      int size = CanonType_size(CanonType_underlying_type(ct));
+      return CanonType_Finalize(ct, size, size);
+    }
+    case NT::DefFun: {
+      size_t size = ta.code_addr_bitwidth / 8;
+      return CanonType_Finalize(ct, size, size);
+    }
+
+    case NT::DefRec: {
+      int size = 0;
+      int alignment = 1;
+      Node def_rec = CanonType_ast_node(ct);
+      for (Node field = Node_fields(def_rec); !field.isnull();
+           field = Node_next(field)) {
+        CanonType field_ct = Node_x_type(field);
+        size = align(size, CanonType_alignment(field_ct));
+        Node_x_offset(field) = size;
+        size += CanonType_size(field_ct);
+        alignment = std::max(alignment, CanonType_alignment(field_ct));
+      }
+      return CanonType_Finalize(ct, size, alignment);
+    }
+
+    case NT::DefType: {
+      CanonType ct_dep = CanonType_underlying_type(ct);
+      return CanonType_Finalize(ct, CanonType_size(ct_dep),
+                                CanonType_alignment(ct_dep));
+    }
+    default:
+      break;
+  }
 }
 
 CanonType TypeCorpus::Insert(CanonType ct) {
@@ -292,9 +410,19 @@ CanonType TypeCorpus::InsertVecType(int dim, CanonType child) {
   return Insert(out);
 }
 
-CanonType TypeCorpus::InsertRecType(std::string_view name, Node ast_node) {
+CanonType TypeCorpus::InsertRecType(std::string_view name, Node ast_node,
+                                    bool process_children) {
   Name n = MakeCanonTypeName("rec", name);
-  CanonType out = CanonTypeNewRecType(n, ast_node);
+  std::vector<CanonType> children;
+  if (process_children) {
+    for (Node field = Node_fields(ast_node); !field.isnull();
+         field = Node_next(field)) {
+      CanonType ct = Node_x_type(field);
+      ASSERT(!ct.isnull(), "");
+      children.push_back(ct);
+    }
+  }
+  CanonType out = CanonTypeNewRecType(n, ast_node, children);
   return Insert(out);
 }
 
@@ -358,6 +486,13 @@ CanonType TypeCorpus::InsertFunType(
   if (it != corpus_.end()) return it->second;
   CanonType out = CanonTypeNewFunType(name, params_result);
   return Insert(out);
+}
+
+void TypeCorpus::SetAbiInfoForAll() {
+  for (auto it = corpus_.begin(); it != corpus_.end(); ++it) {
+    SetAbiInfoRecursively(it->second, arch_config_);
+  }
+  initial_typing_ = false;
 }
 
 void TypeCorpus::Dump() {

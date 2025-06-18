@@ -318,7 +318,6 @@ uint32_t ComputeArrayLength(Node node) {
   }
 }
 
-
 bool IsPolymorphicCallee(Node callee) {
   if (Node_kind(callee) != NT::Id) {
     return false;
@@ -1175,7 +1174,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
           name.append(NameData(Node_name(mod)));
           name.append("/");
           name.append(NameData(Node_name(child)));
-          CanonType ct = tc->InsertRecType(name, child);
+          CanonType ct = tc->InsertRecType(name, child, false);
           AnnotateType(child, ct);
           break;
         }
@@ -1216,12 +1215,15 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
          child = Node_next(child)) {
       switch (Node_kind(child)) {
         case NT::DefRec: {
+          std::vector<CanonType> children;
           for (Node field = Node_fields(child); !field.isnull();
                field = Node_next(field)) {
             CanonType ct = TypifyExprOrType(Node_value_or_auto(field), tc,
                                             kCanonTypeInvalid, &poly_map);
+            children.push_back(ct);
             AnnotateType(field, ct);
           }
+          CanonType_children(Node_x_type(child)) = children;
           break;
         }
         case NT::DefEnum: {

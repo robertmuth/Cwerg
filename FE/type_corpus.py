@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 STRINGIFIEDTYPE_RE = re.compile(r"[a-zA-Z][_A-Za-z_0-9$,<>/]+")
 
 
-ENABLE_UNION_OPTIMIZATIONS = False
-
-
 def align(x, a):
     return (x + a - 1) // a * a
 
@@ -193,6 +190,8 @@ class TargetArchConfig:
     typeid_bitwidth: int
     data_addr_bitwidth: int  # it is hard to imagine: data_addr_bitwidth != uint_bitwidth
     code_addr_bitwidth: int
+    code_addr_bitwidth: int
+    optimize_union_tag: bool
 
     def get_data_address_reg_type(self):
         return f"A{self.data_addr_bitwidth}"
@@ -207,9 +206,9 @@ class TargetArchConfig:
         return self.data_addr_bitwidth // 8
 
 
-STD_TARGET_X64 = TargetArchConfig(64, 64, 16, 64, 64)
-STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64)
-STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32)
+STD_TARGET_X64 = TargetArchConfig(64, 64, 16, 64, 64, False)
+STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64, False)
+STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32, False)
 
 
 def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[list[str]]:
@@ -233,7 +232,7 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
         largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
         largest = max(largest, size)
     # special hack for pointer + error-code
-    if ENABLE_UNION_OPTIMIZATIONS and len(scalars) == 1 and scalars[0].is_pointer():
+    if ta.optimize_union_tag and len(scalars) == 1 and scalars[0].is_pointer():
         return scalars[0].register_types
 
     # TODO
@@ -284,54 +283,44 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[li
         return None
 
 
-def _SetAbiInfoRecursivelyForSum(ct: cwast.CanonType, ta: TargetArchConfig):
-    for ct_chicld in ct.children:
-        SetAbiInfoRecursively(ct_chicld, ta)
-
-    tag_size = ta.typeid_bitwidth // 8
-    ptr_size = ta.data_addr_bitwidth // 8
+def _GetAbiInfoForSum(ct: cwast.CanonType, ta: TargetArchConfig):
     assert ct.node is cwast.TypeUnion
-    num_void = 0
     num_pointer = 0
     num_other = 0
     max_size = 0
     max_alignment = 1
-    for t in ct.union_member_types():
-        if t.is_zero_sized():
-            num_void += 1
+    ptr_size = ta.data_addr_bitwidth // 8
+    for child_ct in ct.union_member_types():
+        if child_ct.is_zero_sized():
             continue
-        while t.is_wrapped():
-            t = t.children[0]
-        if t.is_pointer():
+        while child_ct.is_wrapped():
+            child_ct = child_ct.children[0]
+        if child_ct.is_pointer():
             num_pointer += 1
             max_size = max(max_size, ptr_size)
             max_alignment = max(max_alignment, ptr_size)
         else:
             num_other += 1
-            assert t.size >= 0, f"{ct} size is not yet known"
-            max_size = max(max_size, t.size)
-            max_alignment = max(max_alignment, t.alignment)
+            assert child_ct.size >= 0, f"{ct} size is not yet known"
+            max_size = max(max_size, child_ct.size)
+            max_alignment = max(max_alignment, child_ct.alignment)
     if ct.untagged:
         return max_size, max_alignment
-    if ENABLE_UNION_OPTIMIZATIONS and num_other == 0 and num_pointer == 1:
+    if ta.optimize_union_tag and num_other == 0 and num_pointer == 1:
         # special hack for pointer + error-code
         return ptr_size, ptr_size
+    tag_size = ta.typeid_bitwidth // 8
     # the tag is the first component of the tagged union in memory
     max_alignment = max(max_alignment, tag_size)
-    size = align(tag_size, max_alignment)
-    return size + max_size, max_alignment
+    return align(tag_size, max_alignment) + max_size, max_alignment
 
 
-def _SetAbiInfoRecursivelyForRec(ct: cwast.CanonType, ta: TargetArchConfig):
+def _GetAbiInfoForRec(ct: cwast.CanonType):
     assert isinstance(ct.ast_node, cwast.DefRec)
     def_rec: cwast.DefRec = ct.ast_node
     assert ct.children, f"{def_rec}"
-    for ct_field in ct.children:
-        SetAbiInfoRecursively(ct_field, ta)
-
     size = 0
     alignment = 1
-
     for rf in def_rec.fields:
         assert isinstance(rf, cwast.RecField)
         field_ct: cwast.CanonType = rf.type.x_type
@@ -346,39 +335,41 @@ def _SetAbiInfoRecursivelyForRec(ct: cwast.CanonType, ta: TargetArchConfig):
 def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
     if ct.alignment >= 0:
         return
-    if ct.node is cwast.TypeBase:
+    n = ct.node
+    if n != cwast.TypePtr and n != cwast.TypeFun:
+        # prevent infinite recursion (mostly applies to TypePtr)
+        for ct_field in ct.children:
+            SetAbiInfoRecursively(ct_field, ta)
+    if n is cwast.TypeBase:
         size = ct.base_type_kind.ByteSize()
         ct.Finalize(size, size, _get_register_type(ct, ta))
-    elif ct.node is cwast.TypePtr:
+    elif n is cwast.TypePtr:
         size = ta.code_addr_bitwidth // 8
         ct.Finalize(size, size, _get_register_type(ct, ta))
-    elif ct.node is cwast.TypeSpan:
+    elif n is cwast.TypeSpan:
         # span is converted to (pointer, length) tuple
         ptr_field_size = ta.data_addr_bitwidth // 8
         len_field_size = ta.uint_bitwidth // 8
         ct.Finalize(ptr_field_size + len_field_size,
                     ptr_field_size, _get_register_type(ct, ta))
-
-    elif ct.node is cwast.TypeVec:
+    elif n is cwast.TypeVec:
         ct_dep = ct.children[0]
-        SetAbiInfoRecursively(ct_dep, ta)
         ct.Finalize(ct_dep.aligned_size() * ct.dim,
                     ct_dep.alignment,  _get_register_type(ct, ta))
-    elif ct.node is cwast.TypeUnion:
-        size, alignment = _SetAbiInfoRecursivelyForSum(ct, ta)
+    elif n is cwast.TypeUnion:
+        size, alignment = _GetAbiInfoForSum(ct, ta)
         ct.Finalize(size, alignment, _get_register_type(ct, ta))
-    elif ct.node is cwast.DefEnum:
+    elif n is cwast.DefEnum:
         size = ct.children[0].base_type_kind.ByteSize()
         ct.Finalize(size, size, _get_register_type(ct, ta))
-    elif ct.node is cwast.TypeFun:
+    elif n is cwast.TypeFun:
         size = ta.code_addr_bitwidth // 8
         ct.Finalize(size, size, _get_register_type(ct, ta))
-    elif ct.node is cwast.DefType:
+    elif n is cwast.DefType:
         ct_dep = ct.children[0]
-        SetAbiInfoRecursively(ct_dep, ta)
         ct.Finalize(ct_dep.size, ct_dep.alignment, _get_register_type(ct, ta))
-    elif ct.node is cwast.DefRec:
-        size, alignment = _SetAbiInfoRecursivelyForRec(ct, ta)
+    elif n is cwast.DefRec:
+        size, alignment = _GetAbiInfoForRec(ct)
         ct.Finalize(size, alignment, _get_register_type(ct, ta))
     else:
         assert False, f"unknown type {ct}"

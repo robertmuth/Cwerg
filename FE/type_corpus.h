@@ -13,8 +13,8 @@ struct TargetArchConfig {
   int typeid_bitwidth;
   int data_addr_bitwidth;
   int code_addr_bitwidth;
+  bool optimize_union_tag;
 
-  inline int get_address_size() const { return data_addr_bitwidth / 8; }
   inline BASE_TYPE_KIND get_uint_kind() const {
     return MakeUint(uint_bitwidth);
   }
@@ -26,9 +26,9 @@ struct TargetArchConfig {
   }
 };
 
-constexpr TargetArchConfig STD_TARGET_X64 = {64, 64, 16, 64, 64};
-constexpr TargetArchConfig STD_TARGET_A64 = {64, 64, 16, 64, 64};
-constexpr TargetArchConfig STD_TARGET_A32 = {32, 32, 16, 32, 32};
+constexpr TargetArchConfig STD_TARGET_X64 = {64, 64, 16, 64, 64, false};
+constexpr TargetArchConfig STD_TARGET_A64 = {64, 64, 16, 64, 64, false};
+constexpr TargetArchConfig STD_TARGET_A32 = {32, 32, 16, 32, 32, false};
 
 extern Name CanonType_name(CanonType n);
 extern NT CanonType_kind(CanonType n);
@@ -119,6 +119,9 @@ class TypeCorpus {
 
   std::map<BASE_TYPE_KIND, CanonType> base_type_map_;
   int typeid_curr_ = 0;
+  const TargetArchConfig& arch_config_;
+  bool initial_typing_ = true;
+
   CanonType Insert(CanonType ct);
   CanonType InsertBaseType(BASE_TYPE_KIND kind);
 
@@ -153,7 +156,7 @@ class TypeCorpus {
   CanonType InsertSpanType(bool mut, CanonType child);
   CanonType InsertVecType(int dim, CanonType child);
 
-  CanonType InsertRecType(std::string_view name, Node ast_node);
+  CanonType InsertRecType(std::string_view name, Node ast_node, bool process_children);
   CanonType InsertEnumType(std::string_view name, Node ast_node);
   CanonType InsertUnionType(bool untagged,
                             const std::vector<CanonType>& components);
@@ -161,6 +164,8 @@ class TypeCorpus {
   CanonType InsertWrappedTypePre(std::string_view name);
   void InsertWrappedTypeFinalize(CanonType ct, CanonType wrapped_type);
   CanonType InsertUnionComplement(CanonType minuend, CanonType subtrahend);
+
+  void SetAbiInfoForAll();
 
   void Dump();
 };
