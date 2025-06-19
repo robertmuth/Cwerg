@@ -6,11 +6,12 @@
 
 namespace cwerg::fe {
 
-enum class CompileStage : uint8_t {
-  AfterParsing,
-  AfterSymbolization,
-  AfterTyping
+enum class COMPILE_STAGE : uint8_t {
+  AFTER_PARSING,
+  AFTER_SYMBOLIZE,
+  AFTER_TYPIFY,
+  AfterEval,
 };
 
-extern void ValidateAST(const std::vector<Node>& mods, CompileStage stage);
+extern void ValidateAST(const std::vector<Node>& mods, COMPILE_STAGE stage);
 }  // namespace cwerg::fe

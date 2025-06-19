@@ -165,7 +165,7 @@ class TypeCorpus {
   void InsertWrappedTypeFinalize(CanonType ct, CanonType wrapped_type);
   CanonType InsertUnionComplement(CanonType minuend, CanonType subtrahend);
 
-  void SetAbiInfoForAll();
+  void SetAbiInfoForAllTypes();
 
   void Dump();
 };

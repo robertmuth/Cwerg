@@ -139,7 +139,7 @@ bool NodeValidateSymbols(Node node, Node parent) {
 
 }  // namespace
 
-void ValidateAST(const std::vector<Node>& mods, CompileStage stage) {
+void ValidateAST(const std::vector<Node>& mods, COMPILE_STAGE stage) {
   for (int i = kStripeGroupFirstAlloc; i < gStripeGroupNode.NextAvailable();
        ++i) {
     gNodeValidation[i].ref_count = 0;
@@ -197,7 +197,7 @@ void ValidateAST(const std::vector<Node>& mods, CompileStage stage) {
 
     node = Node(core.kind, i);
     CanonType ct = Node_x_type(node);
-    if (stage >= CompileStage::AfterTyping) {
+    if (stage >= COMPILE_STAGE::AFTER_TYPIFY) {
       if (IsTyped(core.kind)) {
         ASSERT(!ct.isnull(), "missing type for " << node << " "
                                                  << Node_srcloc(node)
@@ -209,7 +209,7 @@ void ValidateAST(const std::vector<Node>& mods, CompileStage stage) {
     }
   }
 
-  if (stage >= CompileStage::AfterSymbolization) {
+  if (stage >= COMPILE_STAGE::AFTER_SYMBOLIZE) {
     for (Node mod : mods) {
       VisitAstRecursivelyPre(mod, NodeValidateSymbols, kNodeInvalid);
     }

@@ -1,10 +1,20 @@
 import logging
+import enum
 
 from typing import Tuple, Any, Optional
 
 
 from FE import cwast
 from FE import eval
+
+
+@enum.unique
+class COMPILE_STAGE(enum.Enum):
+    AFTER_PARSING = 0
+    AFTER_SYMBOLIZE = enum.auto()
+    AFTER_TYPIFY = enum.auto()
+    AFTER_EVAL = enum.auto()
+    AFTER_DESUGAR = enum.auto()
 
 
 def _VisitAstRecursivelyWithParentAndField(node, visitor, parent, nfd=None):

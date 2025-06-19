@@ -52,12 +52,13 @@ int CanonType_aligned_size(CanonType ct) {
   return align(gCanonTypeCore[ct].size, gCanonTypeCore[ct].alignment);
 }
 
-bool CanonType_is_finalize(CanonType ct) {
-  return gCanonTypeCore[ct].alignment != -1;
+bool CanonType_is_finalized(CanonType ct) {
+  return gCanonTypeCore[ct].alignment > 0;
 }
 
 void CanonType_Finalize(CanonType ct, size_t size, size_t alignment) {
-  ASSERT(alignment < 0, "already finalized " << ct);
+  ASSERT(size >= 0 && alignment >= 0, "" << size << " " << alignment << " " <<  ct);
+  ASSERT(gCanonTypeCore[ct].alignment < 0, "already finalized " << ct);
   gCanonTypeCore[ct].alignment = alignment;
   gCanonTypeCore[ct].size = size;
 }
@@ -228,7 +229,7 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch) {
 }
 
 void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
-  if (CanonType_alignment(ct) == -1) return;
+  if (CanonType_alignment(ct) >= 0) return;
   if (CanonType_kind(ct) != NT::TypePtr && CanonType_kind(ct) != NT::TypeFun) {
     for (CanonType child : CanonType_children(ct)) {
       SetAbiInfoRecursively(child, ta);
@@ -295,7 +296,7 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
       int size = CanonType_size(CanonType_underlying_type(ct));
       return CanonType_Finalize(ct, size, size);
     }
-    case NT::DefFun: {
+    case NT::TypeFun: {
       size_t size = ta.code_addr_bitwidth / 8;
       return CanonType_Finalize(ct, size, size);
     }
@@ -321,6 +322,7 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
                                 CanonType_alignment(ct_dep));
     }
     default:
+      ASSERT(false, "UNREACHABLE");
       break;
   }
 }
@@ -488,9 +490,11 @@ CanonType TypeCorpus::InsertFunType(
   return Insert(out);
 }
 
-void TypeCorpus::SetAbiInfoForAll() {
+void TypeCorpus::SetAbiInfoForAllTypes() {
   for (auto it = corpus_.begin(); it != corpus_.end(); ++it) {
-    SetAbiInfoRecursively(it->second, arch_config_);
+    CanonType ct = it->second;
+    SetAbiInfoRecursively(ct, arch_config_);
+    ASSERT(CanonType_size(ct) >= 0, "" << ct);
   }
   initial_typing_ = false;
 }

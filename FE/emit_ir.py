@@ -187,7 +187,6 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
         print(f"{TAB}poparg {p.name}:{p.type.x_type.get_single_register_type()}")
 
 
-
 def RLE(data: bytes):
     last = None
     count = 0
@@ -463,7 +462,7 @@ def _FormatNumber(val: cwast.ValNum) -> str:
 def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
-    assert ct_dst.size == 0  or ct_dst.fits_in_register(), f"{node} ct={ct_dst}"
+    assert ct_dst.size == 0 or ct_dst.fits_in_register(), f"{node} ct={ct_dst}"
     if isinstance(node, cwast.ExprCall):
         sig: cwast.CanonType = node.callee.x_type
         assert sig.is_fun()
@@ -621,7 +620,7 @@ def EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
         return EmitIRExpr(node.expr, ta, id_gen)
     elif isinstance(node, cwast.ValVoid):
         return None
-    #elif isinstance(node, cwast.ValCompound):
+    # elif isinstance(node, cwast.ValCompound):
     #    assert node.x_type.size == 0, f"{node} {node.x_type} {node.x_type.size}"
     #    return None
     else:
@@ -1047,29 +1046,43 @@ def EmitIRDefFun(node: cwast.DefFun, ta: type_corpus.TargetArchConfig, id_gen: i
             EmitIRStmt(c, None, ta, id_gen)
 
 
-def SanityCheckMods(phase_name: str, args: Any, mods: list[cwast.DefMod], tc,
-                    verifier,
-                    eliminated_node_types, allow_type_auto=True, pre_symbolize=False):
+def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
+                    mods: list[cwast.DefMod], tc: Optional[type_corpus.TypeCorpus],
+                    eliminated_node_types):
     logger.info(phase_name)
     if args.emit_stats == phase_name:
         node_histo = stats.ComputeNodeHistogram(mods)
         stats.DumpCounter(node_histo)
         stats.DumpStats()
 
-    if args.emit_ir == phase_name:
+    if args.dump_ast == phase_name:
         for mod in mods:
             pp_html.PrettyPrintHTML(mod)
             # pp_sexpr.PrettyPrint(mod)
-
-    if args.emit_ir == phase_name or args.stop == phase_name:
         exit(0)
 
+    if args.dump_types == phase_name:
+        tc.Dump()
+        exit(0)
+
+    if args.stop == phase_name:
+        exit(0)
+
+    no_symbols = stage.value < checker.COMPILE_STAGE.AFTER_TYPIFY.value
+    allow_type_auto = stage.value >= checker.COMPILE_STAGE.AFTER_DESUGAR.value
     for mod in mods:
-        checker.CheckAST(mod, eliminated_node_types,
-                         allow_type_auto, pre_symbolize=pre_symbolize)
-        if verifier:
+        checker.CheckAST(mod, eliminated_node_types, allow_type_auto,
+                         pre_symbolize=no_symbols)
+
+        if stage.value >= checker.COMPILE_STAGE.AFTER_SYMBOLIZE.value:
             symbolize.VerifySymbols(mod)
-            typify.VerifyTypesRecursively(mod, tc, verifier)
+
+        if stage in (checker.COMPILE_STAGE.AFTER_TYPIFY, checker.COMPILE_STAGE.AFTER_EVAL):
+            typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
+        if stage.value > checker.COMPILE_STAGE.AFTER_EVAL.value:
+            typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_STRICT)
+
+        if stage.value >= checker.COMPILE_STAGE.AFTER_EVAL.value:
             eval.VerifyASTEvalsRecursively(mod)
 
 
@@ -1089,7 +1102,9 @@ def main() -> int:
     parser.add_argument(
         '-arch', help='architecture to generated IR for', default="x64")
     parser.add_argument(
-        '-emit_ir', help='stop at the given stage and emit ir')
+        '-dump_ast', help='stop at the given stage and dump ast')
+    parser.add_argument(
+        '-dump_types', help='stop at the given stage and dump types')
     parser.add_argument(
         '-stop', help='stop at the given stage')
     parser.add_argument(
@@ -1114,8 +1129,9 @@ def main() -> int:
     mod_topo_order = mp.mods_in_topo_order
     main_entry_fun: cwast.DefFun = mp.main_fun
 
-    SanityCheckMods("after_parsing", args, mod_topo_order, None, None, eliminated_nodes,
-                    allow_type_auto=False, pre_symbolize=True)
+    SanityCheckMods("after_parsing", checker.COMPILE_STAGE.AFTER_PARSING,
+                    args, mod_topo_order, tc=None,
+                    eliminated_node_types=eliminated_nodes)
 
     # keeps track of those node classes which have been eliminated and hence must not
     # occur in the AST anymore
@@ -1137,15 +1153,15 @@ def main() -> int:
     symbolize.ResolveSymbolsInsideFunctions(mod_topo_order, mp.builtin_symtab)
 
     # Before Typing we cannot set the symbol links for rec fields
-    SanityCheckMods("after_symbolizing", args, mod_topo_order, None, None, eliminated_nodes,
-                    allow_type_auto=False, pre_symbolize=True)
+    SanityCheckMods("after_symbolizing", checker.COMPILE_STAGE.AFTER_SYMBOLIZE,
+                    args, mod_topo_order, None, eliminated_nodes)
 
     logger.info("Typify the nodes")
     ta: type_corpus.TargetArchConfig = _ARCH_MAP[args.arch]
     tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(ta)
     typify.AddTypesToAst(mod_topo_order, tc)
-    for mod in mod_topo_order:
-        typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
+    SanityCheckMods("after_typing", checker.COMPILE_STAGE.AFTER_TYPIFY, args, mod_topo_order, tc=tc,
+                    eliminated_node_types=eliminated_nodes)
 
     if args.shake_tree:
         dead_code.ShakeTree(mod_topo_order, main_entry_fun)
@@ -1158,9 +1174,8 @@ def main() -> int:
 
     eliminated_nodes.add(cwast.StmtStaticAssert)
 
-    SanityCheckMods("after_partial_eval", args,
-                    mod_topo_order, tc, typify.VERIFIERS_WEAK, eliminated_nodes,
-                    allow_type_auto=False)
+    SanityCheckMods("after_partial_eval", checker.COMPILE_STAGE.AFTER_EVAL, args,
+                    mod_topo_order, tc, eliminated_nodes)
 
     logger.info("Legalize 1")
 
@@ -1195,8 +1210,9 @@ def main() -> int:
     eliminated_nodes.add(cwast.TypeOf)
     eliminated_nodes.add(cwast.TypeUnionDelta)
 
-    SanityCheckMods("after_initial_lowering", args,
-                    mod_topo_order, tc,  typify.VERIFIERS_STRICT, eliminated_nodes)
+    SanityCheckMods("after_initial_lowering", checker.COMPILE_STAGE.AFTER_DESUGAR,
+                    args,
+                    mod_topo_order, tc,  eliminated_nodes)
 
     constant_pool = eval.GlobalConstantPool()
 
@@ -1234,8 +1250,8 @@ def main() -> int:
     eliminated_nodes.add(cwast.ExprUnionTag)
     eliminated_nodes.add(cwast.ExprUnionUntagged)
 
-    SanityCheckMods("after_span_elimination", args,
-                    [mod_gen] + mod_topo_order, tc, typify.VERIFIERS_STRICT, eliminated_nodes)
+    SanityCheckMods("after_span_elimination", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
+                    [mod_gen] + mod_topo_order, tc, eliminated_nodes)
 
     fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
         tc)
@@ -1249,8 +1265,8 @@ def main() -> int:
                 canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
                     fun, fun_sigs_with_large_args[fun.x_type], tc)
 
-    SanityCheckMods("after_large_arg_conversion", args,
-                    mod_topo_order, tc,  typify.VERIFIERS_STRICT, eliminated_nodes)
+    SanityCheckMods("after_large_arg_conversion", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
+                    mod_topo_order, tc,  eliminated_nodes)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
@@ -1275,8 +1291,8 @@ def main() -> int:
             assert node in eliminated_nodes, f"node: {
                 node} must be eliminated before codegen"
 
-    SanityCheckMods("after_canonicalization", args,
-                    [mod_gen] + mod_topo_order, tc,  typify.VERIFIERS_STRICT, eliminated_nodes)
+    SanityCheckMods("after_canonicalization", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
+                    [mod_gen] + mod_topo_order, tc, eliminated_nodes)
 
     mod_topo_order = [mod_gen] + mod_topo_order
 
@@ -1290,8 +1306,9 @@ def main() -> int:
                 node.name = _MangledGlobalName(
                     mod, str(mod.name), node, node.cdecl or node == main_entry_fun)
 
-    SanityCheckMods("after_name_cleanup", args,
-                    mod_topo_order, tc,  typify.VERIFIERS_STRICT, eliminated_nodes)
+    SanityCheckMods("after_name_cleanup", checker.COMPILE_STAGE.AFTER_DESUGAR,
+                    args,
+                    mod_topo_order, tc, eliminated_nodes)
 
     # Emit Cwert IR
     # print ("# TOPO-ORDER")

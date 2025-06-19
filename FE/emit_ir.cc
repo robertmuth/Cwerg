@@ -34,7 +34,7 @@ SwitchString sw_dump_types("dump_types", "dump types after stage and stop", "");
 SwitchBool sw_dump_stats("dump_stats", "dump stats before exiting");
 
 void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
-                     const std::set<NT>& eliminated_nodes, CompileStage stage,
+                     const std::set<NT>& eliminated_nodes, COMPILE_STAGE stage,
                      TypeCorpus* tc) {
   ValidateAST(mods, stage);
   if (tc != nullptr) {
@@ -68,7 +68,7 @@ int main(int argc, const char* argv[]) {
   ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
   std::set<NT> eliminated_nodes = {NT::Import, NT::ModParam};
   SanityCheckMods("after_parsing", mp.mods_in_topo_order, eliminated_nodes,
-                  CompileStage::AfterParsing, nullptr);
+                  COMPILE_STAGE::AFTER_PARSING, nullptr);
   //
   for (Node mod : mp.mods_in_topo_order) {
     FunRemoveParentheses(mod);
@@ -87,13 +87,13 @@ int main(int argc, const char* argv[]) {
   SetTargetFields(mp.mods_in_topo_order);
   ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
   SanityCheckMods("after_symbolizing", mp.mods_in_topo_order, eliminated_nodes,
-                  CompileStage::AfterSymbolization, nullptr);
+                  COMPILE_STAGE::AFTER_SYMBOLIZE, nullptr);
 
   TypeCorpus tc(STD_TARGET_X64);
   AddTypesToAst(mp.mods_in_topo_order, &tc);
   SanityCheckMods("after_typing", mp.mods_in_topo_order, eliminated_nodes,
-                  CompileStage::AfterTyping, &tc);
-  ValidateAST(mp.mods_in_topo_order, CompileStage::AfterTyping);
+                  COMPILE_STAGE::AFTER_TYPIFY, &tc);
+  ValidateAST(mp.mods_in_topo_order, COMPILE_STAGE::AFTER_TYPIFY);
   //
   DecorateASTWithPartialEvaluation(mp.mods_in_topo_order);
 

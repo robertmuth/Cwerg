@@ -7,9 +7,13 @@
 #include "FE/symbolize.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
+#include "Util/switch.h"
 
 namespace cwerg::fe {
 namespace {
+
+SwitchBool sw_verbose("verbose_typify", "make typify more verbose");
+
 struct PolyMapKey {
   Node mod;
   Name fun_name;
@@ -1161,10 +1165,8 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
 }  //  namespace
 
 void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
-//  phase 1
-#if 0
-  std::cout << "Phase 1\n";
-#endif
+  if (sw_verbose.Value()) std::cout << "Phase 1\n";
+
   for (Node mod : mods) {
     for (Node child = Node_body_mod(mod); !child.isnull();
          child = Node_next(child)) {
@@ -1204,10 +1206,8 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
     }
   }
 
-  //  phase 2
-#if 0
-  std::cout << "Phase 2\n";
-#endif
+  if (sw_verbose.Value()) std::cout << "Phase 2\n";
+
   PolyMap poly_map(tc);
 
   for (Node mod : mods) {
@@ -1253,10 +1253,9 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
       }
     }
   }
-//  phase 3
-#if 0
-  std::cout << "Phase 3\n";
-#endif
+
+  if (sw_verbose.Value()) std::cout << "Phase 3\n";
+
   for (Node mod : mods) {
     for (Node node = Node_body_mod(mod); !node.isnull();
          node = Node_next(node)) {
@@ -1290,16 +1289,12 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
       }
     }
   }
-//  phase 4
-#if 0
-  std::cout << "Phase 4\n";
-#endif
+
+  if (sw_verbose.Value()) std::cout << "Phase 4\n";
+
   for (Node mod : mods) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
       if (Node_kind(fun) == NT::DefFun && !Node_has_flag(fun, BF::EXTERN)) {
-#if 0
-        std::cout << "@@ Phase 4: " << Node_name(fun) << "\n";
-#endif
         for (Node child = Node_body(fun); !child.isnull();
              child = Node_next(child)) {
           TypifyStmt(child, tc, Node_x_type(Node_result(fun)), &poly_map);
@@ -1307,6 +1302,8 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
       }
     }
   }
+
+  tc->SetAbiInfoForAllTypes();
 }
 
 void TypeCheckAst(const std::vector<Node>& mods, TypeCorpus* tc, bool strict) {
