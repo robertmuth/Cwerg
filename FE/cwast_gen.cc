@@ -840,7 +840,7 @@ BASE_TYPE_KIND MakeUint(int bitwidth) {
 int BaseTypeKindByteSize(BASE_TYPE_KIND kind) {
   static const std::array<int, 4> bztab = {1, 2, 4, 8};
 
-  if (kind == BASE_TYPE_KIND::VOID) return 0;
+  if (kind == BASE_TYPE_KIND::VOID || kind == BASE_TYPE_KIND::NORET) return 0;
   int x = (int(kind) & 0xf) - 1;
   ASSERT(0 <= x && x <= bztab.size(), "");
   return bztab[x];

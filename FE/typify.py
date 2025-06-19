@@ -218,7 +218,7 @@ def UpdateNodeType(node, ct: cwast.CanonType) -> cwast.CanonType:
 
 
 def AnnotateNodeType(node, ct: cwast.CanonType) -> cwast.CanonType:
-    logger.info("TYPE of %s: %s", node, ct.name)
+    logger.info("Set type of %s: %s  [%s]", node, ct.name, node.x_srcloc)
     assert ct != cwast.NO_TYPE
     assert node.x_type is cwast.NO_TYPE, f"duplicate annotation for {node}"
     return UpdateNodeType(node, ct)
@@ -1114,7 +1114,8 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
     * some x_symbol for polymorphic invocations
     """
 
-    # phase 1: process types that have the module name in their canonical type name
+    logger.info("phase 2")
+    # process types that have the module name in their canonical type name
     # We process them first while we know that module name.
     # We could just do the processing when we encounter them naturally
     # during processing or recursion but then we do not have access to the
@@ -1132,7 +1133,8 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
                 ct = tc.InsertWrappedTypePrep(f"{mod_name}/{node.name}")
                 AnnotateNodeType(node, ct)
 
-    # phase 2: finish processing the types from phase 1
+    logger.info("phase 2")
+    # finish processing the types from phase 1
     # Now handle the child nodes which have become unvisible to the recursion
     # because parent has a type annotation
     poly_map = _PolyMap(tc)
@@ -1164,7 +1166,8 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
                 else:
                     AnnotateNodeType(node, ct)
 
-    # phase 3: deal with remaining top level stuff - but not function bodies
+    logger.info("phase 3")
+    # deal with remaining top level stuff - but not function bodies
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefEnum, cwast.DefRec, cwast.DefType, cwast.Import)):
@@ -1186,7 +1189,8 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
             else:
                 assert False, f"unexpected Node {node}"
 
-    # phase 4: now typify function bodies
+    logger.info("phase 4")
+    # now typify function bodies
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun) and not node.extern:

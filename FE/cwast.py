@@ -112,7 +112,7 @@ class BASE_TYPE_KIND(enum.Enum):
         return BASE_TYPE_KIND.SINT.value <= self.value <= BASE_TYPE_KIND.BOOL.value
 
     def ByteSize(kind: BASE_TYPE_KIND) -> int:
-        if kind is BASE_TYPE_KIND.VOID:
+        if kind in (BASE_TYPE_KIND.VOID, BASE_TYPE_KIND.NORET):
             return 0
         x = (kind.value & 0xf) - 1
         return [1, 2, 4, 8][x]

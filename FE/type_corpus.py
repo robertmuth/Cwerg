@@ -559,3 +559,8 @@ class TypeCorpus:
             return out[0]
 
         return self.InsertUnionType(all.untagged, out)
+
+    def Dump(self):
+        print(f"Dump of CanonTypes: ({len(self.corpus)})")
+        for name, ct in sorted((x.typeid, x) for x in self.corpus.values()):
+            print(f"{ct.name} id={ct.typeid} size={ct.size} align={ct.alignment}")

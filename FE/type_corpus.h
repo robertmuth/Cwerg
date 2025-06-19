@@ -116,7 +116,7 @@ extern void TypeListDelta(const std::vector<CanonType>& children1,
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;
-
+ std::vector<CanonType> corpus_in_order_;
   std::map<BASE_TYPE_KIND, CanonType> base_type_map_;
   int typeid_curr_ = 0;
   const TargetArchConfig& arch_config_;

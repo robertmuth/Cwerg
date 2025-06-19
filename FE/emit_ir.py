@@ -1062,6 +1062,8 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
         exit(0)
 
     if args.dump_types == phase_name:
+        for m in mods:
+            print (m.name)
         tc.Dump()
         exit(0)
 
@@ -1114,7 +1116,7 @@ def main() -> int:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.WARN)
-    # logger.setLevel(logging.INFO)
+    # typify.logger.setLevel(logging.INFO)
     logger.info("Start Parsing")
     assert len(args.files) == 1
     fn = args.files[0]

@@ -316,7 +316,8 @@ struct Candidate {
   Name name;
   Node mod;
 
-  bool operator<(const Candidate& other) const { return name < other.name; }
+  // Note unlike python which uses a min heap, c++ uses a max heap so we invert the order
+  bool operator<(const Candidate& other) const { return other.name < name; }
 };
 
 std::vector<Node> ModulesInTopologicalOrder(const std::vector<Node>& mods) {
@@ -371,7 +372,7 @@ void ResolvePolyMods(const std::vector<Node>& mods_in_topo_order) {
                            : Node_x_module(Node_x_import(fun));
         ASSERT(!ref_mod.isnull(), "");
 #if 0
-        std::cout << "@@ ResolvePolyMods " << Node_name(ref_mod)
+        std::cout << "@@ ResolvPhePolyMods " << Node_name(ref_mod)
                   << " "<<  Node_name(fun) << "\n";
 #endif
         Node_x_poly_mod(fun) = ref_mod;

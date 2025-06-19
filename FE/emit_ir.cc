@@ -40,6 +40,9 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
   if (tc != nullptr) {
     TypeCheckAst(mods, tc, false);
     if (sw_dump_types.Value() == phase) {
+      for (Node mod : mods) {
+        std::cout << Node_name(mod) << "\n";
+      }
       tc->Dump();
       exit(0);
     }

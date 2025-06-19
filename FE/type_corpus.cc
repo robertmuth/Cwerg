@@ -219,7 +219,7 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch) {
                               //
                               BASE_TYPE_KIND::R32, BASE_TYPE_KIND::R64,
                               //
-                              BASE_TYPE_KIND::BOOL}) {
+                              BASE_TYPE_KIND::BOOL,BASE_TYPE_KIND::NORET}) {
     base_type_map_[kind] = InsertBaseType(kind);
   }
   base_type_map_[BASE_TYPE_KIND::SINT] = base_type_map_[arch.get_sint_kind()];
@@ -334,6 +334,7 @@ CanonType TypeCorpus::Insert(CanonType ct) {
   corpus_[CanonType_name(ct)] = ct;
   CanonType_typeid(ct) = typeid_curr_;
   ++typeid_curr_;
+  corpus_in_order_.push_back(ct);
   return ct;
 }
 
@@ -372,7 +373,7 @@ CanonType TypeCorpus::InsertBaseType(BASE_TYPE_KIND kind) {
 }
 
 CanonType TypeCorpus::InsertPtrType(bool mut, CanonType child) {
-  Name name = MakeCanonTypeName(mut ? "mut_ptr" : "ptr",
+  Name name = MakeCanonTypeName(mut ? "ptr_mut" : "ptr",
                                 NameData(CanonType_name(child)));
   auto it = corpus_.find(name);
   if (it != corpus_.end()) return it->second;
@@ -381,7 +382,7 @@ CanonType TypeCorpus::InsertPtrType(bool mut, CanonType child) {
 }
 
 CanonType TypeCorpus::InsertSpanType(bool mut, CanonType child) {
-  Name name = MakeCanonTypeName(mut ? "mut_span" : "span",
+  Name name = MakeCanonTypeName(mut ? "span_mut" : "span",
                                 NameData(CanonType_name(child)));
   auto it = corpus_.find(name);
   if (it != corpus_.end()) {
@@ -455,7 +456,7 @@ CanonType TypeCorpus::InsertUnionType(
   }
 
   Name name =
-      MakeCanonTypeName(untagged ? "union_untagged" : "union", components);
+      MakeCanonTypeName(untagged ? "sum_untagged" : "sum", components);
   auto it = corpus_.find(name);
   if (it != corpus_.end()) return it->second;
   std::vector<CanonType> components_sorted(unique.begin(), unique.end());
@@ -500,9 +501,8 @@ void TypeCorpus::SetAbiInfoForAllTypes() {
 }
 
 void TypeCorpus::Dump() {
-  std::cout << "Dump of CanonTypes: (" << corpus_.size() << ")\n";
-  for (auto it = corpus_.begin(); it != corpus_.end(); ++it) {
-    CanonType ct = it->second;
+  std::cout << "Dump of CanonTypes: (" << corpus_in_order_.size() << ")\n";
+  for (CanonType ct : corpus_in_order_) {
     std::cout << CanonType_name(ct)
               // << " " << EnumToString(CanonType_kind(ct))
               << " id=" << CanonType_typeid(ct)
