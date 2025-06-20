@@ -1261,10 +1261,12 @@ def _EmitCodeC(fout):
     print(f"}};", file=fout)
 
     print("}  // namespace", file=fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(IMM_CURB), "IMM_CURB", fout)
-    cgen.RenderEnumToStringFun("IMM_CURB", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM), "PARAM", fout)
-    cgen.RenderEnumToStringFun("PARAM", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(
+        IMM_CURB), "IMM_CURB_ToStringMap", fout)
+    cgen.RenderEnumToStringFun(
+        "IMM_CURB", "EnumToString", "IMM_CURB_ToStringMap", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM), "PARAM_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("PARAM","EnumToString", "PARAM_ToStringMap", fout)
 
 
 def _DumpCodeSelTable():

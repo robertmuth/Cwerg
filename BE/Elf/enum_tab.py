@@ -335,6 +335,7 @@ class ST_INFO_BIND(enum.IntEnum):
     NUM = 3
     GNU_UNIQUE = 10
 
+
 @enum.unique
 class ST_INFO_TYPE(enum.IntEnum):
     """st_info type in the symbol header"""
@@ -1122,35 +1123,43 @@ def _EnumGenerator(cls, first, last):
     pos = first
     for sym in cls:
         val = sym.value
-        if val < first: continue
-        if val >= last >= 0: return
+        if val < first:
+            continue
+        if val >= last >= 0:
+            return
         yield sym.name, val
 
 
 def EmitEnumsH(fout):
     for cls, info in CLASSES.items():
-        if info[0] is UNSUPPORTED: continue
+        if info[0] is UNSUPPORTED:
+            continue
         name = f"class {cls.__name__} : uint{info[1]}_t"
         cgen.RenderEnum(cgen.NameValues(cls), name, fout)
 
 
 def EmitEnumsC(fout):
     for cls, info in CLASSES.items():
-        if info[0] is UNSUPPORTED: continue
+        name = cls.__name__
+        if info[0] is UNSUPPORTED:
+            continue
         if info[0] is FLAG:
             cgen.RenderEnumToStringMapFlag(
-                cgen.NameValues(cls), cls.__name__, fout)
-            cgen.RenderEnumToStringFun(cls.__name__, fout)
+                cgen.NameValues(cls), name + "_ToStringMap", fout)
+            cgen.RenderEnumToStringFun(name,   "EnumToString",
+                                       name + "_ToStringMap", fout)
         elif info[1] in {8, 16}:
             cgen.RenderEnumToStringMap(
-                cgen.NameValues(cls), cls.__name__, fout)
-            cgen.RenderEnumToStringFun(cls.__name__, fout)
+                cgen.NameValues(cls), name + "_ToStringMap", fout)
+            cgen.RenderEnumToStringFun(name,  "EnumToString",
+                                       name + "_ToStringMap", fout)
         elif info[1] == 32:
             for n, first in enumerate(info[2]):
-                if first == -1: continue
+                if first == -1:
+                    continue
                 last = info[2][n + 1]
                 cgen.RenderEnumToStringMap(_EnumGenerator(cls, first, last),
-                                           f"{cls.__name__ }_{first:x}",
+                                           f"{name}_{first:x}_ToStringMap",
                                            fout, first)
 
 

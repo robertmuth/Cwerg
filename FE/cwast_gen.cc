@@ -399,6 +399,26 @@ const uint8_t ASSIGNMENT_KIND_Jumper[128] = {
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 12, 255, 13, 255,
 };
 
+const char* const ASSIGNMENT_ToStringMap[] = {
+    "", // 0
+    "+=", // 1
+    "-=", // 2
+    "/=", // 3
+    "*=", // 4
+    "%=", // 5
+    "min=", // 6
+    "max=", // 7
+    ">>=", // 8
+    "<<=", // 9
+    ">>>=", // 10
+    "<<<=", // 11
+    "&=", // 12
+    "|=", // 13
+    "~=", // 14
+};
+const char* EnumToString_ASSIGNMENT(BINARY_EXPR_KIND x) { return ASSIGNMENT_ToStringMap[unsigned(x)]; }
+
+
 const char* const POINTER_EXPR_KIND_ToStringMap[] = {
     "", // 0
     "ptr_inc", // 1

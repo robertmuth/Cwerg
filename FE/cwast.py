@@ -126,7 +126,6 @@ class BASE_TYPE_KIND(enum.Enum):
         return {8: BASE_TYPE_KIND.S8, 16: BASE_TYPE_KIND.S16, 32: BASE_TYPE_KIND.S32, 64: BASE_TYPE_KIND.S64}[size]
 
 
-
 def KeywordToBaseTypeKind(s: str) -> BASE_TYPE_KIND:
     ss = s.lower()
     if ss != s:
@@ -3545,37 +3544,50 @@ def GenerateCodeH(fout: Any):
 
 
 def EnumStringConversions(fout: Any):
-    def render(name: str, name_vals: list, enum_to_str=True,  str_to_enum=True):
-        if enum_to_str:
-            cgen.RenderEnumToStringMap(name_vals, name, fout)
-            cgen.RenderEnumToStringFun(name, fout)
-        if str_to_enum:
-            cgen.RenderStringToEnumMap(name_vals,
-                                       name + "_FromStringMap",
-                                       name + "_Jumper", fout)
+    def render_enum_to_str(name: str, name_vals: list, enum_to_str_fun="EnumToString"):
+        cgen.RenderEnumToStringMap(name_vals,
+                                   name + "_ToStringMap", fout)
+        cgen.RenderEnumToStringFun(name,
+                                   enum_to_str_fun,
+                                   name + "_ToStringMap",
+                                   fout)
 
-    def std_render(cls):
-        render(cls.__name__, cgen.NameValues(cls))
+    def render_str_to_enum(name: str, name_vals: list):
+        cgen.RenderStringToEnumMap(name_vals,
+                                   name + "_FromStringMap",
+                                   name + "_Jumper", fout)
+
+    def std_render(name_or_cls, name_vals=None):
+
+        name = name_or_cls if isinstance(
+            name_or_cls, str) else name_or_cls.__name__
+        if not name_vals:
+            name_vals = cgen.NameValues(name_or_cls)
+        render_enum_to_str(name, name_vals)
+        render_str_to_enum(name, name_vals)
 
     std_render(MOD_PARAM_KIND)
     std_render(MACRO_PARAM_KIND)
     std_render(MACRO_RESULT_KIND)
 
-    render(BASE_TYPE_KIND.__name__,  cgen.NameValuesLower(BASE_TYPE_KIND))
+    std_render(BASE_TYPE_KIND,  cgen.NameValuesLower(BASE_TYPE_KIND))
 
-    render("ASSIGNMENT_KIND",
-           [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()], enum_to_str=False)
+    values = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
+    render_str_to_enum("ASSIGNMENT_KIND", values)
 
-    render(POINTER_EXPR_KIND.__name__,
-           [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()], str_to_enum=False)
+    cgen.RenderEnumToStringMap(values, "ASSIGNMENT_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("BINARY_EXPR_KIND", "EnumToString_ASSIGNMENT",
+                               "ASSIGNMENT_ToStringMap", fout)
 
-    render(BINARY_EXPR_KIND.__name__,
-           [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()], str_to_enum=False)
-    render("NT",  _NameValuesForNT(), str_to_enum=False)
+    render_enum_to_str(POINTER_EXPR_KIND.__name__,
+                       [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()])
+
+    render_enum_to_str(BINARY_EXPR_KIND.__name__,
+                       [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()])
+    render_enum_to_str("NT",  _NameValuesForNT())
     # intentionally not sorted - order is "print-order"
-    render("BF", _MakeNameValues(
-        _FieldNamesForKind(NFK.ATTR_BOOL), to_upper=False),
-        str_to_enum=True)
+    std_render("BF", _MakeNameValues(
+        _FieldNamesForKind(NFK.ATTR_BOOL), to_upper=False))
 
 
 def NodeAliasStringConversion(fout: Any):

@@ -747,6 +747,8 @@ def EmitTokensModule(out: list[PP.Token], node: cwast.DefMod):
     _MaybeEmitAnnotations(out, node)
 
     out += [PP.Str("module")]
+    if node.name is not cwast.EMPTY_NAME:
+        out += [PP.Brk(), PP.Str(node.name.name)]
     if node.params_mod:
         out += [PP.NoBreak(0)]
         _EmitParameterList(out, node.params_mod)

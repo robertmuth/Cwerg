@@ -1080,6 +1080,7 @@ const char* EnumToString(BF x);
 const char* EnumToString(NT x);
 const char* EnumToString(POINTER_EXPR_KIND x);
 const char* EnumToString(BINARY_EXPR_KIND x);
+const char* EnumToString_ASSIGNMENT(BINARY_EXPR_KIND x);
 
 // default is MACRO_PARAM_KIND::INVALID
 MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name);

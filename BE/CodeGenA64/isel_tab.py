@@ -1431,11 +1431,13 @@ def _EmitCodeC(fout):
     # TODO: without the ZZZ hack we get an  "array subscript XX is above array bounds" error but
     # only for these two instances - no idea why
     cgen.RenderEnumToStringMap(cgen.NameValues(
-        IMM_CURB) + [("ZZZ", len(IMM_CURB))], "IMM_CURB", fout)
-    cgen.RenderEnumToStringFun("IMM_CURB", fout)
+        IMM_CURB) + [("ZZZ", len(IMM_CURB))], "IMM_CURB_ToStringMap", fout)
+    cgen.RenderEnumToStringFun(
+        "IMM_CURB", "EnumToString", "IMM_CURB_ToStringMap", fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(
-        PARAM) + [("ZZZ", len(PARAM))], "PARAM", fout)
-    cgen.RenderEnumToStringFun("PARAM", fout)
+        PARAM) + [("ZZZ", len(PARAM))], "PARAM_ToStringMap", fout)
+    cgen.RenderEnumToStringFun(
+        "PARAM", "EnumToString", "PARAM_ToStringMap", fout)
 
 
 def _DumpCodeSelTable():

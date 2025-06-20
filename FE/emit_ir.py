@@ -26,7 +26,6 @@ from FE import cwast
 from FE import typify
 from FE import eval
 from FE import identifier
-from FE import pp_html
 from FE import mod_pool
 from FE import dead_code
 from FE import optimize
@@ -1055,10 +1054,18 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
         stats.DumpCounter(node_histo)
         stats.DumpStats()
 
-    if args.dump_ast == phase_name:
+    if args.dump_ast_html == phase_name:
+        from FE import pp_html
         for mod in mods:
             pp_html.PrettyPrintHTML(mod)
             # pp_sexpr.PrettyPrint(mod)
+        exit(0)
+
+    if args.dump_ast == phase_name:
+        from FE import pp
+        import sys
+        for mod in mods:
+            pp.PrettyPrint(mod, sys.stdout)
         exit(0)
 
     if args.dump_types == phase_name:
@@ -1103,6 +1110,8 @@ def main() -> int:
         '-stdlib', help='path to stdlib directory', default="./Lib")
     parser.add_argument(
         '-arch', help='architecture to generated IR for', default="x64")
+    parser.add_argument(
+        '-dump_ast_html', help='stop at the given stage and dump ast in html format')
     parser.add_argument(
         '-dump_ast', help='stop at the given stage and dump ast')
     parser.add_argument(

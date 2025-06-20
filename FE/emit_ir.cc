@@ -50,7 +50,6 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
 
   if (sw_dump_ast.Value() == phase) {
     for (Node mod : mods) {
-      std::cout << "\n\n\n";
       Prettify(mod);
     }
     exit(0);

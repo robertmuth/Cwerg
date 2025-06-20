@@ -48,7 +48,7 @@ def _GetNodeTypeAndFields(node, condense=True):
 
     if isinstance(node, cwast.StmtCompoundAssignment):
         fields.pop(0)
-        return cwast.ASSIGNMENT_SHORTCUT_INV[node.assignment_kind], fields
+        return cwast.ASSIGNMENT_SHORTCUT_INV[node.binary_expr_kind], fields
     elif isinstance(node, cwast.Expr1):
         fields.pop(0)
         return cwast.UNARY_EXPR_SHORTCUT_SEXPR_INV[node.unary_expr_kind], fields

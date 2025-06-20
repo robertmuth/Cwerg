@@ -1393,18 +1393,18 @@ def _EmitCodeC(fout):
     print("\n".join(_RenderMnemonicHashLookup()), file=fout)
     print("};\n", file=fout)
 
-    cgen.RenderEnumToStringMap(cgen.NameValues(REG), "REG", fout)
-    cgen.RenderEnumToStringFun("REG", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(DREG), "DREG", fout)
-    cgen.RenderEnumToStringFun("DREG", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(SREG), "SREG", fout)
-    cgen.RenderEnumToStringFun("SREG", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(PRED), "PRED", fout)
-    cgen.RenderEnumToStringFun("PRED", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(SHIFT), "SHIFT", fout)
-    cgen.RenderEnumToStringFun("SHIFT", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK", fout)
-    cgen.RenderEnumToStringFun("OK", fout)
+    def render_enum_to_str(name_vals: list, name: str):
+        cgen.RenderEnumToStringMap(name_vals, name + "_ToStringMap", fout)
+        cgen.RenderEnumToStringFun(name,"EnumToString", name + "_ToStringMap", fout)
+
+
+
+    render_enum_to_str(cgen.NameValues(REG), "REG")
+    render_enum_to_str(cgen.NameValues(DREG), "DREG")
+    render_enum_to_str(cgen.NameValues(SREG), "SREG")
+    render_enum_to_str(cgen.NameValues(PRED), "PRED")
+    render_enum_to_str (cgen.NameValues(SHIFT), "SHIFT")
+    render_enum_to_str(cgen.NameValues(OK), "OK")
 
     # Note this also uses the string tables from the enums above
     print("// Indexed by OK", file=fout)

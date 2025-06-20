@@ -1140,12 +1140,13 @@ def _render_c(fout):
 
 def _render_cc(fout):
     def render(cls, both_ways=True):
-        cgen.RenderEnumToStringMap(cgen.NameValues(cls), cls.__name__, fout)
-        cgen.RenderEnumToStringFun(cls.__name__, fout)
+        name = cls.__name__
+        cgen.RenderEnumToStringMap(cgen.NameValues(cls), name + "_ToStringMap", fout)
+        cgen.RenderEnumToStringFun(name,"EnumToString", name + "_ToStringMap", fout)
         if both_ways:
             cgen.RenderStringToEnumMap(cgen.NameValues(cls),
-                                       cls.__name__ + "FromStringMap",
-                                       cls.__name__ + "Jumper", fout)
+                                       name + "FromStringMap",
+                                       name + "Jumper", fout)
 
     render(OPC_GENUS)
     render(FUN_KIND)

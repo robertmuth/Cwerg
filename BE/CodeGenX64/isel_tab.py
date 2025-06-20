@@ -1606,11 +1606,11 @@ def _EmitCodeC(fout):
     # TODO: without the ZZZ hack we get an  "array subscript XX is above array bounds" error but
     # only for these two instances - no idea why
     cgen.RenderEnumToStringMap(cgen.NameValues(
-        C) + [("ZZZ", len(C))], "C", fout)
-    cgen.RenderEnumToStringFun("C", fout)
+        C) + [("ZZZ", len(C))], "C_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("C","EnumToString", "C_ToStringMap", fout)
     cgen.RenderEnumToStringMap(cgen.NameValues(
-        P) + [("ZZZ", len(P))], "P", fout)
-    cgen.RenderEnumToStringFun("P", fout)
+        P) + [("ZZZ", len(P))], "P_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("P","EnumToString", "P_ToStringMap", fout)
 
     return
 

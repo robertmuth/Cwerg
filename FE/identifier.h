@@ -12,11 +12,11 @@ class IdGen {
 
  public:
   Name NameNewNext(Name name) {
-    auto it = last_used_seq_.find(name);
-    ++it->second;
+    uint32_t& n = last_used_seq_[name];
+    ++n;
     char buf[1024];
     strcpy(buf, NameData(name));
-    sprintf(buf + strlen(buf), "%%%u", it->second);
+    sprintf(buf + strlen(buf), "%%%u", n);
 
     return NameNew(buf);
   }

@@ -554,7 +554,7 @@ class Opcode:
         self.operands = operands
         self.format = format
         # the discriminant uniquely identifies and instruction
-        # we also have the notion of a finger-print which is not unique 
+        # we also have the notion of a finger-print which is not unique
         self.discriminant_mask: int = 0
         self.discriminant_data: int = 0
         self.mem_width = 0
@@ -1512,8 +1512,8 @@ def _EmitCollisions(fout):
 
 
 def _EmitCodeC(fout):
-    cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK", fout)
-    cgen.RenderEnumToStringFun("OK", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("OK", "EnumToString", "OK_ToStringMap",  fout)
 
 
 LoadOpcodes(os.path.join(os.path.dirname(__file__), "x86data.js"))

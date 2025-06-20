@@ -1696,11 +1696,11 @@ def _EmitCodeC(fout):
     print("};\n", file=fout)
 
     # what about REG/SREG/DREG
-    cgen.RenderEnumToStringMap(cgen.NameValues(SHIFT), "SHIFT", fout)
-    cgen.RenderEnumToStringFun("SHIFT", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(SHIFT), "SHIFT_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("SHIFT", "EnumToString",   "SHIFT_ToStringMap",fout)
 
-    cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK", fout)
-    cgen.RenderEnumToStringFun("OK", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(OK), "OK_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("OK", "EnumToString", "OK_ToStringMap",fout)
 
 
 def _MnemonicHashingExperiments():

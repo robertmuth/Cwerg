@@ -1,4 +1,4 @@
-# Helpers for generating C++ code 
+# Helpers for generating C++ code
 
 # for use with @enum classes
 def NameValues(cls):
@@ -30,8 +30,8 @@ def RenderEnumClass(name_vals, name, fout):
 ##
 
 
-def RenderEnumToStringMap(name_vals, name, fout, initial=0):
-    print(f"\nconst char* const {name}_ToStringMap[] = {{", file=fout)
+def RenderEnumToStringMap(name_vals, map_name, fout, initial=0):
+    print(f"\nconst char* const {map_name}[] = {{", file=fout)
     last = initial  # this should really be called `next`
     for value, name in sorted([(v, k) for k, v in name_vals]):
         while last != value:
@@ -45,9 +45,9 @@ def RenderEnumToStringMap(name_vals, name, fout, initial=0):
     print("};", file=fout)
 
 
-def RenderEnumToStringMapFlag(cls, name, fout):
+def RenderEnumToStringMapFlag(cls, map_name, fout):
     last = 0
-    print(f"\nconst char* const {name}_ToStringMap[] = {{", file=fout)
+    print(f"\nconst char* const {map_name}[] = {{", file=fout)
     for name, value in cls:
         assert value & (
             value - 1) == 0, f"value 0x{value:x} must have one bit set"
@@ -84,11 +84,11 @@ def RenderStringToEnumMap(cls, map_name, jumper_name, fout):
     print("};", file=fout)
 
 
-def RenderEnumToStringFun(name, fout):
-    print(f"const char* EnumToString({name} x) {{"
-          f" return {name}_ToStringMap[unsigned(x)]; }}\n", file=fout)
+def RenderEnumToStringFun(name, fun_name, map_name, fout):
+    print(f"const char* {fun_name}({name} x) {{"
+          f" return {map_name}[unsigned(x)]; }}\n", file=fout)
 
-# replace the section between "@AUTOGEN-START@" and "@AUTOGEN-END@" in a file 
+# replace the section between "@AUTOGEN-START@" and "@AUTOGEN-END@" in a file
 def ReplaceContent(emitter, fin, fout):
     in_auto_gen = False
     for line in fin:
