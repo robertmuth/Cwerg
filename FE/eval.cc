@@ -334,6 +334,8 @@ Const EvalNode(Node node) {
       return EvalValWithPossibleImplicitConversion(Node_x_type(node), initial);
     }
 #endif
+      return kConstInvalid;
+
     case NT::ExprIndex:
 #if 0
 
@@ -347,6 +349,7 @@ Const EvalNode(Node node) {
                                Node_x_type(node));
     }
 #endif
+      return kConstInvalid;
 
     case NT::ExprField:
 #if 0
@@ -393,7 +396,6 @@ Const EvalNode(Node node) {
       return kConstInvalid;
     case NT::ExprIs:
       return EvalExprIs(node);
-
     case NT::ExprFront: {
       Node cont = Node_container(node);
       if (CanonType_kind(Node_x_type(cont)) == NT::TypeVec) {
@@ -433,15 +435,30 @@ Const EvalNode(Node node) {
       return kConstInvalid;
     case NT::ExprOffsetof:
       return ConstNewUnsigned(
-          CanonType_size(Node_x_type(Node_type(node))),
+          Node_x_offset(Node_x_symbol(Node_field(node))),
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
     case NT::ExprSizeof:
       return ConstNewUnsigned(
-          Node_x_offset(Node_x_symbol(Node_field(node))),
+          CanonType_size(Node_x_type(Node_type(node))),
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
-    case NT::ValSpan:
-      // TODO
-      return kConstInvalid;
+    case NT::ValSpan: {
+      Node sym = kNodeInvalid;
+      int32_t size = -1;
+      Const p = Node_x_eval(Node_pointer(node));
+      Const s = Node_x_eval(Node_expr_size(node));
+      if (p.isnull() && s.isnull()) return kConstInvalid;
+      if (!p.isnull()) {
+        ASSERT(p.kind() == CONST_KIND::SYM_ADDR,
+               " " << Node_srcloc(node) << " " << p);
+        sym = ConstGetSymbol(p);
+      }
+      if (!s.isnull()) {
+        ASSERT(IsUint(s.kind()), Node_srcloc(node) << node);
+        size = ConstGetUnsigned(s);
+      }
+      return ConstNewSpan({sym, size, kConstInvalid});
+    }
+
     case NT::ExprParen:
       return Node_x_eval(Node_expr(node));
     case NT::DefEnum: {
@@ -599,7 +616,7 @@ uint64_t ConstGetUnsigned(Const c) {
   if (c.kind() == CONST_KIND::U32) {
     return *(uint32_t*)ConstPool.Data(c.index());
   }
-  ASSERT(c.kind() == CONST_KIND::U64, "");
+  ASSERT(c.kind() == CONST_KIND::U64, "bad size " << int(c.kind()));
   return *(uint64_t*)ConstPool.Data(c.index());
 }
 
@@ -622,15 +639,22 @@ std::ostream& operator<<(std::ostream& os, Const c) {
     case CONST_KIND::U32:
     case CONST_KIND::U64:
     case CONST_KIND::BOOL:
-      return os << "EvalNum[" << ConstGetUnsigned(c) << "]";
+      return os << "EvalNum[" << ConstGetUnsigned(c) << "]{" << c.index()
+                << "}";
     case CONST_KIND::S8:
     case CONST_KIND::S16:
     case CONST_KIND::S32:
     case CONST_KIND::S64:
-      return os << "EvalNum[" << ConstGetSigned(c) << "]";
+      return os << "EvalNum[" << ConstGetSigned(c) << "]{" << c.index() << "}";
     case CONST_KIND::R32:
     case CONST_KIND::R64:
-      return os << "EvalNum[" << ConstGetFloat(c) << "]";
+      return os << "EvalNum[" << ConstGetFloat(c) << "]{" << c.index() << "}";
+    case CONST_KIND::SYM_ADDR:
+      return os << "SymAddr[" << Node_name(ConstGetSymbol(c)) << "]{"
+                << c.index() << "}";
+    case CONST_KIND::FUN_ADDR:
+      return os << "FunAdd[" << Node_name(ConstGetSymbol(c)) << "]{"
+                << c.index() << "}";
     default:
       return os << " unknown eval " << int(c.kind());
   }
