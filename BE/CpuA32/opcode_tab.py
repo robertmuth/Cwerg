@@ -775,10 +775,10 @@ for ext, n, width in [("", 0x18, MEM_WIDTH.W4),
                       ("h", 0x1e, MEM_WIDTH.W2),
                       ("b", 0x1c, MEM_WIDTH.W1)]:
     Opcode(f"strex{ext}", "",
-       # TODO: OK.REG_0_3 should move to the end
-       [root00, (0x3f, n, 20), (0xf, 0xf, 8), (0xf, 0x9, 4)],
-       [OK.REG_12_15, OK.REG_16_19, OK.REG_0_3],
-       OPC_FLAG.ATOMIC | OPC_FLAG.STORE, mem_width=width)
+           # TODO: OK.REG_0_3 should move to the end
+           [root00, (0x3f, n, 20), (0xf, 0xf, 8), (0xf, 0x9, 4)],
+           [OK.REG_12_15, OK.REG_16_19, OK.REG_0_3],
+           OPC_FLAG.ATOMIC | OPC_FLAG.STORE, mem_width=width)
 
 for ext, n, width in [("", 0x19, MEM_WIDTH.W4),
                       ("h", 0x1f, MEM_WIDTH.W2),
@@ -1395,15 +1395,14 @@ def _EmitCodeC(fout):
 
     def render_enum_to_str(name_vals: list, name: str):
         cgen.RenderEnumToStringMap(name_vals, name + "_ToStringMap", fout)
-        cgen.RenderEnumToStringFun(name,"EnumToString", name + "_ToStringMap", fout)
-
-
+        cgen.RenderEnumToStringFun(
+            name, "EnumToString", name + "_ToStringMap", fout)
 
     render_enum_to_str(cgen.NameValues(REG), "REG")
     render_enum_to_str(cgen.NameValues(DREG), "DREG")
     render_enum_to_str(cgen.NameValues(SREG), "SREG")
     render_enum_to_str(cgen.NameValues(PRED), "PRED")
-    render_enum_to_str (cgen.NameValues(SHIFT), "SHIFT")
+    render_enum_to_str(cgen.NameValues(SHIFT), "SHIFT")
     render_enum_to_str(cgen.NameValues(OK), "OK")
 
     # Note this also uses the string tables from the enums above

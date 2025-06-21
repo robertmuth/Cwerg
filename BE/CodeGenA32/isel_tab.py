@@ -1265,8 +1265,10 @@ def _EmitCodeC(fout):
         IMM_CURB), "IMM_CURB_ToStringMap", fout)
     cgen.RenderEnumToStringFun(
         "IMM_CURB", "EnumToString", "IMM_CURB_ToStringMap", fout)
-    cgen.RenderEnumToStringMap(cgen.NameValues(PARAM), "PARAM_ToStringMap", fout)
-    cgen.RenderEnumToStringFun("PARAM","EnumToString", "PARAM_ToStringMap", fout)
+    cgen.RenderEnumToStringMap(cgen.NameValues(
+        PARAM), "PARAM_ToStringMap", fout)
+    cgen.RenderEnumToStringFun(
+        "PARAM", "EnumToString", "PARAM_ToStringMap", fout)
 
 
 def _DumpCodeSelTable():

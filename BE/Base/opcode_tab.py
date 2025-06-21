@@ -242,6 +242,7 @@ class DK(enum.Enum):
     def __repr__(self):
         return self.name
 
+
 SHORT_STR_TO_RK = {x.name: x for x in DK}  # this does contain the aliases
 
 
@@ -1068,7 +1069,8 @@ def _render_opcode_summary(fout):
         if o.group != OPC_GENUS.BASE:
             continue
         desc = o.desc.split("\n")[0]
-        print(f"| 0x{o.no:02x} | {o.name} {' '.join(o.purpose)} | {desc} |", file=fout)
+        print(
+            f"| 0x{o.no:02x} | {o.name} {' '.join(o.purpose)} | {desc} |", file=fout)
 
 
 def _render_documentation(fout):
@@ -1141,8 +1143,10 @@ def _render_c(fout):
 def _render_cc(fout):
     def render(cls, both_ways=True):
         name = cls.__name__
-        cgen.RenderEnumToStringMap(cgen.NameValues(cls), name + "_ToStringMap", fout)
-        cgen.RenderEnumToStringFun(name,"EnumToString", name + "_ToStringMap", fout)
+        cgen.RenderEnumToStringMap(cgen.NameValues(
+            cls), name + "_ToStringMap", fout)
+        cgen.RenderEnumToStringFun(
+            name, "EnumToString", name + "_ToStringMap", fout)
         if both_ways:
             cgen.RenderStringToEnumMap(cgen.NameValues(cls),
                                        name + "FromStringMap",
