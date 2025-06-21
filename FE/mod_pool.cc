@@ -439,12 +439,11 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
 
 Node ReadMod(const Path& path) {
   // std::cout << "ReadMod [" << path << "] as [" << path.filename() << "]\n";
-  Path filename = path.filename();
+  Path filename = path.stem();
   Path with_suffix = path;
   with_suffix.replace_extension(".cw");
   auto data = ReadFile(with_suffix.c_str());
 
-  // TODO: fix magic number
   Name name = NameNew(filename.c_str());
   Lexer lexer(data, name);
   int before = gStripeGroupNode.NextAvailable();

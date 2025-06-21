@@ -592,6 +592,28 @@ const uint8_t BF_Jumper[128] = {
  9, 255, 12, 255, 255, 14, 255, 16, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
+const char* const BF_CURLY_ToStringMap[] = {
+    "{{invalid}}", // 0
+    "{{builtin}}", // 1
+    "{{init}}", // 2
+    "{{fini}}", // 3
+    "{{extern}}", // 4
+    "{{cdecl}}", // 5
+    "{{poly}}", // 6
+    "{{pub}}", // 7
+    "{{mut}}", // 8
+    "{{preserve_mut}}", // 9
+    "{{ref}}", // 10
+    "{{colon}}", // 11
+    "{{wrapped}}", // 12
+    "{{unchecked}}", // 13
+    "{{untagged}}", // 14
+    "{{arg_ref}}", // 15
+    "{{res_ref}}", // 16
+};
+const char* EnumToString_CURLY(BF x) { return BF_CURLY_ToStringMap[unsigned(x)]; }
+
+
 const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
     {"case", NT::Case},
     {"enum", NT::DefEnum},

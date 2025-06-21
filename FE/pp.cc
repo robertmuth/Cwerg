@@ -53,11 +53,7 @@ void MaybeEmitAnnotations(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Str(EnumToString(bf)));
       out->push_back(PP::Brk());
     } else {
-      out->push_back(PP::Str("{{"));
-      out->push_back(PP::NoBreak(0));
-      out->push_back(PP::Str(EnumToString(bf)));
-      out->push_back(PP::NoBreak(0));
-      out->push_back(PP::Str("}}"));
+      out->push_back(PP::Str(EnumToString_CURLY(bf)));
       out->push_back(PP::Brk());
     }
   }

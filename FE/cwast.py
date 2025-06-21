@@ -3572,10 +3572,10 @@ def EnumStringConversions(fout: Any):
 
     std_render(BASE_TYPE_KIND,  cgen.NameValuesLower(BASE_TYPE_KIND))
 
-    values = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
-    render_str_to_enum("ASSIGNMENT_KIND", values)
+    name_vals = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
+    render_str_to_enum("ASSIGNMENT_KIND", name_vals)
 
-    cgen.RenderEnumToStringMap(values, "ASSIGNMENT_ToStringMap", fout)
+    cgen.RenderEnumToStringMap(name_vals, "ASSIGNMENT_ToStringMap", fout)
     cgen.RenderEnumToStringFun("BINARY_EXPR_KIND", "EnumToString_ASSIGNMENT",
                                "ASSIGNMENT_ToStringMap", fout)
 
@@ -3586,8 +3586,13 @@ def EnumStringConversions(fout: Any):
                        [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()])
     render_enum_to_str("NT",  _NameValuesForNT())
     # intentionally not sorted - order is "print-order"
-    std_render("BF", _MakeNameValues(
-        _FieldNamesForKind(NFK.ATTR_BOOL), to_upper=False))
+    name_vals = _MakeNameValues(
+        _FieldNamesForKind(NFK.ATTR_BOOL), to_upper=False)
+    std_render("BF", name_vals)
+    name_vals = [("{{" + k + "}}", v) for k, v in name_vals]
+    cgen.RenderEnumToStringMap(name_vals, "BF_CURLY_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("BF", "EnumToString_CURLY",
+                               "BF_CURLY_ToStringMap", fout)
 
 
 def NodeAliasStringConversion(fout: Any):

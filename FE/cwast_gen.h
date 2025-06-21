@@ -1077,6 +1077,7 @@ const char* EnumToString(MACRO_PARAM_KIND x);
 const char* EnumToString(STR_KIND x);
 const char* EnumToString(BASE_TYPE_KIND x);
 const char* EnumToString(BF x);
+const char* EnumToString_CURLY(BF x);
 const char* EnumToString(NT x);
 const char* EnumToString(POINTER_EXPR_KIND x);
 const char* EnumToString(BINARY_EXPR_KIND x);
