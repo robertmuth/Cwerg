@@ -388,12 +388,12 @@ Const EvalNode(Node node) {
           CanonType_get_original_typeid(Node_x_type(node)),
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
     case NT::ExprAs:
+      return kConstInvalid;
     case NT::ExprNarrow:
     case NT::ExprWiden:
     case NT::ExprWrap:
     case NT::ExprUnwrap:
-      // TODO
-      return kConstInvalid;
+      return Node_x_eval(Node_expr(node));
     case NT::ExprIs:
       return EvalExprIs(node);
     case NT::ExprFront: {
@@ -458,7 +458,6 @@ Const EvalNode(Node node) {
       }
       return ConstNewSpan({sym, size, kConstInvalid});
     }
-
     case NT::ExprParen:
       return Node_x_eval(Node_expr(node));
     case NT::DefEnum: {

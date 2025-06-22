@@ -544,7 +544,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         typeid = node.type.x_type.get_original_typeid()
         assert typeid >= 0
         return EvalNum(typeid, node.x_type.base_type_kind)
-    elif isinstance(node, (cwast.ExprAs, cwast.ExprNarrow, cwast.ExprWiden, cwast.ExprWrap, cwast.ExprUnwrap)):
+    elif isinstance(node, cwast.ExprAs):
         # TODO: some transforms may need to be applied
         ct = node.x_type
         val = node.expr.x_value
@@ -555,7 +555,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         elif isinstance(val, EvalVoid):
             return val
         return None
-
+    elif isinstance(node, (cwast.ExprWrap, cwast.ExprNarrow, cwast.ExprWiden, cwast.ExprUnwrap)):
+        return node.expr.x_value
     elif isinstance(node, cwast.ExprIs):
         return _EvalExprIs(node)
     elif isinstance(node, cwast.ExprFront):
@@ -588,7 +589,6 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return EvalNum(node.field.x_symbol.x_offset, node.x_type.base_type_kind)
     elif isinstance(node, cwast.ExprSizeof):
         return EvalNum(node.type.x_type.size, node.x_type.base_type_kind)
-
     elif isinstance(node, cwast.ValSpan):
         p = node.pointer.x_value
         s = node.expr_size.x_value

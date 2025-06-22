@@ -173,6 +173,10 @@ def _MaybeEmitDoc(out, node):
 
 
 def _MaybeEmitAnnotations(out, node):
+    # There are 3 kinds of annoations:
+    # 1. reprensented by a trailing "!" ("untagged", "mut", "unchecked)
+    # 2. emitted verbatim: ("pub", "wrapped", "ref", "poly")
+    # 3. emitted inside "{{...}}": the rest.
     for nfd in node.ATTRS:
         if nfd.kind is not cwast.NFK.ATTR_BOOL:
             continue
