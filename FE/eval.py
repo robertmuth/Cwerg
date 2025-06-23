@@ -545,7 +545,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         assert typeid >= 0
         return EvalNum(typeid, node.x_type.base_type_kind)
     elif isinstance(node, cwast.ExprAs):
-        # TODO: some transforms may need to be applied
+        # TODO: some transforms may need to be applied, make sure it matches c++ version
         ct = node.x_type
         val = node.expr.x_value
         if isinstance(val, EvalNum):

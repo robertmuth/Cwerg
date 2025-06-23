@@ -73,9 +73,6 @@ inline Const ConstNewU64(uint64_t val) {
                CONST_KIND::U64);
 }
 
-extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
-extern Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt);
-
 inline Const ConstNewS8(int8_t val) {
   return ConstNewShortSigned(val, CONST_KIND::S8);
 }
@@ -109,7 +106,17 @@ inline Const ConstNewR64(double val) {
                CONST_KIND::R64);
 }
 
-inline Const ConstNewFloat(double val, BASE_TYPE_KIND bt) {
+template <typename T>
+Const ConstNew(T val, BASE_TYPE_KIND kind);
+
+template <>
+inline Const ConstNew(long int val, BASE_TYPE_KIND bt);
+
+template <>
+inline Const ConstNew(uint64_t val, BASE_TYPE_KIND bt);
+
+template <>
+inline Const ConstNew(double val, BASE_TYPE_KIND bt) {
   if (bt == BASE_TYPE_KIND::R32) return ConstNewR32(val);
   ASSERT(bt == BASE_TYPE_KIND::R64, "");
   return ConstNewR64(val);
@@ -117,7 +124,6 @@ inline Const ConstNewFloat(double val, BASE_TYPE_KIND bt) {
 
 inline Const ConstNewUndef() { return Const(0, CONST_KIND::UNDEF); }
 inline Const ConstNewVoid() { return Const(0, CONST_KIND::VOID); }
-
 
 inline Const ConstNewSymAddr(Node sym) {
   return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
@@ -130,8 +136,9 @@ inline Const ConstNewFunAddr(Node sym) {
 }
 
 inline Const ConstNewCompound(EvalCompound compound) {
-  return Const(ConstPool.Intern(std::string_view((char*)&compound, sizeof(compound))),
-               CONST_KIND::COMPOUND);
+  return Const(
+      ConstPool.Intern(std::string_view((char*)&compound, sizeof(compound))),
+      CONST_KIND::COMPOUND);
 }
 
 inline EvalCompound ConstGetCompound(Const c) {
@@ -140,7 +147,8 @@ inline EvalCompound ConstGetCompound(Const c) {
 }
 
 inline Node ConstGetSymbol(Const c) {
-  ASSERT(c.kind() == CONST_KIND::SYM_ADDR || c.kind() == CONST_KIND::FUN_ADDR, "cannot get symbol");
+  ASSERT(c.kind() == CONST_KIND::SYM_ADDR || c.kind() == CONST_KIND::FUN_ADDR,
+         "cannot get symbol");
   return *(Node*)ConstPool.Data(c.index());
 }
 

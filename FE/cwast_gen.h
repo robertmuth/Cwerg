@@ -82,6 +82,10 @@ inline bool IsInt(CONST_KIND k) {
   return CONST_KIND::S8 <= k && k <= CONST_KIND::U64;
 }
 
+inline bool IsFlt(CONST_KIND k) {
+  return CONST_KIND::R32 <= k && k <= CONST_KIND::R64;
+}
+
 inline bool IsNumber(CONST_KIND x) {
   return CONST_KIND::R32 <= x && x <= CONST_KIND::U64;
 }
