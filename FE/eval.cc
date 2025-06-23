@@ -152,7 +152,7 @@ Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
 
   size_t dim = CanonType_size(Node_x_type(init_node));
   ASSERT(index < dim, "");
-  if (init_node.kind() != NT::ValString) {
+  if (init_node.kind() == NT::ValString) {
     char* buffer = new char[dim];
     size_t size = StringLiteralToBytes(StrData(Node_string(init_node)), buffer);
     ASSERT(size != STRING_LITERAL_PARSE_ERROR, "");
@@ -168,7 +168,7 @@ Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
        point = Node_next(point)) {
     ASSERT(point.kind() == NT::ValPoint, "");
     Node p = Node_point_or_undef(point);
-    if (!p.isnull()) {
+    if (p.kind() != NT::ValUndef) {
       n = ConstGetUnsigned(Node_x_eval(p));
     }
     if (n == index) return Node_x_eval(Node_value_or_undef(point));
@@ -195,14 +195,18 @@ Node MaybewAdvanceRecField(Node point, Node field) {
 Const GetValForRecAtField(Const container, Node target_field) {
   ASSERT(container.kind() == CONST_KIND::COMPOUND, "");
   ASSERT(target_field.kind() == NT::RecField, "");
-  Node compound = ConstGetSymbol(container);
-  ASSERT(compound.kind() == NT::ValCompound, "");
+  Node compound = ConstGetCompound(container).init_node;
+  if (compound.isnull()) {
+    return GetDefaultForType(Node_x_type(target_field));
+  }
+  ASSERT(compound.kind() == NT::ValCompound,
+         "expected compound val " << int(compound.kind()));
   Node defrec = CanonType_ast_node(Node_x_type(compound));
   ASSERT(defrec.kind() == NT::DefRec, "");
   Node field = Node_fields(defrec);
   for (Node point = Node_inits(compound); !point.isnull();
        point = Node_next(point), field = Node_next(field)) {
-    field = MaybewAdvanceRecField(field, point);
+    field = MaybewAdvanceRecField(point, field);
     if (field == target_field) {
       return Node_x_eval(Node_value_or_undef(point));
     }
@@ -419,7 +423,8 @@ Const EvalExprIs(Node node) {
 }
 
 Const EvalNode(Node node) {
-  // std::cout << "@@@ " << node << "\n";
+  // std::cout << "@@@ " << Node_srcloc(node) << " " << node << " "
+  //           << Node_name_or_invalid(node) << "\n";
   switch (Node_kind(node)) {
     case NT::Id: {
       Node def = Node_x_symbol(node);
@@ -451,19 +456,14 @@ Const EvalNode(Node node) {
     case NT::ValString:
       return ConstNewCompound({node, kNodeInvalid});
     case NT::DefVar:
-    case NT::DefGlobal:
-#if 0
-    {
+    case NT::DefGlobal: {
       Node initial = Node_initial_or_undef_or_auto(node);
-      if (Node_x_eval(initial).isnull() && Node_kind(initial) != NT::ValAuto) {
+      if (Node_x_eval(initial).isnull() && Node_kind(initial) == NT::ValAuto) {
         AssignValue(initial, GetDefaultForType(Node_x_type(node)));
       }
       if (Node_has_flag(node, BF::MUT)) return kConstInvalid;
       return EvalValWithPossibleImplicitConversion(Node_x_type(node), initial);
     }
-#endif
-      return kConstInvalid;
-
     case NT::ExprIndex: {
       Const index_val = Node_x_eval(Node_expr_index(node));
       if (index_val.isnull()) return kConstInvalid;
@@ -477,7 +477,8 @@ Const EvalNode(Node node) {
     case NT::ExprField: {
       Const container_val = Node_x_eval(Node_container(node));
       if (container_val.isnull()) return kConstInvalid;
-      return GetValForRecAtField(container_val, Node_field(node));
+      return GetValForRecAtField(container_val,
+                                 Node_x_symbol(Node_field(node)));
     }
 
       return kConstInvalid;
@@ -777,13 +778,14 @@ std::ostream& operator<<(std::ostream& os, Const c) {
     case CONST_KIND::U32:
     case CONST_KIND::U64:
     case CONST_KIND::BOOL:
-      return os << "EvalNum[" << ConstGetUnsigned(c) << "]{" << c.index()
-                << "}";
+      return os << "EvalNum(" << int(c.kind()) << ")[" << ConstGetUnsigned(c)
+                << "]{" << c.index() << "}";
     case CONST_KIND::S8:
     case CONST_KIND::S16:
     case CONST_KIND::S32:
     case CONST_KIND::S64:
-      return os << "EvalNum[" << ConstGetSigned(c) << "]{" << c.index() << "}";
+      return os << "EvalNum(" << int(c.kind()) << ")[" << ConstGetSigned(c)
+                << "]{" << c.index() << "}";
     case CONST_KIND::R32:
     case CONST_KIND::R64:
       return os << "EvalNum[" << ConstGetFloat(c) << "]{" << c.index() << "}";
@@ -793,7 +795,13 @@ std::ostream& operator<<(std::ostream& os, Const c) {
     case CONST_KIND::FUN_ADDR:
       return os << "FunAdd[" << Node_name(ConstGetSymbol(c)) << "]{"
                 << c.index() << "}";
+    case CONST_KIND::COMPOUND: {
+      EvalCompound ec = ConstGetCompound(c);
+      return os << "COMPOUND[" << ec.init_node << ", " << ec.symbol << "]{"
+                << c.index() << "}";
+    }
     default:
+      ASSERT(false, "");
       return os << " unknown eval " << int(c.kind());
   }
 }

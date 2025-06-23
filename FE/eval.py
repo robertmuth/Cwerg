@@ -402,7 +402,7 @@ def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
     assert isinstance(init_node, cwast.ValCompound), f"{init_node}"
     n = 0
     for point in init_node.inits:
-        if isinstance(point.point_or_undef, cwast.ValNum):
+        if not isinstance(point.point_or_undef, cwast.ValUndef):
             assert isinstance(point.point_or_undef.x_value, EvalNum)
             n = point.point_or_undef.x_value.val
         if n == index:

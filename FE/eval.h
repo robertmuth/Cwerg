@@ -82,7 +82,7 @@ inline Const ConstNewS16(int16_t val) {
 
 inline Const ConstNewS32(int32_t val) {
   if (ValIsShortConstSigned(val)) {
-    return ConstNewShortUnsigned(val, CONST_KIND::S32);
+    return ConstNewShortSigned(val, CONST_KIND::S32);
   }
   return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
                CONST_KIND::U32);
