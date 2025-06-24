@@ -130,19 +130,7 @@ def _InitDataForBaseType(x_type: cwast.CanonType, val: Union[eval.EvalNum, eval.
         return ZEROS[byte_width]
     assert isinstance(val, eval.EvalNum), f"{val} {x_type}"
     assert (x_type.get_unwrapped_base_type_kind() == val.kind)
-    bt = val.kind
-    val = val.val
-    if bt.IsUint():
-        return val.to_bytes(byte_width, 'little')
-    elif bt.IsSint():
-        return val.to_bytes(byte_width, 'little', signed=True)
-    elif bt is cwast.BASE_TYPE_KIND.BOOL:
-        return b"\1" if val else b"\0"
-    elif bt.IsReal():
-        fmt = "f" if bt is cwast.BASE_TYPE_KIND.R32 else "d"
-        return struct.pack(fmt, val)
-    else:
-        assert False, f"unsupported type {bt} {x_type}"
+    return eval.SerializeBaseType(val)
 
 
 def RenderList(items):
@@ -1070,7 +1058,7 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
 
     if args.dump_types == phase_name:
         for m in mods:
-            print (m.name)
+            print(m.name)
         tc.Dump()
         exit(0)
 

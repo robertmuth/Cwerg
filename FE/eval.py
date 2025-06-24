@@ -6,6 +6,7 @@
 
 import enum
 import logging
+import struct
 from typing import Optional, Any, Union\
 
 from FE import cwast
@@ -111,6 +112,36 @@ VAL_UNDEF = EvalUndef()
 VAL_VOID = EvalVoid()
 VAL_TRUE = EvalNum(True, cwast.BASE_TYPE_KIND.BOOL)
 VAL_FALSE = EvalNum(False, cwast.BASE_TYPE_KIND.BOOL)
+
+
+def SerializeBaseType(v: EvalNum) -> bytes:
+    assert isinstance(v, EvalNum)
+    bt = v.kind
+    val = v.val
+    if bt.IsInt():
+        return val.to_bytes(bt.ByteSize(), 'little', signed=bt.IsSint())
+    elif bt is cwast.BASE_TYPE_KIND.BOOL:
+        return b"\1" if val else b"\0"
+    elif bt is cwast.BASE_TYPE_KIND.R32:
+        return struct.pack("f", val)
+    elif bt is cwast.BASE_TYPE_KIND.R64:
+        return struct.pack("d", val)
+    else:
+        assert False, f"unsupported type {bt} {val}"
+
+
+def DeserializeBaseType(bt: cwast.BASE_TYPE_KIND, data: bytes) -> EvalNum:
+    if bt.IsInt():
+        val = int.from_bytes(data, 'little', signed=bt.IsSint())
+    elif bt is cwast.BASE_TYPE_KIND.BOOL:
+        val = True if int.from_bytes(data) else False
+    elif bt is cwast.BASE_TYPE_KIND.R32:
+        val = struct.unpack("f", data)[0]
+    elif bt is cwast.BASE_TYPE_KIND.R64:
+        val = struct.unpack("d", data)[0]
+    else:
+        assert False, f"unsupported type {bt} {data}"
+    return EvalNum(val, bt)
 
 
 def _AssignValue(node, val: EvalBase):
@@ -574,11 +605,11 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return None
     elif isinstance(node, cwast.ExprLen):
         cont = node.container
-        bt = node.x_type.base_type_kind
+        bt_src = node.x_type.base_type_kind
         if cont.x_type.is_vec():
-            return EvalNum(cont.x_type.array_dim(), bt)
+            return EvalNum(cont.x_type.array_dim(), bt_src)
         elif isinstance(cont.x_value, EvalSpan) and cont.x_value.size is not None:
-            return EvalNum(cont.x_value.size, bt)
+            return EvalNum(cont.x_value.size, bt_src)
         return None
     elif isinstance(node, cwast.ExprAddrOf):
         if isinstance(node.expr_lhs, cwast.Id):
@@ -604,7 +635,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.ExprParen):
         return node.expr.x_value
     elif isinstance(node, cwast.DefEnum):
-        bt = node.x_type.get_unwrapped_base_type_kind()
+        bt_src = node.x_type.get_unwrapped_base_type_kind()
         val = None
         for c in node.items:
             if c.x_value is not None:
@@ -614,9 +645,9 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             v = c.value_or_auto
             if isinstance(v, cwast.ValAuto):
                 if val is None:
-                    val = EvalNum(0, bt)
+                    val = EvalNum(0, bt_src)
                 else:
-                    val = EvalNum(val.val + 1, bt)
+                    val = EvalNum(val.val + 1, bt_src)
             else:
                 val = v.x_value
             assert val
@@ -632,8 +663,16 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         # TODO: we can do better here
         return None
     elif isinstance(node, cwast.ExprBitCast):
-        # TODO: we can do better here
-        return None
+        val = node.expr.x_value
+        if val is None:
+            return None
+        if isinstance(val, EvalSymAddr):
+            return val
+        assert isinstance(val, EvalNum)
+        assert node.expr.x_type.is_base_type(), f"{node.expr.x_type}"
+        assert node.x_type.is_base_type(), f"{node.x_type}"
+        data = SerializeBaseType(val)
+        return DeserializeBaseType(node.x_type.base_type_kind, data)
     elif isinstance(node, cwast.ExprUnionTag):
         return None
     elif isinstance(node, cwast.ExprPointer):
@@ -674,7 +713,9 @@ def EvalRecursively(node) -> bool:
 
 
 def VerifyASTEvalsRecursively(node):
-    """Make sure that everything that is supposed to be const was evaluated"""
+    """Make sure that everything that is supposed to be const was evaluated
+
+    Also check StaticAsserts"""
     is_const = False
 
     def visitor(node: Any, parent: Any):

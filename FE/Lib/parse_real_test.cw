@@ -22,12 +22,14 @@ fun parse_r64(s span(u8)) r64:
 
 fun test_nan() void:
     ; sanity checks for NANs
-    test::AssertNeR64#(+.inf_r64, -.inf_r64)
-    test::AssertNeR64#(+.nan_r64, -.nan_r64)
-    test::AssertEqR64#(-.nan_r64, parse_r64("-nan"))
-    test::AssertEqR64#(+.nan_r64, parse_r64("+nan"))
-    test::AssertEqR64#(+.inf_r64, parse_r64("+inf"))
-    test::AssertEqR64#(-.inf_r64, parse_r64("-inf"))
+    test::AssertEqR64#(num_real::inf_pos_r64, parse_r64("+inf"))
+    test::AssertEqR64#(num_real::inf_neg_r64, parse_r64("-inf"))
+    test::AssertNeR64#(num_real::inf_neg_r64, num_real::inf_pos_r64)
+
+    test::AssertEqR64#(num_real::nan_pos_r64, parse_r64("+nan"))
+    test::AssertEqR64#(num_real::nan_neg_r64, parse_r64("-nan"))
+    test::AssertNeR64#(num_real::nan_neg_r64, num_real::nan_pos_r64)
+
 
 global REL_ERR1 r64 = 0.5e-15
 

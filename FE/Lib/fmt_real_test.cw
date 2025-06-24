@@ -12,22 +12,22 @@ fun test_special() void:
     ; sanity checks for NANs
     let! actual [1024]u8 = undef
     block:
-        let len_a = fmt_real::FmtE(num_real::r64_zero_pos, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::zero_pos_r64, 1, true, actual)
         test::AssertSliceEq#("+0.0e+00", make_span(front(actual), len_a))
     block:
-        let len_a = fmt_real::FmtE(num_real::r64_zero_neg, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::zero_neg_r64, 1, true, actual)
         test::AssertSliceEq#("-0.0e+00", make_span(front(actual), len_a))
     block:
-        let len_a = fmt_real::FmtE(num_real::r64_inf_pos, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::inf_pos_r64, 1, true, actual)
         test::AssertSliceEq#("+inf", make_span(front(actual), len_a))
     block:
-        let len_a = fmt_real::FmtE(num_real::r64_inf_neg, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::inf_neg_r64, 1, true, actual)
         test::AssertSliceEq#("-inf", make_span(front(actual), len_a))
     block:
-        let len_a = fmt_real::FmtE(num_real::r64_nan_pos, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::nan_pos_r64, 1, true, actual)
         test::AssertSliceEq#("+nan", make_span(front(actual), len_a))
     block:
-        let len_a = fmt_real::FmtE(num_real::r64_nan_neg, 1, true, actual)
+        let len_a = fmt_real::FmtE(num_real::nan_neg_r64, 1, true, actual)
         test::AssertSliceEq#("-nan", make_span(front(actual), len_a))
 
 ; python3 -c 'print(0.0).hex())'

@@ -53,10 +53,8 @@ fun FmtNan(val r64, out span!(u8)) uint:
     cond:
         case mantissa == num_real::r64_mantissa_infinity:
             return 1 + span_append_or_die#("inf", span_inc(out, 1))
-        case mantissa == num_real::r64_mantissa_qnan:
+        case mantissa == num_real::r64_mantissa_nan:
             return 1 + span_append_or_die#("nan", span_inc(out, 1))
-        case mantissa == num_real::r64_mantissa_snan:
-            return 1 + span_append_or_die#("snan", span_inc(out, 1))
     return 0
 
 ; for a given float val we want to find a decomposition

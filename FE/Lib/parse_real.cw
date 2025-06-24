@@ -186,9 +186,9 @@ fun r64_dec_fast_helper(mant_orig u64, exp_orig s32, negative bool) r64:
         set mant /= 10
         set exp += 1
     if exp >= 309:
-        return negative ? -.inf_r64 : +.inf_r64
+        return negative ? num_real::inf_neg_r64 : num_real::inf_pos_r64
     if exp <= -309:
-        return negative ? -0_r64 : +0_r64
+        return negative ? num_real::zero_neg_r64 : num_real::zero_pos_r64
     ; on x86-64 there is not conversion instruction from u64->r64
     let! out = as(as(mant, s64), r64)
     if negative:
@@ -214,11 +214,11 @@ pub fun parse_r64(s span(u8)) ResultR64:
     if c == 'i':
         if i + 2 > n || s[i] != 'n' || s[i + 1] != 'f':
             return ParseError
-        return negative ? {: -.inf_r64, i + 2} : {: +.inf_r64, i + 2}
+        return negative ? {: num_real::inf_neg_r64, i + 2} : {: num_real::inf_pos_r64, i + 2}
     if c == 'n':
         if i + 2 > n || s[i] != 'a' || s[i + 1] != 'n':
             return ParseError
-        return negative ? {: -.nan_r64, i + 2} : {: +.nan_r64, i + 2}
+        return negative ? {: num_real::nan_neg_r64, i + 2} : {: num_real::nan_pos_r64, i + 2}
     if c == '0' && i <= n && s[i] == 'x':
         set i += 1
         return parse_r64_hex_helper(s, negative, i)
@@ -236,7 +236,7 @@ pub fun parse_r64(s span(u8)) ResultR64:
     ; TODO: check that we have consumed all chars
     ; early out for simple corner case
     if mant == 0:
-        return negative ? {: -0_r64, i} : {: +0_r64, i}
+        return negative ? {: num_real::zero_neg_r64, i} : {: num_real::zero_pos_r64, i}
     set exp += exp_adjustments
     ; try making mantissa smaller, this is a common case, e.g.
     ; 555.0000 and helps preserve accuracy

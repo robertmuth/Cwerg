@@ -32,30 +32,7 @@ pub global r64_exponent_subnormal s32 = -1023
 
 pub global r64_exponent_bias s32 = 1023
 
-; constants for mantissa
-pub global r64_mantissa_infinity u64 = 0
 
-pub global r64_mantissa_qnan u64 = 0x8_0000_0000_0000
-
-pub global r64_mantissa_snan u64 = 0x4_0000_0000_0000
-
-; note: we do not support denorms
-pub global r64_min r64 = -0x1p-1022
-
-pub global r64_zero_pos r64 = +0.0
-
-pub global r64_zero_neg r64 = -0.0
-
-pub global r64_inf_pos r64 = +.inf
-
-pub global r64_inf_neg r64 = -.inf
-
-; quiet nan: these are correct for arm/x86/riscv
-pub global r64_nan_pos r64 = +.nan
-
-pub global r64_nan_neg r64 = -.nan
-
-; siganling nan: these are correct for arm/x86/riscv
 pub fun r64_raw_mantissa(val r64) u64:
     return bitwise_as(val, u64) & r64_mantissa_mask
 
@@ -65,19 +42,60 @@ pub fun r64_raw_exponent(val r64) u64:
 pub fun r64_is_negative(val r64) bool:
     return bitwise_as(val, s64) < 0
 
+
+; note: we do not support denorms
+pub global r64_min r64 = -0x1p-1022
+
+pub global zero_pos_r64 r64 = bitwise_as(0_u64, r64)
+pub global zero_neg_r64 r64 = bitwise_as(1_u64 << 63, r64)
+
+; ==================== NANs  ====================
+; infinity
+pub global r64_mantissa_infinity u64 = 0
+
+pub global inf_pos_r64 r64 = bitwise_as(r64_mantissa_infinity |
+                                       (r64_raw_exponent_nan << 52), r64)
+pub global inf_neg_r64 r64 = bitwise_as(r64_mantissa_infinity |
+                                       (r64_raw_exponent_nan << 52) |
+                                       (1 << 63), r64)
+
+; (quiet) nan: these are correct for arm/x86/riscv
+pub global r64_mantissa_nan u64 = 0x8_0000_0000_0000
+
+pub global nan_pos_r64 r64 = bitwise_as(r64_mantissa_nan |
+                               (r64_raw_exponent_nan << 52), r64)
+pub global nan_neg_r64 r64 = bitwise_as(r64_mantissa_nan |
+                                (r64_raw_exponent_nan << 52) |
+                                (1 << 63), r64)
+
+pub fun r64_is_nan(val r64) bool:
+    return r64_raw_mantissa(val) == r64_mantissa_nan &&
+      r64_raw_exponent(val) == r64_raw_exponent_nan
+
+; This does not work - possilble because of X88 ISA
+; siganling nan: these are correct for arm/x86/riscv
+; pub global r64_mantissa_snan u64 = 0x4_0000_0000_0000
+; pub global snan_pos_r64 r64 = bitwise_as(r64_mantissa_snan |
+;                               (r64_raw_exponent_nan << 52), r64)
+; pub global snan_neg_r64 r64 = bitwise_as(r64_mantissa_snan |
+;                                (r64_raw_exponent_nan << 52) |
+;                                (1 << 63), r64)
+;
+; pub fun r64_is_snan(val r64) bool:
+;    return r64_raw_mantissa(val) == r64_mantissa_snan &&
+;      r64_raw_exponent(val) == r64_raw_exponent_nan
+
+
+
 ; includes zero
 pub fun r64_is_subnormal(val r64) bool:
     return r64_raw_exponent(val) == r64_raw_exponent_subnormal
 
-pub fun r64_is_qnan(val r64) bool:
-    return r64_raw_mantissa(val) == r64_mantissa_qnan &&
-      r64_raw_exponent(val) == r64_raw_exponent_nan
 
-pub fun r64_is_snan(val r64) bool:
-    return r64_raw_mantissa(val) == r64_mantissa_snan &&
-      r64_raw_exponent(val) == r64_raw_exponent_nan
 
-pub fun r64_is_infinite(val r64) bool:
+
+
+pub fun r64_is_inf(val r64) bool:
     return r64_raw_mantissa(val) == r64_mantissa_infinity &&
       r64_raw_exponent(val) == r64_raw_exponent_nan
 
