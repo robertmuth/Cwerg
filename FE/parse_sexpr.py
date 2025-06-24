@@ -66,7 +66,6 @@ _RE_NUM_INT_BIN = '0b[01][_01]*'
 # hex is lower case
 RE_STR_NUM = ReCombine([
     # REALs
-    _RE_NUM_REAL_NAN + _RE_REAL_TYPE_OPT,
     _RE_NUM_REAL_HEX + _RE_REAL_TYPE_OPT,
     _RE_NUM_REAL_DEC_FRAC +
     _RE_NUM_REAL_DEC_EXP_OPT +
