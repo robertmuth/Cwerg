@@ -29,8 +29,8 @@ Const ParseNum(Node node) {
   ASSERT(target_kind != BASE_TYPE_KIND::UINT, "");
 
   for (int i = 2; i <= 4 && i <= num.size(); i++) {
-    // std::cout << "@@@ Trying " << num.substr(num.size() - i, i) << "\n" <<
-    // std::flush;
+    // std::cout << "@@@ Trying " << num.substr(num.size() - i, i) << "\n"
+    //          << std::flush;
     BASE_TYPE_KIND kind =
         BASE_TYPE_KIND_FromString(num.substr(num.size() - i, i));
     if (kind != BASE_TYPE_KIND::INVALID) {
@@ -128,7 +128,7 @@ Const GetDefaultForType(CanonType ct) {
     case NT::DefType:
       return GetDefaultForType(CanonType_underlying_type(ct));
     case NT::TypeSpan:
-      return ConstNewSpan({kNodeInvalid, -1, kConstInvalid});
+      return ConstNewSpan({kNodeInvalid, 0, kConstInvalid});
     default:
       if (CanonType_is_complex(ct))
         return ConstNewCompound({kNodeInvalid, kNodeInvalid});
@@ -447,7 +447,12 @@ Const EvalNode(Node node) {
     case NT::ValNum: {
       CanonType ct = Node_x_type(node);
       ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
-      return ParseNum(node);
+      Const x = ParseNum(node);
+      if (x.isnull()) {
+        CompilerError(Node_srcloc(node))
+            << "cannot parse " << Node_number(node);
+      }
+      return x;
     }
     case NT::ValPoint:
       return EvalValWithPossibleImplicitConversion(Node_x_type(node),
@@ -553,7 +558,7 @@ Const EvalNode(Node node) {
       BASE_TYPE_KIND bt =
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
       if (CanonType_kind(Node_x_type(cont)) == NT::TypeVec) {
-        return ConstNew<uint64_t>(CanonType_size(Node_x_type(cont)), bt);
+        return ConstNew<uint64_t>(CanonType_dim(Node_x_type(cont)), bt);
       } else {
         Const val_cont = Node_x_eval(cont);
         ASSERT(CanonType_kind(Node_x_type(cont)) == NT::TypeSpan,
@@ -800,8 +805,13 @@ std::ostream& operator<<(std::ostream& os, Const c) {
       return os << "COMPOUND[" << ec.init_node << ", " << ec.symbol << "]{"
                 << c.index() << "}";
     }
+    case CONST_KIND::SPAN: {
+      EvalSpan es = ConstGetSpan(c);
+      return os << "SPAN[" << es.pointer << ", " << es.size << ", "
+                << es.content << "]{" << c.index() << "}";
+    }
     default:
-      ASSERT(false, "");
+      ASSERT(false, "unknown eval " << int(c.kind()));
       return os << " unknown eval " << int(c.kind());
   }
 }
@@ -822,6 +832,28 @@ void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
     }
     if (!seen_change) break;
   }
+#if 0
+  auto static_assert_checker = [](Node node, Node parent) {
+    if (Node_kind(node) == NT::StmtStaticAssert) {
+      Node cond = Node_cond(node);
+      Const val = Node_x_eval(cond);
+      if (val.kind() != CONST_KIND::BOOL || ConstGetUnsigned(val) == 0) {
+        if (cond.kind() == NT::Expr2) {
+          std::cout << Node_expr1(cond) << " " << Node_x_eval(Node_expr1(cond))
+                    << " " << Node_expr2(cond) << " "
+                    << Node_x_eval(Node_expr2(cond)) << "\n";
+        }
+
+        CompilerError(Node_srcloc(node))
+            << "static assert failed " << val << " " << cond;
+      }
+    }
+  };
+
+  for (Node mod : mods) {
+    VisitAstRecursivelyPost(mod, static_assert_checker, kNodeInvalid);
+  }
+#endif
 }
 
 }  // namespace cwerg::fe

@@ -4,10 +4,12 @@
  Miscellaneous parsing helpers - this is quite adhoc and needs more work
  Part of the problem is that we are trying to avoid pulling a regex lib.
 */
+
 #include "Util/parse.h"
 
-#include "Util/assert.h"
 #include <string.h>
+
+#include "Util/assert.h"
 
 namespace cwerg {
 namespace {
@@ -405,27 +407,18 @@ bool IsLikelyNum(std::string_view s) {
   return Ctype.is_num_first(s[0]);
 }
 
-static bool IsHex(std::string_view s) {
-  return s.size() > 1 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X');
-}
 
 std::optional<double> ParseFlt64(std::string_view s) {
-  if (IsHex(s)) {
-    auto val = ParseInt<uint64_t>(s);
-    if (!val) return val;
-    union {
-      uint64_t val_u;
-      double val_d;
-    } u = {val.value()};
-    return u.val_d;
-  }
   ASSERT(s.size() < 63, "");
   char buf[64];
-  s.copy(buf, s.size());
-  buf[s.size()] = 0;
+  int j = 0;
+  for (char c : s) {
+    if (c != '_') buf[j++] = c;
+  }
+  buf[j] = 0;
   char* end;
   double out = strtod(buf, &end);
-  if (end != buf + s.size()) return std::nullopt;
+  if (end != buf + j) return std::nullopt;
   return out;
 }
 
