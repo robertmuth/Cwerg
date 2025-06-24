@@ -283,7 +283,7 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
         return CanonType_Finalize(ct, max_size, max_alignment);
       }
 
-      if (num_pointer == 1 && num_other == 0) {
+      if (ta.optimize_union_tag && num_pointer == 1 && num_other == 0) {
         return CanonType_Finalize(ct, ptr_size, ptr_size);
       }
       int tag_size = ta.typeid_bitwidth / 8;

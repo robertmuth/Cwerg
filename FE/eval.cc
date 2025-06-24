@@ -832,7 +832,7 @@ void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
     }
     if (!seen_change) break;
   }
-#if 0
+
   auto static_assert_checker = [](Node node, Node parent) {
     if (Node_kind(node) == NT::StmtStaticAssert) {
       Node cond = Node_cond(node);
@@ -853,7 +853,6 @@ void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
   for (Node mod : mods) {
     VisitAstRecursivelyPost(mod, static_assert_checker, kNodeInvalid);
   }
-#endif
 }
 
 }  // namespace cwerg::fe
