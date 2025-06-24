@@ -338,7 +338,7 @@ inline int NameCmp(Name a, Name b) {
 }
 
 inline std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
-  os << sl.file << ":" << sl.line;
+  os << sl.file << ":" << sl.line + 1;
   return os;
 }
 // =======================================

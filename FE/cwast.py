@@ -1066,7 +1066,7 @@ class SrcLoc:
     lineno: int
 
     def __str__(self):
-        return f"{self.filename}({self.lineno})"
+        return f"{self.filename}({self.lineno + 1})"
 
 
 INVALID_SRCLOC: Final[SrcLoc] = SrcLoc("@unknown@", 0)
@@ -3150,7 +3150,7 @@ ASSERT_AFTER_ERROR = True
 # https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-diagnostic-format-for-tasks
 
 
-def CompilerError(srcloc, msg, kind='syntax') -> NoReturn:
+def CompilerError(srcloc: SrcLoc, msg, kind='syntax') -> NoReturn:
     global ASSERT_AFTER_ERROR
     print(f"{srcloc}: error {kind}: {msg}", file=sys.stdout)
     if ASSERT_AFTER_ERROR:
