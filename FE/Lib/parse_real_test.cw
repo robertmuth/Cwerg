@@ -57,8 +57,8 @@ fun test_dec() void:
     test::AssertEqR64#(666_r64, parse_r64("666.00000"))
     test::AssertEqR64#(0_r64, parse_r64("1e-500"))
     test::AssertEqR64#(-0_r64, parse_r64("-1e-500"))
-    test::AssertEqR64#(+.inf_r64, parse_r64("1e+500"))
-    test::AssertEqR64#(-.inf_r64, parse_r64("-1e+500"))
+    test::AssertEqR64#(num_real::inf_pos_r64, parse_r64("1e+500"))
+    test::AssertEqR64#(num_real::inf_neg_r64, parse_r64("-1e+500"))
     ; this are slightly less accurate on x86-64 than on arm
     test::AssertGenericEq#({cmp::r64r: 3.141592653589793238462643, REL_ERR1},
                            {cmp::r64r: parse_r64("3.141592653589793238462643")})

@@ -284,7 +284,7 @@ def MakeInitialTrie(KWs):
 
     # KWs = list(sorted(KWs))[0:1]
 
-    # the sortorder ensures that a prefixes are procressed later
+    # the sortorder ensures that all prefixes are processed later
     for kw, tag in reversed(sorted(KWs)):
         # print (kw, tag)
         if tag in (TK_KIND.KW, TK_KIND.KW_SIMPLE_VAL, TK_KIND.ANNOTATION, TK_KIND.BASE_TYPE):
@@ -363,7 +363,7 @@ ID_RE = re.compile(
 MACRO_ID_RE = re.compile(
     "^" + r"[$][_a-zA-Z][_a-zA-Z0-9]*")
 
-NUM_RE = re.compile("^" + parse_sexpr.RE_STR_NUM)
+NUM_RE = re.compile("^(?:" + parse_sexpr.RE_STR_NUM + ")")
 CHAR_RE = re.compile(r"^['](?:[^'\\]|[\\].)*(?:[']|$)")
 #
 STR_RE = re.compile("^" + string_re.START + string_re.END)
@@ -454,9 +454,10 @@ class LexerRaw:
             first = self._current_line[0]
             # we must be dealing with an ID or NUM
             if first <= "9" and first != '$':
-                kind = TK_KIND.NUM
                 # what we are really trying todo is testing membership in "+-.0123456789"
                 m = NUM_RE.search(self._current_line)
+                assert m, self._current_line
+                kind = TK_KIND.NUM
             elif first == "$":
                 kind = TK_KIND.ID
                 m = MACRO_ID_RE.search(self._current_line)
@@ -525,6 +526,7 @@ class Lexer:
         return out
 
     def peek(self) -> TK:
+
         if not self._peek_cache:
             self._peek_cache = self.next()
         return self._peek_cache

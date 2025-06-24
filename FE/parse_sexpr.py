@@ -51,7 +51,6 @@ _RE_INT_TYPE_OPT = r'(?:u8|u16|u32|u64|uint|s8|s16|s32|s64|sint)?'
 _RE_NUM_TYPE_OPT = r'(?:u8|u16|u32|u64|uint|s8|s16|s32|s64|sint|r32|r64)?'
 
 # Note: sign is mandatory to distinguish nans from identifiers
-_RE_NUM_REAL_NAN = r'[-+](?:[.]inf|[.]nan)(?:_r32|_r64)?'
 _RE_NUM_REAL_HEX = r'[-+]?0x[0-9a-f][0-9a-f_]*[.]?(?:[0-9a-f][0-9a-f_]*)?p[-+]?[0-9][0-9_]*'
 # Note, some extra care so that the decimal dot can not be confused with record field accesses
 _RE_NUM_REAL_DEC_EXP_OPT = r'(?:e[-+]?[0-9][_0-9]*)?'
@@ -82,6 +81,7 @@ RE_TOKEN_NUM = re.compile(RE_STR_NUM)
 
 assert RE_TOKEN_NUM.match("5_r32").group() == "5_r32"
 assert RE_TOKEN_NUM.match("5_u16").group() == "5_u16"
+assert RE_TOKEN_NUM.match("+.inf") == None
 
 
 def ReadAttrs(t: str, attr: dict[str, Any], stream):

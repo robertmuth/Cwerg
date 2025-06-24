@@ -97,7 +97,7 @@ def ParseNumRaw(num_val: cwast.ValNum, target_kind: cwast.BASE_TYPE_KIND) -> Tup
             return ord(num[1]), target_kind
 
     num, target_kind = _NumCleanupAndTypeExtraction(num, target_kind)
-    num = num.replace("_", "").replace(".inf", "inf").replace(".nan", "nan")
+    num = num.replace("_", "")
     if target_kind.IsInt():
         return int(num, 0), target_kind
     elif target_kind.IsReal():
