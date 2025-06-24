@@ -157,7 +157,7 @@ fun parse_r64_hex_helper(s span(u8), negative bool, offset uint) ResultR64:
         ; we do not support denormalization
         ; maybe return 0.0
         return ParseError
-    set exp += num_real::r64_raw_exponent_bias
+    set exp += num_real::r64_exponent_bias
     ; fmt::print# ("AFTER mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
     ; final touches
     let exp_u64 = as(exp, u64) & num_real::r64_exponent_mask

@@ -16,11 +16,10 @@ pub global r64_mantissa_mask u64 = 1 << 52 - 1
 pub global r64_exponent_mask u64 = 1 << 11 - 1
 
 ; constants for unbiased exponents
-pub global r64_raw_exponent_bias s32 = 1023
 
-pub global r64_raw_exponent_nan s32 = 2047
+pub global r64_raw_exponent_nan u64 = 2047
 
-pub global r64_raw_exponent_subnormal s32 = 0
+pub global r64_raw_exponent_subnormal u64 = 0
 
 ; constants for biased exponents
 pub global r64_exponent_max s32 = 1023
@@ -30,6 +29,8 @@ pub global r64_exponent_min s32 = -1022
 pub global r64_exponent_nan s32 = 1024
 
 pub global r64_exponent_subnormal s32 = -1023
+
+pub global r64_exponent_bias s32 = 1023
 
 ; constants for mantissa
 pub global r64_mantissa_infinity u64 = 0
@@ -58,8 +59,8 @@ pub global r64_nan_neg r64 = -.nan
 pub fun r64_raw_mantissa(val r64) u64:
     return bitwise_as(val, u64) & r64_mantissa_mask
 
-pub fun r64_raw_exponent(val r64) s32:
-    return as(bitwise_as(val, u64) << 1 >> 53, s32)
+pub fun r64_raw_exponent(val r64) u64:
+    return bitwise_as(val, u64) << 1 >> 53
 
 pub fun r64_is_negative(val r64) bool:
     return bitwise_as(val, s64) < 0
@@ -73,7 +74,7 @@ pub fun r64_is_qnan(val r64) bool:
       r64_raw_exponent(val) == r64_raw_exponent_nan
 
 pub fun r64_is_snan(val r64) bool:
-    return r64_raw_mantissa(val) == r64_mantissa_qnan &&
+    return r64_raw_mantissa(val) == r64_mantissa_snan &&
       r64_raw_exponent(val) == r64_raw_exponent_nan
 
 pub fun r64_is_infinite(val r64) bool:

@@ -30,8 +30,8 @@ fun div_by_power_of_10(val r64, pow10 s32) r64:
 ; is an integer between target_range_lo and target_range_hi
 ; val must be positive
 fun find_t(val r64) s32:
-    let biased_exp = num_real::r64_raw_exponent(val) -
-      num_real::r64_raw_exponent_bias
+    let biased_exp = as(num_real::r64_raw_exponent(val), s32) -
+      num_real::r64_exponent_bias
     let! t s32 = -as(log10_2_to_52 - as(biased_exp, r64) / log2_10, s32)
     while true:
         let x = div_by_power_of_10(val, t)
@@ -154,8 +154,8 @@ poly pub fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
     ; fmt::print#("@@@ ", t, "\n")
     let x = div_by_power_of_10(val, t)
     let! mantissa = num_real::r64_raw_mantissa(x) + 1 << 52
-    let exponent = num_real::r64_raw_exponent(x) -
-      num_real::r64_raw_exponent_bias
+    let exponent = as(num_real::r64_raw_exponent(x), s32) -
+      num_real::r64_exponent_bias
     assert#(exponent >= 49 && exponent <= 52, "out of bounds\n")
     if exponent != 52:
         set t -= 1
@@ -193,13 +193,13 @@ fun FmtMantissaHex(frac_bits u64, is_denorm bool, out span!(u8)) uint:
         set bits <<= 4
     return i
 
-fun FmtExponentHex(raw_exponent s32, is_potential_zero bool, out span!(u8))
+fun FmtExponentHex(raw_exponent u64, is_potential_zero bool, out span!(u8))
   uint:
-    let! exp s32 = raw_exponent
+    let! exp = as(raw_exponent, s32)
     if raw_exponent == num_real::r64_raw_exponent_subnormal:
         set exp = is_potential_zero ? 0 : -1022
     else:
-        set exp -= num_real::r64_raw_exponent_bias
+        set exp -= num_real::r64_exponent_bias
     set out[0] = 'p'
     if exp < 0:
         set out[1] = '-'
