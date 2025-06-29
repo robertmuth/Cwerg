@@ -14,31 +14,32 @@ void BblCheck(Bbl bbl, Fun fun) {
     Ins next = BblInsList::Next(ins);
 
     if (BblInsList::IsSentinel(prev)) {
-      ASSERT(prev == bbl, "");
-      ASSERT(BblInsList::Head(bbl) == ins, "");
+      CHECK(prev == bbl, "");
+      CHECK(BblInsList::Head(bbl) == ins, "");
     } else {
-      ASSERT(BblInsList::Next(prev) == ins, "");
+      CHECK(BblInsList::Next(prev) == ins, "");
     }
 
     if (BblInsList::IsSentinel(next)) {
-      ASSERT(next == bbl, "");
+      CHECK(next == bbl, "");
       if (BblInsList::Tail(bbl) != ins) {
         BblRenderToAsm(bbl, fun, &std::cout);
-        ASSERT(false, "bbl corruption in " << Name(fun) << " at pos " << count);
+        CHECK(false, "bbl corruption in " << Name(fun) << " at pos " << count);
       }
     } else {
       if (BblInsList::Prev(next) != ins) {
         BblRenderToAsm(bbl, fun, &std::cout);
-        ASSERT(false, "bbl corruption in " << Name(fun) << " at pos " << count);
+        CHECK(false, "bbl corruption in " << Name(fun) << " at pos " << count);
       }
     }
 
     if (InsOpcode(ins).IsCall()) {
       Fun callee = InsCallee(ins);
-      ASSERT(FunKind(callee) == FUN_KIND::BUILTIN ||
-                 FunKind(callee) == FUN_KIND::SIGNATURE ||
-                 !FunBblList::IsEmpty(callee),
-             "undefined function " << Name(callee) << " in " << Name(fun));
+      if (FunBblList::IsEmpty(callee)) {
+        CHECK(FunKind(callee) == FUN_KIND::BUILTIN ||
+                  FunKind(callee) == FUN_KIND::SIGNATURE,
+              "undefined function " << Name(callee) << " in " << Name(fun));
+      }
     }
     ++count;
   }
@@ -54,11 +55,11 @@ void FunCheck(Fun fun) {
   const Bbl tail = FunBblList::Tail(fun);
 
   if (FunBblList::IsSentinel(head)) {
-    ASSERT(FunBblList::IsSentinel(head), "");
-    ASSERT(head == tail, "");
+    CHECK(FunBblList::IsSentinel(head), "");
+    CHECK(head == tail, "");
   } else {
-    ASSERT(FunBblList::IsSentinel(FunBblList::Prev(head)), "");
-    ASSERT(FunBblList::IsSentinel(FunBblList::Next(tail)), "");
+    CHECK(FunBblList::IsSentinel(FunBblList::Prev(head)), "");
+    CHECK(FunBblList::IsSentinel(FunBblList::Next(tail)), "");
   }
 
   for (Bbl bbl : FunBblIter(fun)) {
@@ -66,43 +67,42 @@ void FunCheck(Fun fun) {
     Bbl next = FunBblList::Next(bbl);
 
     if (FunBblList::IsSentinel(prev)) {
-      ASSERT(prev == fun, "");
-      ASSERT(FunBblList::Head(fun) == bbl, "");
+      CHECK(prev == fun, "");
+      CHECK(FunBblList::Head(fun) == bbl, "");
     } else {
-      ASSERT(FunBblList::Next(prev) == bbl, "");
+      CHECK(FunBblList::Next(prev) == bbl, "");
     }
 
     if (FunBblList::IsSentinel(next)) {
-      ASSERT(next == fun, "");
-      ASSERT(FunBblList::Tail(fun) == bbl,
-             " FUN BBL list corrupted " << Name(fun));
+      CHECK(next == fun, "");
+      CHECK(FunBblList::Tail(fun) == bbl,
+            " FUN BBL list corrupted " << Name(fun));
     } else {
-      ASSERT(FunBblList::Prev(next) == bbl,
-             "FUN BBL list corrupted " << Name(fun));
+      CHECK(FunBblList::Prev(next) == bbl,
+            "FUN BBL list corrupted " << Name(fun));
     }
 
     // cfg checks
     for (Edg edg : BblPredEdgIter(bbl)) {
       Bbl pred = EdgPredBbl(edg);
       Bbl succ = EdgSuccBbl(edg);
-      ASSERT(bbls.find(pred) != bbls.end(), "[" << Name(fun) << "] bad "
-                                                << Name(pred) << " -> "
-                                                << Name(succ));
-      ASSERT(bbls.find(succ) != bbls.end(),
-             "bad " << Name(pred) << " -> " << Name(succ));
-      ASSERT(succ == bbl,
-             "bad " << Name(bbl) << ": " << Name(pred) << " -> " << Name(succ));
+      CHECK(bbls.find(pred) != bbls.end(),
+            "[" << Name(fun) << "] bad " << Name(pred) << " -> " << Name(succ));
+      CHECK(bbls.find(succ) != bbls.end(),
+            "bad " << Name(pred) << " -> " << Name(succ));
+      CHECK(succ == bbl,
+            "bad " << Name(bbl) << ": " << Name(pred) << " -> " << Name(succ));
     }
 
     for (Edg edg : BblSuccEdgIter(bbl)) {
       Bbl pred = EdgPredBbl(edg);
       Bbl succ = EdgSuccBbl(edg);
-      ASSERT(bbls.find(pred) != bbls.end(),
-             "bad " << Name(pred) << " -> " << Name(succ));
-      ASSERT(bbls.find(succ) != bbls.end(),
-             "bad " << Name(pred) << " -> " << Name(succ));
-      ASSERT(pred == bbl,
-             "bad " << Name(bbl) << ": " << Name(pred) << " -> " << Name(succ));
+      CHECK(bbls.find(pred) != bbls.end(),
+            "bad " << Name(pred) << " -> " << Name(succ));
+      CHECK(bbls.find(succ) != bbls.end(),
+            "bad " << Name(pred) << " -> " << Name(succ));
+      CHECK(pred == bbl,
+            "bad " << Name(bbl) << ": " << Name(pred) << " -> " << Name(succ));
     }
 
     BblCheck(bbl, fun);
@@ -115,17 +115,17 @@ void UnitCheck(Unit unit) {
     Fun next = UnitFunList::Next(fun);
 
     if (UnitFunList::IsSentinel(prev)) {
-      ASSERT(prev == unit, "");
-      ASSERT(UnitFunList::Head(unit) == fun, "");
+      CHECK(prev == unit, "");
+      CHECK(UnitFunList::Head(unit) == fun, "");
     } else {
-      ASSERT(UnitFunList::Next(prev) == fun, "");
+      CHECK(UnitFunList::Next(prev) == fun, "");
     }
 
     if (UnitFunList::IsSentinel(next)) {
-      ASSERT(next == unit, "");
-      ASSERT(UnitFunList::Tail(unit) == fun, "");
+      CHECK(next == unit, "");
+      CHECK(UnitFunList::Tail(unit) == fun, "");
     } else {
-      ASSERT(UnitFunList::Prev(next) == fun, "");
+      CHECK(UnitFunList::Prev(next) == fun, "");
     }
 
     FunCheck(fun);

@@ -45,7 +45,7 @@ uint32_t RelocFieldOffsetFromEndOfIns(const x64::Opcode& opcode) {
   if (opcode.offset_pos != NA) {
     return opcode.num_bytes - opcode.offset_pos;
   } else {
-    ASSERT(opcode.imm_pos != NA, "");
+    CHECK(opcode.imm_pos != NA, "");
     return opcode.num_bytes - opcode.imm_pos;
   }
 }
@@ -93,12 +93,11 @@ void AddStartupCode(X64Unit* unit) {
   std::vector<std::string_view> token;
   for (const auto line : kStartupCode) {
     token.clear();
-    if (!ParseLineWithStrings(line, false, &token)) {
-      ASSERT(false, "bad internal code template " << line);
-    }
+    CHECK(ParseLineWithStrings(line, false, &token),
+          "bad internal code template " << line);
     Ins ins;
     if (!InsFromSymbolized(token, &ins)) {
-      ASSERT(false, "internal parse error " << token[0]);
+      CHECK(false, "internal parse error " << token[0]);
     }
     AddIns(unit, &ins);
   }
@@ -212,8 +211,9 @@ void ApplyRelocation(const Reloc<uint64_t>& rel) {
   void* patch_addr = (char*)rel.section->data->data() + rel.rel.r_offset;
   const int64_t sym_val = rel.symbol->sym.st_value + rel.rel.r_addend;
   const uint32_t width = RelWidth(RELOC_TYPE_X86_64(rel.rel.r_type));
-  ASSERT(rel.rel.r_offset + width <= rel.section->data->size(), "Relocation out of bounds " <<
-    rel.rel.r_offset + width << " " << rel.section->data->size() << " " << rel);
+  CHECK(rel.rel.r_offset + width <= rel.section->data->size(),
+        "Relocation out of bounds " << rel.rel.r_offset + width << " "
+                                    << rel.section->data->size() << " " << rel);
   switch (RELOC_TYPE_X86_64(rel.rel.r_type)) {
     case elf::RELOC_TYPE_X86_64::PC32:
       *((int32_t*)patch_addr) = PcOffset32(rel, sym_val);
@@ -222,7 +222,7 @@ void ApplyRelocation(const Reloc<uint64_t>& rel) {
       *((int64_t*)patch_addr) = sym_val;
       return;
     default:
-      ASSERT(false, "unknown relocation type " << rel.rel.r_type);
+      CHECK(false, "unknown relocation type " << rel.rel.r_type);
       return;
   }
 }
@@ -241,7 +241,8 @@ Executable<uint64_t> MakeExe(X64Unit* unit, bool create_sym_tab) {
     sections.push_back(sec_null);
     seg_exe->sections.push_back(sec_null);
 
-    ASSERT(unit->sec_text->data->size() > 0, "text sec has no data " << unit->sec_text->data->size());
+    CHECK(unit->sec_text->data->size() > 0,
+          "text sec has no data " << unit->sec_text->data->size());
     sections.push_back(unit->sec_text);
     seg_exe->sections.push_back(unit->sec_text);
   }
@@ -320,10 +321,10 @@ Executable<uint64_t> MakeExe(X64Unit* unit, bool create_sym_tab) {
   exe.ehdr.e_phoff = sizeof(exe.ident) + sizeof(exe.ehdr);
 
   for (auto& sym : unit->symbols) {
-    ASSERT(sym->sym.st_value != ~0U, "undefined symbol " << sym->name);
+    CHECK(sym->sym.st_value != ~0U, "undefined symbol " << sym->name);
     if (sym->section != nullptr) {
-      ASSERT(sym->section->shdr.sh_addr != ~0U,
-             sym->name << "has bad sec " << *sym->section);
+      CHECK(sym->section->shdr.sh_addr != ~0U,
+            sym->name << "has bad sec " << *sym->section);
       sym->sym.st_value += sym->section->shdr.sh_addr;
       sym->sym.st_shndx = sym->section->index;
     }
@@ -334,18 +335,18 @@ Executable<uint64_t> MakeExe(X64Unit* unit, bool create_sym_tab) {
   }
 
   if (create_sym_tab) {
-    ASSERT(sec_symtab != nullptr, "");
+    CHECK(sec_symtab != nullptr, "");
 
     auto* sym_data = new Chunk("", false);
     for (auto& sym : unit->symbols) {
       sym_data->AddData({(const char*)&sym->sym, sizeof(sym->sym)});
     }
-    ASSERT(sec_symtab->shdr.sh_size == sym_data->size(), "");
+    CHECK(sec_symtab->shdr.sh_size == sym_data->size(), "");
     sec_symtab->SetData(sym_data);
   }
 
   auto* entry = unit->global_symbol_map["_start"];
-  ASSERT(entry != nullptr, "_start is not defined");
+  CHECK(entry != nullptr, "_start is not defined");
   exe.ehdr.e_entry = entry->sym.st_value;
   return exe;
 }

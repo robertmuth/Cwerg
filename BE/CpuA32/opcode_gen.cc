@@ -2697,6 +2697,12 @@ uint32_t DecodeOperand(uint32_t data, OK ok) {
   }
 }
 
+bool IsSignedIntOfWidth(int32_t data, int32_t bitwidth) {
+  uint32_t rest = data >> (bitwidth - 1);
+  // rest must be all zeros or all ones.
+  return rest == 0 || rest + 1 == (1U << (32 - bitwidth + 1));
+}
+
 uint32_t EncodeOperand(uint32_t data, OK ok) {
   const FieldInfo& fi = FieldInfoTable[uint8_t(ok)];
   switch (fi.kind) {
@@ -2711,9 +2717,7 @@ uint32_t EncodeOperand(uint32_t data, OK ok) {
       ASSERT(data < fi.num_names, "");
       return data;
     case FK::INT_SIGNED: {
-      uint32_t rest = data >> (fi.bitwidth - 1);
-      // rest must be all zeros or all ones.
-      ASSERT(rest == 0 || rest + 1 == (1U << (32 - fi.bitwidth + 1)), "");
+      ASSERT(IsSignedIntOfWidth(data, fi.bitwidth), "");
       return data & ((1 << fi.bitwidth) - 1);
     }
     case FK::INT:

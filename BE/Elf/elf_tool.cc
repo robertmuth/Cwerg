@@ -15,7 +15,7 @@ void VerifyChunks(const std::vector<std::string_view>& chunks,
   size_t offset = 0;
   for (const auto& chunk : chunks) {
     // std::cout << "Checking " << std::hex << chunk.size() << "\n";
-    ASSERT(chunk == data.substr(offset, chunk.size()), "");
+    CHECK(chunk == data.substr(offset, chunk.size()), "");
     offset += chunk.size();
   }
 }
@@ -50,8 +50,8 @@ int main(int argc, char* argv[]) {
     const uint64_t header_size = CombinedElfHeaderSize<uint64_t>(exe.segments);
     const uint64_t section_header_offset =
         exe.VerifyVaddrsAndOffsets(header_size, exe.start_vaddr);
-    ASSERT(exe.ehdr.e_shoff == section_header_offset, "");
-    ASSERT(exe.ehdr.e_phoff == sizeof(exe.ident) + sizeof(exe.ehdr), "");
+    CHECK(exe.ehdr.e_shoff == section_header_offset, "");
+    CHECK(exe.ehdr.e_phoff == sizeof(exe.ident) + sizeof(exe.ehdr), "");
     exe.ehdr.e_shoff = exe.UpdateVaddrsAndOffsets(header_size, exe.start_vaddr);
     exe.ehdr.e_phoff = sizeof(exe.ident) + sizeof(exe.ehdr);
 
@@ -68,8 +68,8 @@ int main(int argc, char* argv[]) {
     const uint32_t header_size = CombinedElfHeaderSize<uint32_t>(exe.segments);
     const uint32_t section_header_offset =
         exe.VerifyVaddrsAndOffsets(header_size, exe.start_vaddr);
-    ASSERT(exe.ehdr.e_shoff == section_header_offset, "");
-    ASSERT(exe.ehdr.e_phoff == sizeof(exe.ident) + sizeof(exe.ehdr), "");
+    CHECK(exe.ehdr.e_shoff == section_header_offset, "");
+    CHECK(exe.ehdr.e_phoff == sizeof(exe.ident) + sizeof(exe.ehdr), "");
     exe.UpdateVaddrsAndOffsets(header_size, exe.start_vaddr);
     std::vector<std::string_view> chunks = exe.Save();
     VerifyChunks(chunks, data);

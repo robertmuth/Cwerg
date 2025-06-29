@@ -51,7 +51,9 @@ int main(int argc, const char* argv[]) {
     int length = ftell(fp);
     rewind(fp);
     char* buf = malloc(length);
-    fread(buf, length, 1, fp);
+    if(fread(buf, 1, length, fp) != length) {
+      return 1;
+    }
     fclose(fp);
     CW_UnitAppendFromAsm(unit, buf);
     free(buf);

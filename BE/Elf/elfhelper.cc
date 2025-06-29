@@ -178,16 +178,16 @@ std::vector<Segment<elfsize_t>*> Executable<elfsize_t>::FindContainingSegs(
 
 template <typename elfsize_t>
 bool Executable<elfsize_t>::Load(std::string_view data) {
-  ASSERT(segments.empty() && sections.empty(), "Load must be called only once");
+  CHECK(segments.empty() && sections.empty(), "Load must be called only once");
   elfsize_t offset = 0;
   data.copy((char*)&ident, sizeof(ident), offset);
-  ASSERT(ident.IsValid(), "");
+  CHECK(ident.IsValid(), "");
 
   offset += sizeof((ident));
   data.copy((char*)&ehdr, sizeof(ehdr), offset);
 
   // std::cout << "Processing " << ehdr.e_phnum << " Segments\n";
-  ASSERT(sizeof(Elf_Phdr<elfsize_t>) == ehdr.e_phentsize, "");
+  CHECK(sizeof(Elf_Phdr<elfsize_t>) == ehdr.e_phentsize, "");
   offset = ehdr.e_phoff;
   segments.reserve(ehdr.e_phnum);
   start_vaddr = 0;
@@ -206,7 +206,7 @@ bool Executable<elfsize_t>::Load(std::string_view data) {
   // for (auto& s : segments) std::cout << s << "\n";
 
   // std::cout << "processing " << ehdr.e_shnum << " shdrs\n";
-  ASSERT(sizeof(Elf_Shdr<elfsize_t>) == ehdr.e_shentsize, "");
+  CHECK(sizeof(Elf_Shdr<elfsize_t>) == ehdr.e_shentsize, "");
   offset = ehdr.e_shoff;
   for (unsigned i = 0; i < ehdr.e_shnum; ++i, offset += ehdr.e_shentsize) {
     sections.emplace_back(std::make_unique<Section<elfsize_t>>());
@@ -230,7 +230,7 @@ bool Executable<elfsize_t>::Load(std::string_view data) {
   const Section<elfsize_t>* symtab = nullptr;
   for (const auto& sec : sections) {
     if (sec->shdr.sh_type == SH_TYPE::SYMTAB && sec->name == ".symtab") {
-      ASSERT(symtab == nullptr, "");
+      CHECK(symtab == nullptr, "");
       symtab = sec.get();
     }
   }
@@ -240,7 +240,7 @@ bool Executable<elfsize_t>::Load(std::string_view data) {
         (const char*)sections[symtab->shdr.sh_link]->data->data();
     const unsigned sym_size = sizeof(Elf_Sym<elfsize_t>);
     const unsigned num_syms = symtab->shdr.sh_size / sym_size;
-    ASSERT(num_syms * sym_size == symtab->shdr.sh_size, "");
+    CHECK(num_syms * sym_size == symtab->shdr.sh_size, "");
     offset = symtab->shdr.sh_offset;
     for (unsigned i = 0; i < num_syms; ++i, offset += sym_size) {
       symbols.emplace_back(Symbol<elfsize_t>());
@@ -260,17 +260,17 @@ bool Executable<elfsize_t>::Load(std::string_view data) {
     std::vector<Segment<elfsize_t>*> seg_containers =
         FindContainingSegs(sec.get());
     if (!seg_containers.empty()) {
-      ASSERT(pseudo_seg == nullptr, "");
+      CHECK(pseudo_seg == nullptr, "");
       if (seg_containers.size() > 1) {
         for (auto* seg : seg_containers) {
-          ASSERT(seg->phdr.p_type == P_TYPE::LOAD || seg->is_auxiliary,
+          CHECK(seg->phdr.p_type == P_TYPE::LOAD || seg->is_auxiliary,
                  "bad seg " << EnumToString(seg->phdr.p_type) << " "
                             << seg_containers.size() << " " << sec->name);
         }
       }
       for (auto* seg : seg_containers) seg->sections.push_back(sec.get());
     } else {
-      ASSERT(sec->shdr.sh_type != SH_TYPE::X_NULL, "");
+      CHECK(sec->shdr.sh_type != SH_TYPE::X_NULL, "");
       if (pseudo_seg == nullptr) {
         segments.push_back(std::make_unique<Segment<elfsize_t>>());
         pseudo_seg = segments.back().get();
@@ -299,7 +299,7 @@ std::vector<std::string_view> Executable<elfsize_t>::Save() const {
   add_string_view(&ehdr, sizeof(ehdr));
   offset += out.back().size();
   // Write Segment headers
-  ASSERT(offset == ehdr.e_phoff, "");
+  CHECK(offset == ehdr.e_phoff, "");
   for (const auto& seg : segments) {
     if (seg->is_pseudo) continue;
     add_string_view(&seg->phdr, sizeof(seg->phdr));
@@ -312,14 +312,14 @@ std::vector<std::string_view> Executable<elfsize_t>::Save() const {
       if (sec->shdr.sh_size == 0 || sec->shdr.sh_type == SH_TYPE::NOBITS)
         continue;
       const size_t new_offset = sec->shdr.sh_offset;
-      ASSERT(offset <= new_offset, "");
+      CHECK(offset <= new_offset, "");
       if (new_offset != offset) {
         const size_t padding_size = new_offset - offset;
-        ASSERT(padding_size < sizeof(zero_padding), "");
+        CHECK(padding_size < sizeof(zero_padding), "");
         add_string_view(zero_padding, padding_size);
         offset += padding_size;
       }
-      ASSERT(sec->shdr.sh_size == sec->data->size(), "");
+      CHECK(sec->shdr.sh_size == sec->data->size(), "");
       add_string_view(sec->data->data(), sec->data->size());
       offset += out.back().size();
     }
@@ -330,11 +330,11 @@ std::vector<std::string_view> Executable<elfsize_t>::Save() const {
 
   if (new_offset != offset) {
     const size_t padding_size = new_offset - offset;
-    ASSERT(padding_size < sizeof(zero_padding), "");
+    CHECK(padding_size < sizeof(zero_padding), "");
     add_string_view(zero_padding, padding_size);
     offset += padding_size;
   }
-  ASSERT(offset == ehdr.e_shoff, offset << " vs " << ehdr.e_shoff);
+  CHECK(offset == ehdr.e_shoff, offset << " vs " << ehdr.e_shoff);
   for (const auto& seg : segments) {
     if (seg->is_auxiliary) continue;
     for (const auto& sec : seg->sections) {
@@ -356,25 +356,25 @@ void SectionVerifVaddrAndOffset(const Section<elfsize_t>* sec,
                                 elfsize_t* vaddr,
                                 size_t* offset) {
   if (sec->shdr.sh_type == SH_TYPE::X_NULL) {
-    ASSERT(sec->shdr.sh_addr == 0, "");
-    ASSERT(sec->shdr.sh_offset == 0, "");
+    CHECK(sec->shdr.sh_addr == 0, "");
+    CHECK(sec->shdr.sh_offset == 0, "");
   } else if (sec->shdr.sh_type == SH_TYPE::NOBITS) {
     if (sec->name != ".tbss") {
       *vaddr = Align(*vaddr, sec->shdr.sh_addralign);
-      ASSERT(sec->shdr.sh_addr == *vaddr, "");
-      ASSERT(sec->shdr.sh_offset == *offset, "");
+      CHECK(sec->shdr.sh_addr == *vaddr, "");
+      CHECK(sec->shdr.sh_offset == *offset, "");
       *vaddr += sec->shdr.sh_size;
     }
   } else {
     *vaddr = Align(*vaddr, sec->shdr.sh_addralign);
     *offset = Align(*offset, sec->shdr.sh_addralign);
-    ASSERT(sec->shdr.sh_offset == *offset,
+    CHECK(sec->shdr.sh_offset == *offset,
            std::hex << sec->shdr.sh_offset << " vs " << *offset);
     if ((uint32_t(sec->shdr.sh_flags) & uint32_t(SH_FLAGS::ALLOC)) != 0) {
-      ASSERT(sec->shdr.sh_addr == *vaddr,
+      CHECK(sec->shdr.sh_addr == *vaddr,
              std::hex << sec->shdr.sh_addr << " vs " << *vaddr);
     } else {
-      ASSERT(sec->shdr.sh_addr == 0, "");
+      CHECK(sec->shdr.sh_addr == 0, "");
     }
     *vaddr += sec->shdr.sh_size;
     *offset += sec->shdr.sh_size;
@@ -410,20 +410,20 @@ elfsize_t Executable<elfsize_t>::VerifyVaddrsAndOffsets(
     if (seg->is_pseudo) continue;
     const auto& first_shdr = seg->sections[0]->shdr;
     if (seg->phdr.p_type == P_TYPE::LOAD and is_first_load) {
-      ASSERT(seg->phdr.p_offset == 0, "");
-      ASSERT(seg->phdr.p_vaddr == start_vaddr, "");
+      CHECK(seg->phdr.p_offset == 0, "");
+      CHECK(seg->phdr.p_vaddr == start_vaddr, "");
       is_first_load = false;
     } else {
-      ASSERT(seg->phdr.p_offset == first_shdr.sh_offset, "");
-      ASSERT(seg->phdr.p_vaddr == first_shdr.sh_addr, "");
+      CHECK(seg->phdr.p_offset == first_shdr.sh_offset, "");
+      CHECK(seg->phdr.p_vaddr == first_shdr.sh_addr, "");
     }
     const auto& last_shdr = seg->sections.back()->shdr;
     const elfsize_t filesz =
         last_shdr.sh_type == SH_TYPE::NOBITS ? 0 : last_shdr.sh_size;
-    ASSERT(
+    CHECK(
         seg->phdr.p_filesz == last_shdr.sh_offset + filesz - seg->phdr.p_offset,
         "");
-    ASSERT(seg->phdr.p_memsz ==
+    CHECK(seg->phdr.p_memsz ==
                last_shdr.sh_addr + last_shdr.sh_size - seg->phdr.p_vaddr,
            "");
   }
@@ -454,9 +454,9 @@ void SectionUpdateVaddrAndOffset(Section<elfsize_t>* sec,
       *vaddr += sec->shdr.sh_size;
     }
   } else {
-    ASSERT(sec->shdr.sh_size == sec->data->size(),
+    CHECK(sec->shdr.sh_size == sec->data->size(),
            "bad sec size " << *sec << " " << sec->data->size());
-    ASSERT(sec->shdr.sh_addralign != 0, *sec);
+    CHECK(sec->shdr.sh_addralign != 0, *sec);
     *vaddr = Align(*vaddr, sec->shdr.sh_addralign);
     *offset = Align(*offset, sec->shdr.sh_addralign);
     sec->shdr.sh_offset = *offset;
@@ -559,12 +559,12 @@ void Executable<elfsize_t>::InitWithSectionsAndSegments(
     elfsize_t start_address,
     std::vector<Section<elfsize_t>*>& all_sections,
     std::vector<Segment<elfsize_t>*>& all_segments) {
-  ASSERT(sections.empty() && !all_sections.empty(), "");
-  ASSERT(segments.empty() && !all_segments.empty(), "");
+  CHECK(sections.empty() && !all_sections.empty(), "");
+  CHECK(segments.empty() && !all_segments.empty(), "");
   // TODO: check that sections referenced by segments are in all_sections
-  ASSERT(all_sections.back()->shdr.sh_type == SH_TYPE::STRTAB,
+  CHECK(all_sections.back()->shdr.sh_type == SH_TYPE::STRTAB,
          "bad sec: " << *all_sections.back());
-  ASSERT(all_sections.back()->name == ".shstrtab", *all_sections.back());
+  CHECK(all_sections.back()->name == ".shstrtab", *all_sections.back());
   start_vaddr = start_address;
   unsigned n = 0;
   for (auto* sec : all_sections) {
@@ -573,7 +573,7 @@ void Executable<elfsize_t>::InitWithSectionsAndSegments(
   }
   bool seen_pseudo = false;
   for (auto* seg : all_segments) {
-    ASSERT(!seen_pseudo, "pseudo segment must be last");
+    CHECK(!seen_pseudo, "pseudo segment must be last");
     segments.push_back(std::unique_ptr<Segment<elfsize_t>>(seg));
     seen_pseudo = seg->is_pseudo;
   }

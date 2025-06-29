@@ -95,7 +95,7 @@ class RegPoolArm : public RegPool {
         }
       }
     }
-    ASSERT(allow_spilling_, "could not find reg for LiveRange " << lr);
+    CHECK(allow_spilling_, "could not find reg for LiveRange " << lr);
     return CPU_REG_SPILL;
   }
 
@@ -111,7 +111,7 @@ class RegPoolArm : public RegPool {
   void add_reserved_range(const LiveRange& lr) {
     const Reg reg = lr.reg;
     const CpuReg cpu_reg(RegCpuReg(reg));
-    ASSERT(Kind(cpu_reg) == RefKind::CPU_REG, "");
+    CHECK(Kind(cpu_reg) == RefKind::CPU_REG, "");
     if (RegKind(reg) == DK::R32) {
       flt_reserved_[CpuRegNo(cpu_reg)].add(&lr);
     } else if (RegKind(reg) == DK::R64) {
@@ -202,8 +202,8 @@ std::vector<Reg> AssignAllocatedRegsAndReturnSpilledRegs(
     if (lr.cpu_reg == CPU_REG_SPILL) {
       out.push_back(lr.reg);
     } else {
-      ASSERT(lr.cpu_reg != CPU_REG_INVALID, "");
-      ASSERT(lr.cpu_reg.value != ~0U, "");
+      CHECK(lr.cpu_reg != CPU_REG_INVALID, "");
+      CHECK(lr.cpu_reg.value != ~0U, "");
       RegCpuReg(lr.reg) = lr.cpu_reg;
     }
   }
@@ -252,7 +252,7 @@ void BblRegAllocOrSpill(Bbl bbl,
                   FLT_REGS_MASK & FLT_LAC_REGS_MASK,
                   FLT_REGS_MASK & ~FLT_LAC_REGS_MASK);
     spilled_regs = AssignAllocatedRegsAndReturnSpilledRegs(ranges);
-    ASSERT(spilled_regs.empty(), "");
+    CHECK(spilled_regs.empty(), "");
   }
 }
 
@@ -273,7 +273,7 @@ CpuRegMasks FunCpuRegStats(Fun fun) {
         const CpuReg cpu_reg(RegCpuReg(reg));
         if (Kind(cpu_reg) != RefKind::CPU_REG) {
           BblRenderToAsm(bbl, fun, &std::cout);
-          ASSERT(false,
+          CHECK(false,
                  "found unallocated reg " << Name(reg) << " in " << Name(fun));
         }
         const uint32_t mask = A32RegToAllocMask(cpu_reg);
@@ -319,20 +319,20 @@ void GetCpuRegsForSignature(unsigned count,
       case DK::C32:
       case DK::S32:
       case DK::U32:
-        ASSERT(next_gpr < GPR_PARAM_REGS.size(), "too many gpr regs "
+        CHECK(next_gpr < GPR_PARAM_REGS.size(), "too many gpr regs "
                                                      << next_gpr << " vs "
                                                      << GPR_PARAM_REGS.size());
         out->push_back(GPR_PARAM_REGS[next_gpr]);
         ++next_gpr;
         break;
       case DK::R32:
-        ASSERT(next_flt < FLT_PARAM_REGS.size(), "");
+        CHECK(next_flt < FLT_PARAM_REGS.size(), "");
         out->push_back(FLT_PARAM_REGS[next_flt]);
         ++next_flt;
         break;
       case DK::R64:
         if ((next_flt & 1U) == 1) ++next_flt;
-        ASSERT(next_flt / 2 < DBL_PARAM_REGS.size(), "");
+        CHECK(next_flt / 2 < DBL_PARAM_REGS.size(), "");
         out->push_back(DBL_PARAM_REGS[next_flt / 2]);
         next_flt += 2;
         break;
@@ -403,7 +403,7 @@ void AssignCpuRegOrMarkForSpilling(const std::vector<Reg>& regs,
   uint32_t cpu_reg_mask = cpu_reg_mask_first_choice;
   unsigned pos = 0;
   for (Reg reg : regs) {
-    ASSERT(RegCpuReg(reg).isnull(), "");
+    CHECK(RegCpuReg(reg).isnull(), "");
     // This ugly hack is necessary because we prefer to use reg lr and XX
     // over r6-r11 despite them being "numerically higher".
     if (cpu_reg_mask == 0 && cpu_reg_mask_second_choice != 0) {
@@ -526,7 +526,7 @@ void InitCodeGenA32() {
     GPR_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::GPR, StrNew(GPR_NAMES[i]));
     const uint32_t mask = A32RegToAllocMask(GPR_REGS[i]);
     if (i < GPR_PARAM_REGS.size()) {
-      ASSERT((GPR_LAC_REGS_MASK & mask) == 0,
+      CHECK((GPR_LAC_REGS_MASK & mask) == 0,
              "" << i << " " << GPR_LAC_REGS_MASK);
       GPR_PARAM_REGS[i] = GPR_REGS[i];
     }
@@ -540,7 +540,7 @@ void InitCodeGenA32() {
     FLT_REGS[i] = CpuRegNew(i, +CPU_REG_KIND::FLT, StrNew(buffer));
     uint32_t mask = A32RegToAllocMask(FLT_REGS[i]);
     if (i < FLT_PARAM_REGS.size()) {
-      ASSERT((FLT_LAC_REGS_MASK & mask) == 0, "");
+      CHECK((FLT_LAC_REGS_MASK & mask) == 0, "");
       FLT_PARAM_REGS[i] = FLT_REGS[i];
     }
   }

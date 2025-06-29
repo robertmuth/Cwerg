@@ -18,10 +18,9 @@ void HandleUseLiveRange(LiveRange* lr_use, std::vector<LiveRange>* ranges,
     if (lr.last_use_pos != lr_use->def_pos) continue;
     if (lr.HasFlag(LR_FLAG::IGNORE)) continue;
     if (lr.HasFlag(LR_FLAG::PRE_ALLOC)) {
-      CpuReg cpu_reg = lr.cpu_reg;
-      ASSERT(cpu_reg != CPU_REG_INVALID, "");
-      ASSERT(cpu_reg == RegCpuReg(lr.reg), "");
-      ASSERT(cpu_reg != CPU_REG_SPILL, "");
+      ASSERT(lr.cpu_reg != CPU_REG_INVALID, "");
+      ASSERT(lr.cpu_reg == RegCpuReg(lr.reg), "");
+      ASSERT(lr.cpu_reg != CPU_REG_SPILL, "");
     }
 
     if (lr.cpu_reg != CPU_REG_SPILL) {

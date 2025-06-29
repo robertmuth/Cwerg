@@ -3,11 +3,10 @@
     It only checks the encoding of certain immediate fields.
 */
 
-#include "BE/CpuA64/opcode_gen.h"
-#include "Util/assert.h"
-
 #include <cstdint>
 
+#include "BE/CpuA64/opcode_gen.h"
+#include "Util/assert.h"
 
 namespace {
 using namespace cwerg;
@@ -28,8 +27,8 @@ void CheckEncodeDecode() {
         // x
         //          << "\n";
         uint32_t j = a64::Encode_10_15_16_22_X(x);
-        ASSERT(i == j,
-               "bad logic imm " << i << " vs " << j << " decoded was " << x);
+        CHECK(i == j,
+              "bad logic imm " << i << " vs " << j << " decoded was " << x);
       }
     }
 
@@ -38,7 +37,7 @@ void CheckEncodeDecode() {
     }
   }
 
-  ASSERT(count == 5334, "total number of codes is not 5334: " << count);
+  CHECK(count == 5334, "total number of codes is not 5334: " << count);
 }
 
 void CheckEncodeDecodeFloat() {
@@ -46,7 +45,7 @@ void CheckEncodeDecodeFloat() {
     const double d = a64::Decode8BitFlt(i);
     // std::cout << std::hex << i << " " << d << "\n";
     uint32_t j = a64::Encode8BitFlt(d);
-    ASSERT(i == j, "bad flt imm " << i << " vs " << j << "  val " << d);
+    CHECK(i == j, "bad flt imm " << i << " vs " << j << "  val " << d);
   }
 }
 
