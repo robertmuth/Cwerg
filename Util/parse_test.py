@@ -5,6 +5,7 @@
 """
 from typing import List
 import sys
+import struct
 
 from Util import parse
 
@@ -17,6 +18,16 @@ def EmitString(s: str):
 
 def EmitId(s: str):
     print("{" + t + "}", end="")
+
+
+def Flt64FromBits(data: int) -> float:
+    return struct.unpack('<d', int.to_bytes(data, 8, "little"))[0]
+
+
+def Flt64ToBits(num: float) -> int:
+    b = struct.pack('<d', num)
+    assert len(b) == 8
+    return int.from_bytes(b, "little")
 
 
 if __name__ == '__main__':
@@ -58,11 +69,15 @@ if __name__ == '__main__':
                 else:
                     print(f"[INT64] {val} {val & ((1 << 64) - 1):x}")
             elif token[0] == "flt64":
-                val = parse.ParseFlt64(token[1])
+                if token[1].startswith("0x"):
+                    out = int(token[1], 0)
+                    val = Flt64FromBits(out)
+                else:
+                    val = float(token[1])
                 if val is None:
                     print(f"[FLT64] @BAD VALUE@")
                 else:
-                    print(f"[FLT64] {val:g} {parse.Flt64ToBits(val):x}")
+                    print(f"[FLT64] {val:g} {Flt64ToBits(val):x}")
             elif token[0] == "char":
                 val = parse.ParseChar(token[1])
                 if val is None:

@@ -417,12 +417,6 @@ std::optional<double> ParseFlt64(std::string_view s) {
   buf[j] = 0;
   char* end;
 
-  if (s.starts_with("0x")) {
-    double out = strtol(buf, &end, 0);
-    if (end != buf + j) return std::nullopt;
-    return Flt64FromBits(out);
-  }
-
   double out = strtod(buf, &end);
   if (end != buf + j) return std::nullopt;
   return out;
@@ -563,21 +557,6 @@ std::vector<char>* SlurpDataFromStream(std::istream* fin) {
   return out;
 }
 
-double Flt64FromBits(uint64_t i) {
-  union {
-    uint64_t i;
-    double d;
-  } u = {i};
-  return u.d;
-}
-
-uint64_t Flt64ToBits(double d) {
-  union {
-    double d;
-    uint64_t i;
-  } u = {d};
-  return u.i;
-}
 
 bool IsWhiteSpace(char c) { return Ctype.is_space(c); }
 

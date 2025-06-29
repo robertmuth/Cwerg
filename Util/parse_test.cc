@@ -51,6 +51,14 @@ std::vector<std::string_view> split(const std::string_view& s, char delim) {
   return out;
 }
 
+double Flt64FromBits(uint64_t i) {
+  union {
+    uint64_t i;
+    double d;
+  } u = {i};
+  return u.d;
+}
+
 int main(int argc, char* argv[]) {
   std::string mode = argv[1];
   for (string line; getline(std::cin, line);) {
@@ -98,10 +106,16 @@ int main(int argc, char* argv[]) {
                << ToHexString(val.value(), buf) << "\n";
         } else if (vec[0] == "flt64") {
           cout << "[FLT64] ";
-          auto val = ParseFlt64(vec[1]);
+          std::optional<double> val;
+          if (vec[1].starts_with("0x")) {
+              auto out = strtol(vec[1].data(), nullptr, 0);
+              val = Flt64FromBits(out);
+          } else {
+            val = ParseFlt64(vec[1]);
+          }
           if (!val.has_value()) {
-            cout << "@BAD VALUE@\n";
-            continue;
+              cout << "@BAD VALUE@\n";
+              continue;
           }
           cout << ToFltString(val.value(), buf) << " "
                << ToFltHexString(val.value(), buf) << "\n";

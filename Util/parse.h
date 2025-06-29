@@ -36,9 +36,6 @@ extern bool IsNum(std::string_view s);
 
 extern bool IsLikelyNum(std::string_view s);  // just looks at first char
 
-extern double Flt64FromBits(uint64_t i);
-extern uint64_t Flt64ToBits(double d);
-
 template <typename INT>
 std::optional<INT> ParseInt(std::string_view s) {
   bool neg = s[0] == '-';

@@ -210,24 +210,11 @@ def ParseUint64(s) -> Optional[int]:
         return None
 
 
-def Flt64FromBits(data: int) -> float:
-    return struct.unpack('<d', int.to_bytes(data, 8, "little"))[0]
-
-
 def Flt64ToBits(num: float) -> int:
     b = struct.pack('<d', num)
     assert len(b) == 8
     return int.from_bytes(b, "little")
 
-
-def ParseFlt64(s) -> Optional[float]:
-    try:
-        if s.startswith("0x"):
-            val = int(s, 0)
-            return Flt64FromBits(val)
-        return float(s)
-    except Exception as err:
-        return None
 
 
 def ParseLine(line: str) -> List[str]:
