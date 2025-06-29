@@ -14,12 +14,12 @@ void Test() {
   ImmutablePool pool(4);
   for (const auto name : kNames) {
     const uint32_t pos = pool.Intern(name, 1);
-    ASSERT(pos != 0, "");
-    ASSERT(pos % 4 ==0, "");
-    ASSERT(name == pool.Data(pos), "");
+    CHECK(pos != 0, "");
+    CHECK(pos % 4 ==0, "");
+    CHECK(name == pool.Data(pos), "");
 
     const uint32_t pos2 = pool.Intern(name, 1);
-    ASSERT(pos == pos2, "");
+    CHECK(pos == pos2, "");
   }
 }
 

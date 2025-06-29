@@ -92,12 +92,12 @@ void BstDump(typename BST::ITEM item, int level = 0) {
     if (BST::Parent(left) != item) {
       std::cout << "bad parent  for: " << left << " got: " << item << "\n";
     }
-    ASSERT(BST::Parent(left) == item, "");
+    CHECK(BST::Parent(left) == item, "");
     BstDump(left, level + 1);
   }
   std::cout << item << " " << level << "\n";
   if (!right.isnull()) {
-    ASSERT(BST::Parent(right) == item, "");
+    CHECK(BST::Parent(right) == item, "");
     BstDump(right, level + 1);
   }
 }
@@ -114,15 +114,15 @@ void LinkedListTest(const std::vector<int>& names) {
 
   unsigned count = 0;
   for (Bbl bbl : ListIter<FunBblList>(fun)) {
-    ASSERT(names[count] == Name(bbl), "name mismatch " << count);
+    CHECK(names[count] == Name(bbl), "name mismatch " << count);
     count++;
   }
-  ASSERT(count == names.size(), "");
+  CHECK(count == names.size(), "");
 
   count = 0;
   for (Bbl bbl : ListIterReverse<FunBblList>(fun)) {
     unsigned index = names.size() - 1 - count++;
-    ASSERT(names[index] == Name(bbl), "name mismatch " << count);
+    CHECK(names[index] == Name(bbl), "name mismatch " << count);
   }
 
   const Bbl first = gFunCore[fun].bbl_head;
@@ -131,9 +131,9 @@ void LinkedListTest(const std::vector<int>& names) {
   const Bbl prev = gBblList[last].prev;
 
   ListUnlink<FunBblList>(first);
-  ASSERT(gFunCore[fun].bbl_head == next, "");
+  CHECK(gFunCore[fun].bbl_head == next, "");
   ListUnlink<FunBblList>(last);
-  ASSERT(gFunCore[fun].bbl_tail == prev, "");
+  CHECK(gFunCore[fun].bbl_tail == prev, "");
 }
 
 void SingleTableTest(const std::vector<int>& names) {
@@ -144,10 +144,10 @@ void SingleTableTest(const std::vector<int>& names) {
   Bbl bbl;
 
   bbl = FunBblBst::Root(fun);
-  ASSERT(bbl.isnull(), "");
+  CHECK(bbl.isnull(), "");
 
   bbl = BstFind<FunBblBst>(fun, -1);
-  ASSERT(bbl.isnull(), "");
+  CHECK(bbl.isnull(), "");
   for (unsigned i = 0; i < names.size(); ++i) {
     bbl = BblNew();
     Name(bbl) = names[i];
@@ -160,31 +160,31 @@ void SingleTableTest(const std::vector<int>& names) {
   Bbl last(0);
   for (const Bbl bbl : BstIter<FunBblBst>(fun)) {
     if (!last.isnull()) {
-      ASSERT(Name(last) < Name(bbl), "");
+      CHECK(Name(last) < Name(bbl), "");
     }
     last = bbl;
   }
 
   bbl = FunBblBst::Root(fun);
-  ASSERT(!bbl.isnull(), "");
+  CHECK(!bbl.isnull(), "");
 
   for (unsigned i = 0; i < names.size(); ++i) {
     bbl = BstFind<FunBblBst>(fun, names[i]);
-    ASSERT(Name(bbl) == names[i], "");
+    CHECK(Name(bbl) == names[i], "");
   }
 
   bbl = BstFind<FunBblBst>(fun, -1);
-  ASSERT(bbl.isnull(), "");
+  CHECK(bbl.isnull(), "");
 
   for (unsigned i = 0; i < names.size(); ++i) {
     bbl = BstFind<FunBblBst>(fun, names[i]);
-    ASSERT(Name(bbl) == names[i], "");
+    CHECK(Name(bbl) == names[i], "");
     BstDel<FunBblBst>(fun, bbl);
     // BstDump<Bbl>(BstRoot<Fun, Bbl>(fun));
   }
 
   bbl = FunBblBst::Root(fun);
-  ASSERT(bbl.isnull(), "");
+  CHECK(bbl.isnull(), "");
 }
 
 std::vector<int> Flip(const std::vector<int>& names) {
