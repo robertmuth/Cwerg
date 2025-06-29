@@ -407,7 +407,6 @@ bool IsLikelyNum(std::string_view s) {
   return Ctype.is_num_first(s[0]);
 }
 
-
 std::optional<double> ParseFlt64(std::string_view s) {
   ASSERT(s.size() < 63, "");
   char buf[64];
@@ -417,6 +416,13 @@ std::optional<double> ParseFlt64(std::string_view s) {
   }
   buf[j] = 0;
   char* end;
+
+  if (s.starts_with("0x")) {
+    double out = strtol(buf, &end, 0);
+    if (end != buf + j) return std::nullopt;
+    return Flt64FromBits(out);
+  }
+
   double out = strtod(buf, &end);
   if (end != buf + j) return std::nullopt;
   return out;
