@@ -155,8 +155,8 @@ Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
   if (init_node.kind() == NT::ValString) {
     char* buffer = new char[dim];
     size_t size = StringLiteralToBytes(StrData(Node_string(init_node)), buffer);
-    ASSERT(size != STRING_LITERAL_PARSE_ERROR, "");
-    ASSERT(index < size, "");
+    CHECK(size != STRING_LITERAL_PARSE_ERROR, "");
+    CHECK(index < size, "");
     Const out = ConstNew<uint64_t>(uint8_t(buffer[index]), BASE_TYPE_KIND::U8);
     delete[] buffer;
     return out;
@@ -445,8 +445,7 @@ Const EvalNode(Node node) {
     case NT::ValUndef:
       return ConstNewUndef();
     case NT::ValNum: {
-      CanonType ct = Node_x_type(node);
-      ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
+      ASSERT(CanonType_kind(Node_x_type(node)) == NT::TypeBase, "");
       Const x = ParseNum(node);
       if (x.isnull()) {
         CompilerError(Node_srcloc(node))

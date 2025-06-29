@@ -88,11 +88,10 @@ class TypeContext {
   std::map<Name, CanonType> corpus_;
 
   void insert(CanonType ct) {
-    auto it = corpus_.find(CanonType_name(ct));
-    ASSERT(it == corpus_.end(), "");
-
+    ASSERT(!corpus_.contains(CanonType_name(ct)), "");
     corpus_[CanonType_name(ct)] = ct;
   }
+
   void insert_base_type(BASE_TYPE_KIND kind) {}
 
  public:
@@ -721,12 +720,12 @@ void CheckDefFunTypeFun(Node node) {
 
 void CheckTypeKind(Node node, NT kind) {
   CanonType ct = Node_x_type(node);
-  ASSERT(CanonType_kind(ct) == kind, "expected "
+  CHECK(CanonType_kind(ct) == kind, "expected "
                                          << EnumToString(kind) << " got "
                                          << EnumToString(CanonType_kind(ct)));
 }
 void CheckExpr2TypesArithmetic(CanonType result, Node op1, Node op2) {
-  ASSERT(CanonType_kind(result) == NT::TypeBase, "");
+  CHECK(CanonType_kind(result) == NT::TypeBase, "");
   CheckTypeIs(op1, result);
   CheckTypeIs(op2, result);
 }
@@ -772,7 +771,7 @@ void CheckExpr2Types(Node node, Node op1, Node op2, BINARY_EXPR_KIND kind,
           << "pointers must have same underlying type";
     }
   } else {
-    ASSERT(false, "NYI " << EnumToString(kind));
+    CHECK(false, "NYI " << EnumToString(kind));
   }
 }
 
@@ -792,7 +791,7 @@ bool AddressCanBeTaken(Node node) {
       if (CanonType_kind(Node_x_type(Node_container(node))) == NT::TypeSpan) {
         return true;
       } else {
-        ASSERT(CanonType_kind(Node_x_type(Node_container(node))) == NT::TypeVec,
+        CHECK(CanonType_kind(Node_x_type(Node_container(node))) == NT::TypeVec,
                "");
         return AddressCanBeTaken(Node_container(node));
       }
@@ -875,7 +874,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return;
       case NT::ExprUnionTag:
         CheckTypeKind(Node_expr(node), NT::TypeUnion);
-        ASSERT(!CanonType_untagged(Node_x_type(Node_expr(node))), "");
+        CHECK(!CanonType_untagged(Node_x_type(Node_expr(node))), "");
         return CheckTypeIs(node, tc->get_typeid_canon_type());
         break;
       case NT::ExprDeref:
@@ -903,7 +902,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
           case NT::RecField:
             return CheckTypeIs(node, Node_x_type(def_node));
           default:
-            ASSERT(false, "unexpected " << EnumToString(Node_kind(def_node)));
+            CHECK(false, "unexpected " << EnumToString(Node_kind(def_node)));
             break;
         }
         return;
@@ -942,13 +941,13 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         if (!IsProperLhs(Node_expr_lhs(node))) {
           CompilerError(Node_srcloc(node)) << "cannot assign to readonly data";
         }
-        ASSERT(IsArithmetic(Node_binary_expr_kind(node)), "");
+        CHECK(IsArithmetic(Node_binary_expr_kind(node)), "");
         return CheckExpr2TypesArithmetic(Node_x_type(Node_expr_lhs(node)),
                                          Node_expr_lhs(node),
                                          Node_expr_rhs(node));
       case NT::ExprIndex: {
         NT kind = CanonType_kind(Node_x_type(Node_container(node)));
-        ASSERT(kind == NT::TypeVec || kind == NT::TypeSpan, "");
+        CHECK(kind == NT::TypeVec || kind == NT::TypeSpan, "");
         return CheckUnderlyingTypeIs(Node_container(node), ct);
       }
 
@@ -963,7 +962,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
             CompilerError(Node_srcloc(node)) << "span not mutable";
           }
         } else {
-          ASSERT(CanonType_kind(container_ct) == NT::TypeVec, "");
+          CHECK(CanonType_kind(container_ct) == NT::TypeVec, "");
           if (mut && !IsProperLhs(container)) {
             CompilerError(Node_srcloc(node)) << "vec not mutable";
           }
@@ -1036,7 +1035,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return CheckTypeKind(node, NT::DefEnum);
       case NT::DefRec:
       case NT::DefEnum:
-        ASSERT(node == CanonType_ast_node(ct), "");
+        CHECK(node == CanonType_ast_node(ct), "");
         break;
       case NT::RecField:
         return CheckTypeIs(Node_type(node), Node_x_type(node));
@@ -1049,14 +1048,14 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
             CheckValUndefOrTypeIsUint(Node_point_or_undef(field));
           }
         } else {
-          ASSERT(CanonType_kind(ct) == NT::DefRec, "");
+          CHECK(CanonType_kind(ct) == NT::DefRec, "");
           Node defrec = CanonType_ast_node(ct);
           Node field = Node_fields(defrec);
 
           for (Node point = Node_inits(node); !point.isnull();
                point = Node_next(point), field = Node_next(field)) {
             field = MaybewAdvanceRecField(field, point);
-            ASSERT(Node_kind(field) == NT::RecField, "");
+            CHECK(Node_kind(field) == NT::RecField, "");
             CanonType ct_field = Node_x_type(field);
             CheckTypeIs(point, ct_field);
           }
@@ -1089,7 +1088,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return;
       case NT::ExprCall: {
         CanonType fun_sig = Node_x_type(Node_callee(node));
-        ASSERT(CanonType_kind(fun_sig) == NT::TypeFun, "");
+        CHECK(CanonType_kind(fun_sig) == NT::TypeFun, "");
         CheckTypeIs(node, CanonType_result_type(fun_sig));
         int num_parameters = CanonType_children(fun_sig).size() - 1;
         int num_args = NodeNumSiblings(Node_args(node));
@@ -1150,12 +1149,12 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::StmtDefer:
       case NT::StmtBlock:
       case NT::StmtCond:
-        ASSERT(ct.isnull(),
+        CHECK(ct.isnull(),
                "no type info expected for " << EnumToString(Node_kind(node)));
         // no type checking
         return;
       default:
-        ASSERT(false, "NYI " << EnumToString(Node_kind(node)));
+        CHECK(false, "NYI " << EnumToString(Node_kind(node)));
         return;
     };
   };
@@ -1284,7 +1283,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
 
           break;
         default:
-          ASSERT(false, "unexpected top level node " << node);
+          CHECK(false, "unexpected top level node " << node);
           break;
       }
     }

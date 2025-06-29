@@ -38,12 +38,12 @@ Node SymTabResolveWithFallback(const SymTab* symtab, Node node,
 }
 
 Node ResolveEnum(Node enum_id, Node enum_type) {
-  ASSERT(Node_kind(enum_type) == NT::DefEnum, "");
-  ASSERT(Node_kind(enum_id) == NT::Id, "");
+  CHECK(Node_kind(enum_type) == NT::DefEnum, "");
+  CHECK(Node_kind(enum_id) == NT::Id, "");
   Name enum_name = Node_enum_name(enum_id);
   for (Node child = Node_items(enum_type); !child.isnull();
        child = Node_next(Node(child))) {
-    ASSERT(Node_kind(child) == NT::EnumVal, "");
+    CHECK(Node_kind(child) == NT::EnumVal, "");
     if (Node_name(child) == enum_name) {
       return child;
     }
@@ -52,20 +52,20 @@ Node ResolveEnum(Node enum_id, Node enum_type) {
   return kNodeInvalid;
 }
 void UpdateNodeSymbolForPolyCall(Node id, Node new_def) {
-  ASSERT(!new_def.isnull(), "");
+  CHECK(!new_def.isnull(), "");
   Node old_def = Node_x_symbol(id);
-  ASSERT(Node_kind(old_def) == NT::DefFun, "");
-  ASSERT(Node_has_flag(old_def, BF::POLY), "");
+  CHECK(Node_kind(old_def) == NT::DefFun, "");
+  CHECK(Node_has_flag(old_def, BF::POLY), "");
   Node_x_symbol(id) = new_def;
 }
 
 void AnnotateNodeSymbol(Node node, Node def_node) {
-  ASSERT(!def_node.isnull(), "");
+  CHECK(!def_node.isnull(), "");
   // std::cout << "@@@ AnnotateNodeSymbol: " << Node_srcloc(node) << " "
   //          << node.index() << " " << Node_name(node) << " -> "
   //          << EnumToString(Node_kind(def_node)) << "\n";
-  ASSERT(Node_kind(node) == NT::Id || Node_kind(node) == NT::MacroInvoke, "");
-  ASSERT(Node_x_symbol(node).isnull(), "");
+  CHECK(Node_kind(node) == NT::Id || Node_kind(node) == NT::MacroInvoke, "");
+  CHECK(Node_x_symbol(node).isnull(), "");
   Node_x_symbol(node) = def_node;
 }
 
@@ -152,7 +152,7 @@ void ResolveGlobalAndImportedSymbolsInsideFunctionsAndMacros(
 
 void ResolveSymbolInsideFunction(Node node, const SymTab* builtin_symtab,
                                  std::vector<SymTab>* scopes) {
-  ASSERT(Node_kind(node) == NT::Id, "");
+  CHECK(Node_kind(node) == NT::Id, "");
   if (!Node_x_symbol(node).isnull()) return;
 
   Name name = Node_name(node);
