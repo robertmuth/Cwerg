@@ -6,7 +6,15 @@ import struct
 
 from BE.Elf import enum_tab
 from BE.CpuA64 import opcode_tab as a64
-from Util import parse
+
+
+def _FloatTo64BitRepresentation(num: float) -> int:
+    b = struct.pack('<d', num)
+    assert len(b) == 8
+    return int.from_bytes(b, "little")
+
+def _Flt64FromBits(data: int) -> float:
+    return struct.unpack('<d', int.to_bytes(data, 8, "little"))[0]
 
 
 def SymbolizeOperand(ok: a64.OK, data: int) -> str:
@@ -17,7 +25,7 @@ def SymbolizeOperand(ok: a64.OK, data: int) -> str:
         return t.names[data]
     elif t.kind == a64.FK.FLT_CUSTOM:
         # we only care about the float aspect
-        data = parse.Flt64FromBits(data)
+        data = _Flt64FromBits(data)
         return f"{data:g}"
     elif t.kind == a64.FK.INT_SIGNED:
         # we only care about the signed aspect
@@ -30,10 +38,7 @@ def SymbolizeOperand(ok: a64.OK, data: int) -> str:
         return str(data)
 
 
-def _FloatTo64BitRepresentation(num: float) -> int:
-    b = struct.pack('<d', num)
-    assert len(b) == 8
-    return int.from_bytes(b, "little")
+
 
 
 def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:
@@ -52,7 +57,7 @@ def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:
         data = t.names.index(op)
     elif t.kind == a64.FK.FLT_CUSTOM:
         # we only care about the float aspect
-        data = parse.Flt64ToBits(float(op))
+        data = _FloatTo64BitRepresentation(float(op))
     else:
         data = int(op, 0)  # skip "#", must handle "0x" prefix
         # note we intentionally allow negative numbers here
