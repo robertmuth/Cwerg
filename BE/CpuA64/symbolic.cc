@@ -1,6 +1,8 @@
 
 #include "BE/CpuA64/symbolic.h"
+
 #include <cstring>
+
 #include "Util/assert.h"
 #include "Util/parse.h"
 
@@ -29,6 +31,22 @@ char* strappendhex(char* dst, int64_t n) {
 
 char* strappendflt(char* dst, double d) {
   return dst + ToFltString(d, dst).size();
+}
+
+double Flt64FromBits(uint64_t i) {
+  union {
+    uint64_t i;
+    double d;
+  } u = {i};
+  return u.d;
+}
+
+uint64_t Flt64ToBits(double d) {
+  union {
+    double d;
+    uint64_t i;
+  } u = {d};
+  return u.i;
 }
 
 char* SymbolizeOperand(char* buf, uint32_t data, OK ok) {

@@ -13,6 +13,7 @@ def _FloatTo64BitRepresentation(num: float) -> int:
     assert len(b) == 8
     return int.from_bytes(b, "little")
 
+
 def _Flt64FromBits(data: int) -> float:
     return struct.unpack('<d', int.to_bytes(data, 8, "little"))[0]
 
@@ -36,9 +37,6 @@ def SymbolizeOperand(ok: a64.OK, data: int) -> str:
         return hex(data)
     else:
         return str(data)
-
-
-
 
 
 def UnsymbolizeOperand(ok: a64.OK, op: str) -> int:
