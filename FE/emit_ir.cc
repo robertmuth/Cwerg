@@ -98,7 +98,22 @@ int main(int argc, const char* argv[]) {
   ValidateAST(mp.mods_in_topo_order, COMPILE_STAGE::AFTER_TYPIFY);
   //
   DecorateASTWithPartialEvaluation(mp.mods_in_topo_order);
+  for (Node mod : mp.mods_in_topo_order) {
+    RemoveNodesOfType(mod, NT::StmtStaticAssert);
+  }
+  SanityCheckMods("after_partisal_eval", mp.mods_in_topo_order,
+                  eliminated_nodes, COMPILE_STAGE::AFTER_EVAL, &tc);
 
+  for (Node mod : mp.mods_in_topo_order) {
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      FunReplaceTypeOfAndTypeUnionDelta(fun);
+      if (fun.kind() != NT::DefFun) continue;
+    }
+  }
+  eliminated_nodes.insert(NT::TypeOf);
+  eliminated_nodes.insert(NT::TypeUnionDelta);
+
+  //
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files
               << " lines=" << LexerRaw::stats.num_lines

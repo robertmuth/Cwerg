@@ -10,7 +10,7 @@ enum class COMPILE_STAGE : uint8_t {
   AFTER_PARSING,
   AFTER_SYMBOLIZE,
   AFTER_TYPIFY,
-  AfterEval,
+  AFTER_EVAL,
 };
 
 extern void ValidateAST(const std::vector<Node>& mods, COMPILE_STAGE stage);
