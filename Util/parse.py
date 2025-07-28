@@ -210,10 +210,7 @@ def ParseUint64(s) -> Optional[int]:
         return None
 
 
-def Flt64ToBits(num: float) -> int:
-    b = struct.pack('<d', num)
-    assert len(b) == 8
-    return int.from_bytes(b, "little")
+
 
 
 
