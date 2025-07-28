@@ -404,37 +404,42 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     cwast.VisitAstRecursivelyPost(fun, visit)
 
 
-def _ConvertIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
-                  tc: type_corpus.TypeCorpus, srcloc):
-    container_type: cwast.CanonType = node.container.x_type
+def _ConvertExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
+                      tc: type_corpus.TypeCorpus):
+    # TODO: handle unchecked case
+    sl = node.x_srcloc
+    container_ct: cwast.CanonType = node.container.x_type
     bound = None
     mut = False
-    if container_type.is_vec():
-        bound = eval.EvalNum(container_type.dim,
-                             tc.get_uint_canon_type().base_type_kind)
+    if container_ct.is_vec():
         mut = type_corpus.IsProperLhs(node.container)
+        bound = cwast.ValNum(str(container_ct.dim), x_srcloc=sl,
+                             x_type=uint_type, x_value=eval.EvalNum(container_ct.dim, uint_type.base_type_kind))
     else:
-        assert container_type.is_span()
-        mut = container_type.is_mutable()
+        assert container_ct.is_span()
+        mut = container_ct.is_mutable()
+        # TODO: double eval of container
+        # cdassert isinstance(node.container, cwast.Id), f"{node.container} {sl}"
+        bound = cwast.ExprLen(cwast.CloneNodeRecursively(
+            node.container, {}, {}), x_srcloc=sl, x_type=uint_type)
     ptr_ct = tc.InsertPtrType(
-        mut, container_type.underlying_type())
-    bound = cwast.ExprLen(cwast.CloneNodeRecursively(
-        node.container, {}, {}), x_srcloc=srcloc, x_type=uint_type, x_value=bound)
+        mut, container_ct.underlying_type())
+
     start_addr = cwast.ExprFront(
-        node.container, x_srcloc=srcloc, x_type=ptr_ct, mut=mut)
+        node.container, x_srcloc=sl, x_type=ptr_ct, mut=mut)
     elem_addr = cwast.ExprPointer(
-        cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=srcloc, x_type=start_addr.x_type)
-    return cwast.ExprDeref(elem_addr, x_srcloc=srcloc,
+        cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=sl, x_type=start_addr.x_type)
+    return cwast.ExprDeref(elem_addr, x_srcloc=sl,
                            x_type=node.x_type, x_value=node.x_value)
 
 
 def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
-    uint_type = tc.get_uint_canon_type()
+    uint_ct: tc.CanonType = tc.get_uint_canon_type()
 
     def replacer(node, _parent):
-        nonlocal tc, uint_type
+        nonlocal tc, uint_ct
         if isinstance(node, cwast.ExprIndex):
-            return _ConvertIndex(node, uint_type, tc, node.x_srcloc)
+            return _ConvertExprIndex(node, uint_ct, tc)
 
         return None
 

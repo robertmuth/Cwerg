@@ -2583,6 +2583,8 @@ class DefType:
 
     A `wrapped` gives the underlying type a new name that is not type compatible.
     To convert between the two use an `as` cast expression.
+
+    Note, unions cannot be wrapped.
     """
     ALIAS: ClassVar = "type"
     GROUP: ClassVar = GROUP.Statement

@@ -1178,9 +1178,7 @@ def main() -> int:
 
     logger.info("Legalize 1")
 
-    mod_gen = cwast.DefMod(cwast.NAME.Make("GeNeRaTeD"),
-                           [], [], x_srcloc=cwast.SRCLOC_GENERATED)
-    mod_gen.x_symtab = symbolize.SymTab()
+
 
     # for key, val in fun_sigs_with_large_args.items():
     #    print (key.name, " -> ", val.name)
@@ -1232,7 +1230,10 @@ def main() -> int:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):
                 optimize.FunOptimize(fun)
-
+    mod_gen = cwast.DefMod(cwast.NAME.Make("GeNeRaTeD"),
+                           [], [], x_srcloc=cwast.SRCLOC_GENERATED)
+    # the checker neeeds a symtab
+    mod_gen.x_symtab = symbolize.SymTab()
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
     canonicalize_span.MakeAndRegisterSpanTypeReplacements(mod_gen, tc)
