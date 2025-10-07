@@ -279,7 +279,7 @@ class GlobalConstantPool:
 
         return None
 
-    def PopulateConstantPool(self, node):
+    def EliminateValStringAndValCompoundOutsideOfDefGlobal(self, node):
         # if we relace a node we do not need to recurse into the subtree
         cwast.MaybeReplaceAstRecursively(node, self._maybe_replace)
 

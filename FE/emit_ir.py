@@ -1033,9 +1033,13 @@ def EmitIRDefFun(node: cwast.DefFun, ta: type_corpus.TargetArchConfig, id_gen: i
             EmitIRStmt(c, None, ta, id_gen)
 
 
+_GENERATED_MODULE_NAME = "GeNeRaTeD"
+
+
 def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
                     mods: list[cwast.DefMod], tc: Optional[type_corpus.TypeCorpus],
                     eliminated_node_types):
+
     logger.info(phase_name)
     if args.emit_stats == phase_name:
         node_histo = stats.ComputeNodeHistogram(mods)
@@ -1090,6 +1094,81 @@ _ARCH_MAP = {
 }
 
 
+def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
+    # for key, val in fun_sigs_with_large_args.items():
+    #    print (key.name, " -> ", val.name)
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            canonicalize.FunReplaceTypeOfAndTypeUnionDelta(fun)  # maybe Mod...
+            canonicalize.FunReplaceExprIndex(fun, tc)
+            canonicalize.ReplaceConstExpr(fun, tc)
+            canonicalize.MakeImplicitConversionsExplicit(fun, tc)
+            canonicalize.EliminateComparisonConversionsForTaggedUnions(fun)
+            canonicalize_span.ReplaceExplicitSpanCast(fun, tc)
+
+            if not isinstance(fun, cwast.DefFun):
+                continue
+            # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
+            canonicalize_union.SimplifyTaggedExprNarrow(fun, tc)
+            canonicalize.FunReplaceExprIs(fun, tc)
+            canonicalize.FunEliminateDefer(fun)
+            typify.RemoveUselessCast(fun, tc)
+
+
+def PhaseEarlyCleanupAndOptimization(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
+    for mod in mod_topo_order:
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefFun) and not node.extern:
+                canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
+                    node, tc)
+                canonicalize.FunCanonicalizeTernaryOp(node)
+                canonicalize.FunOptimizeKnownConditionals(node)
+                canonicalize.FunAddMissingReturnStmts(node)
+
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if isinstance(fun, cwast.DefFun):
+                optimize.FunOptimize(fun)
+
+
+def PhaseEliminateSpanAndUnion(mod_gen: cwast.DefMod, mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
+    canonicalize_span.MakeAndRegisterSpanTypeReplacements(mod_gen, tc)
+    for mod in ([mod_gen] + mod_topo_order):
+        canonicalize_span.ReplaceSpans(mod)
+    canonicalize_union.MakeAndRegisterUnionTypeReplacements(mod_gen, tc)
+    for mod in ([mod_gen] + mod_topo_order):
+        canonicalize_union.ReplaceUnions(mod)
+
+
+def PhaseEliminateLargeArgs(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
+    fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
+        tc)
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if not isinstance(fun, cwast.DefFun):
+                continue
+            canonicalize_large_args.FunRewriteLargeArgsCallerSide(
+                fun, fun_sigs_with_large_args, tc)
+            if fun.x_type in fun_sigs_with_large_args:
+                canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
+                    fun, fun_sigs_with_large_args[fun.x_type], tc)
+
+
+def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if not isinstance(fun, cwast.DefFun):
+                continue
+            canonicalize.FunCanonicalizeCompoundAssignments(fun)
+            canonicalize.FunCanonicalizeRemoveStmtCond(fun)
+            canonicalize.FunRewriteComplexAssignments(fun, tc)
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if isinstance(fun, cwast.DefFun):
+                # Note, the inlining inside FunOptimize will invalidate id_gen
+                optimize.FunOptimize(fun)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument("-shake_tree",
@@ -1138,23 +1217,25 @@ def main() -> int:
         canonicalize.FunRemoveParentheses(mod)
     eliminated_nodes.add(cwast.ExprParen)  # this needs more work
 
+    #
     logger.info("Expand macros and link most IDs to their definition")
     macro.ExpandMacrosAndMacroLike(mod_topo_order)
-    eliminated_nodes.add(cwast.MacroInvoke)
-    eliminated_nodes.add(cwast.MacroId)
-    eliminated_nodes.add(cwast.MacroFor)
-    eliminated_nodes.add(cwast.MacroParam)
-    eliminated_nodes.add(cwast.ExprSrcLoc)
-    eliminated_nodes.add(cwast.ExprStringify)
-    eliminated_nodes.add(cwast.EphemeralList)
-    eliminated_nodes.add(cwast.DefMacro)
+    eliminated_nodes.update([cwast.MacroInvoke,
+                             cwast.MacroId,
+                             cwast.MacroFor,
+                             cwast.MacroParam,
+                             cwast.ExprSrcLoc,
+                             cwast.ExprStringify,
+                             cwast.EphemeralList,
+                             cwast.DefMacro])
     symbolize.SetTargetFields(mod_topo_order)
+    # global symbols have already been resolved
     symbolize.ResolveSymbolsInsideFunctions(mod_topo_order, mp.builtin_symtab)
-
     # Before Typing we cannot set the symbol links for rec fields
     SanityCheckMods("after_symbolizing", checker.COMPILE_STAGE.AFTER_SYMBOLIZE,
                     args, mod_topo_order, None, eliminated_nodes)
 
+    #
     logger.info("Typify the nodes")
     ta: type_corpus.TargetArchConfig = _ARCH_MAP[args.arch]
     tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(ta)
@@ -1162,138 +1243,75 @@ def main() -> int:
     SanityCheckMods("after_typing", checker.COMPILE_STAGE.AFTER_TYPIFY, args, mod_topo_order, tc=tc,
                     eliminated_node_types=eliminated_nodes)
 
+    #
     if args.shake_tree:
         dead_code.ShakeTree(mod_topo_order, main_entry_fun)
 
+    #
     logger.info("partial eval and static assert validation")
     eval.DecorateASTWithPartialEvaluation(mod_topo_order)
-
     for mod in mod_topo_order:
         cwast.RemoveNodesOfType(mod, cwast.StmtStaticAssert)
-
     eliminated_nodes.add(cwast.StmtStaticAssert)
-
     SanityCheckMods("after_partial_eval", checker.COMPILE_STAGE.AFTER_EVAL, args,
                     mod_topo_order, tc, eliminated_nodes)
 
-    logger.info("Legalize 1")
-
-
-
-    # for key, val in fun_sigs_with_large_args.items():
-    #    print (key.name, " -> ", val.name)
-    for mod in mod_topo_order:
-        for fun in mod.body_mod:
-            canonicalize.FunReplaceTypeOfAndTypeUnionDelta(fun)  # maybe Mod...
-            canonicalize.FunReplaceExprIndex(fun, tc)
-            canonicalize.ReplaceConstExpr(fun, tc)
-            canonicalize.MakeImplicitConversionsExplicit(fun, tc)
-            canonicalize.EliminateComparisonConversionsForTaggedUnions(fun)
-            canonicalize_span.ReplaceExplicitSpanCast(fun, tc)
-
-            if not isinstance(fun, cwast.DefFun):
-                continue
-            # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
-            canonicalize_union.SimplifyTaggedExprNarrow(fun, tc)
-            canonicalize.FunReplaceExprIs(fun, tc)
-            canonicalize.FunEliminateDefer(fun)
-            typify.RemoveUselessCast(fun, tc)
-
-    eliminated_nodes.add(cwast.ExprSizeof)
-    eliminated_nodes.add(cwast.ExprOffsetof)
-    eliminated_nodes.add(cwast.ExprIndex)
-    eliminated_nodes.add(cwast.StmtDefer)
-    eliminated_nodes.add(cwast.ExprIs)
-    eliminated_nodes.add(cwast.TypeOf)
-    eliminated_nodes.add(cwast.TypeUnionDelta)
-
+    #
+    logger.info("phase: initial lowering")
+    PhaseInitialLowering(mod_topo_order, tc)
+    eliminated_nodes.update([cwast.ExprTypeId,
+                             cwast.ExprSizeof,
+                             cwast.ExprOffsetof,
+                             cwast.ExprIndex,
+                             cwast.StmtDefer,
+                             cwast.ExprIs,
+                             cwast.TypeOf,
+                             cwast.TypeUnionDelta])
     SanityCheckMods("after_initial_lowering", checker.COMPILE_STAGE.AFTER_DESUGAR,
                     args,
                     mod_topo_order, tc,  eliminated_nodes)
 
+    # This section coould probably happen AFTER the next phase
     constant_pool = eval.GlobalConstantPool()
-
-    logger.info("Legalize 2")
     for mod in mod_topo_order:
-        constant_pool.PopulateConstantPool(mod)
-        for node in mod.body_mod:
-            if isinstance(node, cwast.DefFun) and not node.extern:
-                canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
-                    node, tc)
-                canonicalize.FunCanonicalizeTernaryOp(node)
-                canonicalize.FunOptimizeKnownConditionals(node)
-                canonicalize.FunAddMissingReturnStmts(node)
-
-    eliminated_nodes.add(cwast.Expr3)
-
-    for mod in mod_topo_order:
-        for fun in mod.body_mod:
-            if isinstance(fun, cwast.DefFun):
-                optimize.FunOptimize(fun)
-    mod_gen = cwast.DefMod(cwast.NAME.Make("GeNeRaTeD"),
+        constant_pool.EliminateValStringAndValCompoundOutsideOfDefGlobal(mod)
+    mod_gen = cwast.DefMod(cwast.NAME.Make(_GENERATED_MODULE_NAME),
                            [], [], x_srcloc=cwast.SRCLOC_GENERATED)
-    # the checker neeeds a symtab
+    # the checker neeeds a symtab, so we add an empty one
     mod_gen.x_symtab = symbolize.SymTab()
     mod_gen.body_mod += constant_pool.GetDefGlobals()
 
-    canonicalize_span.MakeAndRegisterSpanTypeReplacements(mod_gen, tc)
-    for mod in ([mod_gen] + mod_topo_order):
-        canonicalize_span.ReplaceSpans(mod)
-    eliminated_nodes.add(cwast.ExprLen)
-    eliminated_nodes.add(cwast.ValSpan)
-    eliminated_nodes.add(cwast.TypeSpan)
+    #
+    logger.info("phase: early cleanup and optimization")
+    PhaseEarlyCleanupAndOptimization(mod_topo_order, tc)
+    eliminated_nodes.add(cwast.Expr3)
 
-    canonicalize_union.MakeAndRegisterUnionTypeReplacements(mod_gen, tc)
-    for mod in ([mod_gen] + mod_topo_order):
-        canonicalize_union.ReplaceUnions(mod)
-
-    eliminated_nodes.add(cwast.ExprUnionTag)
-    eliminated_nodes.add(cwast.ExprUnionUntagged)
-
-    SanityCheckMods("after_span_elimination", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
+    #
+    logger.info("phase: eliminate span and union")
+    PhaseEliminateSpanAndUnion(mod_gen, mod_topo_order, tc)
+    eliminated_nodes.update([cwast.ExprLen,
+                             cwast.ValSpan,
+                             cwast.TypeSpan,
+                             cwast.ExprUnionTag,
+                             cwast.ExprUnionUntagged])
+    SanityCheckMods("after_eliminate_span_and_union", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
                     [mod_gen] + mod_topo_order, tc, eliminated_nodes)
 
-    fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
-        tc)
-    for mod in mod_topo_order:
-        for fun in mod.body_mod:
-            if not isinstance(fun, cwast.DefFun):
-                continue
-            canonicalize_large_args.FunRewriteLargeArgsCallerSide(
-                fun, fun_sigs_with_large_args, tc)
-            if fun.x_type in fun_sigs_with_large_args:
-                canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
-                    fun, fun_sigs_with_large_args[fun.x_type], tc)
-
+    #
+    logger.info("phase: eliminate large args")
+    PhaseEliminateLargeArgs(mod_topo_order, tc)
     SanityCheckMods("after_large_arg_conversion", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
                     mod_topo_order, tc,  eliminated_nodes)
-    for mod in mod_topo_order:
-        for fun in mod.body_mod:
-            if not isinstance(fun, cwast.DefFun):
-                continue
-
-            canonicalize.FunCanonicalizeCompoundAssignments(fun)
-            canonicalize.FunCanonicalizeRemoveStmtCond(fun)
-            canonicalize.FunRewriteComplexAssignments(fun, tc)
-    eliminated_nodes.add(cwast.StmtCompoundAssignment)
-    eliminated_nodes.add(cwast.StmtCond)
-    eliminated_nodes.add(cwast.Case)
-    eliminated_nodes.add(cwast.ExprTypeId)
-
-    for mod in mod_topo_order:
-        for fun in mod.body_mod:
-            if isinstance(fun, cwast.DefFun):
-                # Note, the inlining inside FunOptimize will invalidate id_gen
-                optimize.FunOptimize(fun)
-
-    for node in cwast.ALL_NODES:
-        if cwast.NF.NON_CORE in node.FLAGS:
-            assert node in eliminated_nodes, f"node: {
-                node} must be eliminated before codegen"
-
+    #
+    logger.info("phase: legalize")
+    PhaseLegalize(mod_topo_order, tc)
+    eliminated_nodes.update([cwast.StmtCompoundAssignment,
+                             cwast.StmtCond,
+                             cwast.Case])
     SanityCheckMods("after_canonicalization", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
                     [mod_gen] + mod_topo_order, tc, eliminated_nodes)
 
+    assert eliminated_nodes == cwast.ALL_NODES_NON_CORE
     mod_topo_order = [mod_gen] + mod_topo_order
 
     # Naming cleanup:

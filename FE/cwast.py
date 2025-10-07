@@ -758,6 +758,7 @@ def _FLAGS(node):
 NODES_ALIASES = {}
 
 ALL_NODES = set()
+ALL_NODES_NON_CORE = set()
 
 
 def _CheckNodeFieldOrder(cls):
@@ -806,6 +807,9 @@ def NodeCommon(cls: Any):
     _CheckNodeFieldOrder(cls)
 
     ALL_NODES.add(cls)
+    if NF.NON_CORE in cls.FLAGS:
+        ALL_NODES_NON_CORE.add(cls)
+
     NODES_ALIASES[cls.__name__] = cls
 
     if cls.ALIAS is not None:
