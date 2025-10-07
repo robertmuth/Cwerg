@@ -404,36 +404,39 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     cwast.VisitAstRecursivelyPost(fun, visit)
 
 
+def _CovertExprIndexToPointerArithmetic(container: cwast.Id, expr_index, bound, mut: bool,
+                                        sl, x_value, tc: type_corpus.TypeCorpus):
+    elem_ct = container.x_type.underlying_type()
+    ptr_ct = tc.InsertPtrType(mut, elem_ct)
+    start_addr = cwast.ExprFront(
+        container, x_srcloc=sl, x_type=ptr_ct, mut=mut)
+    elem_addr = cwast.ExprPointer(
+        cwast.POINTER_EXPR_KIND.INCP, start_addr, expr_index, bound,  x_srcloc=sl, x_type=start_addr.x_type)
+    return cwast.ExprDeref(elem_addr, x_srcloc=sl, x_type=elem_ct, x_value=x_value)
+
+
 def _ConvertExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
                       tc: type_corpus.TypeCorpus):
     # TODO: handle unchecked case
-    sl = node.x_srcloc
     container_ct: cwast.CanonType = node.container.x_type
-    bound = None
-    mut = False
+    sl = node.x_srcloc
     if container_ct.is_vec():
         mut = type_corpus.IsProperLhs(node.container)
         bound = cwast.ValNum(str(container_ct.dim), x_srcloc=sl,
                              x_type=uint_type, x_value=eval.EvalNum(container_ct.dim, uint_type.base_type_kind))
+        return _CovertExprIndexToPointerArithmetic(node.container, node.expr_index, bound, mut, sl, node.x_value, tc)
     else:
         assert container_ct.is_span()
         mut = container_ct.is_mutable()
         # TODO: double eval of container
-        # cdassert isinstance(node.container, cwast.Id), f"{node.container} {sl}"
+        # assert isinstance(node.container, cwast.Id), f"{node.container} {sl}"
         bound = cwast.ExprLen(cwast.CloneNodeRecursively(
             node.container, {}, {}), x_srcloc=sl, x_type=uint_type)
-    ptr_ct = tc.InsertPtrType(
-        mut, container_ct.underlying_type())
-
-    start_addr = cwast.ExprFront(
-        node.container, x_srcloc=sl, x_type=ptr_ct, mut=mut)
-    elem_addr = cwast.ExprPointer(
-        cwast.POINTER_EXPR_KIND.INCP, start_addr, node.expr_index, bound,  x_srcloc=sl, x_type=start_addr.x_type)
-    return cwast.ExprDeref(elem_addr, x_srcloc=sl,
-                           x_type=node.x_type, x_value=node.x_value)
+        return _CovertExprIndexToPointerArithmetic(node.container, node.expr_index, bound, mut, sl, node.x_value, tc)
 
 
 def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+    """convert index expr into pointer arithmetic"""
     uint_ct: tc.CanonType = tc.get_uint_canon_type()
 
     def replacer(node, _parent):

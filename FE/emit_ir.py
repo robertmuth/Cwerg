@@ -1235,10 +1235,11 @@ def main() -> int:
     SanityCheckMods("after_symbolizing", checker.COMPILE_STAGE.AFTER_SYMBOLIZE,
                     args, mod_topo_order, None, eliminated_nodes)
 
-    #
-    logger.info("Typify the nodes")
     ta: type_corpus.TargetArchConfig = _ARCH_MAP[args.arch]
     tc: type_corpus.TypeCorpus = type_corpus.TypeCorpus(ta)
+
+    #
+    logger.info("Typify the nodes")
     typify.AddTypesToAst(mod_topo_order, tc)
     SanityCheckMods("after_typing", checker.COMPILE_STAGE.AFTER_TYPIFY, args, mod_topo_order, tc=tc,
                     eliminated_node_types=eliminated_nodes)
