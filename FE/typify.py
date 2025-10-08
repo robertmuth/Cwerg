@@ -42,24 +42,6 @@ from FE import canonicalize
 logger = logging.getLogger(__name__)
 
 
-def is_ref_def(node) -> bool:
-    if isinstance(node, cwast.Id):
-        s = node.x_symbol
-        return (isinstance(s, cwast.DefGlobal) or isinstance(s, cwast.DefVar)) and s.ref
-    return False
-
-
-def AddressCanBeTaken(node) -> bool:
-    # handle ExprNarrow
-    return (is_ref_def(node) or
-            isinstance(node, cwast.ExprField) or
-            isinstance(node, cwast.ExprDeref) or
-            isinstance(node, cwast.ExprIndex) and
-            node.container.x_type.is_span() or
-            isinstance(node, cwast.ExprIndex) and
-            AddressCanBeTaken(node.container))
-
-
 def _NumCleanupAndTypeExtraction(num: str, target_kind: cwast.BASE_TYPE_KIND) -> tuple[str, cwast.BASE_TYPE_KIND]:
     suffix = ""
     if num in ("true", "false"):
@@ -800,7 +782,7 @@ def _CheckExprAddrOf(node: cwast.ExprAddrOf, _):
     if node.mut:
         if not type_corpus.IsProperLhs(lhs):
             cwast.CompilerError(node.x_srcloc, f"not mutable: {lhs}")
-    if not AddressCanBeTaken(lhs):
+    if not symbolize.AddressCanBeTaken(lhs):
         cwast.CompilerError(
             node.x_srcloc, f"address cannot be taken: {node} {lhs_ct}")
     _CheckUnderlyingTypeIs(node, lhs_ct)

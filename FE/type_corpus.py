@@ -152,6 +152,9 @@ def IsProperLhs(node) -> bool:
             return IsProperLhs(node.container)
     elif isinstance(node, cwast.ExprNarrow):
         return IsProperLhs(node.expr)
+    elif isinstance(node, cwast.ExprStmt):
+        # TODO: this needs better checking of the relevant StmtReturn inside ExprStmt
+        return True
     else:
         return False
 

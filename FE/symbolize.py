@@ -104,7 +104,6 @@ def _ResolveSymbolInsideFunction(node: cwast.Id, symtab: SymTab, builtin_syms: S
             AnnotateNodeSymbol(node, def_node)
             return
 
-
     cwast.CompilerError(
         node.x_srcloc, f"cannot resolve symbol for {node}")
 
@@ -239,30 +238,39 @@ def ResolveGlobalAndImportedSymbolsOutsideFunctionsAndMacros(mod_topo_order: Seq
                     node, symtab, builtin_symtab, True)
 
 
-def _CheckAddressCanBeTaken(lhs):
+def AddressCanBeTaken(lhs) -> bool:
+    # handle ExprNarrow
     if isinstance(lhs, cwast.Id):
         node_def = lhs.x_symbol
         if isinstance(node_def, cwast.DefGlobal):
-            pass
-        elif isinstance(node_def, cwast.DefVar):
-            if not node_def.ref:
-                cwast.CompilerError(
-                    lhs.x_srcloc, f"in {lhs.x_srcloc} expect ref flag for {node_def}")
-        else:
-            cwast.CompilerError(
-                lhs.x_srcloc, f"expect DefVar node for lhs {node_def}")
-    elif isinstance(lhs, cwast.ExprIndex):
-        _CheckAddressCanBeTaken(lhs.container)
+            return True
+        elif isinstance(node_def, cwast.DefVar) and node_def.ref:
+            return True
+        return False
     elif isinstance(lhs, cwast.ExprDeref):
-        pass
+        return True
     elif isinstance(lhs, cwast.ExprField):
         if isinstance(lhs.container, cwast.ExprDeref):
             # somebody has taken the address already, otherwise
             # we could not dereference
             return True
-        _CheckAddressCanBeTaken(lhs.container)
+        return AddressCanBeTaken(lhs.container)
+    elif isinstance(lhs, cwast.ExprIndex):
+        if lhs.container.x_type.is_span():
+            return True
+        return AddressCanBeTaken(lhs.container)
+
+    elif isinstance(lhs, cwast.ExprStmt):
+        # TODO: needs more checking inside ExprStmt
+        return True
     else:
-        assert False, f"{lhs}"
+        return False
+
+
+def _CheckAddressCanBeTaken(lhs):
+    if not AddressCanBeTaken(lhs):
+        cwast.CompilerError(
+            lhs.x_srcloc, f"in {lhs.x_srcloc} cannot take address of {lhs}")
 
 
 def VerifySymbols(node):

@@ -472,7 +472,7 @@ NODES_EXPR_T = Union[NODES_VAL_T,
                      "ExprStringify",
                      "ExprUnionTag", "ExprUnionUntagged",
                      "ExprIs", "ExprAs", "ExprWrap", "ExprUnwrap", "ExprNarrow",
-                     "ExprWiden", "ExprBitCast"]
+                     "ExprWiden", "ExprBitCast", "ExprStmt"]
 
 NODES_EXPR_OR_AUTO_T = Union[NODES_EXPR_T, "ValAuto"]
 
@@ -488,7 +488,7 @@ NODES_COND_T = Union["Id", "ExprDeref", "ExprIndex", "ValNum",
                      "Expr1", "Expr2", "Expr3",
                      "ExprStmt", "ExprIs", "ExprNarrow"]
 
-NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "ExprParen"]
+NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "ExprParen", "ExprStmt"]
 
 NODES_SYMBOLS_T = Union["DefEnum", "EnumVal", "DefType", "DefVar", "DefGlobal", "DefFun",
                         "FunParam", "ModParam",
