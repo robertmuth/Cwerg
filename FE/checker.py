@@ -139,11 +139,12 @@ def CheckAST(node_mod: cwast.DefMod, disallowed_nodes, allow_type_auto=False, pr
         elif isinstance(node, cwast.DefMod):
             if not pre_symbolize:
                 assert node.x_symtab, f"missing x_symtab {node}"
+        #
         if nfd is not None:
             if not _IsPermittedNode(node, nfd.node_type, parent, toplevel_node,
                                     node_mod,
                                     allow_type_auto):
                 cwast.CompilerError(
-                    node.x_srcloc, f"unexpected node for field={nfd.name}: {node.__class__.__name__}")
+                    node.x_srcloc, f"unexpected node for field={nfd.name} node={node.__class__.__name__} parent={parent}")
 
     _VisitAstRecursivelyWithParentAndField(node_mod, visitor, None)

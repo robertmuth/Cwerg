@@ -259,10 +259,6 @@ def AddressCanBeTaken(lhs) -> bool:
         if lhs.container.x_type.is_span():
             return True
         return AddressCanBeTaken(lhs.container)
-
-    elif isinstance(lhs, cwast.ExprStmt):
-        # TODO: needs more checking inside ExprStmt
-        return True
     else:
         return False
 
