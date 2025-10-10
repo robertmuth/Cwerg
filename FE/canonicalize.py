@@ -214,6 +214,8 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
         lhs.container = MakeNodeCopyableWithoutRiskOfSideEffects(
             lhs.container, stmts, is_lhs)
         return lhs
+    elif isinstance(lhs, cwast.ExprIndex):
+        assert False, "this should have been eliminated by FunReplaceExprIndex()"
     else:
         # note we do not need to deal with  cwast.ExprIndex because that has been lowered
         # much earlier to a cwast.ExprDeref
@@ -404,35 +406,38 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     cwast.VisitAstRecursivelyPost(fun, visit)
 
 
-def _CovertExprIndexToPointerArithmetic(container: cwast.Id, expr_index, bound, mut: bool,
-                                        sl, elem_ct, tc: type_corpus.TypeCorpus):
+def _CovertExprIndexToExprPoiner(container: cwast.Id, expr_index, bound, mut: bool,
+                                 sl, elem_ct, tc: type_corpus.TypeCorpus):
     ptr_ct = tc.InsertPtrType(mut, elem_ct)
     start_addr = cwast.ExprFront(
         container, x_srcloc=sl, x_type=ptr_ct, mut=mut)
     return cwast.ExprPointer(
-        cwast.POINTER_EXPR_KIND.INCP, start_addr, expr_index, bound,  x_srcloc=sl, x_type=start_addr.x_type)
+        cwast.POINTER_EXPR_KIND.INCP, start_addr, expr_index, bound,  x_srcloc=sl, x_type=ptr_ct)
 
 
-def _ConvertExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
-                      tc: type_corpus.TypeCorpus):
+def _RewriteExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
+                      tc: type_corpus.TypeCorpus) -> Any:
     # TODO: handle unchecked case
     container_ct: cwast.CanonType = node.container.x_type
     elem_ct = container_ct.underlying_type()
     sl = node.x_srcloc
     if container_ct.is_vec():
         mut = type_corpus.IsProperLhs(node.container)
+        dim_eval = eval.EvalNum(container_ct.dim, uint_type.base_type_kind)
         bound = cwast.ValNum(str(container_ct.dim), x_srcloc=sl,
-                             x_type=uint_type, x_value=eval.EvalNum(container_ct.dim, uint_type.base_type_kind))
-        return cwast.ExprDeref(_CovertExprIndexToPointerArithmetic(node.container, node.expr_index, bound, mut, sl, elem_ct, tc),
-                               x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
+                             x_type=uint_type, x_value=dim_eval)
+        pinc = _CovertExprIndexToExprPoiner(
+            node.container, node.expr_index, bound, mut, sl, elem_ct, tc)
+        return cwast.ExprDeref(pinc,  x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
     else:
         assert container_ct.is_span()
         mut = container_ct.is_mutable()
         if isinstance(node.container, cwast.Id):
             bound: Any = cwast.ExprLen(cwast.CloneNodeRecursively(
                 node.container, {}, {}), x_srcloc=sl, x_type=uint_type)
-            return cwast.ExprDeref(_CovertExprIndexToPointerArithmetic(node.container, node.expr_index, bound, mut, sl, elem_ct, tc),
-                                   x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
+            pinc = _CovertExprIndexToExprPoiner(
+                node.container, node.expr_index, bound, mut, sl, elem_ct, tc)
+            return cwast.ExprDeref(pinc, x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
         else:
             # we materialize the container to avoid evaluating it twice
             at = cwast.TypeAuto(x_srcloc=sl, x_type=node.container.x_type)
@@ -440,11 +445,11 @@ def _ConvertExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
                                    x_srcloc=sl, x_type=at.x_type)
             bound: Any = cwast.ExprLen(_IdNodeFromDef(
                 new_var, sl), x_srcloc=sl, x_type=uint_type)
-            pointer_math: Any = _CovertExprIndexToPointerArithmetic(_IdNodeFromDef(
+            pinc = _CovertExprIndexToExprPoiner(_IdNodeFromDef(
                 new_var, sl), node.expr_index, bound, mut, sl, elem_ct, tc)
-            expr = cwast.ExprStmt([], sl, pointer_math.x_type)
+            expr = cwast.ExprStmt([], sl, pinc.x_type)
             expr.body = [new_var,  cwast.StmtReturn(
-                pointer_math, x_srcloc=sl, x_target=expr)]
+                pinc, x_srcloc=sl, x_target=expr)]
             return cwast.ExprDeref(expr, x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
 
 
@@ -455,7 +460,7 @@ def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     def replacer(node, _parent):
         nonlocal tc, uint_ct
         if isinstance(node, cwast.ExprIndex):
-            return _ConvertExprIndex(node, uint_ct, tc)
+            return _RewriteExprIndex(node, uint_ct, tc)
 
         return None
 
