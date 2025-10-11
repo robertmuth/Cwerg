@@ -1,5 +1,11 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
+//
+// Expressions that can be (partiatally) evaluated at compile time are annotated
+// with a Const (handle). The encoding is quite complex and consists of a kind
+// (CONST_KIND) and a value. Short values are directly encoded the handle. For
+// details see the implementation of: std::ostream& operator<<(std::ostream& os,
+// Const c)
 #include <vector>
 
 #include "FE/cwast_gen.h"
@@ -106,17 +112,10 @@ inline Const ConstNewR64(double val) {
                CONST_KIND::R64);
 }
 
-template <typename T>
-Const ConstNew(T val, BASE_TYPE_KIND kind);
+extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
+extern Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt);
+inline Const ConstNewReal(double val, BASE_TYPE_KIND bt) {
 
-template <>
-inline Const ConstNew(long int val, BASE_TYPE_KIND bt);
-
-template <>
-inline Const ConstNew(uint64_t val, BASE_TYPE_KIND bt);
-
-template <>
-inline Const ConstNew(double val, BASE_TYPE_KIND bt) {
   if (bt == BASE_TYPE_KIND::R32) return ConstNewR32(val);
   ASSERT(bt == BASE_TYPE_KIND::R64, "");
   return ConstNewR64(val);
@@ -135,6 +134,7 @@ inline Const ConstNewFunAddr(Node sym) {
                CONST_KIND::FUN_ADDR);
 }
 
+// represents the value of arrays and recs
 inline Const ConstNewCompound(EvalCompound compound) {
   return Const(
       ConstPool.Intern(std::string_view((char*)&compound, sizeof(compound))),

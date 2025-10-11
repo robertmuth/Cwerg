@@ -42,22 +42,22 @@ Const ParseNum(Node node) {
   if (num[0] == '\'') {
     auto val = ParseChar(num);
     if (!val) return kConstInvalid;
-    return ConstNew<uint64_t>(val.value(), target_kind);
+    return ConstNewUnsigned(val.value(), target_kind);
   }
 
   if (IsSint(target_kind)) {
     auto val = ParseInt<int64_t>(num);
     if (!val) return kConstInvalid;
-    return ConstNew<int64_t>(val.value(), target_kind);
+    return ConstNewSigned(val.value(), target_kind);
   } else if (IsUint(target_kind)) {
     auto val = ParseInt<uint64_t>(num);
     if (!val) return kConstInvalid;
-    return ConstNew<uint64_t>(val.value(), target_kind);
+    return ConstNewUnsigned(val.value(), target_kind);
   }
-  ASSERT(IsFlt(target_kind), "");
+  ASSERT(IsReal(target_kind), "");
   auto val = ParseFlt64(num);
   if (!val) return kConstInvalid;
-  return ConstNew<double>(val.value(), target_kind);
+  return ConstNewReal(val.value(), target_kind);
 }
 
 namespace {
@@ -108,11 +108,11 @@ void AssignValue(Node node, Const val) { Node_x_eval(node) = val; }
 
 Const GetDefaultForBaseType(BASE_TYPE_KIND bt) {
   if (IsUint(bt))
-    return ConstNew<uint64_t>(0, bt);
+    return ConstNewUnsigned(0, bt);
   else if (IsSint(bt))
-    return ConstNew<int64_t>(0, bt);
-  else if (IsFlt(bt))
-    return ConstNew<double>(0.0, bt);
+    return ConstNewSigned(0, bt);
+  else if (IsReal(bt))
+    return ConstNewReal(0.0, bt);
   else if (bt == BASE_TYPE_KIND::BOOL)
     return ConstNewBool(false);
   else {
@@ -157,7 +157,7 @@ Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
     size_t size = StringLiteralToBytes(StrData(Node_string(init_node)), buffer);
     CHECK(size != STRING_LITERAL_PARSE_ERROR, "");
     CHECK(index < size, "");
-    Const out = ConstNew<uint64_t>(uint8_t(buffer[index]), BASE_TYPE_KIND::U8);
+    Const out = ConstNewU8(uint8_t(buffer[index]));
     delete[] buffer;
     return out;
   }
@@ -222,16 +222,16 @@ Const EvalExpr1(UNARY_EXPR_KIND op, Const e, CanonType ct) {
         return ConstNewBool(!ConstGetUnsigned(e));
       } else {
         ASSERT(IsUint(bt), "");
-        return ConstNew<uint64_t>(~ConstGetUnsigned(e), bt);
+        return ConstNewUnsigned(~ConstGetUnsigned(e), bt);
       }
     case UNARY_EXPR_KIND::NEG:
       if (IsSint(bt)) {
-        return ConstNew<int64_t>(-ConstGetSigned(e), bt);
+        return ConstNewSigned(-ConstGetSigned(e), bt);
       } else if (IsUint(bt)) {
-        return ConstNew<uint64_t>(-ConstGetUnsigned(e), bt);
+        return ConstNewUnsigned(-ConstGetUnsigned(e), bt);
       } else {
-        ASSERT(IsFlt(bt), "");
-        return ConstNew<double>(-ConstGetFloat(e), bt);
+        ASSERT(IsReal(bt), "");
+        return ConstNewReal(-ConstGetFloat(e), bt);
       }
     default:
       ASSERT(false, "UNREACHABLE");
@@ -239,8 +239,8 @@ Const EvalExpr1(UNARY_EXPR_KIND op, Const e, CanonType ct) {
   }
 }
 
-template <typename T>
-Const Combine(BINARY_EXPR_KIND op, T e1, T e2, BASE_TYPE_KIND bt) {
+Const CombineSigned(BINARY_EXPR_KIND op, int64_t e1, int64_t e2,
+                    BASE_TYPE_KIND bt) {
   switch (op) {
     case BINARY_EXPR_KIND::EQ:
       return ConstNewBool(e1 == e2);
@@ -255,33 +255,77 @@ Const Combine(BINARY_EXPR_KIND op, T e1, T e2, BASE_TYPE_KIND bt) {
     case BINARY_EXPR_KIND::GE:
       return ConstNewBool(e1 >= e2);
     case BINARY_EXPR_KIND::ADD:
-      return ConstNew<T>(e1 + e2, bt);
+      return ConstNewSigned(e1 + e2, bt);
     case BINARY_EXPR_KIND::SUB:
-      return ConstNew<T>(e1 - e2, bt);
+      return ConstNewSigned(e1 - e2, bt);
     case BINARY_EXPR_KIND::MUL:
-      return ConstNew<T>(e1 * e2, bt);
+      return ConstNewSigned(e1 * e2, bt);
     case BINARY_EXPR_KIND::DIV:
-      return ConstNew<T>(e1 / e2, bt);
+      return ConstNewSigned(e1 / e2, bt);
     case BINARY_EXPR_KIND::MOD:
-      return ConstNew<T>(e1 % e2, bt);
+      return ConstNewSigned(e1 % e2, bt);
+
     case BINARY_EXPR_KIND::SHL:
-      return ConstNew<T>(e1 << e2, bt);
+      return ConstNewSigned(e1 << e2, bt);
     case BINARY_EXPR_KIND::SHR:
-      return ConstNew<T>(e1 >> e2, bt);
+      return ConstNewSigned(e1 >> e2, bt);
+      // not supported for signed ints
+#if 0
     case BINARY_EXPR_KIND::AND:
-      return ConstNew<T>(e1 & e2, bt);
+      return ConstNewSigned(e1 & e2, bt);
     case BINARY_EXPR_KIND::OR:
-      return ConstNew<T>(e1 | e2, bt);
+      return ConstNewSigned(e1 | e2, bt);
     case BINARY_EXPR_KIND::XOR:
-      return ConstNew<T>(e1 ^ e2, bt);
+      return ConstNewSigned(e1 ^ e2, bt);
+#endif
     default:
       ASSERT(false, "UNREACHABLE");
       return kConstInvalid;
   }
 }
 
-template <>
-Const Combine<bool>(BINARY_EXPR_KIND op, bool e1, bool e2, BASE_TYPE_KIND bt) {
+Const CombineUnsigned(BINARY_EXPR_KIND op, uint64_t e1, uint64_t e2,
+                      BASE_TYPE_KIND bt) {
+  switch (op) {
+    case BINARY_EXPR_KIND::EQ:
+      return ConstNewBool(e1 == e2);
+    case BINARY_EXPR_KIND::NE:
+      return ConstNewBool(e1 != e2);
+    case BINARY_EXPR_KIND::LT:
+      return ConstNewBool(e1 < e2);
+    case BINARY_EXPR_KIND::LE:
+      return ConstNewBool(e1 <= e2);
+    case BINARY_EXPR_KIND::GT:
+      return ConstNewBool(e1 > e2);
+    case BINARY_EXPR_KIND::GE:
+      return ConstNewBool(e1 >= e2);
+    case BINARY_EXPR_KIND::ADD:
+      return ConstNewUnsigned(e1 + e2, bt);
+    case BINARY_EXPR_KIND::SUB:
+      return ConstNewUnsigned(e1 - e2, bt);
+    case BINARY_EXPR_KIND::MUL:
+      return ConstNewUnsigned(e1 * e2, bt);
+    case BINARY_EXPR_KIND::DIV:
+      return ConstNewUnsigned(e1 / e2, bt);
+    case BINARY_EXPR_KIND::MOD:
+      return ConstNewUnsigned(e1 % e2, bt);
+    case BINARY_EXPR_KIND::SHL:
+      return ConstNewUnsigned(e1 << e2, bt);
+    case BINARY_EXPR_KIND::SHR:
+      return ConstNewUnsigned(e1 >> e2, bt);
+    case BINARY_EXPR_KIND::AND:
+      return ConstNewUnsigned(e1 & e2, bt);
+    case BINARY_EXPR_KIND::OR:
+      return ConstNewUnsigned(e1 | e2, bt);
+    case BINARY_EXPR_KIND::XOR:
+      return ConstNewUnsigned(e1 ^ e2, bt);
+    default:
+      ASSERT(false, "UNREACHABLE");
+      return kConstInvalid;
+  }
+}
+
+Const CombineBool(BINARY_EXPR_KIND op, bool e1, bool e2, BASE_TYPE_KIND bt) {
   ASSERT(bt == BASE_TYPE_KIND::BOOL, "");
   switch (op) {
     case BINARY_EXPR_KIND::EQ:
@@ -308,9 +352,8 @@ Const Combine<bool>(BINARY_EXPR_KIND op, bool e1, bool e2, BASE_TYPE_KIND bt) {
   }
 }
 
-template <>
-Const Combine<double>(BINARY_EXPR_KIND op, double e1, double e2,
-                      BASE_TYPE_KIND bt) {
+Const CombineReal(BINARY_EXPR_KIND op, double e1, double e2,
+                  BASE_TYPE_KIND bt) {
   switch (op) {
     case BINARY_EXPR_KIND::EQ:
       return ConstNewBool(e1 == e2);
@@ -325,13 +368,13 @@ Const Combine<double>(BINARY_EXPR_KIND op, double e1, double e2,
     case BINARY_EXPR_KIND::GE:
       return ConstNewBool(e1 >= e2);
     case BINARY_EXPR_KIND::ADD:
-      return ConstNew<double>(e1 + e2, bt);
+      return ConstNewReal(e1 + e2, bt);
     case BINARY_EXPR_KIND::SUB:
-      return ConstNew<double>(e1 - e2, bt);
+      return ConstNewReal(e1 - e2, bt);
     case BINARY_EXPR_KIND::MUL:
-      return ConstNew<double>(e1 * e2, bt);
+      return ConstNewReal(e1 * e2, bt);
     case BINARY_EXPR_KIND::DIV:
-      return ConstNew<double>(e1 / e2, bt);
+      return ConstNewReal(e1 / e2, bt);
     default:
       ASSERT(false, "UNREACHABLE");
       return kConstInvalid;
@@ -354,14 +397,13 @@ Const EvalExpr2(BINARY_EXPR_KIND op, Const e1, Const e2, CanonType ct,
 
   BASE_TYPE_KIND bt = CanonType_get_unwrapped_base_type_kind(ct_operand);
   if (IsSint(bt)) {
-    return Combine<int64_t>(op, ConstGetSigned(e1), ConstGetSigned(e2), bt);
+    return CombineSigned(op, ConstGetSigned(e1), ConstGetSigned(e2), bt);
   } else if (IsUint(bt)) {
-    return Combine<uint64_t>(op, ConstGetUnsigned(e1), ConstGetUnsigned(e2),
-                             bt);
-  } else if (IsFlt(bt)) {
-    return Combine<double>(op, ConstGetFloat(e1), ConstGetFloat(e2), bt);
+    return CombineUnsigned(op, ConstGetUnsigned(e1), ConstGetUnsigned(e2), bt);
+  } else if (IsReal(bt)) {
+    return CombineReal(op, ConstGetFloat(e1), ConstGetFloat(e2), bt);
   } else if (bt == BASE_TYPE_KIND::BOOL) {
-    return Combine<bool>(op, ConstGetUnsigned(e1), ConstGetUnsigned(e2), bt);
+    return CombineBool(op, ConstGetUnsigned(e1), ConstGetUnsigned(e2), bt);
   } else {
     ASSERT(false, "UNREACHABLE");
     return kConstInvalid;
@@ -510,7 +552,7 @@ Const EvalNode(Node node) {
       }
       return kConstInvalid;
     case NT::ExprTypeId:
-      return ConstNew<uint64_t>(
+      return ConstNewUnsigned(
           CanonType_get_original_typeid(Node_x_type(node)),
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
     case NT::ExprAs: {
@@ -557,13 +599,13 @@ Const EvalNode(Node node) {
       BASE_TYPE_KIND bt =
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
       if (CanonType_kind(Node_x_type(cont)) == NT::TypeVec) {
-        return ConstNew<uint64_t>(CanonType_dim(Node_x_type(cont)), bt);
+        return ConstNewUnsigned(CanonType_dim(Node_x_type(cont)), bt);
       } else {
         Const val_cont = Node_x_eval(cont);
         ASSERT(CanonType_kind(Node_x_type(cont)) == NT::TypeSpan,
                "unexpected " << Node_x_type(cont));
         if (!val_cont.isnull() && ConstGetSpan(val_cont).size != -1) {
-          return ConstNew<uint64_t>(ConstGetSpan(val_cont).size, bt);
+          return ConstNewUnsigned(ConstGetSpan(val_cont).size, bt);
         }
       }
       return kConstInvalid;
@@ -574,11 +616,11 @@ Const EvalNode(Node node) {
       }
       return kConstInvalid;
     case NT::ExprOffsetof:
-      return ConstNew<uint64_t>(
+      return ConstNewUnsigned(
           Node_x_offset(Node_x_symbol(Node_field(node))),
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
     case NT::ExprSizeof:
-      return ConstNew<uint64_t>(
+      return ConstNewUnsigned(
           CanonType_size(Node_x_type(Node_type(node))),
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
     case NT::ValSpan: {
@@ -609,12 +651,10 @@ Const EvalNode(Node node) {
         Node v = Node_value_or_auto(c);
         if (Node_kind(v) == NT::ValAuto) {
           if (val.isnull()) {
-            val = IsSint(bt) ? ConstNew<int64_t>(0, bt)
-                             : ConstNew<uint64_t>(0, bt);
+            val = IsSint(bt) ? ConstNewSigned(0, bt) : ConstNewUnsigned(0, bt);
           } else {
-            val = IsSint(bt)
-                      ? ConstNew<int64_t>(ConstGetSigned(val) + 1, bt)
-                      : ConstNew<uint64_t>(ConstGetUnsigned(val) + 1, bt);
+            val = IsSint(bt) ? ConstNewSigned(ConstGetSigned(val) + 1, bt)
+                             : ConstNewUnsigned(ConstGetUnsigned(val) + 1, bt);
           }
         } else {
           val = Node_x_eval(v);
@@ -692,8 +732,7 @@ bool _EvalRecursively(Node mod) {
 
 }  // namespace
 
-template <>
-Const ConstNew(uint64_t val, BASE_TYPE_KIND bt) {
+Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt) {
   CONST_KIND kind = gBaseTypeToConstType[int(bt)];
   ASSERT(kind != CONST_KIND::INVALID,
          "bad base type kind " << EnumToString(bt));
@@ -717,8 +756,7 @@ Const ConstNew(uint64_t val, BASE_TYPE_KIND bt) {
   }
 }
 
-template <>
-Const ConstNew<int64_t>(int64_t val, BASE_TYPE_KIND bt) {
+Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt) {
   CONST_KIND kind = gBaseTypeToConstType[int(bt)];
   ASSERT(kind != CONST_KIND::INVALID, "");
   if (ValIsShortConstSigned(val)) {

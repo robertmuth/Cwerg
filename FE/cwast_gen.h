@@ -1043,7 +1043,7 @@ inline bool IsSint(BASE_TYPE_KIND x) {
   return BASE_TYPE_KIND::SINT <= x && x <= BASE_TYPE_KIND::S64;
 }
 
-inline bool IsFlt(BASE_TYPE_KIND x) {
+inline bool IsReal(BASE_TYPE_KIND x) {
   return BASE_TYPE_KIND::R32 <= x && x <= BASE_TYPE_KIND::R64;
 }
 
