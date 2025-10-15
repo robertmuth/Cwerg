@@ -56,6 +56,16 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
   }
 }
 
+void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order, TypeCorpus* tc) {
+  for (Node mod : mods_in_topo_order) {
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      FunReplaceTypeOfAndTypeUnionDelta(fun);
+      FunReplaceExprIndex(fun, tc);
+      if (fun.kind() != NT::DefFun) continue;
+    }
+  }
+}
+
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
   std::ios_base::sync_with_stdio(true);
@@ -104,12 +114,8 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_partisal_eval", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_EVAL, &tc);
 
-  for (Node mod : mp.mods_in_topo_order) {
-    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
-      FunReplaceTypeOfAndTypeUnionDelta(fun);
-      if (fun.kind() != NT::DefFun) continue;
-    }
-  }
+
+  PhaseInitialLowering(mp.mods_in_topo_order, &tc);
   eliminated_nodes.insert(NT::TypeOf);
   eliminated_nodes.insert(NT::TypeUnionDelta);
 
