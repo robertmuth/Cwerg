@@ -316,7 +316,8 @@ struct Candidate {
   Name name;
   Node mod;
 
-  // Note unlike python which uses a min heap, c++ uses a max heap so we invert the order
+  // Note unlike python which uses a min heap, c++ uses a max heap so we invert
+  // the order
   bool operator<(const Candidate& other) const { return other.name < name; }
 };
 
@@ -395,8 +396,8 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
       case NT::DefType:
       case NT::DefEnum: {
         Node id = NodeNew(NT::Id);
-        NodeInitId(id, Node_name(a), kNameInvalid, kStrInvalid, Node_srcloc(p));
-        Node_x_symbol(id) = a;
+        NodeInitId(id, Node_name(a), kNameInvalid, kStrInvalid, Node_srcloc(p),
+                   a, kCanonTypeInvalid);
         arg_map[Node_name(p)] = id;
         break;
       }

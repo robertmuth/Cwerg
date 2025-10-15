@@ -69,7 +69,8 @@ class MacroContext {
   void GenerateNewSymbol(Name name, const SrcLoc& srcloc) {
     Name new_name = id_gen_->NameNewNext(NameNew(NameData(name) + 1));
     Node id = NodeNew(NT::Id);
-    NodeInitId(id, new_name, kNameInvalid, kStrInvalid, srcloc);
+    NodeInitId(id, new_name, kNameInvalid, kStrInvalid, srcloc, kNodeInvalid,
+               kCanonTypeInvalid);
 
     RegisterSymbolWithOwnership(name, id);
   }
@@ -127,7 +128,7 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
         Node out = NodeNew(NT::DefVar);
         NodeInitDefVar(out, Node_name(new_name), type, initial,
                        Node_compressed_flags(node), kStrInvalid,
-                       Node_srcloc(node));
+                       Node_srcloc(node), kCanonTypeInvalid);
         return out;
       }
 
@@ -289,7 +290,7 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
         ss << "\"" << Node_srcloc(Node_expr(node)) << "\"";
         Node out = NodeNew(NT::ValString);
         NodeInitValString(out, StrNew(ss.str()), kStrInvalid,
-                          Node_srcloc(node));
+                          Node_srcloc(node), kCanonTypeInvalid);
         NodeFreeRecursively(node);
         return out;
       }
@@ -299,7 +300,7 @@ void ExpandMacrosAndMacroLikeRecursively(Node fun, int nesting, IdGen* id_gen) {
         ss << "\"" << EnumToString(Node_kind(Node_expr(node))) << "\"";
         Node out = NodeNew(NT::ValString);
         NodeInitValString(out, StrNew(ss.str()), kStrInvalid,
-                          Node_srcloc(node));
+                          Node_srcloc(node), kCanonTypeInvalid);
         NodeFreeRecursively(node);
         return out;
       }

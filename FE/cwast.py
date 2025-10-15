@@ -817,13 +817,17 @@ def NodeCommon(cls: Any):
     cls.FIELDS = []
     cls.ATTRS = []
     cls.NODE_FIELDS = []
+    cls.X_FIELD_NAMES = []
     for field, _ in cls.__annotations__.items():
         if field in ('ALIAS', 'GROUP', 'FLAGS'):
             continue
         if field.startswith("x_"):
+            cls.X_FIELD_NAMES.append(field)
             continue
+
         nfd: NFD = ALL_FIELDS_MAP[field]
         assert nfd.name == field
+
 
         kind = nfd.kind
         if kind is NFK.ATTR_BOOL or kind is NFK.ATTR_STR:
@@ -3440,9 +3444,19 @@ def GenerateInits():
             elif nfd.kind == NFK.KIND:
                 other_kind = nfd
                 nfds.append(nfd)
+        has_type = False
+        has_target = False
+        has_symbol = False
         for nfd in cls.ATTRS:
             if nfd.kind == NFK.ATTR_BOOL:
                 has_bits = True
+        for name in cls.X_FIELD_NAMES:
+            if name == "x_target":
+                has_target = True
+            elif name == "x_symbol":
+                has_symbol = True
+            elif name == "x_type":
+                has_type = True
 
         print(f"inline void NodeInit{cls.__name__}(Node node", end="")
         for nfd in nfds:
@@ -3458,6 +3472,12 @@ def GenerateInits():
         if has_bits:
             print(", uint16_t bits", end="")
         print(", Str doc, const SrcLoc& srcloc", end="")
+        if has_target:
+            print(", Node x_target", end="")
+        if has_symbol:
+            print(", Node x_symbol", end="")
+        if has_type:
+            print(", CanonType x_type", end="")
         print(") {")
         args = ["node", f"NT::{cls.__name__}"]
         for i in range(MAX_SLOTS):
@@ -3476,6 +3496,14 @@ def GenerateInits():
         args.append("doc")
         args.append("srcloc")
         print(f"    NodeInit({', '.join(args)});")
+        if has_target:
+            print(f"    Node_x_target(node) = x_target;")
+        if has_symbol:
+            print(f"    Node_x_symbol(node) = x_symbol;")
+        if has_type:
+            print(f"    Node_x_type(node) = x_type;")
+
+
         print("}\n")
 
 
