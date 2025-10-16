@@ -435,21 +435,23 @@ def _RewriteExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
         if isinstance(node.container, cwast.Id):
             bound: Any = cwast.ExprLen(cwast.CloneNodeRecursively(
                 node.container, {}, {}), x_srcloc=sl, x_type=uint_type)
+            # TODO
+            # Node_x_eval = ...
             pinc = _CovertExprIndexToExprPoiner(
                 node.container, node.expr_index, bound, mut, sl, elem_ct, tc)
             return cwast.ExprDeref(pinc, x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
         else:
             # we materialize the container to avoid evaluating it twice
-            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.container.x_type)
+            at = cwast.TypeAuto(x_srcloc=sl, x_type=container_ct)
             new_var = cwast.DefVar(cwast.NAME.Make("val_span_tmp"), at, node.container,
-                                   x_srcloc=sl, x_type=at.x_type)
+                                   x_srcloc=sl, x_type=container_ct)
             bound: Any = cwast.ExprLen(_IdNodeFromDef(
                 new_var, sl), x_srcloc=sl, x_type=uint_type)
             pinc = _CovertExprIndexToExprPoiner(_IdNodeFromDef(
                 new_var, sl), node.expr_index, bound, mut, sl, elem_ct, tc)
             expr = cwast.ExprStmt([], sl, pinc.x_type)
-            expr.body = [new_var,  cwast.StmtReturn(
-                pinc, x_srcloc=sl, x_target=expr)]
+            stmt_ret = cwast.StmtReturn(pinc, x_srcloc=sl, x_target=expr)
+            expr.body = [new_var, stmt_ret]
             return cwast.ExprDeref(expr, x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
 
 
@@ -468,7 +470,7 @@ def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
 
 
 # TODO: try converting this to VisitAstRecursivelyPreAndPost
-def _CanonicalizeDeferRecursively(node: cwast.DefFun, scopes: list[tuple[Any, list[Any]]]):
+def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]):
 
     if isinstance(node, cwast.StmtDefer):
         scopes[-1][1].append(node)

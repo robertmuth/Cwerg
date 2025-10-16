@@ -6,6 +6,13 @@
 #include "Util/parse.h"
 
 namespace cwerg::fe {
+Node IdNodeFromDef(Node def_var, const SrcLoc& sl) {
+  Node out = NodeNew(NT::Id);
+  NodeInitId(out, Node_name(def_var), kNameInvalid, kStrInvalid, sl, def_var,
+             Node_x_type(Node_initial_or_undef_or_auto(def_var)));
+  // TODO: set Node_eval
+  return out;
+}
 
 void FunRemoveParentheses(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
@@ -24,12 +31,14 @@ void FunReplaceTypeOfAndTypeUnionDelta(Node node) {
     if (Node_kind(node) == NT::TypeOf) {
       NodeFree(Node_expr(node));
       // Tricky: x_type stays unchanged
-      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node), Node_x_type(node));
+      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node),
+                       Node_x_type(node));
     } else if (Node_kind(node) == NT::TypeUnionDelta) {
       NodeFree(Node_type(node));
       NodeFree(Node_subtrahend(node));
       // Tricky: x_type stays unchanged
-      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node), Node_x_type(node));
+      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node),
+                       Node_x_type(node));
     }
   };
   VisitAstRecursivelyPost(node, visitor, kNodeInvalid);
@@ -83,7 +92,7 @@ Node RewriteExprIndex(Node node, CanonType uint_ct, TypeCorpus* tc) {
       // TODO
       // Node_x_eval = ...
       Node pinc = ConvertExprIndexToPointerArithmetic(
-          container, Node_expr(node), bound, mut, sl, elem_ct, tc);
+          container, Node_expr_index(node), bound, mut, sl, elem_ct, tc);
       Node deref = NodeNew(NT::ExprDeref);
       NodeInitExprDeref(deref, pinc, kStrInvalid, sl, elem_ct);
       Node_x_eval(deref) = Node_x_eval(node);
@@ -91,8 +100,28 @@ Node RewriteExprIndex(Node node, CanonType uint_ct, TypeCorpus* tc) {
       NodeFree(node);
       return deref;
     } else {
-      // TODO
-      return node;
+      // materialize the container to avoid evaluating it twice
+      Node at = NodeNew(NT::TypeAuto);
+      NodeInitTypeAuto(at, kStrInvalid, sl, container_ct);
+      Node new_var = NodeNew(NT::DefVar);
+      NodeInitDefVar(new_var, NameNew("val_span_tmp"), at, Node_container(node),
+                     0, kStrInvalid, sl, container_ct);
+      Node bound = NodeNew(NT::ExprLen);
+      NodeInitExprLen(bound, IdNodeFromDef(new_var, sl), kStrInvalid, sl,
+                      uint_ct);
+      Node pinc = ConvertExprIndexToPointerArithmetic(
+          IdNodeFromDef(new_var, sl), Node_expr_index(node), bound, mut, sl,
+          elem_ct, tc);
+      Node expr_stmt = NodeNew(NT::ExprStmt);
+      NodeInitExprStmt(expr_stmt, new_var, kStrInvalid, sl, Node_x_type(pinc));
+      Node stmt_ret = NodeNew(NT::StmtReturn);
+      NodeInitStmtReturn(stmt_ret, pinc, kStrInvalid, sl, expr_stmt);
+      Node_next(new_var) = stmt_ret;
+      Node deref = NodeNew(NT::ExprDeref);
+      NodeInitExprDeref(deref, expr_stmt, kStrInvalid, sl, elem_ct);
+      Node_x_eval(deref) = Node_x_eval(node);
+      NodeFree(node);
+      return deref;
     }
   }
 }
