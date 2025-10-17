@@ -373,6 +373,14 @@ inline std::ostream& operator<<(std::ostream& os, Str str) {
   return os;
 }
 
+enum class NFD_X_FIELD : uint8_t {
+    invalid = 0,
+    type = 1,
+    symbol = 2,
+    eval = 3,
+    target = 4,
+};
+
 // clang-format off
 /* @AUTOGEN-START@ */
 enum class NFD_NODE_FIELD : uint8_t {
@@ -1123,9 +1131,10 @@ inline bool IsShortCircuit(BINARY_EXPR_KIND x) {
 inline STR_KIND Node_str_kind(Node n) { return gNodeCore[n].str_kind; }
 
 struct NodeDesc {
-  uint64_t node_field_bits;
-  uint64_t string_field_bits;
-  uint32_t bool_field_bits;
+  uint64_t node_field_bits;    // which node fields are present
+  uint64_t string_field_bits;  // which string fields are present
+  uint32_t bool_field_bits;    // which flags are present
+  uint32_t x_field_bits;    // which x_fields are present
 };
 
 // For each NT described which fields (regular / bool) are present
@@ -1347,6 +1356,7 @@ inline Node GetWithDefault(const std::map<Node, Node>& m, Node node) {
 
 void RemoveNodesOfType(Node node, NT kind);
 
+// Clones gNodeCore, gNodeExtra, gNodeAuxTyping
 inline Node NodeCloneBasics(Node node) {
   Node clone = NodeNew(Node_kind(node));
   gNodeCore[clone] = gNodeCore[node];

@@ -815,8 +815,9 @@ def NodeCommon(cls: Any):
     if cls.ALIAS is not None:
         NODES_ALIASES[cls.ALIAS] = cls
     cls.FIELDS = []
-    cls.ATTRS = []
     cls.NODE_FIELDS = []
+    cls.STR_FIELDS = []
+    cls.ATTRS = []
     cls.X_FIELD_NAMES = []
     for field, _ in cls.__annotations__.items():
         if field in ('ALIAS', 'GROUP', 'FLAGS'):
@@ -836,6 +837,8 @@ def NodeCommon(cls: Any):
             cls.FIELDS.append(nfd)
             if kind is NFK.NODE or kind is NFK.LIST:
                 cls.NODE_FIELDS.append(nfd)
+            elif kind is NFK.NAME or kind is NFK.STR:
+                cls.STR_FIELDS.append(nfd)
     return cls
 
 ############################################################
@@ -3644,24 +3647,32 @@ def NodeAliasStringConversion(fout: Any):
     print("};", file=fout)
 
 
+_IMPORTANT_X_FIELDS = set(["x_eval", "x_target", "x_symbol", "x_type"])
+
 def EmitNodeDesc(fout: Any):
     print("const NodeDesc GlobalNodeDescs[] = {")
     print("    {}, // invalid")
 
     for cls in sorted(ALL_NODES, key=lambda n: n.__name__):
         node_fields = []
+        for nfd in cls.NODE_FIELDS:
+            node_fields.append(f"BIT_N({nfd.name})")
+
         string_fields = []
+        for nfd in cls.STR_FIELDS:
+            string_fields.append(f"BIT_S({nfd.name})")
+
         bool_fields = []
-        for nfd in cls.FIELDS:
-            k = nfd.kind
-            if k == NFK.NODE or k == NFK.LIST:
-                node_fields.append(f"BIT_N({nfd.name})")
-            if k == NFK.NAME or k == NFK.STR:
-                string_fields.append(f"BIT_S({nfd.name})")
         for nfd in cls.ATTRS:
             k = nfd.kind
             if k == NFK.ATTR_BOOL:
                 bool_fields.append(f"BIT_B({nfd.name.upper()})")
+
+        x_fields = []
+        for name in cls.X_FIELD_NAMES:
+            if name in _IMPORTANT_X_FIELDS:
+                x_fields.append(f"BIT_X({name[2:]})")
+
         if node_fields:
             node_fields = '| '.join(node_fields)
         else:
@@ -3677,8 +3688,12 @@ def EmitNodeDesc(fout: Any):
         else:
             bool_fields = "0"
 
+        if x_fields:
+            x_fields = '| '.join(x_fields)
+        else:
+            x_fields = "0"
         print(
-            f"    {{ {node_fields}, {string_fields}, {bool_fields} }}, // {cls.__name__}")
+            f"    {{ {node_fields}, {string_fields}, {bool_fields}, {x_fields} }}, // {cls.__name__}")
     print("};")
 
 
