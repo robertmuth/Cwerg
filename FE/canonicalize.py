@@ -325,26 +325,27 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def ReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
+def FunReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
     """
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
     def replacer(node, parent):
-        if isinstance(node, cwast.ValAuto):
-            assert node.x_value is not None, f"{node} {parent}"
-        if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
-            assert node.x_value is not None
         if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
             return None
+
         val = node.x_value
+
+        if isinstance(node, cwast.ValAuto):
+            assert val is not None, f"{node} {parent}"
+        if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
+            assert val is not None
+
         if isinstance(node, cwast.ValNum):
             assert val is not None
             return None
 
         if val is None or isinstance(val, eval.EvalUndef):
             return None
-        ct = node.x_type
-
         assert isinstance(val, eval.EvalBase), f"{node} <- {parent}"
 
         if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal,
@@ -357,6 +358,7 @@ def ReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
         if not isinstance(val, eval.EvalNum):
             return None
 
+        ct = node.x_type
         if ct.get_unwrapped().is_base_type():
             return cwast.ValNum(str(val.val), x_srcloc=node.x_srcloc, x_type=ct, x_value=val)
         else:
