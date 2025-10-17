@@ -88,7 +88,7 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
 def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
     assert typeid >= 0
     return cwast.ValNum(str(typeid),
-                        x_value=eval.EvalNum(
+                        x_eval=eval.EvalNum(
                             typeid, ct_typeid.base_type_kind),
                         x_type=ct_typeid, x_srcloc=srcloc)
 
@@ -98,10 +98,10 @@ def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc
     return cwast.ValCompound(_MakeIdForDefRec(sum_rec, srcloc), [
         cwast.ValPoint(tag_value, cwast.ValUndef(x_srcloc=srcloc),
                        x_type=tag_field.x_type, x_srcloc=srcloc,
-                       x_value=tag_value.x_value),
+                       x_eval=tag_value.x_eval),
         cwast.ValPoint(union_value, cwast.ValUndef(x_srcloc=srcloc),
                        x_type=union_field.x_type,
-                       x_srcloc=srcloc, x_value=union_value.x_value)
+                       x_srcloc=srcloc, x_eval=union_value.x_eval)
 
     ], x_srcloc=srcloc,
         x_type=sum_rec)
@@ -153,7 +153,7 @@ def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) 
                                                   x_type=dst_untagged_union_ct),
                                    unchecked=True,
                                    x_srcloc=sl,
-                                   x_value=value.x_value,
+                                   x_eval=value.x_eval,
                                    x_type=dst_untagged_union_ct)
     # tag is the same as with the src but (untagged) union is narrowed
     return _MakeValRecForUnion(dst_sum_rec, src_tag, union_value, sl)
@@ -179,7 +179,7 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.Cano
                                   cwast.TypeAuto(
                                       x_srcloc=sl, x_type=dst_union_field.x_type),
                                   x_srcloc=sl,
-                                  x_value=value.x_value,
+                                  x_eval=value.x_eval,
                                   x_type=dst_union_field.x_type)
 
     return _MakeValRecForUnion(dst_sum_rec,

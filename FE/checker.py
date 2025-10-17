@@ -101,9 +101,9 @@ def CheckAST(node_mod: cwast.DefMod, disallowed_nodes, allow_type_auto=False, pr
         if cwast.NF.GLOBAL_SYM_DEF in node.FLAGS:
             if not isinstance(node, cwast.DefMod):
                 assert isinstance(node.name, cwast.NAME), f"{node}"
-        if (cwast.NF.VALUE_ANNOTATED in node.FLAGS):
-            assert node.x_value is None or isinstance(
-                node.x_value,  eval.EvalBase), f"node={node} x_value={node.x_value}"
+        if (cwast.NF.EVAL_ANNOTATED in node.FLAGS):
+            assert node.x_eval is None or isinstance(
+                node.x_eval,  eval.EvalBase), f"node={node} x_eval={node.x_eval}"
 
         if isinstance(node, cwast.DefMacro):
             if not node.name.IsMacroCall() and node.name.name not in cwast.ALL_BUILT_IN_MACROS:

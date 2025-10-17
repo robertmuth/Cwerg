@@ -55,7 +55,7 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id(def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
-                    x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
+                    x_eval=def_node.initial_or_undef_or_auto.x_eval, x_symbol=def_node)
 
 
 def IdNodeFromRecField(recfield: cwast.RecField, srcloc):
@@ -85,10 +85,10 @@ def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: 
         cstr_bool = tc.get_bool_canon_type()
         return cwast.Expr3(node,
                            cwast.ValNum("true", x_srcloc=node.x_srcloc,
-                                        x_type=cstr_bool, x_value=eval.VAL_TRUE),
+                                        x_type=cstr_bool, x_eval=eval.VAL_TRUE),
                            cwast.ValNum("false",
-                                        x_srcloc=node.x_srcloc, x_type=cstr_bool, x_value=eval.VAL_FALSE),
-                           x_srcloc=node.x_srcloc, x_type=node.x_type, x_value=node.x_value)
+                                        x_srcloc=node.x_srcloc, x_type=cstr_bool, x_eval=eval.VAL_FALSE),
+                           x_srcloc=node.x_srcloc, x_type=node.x_type, x_eval=node.x_eval)
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
@@ -103,9 +103,9 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
         assert not src_ct.untagged, f"{node.x_srcloc} {src_ct} {dst_ct}"
     else:
         if src_ct == dst_ct:
-            return cwast.ValNum("true", x_srcloc=sl, x_type=bool_ct, x_value=eval.VAL_TRUE)
+            return cwast.ValNum("true", x_srcloc=sl, x_type=bool_ct, x_eval=eval.VAL_TRUE)
         else:
-            return cwast.ValNum("false", x_srcloc=sl, x_type=bool_ct, x_value=eval.VAL_FALSE)
+            return cwast.ValNum("false", x_srcloc=sl, x_type=bool_ct, x_eval=eval.VAL_FALSE)
     typeid_ct = tc.get_typeid_canon_type()
     typeids = []
     if dst_ct.is_union():
@@ -114,7 +114,7 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     else:
         typeids.append(dst_ct.get_original_typeid())
     typeidvals = [cwast.ValNum(str(i), x_srcloc=sl,
-                               x_type=typeid_ct, x_value=eval.EvalNum(i,
+                               x_type=typeid_ct, x_eval=eval.EvalNum(i,
                                                                       typeid_ct.base_type_kind)) for i in typeids]
     # TODO: store tag in a variable rather than retrieving it each time.
     #       Sadly, this requires ExprStmt
@@ -156,7 +156,7 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun):
                                  node.expr_f, x_srcloc=sl, x_type=node.x_type)
 
             expr = cwast.ExprStmt([], x_srcloc=sl,
-                                  x_type=node.x_type, x_value=node.x_value)
+                                  x_type=node.x_type, x_eval=node.x_eval)
             expr.body = [
                 def_t,
                 def_f,
@@ -330,10 +330,10 @@ def FunReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
      This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
     def replacer(node, parent):
-        if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
+        if cwast.NF.EVAL_ANNOTATED not in node.FLAGS:
             return None
 
-        val = node.x_value
+        val = node.x_eval
 
         if isinstance(node, cwast.ValAuto):
             assert val is not None, f"{node} {parent}"
@@ -360,12 +360,12 @@ def FunReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
 
         ct = node.x_type
         if ct.get_unwrapped().is_base_type():
-            return cwast.ValNum(str(val.val), x_srcloc=node.x_srcloc, x_type=ct, x_value=val)
+            return cwast.ValNum(str(val.val), x_srcloc=node.x_srcloc, x_type=ct, x_eval=val)
         else:
             assert ct.is_union() and tc.get_base_canon_type(
                 val.kind) in ct.children, f"{ct}"
             return cwast.ValNum(str(val.val),
-                                x_srcloc=node.x_srcloc, x_type=tc.get_base_canon_type(val.kind), x_value=val)
+                                x_srcloc=node.x_srcloc, x_type=tc.get_base_canon_type(val.kind), x_eval=val)
 
     # no neeed to siplify interior subtrees if we we rewrite a node
     cwast.MaybeReplaceAstRecursively(node, replacer)
@@ -398,8 +398,8 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
         if isinstance(node, cwast.StmtIf):
             if isinstance(node.cond, cwast.ValNum):
                 assert isinstance(
-                    node.cond.x_value, eval.EvalNum), f"{node.cond.x_value} {node.cond}"
-                if node.cond.x_value.val:
+                    node.cond.x_eval, eval.EvalNum), f"{node.cond.x_eval} {node.cond}"
+                if node.cond.x_eval.val:
                     node.body_f.clear()
                 else:
                     node.body_t.clear()
@@ -427,10 +427,10 @@ def _RewriteExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
         mut = type_corpus.IsProperLhs(node.container)
         dim_eval = eval.EvalNum(container_ct.dim, uint_type.base_type_kind)
         bound = cwast.ValNum(str(container_ct.dim), x_srcloc=sl,
-                             x_type=uint_type, x_value=dim_eval)
+                             x_type=uint_type, x_eval=dim_eval)
         pinc = _CovertExprIndexToExprPoiner(
             node.container, node.expr_index, bound, mut, sl, elem_ct, tc)
-        return cwast.ExprDeref(pinc,  x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
+        return cwast.ExprDeref(pinc,  x_srcloc=sl, x_type=elem_ct, x_eval=node.x_eval)
     else:
         assert container_ct.is_span()
         mut = container_ct.is_mutable()
@@ -441,7 +441,7 @@ def _RewriteExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
             # Node_x_eval = ...
             pinc = _CovertExprIndexToExprPoiner(
                 node.container, node.expr_index, bound, mut, sl, elem_ct, tc)
-            return cwast.ExprDeref(pinc, x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
+            return cwast.ExprDeref(pinc, x_srcloc=sl, x_type=elem_ct, x_eval=node.x_eval)
         else:
             # we materialize the container to avoid evaluating it twice
             at = cwast.TypeAuto(x_srcloc=sl, x_type=container_ct)
@@ -454,7 +454,7 @@ def _RewriteExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
             expr = cwast.ExprStmt([], sl, pinc.x_type)
             stmt_ret = cwast.StmtReturn(pinc, x_srcloc=sl, x_target=expr)
             expr.body = [new_var, stmt_ret]
-            return cwast.ExprDeref(expr, x_srcloc=sl, x_type=elem_ct, x_value=node.x_value)
+            return cwast.ExprDeref(expr, x_srcloc=sl, x_type=elem_ct, x_eval=node.x_eval)
 
 
 def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
@@ -489,7 +489,7 @@ def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]
             assert not isinstance(x, cwast.StmtDefer)
         return out
 
-    if cwast.NF.CONTROL_FLOW in node.FLAGS:
+    if cwast.NF.TARGET_ANNOTATED in node.FLAGS:
         # inject the defer bodies just before the control flow change
         return handle_cfg(node.x_target) + [node]
 
@@ -520,7 +520,7 @@ def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]
 
             #
             if field in cwast.NEW_SCOPE_FIELDS:
-                if new_children and cwast.NF.CONTROL_FLOW not in children[-1].FLAGS:
+                if new_children and cwast.NF.TARGET_ANNOTATED not in children[-1].FLAGS:
                     out = handle_cfg(scopes[-1][0])
                     if out:
                         new_children += out
@@ -564,12 +564,12 @@ def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCo
     # assert not isinstance(node, (cwast.ValCompound, cwast.ValString)), f"{node.x_srcloc}"
     pointer = cwast.ExprFront(
         node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type,
-        x_value=v_sym)
+        x_eval=v_sym)
     width = node.x_type.array_dim()
-    length = cwast.ValNum(f"{width}", x_value=eval.EvalNum(width, uint_type.base_type_kind),
+    length = cwast.ValNum(f"{width}", x_eval=eval.EvalNum(width, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)
     v_span = eval.EvalSpan(v_sym.sym if v_sym else None, width)
-    return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_value=v_span)
+    return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_eval=v_span)
 
 
 def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
@@ -580,7 +580,7 @@ def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type
         sum_type = cwast.TypeAuto(
             x_type=target_type, x_srcloc=orig_node.x_srcloc)
         return cwast.ExprWiden(orig_node, sum_type, x_type=target_type,
-                               x_srcloc=orig_node.x_srcloc, x_value=orig_node.x_value)
+                               x_srcloc=orig_node.x_srcloc, x_eval=orig_node.x_eval)
     else:
         print(
             f"@@@@@@@@@@@@@@ {orig_node.x_srcloc} {orig_node.x_type.node}  {target_type.node}")

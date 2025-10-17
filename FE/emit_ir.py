@@ -50,7 +50,7 @@ def _IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
             yield curr_index, init
             curr_index += 1
             continue
-        index = init.point_or_undef.x_value.val
+        index = init.point_or_undef.x_eval.val
         assert isinstance(index, int)
         while curr_index < index:
             yield curr_index, None
@@ -201,8 +201,8 @@ ZERO_INDEX = "0"
 
 def OffsetScaleToOffset(offset_expr, scale: int, ta: type_corpus.TargetArchConfig,
                         id_gen: identifier.IdGenIR) -> str:
-    if offset_expr.x_value is not None:
-        return offset_expr.x_value.val * scale
+    if offset_expr.x_eval is not None:
+        return offset_expr.x_eval.val * scale
     else:
         offset = EmitIRExpr(offset_expr, ta, id_gen)
         if scale == 1:
@@ -290,7 +290,7 @@ _MAP_COMPARE_INVERT = {
 
 
 def IsUnconditionalBranch(node):
-    if cwast.NF.CONTROL_FLOW not in node.FLAGS:
+    if cwast.NF.TARGET_ANNOTATED not in node.FLAGS:
         return False
     return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
 
@@ -298,8 +298,8 @@ def IsUnconditionalBranch(node):
 def EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
                       id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
-    if cond.x_value is not None:
-        if cond.x_value.val != invert:
+    if cond.x_eval is not None:
+        if cond.x_eval.val != invert:
             print(f"{TAB}bra {label_false}")
     elif isinstance(cond, cwast.Expr1):
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
@@ -425,11 +425,11 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 
 def _FormatNumber(val: cwast.ValNum) -> str:
-    assert isinstance(val.x_value, eval.EvalNum)
+    assert isinstance(val.x_eval, eval.EvalNum)
     bt = val.x_type.get_unwrapped_base_type_kind()
-    assert bt == val.x_value.kind, f"{val.x_value} {bt} {val.x_value.kind}"
-    num = val.x_value.val
-    assert num is not None, f"{val.x_value}"
+    assert bt == val.x_eval.kind, f"{val.x_eval} {bt} {val.x_eval.kind}"
+    num = val.x_eval.val
+    assert num is not None, f"{val.x_eval}"
 
     if bt is cwast.BASE_TYPE_KIND.BOOL:
         return "1" if num else "0"
@@ -951,8 +951,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
             return target
         elif isinstance(node, cwast.ValNum):
             assert ct.get_unwrapped().is_base_type()
-            assert node.x_value
-            return _EmitMem(_InitDataForBaseType(ct, node.x_value),  f"{offset} {ct.name}")
+            assert node.x_eval
+            return _EmitMem(_InitDataForBaseType(ct, node.x_eval),  f"{offset} {ct.name}")
 
         if ct.is_wrapped():
             assert isinstance(node, cwast.ExprWrap)
@@ -979,7 +979,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
                     x_type, eval.GetDefaultForBaseType(x_type.base_type_kind))
                 for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
                     if init is not None:
-                        last = _InitDataForBaseType(x_type, init.x_value)
+                        last = _InitDataForBaseType(x_type, init.x_eval)
                     out += last
                 return _EmitMem(out, ct.name)
             else:

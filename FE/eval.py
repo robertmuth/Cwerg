@@ -147,7 +147,7 @@ def DeserializeBaseType(bt: cwast.BASE_TYPE_KIND, data: bytes) -> EvalNum:
 def _AssignValue(node, val: EvalBase):
     assert isinstance(val, EvalBase), f"unexpected value {val} for {node}"
     logger.info("EVAL of %s: %s", node, val)
-    node.x_value = val
+    node.x_eval = val
 
 
 @enum.unique
@@ -183,7 +183,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
     WITH_GOBAL_ADDRESS: constant requiring relocation
     PURE: pure constant
     """
-    assert cwast.NF.VALUE_ANNOTATED in node.FLAGS
+    assert cwast.NF.EVAL_ANNOTATED in node.FLAGS
     if isinstance(node, (cwast.ValString, cwast.ValVoid, cwast.ValUndef, cwast.ValNum)):
         return CONSTANT_KIND.PURE
     if isinstance(node, cwast.ExprAddrOf):
@@ -223,7 +223,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
 def _IdNodeFromDef(def_node: Union[cwast.DefVar, cwast.DefGlobal], x_srcloc) -> cwast.Id:
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id(def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
-                    x_value=def_node.initial_or_undef_or_auto.x_value, x_symbol=def_node)
+                    x_eval=def_node.initial_or_undef_or_auto.x_eval, x_symbol=def_node)
 
 
 class GlobalConstantPool:
@@ -312,7 +312,7 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
 
 
 def _EvalExpr1(node: cwast.Expr1) -> Optional[EvalBase]:
-    e = node.expr.x_value
+    e = node.expr.x_eval
     if e is None:
         return None
     e = e.val
@@ -379,8 +379,8 @@ def _HandleUintOverflow(kind: cwast.BASE_TYPE_KIND, val: int) -> int:
 
 
 def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
-    e1 = node.expr1.x_value
-    e2 = node.expr2.x_value
+    e1 = node.expr1.x_eval
+    e2 = node.expr2.x_eval
     op = node.binary_expr_kind
     if e1 is None or e2 is None:
         return None
@@ -434,10 +434,10 @@ def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
     n = 0
     for point in init_node.inits:
         if not isinstance(point.point_or_undef, cwast.ValUndef):
-            assert isinstance(point.point_or_undef.x_value, EvalNum)
-            n = point.point_or_undef.x_value.val
+            assert isinstance(point.point_or_undef.x_eval, EvalNum)
+            n = point.point_or_undef.x_eval.val
         if n == index:
-            return point.value_or_undef.x_value
+            return point.value_or_undef.x_eval
         if n > index:
             break
         n += 1
@@ -452,7 +452,7 @@ def _GetValForRecAtField(container_val, field: cwast.RecField):
     for rec_field, init in symbolize.IterateValRec(container_val.inits, container_val.x_type):
         if field == rec_field:
             if init:
-                return init.x_value
+                return init.x_eval
             else:
                 return GetDefaultForType(field.x_type)
     assert False
@@ -461,7 +461,7 @@ def _GetValForRecAtField(container_val, field: cwast.RecField):
 
 def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
                                            src_node):
-    src_value = src_node.x_value
+    src_value = src_node.x_eval
     if isinstance(src_node, cwast.ValUndef):
         return src_value
     src_type: cwast.CanonType = src_node.x_type
@@ -511,11 +511,11 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         def_node = node.x_symbol
         assert def_node is not None, f"{node}"
         if isinstance(def_node, (cwast.DefGlobal, cwast.DefVar)):
-            if def_node.x_value is not None:
+            if def_node.x_eval is not None:
                 assert not def_node.mut
-            return def_node.x_value
+            return def_node.x_eval
         elif isinstance(def_node, cwast.EnumVal):
-            return def_node.value_or_auto.x_value
+            return def_node.value_or_auto.x_eval
         elif isinstance(def_node, cwast.DefFun):
             return EvalFunAddr(def_node)
         return None
@@ -536,7 +536,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return EvalCompound(node, None)
     elif isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
         initial = node.initial_or_undef_or_auto
-        if initial.x_value is None and isinstance(initial, cwast.ValAuto):
+        if initial.x_eval is None and isinstance(initial, cwast.ValAuto):
             # ValAuto has differernt meanings in different context
             # so we deal with it explicity here and elsewhere
             _AssignValue(initial, GetDefaultForType(initial.x_type))
@@ -547,16 +547,16 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             val = EvalCompound(val.init_node, node)
         return val
     elif isinstance(node, cwast.ExprIndex):
-        index_val = node.expr_index.x_value
+        index_val = node.expr_index.x_eval
         if index_val is None:
             return None
-        container_val = node.container.x_value
+        container_val = node.container.x_eval
         if container_val is None:
             return None
 
         return _GetValForVecAtPos(container_val, index_val.val, node.x_type)
     elif isinstance(node, cwast.ExprField):
-        container_val = node.container.x_value
+        container_val = node.container.x_eval
         if container_val is None:
             return None
         return _GetValForRecAtField(container_val, node.field.x_symbol)
@@ -565,11 +565,11 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.Expr2):
         return _EvalExpr2(node)
     elif isinstance(node, cwast.Expr3):
-        if node.cond.x_value is not None:
-            if node.cond.x_value:
-                return node.expr_t.x_value
+        if node.cond.x_eval is not None:
+            if node.cond.x_eval:
+                return node.expr_t.x_eval
             else:
-                return node.expr_f.x_value
+                return node.expr_f.x_eval
         return None
     elif isinstance(node, cwast.ExprTypeId):
         typeid = node.type.x_type.get_original_typeid()
@@ -578,7 +578,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.ExprAs):
         # TODO: some transforms may need to be applied, make sure it matches c++ version
         ct = node.x_type
-        val = node.expr.x_value
+        val = node.expr.x_eval
         if isinstance(val, EvalNum):
             new_bt = ct.get_unwrapped_base_type_kind()
             assert new_bt is not None, f"{node.expr.x_type} -> {ct.x_type}"
@@ -587,7 +587,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             return val
         return None
     elif isinstance(node, (cwast.ExprWrap, cwast.ExprNarrow, cwast.ExprWiden, cwast.ExprUnwrap)):
-        return node.expr.x_value
+        return node.expr.x_eval
     elif isinstance(node, cwast.ExprIs):
         return _EvalExprIs(node)
     elif isinstance(node, cwast.ExprFront):
@@ -598,7 +598,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
                 return EvalSymAddr(cont.x_symbol)
         else:
             assert ct_container.is_span()
-            val_cont = cont.x_value
+            val_cont = cont.x_eval
             if val_cont is not None and val_cont.pointer is not None:
                 assert isinstance(val_cont, EvalSpan), f"{val_cont}"
                 return EvalSymAddr(val_cont.pointer)
@@ -608,8 +608,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         bt_src = node.x_type.base_type_kind
         if cont.x_type.is_vec():
             return EvalNum(cont.x_type.array_dim(), bt_src)
-        elif isinstance(cont.x_value, EvalSpan) and cont.x_value.size is not None:
-            return EvalNum(cont.x_value.size, bt_src)
+        elif isinstance(cont.x_eval, EvalSpan) and cont.x_eval.size is not None:
+            return EvalNum(cont.x_eval.size, bt_src)
         return None
     elif isinstance(node, cwast.ExprAddrOf):
         if isinstance(node.expr_lhs, cwast.Id):
@@ -621,8 +621,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.ExprSizeof):
         return EvalNum(node.type.x_type.size, node.x_type.base_type_kind)
     elif isinstance(node, cwast.ValSpan):
-        p = node.pointer.x_value
-        s = node.expr_size.x_value
+        p = node.pointer.x_eval
+        s = node.expr_size.x_eval
         if p is None and s is None:
             return None
         if p:
@@ -633,12 +633,12 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             s = s.val
         return EvalSpan(p, s)
     elif isinstance(node, cwast.ExprParen):
-        return node.expr.x_value
+        return node.expr.x_eval
     elif isinstance(node, cwast.DefEnum):
         bt_src = node.x_type.get_unwrapped_base_type_kind()
         val = None
         for c in node.items:
-            if c.x_value is not None:
+            if c.x_eval is not None:
                 break
 
             assert isinstance(c, cwast.EnumVal)
@@ -649,7 +649,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
                 else:
                     val = EvalNum(val.val + 1, bt_src)
             else:
-                val = v.x_value
+                val = v.x_eval
             assert val
             _AssignValue(v, val)
             _AssignValue(c, val)
@@ -663,7 +663,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         # TODO: we can do better here
         return None
     elif isinstance(node, cwast.ExprBitCast):
-        val = node.expr.x_value
+        val = node.expr.x_eval
         if val is None:
             return None
         if isinstance(val, EvalSymAddr):
@@ -697,9 +697,9 @@ def EvalRecursively(node) -> bool:
 
     def visitor(node):
         nonlocal seen_change
-        if cwast.NF.VALUE_ANNOTATED not in node.FLAGS:
+        if cwast.NF.EVAL_ANNOTATED not in node.FLAGS:
             return
-        if node.x_value is not None:
+        if node.x_eval is not None:
             return
         val = _EvalNode(node)
         if val is not None:
@@ -725,13 +725,13 @@ def VerifyASTEvalsRecursively(node):
             return
 
         if isinstance(node, cwast.StmtStaticAssert):
-            if node.cond.x_value is None:
+            if node.cond.x_eval is None:
                 cwast.CompilerError(
                     node.x_srcloc, f"Cannot evaluate static assert: {node}")
 
-            if node.cond.x_value.val is not True:
+            if node.cond.x_eval.val is not True:
                 cwast.CompilerError(
-                    node.x_srcloc, f"Failed static assert: {node} is {node.cond.x_value}")
+                    node.x_srcloc, f"Failed static assert: {node} is {node.cond.x_eval}")
 
         if cwast.NF.TOP_LEVEL in node.FLAGS:
             # we must be able to initialize data these at compile time
@@ -740,14 +740,14 @@ def VerifyASTEvalsRecursively(node):
             return
 
         if isinstance(node, cwast.ValNum):
-            assert node.x_value is not None, f"{node}"
+            assert node.x_eval is not None, f"{node}"
 
-        if is_const and cwast.NF.VALUE_ANNOTATED in node.FLAGS:
+        if is_const and cwast.NF.EVAL_ANNOTATED in node.FLAGS:
             if isinstance(node, cwast.Id):
                 def_node = node.x_symbol
-                if cwast.NF.VALUE_ANNOTATED in def_node.FLAGS:
+                if cwast.NF.EVAL_ANNOTATED in def_node.FLAGS:
 
-                    if def_node.x_value is None:
+                    if def_node.x_eval is None:
                         if parent.x_type.is_pointer():
                             # TODO: we do not track constant addresses yet
                             # for now assume they are constant
@@ -762,7 +762,7 @@ def VerifyASTEvalsRecursively(node):
                             # cwast.CompilerError(def_node.x_srcloc,
                             #                    f"expected const node: {node} inside: {parent}")
             else:
-                if node.x_value is None:
+                if node.x_eval is None:
                     if node.x_type.is_span() or (node.x_type.original_type and
                                                  node.x_type.original_type.is_span()):
                         # TODO: we do not track constant addresses yet
@@ -782,7 +782,7 @@ def VerifyASTEvalsRecursively(node):
 
         # Note: this info is currently filled in by the Type Decorator
         if isinstance(node, cwast.TypeVec):
-            assert node.size.x_value is not None, f"uneval'ed type dim: {node}"
+            assert node.size.x_eval is not None, f"uneval'ed type dim: {node}"
 
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 

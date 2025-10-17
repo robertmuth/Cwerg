@@ -147,7 +147,7 @@ class NF(enum.Flag):
     NONE = 0
 
     TYPE_ANNOTATED = enum.auto()   # node has a type (x_type)
-    VALUE_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
+    EVAL_ANNOTATED = enum.auto()  # node may have a comptime value (x_value)
     SYMBOL_ANNOTATED = enum.auto()  # node reference a XXX_SYM_DEF node (x_symbol)
     # possibly uniquified name of module, use during code-gen
     SYMTAB_ANNOTATED = enum.auto()
@@ -162,7 +162,7 @@ class NF(enum.Flag):
     # Node families
     MAY_BE_LHS = enum.auto()
     TYPE_CORPUS = enum.auto()
-    CONTROL_FLOW = enum.auto()
+    TARGET_ANNOTATED = enum.auto()
     GLOBAL_SYM_DEF = enum.auto()
     LOCAL_SYM_DEF = enum.auto()
     TOP_LEVEL = enum.auto()
@@ -172,7 +172,7 @@ class NF(enum.Flag):
     NON_CORE = enum.auto()
 
 
-NF_EXPR = NF.VALUE_ANNOTATED | NF.TYPE_ANNOTATED
+NF_EXPR = NF.EVAL_ANNOTATED | NF.TYPE_ANNOTATED
 
 
 @enum.unique
@@ -705,7 +705,7 @@ X_FIELDS = {
     "x_srcloc": None,  # set by cwast.py
     # set by eval.py
     # ExprXXX ->
-    "x_value": NF.VALUE_ANNOTATED,
+    "x_eval": NF.EVAL_ANNOTATED,
     # set by typify.py
     "x_type": NF.TYPE_ANNOTATED,
     ################################################
@@ -728,7 +728,7 @@ X_FIELDS = {
     "x_symbol": NF.SYMBOL_ANNOTATED,
     # set by symbolize.py
     # linksbreak/continue/return -> nodes to enclosing node (DefFun, StmtBlock)
-    "x_target": NF.CONTROL_FLOW,
+    "x_target": NF.TARGET_ANNOTATED,
     ################################################
     # Could live in the same union as last group
     ################################################
@@ -1259,7 +1259,7 @@ class Id:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
     x_symbol: NODES_SYMBOLS_T = INVALID_SYMBOL
     x_import: Optional[Import] = None  # which import the id is qualified with
 
@@ -1526,7 +1526,7 @@ class ValAuto:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)}"
@@ -1548,7 +1548,7 @@ class ValNum:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.number}"
@@ -1561,10 +1561,10 @@ class ValUndef:
     """
     ALIAS: ClassVar = "undef"
     GROUP: ClassVar = GROUP.Value
-    FLAGS: ClassVar = NF.VALUE_ANNOTATED
+    FLAGS: ClassVar = NF.EVAL_ANNOTATED
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
-    x_value: Optional[Any] = None    # this is always a ValUndef() object
+    x_eval: Optional[Any] = None    # this is always a ValUndef() object
 
     def __repr__(self):
         return f"{NODE_NAME(self)}"
@@ -1583,7 +1583,7 @@ class ValVoid:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)}"
@@ -1609,7 +1609,7 @@ class ValPoint:
     doc: str = ""
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} [{self.point_or_undef}] = {self.value_or_undef}"
@@ -1635,7 +1635,7 @@ class ValCompound:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} type={self.type_or_auto}"
@@ -1657,7 +1657,7 @@ class ValSpan:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.pointer} {self.expr_size}"
@@ -1678,7 +1678,7 @@ class ValString:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def kind(self) -> str:
         out = self.string[0]
@@ -1739,7 +1739,7 @@ class ExprDeref:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr}"
@@ -1763,7 +1763,7 @@ class ExprAddrOf:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.expr_lhs}"
@@ -1783,7 +1783,7 @@ class ExprCall:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.callee}"
@@ -1802,7 +1802,7 @@ class ExprParen:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr}"
@@ -1822,7 +1822,7 @@ class ExprField:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.container}  field:{self.field}"
@@ -1841,7 +1841,7 @@ class Expr1:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.unary_expr_kind} {self.expr}"
@@ -1862,7 +1862,7 @@ class ExprPointer:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{self.pointer_expr_kind.name}({self.expr1}, {self.expr2}, {self.expr_bound_or_undef})"
@@ -1882,7 +1882,7 @@ class Expr2:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{self.binary_expr_kind.name}({self.expr1}, {self.expr2})"
@@ -1903,7 +1903,7 @@ class Expr3:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"? {self.cond} {self.expr_t} {self.expr_f}"
@@ -1927,7 +1927,7 @@ class ExprIndex:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"AT {self.container} {self.expr_index}"
@@ -1948,7 +1948,7 @@ class ExprLen:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return self.__class__.__name__
@@ -1975,7 +1975,7 @@ class ExprFront:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return self.__class__.__name__
@@ -2001,7 +2001,7 @@ class ExprIs:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr} {self.type}"
@@ -2021,7 +2021,7 @@ class ExprWrap:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{self.expr} WRAP {self.type}"
@@ -2040,7 +2040,7 @@ class ExprUnwrap:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr}"
@@ -2064,7 +2064,7 @@ class ExprAs:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr} -> {self.type}"
@@ -2089,7 +2089,7 @@ class ExprNarrow:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr} -> {self.type}"
@@ -2111,7 +2111,7 @@ class ExprWiden:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr} {self.expr.x_type} -> {self.type.x_type}"
@@ -2139,7 +2139,7 @@ class ExprBitCast:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr} {self.type.x_type}"
@@ -2159,7 +2159,7 @@ class ExprTypeId:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.type}"
@@ -2179,7 +2179,7 @@ class ExprUnionTag:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr}"
@@ -2199,7 +2199,7 @@ class ExprUnionUntagged:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.expr}"
@@ -2219,7 +2219,7 @@ class ExprSizeof:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.type}"
@@ -2240,7 +2240,7 @@ class ExprOffsetof:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.type} {self.field}"
@@ -2261,7 +2261,7 @@ class ExprStmt:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)}"
@@ -2379,7 +2379,7 @@ class StmtBreak:
     use "" if the target is the nearest for/while/block """
     ALIAS: ClassVar = "break"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.CONTROL_FLOW
+    FLAGS: ClassVar = NF.TARGET_ANNOTATED
     #
     target: NAME  # use "" for no value
     #
@@ -2400,7 +2400,7 @@ class StmtContinue:
     use "" if the target is the nearest for/while/block """
     ALIAS: ClassVar = "continue"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.CONTROL_FLOW
+    FLAGS: ClassVar = NF.TARGET_ANNOTATED
     #
     target: NAME  # use "" for no value
     #
@@ -2423,7 +2423,7 @@ class StmtReturn:
     """
     ALIAS: ClassVar = "return"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.CONTROL_FLOW
+    FLAGS: ClassVar = NF.TARGET_ANNOTATED
     #
     expr_ret: NODES_EXPR_T
     #
@@ -2546,7 +2546,7 @@ class EnumVal:
      `value: ValAuto` means previous value + 1"""
     ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.GLOBAL_SYM_DEF
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.EVAL_ANNOTATED | NF.GLOBAL_SYM_DEF
     #
     name: NAME
     value_or_auto: Union["ValNum", ValAuto]
@@ -2555,7 +2555,7 @@ class EnumVal:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}: {self.value_or_auto}"
@@ -2567,7 +2567,7 @@ class DefEnum:
     """Enum definition"""
     ALIAS: ClassVar = "enum"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.VALUE_ANNOTATED
+    FLAGS: ClassVar = NF.TYPE_CORPUS | NF.TYPE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.EVAL_ANNOTATED
     #
     name: NAME
     base_type_kind: BASE_TYPE_KIND   # must be integer
@@ -2578,7 +2578,7 @@ class DefEnum:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None  # used to guide the evaluation of EnumVal
+    x_eval: Optional[Any] = None  # used to guide the evaluation of EnumVal
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name}"
@@ -2624,7 +2624,7 @@ class DefVar:
     """
     ALIAS: ClassVar = "let"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.LOCAL_SYM_DEF
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.EVAL_ANNOTATED | NF.LOCAL_SYM_DEF
     #
     name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
@@ -2636,7 +2636,7 @@ class DefVar:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
@@ -2653,7 +2653,7 @@ class DefGlobal:
     """
     ALIAS: ClassVar = "global"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.VALUE_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.EVAL_ANNOTATED | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
     #
     name: NAME
     type_or_auto: NODES_TYPES_OR_AUTO_T
@@ -2667,7 +2667,7 @@ class DefGlobal:
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)}{_FLAGS(self)} {self.name} {self.type_or_auto} {self.initial_or_undef_or_auto}"
@@ -2752,7 +2752,7 @@ class ExprStringify:
     expr:  NODES_EXPR_T
     # the next two are not really used since node gets replaced with string
     x_type: CanonType = NO_TYPE
-    x_value: Optional[Any] = None
+    x_eval: Optional[Any] = None
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
 
@@ -3089,7 +3089,7 @@ def CloneNodeRecursively(node, symbol_map, target_map):
     if NF.SYMBOL_ANNOTATED in clone.FLAGS:
         old_symbol = clone.x_symbol
         clone.x_symbol = symbol_map.get(old_symbol, old_symbol)
-    if NF.CONTROL_FLOW in clone.FLAGS:
+    if NF.TARGET_ANNOTATED in clone.FLAGS:
         old_target = clone.x_target
         clone.x_target = target_map.get(old_target, old_target)
 
@@ -3109,7 +3109,7 @@ def UpdateSymbolAndTargetLinks(node, symbol_map, target_map):
     """Similar to CloneNodeRecursively if you do not need to clone but can update the AST in-place"""
     if NF.SYMBOL_ANNOTATED in node.FLAGS:
         node.x_symbol = symbol_map.get(node.x_symbol, node.x_symbol)
-    if NF.CONTROL_FLOW in node.FLAGS:
+    if NF.TARGET_ANNOTATED in node.FLAGS:
         old_target = node.x_target
         new_target = target_map.get(old_target, old_target)
         node.x_target = new_target

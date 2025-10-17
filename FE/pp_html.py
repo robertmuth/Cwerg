@@ -36,10 +36,10 @@ def _DecorateNode(node_name, node):
     if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
         out += ["<span class=type title='",
                 node.x_type.name, "'>", _CircledLetterEntity("T"), "</span>"]
-    if cwast.NF.VALUE_ANNOTATED in node.FLAGS and node.x_value is not None:
+    if cwast.NF.EVAL_ANNOTATED in node.FLAGS and node.x_eval is not None:
         out += ["<span class=value title='",
-                str(node.x_value), "'>", _CircledLetterEntity("V"), "</span>"]
-    if cwast.NF.CONTROL_FLOW in node.FLAGS:
+                str(node.x_eval), "'>", _CircledLetterEntity("V"), "</span>"]
+    if cwast.NF.TARGET_ANNOTATED in node.FLAGS:
         targets = [f"{node.x_target}"]
 
         out += ["<span class=problems title='",
