@@ -934,10 +934,12 @@ class CanonType:
         return self.node is TypeBase
 
     def get_unwrapped_base_type_kind(self) -> BASE_TYPE_KIND:
+        while self.node is DefType:
+            self = self.children[0]
+        if self.node is DefEnum:
+             self = self.children[0]
         if self.node is TypeBase:
             return self.base_type_kind
-        elif self.node is DefEnum or self.node is DefType:
-            return self.children[0].get_unwrapped_base_type_kind()
         else:
             return BASE_TYPE_KIND.INVALID
 
@@ -968,12 +970,10 @@ class CanonType:
     def is_vec(self) -> bool:
         return self.node is TypeVec
 
-    def is_complex(self) -> bool:
-        if self.node in (TypeVec, DefRec, TypeUnion):
-            return True
-        if self.node is DefType:
-            return self.children[0].is_complex()
-        return False
+    def is_unwrapped_complex(self) -> bool:
+        while self.node is DefType:
+            self = self.children[0]
+        return self.node in (TypeVec, DefRec, TypeUnion)
 
     def is_zero_sized(self):
         return self.size == 0

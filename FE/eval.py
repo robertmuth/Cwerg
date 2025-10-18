@@ -305,7 +305,7 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
         return GetDefaultForType(ct.underlying_type())
     elif ct.is_span():
         return VAL_EMPTY_SPAN
-    elif ct.is_complex():
+    elif ct.is_unwrapped_complex():
         return EvalCompound(None, None)
     else:
         return None
