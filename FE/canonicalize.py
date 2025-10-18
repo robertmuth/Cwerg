@@ -115,7 +115,7 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
         typeids.append(dst_ct.get_original_typeid())
     typeidvals = [cwast.ValNum(str(i), x_srcloc=sl,
                                x_type=typeid_ct, x_eval=eval.EvalNum(i,
-                                                                      typeid_ct.base_type_kind)) for i in typeids]
+                                                                     typeid_ct.base_type_kind)) for i in typeids]
     # TODO: store tag in a variable rather than retrieving it each time.
     #       Sadly, this requires ExprStmt
     tag = cwast.ExprUnionTag(node.expr, x_srcloc=sl, x_type=typeid_ct)
@@ -327,36 +327,26 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
 
 def FunReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
     """
-     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
+    Try to convert as many Nodes to ValNum as possible
+
+    This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
     def replacer(node, parent):
         if cwast.NF.EVAL_ANNOTATED not in node.FLAGS:
             return None
 
         val = node.x_eval
-
-        if isinstance(node, cwast.ValAuto):
-            assert val is not None, f"{node} {parent}"
-        if isinstance(node, cwast.EnumVal) and isinstance(node.value_or_auto, cwast.ValAuto):
-            assert val is not None
-
-        if isinstance(node, cwast.ValNum):
-            assert val is not None
+        if not isinstance(val, eval.EvalNum):
             return None
 
-        if val is None or isinstance(val, eval.EvalUndef):
-            return None
-        assert isinstance(val, eval.EvalBase), f"{node} <- {parent}"
-
-        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValUndef, cwast.EnumVal,
-                             cwast.ValPoint, cwast.ValCompound)):
+        if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.ValPoint, cwast.ValCompound,
+                             cwast.ValNum, cwast.EnumVal, cwast.ValUndef)):
             return None
         if isinstance(parent, cwast.ExprAddrOf) and node is parent.expr_lhs:
             # for the case of "@id" we do not want to replace id by its value
             return None
 
-        if not isinstance(val, eval.EvalNum):
-            return None
+
 
         ct = node.x_type
         if ct.get_unwrapped().is_base_type():
