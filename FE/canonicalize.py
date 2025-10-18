@@ -346,8 +346,6 @@ def FunReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
             # for the case of "@id" we do not want to replace id by its value
             return None
 
-
-
         ct = node.x_type
         if ct.get_unwrapped().is_base_type():
             return cwast.ValNum(str(val.val), x_srcloc=node.x_srcloc, x_type=ct, x_eval=val)
@@ -532,7 +530,7 @@ def FunEliminateDefer(fun: cwast.DefFun):
 def FunAddMissingReturnStmts(fun: cwast.DefFun):
     result:  cwast.CanonType = fun.x_type.result_type()
     srcloc = fun.x_srcloc
-    if not result.is_void_or_wrapped_void():
+    if not result.get_unwrapped().is_void():
         return
     if fun.body:
         last = fun.body[-1]
@@ -644,7 +642,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
         if cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.EQ:
             type_check = cwast.ExprIs(union, cwast.TypeAuto(
                 x_srcloc=field.x_srcloc, x_type=field.x_type), x_srcloc=cmp.x_srcloc)
-            if field.x_type.is_void_or_wrapped_void():
+            if field.x_type.get_unwrapped().is_void():
                 return type_check
             # for non-ids we would need to avoid double evaluation
             assert isinstance(union, cwast.Id), f"{cmp}: {union}"
@@ -660,7 +658,7 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
                                      cwast.ExprIs(union, cwast.TypeAuto(
                                          x_srcloc=field.x_srcloc, x_type=field.x_type), x_srcloc=cmp.x_srcloc),
                                      x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
-            if field.x_type.is_void_or_wrapped_void():
+            if field.x_type.get_unwrapped().is_void():
                 return type_check
             cmp.expr1 = cwast.ExprNarrow(union, cwast.TypeAuto(
                 x_srcloc=field.x_srcloc, x_type=field.x_type), unchecked=True,

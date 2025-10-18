@@ -942,10 +942,10 @@ class CanonType:
             return BASE_TYPE_KIND.INVALID
 
     def get_unwrapped(self) -> CanonType:
+        while self.node is DefType:
+            self = self.children[0]
         if self.node is DefEnum:
             return self.children[0]
-        elif self.node is DefType:
-            return self.children[0].get_unwrapped()
         else:
             return self
 
@@ -977,11 +977,6 @@ class CanonType:
 
     def is_zero_sized(self):
         return self.size == 0
-
-    def is_void_or_wrapped_void(self) -> bool:
-        if self.node is DefType:
-            return self.children[0].is_void()
-        return self.is_void()
 
     def contained_type(self) -> "CanonType":
         if self.node is TypeVec or self.node is TypeSpan:

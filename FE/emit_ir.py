@@ -910,7 +910,7 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
     returns the amount of bytes emitted
     """
     def_type: cwast.CanonType = node.type_or_auto.x_type
-    if def_type.is_void_or_wrapped_void():
+    if def_type.get_unwrapped().is_void():
         return 0
     print(
         f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
