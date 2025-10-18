@@ -713,9 +713,11 @@ def EvalRecursively(node) -> bool:
 
 
 def VerifyASTEvalsRecursively(node):
-    """Make sure that everything that is supposed to be const was evaluated
+    """Make sure that everything that is partial evaluated as expected.
 
-    Also check StaticAsserts"""
+    * sanity check EVAL_ANNOTATED nodes
+    * check const nodes
+    * check StaticAsserts"""
     is_const = False
 
     def visitor(node: Any, parent: Any):
@@ -786,6 +788,18 @@ def VerifyASTEvalsRecursively(node):
 
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
+    def visitor2(node: Any, parent: Any):
+        if cwast.NF.EVAL_ANNOTATED not in node.FLAGS:
+            return
+        val = node.x_eval
+        if isinstance(node, (cwast.ValNum, cwast.EnumVal, cwast.ValAuto, cwast.ValUndef)):
+            assert val is not None, f"NODE={node} {node.x_srcloc}  PARENT={parent}  {parent.x_srcloc}"
+        if val is None:
+            return
+        assert isinstance(val, EvalBase), f"{node} <- {parent}"
+
+    cwast.VisitAstRecursivelyWithParent(node, visitor2, None)
+
 
 def DecorateASTWithPartialEvaluation(mod_topo_order: list[cwast.DefMod]):
     """Fills in the x_value field"""
@@ -829,6 +843,8 @@ def main(argv: list[str]):
         typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
 
     DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
+    for mod in mp.mods_in_topo_order:
+        VerifyASTEvalsRecursively(mod)
 
 
 if __name__ == "__main__":

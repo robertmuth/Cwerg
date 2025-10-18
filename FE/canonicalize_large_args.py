@@ -21,6 +21,7 @@ from typing import Optional, Any
 from FE import cwast
 from FE import type_corpus
 from FE import typify
+from FE import eval
 
 ############################################################
 # Convert large parameter into pointer to object allocated
@@ -163,7 +164,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                 at = cwast.TypeAuto(x_srcloc=sl, x_type=old_sig.result_type())
                 new_def = cwast.DefVar(cwast.NAME.Make("result"),
                                        at,
-                                       cwast.ValUndef(x_srcloc=sl),
+                                       cwast.ValUndef(x_srcloc=sl, x_eval=eval.VAL_UNDEF),
                                        mut=True, ref=True,
                                        x_srcloc=sl,
                                        x_type=at.x_type)
