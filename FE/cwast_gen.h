@@ -34,65 +34,9 @@ enum class MACRO_PARAM_KIND : uint8_t;
 enum class MACRO_RESULT_KIND : uint8_t;
 enum class MOD_PARAM_KIND : uint8_t;
 
-enum class CONST_KIND : uint8_t {
-  INVALID = 0,
-  //
-  R32 = 1,
-  R64 = 2,
-  //
-  S8 = 11,
-  S16 = 12,
-  S32 = 13,
-  S64 = 14,
-  //
-  U8 = 21,
-  U16 = 22,
-  U32 = 23,
-  U64 = 24,
-  //
-  BOOL = 31,
-  TYPEID = 32,
-  VOID = 33,
-  UNDEF = 34,
-  //
-  SYM_ADDR = 41,
-  FUN_ADDR = 42,
-  COMPOUND = 43,
-  //
-  SPAN = 51,
-};
-
 extern BASE_TYPE_KIND MakeSint(int bitwidth);
 extern BASE_TYPE_KIND MakeUint(int bitwidth);
 extern int BaseTypeKindByteSize(BASE_TYPE_KIND kind);
-
-inline bool IsSint(CONST_KIND k) {
-  return CONST_KIND::S8 <= k && k <= CONST_KIND::S64;
-}
-
-inline bool IsUint(CONST_KIND k) {
-  return CONST_KIND::U8 <= k && k <= CONST_KIND::U64;
-}
-
-inline bool IsUintOrBool(CONST_KIND k) {
-  return CONST_KIND::U8 <= k && k <= CONST_KIND::BOOL;
-}
-
-inline bool IsInt(CONST_KIND k) {
-  return CONST_KIND::S8 <= k && k <= CONST_KIND::U64;
-}
-
-inline bool IsFlt(CONST_KIND k) {
-  return CONST_KIND::R32 <= k && k <= CONST_KIND::R64;
-}
-
-inline bool IsNumber(CONST_KIND x) {
-  return CONST_KIND::R32 <= x && x <= CONST_KIND::U64;
-}
-
-inline bool IsNumberOrBool(CONST_KIND x) {
-  return CONST_KIND::R32 <= x && x <= CONST_KIND::BOOL;
-}
 
 extern const std::array<uint16_t, 17> BF2MASK;
 
@@ -140,12 +84,13 @@ struct CanonType : public Handle {
 };
 
 struct Const : public Handle {
-  explicit constexpr Const(uint32_t index = 0,
-                           CONST_KIND kind = CONST_KIND::INVALID)
+  explicit constexpr Const(uint32_t index, BASE_TYPE_KIND kind)
       : Handle(index, uint8_t(kind)) {}
+  // only used for kConstInvalid
+  explicit constexpr Const(uint32_t index) : Handle(index, 0) {}
   explicit constexpr Const(Handle ref) : Handle(ref.value) {}
 
-  CONST_KIND kind() const { return CONST_KIND(raw_kind()); }
+  BASE_TYPE_KIND kind() const { return BASE_TYPE_KIND(raw_kind()); }
   bool IsShort() const { return int32_t(value) < 0; }
 };
 
@@ -153,6 +98,7 @@ constexpr const Str kStrInvalid(0);
 constexpr const Name kNameInvalid(0);
 constexpr const Node kNodeInvalid(kHandleInvalid);
 constexpr const CanonType kCanonTypeInvalid(kHandleInvalid);
+
 constexpr const Const kConstInvalid(0);
 
 // =======================================
@@ -374,11 +320,11 @@ inline std::ostream& operator<<(std::ostream& os, Str str) {
 }
 
 enum class NFD_X_FIELD : uint8_t {
-    invalid = 0,
-    type = 1,
-    symbol = 2,
-    eval = 3,
-    target = 4,
+  invalid = 0,
+  type = 1,
+  symbol = 2,
+  eval = 3,
+  target = 4,
 };
 
 // clang-format off
@@ -600,7 +546,12 @@ enum class BASE_TYPE_KIND : uint8_t {
     BOOL = 65,
     TYPEID = 80,
     VOID = 96,
-    NORET = 112,
+    NORET = 97,
+    UNDEF = 112,
+    SYM_ADDR = 113,
+    FUN_ADDR = 114,
+    COMPOUND = 115,
+    SPAN = 116,
 };
 
 enum class MACRO_PARAM_KIND : uint8_t {
@@ -1134,13 +1085,18 @@ struct NodeDesc {
   uint64_t node_field_bits;    // which node fields are present
   uint64_t string_field_bits;  // which string fields are present
   uint32_t bool_field_bits;    // which flags are present
-  uint32_t x_field_bits;    // which x_fields are present
+  uint32_t x_field_bits;       // which x_fields are present
 };
 
 // For each NT described which fields (regular / bool) are present
 // We have aboutr 45 regular and very few bool fields. So there is headroom in
 // the biy vec
 extern const NodeDesc GlobalNodeDescs[];
+
+inline bool NodeHasField(Node node, NFD_X_FIELD x_field) {
+  return (GlobalNodeDescs[int(node.kind())].x_field_bits >> uint32_t(x_field)) &
+         1;
+}
 
 const char* EnumToString(MOD_PARAM_KIND x);
 const char* EnumToString(MACRO_PARAM_KIND x);

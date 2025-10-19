@@ -41,6 +41,10 @@ extern int CanonType_get_original_typeid(CanonType n);
 extern int& CanonType_typeid(CanonType n);
 extern int CanonType_dim(CanonType n);
 
+inline bool CanonType_is_base_type(CanonType ct) {
+  return CanonType_kind(ct) == NT::TypeBase;
+}
+
 extern std::vector<CanonType>& CanonType_children(CanonType n);
 
 extern Node CanonType_lookup_rec_field(CanonType ct, Name field);
@@ -58,10 +62,10 @@ inline CanonType CanonType_result_type(CanonType ct) {
 
 extern BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType n);
 extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
-extern bool CanonType_is_complex(CanonType n);
-
+extern bool CanonType_is_unwrapped_complex(CanonType ct);
 extern CanonType CanonType_get_unwrapped(CanonType n);
-extern bool CanonType_tagged_union_contains(CanonType haystack, CanonType needle);
+extern bool CanonType_tagged_union_contains(CanonType haystack,
+                                            CanonType needle);
 
 inline std::ostream& operator<<(std::ostream& os, CanonType ct) {
   return os << CanonType_name(ct);
@@ -78,19 +82,6 @@ inline bool IsTypeForEq(CanonType ct) {
   return CanonType_kind(unwrapped) == NT::TypeFun ||
          CanonType_kind(unwrapped) == NT::TypeBase ||
          CanonType_kind(unwrapped) == NT::TypePtr;
-}
-
-inline bool CanonType_is_complex(CanonType ct) {
-  switch (CanonType_kind(ct)) {
-    case NT::TypeVec:
-    case NT::DefRec:
-    case NT::TypeUnion:
-      return true;
-    case NT::DefType:
-      return CanonType_is_complex(CanonType_children(ct)[0]);
-    default:
-      return false;
-  }
 }
 
 extern bool IsCompatibleTypeForEq(CanonType op1, CanonType op2);
@@ -128,9 +119,9 @@ class TypeCorpus {
  public:
   TypeCorpus(const TargetArchConfig& arch);
 
-  CanonType get_base_canon_type(BASE_TYPE_KIND kind) {
+  CanonType get_base_canon_type(BASE_TYPE_KIND kind) const {
     ASSERT(kind != BASE_TYPE_KIND::INVALID, "");
-    return base_type_map_[kind];
+    return base_type_map_.at(kind);
   }
 
   CanonType get_void_canon_type() {
@@ -156,7 +147,8 @@ class TypeCorpus {
   CanonType InsertSpanType(bool mut, CanonType child);
   CanonType InsertVecType(int dim, CanonType child);
 
-  CanonType InsertRecType(std::string_view name, Node ast_node, bool process_children);
+  CanonType InsertRecType(std::string_view name, Node ast_node,
+                          bool process_children);
   CanonType InsertEnumType(std::string_view name, Node ast_node);
   CanonType InsertUnionType(bool untagged,
                             const std::vector<CanonType>& components);

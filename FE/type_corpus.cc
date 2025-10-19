@@ -73,6 +73,18 @@ bool operator<(CanonType a, CanonType b) {
   return CanonType_name(a) < CanonType_name(b);
 }
 
+CanonType CanonType_get_unwrapped(CanonType ct) {
+  while (CanonType_kind(ct) == NT::DefType) {
+    ct = CanonType_children(ct)[0];
+  }
+
+  if (CanonType_kind(ct) == NT::DefEnum) {
+    return CanonType_children(ct)[0];
+  }
+
+  return ct;
+}
+
 BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType ct) {
   while (CanonType_kind(ct) == NT::DefType) {
     ct = CanonType_children(ct)[0];
@@ -88,22 +100,26 @@ BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType ct) {
   return BASE_TYPE_KIND::INVALID;
 }
 
+ bool CanonType_is_unwrapped_complex(CanonType ct) {
+  while  (CanonType_kind(ct) == NT::DefType) {
+    ct = CanonType_children(ct)[0];
+  }
+  switch (CanonType_kind(ct)) {
+    case NT::TypeVec:
+    case NT::DefRec:
+    case NT::TypeUnion:
+      return true;
+    default:
+      return false;
+  }
+}
+
 BASE_TYPE_KIND CanonType_base_type_kind(CanonType ct) {
   ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
   return gCanonTypeCore[ct].base_type_kind;
 }
 
-CanonType CanonType_get_unwrapped(CanonType ct) {
-  while (CanonType_kind(ct) == NT::DefType) {
-    ct = CanonType_children(ct)[0];
-  }
 
-  if (CanonType_kind(ct) == NT::DefEnum) {
-    return CanonType_children(ct)[0];
-  }
-
-  return ct;
-}
 
 std::vector<CanonType>& CanonType_children(CanonType n) {
   return gCanonTypeCore[n].children;

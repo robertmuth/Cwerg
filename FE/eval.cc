@@ -62,26 +62,6 @@ Const ParseNum(Node node) {
 
 namespace {
 
-constexpr std::array<CONST_KIND, 64> MakeBaseTypeToConstType() {
-  std::array<CONST_KIND, 64> out;
-  out[int(BASE_TYPE_KIND::VOID)] = CONST_KIND::VOID;
-  out[int(BASE_TYPE_KIND::BOOL)] = CONST_KIND::BOOL;
-  //
-  out[int(BASE_TYPE_KIND::S8)] = CONST_KIND::S8;
-  out[int(BASE_TYPE_KIND::S16)] = CONST_KIND::S16;
-  out[int(BASE_TYPE_KIND::S32)] = CONST_KIND::S32;
-  out[int(BASE_TYPE_KIND::S64)] = CONST_KIND::S64;
-  //
-  out[int(BASE_TYPE_KIND::U8)] = CONST_KIND::U8;
-  out[int(BASE_TYPE_KIND::U16)] = CONST_KIND::U16;
-  out[int(BASE_TYPE_KIND::U32)] = CONST_KIND::U32;
-  out[int(BASE_TYPE_KIND::U64)] = CONST_KIND::U64;
-
-  return out;
-}
-
-const std::array<CONST_KIND, 64> gBaseTypeToConstType =
-    MakeBaseTypeToConstType();
 
 Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
   Const src_value = Node_x_eval(src_node);
@@ -95,7 +75,7 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
       return ConstNewSpan(
           {kNodeInvalid, CanonType_dim(src_type), kConstInvalid});
     } else {
-      ASSERT(src_value.kind() == CONST_KIND::COMPOUND,
+      ASSERT(src_value.kind() == BASE_TYPE_KIND::COMPOUND,
              "unxpected kind " << int(src_value.kind()));
       return ConstNewSpan({ConstGetCompound(src_value).symbol,
                            CanonType_dim(src_type), src_value});
@@ -130,7 +110,7 @@ Const GetDefaultForType(CanonType ct) {
     case NT::TypeSpan:
       return ConstNewSpan({kNodeInvalid, 0, kConstInvalid});
     default:
-      if (CanonType_is_complex(ct))
+      if (CanonType_is_unwrapped_complex(ct))
         return ConstNewCompound({kNodeInvalid, kNodeInvalid});
       else
         return kConstInvalid;
@@ -138,12 +118,12 @@ Const GetDefaultForType(CanonType ct) {
 }
 
 Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
-  if (container_val.kind() == CONST_KIND::SPAN) {
+  if (container_val.kind() == BASE_TYPE_KIND::SPAN) {
     container_val = ConstGetSpan(container_val).content;
     if (container_val.isnull()) return kConstInvalid;
   }
 
-  ASSERT(container_val.kind() == CONST_KIND::COMPOUND,
+  ASSERT(container_val.kind() == BASE_TYPE_KIND::COMPOUND,
          "" << int(container_val.kind()));
   Node init_node = ConstGetCompound(container_val).init_node;
   if (init_node.isnull()) {
@@ -193,7 +173,7 @@ Node MaybewAdvanceRecField(Node point, Node field) {
 }
 
 Const GetValForRecAtField(Const container, Node target_field) {
-  ASSERT(container.kind() == CONST_KIND::COMPOUND, "");
+  ASSERT(container.kind() == BASE_TYPE_KIND::COMPOUND, "");
   ASSERT(target_field.kind() == NT::RecField, "");
   Node compound = ConstGetCompound(container).init_node;
   if (compound.isnull()) {
@@ -483,9 +463,9 @@ Const EvalNode(Node node) {
       }
     }
     case NT::ValVoid:
-      return ConstNewVoid();
+      return kConstVoid;
     case NT::ValUndef:
-      return ConstNewUndef();
+      return kConstUndef;
     case NT::ValNum: {
       ASSERT(CanonType_kind(Node_x_type(node)) == NT::TypeBase, "");
       Const x = ParseNum(node);
@@ -564,7 +544,7 @@ Const EvalNode(Node node) {
         return Convert(ConstGetSigned(val), bt_target);
       } else if (IsUint(val.kind())) {
         return Convert(ConstGetUnsigned(val), bt_target);
-      } else if (IsFlt(val.kind())) {
+      } else if (IsReal(val.kind())) {
         return Convert(ConstGetFloat(val), bt_target);
       } else {
         ASSERT(false, "");
@@ -630,7 +610,7 @@ Const EvalNode(Node node) {
       Const s = Node_x_eval(Node_expr_size(node));
       if (p.isnull() && s.isnull()) return kConstInvalid;
       if (!p.isnull()) {
-        ASSERT(p.kind() == CONST_KIND::SYM_ADDR,
+        ASSERT(p.kind() == BASE_TYPE_KIND::SYM_ADDR,
                " " << Node_srcloc(node) << " " << p);
         sym = ConstGetSymbol(p);
       }
@@ -732,20 +712,19 @@ bool _EvalRecursively(Node mod) {
 
 }  // namespace
 
-Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt) {
-  CONST_KIND kind = gBaseTypeToConstType[int(bt)];
-  ASSERT(kind != CONST_KIND::INVALID,
-         "bad base type kind " << EnumToString(bt));
+Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND kind) {
+  ASSERT(IsUint(kind),
+         "bad base type kind " << EnumToString(kind));
   if (ValIsShortConstUnsigned(val)) {
     return ConstNewShortUnsigned(val, kind);
   }
   switch (kind) {
-    case CONST_KIND::U32: {
+    case BASE_TYPE_KIND::U32: {
       uint32_t v = val;
       return Const(ConstPool.Intern(std::string_view((char*)&v, sizeof(v))),
                    kind);
     }
-    case CONST_KIND::U64: {
+    case BASE_TYPE_KIND::U64: {
       uint64_t v = val;
       return Const(ConstPool.Intern(std::string_view((char*)&v, sizeof(v))),
                    kind);
@@ -756,19 +735,18 @@ Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt) {
   }
 }
 
-Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt) {
-  CONST_KIND kind = gBaseTypeToConstType[int(bt)];
-  ASSERT(kind != CONST_KIND::INVALID, "");
+Const ConstNewSigned(int64_t val, BASE_TYPE_KIND kind) {
+  ASSERT(IsSint(kind), "");
   if (ValIsShortConstSigned(val)) {
     return ConstNewShortSigned(val, kind);
   }
   switch (kind) {
-    case CONST_KIND::S32: {
+    case BASE_TYPE_KIND::S32: {
       int32_t v = val;
       return Const(ConstPool.Intern(std::string_view((char*)&v, sizeof(v))),
                    kind);
     }
-    case CONST_KIND::S64: {
+    case BASE_TYPE_KIND::S64: {
       int64_t v = val;
       return Const(ConstPool.Intern(std::string_view((char*)&v, sizeof(v))),
                    kind);
@@ -783,10 +761,10 @@ int64_t ConstGetSigned(Const c) {
   if (c.IsShort()) {
     return ConstShortGetSigned(c);
   }
-  if (c.kind() == CONST_KIND::S32) {
+  if (c.kind() == BASE_TYPE_KIND::S32) {
     return *(int32_t*)ConstPool.Data(c.index());
   }
-  ASSERT(c.kind() == CONST_KIND::S64, "");
+  ASSERT(c.kind() == BASE_TYPE_KIND::S64, "");
   return *(int64_t*)ConstPool.Data(c.index());
 }
 
@@ -794,18 +772,18 @@ uint64_t ConstGetUnsigned(Const c) {
   if (c.IsShort()) {
     return ConstShortGetUnsigned(c);
   }
-  if (c.kind() == CONST_KIND::U32) {
+  if (c.kind() == BASE_TYPE_KIND::U32) {
     return *(uint32_t*)ConstPool.Data(c.index());
   }
-  ASSERT(c.kind() == CONST_KIND::U64, "bad size " << int(c.kind()));
+  ASSERT(c.kind() == BASE_TYPE_KIND::U64, "bad size " << int(c.kind()));
   return *(uint64_t*)ConstPool.Data(c.index());
 }
 
 double ConstGetFloat(Const c) {
-  if (c.kind() == CONST_KIND::R32) {
+  if (c.kind() == BASE_TYPE_KIND::R32) {
     return *(float*)ConstPool.Data(c.index());
   } else {
-    ASSERT(c.kind() == CONST_KIND::R64, "");
+    ASSERT(c.kind() == BASE_TYPE_KIND::R64, "");
     return *(double*)ConstPool.Data(c.index());
   }
 }
@@ -813,36 +791,36 @@ double ConstGetFloat(Const c) {
 std::ostream& operator<<(std::ostream& os, Const c) {
   if (c.isnull()) return os << "EvalNull";
   switch (c.kind()) {
-    case CONST_KIND::VOID:
+    case BASE_TYPE_KIND::VOID:
       return os << "EvalVoid";
-    case CONST_KIND::U8:
-    case CONST_KIND::U16:
-    case CONST_KIND::U32:
-    case CONST_KIND::U64:
-    case CONST_KIND::BOOL:
+    case BASE_TYPE_KIND::U8:
+    case BASE_TYPE_KIND::U16:
+    case BASE_TYPE_KIND::U32:
+    case BASE_TYPE_KIND::U64:
+    case BASE_TYPE_KIND::BOOL:
       return os << "EvalNum(" << int(c.kind()) << ")[" << ConstGetUnsigned(c)
                 << "]{" << c.index() << "}";
-    case CONST_KIND::S8:
-    case CONST_KIND::S16:
-    case CONST_KIND::S32:
-    case CONST_KIND::S64:
+    case BASE_TYPE_KIND::S8:
+    case BASE_TYPE_KIND::S16:
+    case BASE_TYPE_KIND::S32:
+    case BASE_TYPE_KIND::S64:
       return os << "EvalNum(" << int(c.kind()) << ")[" << ConstGetSigned(c)
                 << "]{" << c.index() << "}";
-    case CONST_KIND::R32:
-    case CONST_KIND::R64:
+    case BASE_TYPE_KIND::R32:
+    case BASE_TYPE_KIND::R64:
       return os << "EvalNum[" << ConstGetFloat(c) << "]{" << c.index() << "}";
-    case CONST_KIND::SYM_ADDR:
+    case BASE_TYPE_KIND::SYM_ADDR:
       return os << "SymAddr[" << Node_name(ConstGetSymbol(c)) << "]{"
                 << c.index() << "}";
-    case CONST_KIND::FUN_ADDR:
+    case BASE_TYPE_KIND::FUN_ADDR:
       return os << "FunAdd[" << Node_name(ConstGetSymbol(c)) << "]{"
                 << c.index() << "}";
-    case CONST_KIND::COMPOUND: {
+    case BASE_TYPE_KIND::COMPOUND: {
       EvalCompound ec = ConstGetCompound(c);
       return os << "COMPOUND[" << ec.init_node << ", " << ec.symbol << "]{"
                 << c.index() << "}";
     }
-    case CONST_KIND::SPAN: {
+    case BASE_TYPE_KIND::SPAN: {
       EvalSpan es = ConstGetSpan(c);
       return os << "SPAN[" << es.pointer << ", " << es.size << ", "
                 << es.content << "]{" << c.index() << "}";
@@ -874,7 +852,7 @@ void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
     if (Node_kind(node) == NT::StmtStaticAssert) {
       Node cond = Node_cond(node);
       Const val = Node_x_eval(cond);
-      if (val.kind() != CONST_KIND::BOOL || ConstGetUnsigned(val) == 0) {
+      if (val.kind() != BASE_TYPE_KIND::BOOL || ConstGetUnsigned(val) == 0) {
         if (cond.kind() == NT::Expr2) {
           std::cout << Node_expr1(cond) << " " << Node_x_eval(Node_expr1(cond))
                     << " " << Node_expr2(cond) << " "

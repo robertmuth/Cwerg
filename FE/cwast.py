@@ -94,7 +94,7 @@ class BASE_TYPE_KIND(enum.Enum):
 
     TYPEID = 0x50
     VOID = 0x60
-    NORET = 0x70
+    NORET = 0x61
 
     def IsUint(self) -> bool:
         return BASE_TYPE_KIND.UINT.value <= self.value <= BASE_TYPE_KIND.U64.value
@@ -488,7 +488,8 @@ NODES_COND_T = Union["Id", "ExprDeref", "ExprIndex", "ValNum",
                      "Expr1", "Expr2", "Expr3",
                      "ExprStmt", "ExprIs", "ExprNarrow"]
 
-NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex", "ExprField", "ExprParen", "ExprStmt"]
+NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex",
+                    "ExprField", "ExprParen", "ExprStmt"]
 
 NODES_SYMBOLS_T = Union["DefEnum", "EnumVal", "DefType", "DefVar", "DefGlobal", "DefFun",
                         "FunParam", "ModParam",
@@ -829,7 +830,6 @@ def NodeCommon(cls: Any):
         nfd: NFD = ALL_FIELDS_MAP[field]
         assert nfd.name == field
 
-
         kind = nfd.kind
         if kind is NFK.ATTR_BOOL or kind is NFK.ATTR_STR:
             cls.ATTRS.append(nfd)
@@ -937,7 +937,7 @@ class CanonType:
         while self.node is DefType:
             self = self.children[0]
         if self.node is DefEnum:
-             self = self.children[0]
+            self = self.children[0]
         if self.node is TypeBase:
             return self.base_type_kind
         else:
@@ -3501,7 +3501,6 @@ def GenerateInits():
         if has_type:
             print(f"    Node_x_type(node) = x_type;")
 
-
         print("}\n")
 
 
@@ -3527,6 +3526,16 @@ def _FieldNamesForKind(nfk: NFK) -> list[str]:
         if nfd.kind is nfk:
             out.append(nfd.name)
     return out
+
+
+_EXTRA_BASE_TYPE_KIND = [
+    ("UNDEF", 0x70),
+    ("SYM_ADDR", 0x71),
+    ("FUN_ADDR", 0x72),
+    ("COMPOUND", 0x73),
+    ("SPAN", 0x74),
+
+]
 
 
 def GenerateCodeH(fout: Any):
@@ -3561,7 +3570,7 @@ def GenerateCodeH(fout: Any):
         POINTER_EXPR_KIND), "POINTER_EXPR_KIND", fout)
 
     cgen.RenderEnumClass(cgen.NameValues(
-        BASE_TYPE_KIND), "BASE_TYPE_KIND", fout)
+        BASE_TYPE_KIND) + _EXTRA_BASE_TYPE_KIND, "BASE_TYPE_KIND", fout)
     cgen.RenderEnumClass(cgen.NameValues(
         MACRO_PARAM_KIND), "MACRO_PARAM_KIND", fout)
     cgen.RenderEnumClass(cgen.NameValues(
@@ -3643,6 +3652,7 @@ def NodeAliasStringConversion(fout: Any):
 
 
 _IMPORTANT_X_FIELDS = set(["x_eval", "x_target", "x_symbol", "x_type"])
+
 
 def EmitNodeDesc(fout: Any):
     print("const NodeDesc GlobalNodeDescs[] = {")

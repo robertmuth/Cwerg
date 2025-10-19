@@ -3,7 +3,7 @@
 //
 // Expressions that can be (partiatally) evaluated at compile time are annotated
 // with a Const (handle). The encoding is quite complex and consists of a kind
-// (CONST_KIND) and a value. Short values are directly encoded the handle. For
+// (BASE_TYPE_KIND) and a value. Short values are directly encoded the handle. For
 // details see the implementation of: std::ostream& operator<<(std::ostream& os,
 // Const c)
 #include <vector>
@@ -13,6 +13,11 @@
 #include "Util/assert.h"
 
 namespace cwerg::fe {
+
+constexpr const Const kConstUndef(0, BASE_TYPE_KIND::UNDEF);
+constexpr const Const kConstVoid(0, BASE_TYPE_KIND::VOID);
+constexpr const Const kConstFalse(1U << 23U | 0, BASE_TYPE_KIND::BOOL);
+constexpr const Const kConsTrue(1U << 23U | 1, BASE_TYPE_KIND::BOOL);
 
 extern ImmutablePool ConstPool;
 
@@ -32,12 +37,12 @@ inline bool ValIsShortConstSigned(int64_t val) {
   return -(1 << 12U) <= val && val < (1 << 22U);
 }
 
-inline Const ConstNewShortSigned(int64_t val, CONST_KIND kind) {
+inline Const ConstNewShortSigned(int64_t val, BASE_TYPE_KIND kind) {
   ASSERT(IsSint(kind), "");
   return Const(1U << 23U | (uint32_t)val, kind);
 }
 
-inline Const ConstNewShortUnsigned(uint32_t val, CONST_KIND kind) {
+inline Const ConstNewShortUnsigned(uint32_t val, BASE_TYPE_KIND kind) {
   ASSERT(IsUintOrBool(kind), "not a uint " << int(kind));
   return Const(1U << 23U | val, kind);
 }
@@ -53,63 +58,63 @@ inline int32_t ConstShortGetSigned(Const c) {
 }
 
 inline Const ConstNewBool(bool val) {
-  return ConstNewShortUnsigned(val, CONST_KIND::BOOL);
+  return ConstNewShortUnsigned(val, BASE_TYPE_KIND::BOOL);
 }
 
 inline Const ConstNewU8(uint8_t val) {
-  return ConstNewShortUnsigned(val, CONST_KIND::U8);
+  return ConstNewShortUnsigned(val, BASE_TYPE_KIND::U8);
 }
 inline Const ConstNewU16(uint16_t val) {
-  return ConstNewShortUnsigned(val, CONST_KIND::U16);
+  return ConstNewShortUnsigned(val, BASE_TYPE_KIND::U16);
 }
 
 inline Const ConstNewU32(uint32_t val) {
   if (ValIsShortConstUnsigned(val)) {
-    return ConstNewShortUnsigned(val, CONST_KIND::U32);
+    return ConstNewShortUnsigned(val, BASE_TYPE_KIND::U32);
   }
   return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
-               CONST_KIND::U32);
+               BASE_TYPE_KIND::U32);
 }
 
 inline Const ConstNewU64(uint64_t val) {
   if (ValIsShortConstUnsigned(val)) {
-    return ConstNewShortUnsigned(val, CONST_KIND::U64);
+    return ConstNewShortUnsigned(val, BASE_TYPE_KIND::U64);
   }
   return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
-               CONST_KIND::U64);
+               BASE_TYPE_KIND::U64);
 }
 
 inline Const ConstNewS8(int8_t val) {
-  return ConstNewShortSigned(val, CONST_KIND::S8);
+  return ConstNewShortSigned(val, BASE_TYPE_KIND::S8);
 }
 inline Const ConstNewS16(int16_t val) {
-  return ConstNewShortSigned(val, CONST_KIND::S16);
+  return ConstNewShortSigned(val, BASE_TYPE_KIND::S16);
 }
 
 inline Const ConstNewS32(int32_t val) {
   if (ValIsShortConstSigned(val)) {
-    return ConstNewShortSigned(val, CONST_KIND::S32);
+    return ConstNewShortSigned(val, BASE_TYPE_KIND::S32);
   }
   return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
-               CONST_KIND::U32);
+               BASE_TYPE_KIND::U32);
 }
 
 inline Const ConstNewS64(int64_t val) {
   if (ValIsShortConstSigned(val)) {
-    return ConstNewShortUnsigned(val, CONST_KIND::S64);
+    return ConstNewShortUnsigned(val, BASE_TYPE_KIND::S64);
   }
   return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
-               CONST_KIND::U64);
+               BASE_TYPE_KIND::U64);
 }
 
 inline Const ConstNewR32(float val) {
   return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
-               CONST_KIND::R32);
+               BASE_TYPE_KIND::R32);
 }
 
 inline Const ConstNewR64(double val) {
   return Const(ConstPool.Intern(std::string_view((char*)&val, sizeof(val))),
-               CONST_KIND::R64);
+               BASE_TYPE_KIND::R64);
 }
 
 extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
@@ -121,40 +126,37 @@ inline Const ConstNewReal(double val, BASE_TYPE_KIND bt) {
   return ConstNewR64(val);
 }
 
-inline Const ConstNewUndef() { return Const(0, CONST_KIND::UNDEF); }
-inline Const ConstNewVoid() { return Const(0, CONST_KIND::VOID); }
-
 inline Const ConstNewSymAddr(Node sym) {
   return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
-               CONST_KIND::SYM_ADDR);
+               BASE_TYPE_KIND::SYM_ADDR);
 }
 
 inline Const ConstNewFunAddr(Node sym) {
   return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
-               CONST_KIND::FUN_ADDR);
+               BASE_TYPE_KIND::FUN_ADDR);
 }
 
 // represents the value of arrays and recs
 inline Const ConstNewCompound(EvalCompound compound) {
   return Const(
       ConstPool.Intern(std::string_view((char*)&compound, sizeof(compound))),
-      CONST_KIND::COMPOUND);
+      BASE_TYPE_KIND::COMPOUND);
 }
 
 inline EvalCompound ConstGetCompound(Const c) {
-  ASSERT(c.kind() == CONST_KIND::COMPOUND, "");
+  ASSERT(c.kind() == BASE_TYPE_KIND::COMPOUND, "");
   return *(EvalCompound*)ConstPool.Data(c.index());
 }
 
 inline Node ConstGetSymbol(Const c) {
-  ASSERT(c.kind() == CONST_KIND::SYM_ADDR || c.kind() == CONST_KIND::FUN_ADDR,
+  ASSERT(c.kind() == BASE_TYPE_KIND::SYM_ADDR || c.kind() == BASE_TYPE_KIND::FUN_ADDR,
          "cannot get symbol");
   return *(Node*)ConstPool.Data(c.index());
 }
 
 inline Const ConstNewSpan(EvalSpan span) {
   return Const(ConstPool.Intern(std::string_view((char*)&span, sizeof(span))),
-               CONST_KIND::SPAN);
+               BASE_TYPE_KIND::SPAN);
 }
 
 extern int64_t ConstGetSigned(Const c);
@@ -162,7 +164,7 @@ extern uint64_t ConstGetUnsigned(Const c);
 extern double ConstGetFloat(Const c);
 
 inline EvalSpan ConstGetSpan(Const c) {
-  ASSERT(c.kind() == CONST_KIND::SPAN, "");
+  ASSERT(c.kind() == BASE_TYPE_KIND::SPAN, "");
   return *(EvalSpan*)ConstPool.Data(c.index());
 }
 
