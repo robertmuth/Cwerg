@@ -53,7 +53,7 @@ struct Node : public Handle {
 extern ImmutablePool gStringPool;
 
 struct Str : public Handle {
-  explicit constexpr Str(uint32_t index = 0) : Handle(index, kKindStr) {}
+  explicit constexpr Str(uint32_t index) : Handle(index, kKindStr) {}
   explicit Str(Handle ref) : Handle(ref.value) {}
 
   bool operator<(const Str& other) const {
@@ -66,7 +66,7 @@ struct Str : public Handle {
 extern ImmutablePool gNamePool;
 
 struct Name : public Handle {
-  explicit constexpr Name(uint32_t index = 0) : Handle(index, kKindName) {}
+  explicit constexpr Name(uint32_t index) : Handle(index, kKindName) {}
 
   explicit constexpr Name(Handle ref) : Handle(ref.value) {}
 
@@ -107,7 +107,7 @@ constexpr const Const kConstInvalid(0);
 struct SrcLoc {
   uint32_t line;
   uint32_t col;
-  Name file;
+  Name file = kNameInvalid;
 };
 
 constexpr SrcLoc kSrcLocInvalid(0, 0, kNameInvalid);

@@ -67,7 +67,7 @@ struct TK {
   std::string_view text;
   TK_KIND kind = TK_KIND::INVALID;
   SrcLoc srcloc;
-  Str comments;
+  Str comments = kStrInvalid;
   uint32_t annotation_bits;
 };
 

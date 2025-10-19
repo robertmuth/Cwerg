@@ -124,23 +124,23 @@ class TypeCorpus {
     return base_type_map_.at(kind);
   }
 
-  CanonType get_void_canon_type() {
-    return base_type_map_[BASE_TYPE_KIND::VOID];
+  CanonType get_void_canon_type() const {
+    return base_type_map_.at(BASE_TYPE_KIND::VOID);
   }
-  CanonType get_bool_canon_type() {
-    return base_type_map_[BASE_TYPE_KIND::BOOL];
-  }
-
-  CanonType get_sint_canon_type() {
-    return base_type_map_[BASE_TYPE_KIND::SINT];
+  CanonType get_bool_canon_type() const {
+    return base_type_map_.at(BASE_TYPE_KIND::BOOL);
   }
 
-  CanonType get_uint_canon_type() {
-    return base_type_map_[BASE_TYPE_KIND::UINT];
+  CanonType get_sint_canon_type() const {
+    return base_type_map_.at(BASE_TYPE_KIND::SINT);
   }
 
-  CanonType get_typeid_canon_type() {
-    return base_type_map_[BASE_TYPE_KIND::TYPEID];
+  CanonType get_uint_canon_type() const {
+    return base_type_map_.at(BASE_TYPE_KIND::UINT);
+  }
+
+  CanonType get_typeid_canon_type() const {
+    return base_type_map_.at(BASE_TYPE_KIND::TYPEID);
   }
 
   CanonType InsertPtrType(bool mut, CanonType child);
