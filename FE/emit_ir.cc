@@ -59,6 +59,7 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
 void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order, TypeCorpus* tc) {
   for (Node mod : mods_in_topo_order) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      FunReplaceConstExpr(fun, *tc);
       FunReplaceTypeOfAndTypeUnionDelta(fun);
       FunReplaceExprIndex(fun, tc);
       if (fun.kind() != NT::DefFun) continue;

@@ -1100,9 +1100,9 @@ def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.Typ
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             canonicalize.FunReplaceTypeOfAndTypeUnionDelta(fun)  # maybe Mod...
-            canonicalize.FunReplaceExprIndex(fun, tc)
             canonicalize.FunReplaceConstExpr(fun, tc)
             canonicalize.MakeImplicitConversionsExplicit(fun, tc)
+            canonicalize.FunReplaceExprIndex(fun, tc)
             canonicalize.EliminateComparisonConversionsForTaggedUnions(fun)
             canonicalize_span.ReplaceExplicitSpanCast(fun, tc)
 
