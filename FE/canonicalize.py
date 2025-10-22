@@ -113,7 +113,7 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
             typeids.append(ct.get_original_typeid())
     else:
         typeids.append(dst_ct.get_original_typeid())
-    typeidvals = [cwast.ValNum(str(i), x_srcloc=sl,
+    typeidvals = [cwast.ValNum(eval.EVAL_STR, x_srcloc=sl,
                                x_type=typeid_ct, x_eval=eval.EvalNum(i,
                                                                      typeid_ct.base_type_kind)) for i in typeids]
     # TODO: store tag in a variable rather than retrieving it each time.
@@ -331,7 +331,7 @@ def FunReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
 
     This should elminate all of ExprSizeOf and ExprOffsetOf as a side-effect
     """
-    def replacer(node, parent):
+    def replacer(node, parent) -> Any:
         if cwast.NF.EVAL_ANNOTATED not in node.FLAGS:
             return None
 
@@ -346,14 +346,15 @@ def FunReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
             # for the case of "@id" we do not want to replace id by its value
             return None
 
-        ct = node.x_type
-        if ct.get_unwrapped().is_base_type():
-            return cwast.ValNum(str(val.val), x_srcloc=node.x_srcloc, x_type=ct, x_eval=val)
+        ct: cwast.CanonType = node.x_type.get_unwrapped()
+        if ct.is_base_type():
+            ct = node.x_type
         else:
-            assert ct.is_union() and tc.get_base_canon_type(
-                val.kind) in ct.children, f"{ct}"
-            return cwast.ValNum(str(val.val),
-                                x_srcloc=node.x_srcloc, x_type=tc.get_base_canon_type(val.kind), x_eval=val)
+            val_ct = tc.get_base_canon_type(val.kind)
+            assert ct.is_union() and ct.union_contains(val_ct), f"{ct}"
+            # assert False, f"@@@@@@@@@@@ {node.x_srcloc}"
+            ct = val_ct
+        return cwast.ValNum(eval.EVAL_STR, x_srcloc=node.x_srcloc, x_type=ct, x_eval=val)
 
     # no neeed to siplify interior subtrees if we we rewrite a node
     cwast.MaybeReplaceAstRecursively(node, replacer)
@@ -414,7 +415,7 @@ def _RewriteExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
     if container_ct.is_vec():
         mut = type_corpus.IsProperLhs(node.container)
         dim_eval = eval.EvalNum(container_ct.dim, uint_type.base_type_kind)
-        bound = cwast.ValNum(str(container_ct.dim), x_srcloc=sl,
+        bound = cwast.ValNum(eval.EVAL_STR, x_srcloc=sl,
                              x_type=uint_type, x_eval=dim_eval)
         pinc = _CovertExprIndexToExprPoiner(
             node.container, node.expr_index, bound, mut, sl, elem_ct, tc)
@@ -554,7 +555,7 @@ def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCo
         node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type,
         x_eval=v_sym)
     width = node.x_type.array_dim()
-    length = cwast.ValNum(f"{width}", x_eval=eval.EvalNum(width, uint_type.base_type_kind),
+    length = cwast.ValNum(eval.EVAL_STR, x_eval=eval.EvalNum(width, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)
     v_span = eval.EvalSpan(v_sym.sym if v_sym else None, width)
     return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_eval=v_span)

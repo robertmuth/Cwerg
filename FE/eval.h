@@ -21,6 +21,8 @@ constexpr const Const kConsTrue(1U << 23U | 1, BASE_TYPE_KIND::BOOL);
 
 extern ImmutablePool ConstPool;
 
+constexpr const char EVAL_STR[] = "@eval@";
+
 struct EvalSpan {
   Node pointer;
   int32_t size;   // invalid if < 0

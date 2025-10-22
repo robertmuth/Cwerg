@@ -43,9 +43,9 @@ extern const std::array<uint16_t, 17> BF2MASK;
 inline uint16_t Mask(BF val) { return BF2MASK[int(val)]; }
 
 struct Node : public Handle {
-  explicit constexpr Node(NT kind = NT(0), uint32_t index = 0)
+  constexpr Node(NT kind, uint32_t index)
       : Handle(index, uint8_t(kind)) {}
-
+  constexpr Node() : Handle(0, 0) {}
   explicit constexpr Node(Handle ref) : Handle(ref.value) {}
   NT kind() const { return NT(raw_kind()); }
 };

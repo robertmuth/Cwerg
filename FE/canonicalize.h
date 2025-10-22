@@ -13,4 +13,6 @@ extern void FunReplaceTypeOfAndTypeUnionDelta(Node node);
 
 extern void FunReplaceExprIndex(Node node, TypeCorpus* tc);
 
+extern void FunReplaceConstExpr(Node node, const TypeCorpus& tc);
+
 }  // namespace cwerg::fe

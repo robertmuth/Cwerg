@@ -19,6 +19,8 @@ from FE import canonicalize
 logger = logging.getLogger(__name__)
 
 
+EVAL_STR = "@eval"
+
 class EvalBase:
     pass
 

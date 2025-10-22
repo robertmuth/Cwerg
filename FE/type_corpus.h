@@ -45,6 +45,13 @@ inline bool CanonType_is_base_type(CanonType ct) {
   return CanonType_kind(ct) == NT::TypeBase;
 }
 
+inline bool CanonType_is_union(CanonType ct) {
+  return CanonType_kind(ct) == NT::TypeUnion;
+}
+
+extern bool CanonType_union_contains(CanonType ct, CanonType member);
+
+
 extern std::vector<CanonType>& CanonType_children(CanonType n);
 
 extern Node CanonType_lookup_rec_field(CanonType ct, Name field);

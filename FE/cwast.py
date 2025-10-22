@@ -960,6 +960,9 @@ class CanonType:
     def is_tagged_union(self) -> bool:
         return self.node is TypeUnion and not self.untagged
 
+    def union_contains(self, ct) -> bool:
+        return ct in self.children
+
     def tagged_union_contains(self, ct) -> bool:
         return self.node is TypeUnion and not self.untagged and ct in self.children
 

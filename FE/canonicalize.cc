@@ -67,10 +67,8 @@ Node RewriteExprIndex(Node node, CanonType uint_ct, TypeCorpus* tc) {
     Const dim = ConstNewUnsigned(size_t(CanonType_dim(container_ct)),
                                  CanonType_base_type_kind(uint_ct));
     Node bound = NodeNew(NT::ValNum);
-    char buffer[32];
-    NodeInitValNum(bound,
-                   StrNew(ToDecString(CanonType_dim(container_ct), buffer)),
-                   Node_comment(node), Node_srcloc(node), uint_ct);
+    NodeInitValNum(bound, StrNew(EVAL_STR), Node_comment(node),
+                   Node_srcloc(node), uint_ct);
     Node_x_eval(bound) = dim;
     Node pinc = ConvertExprIndexToPointerArithmetic(
         container, Node_expr(node), bound, mut, sl, elem_ct, tc);
@@ -135,6 +133,55 @@ void FunReplaceExprIndex(Node node, TypeCorpus* tc) {
     return node;
   };
   MaybeReplaceAstRecursivelyPost(node, visitor, kNodeInvalid);
+}
+
+void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {
+  auto replacer = [tc](Node node, Node parent) -> Node {
+    if (!NodeHasField(node, NFD_X_FIELD::eval)) {
+      return node;
+    }
+
+    NT kind = node.kind();
+    Const val = Node_x_eval(node);
+
+    if (kind == NT::ValNum || kind == NT::EnumVal || kind == NT::ValUndef) {
+      ASSERT(val != kConstInvalid, "");
+      return node;
+    }
+
+    if (kind == NT::ValAuto) {
+      ASSERT(val != kConstInvalid, "");
+    }
+
+    if (val == kConstInvalid || val == kConstUndef) {
+      return node;
+    }
+
+    if (!IsNumber(val.kind())) {
+      return node;
+    }
+
+    if (kind == NT::DefVar || kind == NT::DefGlobal || kind == NT::ValPoint ||
+        kind == NT::ValCompound) {
+      return node;
+    }
+    CanonType ct = CanonType_get_unwrapped(Node_x_type(node));
+
+    if (CanonType_is_base_type(ct)) {
+      ct = Node_x_type(node);
+    } else {
+      CanonType val_ct = tc.get_base_canon_type(val.kind());
+      ASSERT(CanonType_is_union(ct) && CanonType_union_contains(ct, val_ct), "");
+      ct = val_ct;
+    }
+    Node new_node = NodeNew(NT::ValNum);
+    NodeInitValNum(new_node, StrNew(EVAL_STR), Node_comment(node),
+                   Node_srcloc(node), ct);
+    Node_x_eval(new_node) = val;
+    NodeFree(node);
+    return new_node;
+  };
+  MaybeReplaceAstRecursively(node, replacer);
 }
 
 }  // namespace cwerg::fe

@@ -52,12 +52,20 @@ int CanonType_aligned_size(CanonType ct) {
   return align(gCanonTypeCore[ct].size, gCanonTypeCore[ct].alignment);
 }
 
+bool CanonType_union_contains(CanonType ct, CanonType member) {
+  for (CanonType child : CanonType_children(ct)) {
+    if (child == member) return true;
+  }
+  return false;
+}
+
 bool CanonType_is_finalized(CanonType ct) {
   return gCanonTypeCore[ct].alignment > 0;
 }
 
 void CanonType_Finalize(CanonType ct, size_t size, size_t alignment) {
-  ASSERT(size >= 0 && alignment >= 0, "" << size << " " << alignment << " " <<  ct);
+  ASSERT(size >= 0 && alignment >= 0,
+         "" << size << " " << alignment << " " << ct);
   ASSERT(gCanonTypeCore[ct].alignment < 0, "already finalized " << ct);
   gCanonTypeCore[ct].alignment = alignment;
   gCanonTypeCore[ct].size = size;
@@ -100,8 +108,8 @@ BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType ct) {
   return BASE_TYPE_KIND::INVALID;
 }
 
- bool CanonType_is_unwrapped_complex(CanonType ct) {
-  while  (CanonType_kind(ct) == NT::DefType) {
+bool CanonType_is_unwrapped_complex(CanonType ct) {
+  while (CanonType_kind(ct) == NT::DefType) {
     ct = CanonType_children(ct)[0];
   }
   switch (CanonType_kind(ct)) {
@@ -118,8 +126,6 @@ BASE_TYPE_KIND CanonType_base_type_kind(CanonType ct) {
   ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
   return gCanonTypeCore[ct].base_type_kind;
 }
-
-
 
 std::vector<CanonType>& CanonType_children(CanonType n) {
   return gCanonTypeCore[n].children;
@@ -235,7 +241,7 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch) {
                               //
                               BASE_TYPE_KIND::R32, BASE_TYPE_KIND::R64,
                               //
-                              BASE_TYPE_KIND::BOOL,BASE_TYPE_KIND::NORET}) {
+                              BASE_TYPE_KIND::BOOL, BASE_TYPE_KIND::NORET}) {
     base_type_map_[kind] = InsertBaseType(kind);
   }
   base_type_map_[BASE_TYPE_KIND::SINT] = base_type_map_[arch.get_sint_kind()];
@@ -471,8 +477,7 @@ CanonType TypeCorpus::InsertUnionType(
     }
   }
 
-  Name name =
-      MakeCanonTypeName(untagged ? "sum_untagged" : "sum", components);
+  Name name = MakeCanonTypeName(untagged ? "sum_untagged" : "sum", components);
   auto it = corpus_.find(name);
   if (it != corpus_.end()) return it->second;
   std::vector<CanonType> components_sorted(unique.begin(), unique.end());
