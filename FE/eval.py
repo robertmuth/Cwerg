@@ -19,6 +19,7 @@ from FE import canonicalize
 logger = logging.getLogger(__name__)
 
 
+# use with cwast.ValNum if the value is defined by x_eval
 EVAL_STR = "@eval"
 
 class EvalBase:
@@ -85,7 +86,7 @@ class EvalCompound(EvalBase):
 
 
 class EvalSpan(EvalBase):
-    def __init__(self, pointer, size, content=None):
+    def __init__(self, pointer, size, content):
         assert pointer is None or isinstance(
             pointer, (cwast.DefGlobal, cwast.DefVar)), f"{pointer}"
         assert size is None or isinstance(size, int), f"{size}"
@@ -109,7 +110,7 @@ class EvalNum(EvalBase):
         return f"EvalNum[{self.val}]"
 
 
-VAL_EMPTY_SPAN = EvalSpan(None, 0)
+VAL_EMPTY_SPAN = EvalSpan(None, 0, None)
 VAL_UNDEF = EvalUndef()
 VAL_VOID = EvalVoid()
 VAL_TRUE = EvalNum(True, cwast.BASE_TYPE_KIND.BOOL)
@@ -633,7 +634,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         if s:
             assert isinstance(s, EvalNum)
             s = s.val
-        return EvalSpan(p, s)
+        return EvalSpan(p, s, None)
     elif isinstance(node, cwast.ExprParen):
         return node.expr.x_eval
     elif isinstance(node, cwast.DefEnum):

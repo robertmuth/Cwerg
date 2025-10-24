@@ -542,50 +542,43 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
     fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=srcloc, x_target=fun))
 
 
-def MakeValSpanFromArray(node, dst_type: cwast.CanonType, tc: type_corpus.TypeCorpus,
-                         uint_type: cwast.CanonType) -> cwast.ValSpan:
+def MakeValSpanFromArray(node, expected_ct: cwast.CanonType,
+                         uint_type: cwast.CanonType, tc: type_corpus.TypeCorpus) -> cwast.ValSpan:
     assert node.x_type.is_vec()
-    p_type = tc.InsertPtrType(dst_type.mut, dst_type.underlying_type())
+    ptr_ct = tc.InsertPtrType(expected_ct.mut, expected_ct.underlying_type())
     v_sym = None
     if isinstance(node, cwast.Id):
         v_sym = eval.EvalSymAddr(node.x_symbol)
 
     # assert not isinstance(node, (cwast.ValCompound, cwast.ValString)), f"{node.x_srcloc}"
-    pointer = cwast.ExprFront(
-        node, x_srcloc=node.x_srcloc, mut=dst_type.mut, x_type=p_type,
+    front = cwast.ExprFront(
+        node, x_srcloc=node.x_srcloc, mut=expected_ct.mut, x_type=ptr_ct,
         x_eval=v_sym)
     width = node.x_type.array_dim()
     length = cwast.ValNum(eval.EVAL_STR, x_eval=eval.EvalNum(width, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)
-    v_span = eval.EvalSpan(v_sym.sym if v_sym else None, width)
-    return cwast.ValSpan(pointer, length, x_srcloc=node.x_srcloc, x_type=dst_type, x_eval=v_span)
+    v_span = eval.EvalSpan(v_sym.sym if v_sym else None, width, None)
+    return cwast.ValSpan(front, length, x_srcloc=node.x_srcloc, x_type=expected_ct, x_eval=v_span)
 
 
-def _HandleImplicitConversion(orig_node, target_type: cwast.CanonType, uint_type, tc):
-    if orig_node.x_type.is_vec() and target_type.is_span():
-        return MakeValSpanFromArray(
-            orig_node, target_type, tc, uint_type)
-    elif target_type.is_union():
-        sum_type = cwast.TypeAuto(
-            x_type=target_type, x_srcloc=orig_node.x_srcloc)
-        return cwast.ExprWiden(orig_node, sum_type, x_type=target_type,
-                               x_srcloc=orig_node.x_srcloc, x_eval=orig_node.x_eval)
-    else:
-        print(
-            f"@@@@@@@@@@@@@@ {orig_node.x_srcloc} {orig_node.x_type.node}  {target_type.node}")
-        assert False
-    return orig_node
-
-
-def _MaybeEliminateImplicitConversions(orig_node, target_type: cwast.CanonType, uint_type, tc):
+def _MaybeEliminateImplicitConversions(orig_node, expected_ct: cwast.CanonType, uint_type, tc):
     if isinstance(orig_node, cwast.ValUndef):
         return orig_node
     orig_type = orig_node.x_type
-    if orig_type is target_type or type_corpus.IsDropMutConversion(orig_type, target_type):
+    if orig_type is expected_ct or type_corpus.IsDropMutConversion(orig_type, expected_ct):
         # no change
         return orig_node
 
-    return _HandleImplicitConversion(orig_node, target_type, uint_type, tc)
+    if orig_node.x_type.is_vec() and expected_ct.is_span():
+        return MakeValSpanFromArray(
+            orig_node, expected_ct, uint_type, tc)
+    else:
+        assert expected_ct.is_union()
+        sum_type = cwast.TypeAuto(
+            x_type=expected_ct, x_srcloc=orig_node.x_srcloc)
+        return cwast.ExprWiden(orig_node, sum_type, x_type=expected_ct,
+                               x_srcloc=orig_node.x_srcloc, x_eval=orig_node.x_eval)
+\
 
 
 def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
@@ -607,21 +600,18 @@ def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpu
                     a, p, uint_type, tc)
         elif isinstance(node, cwast.ExprWrap) and not node.x_type.is_enum():
             assert node.x_type.is_wrapped()
-            target = node.x_type.underlying_type()
-            actual = node.expr.x_type
             node.expr = _MaybeEliminateImplicitConversions(
-                node.expr, target, uint_type, tc)
+                node.expr, node.x_type.underlying_type(), uint_type, tc)
 
         elif isinstance(node, cwast.StmtReturn):
-            target = node.x_target
-            actual = node.expr_ret.x_type
-            if isinstance(target, cwast.DefFun):
-                expected = target.result.x_type
+            expected_ct = node.x_target
+            if isinstance(expected_ct, cwast.DefFun):
+                expected_ct = expected_ct.result.x_type
             else:
-                assert isinstance(target, cwast.ExprStmt)
-                expected = target.x_type
+                assert isinstance(expected_ct, cwast.ExprStmt)
+                expected_ct = expected_ct.x_type
             node.expr_ret = _MaybeEliminateImplicitConversions(
-                node.expr_ret, expected, uint_type, tc)
+                node.expr_ret, expected_ct, uint_type, tc)
         elif isinstance(node, cwast.StmtAssignment):
             node.expr_rhs = _MaybeEliminateImplicitConversions(
                 node.expr_rhs, node.lhs.x_type, uint_type, tc)
