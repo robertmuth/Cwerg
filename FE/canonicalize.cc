@@ -171,7 +171,8 @@ void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {
       ct = Node_x_type(node);
     } else {
       CanonType val_ct = tc.get_base_canon_type(val.kind());
-      ASSERT(CanonType_is_union(ct) && CanonType_union_contains(ct, val_ct), "");
+      ASSERT(CanonType_is_union(ct) && CanonType_union_contains(ct, val_ct),
+             "");
       ct = val_ct;
     }
     Node new_node = NodeNew(NT::ValNum);
@@ -182,6 +183,127 @@ void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {
     return new_node;
   };
   MaybeReplaceAstRecursively(node, replacer);
+}
+
+CanonType GetFrontTypeForVec(CanonType ct, TypeCorpus* tc) {
+  return tc->InsertPtrType(CanonType_mut(ct), CanonType_underlying_type(ct));
+}
+
+Node MakeValSpanFromArray(Node node, CanonType expected_ct, CanonType uint_ct,
+                          TypeCorpus* tc) {
+  ASSERT(CanonType_is_vec(Node_x_type(node)) && CanonType_is_span(expected_ct), "");
+  SizeOrDim dim = CanonType_dim(Node_x_type(node));
+  const SrcLoc& sl = Node_srcloc(node);
+  CanonType ptr_ct = GetFrontTypeForVec(expected_ct, tc);
+  Node sym = node.kind() == NT::Id ? Node_x_symbol(node) : kNodeInvalid;
+  Node front = NodeNew(NT::ExprFront);
+  NodeInitExprFront(front, node, CanonType_mut(expected_ct) ? Mask(BF::MUT) : 0,
+                    kStrInvalid, sl, ptr_ct);
+  Node_x_eval(front) = sym == kNodeInvalid
+                           ? kConstInvalid
+                           : ConstNewSymAddr(Node_x_symbol(node));
+
+  Node length = NodeNew(NT::ValNum);
+  NodeInitValNum(length, StrNew(EVAL_STR), kStrInvalid, sl, uint_ct);
+  Node_x_eval(length) =
+      ConstNewUnsigned(dim, CanonType_base_type_kind(uint_ct));
+  //
+  Node span = NodeNew(NT::ValSpan);
+  NodeInitValSpan(span, front, length, kStrInvalid, sl, expected_ct);
+  Const v_span = ConstNewSpan({sym, dim, kConstInvalid});
+  Node_x_eval(span) = v_span;
+  return span;
+}
+
+Node MaybeMakeImplicitConversionExplicit(Node orig_node, CanonType expected_ct,
+                                         CanonType uint_ct, TypeCorpus* tc) {
+  if (orig_node.kind() == NT::ValUndef) {
+    return orig_node;
+  }
+  CanonType actual_ct = Node_x_type(orig_node);
+  if (actual_ct == expected_ct) {
+    return orig_node;
+  }
+  if (CanonType_is_vec(Node_x_type(orig_node)) &&
+      CanonType_is_span(expected_ct)) {
+    return MakeValSpanFromArray(orig_node, expected_ct, uint_ct, tc);
+  } else {
+    ASSERT(CanonType_is_union(expected_ct), "");
+    Node sum_type = NodeNew(NT::TypeAuto);
+    NodeInitTypeAuto(sum_type, Node_comment(orig_node), Node_srcloc(orig_node),
+                     expected_ct);
+
+    Node widen = NodeNew(NT::ExprWiden);
+    NodeInitExprWiden(widen, orig_node, sum_type, kStrInvalid,
+                      Node_srcloc(orig_node), expected_ct);
+    Node_x_eval(widen) = Node_x_eval(orig_node);
+    return widen;
+  }
+}
+
+void FunMakeImplicitConversionsExplicit(Node node, TypeCorpus* tc) {
+  CanonType uint_ct = tc->get_uint_canon_type();
+
+  auto visitor = [tc, uint_ct](Node node, Node parent) -> void {
+    switch (node.kind()) {
+      case NT::ValPoint:
+        Node_value_or_undef(node) = MaybeMakeImplicitConversionExplicit(
+            Node_value_or_undef(node), Node_x_type(node), uint_ct, tc);
+        break;
+      case NT::DefVar:
+      case NT::DefGlobal:
+        Node_initial_or_undef_or_auto(node) =
+            MaybeMakeImplicitConversionExplicit(
+                Node_initial_or_undef_or_auto(node),
+                Node_x_type(Node_type_or_auto(node)), uint_ct, tc);
+        break;
+      case NT::ExprCall: {
+        CanonType fun_sig = Node_x_type(Node_callee(node));
+        NodeChain new_args;
+        Node arg = Node_args(node);
+        if (arg.isnull()) {
+          break;
+        }
+        int arg_pos = 0;
+        do {
+          Node next = Node_next(arg);
+          Node_next(arg) = kNodeInvalid;
+          Node new_arg = MaybeMakeImplicitConversionExplicit(
+              arg, CanonType_children(fun_sig)[arg_pos], uint_ct, tc);
+          new_args.Append(new_arg);
+          arg = next;
+          ++arg_pos;
+        } while (!arg.isnull());
+        Node_args(node) = new_args.First();
+      } break;
+      case NT::ExprWrap: {
+        CanonType ct = Node_x_type(node);
+        if (!CanonType_is_enum(ct)) {
+          ASSERT(CanonType_is_wrapped(ct), "");
+          Node_expr(node) = MaybeMakeImplicitConversionExplicit(
+              Node_expr(node), CanonType_underlying_type(ct), uint_ct, tc);
+        }
+      } break;
+      case NT::StmtReturn: {
+        Node target = Node_x_target(node);
+        ASSERT(target.kind() == NT::DefFun || target.kind() == NT::ExprStmt,
+               "");
+        CanonType expected_ct = target.kind() == NT::DefFun
+                                    ? Node_x_type(Node_result(target))
+                                    : Node_x_type(target);
+
+        Node_expr_ret(node) = MaybeMakeImplicitConversionExplicit(
+            Node_expr_ret(node), expected_ct, uint_ct, tc);
+      } break;
+      case NT::StmtAssignment:
+        Node_expr_rhs(node) = MaybeMakeImplicitConversionExplicit(
+            Node_expr_rhs(node), Node_x_type(Node_lhs(node)), uint_ct, tc);
+        break;
+      default:
+        return;
+    }
+  };
+  VisitAstRecursivelyPost(node, visitor, kNodeInvalid);
 }
 
 }  // namespace cwerg::fe
