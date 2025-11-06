@@ -542,26 +542,29 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
     fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=srcloc, x_target=fun))
 
 
+def _GetFrontTypeForVec(ct: cwast.CanonType, tc) -> cwast.CanonType:
+    return tc.InsertPtrType(ct.mut, ct.underlying_type())
+
+
 def MakeValSpanFromArray(node, expected_ct: cwast.CanonType,
                          uint_type: cwast.CanonType, tc: type_corpus.TypeCorpus) -> cwast.ValSpan:
-    assert node.x_type.is_vec()
-    ptr_ct = tc.InsertPtrType(expected_ct.mut, expected_ct.underlying_type())
-    v_sym = None
-    if isinstance(node, cwast.Id):
-        v_sym = eval.EvalSymAddr(node.x_symbol)
+    assert node.x_type.is_vec() and expected_ct.is_span()
+    ptr_ct = _GetFrontTypeForVec(expected_ct, tc)
+    sym = node.x_symbol if isinstance(node, cwast.Id) else None
 
     # assert not isinstance(node, (cwast.ValCompound, cwast.ValString)), f"{node.x_srcloc}"
     front = cwast.ExprFront(
         node, x_srcloc=node.x_srcloc, mut=expected_ct.mut, x_type=ptr_ct,
-        x_eval=v_sym)
-    width = node.x_type.array_dim()
-    length = cwast.ValNum(eval.EVAL_STR, x_eval=eval.EvalNum(width, uint_type.base_type_kind),
+        x_eval=eval.EvalSymAddr(sym) if sym else None)
+    dim = node.x_type.array_dim()
+    length = cwast.ValNum(eval.EVAL_STR, x_eval=eval.EvalNum(dim, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)
-    v_span = eval.EvalSpan(v_sym.sym if v_sym else None, width, None)
+    # TODO: propagate content for mut=false
+    v_span = eval.EvalSpan(sym if sym else None, dim, None)
     return cwast.ValSpan(front, length, x_srcloc=node.x_srcloc, x_type=expected_ct, x_eval=v_span)
 
 
-def _MaybeEliminateImplicitConversions(orig_node, expected_ct: cwast.CanonType, uint_type, tc):
+def _MaybeMakeImplicitConversionExplicit(orig_node, expected_ct: cwast.CanonType, uint_type, tc):
     if isinstance(orig_node, cwast.ValUndef):
         return orig_node
     orig_type = orig_node.x_type
@@ -578,29 +581,29 @@ def _MaybeEliminateImplicitConversions(orig_node, expected_ct: cwast.CanonType, 
             x_type=expected_ct, x_srcloc=orig_node.x_srcloc)
         return cwast.ExprWiden(orig_node, sum_type, x_type=expected_ct,
                                x_srcloc=orig_node.x_srcloc, x_eval=orig_node.x_eval)
-\
 
 
-def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
+
+def FunMakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
     def visitor(node: Any):
         nonlocal tc, uint_type
 
         if isinstance(node, cwast.ValPoint):
-            node.value_or_undef = _MaybeEliminateImplicitConversions(
+            node.value_or_undef = _MaybeMakeImplicitConversionExplicit(
                 node.value_or_undef, node.x_type, uint_type, tc)
         elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
-            node.initial_or_undef_or_auto = _MaybeEliminateImplicitConversions(
+            node.initial_or_undef_or_auto = _MaybeMakeImplicitConversionExplicit(
                 node.initial_or_undef_or_auto, node.type_or_auto.x_type, uint_type, tc)
         elif isinstance(node, cwast.ExprCall):
             fun_sig: cwast.CanonType = node.callee.x_type
-            for n, (p, a) in enumerate(zip(fun_sig.parameter_types(), node.args)):
-                node.args[n] = _MaybeEliminateImplicitConversions(
-                    a, p, uint_type, tc)
+            for n, (ct, a) in enumerate(zip(fun_sig.parameter_types(), node.args)):
+                node.args[n] = _MaybeMakeImplicitConversionExplicit(
+                    a, ct, uint_type, tc)
         elif isinstance(node, cwast.ExprWrap) and not node.x_type.is_enum():
             assert node.x_type.is_wrapped()
-            node.expr = _MaybeEliminateImplicitConversions(
+            node.expr = _MaybeMakeImplicitConversionExplicit(
                 node.expr, node.x_type.underlying_type(), uint_type, tc)
 
         elif isinstance(node, cwast.StmtReturn):
@@ -610,10 +613,10 @@ def MakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpu
             else:
                 assert isinstance(expected_ct, cwast.ExprStmt)
                 expected_ct = expected_ct.x_type
-            node.expr_ret = _MaybeEliminateImplicitConversions(
+            node.expr_ret = _MaybeMakeImplicitConversionExplicit(
                 node.expr_ret, expected_ct, uint_type, tc)
         elif isinstance(node, cwast.StmtAssignment):
-            node.expr_rhs = _MaybeEliminateImplicitConversions(
+            node.expr_rhs = _MaybeMakeImplicitConversionExplicit(
                 node.expr_rhs, node.lhs.x_type, uint_type, tc)
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
