@@ -35,22 +35,38 @@ extern NT CanonType_kind(CanonType n);
 extern Node CanonType_ast_node(CanonType n);
 extern bool CanonType_mut(CanonType n);
 extern bool CanonType_untagged(CanonType ct);
-extern int CanonType_alignment(CanonType n);
-extern int CanonType_size(CanonType n);
+extern SizeOrDim CanonType_alignment(CanonType n);
+extern SizeOrDim CanonType_size(CanonType n);
+extern SizeOrDim CanonType_dim(CanonType n);
+
 extern int CanonType_get_original_typeid(CanonType n);
 extern int& CanonType_typeid(CanonType n);
-extern int CanonType_dim(CanonType n);
+
+inline bool CanonType_is_wrapped(CanonType ct) {
+  return CanonType_kind(ct) == NT::DefType;
+}
 
 inline bool CanonType_is_base_type(CanonType ct) {
   return CanonType_kind(ct) == NT::TypeBase;
+}
+
+inline bool CanonType_is_enum(CanonType ct) {
+  return CanonType_kind(ct) == NT::DefEnum;
 }
 
 inline bool CanonType_is_union(CanonType ct) {
   return CanonType_kind(ct) == NT::TypeUnion;
 }
 
-extern bool CanonType_union_contains(CanonType ct, CanonType member);
+inline bool CanonType_is_vec(CanonType ct) {
+  return CanonType_kind(ct) == NT::TypeVec;
+}
 
+inline bool CanonType_is_span(CanonType ct) {
+  return CanonType_kind(ct) == NT::TypeSpan;
+}
+
+extern bool CanonType_union_contains(CanonType ct, CanonType member);
 
 extern std::vector<CanonType>& CanonType_children(CanonType n);
 

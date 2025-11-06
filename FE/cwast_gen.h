@@ -36,7 +36,13 @@ enum class MOD_PARAM_KIND : uint8_t;
 
 extern BASE_TYPE_KIND MakeSint(int bitwidth);
 extern BASE_TYPE_KIND MakeUint(int bitwidth);
-extern int BaseTypeKindByteSize(BASE_TYPE_KIND kind);
+
+// TODO: change this to int64_t or uint64_t
+typedef int SizeOrDim;
+
+constexpr const SizeOrDim kSizeOrDimInvalid = -1;
+
+extern SizeOrDim BaseTypeKindByteSize(BASE_TYPE_KIND kind);
 
 extern const std::array<uint16_t, 17> BF2MASK;
 
@@ -100,6 +106,7 @@ constexpr const Node kNodeInvalid(kHandleInvalid);
 constexpr const CanonType kCanonTypeInvalid(kHandleInvalid);
 
 constexpr const Const kConstInvalid(0);
+
 
 // =======================================
 // Node API

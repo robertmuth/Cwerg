@@ -18,11 +18,12 @@ struct CanonTypeCore {
   std::vector<CanonType> children;
   bool mut = false;
   bool untagged = false;
-  int dim = -1;
+  SizeOrDim dim = kSizeOrDimInvalid;
   BASE_TYPE_KIND base_type_kind = BASE_TYPE_KIND::INVALID;
   Node ast_node = kNodeInvalid;
-  int alignment = -1;
-  int size = -1;
+  SizeOrDim alignment = -1;
+  //  TODO: should probably be sint64_t
+  SizeOrDim size = kSizeOrDimInvalid;
   int type_id = -1;
 };
 
@@ -37,7 +38,7 @@ Name CanonType_name(CanonType ct) { return gCanonTypeCore[ct].name; }
 
 bool CanonType_mut(CanonType ct) { return gCanonTypeCore[ct].mut; }
 
-int CanonType_dim(CanonType ct) {
+SizeOrDim CanonType_dim(CanonType ct) {
   ASSERT(CanonType_kind(ct) == NT::TypeVec, "");
   return gCanonTypeCore[ct].dim;
 }
@@ -46,8 +47,8 @@ int align(int size, int alignment) {
   return (size + alignment - 1) / alignment * alignment;
 }
 
-int CanonType_alignment(CanonType ct) { return gCanonTypeCore[ct].alignment; }
-int CanonType_size(CanonType ct) { return gCanonTypeCore[ct].size; }
+SizeOrDim CanonType_alignment(CanonType ct) { return gCanonTypeCore[ct].alignment; }
+SizeOrDim CanonType_size(CanonType ct) { return gCanonTypeCore[ct].size; }
 int CanonType_aligned_size(CanonType ct) {
   return align(gCanonTypeCore[ct].size, gCanonTypeCore[ct].alignment);
 }
@@ -63,9 +64,9 @@ bool CanonType_is_finalized(CanonType ct) {
   return gCanonTypeCore[ct].alignment > 0;
 }
 
-void CanonType_Finalize(CanonType ct, size_t size, size_t alignment) {
+void CanonType_Finalize(CanonType ct, SizeOrDim size, size_t alignment) {
   ASSERT(size >= 0 && alignment >= 0,
-         "" << size << " " << alignment << " " << ct);
+         "" << size.val << " " << alignment << " " << ct);
   ASSERT(gCanonTypeCore[ct].alignment < 0, "already finalized " << ct);
   gCanonTypeCore[ct].alignment = alignment;
   gCanonTypeCore[ct].size = size;
@@ -182,7 +183,7 @@ CanonType CanonTypeNewWrappedType(Name name) {
   return out;
 }
 
-CanonType CanonTypeNewVecType(Name name, int dim, CanonType child) {
+CanonType CanonTypeNewVecType(Name name, SizeOrDim dim, CanonType child) {
   CanonType out = CanonTypeNew();
   gCanonTypeCore[out] = {
       .node = NT::TypeVec, .name = name, .children = {child}, .dim = dim};
@@ -260,31 +261,31 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
 
   switch (CanonType_kind(ct)) {
     case NT::TypeBase: {
-      size_t size = BaseTypeKindByteSize(CanonType_base_type_kind(ct));
+      auto size = BaseTypeKindByteSize(CanonType_base_type_kind(ct));
       return CanonType_Finalize(ct, size, size);
     }
     case NT::TypePtr: {
       size_t size = ta.data_addr_bitwidth / 8;
-      return CanonType_Finalize(ct, size, size);
+      return CanonType_Finalize(ct, SizeOrDim(size), size);
     }
     case NT::TypeSpan: {
       size_t ptr_size = ta.data_addr_bitwidth / 8;
       size_t len_size = ta.uint_bitwidth / 8;
       ASSERT(ptr_size == len_size, "TODO: needs more work");
-      return CanonType_Finalize(ct, ptr_size + len_size, ptr_size);
+      return CanonType_Finalize(ct, SizeOrDim(ptr_size + len_size), ptr_size);
     }
     case NT::TypeVec: {
       CanonType ct_dep = CanonType_underlying_type(ct);
-      size_t dim = CanonType_dim(ct);
-      return CanonType_Finalize(ct, CanonType_aligned_size(ct_dep) * dim,
-                                CanonType_alignment(ct_dep));
+      auto dim = CanonType_dim(ct);
+      auto elem_size = CanonType_aligned_size(ct_dep);
+      return CanonType_Finalize(ct, SizeOrDim(elem_size * dim), CanonType_alignment(ct_dep));
     }
     case NT::TypeUnion: {
       int num_pointer = 0;
       int num_other = 0;
-      int max_size = 0;
-      int max_alignment = 1;
-      int ptr_size = ta.code_addr_bitwidth / 8;
+      SizeOrDim max_size = 0;
+      SizeOrDim max_alignment = 1;
+      SizeOrDim ptr_size = ta.code_addr_bitwidth / 8;
       for (CanonType child_ct : CanonType_children(ct)) {
         if (CanonType_size(child_ct) == 0) continue;
         while (CanonType_kind(child_ct) == NT::DefType) {
@@ -308,7 +309,7 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
       if (ta.optimize_union_tag && num_pointer == 1 && num_other == 0) {
         return CanonType_Finalize(ct, ptr_size, ptr_size);
       }
-      int tag_size = ta.typeid_bitwidth / 8;
+      SizeOrDim tag_size = ta.typeid_bitwidth / 8;
       max_alignment = std::max(max_alignment, tag_size);
 
       return CanonType_Finalize(ct, align(tag_size, max_alignment) + max_size,
@@ -324,8 +325,8 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
     }
 
     case NT::DefRec: {
-      int size = 0;
-      int alignment = 1;
+      SizeOrDim size = 0;
+      SizeOrDim alignment = 1;
       Node def_rec = CanonType_ast_node(ct);
       for (Node field = Node_fields(def_rec); !field.isnull();
            field = Node_next(field)) {

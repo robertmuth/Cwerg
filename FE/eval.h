@@ -23,9 +23,10 @@ extern ImmutablePool ConstPool;
 
 constexpr const char EVAL_STR[] = "@eval@";
 
+
 struct EvalSpan {
   Node pointer;
-  int32_t size;   // invalid if < 0
+  SizeOrDim size;   // invalid if < 0
   Const content;  // usually a compound
 };
 
@@ -129,6 +130,7 @@ inline Const ConstNewReal(double val, BASE_TYPE_KIND bt) {
 }
 
 inline Const ConstNewSymAddr(Node sym) {
+  ASSERT(sym.kind() == NT::DefVar || sym.kind() == NT::DefGlobal, "");
   return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
                BASE_TYPE_KIND::SYM_ADDR);
 }

@@ -605,7 +605,7 @@ Const EvalNode(Node node) {
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
     case NT::ValSpan: {
       Node sym = kNodeInvalid;
-      int32_t size = -1;
+      SizeOrDim size = kSizeOrDimInvalid;
       Const p = Node_x_eval(Node_pointer(node));
       Const s = Node_x_eval(Node_expr_size(node));
       if (p.isnull() && s.isnull()) return kConstInvalid;
