@@ -191,7 +191,8 @@ CanonType GetFrontTypeForVec(CanonType ct, TypeCorpus* tc) {
 
 Node MakeValSpanFromArray(Node node, CanonType expected_ct, CanonType uint_ct,
                           TypeCorpus* tc) {
-  ASSERT(CanonType_is_vec(Node_x_type(node)) && CanonType_is_span(expected_ct), "");
+  ASSERT(CanonType_is_vec(Node_x_type(node)) && CanonType_is_span(expected_ct),
+         "");
   SizeOrDim dim = CanonType_dim(Node_x_type(node));
   const SrcLoc& sl = Node_srcloc(node);
   CanonType ptr_ct = GetFrontTypeForVec(expected_ct, tc);
@@ -304,6 +305,26 @@ void FunMakeImplicitConversionsExplicit(Node node, TypeCorpus* tc) {
     }
   };
   VisitAstRecursivelyPost(node, visitor, kNodeInvalid);
+}
+
+void FunReplaceSpanCastWithSpanVal(Node node, TypeCorpus* tc) {
+  CanonType uint_ct = tc->get_uint_canon_type();
+
+  auto replacer = [tc, uint_ct](Node node, Node parent) -> Node {
+    if (node.kind() != NT::ExprAs) {
+      return node;
+    }
+    CanonType ct_src = Node_x_type(Node_expr(node));
+    CanonType ct_dst = Node_x_type(node);
+    if (ct_src == ct_dst || !CanonType_is_vec(ct_src) || !CanonType_is_span(ct_dst)) {
+      return node;
+    }
+    Node out = MakeValSpanFromArray(Node_expr(node), ct_dst, uint_ct, tc);
+    NodeFree(node);
+    return out;
+  };
+  MaybeReplaceAstRecursivelyPost(node, replacer, kNodeInvalid);
+
 }
 
 }  // namespace cwerg::fe

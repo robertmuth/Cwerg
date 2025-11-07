@@ -85,7 +85,7 @@ def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cw
     return cwast.ValCompound(_MakeIdForDefRec(span_rec, srcloc), inits, x_srcloc=srcloc, x_type=span_rec)
 
 
-def ReplaceExplicitSpanCast(node, tc: type_corpus.TypeCorpus):
+def FunReplaceSpanCastWithSpanVal(node, tc: type_corpus.TypeCorpus):
     """Eliminate Array to Span casts. """
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 

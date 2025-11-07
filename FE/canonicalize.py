@@ -546,8 +546,8 @@ def _GetFrontTypeForVec(ct: cwast.CanonType, tc) -> cwast.CanonType:
     return tc.InsertPtrType(ct.mut, ct.underlying_type())
 
 
-def MakeValSpanFromArray(node, expected_ct: cwast.CanonType,
-                         uint_type: cwast.CanonType, tc: type_corpus.TypeCorpus) -> cwast.ValSpan:
+def _MakeValSpanFromArray(node, expected_ct: cwast.CanonType,
+                          uint_type: cwast.CanonType, tc: type_corpus.TypeCorpus) -> cwast.ValSpan:
     assert node.x_type.is_vec() and expected_ct.is_span()
     ptr_ct = _GetFrontTypeForVec(expected_ct, tc)
     sym = node.x_symbol if isinstance(node, cwast.Id) else None
@@ -573,7 +573,7 @@ def _MaybeMakeImplicitConversionExplicit(orig_node, expected_ct: cwast.CanonType
         return orig_node
 
     if orig_node.x_type.is_vec() and expected_ct.is_span():
-        return MakeValSpanFromArray(
+        return _MakeValSpanFromArray(
             orig_node, expected_ct, uint_type, tc)
     else:
         assert expected_ct.is_union()
@@ -581,7 +581,6 @@ def _MaybeMakeImplicitConversionExplicit(orig_node, expected_ct: cwast.CanonType
             x_type=expected_ct, x_srcloc=orig_node.x_srcloc)
         return cwast.ExprWiden(orig_node, sum_type, x_type=expected_ct,
                                x_srcloc=orig_node.x_srcloc, x_eval=orig_node.x_eval)
-
 
 
 def FunMakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
@@ -693,6 +692,23 @@ def _IsSimpleInitializer(expr) -> bool:
         return _IsSimpleInitializer(expr.expr)
     else:
         return False
+
+
+def FunReplaceSpanCastWithSpanVal(node, tc: type_corpus.TypeCorpus):
+    """Eliminate Array to Span casts. """
+    uint_type: cwast.CanonType = tc.get_uint_canon_type()
+
+    def replacer(node, _parent):
+        nonlocal tc, uint_type
+        if isinstance(node, cwast.ExprAs):
+            if (node.x_type != node.expr.x_type and
+                node.x_type.is_span() and
+                    node.expr.x_type.is_vec()):
+                return _MakeValSpanFromArray(
+                    node.expr, node.x_type, tc, uint_type)
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
 
 
 def FunRewriteComplexAssignments(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
