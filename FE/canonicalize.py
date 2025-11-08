@@ -621,7 +621,23 @@ def FunMakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCo
     cwast.VisitAstRecursivelyPost(mod, visitor)
 
 
-def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
+def _CloneId(node: cwast.Id) -> cwast.Id:
+    assert isinstance(node, cwast.Id)
+    return cwast.Id(node.name, None, x_symbol=node.x_symbol, x_type=node.x_type,
+                    x_srcloc=node.x_srcloc)
+
+
+def _MakeTagCheck(union: cwast.Id, ct: cwast.CanonType, sl) -> Any:
+    return cwast.ExprIs(union, cwast.TypeAuto(
+        x_srcloc=sl, x_type=ct), x_srcloc=sl)
+
+
+def _MakeUnionNarrow(union: cwast.Id, ct: cwast.CanonType, sl) -> Any:
+    return cwast.ExprNarrow(union, cwast.TypeAuto(
+        x_srcloc=sl, x_type=ct), unchecked=True, x_type=ct, x_srcloc=sl)
+
+
+def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
     def make_cmp(cmp: cwast.Expr2, union: Any, field: str):
         """
         (== tagged_union_val member_val)
@@ -632,30 +648,27 @@ def EliminateComparisonConversionsForTaggedUnions(fun: cwast.DefFun):
             (== (uniontaggedtype tagged_union_val) (typeid member_val)))
             (== (narrowto @unchecked tagged_union_val (typeof member_val)) member_val))
         """
+        # TODO: for non-ids we would need to avoid double evaluation
+        assert isinstance(union, cwast.Id), f"{cmp}: {union}"
+        ct_field: cwast.CanonType = field.x_type
         if cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.EQ:
-            type_check = cwast.ExprIs(union, cwast.TypeAuto(
-                x_srcloc=field.x_srcloc, x_type=field.x_type), x_srcloc=cmp.x_srcloc)
-            if field.x_type.get_unwrapped().is_void():
+            type_check = _MakeTagCheck(_CloneId(union), ct_field, cmp.x_srcloc)
+            if ct_field.get_unwrapped().is_void():
                 return type_check
-            # for non-ids we would need to avoid double evaluation
-            assert isinstance(union, cwast.Id), f"{cmp}: {union}"
-            cmp.expr1 = cwast.ExprNarrow(union, cwast.TypeAuto(
-                x_srcloc=field.x_srcloc, x_type=field.x_type), unchecked=True,
-                x_type=field.x_type, x_srcloc=cmp.x_srcloc)
+
+            cmp.expr1 = _MakeUnionNarrow(union, ct_field, cmp.x_srcloc)
             cmp.expr2 = field
             return cwast.Expr2(cwast.BINARY_EXPR_KIND.ANDSC, type_check, cmp,
                                x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
         else:
             assert cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.NE
             type_check = cwast.Expr1(cwast.UNARY_EXPR_KIND.NOT,
-                                     cwast.ExprIs(union, cwast.TypeAuto(
-                                         x_srcloc=field.x_srcloc, x_type=field.x_type), x_srcloc=cmp.x_srcloc),
+                                     _MakeTagCheck(
+                                         _CloneId(union), ct_field, cmp.x_srcloc),
                                      x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
             if field.x_type.get_unwrapped().is_void():
                 return type_check
-            cmp.expr1 = cwast.ExprNarrow(union, cwast.TypeAuto(
-                x_srcloc=field.x_srcloc, x_type=field.x_type), unchecked=True,
-                x_type=field.x_type, x_srcloc=cmp.x_srcloc)
+            cmp.expr1 = _MakeUnionNarrow(union, ct_field, cmp.x_srcloc)
             cmp.expr2 = field
             return cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC, type_check, cmp,
                                x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
