@@ -448,7 +448,7 @@ def _RewriteExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
 
 def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """convert index expr into pointer arithmetic"""
-    uint_ct: tc.CanonType = tc.get_uint_canon_type()
+    uint_ct: cwast.CanonType = tc.get_uint_canon_type()
 
     def replacer(node, _parent):
         nonlocal tc, uint_ct
@@ -638,7 +638,7 @@ def _MakeUnionNarrow(union: cwast.Id, ct: cwast.CanonType, sl) -> Any:
 
 
 def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
-    def make_cmp(cmp: cwast.Expr2, union: Any, field: str):
+    def make_cmp(cmp: cwast.Expr2, union: Any, field: Any) -> Any:
         """
         (== tagged_union_val member_val)
 
@@ -647,6 +647,8 @@ def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
         (&&
             (== (uniontaggedtype tagged_union_val) (typeid member_val)))
             (== (narrowto @unchecked tagged_union_val (typeof member_val)) member_val))
+
+        Note: tagged unions can only be compared to scalars
         """
         # TODO: for non-ids we would need to avoid double evaluation
         assert isinstance(union, cwast.Id), f"{cmp}: {union}"

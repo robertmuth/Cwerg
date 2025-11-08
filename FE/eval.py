@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 # use with cwast.ValNum if the value is defined by x_eval
 EVAL_STR = "@eval"
 
+
 class EvalBase:
     pass
 

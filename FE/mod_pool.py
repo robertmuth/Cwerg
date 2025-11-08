@@ -5,7 +5,6 @@ import pathlib
 import logging
 import collections
 import heapq
-import enum
 
 from FE import cwast
 from FE import parse_sexpr

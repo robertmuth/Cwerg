@@ -3498,11 +3498,11 @@ def GenerateInits():
         args.append("srcloc")
         print(f"    NodeInit({', '.join(args)});")
         if has_target:
-            print(f"    Node_x_target(node) = x_target;")
+            print("    Node_x_target(node) = x_target;")
         if has_symbol:
-            print(f"    Node_x_symbol(node) = x_symbol;")
+            print("    Node_x_symbol(node) = x_symbol;")
         if has_type:
-            print(f"    Node_x_type(node) = x_type;")
+            print("    Node_x_type(node) = x_type;")
 
         print("}\n")
 
@@ -3657,6 +3657,12 @@ def NodeAliasStringConversion(fout: Any):
 _IMPORTANT_X_FIELDS = set(["x_eval", "x_target", "x_symbol", "x_type"])
 
 
+def _join_or_zero(fields) -> str:
+    if fields:
+        return '| '.join(fields)
+    return "0"
+
+
 def EmitNodeDesc(fout: Any):
     print("const NodeDesc GlobalNodeDescs[] = {")
     print("    {}, // invalid")
@@ -3681,27 +3687,8 @@ def EmitNodeDesc(fout: Any):
             if name in _IMPORTANT_X_FIELDS:
                 x_fields.append(f"BIT_X({name[2:]})")
 
-        if node_fields:
-            node_fields = '| '.join(node_fields)
-        else:
-            node_fields = "0"
-        #
-        if string_fields:
-            string_fields = '| '.join(string_fields)
-        else:
-            string_fields = "0"
-        #
-        if bool_fields:
-            bool_fields = '| '.join(bool_fields)
-        else:
-            bool_fields = "0"
-
-        if x_fields:
-            x_fields = '| '.join(x_fields)
-        else:
-            x_fields = "0"
         print(
-            f"    {{ {node_fields}, {string_fields}, {bool_fields}, {x_fields} }}, // {cls.__name__}")
+            f"    {{ {_join_or_zero(node_fields)}, {_join_or_zero(string_fields)}, {_join_or_zero(bool_fields)}, {_join_or_zero(x_fields)} }}, // {cls.__name__}")
     print("};")
 
 

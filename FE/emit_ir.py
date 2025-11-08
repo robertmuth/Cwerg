@@ -7,7 +7,6 @@ import argparse
 import dataclasses
 import enum
 import math
-import struct
 import pathlib
 import os
 

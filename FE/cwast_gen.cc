@@ -319,22 +319,7 @@ const char* const BASE_TYPE_KIND_ToStringMap[] = {
     "", // 94
     "", // 95
     "void", // 96
-    "", // 97
-    "", // 98
-    "", // 99
-    "", // 100
-    "", // 101
-    "", // 102
-    "", // 103
-    "", // 104
-    "", // 105
-    "", // 106
-    "", // 107
-    "", // 108
-    "", // 109
-    "", // 110
-    "", // 111
-    "noret", // 112
+    "noret", // 97
 };
 const char* EnumToString(BASE_TYPE_KIND x) { return BASE_TYPE_KIND_ToStringMap[unsigned(x)]; }
 
@@ -342,7 +327,7 @@ const char* EnumToString(BASE_TYPE_KIND x) { return BASE_TYPE_KIND_ToStringMap[u
 const struct StringKind BASE_TYPE_KIND_FromStringMap[] = {
     {"bool", 65},
     {"invalid", 0},
-    {"noret", 112},
+    {"noret", 97},
     {"r32", 51},
     {"r64", 52},
     {"s16", 18},

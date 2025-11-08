@@ -66,9 +66,9 @@ def IsCompatibleType(src_ct: cwast.CanonType, dst_ct: cwast.CanonType,
     return IsSubtypeToUnionConversion(src_ct, dst_ct)
 
 
-def UnwrapType(ct: cwast.CanonType, tc: "TypeCorpus") -> cwast.CanonType:
+def UnwrapType(ct: cwast.CanonType, tc: "TypeCorpus") -> Optional[cwast.CanonType]:
     if ct.is_wrapped():
-        return UnwrapType(ct.underlying_type())
+        return UnwrapType(ct.underlying_type(), tc)
     elif ct.is_enum():
         return None
     return ct
@@ -189,7 +189,6 @@ class TargetArchConfig:
     sint_bitwidth: int
     typeid_bitwidth: int
     data_addr_bitwidth: int  # it is hard to imagine: data_addr_bitwidth != uint_bitwidth
-    code_addr_bitwidth: int
     code_addr_bitwidth: int
     optimize_union_tag: bool
 
