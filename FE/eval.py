@@ -121,17 +121,16 @@ VAL_FALSE = EvalNum(False, cwast.BASE_TYPE_KIND.BOOL)
 def SerializeBaseType(v: EvalNum) -> bytes:
     assert isinstance(v, EvalNum)
     bt = v.kind
-    val = v.val
     if bt.IsInt():
-        return val.to_bytes(bt.ByteSize(), 'little', signed=bt.IsSint())
+        return v.val.to_bytes(bt.ByteSize(), 'little', signed=bt.IsSint())
     elif bt is cwast.BASE_TYPE_KIND.BOOL:
-        return b"\1" if val else b"\0"
+        return b"\1" if v.val else b"\0"
     elif bt is cwast.BASE_TYPE_KIND.R32:
-        return struct.pack("f", val)
+        return struct.pack("f", v.val)
     elif bt is cwast.BASE_TYPE_KIND.R64:
-        return struct.pack("d", val)
+        return struct.pack("d", v.val)
     else:
-        assert False, f"unsupported type {bt} {val}"
+        assert False, f"unsupported type {bt} {v.val}"
 
 
 def DeserializeBaseType(bt: cwast.BASE_TYPE_KIND, data: bytes) -> EvalNum:

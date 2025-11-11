@@ -820,6 +820,7 @@ def NodeCommon(cls: Any):
     cls.STR_FIELDS = []
     cls.ATTRS = []
     cls.X_FIELD_NAMES = []
+    cls.KIND_FIELDS = []
     for field, _ in cls.__annotations__.items():
         if field in ('ALIAS', 'GROUP', 'FLAGS'):
             continue
@@ -839,6 +840,8 @@ def NodeCommon(cls: Any):
                 cls.NODE_FIELDS.append(nfd)
             elif kind is NFK.NAME or kind is NFK.STR:
                 cls.STR_FIELDS.append(nfd)
+            else:
+                cls.KIND_FIELDS.append(nfd)
     return cls
 
 ############################################################
@@ -1261,7 +1264,7 @@ class Id:
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
     x_eval: Optional[Any] = None
-    x_symbol: NODES_SYMBOLS_T = INVALID_SYMBOL
+    x_symbol: Optional[NODES_SYMBOLS_T] = INVALID_SYMBOL
     x_import: Optional[Import] = None  # which import the id is qualified with
 
     def GetRecFieldRef(self) -> RecField:
@@ -2711,7 +2714,7 @@ class DefFun:
     x_type: CanonType = NO_TYPE
     # x_poly_mod will contain either the enclosing module or
     # the module referenced by the import statement
-    x_import: Import = None  # only used for polymorphic functions with qualified name
+    x_import: Optional[Import] = None  # only used for polymorphic functions with qualified name
     x_poly_mod: Optional[DefMod] = None  # only used for polymorphic function
 
     def __repr__(self):
@@ -2841,8 +2844,8 @@ class MacroInvoke:
     doc: str = ""
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
-    x_symbol: NODES_SYMBOLS_T = INVALID_SYMBOL
-    x_import: Import = None
+    x_symbol: Optional[NODES_SYMBOLS_T] = INVALID_SYMBOL
+    x_import: Optional[Import] = None
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.name}"
