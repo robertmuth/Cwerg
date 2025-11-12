@@ -16,13 +16,14 @@ from FE import eval
 
 logger = logging.getLogger(__name__)
 
+_INDENTATION = 4
 
 def emit_line(line, indent, fout, active_columns, is_last):
-    spaces = [" "] * (indent + 1)
+    spaces = [" "] * (indent * _INDENTATION + 1)
     for a in active_columns:
-        spaces[a] = "┃"
-    if indent > 0:
-        spaces[indent] = "┗" if is_last else "┣"
+        spaces[a * _INDENTATION] = "┃"
+    if indent >= 0:
+        spaces[indent * _INDENTATION] = "┗" if is_last else "┣"
     spaces.append(line)
     print("".join(spaces), file=fout)
 
@@ -31,24 +32,26 @@ def _DumpList(nfd, lst, indent,  labels: dict[Any, str], fout, active_columns, i
     assert nfd.kind == cwast.NFK.LIST
     if lst:
 
-        emit_line(f"[{nfd.name}]", indent + 2,
+        emit_line(f"[{nfd.name}]", indent + 1,
                   fout, active_columns,  is_last)
-        active_columns.append(indent + 4)
+        active_columns.append(indent + 2)
         for n in lst:
             if n == lst[-1]:
                 active_columns.pop(-1)
 
-            _DumpNode(n, indent + 4, labels, fout,
+            _DumpNode(n, indent + 2, labels, fout,
                       active_columns, n == lst[-1])
 
     else:
         emit_line(f"[{nfd.name}] Empty",
-                  indent + 2, fout, active_columns, is_last)
+                  indent + 1, fout, active_columns, is_last)
 
 
 def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_columns, is_last):
     cls = type(node)
     names = [cwast.NODE_NAME(node)]
+    flags = []
+    has_flags = False
     for nfd in cls.KIND_FIELDS:
         val = getattr(node, nfd.name)
         val = str(val).split(".")[1]
@@ -69,10 +72,13 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
     for nfd in cls.ATTRS:
         if nfd.name == 'doc':
             continue
+        assert nfd.kind == cwast.NFK.ATTR_BOOL, f"{nfd.name}"
+        has_flags = True
         val = getattr(node, nfd.name)
-        if nfd.kind == cwast.NFK.ATTR_BOOL and not val:
-            continue
-        names.append(f"{nfd.name}={val}")
+        if val:
+            flags.append(nfd.name)
+    if has_flags:
+        names.insert(1, f"[{','.join(flags)}]")
     for name in cls.X_FIELD_NAMES:
         val = getattr(node, name)
         if val is None:
@@ -98,7 +104,7 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
     emit_line(" ".join(names), indent, fout, active_columns, is_last)
 
     if cls.NODE_FIELDS:
-        active_columns.append(indent + 2)
+        active_columns.append(indent + 1)
 
         last = cls.NODE_FIELDS[-1]
 
@@ -107,7 +113,7 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
                 active_columns.pop(-1)
             if nfd.kind == cwast.NFK.NODE:
                 _DumpNode(getattr(node, nfd.name),
-                          indent + 2, labels, fout, active_columns, nfd == last)
+                          indent + 1, labels, fout, active_columns, nfd == last)
             else:
                 _DumpList(nfd, getattr(node, nfd.name),
                           indent, labels, fout, active_columns, nfd == last)
@@ -159,7 +165,6 @@ def _LabelTargets(node: Any, n: int, out: dict[Any, str]):
             out[node] = f"b{n}.{block_counter}"
             block_counter += 1
         elif isinstance(node, cwast.ExprStmt):
-            print(f"{id(node)} -> {node}")
             out[node] = f"s{n}.{expr_counter}"
             expr_counter += 1
 
@@ -179,7 +184,7 @@ def DumpMods(mods: list[cwast.DefMod], fout):
 
     for mod in mods:
         print("", file=fout)
-        _DumpNode(mod, 0, labels, fout, [], True)
+        _DumpNode(mod, -1, labels, fout, [], True)
 
 ############################################################
 #
