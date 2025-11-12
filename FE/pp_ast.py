@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def emit_line(line, indent, fout, active_columns, is_last):
-    spaces = [" "] * (indent +1)
+    spaces = [" "] * (indent + 1)
     for a in active_columns:
         spaces[a] = "┃"
     if indent > 0:
@@ -27,7 +27,7 @@ def emit_line(line, indent, fout, active_columns, is_last):
     print("".join(spaces), file=fout)
 
 
-def _DumpList(nfd, lst, indent, fout, active_columns, is_last):
+def _DumpList(nfd, lst, indent,  labels: dict[Any, str], fout, active_columns, is_last):
     assert nfd.kind == cwast.NFK.LIST
     if lst:
 
@@ -38,7 +38,7 @@ def _DumpList(nfd, lst, indent, fout, active_columns, is_last):
             if n == lst[-1]:
                 active_columns.pop(-1)
 
-            _DumpNode(n, indent + 4, fout,
+            _DumpNode(n, indent + 4, labels, fout,
                       active_columns, n == lst[-1])
 
     else:
@@ -46,7 +46,7 @@ def _DumpList(nfd, lst, indent, fout, active_columns, is_last):
                   indent + 2, fout, active_columns, is_last)
 
 
-def _DumpNode(node: Any, indent, fout, active_columns, is_last):
+def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_columns, is_last):
     cls = type(node)
     names = [cwast.NODE_NAME(node)]
     for nfd in cls.KIND_FIELDS:
@@ -58,7 +58,13 @@ def _DumpNode(node: Any, indent, fout, active_columns, is_last):
             if nfd.kind == cwast.NFK.NAME:
                 val = val.name
                 assert val is not None
-            names.append(f"{nfd.name}={val}")
+            if nfd.name == "name":
+                names.append(val)
+            else:
+                names.append(f"{nfd.name}={val}")
+    label = labels.get(node)
+    if label is not None:
+        names.append(f"label={label}")
     for nfd in cls.ATTRS:
         if nfd.name == 'doc':
             continue
@@ -79,11 +85,16 @@ def _DumpNode(node: Any, indent, fout, active_columns, is_last):
                 continue
         if name == "x_eval":
             continue
-        if name == "x_symbol":
+        if name == "x_symtab":
             continue
         if name == "x_target":
             continue
-        if name == "x_symtab":
+        if name == "x_symbol":
+            def_sym = node.x_symbol
+            assert def_sym in labels, f"{node} -> {node.x_symbol}"
+            names.append(f"label={labels[def_sym]}")
+            continue
+        if name == "x_import":
             continue
         names.append(f"{name}={val}")
 
@@ -99,16 +110,53 @@ def _DumpNode(node: Any, indent, fout, active_columns, is_last):
                 active_columns.pop(-1)
             if nfd.kind == cwast.NFK.NODE:
                 _DumpNode(getattr(node, nfd.name),
-                          indent + 2, fout, active_columns, nfd == last)
+                          indent + 2, labels, fout, active_columns, nfd == last)
             else:
                 _DumpList(nfd, getattr(node, nfd.name),
-                          indent, fout, active_columns, nfd == last)
+                          indent, labels, fout, active_columns, nfd == last)
 
 
-def DumpMod(mod: cwast.DefMod, fout):
-    print("", file=fout)
-    _DumpNode(mod, 0, fout, [], True)
+LABEL_KIND = {
+    cwast.DefMod: "x",
+    cwast.DefFun: "f",
+    cwast.DefRec: "r",
+    cwast.RecField: "t",
+    cwast.DefEnum: "e",
+    cwast.DefMacro: "m",
+    cwast.DefType: "t",
+    cwast.DefGlobal: "g",
+    cwast.DefVar: "v",
+    cwast.FunParam: "p",
 
+}
+
+
+def _LabeDefs(node: Any, prefix: list[int], out: dict[Any, str]):
+    if isinstance(node, (cwast.DefMod, cwast.DefFun, cwast.DefRec, cwast.DefEnum,
+                         cwast.DefMacro, cwast.DefType, cwast.DefGlobal,
+                         cwast.DefVar, cwast.FunParam, cwast.RecField)):
+        out[node] = LABEL_KIND[type(node)] + ".".join((str(x) for x in prefix))
+    for nfd in type(node).NODE_FIELDS:
+        if nfd.kind == cwast.NFK.LIST:
+            prefix.append(-1)
+            for n, child in enumerate(getattr(node, nfd.name)):
+                prefix[-1] = n
+                _LabeDefs(child, prefix, out)
+            prefix.pop(-1)
+
+
+def _ExtractDefLabels(mods: list[cwast.DefMod]) -> dict[Any, str]:
+    out: dict[Any, str] = {}
+    for n, mod in enumerate(mods):
+        _LabeDefs(mod, [n], out)
+    return out
+
+
+def DumpMods(mods: list[cwast.DefMod], fout):
+    labels = _ExtractDefLabels(mods)
+    for mod in mods:
+        print("", file=fout)
+        _DumpNode(mod, 0, labels, fout, [], True)
 
 ############################################################
 #
@@ -144,8 +192,7 @@ def main(argv: list[str]):
     for mod in mp.mods_in_topo_order:
         eval.VerifyASTEvalsRecursively(mod)
 
-    for mod in mp.mods_in_topo_order:
-        DumpMod(mod, sys.stdout)
+    DumpMods(mp.mods_in_topo_order, sys.stdout)
 
 
 if __name__ == "__main__":
