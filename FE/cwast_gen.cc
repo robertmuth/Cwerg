@@ -7,8 +7,6 @@
 
 namespace cwerg::fe {
 
-#define BIT_N(x) 1ull << uint64_t(NFD_NODE_FIELD::x)
-#define BIT_S(x) 1ull << uint64_t(NFD_STRING_FIELD::x)
 #define BIT_B(x) 1ull << uint32_t(BF::x)
 #define BIT_X(x) 1ull << uint32_t(NFD_X_FIELD::x)
 
@@ -47,84 +45,140 @@ const std::array<uint16_t, 17> BF2MASK = InitBF2MASK();
 
 // clang-format off
 /* @AUTOGEN-START@ */
+const NodeFieldDesc GlobalNodeFieldDescs[] = {
+    {}, // invalid
+    {  1, NFD_KIND::LIST },  // args
+    {  2, NFD_KIND::LIST },  // args_mod
+    {  3, NFD_KIND::LIST },  // body
+    {  3, NFD_KIND::LIST },  // body_f
+    {  2, NFD_KIND::LIST },  // body_for
+    {  3, NFD_KIND::LIST },  // body_macro
+    {  3, NFD_KIND::LIST },  // body_mod
+    {  2, NFD_KIND::LIST },  // body_t
+    {  0, NFD_KIND::NODE },  // callee
+    {  0, NFD_KIND::LIST },  // cases
+    {  1, NFD_KIND::NODE },  // cond
+    {  0, NFD_KIND::NODE },  // container
+    {  1, NFD_KIND::NAME },  // enum_name
+    {  0, NFD_KIND::NODE },  // expr
+    {  0, NFD_KIND::NODE },  // expr1
+    {  1, NFD_KIND::NODE },  // expr2
+    {  2, NFD_KIND::NODE },  // expr_bound_or_undef
+    {  2, NFD_KIND::NODE },  // expr_f
+    {  1, NFD_KIND::NODE },  // expr_index
+    {  0, NFD_KIND::NODE },  // expr_lhs
+    {  0, NFD_KIND::NODE },  // expr_ret
+    {  1, NFD_KIND::NODE },  // expr_rhs
+    {  1, NFD_KIND::NODE },  // expr_size
+    {  0, NFD_KIND::NODE },  // expr_t
+    {  2, NFD_KIND::NODE },  // field
+    {  1, NFD_KIND::LIST },  // fields
+    {  2, NFD_KIND::LIST },  // gen_ids
+    {  2, NFD_KIND::NODE },  // initial_or_undef_or_auto
+    {  0, NFD_KIND::LIST },  // inits
+    {  1, NFD_KIND::LIST },  // items
+    {  0, NFD_KIND::NAME },  // label
+    {  0, NFD_KIND::NODE },  // lhs
+    {  0, NFD_KIND::STR },  // message
+    {  0, NFD_KIND::NAME },  // name
+    {  1, NFD_KIND::NAME },  // name_list
+    {  0, NFD_KIND::STR },  // number
+    {  1, NFD_KIND::LIST },  // params
+    {  1, NFD_KIND::LIST },  // params_macro
+    {  1, NFD_KIND::LIST },  // params_mod
+    {  1, NFD_KIND::STR },  // path
+    {  1, NFD_KIND::NODE },  // point_or_undef
+    {  0, NFD_KIND::NODE },  // pointer
+    {  2, NFD_KIND::NODE },  // result
+    {  0, NFD_KIND::NODE },  // size
+    {  0, NFD_KIND::STR },  // string
+    {  0, NFD_KIND::NODE },  // subtrahend
+    {  0, NFD_KIND::NAME },  // target
+    {  1, NFD_KIND::NODE },  // type
+    {  1, NFD_KIND::NODE },  // type_or_auto
+    {  0, NFD_KIND::LIST },  // types
+    {  1, NFD_KIND::NODE },  // value_or_auto
+    {  0, NFD_KIND::NODE },  // value_or_undef
+};
+
 const NodeDesc GlobalNodeDescs[] = {
     {}, // invalid
-    { BIT_N(cond)| BIT_N(body), 0, 0, 0 }, // Case
-    { BIT_N(items), BIT_S(name), BIT_B(PUB), BIT_X(type)| BIT_X(eval) }, // DefEnum
-    { BIT_N(params)| BIT_N(result)| BIT_N(body), BIT_S(name), BIT_B(INIT)| BIT_B(FINI)| BIT_B(EXTERN)| BIT_B(CDECL)| BIT_B(POLY)| BIT_B(PUB)| BIT_B(REF), BIT_X(type) }, // DefFun
-    { BIT_N(type_or_auto)| BIT_N(initial_or_undef_or_auto), BIT_S(name), BIT_B(PUB)| BIT_B(MUT)| BIT_B(REF)| BIT_B(CDECL), BIT_X(type)| BIT_X(eval) }, // DefGlobal
-    { BIT_N(params_macro)| BIT_N(gen_ids)| BIT_N(body_macro), BIT_S(name), BIT_B(BUILTIN)| BIT_B(PUB), 0 }, // DefMacro
-    { BIT_N(params_mod)| BIT_N(body_mod), BIT_S(name), BIT_B(BUILTIN), 0 }, // DefMod
-    { BIT_N(fields), BIT_S(name), BIT_B(PUB), BIT_X(type) }, // DefRec
-    { BIT_N(type), BIT_S(name), BIT_B(PUB)| BIT_B(WRAPPED), BIT_X(type) }, // DefType
-    { BIT_N(type_or_auto)| BIT_N(initial_or_undef_or_auto), BIT_S(name), BIT_B(MUT)| BIT_B(REF), BIT_X(type)| BIT_X(eval) }, // DefVar
-    { BIT_N(value_or_auto), BIT_S(name), 0, BIT_X(type)| BIT_X(eval) }, // EnumVal
-    { BIT_N(args), 0, BIT_B(COLON), 0 }, // EphemeralList
-    { BIT_N(expr), 0, 0, BIT_X(type)| BIT_X(eval) }, // Expr1
-    { BIT_N(expr1)| BIT_N(expr2), 0, 0, BIT_X(type)| BIT_X(eval) }, // Expr2
-    { BIT_N(cond)| BIT_N(expr_t)| BIT_N(expr_f), 0, 0, BIT_X(type)| BIT_X(eval) }, // Expr3
-    { BIT_N(expr_lhs), 0, BIT_B(MUT), BIT_X(type)| BIT_X(eval) }, // ExprAddrOf
-    { BIT_N(expr)| BIT_N(type), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprAs
-    { BIT_N(expr)| BIT_N(type), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprBitCast
-    { BIT_N(callee)| BIT_N(args), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprCall
-    { BIT_N(expr), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprDeref
-    { BIT_N(container)| BIT_N(field), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprField
-    { BIT_N(container), 0, BIT_B(MUT)| BIT_B(PRESERVE_MUT), BIT_X(type)| BIT_X(eval) }, // ExprFront
-    { BIT_N(container)| BIT_N(expr_index), 0, BIT_B(UNCHECKED), BIT_X(type)| BIT_X(eval) }, // ExprIndex
-    { BIT_N(expr)| BIT_N(type), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprIs
-    { BIT_N(container), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprLen
-    { BIT_N(expr)| BIT_N(type), 0, BIT_B(UNCHECKED), BIT_X(type)| BIT_X(eval) }, // ExprNarrow
-    { BIT_N(type)| BIT_N(field), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprOffsetof
-    { BIT_N(expr), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprParen
-    { BIT_N(expr1)| BIT_N(expr2)| BIT_N(expr_bound_or_undef), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprPointer
-    { BIT_N(type), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprSizeof
-    { BIT_N(expr), 0, 0, 0 }, // ExprSrcLoc
-    { BIT_N(body), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprStmt
-    { BIT_N(expr), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprStringify
-    { BIT_N(type), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprTypeId
-    { BIT_N(expr), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprUnionTag
-    { BIT_N(expr), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprUnionUntagged
-    { BIT_N(expr), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprUnwrap
-    { BIT_N(expr)| BIT_N(type), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprWiden
-    { BIT_N(expr)| BIT_N(type), 0, 0, BIT_X(type)| BIT_X(eval) }, // ExprWrap
-    { BIT_N(type), BIT_S(name), BIT_B(ARG_REF)| BIT_B(RES_REF), BIT_X(type) }, // FunParam
-    { 0, BIT_S(name)| BIT_S(enum_name), 0, BIT_X(type)| BIT_X(eval)| BIT_X(symbol) }, // Id
-    { BIT_N(args_mod), BIT_S(name)| BIT_S(path), 0, 0 }, // Import
-    { BIT_N(body_for), BIT_S(name)| BIT_S(name_list), 0, 0 }, // MacroFor
-    { 0, BIT_S(name), 0, 0 }, // MacroId
-    { BIT_N(args), BIT_S(name), 0, BIT_X(symbol) }, // MacroInvoke
-    { 0, BIT_S(name), 0, 0 }, // MacroParam
-    { 0, BIT_S(name), 0, 0 }, // ModParam
-    { BIT_N(type), BIT_S(name), 0, BIT_X(type) }, // RecField
-    { BIT_N(lhs)| BIT_N(expr_rhs), 0, 0, 0 }, // StmtAssignment
-    { BIT_N(body), BIT_S(label), 0, 0 }, // StmtBlock
-    { 0, BIT_S(target), 0, BIT_X(target) }, // StmtBreak
-    { BIT_N(lhs)| BIT_N(expr_rhs), 0, 0, 0 }, // StmtCompoundAssignment
-    { BIT_N(cases), 0, 0, 0 }, // StmtCond
-    { 0, BIT_S(target), 0, BIT_X(target) }, // StmtContinue
-    { BIT_N(body), 0, 0, 0 }, // StmtDefer
-    { BIT_N(expr), 0, 0, 0 }, // StmtExpr
-    { BIT_N(cond)| BIT_N(body_t)| BIT_N(body_f), 0, 0, 0 }, // StmtIf
-    { BIT_N(expr_ret), 0, 0, BIT_X(target) }, // StmtReturn
-    { BIT_N(cond), BIT_S(message), 0, 0 }, // StmtStaticAssert
-    { 0, 0, 0, 0 }, // StmtTrap
-    { 0, 0, 0, BIT_X(type) }, // TypeAuto
-    { 0, 0, 0, BIT_X(type) }, // TypeBase
-    { BIT_N(params)| BIT_N(result), 0, 0, BIT_X(type) }, // TypeFun
-    { BIT_N(expr), 0, 0, BIT_X(type) }, // TypeOf
-    { BIT_N(type), 0, BIT_B(MUT), BIT_X(type) }, // TypePtr
-    { BIT_N(type), 0, BIT_B(MUT), BIT_X(type) }, // TypeSpan
-    { BIT_N(types), 0, BIT_B(UNTAGGED), BIT_X(type) }, // TypeUnion
-    { BIT_N(type)| BIT_N(subtrahend), 0, 0, BIT_X(type) }, // TypeUnionDelta
-    { BIT_N(size)| BIT_N(type), 0, 0, BIT_X(type) }, // TypeVec
-    { 0, 0, 0, BIT_X(type)| BIT_X(eval) }, // ValAuto
-    { BIT_N(type_or_auto)| BIT_N(inits), 0, 0, BIT_X(type)| BIT_X(eval) }, // ValCompound
-    { 0, BIT_S(number), 0, BIT_X(type)| BIT_X(eval) }, // ValNum
-    { BIT_N(value_or_undef)| BIT_N(point_or_undef), 0, 0, BIT_X(type)| BIT_X(eval) }, // ValPoint
-    { BIT_N(pointer)| BIT_N(expr_size), 0, 0, BIT_X(type)| BIT_X(eval) }, // ValSpan
-    { 0, BIT_S(string), 0, BIT_X(type)| BIT_X(eval) }, // ValString
-    { 0, 0, 0, BIT_X(eval) }, // ValUndef
-    { 0, 0, 0, BIT_X(type)| BIT_X(eval) }, // ValVoid
+    { { NFD_SLOT::invalid,NFD_SLOT::cond,NFD_SLOT::invalid,NFD_SLOT::body }, 0, 0 }, // Case
+    { { NFD_SLOT::name,NFD_SLOT::items,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(PUB), BIT_X(type)| BIT_X(eval) }, // DefEnum
+    { { NFD_SLOT::name,NFD_SLOT::params,NFD_SLOT::result,NFD_SLOT::body }, BIT_B(INIT)| BIT_B(FINI)| BIT_B(EXTERN)| BIT_B(CDECL)| BIT_B(POLY)| BIT_B(PUB)| BIT_B(REF), BIT_X(type) }, // DefFun
+    { { NFD_SLOT::name,NFD_SLOT::type_or_auto,NFD_SLOT::initial_or_undef_or_auto,NFD_SLOT::invalid }, BIT_B(PUB)| BIT_B(MUT)| BIT_B(REF)| BIT_B(CDECL), BIT_X(type)| BIT_X(eval) }, // DefGlobal
+    { { NFD_SLOT::name,NFD_SLOT::params_macro,NFD_SLOT::gen_ids,NFD_SLOT::body_macro }, BIT_B(BUILTIN)| BIT_B(PUB), 0 }, // DefMacro
+    { { NFD_SLOT::name,NFD_SLOT::params_mod,NFD_SLOT::invalid,NFD_SLOT::body_mod }, BIT_B(BUILTIN), 0 }, // DefMod
+    { { NFD_SLOT::name,NFD_SLOT::fields,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(PUB), BIT_X(type) }, // DefRec
+    { { NFD_SLOT::name,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(PUB)| BIT_B(WRAPPED), BIT_X(type) }, // DefType
+    { { NFD_SLOT::name,NFD_SLOT::type_or_auto,NFD_SLOT::initial_or_undef_or_auto,NFD_SLOT::invalid }, BIT_B(MUT)| BIT_B(REF), BIT_X(type)| BIT_X(eval) }, // DefVar
+    { { NFD_SLOT::name,NFD_SLOT::value_or_auto,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // EnumVal
+    { { NFD_SLOT::invalid,NFD_SLOT::args,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(COLON), 0 }, // EphemeralList
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // Expr1
+    { { NFD_SLOT::expr1,NFD_SLOT::expr2,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // Expr2
+    { { NFD_SLOT::expr_t,NFD_SLOT::cond,NFD_SLOT::expr_f,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // Expr3
+    { { NFD_SLOT::expr_lhs,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(MUT), BIT_X(type)| BIT_X(eval) }, // ExprAddrOf
+    { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprAs
+    { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprBitCast
+    { { NFD_SLOT::callee,NFD_SLOT::args,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprCall
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprDeref
+    { { NFD_SLOT::container,NFD_SLOT::invalid,NFD_SLOT::field,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprField
+    { { NFD_SLOT::container,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(MUT)| BIT_B(PRESERVE_MUT), BIT_X(type)| BIT_X(eval) }, // ExprFront
+    { { NFD_SLOT::container,NFD_SLOT::expr_index,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(UNCHECKED), BIT_X(type)| BIT_X(eval) }, // ExprIndex
+    { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprIs
+    { { NFD_SLOT::container,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprLen
+    { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(UNCHECKED), BIT_X(type)| BIT_X(eval) }, // ExprNarrow
+    { { NFD_SLOT::invalid,NFD_SLOT::type,NFD_SLOT::field,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprOffsetof
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprParen
+    { { NFD_SLOT::expr1,NFD_SLOT::expr2,NFD_SLOT::expr_bound_or_undef,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprPointer
+    { { NFD_SLOT::invalid,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprSizeof
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // ExprSrcLoc
+    { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::body }, 0, BIT_X(type)| BIT_X(eval) }, // ExprStmt
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprStringify
+    { { NFD_SLOT::invalid,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprTypeId
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprUnionTag
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprUnionUntagged
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprUnwrap
+    { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprWiden
+    { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprWrap
+    { { NFD_SLOT::name,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(ARG_REF)| BIT_B(RES_REF), BIT_X(type) }, // FunParam
+    { { NFD_SLOT::name,NFD_SLOT::enum_name,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval)| BIT_X(symbol) }, // Id
+    { { NFD_SLOT::name,NFD_SLOT::path,NFD_SLOT::args_mod,NFD_SLOT::invalid }, 0, 0 }, // Import
+    { { NFD_SLOT::name,NFD_SLOT::name_list,NFD_SLOT::body_for,NFD_SLOT::invalid }, 0, 0 }, // MacroFor
+    { { NFD_SLOT::name,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // MacroId
+    { { NFD_SLOT::name,NFD_SLOT::args,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(symbol) }, // MacroInvoke
+    { { NFD_SLOT::name,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // MacroParam
+    { { NFD_SLOT::name,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // ModParam
+    { { NFD_SLOT::name,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // RecField
+    { { NFD_SLOT::lhs,NFD_SLOT::expr_rhs,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtAssignment
+    { { NFD_SLOT::label,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::body }, 0, 0 }, // StmtBlock
+    { { NFD_SLOT::target,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(target) }, // StmtBreak
+    { { NFD_SLOT::lhs,NFD_SLOT::expr_rhs,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtCompoundAssignment
+    { { NFD_SLOT::cases,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtCond
+    { { NFD_SLOT::target,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(target) }, // StmtContinue
+    { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::body }, 0, 0 }, // StmtDefer
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtExpr
+    { { NFD_SLOT::invalid,NFD_SLOT::cond,NFD_SLOT::body_t,NFD_SLOT::body_f }, 0, 0 }, // StmtIf
+    { { NFD_SLOT::expr_ret,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(target) }, // StmtReturn
+    { { NFD_SLOT::message,NFD_SLOT::cond,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtStaticAssert
+    { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtTrap
+    { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeAuto
+    { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeBase
+    { { NFD_SLOT::invalid,NFD_SLOT::params,NFD_SLOT::result,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeFun
+    { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeOf
+    { { NFD_SLOT::invalid,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(MUT), BIT_X(type) }, // TypePtr
+    { { NFD_SLOT::invalid,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(MUT), BIT_X(type) }, // TypeSpan
+    { { NFD_SLOT::types,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(UNTAGGED), BIT_X(type) }, // TypeUnion
+    { { NFD_SLOT::subtrahend,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeUnionDelta
+    { { NFD_SLOT::size,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeVec
+    { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValAuto
+    { { NFD_SLOT::inits,NFD_SLOT::type_or_auto,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValCompound
+    { { NFD_SLOT::number,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValNum
+    { { NFD_SLOT::value_or_undef,NFD_SLOT::point_or_undef,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValPoint
+    { { NFD_SLOT::pointer,NFD_SLOT::expr_size,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValSpan
+    { { NFD_SLOT::string,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValString
+    { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(eval) }, // ValUndef
+    { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValVoid
 };
 
 const char* const MOD_PARAM_KIND_ToStringMap[] = {

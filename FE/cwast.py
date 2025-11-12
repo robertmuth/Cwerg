@@ -3527,22 +3527,18 @@ _EXTRA_BASE_TYPE_KIND = [
 
 
 def GenerateCodeH(fout: Any):
+    # update _FIELD_2_SLOT
     _ComputeRemainingSlotsForFields()
 
-    print("enum class NFD_NODE_FIELD : uint8_t {")
+    print("enum class NFD_SLOT : uint8_t {")
     print("    invalid = 0,")
     fields = sorted(_FieldNamesForKind(NFK.NODE) +
-                    _FieldNamesForKind(NFK.LIST))
-    for n, name in enumerate(fields):
-        print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
-    print("};")
-
-    print("enum class NFD_STRING_FIELD : uint8_t {")
-    print("    invalid = 0,")
-    fields = sorted(_FieldNamesForKind(NFK.NAME) +
+                    _FieldNamesForKind(NFK.LIST) +
+                    _FieldNamesForKind(NFK.NAME) +
                     _FieldNamesForKind(NFK.STR))
     for n, name in enumerate(fields):
-        print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]}")
+        nfd = ALL_FIELDS_MAP[name]
+        print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]} {nfd.kind.name}")
     print("};")
 
     #  intentionally not sorted
@@ -3649,17 +3645,34 @@ def _join_or_zero(fields) -> str:
 
 
 def EmitNodeDesc(fout: Any):
+    print("const NodeFieldDesc GlobalNodeFieldDescs[] = {")
+    print("    {}, // invalid")
+    fields = sorted(_FieldNamesForKind(NFK.NODE) +
+                    _FieldNamesForKind(NFK.LIST) +
+                    _FieldNamesForKind(NFK.NAME) +
+                    _FieldNamesForKind(NFK.STR))
+    for n, name in enumerate(fields):
+        nfd = ALL_FIELDS_MAP[name]
+        print(f"    {{  {_FIELD_2_SLOT[name]}, NFD_KIND::{nfd.kind.name} }},  // {nfd.name}")
+    print("};")
+    print("")
+
     print("const NodeDesc GlobalNodeDescs[] = {")
     print("    {}, // invalid")
 
-    for cls in sorted(ALL_NODES, key=lambda n: n.__name__):
-        node_fields = []
-        for nfd in cls.NODE_FIELDS:
-            node_fields.append(f"BIT_N({nfd.name})")
 
-        string_fields = []
+    for cls in sorted(ALL_NODES, key=lambda n: n.__name__):
+        slots = ["NFD_SLOT::invalid"] * MAX_SLOTS
+
+        for nfd in cls.NODE_FIELDS:
+            name = nfd.name
+            slot = _FIELD_2_SLOT[name]
+            slots[slot] = f"NFD_SLOT::{name}"
+
         for nfd in cls.STR_FIELDS:
-            string_fields.append(f"BIT_S({nfd.name})")
+            name = nfd.name
+            slot = _FIELD_2_SLOT[name]
+            slots[slot] = f"NFD_SLOT::{name}"
 
         bool_fields = []
         for nfd in cls.ATTRS:
@@ -3673,11 +3686,13 @@ def EmitNodeDesc(fout: Any):
                 x_fields.append(f"BIT_X({name[2:]})")
 
         print(
-            f"    {{ {_join_or_zero(node_fields)}, {_join_or_zero(string_fields)}, {_join_or_zero(bool_fields)}, {_join_or_zero(x_fields)} }}, // {cls.__name__}")
+            f"    {{ {{ {','.join(slots)} }}, {_join_or_zero(bool_fields)}, {_join_or_zero(x_fields)} }}, // {cls.__name__}")
     print("};")
 
 
 def GenerateCodeCC(fout: Any):
+    # update _FIELD_2_SLOT
+    _ComputeRemainingSlotsForFields()
     EmitNodeDesc(fout)
     EnumStringConversions(fout)
     NodeAliasStringConversion(fout)
