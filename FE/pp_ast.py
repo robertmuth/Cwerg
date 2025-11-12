@@ -1,6 +1,6 @@
 #!/bin/env python3
 """SEXPR Pretty printer (PP) for Cwerg AST to sexpr syntax
-
+https://www.w3.org/TR/xml-entity-names/025.html
 """
 
 import logging
@@ -17,21 +17,48 @@ from FE import eval
 logger = logging.getLogger(__name__)
 
 
-def emit_line(line, indent, fout, is_last):
-    print(" " * indent, "|-", line, file=fout)
+def emit_line(line, indent, fout, active_columns, is_last):
+    spaces = [" "] * (indent +1)
+    for a in active_columns:
+        spaces[a] = "┃"
+    if indent > 0:
+        spaces[indent] = "┗" if is_last else "┣"
+    spaces.append(line)
+    print("".join(spaces), file=fout)
 
 
-def _DumpNode(node: Any, indent, fout, is_last):
+def _DumpList(nfd, lst, indent, fout, active_columns, is_last):
+    assert nfd.kind == cwast.NFK.LIST
+    if lst:
+
+        emit_line(f"[{nfd.name}]", indent + 2,
+                  fout, active_columns,  is_last)
+        active_columns.append(indent + 4)
+        for n in lst:
+            if n == lst[-1]:
+                active_columns.pop(-1)
+
+            _DumpNode(n, indent + 4, fout,
+                      active_columns, n == lst[-1])
+
+    else:
+        emit_line(f"[{nfd.name}] Empty",
+                  indent + 2, fout, active_columns, is_last)
+
+
+def _DumpNode(node: Any, indent, fout, active_columns, is_last):
     cls = type(node)
     names = [cwast.NODE_NAME(node)]
+    for nfd in cls.KIND_FIELDS:
+        val = getattr(node, nfd.name)
+        names.append(f"{val}")
     for nfd in cls.STR_FIELDS:
-        val =  getattr(node, nfd.name)
-        if val:
+        val = getattr(node, nfd.name)
+        if val is not None:
             if nfd.kind == cwast.NFK.NAME:
                 val = val.name
+                assert val is not None
             names.append(f"{nfd.name}={val}")
-        else:
-            names.append("None")
     for nfd in cls.ATTRS:
         if nfd.name == 'doc':
             continue
@@ -41,41 +68,46 @@ def _DumpNode(node: Any, indent, fout, is_last):
         names.append(f"{nfd.name}={val}")
     for name in cls.X_FIELD_NAMES:
         val = getattr(node, name)
+        if val is None:
+            continue
         if name == "x_srcloc":
             continue
         if name == "x_type":
-            continue
+            if isinstance(node, cwast.TypeAuto):
+                val = val.name
+            else:
+                continue
         if name == "x_eval":
             continue
         if name == "x_symbol":
             continue
         if name == "x_target":
             continue
-        names.append(f"{nfd.name}={val}")
+        if name == "x_symtab":
+            continue
+        names.append(f"{name}={val}")
 
-    emit_line(" ".join(names), indent, fout, is_last)
+    emit_line(" ".join(names), indent, fout, active_columns, is_last)
 
     if cls.NODE_FIELDS:
+        active_columns.append(indent + 2)
+
         last = cls.NODE_FIELDS[-1]
 
         for nfd in cls.NODE_FIELDS:
+            if nfd == last:
+                active_columns.pop(-1)
             if nfd.kind == cwast.NFK.NODE:
                 _DumpNode(getattr(node, nfd.name),
-                          indent + 2, fout, nfd == last)
+                          indent + 2, fout, active_columns, nfd == last)
             else:
-                assert nfd.kind == cwast.NFK.LIST
-                lst = getattr(node, nfd.name)
-                if lst:
-                    emit_line(f"[{nfd.name}]", indent + 2, fout, nfd == last)
-                    for n in lst:
-                        _DumpNode(n, indent + 4, fout, n == lst[-1])
-                else:
-                    emit_line(f"[{nfd.name}] Empty", indent + 2, fout, nfd == last)
+                _DumpList(nfd, getattr(node, nfd.name),
+                          indent, fout, active_columns, nfd == last)
 
 
 def DumpMod(mod: cwast.DefMod, fout):
     print("", file=fout)
-    _DumpNode(mod, 0, fout, False)
+    _DumpNode(mod, 0, fout, [], True)
 
 
 ############################################################
