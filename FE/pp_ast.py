@@ -51,7 +51,8 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
     names = [cwast.NODE_NAME(node)]
     for nfd in cls.KIND_FIELDS:
         val = getattr(node, nfd.name)
-        names.append(f"{val}")
+        val = str(val).split(".")[1]
+        names.append(val)
     for nfd in cls.STR_FIELDS:
         val = getattr(node, nfd.name)
         if val is not None:
@@ -85,16 +86,12 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
                 continue
         if name == "x_eval":
             continue
-        if name == "x_symtab":
+        if name == "x_symbol" or name == "x_target" or name == "x_poly_mod":
+            def_sym = getattr(node, name)
+            assert def_sym in labels, f"{node} -> {def_sym}"
+            names.append(f"{name}={labels[def_sym]}")
             continue
-        if name == "x_target":
-            continue
-        if name == "x_symbol":
-            def_sym = node.x_symbol
-            assert def_sym in labels, f"{node} -> {node.x_symbol}"
-            names.append(f"label={labels[def_sym]}")
-            continue
-        if name == "x_import":
+        if name == "x_import" or name == "x_symtab":
             continue
         names.append(f"{name}={val}")
 
@@ -127,7 +124,9 @@ LABEL_KIND = {
     cwast.DefGlobal: "g",
     cwast.DefVar: "v",
     cwast.FunParam: "p",
-
+    #
+    cwast.StmtBlock: "b",
+    cwast.ExprStmt: "s",
 }
 
 
@@ -145,15 +144,39 @@ def _LabeDefs(node: Any, prefix: list[int], out: dict[Any, str]):
             prefix.pop(-1)
 
 
-def _ExtractDefLabels(mods: list[cwast.DefMod]) -> dict[Any, str]:
-    out: dict[Any, str] = {}
+def _ExtractSymDefLabels(mods: list[cwast.DefMod], out: dict[Any, str]):
     for n, mod in enumerate(mods):
         _LabeDefs(mod, [n], out)
-    return out
+
+
+def _LabelTargets(node: Any, n: int, out: dict[Any, str]):
+    block_counter = 0
+    expr_counter = 0
+
+    def visit(node):
+        nonlocal n, out, block_counter, expr_counter
+        if isinstance(node, cwast.StmtBlock):
+            out[node] = f"b{n}.{block_counter}"
+            block_counter += 1
+        elif isinstance(node, cwast.ExprStmt):
+            print(f"{id(node)} -> {node}")
+            out[node] = f"s{n}.{expr_counter}"
+            expr_counter += 1
+
+    cwast.VisitAstRecursively(node, visit)
+
+
+def _ExtractTargetLabels(mods: list[cwast.DefMod], out: dict[Any, str]):
+    for n, mod in enumerate(mods):
+        _LabelTargets(mod, n, out)
 
 
 def DumpMods(mods: list[cwast.DefMod], fout):
-    labels = _ExtractDefLabels(mods)
+    labels: dict[Any, str] = {}
+    _ExtractSymDefLabels(mods, labels)
+
+    _ExtractTargetLabels(mods, labels)
+
     for mod in mods:
         print("", file=fout)
         _DumpNode(mod, 0, labels, fout, [], True)
