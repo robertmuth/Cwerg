@@ -780,7 +780,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def FunRemoveParentheses(fun: cwast.DefFun):
+def FunRemoveParentheses(fun: Any):
     def replacer(node, _parent):
         if isinstance(node, cwast.ExprParen):
             return node.expr

@@ -242,7 +242,7 @@ class GlobalConstantPool:
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._current_no = 0
         self._bytes_map: dict[bytes, cwast.DefGlobal] = {}
         self._all_globals: list[cwast.DefGlobal] = []
@@ -584,7 +584,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         val = node.expr.x_eval
         if isinstance(val, EvalNum):
             new_bt = ct.get_unwrapped_base_type_kind()
-            assert new_bt is not None, f"{node.expr.x_type} -> {ct.x_type}"
+            assert new_bt is not None, f"{node.expr.x_type} -> {ct}"
             return EvalNum(val.val, new_bt)
         elif isinstance(val, EvalVoid):
             return val

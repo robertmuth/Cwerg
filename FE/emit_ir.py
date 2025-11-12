@@ -231,7 +231,7 @@ def _GetLValueAddressAsBaseOffset(node, ta: type_corpus.TargetArchConfig,
         return BaseOffset(base, node.field.GetRecFieldRef().x_offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
-        base = id_gen.NewName(f"lhsaddr")
+        base = id_gen.NewName("lhsaddr")
         kind = ta.get_data_address_reg_type()
         storage = _StorageForId(node)
         if storage is STORAGE_KIND.DATA:
@@ -1053,15 +1053,15 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
         exit(0)
 
     if args.dump_ast == phase_name:
-        from FE import pp
+        from FE import pp_ast
         import sys
-        for mod in mods:
-            pp.PrettyPrint(mod, sys.stdout)
+        pp_ast.DumpMods(mods, sys.stdout)
         exit(0)
 
     if args.dump_types == phase_name:
         for m in mods:
             print(m.name)
+        assert tc
         tc.Dump()
         exit(0)
 

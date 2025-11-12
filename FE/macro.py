@@ -7,10 +7,9 @@
 import dataclasses
 import logging
 
-from typing import Any, Tuple, Union
+from typing import Any
 
 from FE import cwast
-from FE import checker
 from FE import identifier
 from FE import symbolize
 
@@ -138,7 +137,7 @@ def _ExpandMacroInvocation(macro_invoke: cwast.MacroInvoke,
         cwast.CompilerError(macro_invoke.x_srcloc, "nesting to deep")
     def_macro: cwast.DefMacro = macro_invoke.x_symbol
     assert isinstance(
-        def_macro, cwast.DefMacro), f"{node} -> {def_macro}"
+        def_macro, cwast.DefMacro), f"{macro_invoke} -> {def_macro}"
     params: list[cwast.MacroParam] = def_macro.params_macro
     args = macro_invoke.args
     _FixUpExprListRest(params, args)

@@ -493,7 +493,7 @@ NODES_LHS_T = Union["Id", "ExprDeref", "ExprIndex",
 
 NODES_SYMBOLS_T = Union["DefEnum", "EnumVal", "DefType", "DefVar", "DefGlobal", "DefFun",
                         "FunParam", "ModParam",
-                        "DefMod", "MacroParam", "DefMacro", "Import", "DefRec"]
+                        "DefMod", "MacroParam", "DefMacro", "Import", "DefRec", "RecField"]
 
 
 def _EnumValues(enum_class):
@@ -2714,7 +2714,8 @@ class DefFun:
     x_type: CanonType = NO_TYPE
     # x_poly_mod will contain either the enclosing module or
     # the module referenced by the import statement
-    x_import: Optional[Import] = None  # only used for polymorphic functions with qualified name
+    # only used for polymorphic functions with qualified name
+    x_import: Optional[Import] = None
     x_poly_mod: Optional[DefMod] = None  # only used for polymorphic function
 
     def __repr__(self):
@@ -3182,25 +3183,6 @@ def _CheckMacroRecursively(node, seen_names: set[str]):
     VisitAstRecursively(node, visitor)
 
 
-def _IsPermittedNode(node, permitted, parent, toplevel_node, node_mod: DefMod,
-                     allow_type_auto: bool) -> bool:
-    if node.__class__.__name__ in permitted:
-        return True
-    if isinstance(node, MacroInvoke):
-        # this could be made stricter, i.e. only for exprs and stmts
-        return True
-    if isinstance(node, TypeAuto):
-        return allow_type_auto
-    if isinstance(node, MacroId):
-        return isinstance(toplevel_node, DefMacro) or node_mod.params_mod
-
-    if isinstance(parent, (MacroInvoke, EphemeralList)):
-        return True  # refine
-    if isinstance(toplevel_node, DefMacro):
-        return True  # refine
-    return False
-
-
 ##########################################################################################
 # Doc Generation
 ##########################################################################################
@@ -3390,7 +3372,7 @@ def GetSize(kind):
 MAX_SLOTS = 4
 
 
-def _ComputeRemainingSlotsForFields():
+def _ComputeRemainingSlotsForFields() -> None:
     for cls in ALL_NODES:
         slots: list[Optional[NFD]] = [None] * MAX_SLOTS
         for nfd in cls.FIELDS:

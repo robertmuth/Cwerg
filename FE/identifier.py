@@ -1,8 +1,5 @@
 """Id Generator"""
 
-import sys
-
-from typing import Any
 
 from FE import cwast
 

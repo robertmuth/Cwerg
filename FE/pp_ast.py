@@ -1,11 +1,12 @@
 #!/bin/env python3
-"""SEXPR Pretty printer (PP) for Cwerg AST to sexpr syntax
+"""Pretty printer for AST using unicode box chars:
+
 https://www.w3.org/TR/xml-entity-names/025.html
 """
 
 import logging
 
-from typing import Optional, Any
+from typing import Any
 
 from FE import cwast
 from FE import symbolize
@@ -17,6 +18,7 @@ from FE import eval
 logger = logging.getLogger(__name__)
 
 _INDENTATION = 4
+
 
 def emit_line(line, indent, fout, active_columns, is_last):
     spaces = [" "] * (indent * _INDENTATION + 1)
@@ -78,7 +80,7 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
         if val:
             flags.append(nfd.name)
     if has_flags:
-        names.insert(1, f"[{','.join(flags)}]")
+        names.insert(1, f"[{','.join(sorted(flags))}]")
     for name in cls.X_FIELD_NAMES:
         val = getattr(node, name)
         if val is None:

@@ -3,8 +3,6 @@
 """
 
 
-from typing import Optional
-
 from FE import canonicalize
 from FE import cwast
 from FE import type_corpus

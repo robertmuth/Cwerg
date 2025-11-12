@@ -51,7 +51,7 @@ def _IsPermittedNode(node, permitted, parent, toplevel_node, node_mod: cwast.Def
     if isinstance(node, cwast.TypeAuto):
         return allow_type_auto
     if isinstance(node, cwast.MacroId):
-        return isinstance(toplevel_node, cwast.DefMacro) or node_mod.params_mod
+        return isinstance(toplevel_node, cwast.DefMacro) or len(node_mod.params_mod) > 0
 
     if isinstance(parent, (cwast.MacroInvoke, cwast.EphemeralList)):
         return True  # refine
