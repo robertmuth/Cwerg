@@ -178,6 +178,7 @@ extern struct StripeGroup gStripeGroupNode;
 
 inline NT Node_kind(Node node) { return gNodeCore[node].kind; }
 inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
+inline Node& Node_child(Node node, int slot) { return (Node&)gNodeCore[node].children_node[slot]; }
 
 inline int NodeNumSiblings(Node node) {
   int n = 0;

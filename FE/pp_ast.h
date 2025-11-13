@@ -5,5 +5,6 @@
 
 namespace cwerg::fe {
 
-extern void Prettify(Node mod);
+extern void DumpMods(const std::vector<Node>& mod);
+
 }  // namespace cwerg::fe

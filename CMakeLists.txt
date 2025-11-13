@@ -439,6 +439,8 @@ add_executable(emit_ir.exe
         FE/macro.cc
         FE/pp.h
         FE/pp.cc
+        FE/pp_ast.h
+        FE/pp_ast.cc
         FE/typify.h
         FE/typify.cc
         FE/type_corpus.h
@@ -446,6 +448,6 @@ add_executable(emit_ir.exe
         FE/canonicalize.h
         FE/canonicalize.cc
         FE/eval.h
-        FE/eval.cc  
+        FE/eval.cc
         FE/emit_ir.cc
 )
