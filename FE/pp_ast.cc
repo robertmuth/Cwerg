@@ -167,11 +167,11 @@ void _EmitLine(const std::vector<std::string>& line, int indent,
 }
 
 // forward decl
-void DumpNode(Node node, int indent, std::map<Node, std::string>* labels,
+void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
               std::vector<int>* active_columns, bool is_last);
 
 void DumpList(std::string_view name, Node node, int indent,
-              std::map<Node, std::string>* labels,
+              const std::map<Node, std::string>* labels,
               std::vector<int>* active_columns, bool is_last) {
   std::vector<std::string> line = {std::string(name)};
 
@@ -252,7 +252,7 @@ std::string RenderKind(Node node) {
   }
 }
 
-void DumpNode(Node node, int indent, std::map<Node, std::string>* labels,
+void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
               std::vector<int>* active_columns, bool is_last) {
   const NodeDesc& desc = GlobalNodeDescs[int(node.kind())];
   std::vector<std::string> line;
@@ -266,6 +266,11 @@ void DumpNode(Node node, int indent, std::map<Node, std::string>* labels,
   if (Node_other_kind(node) != 0) {
     line.push_back(RenderKind(node));
   }
+
+  if (labels->contains(node)) {
+    line.push_back(labels->at(node));
+  }
+
   _EmitLine(line, indent, active_columns, is_last);
 
   int last_slot = LastNodeSlot(desc);
