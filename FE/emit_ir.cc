@@ -15,6 +15,7 @@
 #include "FE/mod_pool.h"
 #include "FE/parse.h"
 #include "FE/pp.h"
+#include "FE/pp_ast.h"
 #include "FE/typify.h"
 #include "Util/assert.h"
 #include "Util/switch.h"
@@ -49,9 +50,7 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
   }
 
   if (sw_dump_ast.Value() == phase) {
-    for (Node mod : mods) {
-      Prettify(mod);
-    }
+    DumpAstMods(mods);
     exit(0);
   }
 }
