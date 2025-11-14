@@ -49,7 +49,7 @@ def _DumpList(name: str, lst, indent,  labels: dict[Any, str], fout, active_colu
                   indent + 1, fout, active_columns, is_last)
 
 
-def _GetFlags(node) -> str:
+def _RenderFlags(node) -> str:
     cls = type(node)
     flags = []
     has_flags = False
@@ -69,7 +69,7 @@ def _GetFlags(node) -> str:
 def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_columns, is_last):
     cls = type(node)
     line = [cls.__name__]
-    flags = _GetFlags(node)
+    flags = _RenderFlags(node)
     if flags:
         line.append(flags)
     for nfd in cls.KIND_FIELDS:

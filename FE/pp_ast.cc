@@ -204,14 +204,70 @@ int LastNodeSlot(const NodeDesc& desc) {
   return out;
 }
 
+std::string RenderFlags(uint16_t compressed_flags, uint32_t desc_flag_bits) {
+  if (compressed_flags == 0) {
+    return "[]";
+  }
+  std::vector<std::string> flags;
+  for (int i = 0; desc_flag_bits != 0; ++i, desc_flag_bits >>= 1) {
+    if (desc_flag_bits & 1) {
+      if (compressed_flags & Mask(BF(i))) {
+        flags.push_back(std::string(EnumToString(BF(i))));
+      }
+    }
+  }
+  std::sort(flags.begin(), flags.end());
+  std::string out;
+  out.reserve(flags.size() * 15);  // basically we will stay below 16 only if
+                                   // there is just on flag set
+  std::string_view sep = "[";
+  for (const auto& f : flags) {
+    out += sep;
+    out += f;
+    sep = ", ";
+  }
+  out += "]";
+  return out;
+}
+
+std::string RenderKind(Node node) {
+  switch (node.kind()) {
+    case NT::Expr1:
+      return EnumToString(Node_unary_expr_kind(node));
+    case NT::Expr2:
+    case NT::StmtCompoundAssignment:
+      return EnumToString(Node_binary_expr_kind(node));
+    case NT::TypeBase:
+      return EnumToString(Node_base_type_kind(node));
+    case NT::ExprPointer:
+      return EnumToString(Node_pointer_expr_kind(node));
+    case NT::ModParam:
+      return EnumToString(Node_mod_param_kind(node));
+    case NT::MacroParam:
+      return EnumToString(Node_macro_param_kind(node));
+    case NT::DefMacro:
+      return EnumToString(Node_macro_result_kind(node));
+    default:
+      return "";
+  }
+}
+
 void DumpNode(Node node, int indent, std::map<Node, std::string>* labels,
               std::vector<int>* active_columns, bool is_last) {
+  const NodeDesc& desc = GlobalNodeDescs[int(node.kind())];
   std::vector<std::string> line;
   line.push_back(std::string(EnumToString(node.kind())));
-  // uint16_t compressed_flags = Node_compressed_flags(node);
+
+  if (desc.bool_field_bits != 0) {
+    line.push_back(
+        RenderFlags(Node_compressed_flags(node), desc.bool_field_bits));
+  }
+
+  if (Node_other_kind(node) != 0) {
+    line.push_back(RenderKind(node));
+  }
   _EmitLine(line, indent, active_columns, is_last);
 
-  const NodeDesc& desc = GlobalNodeDescs[int(node.kind())];
   int last_slot = LastNodeSlot(desc);
   if (last_slot == -1) return;
 
