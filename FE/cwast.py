@@ -3526,19 +3526,30 @@ _EXTRA_BASE_TYPE_KIND = [
 ]
 
 
+def NFD_SLOT_NAMES():
+    return sorted(_FieldNamesForKind(NFK.NODE) +
+                  _FieldNamesForKind(NFK.LIST) +
+                  _FieldNamesForKind(NFK.NAME) +
+                  _FieldNamesForKind(NFK.STR))
+
+
+def _NameValuesForNFD_SLOT():
+    out = [("invalid", 0)]
+    for n, name in enumerate(NFD_SLOT_NAMES()):
+        out.append((name, n+1))
+    return out
+
+
 def GenerateCodeH(fout: Any):
     # update _FIELD_2_SLOT
     _ComputeRemainingSlotsForFields()
 
     print("enum class NFD_SLOT : uint8_t {")
     print("    invalid = 0,")
-    fields = sorted(_FieldNamesForKind(NFK.NODE) +
-                    _FieldNamesForKind(NFK.LIST) +
-                    _FieldNamesForKind(NFK.NAME) +
-                    _FieldNamesForKind(NFK.STR))
-    for n, name in enumerate(fields):
+    for n, name in enumerate(NFD_SLOT_NAMES()):
         nfd = ALL_FIELDS_MAP[name]
-        print(f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]} {nfd.kind.name}")
+        print(
+            f"    {name} = {n+1},  // slot: {_FIELD_2_SLOT[name]} {nfd.kind.name}")
     print("};")
 
     #  intentionally not sorted
@@ -3610,6 +3621,8 @@ def EnumStringConversions(fout: Any):
     render_enum_to_str(BINARY_EXPR_KIND.__name__,
                        [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()])
     render_enum_to_str("NT",  _NameValuesForNT())
+    render_enum_to_str("NFD_SLOT",  _NameValuesForNFD_SLOT())
+
     # intentionally not sorted - order is "print-order"
     name_vals = _MakeNameValues(
         _FieldNamesForKind(NFK.ATTR_BOOL), to_upper=False)
@@ -3653,13 +3666,13 @@ def EmitNodeDesc(fout: Any):
                     _FieldNamesForKind(NFK.STR))
     for n, name in enumerate(fields):
         nfd = ALL_FIELDS_MAP[name]
-        print(f"    {{  {_FIELD_2_SLOT[name]}, NFD_KIND::{nfd.kind.name} }},  // {nfd.name}")
+        print(
+            f"    {{  {_FIELD_2_SLOT[name]}, NFD_KIND::{nfd.kind.name} }},  // {nfd.name}")
     print("};")
     print("")
 
     print("const NodeDesc GlobalNodeDescs[] = {")
     print("    {}, // invalid")
-
 
     for cls in sorted(ALL_NODES, key=lambda n: n.__name__):
         slots = ["NFD_SLOT::invalid"] * MAX_SLOTS

@@ -578,6 +578,64 @@ const char* const NT_ToStringMap[] = {
 const char* EnumToString(NT x) { return NT_ToStringMap[unsigned(x)]; }
 
 
+const char* const NFD_SLOT_ToStringMap[] = {
+    "invalid", // 0
+    "args", // 1
+    "args_mod", // 2
+    "body", // 3
+    "body_f", // 4
+    "body_for", // 5
+    "body_macro", // 6
+    "body_mod", // 7
+    "body_t", // 8
+    "callee", // 9
+    "cases", // 10
+    "cond", // 11
+    "container", // 12
+    "enum_name", // 13
+    "expr", // 14
+    "expr1", // 15
+    "expr2", // 16
+    "expr_bound_or_undef", // 17
+    "expr_f", // 18
+    "expr_index", // 19
+    "expr_lhs", // 20
+    "expr_ret", // 21
+    "expr_rhs", // 22
+    "expr_size", // 23
+    "expr_t", // 24
+    "field", // 25
+    "fields", // 26
+    "gen_ids", // 27
+    "initial_or_undef_or_auto", // 28
+    "inits", // 29
+    "items", // 30
+    "label", // 31
+    "lhs", // 32
+    "message", // 33
+    "name", // 34
+    "name_list", // 35
+    "number", // 36
+    "params", // 37
+    "params_macro", // 38
+    "params_mod", // 39
+    "path", // 40
+    "point_or_undef", // 41
+    "pointer", // 42
+    "result", // 43
+    "size", // 44
+    "string", // 45
+    "subtrahend", // 46
+    "target", // 47
+    "type", // 48
+    "type_or_auto", // 49
+    "types", // 50
+    "value_or_auto", // 51
+    "value_or_undef", // 52
+};
+const char* EnumToString(NFD_SLOT x) { return NFD_SLOT_ToStringMap[unsigned(x)]; }
+
+
 const char* const BF_ToStringMap[] = {
     "invalid", // 0
     "builtin", // 1
