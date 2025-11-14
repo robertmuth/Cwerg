@@ -496,6 +496,16 @@ const char* const BINARY_EXPR_KIND_ToStringMap[] = {
 const char* EnumToString(BINARY_EXPR_KIND x) { return BINARY_EXPR_KIND_ToStringMap[unsigned(x)]; }
 
 
+const char* const UNARY_EXPR_KIND_ToStringMap[] = {
+    "", // 0
+    "!", // 1
+    "-", // 2
+    "abs", // 3
+    "sqrt", // 4
+};
+const char* EnumToString(UNARY_EXPR_KIND x) { return UNARY_EXPR_KIND_ToStringMap[unsigned(x)]; }
+
+
 const char* const NT_ToStringMap[] = {
     "invalid", // 0
     "Case", // 1

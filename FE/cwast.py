@@ -3620,6 +3620,9 @@ def EnumStringConversions(fout: Any):
 
     render_enum_to_str(BINARY_EXPR_KIND.__name__,
                        [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()])
+    render_enum_to_str(UNARY_EXPR_KIND.__name__,
+                       [(k, v.value) for k, v in UNARY_EXPR_SHORTCUT_CONCRETE.items()])
+
     render_enum_to_str("NT",  _NameValuesForNT())
     render_enum_to_str("NFD_SLOT",  _NameValuesForNFD_SLOT())
 

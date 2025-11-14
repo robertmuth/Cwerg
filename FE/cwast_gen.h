@@ -1030,6 +1030,10 @@ inline bool IsPointNode(Node node, Node parent) {
          Node_kind(parent) == NT::ValPoint;
 }
 
+inline uint8_t Node_other_kind(Node n) {
+  return gNodeCore[n].other_kind;
+}
+
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
   return gNodeCore[n].mod_param_kind;
 }
@@ -1117,6 +1121,7 @@ inline bool NodeHasField(Node node, NFD_X_FIELD x_field) {
 
 const char* EnumToString(MOD_PARAM_KIND x);
 const char* EnumToString(MACRO_PARAM_KIND x);
+const char* EnumToString(MACRO_RESULT_KIND x);
 const char* EnumToString(STR_KIND x);
 const char* EnumToString(BASE_TYPE_KIND x);
 const char* EnumToString(BF x);
@@ -1124,6 +1129,7 @@ const char* EnumToString_CURLY(BF x);
 const char* EnumToString(NT x);
 const char* EnumToString(POINTER_EXPR_KIND x);
 const char* EnumToString(BINARY_EXPR_KIND x);
+const char* EnumToString(UNARY_EXPR_KIND x);
 const char* EnumToString_ASSIGNMENT(BINARY_EXPR_KIND x);
 const char* EnumToString(NFD_SLOT x);
 
