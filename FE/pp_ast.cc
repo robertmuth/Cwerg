@@ -26,8 +26,10 @@ std::string MakeLabel(std::string_view c,
   return out;
 }
 
+// Helper for label generation
 class Prefix {
   std::vector<int> prefix_;
+  // Avoids creating the same strings over and over again
   std::vector<std::string> digits_cache_;
   std::string tmp_;
 
@@ -279,7 +281,6 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
     line.push_back(RenderKind(node));
   }
 
-
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     NFD_SLOT slot = desc.node_fields[i];
     NFD_KIND kind = GlobalNodeFieldDescs[int(slot)].kind;
@@ -311,6 +312,22 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
   if (labels->contains(node)) {
     add_tag_value("label", labels->at(node));
   }
+
+  if (desc.has(NFD_X_FIELD::symbol)) {
+    Node def_sym = Node_x_symbol(node);
+    add_tag_value("x_symbol", labels->at(def_sym));
+  }
+
+  if (desc.has(NFD_X_FIELD::target)) {
+    Node def_sym = Node_x_target(node);
+    add_tag_value("x_target", labels->at(def_sym));
+  }
+#if 0
+  if (desc.has(NFD_X_FIELD::poly_mod)) {
+    Node def_sym = Node_x_poly_mod(node);
+    add_tag_value("x_poly_mod", labels->at(def_sym));
+  }
+#endif
 
   _EmitLine(line, indent, active_columns, is_last);
 
