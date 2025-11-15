@@ -339,6 +339,8 @@ enum class NFD_X_FIELD : uint8_t {
   symbol = 2,
   eval = 3,
   target = 4,
+  poly_mod = 5,
+  offset = 6,
 };
 
 enum class NFD_KIND : uint8_t {
@@ -1113,6 +1115,12 @@ struct NodeDesc {
   NFD_SLOT node_fields[MAX_NODE_CHILDREN];  // Node fields in their slots
   uint32_t bool_field_bits;                 // which flags are present
   uint32_t x_field_bits;                    // which x_fields are present
+
+  bool has(BF bf) const { return (bool_field_bits >> uint32_t(bf)) & 1; }
+
+  bool has(NFD_X_FIELD x_field) const {
+    return (x_field_bits >> uint32_t(x_field)) & 1;
+  }
 };
 
 // For each NT described which fields (regular / bool) are present

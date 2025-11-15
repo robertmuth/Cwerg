@@ -105,7 +105,7 @@ const NodeDesc GlobalNodeDescs[] = {
     {}, // invalid
     { { NFD_SLOT::invalid,NFD_SLOT::cond,NFD_SLOT::invalid,NFD_SLOT::body }, 0, 0 }, // Case
     { { NFD_SLOT::name,NFD_SLOT::items,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(PUB), BIT_X(type)| BIT_X(eval) }, // DefEnum
-    { { NFD_SLOT::name,NFD_SLOT::params,NFD_SLOT::result,NFD_SLOT::body }, BIT_B(INIT)| BIT_B(FINI)| BIT_B(EXTERN)| BIT_B(CDECL)| BIT_B(POLY)| BIT_B(PUB)| BIT_B(REF), BIT_X(type) }, // DefFun
+    { { NFD_SLOT::name,NFD_SLOT::params,NFD_SLOT::result,NFD_SLOT::body }, BIT_B(INIT)| BIT_B(FINI)| BIT_B(EXTERN)| BIT_B(CDECL)| BIT_B(POLY)| BIT_B(PUB)| BIT_B(REF), BIT_X(type)| BIT_X(poly_mod) }, // DefFun
     { { NFD_SLOT::name,NFD_SLOT::type_or_auto,NFD_SLOT::initial_or_undef_or_auto,NFD_SLOT::invalid }, BIT_B(PUB)| BIT_B(MUT)| BIT_B(REF)| BIT_B(CDECL), BIT_X(type)| BIT_X(eval) }, // DefGlobal
     { { NFD_SLOT::name,NFD_SLOT::params_macro,NFD_SLOT::gen_ids,NFD_SLOT::body_macro }, BIT_B(BUILTIN)| BIT_B(PUB), 0 }, // DefMacro
     { { NFD_SLOT::name,NFD_SLOT::params_mod,NFD_SLOT::invalid,NFD_SLOT::body_mod }, BIT_B(BUILTIN), 0 }, // DefMod
@@ -149,7 +149,7 @@ const NodeDesc GlobalNodeDescs[] = {
     { { NFD_SLOT::name,NFD_SLOT::args,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(symbol) }, // MacroInvoke
     { { NFD_SLOT::name,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // MacroParam
     { { NFD_SLOT::name,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // ModParam
-    { { NFD_SLOT::name,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // RecField
+    { { NFD_SLOT::name,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(offset) }, // RecField
     { { NFD_SLOT::lhs,NFD_SLOT::expr_rhs,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtAssignment
     { { NFD_SLOT::label,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::body }, 0, 0 }, // StmtBlock
     { { NFD_SLOT::target,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(target) }, // StmtBreak

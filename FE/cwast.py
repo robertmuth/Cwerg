@@ -3651,7 +3651,7 @@ def NodeAliasStringConversion(fout: Any):
     print("};", file=fout)
 
 
-_IMPORTANT_X_FIELDS = set(["x_eval", "x_target", "x_symbol", "x_type"])
+_IMPORTANT_X_FIELDS = set(["x_eval", "x_target", "x_symbol", "x_type", "x_poly_mod", "x_offset"])
 
 
 def _join_or_zero(fields) -> str:
