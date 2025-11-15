@@ -178,7 +178,15 @@ extern struct StripeGroup gStripeGroupNode;
 
 inline NT Node_kind(Node node) { return gNodeCore[node].kind; }
 inline Node& Node_next(Node node) { return (Node&)gNodeCore[node].next; }
-inline Node& Node_child(Node node, int slot) { return (Node&)gNodeCore[node].children_node[slot]; }
+inline Node& Node_child_node(Node node, int slot) {
+  return gNodeCore[node].children_node[slot];
+}
+inline Name& Node_child_name(Node node, int slot) {
+  return gNodeCore[node].children_name[slot];
+}
+inline Str& Node_child_str(Node node, int slot) {
+  return gNodeCore[node].children_str[slot];
+}
 
 inline int NodeNumSiblings(Node node) {
   int n = 0;
@@ -334,11 +342,11 @@ enum class NFD_X_FIELD : uint8_t {
 };
 
 enum class NFD_KIND : uint8_t {
-    INVALID = 0,
-    STR,
-    NAME,
-    NODE,
-    LIST,
+  INVALID = 0,
+  STR,
+  NAME,
+  NODE,
+  LIST,
 };
 
 // clang-format off
@@ -1030,9 +1038,7 @@ inline bool IsPointNode(Node node, Node parent) {
          Node_kind(parent) == NT::ValPoint;
 }
 
-inline uint8_t Node_other_kind(Node n) {
-  return gNodeCore[n].other_kind;
-}
+inline uint8_t Node_other_kind(Node n) { return gNodeCore[n].other_kind; }
 
 inline MOD_PARAM_KIND& Node_mod_param_kind(Node n) {
   return gNodeCore[n].mod_param_kind;
@@ -1097,16 +1103,16 @@ inline bool IsShortCircuit(BINARY_EXPR_KIND x) {
 inline STR_KIND Node_str_kind(Node n) { return gNodeCore[n].str_kind; }
 
 struct NodeFieldDesc {
-    uint8_t slot;
-    NFD_KIND kind;
+  uint8_t slot;
+  NFD_KIND kind;
 };
 
 extern const NodeFieldDesc GlobalNodeFieldDescs[];
 
 struct NodeDesc {
   NFD_SLOT node_fields[MAX_NODE_CHILDREN];  // Node fields in their slots
-  uint32_t bool_field_bits;    // which flags are present
-  uint32_t x_field_bits;       // which x_fields are present
+  uint32_t bool_field_bits;                 // which flags are present
+  uint32_t x_field_bits;                    // which x_fields are present
 };
 
 // For each NT described which fields (regular / bool) are present

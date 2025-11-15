@@ -27,29 +27,31 @@ std::string MakeLabel(std::string_view c,
 }
 
 class Prefix {
-  std::vector<std::string_view> prefix_;
-  std::vector<std::string> cache_;
-  std::string empty_;
+  std::vector<int> prefix_;
+  std::vector<std::string> digits_cache_;
+  std::string tmp_;
 
  public:
   Prefix() {}
 
-  void PushLevel() { prefix_.push_back(empty_); }
+  void PushLevel() { prefix_.push_back(-1); }
 
   void PopLevel() { prefix_.pop_back(); }
 
-  void SetCurrent(int i) {
-    if (cache_.size() < i) {
-      prefix_.back() = cache_[i];
-    } else {
-      ASSERT(i == cache_.size(), "");
-      cache_.push_back(std::to_string(i));
-      prefix_.back() = cache_[i];
-    }
-  }
+  void SetCurrent(int i) { prefix_.back() = i; }
 
-  std::string GetLabel(std::string_view c) const {
-    return MakeLabel(c, prefix_);
+  std::string GetLabel(std::string_view c) {
+    tmp_.clear();
+    std::string_view sep = c;
+    for (const auto& p : prefix_) {
+      while (digits_cache_.size() <= p) {
+        digits_cache_.push_back(std::to_string(digits_cache_.size()));
+      }
+      tmp_ += sep;
+      sep = ".";
+      tmp_ += digits_cache_[p];
+    }
+    return tmp_;
   }
 };
 
@@ -91,7 +93,7 @@ void LabelDefs(Node node, Prefix* prefix, std::map<Node, std::string>* labels) {
     NFD_SLOT kind = nd.node_fields[i];
     if (GlobalNodeFieldDescs[int(kind)].kind == NFD_KIND::LIST) {
       prefix->PushLevel();
-      Node child = Node_child(node, i);
+      Node child = Node_child_node(node, i);
       for (int i = 0; !child.isnull(); ++i, child = Node_next(child)) {
         prefix->SetCurrent(i);
         LabelDefs(child, prefix, labels);
@@ -256,6 +258,16 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
               std::vector<int>* active_columns, bool is_last) {
   const NodeDesc& desc = GlobalNodeDescs[int(node.kind())];
   std::vector<std::string> line;
+
+  auto add_tag_value = [&line](std::string_view tag, std::string_view value) {
+    std::string out;
+    out.reserve(tag.size() + value.size() + 1);
+    out += tag;
+    out += "=";
+    out += value;
+    line.push_back(out);
+  };
+
   line.push_back(std::string(EnumToString(node.kind())));
 
   if (desc.bool_field_bits != 0) {
@@ -267,8 +279,37 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
     line.push_back(RenderKind(node));
   }
 
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    NFD_SLOT slot = desc.node_fields[i];
+    NFD_KIND kind = GlobalNodeFieldDescs[int(slot)].kind;
+    switch (kind) {
+      case NFD_KIND::STR: {
+        Str str = Node_child_str(node, i);
+        if (!str.isnull()) {
+          add_tag_value(EnumToString(slot), StrData(str));
+        }
+        break;
+      }
+      case NFD_KIND::NAME: {
+        Name name = Node_child_name(node, i);
+        if (!name.isnull()) {
+          if (slot == NFD_SLOT::name) {
+            line.push_back(std::string(NameData(name)));
+          } else {
+            add_tag_value(EnumToString(slot), NameData(name));
+          }
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
   if (labels->contains(node)) {
-    line.push_back(labels->at(node));
+    add_tag_value("label", labels->at(node));
   }
 
   _EmitLine(line, indent, active_columns, is_last);
@@ -283,7 +324,7 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
     }
     NFD_SLOT slot = desc.node_fields[i];
     NFD_KIND kind = GlobalNodeFieldDescs[int(slot)].kind;
-    Node child = Node_child(node, i);
+    Node child = Node_child_node(node, i);
 
     switch (kind) {
       case NFD_KIND::NODE:
