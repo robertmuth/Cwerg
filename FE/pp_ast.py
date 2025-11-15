@@ -62,7 +62,7 @@ def _RenderFlags(node) -> str:
         if val:
             flags.append(nfd.name)
     if has_flags:
-        return f"[{','.join(sorted(flags))}]"
+        return f"[{', '.join(sorted(flags))}]"
     return ""
 
 
@@ -74,7 +74,7 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
         line.append(flags)
     for nfd in cls.KIND_FIELDS:
         # these are all enum
-        val = getattr(node, nfd.name).name
+        val = getattr(node, nfd.name).name.lower()
         line.append(val)
     for nfd in cls.STR_FIELDS:
         val = getattr(node, nfd.name)

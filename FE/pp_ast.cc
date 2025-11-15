@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "FE/cwast_gen.h"
+#include "FE/type_corpus.h"
 #include "Util/assert.h"
 
 namespace cwerg::fe {
@@ -137,7 +138,7 @@ void ExtractTargetLabels(const std::vector<Node>& mods,
           break;
         case NT::ExprStmt:
           prefix.SetCurrent(expr_counter++);
-          (*labels)[node] = prefix.GetLabel("e");
+          (*labels)[node] = prefix.GetLabel("s");
         default:
           break;
       }
@@ -315,19 +316,28 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
 
   if (desc.has(NFD_X_FIELD::symbol)) {
     Node def_sym = Node_x_symbol(node);
-    add_tag_value("x_symbol", labels->at(def_sym));
+    if (!def_sym.isnull()) add_tag_value("x_symbol", labels->at(def_sym));
   }
 
   if (desc.has(NFD_X_FIELD::target)) {
     Node def_sym = Node_x_target(node);
-    add_tag_value("x_target", labels->at(def_sym));
+    if (!def_sym.isnull()) add_tag_value("x_target", labels->at(def_sym));
   }
-#if 0
+
   if (desc.has(NFD_X_FIELD::poly_mod)) {
     Node def_sym = Node_x_poly_mod(node);
-    add_tag_value("x_poly_mod", labels->at(def_sym));
+    if (!def_sym.isnull()) add_tag_value("x_poly_mod", labels->at(def_sym));
   }
-#endif
+
+  if (desc.has(NFD_X_FIELD::offset)) {
+    add_tag_value("x_offset", std::to_string(Node_x_offset(node)));
+  }
+
+  if (node.kind() == NT::TypeAuto && desc.has(NFD_X_FIELD::type)) {
+    CanonType ct = Node_x_type(node);
+    if (!ct.isnull())
+          add_tag_value("x_type", std::string(NameData(CanonType_name(ct))));
+  }
 
   _EmitLine(line, indent, active_columns, is_last);
 
@@ -363,6 +373,7 @@ void DumpAstMods(const std::vector<Node>& mods) {
   ExtractTargetLabels(mods, &labels);
   std::vector<int> active_columns;
   for (Node mod : mods) {
+    std::cout << "\n";
     active_columns.clear();
     DumpNode(mod, -1, &labels, &active_columns, true);
   }
