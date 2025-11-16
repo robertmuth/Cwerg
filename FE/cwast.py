@@ -1075,10 +1075,11 @@ NO_TYPE = CanonType(None, "@invali@d")
 @dataclasses.dataclass(frozen=True)
 class SrcLoc:
     filename: str
+    # TODO: add col
     lineno: int
 
     def __str__(self):
-        return f"{self.filename}({self.lineno + 1})"
+        return f"{self.filename}:{self.lineno}"
 
 
 INVALID_SRCLOC: Final[SrcLoc] = SrcLoc("@unknown@", 0)

@@ -233,7 +233,7 @@ TK_RAW LexerRaw::Next() {
       // fix issue with "return [eof]"
       line_no_++;
       srcloc_.col = col_no_;
-      srcloc_.line = line_no_;
+      srcloc_.line = line_no_ + 1;
       return TK_RAW{TK_KIND::SPECIAL_EOF};
     }
     col_no_++;
