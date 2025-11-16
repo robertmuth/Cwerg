@@ -522,7 +522,7 @@ Node ParseTypeExpr(Lexer* lexer) {
 
   if (tk.kind == TK_KIND::BASE_TYPE) {
     Node out = NodeNew(NT::TypeBase);
-    NodeInitTypeBase(out, BASE_TYPE_KIND_FromString(tk.text), tk.comments,
+    NodeInitTypeBase(out, BASE_TYPE_KIND_LOWER_FromString(tk.text), tk.comments,
                      tk.srcloc, kCanonTypeInvalid);
     return out;
   } else if (tk.kind == TK_KIND::DEREF_OR_POINTER_OP) {
@@ -1125,7 +1125,7 @@ Node ParseTopLevel(Lexer* lexer) {
       const TK name = lexer->MatchIdOrDie();
       const TK base_type = lexer->Peek();
       lexer->MatchOrDie(TK_KIND::BASE_TYPE);
-      BASE_TYPE_KIND bt = BASE_TYPE_KIND_FromString(base_type.text);
+      BASE_TYPE_KIND bt = BASE_TYPE_KIND_LOWER_FromString(base_type.text);
       lexer->MatchOrDie(TK_KIND::COLON);
       Node items = ParseEnumFieldList(lexer, outer_column);
       NodeInitDefEnum(out, NameNew(name.text), bt, items, bits, tk.comments,

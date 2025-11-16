@@ -276,6 +276,173 @@ const uint8_t MACRO_RESULT_KIND_Jumper[128] = {
 };
 
 const char* const BASE_TYPE_KIND_ToStringMap[] = {
+    "INVALID", // 0
+    "", // 1
+    "", // 2
+    "", // 3
+    "", // 4
+    "", // 5
+    "", // 6
+    "", // 7
+    "", // 8
+    "", // 9
+    "", // 10
+    "", // 11
+    "", // 12
+    "", // 13
+    "", // 14
+    "", // 15
+    "SINT", // 16
+    "S8", // 17
+    "S16", // 18
+    "S32", // 19
+    "S64", // 20
+    "", // 21
+    "", // 22
+    "", // 23
+    "", // 24
+    "", // 25
+    "", // 26
+    "", // 27
+    "", // 28
+    "", // 29
+    "", // 30
+    "", // 31
+    "UINT", // 32
+    "U8", // 33
+    "U16", // 34
+    "U32", // 35
+    "U64", // 36
+    "", // 37
+    "", // 38
+    "", // 39
+    "", // 40
+    "", // 41
+    "", // 42
+    "", // 43
+    "", // 44
+    "", // 45
+    "", // 46
+    "", // 47
+    "", // 48
+    "", // 49
+    "", // 50
+    "R32", // 51
+    "R64", // 52
+    "", // 53
+    "", // 54
+    "", // 55
+    "", // 56
+    "", // 57
+    "", // 58
+    "", // 59
+    "", // 60
+    "", // 61
+    "", // 62
+    "", // 63
+    "", // 64
+    "BOOL", // 65
+    "", // 66
+    "", // 67
+    "", // 68
+    "", // 69
+    "", // 70
+    "", // 71
+    "", // 72
+    "", // 73
+    "", // 74
+    "", // 75
+    "", // 76
+    "", // 77
+    "", // 78
+    "", // 79
+    "TYPEID", // 80
+    "", // 81
+    "", // 82
+    "", // 83
+    "", // 84
+    "", // 85
+    "", // 86
+    "", // 87
+    "", // 88
+    "", // 89
+    "", // 90
+    "", // 91
+    "", // 92
+    "", // 93
+    "", // 94
+    "", // 95
+    "VOID", // 96
+    "NORET", // 97
+};
+const char* EnumToString(BASE_TYPE_KIND x) { return BASE_TYPE_KIND_ToStringMap[unsigned(x)]; }
+
+
+const struct StringKind BASE_TYPE_KIND_FromStringMap[] = {
+    {"BOOL", 65},
+    {"INVALID", 0},
+    {"NORET", 97},
+    {"R32", 51},
+    {"R64", 52},
+    {"S16", 18},
+    {"S32", 19},
+    {"S64", 20},
+    {"S8", 17},
+    {"SINT", 16},
+    {"TYPEID", 80},
+    {"U16", 34},
+    {"U32", 35},
+    {"U64", 36},
+    {"U8", 33},
+    {"UINT", 32},
+    {"VOID", 96},
+    {"ZZZ", 0},
+};
+
+const uint8_t BASE_TYPE_KIND_Jumper[128] = {
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 0, 255, 255, 255, 255, 255, 255, 1, 255, 255, 255, 255, 2, 255,
+ 255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+};
+
+const struct StringKind BASE_TYPE_KIND_LOWER_FromStringMap[] = {
+    {"bool", 65},
+    {"invalid", 0},
+    {"noret", 97},
+    {"r32", 51},
+    {"r64", 52},
+    {"s16", 18},
+    {"s32", 19},
+    {"s64", 20},
+    {"s8", 17},
+    {"sint", 16},
+    {"typeid", 80},
+    {"u16", 34},
+    {"u32", 35},
+    {"u64", 36},
+    {"u8", 33},
+    {"uint", 32},
+    {"void", 96},
+    {"ZZZ", 0},
+};
+
+const uint8_t BASE_TYPE_KIND_LOWER_Jumper[128] = {
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 0, 255, 255, 255, 255, 255, 255, 1, 255, 255, 255, 255, 2, 255,
+ 255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+};
+
+const char* const BASE_TYPE_KIND_LOWER_ToStringMap[] = {
     "invalid", // 0
     "", // 1
     "", // 2
@@ -375,40 +542,8 @@ const char* const BASE_TYPE_KIND_ToStringMap[] = {
     "void", // 96
     "noret", // 97
 };
-const char* EnumToString(BASE_TYPE_KIND x) { return BASE_TYPE_KIND_ToStringMap[unsigned(x)]; }
+const char* EnumToString_BASE_TYPE_KIND_LOWER(BASE_TYPE_KIND x) { return BASE_TYPE_KIND_LOWER_ToStringMap[unsigned(x)]; }
 
-
-const struct StringKind BASE_TYPE_KIND_FromStringMap[] = {
-    {"bool", 65},
-    {"invalid", 0},
-    {"noret", 97},
-    {"r32", 51},
-    {"r64", 52},
-    {"s16", 18},
-    {"s32", 19},
-    {"s64", 20},
-    {"s8", 17},
-    {"sint", 16},
-    {"typeid", 80},
-    {"u16", 34},
-    {"u32", 35},
-    {"u64", 36},
-    {"u8", 33},
-    {"uint", 32},
-    {"void", 96},
-    {"ZZZ", 0},
-};
-
-const uint8_t BASE_TYPE_KIND_Jumper[128] = {
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
- 255, 255, 0, 255, 255, 255, 255, 255, 255, 1, 255, 255, 255, 255, 2, 255,
- 255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-};
 
 const char* const BINARY_EXPR_KIND_ToStringMap[] = {
     "INVALID", // 0
@@ -924,9 +1059,14 @@ BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name) {
                                      BASE_TYPE_KIND_Jumper, name, 0));
 }
 
+BASE_TYPE_KIND BASE_TYPE_KIND_LOWER_FromString(std::string_view name) {
+  return BASE_TYPE_KIND(LinearSearch(BASE_TYPE_KIND_LOWER_FromStringMap,
+                                     BASE_TYPE_KIND_LOWER_Jumper, name, 0));
+}
+
 BINARY_EXPR_KIND ASSIGNMENT_OP_FromString(std::string_view name) {
-  return BINARY_EXPR_KIND(LinearSearch(ASSIGNMENT_OP_FromStringMap,
-                                       ASSIGNMENT_OP_Jumper, name, 0));
+  return BINARY_EXPR_KIND(
+      LinearSearch(ASSIGNMENT_OP_FromStringMap, ASSIGNMENT_OP_Jumper, name, 0));
 }
 
 BF BF_FromString(std::string_view name) {
@@ -1057,7 +1197,8 @@ BASE_TYPE_KIND MakeUint(int bitwidth) {
 SizeOrDim BaseTypeKindByteSize(BASE_TYPE_KIND kind) {
   static const std::array<int, 4> bztab = {1, 2, 4, 8};
 
-  if (kind == BASE_TYPE_KIND::VOID || kind == BASE_TYPE_KIND::NORET) return SizeOrDim(0);
+  if (kind == BASE_TYPE_KIND::VOID || kind == BASE_TYPE_KIND::NORET)
+    return SizeOrDim(0);
   int x = (int(kind) & 0xf) - 1;
   ASSERT(0 <= x && x <= bztab.size(), "");
   return SizeOrDim(bztab[x]);

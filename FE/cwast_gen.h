@@ -1137,7 +1137,6 @@ const char* EnumToString(MOD_PARAM_KIND x);
 const char* EnumToString(MACRO_PARAM_KIND x);
 const char* EnumToString(MACRO_RESULT_KIND x);
 const char* EnumToString(STR_KIND x);
-const char* EnumToString(BASE_TYPE_KIND x);
 const char* EnumToString(BF x);
 const char* EnumToString_CURLY(BF x);
 const char* EnumToString(NT x);
@@ -1148,6 +1147,9 @@ const char* EnumToString(UNARY_EXPR_KIND x);
 const char* EnumToString(BINARY_EXPR_KIND x);  // ADD
 const char* EnumToString_BINARY_EXPR_OP(BINARY_EXPR_KIND x); // +
 const char* EnumToString_ASSIGNMENT_OP(BINARY_EXPR_KIND x);  // +=
+//
+const char* EnumToString(BASE_TYPE_KIND x);
+const char* EnumToString_BASE_TYPE_KIND_LOWER(BASE_TYPE_KIND x);
 
 // default is MACRO_PARAM_KIND::INVALID
 MACRO_PARAM_KIND MACRO_PARAM_KIND_FromString(std::string_view name);
@@ -1159,7 +1161,8 @@ MACRO_RESULT_KIND MACRO_RESULT_KIND_FromString(std::string_view name);
 MOD_PARAM_KIND MOD_PARAM_KIND_FromString(std::string_view name);
 
 // default is BASE_TYPE_KIND::INVALID
-BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name);
+BASE_TYPE_KIND BASE_TYPE_KIND_LOWER_FromString(std::string_view name);
+// BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name);
 
 BINARY_EXPR_KIND ASSIGNMENT_OP_FromString(std::string_view name);
 

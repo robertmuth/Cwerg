@@ -32,7 +32,7 @@ Const ParseNum(Node node) {
     // std::cout << "@@@ Trying " << num.substr(num.size() - i, i) << "\n"
     //          << std::flush;
     BASE_TYPE_KIND kind =
-        BASE_TYPE_KIND_FromString(num.substr(num.size() - i, i));
+        BASE_TYPE_KIND_LOWER_FromString(num.substr(num.size() - i, i));
     if (kind != BASE_TYPE_KIND::INVALID) {
       num.remove_suffix(i);
       break;

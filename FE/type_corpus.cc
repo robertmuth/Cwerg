@@ -158,7 +158,7 @@ CanonType CanonTypeNew() {
 CanonType CanonTypeNewBaseType(BASE_TYPE_KIND base_type) {
   CanonType out = CanonTypeNew();
   gCanonTypeCore[out] = {.node = NT::TypeBase,
-                         .name = NameNew(EnumToString(base_type)),
+                         .name = NameNew(EnumToString_BASE_TYPE_KIND_LOWER(base_type)),
                          .base_type_kind = base_type};
   return out;
 }

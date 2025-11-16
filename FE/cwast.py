@@ -3606,11 +3606,19 @@ def EnumStringConversions(fout: Any):
     std_render(MACRO_PARAM_KIND)
     std_render(MACRO_RESULT_KIND)
 
-    std_render(BASE_TYPE_KIND,  cgen.NameValuesLower(BASE_TYPE_KIND))
+    # two flavors
+    std_render(BASE_TYPE_KIND,  cgen.NameValues(BASE_TYPE_KIND))
+    #
+    name_vals = cgen.NameValuesLower(BASE_TYPE_KIND)
+    render_str_to_enum("BASE_TYPE_KIND_LOWER", name_vals)
+    cgen.RenderEnumToStringMap(name_vals, "BASE_TYPE_KIND_LOWER_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("BASE_TYPE_KIND", "EnumToString_BASE_TYPE_KIND_LOWER",
+                               "BASE_TYPE_KIND_LOWER_ToStringMap", fout)
 
     # Three Variants for BINARY_EXPR_KIND"
     #
-    render_enum_to_str(BINARY_EXPR_KIND.__name__,cgen.NameValues(BINARY_EXPR_KIND))
+    render_enum_to_str(BINARY_EXPR_KIND.__name__,
+                       cgen.NameValues(BINARY_EXPR_KIND))
     #
     name_vals = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
     render_str_to_enum("ASSIGNMENT_OP", name_vals)

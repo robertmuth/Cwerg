@@ -215,7 +215,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Str(StrData(Node_number(node))));
       break;
     case NT::TypeBase:
-      out->push_back(PP::Str(EnumToString(Node_base_type_kind(node))));
+      out->push_back(PP::Str(EnumToString_BASE_TYPE_KIND_LOWER(Node_base_type_kind(node))));
       break;
     case NT::ExprFront:
       EmitFunctional(out, node,
@@ -821,7 +821,7 @@ void EmitTopLevel(std::vector<PP::Token>* out, Node node) {
       out->push_back(PP::Brk());
       out->push_back(PP::Str(NameData(Node_name(node))));
       out->push_back(PP::Brk());
-      out->push_back(PP::Str(EnumToString(Node_base_type_kind(node))));
+      out->push_back(PP::Str(EnumToString_BASE_TYPE_KIND_LOWER(Node_base_type_kind(node))));
       out->push_back(PP::Brk(0));
       out->push_back(PP::Str(":"));
       out->push_back(PP::End());
