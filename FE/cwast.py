@@ -3608,18 +3608,25 @@ def EnumStringConversions(fout: Any):
 
     std_render(BASE_TYPE_KIND,  cgen.NameValuesLower(BASE_TYPE_KIND))
 
+    # Three Variants for BINARY_EXPR_KIND"
+    #
+    render_enum_to_str(BINARY_EXPR_KIND.__name__,cgen.NameValues(BINARY_EXPR_KIND))
+    #
     name_vals = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
-    render_str_to_enum("ASSIGNMENT_KIND", name_vals)
-
-    cgen.RenderEnumToStringMap(name_vals, "ASSIGNMENT_ToStringMap", fout)
-    cgen.RenderEnumToStringFun("BINARY_EXPR_KIND", "EnumToString_ASSIGNMENT",
-                               "ASSIGNMENT_ToStringMap", fout)
+    render_str_to_enum("ASSIGNMENT_OP", name_vals)
+    cgen.RenderEnumToStringMap(name_vals, "ASSIGNMENT_OP_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("BINARY_EXPR_KIND", "EnumToString_ASSIGNMENT_OP",
+                               "ASSIGNMENT_OP_ToStringMap", fout)
+    #
+    name_vals = [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()]
+    render_str_to_enum("BINARY_EXPR_OP_KIND", name_vals)
+    cgen.RenderEnumToStringMap(name_vals, "BINARY_EXPR_OP_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("BINARY_EXPR_KIND", "EnumToString_BINARY_EXPR_OP",
+                               "BINARY_EXPR_OP_ToStringMap", fout)
 
     render_enum_to_str(POINTER_EXPR_KIND.__name__,
                        [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()])
 
-    render_enum_to_str(BINARY_EXPR_KIND.__name__,
-                       [(k, v.value) for k, v in BINARY_EXPR_SHORTCUT.items()])
     render_enum_to_str(UNARY_EXPR_KIND.__name__,
                        [(k, v.value) for k, v in UNARY_EXPR_SHORTCUT_CONCRETE.items()])
 
@@ -3651,7 +3658,8 @@ def NodeAliasStringConversion(fout: Any):
     print("};", file=fout)
 
 
-_IMPORTANT_X_FIELDS = set(["x_eval", "x_target", "x_symbol", "x_type", "x_poly_mod", "x_offset"])
+_IMPORTANT_X_FIELDS = set(
+    ["x_eval", "x_target", "x_symbol", "x_type", "x_poly_mod", "x_offset"])
 
 
 def _join_or_zero(fields) -> str:

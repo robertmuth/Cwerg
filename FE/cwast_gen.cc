@@ -410,7 +410,36 @@ const uint8_t BASE_TYPE_KIND_Jumper[128] = {
  255, 255, 3, 5, 10, 11, 16, 255, 255, 255, 255, 255, 255, 255, 255, 255,
 };
 
-const struct StringKind ASSIGNMENT_KIND_FromStringMap[] = {
+const char* const BINARY_EXPR_KIND_ToStringMap[] = {
+    "INVALID", // 0
+    "ADD", // 1
+    "SUB", // 2
+    "DIV", // 3
+    "MUL", // 4
+    "MOD", // 5
+    "MIN", // 6
+    "MAX", // 7
+    "SHR", // 8
+    "SHL", // 9
+    "ROTR", // 10
+    "ROTL", // 11
+    "AND", // 12
+    "OR", // 13
+    "XOR", // 14
+    "EQ", // 15
+    "NE", // 16
+    "LT", // 17
+    "LE", // 18
+    "GT", // 19
+    "GE", // 20
+    "ANDSC", // 21
+    "ORSC", // 22
+    "PDELTA", // 23
+};
+const char* EnumToString(BINARY_EXPR_KIND x) { return BINARY_EXPR_KIND_ToStringMap[unsigned(x)]; }
+
+
+const struct StringKind ASSIGNMENT_OP_FromStringMap[] = {
     {"%=", 5},
     {"&=", 12},
     {"*=", 4},
@@ -428,7 +457,7 @@ const struct StringKind ASSIGNMENT_KIND_FromStringMap[] = {
     {"ZZZ", 0},
 };
 
-const uint8_t ASSIGNMENT_KIND_Jumper[128] = {
+const uint8_t ASSIGNMENT_OP_Jumper[128] = {
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
  255, 255, 255, 255, 255, 0, 1, 255, 255, 255, 2, 3, 255, 4, 255, 5,
@@ -439,7 +468,7 @@ const uint8_t ASSIGNMENT_KIND_Jumper[128] = {
  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 12, 255, 13, 255,
 };
 
-const char* const ASSIGNMENT_ToStringMap[] = {
+const char* const ASSIGNMENT_OP_ToStringMap[] = {
     "", // 0
     "+=", // 1
     "-=", // 2
@@ -456,18 +485,48 @@ const char* const ASSIGNMENT_ToStringMap[] = {
     "|=", // 13
     "~=", // 14
 };
-const char* EnumToString_ASSIGNMENT(BINARY_EXPR_KIND x) { return ASSIGNMENT_ToStringMap[unsigned(x)]; }
+const char* EnumToString_ASSIGNMENT_OP(BINARY_EXPR_KIND x) { return ASSIGNMENT_OP_ToStringMap[unsigned(x)]; }
 
 
-const char* const POINTER_EXPR_KIND_ToStringMap[] = {
-    "", // 0
-    "ptr_inc", // 1
-    "ptr_dec", // 2
+const struct StringKind BINARY_EXPR_OP_KIND_FromStringMap[] = {
+    {"!=", 16},
+    {"%", 5},
+    {"&", 12},
+    {"&&", 21},
+    {"*", 4},
+    {"+", 1},
+    {"-", 2},
+    {"/", 3},
+    {"<", 17},
+    {"<<", 9},
+    {"<<<", 11},
+    {"<=", 18},
+    {"==", 15},
+    {">", 19},
+    {">=", 20},
+    {">>", 8},
+    {">>>", 10},
+    {"max", 7},
+    {"min", 6},
+    {"ptr_diff", 23},
+    {"|", 13},
+    {"||", 22},
+    {"~", 14},
+    {"ZZZ", 0},
 };
-const char* EnumToString(POINTER_EXPR_KIND x) { return POINTER_EXPR_KIND_ToStringMap[unsigned(x)]; }
 
+const uint8_t BINARY_EXPR_OP_KIND_Jumper[128] = {
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 0, 255, 255, 255, 1, 2, 255, 255, 255, 4, 5, 255, 6, 255, 7,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 8, 12, 13, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+ 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 17, 255, 255,
+ 19, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 20, 255, 22, 255,
+};
 
-const char* const BINARY_EXPR_KIND_ToStringMap[] = {
+const char* const BINARY_EXPR_OP_ToStringMap[] = {
     "", // 0
     "+", // 1
     "-", // 2
@@ -493,7 +552,15 @@ const char* const BINARY_EXPR_KIND_ToStringMap[] = {
     "||", // 22
     "ptr_diff", // 23
 };
-const char* EnumToString(BINARY_EXPR_KIND x) { return BINARY_EXPR_KIND_ToStringMap[unsigned(x)]; }
+const char* EnumToString_BINARY_EXPR_OP(BINARY_EXPR_KIND x) { return BINARY_EXPR_OP_ToStringMap[unsigned(x)]; }
+
+
+const char* const POINTER_EXPR_KIND_ToStringMap[] = {
+    "", // 0
+    "ptr_inc", // 1
+    "ptr_dec", // 2
+};
+const char* EnumToString(POINTER_EXPR_KIND x) { return POINTER_EXPR_KIND_ToStringMap[unsigned(x)]; }
 
 
 const char* const UNARY_EXPR_KIND_ToStringMap[] = {
@@ -857,9 +924,9 @@ BASE_TYPE_KIND BASE_TYPE_KIND_FromString(std::string_view name) {
                                      BASE_TYPE_KIND_Jumper, name, 0));
 }
 
-BINARY_EXPR_KIND ASSIGNMENT_KIND_FromString(std::string_view name) {
-  return BINARY_EXPR_KIND(LinearSearch(ASSIGNMENT_KIND_FromStringMap,
-                                       ASSIGNMENT_KIND_Jumper, name, 0));
+BINARY_EXPR_KIND ASSIGNMENT_OP_FromString(std::string_view name) {
+  return BINARY_EXPR_KIND(LinearSearch(ASSIGNMENT_OP_FromStringMap,
+                                       ASSIGNMENT_OP_Jumper, name, 0));
 }
 
 BF BF_FromString(std::string_view name) {

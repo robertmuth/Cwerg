@@ -357,7 +357,7 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
         default:
           EmitExprOrType(out, Node_expr1(node));
           out->push_back(PP::NoBreak(1));
-          out->push_back(PP::Str(EnumToString(Node_binary_expr_kind(node))));
+          out->push_back(PP::Str(EnumToString_BINARY_EXPR_OP(Node_binary_expr_kind(node))));
           out->push_back(PP::Brk());
           EmitExprOrType(out, Node_expr2(node));
           break;
@@ -630,7 +630,7 @@ void EmitStatement(std::vector<PP::Token>* out, Node node) {
       EmitStmtSet(out, "=", Node_lhs(node), Node_expr_rhs(node));
       break;
     case NT::StmtCompoundAssignment:
-      EmitStmtSet(out, EnumToString_ASSIGNMENT(Node_binary_expr_kind(node)), Node_lhs(node),
+      EmitStmtSet(out, EnumToString_ASSIGNMENT_OP(Node_binary_expr_kind(node)), Node_lhs(node),
                   Node_expr_rhs(node));
       break;
     case NT::DefVar:

@@ -749,7 +749,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
       return out;
     } else {
       Node out = NodeNew(NT::StmtCompoundAssignment);
-      BINARY_EXPR_KIND kind = ASSIGNMENT_KIND_FromString(op.text);
+      BINARY_EXPR_KIND kind = ASSIGNMENT_OP_FromString(op.text);
       NodeInitStmtCompoundAssignment(out, kind, lhs, rhs, tk.comments,
                                      tk.srcloc);
       return out;

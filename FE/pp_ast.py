@@ -74,7 +74,7 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
         line.append(flags)
     for nfd in cls.KIND_FIELDS:
         # these are all enum
-        val = getattr(node, nfd.name).name.lower()
+        val = getattr(node, nfd.name).name
         line.append(val)
     for nfd in cls.STR_FIELDS:
         val = getattr(node, nfd.name)
