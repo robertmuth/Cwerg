@@ -188,7 +188,7 @@ def _ExpandMacrosAndMacroLikeRecursively(fun,  nesting: int, id_gen: identifier.
             return cwast.ValString(f'"{node.expr.x_srcloc}"', x_srcloc=node.x_srcloc)
         elif isinstance(node, cwast.ExprStringify):
             # assert isinstance(node.expr, cwast.Id)
-            return cwast.ValString(f'r"{node.expr}"', x_srcloc=node.x_srcloc)
+            return cwast.ValString(f'"{node.expr.__class__.__name__}"', x_srcloc=node.x_srcloc)
         return None if orig_node is node else node
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)

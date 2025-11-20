@@ -3376,6 +3376,8 @@ MAX_SLOTS = 4
 def _ComputeRemainingSlotsForFields() -> None:
     for cls in ALL_NODES:
         slots: list[Optional[NFD]] = [None] * MAX_SLOTS
+        # Note: the relative order of NODE/NFK.LIST/STR/NAME must be the same
+        # in Python and C++
         slot = 0
         for nfd in cls.FIELDS:
             if nfd.kind not in (NFK.NODE, NFK.LIST, NFK.STR, NFK.NAME):

@@ -446,7 +446,7 @@ Node ReadMod(const Path& path) {
   auto data = ReadFile(with_suffix.c_str());
 
   Name name = NameNew(filename.c_str());
-  Lexer lexer(data, name);
+  Lexer lexer(data, NameNew(path.string()));
   int before = gStripeGroupNode.NextAvailable();
   Node mod = ParseDefMod(&lexer, name);
   if (sw_verbose.Value()) {

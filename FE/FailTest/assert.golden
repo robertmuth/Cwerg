@@ -1,1 +1,1 @@
-AssertEq failed in assert.cw(7): [ValNum] 0_uint VS [ValNum] 1_uint
+AssertEq failed in assert.cw:7: ValNum VS ValNum

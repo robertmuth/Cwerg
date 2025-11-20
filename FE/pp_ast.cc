@@ -94,14 +94,21 @@ void LabelDefs(Node node, Prefix* prefix, std::map<Node, std::string>* labels) {
   const NodeDesc& nd = GlobalNodeDescs[int(node.kind())];
   for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
     NFD_SLOT kind = nd.node_fields[i];
-    if (GlobalNodeFieldDescs[int(kind)].kind == NFD_KIND::LIST) {
-      prefix->PushLevel();
-      Node child = Node_child_node(node, i);
-      for (int i = 0; !child.isnull(); ++i, child = Node_next(child)) {
-        prefix->SetCurrent(i);
+    Node child = Node_child_node(node, i);
+    switch (GlobalNodeFieldDescs[int(kind)].kind) {
+      case NFD_KIND::NODE:
         LabelDefs(child, prefix, labels);
-      }
-      prefix->PopLevel();
+        break;
+      case NFD_KIND::LIST:
+        prefix->PushLevel();
+        for (int i = 0; !child.isnull(); ++i, child = Node_next(child)) {
+          prefix->SetCurrent(i);
+          LabelDefs(child, prefix, labels);
+        }
+        prefix->PopLevel();
+        break;
+      default:
+        break;
     }
   }
 }
@@ -296,10 +303,13 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
       case NFD_KIND::NAME: {
         Name name = Node_child_name(node, i);
         if (!name.isnull()) {
-          if (slot == NFD_SLOT::name) {
-            line.push_back(std::string(NameData(name)));
-          } else {
-            add_tag_value(EnumToString(slot), NameData(name));
+          auto val = NameData(name);
+          if (val[0] != 0) {
+            if (slot == NFD_SLOT::name) {
+              line.push_back(std::string(val));
+            } else {
+              add_tag_value(EnumToString(slot), val);
+            }
           }
         }
         break;
@@ -336,7 +346,7 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
   if (node.kind() == NT::TypeAuto && desc.has(NFD_X_FIELD::type)) {
     CanonType ct = Node_x_type(node);
     if (!ct.isnull())
-          add_tag_value("x_type", std::string(NameData(CanonType_name(ct))));
+      add_tag_value("x_type", std::string(NameData(CanonType_name(ct))));
   }
 
   _EmitLine(line, indent, active_columns, is_last);

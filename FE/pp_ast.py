@@ -82,10 +82,11 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
             if nfd.kind == cwast.NFK.NAME:
                 val = val.name
                 assert val is not None
-            if nfd.name == "name":
-                line.append(val)
-            else:
-                line.append(f"{nfd.name}={val}")
+            if val:
+                if nfd.name == "name":
+                    line.append(val)
+                else:
+                    line.append(f"{nfd.name}={val}")
     label = labels.get(node)
     if label is not None:
         line.append(f"label={label}")
@@ -105,7 +106,7 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
             continue
         if name == "x_symbol" or name == "x_target" or name == "x_poly_mod":
             def_sym = getattr(node, name)
-            assert def_sym in labels, f"{node} -> {def_sym}"
+            assert def_sym in labels, f"{node} -> {def_sym} ---  {node.x_srcloc} {def_sym.x_srcloc}"
             line.append(f"{name}={labels[def_sym]}")
             continue
         if name == "x_import" or name == "x_symtab":
@@ -150,6 +151,8 @@ def _LabeDefs(node: Any, prefix: list[int], out: dict[Any, str]):
     if tag:
         out[node] = tag + ".".join((str(x) for x in prefix))
     for nfd in type(node).NODE_FIELDS:
+        if nfd.kind == cwast.NFK.NODE:
+            _LabeDefs(getattr(node, nfd.name), prefix, out)
         if nfd.kind == cwast.NFK.LIST:
             prefix.append(-1)
             for n, child in enumerate(getattr(node, nfd.name)):
