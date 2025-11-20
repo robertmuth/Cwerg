@@ -298,7 +298,7 @@ inline int NameCmp(Name a, Name b) {
 }
 
 inline std::ostream& operator<<(std::ostream& os, const SrcLoc& sl) {
-  os << sl.file << ":" << sl.line + 1;
+  os << sl.file << ":" << sl.line;
   return os;
 }
 // =======================================
@@ -1140,10 +1140,12 @@ const char* EnumToString(STR_KIND x);
 const char* EnumToString(BF x);
 const char* EnumToString_CURLY(BF x);
 const char* EnumToString(NT x);
-const char* EnumToString(POINTER_EXPR_KIND x);
 const char* EnumToString(NFD_SLOT x);
 const char* EnumToString(UNARY_EXPR_KIND x);
-// 3 Variants for BINARY_EXPR_KIND x
+// 2 Variants for POINTER_EXPR_KIND
+const char* EnumToString(POINTER_EXPR_KIND x);
+const char* EnumToString_POINTER_EXPR_OP(POINTER_EXPR_KIND x);
+// 3 Variants for BINARY_EXPR_KIND
 const char* EnumToString(BINARY_EXPR_KIND x);  // ADD
 const char* EnumToString_BINARY_EXPR_OP(BINARY_EXPR_KIND x); // +
 const char* EnumToString_ASSIGNMENT_OP(BINARY_EXPR_KIND x);  // +=

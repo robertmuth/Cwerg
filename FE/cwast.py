@@ -3622,8 +3622,7 @@ def EnumStringConversions(fout: Any):
 
     # Three Variants for BINARY_EXPR_KIND"
     #
-    render_enum_to_str(BINARY_EXPR_KIND.__name__,
-                       cgen.NameValues(BINARY_EXPR_KIND))
+    render_enum_to_str(BINARY_EXPR_KIND.__name__, cgen.NameValues(BINARY_EXPR_KIND))
     #
     name_vals = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
     render_str_to_enum("ASSIGNMENT_OP", name_vals)
@@ -3636,13 +3635,16 @@ def EnumStringConversions(fout: Any):
     cgen.RenderEnumToStringMap(name_vals, "BINARY_EXPR_OP_ToStringMap", fout)
     cgen.RenderEnumToStringFun("BINARY_EXPR_KIND", "EnumToString_BINARY_EXPR_OP",
                                "BINARY_EXPR_OP_ToStringMap", fout)
-
-    render_enum_to_str(POINTER_EXPR_KIND.__name__,
-                       [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()])
-
-    render_enum_to_str(UNARY_EXPR_KIND.__name__,
-                       [(k, v.value) for k, v in UNARY_EXPR_SHORTCUT_CONCRETE.items()])
-
+    # Two Variants of POINTER_EXPR_KIND
+    #
+    render_enum_to_str(POINTER_EXPR_KIND.__name__, cgen.NameValues(POINTER_EXPR_KIND))
+    #
+    name_vals = [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()]
+    cgen.RenderEnumToStringMap(name_vals, "POINTER_EXPR_OP_ToStringMap", fout)
+    cgen.RenderEnumToStringFun("POINTER_EXPR_KIND", "EnumToString_POINTER_EXPR_OP",
+                               "POINTER_EXPR_OP_ToStringMap", fout)
+    #
+    render_enum_to_str(UNARY_EXPR_KIND.__name__, cgen.NameValues(UNARY_EXPR_KIND))
     render_enum_to_str("NT",  _NameValuesForNT())
     render_enum_to_str("NFD_SLOT",  _NameValuesForNFD_SLOT())
 

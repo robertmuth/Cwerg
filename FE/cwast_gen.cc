@@ -691,19 +691,27 @@ const char* EnumToString_BINARY_EXPR_OP(BINARY_EXPR_KIND x) { return BINARY_EXPR
 
 
 const char* const POINTER_EXPR_KIND_ToStringMap[] = {
-    "", // 0
-    "ptr_inc", // 1
-    "ptr_dec", // 2
+    "INVALID", // 0
+    "INCP", // 1
+    "DECP", // 2
 };
 const char* EnumToString(POINTER_EXPR_KIND x) { return POINTER_EXPR_KIND_ToStringMap[unsigned(x)]; }
 
 
-const char* const UNARY_EXPR_KIND_ToStringMap[] = {
+const char* const POINTER_EXPR_OP_ToStringMap[] = {
     "", // 0
-    "!", // 1
-    "-", // 2
-    "abs", // 3
-    "sqrt", // 4
+    "ptr_inc", // 1
+    "ptr_dec", // 2
+};
+const char* EnumToString_POINTER_EXPR_OP(POINTER_EXPR_KIND x) { return POINTER_EXPR_OP_ToStringMap[unsigned(x)]; }
+
+
+const char* const UNARY_EXPR_KIND_ToStringMap[] = {
+    "INVALID", // 0
+    "NOT", // 1
+    "NEG", // 2
+    "ABS", // 3
+    "SQRT", // 4
 };
 const char* EnumToString(UNARY_EXPR_KIND x) { return UNARY_EXPR_KIND_ToStringMap[unsigned(x)]; }
 

@@ -311,10 +311,10 @@ void EmitExprOrType(std::vector<PP::Token>* out, Node node) {
     //
     case NT::ExprPointer:
       if (Node_kind(Node_expr_bound_or_undef(node)) == NT::ValUndef) {
-        EmitFunctional(out, node, EnumToString(Node_pointer_expr_kind(node)),
+        EmitFunctional(out, node, EnumToString_POINTER_EXPR_OP(Node_pointer_expr_kind(node)),
                        Node_expr1(node), Node_expr2(node));
       } else {
-        EmitFunctional(out, node, EnumToString(Node_pointer_expr_kind(node)),
+        EmitFunctional(out, node, EnumToString_POINTER_EXPR_OP(Node_pointer_expr_kind(node)),
                        Node_expr1(node), Node_expr2(node),
                        Node_expr_bound_or_undef(node));
       }
