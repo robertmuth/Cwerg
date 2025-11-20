@@ -372,22 +372,22 @@ enum class NFD_SLOT : uint8_t {
     expr1 = 15,  // slot: 0 NODE
     expr2 = 16,  // slot: 1 NODE
     expr_bound_or_undef = 17,  // slot: 2 NODE
-    expr_f = 18,  // slot: 2 NODE
+    expr_f = 18,  // slot: 3 NODE
     expr_index = 19,  // slot: 1 NODE
     expr_lhs = 20,  // slot: 0 NODE
     expr_ret = 21,  // slot: 0 NODE
     expr_rhs = 22,  // slot: 1 NODE
     expr_size = 23,  // slot: 1 NODE
-    expr_t = 24,  // slot: 0 NODE
+    expr_t = 24,  // slot: 2 NODE
     field = 25,  // slot: 2 NODE
     fields = 26,  // slot: 1 LIST
     gen_ids = 27,  // slot: 2 LIST
     initial_or_undef_or_auto = 28,  // slot: 2 NODE
-    inits = 29,  // slot: 0 LIST
+    inits = 29,  // slot: 2 LIST
     items = 30,  // slot: 1 LIST
     label = 31,  // slot: 0 NAME
     lhs = 32,  // slot: 0 NODE
-    message = 33,  // slot: 0 STR
+    message = 33,  // slot: 2 STR
     name = 34,  // slot: 0 NAME
     name_list = 35,  // slot: 1 NAME
     number = 36,  // slot: 0 STR
@@ -400,7 +400,7 @@ enum class NFD_SLOT : uint8_t {
     result = 43,  // slot: 2 NODE
     size = 44,  // slot: 0 NODE
     string = 45,  // slot: 0 STR
-    subtrahend = 46,  // slot: 0 NODE
+    subtrahend = 46,  // slot: 2 NODE
     target = 47,  // slot: 0 NAME
     type = 48,  // slot: 1 NODE
     type_or_auto = 49,  // slot: 1 NODE
@@ -615,7 +615,7 @@ inline Name& Node_target(Node n) { return gNodeCore[n].children_name[0]; }
 // NFK.STR
 inline Str& Node_number(Node n) { return gNodeCore[n].children_str[0]; }
 inline Str& Node_string(Node n) { return gNodeCore[n].children_str[0]; }
-inline Str& Node_message(Node n) { return gNodeCore[n].children_str[0]; }
+inline Str& Node_message(Node n) { return gNodeCore[n].children_str[2]; }
 inline Str& Node_path(Node n) { return gNodeCore[n].children_str[1]; }
 
 // NFK.LIST
@@ -627,7 +627,7 @@ inline Node& Node_args_mod(Node n) { return gNodeCore[n].children_node[2]; }
 inline Node& Node_items(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_fields(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_types(Node n) { return gNodeCore[n].children_node[0]; }
-inline Node& Node_inits(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_inits(Node n) { return gNodeCore[n].children_node[2]; }
 inline Node& Node_gen_ids(Node n) { return gNodeCore[n].children_node[2]; }
 inline Node& Node_body_mod(Node n) { return gNodeCore[n].children_node[3]; }
 inline Node& Node_body(Node n) { return gNodeCore[n].children_node[3]; }
@@ -641,7 +641,7 @@ inline Node& Node_cases(Node n) { return gNodeCore[n].children_node[0]; }
 inline Node& Node_field(Node n) { return gNodeCore[n].children_node[2]; }
 inline Node& Node_point_or_undef(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_type(Node n) { return gNodeCore[n].children_node[1]; }
-inline Node& Node_subtrahend(Node n) { return gNodeCore[n].children_node[0]; }
+inline Node& Node_subtrahend(Node n) { return gNodeCore[n].children_node[2]; }
 inline Node& Node_type_or_auto(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_result(Node n) { return gNodeCore[n].children_node[2]; }
 inline Node& Node_size(Node n) { return gNodeCore[n].children_node[0]; }
@@ -649,8 +649,8 @@ inline Node& Node_expr_size(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_expr_index(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_expr(Node n) { return gNodeCore[n].children_node[0]; }
 inline Node& Node_cond(Node n) { return gNodeCore[n].children_node[1]; }
-inline Node& Node_expr_t(Node n) { return gNodeCore[n].children_node[0]; }
-inline Node& Node_expr_f(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_expr_t(Node n) { return gNodeCore[n].children_node[2]; }
+inline Node& Node_expr_f(Node n) { return gNodeCore[n].children_node[3]; }
 inline Node& Node_expr1(Node n) { return gNodeCore[n].children_node[0]; }
 inline Node& Node_expr2(Node n) { return gNodeCore[n].children_node[1]; }
 inline Node& Node_expr_bound_or_undef(Node n) { return gNodeCore[n].children_node[2]; }
@@ -726,7 +726,7 @@ inline void NodeInitExpr2(Node node, BINARY_EXPR_KIND binary_expr_kind, Node exp
 }
 
 inline void NodeInitExpr3(Node node, Node cond, Node expr_t, Node expr_f, Str doc, const SrcLoc& srcloc, CanonType x_type) {
-    NodeInit(node, NT::Expr3, expr_t, cond, expr_f, kHandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::Expr3, kHandleInvalid, cond, expr_t, expr_f, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
 }
 
@@ -934,7 +934,7 @@ inline void NodeInitStmtReturn(Node node, Node expr_ret, Str doc, const SrcLoc& 
 }
 
 inline void NodeInitStmtStaticAssert(Node node, Node cond, Str message, Str doc, const SrcLoc& srcloc) {
-    NodeInit(node, NT::StmtStaticAssert, message, cond, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::StmtStaticAssert, kHandleInvalid, cond, message, kHandleInvalid, 0, 0, doc, srcloc);
 }
 
 inline void NodeInitStmtTrap(Node node, Str doc, const SrcLoc& srcloc) {
@@ -977,7 +977,7 @@ inline void NodeInitTypeUnion(Node node, Node types, uint16_t bits, Str doc, con
 }
 
 inline void NodeInitTypeUnionDelta(Node node, Node type, Node subtrahend, Str doc, const SrcLoc& srcloc, CanonType x_type) {
-    NodeInit(node, NT::TypeUnionDelta, subtrahend, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::TypeUnionDelta, kHandleInvalid, type, subtrahend, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
 }
 
@@ -992,7 +992,7 @@ inline void NodeInitValAuto(Node node, Str doc, const SrcLoc& srcloc, CanonType 
 }
 
 inline void NodeInitValCompound(Node node, Node type_or_auto, Node inits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
-    NodeInit(node, NT::ValCompound, inits, type_or_auto, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    NodeInit(node, NT::ValCompound, kHandleInvalid, type_or_auto, inits, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
 }
 

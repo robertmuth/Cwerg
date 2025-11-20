@@ -64,22 +64,22 @@ const NodeFieldDesc GlobalNodeFieldDescs[] = {
     {  0, NFD_KIND::NODE },  // expr1
     {  1, NFD_KIND::NODE },  // expr2
     {  2, NFD_KIND::NODE },  // expr_bound_or_undef
-    {  2, NFD_KIND::NODE },  // expr_f
+    {  3, NFD_KIND::NODE },  // expr_f
     {  1, NFD_KIND::NODE },  // expr_index
     {  0, NFD_KIND::NODE },  // expr_lhs
     {  0, NFD_KIND::NODE },  // expr_ret
     {  1, NFD_KIND::NODE },  // expr_rhs
     {  1, NFD_KIND::NODE },  // expr_size
-    {  0, NFD_KIND::NODE },  // expr_t
+    {  2, NFD_KIND::NODE },  // expr_t
     {  2, NFD_KIND::NODE },  // field
     {  1, NFD_KIND::LIST },  // fields
     {  2, NFD_KIND::LIST },  // gen_ids
     {  2, NFD_KIND::NODE },  // initial_or_undef_or_auto
-    {  0, NFD_KIND::LIST },  // inits
+    {  2, NFD_KIND::LIST },  // inits
     {  1, NFD_KIND::LIST },  // items
     {  0, NFD_KIND::NAME },  // label
     {  0, NFD_KIND::NODE },  // lhs
-    {  0, NFD_KIND::STR },  // message
+    {  2, NFD_KIND::STR },  // message
     {  0, NFD_KIND::NAME },  // name
     {  1, NFD_KIND::NAME },  // name_list
     {  0, NFD_KIND::STR },  // number
@@ -92,7 +92,7 @@ const NodeFieldDesc GlobalNodeFieldDescs[] = {
     {  2, NFD_KIND::NODE },  // result
     {  0, NFD_KIND::NODE },  // size
     {  0, NFD_KIND::STR },  // string
-    {  0, NFD_KIND::NODE },  // subtrahend
+    {  2, NFD_KIND::NODE },  // subtrahend
     {  0, NFD_KIND::NAME },  // target
     {  1, NFD_KIND::NODE },  // type
     {  1, NFD_KIND::NODE },  // type_or_auto
@@ -116,7 +116,7 @@ const NodeDesc GlobalNodeDescs[] = {
     { { NFD_SLOT::invalid,NFD_SLOT::args,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(COLON), 0 }, // EphemeralList
     { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // Expr1
     { { NFD_SLOT::expr1,NFD_SLOT::expr2,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // Expr2
-    { { NFD_SLOT::expr_t,NFD_SLOT::cond,NFD_SLOT::expr_f,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // Expr3
+    { { NFD_SLOT::invalid,NFD_SLOT::cond,NFD_SLOT::expr_t,NFD_SLOT::expr_f }, 0, BIT_X(type)| BIT_X(eval) }, // Expr3
     { { NFD_SLOT::expr_lhs,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(MUT), BIT_X(type)| BIT_X(eval) }, // ExprAddrOf
     { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprAs
     { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprBitCast
@@ -160,7 +160,7 @@ const NodeDesc GlobalNodeDescs[] = {
     { { NFD_SLOT::expr,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtExpr
     { { NFD_SLOT::invalid,NFD_SLOT::cond,NFD_SLOT::body_t,NFD_SLOT::body_f }, 0, 0 }, // StmtIf
     { { NFD_SLOT::expr_ret,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(target) }, // StmtReturn
-    { { NFD_SLOT::message,NFD_SLOT::cond,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtStaticAssert
+    { { NFD_SLOT::invalid,NFD_SLOT::cond,NFD_SLOT::message,NFD_SLOT::invalid }, 0, 0 }, // StmtStaticAssert
     { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // StmtTrap
     { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeAuto
     { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeBase
@@ -169,10 +169,10 @@ const NodeDesc GlobalNodeDescs[] = {
     { { NFD_SLOT::invalid,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(MUT), BIT_X(type) }, // TypePtr
     { { NFD_SLOT::invalid,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(MUT), BIT_X(type) }, // TypeSpan
     { { NFD_SLOT::types,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(UNTAGGED), BIT_X(type) }, // TypeUnion
-    { { NFD_SLOT::subtrahend,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeUnionDelta
+    { { NFD_SLOT::invalid,NFD_SLOT::type,NFD_SLOT::subtrahend,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeUnionDelta
     { { NFD_SLOT::size,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type) }, // TypeVec
     { { NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValAuto
-    { { NFD_SLOT::inits,NFD_SLOT::type_or_auto,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValCompound
+    { { NFD_SLOT::invalid,NFD_SLOT::type_or_auto,NFD_SLOT::inits,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValCompound
     { { NFD_SLOT::number,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValNum
     { { NFD_SLOT::value_or_undef,NFD_SLOT::point_or_undef,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValPoint
     { { NFD_SLOT::pointer,NFD_SLOT::expr_size,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ValSpan

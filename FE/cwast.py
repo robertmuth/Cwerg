@@ -1079,7 +1079,7 @@ class SrcLoc:
     lineno: int
 
     def __str__(self):
-        return f"{self.filename}:{self.lineno}"
+        return f"{self.filename}:{self.lineno + 1}"
 
 
 INVALID_SRCLOC: Final[SrcLoc] = SrcLoc("@unknown@", 0)
@@ -3376,6 +3376,7 @@ MAX_SLOTS = 4
 def _ComputeRemainingSlotsForFields() -> None:
     for cls in ALL_NODES:
         slots: list[Optional[NFD]] = [None] * MAX_SLOTS
+        slot = 0
         for nfd in cls.FIELDS:
             if nfd.kind not in (NFK.NODE, NFK.LIST, NFK.STR, NFK.NAME):
                 continue
@@ -3385,14 +3386,15 @@ def _ComputeRemainingSlotsForFields() -> None:
                 assert slots[slot] is None, f"[{cls.__name__}] slot {slot} already used for [{slots[slot].name}] trying for [{field}]"
                 slots[slot] = nfd
             else:
-                for i in range(4):
+                for i in range(slot, 4):
                     if slots[i] is None:
                         slots[i] = nfd
                         _FIELD_2_SLOT[field] = i
+                        slot = i
                         break
                 else:
-                    assert False, "slot clash"
-
+                    assert False, f"slot clash for {field} in {cls.__name__} start at {pos}"
+            slot += 1
 
 _KIND_TO_HANDLE = {
     NFK.NODE: "Node",
