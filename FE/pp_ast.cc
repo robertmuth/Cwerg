@@ -137,7 +137,7 @@ void ExtractTargetLabels(const std::vector<Node>& mods,
     int expr_counter = 0;
 
     auto visitor = [&labels, &prefix, &block_counter, &expr_counter](
-                       Node node, Node parent) {
+                       Node node, Node parent) -> bool {
       switch (node.kind()) {
         case NT::StmtBlock:
           prefix.SetCurrent(block_counter++);
@@ -149,9 +149,10 @@ void ExtractTargetLabels(const std::vector<Node>& mods,
         default:
           break;
       }
+      return false;
     };
 
-    VisitAstRecursivelyPost(mod, visitor, kNodeInvalid);
+    VisitAstRecursivelyPre(mod, visitor, kNodeInvalid);
     prefix.PopLevel();
   }
 }
