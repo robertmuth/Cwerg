@@ -1079,7 +1079,7 @@ class SrcLoc:
     lineno: int
 
     def __str__(self):
-        return f"{self.filename}:{self.lineno + 1}"
+        return f"{self.filename}:{self.lineno}"
 
 
 INVALID_SRCLOC: Final[SrcLoc] = SrcLoc("@unknown@", 0)

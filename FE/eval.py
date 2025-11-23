@@ -150,6 +150,7 @@ def DeserializeBaseType(bt: cwast.BASE_TYPE_KIND, data: bytes) -> EvalNum:
 def _AssignValue(node, val: EvalBase):
     assert isinstance(val, EvalBase), f"unexpected value {val} for {node}"
     logger.info("EVAL of %s: %s", node, val)
+    assert node.x_eval is None
     node.x_eval = val
 
 
@@ -638,6 +639,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.ExprParen):
         return node.expr.x_eval
     elif isinstance(node, cwast.DefEnum):
+        # we only process this once because we will
+        # either evaluate all items or none
         bt_src = node.x_type.get_unwrapped_base_type_kind()
         val = None
         for c in node.items:
@@ -651,10 +654,10 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
                     val = EvalNum(0, bt_src)
                 else:
                     val = EvalNum(val.val + 1, bt_src)
+                _AssignValue(v, val)
             else:
                 val = v.x_eval
             assert val
-            _AssignValue(v, val)
             _AssignValue(c, val)
         return None
     elif isinstance(node, cwast.ExprCall):
