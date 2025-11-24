@@ -252,7 +252,7 @@ size_t ComputeStringLiteralLength(std::string_view str) {
   if (k != '"') {
     payload = payload.substr(1);
   }
-  if (str.starts_with("\"\"\"")) {
+  if (payload.starts_with("\"\"\"")) {
     payload = payload.substr(3, payload.size() - 6);
   } else {
     payload = payload.substr(1, payload.size() - 2);
@@ -260,7 +260,7 @@ size_t ComputeStringLiteralLength(std::string_view str) {
 
   switch (k) {
     case 'r':
-      return str.size();
+      return payload.size();
     case 'x':
       return ComputeStringLengthHex(payload);
     case '"':
