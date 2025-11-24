@@ -20,6 +20,7 @@ LIB_SOURCES :=  $(wildcard Lib/*.cw)
 ALL_SOURCES := $(LANG_SOURCES) $(LIB_SOURCES) $(DATA_SOURCES)
 ALL_SOURCES_GENERIC :=  $(filter $(wildcard */*gen.cw), $(ALL_SOURCES))
 ALL_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard */*gen.cw), $(ALL_SOURCES))
+ALL_SOURCES_NO_GENERIC_NO_BUILTIN :=  $(filter-out $(wildcard */builtin.cw), $(ALL_SOURCES_NO_GENERIC))
 
 tests: $(EMIT_IR) tests_meta
 	@echo "PASSED $@"
@@ -77,7 +78,7 @@ $(DIR)/%.cw.meta: %.cw
 # ASSIMILATION TESTING
 ############################################################
 
-assimilation_1_tests: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.assim1)
+assimilation_1_tests: $(ALL_SOURCES_NO_GENERIC_NO_BUILTIN:%.cw=$(DIR)/%.cw.assim1)
 	@echo "PASSED $@"
 
 $(DIR)/%.cw.assim1: %.cw

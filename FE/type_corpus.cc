@@ -482,10 +482,10 @@ CanonType TypeCorpus::InsertUnionType(
     }
   }
 
-  Name name = MakeCanonTypeName(untagged ? "sum_untagged" : "sum", components);
+  std::vector<CanonType> components_sorted(unique.begin(), unique.end());
+  Name name = MakeCanonTypeName(untagged ? "sum_untagged" : "sum", components_sorted);
   auto it = corpus_.find(name);
   if (it != corpus_.end()) return it->second;
-  std::vector<CanonType> components_sorted(unique.begin(), unique.end());
   CanonType out = CanonTypeNewUnionType(name, untagged, components_sorted);
   return Insert(out);
 }
