@@ -439,14 +439,15 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
 }  // namespace
 
 Node ReadMod(const Path& path) {
-  // std::cout << "ReadMod [" << path << "] as [" << path.filename() << "]\n";
-  Path filename = path.stem();
   Path with_suffix = path;
   with_suffix.replace_extension(".cw");
+  Path absolute = std::filesystem::absolute(with_suffix.lexically_normal());
+  // std::cout << "ReadMod [" << absolute << "] as [" << path.filename() << "]\n";
   auto data = ReadFile(with_suffix.c_str());
 
+  Path filename = path.stem();
   Name name = NameNew(filename.c_str());
-  Lexer lexer(data, NameNew(path.string()));
+  Lexer lexer(data, NameNew(absolute.string()));
   int before = gStripeGroupNode.NextAvailable();
   Node mod = ParseDefMod(&lexer, name);
   if (sw_verbose.Value()) {

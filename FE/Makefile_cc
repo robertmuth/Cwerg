@@ -63,7 +63,7 @@ run_lexer_bench: $(LEXER_BENCH)
 
 ############################################################
 # TESTING
-#############################################################
+############################################################
 
 tests_meta: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
 	@echo "PASSED $@"
@@ -71,6 +71,20 @@ tests_meta: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
 $(DIR)/%.cw.meta: %.cw
 	@echo "[typify $@]"
 	$(EMIT_IR) -dump_stats $<
+
+
+############################################################
+# ASSIMILATION TESTING
+############################################################
+
+assimilation_1_tests: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.assim1)
+	@echo "PASSED $@"
+
+$(DIR)/%.cw.assim1: %.cw
+	@echo "[assim1 $@]"
+	$(EMIT_IR) -dump_ast after_typing  $< > $@.cc
+	./emit_ir.py  -dump_ast after_typing $< > $@.py
+	diff $@.py $@.cc
 
 ############################################################
 # Profile
@@ -106,3 +120,8 @@ all:: $(LEXER_BENCH) $(PP) $(EMIT_IR)
 clean:
 	@echo cleaning and setting up build dirs
 	@rm -rf $(DIR)/*
+	@mkdir -p  $(DIR)
+	@mkdir -p  $(DIR)/Lib
+	@mkdir -p  $(DIR)/TestData
+	@mkdir -p  $(DIR)/LangTest
+	@mkdir -p  $(DIR)/FailTest
