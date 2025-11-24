@@ -61,25 +61,27 @@ class Prefix {
 std::string_view GetLabelTag(NT kind) {
   switch (kind) {
     case NT::DefMod:
-      return "m";
+      return "M";
     case NT::DefFun:
-      return "f";
+      return "F";
     case NT::DefRec:
-      return "r";
+      return "R";
     case NT::DefEnum:
+      return "E";
+    case NT::EnumVal:
       return "e";
     case NT::DefMacro:
-      return "x";
+      return "X";
     case NT::DefType:
-      return "t";
+      return "T";
     case NT::DefGlobal:
-      return "g";
+      return "G";
     case NT::DefVar:
       return "v";
     case NT::FunParam:
       return "p";
     case NT::RecField:
-      return "F";
+      return "f";
     default:
       return "";
   }
@@ -260,6 +262,8 @@ std::string RenderKind(Node node) {
       return EnumToString(Node_macro_param_kind(node));
     case NT::DefMacro:
       return EnumToString(Node_macro_result_kind(node));
+    case NT::DefEnum:
+      return EnumToString(Node_base_type_kind(node));
     default:
       return "";
   }
@@ -296,7 +300,7 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
     switch (kind) {
       case NFD_KIND::STR: {
         Str str = Node_child_str(node, i);
-        if (!str.isnull()) {
+        if (!str.isnull() && StrData(str)[0] != 0) {
           add_tag_value(EnumToString(slot), StrData(str));
         }
         break;
@@ -327,6 +331,7 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
 
   if (desc.has(NFD_X_FIELD::symbol)) {
     Node def_sym = Node_x_symbol(node);
+    ASSERT(labels->contains(def_sym), "" << Node_name(def_sym));
     if (!def_sym.isnull()) add_tag_value("x_symbol", labels->at(def_sym));
   }
 

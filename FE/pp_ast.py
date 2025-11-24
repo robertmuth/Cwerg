@@ -133,14 +133,15 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
 
 
 _LABEL_KIND = {
-    cwast.DefMod: "m",
-    cwast.DefFun: "f",
-    cwast.DefRec: "r",
-    cwast.RecField: "F",
-    cwast.DefEnum: "e",
-    cwast.DefMacro: "x",
-    cwast.DefType: "t",
-    cwast.DefGlobal: "g",
+    cwast.DefMod: "M",
+    cwast.DefFun: "F",
+    cwast.DefRec: "R",
+    cwast.RecField: "f",
+    cwast.DefEnum: "E",
+    cwast.EnumVal: "e",
+    cwast.DefMacro: "X",
+    cwast.DefType: "T",
+    cwast.DefGlobal: "G",
     cwast.DefVar: "v",
     cwast.FunParam: "p",
 }
