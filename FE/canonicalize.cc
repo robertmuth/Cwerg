@@ -31,14 +31,14 @@ void FunReplaceTypeOfAndTypeUnionDelta(Node node) {
     if (Node_kind(node) == NT::TypeOf) {
       NodeFree(Node_expr(node));
       // Tricky: x_type stays unchanged
-      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node),
-                       Node_x_type(node));
+
+      NodeInitTypeAuto(Node(NT::TypeAuto, node.index()), Node_comment(node),
+                       Node_srcloc(node), Node_x_type(node));
     } else if (Node_kind(node) == NT::TypeUnionDelta) {
-      NodeFree(Node_type(node));
       NodeFree(Node_subtrahend(node));
       // Tricky: x_type stays unchanged
-      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node),
-                       Node_x_type(node));
+      NodeInitTypeAuto(Node(NT::TypeAuto, node.index()), Node_comment(node),
+                       Node_srcloc(node), Node_x_type(node));
     }
   };
   VisitAstRecursivelyPost(node, visitor, kNodeInvalid);
@@ -145,12 +145,13 @@ void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {
     Const val = Node_x_eval(node);
 
     if (kind == NT::ValNum || kind == NT::EnumVal || kind == NT::ValUndef) {
-      ASSERT(val != kConstInvalid, "");
+      ASSERT(val != kConstInvalid || kind == NT::ValUndef,
+             "expected valid x_eval for " << EnumToString(kind));
       return node;
     }
 
     if (kind == NT::ValAuto) {
-      ASSERT(val != kConstInvalid, "");
+      ASSERT(val != kConstInvalid, "bad ValAuto at " << Node_srcloc(node));
     }
 
     if (val == kConstInvalid || val == kConstUndef) {
@@ -222,14 +223,16 @@ Node MaybeMakeImplicitConversionExplicit(Node orig_node, CanonType expected_ct,
     return orig_node;
   }
   CanonType actual_ct = Node_x_type(orig_node);
-  if (actual_ct == expected_ct) {
+  if (actual_ct == expected_ct || IsDropMutConversion(actual_ct, expected_ct)) {
     return orig_node;
   }
   if (CanonType_is_vec(Node_x_type(orig_node)) &&
       CanonType_is_span(expected_ct)) {
     return MakeValSpanFromArray(orig_node, expected_ct, uint_ct, tc);
   } else {
-    ASSERT(CanonType_is_union(expected_ct), "");
+    ASSERT(CanonType_is_union(expected_ct),
+           "expected union type for " << EnumToString(orig_node.kind())
+                                      << " but got " << expected_ct);
     Node sum_type = NodeNew(NT::TypeAuto);
     NodeInitTypeAuto(sum_type, Node_comment(orig_node), Node_srcloc(orig_node),
                      expected_ct);
@@ -316,7 +319,8 @@ void FunReplaceSpanCastWithSpanVal(Node node, TypeCorpus* tc) {
     }
     CanonType ct_src = Node_x_type(Node_expr(node));
     CanonType ct_dst = Node_x_type(node);
-    if (ct_src == ct_dst || !CanonType_is_vec(ct_src) || !CanonType_is_span(ct_dst)) {
+    if (ct_src == ct_dst || !CanonType_is_vec(ct_src) ||
+        !CanonType_is_span(ct_dst)) {
       return node;
     }
     Node out = MakeValSpanFromArray(Node_expr(node), ct_dst, uint_ct, tc);
@@ -324,7 +328,6 @@ void FunReplaceSpanCastWithSpanVal(Node node, TypeCorpus* tc) {
     return out;
   };
   MaybeReplaceAstRecursivelyPost(node, replacer, kNodeInvalid);
-
 }
 
 }  // namespace cwerg::fe

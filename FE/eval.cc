@@ -62,7 +62,6 @@ Const ParseNum(Node node) {
 
 namespace {
 
-
 Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
   Const src_value = Node_x_eval(src_node);
   if (Node_kind(src_node) == NT::ValUndef) return src_value;
@@ -626,21 +625,22 @@ Const EvalNode(Node node) {
       BASE_TYPE_KIND bt =
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
       Const val = kConstInvalid;
-      for (Node c = Node_items(node); c.isnull(); c = Node_next(c)) {
-        if (Node_x_eval(c).isnull()) break;
+      for (Node c = Node_items(node); !c.isnull(); c = Node_next(c)) {
+        if (!Node_x_eval(c).isnull()) break;
         Node v = Node_value_or_auto(c);
-        if (Node_kind(v) == NT::ValAuto) {
+        if (v.kind() == NT::ValAuto) {
           if (val.isnull()) {
             val = IsSint(bt) ? ConstNewSigned(0, bt) : ConstNewUnsigned(0, bt);
           } else {
             val = IsSint(bt) ? ConstNewSigned(ConstGetSigned(val) + 1, bt)
                              : ConstNewUnsigned(ConstGetUnsigned(val) + 1, bt);
           }
+          AssignValue(v, val);
         } else {
           val = Node_x_eval(v);
         }
+        ASSERT(!val.isnull(), "bad val for ");
         AssignValue(c, val);
-        AssignValue(v, val);
       }
       return kConstInvalid;
     }
@@ -713,8 +713,7 @@ bool _EvalRecursively(Node mod) {
 }  // namespace
 
 Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND kind) {
-  ASSERT(IsUint(kind),
-         "bad base type kind " << EnumToString(kind));
+  ASSERT(IsUint(kind), "bad base type kind " << EnumToString(kind));
   if (ValIsShortConstUnsigned(val)) {
     return ConstNewShortUnsigned(val, kind);
   }
@@ -752,7 +751,7 @@ Const ConstNewSigned(int64_t val, BASE_TYPE_KIND kind) {
                    kind);
     }
     default:
-      ASSERT(false, "bad sint " << EnumToString(bt) << " for " << val);
+      ASSERT(false, "bad sint " << EnumToString(kind) << " for " << val);
       return kConstInvalid;
   }
 }

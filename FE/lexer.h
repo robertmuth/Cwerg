@@ -27,7 +27,7 @@ class LexerRaw {
  private:
   SrcLoc srcloc_;
   std::string_view input_;
-  uint32_t line_no_ = 0;
+  uint32_t line_no_ = 1;
   uint32_t col_no_ = 0;
   uint32_t pos_ = 0;
   const uint32_t end_;

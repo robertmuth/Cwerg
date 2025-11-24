@@ -47,7 +47,9 @@ int align(int size, int alignment) {
   return (size + alignment - 1) / alignment * alignment;
 }
 
-SizeOrDim CanonType_alignment(CanonType ct) { return gCanonTypeCore[ct].alignment; }
+SizeOrDim CanonType_alignment(CanonType ct) {
+  return gCanonTypeCore[ct].alignment;
+}
 SizeOrDim CanonType_size(CanonType ct) { return gCanonTypeCore[ct].size; }
 int CanonType_aligned_size(CanonType ct) {
   return align(gCanonTypeCore[ct].size, gCanonTypeCore[ct].alignment);
@@ -66,7 +68,7 @@ bool CanonType_is_finalized(CanonType ct) {
 
 void CanonType_Finalize(CanonType ct, SizeOrDim size, size_t alignment) {
   ASSERT(size >= 0 && alignment >= 0,
-         "" << size.val << " " << alignment << " " << ct);
+         "" << size << " " << alignment << " " << ct);
   ASSERT(gCanonTypeCore[ct].alignment < 0, "already finalized " << ct);
   gCanonTypeCore[ct].alignment = alignment;
   gCanonTypeCore[ct].size = size;
@@ -157,9 +159,10 @@ CanonType CanonTypeNew() {
 
 CanonType CanonTypeNewBaseType(BASE_TYPE_KIND base_type) {
   CanonType out = CanonTypeNew();
-  gCanonTypeCore[out] = {.node = NT::TypeBase,
-                         .name = NameNew(EnumToString_BASE_TYPE_KIND_LOWER(base_type)),
-                         .base_type_kind = base_type};
+  gCanonTypeCore[out] = {
+      .node = NT::TypeBase,
+      .name = NameNew(EnumToString_BASE_TYPE_KIND_LOWER(base_type)),
+      .base_type_kind = base_type};
   return out;
 }
 
@@ -278,7 +281,8 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
       CanonType ct_dep = CanonType_underlying_type(ct);
       auto dim = CanonType_dim(ct);
       auto elem_size = CanonType_aligned_size(ct_dep);
-      return CanonType_Finalize(ct, SizeOrDim(elem_size * dim), CanonType_alignment(ct_dep));
+      return CanonType_Finalize(ct, SizeOrDim(elem_size * dim),
+                                CanonType_alignment(ct_dep));
     }
     case NT::TypeUnion: {
       int num_pointer = 0;

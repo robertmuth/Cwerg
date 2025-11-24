@@ -3,9 +3,9 @@
 //
 // Expressions that can be (partiatally) evaluated at compile time are annotated
 // with a Const (handle). The encoding is quite complex and consists of a kind
-// (BASE_TYPE_KIND) and a value. Short values are directly encoded the handle. For
-// details see the implementation of: std::ostream& operator<<(std::ostream& os,
-// Const c)
+// (BASE_TYPE_KIND) and a value. Short values are directly encoded the handle.
+// For details see the implementation of: std::ostream& operator<<(std::ostream&
+// os, Const c)
 #include <vector>
 
 #include "FE/cwast_gen.h"
@@ -23,11 +23,10 @@ extern ImmutablePool ConstPool;
 
 constexpr const char EVAL_STR[] = "@eval@";
 
-
 struct EvalSpan {
   Node pointer;
-  SizeOrDim size;   // invalid if < 0
-  Const content;  // usually a compound
+  SizeOrDim size;  // invalid if < 0
+  Const content;   // usually a compound
 };
 
 struct EvalCompound {
@@ -46,12 +45,14 @@ inline Const ConstNewShortSigned(int64_t val, BASE_TYPE_KIND kind) {
 }
 
 inline Const ConstNewShortUnsigned(uint32_t val, BASE_TYPE_KIND kind) {
-  ASSERT(IsUintOrBool(kind), "not a uint " << int(kind));
+  ASSERT(IsUint(kind) || kind == BASE_TYPE_KIND::BOOL,
+         "not a uint " << int(kind));
   return Const(1U << 23U | val, kind);
 }
 
 inline uint32_t ConstShortGetUnsigned(Const c) {
-  ASSERT(IsUintOrBool(c.kind()), "not unsigned " << int(c.kind()));
+  ASSERT(IsUint(c.kind()) || c.kind() == BASE_TYPE_KIND::BOOL,
+         "not unsigned " << int(c.kind()));
   return c.value << 1U >> 9U;
 }
 
@@ -123,7 +124,6 @@ inline Const ConstNewR64(double val) {
 extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
 extern Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt);
 inline Const ConstNewReal(double val, BASE_TYPE_KIND bt) {
-
   if (bt == BASE_TYPE_KIND::R32) return ConstNewR32(val);
   ASSERT(bt == BASE_TYPE_KIND::R64, "");
   return ConstNewR64(val);
@@ -153,7 +153,8 @@ inline EvalCompound ConstGetCompound(Const c) {
 }
 
 inline Node ConstGetSymbol(Const c) {
-  ASSERT(c.kind() == BASE_TYPE_KIND::SYM_ADDR || c.kind() == BASE_TYPE_KIND::FUN_ADDR,
+  ASSERT(c.kind() == BASE_TYPE_KIND::SYM_ADDR ||
+             c.kind() == BASE_TYPE_KIND::FUN_ADDR,
          "cannot get symbol");
   return *(Node*)ConstPool.Data(c.index());
 }
