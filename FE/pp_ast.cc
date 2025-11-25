@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "FE/cwast_gen.h"
+#include "FE/eval.h"
 #include "FE/type_corpus.h"
 #include "Util/assert.h"
 
@@ -327,6 +328,17 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
 
   if (labels->contains(node)) {
     add_tag_value("label", labels->at(node));
+  }
+
+  if (desc.has(NFD_X_FIELD::eval)) {
+    Const eval = Node_x_eval(node);
+    if (!eval.isnull()) {
+      if (IsNumber(eval.kind())) {
+        std::stringstream ss;
+        ss << eval;
+        add_tag_value("x_eval", ss.str());
+      }
+    }
   }
 
   if (desc.has(NFD_X_FIELD::symbol)) {

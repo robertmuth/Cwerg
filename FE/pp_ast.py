@@ -103,7 +103,8 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
             else:
                 continue
         if name == "x_eval":
-            continue
+            if not isinstance(val, eval.EvalNum):
+                continue
         if name == "x_symbol" or name == "x_target" or name == "x_poly_mod":
             def_sym = getattr(node, name)
             assert def_sym in labels, f"{node} -> {def_sym} ---  {node.x_srcloc} {def_sym.x_srcloc}"

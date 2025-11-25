@@ -112,7 +112,7 @@ int main(int argc, const char* argv[]) {
   for (Node mod : mp.mods_in_topo_order) {
     RemoveNodesOfType(mod, NT::StmtStaticAssert);
   }
-  SanityCheckMods("after_partisal_eval", mp.mods_in_topo_order,
+  SanityCheckMods("after_partial_eval", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_EVAL, &tc);
 
 

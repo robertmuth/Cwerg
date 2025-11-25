@@ -108,7 +108,12 @@ class EvalNum(EvalBase):
         self.val = val
 
     def __str__(self):
-        return f"EvalNum[{self.val}]"
+        val = self.val
+        if self.kind.IsReal():
+            return f"EvalNum[{val:e}_{self.kind.name.lower()}]"
+        if self.kind == cwast.BASE_TYPE_KIND.BOOL:
+            val = int(val)
+        return f"EvalNum[{val}_{self.kind.name.lower()}]"
 
 
 VAL_EMPTY_SPAN = EvalSpan(None, 0, None)

@@ -797,17 +797,19 @@ std::ostream& operator<<(std::ostream& os, Const c) {
     case BASE_TYPE_KIND::U32:
     case BASE_TYPE_KIND::U64:
     case BASE_TYPE_KIND::BOOL:
-      return os << "EvalNum(" << int(c.kind()) << ")[" << ConstGetUnsigned(c)
-                << "]{" << c.index() << "}";
+      return os << "EvalNum[" << ConstGetUnsigned(c) << "_"
+                << EnumToString_BASE_TYPE_KIND_LOWER(c.kind()) << "]";
     case BASE_TYPE_KIND::S8:
     case BASE_TYPE_KIND::S16:
     case BASE_TYPE_KIND::S32:
     case BASE_TYPE_KIND::S64:
-      return os << "EvalNum(" << int(c.kind()) << ")[" << ConstGetSigned(c)
-                << "]{" << c.index() << "}";
+      return os << "EvalNum[" << ConstGetSigned(c) << "_"
+                << EnumToString_BASE_TYPE_KIND_LOWER(c.kind()) << "]";
     case BASE_TYPE_KIND::R32:
     case BASE_TYPE_KIND::R64:
-      return os << "EvalNum[" << ConstGetFloat(c) << "]{" << c.index() << "}";
+      // we want %e format
+      return os << "EvalNum[" << std::scientific << ConstGetFloat(c) << "_"
+                << EnumToString_BASE_TYPE_KIND_LOWER(c.kind()) << "]";
     case BASE_TYPE_KIND::SYM_ADDR:
       return os << "SymAddr[" << Node_name(ConstGetSymbol(c)) << "]{"
                 << c.index() << "}";
