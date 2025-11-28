@@ -34,9 +34,11 @@ struct EvalCompound {
   Node symbol;
 };
 
-inline bool ValIsShortConstUnsigned(uint32_t val) { return val < (1 << 23U); }
+inline bool ValIsShortConstUnsigned(uint64_t val) {
+  return val < (1ULL << 23U);
+}
 inline bool ValIsShortConstSigned(int64_t val) {
-  return -(1 << 12U) <= val && val < (1 << 22U);
+  return -(1 << 22U) <= val && val < (1 << 22U);
 }
 
 inline Const ConstNewShortSigned(int64_t val, BASE_TYPE_KIND kind) {
@@ -58,7 +60,7 @@ inline uint32_t ConstShortGetUnsigned(Const c) {
 
 inline int32_t ConstShortGetSigned(Const c) {
   ASSERT(IsSint(c.kind()), "");
-  return int32_t(c.value) << 1U >> 9U;
+  return std::bit_cast<int32_t, uint32_t>(c.value << 1U) >> 9U;
 }
 
 inline Const ConstNewBool(bool val) {
@@ -167,6 +169,9 @@ inline Const ConstNewSpan(EvalSpan span) {
 extern int64_t ConstGetSigned(Const c);
 extern uint64_t ConstGetUnsigned(Const c);
 extern double ConstGetFloat(Const c);
+
+extern uint64_t ConstGetBitcastUnsigned(Const c);
+extern Const ConstNewBitcastUnsigned(uint64_t val, BASE_TYPE_KIND bt);
 
 inline EvalSpan ConstGetSpan(Const c) {
   ASSERT(c.kind() == BASE_TYPE_KIND::SPAN, "");

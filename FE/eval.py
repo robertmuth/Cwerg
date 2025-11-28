@@ -6,6 +6,7 @@
 
 import enum
 import logging
+import math
 import struct
 from typing import Optional, Any, Union\
 
@@ -110,7 +111,11 @@ class EvalNum(EvalBase):
     def __str__(self):
         val = self.val
         if self.kind.IsReal():
-            return f"EvalNum[{val:e}_{self.kind.name.lower()}]"
+            extra = ""
+            if math.isnan(val) and math.copysign(1, val) < 0:
+                extra = "-"
+
+            return f"EvalNum[{extra}{val:e}_{self.kind.name.lower()}]"
         if self.kind == cwast.BASE_TYPE_KIND.BOOL:
             val = int(val)
         return f"EvalNum[{val}_{self.kind.name.lower()}]"

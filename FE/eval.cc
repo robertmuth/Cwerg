@@ -1,5 +1,6 @@
 #include "FE/eval.h"
 
+#include <bit>  // For std::bit_cast
 #include <set>
 #include <string_view>
 
@@ -48,7 +49,16 @@ Const ParseNum(Node node) {
   if (IsSint(target_kind)) {
     auto val = ParseInt<int64_t>(num);
     if (!val) return kConstInvalid;
-    return ConstNewSigned(val.value(), target_kind);
+    int64_t v = val.value();
+    if (target_kind == BASE_TYPE_KIND::S8) {
+      v = (v << 56) >> 56;
+    } else if (target_kind == BASE_TYPE_KIND::S16) {
+      v = (v << 48) >> 48;
+    } else if (target_kind == BASE_TYPE_KIND::S32) {
+      v = (v << 32) >> 32;
+    }
+
+    return ConstNewSigned(v, target_kind);
   } else if (IsUint(target_kind)) {
     auto val = ParseInt<uint64_t>(num);
     if (!val) return kConstInvalid;
@@ -644,10 +654,24 @@ Const EvalNode(Node node) {
       }
       return kConstInvalid;
     }
+    case NT::ExprBitCast: {
+      Const val = Node_x_eval(Node_expr(node));
+      if (val.isnull()) return kConstInvalid;
+      if (val.kind() == BASE_TYPE_KIND::SYM_ADDR) {
+        return val;
+      }
+      CanonType dst_ct = Node_x_type(node);
+      uint64_t data = ConstGetBitcastUnsigned(val);
+      auto tmp =
+          ConstNewBitcastUnsigned(data, CanonType_base_type_kind(dst_ct));
+      uint64_t data2 = ConstGetBitcastUnsigned(tmp);
+      ASSERT(data == data2,
+             std::hex << data << " " << data2 << " " << dst_ct);
+      return ConstNewBitcastUnsigned(data, CanonType_base_type_kind(dst_ct));
+    }
     case NT::ExprCall:
     case NT::ExprStmt:
     case NT::ExprUnionUntagged:
-    case NT::ExprBitCast:
     case NT::ExprUnionTag:
     case NT::ExprPointer:
       return kConstInvalid;
@@ -776,6 +800,53 @@ uint64_t ConstGetUnsigned(Const c) {
   }
   ASSERT(c.kind() == BASE_TYPE_KIND::U64, "bad size " << int(c.kind()));
   return *(uint64_t*)ConstPool.Data(c.index());
+}
+
+uint64_t ConstGetBitcastUnsigned(Const c) {
+  switch (c.kind()) {
+    case BASE_TYPE_KIND::U8:
+    case BASE_TYPE_KIND::U16:
+    case BASE_TYPE_KIND::U32:
+    case BASE_TYPE_KIND::U64:
+    case BASE_TYPE_KIND::BOOL:
+      return ConstGetUnsigned(c);
+    case BASE_TYPE_KIND::S8:
+    case BASE_TYPE_KIND::S16:
+    case BASE_TYPE_KIND::S32:
+    case BASE_TYPE_KIND::S64:
+      return ConstGetSigned(c);
+    case BASE_TYPE_KIND::R32:
+      return std::bit_cast<uint32_t, float>(float(ConstGetFloat(c)));
+    case BASE_TYPE_KIND::R64:
+      return std::bit_cast<uint64_t, double>(ConstGetFloat(c));
+    default:
+      ASSERT(false, "bad Const kind " << EnumToString(c.kind()));
+      return 0;
+  }
+}
+
+Const ConstNewBitcastUnsigned(uint64_t val, BASE_TYPE_KIND bt) {
+  switch (bt) {
+    case BASE_TYPE_KIND::U8:
+    case BASE_TYPE_KIND::U16:
+    case BASE_TYPE_KIND::U32:
+    case BASE_TYPE_KIND::U64:
+    case BASE_TYPE_KIND::BOOL:
+      return ConstNewUnsigned(val, bt);
+    case BASE_TYPE_KIND::S8:
+    case BASE_TYPE_KIND::S16:
+    case BASE_TYPE_KIND::S32:
+    case BASE_TYPE_KIND::S64:
+      return ConstNewUnsigned(int64_t(val), bt);
+    case BASE_TYPE_KIND::R32:
+      return ConstNewReal(std::bit_cast<float, uint32_t>(uint32_t(val)), bt);
+    case BASE_TYPE_KIND::R64:
+      return ConstNewReal(std::bit_cast<double, uint64_t>(val), bt);
+
+    default:
+      ASSERT(false, "bad Const kind " << EnumToString(bt));
+      return kConstInvalid;
+  }
 }
 
 double ConstGetFloat(Const c) {

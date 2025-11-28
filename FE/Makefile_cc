@@ -83,8 +83,8 @@ assimilation_1_tests: $(ALL_SOURCES_NO_GENERIC_NO_BUILTIN:%.cw=$(DIR)/%.cw.assim
 
 $(DIR)/%.cw.assim1: %.cw
 	@echo "[assim1 $@]"
-	$(EMIT_IR) -dump_ast after_typing  $< > $@.cc
-	./emit_ir.py  -dump_ast after_typing $< > $@.py
+	$(EMIT_IR) -dump_ast after_partial_eval  $< > $@.cc
+	./emit_ir.py  -dump_ast after_partial_eval $< > $@.py
 	diff $@.py $@.cc
 
 ############################################################
