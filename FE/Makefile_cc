@@ -22,7 +22,7 @@ ALL_SOURCES_GENERIC :=  $(filter $(wildcard */*gen.cw), $(ALL_SOURCES))
 ALL_SOURCES_NO_GENERIC :=  $(filter-out $(wildcard */*gen.cw), $(ALL_SOURCES))
 ALL_SOURCES_NO_GENERIC_NO_BUILTIN :=  $(filter-out $(wildcard */builtin.cw), $(ALL_SOURCES_NO_GENERIC))
 
-tests: $(EMIT_IR) tests_meta
+tests: $(EMIT_IR) tests_meta assimilation_1_tests
 	@echo "PASSED $@"
 ############################################################
 # Code Gen

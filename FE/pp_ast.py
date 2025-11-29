@@ -103,16 +103,7 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
             else:
                 val = f"[{val.get_original_typeid()}]"
         if name == "x_eval":
-            if isinstance(val, eval.EvalCompound):
-                inits = val.init_node
-                if inits:
-                    val = f"EvalCompound[{labels[inits]}]"
-                else:
-                    val = "EvalCompound[]"
-            elif isinstance(val, eval.EvalSpan):
-                pointer = labels[val.pointer] if val.pointer else "null"
-                dim = -1 if val.size is None else val.size
-                val = f"EvalSpan[{pointer}, {dim}]"
+            val = val.render(labels)
 
         if name == "x_symbol" or name == "x_target" or name == "x_poly_mod":
             def_sym = getattr(node, name)

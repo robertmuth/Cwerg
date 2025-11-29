@@ -29,7 +29,8 @@ struct EvalSpan {
   Const content;   // usually a compound
 };
 
-// TODO: try converting this into a Handle Transformer from ValCompound/ValString -> Const
+// TODO: try converting this into a Handle Transformer from
+// ValCompound/ValString -> Const
 struct EvalCompound {
   Node init_node;
 };
@@ -179,6 +180,8 @@ inline EvalSpan ConstGetSpan(Const c) {
 }
 
 extern std::ostream& operator<<(std::ostream& os, Const c);
+
+extern std::string to_string(Const c, const std::map<Node, std::string>* labels);
 
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
 }  // namespace cwerg::fe

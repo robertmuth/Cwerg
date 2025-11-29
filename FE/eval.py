@@ -8,7 +8,7 @@ import enum
 import logging
 import math
 import struct
-from typing import Optional, Any, Union\
+from typing import Optional, Any, Union, override
 
 from FE import cwast
 from FE import symbolize
@@ -26,6 +26,9 @@ EVAL_STR = "@eval"
 
 class EvalBase:
     pass
+
+    def render(self, label_map: dict[Any, str]) -> str:
+        return str(self)
 
 
 class EvalUndef(EvalBase):
@@ -54,6 +57,10 @@ class EvalSymAddr(EvalBase):
             return False
         return self.sym == other.sym
 
+    @override
+    def render(self, label_map: dict[Any, str]) -> str:
+        return f"EvalSymAddr[{label_map[self.sym]}]"
+
     def __str__(self):
         return f"EvalSymAddr[{self.sym.name}]"
 
@@ -68,6 +75,10 @@ class EvalFunAddr(EvalBase):
             return False
         return self.sym == other.sym
 
+    @override
+    def render(self, label_map: dict[Any, str]) -> str:
+        return f"EvalFunAddr[{label_map[self.sym]}]"
+
     def __str__(self):
         return f"EvalFunAddr[{self.sym.name}]"
 
@@ -79,6 +90,14 @@ class EvalCompound(EvalBase):
             assert isinstance(init_node, (cwast.ValString, cwast.ValCompound))
         self.init_node = init_node
 
+    @override
+    def render(self, label_map: dict[Any, str]) -> str:
+        init = self.init_node
+        if init:
+            return f"EvalCompound[{label_map[init]}]"
+        else:
+            return "EvalCompound[]"
+
     def __str__(self):
         return f"EvalCompound[]"
 
@@ -88,9 +107,18 @@ class EvalSpan(EvalBase):
         assert pointer is None or isinstance(
             pointer, (cwast.DefGlobal, cwast.DefVar)), f"{pointer}"
         assert size is None or isinstance(size, int), f"{size}"
+        assert content is None or isinstance(
+            content, EvalCompound), f"{pointer}"
         self.pointer = pointer
         self.size = size
         self.content = content
+
+    @override
+    def render(self, label_map: dict[Any, str]) -> str:
+        pointer = label_map[self.pointer] if self.pointer else "null"
+        dim = -1 if self.size is None else self.size
+        content = self.content.render(label_map) if self.content else "null"
+        return f"EvalSpan[{pointer}, {dim}, {content}]"
 
     def __str__(self):
         return f"EvalSpan[{self.pointer if self.pointer else "@NULL@"}, {self.size}]"

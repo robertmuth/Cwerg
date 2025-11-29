@@ -903,6 +903,64 @@ std::ostream& operator<<(std::ostream& os, Const c) {
   }
 }
 
+extern std::string to_string(Const c,
+                             const std::map<Node, std::string>* labels) {
+  if (c.isnull()) return "null";
+
+  std::stringstream ss;
+  switch (c.kind()) {
+    case BASE_TYPE_KIND::VOID:
+    case BASE_TYPE_KIND::UNDEF:
+    case BASE_TYPE_KIND::U8:
+    case BASE_TYPE_KIND::U16:
+    case BASE_TYPE_KIND::U32:
+    case BASE_TYPE_KIND::U64:
+    case BASE_TYPE_KIND::BOOL:
+    case BASE_TYPE_KIND::S8:
+    case BASE_TYPE_KIND::S16:
+    case BASE_TYPE_KIND::S32:
+    case BASE_TYPE_KIND::S64:
+    case BASE_TYPE_KIND::R32:
+    case BASE_TYPE_KIND::R64:
+      ss << c;
+      break;
+    case BASE_TYPE_KIND::SYM_ADDR:
+      ss << "EvalSymAddr[" << labels->at(ConstGetSymbol(c)) << "]";
+      break;
+
+    case BASE_TYPE_KIND::FUN_ADDR:
+      ss << "EvalFunAddr[" << labels->at(ConstGetSymbol(c)) << "]";
+      break;
+    case BASE_TYPE_KIND::COMPOUND: {
+      EvalCompound ec = ConstGetCompound(c);
+      ss << "EvalCompound[";
+      if (!ec.init_node.isnull()) {
+        ss << labels->at(ec.init_node);
+      }
+      ss << "]";
+      break;
+    }
+    case BASE_TYPE_KIND::SPAN: {
+      EvalSpan es = ConstGetSpan(c);
+      ss << "EvalSpan[";
+      if (es.pointer.isnull()) {
+        ss << "null";
+      } else {
+        ss << labels->at(es.pointer);
+      }
+      ss << ", " << es.size << ", ";
+      ss << to_string(es.content, labels);
+
+      ss << "]";
+      break;
+    }
+    default:
+      ASSERT(false, "unknown eval " << int(c.kind()));
+      break;
+  }
+  return ss.str();
+}
+
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
   int iteration = 0;
   while (true) {

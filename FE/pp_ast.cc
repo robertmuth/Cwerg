@@ -350,29 +350,7 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
   if (desc.has(NFD_X_FIELD::eval)) {
     Const eval = Node_x_eval(node);
     if (!eval.isnull()) {
-      auto kind = eval.kind();
-      std::stringstream ss;
-      if (kind == BASE_TYPE_KIND::COMPOUND) {
-        EvalCompound ec = ConstGetCompound(eval);
-        ss << "EvalCompound[";
-        if (!ec.init_node.isnull()) {
-          ss << labels->at(ec.init_node);
-        }
-        ss << "]";
-      } else if (kind == BASE_TYPE_KIND::SPAN) {
-        EvalSpan es = ConstGetSpan(eval);
-        ss << "EvalSpan[";
-        if (!es.pointer.isnull()) {
-          ss << labels->at(es.pointer);
-        } else {
-          ss << "null";
-        }
-        ss << ", " << es.size;
-        ss << "]";
-      } else {
-        ss << eval;
-      }
-      add_tag_value("x_eval", ss.str());
+      add_tag_value("x_eval", to_string(eval, labels));
     }
   }
 
