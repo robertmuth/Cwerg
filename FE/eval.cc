@@ -542,7 +542,7 @@ Const EvalNode(Node node) {
       return kConstInvalid;
     case NT::ExprTypeId:
       return ConstNewUnsigned(
-          CanonType_get_original_typeid(Node_x_type(node)),
+          CanonType_get_original_typeid(Node_x_type(Node_type(node))),
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node)));
     case NT::ExprAs: {
       Const val = Node_x_eval(Node_expr(node));
