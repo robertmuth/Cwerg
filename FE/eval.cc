@@ -722,6 +722,7 @@ bool _EvalRecursively(Node mod) {
   bool seen_change = false;
   auto evaluator = [&seen_change](Node node, Node parent) {
     if (!Node_x_eval(node).isnull()) return;
+
     Const c = EvalNode(node);
     if (!c.isnull()) {
       Node_x_eval(node) = c;
@@ -862,6 +863,8 @@ std::ostream& operator<<(std::ostream& os, Const c) {
   switch (c.kind()) {
     case BASE_TYPE_KIND::VOID:
       return os << "EvalVoid";
+    case BASE_TYPE_KIND::UNDEF:
+      return os << "EvalUndef";
     case BASE_TYPE_KIND::U8:
     case BASE_TYPE_KIND::U16:
     case BASE_TYPE_KIND::U32:
@@ -881,19 +884,17 @@ std::ostream& operator<<(std::ostream& os, Const c) {
       return os << "EvalNum[" << std::scientific << ConstGetFloat(c) << "_"
                 << EnumToString_BASE_TYPE_KIND_LOWER(c.kind()) << "]";
     case BASE_TYPE_KIND::SYM_ADDR:
-      return os << "SymAddr[" << Node_name(ConstGetSymbol(c)) << "]{"
-                << c.index() << "}";
+      return os << "EvalSymAddr[" << Node_name(ConstGetSymbol(c)) << "]";
     case BASE_TYPE_KIND::FUN_ADDR:
-      return os << "FunAdd[" << Node_name(ConstGetSymbol(c)) << "]{"
-                << c.index() << "}";
+      return os << "EvalFunAddr[" << Node_name(ConstGetSymbol(c)) << "]";
     case BASE_TYPE_KIND::COMPOUND: {
       EvalCompound ec = ConstGetCompound(c);
-      return os << "COMPOUND[" << ec.init_node << ", " << ec.symbol << "]{"
+      return os << "EvalCompound[" << ec.init_node << ", " << ec.symbol << "]{"
                 << c.index() << "}";
     }
     case BASE_TYPE_KIND::SPAN: {
       EvalSpan es = ConstGetSpan(c);
-      return os << "SPAN[" << es.pointer << ", " << es.size << ", "
+      return os << "EvalSpan[" << es.pointer << ", " << es.size << ", "
                 << es.content << "]{" << c.index() << "}";
     }
     default:

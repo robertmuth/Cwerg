@@ -55,7 +55,7 @@ class EvalSymAddr(EvalBase):
         return self.sym == other.sym
 
     def __str__(self):
-        return f"EvalSymAddress[{self.sym.name}]"
+        return f"EvalSymAddr[{self.sym.name}]"
 
 
 class EvalFunAddr(EvalBase):
@@ -69,7 +69,7 @@ class EvalFunAddr(EvalBase):
         return self.sym == other.sym
 
     def __str__(self):
-        return f"EvalFunAddress[{self.sym.name}]"
+        return f"EvalFunAddr[{self.sym.name}]"
 
 
 class EvalCompound(EvalBase):
@@ -719,8 +719,8 @@ def EvalRecursively(node) -> bool:
             return
         val = _EvalNode(node)
         if val is not None:
-            seen_change = True
             _AssignValue(node, val)
+            seen_change = True
     cwast.VisitAstRecursivelyPost(node, visitor)
 
     if seen_change:

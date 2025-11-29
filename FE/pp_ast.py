@@ -103,7 +103,8 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
             else:
                 val = f"[{val.get_original_typeid()}]"
         if name == "x_eval":
-            if not isinstance(val, eval.EvalNum):
+            if not isinstance(val, (eval.EvalNum, eval.EvalSymAddr,
+                                    eval.EvalUndef, eval.EvalVoid, eval.EvalFunAddr)):
                 continue
 
         if name == "x_symbol" or name == "x_target" or name == "x_poly_mod":

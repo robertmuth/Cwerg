@@ -97,6 +97,10 @@ struct Const : public Handle {
 
   BASE_TYPE_KIND kind() const { return BASE_TYPE_KIND(raw_kind()); }
   bool IsShort() const { return int32_t(value) < 0; }
+
+  // 0 is a perfectly good value for the "index"
+  // so we have to redefine what it means to be null
+  bool isnull() const { return raw_kind() == 0; }
 };
 
 constexpr const Str kStrInvalid(0);
@@ -1146,9 +1150,9 @@ const char* EnumToString(UNARY_EXPR_KIND x);
 const char* EnumToString(POINTER_EXPR_KIND x);
 const char* EnumToString_POINTER_EXPR_OP(POINTER_EXPR_KIND x);
 // 3 Variants for BINARY_EXPR_KIND
-const char* EnumToString(BINARY_EXPR_KIND x);  // ADD
-const char* EnumToString_BINARY_EXPR_OP(BINARY_EXPR_KIND x); // +
-const char* EnumToString_ASSIGNMENT_OP(BINARY_EXPR_KIND x);  // +=
+const char* EnumToString(BINARY_EXPR_KIND x);                 // ADD
+const char* EnumToString_BINARY_EXPR_OP(BINARY_EXPR_KIND x);  // +
+const char* EnumToString_ASSIGNMENT_OP(BINARY_EXPR_KIND x);   // +=
 //
 const char* EnumToString(BASE_TYPE_KIND x);
 const char* EnumToString_BASE_TYPE_KIND_LOWER(BASE_TYPE_KIND x);

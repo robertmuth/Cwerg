@@ -346,7 +346,10 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
   if (desc.has(NFD_X_FIELD::eval)) {
     Const eval = Node_x_eval(node);
     if (!eval.isnull()) {
-      if (IsNumber(eval.kind())) {
+      auto kind = eval.kind();
+      if (IsNumber(kind) || kind == BASE_TYPE_KIND::SYM_ADDR ||
+          kind == BASE_TYPE_KIND::FUN_ADDR || kind == BASE_TYPE_KIND::VOID ||
+          kind == BASE_TYPE_KIND::UNDEF) {
         std::stringstream ss;
         ss << eval;
         add_tag_value("x_eval", ss.str());
