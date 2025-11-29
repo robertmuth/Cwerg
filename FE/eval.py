@@ -73,18 +73,14 @@ class EvalFunAddr(EvalBase):
 
 
 class EvalCompound(EvalBase):
-    def __init__(self, init_node, sym):
+    def __init__(self, init_node):
         # if compound is None, the default initialization is used
         if init_node is not None:
             assert isinstance(init_node, (cwast.ValString, cwast.ValCompound))
         self.init_node = init_node
-        # if sym is not None it has been materialized as `sym`
-        if sym is not None:
-            assert isinstance(sym, (cwast.DefVar, cwast.DefGlobal))
-        self.sym = sym
 
     def __str__(self):
-        return "EvalCompound"
+        return f"EvalCompound[]"
 
 
 class EvalSpan(EvalBase):
@@ -97,7 +93,7 @@ class EvalSpan(EvalBase):
         self.content = content
 
     def __str__(self):
-        return f"EvalSpan[{self.pointer}, {self.size}]"
+        return f"EvalSpan[{self.pointer if self.pointer else "@NULL@"}, {self.size}]"
 
 
 class EvalNum(EvalBase):
@@ -320,7 +316,7 @@ def GetDefaultForType(ct: cwast.CanonType) -> Any:
     elif ct.is_span():
         return VAL_EMPTY_SPAN
     elif ct.is_unwrapped_complex():
-        return EvalCompound(None, None)
+        return EvalCompound(None)
     else:
         return None
 
@@ -488,7 +484,10 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
         else:
             assert isinstance(src_value, EvalCompound
                               ), f"{src_value} {src_node.x_srcloc}"
-            return EvalSpan(src_value.sym, src_type.array_dim(), src_value)
+            pointer = None
+            if isinstance(src_node, cwast.Id):
+                pointer = src_node.x_symbol
+            return EvalSpan(pointer, src_type.array_dim(), src_value)
     elif src_value is None:
         return None
     # assert False, f"{src_node}: {src_node.x_type} -> {dst_type} [{src_value}]"
@@ -547,7 +546,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return _EvalValWithPossibleImplicitConversion(
             node.x_type, node.value_or_undef)
     elif isinstance(node, (cwast.ValCompound, cwast.ValString)):
-        return EvalCompound(node, None)
+        return EvalCompound(node)
     elif isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
         initial = node.initial_or_undef_or_auto
         if initial.x_eval is None and isinstance(initial, cwast.ValAuto):
@@ -555,11 +554,9 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             # so we deal with it explicity here and elsewhere
             _AssignValue(initial, GetDefaultForType(initial.x_type))
         if node.mut:
+            # value is known initially but maybe mutated which we cannot track
             return None
-        val = _EvalValWithPossibleImplicitConversion(node.x_type, initial)
-        if isinstance(val, EvalCompound):
-            val = EvalCompound(val.init_node, node)
-        return val
+        return _EvalValWithPossibleImplicitConversion(node.x_type, initial)
     elif isinstance(node, cwast.ExprIndex):
         index_val = node.expr_index.x_eval
         if index_val is None:

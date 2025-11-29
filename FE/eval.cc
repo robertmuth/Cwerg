@@ -86,8 +86,9 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
     } else {
       ASSERT(src_value.kind() == BASE_TYPE_KIND::COMPOUND,
              "unxpected kind " << int(src_value.kind()));
-      return ConstNewSpan({ConstGetCompound(src_value).symbol,
-                           CanonType_dim(src_type), src_value});
+      Node pointer =
+          src_node.kind() == NT::Id ? Node_x_symbol(src_node) : kNodeInvalid;
+      return ConstNewSpan({pointer, CanonType_dim(src_type), src_value});
     }
   }
   return src_value;
@@ -120,7 +121,7 @@ Const GetDefaultForType(CanonType ct) {
       return ConstNewSpan({kNodeInvalid, 0, kConstInvalid});
     default:
       if (CanonType_is_unwrapped_complex(ct))
-        return ConstNewCompound({kNodeInvalid, kNodeInvalid});
+        return ConstNewCompound({kNodeInvalid});
       else
         return kConstInvalid;
   }
@@ -489,7 +490,7 @@ Const EvalNode(Node node) {
                                                    Node_value_or_undef(node));
     case NT::ValCompound:
     case NT::ValString:
-      return ConstNewCompound({node, kNodeInvalid});
+      return ConstNewCompound({node});
     case NT::DefVar:
     case NT::DefGlobal: {
       Node initial = Node_initial_or_undef_or_auto(node);
@@ -889,8 +890,7 @@ std::ostream& operator<<(std::ostream& os, Const c) {
       return os << "EvalFunAddr[" << Node_name(ConstGetSymbol(c)) << "]";
     case BASE_TYPE_KIND::COMPOUND: {
       EvalCompound ec = ConstGetCompound(c);
-      return os << "EvalCompound[" << ec.init_node << ", " << ec.symbol << "]{"
-                << c.index() << "}";
+      return os << "EvalCompound[" << ec.init_node << "]";
     }
     case BASE_TYPE_KIND::SPAN: {
       EvalSpan es = ConstGetSpan(c);

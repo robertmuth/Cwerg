@@ -29,9 +29,9 @@ struct EvalSpan {
   Const content;   // usually a compound
 };
 
+// TODO: try converting this into a Handle Transformer from ValCompound/ValString -> Const
 struct EvalCompound {
   Node init_node;
-  Node symbol;
 };
 
 inline bool ValIsShortConstUnsigned(uint64_t val) {
