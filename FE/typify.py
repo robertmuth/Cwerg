@@ -315,8 +315,9 @@ def _TypifyStmt(node, tc: type_corpus.TypeCorpus,
         _TypifyExprOrType(node.expr_ret, tc, tt, pm)
     elif isinstance(node, cwast.StmtIf):
         _TypifyExprOrType(node.cond, tc, tc.get_bool_canon_type(), pm)
-        _TypifyStmtSeq(node.body_f, tc, tt, pm)
         _TypifyStmtSeq(node.body_t, tc, tt, pm)
+        _TypifyStmtSeq(node.body_f, tc, tt, pm)
+
 
     elif isinstance(node, cwast.Case):
         _TypifyExprOrType(node.cond, tc, tc.get_bool_canon_type(), pm)

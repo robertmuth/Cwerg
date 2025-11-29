@@ -330,6 +330,19 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
     add_tag_value("label", labels->at(node));
   }
 
+  if (desc.has(NFD_X_FIELD::type)) {
+    CanonType ct = Node_x_type(node);
+    if (!ct.isnull()) {
+      auto name = NameData(CanonType_name(ct));
+      auto no = "[" + std::to_string(CanonType_get_original_typeid(ct)) + "]";
+      if (strlen(name) < 16) {
+        add_tag_value("x_type", std::string(name) + no);
+      } else {
+        add_tag_value("x_type", no);
+      }
+    }
+  }
+
   if (desc.has(NFD_X_FIELD::eval)) {
     Const eval = Node_x_eval(node);
     if (!eval.isnull()) {
@@ -359,12 +372,6 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
 
   if (desc.has(NFD_X_FIELD::offset)) {
     add_tag_value("x_offset", std::to_string(Node_x_offset(node)));
-  }
-
-  if (node.kind() == NT::TypeAuto && desc.has(NFD_X_FIELD::type)) {
-    CanonType ct = Node_x_type(node);
-    if (!ct.isnull())
-      add_tag_value("x_type", std::string(NameData(CanonType_name(ct))));
   }
 
   _EmitLine(line, indent, active_columns, is_last);

@@ -98,13 +98,14 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
         if name == "x_srcloc":
             continue
         if name == "x_type":
-            if isinstance(node, cwast.TypeAuto):
-                val = val.name
+            if len(val.name) < 16:
+                val = f"{val.name}[{val.get_original_typeid()}]"
             else:
-                continue
+                val = f"[{val.get_original_typeid()}]"
         if name == "x_eval":
             if not isinstance(val, eval.EvalNum):
                 continue
+
         if name == "x_symbol" or name == "x_target" or name == "x_poly_mod":
             def_sym = getattr(node, name)
             assert def_sym in labels, f"{node} -> {def_sym} ---  {node.x_srcloc} {def_sym.x_srcloc}"

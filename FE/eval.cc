@@ -444,8 +444,8 @@ Const EvalExprIs(Node node) {
                              CanonType_children(expr_ct))) {
         return ConstNewBool(true);
       }
-      return kConstInvalid;
     }
+    return kConstInvalid;
   } else if (CanonType_kind(test_ct) == NT::TypeUnion &&
              !CanonType_untagged(test_ct)) {
     return ConstNewBool(CanonType_tagged_union_contains(test_ct, expr_ct));
@@ -665,8 +665,7 @@ Const EvalNode(Node node) {
       auto tmp =
           ConstNewBitcastUnsigned(data, CanonType_base_type_kind(dst_ct));
       uint64_t data2 = ConstGetBitcastUnsigned(tmp);
-      ASSERT(data == data2,
-             std::hex << data << " " << data2 << " " << dst_ct);
+      ASSERT(data == data2, std::hex << data << " " << data2 << " " << dst_ct);
       return ConstNewBitcastUnsigned(data, CanonType_base_type_kind(dst_ct));
     }
     case NT::ExprCall:
