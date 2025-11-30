@@ -24,7 +24,7 @@ tests:
 	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(CWERG_FLAGS)" -DCWERG_LIBS="$(CWERG_LIBS)" .. && $(MAKE) -s
 	cd BE && $(MAKE) -f Makefile_cc tests
 	cd Util && $(MAKE) -s tests && $(MAKE) -s clean
-	cd FE && $(MAKE) -f Makefile_cc tests
+	cd FE &&  $(MAKE) -f Makefile_cc clean && $(MAKE) -f Makefile_cc tests
 	cd FE && $(MAKE) -f Makefile_py -s tests && $(MAKE) -f Makefile_py -s clean
 	cd FE_WASM && $(MAKE) -s tests && $(MAKE) -s clean
 
