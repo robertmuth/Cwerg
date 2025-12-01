@@ -27,21 +27,25 @@ void FunRemoveParentheses(Node fun) {
 }
 
 void FunReplaceTypeOfAndTypeUnionDelta(Node node) {
-  auto visitor = [](Node node, Node parent) -> void {
+  auto replacer = [](Node node, Node parent) -> Node {
     if (Node_kind(node) == NT::TypeOf) {
-      NodeFree(Node_expr(node));
+      NodeFreeRecursively(Node_expr(node));
       // Tricky: x_type stays unchanged
-
-      NodeInitTypeAuto(Node(NT::TypeAuto, node.index()), Node_comment(node),
-                       Node_srcloc(node), Node_x_type(node));
+      node = Node(NT::TypeAuto, node.index());
+      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node),
+                       Node_x_type(node));
     } else if (Node_kind(node) == NT::TypeUnionDelta) {
-      NodeFree(Node_subtrahend(node));
+      NodeFreeRecursively(Node_type(node));
+      NodeFreeRecursively(Node_subtrahend(node));
+      node = Node(NT::TypeAuto, node.index());
       // Tricky: x_type stays unchanged
-      NodeInitTypeAuto(Node(NT::TypeAuto, node.index()), Node_comment(node),
-                       Node_srcloc(node), Node_x_type(node));
+      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node),
+                       Node_x_type(node));
     }
+    return node;
   };
-  VisitAstRecursivelyPost(node, visitor, kNodeInvalid);
+
+  MaybeReplaceAstRecursivelyPost(node, replacer, kNodeInvalid);
 }
 
 Node ConvertExprIndexToPointerArithmetic(Node container, Node index, Node bound,
@@ -180,7 +184,7 @@ void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {
     NodeInitValNum(new_node, StrNew(EVAL_STR), Node_comment(node),
                    Node_srcloc(node), ct);
     Node_x_eval(new_node) = val;
-    NodeFree(node);
+    NodeFreeRecursively(node);
     return new_node;
   };
   MaybeReplaceAstRecursively(node, replacer);

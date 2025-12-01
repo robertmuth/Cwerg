@@ -325,7 +325,7 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def FunReplaceConstExpr(node, tc: type_corpus.TypeCorpus):
+def FunReplaceConstExpr(node: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """
     Try to convert as many Nodes to ValNum as possible
 
@@ -583,7 +583,7 @@ def _MaybeMakeImplicitConversionExplicit(orig_node, expected_ct: cwast.CanonType
                                x_srcloc=orig_node.x_srcloc, x_eval=orig_node.x_eval)
 
 
-def FunMakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCorpus):
+def FunMakeImplicitConversionsExplicit(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     uint_type: cwast.CanonType = tc.get_uint_canon_type()
 
     def visitor(node: Any):
@@ -618,7 +618,7 @@ def FunMakeImplicitConversionsExplicit(mod: cwast.DefMod, tc: type_corpus.TypeCo
             node.expr_rhs = _MaybeMakeImplicitConversionExplicit(
                 node.expr_rhs, node.lhs.x_type, uint_type, tc)
 
-    cwast.VisitAstRecursivelyPost(mod, visitor)
+    cwast.VisitAstRecursivelyPost(fun, visitor)
 
 
 def _CloneId(node: cwast.Id) -> cwast.Id:

@@ -111,8 +111,8 @@ bool NodeValidateSymbols(Node node, Node parent) {
       if (!IsPointNode(node, parent) && !IsFieldNode(node, parent)) {
         Node symbol = Node_x_symbol(node);
         CHECK(!symbol.isnull(), "no symbol for " << node << " "
-                                                  << Node_name_or_invalid(node)
-                                                  << " " << Node_srcloc(node));
+                                                 << Node_name_or_invalid(node)
+                                                 << " " << Node_srcloc(node));
         CHECK(NodeIsPossibleSymbol(symbol), "no symbol but " << symbol);
       }
       break;
@@ -128,7 +128,7 @@ bool NodeValidateSymbols(Node node, Node parent) {
     case NT::DefFun:
       if (Node_has_flag(node, BF::POLY)) {
         CHECK(!Node_x_poly_mod(node).isnull(),
-               "poly DefMod must have valid x_poly_mod " << Node_name(node));
+              "poly DefMod must have valid x_poly_mod " << Node_name(node));
       }
       break;
     default:
@@ -149,7 +149,7 @@ void ValidateAST(const std::vector<Node>& mods, COMPILE_STAGE stage) {
   auto mark = [](Node node, Node parent) -> bool {
     if (Node_kind(node) == NT::invalid) {
       CHECK(false,
-             "freed node " << node.index() << "still reference was " << node);
+            "freed node " << node.index() << "still reference was " << node);
     }
     if (gNodeValidation[node].ref_count) {
       CHECK(false, "duplicate linked node");
@@ -177,20 +177,21 @@ void ValidateAST(const std::vector<Node>& mods, COMPILE_STAGE stage) {
     auto& core = gNodeCore[i];
     if (!gNodeValidation[i].ref_count) {
       ++freed;
-      CHECK(core.kind == NT::invalid,
-             "orphaned node " << i << " " << EnumToString(core.kind) << " "
-                              << Node_name_or_invalid(node) << " "
-                              << Node_srcloc(node) << "\n");
+      CHECK(core.kind == NT::invalid, "orphaned node "
+                                          << i << " " << EnumToString(core.kind)
+                                          << " " << Node_name_or_invalid(node)
+                                          << " " << Node_srcloc(node) << "\n");
       continue;
     }
     for (int j = 0; j < MAX_NODE_CHILDREN; ++j) {
       Node child = core.children_node[j];
       if (!NodeIsNode(child)) continue;
       CHECK(child.kind() == Node_kind(child),
-             "node mismatch " << child << " vs "
-                              << EnumToString(Node_kind(child))
-                              << " kind=" << int(child.kind()) << " "
-                              << int(Node_kind(child)));
+            "node mismatch " << child.index() << " "
+                             << EnumToString(child.kind()) << " ("
+                             << int(child.kind()) << ") vs "
+                             << EnumToString(Node_kind(child)) << " ("
+                             << int(Node_kind(child)) << ")");
     }
     CHECK(core.kind != NT::invalid, "");
     ++live;
@@ -200,12 +201,12 @@ void ValidateAST(const std::vector<Node>& mods, COMPILE_STAGE stage) {
     if (stage >= COMPILE_STAGE::AFTER_TYPIFY) {
       if (IsTyped(core.kind)) {
         CHECK(!ct.isnull(), "missing type for " << node << " "
-                                                 << Node_srcloc(node)
-                                                 << Node_name_or_invalid(node));
+                                                << Node_srcloc(node)
+                                                << Node_name_or_invalid(node));
       }
     } else {
       CHECK(ct.isnull(), "unexpected type for "
-                              << node << " " << Node_srcloc(node) << " " << ct);
+                             << node << " " << Node_srcloc(node) << " " << ct);
     }
   }
 
