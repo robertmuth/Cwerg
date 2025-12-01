@@ -720,9 +720,9 @@ void CheckDefFunTypeFun(Node node) {
 
 void CheckTypeKind(Node node, NT kind) {
   CanonType ct = Node_x_type(node);
-  CHECK(CanonType_kind(ct) == kind, "expected "
-                                         << EnumToString(kind) << " got "
-                                         << EnumToString(CanonType_kind(ct)));
+  CHECK(CanonType_kind(ct) == kind,
+        "in " << node << " expected " << EnumToString(kind) << " got "
+              << EnumToString(CanonType_kind(ct)) << " " << Node_srcloc(node));
 }
 void CheckExpr2TypesArithmetic(CanonType result, Node op1, Node op2) {
   CHECK(CanonType_kind(result) == NT::TypeBase, "");
@@ -792,7 +792,7 @@ bool AddressCanBeTaken(Node node) {
         return true;
       } else {
         CHECK(CanonType_kind(Node_x_type(Node_container(node))) == NT::TypeVec,
-               "");
+              "");
         return AddressCanBeTaken(Node_container(node));
       }
     default:
@@ -862,7 +862,10 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::TypeUnion:
         return CheckTypeKind(node, NT::TypeUnion);
       case NT::ValNum:
-        return CheckTypeKind(node, NT::TypeBase);
+        CHECK(CanonType_get_unwrapped_base_type_kind(Node_x_type(node)) !=
+                  BASE_TYPE_KIND::INVALID,
+              "");
+        break;
       case NT::ValString:
         return CheckTypeKind(node, NT::TypeVec);
       case NT::ValSpan:
@@ -1150,7 +1153,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::StmtBlock:
       case NT::StmtCond:
         CHECK(ct.isnull(),
-               "no type info expected for " << EnumToString(Node_kind(node)));
+              "no type info expected for " << EnumToString(Node_kind(node)));
         // no type checking
         return;
       default:

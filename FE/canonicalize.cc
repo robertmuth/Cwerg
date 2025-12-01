@@ -170,6 +170,11 @@ void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {
         kind == NT::ValCompound) {
       return node;
     }
+
+    if (parent.kind() == NT::ExprAddrOf && Node_expr_lhs(parent) == node) {
+      return node;
+    }
+
     CanonType ct = CanonType_get_unwrapped(Node_x_type(node));
 
     if (CanonType_is_base_type(ct)) {
