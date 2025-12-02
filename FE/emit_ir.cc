@@ -119,7 +119,8 @@ int main(int argc, const char* argv[]) {
   PhaseInitialLowering(mp.mods_in_topo_order, &tc);
   eliminated_nodes.insert(NT::TypeOf);
   eliminated_nodes.insert(NT::TypeUnionDelta);
-
+  SanityCheckMods("after_initial_lowering", mp.mods_in_topo_order,
+                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
   //
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files

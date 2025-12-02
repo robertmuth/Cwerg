@@ -75,12 +75,13 @@ Node RewriteExprIndex(Node node, CanonType uint_ct, TypeCorpus* tc) {
                    Node_srcloc(node), uint_ct);
     Node_x_eval(bound) = dim;
     Node pinc = ConvertExprIndexToPointerArithmetic(
-        container, Node_expr(node), bound, mut, sl, elem_ct, tc);
+        container, Node_expr_index(node), bound, mut, sl, elem_ct, tc);
+    NodeFree(node);  // Recursive is not necessary since we are
+                     // re-using expr_index and container
     Node deref = NodeNew(NT::ExprDeref);
     NodeInitExprDeref(deref, pinc, kStrInvalid, sl, elem_ct);
     Node_x_eval(deref) = Node_x_eval(node);
     // TODO: reuse node for deref?
-    NodeFree(node);
     return deref;
   } else {
     ASSERT(CanonType_kind(container_ct) == NT::TypeSpan, "");
@@ -130,13 +131,13 @@ Node RewriteExprIndex(Node node, CanonType uint_ct, TypeCorpus* tc) {
 
 void FunReplaceExprIndex(Node node, TypeCorpus* tc) {
   CanonType uint_ct = tc->get_uint_canon_type();
-  auto visitor = [&](Node node, Node parent) -> Node {
+  auto replacer = [&](Node node, Node parent) -> Node {
     if (node.kind() == NT::ExprIndex) {
       return RewriteExprIndex(node, uint_ct, tc);
     }
     return node;
   };
-  MaybeReplaceAstRecursivelyPost(node, visitor, kNodeInvalid);
+  MaybeReplaceAstRecursivelyPost(node, replacer, kNodeInvalid);
 }
 
 void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {

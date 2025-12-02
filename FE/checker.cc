@@ -152,7 +152,9 @@ void ValidateAST(const std::vector<Node>& mods, COMPILE_STAGE stage) {
             "freed node " << node.index() << "still reference was " << node);
     }
     if (gNodeValidation[node].ref_count) {
-      CHECK(false, "duplicate linked node");
+      CHECK(false, "duplicate linked node "
+                       << node << " " << NameData(Node_name(node)) << " at "
+                       << Node_srcloc(node) << " from parent " << parent);
     }
     gNodeValidation[node].ref_count = true;
     return false;
