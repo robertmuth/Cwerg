@@ -62,6 +62,7 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order, TypeCorpu
       FunReplaceConstExpr(fun, *tc);
       FunMakeImplicitConversionsExplicit(fun, tc);
       FunReplaceExprIndex(fun, tc);
+      FunDesugarTaggedUnionComparisons(fun);
       if (fun.kind() != NT::DefFun) continue;
     }
   }

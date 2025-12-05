@@ -627,14 +627,14 @@ def _CloneId(node: cwast.Id) -> cwast.Id:
                     x_srcloc=node.x_srcloc)
 
 
-def _MakeTagCheck(union: cwast.Id, ct: cwast.CanonType, ct_bool: cwast.CanonType, sl) -> Any:
-    return cwast.ExprIs(union, cwast.TypeAuto(
-        x_srcloc=sl, x_type=ct), x_srcloc=sl, x_type=ct_bool)
+def _MakeTagCheck(union_id: cwast.Id, ct: cwast.CanonType, ct_bool: cwast.CanonType, sl) -> Any:
+    type_expr = cwast.TypeAuto(x_srcloc=sl, x_type=ct)
+    return cwast.ExprIs(union_id, type_expr, x_srcloc=sl, x_type=ct_bool)
 
 
-def _MakeUnionNarrow(union: cwast.Id, ct: cwast.CanonType, sl) -> Any:
-    return cwast.ExprNarrow(union, cwast.TypeAuto(
-        x_srcloc=sl, x_type=ct), unchecked=True, x_type=ct, x_srcloc=sl)
+def _MakeUnionNarrow(union_id: cwast.Id, ct: cwast.CanonType, sl) -> Any:
+    type_expr = cwast.TypeAuto(x_srcloc=sl, x_type=ct)
+    return cwast.ExprNarrow(union_id, type_expr, unchecked=True, x_type=ct, x_srcloc=sl)
 
 
 def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
@@ -655,8 +655,8 @@ def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
         ct_field: cwast.CanonType = field.x_type
         ct_bool: cwast.CanonType = cmp.x_type
         sl = cmp.x_srcloc
+        tag_check = _MakeTagCheck(union, ct_field, ct_bool, sl)
         if kind == cwast.BINARY_EXPR_KIND.EQ:
-            tag_check = _MakeTagCheck(union, ct_field, ct_bool, sl)
             if ct_field.get_unwrapped().is_void():
                 return tag_check
 
@@ -667,9 +667,7 @@ def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
         else:
             assert kind == cwast.BINARY_EXPR_KIND.NE
             tag_check = cwast.Expr1(cwast.UNARY_EXPR_KIND.NOT,
-                                    _MakeTagCheck(
-                                        union, ct_field, ct_bool, sl),
-                                    x_srcloc=sl, x_type=ct_bool)
+                                    tag_check, x_srcloc=sl, x_type=ct_bool)
             if field.x_type.get_unwrapped().is_void():
                 return tag_check
             cmp.expr1 = _MakeUnionNarrow(_CloneId(union), ct_field, sl)

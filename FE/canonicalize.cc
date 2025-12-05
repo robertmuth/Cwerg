@@ -14,6 +14,14 @@ Node IdNodeFromDef(Node def_var, const SrcLoc& sl) {
   return out;
 }
 
+Node CloneId(Node id) {
+  Node out = NodeNew(NT::Id);
+  NodeInitId(out, Node_name(id), kNameInvalid, kStrInvalid, Node_srcloc(id),
+             Node_x_symbol(id), Node_x_type(id));
+  // TODO: set Node_eval ?
+  return out;
+}
+
 void FunRemoveParentheses(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (Node_kind(node) == NT::ExprParen) {
@@ -320,7 +328,7 @@ void FunMakeImplicitConversionsExplicit(Node node, TypeCorpus* tc) {
   VisitAstRecursivelyPost(node, visitor, kNodeInvalid);
 }
 
-void FunReplaceSpanCastWithSpanVal(Node node, TypeCorpus* tc) {
+void FunReplaceSpanCastWithSpanVal(Node fun, TypeCorpus* tc) {
   CanonType uint_ct = tc->get_uint_canon_type();
 
   auto replacer = [tc, uint_ct](Node node, Node parent) -> Node {
@@ -337,7 +345,94 @@ void FunReplaceSpanCastWithSpanVal(Node node, TypeCorpus* tc) {
     NodeFree(node);
     return out;
   };
-  MaybeReplaceAstRecursivelyPost(node, replacer, kNodeInvalid);
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
+
+Node MakeTagCheck(Node union_id, CanonType ct, CanonType ct_bool,
+                  const SrcLoc& sl) {
+  Node type = NodeNew(NT::TypeAuto);
+  NodeInitTypeAuto(type, kStrInvalid, sl, ct);
+  Node check = NodeNew(NT::ExprIs);
+  NodeInitExprIs(check, union_id, type, kStrInvalid, sl, ct_bool);
+  return check;
+}
+
+Node MakeUnionNarrow(Node union_id, CanonType ct, const SrcLoc& sl) {
+  Node type_expr = NodeNew(NT::TypeAuto);
+  NodeInitTypeAuto(type_expr, kStrInvalid, sl, ct);
+  Node narrow = NodeNew(NT::ExprNarrow);
+  NodeInitExprNarrow(narrow, union_id, type_expr, Mask(BF::UNCHECKED),
+                     kStrInvalid, sl, ct);
+  return narrow;
+}
+
+Node MakeCmp(Node cmp, Node union_id, Node field, BINARY_EXPR_KIND kind) {
+  ASSERT(union_id.kind() == NT::Id, "NYI " << Node_srcloc(union_id));
+  CanonType ct_field = Node_x_type(field);
+  CanonType ct_bool = Node_x_type(cmp);
+  const SrcLoc& sl = Node_srcloc(cmp);
+  Node tag_check = MakeTagCheck(union_id, ct_field, ct_bool, sl);
+  if (kind == BINARY_EXPR_KIND::EQ) {
+    if (CanonType_get_unwrapped_base_type_kind(ct_field) ==
+        BASE_TYPE_KIND::VOID) {
+      NodeFree(field);
+      NodeFree(cmp);
+      return tag_check;
+    }
+    Node_expr1(cmp) = MakeUnionNarrow(CloneId(union_id), ct_field, sl);
+    Node_expr2(cmp) = field;
+    //
+    Node and_expr = NodeNew(NT::Expr2);
+    NodeInitExpr2(and_expr, BINARY_EXPR_KIND::ANDSC, tag_check, cmp, kStrInvalid,
+                  sl, ct_bool);
+    return and_expr;
+  } else {
+    ASSERT(kind == BINARY_EXPR_KIND::NE, "");
+    Node not_tag_check = NodeNew(NT::Expr1);
+    NodeInitExpr1(not_tag_check, UNARY_EXPR_KIND::NOT, tag_check, kStrInvalid,
+                  sl, ct_bool);
+    if (CanonType_get_unwrapped_base_type_kind(ct_field) ==
+        BASE_TYPE_KIND::VOID) {
+      NodeFree(field);
+      NodeFree(cmp);
+      return not_tag_check;
+    }
+
+    Node_expr1(cmp) = MakeUnionNarrow(CloneId(union_id), ct_field, sl);
+    Node_expr2(cmp) = field;
+    //
+    Node or_expr = NodeNew(NT::Expr2);
+    NodeInitExpr2(or_expr, BINARY_EXPR_KIND::ORSC, not_tag_check, cmp, kStrInvalid,
+                  sl, ct_bool);
+    return or_expr;
+  }
+}
+
+void FunDesugarTaggedUnionComparisons(Node fun) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (node.kind() != NT::Expr2) {
+      return node;
+    }
+
+    BINARY_EXPR_KIND op_kind = Node_binary_expr_kind(node);
+
+    if (op_kind != BINARY_EXPR_KIND::EQ && op_kind != BINARY_EXPR_KIND::NE) {
+      return node;
+    }
+
+    Node e1 = Node_expr1(node);
+    Node e2 = Node_expr2(node);
+    CanonType t1 = Node_x_type(e1);
+    CanonType t2 = Node_x_type(e2);
+    if (CanonType_is_union(t1) && !CanonType_untagged(t1)) {
+      return MakeCmp(node, e1, e2, op_kind);
+    }
+    if (CanonType_is_union(t2) && !CanonType_untagged(t2)) {
+      return MakeCmp(node, e2, e1, op_kind);
+    }
+    return node;
+  };
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
 }  // namespace cwerg::fe
