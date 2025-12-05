@@ -19,5 +19,6 @@ extern void FunMakeImplicitConversionsExplicit(Node node, TypeCorpus* tc);
 
 extern void FunDesugarTaggedUnionComparisons(Node fun);
 
+extern void FunReplaceSpanCastWithSpanVal(Node fun, TypeCorpus* tc);
 
 }  // namespace cwerg::fe

@@ -716,12 +716,12 @@ def FunReplaceSpanCastWithSpanVal(node, tc: type_corpus.TypeCorpus):
 
     def replacer(node, _parent):
         nonlocal tc, uint_type
-        if isinstance(node, cwast.ExprAs):
-            if (node.x_type != node.expr.x_type and
+        if (isinstance(node, cwast.ExprAs) and
+            node.x_type != node.expr.x_type and
                 node.x_type.is_span() and
-                    node.expr.x_type.is_vec()):
-                return _MakeValSpanFromArray(
-                    node.expr, node.x_type, tc, uint_type)
+                node.expr.x_type.is_vec()):
+            return _MakeValSpanFromArray(
+                node.expr, node.x_type, tc, uint_type)
         return None
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)

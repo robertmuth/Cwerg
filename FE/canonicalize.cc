@@ -383,8 +383,8 @@ Node MakeCmp(Node cmp, Node union_id, Node field, BINARY_EXPR_KIND kind) {
     Node_expr2(cmp) = field;
     //
     Node and_expr = NodeNew(NT::Expr2);
-    NodeInitExpr2(and_expr, BINARY_EXPR_KIND::ANDSC, tag_check, cmp, kStrInvalid,
-                  sl, ct_bool);
+    NodeInitExpr2(and_expr, BINARY_EXPR_KIND::ANDSC, tag_check, cmp,
+                  kStrInvalid, sl, ct_bool);
     return and_expr;
   } else {
     ASSERT(kind == BINARY_EXPR_KIND::NE, "");
@@ -402,8 +402,8 @@ Node MakeCmp(Node cmp, Node union_id, Node field, BINARY_EXPR_KIND kind) {
     Node_expr2(cmp) = field;
     //
     Node or_expr = NodeNew(NT::Expr2);
-    NodeInitExpr2(or_expr, BINARY_EXPR_KIND::ORSC, not_tag_check, cmp, kStrInvalid,
-                  sl, ct_bool);
+    NodeInitExpr2(or_expr, BINARY_EXPR_KIND::ORSC, not_tag_check, cmp,
+                  kStrInvalid, sl, ct_bool);
     return or_expr;
   }
 }
