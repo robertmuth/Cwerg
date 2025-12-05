@@ -627,9 +627,9 @@ def _CloneId(node: cwast.Id) -> cwast.Id:
                     x_srcloc=node.x_srcloc)
 
 
-def _MakeTagCheck(union: cwast.Id, ct: cwast.CanonType, sl) -> Any:
+def _MakeTagCheck(union: cwast.Id, ct: cwast.CanonType, ct_bool: cwast.CanonType, sl) -> Any:
     return cwast.ExprIs(union, cwast.TypeAuto(
-        x_srcloc=sl, x_type=ct), x_srcloc=sl)
+        x_srcloc=sl, x_type=ct), x_srcloc=sl, x_type=ct_bool)
 
 
 def _MakeUnionNarrow(union: cwast.Id, ct: cwast.CanonType, sl) -> Any:
@@ -638,7 +638,7 @@ def _MakeUnionNarrow(union: cwast.Id, ct: cwast.CanonType, sl) -> Any:
 
 
 def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
-    def make_cmp(cmp: cwast.Expr2, union: Any, field: Any) -> Any:
+    def make_cmp(cmp: cwast.Expr2, union: Any, field: Any, kind) -> Any:
         """
         (== tagged_union_val member_val)
 
@@ -653,39 +653,42 @@ def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
         # TODO: for non-ids we would need to avoid double evaluation
         assert isinstance(union, cwast.Id), f"{cmp}: {union}"
         ct_field: cwast.CanonType = field.x_type
-        if cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.EQ:
-            type_check = _MakeTagCheck(_CloneId(union), ct_field, cmp.x_srcloc)
+        ct_bool: cwast.CanonType = cmp.x_type
+        sl = cmp.x_srcloc
+        if kind == cwast.BINARY_EXPR_KIND.EQ:
+            tag_check = _MakeTagCheck(union, ct_field, ct_bool, sl)
             if ct_field.get_unwrapped().is_void():
-                return type_check
+                return tag_check
 
-            cmp.expr1 = _MakeUnionNarrow(union, ct_field, cmp.x_srcloc)
+            cmp.expr1 = _MakeUnionNarrow(_CloneId(union), ct_field, sl)
             cmp.expr2 = field
-            return cwast.Expr2(cwast.BINARY_EXPR_KIND.ANDSC, type_check, cmp,
-                               x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
+            return cwast.Expr2(cwast.BINARY_EXPR_KIND.ANDSC, tag_check, cmp,
+                               x_srcloc=sl, x_type=ct_bool)
         else:
-            assert cmp.binary_expr_kind == cwast.BINARY_EXPR_KIND.NE
-            type_check = cwast.Expr1(cwast.UNARY_EXPR_KIND.NOT,
-                                     _MakeTagCheck(
-                                         _CloneId(union), ct_field, cmp.x_srcloc),
-                                     x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
+            assert kind == cwast.BINARY_EXPR_KIND.NE
+            tag_check = cwast.Expr1(cwast.UNARY_EXPR_KIND.NOT,
+                                    _MakeTagCheck(
+                                        union, ct_field, ct_bool, sl),
+                                    x_srcloc=sl, x_type=ct_bool)
             if field.x_type.get_unwrapped().is_void():
-                return type_check
-            cmp.expr1 = _MakeUnionNarrow(union, ct_field, cmp.x_srcloc)
+                return tag_check
+            cmp.expr1 = _MakeUnionNarrow(_CloneId(union), ct_field, sl)
             cmp.expr2 = field
-            return cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC, type_check, cmp,
-                               x_srcloc=cmp.x_srcloc, x_type=cmp.x_type)
+            return cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC, tag_check, cmp,
+                               x_srcloc=sl, x_type=ct_bool)
 
     def replacer(node, _parent):
 
         if not isinstance(node, cwast.Expr2):
             return None
 
-        if node.binary_expr_kind not in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
+        kind = node.binary_expr_kind
+        if kind not in (cwast.BINARY_EXPR_KIND.EQ, cwast.BINARY_EXPR_KIND.NE):
             return None
         if node.expr1.x_type.is_tagged_union():
-            return make_cmp(node, node.expr1, node.expr2)
+            return make_cmp(node, node.expr1, node.expr2, kind)
         if node.expr2.x_type.is_tagged_union():
-            return make_cmp(node, node.expr2, node.expr1)
+            return make_cmp(node, node.expr2, node.expr1, kind)
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
