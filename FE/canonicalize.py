@@ -175,9 +175,16 @@ def FunCanonicalizeTernaryOp(fun: cwast.DefFun):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
+def _DefVarNew(name, init) -> Any:
+    sl = init.x_srcloc
+    at = cwast.TypeAuto(x_srcloc=sl, x_type=init.x_type)
+    return cwast.DefVar(name, at, init, x_srcloc=sl, x_type=init.x_type)
+
 ############################################################
 #
 ############################################################
+
+
 def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool):
     """Ensures that the node has one of the following shapes:
     1) Id
@@ -202,34 +209,27 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
     elif isinstance(lhs, cwast.ExprDeref):
         if isinstance(lhs.expr, cwast.Id):
             return lhs
-        sl = lhs.x_srcloc
-        at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.expr.x_type)
-        def_node = cwast.DefVar(cwast.NAME.Make("deref_assign"),
-                                at,
-                                lhs.expr, x_srcloc=sl, x_type=at.x_type)
+        pointer = lhs.expr
+        def_node = _DefVarNew(cwast.NAME.Make("deref_assign"), pointer)
         stmts.append(def_node)
-        lhs.expr = _IdNodeFromDef(def_node, sl)
+        lhs.expr = _IdNodeFromDef(def_node, pointer.x_srcloc)
         return lhs
     elif isinstance(lhs, cwast.ExprField):
         lhs.container = MakeNodeCopyableWithoutRiskOfSideEffects(
             lhs.container, stmts, is_lhs)
         return lhs
     elif isinstance(lhs, cwast.ExprIndex):
-        assert False, "this should have been eliminated by FunReplaceExprIndex()"
-    else:
         # note we do not need to deal with  cwast.ExprIndex because that has been lowered
         # much earlier to a cwast.ExprDeref
-        if is_lhs:
-            assert False
-        sl = lhs.x_srcloc
-        at = cwast.TypeAuto(x_srcloc=sl, x_type=lhs.x_type)
-        def_node = cwast.DefVar(cwast.NAME.Make("assign"),
-                                at,
-                                lhs, x_srcloc=sl, x_type=at.x_type)
+        assert False, "this should have been eliminated by FunReplaceExprIndex()"
+    else:
+        assert not is_lhs
+        def_node = _DefVarNew(cwast.NAME.Make("assign"), lhs)
         stmts.append(def_node)
         return _IdNodeFromDef(def_node, lhs.x_srcloc)
 
 
+# this is not a very accurate analysis erring on the side of safety
 def IsNodeCopyableWithoutRiskOfSideEffects(node) -> bool:
     if isinstance(node, cwast.Id):
         return True
