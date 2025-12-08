@@ -100,17 +100,16 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     sl = node.x_srcloc
     # if src_ct is not a tagged union ExprIs has been compile time evaluated
     if not src_ct.is_union():
-        if src_ct == dst_ct or dst_ct.is_union() and dst_ct.union_contains(src_ct):
-            return cwast.ValNum("true", x_srcloc=sl, x_type=bool_ct, x_eval=eval.VAL_TRUE)
-        else:
-            return cwast.ValNum("false", x_srcloc=sl, x_type=bool_ct, x_eval=eval.VAL_FALSE)
+        val = src_ct == dst_ct or dst_ct.is_union() and dst_ct.union_contains(src_ct)
+        return cwast.ValNum(eval.EVAL_STR, x_srcloc=sl, x_type=bool_ct, x_eval=eval.VAL_TRUE if val else eval.VAL_FALSE)
 
     assert not src_ct.untagged, f"{node.x_srcloc} {src_ct} {dst_ct}"
     typeid_ct = tc.get_typeid_canon_type()
     typeids = []
     if dst_ct.is_union():
         for ct in dst_ct.union_member_types():
-            typeids.append(ct.get_original_typeid())
+            if src_ct.union_contains(ct):
+                typeids.append(ct.get_original_typeid())
     else:
         typeids.append(dst_ct.get_original_typeid())
     typeidvals = [cwast.ValNum(eval.EVAL_STR, x_srcloc=sl,

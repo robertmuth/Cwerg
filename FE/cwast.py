@@ -1993,7 +1993,7 @@ class ExprIs:
     """Test actual expression (run-time) type
 
     Typically used when `expr` is a tagged union type.
-    Otherwise, the node can be constant folded.
+    Otherwise, the node can be evaluated at compile-time/ constant folded.
 
     `type` can be a tagged union itself.
     """
