@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "FE/canonicalize.h"
+#include "FE/canonicalize_union.h"
 #include "FE/checker.h"
 #include "FE/cwast_gen.h"
 #include "FE/eval.h"
@@ -65,6 +66,7 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order, TypeCorpu
       FunDesugarTaggedUnionComparisons(fun);
       if (fun.kind() != NT::DefFun) continue;
       FunReplaceSpanCastWithSpanVal(fun, tc);
+      FunSimplifyTaggedExprNarrow(fun, tc);
     }
   }
 }
