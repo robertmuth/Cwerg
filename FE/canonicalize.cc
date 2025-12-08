@@ -435,4 +435,69 @@ void FunDesugarTaggedUnionComparisons(Node fun) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
+bool IsNodeCopyableWithoutRiskOfSideEffects(Node node) {
+  switch (node.kind()) {
+    case NT::Id:
+      return true;
+    case NT::ExprDeref:
+      return Node_expr(node).kind() == NT::Id;
+    case NT::ExprField: {
+      Node c = Node_container(node);
+      while (true) {
+        if (c.kind() == NT::Id)
+          return true;
+        else if (c.kind() != NT::ExprField) {
+          c = Node_container(node);
+        } else {
+          return c.kind() == NT::ExprDeref && Node_expr(c).kind() == NT::Id;
+        }
+      }
+    }
+
+    default:
+      return false;
+  }
+}
+
+Node DefVarNew(Name name, Node init) {
+  const SrcLoc& sl = Node_srcloc(init);
+  CanonType ct = Node_x_type(init);
+  Node at = NodeNew(NT::TypeAuto);
+  NodeInitTypeAuto(at, kStrInvalid, sl, ct);
+  Node out = NodeNew(NT::DefVar);
+  NodeInitDefVar(out, name, at, init, 0, kStrInvalid, sl, ct);
+  return out;
+}
+
+Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts,
+                                              bool is_lhs) {
+  switch (lhs.kind()) {
+    case NT::Id:
+      return lhs;
+    case NT::ExprDeref: {
+      Node pointer = Node_expr(lhs);
+      if (pointer.kind() == NT::Id) {
+        return lhs;
+      }
+      Node def_node = DefVarNew(NameNew("deref_assign"), pointer);
+      stmts->Append(def_node);
+      Node_expr(lhs) = IdNodeFromDef(def_node, Node_srcloc(def_node));
+      return lhs;
+    }
+    case NT::ExprField:
+      Node_expr(lhs) = MakeNodeCopyableWithoutRiskOfSideEffects(
+          Node_container(lhs), stmts, is_lhs);
+      return lhs;
+    case NT::ExprIndex:
+      ASSERT(false, "UNREACHABLE");
+      return kNodeInvalid;
+    default: {
+      ASSERT(!is_lhs, "NYI");
+      Node def_node = DefVarNew(NameNew("assign"), lhs);
+      stmts->Append(def_node);
+      return  IdNodeFromDef(def_node, Node_srcloc(def_node));
+    }
+  }
+}
+
 }  // namespace cwerg::fe
