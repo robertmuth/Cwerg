@@ -99,13 +99,13 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     bool_ct = tc.get_bool_canon_type()
     sl = node.x_srcloc
     # if src_ct is not a tagged union ExprIs has been compile time evaluated
-    if src_ct.is_union():
-        assert not src_ct.untagged, f"{node.x_srcloc} {src_ct} {dst_ct}"
-    else:
-        if src_ct == dst_ct:
+    if not src_ct.is_union():
+        if src_ct == dst_ct or dst_ct.is_union() and dst_ct.union_contains(src_ct):
             return cwast.ValNum("true", x_srcloc=sl, x_type=bool_ct, x_eval=eval.VAL_TRUE)
         else:
             return cwast.ValNum("false", x_srcloc=sl, x_type=bool_ct, x_eval=eval.VAL_FALSE)
+
+    assert not src_ct.untagged, f"{node.x_srcloc} {src_ct} {dst_ct}"
     typeid_ct = tc.get_typeid_canon_type()
     typeids = []
     if dst_ct.is_union():
@@ -128,7 +128,7 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     return out
 
 
-def FunReplaceExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+def FunDesugarExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Transform ExprIs comparisons for typeids"""
     def replacer(node, _parent):
         if isinstance(node, cwast.ExprIs):
