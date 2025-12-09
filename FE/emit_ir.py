@@ -1111,7 +1111,7 @@ def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.Typ
             canonicalize_union.FunSimplifyTaggedExprNarrow(fun, tc)
             canonicalize.FunDesugarExprIs(fun, tc)
             canonicalize.FunEliminateDefer(fun)
-            typify.RemoveUselessCast(fun, tc)
+            canonicalize.FunRemoveUselessCast(fun)
 
 
 def PhaseEarlyCleanupAndOptimization(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):

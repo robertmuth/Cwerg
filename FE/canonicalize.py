@@ -795,3 +795,13 @@ def FunRemoveParentheses(fun: Any):
         return None
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
+
+
+def FunRemoveUselessCast(fun):
+    def replacer(node, _parent):
+        if isinstance(node, cwast.ExprAs):
+            if node.x_type is node.expr.x_type:
+                return node.expr
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
