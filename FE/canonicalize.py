@@ -104,6 +104,15 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
         return cwast.ValNum(eval.EVAL_STR, x_srcloc=sl, x_type=bool_ct, x_eval=eval.VAL_TRUE if val else eval.VAL_FALSE)
 
     assert not src_ct.untagged, f"{node.x_srcloc} {src_ct} {dst_ct}"
+
+    typeids = []
+    if dst_ct.is_union():
+        for ct in dst_ct.union_member_types():
+            if src_ct.union_contains(ct):
+                typeids.append(ct.get_original_typeid())
+    else:
+        typeids.append(dst_ct.get_original_typeid())
+
     typeid_ct = tc.get_typeid_canon_type()
     tag = cwast.ExprUnionTag(node.expr, x_srcloc=sl, x_type=typeid_ct)
 
@@ -114,19 +123,15 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
                            x_eval=eval.EvalNum(typeid, typeid_ct.base_type_kind))
         return cwast.Expr2(cwast.BINARY_EXPR_KIND.EQ, tag, val, x_srcloc=sl, x_type=bool_ct)
 
-    typeids = []
-    if dst_ct.is_union():
-        for ct in dst_ct.union_member_types():
-            if src_ct.union_contains(ct):
-                typeids.append(ct.get_original_typeid())
-    else:
-        typeids.append(dst_ct.get_original_typeid())
-
     assert len(typeids) > 0, "expected at least one typeid"
     out = MakeTypeIdTest(typeids.pop(-1), tag)
     while typeids:
+        assert IsNodeCopyableWithoutRiskOfSideEffects(
+            tag.expr), f"{tag.expr} at {node.x_srcloc}"
+        next_test = MakeTypeIdTest(
+            typeids.pop(-1), cwast.CloneNodeRecursively(tag, {}, {}))
         out = cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC,
-                          MakeTypeIdTest(typeids.pop(-1), cwast.CloneNodeRecursively(tag, {}, {})), out,  x_srcloc=sl, x_type=bool_ct)
+                          next_test, out,  x_srcloc=sl, x_type=bool_ct)
     return out
 
 
