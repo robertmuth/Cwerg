@@ -58,7 +58,8 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
   }
 }
 
-void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order, TypeCorpus* tc) {
+void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
+                          TypeCorpus* tc) {
   for (Node mod : mods_in_topo_order) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
       FunReplaceTypeOfAndTypeUnionDelta(fun);
@@ -70,6 +71,7 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order, TypeCorpu
       FunReplaceSpanCastWithSpanVal(fun, tc);
       FunSimplifyTaggedExprNarrow(fun, tc);
       FunDesugarExprIs(fun, tc);
+      FunRemoveUselessCast(fun);
     }
   }
 }
@@ -119,9 +121,8 @@ int main(int argc, const char* argv[]) {
   for (Node mod : mp.mods_in_topo_order) {
     RemoveNodesOfType(mod, NT::StmtStaticAssert);
   }
-  SanityCheckMods("after_partial_eval", mp.mods_in_topo_order,
-                  eliminated_nodes, COMPILE_STAGE::AFTER_EVAL, &tc);
-
+  SanityCheckMods("after_partial_eval", mp.mods_in_topo_order, eliminated_nodes,
+                  COMPILE_STAGE::AFTER_EVAL, &tc);
 
   PhaseInitialLowering(mp.mods_in_topo_order, &tc);
   eliminated_nodes.insert(NT::TypeOf);

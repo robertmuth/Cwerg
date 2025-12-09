@@ -575,4 +575,19 @@ void FunDesugarExprIs(Node fun, const TypeCorpus* tc) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
+void FunRemoveUselessCast(Node fun) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (node.kind() == NT::ExprAs &&
+        Node_x_type(node) == Node_x_type(Node_expr(node))) {
+      Node out = Node_expr(node);
+      NodeFreeRecursively(Node_type(node));
+      NodeFree(node);
+      return out;
+    }
+    return node;
+  };
+
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
+
 }  // namespace cwerg::fe
