@@ -26,6 +26,8 @@ extern void FunReplaceSpanCastWithSpanVal(Node fun, TypeCorpus* tc);
 
 extern bool IsNodeCopyableWithoutRiskOfSideEffects(Node node);
 
-extern Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts, bool is_lhs);
+extern Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts,
+                                                     bool is_lhs);
+extern void FunDesugarExprIs(Node fun, const TypeCorpus* tc);
 
 }  // namespace cwerg::fe

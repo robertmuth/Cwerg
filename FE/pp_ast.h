@@ -5,6 +5,6 @@
 
 namespace cwerg::fe {
 
-extern void DumpAstMods(const std::vector<Node>& mod);
+extern void DumpAstMods(const std::vector<Node>& mod, bool dump_handles);
 
 }  // namespace cwerg::fe

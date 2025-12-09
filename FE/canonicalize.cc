@@ -495,9 +495,84 @@ Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts,
       ASSERT(!is_lhs, "NYI");
       Node def_node = DefVarNew(NameNew("assign"), lhs);
       stmts->Append(def_node);
-      return  IdNodeFromDef(def_node, Node_srcloc(def_node));
+      return IdNodeFromDef(def_node, Node_srcloc(def_node));
     }
   }
+}
+
+void FunDesugarExprIs(Node fun, const TypeCorpus* tc) {
+  auto replacer = [tc](Node node, Node parent) -> Node {
+    if (node.kind() != NT::ExprIs) {
+      return node;
+    }
+    CanonType src_ct = Node_x_type(Node_expr(node));
+    CanonType dst_ct = Node_x_type(Node_type(node));
+    CanonType bool_ct = Node_x_type(node);
+    const SrcLoc& sl = Node_srcloc(node);
+
+    if (!CanonType_is_union(src_ct)) {
+      bool val = src_ct == dst_ct || (CanonType_is_union(dst_ct) &&
+                                      CanonType_union_contains(dst_ct, src_ct));
+
+      Node out = NodeNew(NT::ValNum);
+      NodeInitValNum(out, StrNew(EVAL_STR), kStrInvalid, sl, bool_ct);
+      Node_x_eval(out) = ConstNewBool(val);
+      NodeFreeRecursively(node);
+      return out;
+    }
+
+    ASSERT(!CanonType_untagged(src_ct),
+           "expected tagged union at " << Node_srcloc(node));
+    std::vector<int> typeids;
+    if (CanonType_is_union(dst_ct)) {
+      for (CanonType ct : CanonType_children(dst_ct)) {
+        if (CanonType_union_contains(src_ct, ct)) {
+          typeids.push_back(CanonType_get_original_typeid(ct));
+        }
+      }
+    } else {
+      typeids.push_back(CanonType_get_original_typeid(dst_ct));
+    }
+
+    CanonType typeid_ct = tc->get_typeid_canon_type();
+
+    Node tag = NodeNew(NT::ExprUnionTag);
+    NodeInitExprUnionTag(tag, Node_expr(node), kStrInvalid, sl, typeid_ct);
+
+    auto MakeTypeIdTest = [&sl, typeid_ct, bool_ct](int type_id,
+                                                    Node tag) -> Node {
+      Node val = NodeNew(NT::ValNum);
+      NodeInitValNum(val, StrNew(EVAL_STR), kStrInvalid, sl, typeid_ct);
+      Node_x_eval(val) =
+          ConstNewUnsigned(type_id, CanonType_base_type_kind(typeid_ct));
+      Node eq = NodeNew(NT::Expr2);
+      NodeInitExpr2(eq, BINARY_EXPR_KIND::EQ, tag, val, kStrInvalid, sl,
+                    bool_ct);
+      return eq;
+    };
+
+    ASSERT(typeids.size() > 0, "no matching typeids for ExprIs at " << sl);
+    NodeFreeRecursively(Node_type(node));
+    NodeFree(node);
+
+    Node out = MakeTypeIdTest(typeids.back(), tag);
+    typeids.pop_back();
+    while (!typeids.empty()) {
+      ASSERT(IsNodeCopyableWithoutRiskOfSideEffects(Node_expr(tag)), "");
+      std::map<Node, Node> dummy1;
+      std::map<Node, Node> dummy2;
+      Node next_test = MakeTypeIdTest(
+          typeids.back(), NodeCloneRecursively(tag, &dummy1, &dummy2));
+      typeids.pop_back();
+      Node new_out = NodeNew(NT::Expr2);
+      NodeInitExpr2(new_out, BINARY_EXPR_KIND::ORSC, next_test, out,
+                    kStrInvalid, sl, bool_ct);
+      out = new_out;
+    }
+    return out;
+  };
+
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
 }  // namespace cwerg::fe

@@ -35,6 +35,8 @@ SwitchString sw_dump_types("dump_types", "dump types after stage and stop", "");
 
 SwitchBool sw_dump_stats("dump_stats", "dump stats before exiting");
 
+SwitchBool sw_dump_handles("dump_handles", "include handles when dumping AST");
+
 void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
                      const std::set<NT>& eliminated_nodes, COMPILE_STAGE stage,
                      TypeCorpus* tc) {
@@ -51,7 +53,7 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
   }
 
   if (sw_dump_ast.Value() == phase) {
-    DumpAstMods(mods);
+    DumpAstMods(mods, sw_dump_handles.Value());
     exit(0);
   }
 }
@@ -67,6 +69,7 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order, TypeCorpu
       if (fun.kind() != NT::DefFun) continue;
       FunReplaceSpanCastWithSpanVal(fun, tc);
       FunSimplifyTaggedExprNarrow(fun, tc);
+      FunDesugarExprIs(fun, tc);
     }
   }
 }

@@ -188,11 +188,11 @@ void _EmitLine(const std::vector<std::string>& line, int indent,
 
 // forward decl
 void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
-              std::vector<int>* active_columns, bool is_last);
+              std::vector<int>* active_columns, bool is_last, bool dump_handles);
 
 void DumpList(std::string_view name, Node node, int indent,
               const std::map<Node, std::string>* labels,
-              std::vector<int>* active_columns, bool is_last) {
+              std::vector<int>* active_columns, bool is_last, bool dump_handles) {
   std::vector<std::string> line = {std::string(name)};
 
   if (node.isnull()) {
@@ -206,7 +206,7 @@ void DumpList(std::string_view name, Node node, int indent,
       if (next.isnull()) {
         active_columns->pop_back();
       }
-      DumpNode(node, indent + 2, labels, active_columns, next.isnull());
+      DumpNode(node, indent + 2, labels, active_columns, next.isnull(), dump_handles);
       node = next;
     } while (!node.isnull());
   }
@@ -275,7 +275,7 @@ std::string RenderKind(Node node) {
 }
 
 void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
-              std::vector<int>* active_columns, bool is_last) {
+              std::vector<int>* active_columns, bool is_last, bool dump_handles) {
   const NodeDesc& desc = GlobalNodeDescs[int(node.kind())];
   std::vector<std::string> line;
 
@@ -289,7 +289,11 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
   };
 
   line.push_back(std::string(EnumToString(node.kind())));
-
+  if (dump_handles) {
+    line.push_back("[");
+    line.push_back(std::to_string(node.index()));
+    line.push_back("]");
+  }
   if (desc.bool_field_bits != 0) {
     line.push_back(
         RenderFlags(Node_compressed_flags(node), desc.bool_field_bits));
@@ -390,11 +394,11 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
 
     switch (kind) {
       case NFD_KIND::NODE:
-        DumpNode(child, indent + 1, labels, active_columns, i == last_slot);
+        DumpNode(child, indent + 1, labels, active_columns, i == last_slot, dump_handles);
         break;
       case NFD_KIND::LIST:
         DumpList(std::string(EnumToString(slot)), child, indent, labels,
-                 active_columns, i == last_slot);
+                 active_columns, i == last_slot, dump_handles);
         break;
       default:
         break;
@@ -402,7 +406,7 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
   }
 }
 
-void DumpAstMods(const std::vector<Node>& mods) {
+void DumpAstMods(const std::vector<Node>& mods, bool dump_handles) {
   std::map<Node, std::string> labels;
   ExtractSymDefLabels(mods, &labels);
   ExtractTargetLabels(mods, &labels);
@@ -410,7 +414,7 @@ void DumpAstMods(const std::vector<Node>& mods) {
   for (Node mod : mods) {
     std::cout << "\n";
     active_columns.clear();
-    DumpNode(mod, -1, &labels, &active_columns, true);
+    DumpNode(mod, -1, &labels, &active_columns, true, dump_handles);
   }
 }
 
