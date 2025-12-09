@@ -105,6 +105,15 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
 
     assert not src_ct.untagged, f"{node.x_srcloc} {src_ct} {dst_ct}"
     typeid_ct = tc.get_typeid_canon_type()
+    tag = cwast.ExprUnionTag(node.expr, x_srcloc=sl, x_type=typeid_ct)
+
+    # TODO: store tag in a variable rather than retrieving/cloning it each time.
+    #       Sadly, this requires ExprStmt
+    def MakeTypeIdTest(typeid: int, tag) -> cwast.Expr2:
+        val = cwast.ValNum(eval.EVAL_STR, x_srcloc=sl, x_type=typeid_ct,
+                           x_eval=eval.EvalNum(typeid, typeid_ct.base_type_kind))
+        return cwast.Expr2(cwast.BINARY_EXPR_KIND.EQ, tag, val, x_srcloc=sl, x_type=bool_ct)
+
     typeids = []
     if dst_ct.is_union():
         for ct in dst_ct.union_member_types():
@@ -112,18 +121,12 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
                 typeids.append(ct.get_original_typeid())
     else:
         typeids.append(dst_ct.get_original_typeid())
-    typeidvals = [cwast.ValNum(eval.EVAL_STR, x_srcloc=sl,
-                               x_type=typeid_ct, x_eval=eval.EvalNum(i,
-                                                                     typeid_ct.base_type_kind)) for i in typeids]
-    # TODO: store tag in a variable rather than retrieving it each time.
-    #       Sadly, this requires ExprStmt
-    tag = cwast.ExprUnionTag(node.expr, x_srcloc=sl, x_type=typeid_ct)
-    tests = [cwast.Expr2(cwast.BINARY_EXPR_KIND.EQ, cwast.CloneNodeRecursively(tag, {}, {}), v,
-                         x_srcloc=sl, x_type=bool_ct) for v in typeidvals]
-    out = tests.pop(-1)
-    while tests:
+
+    assert len(typeids) > 0, "expected at least one typeid"
+    out = MakeTypeIdTest(typeids.pop(-1), tag)
+    while typeids:
         out = cwast.Expr2(cwast.BINARY_EXPR_KIND.ORSC,
-                          tests.pop(-1), out,  x_srcloc=sl, x_type=bool_ct)
+                          MakeTypeIdTest(typeids.pop(-1), cwast.CloneNodeRecursively(tag, {}, {})), out,  x_srcloc=sl, x_type=bool_ct)
     return out
 
 
