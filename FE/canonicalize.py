@@ -468,10 +468,7 @@ def FunReplaceExprIndex(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
 
 
 # TODO: try converting this to VisitAstRecursivelyPreAndPost
-def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]):
-
-    if isinstance(node, cwast.StmtDefer):
-        scopes[-1][1].append(node)
+def _EliminateDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]):
 
     def handle_cfg(target):
         out = []
@@ -485,6 +482,9 @@ def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]
             assert not isinstance(x, cwast.StmtDefer)
         return out
 
+    if isinstance(node, cwast.StmtDefer):
+        scopes[-1][1].append(node)
+
     if cwast.NF.TARGET_ANNOTATED in node.FLAGS:
         # inject the defer bodies just before the control flow change
         return handle_cfg(node.x_target) + [node]
@@ -493,7 +493,7 @@ def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]
         field = nfd.name
         if nfd.kind is cwast.NFK.NODE:
             child = getattr(node, field)
-            new_child = _CanonicalizeDeferRecursively(child, scopes)
+            new_child = _EliminateDeferRecursively(child, scopes)
             assert new_child is None
             if new_child:
                 assert not isinstance(new_child, list)
@@ -506,7 +506,7 @@ def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]
             new_children = []
             change = False
             for n, child in enumerate(children):
-                new_child = _CanonicalizeDeferRecursively(child, scopes)
+                new_child = _EliminateDeferRecursively(child, scopes)
                 if new_child is None:
                     new_children.append(child)
                 else:
@@ -516,7 +516,8 @@ def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]
 
             #
             if field in cwast.NEW_SCOPE_FIELDS:
-                if new_children and cwast.NF.TARGET_ANNOTATED not in children[-1].FLAGS:
+                # handle end of scope if the last statement was NOT a control flow change
+                if not new_children or cwast.NF.TARGET_ANNOTATED not in children[-1].FLAGS:
                     out = handle_cfg(scopes[-1][0])
                     if out:
                         new_children += out
@@ -532,7 +533,7 @@ def _CanonicalizeDeferRecursively(node: Any, scopes: list[tuple[Any, list[Any]]]
 
 
 def FunEliminateDefer(fun: cwast.DefFun):
-    _CanonicalizeDeferRecursively(fun, [])
+    _EliminateDeferRecursively(fun, [])
 
 
 def FunAddMissingReturnStmts(fun: cwast.DefFun):

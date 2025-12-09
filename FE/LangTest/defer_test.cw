@@ -18,6 +18,9 @@ fun foo() void:
         do store('g')
     do store('a')
     block:
+        defer:
+            do store('q')
+    block:
         do store('b')
         defer:
             do store('e')
@@ -28,7 +31,7 @@ fun foo() void:
 
 fun main(argc s32, argv ^^u8) s32:
     do foo()
-    test::AssertSliceEq#(make_span(front(gSequence), gIndex), "abcdefgh")
+    test::AssertSliceEq#(make_span(front(gSequence), gIndex), "aqbcdefgh")
     ; test end
     test::Success#()
     return 0
