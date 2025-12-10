@@ -71,6 +71,7 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
       FunReplaceSpanCastWithSpanVal(fun, tc);
       FunSimplifyTaggedExprNarrow(fun, tc);
       FunDesugarExprIs(fun, tc);
+      FunEliminateDefer(fun);
       FunRemoveUselessCast(fun);
     }
   }

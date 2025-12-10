@@ -1298,6 +1298,7 @@ class NodeChain {
   }
 
   Node First() { return first_; }
+  Node Last() { return last_; }
 };
 
 inline void MaybeReplaceAstRecursively(

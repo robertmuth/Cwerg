@@ -29,5 +29,9 @@ extern bool IsNodeCopyableWithoutRiskOfSideEffects(Node node);
 extern Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts,
                                                      bool is_lhs);
 extern void FunDesugarExprIs(Node fun, const TypeCorpus* tc);
+
 extern void FunRemoveUselessCast(Node fun);
+
+extern void FunEliminateDefer(Node fun);
+
 }  // namespace cwerg::fe

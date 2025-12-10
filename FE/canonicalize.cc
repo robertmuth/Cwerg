@@ -590,4 +590,80 @@ void FunRemoveUselessCast(Node fun) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
+struct Scope {
+  Scope(Node anode) : target(anode) {}
+  Node target;
+  std::vector<Node> defer_stmts;
+};
+
+Node EliminateDeferRecursively(Node node, std::vector<Scope>* scopes) {
+  auto handle_cfg = [scopes](Node target, NodeChain* chain) {
+    for (auto s = scopes->rbegin(); s != scopes->rend(); ++s) {
+      for (auto d = s->defer_stmts.rbegin(); d != s->defer_stmts.rend(); ++d) {
+        for (Node n = Node_body(*d); !n.isnull(); n = Node_next(n)) {
+          std::map<Node, Node> dummy1;
+          std::map<Node, Node> dummy2;
+          chain->Append(NodeCloneRecursively(n, &dummy1, &dummy2));
+        }
+      }
+      if (s->target == target) break;
+    }
+  };
+
+  if (node.kind() == NT::StmtDefer) {
+    scopes->back().defer_stmts.push_back(node);
+  }
+
+  if (NodeHasField(node, NFD_X_FIELD::target)) {
+    NodeChain chain;
+    handle_cfg(Node_x_target(node), &chain);
+    chain.Append(node);
+    return chain.First();
+  }
+
+  auto& core = gNodeCore[node];
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    Node child = core.children_node[i];
+    if (!NodeIsNode(child)) continue;
+    bool is_new_scope =
+        (i == SLOT_BODY) || (Node_kind(node) == NT::StmtIf && i == SLOT_BODY_T);
+    if (is_new_scope) {
+      scopes->emplace_back(Scope(node));
+    }
+
+    NodeChain new_children;
+    do {
+      Node next = Node_next(child);
+      Node_next(child) = kNodeInvalid;
+      Node new_child = EliminateDeferRecursively(child, scopes);
+      new_children.Append(new_child);
+      child = next;
+    } while (!child.isnull());
+
+    if (is_new_scope) {
+      Node last_child = new_children.Last();
+      const Scope& current = scopes->back();
+      if (last_child.isnull() ||
+          !NodeHasField(last_child, NFD_X_FIELD::target)) {
+        handle_cfg(current.target, &new_children);
+      }
+      for (auto d = current.defer_stmts.begin(); d != current.defer_stmts.end(); ++d) {
+        NodeFreeRecursively(*d);
+      }
+      scopes->pop_back();
+    }
+    core.children_node[i] = new_children.First();
+  }
+
+  if (node.kind() == NT::StmtDefer) {
+    return kNodeInvalid;
+  }
+  return node;
+}
+
+void FunEliminateDefer(Node fun) {
+  std::vector<Scope> scope;
+  EliminateDeferRecursively(fun, &scope);
+}
+
 }  // namespace cwerg::fe
