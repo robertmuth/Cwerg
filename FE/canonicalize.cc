@@ -500,6 +500,13 @@ Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts,
   }
 }
 
+Node MakeValNumBool(bool val, const SrcLoc& sl, CanonType ct) {
+  Node out = NodeNew(NT::ValNum);
+  NodeInitValNum(out, StrNew(EVAL_STR), kStrInvalid, sl, ct);
+  Node_x_eval(out) = ConstNewBool(val);
+  return out;
+}
+
 void FunDesugarExprIs(Node fun, const TypeCorpus* tc) {
   auto replacer = [tc](Node node, Node parent) -> Node {
     if (node.kind() != NT::ExprIs) {
@@ -513,12 +520,8 @@ void FunDesugarExprIs(Node fun, const TypeCorpus* tc) {
     if (!CanonType_is_union(src_ct)) {
       bool val = src_ct == dst_ct || (CanonType_is_union(dst_ct) &&
                                       CanonType_union_contains(dst_ct, src_ct));
-
-      Node out = NodeNew(NT::ValNum);
-      NodeInitValNum(out, StrNew(EVAL_STR), kStrInvalid, sl, bool_ct);
-      Node_x_eval(out) = ConstNewBool(val);
       NodeFreeRecursively(node);
-      return out;
+      return MakeValNumBool(val, sl, bool_ct);
     }
 
     ASSERT(!CanonType_untagged(src_ct),
@@ -647,7 +650,8 @@ Node EliminateDeferRecursively(Node node, std::vector<Scope>* scopes) {
           !NodeHasField(last_child, NFD_X_FIELD::target)) {
         handle_cfg(current.target, &new_children);
       }
-      for (auto d = current.defer_stmts.begin(); d != current.defer_stmts.end(); ++d) {
+      for (auto d = current.defer_stmts.begin(); d != current.defer_stmts.end();
+           ++d) {
         NodeFreeRecursively(*d);
       }
       scopes->pop_back();
@@ -664,6 +668,44 @@ Node EliminateDeferRecursively(Node node, std::vector<Scope>* scopes) {
 void FunEliminateDefer(Node fun) {
   std::vector<Scope> scope;
   EliminateDeferRecursively(fun, &scope);
+}
+
+bool ShouldBeBoolExpanded(Node node, Node parent) {
+  if (node.kind() != NT::Expr1 && node.kind() != NT::Expr2) {
+    return false;
+  }
+  CanonType ct = Node_x_type(node);
+  if (!CanonType_is_base_type(ct) || CanonType_base_type_kind(ct) != BASE_TYPE_KIND::BOOL) {
+    return false;
+  }
+
+  switch (parent.kind()) {
+    case NT::ExprCall:
+    case NT::StmtReturn:
+    case NT::StmtAssignment:
+    case NT::StmtCompoundAssignment:
+    case NT::DefVar:
+    case NT::DefGlobal:
+    case NT::ValPoint:
+      return true;
+    default:
+      return false;
+  }
+}
+
+void FunCanonicalizeBoolExpressionsNotUsedForConditionals(Node fun) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (!ShouldBeBoolExpanded(node, parent)) return node;
+    const SrcLoc& sl = Node_srcloc(node);
+    CanonType bool_ct = Node_x_type(node);
+
+    Node out = NodeNew(NT::Expr3);
+    NodeInitExpr3(out, node, MakeValNumBool(true, sl, bool_ct),
+                  MakeValNumBool(false, sl, bool_ct), kStrInvalid, sl, bool_ct);
+    Node_x_eval(out) = Node_x_eval(node);
+    return out;
+  };
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
 }  // namespace cwerg::fe

@@ -73,6 +73,8 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
       FunDesugarExprIs(fun, tc);
       FunEliminateDefer(fun);
       FunRemoveUselessCast(fun);
+      //
+      FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun);
     }
   }
 }

@@ -34,4 +34,6 @@ extern void FunRemoveUselessCast(Node fun);
 
 extern void FunEliminateDefer(Node fun);
 
+extern void FunCanonicalizeBoolExpressionsNotUsedForConditionals(Node fun);
+
 }  // namespace cwerg::fe
