@@ -22,6 +22,12 @@ Node CloneId(Node id) {
   return out;
 }
 
+Node MakeTypeAuto(CanonType ct, const SrcLoc& sl) {
+  Node out = NodeNew(NT::TypeAuto);
+  NodeInitTypeAuto(out, kStrInvalid, sl, ct);
+  return out;
+}
+
 void FunRemoveParentheses(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (Node_kind(node) == NT::ExprParen) {
@@ -112,8 +118,7 @@ Node RewriteExprIndex(Node node, CanonType uint_ct, TypeCorpus* tc) {
       return deref;
     } else {
       // materialize the container to avoid evaluating it twice
-      Node at = NodeNew(NT::TypeAuto);
-      NodeInitTypeAuto(at, kStrInvalid, sl, container_ct);
+      Node at = MakeTypeAuto(container_ct, sl);
       Node new_var = NodeNew(NT::DefVar);
       NodeInitDefVar(new_var, NameNew("val_span_tmp"), at, Node_container(node),
                      0, kStrInvalid, sl, container_ct);
@@ -251,9 +256,7 @@ Node MaybeMakeImplicitConversionExplicit(Node orig_node, CanonType expected_ct,
     ASSERT(CanonType_is_union(expected_ct),
            "expected union type for " << EnumToString(orig_node.kind())
                                       << " but got " << expected_ct);
-    Node sum_type = NodeNew(NT::TypeAuto);
-    NodeInitTypeAuto(sum_type, Node_comment(orig_node), Node_srcloc(orig_node),
-                     expected_ct);
+    Node sum_type = MakeTypeAuto(expected_ct, Node_srcloc(orig_node));
 
     Node widen = NodeNew(NT::ExprWiden);
     NodeInitExprWiden(widen, orig_node, sum_type, kStrInvalid,
@@ -350,16 +353,14 @@ void FunReplaceSpanCastWithSpanVal(Node fun, TypeCorpus* tc) {
 
 Node MakeTagCheck(Node union_id, CanonType ct, CanonType ct_bool,
                   const SrcLoc& sl) {
-  Node type = NodeNew(NT::TypeAuto);
-  NodeInitTypeAuto(type, kStrInvalid, sl, ct);
+  Node type = MakeTypeAuto(ct, sl);
   Node check = NodeNew(NT::ExprIs);
   NodeInitExprIs(check, union_id, type, kStrInvalid, sl, ct_bool);
   return check;
 }
 
 Node MakeUnionNarrow(Node union_id, CanonType ct, const SrcLoc& sl) {
-  Node type_expr = NodeNew(NT::TypeAuto);
-  NodeInitTypeAuto(type_expr, kStrInvalid, sl, ct);
+  Node type_expr = MakeTypeAuto(ct, sl);
   Node narrow = NodeNew(NT::ExprNarrow);
   NodeInitExprNarrow(narrow, union_id, type_expr, Mask(BF::UNCHECKED),
                      kStrInvalid, sl, ct);
@@ -462,8 +463,7 @@ bool IsNodeCopyableWithoutRiskOfSideEffects(Node node) {
 Node DefVarNew(Name name, Node init) {
   const SrcLoc& sl = Node_srcloc(init);
   CanonType ct = Node_x_type(init);
-  Node at = NodeNew(NT::TypeAuto);
-  NodeInitTypeAuto(at, kStrInvalid, sl, ct);
+  Node at = MakeTypeAuto(ct, sl);
   Node out = NodeNew(NT::DefVar);
   NodeInitDefVar(out, name, at, init, 0, kStrInvalid, sl, ct);
   return out;
@@ -675,7 +675,8 @@ bool ShouldBeBoolExpanded(Node node, Node parent) {
     return false;
   }
   CanonType ct = Node_x_type(node);
-  if (!CanonType_is_base_type(ct) || CanonType_base_type_kind(ct) != BASE_TYPE_KIND::BOOL) {
+  if (!CanonType_is_base_type(ct) ||
+      CanonType_base_type_kind(ct) != BASE_TYPE_KIND::BOOL) {
     return false;
   }
 
@@ -705,6 +706,19 @@ void FunCanonicalizeBoolExpressionsNotUsedForConditionals(Node fun) {
     Node_x_eval(out) = Node_x_eval(node);
     return out;
   };
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
+
+void FunDesugarExpr3(Node fun) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    return node;
+    #if 0
+    if (node.kind() != NT::Expr3) return node;
+    const SrcLoc& sl = Node_srcloc(node);
+    Name name_t = NameNew("expr3_t");
+#endif
+  };
+
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 

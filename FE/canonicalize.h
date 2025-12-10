@@ -36,4 +36,6 @@ extern void FunEliminateDefer(Node fun);
 
 extern void FunCanonicalizeBoolExpressionsNotUsedForConditionals(Node fun);
 
+extern void FunDesugarExpr3(Node fun);
+
 }  // namespace cwerg::fe
