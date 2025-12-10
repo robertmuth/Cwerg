@@ -1096,6 +1096,8 @@ _ARCH_MAP = {
 def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
     # for key, val in fun_sigs_with_large_args.items():
     #    print (key.name, " -> ", val.name)
+    #ct_bool = tc.get_bool_canon_type()
+    typeid_ct = tc.get_typeid_canon_type()
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             canonicalize.FunReplaceTypeOfAndTypeUnionDelta(fun)  # maybe Mod...
@@ -1109,21 +1111,19 @@ def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.Typ
 
             # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
             canonicalize_union.FunSimplifyTaggedExprNarrow(fun, tc)
-            canonicalize.FunDesugarExprIs(fun, tc)
+            canonicalize.FunDesugarExprIs(fun, typeid_ct)
             canonicalize.FunEliminateDefer(fun)
             canonicalize.FunRemoveUselessCast(fun)
+            # this creates TernaryOps
+            canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
+                    fun)
+            canonicalize.FunDesugarExpr3(fun)
+            canonicalize.FunOptimizeKnownConditionals(fun)
+            if not fun.extern:
+                    canonicalize.FunAddMissingReturnStmts(fun)
 
 
-def PhaseEarlyCleanupAndOptimization(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
-    for mod in mod_topo_order:
-        for node in mod.body_mod:
-            if isinstance(node, cwast.DefFun) and not node.extern:
-                canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
-                    node, tc)
-                canonicalize.FunCanonicalizeTernaryOp(node)
-                canonicalize.FunOptimizeKnownConditionals(node)
-                canonicalize.FunAddMissingReturnStmts(node)
-
+def PhaseOptimization(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):
@@ -1166,6 +1166,18 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
             if isinstance(fun, cwast.DefFun):
                 # Note, the inlining inside FunOptimize will invalidate id_gen
                 optimize.FunOptimize(fun)
+
+
+def _MakeModWithComplexConstants(mod_topo_order: list[cwast.DefMod]) -> cwast.DefMod:
+    constant_pool = eval.GlobalConstantPool()
+    for mod in mod_topo_order:
+        constant_pool.EliminateValStringAndValCompoundOutsideOfDefGlobal(mod)
+    mod_gen = cwast.DefMod(cwast.NAME.Make(_GENERATED_MODULE_NAME),
+                           [], [], x_srcloc=cwast.SRCLOC_GENERATED)
+    # the checker neeeds a symtab, so we add an empty one
+    mod_gen.x_symtab = symbolize.SymTab()
+    mod_gen.body_mod += constant_pool.GetDefGlobals()
+    return mod_gen
 
 
 def main() -> int:
@@ -1272,19 +1284,14 @@ def main() -> int:
                     mod_topo_order, tc,  eliminated_nodes)
 
     # This section coould probably happen AFTER the next phase
-    constant_pool = eval.GlobalConstantPool()
-    for mod in mod_topo_order:
-        constant_pool.EliminateValStringAndValCompoundOutsideOfDefGlobal(mod)
-    mod_gen = cwast.DefMod(cwast.NAME.Make(_GENERATED_MODULE_NAME),
-                           [], [], x_srcloc=cwast.SRCLOC_GENERATED)
-    # the checker neeeds a symtab, so we add an empty one
-    mod_gen.x_symtab = symbolize.SymTab()
-    mod_gen.body_mod += constant_pool.GetDefGlobals()
 
     #
     logger.info("phase: early cleanup and optimization")
-    PhaseEarlyCleanupAndOptimization(mod_topo_order, tc)
+    PhaseOptimization(mod_topo_order, tc)
     eliminated_nodes.add(cwast.Expr3)
+
+    #
+    mod_gen = _MakeModWithComplexConstants(mod_topo_order)
 
     #
     logger.info("phase: eliminate span and union")

@@ -73,30 +73,31 @@ def _ShouldBeBoolExpanded(node, parent):
     return node.x_type.is_bool() and isinstance(parent, cwast.TOP_LEVEL_EXPRESSION_NODES)
 
 
-def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+def FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun: cwast.DefFun):
     """transform a complex bool expression e into "e ? true : false"
 
     This will make it eligible for CanonicalizeTernaryOp which is the only way currently
-    to materialize boolean values
+    to materialize boolean values. All other boolean expressions are assumed to be part
+    of conditionals and are converrted directly to jumps in the IR.
      """
     def replacer(node, parent):
         if not _ShouldBeBoolExpanded(node, parent):
             return None
-        cstr_bool = tc.get_bool_canon_type()
+        ct_bool = node.x_type
         return cwast.Expr3(node,
-                           cwast.ValNum("true", x_srcloc=node.x_srcloc,
-                                        x_type=cstr_bool, x_eval=eval.VAL_TRUE),
-                           cwast.ValNum("false",
-                                        x_srcloc=node.x_srcloc, x_type=cstr_bool, x_eval=eval.VAL_FALSE),
-                           x_srcloc=node.x_srcloc, x_type=node.x_type, x_eval=node.x_eval)
+                           cwast.ValNum(eval.EVAL_STR, x_srcloc=node.x_srcloc,
+                                        x_type=ct_bool, x_eval=eval.VAL_TRUE),
+                           cwast.ValNum(eval.EVAL_STR, x_srcloc=node.x_srcloc,
+                                        x_type=ct_bool, x_eval=eval.VAL_FALSE),
+                           x_srcloc=node.x_srcloc, x_type=ct_bool, x_eval=node.x_eval)
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
+def _RewriteExprIs(node: cwast.ExprIs, typeid_ct: cwast.CanonType):
     src_ct: cwast.CanonType = node.expr.x_type
     dst_ct: cwast.CanonType = node.type.x_type
-    bool_ct = tc.get_bool_canon_type()
+    bool_ct = node.x_type
     sl = node.x_srcloc
     # if src_ct is not a tagged union ExprIs has been compile time evaluated
     if not src_ct.is_union():
@@ -113,7 +114,6 @@ def _RewriteExprIs(node: cwast.ExprIs, tc: type_corpus.TypeCorpus):
     else:
         typeids.append(dst_ct.get_original_typeid())
 
-    typeid_ct = tc.get_typeid_canon_type()
     tag = cwast.ExprUnionTag(node.expr, x_srcloc=sl, x_type=typeid_ct)
 
     # TODO: store tag in a variable rather than retrieving/cloning it each time.
@@ -144,40 +144,40 @@ def FunDesugarExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def FunCanonicalizeTernaryOp(fun: cwast.DefFun):
+def FunDesugarExpr3(fun: cwast.DefFun):
     """Convert ternary operator nodes into expr with if statements
 
     Note we could implement the ternary op as a macro but would lose the ability to do
     type inference, so instead we use this hardcoded rewrite"""
     def replacer(node, _parent):
-        if isinstance(node, cwast.Expr3):
-            sl = node.x_srcloc
-            name_t = cwast.NAME.Make("op_t")
-            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
-            def_t = cwast.DefVar(name_t,
-                                 at, node.expr_t,
-                                 x_srcloc=sl, x_type=node.x_type)
-            name_f = cwast.NAME.Make("op_f")
-            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
-            def_f = cwast.DefVar(name_f, at,
-                                 node.expr_f, x_srcloc=sl, x_type=node.x_type)
+        if not isinstance(node, cwast.Expr3):
+            return None
+        sl = node.x_srcloc
+        name_t = cwast.NAME.Make("expr3_t")
+        at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
+        def_t = cwast.DefVar(name_t,
+                                at, node.expr_t,
+                                x_srcloc=sl, x_type=node.x_type)
+        name_f = cwast.NAME.Make("expr3_f")
+        at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
+        def_f = cwast.DefVar(name_f, at,
+                                node.expr_f, x_srcloc=sl, x_type=node.x_type)
 
-            expr = cwast.ExprStmt([], x_srcloc=sl,
-                                  x_type=node.x_type, x_eval=node.x_eval)
-            expr.body = [
-                def_t,
-                def_f,
-                cwast.StmtIf(node.cond, [
-                    cwast.StmtReturn(_IdNodeFromDef(
-                        def_t, sl), x_srcloc=sl, x_target=expr)
-                ], [
-                    cwast.StmtReturn(_IdNodeFromDef(
-                        def_f, sl), x_srcloc=sl, x_target=expr)
-                ],  x_srcloc=sl)
+        expr = cwast.ExprStmt([], x_srcloc=sl,
+                                x_type=node.x_type, x_eval=node.x_eval)
+        expr.body = [
+            def_t,
+            def_f,
+            cwast.StmtIf(node.cond, [
+                cwast.StmtReturn(_IdNodeFromDef(
+                    def_t, sl), x_srcloc=sl, x_target=expr)
+            ], [
+                cwast.StmtReturn(_IdNodeFromDef(
+                    def_f, sl), x_srcloc=sl, x_target=expr)
+            ],  x_srcloc=sl)
 
-            ]
-            return expr
-        return None
+        ]
+        return expr
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 

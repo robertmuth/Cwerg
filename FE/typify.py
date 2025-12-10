@@ -318,7 +318,6 @@ def _TypifyStmt(node, tc: type_corpus.TypeCorpus,
         _TypifyStmtSeq(node.body_t, tc, tt, pm)
         _TypifyStmtSeq(node.body_f, tc, tt, pm)
 
-
     elif isinstance(node, cwast.Case):
         _TypifyExprOrType(node.cond, tc, tc.get_bool_canon_type(), pm)
         _TypifyStmtSeq(node.body, tc, tt, pm)
@@ -1107,7 +1106,8 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
         mod_name = str(mod.name)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefRec):
-                ct = tc.InsertRecType(f"{mod_name}/{node.name}", node, process_children=False)
+                ct = tc.InsertRecType(
+                    f"{mod_name}/{node.name}", node, process_children=False)
                 AnnotateNodeType(node, ct)
             elif isinstance(node, cwast.DefEnum):
                 ct = tc.InsertEnumType(f"{mod_name}/{node.name}", node)
@@ -1184,7 +1184,6 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
     # after this call, all invocations of InsertXXXType() will set thw AbiInfo
     # implicitly
     tc.SetAbiInfoForall()
-
 
 
 ############################################################
