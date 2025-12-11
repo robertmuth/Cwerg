@@ -711,12 +711,40 @@ void FunCanonicalizeBoolExpressionsNotUsedForConditionals(Node fun) {
 
 void FunDesugarExpr3(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
-    return node;
-    #if 0
     if (node.kind() != NT::Expr3) return node;
     const SrcLoc& sl = Node_srcloc(node);
-    Name name_t = NameNew("expr3_t");
-#endif
+    //
+    Node out = NodeNew(NT::ExprStmt);
+    NodeInitExprStmt(out, node, kStrInvalid, sl, Node_x_type(node));
+    Node_x_eval(out) = Node_x_eval(node);
+    //
+    Node at = MakeTypeAuto(Node_x_type(node), sl);
+    Node def_t = NodeNew(NT::DefVar);
+    NodeInitDefVar(def_t, NameNew("expr3_t"), at, Node_expr_t(node), 0,
+                   kStrInvalid, sl, Node_x_type(node));
+    Node id_t = IdNodeFromDef(def_t, sl);
+    Node_x_eval(id_t) = Node_x_eval(Node_expr_t(node));
+    Node ret_t = NodeNew(NT::StmtReturn);
+    NodeInitStmtReturn(ret_t, id_t, kStrInvalid, sl, out);
+
+    //
+    at = MakeTypeAuto(Node_x_type(node), sl);
+    Node def_f = NodeNew(NT::DefVar);
+    NodeInitDefVar(def_f, NameNew("expr3_f"), at, Node_expr_f(node), 0,
+                   kStrInvalid, sl, Node_x_type(node));
+    Node id_f = IdNodeFromDef(def_f, sl);
+    Node_x_eval(id_f) = Node_x_eval(Node_expr_f(node));
+    Node ret_f = NodeNew(NT::StmtReturn);
+    NodeInitStmtReturn(ret_f, id_f, kStrInvalid, sl, out);
+    //
+    Node if_stmt = NodeNew(NT::StmtIf);
+    NodeInitStmtIf(if_stmt, Node_cond(node), ret_t, ret_f, kStrInvalid, sl);
+    //
+    NodeFree(node);
+    Node_body(out) = def_t;
+    Node_next(def_t) = def_f;
+    Node_next(def_f) = if_stmt;
+    return out;
   };
 
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
