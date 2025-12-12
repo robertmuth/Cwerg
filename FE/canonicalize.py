@@ -394,14 +394,13 @@ def FunOptimizeKnownConditionals(fun: cwast.DefFun):
     TODO: add check for side-effects
     """
     def visit(node):
-        if isinstance(node, cwast.StmtIf):
-            if isinstance(node.cond, cwast.ValNum):
-                assert isinstance(
-                    node.cond.x_eval, eval.EvalNum), f"{node.cond.x_eval} {node.cond}"
-                if node.cond.x_eval.val:
-                    node.body_f.clear()
-                else:
-                    node.body_t.clear()
+        if isinstance(node, cwast.StmtIf) and isinstance(node.cond, cwast.ValNum):
+            assert isinstance(
+                node.cond.x_eval, eval.EvalNum), f"{node.cond.x_eval} {node.cond}"
+            if node.cond.x_eval.val:
+                node.body_f.clear()
+            else:
+                node.body_t.clear()
         return None
 
     cwast.VisitAstRecursivelyPost(fun, visit)

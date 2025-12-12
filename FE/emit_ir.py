@@ -1096,7 +1096,7 @@ _ARCH_MAP = {
 def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
     # for key, val in fun_sigs_with_large_args.items():
     #    print (key.name, " -> ", val.name)
-    #ct_bool = tc.get_bool_canon_type()
+    # ct_bool = tc.get_bool_canon_type()
     typeid_ct = tc.get_typeid_canon_type()
     for mod in mod_topo_order:
         for fun in mod.body_mod:
@@ -1116,11 +1116,11 @@ def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.Typ
             canonicalize.FunRemoveUselessCast(fun)
             # this creates TernaryOps
             canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
-                    fun)
+                fun)
             canonicalize.FunDesugarExpr3(fun)
             canonicalize.FunOptimizeKnownConditionals(fun)
             if not fun.extern:
-                    canonicalize.FunAddMissingReturnStmts(fun)
+                canonicalize.FunAddMissingReturnStmts(fun)
 
 
 def PhaseOptimization(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
