@@ -783,4 +783,34 @@ void FunAddMissingReturnStmts(Node fun) {
   }
 }
 
+void FunOptimizeKnownConditionals(Node fun) {
+  auto visitor = [](Node node, Node parent) {
+    if (node.kind() == NT::StmtIf && Node_cond(node).kind() == NT::ValNum) {
+      Const val = Node_x_eval(Node_cond(node));
+      ASSERT(val.kind() == BASE_TYPE_KIND::BOOL,
+             "unexpected cond type " << Node_cond(node) << " at "
+                                     << Node_srcloc(node));
+      if (ConstGetUnsigned(val) == 0) {
+        Node n = Node_body_t(node);
+        while (!n.isnull()) {
+          Node next = Node_next(n);
+          NodeFreeRecursively(n);
+          n = next;
+        }
+        Node_body_t(node) = kNodeInvalid;
+      } else {
+        Node n = Node_body_f(node);
+        while (!n.isnull()) {
+          Node next = Node_next(n);
+          NodeFreeRecursively(n);
+          n = next;
+        }
+        Node_body_f(node) = kNodeInvalid;
+      }
+    }
+  };
+
+  VisitAstRecursivelyPost(fun, visitor, kNodeInvalid);
+}
+
 }  // namespace cwerg::fe

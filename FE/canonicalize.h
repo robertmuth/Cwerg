@@ -40,4 +40,5 @@ extern void FunDesugarExpr3(Node fun);
 
 extern void FunAddMissingReturnStmts(Node fun);
 
+extern void FunOptimizeKnownConditionals(Node fun);
 }  // namespace cwerg::fe
