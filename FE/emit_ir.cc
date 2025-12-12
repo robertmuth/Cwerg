@@ -76,6 +76,9 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
       //
       FunCanonicalizeBoolExpressionsNotUsedForConditionals(fun);
       FunDesugarExpr3(fun);
+      if (!Node_has_flag(fun, BF::EXTERN)) {
+        FunAddMissingReturnStmts(fun);
+      }
     }
   }
 }

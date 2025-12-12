@@ -200,7 +200,7 @@ inline int NodeNumSiblings(Node node) {
   return n;
 }
 
-inline Node NodeLastSiblings(Node node) {
+inline Node NodeLastSibling(Node node) {
   if (node.isnull()) return node;
 
   while (!Node_next(node).isnull()) {

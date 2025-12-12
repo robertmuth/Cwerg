@@ -38,4 +38,6 @@ extern void FunCanonicalizeBoolExpressionsNotUsedForConditionals(Node fun);
 
 extern void FunDesugarExpr3(Node fun);
 
+extern void FunAddMissingReturnStmts(Node fun);
+
 }  // namespace cwerg::fe

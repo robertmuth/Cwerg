@@ -717,37 +717,70 @@ void FunDesugarExpr3(Node fun) {
     Node out = NodeNew(NT::ExprStmt);
     NodeInitExprStmt(out, node, kStrInvalid, sl, Node_x_type(node));
     Node_x_eval(out) = Node_x_eval(node);
-    //
-    Node at = MakeTypeAuto(Node_x_type(node), sl);
-    Node def_t = NodeNew(NT::DefVar);
-    NodeInitDefVar(def_t, NameNew("expr3_t"), at, Node_expr_t(node), 0,
-                   kStrInvalid, sl, Node_x_type(node));
-    Node id_t = IdNodeFromDef(def_t, sl);
-    Node_x_eval(id_t) = Node_x_eval(Node_expr_t(node));
-    Node ret_t = NodeNew(NT::StmtReturn);
-    NodeInitStmtReturn(ret_t, id_t, kStrInvalid, sl, out);
+    NodeChain body;
 
     //
-    at = MakeTypeAuto(Node_x_type(node), sl);
-    Node def_f = NodeNew(NT::DefVar);
-    NodeInitDefVar(def_f, NameNew("expr3_f"), at, Node_expr_f(node), 0,
-                   kStrInvalid, sl, Node_x_type(node));
-    Node id_f = IdNodeFromDef(def_f, sl);
-    Node_x_eval(id_f) = Node_x_eval(Node_expr_f(node));
+    Node val_t = Node_expr_t(node);
+    if (val_t.kind() != NT::ValNum && val_t.kind() != NT::Id) {
+      Node at = MakeTypeAuto(Node_x_type(node), sl);
+      Node def_t = NodeNew(NT::DefVar);
+      NodeInitDefVar(def_t, NameNew("expr3_t"), at, val_t, 0, kStrInvalid, sl,
+                     Node_x_type(node));
+      body.Append(def_t);
+      val_t = IdNodeFromDef(def_t, sl);
+      Node_x_eval(val_t) = Node_x_eval(Node_expr_t(node));
+    }
+    Node ret_t = NodeNew(NT::StmtReturn);
+    NodeInitStmtReturn(ret_t, val_t, kStrInvalid, sl, out);
+    //
+    Node val_f = Node_expr_f(node);
+    if (val_f.kind() != NT::ValNum && val_f.kind() != NT::Id) {
+      Node at = MakeTypeAuto(Node_x_type(node), sl);
+      Node def_f = NodeNew(NT::DefVar);
+      NodeInitDefVar(def_f, NameNew("expr3_f"), at, val_f, 0, kStrInvalid, sl,
+                     Node_x_type(node));
+      body.Append(def_f);
+      val_f = IdNodeFromDef(def_f, sl);
+      Node_x_eval(val_f) = Node_x_eval(Node_expr_f(node));
+    }
     Node ret_f = NodeNew(NT::StmtReturn);
-    NodeInitStmtReturn(ret_f, id_f, kStrInvalid, sl, out);
+    NodeInitStmtReturn(ret_f, val_f, kStrInvalid, sl, out);
     //
     Node if_stmt = NodeNew(NT::StmtIf);
     NodeInitStmtIf(if_stmt, Node_cond(node), ret_t, ret_f, kStrInvalid, sl);
+    body.Append(if_stmt);
+
     //
     NodeFree(node);
-    Node_body(out) = def_t;
-    Node_next(def_t) = def_f;
-    Node_next(def_f) = if_stmt;
+    Node_body(out) = body.First();
     return out;
   };
 
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
+
+void FunAddMissingReturnStmts(Node fun) {
+  CanonType result_ct = CanonType_result_type(Node_x_type(fun));
+  CanonType unwrapped_ct = CanonType_get_unwrapped(result_ct);
+  if (!CanonType_is_base_type(unwrapped_ct) ||
+      CanonType_base_type_kind(unwrapped_ct) != BASE_TYPE_KIND::VOID) {
+    return;
+  }
+  Node last = NodeLastSibling(Node_body(fun));
+  if (last.kind() == NT::StmtReturn) {
+    return;
+  }
+  const SrcLoc& sl = last.isnull() ? Node_srcloc(fun) : Node_srcloc(last);
+  Node void_val = NodeNew(NT::ValVoid);
+  NodeInitValVoid(void_val, kStrInvalid, sl, result_ct);
+
+  Node ret = NodeNew(NT::StmtReturn);
+  NodeInitStmtReturn(ret, void_val, kStrInvalid, sl, fun);
+  if (last.isnull()) {
+    Node_body(fun) = ret;
+  } else {
+    Node_next(last) = ret;
+  }
 }
 
 }  // namespace cwerg::fe

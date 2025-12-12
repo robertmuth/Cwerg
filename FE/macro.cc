@@ -78,7 +78,7 @@ class MacroContext {
 
 Node FixUpArgsForExprListRest(Node params, Node args) {
   int num_params = NodeNumSiblings(params);
-  Node last_param = NodeLastSiblings(params);
+  Node last_param = NodeLastSibling(params);
   if (Node_macro_param_kind(last_param) != MACRO_PARAM_KIND::EXPR_LIST_REST ||
       args.isnull()) {
     return args;
