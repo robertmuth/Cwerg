@@ -153,30 +153,33 @@ def FunDesugarExpr3(fun: cwast.DefFun):
         if not isinstance(node, cwast.Expr3):
             return None
         sl = node.x_srcloc
-        name_t = cwast.NAME.Make("expr3_t")
-        at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
-        def_t = cwast.DefVar(name_t,
-                                at, node.expr_t,
-                                x_srcloc=sl, x_type=node.x_type)
-        name_f = cwast.NAME.Make("expr3_f")
-        at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
-        def_f = cwast.DefVar(name_f, at,
-                                node.expr_f, x_srcloc=sl, x_type=node.x_type)
-
+        #
         expr = cwast.ExprStmt([], x_srcloc=sl,
-                                x_type=node.x_type, x_eval=node.x_eval)
-        expr.body = [
-            def_t,
-            def_f,
-            cwast.StmtIf(node.cond, [
-                cwast.StmtReturn(_IdNodeFromDef(
-                    def_t, sl), x_srcloc=sl, x_target=expr)
-            ], [
-                cwast.StmtReturn(_IdNodeFromDef(
-                    def_f, sl), x_srcloc=sl, x_target=expr)
-            ],  x_srcloc=sl)
+                              x_type=node.x_type, x_eval=node.x_eval)
+        #
+        val_t = node.expr_t
+        if not isinstance(val_t,  (cwast.ValNum, cwast.Id)):
+            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
+            def_t = cwast.DefVar(cwast.NAME.Make("expr3_t"), at,
+                                 node.expr_t, x_srcloc=sl, x_type=node.x_type)
+            val_t = _IdNodeFromDef(def_t, sl)
+            expr.body.append(def_t)
+        #
+        val_f = node.expr_f
+        if not isinstance(val_f,  (cwast.ValNum, cwast.Id)):
+            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
+            def_f = cwast.DefVar(cwast.NAME.Make("expr3_f"), at,
+                                 node.expr_f, x_srcloc=sl, x_type=node.x_type)
+            val_f = _IdNodeFromDef(def_f, sl)
+            expr.body.append(def_f)
 
-        ]
+        expr.body.append(
+            cwast.StmtIf(node.cond, [
+                cwast.StmtReturn(val_t, x_srcloc=sl, x_target=expr)
+            ], [
+                cwast.StmtReturn(val_f, x_srcloc=sl, x_target=expr)
+            ],  x_srcloc=sl))
+
         return expr
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
@@ -537,17 +540,19 @@ def FunEliminateDefer(fun: cwast.DefFun):
 
 
 def FunAddMissingReturnStmts(fun: cwast.DefFun):
-    result:  cwast.CanonType = fun.x_type.result_type()
-    srcloc = fun.x_srcloc
-    if not result.get_unwrapped().is_void():
+    result_ct = fun.x_type.result_type()
+    if not result_ct.get_unwrapped().is_void():
         return
+
+    sl = fun.x_srcloc
     if fun.body:
         last = fun.body[-1]
         if isinstance(last, cwast.StmtReturn):
             return
-        srcloc = last.x_srcloc
-    void_expr = cwast.ValVoid(x_srcloc=srcloc, x_type=result)
-    fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=srcloc, x_target=fun))
+        sl = last.x_srcloc
+    void_expr = cwast.ValVoid(x_srcloc=sl, x_type=result_ct)
+
+    fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=sl, x_target=fun))
 
 
 def _GetFrontTypeForVec(ct: cwast.CanonType, tc) -> cwast.CanonType:

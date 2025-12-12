@@ -851,7 +851,10 @@ def NodeCommon(cls: Any):
 
 @enum.unique
 class UnionKind(enum.Enum):
-    """Union Kind"""
+    """Union Kind
+
+    This affects how we can optimize the union representation
+    """
     INVALID = 0
     NORMAL = enum.auto()
     TAG_ONLY = enum.auto()
