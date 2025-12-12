@@ -451,5 +451,7 @@ add_executable(emit_ir.exe
         FE/canonicalize_union.cc
         FE/eval.h
         FE/eval.cc
+        FE/optimize.h
+        FE/optimize.cc
         FE/emit_ir.cc
 )

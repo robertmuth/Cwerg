@@ -14,6 +14,7 @@
 #include "FE/lexer.h"
 #include "FE/macro.h"
 #include "FE/mod_pool.h"
+#include "FE/optimize.h"
 #include "FE/parse.h"
 #include "FE/pp.h"
 #include "FE/pp_ast.h"
@@ -84,6 +85,17 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
   }
 }
 
+void PhaseOptimization(const std::vector<Node>& mods_in_topo_order,
+                       TypeCorpus* tc) {
+  for (Node mod : mods_in_topo_order) {
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      if (fun.kind() == NT::DefFun) {
+        FunOptimize(fun);
+      }
+    }
+  }
+}
+
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
   std::ios_base::sync_with_stdio(true);
@@ -133,10 +145,22 @@ int main(int argc, const char* argv[]) {
                   COMPILE_STAGE::AFTER_EVAL, &tc);
 
   PhaseInitialLowering(mp.mods_in_topo_order, &tc);
+  eliminated_nodes.insert(NT::ExprIndex);
+  eliminated_nodes.insert(NT::ExprIs);
+  eliminated_nodes.insert(NT::ExprOffsetof);
+  eliminated_nodes.insert(NT::ExprSizeof);
+  eliminated_nodes.insert(NT::ExprTypeId);
+  eliminated_nodes.insert(NT::StmtDefer);
   eliminated_nodes.insert(NT::TypeOf);
   eliminated_nodes.insert(NT::TypeUnionDelta);
+
   SanityCheckMods("after_initial_lowering", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
+
+  PhaseOptimization(mp.mods_in_topo_order, &tc);
+  SanityCheckMods("after_optimization", mp.mods_in_topo_order, eliminated_nodes,
+                  COMPILE_STAGE::AFTER_DESUGAR, &tc);
+
   //
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files

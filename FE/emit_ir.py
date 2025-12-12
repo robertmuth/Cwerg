@@ -1271,12 +1271,12 @@ def main() -> int:
     #
     logger.info("phase: initial lowering")
     PhaseInitialLowering(mod_topo_order, tc)
-    eliminated_nodes.update([cwast.ExprTypeId,
-                             cwast.ExprSizeof,
-                             cwast.ExprOffsetof,
-                             cwast.ExprIndex,
-                             cwast.StmtDefer,
+    eliminated_nodes.update([cwast.ExprIndex,
                              cwast.ExprIs,
+                             cwast.ExprOffsetof,
+                             cwast.ExprSizeof,
+                             cwast.ExprTypeId,
+                             cwast.StmtDefer,
                              cwast.TypeOf,
                              cwast.TypeUnionDelta])
     SanityCheckMods("after_initial_lowering", checker.COMPILE_STAGE.AFTER_DESUGAR,
@@ -1289,6 +1289,9 @@ def main() -> int:
     logger.info("phase: early cleanup and optimization")
     PhaseOptimization(mod_topo_order, tc)
     eliminated_nodes.add(cwast.Expr3)
+
+    SanityCheckMods("after_optimization", checker.COMPILE_STAGE.AFTER_DESUGAR,
+                    args, mod_topo_order, tc,  eliminated_nodes)
 
     #
     mod_gen = _MakeModWithComplexConstants(mod_topo_order)
