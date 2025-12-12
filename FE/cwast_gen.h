@@ -1376,8 +1376,12 @@ inline Node NodeCloneBasics(Node node) {
 // Note:
 // * Node_next(result) will be set to kNodeInvalid
 // * symbol_map/target_map may be updated
-Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
-                          std::map<Node, Node>* target_map);
+extern Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
+                                 std::map<Node, Node>* target_map);
+
+extern void UpdateSymbolAndTargetLinks(Node node,
+                                       const std::map<Node, Node>* symbol_map,
+                                       const std::map<Node, Node>* target_map);
 
 // TODO: move this to a helper lib
 struct CompilerError : public std::ostream, private std::streambuf {

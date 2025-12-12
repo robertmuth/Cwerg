@@ -1144,6 +1144,28 @@ Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
   return clone;
 }
 
+
+void UpdateSymbolAndTargetLinks(Node node,
+                                const std::map<Node, Node>* symbol_map,
+                                const std::map<Node, Node>* target_map) {
+  auto visitor = [symbol_map, target_map](Node node, Node parent) -> bool {
+    switch (node.kind()) {
+      case NT::Id:
+        Node_x_symbol(node) = GetWithDefault(*symbol_map, Node_x_symbol(node));
+        break;
+      case NT::StmtBreak:
+      case NT::StmtContinue:
+      case NT::StmtReturn:
+        Node_x_target(node) = GetWithDefault(*target_map, Node_x_target(node));
+        break;
+      default:
+        break;
+    }
+    return false;
+  };
+  VisitAstRecursivelyPre(node, visitor, kNodeInvalid);
+}
+
 std::string ExpandStringConstant(Str s) {
   ASSERT(false, "NYI");
   std::string_view payload = StrData(s);
