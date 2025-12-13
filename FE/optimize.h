@@ -1,3 +1,5 @@
+#pragma once
+
 #include "FE/cwast_gen.h"
 namespace cwerg::fe {
 

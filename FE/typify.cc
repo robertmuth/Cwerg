@@ -929,14 +929,14 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprAs:
         if (!IsCompatibleTypeForAs(Node_x_type(Node_expr(node)),
                                    Node_x_type(node))) {
-          CompilerError(Node_srcloc(node)) << "bad cast";
+          CompilerError(Node_srcloc(node)) << "bad ExprAs conversion " << Node_x_type(node) << " <- " << Node_x_type(Node_expr(node));
         }
         return CheckTypeIs(Node_type(node), Node_x_type(node));
 
       case NT::ExprBitCast:
         if (!IsCompatibleTypeForBitcast(Node_x_type(node),
                                         Node_x_type(Node_expr(node)))) {
-          CompilerError(Node_srcloc(node)) << "bad cast";
+          CompilerError(Node_srcloc(node)) << "bad ExprBitCast conversion " << Node_x_type(node) << " <- " << Node_x_type(Node_expr(node));
         }
         return CheckTypeIs(Node_type(node), Node_x_type(node));
 
