@@ -70,6 +70,9 @@ def FunPeepholeOpts(fun: cwast.DefFun):
         if isinstance(node, cwast.ExprDeref) and isinstance(node.expr, cwast.ExprAddrOf):
             stats.IncCounter("Peephole", "DerefAddrOf", 1)
             return node.expr.expr_lhs
+        if isinstance(node, cwast.ExprAddrOf) and isinstance(node.expr_lhs, cwast.ExprDeref):
+            stats.IncCounter("Peephole", "AddrOfDeref", 1)
+            return node.expr_lhs.expr
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replace)
@@ -185,6 +188,7 @@ def FunRemoveSimpleExprStmts(fun: cwast.DefFun):
     def replacer(node: Any):
         if isinstance(node, cwast.StmtReturn) and isinstance(node.expr_ret, cwast.ExprStmt):
             target_map = {node.expr_ret: node.x_target}
+            # TODO: this should specialized to the case updating a single x_target
             cwast.UpdateSymbolAndTargetLinks(node.expr_ret, {}, target_map)
             stats.IncCounter("Removed", "ExprStmt.1", 1)
             return node.expr_ret.body

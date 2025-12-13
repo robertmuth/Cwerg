@@ -3116,22 +3116,14 @@ def CloneNodeRecursively(node, symbol_map, target_map):
 
 def UpdateSymbolAndTargetLinks(node, symbol_map, target_map):
     """Similar to CloneNodeRecursively if you do not need to clone but can update the AST in-place"""
-    if NF.SYMBOL_ANNOTATED in node.FLAGS:
-        node.x_symbol = symbol_map.get(node.x_symbol, node.x_symbol)
-    if NF.TARGET_ANNOTATED in node.FLAGS:
-        old_target = node.x_target
-        new_target = target_map.get(old_target, old_target)
-        node.x_target = new_target
+    def visitor(node):
+        nonlocal symbol_map, target_map
+        if NF.SYMBOL_ANNOTATED in node.FLAGS:
+            node.x_symbol = symbol_map.get(node.x_symbol, node.x_symbol)
+        if NF.TARGET_ANNOTATED in node.FLAGS:
+            node.x_target = target_map.get(node.x_target, node.x_target)
 
-    for nfd in node.__class__.NODE_FIELDS:
-        f = nfd.name
-        if nfd.kind is NFK.NODE:
-            UpdateSymbolAndTargetLinks(
-                getattr(node, f), symbol_map, target_map)
-        else:
-            for cc in getattr(node, f):
-                UpdateSymbolAndTargetLinks(cc, symbol_map, target_map)
-    return node
+    VisitAstRecursively(node, visitor)
 
 
 def NumberOfNodes(node) -> int:
@@ -3401,6 +3393,7 @@ def _ComputeRemainingSlotsForFields() -> None:
                     assert False, f"slot clash for {field} in {cls.__name__} start at {pos}"
             slot += 1
 
+
 _KIND_TO_HANDLE = {
     NFK.NODE: "Node",
     NFK.LIST: "Node",
@@ -3619,13 +3612,15 @@ def EnumStringConversions(fout: Any):
     #
     name_vals = cgen.NameValuesLower(BASE_TYPE_KIND)
     render_str_to_enum("BASE_TYPE_KIND_LOWER", name_vals)
-    cgen.RenderEnumToStringMap(name_vals, "BASE_TYPE_KIND_LOWER_ToStringMap", fout)
+    cgen.RenderEnumToStringMap(
+        name_vals, "BASE_TYPE_KIND_LOWER_ToStringMap", fout)
     cgen.RenderEnumToStringFun("BASE_TYPE_KIND", "EnumToString_BASE_TYPE_KIND_LOWER",
                                "BASE_TYPE_KIND_LOWER_ToStringMap", fout)
 
     # Three Variants for BINARY_EXPR_KIND"
     #
-    render_enum_to_str(BINARY_EXPR_KIND.__name__, cgen.NameValues(BINARY_EXPR_KIND))
+    render_enum_to_str(BINARY_EXPR_KIND.__name__,
+                       cgen.NameValues(BINARY_EXPR_KIND))
     #
     name_vals = [(k, v.value) for k, v in ASSIGNMENT_SHORTCUT.items()]
     render_str_to_enum("ASSIGNMENT_OP", name_vals)
@@ -3640,14 +3635,16 @@ def EnumStringConversions(fout: Any):
                                "BINARY_EXPR_OP_ToStringMap", fout)
     # Two Variants of POINTER_EXPR_KIND
     #
-    render_enum_to_str(POINTER_EXPR_KIND.__name__, cgen.NameValues(POINTER_EXPR_KIND))
+    render_enum_to_str(POINTER_EXPR_KIND.__name__,
+                       cgen.NameValues(POINTER_EXPR_KIND))
     #
     name_vals = [(k, v.value) for k, v in POINTER_EXPR_SHORTCUT.items()]
     cgen.RenderEnumToStringMap(name_vals, "POINTER_EXPR_OP_ToStringMap", fout)
     cgen.RenderEnumToStringFun("POINTER_EXPR_KIND", "EnumToString_POINTER_EXPR_OP",
                                "POINTER_EXPR_OP_ToStringMap", fout)
     #
-    render_enum_to_str(UNARY_EXPR_KIND.__name__, cgen.NameValues(UNARY_EXPR_KIND))
+    render_enum_to_str(UNARY_EXPR_KIND.__name__,
+                       cgen.NameValues(UNARY_EXPR_KIND))
     render_enum_to_str("NT",  _NameValuesForNT())
     render_enum_to_str("NFD_SLOT",  _NameValuesForNFD_SLOT())
 

@@ -2,6 +2,27 @@
 
 namespace cwerg::fe {
 
+void FunPeepholeOpts(Node fun) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (node.kind() == NT::ExprDeref &&
+        Node_expr(node).kind() == NT::ExprAddrOf) {
+      Node out = Node_expr(Node_expr(node));
+      NodeFree(Node_expr(node));
+      NodeFree(node);
+      return out;
+    }
+    if (node.kind() == NT::ExprAddrOf &&
+        Node_expr_lhs(node).kind() == NT::ExprDeref) {
+      Node out = Node_expr_lhs(Node_expr_lhs(node));
+      NodeFree(Node_expr_lhs(node));
+      NodeFree(node);
+      return out;
+    }
+    return node;
+  };
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
+
 void FunRemoveSimpleExprStmts(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (node.kind() == NT::StmtReturn &&
@@ -33,6 +54,9 @@ void FunRemoveSimpleExprStmts(Node fun) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
-void FunOptimize(Node fun) { FunRemoveSimpleExprStmts(fun); }
+void FunOptimize(Node fun) {
+  FunPeepholeOpts(fun);
+  FunRemoveSimpleExprStmts(fun);
+}
 
 }  // namespace cwerg::fe
