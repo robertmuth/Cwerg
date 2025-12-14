@@ -1144,7 +1144,6 @@ Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
   return clone;
 }
 
-
 void UpdateSymbolAndTargetLinks(Node node,
                                 const std::map<Node, Node>* symbol_map,
                                 const std::map<Node, Node>* target_map) {
@@ -1232,6 +1231,14 @@ SizeOrDim BaseTypeKindByteSize(BASE_TYPE_KIND kind) {
   int x = (int(kind) & 0xf) - 1;
   ASSERT(0 <= x && x <= bztab.size(), "");
   return SizeOrDim(bztab[x]);
+}
+
+int NumberOfNodes(Node n) {
+  int count = 0;
+
+  VisitAstRecursivelyPost(
+      n, [&count](Node node, Node parent) { ++count; }, kNodeInvalid);
+  return count;
 }
 
 }  // namespace cwerg::fe

@@ -3,9 +3,71 @@
 #include <map>
 #include <set>
 
+#include "FE/canonicalize.h"
+
 namespace cwerg::fe {
 
-void FunInlineSmallFuns(Node fun) {}
+constexpr int INLINE_NODE_CUT_OFF = 20;
+
+Node MakeExprStmtForCall(Node call) {
+  Node callee = Node_callee(call);
+  Node fun_def = Node_x_symbol(callee);
+  ASSERT(fun_def.kind() == NT::DefFun, "expected DefFun, got " << fun_def);
+  Node out = NodeNew(NT::ExprStmt);
+  NodeInitExprStmt(out, kNodeInvalid, kStrInvalid, Node_srcloc(call),
+                   Node_x_type(call));
+  NodeChain body;
+  Node_body(out) = body.First();
+  //
+  std::map<Node, Node> symbol_map;
+  Node arg = Node_args(call);
+  for (Node param = Node_params(fun_def); !param.isnull();
+       param = Node_next(param)) {
+    const SrcLoc& sl = Node_srcloc(arg);
+    Node at = MakeTypeAuto(Node_x_type(Node_type(param)), sl);
+    Node dv = NodeNew(NT::DefVar);
+    NodeInitDefVar(dv, NameNew("inl_arg"), at, arg, 0, kStrInvalid, sl,
+                   Node_x_type(at));
+
+    Node tmp = Node_next(arg);
+    Node_next(arg) = kNodeInvalid;
+    arg = tmp;
+    symbol_map[param] = dv;
+    body.Append(dv);
+  }
+  //
+  std::map<Node, Node> target_map;
+  target_map[fun_def] = out;
+  for (Node n = Node_body(fun_def); !n.isnull(); n = Node_next(n)) {
+    Node c = NodeCloneRecursively(n, &symbol_map, &target_map);
+    body.Append(c);
+  }
+  Node_body(out) = body.First();
+  NodeFreeRecursively(Node_callee(call));
+  NodeFree(call);
+  return out;
+}
+
+void FunInlineSmallFuns(Node fun) {
+  auto replacer = [fun](Node node, Node parent) -> Node {
+    if (node.kind() != NT::ExprCall) return node;
+    Node callee = Node_callee(node);
+    if (callee.kind() != NT::Id) return node;
+    Node fun_def = Node_x_symbol(callee);
+    if (fun_def.kind() != NT::DefFun) return node;
+    if (fun_def == fun) return node;
+    if (Node_has_flag(fun_def, BF::EXTERN)) return node;
+    int num_node = 0;
+    for (Node n = Node_body(fun_def); !n.isnull(); n = Node_next(n)) {
+      num_node += NumberOfNodes(n);
+    }
+
+    if (num_node > INLINE_NODE_CUT_OFF) return node;
+
+    return MakeExprStmtForCall(node);
+  };
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
 
 bool IsConstantSymbol(Node sym) {
   switch (Node_kind(sym)) {
@@ -183,7 +245,7 @@ void FunRemoveSimpleExprStmts(Node fun) {
 }
 
 void FunOptimize(Node fun) {
-  // FunInlineSmallFuns(fun);
+  FunInlineSmallFuns(fun);
   FunCopyPropagation(fun);
   // FunRemoveUnusedDefVar(fun);
   FunPeepholeOpts(fun);

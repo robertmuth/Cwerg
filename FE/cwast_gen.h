@@ -200,6 +200,8 @@ inline int NodeNumSiblings(Node node) {
   return n;
 }
 
+extern int NumberOfNodes(Node n);
+
 inline Node NodeLastSibling(Node node) {
   if (node.isnull()) return node;
 
