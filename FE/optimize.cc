@@ -1,8 +1,59 @@
 #include "FE/optimize.h"
 
+#include <map>
 #include <set>
 
 namespace cwerg::fe {
+
+void FunInlineSmallFuns(Node fun) {}
+
+bool IsConstantSymbol(Node sym) {
+  switch (Node_kind(sym)) {
+    case NT::DefFun:
+    case NT::FunParam:
+      return true;
+    case NT::DefVar:
+    case NT::DefGlobal:
+      return !Node_has_flag(sym, BF::MUT);
+    default:
+      return false;
+  }
+}
+
+void FunCopyPropagation(Node fun) {
+  std::map<Node, Node> replacements;
+  auto visitor = [&replacements](Node node) {
+    if (node.kind() != NT::DefVar || Node_has_flag(node, BF::MUT) ||
+        Node_initial_or_undef_or_auto(node).kind() != NT::Id) {
+      return;
+    }
+    Node init_id = Node_initial_or_undef_or_auto(node);
+    Node sym = Node_x_symbol(init_id);
+    if (!IsConstantSymbol(sym)) {
+      return;
+    }
+    if (Node_has_flag(node, BF::REF) &&
+        (sym.kind() == NT::DefVar || sym.kind() == NT::DefGlobal) &&
+        !Node_has_flag(sym, BF::REF)) {
+      return;
+    }
+    replacements[node] = sym;
+  };
+  VisitAstRecursivelyPost(fun, visitor);
+
+  auto updater = [&replacements](Node node) {
+    if (node.kind() != NT::Id) return;
+    auto it = replacements.find(Node_x_symbol(node));
+    if (it != replacements.end()) {
+      Node r = it->second;
+      Node_name(node) = Node_name(r);
+      Node_x_symbol(node) = r;
+      Node_x_type(node) = Node_x_type(r);
+      // std::cout << ">>>>>> PROPAGATE " << r << "  to " << node << "\n";
+    }
+  };
+  VisitAstRecursivelyPost(fun, updater);
+}
 
 bool MayHaveSideEffects(Node n) {
   switch (Node_kind(n)) {
@@ -132,7 +183,9 @@ void FunRemoveSimpleExprStmts(Node fun) {
 }
 
 void FunOptimize(Node fun) {
-  FunRemoveUnusedDefVar(fun);
+  // FunInlineSmallFuns(fun);
+  FunCopyPropagation(fun);
+  // FunRemoveUnusedDefVar(fun);
   FunPeepholeOpts(fun);
   FunRemoveSimpleExprStmts(fun);
 }
