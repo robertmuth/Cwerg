@@ -82,7 +82,6 @@ void FunRemoveUnusedDefVar(Node fun) {
 
 void FunPeepholeOpts(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
-#if 1
     if (node.kind() == NT::ExprDeref &&
         Node_expr(node).kind() == NT::ExprAddrOf) {
       Node out = Node_expr_lhs(Node_expr(node));
@@ -90,8 +89,6 @@ void FunPeepholeOpts(Node fun) {
       NodeFree(node);
       return out;
     }
-#endif
-#if 0
     if (node.kind() == NT::ExprAddrOf &&
         Node_expr_lhs(node).kind() == NT::ExprDeref) {
       Node out = Node_expr(Node_expr_lhs(node));
@@ -99,7 +96,6 @@ void FunPeepholeOpts(Node fun) {
       NodeFree(node);
       return out;
     }
-#endif
     return node;
   };
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
@@ -137,7 +133,7 @@ void FunRemoveSimpleExprStmts(Node fun) {
 
 void FunOptimize(Node fun) {
   FunRemoveUnusedDefVar(fun);
-  // FunPeepholeOpts(fun);
+  FunPeepholeOpts(fun);
   FunRemoveSimpleExprStmts(fun);
 }
 

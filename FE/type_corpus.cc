@@ -359,6 +359,9 @@ CanonType TypeCorpus::Insert(CanonType ct) {
   ASSERT(corpus_.find(CanonType_name(ct)) == corpus_.end(),
          "Duplicate type " << CanonType_name(ct));
   corpus_[CanonType_name(ct)] = ct;
+  if (!initial_typing_) {
+    SetAbiInfoRecursively(ct, arch_config_);
+  }
   CanonType_typeid(ct) = typeid_curr_;
   ++typeid_curr_;
   corpus_in_order_.push_back(ct);
@@ -483,7 +486,8 @@ CanonType TypeCorpus::InsertUnionType(
   }
 
   std::vector<CanonType> components_sorted(unique.begin(), unique.end());
-  Name name = MakeCanonTypeName(untagged ? "sum_untagged" : "sum", components_sorted);
+  Name name =
+      MakeCanonTypeName(untagged ? "sum_untagged" : "sum", components_sorted);
   auto it = corpus_.find(name);
   if (it != corpus_.end()) return it->second;
   CanonType out = CanonTypeNewUnionType(name, untagged, components_sorted);
@@ -588,9 +592,14 @@ bool IsCompatibleTypeForAs(CanonType src, CanonType dst) {
 }
 
 bool IsCompatibleTypeForBitcast(CanonType src, CanonType dst) {
-  if (CanonType_kind(src) != NT::TypeBase && CanonType_kind(src) != NT::TypePtr)
+  CanonType src_unwrapped = CanonType_get_unwrapped(src);
+  CanonType dst_unwrapped = CanonType_get_unwrapped(dst);
+
+  if (CanonType_kind(src_unwrapped) != NT::TypeBase &&
+      CanonType_kind(src_unwrapped) != NT::TypePtr)
     return false;
-  if (CanonType_kind(dst) != NT::TypeBase && CanonType_kind(dst) != NT::TypePtr)
+  if (CanonType_kind(dst_unwrapped) != NT::TypeBase &&
+      CanonType_kind(dst_unwrapped) != NT::TypePtr)
     return false;
   return CanonType_size(src) == CanonType_size(dst);
 }
