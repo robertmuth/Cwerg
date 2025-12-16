@@ -59,6 +59,8 @@ class EvalSymAddr(EvalBase):
 
     @override
     def render(self, label_map: dict[Any, str]) -> str:
+        if self.sym not in label_map:
+            return f"EvalSymAddr[DANGLING: {self.sym}]"
         return f"EvalSymAddr[{label_map[self.sym]}]"
 
     def __str__(self):

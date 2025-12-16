@@ -925,7 +925,11 @@ extern std::string to_string(Const c,
       ss << c;
       break;
     case BASE_TYPE_KIND::SYM_ADDR:
-      ss << "EvalSymAddr[" << labels->at(ConstGetSymbol(c)) << "]";
+      if (labels->contains(ConstGetSymbol(c))) {
+        ss << "EvalSymAddr[" << labels->at(ConstGetSymbol(c)) << "]";
+      } else {
+        ss << "EvalSymAddr[DANGLING:" << Node_name(ConstGetSymbol(c)) << "]";
+      }
       break;
 
     case BASE_TYPE_KIND::FUN_ADDR:
