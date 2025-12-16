@@ -1357,9 +1357,10 @@ inline void MaybeReplaceAstRecursivelyPost(
   // EnumToString(Node_kind(node)) << "\n";
 }
 
-inline Node GetWithDefault(const std::map<Node, Node>& m, Node node) {
-  auto it = m.find(node);
-  return (it == m.end()) ? node : it->second;
+template <typename K, typename V>
+V GetWithDefault(const std::map<K, V>& m, const K& key, const V& default_val) {
+  auto it = m.find(key);
+  return (it == m.end()) ? default_val : it->second;
 }
 
 void RemoveNodesOfType(Node node, NT kind);
@@ -1444,8 +1445,8 @@ inline std::ostream& operator<<(std::ostream& os, Node node) {
     os << "@NULL@";
   } else {
     ASSERT(node.kind() == Node_kind(node),
-           "mismatched node " << int(node.kind()) << " vs "
-                              << EnumToString(Node_kind(node)));
+           "mismatched node " << node.index() << ": " << int(node.kind())
+                              << " vs " << EnumToString(Node_kind(node)));
     os << EnumToString(node.kind()) << "(" << node.index() << ")";
   }
   return os;

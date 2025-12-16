@@ -1098,6 +1098,10 @@ void RemoveNodesOfType(Node node, NT kind) {
   MaybeReplaceAstRecursively(node, replacer);
 }
 
+Node Translate(const std::map<Node, Node>* xmap, Node node) {
+  return GetWithDefault(*xmap, node, node);
+}
+
 Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
                           std::map<Node, Node>* target_map) {
   Node clone = NodeCloneBasics(node);
@@ -1111,12 +1115,12 @@ Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
       (*target_map)[node] = clone;
       break;
     case NT::Id:
-      Node_x_symbol(clone) = GetWithDefault(*symbol_map, Node_x_symbol(node));
+      Node_x_symbol(clone) = Translate(symbol_map, Node_x_symbol(node));
       break;
     case NT::StmtBreak:
     case NT::StmtContinue:
     case NT::StmtReturn:
-      Node_x_target(clone) = GetWithDefault(*target_map, Node_x_target(node));
+      Node_x_target(clone) = Translate(target_map, Node_x_target(node));
       break;
     default:
       break;
@@ -1150,12 +1154,12 @@ void UpdateSymbolAndTargetLinks(Node node,
   auto visitor = [symbol_map, target_map](Node node, Node parent) -> bool {
     switch (node.kind()) {
       case NT::Id:
-        Node_x_symbol(node) = GetWithDefault(*symbol_map, Node_x_symbol(node));
+        Node_x_symbol(node) = Translate(symbol_map, Node_x_symbol(node));
         break;
       case NT::StmtBreak:
       case NT::StmtContinue:
       case NT::StmtReturn:
-        Node_x_target(node) = GetWithDefault(*target_map, Node_x_target(node));
+        Node_x_target(node) = Translate(target_map, Node_x_target(node));
         break;
       default:
         break;

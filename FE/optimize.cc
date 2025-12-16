@@ -4,6 +4,7 @@
 #include <set>
 
 #include "FE/canonicalize.h"
+#include "FE/eval.h"
 
 namespace cwerg::fe {
 
@@ -94,6 +95,7 @@ void FunCopyPropagation(Node fun) {
     if (!IsConstantSymbol(sym)) {
       return;
     }
+
     if (Node_has_flag(node, BF::REF) &&
         (sym.kind() == NT::DefVar || sym.kind() == NT::DefGlobal) &&
         !Node_has_flag(sym, BF::REF)) {
@@ -104,15 +106,23 @@ void FunCopyPropagation(Node fun) {
   VisitAstRecursivelyPost(fun, visitor);
 
   auto updater = [&replacements](Node node) {
-    if (node.kind() != NT::Id) return;
-    auto it = replacements.find(Node_x_symbol(node));
-    if (it != replacements.end()) {
-      Node r = it->second;
-      Node_name(node) = Node_name(r);
-      Node_x_symbol(node) = r;
-      Node_x_type(node) = Node_x_type(r);
-      // std::cout << ">>>>>> PROPAGATE " << r << "  to " << node << "\n";
+    // TODO: fragile, relies on all nodes having x_eval
+    Const val = Node_x_eval(node);
+    if (val.kind() == BASE_TYPE_KIND::SYM_ADDR) {
+      Node new_sym = GetWithDefault(replacements, ConstGetSymbol(val), kNodeInvalid);
+      if (!new_sym.isnull()) {
+        Node_x_eval(node) = ConstNewSymAddr(new_sym);
+      }
     }
+    if (node.kind() == NT::Id) {
+      Node new_sym = GetWithDefault(replacements, Node_x_symbol(node), kNodeInvalid);
+      if (!new_sym.isnull()) {
+        Node_name(node) = Node_name(new_sym);
+        Node_x_symbol(node) = new_sym;
+        Node_x_type(node) = Node_x_type(new_sym);
+      }
+    }
+    // std::cout << ">>>>>> PROPAGATE " << r << "  to " << node << "\n";
   };
   VisitAstRecursivelyPost(fun, updater);
 }
@@ -247,7 +257,7 @@ void FunRemoveSimpleExprStmts(Node fun) {
 void FunOptimize(Node fun) {
   FunInlineSmallFuns(fun);
   FunCopyPropagation(fun);
-  // FunRemoveUnusedDefVar(fun);
+  FunRemoveUnusedDefVar(fun);
   FunPeepholeOpts(fun);
   FunRemoveSimpleExprStmts(fun);
 }

@@ -2,6 +2,7 @@ from typing import Any
 from FE import cwast
 from FE import stats
 
+from FE import eval
 
 def _IsConstantSymbol(sym) -> bool:
     if isinstance(sym, cwast.DefFun):
@@ -18,19 +19,21 @@ def MayHaveSideEffects(n: Any):
     # we could try harder but it is probably not worth it.
     if isinstance(n, (cwast.ExprCall, cwast.ExprStmt)):
         return True
-    elif isinstance(n, (cwast.Id, cwast.ValAuto, cwast.ValUndef, cwast.ValNum)):
+    elif isinstance(n, (cwast.Id, cwast.ValAuto, cwast.ValUndef, cwast.ValNum, cwast.ValVoid)):
         return False
     elif isinstance(n, (cwast.ExprAddrOf)):
         return MayHaveSideEffects(n.expr_lhs)
-    elif isinstance(n, (cwast.ExprDeref, cwast.ExprAs, cwast.ExprBitCast,
-                        cwast.ExprWiden, cwast.ExprNarrow, cwast.ExprUnionUntagged)):
-        return MayHaveSideEffects(n.expr)
-    elif isinstance(n, (cwast.ExprFront, cwast.ExprField, cwast.ExprLen)):
-        return MayHaveSideEffects(n.container)
-    elif isinstance(n, (cwast.Expr2)):
-        return MayHaveSideEffects(n.expr1) or MayHaveSideEffects(n.expr2)
     elif isinstance(n, (cwast.ExprPointer)):
         return MayHaveSideEffects(n.expr1) or MayHaveSideEffects(n.expr2) or MayHaveSideEffects(n.expr_bound_or_undef)
+    elif isinstance(n, (cwast.ExprFront, cwast.ExprField, cwast.ExprLen)):
+        return MayHaveSideEffects(n.container)
+    elif isinstance(n, (cwast.Expr1, cwast.ExprDeref, cwast.ExprAs, cwast.ExprBitCast,
+                        cwast.ExprWiden, cwast.ExprNarrow, cwast.ExprUnionUntagged, cwast.ExprUnwrap)):
+        return MayHaveSideEffects(n.expr)
+    elif isinstance(n, (cwast.Expr2)):
+        return MayHaveSideEffects(n.expr1) or MayHaveSideEffects(n.expr2)
+    elif isinstance(n, (cwast.Expr3)):
+        return MayHaveSideEffects(n.cond) or MayHaveSideEffects(n.expr1) or MayHaveSideEffects(n.expr2)
     elif isinstance(n, (cwast.ValCompound)):
         for item in n.inits:
             if MayHaveSideEffects(item.point_or_undef) or MayHaveSideEffects(item.value_or_undef):
@@ -79,20 +82,25 @@ def FunPeepholeOpts(fun: cwast.DefFun):
 
 
 def FunCopyPropagation(fun: cwast.DefFun):
-    """ """
+    """Propagate copies of constant Id Nodes"""
     replacements: dict[Any, Any] = {}
 
     def visit(node: Any):
         nonlocal replacements
         if not isinstance(node, cwast.DefVar) or node.mut or not isinstance(node.initial_or_undef_or_auto, cwast.Id):
-            return None
-        id_node: cwast.Id = node.initial_or_undef_or_auto
-        sym = id_node.x_symbol
+            return
+        init_id: cwast.Id = node.initial_or_undef_or_auto
+        sym = init_id.x_symbol
         if not _IsConstantSymbol(sym):
-            return None
-        if isinstance(node, (cwast.DefVar, cwast.DefGlobal)) and node.ref:
-            if not sym.ref:
-                return None
+            return
+        # Do not migrate a non-ref to a ref
+        # This still causes weird corner cases:
+        # let x : [6]int = {: 1, 1, 2, 3, 4}
+        # let y = x
+        # -> &x != &y before propagation and &x == &y after
+        # TODO: rethink this
+        if node.ref and isinstance(sym, (cwast.DefVar, cwast.DefGlobal)) and not sym.ref:
+            return
 
         replacements[node] = sym
 
@@ -100,16 +108,22 @@ def FunCopyPropagation(fun: cwast.DefFun):
 
     def update(node: Any):
         nonlocal replacements
-
+        if hasattr(node, 'x_eval') and isinstance(node.x_eval, eval.EvalSymAddr):
+            new_sym = replacements.get(node.x_eval.sym)
+            # while new_sym in replacements:
+            #    new_sym = replacements.get(new_sym)
+            if new_sym:
+                node.x_eval =  eval.EvalSymAddr(new_sym)
         if isinstance(node, cwast.Id):
-            r = replacements.get(node.x_symbol)
-            while r in replacements:
-                r = replacements.get(r)
-            if r is not None:
+            new_sym = replacements.get(node.x_symbol)
+            #while new_sym in replacements:
+            #    new_sym = replacements.get(new_sym)
+            if new_sym is not None:
                 stats.IncCounter("CopyProp", "Id", 1)
-                node.name = r.name
-                node.x_symbol = r
-                node.x_type = r.x_type
+                node.name = new_sym.name
+                node.x_symbol = new_sym
+                # TODO: explain why this is needed
+                node.x_type = new_sym.x_type
                 # print(f">>>>>>>> {node.FullName()} {node.x_type}  <- {r.name} {r.x_srcloc}")
     cwast.VisitAstRecursivelyPost(fun, update)
 
@@ -128,21 +142,17 @@ def MakeExprStmtForCall(call: cwast.ExprCall) -> cwast.ExprStmt:
     for a, p in zip(call.args, fun_def.params):
         sl = a.x_srcloc
         at = cwast.TypeAuto(x_srcloc=sl, x_type=p.type.x_type)
-        t = cwast.DefVar(cwast.NAME.Make(f"inl_arg_{p.name.name}"),
+        dv = cwast.DefVar(cwast.NAME.Make(f"inl_arg"),
                          at,
                          a,
                          x_srcloc=sl,
                          x_type=at.x_type)
-        out.body.append(t)
-        var_map[p] = t
-    block_map = {fun_def: out}
+        out.body.append(dv)
+        var_map[p] = dv
+    target_map = {fun_def: out}
 
     for s in fun_def.body:
-        if isinstance(s, cwast.StmtReturn):
-            assert s.x_target is fun_def
-        c = cwast.CloneNodeRecursively(s, var_map, block_map)
-        if isinstance(c, cwast.StmtReturn):
-            assert c.x_target is out
+        c = cwast.CloneNodeRecursively(s, var_map, target_map)
         out.body.append(c)
     return out
 
@@ -156,10 +166,16 @@ def FunInlineSmallFuns(fun: cwast.DefFun):
         nonlocal fun
         if not isinstance(call, cwast.ExprCall):
             return None
+        # TODO: why not use x_eval?
         if not isinstance(call.callee, cwast.Id):
             return None
         fun_def: cwast.DefFun = call.callee.x_symbol
+
         if not isinstance(fun_def, cwast.DefFun):
+            return None
+        if fun is fun_def:  # no inlining of recursions
+            return None
+        if fun.extern:
             return None
         # TODO
         # if fun_def.name.name != "fib":
@@ -170,8 +186,6 @@ def FunInlineSmallFuns(fun: cwast.DefFun):
         for s in fun_def.body:
             n += cwast.NumberOfNodes(s)
         if n > _INLINE_NODE_CUT_OFF:
-            return None
-        if fun is fun_def:  # no inlining of recursions
             return None
 
         stats.IncCounter("Inlining", "Calls", 1)
