@@ -6,25 +6,12 @@
 #include "Util/parse.h"
 
 namespace cwerg::fe {
-Node IdNodeFromDef(Node def_var, const SrcLoc& sl) {
-  Node out = NodeNew(NT::Id);
-  NodeInitId(out, Node_name(def_var), kNameInvalid, kStrInvalid, sl, def_var,
-             Node_x_type(Node_initial_or_undef_or_auto(def_var)));
-  // TODO: set Node_eval
-  return out;
-}
 
 Node CloneId(Node id) {
   Node out = NodeNew(NT::Id);
   NodeInitId(out, Node_name(id), kNameInvalid, kStrInvalid, Node_srcloc(id),
              Node_x_symbol(id), Node_x_type(id));
   // TODO: set Node_eval ?
-  return out;
-}
-
-Node MakeTypeAuto(CanonType ct, const SrcLoc& sl) {
-  Node out = NodeNew(NT::TypeAuto);
-  NodeInitTypeAuto(out, kStrInvalid, sl, ct);
   return out;
 }
 

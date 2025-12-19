@@ -1245,4 +1245,18 @@ int NumberOfNodes(Node n) {
   return count;
 }
 
+Node MakeTypeAuto(CanonType ct, const SrcLoc& sl) {
+  Node out = NodeNew(NT::TypeAuto);
+  NodeInitTypeAuto(out, kStrInvalid, sl, ct);
+  return out;
+}
+
+Node IdNodeFromDef(Node def_var, const SrcLoc& sl) {
+  Node out = NodeNew(NT::Id);
+  NodeInitId(out, Node_name(def_var), kNameInvalid, kStrInvalid, sl, def_var,
+             Node_x_type(Node_type_or_auto(def_var)));
+  Node_x_eval(out) = Node_x_eval(Node_initial_or_undef_or_auto(def_var));
+  return out;
+}
+
 }  // namespace cwerg::fe

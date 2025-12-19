@@ -7,8 +7,6 @@
 
 namespace cwerg::fe {
 
-extern Node MakeTypeAuto(CanonType ct, const SrcLoc& sl);
-
 extern void FunRemoveParentheses(Node fun);
 
 extern void FunReplaceTypeOfAndTypeUnionDelta(Node node);

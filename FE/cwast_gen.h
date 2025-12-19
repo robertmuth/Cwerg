@@ -1452,4 +1452,7 @@ inline std::ostream& operator<<(std::ostream& os, Node node) {
   return os;
 }
 
+extern Node MakeTypeAuto(CanonType ct, const SrcLoc& sl);
+extern Node IdNodeFromDef(Node def_var, const SrcLoc& sl);
+
 }  // namespace cwerg::fe
