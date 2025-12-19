@@ -96,6 +96,21 @@ void PhaseOptimization(const std::vector<Node>& mods_in_topo_order,
   }
 }
 
+constexpr char _GENERATED_MODULE_NAME[] = "GeNeRaTeD";
+
+Node MakeModWithComplexConstants(const std::vector<Node>& mods_in_topo_order) {
+  GlobalConstantPool gcp;
+  for (Node mod : mods_in_topo_order) {
+    gcp.EliminateValStringAndValCompoundOutsideOfDefGlobal(mod);
+  }
+  Node out = NodeNew(NT::DefMod);
+  NodeInitDefMod(out, NameNew(_GENERATED_MODULE_NAME), kNodeInvalid,
+                 kNodeInvalid, 0, kStrInvalid, kSrcLocInvalid);
+  Node_x_symtab(out) = new SymTab();
+  return out;
+  ;
+}
+
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
   std::ios_base::sync_with_stdio(true);
@@ -158,9 +173,13 @@ int main(int argc, const char* argv[]) {
                   eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
   PhaseOptimization(mp.mods_in_topo_order, &tc);
+  eliminated_nodes.insert(NT::Expr3);
+
   SanityCheckMods("after_optimization", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
+  // Node mod_gen =
+  MakeModWithComplexConstants(mp.mods_in_topo_order);
   //
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files

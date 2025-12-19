@@ -169,7 +169,6 @@ size_t EscapedStringToBytes(std::string_view s, char* out) {
 }
 
 size_t HexStringToBytes(std::string_view s, char* out) {
-  ASSERT(false, "");
   size_t n = 0;
   int nibble = -1;
   for (size_t i = 0; i < s.size() && s[i] != 0; ++i) {

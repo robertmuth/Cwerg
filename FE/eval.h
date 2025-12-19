@@ -6,6 +6,7 @@
 // (BASE_TYPE_KIND) and a value. Short values are directly encoded the handle.
 // For details see the implementation of: std::ostream& operator<<(std::ostream&
 // os, Const c)
+#include <map>
 #include <vector>
 
 #include "FE/cwast_gen.h"
@@ -22,6 +23,14 @@ constexpr const Const kConsTrue(1U << 23U | 1, BASE_TYPE_KIND::BOOL);
 extern ImmutablePool ConstPool;
 
 constexpr const char EVAL_STR[] = "@eval@";
+
+enum class CONSTANT_KIND : uint8_t {
+  NOT = 0,
+  WITH_GLOBAL_ADDRESS = 1,
+  PURE = 2,
+};
+
+extern CONSTANT_KIND ConstValueKind(Node node);
 
 struct EvalSpan {
   Node pointer;
@@ -181,7 +190,33 @@ inline EvalSpan ConstGetSpan(Const c) {
 
 extern std::ostream& operator<<(std::ostream& os, Const c);
 
-extern std::string to_string(Const c, const std::map<Node, std::string>* labels);
+extern std::string to_string(Const c,
+                             const std::map<Node, std::string>* labels);
 
 void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
+
+class GlobalConstantPool {
+ public:
+  GlobalConstantPool() = default;
+
+  void EliminateValStringAndValCompoundOutsideOfDefGlobal(Node node);
+
+  NodeChain GetDefGlobals() const {
+    NodeChain out;
+    for (Node g : all_globals_) {
+      out.Append(g);
+    }
+    return out;
+  }
+
+ private:
+  int current_no_ = 0;
+  std::map<std::string, Node> val_string_pool_;
+  std::vector<Node> all_globals_;
+
+  Node add_def_global(Node node);
+
+  Node add_val_string(Node node);
+};
+
 }  // namespace cwerg::fe

@@ -1004,4 +1004,116 @@ void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods) {
   }
 }
 
+CONSTANT_KIND AddressConstKind(Node node) {
+  switch (node.kind()) {
+    case NT::Id: {
+      Node def = Node_x_symbol(node);
+      if (def.kind() == NT::DefGlobal) {
+        return CONSTANT_KIND::WITH_GLOBAL_ADDRESS;
+      } else
+        return CONSTANT_KIND::NOT;
+    }
+    case NT::ExprIndex:
+      if (Node_expr_index(node).kind() != NT::ValNum) {
+        return CONSTANT_KIND::NOT;
+      }
+      return AddressConstKind(Node_container(node));
+
+    default:
+      return CONSTANT_KIND::NOT;
+  }
+}
+
+CONSTANT_KIND ValueConstKind(Node node) {
+  switch (node.kind()) {
+    case NT::ValString:
+    case NT::ValVoid:
+    case NT::ValUndef:
+    case NT::ValNum:
+      return CONSTANT_KIND::PURE;
+    case NT::ExprAddrOf:
+      return AddressConstKind(Node_expr_lhs(node));
+    case NT::ExprFront:
+      return AddressConstKind(Node_container(node));
+    case NT::ValSpan:
+      if (Node_expr_index(node).kind() != NT::ValNum) {
+        return CONSTANT_KIND::NOT;
+      }
+      return ValueConstKind(Node_pointer(node));
+    case NT::ValCompound: {
+      CONSTANT_KIND out = CONSTANT_KIND::PURE;
+      const bool is_vec = CanonType_is_vec(Node_x_type(node));
+      for (Node point = Node_inits(node); !point.isnull();
+           point = Node_next(point)) {
+        if (is_vec) {
+          Node p = Node_point_or_undef(point);
+          if (p.kind() != NT::ValNum && p.kind() != NT::ValUndef) {
+            return CONSTANT_KIND::NOT;
+          }
+          switch (ValueConstKind(Node_value_or_undef(point))) {
+            case CONSTANT_KIND::NOT:
+              return CONSTANT_KIND::NOT;
+            case CONSTANT_KIND::WITH_GLOBAL_ADDRESS:
+              out = CONSTANT_KIND::WITH_GLOBAL_ADDRESS;
+            case CONSTANT_KIND::PURE:
+              break;
+          }
+        }
+      }
+      return out;
+    }
+    default:
+      return CONSTANT_KIND::NOT;
+  }
+}
+
+Node GlobalConstantPool::add_def_global(Node node) {
+  ++current_no_;
+  const SrcLoc& sl = Node_srcloc(node);
+  CanonType ct = Node_x_type(node);
+  Node out = NodeNew(NT::DefGlobal);
+  NodeInitDefGlobal(out, NameNew("global_val"), MakeTypeAuto(ct, sl), node,
+                    Mask(BF::PUB), kStrInvalid, sl, ct);
+  all_globals_.push_back(out);
+  return out;
+}
+
+Node GlobalConstantPool::add_val_string(Node node) {
+  std::string_view str = StrData(Node_string(node));
+  std::string buf;
+  buf.reserve(str.size());
+  size_t len = StringLiteralToBytes(str, buf.data());
+  buf.resize(len);
+  Node def_node = GetWithDefault(val_string_pool_, buf, kNodeInvalid);
+  if (def_node.isnull()) {
+    val_string_pool_[buf] = node;
+    def_node = add_def_global(node);
+  }
+  return def_node;
+}
+
+void GlobalConstantPool::EliminateValStringAndValCompoundOutsideOfDefGlobal(
+    Node node) {
+  auto replacer = [this](Node node, Node parent) {
+    if (parent.kind() == NT::DefGlobal) return node;
+    switch (node.kind()) {
+      case NT::ValString:
+        return IdNodeFromDef(add_val_string(node), Node_srcloc(node));
+      case NT::ValCompound: {
+        if (CanonType_is_vec(Node_x_type(node)) &&
+            parent.kind() != NT::DefVar &&
+            ValueConstKind(node) != CONSTANT_KIND::NOT) {
+          return IdNodeFromDef(add_def_global(node), Node_srcloc(node));
+        } else {
+          return node;
+        }
+        break;
+      }
+      default:
+        return node;
+    }
+  };
+  MaybeReplaceAstRecursively(node, replacer);
+}
+
 }  // namespace cwerg::fe
