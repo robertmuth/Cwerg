@@ -198,7 +198,7 @@ class CONSTANT_KIND(enum.Enum):
     PURE = 4
 
 
-def AddressConstKind(node) -> CONSTANT_KIND:
+def _AddressConstKind(node) -> CONSTANT_KIND:
     if isinstance(node, cwast.Id):
         if isinstance(node.x_symbol, cwast.DefGlobal):
             return CONSTANT_KIND.WITH_GOBAL_ADDRESS
@@ -210,30 +210,32 @@ def AddressConstKind(node) -> CONSTANT_KIND:
     elif isinstance(node, cwast.ExprIndex):
         if not isinstance(node.expr_index, cwast.ValNum):
             return CONSTANT_KIND.NOT
-        return AddressConstKind(node.container)
+        return _AddressConstKind(node.container)
     else:
         return CONSTANT_KIND.NOT
 
 
-def ValueConstKind(node) -> CONSTANT_KIND:
+def _ValueConstKind(node) -> CONSTANT_KIND:
     """Determine the kind of constant the node represents
 
     This works best once constant folding has occurred
     NOT: not a constant
     WITH_GOBAL_ADDRESS: constant requiring relocation
     PURE: pure constant
+
     """
     assert cwast.NF.EVAL_ANNOTATED in node.FLAGS
+    # TODO: handle Id of DefFun
     if isinstance(node, (cwast.ValString, cwast.ValVoid, cwast.ValUndef, cwast.ValNum)):
         return CONSTANT_KIND.PURE
     if isinstance(node, cwast.ExprAddrOf):
-        return AddressConstKind(node.expr_lhs)
+        return _AddressConstKind(node.expr_lhs)
     elif isinstance(node, cwast.ExprFront):
-        return AddressConstKind(node.container)
+        return _AddressConstKind(node.container)
     elif isinstance(node, cwast.ValSpan):
         if not isinstance(node.expr_size, cwast.ValNum):
             return CONSTANT_KIND.NOT
-        return ValueConstKind(node.pointer)
+        return _ValueConstKind(node.pointer)
     elif isinstance(node, cwast.ValCompound):
         out = CONSTANT_KIND.PURE
         is_vec = node.x_type.is_vec()
@@ -241,7 +243,7 @@ def ValueConstKind(node) -> CONSTANT_KIND:
             if is_vec:
                 if not isinstance(field.point_or_undef, (cwast.ValUndef, cwast.ValNum)):
                     return CONSTANT_KIND.NOT
-            o = ValueConstKind(field.value_or_undef)
+            o = _ValueConstKind(field.value_or_undef)
             if o is CONSTANT_KIND.NOT:
                 return o
             if o.value < out.value:
@@ -272,7 +274,8 @@ class GlobalConstantPool:
     We move string/array/etc values into globals (un-mutable variables) for two reasons:
     1) if these consts are used to initialize local variables, copying the data
        from a global might be more efficient in both terms of time and cache used
-       Note: that we can also collapse idententical constants
+       Note: that we can also collapse idententical constants which we currenly do for ValString
+
     2) If the address of the  const is taken we must materialize the constant.
        This should only apply to case were strings/arrays are implicitly converted
        to a span.
@@ -281,7 +284,7 @@ class GlobalConstantPool:
 
     def __init__(self) -> None:
         self._current_no = 0
-        self._bytes_map: dict[bytes, cwast.DefGlobal] = {}
+        self._string_val_map: dict[bytes, cwast.DefGlobal] = {}
         self._all_globals: list[cwast.DefGlobal] = []
 
     def _add_def_global(self, node) -> cwast.DefGlobal:
@@ -296,32 +299,36 @@ class GlobalConstantPool:
         self._all_globals.append(def_node)
         return def_node
 
-    def _maybe_replace(self, node, parent) -> Optional[Any]:
-        if isinstance(parent, cwast.DefGlobal):
-            return None
-        elif (isinstance(node, cwast.ValCompound) and
-              # also allow this for rec vals this currently breaks for one test case
-              # blocked on BUG(#40)
-              node.x_type.is_vec() and
-              ValueConstKind(node) is not CONSTANT_KIND.NOT and
-              not isinstance(parent, cwast.DefVar)):
-            # TODO: this should also be done for recs
-            def_node = self._add_def_global(node)
-            # TODO: maybe update str_map for the CONSTANT_KIND.PURE case
-            return _IdNodeFromDef(def_node, node.x_srcloc)
-        elif isinstance(node, cwast.ValString):
-            s = node.get_bytes()
-            def_node = self._bytes_map.get(s)
-            if not def_node:
-                def_node = self._add_def_global(node)
-                self._bytes_map[s] = def_node
-            return _IdNodeFromDef(def_node, node.x_srcloc)
-
-        return None
+    def _add_val_string(self, val_string: cwast.ValString):
+        s = val_string.get_bytes()
+        def_node = self._string_val_map.get(s)
+        if not def_node:
+            def_node = self._add_def_global(val_string)
+            self._string_val_map[s] = def_node
+        return def_node
 
     def EliminateValStringAndValCompoundOutsideOfDefGlobal(self, node):
+
+        def replacer(node, parent) -> Optional[Any]:
+            nonlocal self
+            if isinstance(parent, cwast.DefGlobal):
+                # this already has the right form
+                return None
+            if isinstance(node, cwast.ValString):
+                return _IdNodeFromDef(self._add_val_string(node), node.x_srcloc)
+            elif (isinstance(node, cwast.ValCompound) and
+                  # also allow this for rec vals this currently breaks for one test case
+                  # blocked on BUG(#40)
+                  node.x_type.is_vec() and
+                  _ValueConstKind(node) is not CONSTANT_KIND.NOT and
+                    not isinstance(parent, cwast.DefVar)):
+                # TODO: this should also be done for recs
+                # TODO: maybe update str_map for the CONSTANT_KIND.PURE case
+                return _IdNodeFromDef(self._add_def_global(node), node.x_srcloc)
+
+            return None
         # if we relace a node we do not need to recurse into the subtree
-        cwast.MaybeReplaceAstRecursively(node, self._maybe_replace)
+        cwast.MaybeReplaceAstRecursively(node, replacer)
 
     def GetDefGlobals(self) -> list[cwast.DefGlobal]:
         return self._all_globals
