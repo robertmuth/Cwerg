@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "FE/canonicalize.h"
+#include "FE/canonicalize_span.h"
 #include "FE/canonicalize_union.h"
 #include "FE/checker.h"
 #include "FE/cwast_gen.h"
@@ -107,8 +108,27 @@ Node MakeModWithComplexConstants(const std::vector<Node>& mods_in_topo_order) {
   NodeInitDefMod(out, NameNew(_GENERATED_MODULE_NAME), kNodeInvalid,
                  kNodeInvalid, 0, kStrInvalid, kSrcLocInvalid);
   Node_x_symtab(out) = new SymTab();
+  Node_body_mod(out) = gcp.GetDefGlobals().First();
+
   return out;
-  ;
+}
+
+void PhaseEliminateSpanAndUnion(Node mod_gen,
+                                std::vector<Node>& mods__topo_order,
+                                TypeCorpus* tc) {
+  MakeAndRegisterSpanTypeReplacements(mod_gen, tc);
+  ReplaceSpans(mod_gen);
+
+  for (Node mod : mods__topo_order) {
+    ReplaceSpans(mod);
+  }
+  //
+  MakeAndRegisterUnionTypeReplacements(mod_gen, tc);
+  ReplaceUnions(mod_gen);
+
+  for (Node mod : mods__topo_order) {
+    ReplaceUnions(mod);
+  }
 }
 
 int main(int argc, const char* argv[]) {
@@ -179,8 +199,10 @@ int main(int argc, const char* argv[]) {
                   COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
   // Node mod_gen =
-  MakeModWithComplexConstants(mp.mods_in_topo_order);
+  Node mod_gen = MakeModWithComplexConstants(mp.mods_in_topo_order);
   //
+  PhaseEliminateSpanAndUnion(mod_gen, mp.mods_in_topo_order, &tc);
+
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files
               << " lines=" << LexerRaw::stats.num_lines

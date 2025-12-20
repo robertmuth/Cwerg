@@ -35,7 +35,6 @@ void FunSimplifyTaggedExprNarrow(Node fun, TypeCorpus* tc) {
       return node;
     }
 
-
     if (Node_has_flag(node, BF::UNCHECKED)) {
       if (!CanonType_is_union(ct_dst)) {
         ConvertTaggedNarrowToUntaggedNarrow(node, tc);
@@ -76,4 +75,7 @@ void FunSimplifyTaggedExprNarrow(Node fun, TypeCorpus* tc) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
+void MakeAndRegisterUnionTypeReplacements(Node mod_gen, TypeCorpus* tc) {}
+
+void ReplaceUnions(Node mod) {}
 }  // namespace cwerg::fe

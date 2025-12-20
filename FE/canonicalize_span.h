@@ -6,9 +6,8 @@
 namespace cwerg::fe {
 
 // may insert new untagged union type
-extern void FunSimplifyTaggedExprNarrow(Node fun, TypeCorpus* tc);
+extern void MakeAndRegisterSpanTypeReplacements(Node mod_gen, TypeCorpus* tc);
 
-extern void MakeAndRegisterUnionTypeReplacements(Node mod_gen, TypeCorpus* tc);
+extern void ReplaceSpans(Node mod);
 
-extern void ReplaceUnions(Node mod);
 }  // namespace cwerg::fe
