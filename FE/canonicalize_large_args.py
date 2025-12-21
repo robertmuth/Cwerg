@@ -60,20 +60,18 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
         assert len(new_sig.parameter_types()) == 1 + \
             len(old_sig.parameter_types())
         sl = fun.x_srcloc
-        result_type = cwast.TypePtr(
-            fun.result, mut=True, x_srcloc=sl, x_type=new_sig.parameter_types()[-1])
+        result_type = cwast.TypeAuto(x_srcloc=sl, x_type=new_sig.parameter_types()[-1])
         result_param = cwast.FunParam(cwast.NAME.Make(
             "large_result"), result_type, x_srcloc=sl, x_type=result_type.x_type, res_ref=True)
         fun.params.append(result_param)
-        fun.result = cwast.TypeBase(cwast.BASE_TYPE_KIND.VOID, x_srcloc=sl,
-                                    x_type=tc.get_void_canon_type())
+        fun.result = cwast.TypeAuto(x_srcloc=sl, x_type=tc.get_void_canon_type())
     changing_params = {}
 
     # note: new_sig may contain an extra param at the end
     for p, old, new in zip(fun.params, old_sig.parameter_types(), new_sig.parameter_types()):
         if old != new:
             changing_params[p] = new
-            p.type = cwast.TypePtr(p.type, x_srcloc=p.x_srcloc, x_type=new)
+            p.type = cwast.TypeAuto(x_srcloc=p.x_srcloc, x_type=new)
             p.arg_ref = True
     assert result_changes or changing_params
     return changing_params, result_changes

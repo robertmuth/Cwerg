@@ -265,48 +265,46 @@ def ReplaceUnions(node):
     Replaces all sum expressions with rec named tuple_sum<X>
     """
     def replacer(node, _parent):
-        sl=node.x_srcloc
+        sl = node.x_srcloc
         if isinstance(node, cwast.ExprUnionTag):
             # get the tag field from the rec that now represents the union
             # because of the post-order traversal, node.expr has already been processed
-            new_ct=node.expr.x_type
+            new_ct = node.expr.x_type
             assert new_ct.is_rec()
             assert new_ct.original_type is not None
             assert new_ct.original_type.is_union()
             assert len(new_ct.ast_node.fields) == 2
-            tag_field: cwast.RecField=new_ct.ast_node.fields[0]
+            tag_field: cwast.RecField = new_ct.ast_node.fields[0]
             return cwast.ExprField(node.expr,  canonicalize.IdNodeFromRecField(tag_field, sl),
                                    x_srcloc=sl, x_type=tag_field.x_type)
         elif isinstance(node, cwast.ExprUnionUntagged):
             # get the payload field from the rec that now represents the union
-            new_ct=node.expr.x_type
+            new_ct = node.expr.x_type
             assert new_ct.is_rec()
             assert new_ct.original_type is not None
             assert new_ct.original_type.is_union()
             assert len(new_ct.ast_node.fields) == 2
-            union_field: cwast.RecField=new_ct.ast_node.fields[1]
+            union_field: cwast.RecField = new_ct.ast_node.fields[1]
             return cwast.ExprField(node.expr, canonicalize.IdNodeFromRecField(union_field, sl),
                                    x_srcloc=sl,
                                    x_type=union_field.x_type)
         if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:
             return None
         # now deal with type/expression nodes whose type is changing
-        new_ct: Optional[cwast.CanonType]=node.x_type.replacement_type
+        new_ct: Optional[cwast.CanonType] = node.x_type.replacement_type
         if new_ct is None:
             return None
         if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
-                             cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
-                             cwast.TypeVec, cwast.DefVar, cwast.DefGlobal,
+                             cwast.ExprStmt, cwast.DefFun,
+                             cwast.DefVar, cwast.DefGlobal,
                              cwast.FunParam, cwast.ExprCall, cwast.RecField,
                              cwast.ExprField, cwast.ValPoint,
-                             cwast.ValCompound, cwast.TypePtr, cwast.ExprPointer,
+                             cwast.ValCompound, cwast.ExprPointer,
                              cwast.ExprFront, cwast.ExprDeref, cwast.ExprAddrOf)):
             typify.UpdateNodeType(node, new_ct)
             return None
-        elif isinstance(node, cwast.TypeUnion):
-            return _MakeIdForDefRec(new_ct, sl)
         elif isinstance(node, cwast.ExprWiden):
-            ct_src: cwast.CanonType=node.expr.x_type
+            ct_src: cwast.CanonType = node.expr.x_type
             if ct_src.original_type is not None and ct_src.original_type.is_tagged_union():
                 return _MakeValRecForWidenFromUnion(node, new_ct)
             else:

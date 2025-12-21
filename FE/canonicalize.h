@@ -9,8 +9,6 @@ namespace cwerg::fe {
 
 extern void FunRemoveParentheses(Node fun);
 
-extern void FunReplaceTypeOfAndTypeUnionDelta(Node node);
-
 // May add ... type
 extern void FunReplaceExprIndex(Node node, TypeCorpus* tc);
 

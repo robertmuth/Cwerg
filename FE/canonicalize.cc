@@ -27,28 +27,6 @@ void FunRemoveParentheses(Node fun) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
-void FunReplaceTypeOfAndTypeUnionDelta(Node node) {
-  auto replacer = [](Node node, Node parent) -> Node {
-    if (Node_kind(node) == NT::TypeOf) {
-      NodeFreeRecursively(Node_expr(node));
-      // Tricky: x_type stays unchanged
-      node = Node(NT::TypeAuto, node.index());
-      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node),
-                       Node_x_type(node));
-    } else if (Node_kind(node) == NT::TypeUnionDelta) {
-      NodeFreeRecursively(Node_type(node));
-      NodeFreeRecursively(Node_subtrahend(node));
-      node = Node(NT::TypeAuto, node.index());
-      // Tricky: x_type stays unchanged
-      NodeInitTypeAuto(node, Node_comment(node), Node_srcloc(node),
-                       Node_x_type(node));
-    }
-    return node;
-  };
-
-  MaybeReplaceAstRecursivelyPost(node, replacer, kNodeInvalid);
-}
-
 Node ConvertExprIndexToPointerArithmetic(Node container, Node index, Node bound,
                                          bool mut, const SrcLoc& srcloc,
                                          CanonType elem_ct, TypeCorpus* tc) {

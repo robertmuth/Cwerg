@@ -135,18 +135,16 @@ def ReplaceSpans(node):
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             def_rec = node.x_type.replacement_type
             if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.DefType, cwast.TypePtr,
-                                     cwast.ExprStmt, cwast.DefFun, cwast.TypeFun,
+                if isinstance(node, (cwast.TypeAuto, cwast.DefType,
+                                     cwast.ExprStmt, cwast.DefFun,
                                      cwast.FunParam, cwast.DefVar, cwast.DefGlobal,
                                      cwast.RecField, cwast.ExprField,
                                      cwast.Expr3, cwast.ExprDeref, cwast.ExprNarrow,
                                      cwast.ExprAddrOf, cwast.ExprCall,
-                                     cwast.ValAuto, cwast.TypeVec,
+                                     cwast.ValAuto,
                                      cwast.ValPoint, cwast.ValCompound)):
                     typify.UpdateNodeType(node, def_rec)
                     return None
-                elif isinstance(node, cwast.TypeSpan):
-                    return _MakeIdForDefRec(def_rec, node.x_srcloc)
                 elif isinstance(node, cwast.ValSpan):
                     return _MakeValRecForSpan(node.pointer, node.expr_size, def_rec, node.x_srcloc)
                 elif isinstance(node, cwast.Id):

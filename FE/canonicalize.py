@@ -703,15 +703,6 @@ def FunDesugarTaggedUnionComparisons(fun: cwast.DefFun):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def FunReplaceTypeOfAndTypeUnionDelta(fun: cwast.DefFun):
-    def replacer(node, _parent):
-        if not isinstance(node, (cwast.TypeOf, cwast.TypeUnionDelta)):
-            return None
-        return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
-
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
-
-
 def _IsSimpleInitializer(expr) -> bool:
     if isinstance(expr, (cwast.ValUndef, cwast.ValNum, cwast.ValVoid, cwast.Id)):
         return True
