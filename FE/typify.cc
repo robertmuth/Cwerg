@@ -1321,7 +1321,21 @@ void TypeCheckAst(const std::vector<Node>& mods, TypeCorpus* tc, bool strict) {
 void ModStripTypeNodesRecursively(Node node) {
   auto replacer = [](Node node, Node parent) -> Node {
     switch (node.kind()) {
+      case NT::Id: {
+        Node sym = Node_x_symbol(node);
+        if (sym.kind() == NT::DefRec || sym.kind() == NT::DefEnum ||
+            sym.kind() == NT::DefType) {
+          const SrcLoc& sl = Node_srcloc(node);
+          CanonType ct = Node_x_type(node);
+          NodeFreeRecursively(node);
+          return MakeTypeAuto(ct, sl);
+        }
+
+        return node;
+      }
+
       case NT::TypeOf:
+      case NT::TypeFun:
       case NT::TypeBase:
       case NT::TypeSpan:
       case NT::TypeVec:

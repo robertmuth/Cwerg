@@ -1356,7 +1356,7 @@ class TypeBase:
     """
     ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Type
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
     base_type_kind: BASE_TYPE_KIND
     #
@@ -1374,7 +1374,7 @@ class TypePtr:
     """
     ALIAS: ClassVar = None
     GROUP: ClassVar = GROUP.Type
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
     type: NODES_TYPES_T
     #
@@ -1419,7 +1419,7 @@ class TypeVec:
     """
     ALIAS: ClassVar = "vec"
     GROUP: ClassVar = GROUP.Type
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
     size: "NODES_EXPR_T"      # must be const and unsigned
     type: NODES_TYPES_T
@@ -1440,7 +1440,7 @@ class TypeFun:
     """
     ALIAS: ClassVar = "funtype"
     GROUP: ClassVar = GROUP.Type
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
     params: list[NODES_PARAMS_T]
     result: NODES_TYPES_T
@@ -1465,7 +1465,7 @@ class TypeUnion:
     """
     ALIAS: ClassVar = "union"
     GROUP: ClassVar = GROUP.Type
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
     types: list[NODES_TYPES_T]
     #

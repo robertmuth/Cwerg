@@ -27,6 +27,8 @@ void FunRemoveParentheses(Node fun) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
+
+
 Node ConvertExprIndexToPointerArithmetic(Node container, Node index, Node bound,
                                          bool mut, const SrcLoc& srcloc,
                                          CanonType elem_ct, TypeCorpus* tc) {

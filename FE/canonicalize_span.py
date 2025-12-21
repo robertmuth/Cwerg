@@ -135,7 +135,7 @@ def ReplaceSpans(node):
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             def_rec = node.x_type.replacement_type
             if def_rec is not None:
-                if isinstance(node, (cwast.TypeAuto, cwast.DefType,
+                if isinstance(node, (cwast.Id, cwast.TypeAuto, cwast.DefType,
                                      cwast.ExprStmt, cwast.DefFun,
                                      cwast.FunParam, cwast.DefVar, cwast.DefGlobal,
                                      cwast.RecField, cwast.ExprField,
@@ -145,23 +145,14 @@ def ReplaceSpans(node):
                                      cwast.ValPoint, cwast.ValCompound)):
                     typify.UpdateNodeType(node, def_rec)
                     return None
-                elif isinstance(node, cwast.ValSpan):
-                    return _MakeValRecForSpan(node.pointer, node.expr_size, def_rec, node.x_srcloc)
-                elif isinstance(node, cwast.Id):
-                    sym = node.x_symbol
-                    # TODO
-                    # This needs a lot of work also what about field references to
-                    # rewritten fields
-                    if isinstance(sym, cwast.TypeSpan):
-                        symbolize.AnnotateNodeSymbol(node, def_rec)
-                    typify.UpdateNodeType(node, def_rec)
-                    return None
                 elif isinstance(node, (cwast.ExprUnwrap)):
                     ct_src = node.expr.x_type
                     ct_dst = node.x_type
                     assert ct_src.is_wrapped() and ct_src.underlying_type() == ct_dst
                     typify.UpdateNodeType(node, def_rec)
                     return None
+                elif isinstance(node, cwast.ValSpan):
+                    return _MakeValRecForSpan(node.pointer, node.expr_size, def_rec, node.x_srcloc)
 
                 cwast.CompilerError(
                     node.x_srcloc, "do not know how to convert span related node " +

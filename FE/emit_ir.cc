@@ -186,6 +186,13 @@ int main(int argc, const char* argv[]) {
   eliminated_nodes.insert(NT::ExprSizeof);
   eliminated_nodes.insert(NT::ExprTypeId);
   eliminated_nodes.insert(NT::StmtDefer);
+  //
+  eliminated_nodes.insert(NT::TypeBase);
+  eliminated_nodes.insert(NT::TypeSpan);
+  eliminated_nodes.insert(NT::TypeVec);
+  eliminated_nodes.insert(NT::TypePtr);
+  eliminated_nodes.insert(NT::TypeFun);
+  eliminated_nodes.insert(NT::TypeUnion);
   eliminated_nodes.insert(NT::TypeOf);
   eliminated_nodes.insert(NT::TypeUnionDelta);
 

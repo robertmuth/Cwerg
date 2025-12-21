@@ -294,7 +294,7 @@ def ReplaceUnions(node):
         new_ct: Optional[cwast.CanonType] = node.x_type.replacement_type
         if new_ct is None:
             return None
-        if isinstance(node, (cwast.TypeAuto, cwast.Expr3, cwast.DefType,
+        if isinstance(node, (cwast.Id, cwast.TypeAuto, cwast.Expr3, cwast.DefType,
                              cwast.ExprStmt, cwast.DefFun,
                              cwast.DefVar, cwast.DefGlobal,
                              cwast.FunParam, cwast.ExprCall, cwast.RecField,
@@ -324,9 +324,6 @@ def ReplaceUnions(node):
             else:
                 typify.UpdateNodeType(node, new_ct)
                 return None
-        elif isinstance(node, cwast.Id):
-            typify.UpdateNodeType(node, new_ct)
-            return None
         else:
             assert False, f"do not know how to convert sum node [{
                 new_ct.name}]:\n {node} {node.x_srcloc}"

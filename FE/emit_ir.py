@@ -1278,6 +1278,13 @@ def main() -> int:
                              cwast.ExprSizeof,
                              cwast.ExprTypeId,
                              cwast.StmtDefer,
+                             #
+                             cwast.TypeBase,
+                             cwast.TypeSpan,
+                             cwast.TypeVec,
+                             cwast.TypePtr,
+                             cwast.TypeFun,
+                             cwast.TypeUnion,
                              cwast.TypeOf,
                              cwast.TypeUnionDelta])
     SanityCheckMods("after_initial_lowering", checker.COMPILE_STAGE.AFTER_DESUGAR,
@@ -1302,7 +1309,6 @@ def main() -> int:
     PhaseEliminateSpanAndUnion(mod_gen, mod_topo_order, tc)
     eliminated_nodes.update([cwast.ExprLen,
                              cwast.ValSpan,
-                             cwast.TypeSpan,
                              cwast.ExprUnionTag,
                              cwast.ExprUnionUntagged])
     SanityCheckMods("after_eliminate_span_and_union", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
