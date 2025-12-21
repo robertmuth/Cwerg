@@ -1186,6 +1186,18 @@ def AddTypesToAst(mod_topo_order: list[cwast.DefMod],
     tc.SetAbiInfoForall()
 
 
+def ModStripTypeNodesRecursively(mod: cwast.DefMod):
+
+    def replacer(node, _parent):
+
+        if isinstance(node, (cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan, cwast.TypeVec, cwast.TypeOf, cwast.TypeUnionDelta, cwast.TypeUnion)):
+            sl = node.x_srcloc
+            ct = node.x_type
+            return cwast.TypeAuto(x_srcloc=sl, x_type=ct)
+        return None
+
+    cwast.MaybeReplaceAstRecursivelyWithParentPost(mod, replacer)
+
 ############################################################
 #
 ############################################################

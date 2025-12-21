@@ -929,14 +929,18 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprAs:
         if (!IsCompatibleTypeForAs(Node_x_type(Node_expr(node)),
                                    Node_x_type(node))) {
-          CompilerError(Node_srcloc(node)) << "bad ExprAs conversion " << Node_x_type(node) << " <- " << Node_x_type(Node_expr(node));
+          CompilerError(Node_srcloc(node))
+              << "bad ExprAs conversion " << Node_x_type(node) << " <- "
+              << Node_x_type(Node_expr(node));
         }
         return CheckTypeIs(Node_type(node), Node_x_type(node));
 
       case NT::ExprBitCast:
         if (!IsCompatibleTypeForBitcast(Node_x_type(node),
                                         Node_x_type(Node_expr(node)))) {
-          CompilerError(Node_srcloc(node)) << "bad ExprBitCast conversion " << Node_x_type(node) << " <- " << Node_x_type(Node_expr(node));
+          CompilerError(Node_srcloc(node))
+              << "bad ExprBitCast conversion " << Node_x_type(node) << " <- "
+              << Node_x_type(Node_expr(node));
         }
         return CheckTypeIs(Node_type(node), Node_x_type(node));
 
@@ -1312,6 +1316,29 @@ void TypeCheckAst(const std::vector<Node>& mods, TypeCorpus* tc, bool strict) {
   for (Node mod : mods) {
     TypeCheckRecursively(mod, tc, strict);
   }
+}
+
+void ModStripTypeNodesRecursively(Node node) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    switch (node.kind()) {
+      case NT::TypeOf:
+      case NT::TypeBase:
+      case NT::TypeSpan:
+      case NT::TypeVec:
+      case NT::TypePtr:
+      case NT::TypeUnion:
+      case NT::TypeUnionDelta: {
+        const SrcLoc& sl = Node_srcloc(node);
+        CanonType ct = Node_x_type(node);
+        NodeFreeRecursively(node);
+        return MakeTypeAuto(ct, sl);
+      }
+      default:
+        return node;
+    }
+  };
+
+  MaybeReplaceAstRecursivelyPost(node, replacer, kNodeInvalid);
 }
 
 }  // namespace cwerg::fe

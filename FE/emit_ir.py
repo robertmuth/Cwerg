@@ -1099,8 +1099,8 @@ def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.Typ
     # ct_bool = tc.get_bool_canon_type()
     typeid_ct = tc.get_typeid_canon_type()
     for mod in mod_topo_order:
+        typify.ModStripTypeNodesRecursively(mod)
         for fun in mod.body_mod:
-            canonicalize.FunReplaceTypeOfAndTypeUnionDelta(fun)  # maybe Mod...
             canonicalize.FunReplaceConstExpr(fun, tc)
             canonicalize.FunMakeImplicitConversionsExplicit(fun, tc)
             canonicalize.FunReplaceExprIndex(fun, tc)
@@ -1130,10 +1130,23 @@ def PhaseOptimization(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCo
                 optimize.FunOptimize(fun)
 
 
+def MakeModWithComplexConstants(mod_topo_order: list[cwast.DefMod]) -> cwast.DefMod:
+    constant_pool = eval.GlobalConstantPool()
+    for mod in mod_topo_order:
+        constant_pool.EliminateValStringAndValCompoundOutsideOfDefGlobal(mod)
+    mod_gen = cwast.DefMod(cwast.NAME.Make(_GENERATED_MODULE_NAME),
+                           [], [], x_srcloc=cwast.SRCLOC_GENERATED)
+    # the checker neeeds a symtab, so we add an empty one
+    mod_gen.x_symtab = symbolize.SymTab()
+    mod_gen.body_mod += constant_pool.GetDefGlobals()
+    return mod_gen
+
+
 def PhaseEliminateSpanAndUnion(mod_gen: cwast.DefMod, mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
     canonicalize_span.MakeAndRegisterSpanTypeReplacements(mod_gen, tc)
     for mod in ([mod_gen] + mod_topo_order):
         canonicalize_span.ReplaceSpans(mod)
+    # TODO: comment on orrdering:
     canonicalize_union.MakeAndRegisterUnionTypeReplacements(mod_gen, tc)
     for mod in ([mod_gen] + mod_topo_order):
         canonicalize_union.ReplaceUnions(mod)
@@ -1166,18 +1179,6 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
             if isinstance(fun, cwast.DefFun):
                 # Note, the inlining inside FunOptimize will invalidate id_gen
                 optimize.FunOptimize(fun)
-
-
-def _MakeModWithComplexConstants(mod_topo_order: list[cwast.DefMod]) -> cwast.DefMod:
-    constant_pool = eval.GlobalConstantPool()
-    for mod in mod_topo_order:
-        constant_pool.EliminateValStringAndValCompoundOutsideOfDefGlobal(mod)
-    mod_gen = cwast.DefMod(cwast.NAME.Make(_GENERATED_MODULE_NAME),
-                           [], [], x_srcloc=cwast.SRCLOC_GENERATED)
-    # the checker neeeds a symtab, so we add an empty one
-    mod_gen.x_symtab = symbolize.SymTab()
-    mod_gen.body_mod += constant_pool.GetDefGlobals()
-    return mod_gen
 
 
 def main() -> int:
@@ -1294,7 +1295,7 @@ def main() -> int:
                     args, mod_topo_order, tc,  eliminated_nodes)
 
     #
-    mod_gen = _MakeModWithComplexConstants(mod_topo_order)
+    mod_gen = MakeModWithComplexConstants(mod_topo_order)
 
     #
     logger.info("phase: eliminate span and union")
