@@ -560,7 +560,8 @@ class TypeCorpus:
         return self.InsertUnionType(all.untagged, out)
 
     def MaybeGetReplacementType(self, ct: cwast.CanonType) -> Optional[cwast.CanonType]:
-        if ct.node in (cwast.DefRec, cwast.DefType):
+        # TODO: explain why some types are not handled
+        if ct.node in (cwast.DefRec, cwast.DefType, cwast.TypeUnion):
             return None
 
         if ct.replacement_type:
@@ -588,6 +589,10 @@ class TypeCorpus:
         else:
             assert False, f"cannot make replacement type for {ct.name} {ct.node}"
             return None
+
+    def ClearReplacementInfo(self):
+        for ct in self.topo_order:
+            ct.replacement_type = None
 
     def Dump(self):
         print(f"Dump of CanonTypes: ({len(self.corpus)})")

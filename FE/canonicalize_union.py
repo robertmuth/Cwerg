@@ -45,25 +45,19 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
 
     # Go through the type table in topological order and generate the map.
     # Note; we add new types to the map while iterating over it so we take a snapshot first
-    def add_replacement(old_ct: cwast.CanonType, new_ct: cwast.CanonType):
-        assert old_ct.replacement_type is None
-        old_ct.replacement_type = new_ct
-        new_ct.original_type = old_ct
-
     for ct in tc.topo_order[:]:
-        if ct.replacement_type is not None:
-            continue
+        assert ct.replacement_type is None
+
         if ct.is_tagged_union():
             rec = _MakeUnionReplacementStruct(ct, tc)
             mod_gen.body_mod.append(rec)
-            add_replacement(ct, rec.x_type)
-            continue
-        if ct.is_union():
-            continue
-
-        new_ct = tc.MaybeGetReplacementType(ct)
-        if new_ct:
-            add_replacement(ct, new_ct)
+            new_ct = rec.x_type
+        else:
+            new_ct = tc.MaybeGetReplacementType(ct)
+            if not new_ct:
+                continue
+        ct.replacement_type = new_ct
+        new_ct.original_type = ct
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:

@@ -1070,7 +1070,6 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
             else:
                 assert ct.name in tc.corpus, f"bad type annotation for {
                     node}: {node.x_type}"
-                assert ct.replacement_type is None
 
                 verifier_table[type(node)](node, tc)
 
