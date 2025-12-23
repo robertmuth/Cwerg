@@ -14,31 +14,6 @@ from FE import typify
 ############################################################
 
 
-def _DoesFunSigNeedReplacementType(fun_sig: cwast.CanonType) -> bool:
-    if fun_sig.result_type().replacement_type is not None:
-        return True
-    for p in fun_sig.parameter_types():
-        if p.replacement_type is not None:
-            return True
-    return False
-
-
-def MaybeMakeFunSigReplacementType(fun_sig: cwast.CanonType,
-                                   tc: type_corpus.TypeCorpus) -> Optional[cwast.CanonType]:
-    if not _DoesFunSigNeedReplacementType(fun_sig):
-        return None
-
-    def new_or_old(ct: cwast.CanonType) -> cwast.CanonType:
-        if ct.replacement_type:
-            return ct.replacement_type
-        return ct
-
-    assert fun_sig.is_fun()
-    result = new_or_old(fun_sig.result_type())
-    params = [new_or_old(p) for p in fun_sig.parameter_types()]
-    return tc.InsertFunType(params, result)
-
-
 def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cwast.DefRec:
     fields = []
     for field_name, field_ct in fields_desc:

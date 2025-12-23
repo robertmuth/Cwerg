@@ -559,6 +559,36 @@ class TypeCorpus:
 
         return self.InsertUnionType(all.untagged, out)
 
+    def MaybeGetReplacementType(self, ct: cwast.CanonType) -> Optional[cwast.CanonType]:
+        if ct.node in (cwast.DefRec, cwast.DefType):
+            return None
+
+        if ct.replacement_type:
+            return ct.replacement_type
+        for child in ct.children:
+            if child.replacement_type:
+                break
+        else:
+            return None
+        replacement_children = []
+        for child in ct.children:
+            if child.replacement_type:
+                replacement_children.append(child.replacement_type)
+            else:
+                replacement_children.append(child)
+        if ct.node is cwast.TypePtr:
+            return self.InsertPtrType(ct.mut, replacement_children[0])
+        elif ct.node is cwast.TypeVec:
+            return self.InsertVecType(ct.array_dim(), replacement_children[0])
+        elif ct.node is cwast.TypeFun:
+            return self.InsertFunType(
+                replacement_children[:-1], replacement_children[-1])
+        elif ct.node is cwast.TypeSpan:
+            return self.InsertSpanType(ct.mut, replacement_children[0])
+        else:
+            assert False, f"cannot make replacement type for {ct.name} {ct.node}"
+            return None
+
     def Dump(self):
         print(f"Dump of CanonTypes: ({len(self.corpus)})")
         for name, ct in sorted((x.typeid, x) for x in self.corpus.values()):

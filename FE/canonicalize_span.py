@@ -49,23 +49,17 @@ def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.T
         if ct.replacement_type:
             continue
         if ct.is_span():
-            # maybe add the DefRec to the module with generated code
             rec = _MakeSpanReplacementStruct(ct, tc)
             mod_gen.body_mod.append(rec)
             add_replacement(ct, rec.x_type)
-        elif ct.is_fun():
-            new_ct = canonicalize.MaybeMakeFunSigReplacementType(ct, tc)
-            if new_ct:
-                add_replacement(ct, new_ct)
-        elif ct.is_pointer():
-            replacement = ct.underlying_type().replacement_type
-            if replacement is not None:
-                add_replacement(ct, tc.InsertPtrType(ct.mut, replacement))
-        elif ct.is_vec():
-            replacement = ct.underlying_type().replacement_type
-            if replacement is not None:
-                add_replacement(ct,  tc.InsertVecType(
-                    ct.array_dim(), replacement))
+            continue
+
+        if ct.is_union():
+            # TODO: handle unions of spans
+            continue
+        new_ct = tc.MaybeGetReplacementType(ct)
+        if new_ct:
+            add_replacement(ct, new_ct)
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
