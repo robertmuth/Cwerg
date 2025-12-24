@@ -560,7 +560,9 @@ class TypeCorpus:
         return self.InsertUnionType(all.untagged, out)
 
     def MaybeGetReplacementType(self, ct: cwast.CanonType) -> Optional[cwast.CanonType]:
-        # TODO: explain why some types are not handled
+        # Rec and DefType are handled are not replaced.
+        # Their names do not reflect their children.
+        # In the case of DefRec we patch up the RecFields separately.
         if ct.node in (cwast.DefRec, cwast.DefType):
             return None
 
@@ -579,13 +581,14 @@ class TypeCorpus:
                 replacement_children.append(child)
         if ct.node is cwast.TypePtr:
             return self.InsertPtrType(ct.mut, replacement_children[0])
+        elif ct.node is cwast.TypeSpan:
+            return self.InsertSpanType(ct.mut, replacement_children[0])
         elif ct.node is cwast.TypeVec:
             return self.InsertVecType(ct.array_dim(), replacement_children[0])
         elif ct.node is cwast.TypeFun:
             return self.InsertFunType(
                 replacement_children[:-1], replacement_children[-1])
-        elif ct.node is cwast.TypeSpan:
-            return self.InsertSpanType(ct.mut, replacement_children[0])
+
         elif ct.node is cwast.TypeUnion:
             return self.InsertUnionType(ct.untagged, replacement_children)
         else:

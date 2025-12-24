@@ -1,6 +1,7 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+#include <span>
 #include <vector>
 
 #include "FE/cwast_gen.h"
@@ -130,7 +131,7 @@ extern void TypeListDelta(const std::vector<CanonType>& children1,
 
 class TypeCorpus {
   std::map<Name, CanonType> corpus_;
-  std::vector<CanonType> corpus_in_order_;
+  std::vector<CanonType> corpus_in_topo_order_;
   std::map<BASE_TYPE_KIND, CanonType> base_type_map_;
   int typeid_curr_ = 0;
   const TargetArchConfig& arch_config_;
@@ -181,6 +182,12 @@ class TypeCorpus {
   CanonType InsertUnionComplement(CanonType minuend, CanonType subtrahend);
 
   void SetAbiInfoForAllTypes();
+
+  CanonType MaybeGetReplacementType(CanonType ct);
+
+  void ClearReplacementInfo();
+
+  std::span<CanonType> InTopoOrder() { return corpus_in_topo_order_; }
 
   void Dump();
 };

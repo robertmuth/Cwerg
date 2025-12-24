@@ -25,6 +25,7 @@ struct CanonTypeCore {
   //  TODO: should probably be sint64_t
   SizeOrDim size = kSizeOrDimInvalid;
   int type_id = -1;
+  CanonType replacement_type = kCanonTypeInvalid;
 };
 
 struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore("CanonTypeCore");
@@ -50,7 +51,13 @@ int align(int size, int alignment) {
 SizeOrDim CanonType_alignment(CanonType ct) {
   return gCanonTypeCore[ct].alignment;
 }
+
+CanonType& CanonType_replacement_type(CanonType ct) {
+  return gCanonTypeCore[ct].replacement_type;
+}
+
 SizeOrDim CanonType_size(CanonType ct) { return gCanonTypeCore[ct].size; }
+
 int CanonType_aligned_size(CanonType ct) {
   return align(gCanonTypeCore[ct].size, gCanonTypeCore[ct].alignment);
 }
@@ -364,7 +371,7 @@ CanonType TypeCorpus::Insert(CanonType ct) {
   }
   CanonType_typeid(ct) = typeid_curr_;
   ++typeid_curr_;
-  corpus_in_order_.push_back(ct);
+  corpus_in_topo_order_.push_back(ct);
   return ct;
 }
 
@@ -530,9 +537,61 @@ void TypeCorpus::SetAbiInfoForAllTypes() {
   initial_typing_ = false;
 }
 
+CanonType TypeCorpus::MaybeGetReplacementType(CanonType ct) {
+  const CanonTypeCore& core = gCanonTypeCore[ct];
+  const NT kind = core.node;
+  if (kind == NT::DefType || kind == NT::DefRec) {
+    return kCanonTypeInvalid;
+  }
+  if (!core.replacement_type.isnull()) {
+    return core.replacement_type;
+  }
+  bool needs_replacement = false;
+  for (CanonType child : core.children) {
+    if (!CanonType_replacement_type(child).isnull()) {
+      needs_replacement = true;
+      break;
+    }
+  }
+  if (!needs_replacement) {
+    return kCanonTypeInvalid;
+  }
+  std::vector<CanonType> new_children;
+  new_children.reserve(core.children.size());
+  for (CanonType child : core.children) {
+    CanonType repl = CanonType_replacement_type(child);
+    if (!repl.isnull()) {
+      repl = child;
+    }
+    new_children.push_back(repl);
+  }
+
+  switch (kind) {
+    case NT::TypePtr:
+      return InsertPtrType(core.mut, new_children[0]);
+    case NT::TypeSpan:
+      return InsertSpanType(core.mut, new_children[0]);
+    case NT::TypeVec:
+      return TypeCorpus::InsertVecType(core.dim, new_children[0]);
+    case NT::TypeFun:
+      return TypeCorpus::InsertFunType(new_children);
+    case NT::TypeUnion:
+      return TypeCorpus::InsertUnionType(core.untagged, new_children);
+    default:
+      ASSERT(false, "UNREACHABLE");
+      return kCanonTypeInvalid;
+  }
+}
+
+void TypeCorpus::ClearReplacementInfo() {
+  for (CanonType ct : corpus_in_topo_order_) {
+    CanonType_replacement_type(ct) = kCanonTypeInvalid;
+  }
+}
+
 void TypeCorpus::Dump() {
-  std::cout << "Dump of CanonTypes: (" << corpus_in_order_.size() << ")\n";
-  for (CanonType ct : corpus_in_order_) {
+  std::cout << "Dump of CanonTypes: (" << corpus_in_topo_order_.size() << ")\n";
+  for (CanonType ct : corpus_in_topo_order_) {
     std::cout << CanonType_name(ct)
               // << " " << EnumToString(CanonType_kind(ct))
               << " id=" << CanonType_typeid(ct)
