@@ -745,8 +745,6 @@ def _CheckExprFront(node: cwast.ExprFront, _):
 
 def _CheckExprWiden(node: cwast.ExprWiden, _):
     ct_src: cwast.CanonType = node.expr.x_type
-    if ct_src.original_type:
-        ct_src = ct_src.original_type
     ct_dst: cwast.CanonType = node.type.x_type
     _CheckTypeIs(node, ct_dst)
     if not type_corpus.IsSubtypeToUnionConversion(ct_src, ct_dst):
@@ -756,8 +754,6 @@ def _CheckExprWiden(node: cwast.ExprWiden, _):
 
 def _CheckExprNarrow(node: cwast.ExprNarrow, _):
     ct_src: cwast.CanonType = node.expr.x_type
-    if ct_src.original_type is not None:
-        ct_src = ct_src.original_type
     ct_dst: cwast.CanonType = node.type.x_type
     _CheckTypeIs(node, ct_dst)
     # note: inverse from widen

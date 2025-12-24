@@ -561,7 +561,7 @@ class TypeCorpus:
 
     def MaybeGetReplacementType(self, ct: cwast.CanonType) -> Optional[cwast.CanonType]:
         # TODO: explain why some types are not handled
-        if ct.node in (cwast.DefRec, cwast.DefType, cwast.TypeUnion):
+        if ct.node in (cwast.DefRec, cwast.DefType):
             return None
 
         if ct.replacement_type:
@@ -586,6 +586,8 @@ class TypeCorpus:
                 replacement_children[:-1], replacement_children[-1])
         elif ct.node is cwast.TypeSpan:
             return self.InsertSpanType(ct.mut, replacement_children[0])
+        elif ct.node is cwast.TypeUnion:
+            return self.InsertUnionType(ct.untagged, replacement_children)
         else:
             assert False, f"cannot make replacement type for {ct.name} {ct.node}"
             return None

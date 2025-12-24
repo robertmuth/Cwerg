@@ -1069,7 +1069,7 @@ class CanonType:
         return None
 
     def __str__(self):
-        return self.name + ("☠" if self.replacement_type else " ")
+        return self.name
 
 
 NO_TYPE = CanonType(None, "@invali@d")

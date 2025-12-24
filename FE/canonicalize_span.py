@@ -123,6 +123,7 @@ def ReplaceSpans(node):
             def_rec = node.x_type.replacement_type
             if def_rec is not None:
                 if isinstance(node, (cwast.Id, cwast.TypeAuto, cwast.DefType,
+                                     cwast.ExprWiden, cwast.ExprUnionUntagged,
                                      cwast.ExprStmt, cwast.DefFun,
                                      cwast.FunParam, cwast.DefVar, cwast.DefGlobal,
                                      cwast.RecField, cwast.ExprField,

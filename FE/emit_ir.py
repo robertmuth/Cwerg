@@ -1077,7 +1077,7 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
         if stage.value >= checker.COMPILE_STAGE.AFTER_SYMBOLIZE.value:
             symbolize.VerifySymbols(mod)
 
-        if stage in (checker.COMPILE_STAGE.AFTER_TYPIFY, checker.COMPILE_STAGE.AFTER_EVAL):
+        if stage in (checker.COMPILE_STAGE.AFTER_TYPIFY, checker.COMPILE_STAGE.AFTER_EVAL, checker.COMPILE_STAGE.AFTER_DESUGAR):
             typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
         if stage.value > checker.COMPILE_STAGE.AFTER_EVAL.value:
             typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_STRICT)
@@ -1144,7 +1144,6 @@ def MakeModWithComplexConstants(mod_topo_order: list[cwast.DefMod]) -> cwast.Def
 
 def PhaseEliminateSpanAndUnion(mod_gen: cwast.DefMod, mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
     # TODO: comment on ordering of span and union elimination
-
     tc.ClearReplacementInfo()
     canonicalize_span.MakeAndRegisterSpanTypeReplacements(mod_gen, tc)
     for mod in ([mod_gen] + mod_topo_order):
