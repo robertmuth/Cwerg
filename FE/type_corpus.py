@@ -476,7 +476,7 @@ class TypeCorpus:
         ct = cwast.CanonType(cwast.TypeVec, name, dim=dim, children=[ct])
         return self._insert(ct)
 
-    def InsertRecType(self, name: str, ast_node: cwast.DefRec, process_children=True) -> cwast.CanonType:
+    def InsertRecType(self, name: str, ast_node: cwast.DefRec, process_children) -> cwast.CanonType:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefRec)
         name = f"rec<{name}>"

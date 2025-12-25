@@ -14,19 +14,6 @@ from FE import typify
 ############################################################
 
 
-def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cwast.DefRec:
-    fields = []
-    for field_name, field_ct in fields_desc:
-        field_type = cwast.TypeAuto(x_srcloc=srcloc, x_type=field_ct)
-        fields.append(cwast.RecField(
-            field_name, field_type, x_srcloc=srcloc, x_type=field_ct))
-    rec = cwast.DefRec(cwast.NAME.Make(
-        name), fields, pub=True, x_srcloc=srcloc)
-    rec_ct: cwast.CanonType = tc.InsertRecType(f"{name}", rec)
-    typify.AnnotateNodeType(rec, rec_ct)
-    return rec
-
-
 def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id(def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,

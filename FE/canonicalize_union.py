@@ -13,8 +13,8 @@ from typing import Optional
 from FE import cwast
 from FE import type_corpus
 from FE import typify
-from FE import canonicalize
 from FE import eval
+from FE import canonicalize
 
 ############################################################
 # Convert Tagged Unions to equvalent struct
@@ -33,7 +33,7 @@ def _MakeUnionReplacementStruct(union_type: cwast.CanonType,
         (SUM_FIELD_UNION, tc.InsertUnionType(
             True, union_type.union_member_types()))
     ]
-    return canonicalize.MakeDefRec(f"xtuple_{union_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
+    return typify.MakeDefRec(f"xtuple_{union_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
 def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):

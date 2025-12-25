@@ -7,7 +7,6 @@ from FE import canonicalize
 from FE import cwast
 from FE import type_corpus
 from FE import typify
-from FE import symbolize
 from FE import eval
 
 ############################################################
@@ -26,7 +25,7 @@ def _MakeSpanReplacementStruct(span_type: cwast.CanonType,
             span_type.mut, span_type.underlying_type())),
         (SLICE_FIELD_LENGTH,  tc.get_uint_canon_type())
     ]
-    return canonicalize.MakeDefRec(f"xtuple_{span_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
+    return typify.MakeDefRec(f"xtuple_{span_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
 def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):

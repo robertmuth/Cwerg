@@ -15,4 +15,12 @@ extern void AddTypesToAst(const std::vector<Node>& mods,
 
 extern void ModStripTypeNodesRecursively(Node node);
 
+struct NameAndType {
+  Name name;
+  CanonType ct;
+};
+
+extern Node MakeDefRec(Name name, const std::vector<NameAndType>& fields,
+                       TypeCorpus* tc);
+
 }  // namespace cwerg::fe

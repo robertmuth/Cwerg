@@ -1170,6 +1170,24 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
 
 }  //  namespace
 
+Node MakeDefRec(Name name, const std::vector<NameAndType>& fields,
+                TypeCorpus* tc) {
+  NodeChain chain;
+  for (const auto& nt : fields) {
+    Node f = NodeNew(NT::RecField);
+    NodeInitRecField(f, nt.name, MakeTypeAuto(nt.ct, kSrcLocInvalid),
+                     kStrInvalid, kSrcLocInvalid, nt.ct);
+    chain.Append(f);
+  }
+
+  Node out = NodeNew(NT::DefRec);
+  NodeInitDefRec(out, name, chain.First(), 0, kStrInvalid, kSrcLocInvalid,
+                 kCanonTypeInvalid);
+  CanonType ct = tc->InsertRecType(NameData(name), out, true);
+  AnnotateType(out, ct);
+  return out;
+}
+
 void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
   if (sw_verbose.Value()) std::cout << "Phase 1\n";
 
