@@ -116,14 +116,16 @@ Node MakeModWithComplexConstants(const std::vector<Node>& mods_in_topo_order) {
 void PhaseEliminateSpanAndUnion(Node mod_gen,
                                 std::vector<Node>& mods__topo_order,
                                 TypeCorpus* tc) {
-  MakeAndRegisterSpanTypeReplacements(mod_gen, tc);
+  // NodeChain span_recs =
+  MakeAndRegisterSpanTypeReplacements(tc);
   ReplaceSpans(mod_gen);
 
   for (Node mod : mods__topo_order) {
     ReplaceSpans(mod);
   }
   //
-  MakeAndRegisterUnionTypeReplacements(mod_gen, tc);
+  // NodeChain union_recs =
+  MakeAndRegisterUnionTypeReplacements(tc);
   ReplaceUnions(mod_gen);
 
   for (Node mod : mods__topo_order) {

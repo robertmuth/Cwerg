@@ -6,7 +6,7 @@
 namespace cwerg::fe {
 
 // may insert new untagged union type
-extern void MakeAndRegisterSpanTypeReplacements(Node mod_gen, TypeCorpus* tc);
+extern NodeChain MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc);
 
 extern void ReplaceSpans(Node mod);
 

@@ -1,6 +1,7 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+#include <span>
 #include <vector>
 
 #include "FE/cwast_gen.h"
@@ -20,7 +21,7 @@ struct NameAndType {
   CanonType ct;
 };
 
-extern Node MakeDefRec(Name name, const std::vector<NameAndType>& fields,
+extern Node MakeDefRec(Name name, std::span<NameAndType> fields,
                        TypeCorpus* tc);
 
 }  // namespace cwerg::fe

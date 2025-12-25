@@ -91,6 +91,9 @@ extern CanonType CanonType_get_unwrapped(CanonType n);
 extern bool CanonType_tagged_union_contains(CanonType haystack,
                                             CanonType needle);
 
+extern void CanonTypeLinkReplacementType(CanonType ct,
+                                         CanonType replacement_ct);
+
 inline std::ostream& operator<<(std::ostream& os, CanonType ct) {
   return os << CanonType_name(ct);
 }
@@ -180,6 +183,9 @@ class TypeCorpus {
   CanonType InsertWrappedTypePre(std::string_view name);
   void InsertWrappedTypeFinalize(CanonType ct, CanonType wrapped_type);
   CanonType InsertUnionComplement(CanonType minuend, CanonType subtrahend);
+
+  CanonType InsertPtrFromSpan(CanonType span_ct);
+  CanonType InsertUntaggedFromTaggedUnion(CanonType union_ct);
 
   void SetAbiInfoForAllTypes();
 

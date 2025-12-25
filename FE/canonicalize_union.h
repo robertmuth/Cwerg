@@ -3,12 +3,13 @@
 #include "FE/type_corpus.h"
 #include "Util/assert.h"
 
+
 namespace cwerg::fe {
 
 // may insert new untagged union type
 extern void FunSimplifyTaggedExprNarrow(Node fun, TypeCorpus* tc);
 
-extern void MakeAndRegisterUnionTypeReplacements(Node mod_gen, TypeCorpus* tc);
+extern NodeChain MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc);
 
 extern void ReplaceUnions(Node mod);
 }  // namespace cwerg::fe

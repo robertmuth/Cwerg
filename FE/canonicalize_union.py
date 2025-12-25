@@ -36,7 +36,7 @@ def _MakeUnionReplacementStruct(union_type: cwast.CanonType,
     return typify.MakeDefRec(f"xtuple_{union_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
-def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):
+def MakeAndRegisterUnionTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwast.DefRec]:
     """For all types directly involving tagged sums, produce a replacement type, a DefRec,
     and return the map from one the other.
 
@@ -45,19 +45,19 @@ def MakeAndRegisterUnionTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.
 
     # Go through the type table in topological order and generate the map.
     # Note; we add new types to the map while iterating over it so we take a snapshot first
+    tc.ClearReplacementInfo()
+    out = []
     for ct in tc.topo_order[:]:
-        assert ct.replacement_type is None
-
         if ct.is_tagged_union():
             rec = _MakeUnionReplacementStruct(ct, tc)
-            mod_gen.body_mod.append(rec)
+            out.append(rec)
             new_ct = rec.x_type
         else:
             new_ct = tc.MaybeGetReplacementType(ct)
             if not new_ct:
                 continue
-        ct.replacement_type = new_ct
-        new_ct.original_type = ct
+        ct.LinkReplacementType(new_ct)
+    return out
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:

@@ -1170,7 +1170,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
 
 }  //  namespace
 
-Node MakeDefRec(Name name, const std::vector<NameAndType>& fields,
+Node MakeDefRec(Name name, std::span<NameAndType> fields,
                 TypeCorpus* tc) {
   NodeChain chain;
   for (const auto& nt : fields) {

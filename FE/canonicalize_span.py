@@ -28,30 +28,29 @@ def _MakeSpanReplacementStruct(span_type: cwast.CanonType,
     return typify.MakeDefRec(f"xtuple_{span_type.name}", fields, tc, cwast.SRCLOC_GENERATED)
 
 
-def MakeAndRegisterSpanTypeReplacements(mod_gen: cwast.DefMod, tc: type_corpus.TypeCorpus):
+def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwast.DefRec]:
     """For all types directly involving spans, produce a replacement type
     and return the map from one the other
 
     Note: recs containing span fields are not thought of as directly involving spans
     TODO: what about sum types?
     """
-
+    tc.ClearReplacementInfo()
     # Go through the type table in topological order.
     # Note: we add new types to the map while iterating over it so we take
     # a snapshot first
+    out = []
     for ct in tc.topo_order[:]:
-        assert ct.replacement_type is None
-
         if ct.is_span():
             rec = _MakeSpanReplacementStruct(ct, tc)
-            mod_gen.body_mod.append(rec)
+            out.append(rec)
             new_ct = rec.x_type
         else:
             new_ct = tc.MaybeGetReplacementType(ct)
             if not new_ct:
                 continue
-        ct.replacement_type = new_ct
-        new_ct.original_type = ct
+        ct.LinkReplacementType(new_ct)
+    return out
 
 
 def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:

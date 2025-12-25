@@ -1,12 +1,47 @@
 
 #include "FE/canonicalize_union.h"
 
+#include <array>
+
 #include "FE/canonicalize.h"
 #include "FE/cwast_gen.h"
 #include "FE/eval.h"
+#include "FE/typify.h"
 #include "Util/parse.h"
 
 namespace cwerg::fe {
+
+Node MakeUnionReplacementStruct(CanonType union_ct, TypeCorpus* tc) {
+  std::array<NameAndType, 2> fields = {{
+      NameAndType{NameNew("tag"), tc->get_typeid_canon_type()},
+      NameAndType{NameNew("union"),
+                  tc->InsertUntaggedFromTaggedUnion(union_ct)},
+  }};
+  std::string name = "xtuple_";
+  name += NameData(CanonType_name(union_ct));
+  return MakeDefRec(NameNew(name), fields, tc);
+}
+
+NodeChain MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc) {
+  NodeChain out;
+  tc->ClearReplacementInfo();
+  for (CanonType ct : tc->InTopoOrder()) {
+    CanonType new_ct;
+    if (CanonType_is_union(ct) && !CanonType_untagged(ct)) {
+      Node rec = MakeUnionReplacementStruct(ct, tc);
+      out.Append(rec);
+      new_ct = Node_x_type(rec);
+    } else {
+      new_ct = tc->MaybeGetReplacementType(ct);
+      if (new_ct.isnull()) {
+        continue;
+      }
+    }
+    CanonTypeLinkReplacementType(ct, new_ct);
+
+  }
+  return out;
+}
 
 void ConvertTaggedNarrowToUntaggedNarrow(Node node, TypeCorpus* tc) {
   CanonType tagged_ct = Node_x_type(Node_expr(node));

@@ -1068,6 +1068,10 @@ class CanonType:
                 return x
         return None
 
+    def LinkReplacementType(self, replacement_ct: "CanonType"):
+        self.replacement_type = replacement_ct
+        replacement_ct.original_type = self
+
     def __str__(self):
         return self.name
 

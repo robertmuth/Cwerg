@@ -26,6 +26,7 @@ struct CanonTypeCore {
   SizeOrDim size = kSizeOrDimInvalid;
   int type_id = -1;
   CanonType replacement_type = kCanonTypeInvalid;
+  CanonType original_type = kCanonTypeInvalid;
 };
 
 struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore("CanonTypeCore");
@@ -237,6 +238,11 @@ CanonType CanonTypeNewFunType(Name name,
   gCanonTypeCore[out] = {
       .node = NT::TypeFun, .name = name, .children = params_result};
   return out;
+}
+
+void CanonTypeLinkReplacementType(CanonType ct, CanonType replacement_ct) {
+  CanonType_replacement_type(ct) = replacement_ct;
+  gCanonTypeCore[replacement_ct].original_type = ct;
 }
 
 // ====================================================================
@@ -526,6 +532,17 @@ CanonType TypeCorpus::InsertFunType(
   if (it != corpus_.end()) return it->second;
   CanonType out = CanonTypeNewFunType(name, params_result);
   return Insert(out);
+}
+
+CanonType TypeCorpus::InsertPtrFromSpan(CanonType span_ct) {
+  ASSERT(CanonType_kind(span_ct) == NT::TypeSpan, "");
+  return InsertPtrType(CanonType_mut(span_ct), CanonType_children(span_ct)[0]);
+}
+
+CanonType TypeCorpus::InsertUntaggedFromTaggedUnion(CanonType union_ct) {
+  ASSERT(CanonType_kind(union_ct) == NT::TypeUnion, "");
+  ASSERT(!CanonType_untagged(union_ct), "");
+  return InsertUnionType(true, CanonType_children(union_ct));
 }
 
 void TypeCorpus::SetAbiInfoForAllTypes() {
