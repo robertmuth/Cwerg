@@ -15,6 +15,18 @@ Node CloneId(Node id) {
   return out;
 }
 
+
+
+Node MakeExprField(Node container, Node rec_field, const SrcLoc& sl) {
+    Node field = NodeNew(NT::Id);
+  NodeInitId(field, Node_name(rec_field), kNameInvalid, kStrInvalid, sl,
+             Node_x_symbol(rec_field), Node_x_type(rec_field));
+  Node out = NodeNew(NT::ExprField);
+  NodeInitExprField(out, container, field, kStrInvalid, sl, Node_x_type(rec_field));
+  return out;
+}
+
+
 void FunRemoveParentheses(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (Node_kind(node) == NT::ExprParen) {
@@ -26,8 +38,6 @@ void FunRemoveParentheses(Node fun) {
   };
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
-
-
 
 Node ConvertExprIndexToPointerArithmetic(Node container, Node index, Node bound,
                                          bool mut, const SrcLoc& srcloc,

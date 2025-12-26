@@ -39,4 +39,6 @@ extern void FunDesugarExpr3(Node fun);
 extern void FunAddMissingReturnStmts(Node fun);
 
 extern void FunOptimizeKnownConditionals(Node fun);
+
+extern Node MakeExprField(Node container, Node rec_field, const SrcLoc& sl);
 }  // namespace cwerg::fe

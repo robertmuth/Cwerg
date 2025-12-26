@@ -38,9 +38,31 @@ NodeChain MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc) {
       }
     }
     CanonTypeLinkReplacementType(ct, new_ct);
-
   }
   return out;
+}
+
+void ReplaceUnions(Node mod) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (node.kind() == NT::ExprUnionTag) {
+      CanonType rec_ct = Node_x_type(Node_container(node));
+      Node def_rec = CanonType_ast_node(rec_ct);
+      Node union_field = Node_next(Node_fields(def_rec));
+      return MakeExprField(Node_container(node), union_field,
+                           Node_srcloc(node));
+    }
+
+    if (node.kind() == NT::ExprUnionUntagged) {
+      CanonType rec_ct = Node_x_type(Node_container(node));
+      Node def_rec = CanonType_ast_node(rec_ct);
+      Node tag_field = Node_fields(def_rec);
+      return MakeExprField(Node_container(node), tag_field, Node_srcloc(node));
+    }
+    // TODO
+
+    return node;
+  };
+  MaybeReplaceAstRecursivelyPost(mod, replacer, kNodeInvalid);
 }
 
 void ConvertTaggedNarrowToUntaggedNarrow(Node node, TypeCorpus* tc) {
@@ -110,7 +132,4 @@ void FunSimplifyTaggedExprNarrow(Node fun, TypeCorpus* tc) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
-void MakeAndRegisterUnionTypeReplacements(Node mod_gen, TypeCorpus* tc) {}
-
-void ReplaceUnions(Node mod) {}
 }  // namespace cwerg::fe

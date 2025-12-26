@@ -3,6 +3,7 @@
 
 #include <array>
 
+#include "FE/canonicalize.h"
 #include "FE/cwast_gen.h"
 #include "FE/eval.h"
 #include "FE/typify.h"
@@ -40,6 +41,28 @@ NodeChain MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc) {
   return out;
 }
 
-void ReplaceSpans(Node mod) {}
+void ReplaceSpans(Node mod) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (node.kind() == NT::ExprLen) {
+      CanonType rec_ct = Node_x_type(Node_container(node));
+      Node def_rec = CanonType_ast_node(rec_ct);
+      Node len_field = Node_next(Node_fields(def_rec));
+      return MakeExprField(Node_container(node), len_field, Node_srcloc(node));
+    }
+
+    if (node.kind() == NT::ExprFront) {
+      CanonType rec_ct = Node_x_type(Node_container(node));
+      Node def_rec = CanonType_ast_node(rec_ct);
+      Node pointer_field = Node_fields(def_rec);
+      return MakeExprField(Node_container(node), pointer_field,
+                           Node_srcloc(node));
+    }
+    // TODO
+
+    return node;
+  };
+
+  MaybeReplaceAstRecursivelyPost(mod, replacer, kNodeInvalid);
+}
 
 }  // namespace cwerg::fe
