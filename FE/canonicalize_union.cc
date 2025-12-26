@@ -48,15 +48,20 @@ void ReplaceUnions(Node mod) {
       CanonType rec_ct = Node_x_type(Node_container(node));
       Node def_rec = CanonType_ast_node(rec_ct);
       Node union_field = Node_next(Node_fields(def_rec));
-      return MakeExprField(Node_container(node), union_field,
-                           Node_srcloc(node));
+      const SrcLoc& sl = Node_srcloc(node);
+      Node container = Node_container(node);
+      NodeFree(node);
+      return MakeExprField(container, union_field, sl);
     }
 
     if (node.kind() == NT::ExprUnionUntagged) {
       CanonType rec_ct = Node_x_type(Node_container(node));
       Node def_rec = CanonType_ast_node(rec_ct);
       Node tag_field = Node_fields(def_rec);
-      return MakeExprField(Node_container(node), tag_field, Node_srcloc(node));
+      const SrcLoc& sl = Node_srcloc(node);
+      Node container = Node_container(node);
+      NodeFree(node);
+      return MakeExprField(container, tag_field, sl);
     }
     // TODO
 
