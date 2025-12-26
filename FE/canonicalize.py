@@ -14,15 +14,16 @@ from FE import typify
 ############################################################
 
 
-def _IdNodeFromDef(def_node: cwast.DefVar, x_srcloc):
+def _IdNodeFromDef(def_node: cwast.DefVar, sl):
     assert def_node.type_or_auto.x_type is not None
-    return cwast.Id(def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
+    return cwast.Id(def_node.name, None, x_srcloc=sl, x_type=def_node.type_or_auto.x_type,
                     x_eval=def_node.initial_or_undef_or_auto.x_eval, x_symbol=def_node)
 
 
-def IdNodeFromRecField(recfield: cwast.RecField, srcloc):
-    return cwast.Id(recfield.name, None, x_srcloc=srcloc, x_type=recfield.x_type,
-                    x_symbol=recfield)
+def MakeExprField(container, rec_field: cwast.RecField, sl) -> cwast.ExprField:
+    field_name = cwast.Id(rec_field.name, None, x_srcloc=sl, x_type=rec_field.x_type,
+                          x_symbol=rec_field)
+    return cwast.ExprField(container, field_name, sl, x_type=rec_field.x_type)
 
 
 def _ShouldBeBoolExpanded(node, parent):

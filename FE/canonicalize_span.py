@@ -95,27 +95,23 @@ def ReplaceSpans(node):
      TODO: see unused _ConvertMutSpanValRecToSpanValRec helper
      `span<u8> = span-mut<u8>` is ok before the change to structs but not afterwards
     """
-    def replacer(node, _parent):
+    def replacer(node):
+        if isinstance(node, cwast.ExprFront):
+            def_rec = node.container.x_type
+            if def_rec.is_rec():
+                assert def_rec.original_type is not None
+                assert def_rec.original_type.is_span()
+                pointer_field = def_rec.ast_node.fields[0]
+                return canonicalize.MakeExprField(node.container,  pointer_field, node.x_srcloc)
 
         # len of array is constant and should have already been eliminated
-        if isinstance(node, cwast.ExprLen):
-            sl = node.x_srcloc
+        elif isinstance(node, cwast.ExprLen):
             def_rec = node.container.x_type
             if def_rec.is_rec():
                 assert def_rec.original_type is not None
                 assert def_rec.original_type.is_span()
-                _, len_field = def_rec.ast_node.fields
-                return cwast.ExprField(node.container, canonicalize.IdNodeFromRecField(len_field, sl),
-                                       x_srcloc=sl, x_type=len_field.x_type)
-        elif isinstance(node, cwast.ExprFront):
-            sl = node.x_srcloc
-            def_rec = node.container.x_type
-            if def_rec.is_rec():
-                assert def_rec.original_type is not None
-                assert def_rec.original_type.is_span()
-                pointer_field, _ = def_rec.ast_node.fields
-                return cwast.ExprField(node.container,  canonicalize.IdNodeFromRecField(pointer_field, sl),
-                                       x_srcloc=sl, x_type=pointer_field.x_type)
+                len_field = def_rec.ast_node.fields[1]
+                return canonicalize.MakeExprField(node.container, len_field, node.x_srcloc)
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             def_rec = node.x_type.replacement_type
@@ -145,4 +141,4 @@ def ReplaceSpans(node):
                     f"[{def_rec.name}]: {type(node)} of type {node.x_type}")
         return None
 
-    cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
+    cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
