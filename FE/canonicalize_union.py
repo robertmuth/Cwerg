@@ -279,7 +279,7 @@ def ReplaceUnions(node):
                              cwast.ExprField, cwast.ValPoint,
                              cwast.ValCompound, cwast.ExprPointer,
                              cwast.ExprFront, cwast.ExprDeref, cwast.ExprAddrOf)):
-            typify.UpdateNodeType(node, new_ct)
+            typify.NodeChangeType(node, new_ct)
             return None
         elif isinstance(node, cwast.ExprWiden):
             ct_src: cwast.CanonType = node.expr.x_type
@@ -300,7 +300,7 @@ def ReplaceUnions(node):
                 # type must also be one
                 return _MakeValRecForNarrow(node, new_ct)
             else:
-                typify.UpdateNodeType(node, new_ct)
+                typify.NodeChangeType(node, new_ct)
                 return None
         else:
             assert False, f"do not know how to convert sum node [{

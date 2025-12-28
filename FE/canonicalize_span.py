@@ -57,14 +57,15 @@ def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
     return cwast.Id(def_rec.ast_node.name, None, x_symbol=def_rec.ast_node, x_type=def_rec, x_srcloc=srcloc)
 
 
+def _MakeValPoint(val, ct, sl) -> cwast.ValPoint:
+    return cwast.ValPoint(val, cwast.ValUndef(x_srcloc=sl, x_eval=eval.VAL_UNDEF),
+                          x_type=ct, x_srcloc=sl, x_eval=val.x_eval)
+
+
 def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValCompound:
     pointer_field, length_field = span_rec.ast_node.fields
-    inits = [cwast.ValPoint(pointer, cwast.ValUndef(x_srcloc=srcloc, x_eval=eval.VAL_UNDEF),
-                            x_type=pointer_field.x_type,
-                            x_srcloc=srcloc, x_eval=pointer.x_eval),
-             cwast.ValPoint(length, cwast.ValUndef(x_srcloc=srcloc, x_eval=eval.VAL_UNDEF),
-                            x_type=length_field.x_type,
-                            x_srcloc=srcloc, x_eval=length.x_eval)]
+    inits = [_MakeValPoint(pointer, pointer_field.x_type, srcloc),
+             _MakeValPoint(length, length_field.x_type, srcloc)]
     return cwast.ValCompound(_MakeIdForDefRec(span_rec, srcloc), inits, x_srcloc=srcloc, x_type=span_rec)
 
 
@@ -116,22 +117,17 @@ def ReplaceSpans(node):
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             def_rec = node.x_type.replacement_type
             if def_rec is not None:
-                if isinstance(node, (cwast.Id, cwast.TypeAuto, cwast.DefType,
-                                     cwast.ExprWiden, cwast.ExprUnionUntagged,
-                                     cwast.ExprStmt, cwast.DefFun,
-                                     cwast.FunParam, cwast.DefVar, cwast.DefGlobal,
-                                     cwast.RecField, cwast.ExprField,
-                                     cwast.Expr3, cwast.ExprDeref, cwast.ExprNarrow,
-                                     cwast.ExprAddrOf, cwast.ExprCall,
-                                     cwast.ValAuto,
-                                     cwast.ValPoint, cwast.ValCompound)):
-                    typify.UpdateNodeType(node, def_rec)
-                    return None
-                elif isinstance(node, (cwast.ExprUnwrap)):
-                    ct_src = node.expr.x_type
-                    ct_dst = node.x_type
-                    assert ct_src.is_wrapped() and ct_src.underlying_type() == ct_dst
-                    typify.UpdateNodeType(node, def_rec)
+                if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.DefFun,  cwast.DefType,
+                                     #
+                                     cwast.Expr3, cwast.ExprAddrOf, cwast.ExprCall,
+                                     cwast.ExprDeref, cwast.ExprField, cwast.ExprNarrow,
+                                     cwast.ExprStmt, cwast.ExprUnionUntagged, cwast.ExprUnwrap,
+                                     cwast.ExprWiden,
+                                     #
+                                     cwast.FunParam, cwast.Id, cwast.RecField, cwast.TypeAuto,
+                                     #
+                                     cwast.ValAuto, cwast.ValPoint, cwast.ValCompound)):
+                    typify.NodeChangeType(node, def_rec)
                     return None
                 elif isinstance(node, cwast.ValSpan):
                     return _MakeValRecForSpan(node.pointer, node.expr_size, def_rec, node.x_srcloc)
