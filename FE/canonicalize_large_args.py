@@ -53,7 +53,7 @@ def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus) -> dict[Any, Any]:
 def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonType,
                                        tc: type_corpus.TypeCorpus):
     old_sig: cwast.CanonType = fun.x_type
-    typify.UpdateNodeType(fun, new_sig)
+    typify.NodeChangeType(fun, new_sig)
     result_changes = old_sig.result_type() != new_sig.result_type()
     if result_changes:
         assert new_sig.result_type().is_void()
@@ -89,7 +89,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
         if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
             new_node = cwast.ExprDeref(
                 node, x_srcloc=node.x_srcloc, x_type=node.x_type)
-            typify.UpdateNodeType(node, changing_params[node.x_symbol])
+            typify.NodeChangeType(node, changing_params[node.x_symbol])
             return new_node
 
         if isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
@@ -138,7 +138,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
             sl = call.x_srcloc
             old_sig: cwast.CanonType = call.callee.x_type
             new_sig: cwast.CanonType = fun_sigs_with_large_args[old_sig]
-            typify.UpdateNodeType(call.callee, new_sig)
+            typify.NodeChangeType(call.callee, new_sig)
             expr_body: list[Any] = []
             expr = cwast.ExprStmt(
                 expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
@@ -171,7 +171,7 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, fun_sigs_with_large_args,
                                 x_type=old_sig.result_type(), x_symbol=new_def)
                 call.args.append(cwast.ExprAddrOf(
                     name, mut=True, x_srcloc=call.x_srcloc, x_type=new_sig.parameter_types()[-1]))
-                typify.UpdateNodeType(call, tc.get_void_canon_type())
+                typify.NodeChangeType(call, tc.get_void_canon_type())
                 expr_body.append(new_def)
                 expr_body.append(cwast.StmtExpr(call, x_srcloc=sl))
                 expr_body.append(cwast.StmtReturn(
