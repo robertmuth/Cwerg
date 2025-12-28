@@ -3449,7 +3449,7 @@ def GenerateInits():
             elif name == "x_type":
                 has_type = True
 
-        print(f"inline void NodeInit{cls.__name__}(Node node", end="")
+        print(f"inline Node NodeInit{cls.__name__}(Node node", end="")
         for nfd in nfds:
             k = nfd.kind
             if k == NFK.NODE or k == NFK.LIST:
@@ -3493,7 +3493,7 @@ def GenerateInits():
             print("    Node_x_symbol(node) = x_symbol;")
         if has_type:
             print("    Node_x_type(node) = x_type;")
-
+        print("    return node;")
         print("}\n")
 
 

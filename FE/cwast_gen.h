@@ -670,365 +670,441 @@ inline Node& Node_value_or_undef(Node n) { return gNodeCore[n].children_node[0];
 inline Node& Node_lhs(Node n) { return gNodeCore[n].children_node[0]; }
 inline Node& Node_expr_lhs(Node n) { return gNodeCore[n].children_node[0]; }
 inline Node& Node_initial_or_undef_or_auto(Node n) { return gNodeCore[n].children_node[2]; }
-inline void NodeInitCase(Node node, Node cond, Node body, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitCase(Node node, Node cond, Node body, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::Case, kHandleInvalid, cond, kHandleInvalid, body, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitDefEnum(Node node, Name name, BASE_TYPE_KIND base_type_kind, Node items, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitDefEnum(Node node, Name name, BASE_TYPE_KIND base_type_kind, Node items, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::DefEnum, name, items, kHandleInvalid, kHandleInvalid, uint8_t(base_type_kind), bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitDefFun(Node node, Name name, Node params, Node result, Node body, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitDefFun(Node node, Name name, Node params, Node result, Node body, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::DefFun, name, params, result, body, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitDefGlobal(Node node, Name name, Node type_or_auto, Node initial_or_undef_or_auto, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitDefGlobal(Node node, Name name, Node type_or_auto, Node initial_or_undef_or_auto, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::DefGlobal, name, type_or_auto, initial_or_undef_or_auto, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitDefMacro(Node node, Name name, MACRO_RESULT_KIND macro_result_kind, Node params_macro, Node gen_ids, Node body_macro, uint16_t bits, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitDefMacro(Node node, Name name, MACRO_RESULT_KIND macro_result_kind, Node params_macro, Node gen_ids, Node body_macro, uint16_t bits, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::DefMacro, name, params_macro, gen_ids, body_macro, uint8_t(macro_result_kind), bits, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitDefMod(Node node, Name name, Node params_mod, Node body_mod, uint16_t bits, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitDefMod(Node node, Name name, Node params_mod, Node body_mod, uint16_t bits, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::DefMod, name, params_mod, kHandleInvalid, body_mod, 0, bits, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitDefRec(Node node, Name name, Node fields, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitDefRec(Node node, Name name, Node fields, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::DefRec, name, fields, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitDefType(Node node, Name name, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitDefType(Node node, Name name, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::DefType, name, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitDefVar(Node node, Name name, Node type_or_auto, Node initial_or_undef_or_auto, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitDefVar(Node node, Name name, Node type_or_auto, Node initial_or_undef_or_auto, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::DefVar, name, type_or_auto, initial_or_undef_or_auto, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitEnumVal(Node node, Name name, Node value_or_auto, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitEnumVal(Node node, Name name, Node value_or_auto, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::EnumVal, name, value_or_auto, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitEphemeralList(Node node, Node args, uint16_t bits, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitEphemeralList(Node node, Node args, uint16_t bits, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::EphemeralList, kHandleInvalid, args, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitExpr1(Node node, UNARY_EXPR_KIND unary_expr_kind, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExpr1(Node node, UNARY_EXPR_KIND unary_expr_kind, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::Expr1, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, uint8_t(unary_expr_kind), 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExpr2(Node node, BINARY_EXPR_KIND binary_expr_kind, Node expr1, Node expr2, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExpr2(Node node, BINARY_EXPR_KIND binary_expr_kind, Node expr1, Node expr2, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::Expr2, expr1, expr2, kHandleInvalid, kHandleInvalid, uint8_t(binary_expr_kind), 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExpr3(Node node, Node cond, Node expr_t, Node expr_f, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExpr3(Node node, Node cond, Node expr_t, Node expr_f, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::Expr3, kHandleInvalid, cond, expr_t, expr_f, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprAddrOf(Node node, Node expr_lhs, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprAddrOf(Node node, Node expr_lhs, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprAddrOf, expr_lhs, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprAs(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprAs(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprAs, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprBitCast(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprBitCast(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprBitCast, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprCall(Node node, Node callee, Node args, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprCall(Node node, Node callee, Node args, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprCall, callee, args, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprDeref(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprDeref(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprDeref, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprField(Node node, Node container, Node field, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprField(Node node, Node container, Node field, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprField, container, kHandleInvalid, field, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprFront(Node node, Node container, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprFront(Node node, Node container, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprFront, container, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprIndex(Node node, Node container, Node expr_index, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprIndex(Node node, Node container, Node expr_index, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprIndex, container, expr_index, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprIs(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprIs(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprIs, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprLen(Node node, Node container, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprLen(Node node, Node container, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprLen, container, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprNarrow(Node node, Node expr, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprNarrow(Node node, Node expr, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprNarrow, expr, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprOffsetof(Node node, Node type, Node field, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprOffsetof(Node node, Node type, Node field, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprOffsetof, kHandleInvalid, type, field, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprParen(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprParen(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprParen, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprPointer(Node node, POINTER_EXPR_KIND pointer_expr_kind, Node expr1, Node expr2, Node expr_bound_or_undef, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprPointer(Node node, POINTER_EXPR_KIND pointer_expr_kind, Node expr1, Node expr2, Node expr_bound_or_undef, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprPointer, expr1, expr2, expr_bound_or_undef, kHandleInvalid, uint8_t(pointer_expr_kind), 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprSizeof(Node node, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprSizeof(Node node, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprSizeof, kHandleInvalid, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprSrcLoc(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitExprSrcLoc(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::ExprSrcLoc, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitExprStmt(Node node, Node body, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprStmt(Node node, Node body, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprStmt, kHandleInvalid, kHandleInvalid, kHandleInvalid, body, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprStringify(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprStringify(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprStringify, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprTypeId(Node node, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprTypeId(Node node, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprTypeId, kHandleInvalid, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprUnionTag(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprUnionTag(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprUnionTag, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprUnionUntagged(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprUnionUntagged(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprUnionUntagged, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprUnwrap(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprUnwrap(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprUnwrap, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprWiden(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprWiden(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprWiden, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitExprWrap(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitExprWrap(Node node, Node expr, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ExprWrap, expr, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitFunParam(Node node, Name name, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitFunParam(Node node, Name name, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::FunParam, name, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitId(Node node, Name name, Name enum_name, Str doc, const SrcLoc& srcloc, Node x_symbol, CanonType x_type) {
+inline Node NodeInitId(Node node, Name name, Name enum_name, Str doc, const SrcLoc& srcloc, Node x_symbol, CanonType x_type) {
     NodeInit(node, NT::Id, name, enum_name, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_symbol(node) = x_symbol;
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitImport(Node node, Name name, Str path, Node args_mod, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitImport(Node node, Name name, Str path, Node args_mod, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::Import, name, path, args_mod, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitMacroFor(Node node, Name name, Name name_list, Node body_for, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitMacroFor(Node node, Name name, Name name_list, Node body_for, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::MacroFor, name, name_list, body_for, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitMacroId(Node node, Name name, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitMacroId(Node node, Name name, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::MacroId, name, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitMacroInvoke(Node node, Name name, Node args, Str doc, const SrcLoc& srcloc, Node x_symbol) {
+inline Node NodeInitMacroInvoke(Node node, Name name, Node args, Str doc, const SrcLoc& srcloc, Node x_symbol) {
     NodeInit(node, NT::MacroInvoke, name, args, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_symbol(node) = x_symbol;
+    return node;
 }
 
-inline void NodeInitMacroParam(Node node, Name name, MACRO_PARAM_KIND macro_param_kind, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitMacroParam(Node node, Name name, MACRO_PARAM_KIND macro_param_kind, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::MacroParam, name, kHandleInvalid, kHandleInvalid, kHandleInvalid, uint8_t(macro_param_kind), 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitModParam(Node node, Name name, MOD_PARAM_KIND mod_param_kind, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitModParam(Node node, Name name, MOD_PARAM_KIND mod_param_kind, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::ModParam, name, kHandleInvalid, kHandleInvalid, kHandleInvalid, uint8_t(mod_param_kind), 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitRecField(Node node, Name name, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitRecField(Node node, Name name, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::RecField, name, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitStmtAssignment(Node node, Node lhs, Node expr_rhs, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtAssignment(Node node, Node lhs, Node expr_rhs, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtAssignment, lhs, expr_rhs, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitStmtBlock(Node node, Name label, Node body, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtBlock(Node node, Name label, Node body, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtBlock, label, kHandleInvalid, kHandleInvalid, body, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitStmtBreak(Node node, Name target, Str doc, const SrcLoc& srcloc, Node x_target) {
+inline Node NodeInitStmtBreak(Node node, Name target, Str doc, const SrcLoc& srcloc, Node x_target) {
     NodeInit(node, NT::StmtBreak, target, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_target(node) = x_target;
+    return node;
 }
 
-inline void NodeInitStmtCompoundAssignment(Node node, BINARY_EXPR_KIND binary_expr_kind, Node lhs, Node expr_rhs, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtCompoundAssignment(Node node, BINARY_EXPR_KIND binary_expr_kind, Node lhs, Node expr_rhs, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtCompoundAssignment, lhs, expr_rhs, kHandleInvalid, kHandleInvalid, uint8_t(binary_expr_kind), 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitStmtCond(Node node, Node cases, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtCond(Node node, Node cases, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtCond, cases, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitStmtContinue(Node node, Name target, Str doc, const SrcLoc& srcloc, Node x_target) {
+inline Node NodeInitStmtContinue(Node node, Name target, Str doc, const SrcLoc& srcloc, Node x_target) {
     NodeInit(node, NT::StmtContinue, target, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_target(node) = x_target;
+    return node;
 }
 
-inline void NodeInitStmtDefer(Node node, Node body, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtDefer(Node node, Node body, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtDefer, kHandleInvalid, kHandleInvalid, kHandleInvalid, body, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitStmtExpr(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtExpr(Node node, Node expr, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtExpr, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitStmtIf(Node node, Node cond, Node body_t, Node body_f, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtIf(Node node, Node cond, Node body_t, Node body_f, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtIf, kHandleInvalid, cond, body_t, body_f, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitStmtReturn(Node node, Node expr_ret, Str doc, const SrcLoc& srcloc, Node x_target) {
+inline Node NodeInitStmtReturn(Node node, Node expr_ret, Str doc, const SrcLoc& srcloc, Node x_target) {
     NodeInit(node, NT::StmtReturn, expr_ret, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_target(node) = x_target;
+    return node;
 }
 
-inline void NodeInitStmtStaticAssert(Node node, Node cond, Str message, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtStaticAssert(Node node, Node cond, Str message, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtStaticAssert, kHandleInvalid, cond, message, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitStmtTrap(Node node, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitStmtTrap(Node node, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::StmtTrap, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitTypeAuto(Node node, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypeAuto(Node node, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypeAuto, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitTypeBase(Node node, BASE_TYPE_KIND base_type_kind, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypeBase(Node node, BASE_TYPE_KIND base_type_kind, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypeBase, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, uint8_t(base_type_kind), 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitTypeFun(Node node, Node params, Node result, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypeFun(Node node, Node params, Node result, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypeFun, kHandleInvalid, params, result, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitTypeOf(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypeOf(Node node, Node expr, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypeOf, expr, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitTypePtr(Node node, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypePtr(Node node, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypePtr, kHandleInvalid, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitTypeSpan(Node node, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypeSpan(Node node, Node type, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypeSpan, kHandleInvalid, type, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitTypeUnion(Node node, Node types, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypeUnion(Node node, Node types, uint16_t bits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypeUnion, types, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, bits, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitTypeUnionDelta(Node node, Node type, Node subtrahend, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypeUnionDelta(Node node, Node type, Node subtrahend, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypeUnionDelta, kHandleInvalid, type, subtrahend, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitTypeVec(Node node, Node size, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitTypeVec(Node node, Node size, Node type, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::TypeVec, size, type, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitValAuto(Node node, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitValAuto(Node node, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ValAuto, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitValCompound(Node node, Node type_or_auto, Node inits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitValCompound(Node node, Node type_or_auto, Node inits, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ValCompound, kHandleInvalid, type_or_auto, inits, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitValNum(Node node, Str number, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitValNum(Node node, Str number, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ValNum, number, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitValPoint(Node node, Node value_or_undef, Node point_or_undef, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitValPoint(Node node, Node value_or_undef, Node point_or_undef, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ValPoint, value_or_undef, point_or_undef, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitValSpan(Node node, Node pointer, Node expr_size, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitValSpan(Node node, Node pointer, Node expr_size, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ValSpan, pointer, expr_size, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitValString(Node node, Str string, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitValString(Node node, Str string, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ValString, string, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
-inline void NodeInitValUndef(Node node, Str doc, const SrcLoc& srcloc) {
+inline Node NodeInitValUndef(Node node, Str doc, const SrcLoc& srcloc) {
     NodeInit(node, NT::ValUndef, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+    return node;
 }
 
-inline void NodeInitValVoid(Node node, Str doc, const SrcLoc& srcloc, CanonType x_type) {
+inline Node NodeInitValVoid(Node node, Str doc, const SrcLoc& srcloc, CanonType x_type) {
     NodeInit(node, NT::ValVoid, kHandleInvalid, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_type(node) = x_type;
+    return node;
 }
 
 /* @AUTOGEN-END@ */
