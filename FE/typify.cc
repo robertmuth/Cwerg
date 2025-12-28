@@ -98,14 +98,12 @@ class TypeContext {
   TypeContext() {}
 };
 
-void UpdateType(Node node, CanonType ct) { Node_x_type(node) = ct; }
-
-CanonType AnnotateType(Node node, CanonType ct) {
+CanonType NodeSetType(Node node, CanonType ct) {
   ASSERT(Node_x_type(node).isnull(),
          "attempt to overwrite type " << Node_srcloc(node) << " " << node);
   ASSERT(!ct.isnull(), "invalid type at " << Node_srcloc(node) << " for "
                                           << EnumToString(Node_kind(node)));
-  UpdateType(node, ct);
+  NodeChangeType(node, ct);
   return ct;
 }
 
@@ -164,7 +162,7 @@ CanonType TypifyDefGlobalOrDefVar(Node node, TypeCorpus* tc, PolyMap* pm) {
       TypifyExprOrType(initial, tc, ct, pm);
     }
   }
-  return AnnotateType(node, ct);
+  return NodeSetType(node, ct);
 }
 
 CanonType TypifyTypeFunOrDefFun(Node node, TypeCorpus* tc, PolyMap* pm) {
@@ -173,13 +171,13 @@ CanonType TypifyTypeFunOrDefFun(Node node, TypeCorpus* tc, PolyMap* pm) {
   for (Node p = Node_params(node); !p.isnull(); p = Node_next(p)) {
     ASSERT(Node_kind(p) == NT::FunParam, "");
     CanonType ct = TypifyExprOrType(Node_type(p), tc, kCanonTypeInvalid, pm);
-    AnnotateType(p, ct);
+    NodeSetType(p, ct);
     params.push_back(ct);
   }
   params.push_back(
       TypifyExprOrType(Node_result(node), tc, kCanonTypeInvalid, pm));
 
-  return AnnotateType(node, tc->InsertFunType(params));
+  return NodeSetType(node, tc->InsertFunType(params));
 }
 
 CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
@@ -205,7 +203,7 @@ CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
         break;
     }
   }
-  return AnnotateType(id, ct);
+  return NodeSetType(id, ct);
 }
 
 Node MaybewAdvanceRecField(Node field, Node point) {
@@ -228,7 +226,7 @@ void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
   //           << "\n";
   ASSERT(Node_kind(id) == NT::Id, "");
   ASSERT(Node_kind(field) == NT::RecField, "");
-  AnnotateType(id, Node_x_type(field));
+  NodeSetType(id, Node_x_type(field));
   Node_x_symbol(id) = field;
 }
 
@@ -241,7 +239,7 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
     for (Node point = Node_inits(node); !point.isnull();
          point = Node_next(point)) {
       ASSERT(Node_kind(point) == NT::ValPoint, "");
-      AnnotateType(point, element_type);
+      NodeSetType(point, element_type);
       //
       Node val = Node_value_or_undef(point);
       if (Node_kind(val) != NT::ValUndef) {
@@ -266,7 +264,7 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
       field = MaybewAdvanceRecField(field, point);
       ASSERT(Node_kind(field) == NT::RecField, "");
       CanonType ct_field = Node_x_type(field);
-      AnnotateType(point, ct_field);
+      NodeSetType(point, ct_field);
       if (Node_kind(Node_point_or_undef(point)) == NT::Id) {
         AnnotateFieldWithTypeAndSymbol(Node_point_or_undef(point), field);
       } else {
@@ -277,7 +275,7 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
       }
     }
   }
-  return AnnotateType(node, ct);
+  return NodeSetType(node, ct);
 }
 
 uint32_t ComputeArrayLength(Node node) {
@@ -344,7 +342,7 @@ CanonType TypifyExprCall(Node node, TypeCorpus* tc, CanonType ct_target,
     Node called_fun = pm->Resolve(callee, ct);
     UpdateNodeSymbolForPolyCall(callee, called_fun);
     ct_fun = Node_x_type(called_fun);
-    AnnotateType(callee, ct_fun);
+    NodeSetType(callee, ct_fun);
   } else {
     ct_fun = TypifyExprOrType(callee, tc, kCanonTypeInvalid, pm);
   }
@@ -357,7 +355,7 @@ CanonType TypifyExprCall(Node node, TypeCorpus* tc, CanonType ct_target,
   for (Node arg = Node_args(node); !arg.isnull(); arg = Node_next(arg), ++i) {
     TypifyExprOrType(arg, tc, CanonType_children(ct_fun)[i], pm);
   }
-  return AnnotateType(node, CanonType_children(ct_fun).back());
+  return NodeSetType(node, CanonType_children(ct_fun).back());
 }
 
 CanonType GetExprStmtType(Node root) {
@@ -400,9 +398,9 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::ValAuto:
     case NT::TypeAuto:
       ASSERT(!ct_target.isnull(), "" << Node_srcloc(node));
-      return AnnotateType(node, ct_target);
+      return NodeSetType(node, ct_target);
     case NT::ValVoid:
-      return AnnotateType(node, tc->get_void_canon_type());
+      return NodeSetType(node, tc->get_void_canon_type());
     case NT::ValSpan:
       TypifyExprOrType(Node_expr_size(node), tc, tc->get_uint_canon_type(), pm);
       if (ct_target.isnull()) {
@@ -416,7 +414,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
             CanonType_mut(ct_target), CanonType_underlying_type(ct_target));
         TypifyExprOrType(Node_pointer(node), tc, ct_ptr, pm);
       }
-      return AnnotateType(node, ct_target);
+      return NodeSetType(node, ct_target);
     case NT::ValNum: {
       BASE_TYPE_KIND target =
           ct_target.isnull()
@@ -428,40 +426,40 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       ASSERT(
           actual != BASE_TYPE_KIND::INVALID,
           "cannot parse " << Node_number(node) << " at " << Node_srcloc(node));
-      return AnnotateType(node, tc->get_base_canon_type(actual));
+      return NodeSetType(node, tc->get_base_canon_type(actual));
     }
     case NT::ValCompound:
       return TypifyValCompound(node, tc, ct_target, pm);
     case NT::ValString: {
       int dim = ComputeStringLiteralLength(StrData(Node_string(node)));
       ct = tc->InsertVecType(dim, tc->get_base_canon_type(BASE_TYPE_KIND::U8));
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
     }
 
     //
     case NT::TypeBase:
-      return AnnotateType(node,
-                          tc->get_base_canon_type(Node_base_type_kind(node)));
+      return NodeSetType(node,
+                         tc->get_base_canon_type(Node_base_type_kind(node)));
     case NT::TypeVec:
       TypifyExprOrType(Node_size(node), tc, tc->get_uint_canon_type(), pm);
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(
+      return NodeSetType(
           node, tc->InsertVecType(ComputeArrayLength(Node_size(node)), ct));
     case NT::TypePtr:
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node,
-                          tc->InsertPtrType(Node_has_flag(node, BF::MUT), ct));
+      return NodeSetType(node,
+                         tc->InsertPtrType(Node_has_flag(node, BF::MUT), ct));
     case NT::TypeSpan:
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node,
-                          tc->InsertSpanType(Node_has_flag(node, BF::MUT), ct));
+      return NodeSetType(node,
+                         tc->InsertSpanType(Node_has_flag(node, BF::MUT), ct));
     case NT::TypeUnion: {
       std::vector<CanonType> children;
       for (Node child = Node_types(node); !child.isnull();
            child = Node_next(child)) {
         children.push_back(TypifyExprOrType(child, tc, kCanonTypeInvalid, pm));
       }
-      return AnnotateType(
+      return NodeSetType(
           node,
           tc->InsertUnionType(Node_has_flag(node, BF::UNTAGGED), children));
     }
@@ -470,21 +468,21 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
           TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       CanonType ct_subtrahend =
           TypifyExprOrType(Node_subtrahend(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node,
-                          tc->InsertUnionComplement(ct_minuend, ct_subtrahend));
+      return NodeSetType(node,
+                         tc->InsertUnionComplement(ct_minuend, ct_subtrahend));
     }
     case NT::TypeOf:
       ct = TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
     case NT::TypeFun:
       return TypifyTypeFunOrDefFun(node, tc, pm);
       //
     case NT::ExprParen:
       ct = TypifyExprOrType(Node_expr(node), tc, ct_target, pm);
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
     case NT::Expr1:
       ct = TypifyExprOrType(Node_expr(node), tc, ct_target, pm);
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
     case NT::Expr2: {
       BINARY_EXPR_KIND kind = Node_binary_expr_kind(node);
       if (IsComparison(kind)) {
@@ -501,18 +499,18 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       } else {
         ct = ct_left;
       }
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
     }
     case NT::Expr3:
       TypifyExprOrType(Node_cond(node), tc, tc->get_bool_canon_type(), pm);
       ct = TypifyExprOrType(Node_expr_t(node), tc, ct_target, pm);
       TypifyExprOrType(Node_expr_f(node), tc, ct, pm);
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
 
     case NT::ExprAddrOf:
       ct = TypifyExprOrType(Node_expr_lhs(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node,
-                          tc->InsertPtrType(Node_has_flag(node, BF::MUT), ct));
+      return NodeSetType(node,
+                         tc->InsertPtrType(Node_has_flag(node, BF::MUT), ct));
     case NT::ExprField: {
       ct = TypifyExprOrType(Node_container(node), tc, ct_target, pm);
       if (CanonType_kind(ct) != NT::DefRec) {
@@ -526,7 +524,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
             << "unknown field name " << Node_name(field_name);
       }
       AnnotateFieldWithTypeAndSymbol(field_name, field_node);
-      return AnnotateType(node, Node_x_type(field_node));
+      return NodeSetType(node, Node_x_type(field_node));
     }
     case NT::ExprIndex:
       TypifyExprOrType(Node_expr_index(node), tc, tc->get_uint_canon_type(),
@@ -534,24 +532,24 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       ct = TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
       if (CanonType_kind(ct) == NT::TypeVec ||
           CanonType_kind(ct) == NT::TypeSpan) {
-        return AnnotateType(node, CanonType_underlying_type(ct));
+        return NodeSetType(node, CanonType_underlying_type(ct));
       } else {
         CompilerError(Node_srcloc(node)) << "Container is not of type vec";
         return kCanonTypeInvalid;
       }
     case NT::ExprLen:
       TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node, tc->get_uint_canon_type());
+      return NodeSetType(node, tc->get_uint_canon_type());
     case NT::ExprIs:
       TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node, tc->get_bool_canon_type());
+      return NodeSetType(node, tc->get_bool_canon_type());
     case NT::ExprAs:
     case NT::ExprBitCast:
     case NT::ExprNarrow:
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
     case NT::ExprCall:
       return TypifyExprCall(node, tc, ct_target, pm);
     case NT::ExprWrap: {
@@ -560,14 +558,14 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                  CanonType_kind(ct) == NT::DefType,
              "");
       TypifyExprOrType(Node_expr(node), tc, CanonType_underlying_type(ct), pm);
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
     }
     case NT::ExprUnwrap:
       ct = TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
       if (CanonType_kind(ct) == NT::DefType) {
-        return AnnotateType(node, CanonType_children(ct)[0]);
+        return NodeSetType(node, CanonType_children(ct)[0]);
       } else if (CanonType_kind(ct) == NT::DefEnum) {
-        return AnnotateType(node, CanonType_underlying_type(ct));
+        return NodeSetType(node, CanonType_underlying_type(ct));
       } else {
         CompilerError(Node_srcloc(node))
             << "unexpected type to unwrap " << EnumToString(CanonType_kind(ct));
@@ -577,7 +575,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       ct = TypifyExprOrType(Node_expr(node), tc, ct_target, pm);
       ASSERT(CanonType_kind(ct) == NT::TypeUnion && !CanonType_untagged(ct),
              "");
-      return AnnotateType(node, tc->get_typeid_canon_type());
+      return NodeSetType(node, tc->get_typeid_canon_type());
     case NT::ExprPointer:
       ct = TypifyExprOrType(Node_expr1(node), tc, ct_target, pm);
       TypifyExprOrType(Node_expr2(node), tc, tc->get_uint_canon_type(), pm);
@@ -585,13 +583,13 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
         TypifyExprOrType(Node_expr_bound_or_undef(node), tc,
                          tc->get_uint_canon_type(), pm);
       }
-      return AnnotateType(node, ct);
+      return NodeSetType(node, ct);
     case NT::ExprDeref:
       ct = TypifyExprOrType(Node_expr(node), tc, kCanonTypeInvalid, pm);
       if (CanonType_kind(ct) != NT::TypePtr) {
         CompilerError(Node_srcloc(node)) << "expected pointer type";
       }
-      return AnnotateType(node, CanonType_underlying_type(ct));
+      return NodeSetType(node, CanonType_underlying_type(ct));
     case NT::ExprOffsetof: {
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       Node field_node =
@@ -601,14 +599,14 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
             << "unknown field name " << Node_name(Node_field(node));
       }
       AnnotateFieldWithTypeAndSymbol(Node_field(node), field_node);
-      return AnnotateType(node, tc->get_uint_canon_type());
+      return NodeSetType(node, tc->get_uint_canon_type());
     }
     case NT::ExprTypeId:
       TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node, tc->get_typeid_canon_type());
+      return NodeSetType(node, tc->get_typeid_canon_type());
     case NT::ExprSizeof:
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
-      return AnnotateType(node, tc->get_uint_canon_type());
+      return NodeSetType(node, tc->get_uint_canon_type());
     case NT::ExprFront: {
       ct = TypifyExprOrType(Node_container(node), tc, kCanonTypeInvalid, pm);
       if (CanonType_kind(ct) != NT::TypeSpan &&
@@ -619,8 +617,8 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       bool mut = Node_has_flag(node, BF::MUT) ||
                  (Node_has_flag(node, BF::PRESERVE_MUT) &&
                   CanonType_kind(ct) == NT::TypeSpan && CanonType_mut(ct));
-      return AnnotateType(
-          node, tc->InsertPtrType(mut, CanonType_underlying_type(ct)));
+      return NodeSetType(node,
+                         tc->InsertPtrType(mut, CanonType_underlying_type(ct)));
     }
 
     case NT::ExprStmt:
@@ -628,7 +626,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       if (ct_target.isnull()) {
         ct_target = GetExprStmtType(node);
       }
-      return AnnotateType(node, ct_target);
+      return NodeSetType(node, ct_target);
     default:
       ASSERT(false, "unsupported node " << Node_srcloc(node) << " "
                                         << EnumToString(Node_kind(node)));
@@ -1170,8 +1168,9 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
 
 }  //  namespace
 
-Node MakeDefRec(Name name, std::span<NameAndType> fields,
-                TypeCorpus* tc) {
+void NodeChangeType(Node node, CanonType ct) { Node_x_type(node) = ct; }
+
+Node MakeDefRec(Name name, std::span<NameAndType> fields, TypeCorpus* tc) {
   NodeChain chain;
   for (const auto& nt : fields) {
     Node f = NodeNew(NT::RecField);
@@ -1184,7 +1183,7 @@ Node MakeDefRec(Name name, std::span<NameAndType> fields,
   NodeInitDefRec(out, name, chain.First(), 0, kStrInvalid, kSrcLocInvalid,
                  kCanonTypeInvalid);
   CanonType ct = tc->InsertRecType(NameData(name), out, true);
-  AnnotateType(out, ct);
+  NodeSetType(out, ct);
   return out;
 }
 
@@ -1201,7 +1200,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
           name.append("/");
           name.append(NameData(Node_name(child)));
           CanonType ct = tc->InsertRecType(name, child, false);
-          AnnotateType(child, ct);
+          NodeSetType(child, ct);
           break;
         }
         case NT::DefEnum: {
@@ -1210,7 +1209,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
           name.append("/");
           name.append(NameData(Node_name(child)));
           CanonType ct = tc->InsertEnumType(name, child);
-          AnnotateType(child, ct);
+          NodeSetType(child, ct);
           break;
         }
         case NT::DefType:
@@ -1220,7 +1219,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
             name.append("/");
             name.append(NameData(Node_name(child)));
             CanonType ct = tc->InsertWrappedTypePre(name);
-            AnnotateType(child, ct);
+            NodeSetType(child, ct);
           }
           break;
 
@@ -1245,7 +1244,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
             CanonType ct = TypifyExprOrType(Node_value_or_auto(field), tc,
                                             kCanonTypeInvalid, &poly_map);
             children.push_back(ct);
-            AnnotateType(field, ct);
+            NodeSetType(field, ct);
           }
           CanonType_children(Node_x_type(child)) = children;
           break;
@@ -1257,7 +1256,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
                field = Node_next(field)) {
             TypifyExprOrType(Node_value_or_auto(field), tc, underlying_ct,
                              &poly_map);
-            AnnotateType(field, ct);
+            NodeSetType(field, ct);
           }
           break;
         }
@@ -1268,7 +1267,7 @@ void AddTypesToAst(const std::vector<Node>& mods, TypeCorpus* tc) {
             // was annotated in phase1
             tc->InsertWrappedTypeFinalize(Node_x_type(child), ct);
           } else {
-            AnnotateType(child, ct);
+            NodeSetType(child, ct);
           }
           break;
         }

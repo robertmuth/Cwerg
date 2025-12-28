@@ -90,6 +90,7 @@ extern bool CanonType_is_unwrapped_complex(CanonType ct);
 extern CanonType CanonType_get_unwrapped(CanonType n);
 extern bool CanonType_tagged_union_contains(CanonType haystack,
                                             CanonType needle);
+extern CanonType& CanonType_replacement_type(CanonType ct);
 
 extern void CanonTypeLinkReplacementType(CanonType ct,
                                          CanonType replacement_ct);
@@ -187,9 +188,9 @@ class TypeCorpus {
   CanonType InsertPtrFromSpan(CanonType span_ct);
   CanonType InsertUntaggedFromTaggedUnion(CanonType union_ct);
 
-  void SetAbiInfoForAllTypes();
-
   CanonType MaybeGetReplacementType(CanonType ct);
+
+  void SetAbiInfoForAllTypes();
 
   void ClearReplacementInfo();
 
