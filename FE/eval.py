@@ -48,24 +48,52 @@ class EvalVoid(EvalBase):
         return "EvalVoid"
 
 
-class EvalSymAddr(EvalBase):
+class EvalVarAddr(EvalBase):
     def __init__(self, sym):
-        assert isinstance(sym, (cwast.DefGlobal, cwast.DefVar)), f"{sym}"
+        assert isinstance(sym, cwast.DefVar), f"{sym}"
         self.sym = sym
 
     def __eq__(self, other):
-        if not isinstance(other, EvalSymAddr):
+        if not isinstance(other, EvalVarAddr):
             return False
         return self.sym == other.sym
 
     @override
     def render(self, label_map: dict[Any, str]) -> str:
         if self.sym not in label_map:
-            return f"EvalSymAddr[DANGLING: {self.sym}]"
-        return f"EvalSymAddr[{label_map[self.sym]}]"
+            return f"EvalVarAddr[DANGLING: {self.sym}]"
+        return f"EvalVarAddr[{label_map[self.sym]}]"
 
     def __str__(self):
-        return f"EvalSymAddr[{self.sym.name}]"
+        return f"EvalVarAddr[{self.sym.name}]"
+
+
+class EvalGlobalAddr(EvalBase):
+    def __init__(self, sym):
+        assert isinstance(sym, cwast.DefGlobal), f"{sym}"
+        self.sym = sym
+
+    def __eq__(self, other):
+        if not isinstance(other, EvalGlobalAddr):
+            return False
+        return self.sym == other.sym
+
+    @override
+    def render(self, label_map: dict[Any, str]) -> str:
+        if self.sym not in label_map:
+            return f"EvalGlobalAddr[DANGLING: {self.sym}]"
+        return f"EvalGlobalAddr[{label_map[self.sym]}]"
+
+    def __str__(self):
+        return f"EvalGlobalAddr[{self.sym.name}]"
+
+
+def MakeEvalVarOrGlobalAddr(sym) -> Any:
+    if isinstance(sym, cwast.DefVar):
+        return EvalVarAddr(sym)
+    else:
+        assert isinstance(sym, cwast.DefGlobal)
+        return EvalGlobalAddr(sym)
 
 
 class EvalFunAddr(EvalBase):
@@ -485,7 +513,6 @@ def _GetValForVecAtPos(container_val: EvalBase, index: int, ct: cwast.CanonType)
         assert index < len(container_val.data)
         return EvalNum(container_val.data[index], cwast.BASE_TYPE_KIND.U8)
 
-
     assert isinstance(container_val, EvalCompound)
     init_node = container_val.init_node
 
@@ -664,13 +691,13 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         ct_container = cont.x_type
         if ct_container.is_vec():
             if isinstance(cont, cwast.Id):
-                return EvalSymAddr(cont.x_symbol)
+                return MakeEvalVarOrGlobalAddr(cont.x_symbol)
         else:
             assert ct_container.is_span()
             val_cont = cont.x_eval
             if val_cont is not None and val_cont.pointer is not None:
                 assert isinstance(val_cont, EvalSpan), f"{val_cont}"
-                return EvalSymAddr(val_cont.pointer)
+                return MakeEvalVarOrGlobalAddr(val_cont.pointer)
         return None
     elif isinstance(node, cwast.ExprLen):
         cont = node.container
@@ -682,7 +709,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         return None
     elif isinstance(node, cwast.ExprAddrOf):
         if isinstance(node.expr_lhs, cwast.Id):
-            return EvalSymAddr(node.expr_lhs.x_symbol)
+            return MakeEvalVarOrGlobalAddr(node.expr_lhs.x_symbol)
         return None
     elif isinstance(node, cwast.ExprOffsetof):
         # assert node.x_field.x_offset > 0
@@ -695,7 +722,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         if p is None and s is None:
             return None
         if p:
-            assert isinstance(p, EvalSymAddr)
+            assert isinstance(p, (EvalVarAddr, EvalGlobalAddr))
             p = p.sym
         if s:
             assert isinstance(s, EvalNum)
@@ -737,7 +764,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         val = node.expr.x_eval
         if val is None:
             return None
-        if isinstance(val, EvalSymAddr):
+        # TODO: add EvalFunAddr?
+        if isinstance(val, (EvalVarAddr, EvalGlobalAddr)):
             return val
         assert isinstance(val, EvalNum)
         assert node.expr.x_type.is_base_type(), f"{node.expr.x_type}"

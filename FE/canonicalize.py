@@ -530,7 +530,7 @@ def _MakeValSpanFromArray(node, expected_ct: cwast.CanonType,
     # assert not isinstance(node, (cwast.ValCompound, cwast.ValString)), f"{node.x_srcloc}"
     front = cwast.ExprFront(
         node, x_srcloc=node.x_srcloc, mut=expected_ct.mut, x_type=ptr_ct,
-        x_eval=eval.EvalSymAddr(sym) if sym else None)
+        x_eval=eval.MakeEvalVarOrGlobalAddr(sym) if sym else None)
     dim = node.x_type.array_dim()
     length = cwast.ValNum(eval.EVAL_STR, x_eval=eval.EvalNum(dim, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)

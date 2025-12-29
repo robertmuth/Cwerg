@@ -4,6 +4,7 @@ from FE import stats
 
 from FE import eval
 
+
 def _IsConstantSymbol(sym) -> bool:
     if isinstance(sym, cwast.DefFun):
         return True
@@ -108,15 +109,16 @@ def FunCopyPropagation(fun: cwast.DefFun):
 
     def update(node: Any):
         nonlocal replacements
-        if hasattr(node, 'x_eval') and isinstance(node.x_eval, eval.EvalSymAddr):
+        # TODO: support Fun?
+        if hasattr(node, 'x_eval') and isinstance(node.x_eval, (eval.EvalVarAddr, eval.EvalGlobalAddr)):
             new_sym = replacements.get(node.x_eval.sym)
             # while new_sym in replacements:
             #    new_sym = replacements.get(new_sym)
             if new_sym:
-                node.x_eval =  eval.EvalSymAddr(new_sym)
+                node.x_eval = eval.MakeEvalVarOrGlobalAddr(new_sym)
         if isinstance(node, cwast.Id):
             new_sym = replacements.get(node.x_symbol)
-            #while new_sym in replacements:
+            # while new_sym in replacements:
             #    new_sym = replacements.get(new_sym)
             if new_sym is not None:
                 stats.IncCounter("CopyProp", "Id", 1)
@@ -143,10 +145,10 @@ def MakeExprStmtForCall(call: cwast.ExprCall) -> cwast.ExprStmt:
         sl = a.x_srcloc
         at = cwast.TypeAuto(x_srcloc=sl, x_type=p.type.x_type)
         dv = cwast.DefVar(cwast.NAME.Make(f"inl_arg"),
-                         at,
-                         a,
-                         x_srcloc=sl,
-                         x_type=at.x_type)
+                          at,
+                          a,
+                          x_srcloc=sl,
+                          x_type=at.x_type)
         out.body.append(dv)
         var_map[p] = dv
     target_map = {fun_def: out}
