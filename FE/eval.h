@@ -148,6 +148,7 @@ inline Const ConstNewSymAddr(Node sym) {
 }
 
 inline Const ConstNewFunAddr(Node sym) {
+  ASSERT(sym.kind() == NT::DefFun, "");
   return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
                BASE_TYPE_KIND::FUN_ADDR);
 }
@@ -172,6 +173,10 @@ inline Node ConstGetSymbol(Const c) {
 }
 
 inline Const ConstNewSpan(EvalSpan span) {
+  ASSERT(span.pointer.isnull() || span.pointer.kind() == NT::DefGlobal ||
+             span.pointer.kind() == NT::DefVar,
+         "bad type " << span.pointer);
+
   return Const(ConstPool.Intern(std::string_view((char*)&span, sizeof(span))),
                BASE_TYPE_KIND::SPAN);
 }

@@ -88,6 +88,7 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
              "unxpected kind " << int(src_value.kind()));
       Node pointer =
           src_node.kind() == NT::Id ? Node_x_symbol(src_node) : kNodeInvalid;
+
       return ConstNewSpan({pointer, CanonType_dim(src_type), src_value});
     }
   }
@@ -903,8 +904,7 @@ std::ostream& operator<<(std::ostream& os, Const c) {
   }
 }
 
-extern std::string to_string(Const c,
-                             const std::map<Node, std::string>* labels) {
+std::string to_string(Const c, const std::map<Node, std::string>* labels) {
   if (c.isnull()) return "null";
 
   std::stringstream ss;
@@ -1071,6 +1071,7 @@ Node GlobalConstantPool::add_def_global(Node node) {
   ++current_no_;
   const SrcLoc& sl = Node_srcloc(node);
   CanonType ct = Node_x_type(node);
+  ASSERT(!ct.isnull(), "");
   Node out = NodeNew(NT::DefGlobal);
   NodeInitDefGlobal(out, NameNew("global_val"), MakeTypeAuto(ct, sl), node,
                     Mask(BF::PUB), kStrInvalid, sl, ct);
@@ -1079,6 +1080,7 @@ Node GlobalConstantPool::add_def_global(Node node) {
 }
 
 Node GlobalConstantPool::add_val_string(Node node) {
+  ASSERT(node.kind() == NT::ValString, "");
   std::string_view str = StrData(Node_string(node));
   std::string buf;
   buf.reserve(str.size());
@@ -1086,8 +1088,10 @@ Node GlobalConstantPool::add_val_string(Node node) {
   buf.resize(len);
   Node def_node = GetWithDefault(val_string_pool_, buf, kNodeInvalid);
   if (def_node.isnull()) {
-    val_string_pool_[buf] = node;
     def_node = add_def_global(node);
+    val_string_pool_[buf] = def_node;
+  } else {
+    NodeFreeRecursively(node);
   }
   return def_node;
 }
@@ -1097,8 +1101,11 @@ void GlobalConstantPool::EliminateValStringAndValCompoundOutsideOfDefGlobal(
   auto replacer = [this](Node node, Node parent) {
     if (parent.kind() == NT::DefGlobal) return node;
     switch (node.kind()) {
-      case NT::ValString:
-        return IdNodeFromDef(add_val_string(node), Node_srcloc(node));
+      case NT::ValString: {
+        const SrcLoc& sl = Node_srcloc(node);
+        // add_val_string may delete node
+        return IdNodeFromDef(add_val_string(node), sl);
+      }
       case NT::ValCompound: {
         if (CanonType_is_vec(Node_x_type(node)) &&
             parent.kind() != NT::DefVar &&
