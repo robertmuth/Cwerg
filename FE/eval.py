@@ -16,7 +16,6 @@ from FE import type_corpus
 from FE import typify
 from FE import canonicalize
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -85,10 +84,23 @@ class EvalFunAddr(EvalBase):
         return f"EvalFunAddr[{self.sym.name}]"
 
 
+class EvalBytes(EvalBase):
+    def __init__(self, data: bytes):
+        self.data = data
+
+    @override
+    def render(self, label_map: dict[Any, str]) -> str:
+        return f"EvalBytes[{repr(self.data)}]"
+
+    def __str__(self):
+        return f"EvalBytes[]"
+
+
 class EvalCompound(EvalBase):
     def __init__(self, init_node):
         # if compound is None, the default initialization is used
         if init_node is not None:
+            # TODO
             assert isinstance(init_node, (cwast.ValString, cwast.ValCompound))
         self.init_node = init_node
 
@@ -246,7 +258,7 @@ def _ValueConstKind(node) -> CONSTANT_KIND:
             o = _ValueConstKind(field.value_or_undef)
             if o is CONSTANT_KIND.NOT:
                 return o
-            if o.value < out.value:
+            if o is CONSTANT_KIND.WITH_GOBAL_ADDRESS:
                 out = o
         return out
     else:
@@ -307,6 +319,9 @@ class GlobalConstantPool:
             self._string_val_map[s] = def_node
         return def_node
 
+    def GetDefGlobals(self) -> list[cwast.DefGlobal]:
+        return self._all_globals
+
     def EliminateValStringAndValCompoundOutsideOfDefGlobal(self, node):
 
         def replacer(node, parent) -> Optional[Any]:
@@ -327,11 +342,10 @@ class GlobalConstantPool:
                 return _IdNodeFromDef(self._add_def_global(node), node.x_srcloc)
 
             return None
-        # if we relace a node we do not need to recurse into the subtree
+        # ValCompounds may include ValString.
+        # Those will currently be skipped since we are recursing "POST"
+        #  TODO: think this through
         cwast.MaybeReplaceAstRecursively(node, replacer)
-
-    def GetDefGlobals(self) -> list[cwast.DefGlobal]:
-        return self._all_globals
 
 
 def GetDefaultForBaseType(bt: cwast.BASE_TYPE_KIND) -> Any:
@@ -524,6 +538,8 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
             pointer = None
             if isinstance(src_node, cwast.Id):
                 pointer = src_node.x_symbol
+            assert pointer is None or isinstance(
+                pointer, (cwast.DefGlobal, cwast.DefVar))
             return EvalSpan(pointer, src_type.array_dim(), src_value)
     elif src_value is None:
         return None
@@ -584,6 +600,8 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             node.x_type, node.value_or_undef)
     elif isinstance(node, (cwast.ValCompound, cwast.ValString)):
         return EvalCompound(node)
+    # elif isinstance(node, cwast.ValString):
+    #    return EvalBytes(parse.StringLiteralToBytes(node.get_bytes())
     elif isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
         initial = node.initial_or_undef_or_auto
         if initial.x_eval is None and isinstance(initial, cwast.ValAuto):
