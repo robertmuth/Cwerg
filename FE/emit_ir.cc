@@ -209,8 +209,11 @@ int main(int argc, const char* argv[]) {
 
   // Node mod_gen =
   Node mod_gen = MakeModWithComplexConstants(mp.mods_in_topo_order);
+  mp.mods_in_topo_order.insert(mp.mods_in_topo_order.begin(), mod_gen);
   //
   PhaseEliminateSpanAndUnion(mod_gen, mp.mods_in_topo_order, &tc);
+  SanityCheckMods("after_eliminate_span_and_union", mp.mods_in_topo_order, eliminated_nodes,
+                  COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files
