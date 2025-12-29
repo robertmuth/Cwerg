@@ -579,6 +579,7 @@ enum class BASE_TYPE_KIND : uint8_t {
     FUN_ADDR = 114,
     COMPOUND = 115,
     SPAN = 116,
+    STRING = 117,
 };
 
 enum class MACRO_PARAM_KIND : uint8_t {

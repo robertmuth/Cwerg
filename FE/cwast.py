@@ -3505,7 +3505,7 @@ _EXTRA_BASE_TYPE_KIND = [
     ("FUN_ADDR", 0x72),
     ("COMPOUND", 0x73),
     ("SPAN", 0x74),
-
+    ("STRING", 0x75),
 ]
 
 
