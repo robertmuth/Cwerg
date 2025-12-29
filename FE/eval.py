@@ -16,6 +16,8 @@ from FE import type_corpus
 from FE import typify
 from FE import canonicalize
 
+from Util import parse
+
 logger = logging.getLogger(__name__)
 
 
@@ -90,7 +92,7 @@ class EvalBytes(EvalBase):
 
     @override
     def render(self, label_map: dict[Any, str]) -> str:
-        return f"EvalBytes[{repr(self.data)}]"
+        return f"EvalBytes[{parse.BytesToEscapedString(self.data)}]"
 
     def __str__(self):
         return f"EvalBytes[]"
@@ -101,7 +103,7 @@ class EvalCompound(EvalBase):
         # if compound is None, the default initialization is used
         if init_node is not None:
             # TODO
-            assert isinstance(init_node, (cwast.ValString, cwast.ValCompound))
+            assert isinstance(init_node, cwast.ValCompound)
         self.init_node = init_node
 
     @override
@@ -119,10 +121,10 @@ class EvalCompound(EvalBase):
 class EvalSpan(EvalBase):
     def __init__(self, pointer, size, content):
         assert pointer is None or isinstance(
-            pointer, (cwast.DefGlobal, cwast.DefVar)), f"{pointer}"
+            pointer, (cwast.DefGlobal, cwast.DefVar)), f"unexpected pointer {pointer}"
         assert size is None or isinstance(size, int), f"{size}"
         assert content is None or isinstance(
-            content, EvalCompound), f"{pointer}"
+            content, (EvalCompound, EvalBytes)), f"{pointer}"
         self.pointer = pointer
         self.size = size
         self.content = content
@@ -312,7 +314,7 @@ class GlobalConstantPool:
         return def_node
 
     def _add_val_string(self, val_string: cwast.ValString):
-        s = val_string.get_bytes()
+        s = val_string.x_eval.data
         def_node = self._string_val_map.get(s)
         if not def_node:
             def_node = self._add_def_global(val_string)
@@ -472,11 +474,17 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
         return None
 
 
-def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
+def _GetValForVecAtPos(container_val: EvalBase, index: int, ct: cwast.CanonType):
     if isinstance(container_val, EvalSpan):
         container_val = container_val.content
         if container_val is None:
             return None
+
+    if isinstance(container_val, EvalBytes):
+        assert ct.base_type_kind is cwast.BASE_TYPE_KIND.U8
+        assert index < len(container_val.data)
+        return EvalNum(container_val.data[index], cwast.BASE_TYPE_KIND.U8)
+
 
     assert isinstance(container_val, EvalCompound)
     init_node = container_val.init_node
@@ -485,11 +493,6 @@ def _GetValForVecAtPos(container_val, index: int, ct: cwast.CanonType):
         return GetDefaultForType(ct)
 
     assert index < init_node.x_type.array_dim()
-
-    if isinstance(init_node, cwast.ValString):
-        s = init_node.get_bytes()
-        assert index < len(s)
-        return EvalNum(s[index], cwast.BASE_TYPE_KIND.U8)
 
     assert isinstance(init_node, cwast.ValCompound), f"{init_node}"
     n = 0
@@ -533,7 +536,7 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
         if src_value is None:
             return EvalSpan(None, src_type.array_dim(), None)
         else:
-            assert isinstance(src_value, EvalCompound
+            assert isinstance(src_value, (EvalCompound, EvalBytes)
                               ), f"{src_value} {src_node.x_srcloc}"
             pointer = None
             if isinstance(src_node, cwast.Id):
@@ -598,10 +601,10 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
     elif isinstance(node, cwast.ValPoint):
         return _EvalValWithPossibleImplicitConversion(
             node.x_type, node.value_or_undef)
-    elif isinstance(node, (cwast.ValCompound, cwast.ValString)):
+    elif isinstance(node, cwast.ValCompound):
         return EvalCompound(node)
-    # elif isinstance(node, cwast.ValString):
-    #    return EvalBytes(parse.StringLiteralToBytes(node.get_bytes())
+    elif isinstance(node, cwast.ValString):
+        return EvalBytes(parse.StringLiteralToBytes(node.string))
     elif isinstance(node, (cwast.DefGlobal, cwast.DefVar)):
         initial = node.initial_or_undef_or_auto
         if initial.x_eval is None and isinstance(initial, cwast.ValAuto):

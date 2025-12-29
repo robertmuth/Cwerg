@@ -38,6 +38,7 @@ from FE import symbolize
 from FE import type_corpus
 from FE import canonicalize
 
+from Util import parse
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +218,7 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
     rec_ct: cwast.CanonType = tc.InsertRecType(name, rec, True)
     _NodeSetType(rec, rec_ct)
     return rec
+
 
 def AnnotateFieldWithTypeAndSymbol(node, field_node: cwast.RecField):
     assert isinstance(node, cwast.Id), f"{node}"
@@ -457,7 +459,9 @@ def _TypifyVal(node, tc: type_corpus.TypeCorpus,
     elif isinstance(node, cwast.ValCompound):
         return _TypifyValCompound(node, tc, target_type, pm)
     elif isinstance(node, cwast.ValString):
-        dim = len(node.get_bytes())
+        # TODO: we are calling parse.StringLiteralToBytes(node.string)
+        # again in eval.py - avoid this duplication
+        dim = len(parse.StringLiteralToBytes(node.string))
         ct = tc.InsertVecType(
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
         return _NodeSetType(node, ct)

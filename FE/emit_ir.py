@@ -965,7 +965,8 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
             width = ct.array_dim()
             x_type = ct.underlying_type()
             if isinstance(node, cwast.ValString):
-                value = node.get_bytes()
+                assert isinstance(node.x_eval, eval.EvalBytes)
+                value = node.x_eval.data
                 assert len(
                     value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
                 return _EmitMem(value, f"{offset} {ct.name}")

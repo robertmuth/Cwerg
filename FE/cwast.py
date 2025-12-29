@@ -1692,28 +1692,6 @@ class ValString:
     x_type: CanonType = NO_TYPE
     x_eval: Optional[Any] = None
 
-    def kind(self) -> str:
-        out = self.string[0]
-        return "" if out == '"' else out
-
-    def payload(self):
-        offset = len(self.kind())
-        if self.string.endswith('"""'):
-            return self.string[offset+3:-3]
-        return self.string[offset + 1:-1]
-
-    def get_bytes(self):
-        s = self.payload()
-        k = self.kind()
-        if not all(ord(c) < 128 for c in s):
-            CompilerError(
-                self, "non-ascii chars currently not supported")
-        if k == "r":
-            return bytes(s, encoding="ascii")
-        elif k == "x":
-            return HexStringToBytes(s)
-        return EscapedStringToBytes(s)
-
     def render(self):
         return self.string
 
