@@ -137,6 +137,24 @@ def QuotedEscapedStringToBytes(s: str) -> bytes:
     return EscapedStringToBytes(s[1:-1])
 
 
+def StringLiteralToBytes(s: str) -> bytes:
+    k = s[0]
+    if k != '"':
+        s = s[1:]
+    if s.startswith('"""'):
+        s = s[3:-3]
+    else:
+        s = s[1:-1]
+
+    if k == '"':
+        return EscapedStringToBytes(s)
+    elif k == 'x':
+        return HexStringToBytes(s)
+    else:
+        assert k == 'r'
+        return s.encode('utf8')
+
+
 _BYTE_TO_ESC = {
     # ord("\r"): "\\r",
     ord("\n"): "\\n",
@@ -208,10 +226,6 @@ def ParseUint64(s) -> Optional[int]:
         return val
     except Exception:
         return None
-
-
-
-
 
 
 def ParseLine(line: str) -> List[str]:
