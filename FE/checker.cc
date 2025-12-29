@@ -203,7 +203,7 @@ void ValidateAST(const std::vector<Node>& mods, COMPILE_STAGE stage) {
     if (stage >= COMPILE_STAGE::AFTER_TYPIFY) {
       if (IsTyped(core.kind)) {
         CHECK(!ct.isnull(), "missing type for " << node << " "
-                                                << Node_srcloc(node)
+                                                << Node_srcloc(node) << " "
                                                 << Node_name_or_invalid(node));
       }
     } else {

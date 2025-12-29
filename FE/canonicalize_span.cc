@@ -91,7 +91,6 @@ void ReplaceSpans(Node mod) {
       NodeFree(node);
       return MakeExprField(container, pointer_field, sl);
     }
-    // TODO
     if (!NodeHasField(node, NFD_X_FIELD::type)) {
       return node;
     }
