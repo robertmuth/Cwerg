@@ -15,17 +15,17 @@ Node CloneId(Node id) {
   return out;
 }
 
-
-
 Node MakeExprField(Node container, Node rec_field, const SrcLoc& sl) {
-    Node field = NodeNew(NT::Id);
+  ASSERT(rec_field.kind() == NT::RecField, "expected rec_field " << rec_field);
+  ASSERT(Node_x_type(rec_field) != kCanonTypeInvalid, "");
+  Node field = NodeNew(NT::Id);
   NodeInitId(field, Node_name(rec_field), kNameInvalid, kStrInvalid, sl,
-             Node_x_symbol(rec_field), Node_x_type(rec_field));
+             rec_field, Node_x_type(rec_field));
   Node out = NodeNew(NT::ExprField);
-  NodeInitExprField(out, container, field, kStrInvalid, sl, Node_x_type(rec_field));
+  NodeInitExprField(out, container, field, kStrInvalid, sl,
+                    Node_x_type(rec_field));
   return out;
 }
-
 
 void FunRemoveParentheses(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {

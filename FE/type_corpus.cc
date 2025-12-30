@@ -577,7 +577,7 @@ CanonType TypeCorpus::MaybeGetReplacementType(CanonType ct) {
   new_children.reserve(core.children.size());
   for (CanonType child : core.children) {
     CanonType repl = CanonType_replacement_type(child);
-    if (!repl.isnull()) {
+    if (repl.isnull()) {
       repl = child;
     }
     new_children.push_back(repl);
