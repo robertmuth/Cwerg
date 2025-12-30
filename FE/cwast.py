@@ -3501,11 +3501,12 @@ def _FieldNamesForKind(nfk: NFK) -> list[str]:
 
 _EXTRA_BASE_TYPE_KIND = [
     ("UNDEF", 0x70),
-    ("SYM_ADDR", 0x71),
-    ("FUN_ADDR", 0x72),
-    ("COMPOUND", 0x73),
-    ("SPAN", 0x74),
-    ("STRING", 0x75),
+    ("VAR_ADDR", 0x71),
+    ("GLOBAL_ADDR", 0x72),
+    ("FUN_ADDR", 0x73),
+    ("COMPOUND", 0x74),
+    ("SPAN", 0x75),
+    ("BYTES", 0x76),
 ]
 
 

@@ -575,11 +575,12 @@ enum class BASE_TYPE_KIND : uint8_t {
     VOID = 96,
     NORET = 97,
     UNDEF = 112,
-    SYM_ADDR = 113,
-    FUN_ADDR = 114,
-    COMPOUND = 115,
-    SPAN = 116,
-    STRING = 117,
+    VAR_ADDR = 113,
+    GLOBAL_ADDR = 114,
+    FUN_ADDR = 115,
+    COMPOUND = 116,
+    SPAN = 117,
+    BYTES = 118,
 };
 
 enum class MACRO_PARAM_KIND : uint8_t {

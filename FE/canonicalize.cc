@@ -203,7 +203,7 @@ Node MakeValSpanFromArray(Node node, CanonType expected_ct, CanonType uint_ct,
                     kStrInvalid, sl, ptr_ct);
   Node_x_eval(front) = sym == kNodeInvalid
                            ? kConstInvalid
-                           : ConstNewSymAddr(Node_x_symbol(node));
+                           : ConstNewSymbolAddr(Node_x_symbol(node));
 
   Node length = NodeNew(NT::ValNum);
   NodeInitValNum(length, StrNew(EVAL_STR), kStrInvalid, sl, uint_ct);

@@ -16,6 +16,7 @@ namespace cwerg::fe {
 SwitchBool sw_verbose("verbose_eval", "make eval more verbose");
 
 ImmutablePool ConstPool(alignof(uint64_t));
+ImmutablePoolWithSizeInfo ConstPoolForString(alignof(uint64_t));
 
 Const ParseNum(Node node) {
   ASSERT(Node_kind(node) == NT::ValNum, "");
@@ -83,14 +84,14 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
     if (src_value.isnull()) {
       return ConstNewSpan(
           {kNodeInvalid, CanonType_dim(src_type), kConstInvalid});
-    } else {
-      ASSERT(src_value.kind() == BASE_TYPE_KIND::COMPOUND,
-             "unxpected kind " << int(src_value.kind()));
-      Node pointer =
-          src_node.kind() == NT::Id ? Node_x_symbol(src_node) : kNodeInvalid;
-
-      return ConstNewSpan({pointer, CanonType_dim(src_type), src_value});
     }
+    ASSERT(src_value.kind() == BASE_TYPE_KIND::COMPOUND ||
+               src_value.kind() == BASE_TYPE_KIND::BYTES,
+           "unxpected kind " << int(src_value.kind()));
+    Node pointer =
+        src_node.kind() == NT::Id ? Node_x_symbol(src_node) : kNodeInvalid;
+
+    return ConstNewSpan({pointer, CanonType_dim(src_type), src_value});
   }
   return src_value;
 }
@@ -122,7 +123,7 @@ Const GetDefaultForType(CanonType ct) {
       return ConstNewSpan({kNodeInvalid, 0, kConstInvalid});
     default:
       if (CanonType_is_unwrapped_complex(ct))
-        return ConstNewCompound({kNodeInvalid});
+        return ConstNewCompoundEmpty();
       else
         return kConstInvalid;
   }
@@ -133,10 +134,18 @@ Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
     container_val = ConstGetSpan(container_val).content;
     if (container_val.isnull()) return kConstInvalid;
   }
+  if (container_val.kind() == BASE_TYPE_KIND::BYTES) {
+    std::string_view data = ConstBytesData(container_val);
+    ASSERT(CanonType_kind(ct) == NT::TypeBase &&
+               CanonType_get_unwrapped_base_type_kind(ct) == BASE_TYPE_KIND::U8,
+           "");
+    ASSERT(index < data.size(), "");
+    return ConstNewU8(data[index]);
+  }
 
   ASSERT(container_val.kind() == BASE_TYPE_KIND::COMPOUND,
          "" << int(container_val.kind()));
-  Node init_node = ConstGetCompound(container_val).init_node;
+  Node init_node = ConstGetCompound(container_val);
   if (init_node.isnull()) {
     return GetDefaultForType(ct);
   }
@@ -186,7 +195,7 @@ Node MaybewAdvanceRecField(Node point, Node field) {
 Const GetValForRecAtField(Const container, Node target_field) {
   ASSERT(container.kind() == BASE_TYPE_KIND::COMPOUND, "");
   ASSERT(target_field.kind() == NT::RecField, "");
-  Node compound = ConstGetCompound(container).init_node;
+  Node compound = ConstGetCompound(container);
   if (compound.isnull()) {
     return GetDefaultForType(Node_x_type(target_field));
   }
@@ -490,8 +499,14 @@ Const EvalNode(Node node) {
       return EvalValWithPossibleImplicitConversion(Node_x_type(node),
                                                    Node_value_or_undef(node));
     case NT::ValCompound:
-    case NT::ValString:
-      return ConstNewCompound({node});
+      return ConstNewCompound(node);
+    case NT::ValString: {
+      std::string_view str = StrData(Node_string(node));
+      std::string buf(str.size(), 0);
+      size_t len = StringLiteralToBytes(str, buf.data());
+      buf.resize(len);
+      return ConstNewBytes(buf);
+    }
     case NT::DefVar:
     case NT::DefGlobal: {
       Node initial = Node_initial_or_undef_or_auto(node);
@@ -573,14 +588,14 @@ Const EvalNode(Node node) {
       Node cont = Node_container(node);
       if (CanonType_kind(Node_x_type(cont)) == NT::TypeVec) {
         if (Node_kind(cont) == NT::Id) {
-          return ConstNewSymAddr(Node_x_symbol(cont));
+          return ConstNewSymbolAddr(Node_x_symbol(cont));
         }
       } else {
         ASSERT(CanonType_kind(Node_x_type(cont)) == NT::TypeSpan,
                "unexpected " << Node_x_type(cont));
         Const val_cont = Node_x_eval(cont);
         if (!val_cont.isnull() && !ConstGetSpan(val_cont).pointer.isnull()) {
-          return ConstNewSymAddr(ConstGetSpan(val_cont).pointer);
+          return ConstNewSymbolAddr(ConstGetSpan(val_cont).pointer);
         }
       }
       return kConstInvalid;
@@ -603,7 +618,7 @@ Const EvalNode(Node node) {
     }
     case NT::ExprAddrOf:
       if (Node_kind(Node_expr_lhs(node)) == NT::Id) {
-        return ConstNewSymAddr(Node_x_symbol(Node_expr_lhs(node)));
+        return ConstNewSymbolAddr(Node_x_symbol(Node_expr_lhs(node)));
       }
       return kConstInvalid;
     case NT::ExprOffsetof:
@@ -621,9 +636,10 @@ Const EvalNode(Node node) {
       Const s = Node_x_eval(Node_expr_size(node));
       if (p.isnull() && s.isnull()) return kConstInvalid;
       if (!p.isnull()) {
-        ASSERT(p.kind() == BASE_TYPE_KIND::SYM_ADDR,
+        ASSERT(p.kind() == BASE_TYPE_KIND::VAR_ADDR ||
+                   p.kind() == BASE_TYPE_KIND::GLOBAL_ADDR,
                " " << Node_srcloc(node) << " " << p);
-        sym = ConstGetSymbol(p);
+        sym = ConstGetSymbolAddr(p);
       }
       if (!s.isnull()) {
         ASSERT(IsUint(s.kind()), Node_srcloc(node) << node);
@@ -659,7 +675,8 @@ Const EvalNode(Node node) {
     case NT::ExprBitCast: {
       Const val = Node_x_eval(Node_expr(node));
       if (val.isnull()) return kConstInvalid;
-      if (val.kind() == BASE_TYPE_KIND::SYM_ADDR) {
+      if (val.kind() == BASE_TYPE_KIND::VAR_ADDR ||
+          val.kind() == BASE_TYPE_KIND::GLOBAL_ADDR) {
         return val;
       }
       CanonType dst_ct = Node_x_type(node);
@@ -885,13 +902,15 @@ std::ostream& operator<<(std::ostream& os, Const c) {
       // we want %e format
       return os << "EvalNum[" << std::scientific << ConstGetFloat(c) << "_"
                 << EnumToString_BASE_TYPE_KIND_LOWER(c.kind()) << "]";
-    case BASE_TYPE_KIND::SYM_ADDR:
-      return os << "EvalSymAddr[" << Node_name(ConstGetSymbol(c)) << "]";
+    case BASE_TYPE_KIND::VAR_ADDR:
+      return os << "EvalVarAddr[" << Node_name(ConstGetVarAddr(c)) << "]";
+    case BASE_TYPE_KIND::GLOBAL_ADDR:
+      return os << "EvalGlobalAddr[" << Node_name(ConstGetGlobalAddr(c)) << "]";
     case BASE_TYPE_KIND::FUN_ADDR:
-      return os << "EvalFunAddr[" << Node_name(ConstGetSymbol(c)) << "]";
+      return os << "EvalFunAddr[" << Node_name(ConstGetFunAddr(c)) << "]";
     case BASE_TYPE_KIND::COMPOUND: {
-      EvalCompound ec = ConstGetCompound(c);
-      return os << "EvalCompound[" << ec.init_node << "]";
+      Node ec = ConstGetCompound(c);
+      return os << "EvalCompound[" << ec << "]";
     }
     case BASE_TYPE_KIND::SPAN: {
       EvalSpan es = ConstGetSpan(c);
@@ -924,22 +943,38 @@ std::string to_string(Const c, const std::map<Node, std::string>* labels) {
     case BASE_TYPE_KIND::R64:
       ss << c;
       break;
-    case BASE_TYPE_KIND::SYM_ADDR:
-      if (labels->contains(ConstGetSymbol(c))) {
-        ss << "EvalSymAddr[" << labels->at(ConstGetSymbol(c)) << "]";
+    case BASE_TYPE_KIND::VAR_ADDR:
+      if (labels->contains(ConstGetVarAddr(c))) {
+        ss << "EvalVarAddr[" << labels->at(ConstGetVarAddr(c)) << "]";
       } else {
-        ss << "EvalSymAddr[DANGLING:" << Node_name(ConstGetSymbol(c)) << "]";
+        ss << "EvalVarAddr[DANGLING:" << Node_name(ConstGetVarAddr(c)) << "]";
       }
       break;
-
-    case BASE_TYPE_KIND::FUN_ADDR:
-      ss << "EvalFunAddr[" << labels->at(ConstGetSymbol(c)) << "]";
+    case BASE_TYPE_KIND::GLOBAL_ADDR:
+      if (labels->contains(ConstGetGlobalAddr(c))) {
+        ss << "EvalGlobalAddr[" << labels->at(ConstGetGlobalAddr(c)) << "]";
+      } else {
+        ss << "EvalGlobalAddr[DANGLING:" << Node_name(ConstGetGlobalAddr(c))
+           << "]";
+      }
       break;
+    case BASE_TYPE_KIND::FUN_ADDR:
+      ss << "EvalFunAddr[" << labels->at(ConstGetFunAddr(c)) << "]";
+      break;
+    case BASE_TYPE_KIND::BYTES: {
+      std::string_view str = ConstBytesData(c);
+
+      std::string buf(str.size() * 4, 0);  // worst case is every byte become \xXX
+      size_t length = BytesToEscapedString(str, buf.data());
+      buf.resize(length);
+      ss << "EvalBytes[" << buf << "]";
+      break;
+    }
     case BASE_TYPE_KIND::COMPOUND: {
-      EvalCompound ec = ConstGetCompound(c);
+      Node ec = ConstGetCompound(c);
       ss << "EvalCompound[";
-      if (!ec.init_node.isnull()) {
-        ss << labels->at(ec.init_node);
+      if (!ec.isnull()) {
+        ss << labels->at(ec);
       }
       ss << "]";
       break;

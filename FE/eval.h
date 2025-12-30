@@ -21,6 +21,7 @@ constexpr const Const kConstFalse(1U << 23U | 0, BASE_TYPE_KIND::BOOL);
 constexpr const Const kConsTrue(1U << 23U | 1, BASE_TYPE_KIND::BOOL);
 
 extern ImmutablePool ConstPool;
+extern ImmutablePoolWithSizeInfo ConstPoolForString;
 
 constexpr const char EVAL_STR[] = "@eval@";
 
@@ -32,17 +33,110 @@ enum class CONSTANT_KIND : uint8_t {
 
 extern CONSTANT_KIND ConstValueKind(Node node);
 
+constexpr const Node kValCompoundEmpty(NT::ValCompound, 0);
+
 struct EvalSpan {
-  Node pointer;
+  Node pointer;    // invalid or DefVar or DefGlobal
   SizeOrDim size;  // invalid if < 0
   Const content;   // usually a compound
 };
 
-// TODO: try converting this into a Handle Transformer from
-// ValCompound/ValString -> Const
-struct EvalCompound {
-  Node init_node;
-};
+inline Const ConstNewSpan(EvalSpan span) {
+  ASSERT(span.pointer.isnull() || span.pointer.kind() == NT::DefGlobal ||
+             span.pointer.kind() == NT::DefVar,
+         "bad type " << span.pointer);
+
+  return Const(ConstPool.Intern(std::string_view((char*)&span, sizeof(span))),
+               BASE_TYPE_KIND::SPAN);
+}
+
+inline EvalSpan ConstGetSpan(Const c) {
+  ASSERT(c.kind() == BASE_TYPE_KIND::SPAN, "");
+  return *(EvalSpan*)ConstPool.Data(c.index());
+}
+
+// represents the value of arrays and recs
+inline Const ConstNewCompound(Node val_compound) {
+  ASSERT(val_compound.kind() == NT::ValCompound, "");
+  return Const(val_compound.index(), BASE_TYPE_KIND::COMPOUND);
+}
+
+inline Const ConstNewCompoundEmpty() {
+  return Const(0, BASE_TYPE_KIND::COMPOUND);
+}
+
+inline Node ConstGetCompound(Const c) {
+  ASSERT(c.kind() == BASE_TYPE_KIND::COMPOUND, "");
+  if (c.isnull()) return kNodeInvalid;
+  return Node(NT::ValCompound, c.index());
+}
+
+inline Const ConstNewFunAddr(Node sym) {
+  ASSERT(sym.kind() == NT::DefFun, "");
+  return Const(sym.index(), BASE_TYPE_KIND::FUN_ADDR);
+}
+
+inline Node ConstGetFunAddr(Const c) {
+  ASSERT(c.kind() == BASE_TYPE_KIND::FUN_ADDR, "");
+  return Node(NT::DefFun, c.index());
+}
+
+inline Const ConstNewVarAddr(Node sym) {
+  ASSERT(sym.kind() == NT::DefVar, "");
+  return Const(sym.index(), BASE_TYPE_KIND::VAR_ADDR);
+}
+
+inline Node ConstGetVarAddr(Const c) {
+  ASSERT(c.kind() == BASE_TYPE_KIND::VAR_ADDR, "");
+  return Node(NT::DefVar, c.index());
+}
+
+inline Const ConstNewGlobalAddr(Node sym) {
+  ASSERT(sym.kind() == NT::DefGlobal, "");
+  return Const(sym.index(), BASE_TYPE_KIND::GLOBAL_ADDR);
+}
+
+inline Node ConstGetGlobalAddr(Const c) {
+  ASSERT(c.kind() == BASE_TYPE_KIND::GLOBAL_ADDR, "");
+  return Node(NT::DefGlobal, c.index());
+}
+
+inline Const ConstNewSymbolAddr(Node node) {
+  switch (node.kind()) {
+    case NT::DefVar:
+      return ConstNewVarAddr(node);
+    case NT::DefFun:
+      return ConstNewFunAddr(node);
+    case NT::DefGlobal:
+      return ConstNewGlobalAddr(node);
+    default:
+      CHECK(false, "unreachable");
+      return kConstInvalid;
+  }
+}
+
+inline Node ConstGetSymbolAddr(Const c) {
+  switch (c.kind()) {
+    case BASE_TYPE_KIND::VAR_ADDR:
+      return ConstGetVarAddr(c);
+    case BASE_TYPE_KIND::FUN_ADDR:
+      return ConstGetFunAddr(c);
+    case BASE_TYPE_KIND::GLOBAL_ADDR:
+      return ConstGetGlobalAddr(c);
+    default:
+      CHECK(false, "unreachable");
+      return kNodeInvalid;
+  }
+}
+
+inline Const ConstNewBytes(std::string_view str) {
+  return Const(ConstPoolForString.Intern(str), BASE_TYPE_KIND::BYTES);
+}
+
+inline std::string_view ConstBytesData(Const c) {
+  ASSERT(c.kind() == BASE_TYPE_KIND::BYTES, "");
+  return ConstPoolForString.Data(c.index());
+}
 
 inline bool ValIsShortConstUnsigned(uint64_t val) {
   return val < (1ULL << 23U);
@@ -135,50 +229,11 @@ inline Const ConstNewR64(double val) {
 
 extern Const ConstNewUnsigned(uint64_t val, BASE_TYPE_KIND bt);
 extern Const ConstNewSigned(int64_t val, BASE_TYPE_KIND bt);
+
 inline Const ConstNewReal(double val, BASE_TYPE_KIND bt) {
   if (bt == BASE_TYPE_KIND::R32) return ConstNewR32(val);
   ASSERT(bt == BASE_TYPE_KIND::R64, "");
   return ConstNewR64(val);
-}
-
-inline Const ConstNewSymAddr(Node sym) {
-  ASSERT(sym.kind() == NT::DefVar || sym.kind() == NT::DefGlobal, "");
-  return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
-               BASE_TYPE_KIND::SYM_ADDR);
-}
-
-inline Const ConstNewFunAddr(Node sym) {
-  ASSERT(sym.kind() == NT::DefFun, "");
-  return Const(ConstPool.Intern(std::string_view((char*)&sym, sizeof(sym))),
-               BASE_TYPE_KIND::FUN_ADDR);
-}
-
-// represents the value of arrays and recs
-inline Const ConstNewCompound(EvalCompound compound) {
-  return Const(
-      ConstPool.Intern(std::string_view((char*)&compound, sizeof(compound))),
-      BASE_TYPE_KIND::COMPOUND);
-}
-
-inline EvalCompound ConstGetCompound(Const c) {
-  ASSERT(c.kind() == BASE_TYPE_KIND::COMPOUND, "");
-  return *(EvalCompound*)ConstPool.Data(c.index());
-}
-
-inline Node ConstGetSymbol(Const c) {
-  ASSERT(c.kind() == BASE_TYPE_KIND::SYM_ADDR ||
-             c.kind() == BASE_TYPE_KIND::FUN_ADDR,
-         "cannot get symbol");
-  return *(Node*)ConstPool.Data(c.index());
-}
-
-inline Const ConstNewSpan(EvalSpan span) {
-  ASSERT(span.pointer.isnull() || span.pointer.kind() == NT::DefGlobal ||
-             span.pointer.kind() == NT::DefVar,
-         "bad type " << span.pointer);
-
-  return Const(ConstPool.Intern(std::string_view((char*)&span, sizeof(span))),
-               BASE_TYPE_KIND::SPAN);
 }
 
 extern int64_t ConstGetSigned(Const c);
@@ -188,17 +243,12 @@ extern double ConstGetFloat(Const c);
 extern uint64_t ConstGetBitcastUnsigned(Const c);
 extern Const ConstNewBitcastUnsigned(uint64_t val, BASE_TYPE_KIND bt);
 
-inline EvalSpan ConstGetSpan(Const c) {
-  ASSERT(c.kind() == BASE_TYPE_KIND::SPAN, "");
-  return *(EvalSpan*)ConstPool.Data(c.index());
-}
-
 extern std::ostream& operator<<(std::ostream& os, Const c);
 
 extern std::string to_string(Const c,
                              const std::map<Node, std::string>* labels);
 
-void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
+extern void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
 
 class GlobalConstantPool {
  public:

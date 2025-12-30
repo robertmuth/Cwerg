@@ -108,14 +108,17 @@ void FunCopyPropagation(Node fun) {
   auto updater = [&replacements](Node node) {
     // TODO: fragile, relies on all nodes having x_eval
     Const val = Node_x_eval(node);
-    if (val.kind() == BASE_TYPE_KIND::SYM_ADDR) {
-      Node new_sym = GetWithDefault(replacements, ConstGetSymbol(val), kNodeInvalid);
+    if (val.kind() == BASE_TYPE_KIND::VAR_ADDR ||
+        val.kind() == BASE_TYPE_KIND::GLOBAL_ADDR) {
+      Node new_sym =
+          GetWithDefault(replacements, ConstGetSymbolAddr(val), kNodeInvalid);
       if (!new_sym.isnull()) {
-        Node_x_eval(node) = ConstNewSymAddr(new_sym);
+        Node_x_eval(node) = ConstNewSymbolAddr(new_sym);
       }
     }
     if (node.kind() == NT::Id) {
-      Node new_sym = GetWithDefault(replacements, Node_x_symbol(node), kNodeInvalid);
+      Node new_sym =
+          GetWithDefault(replacements, Node_x_symbol(node), kNodeInvalid);
       if (!new_sym.isnull()) {
         Node_name(node) = Node_name(new_sym);
         Node_x_symbol(node) = new_sym;
