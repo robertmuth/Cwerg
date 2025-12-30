@@ -33,4 +33,29 @@ uint32_t ImmutablePool::Intern(std::string_view data, uint32_t padding) {
   return pos - data_;
 }
 
+char* ImmutablePoolWithSizeInfo::AddData(std::string_view data, uint32_t padding) {
+  uint64_t total_size = data.size() + sizeof(uint32_t) + padding;
+  ASSERT(reserved_ >= used_ + total_size, "realloc must have failed");
+  uint32_t out = used_;
+  uint32_t length = data.size();
+  memcpy(data_ + out, &length, sizeof(uint32_t));
+  out += sizeof(uint32_t);
+  data.copy(data_ + out, data.size());
+  memset(data_ + out + data.size(), 0, padding);
+  used_ += total_size;
+  return data_ + out;
+}
+
+uint32_t ImmutablePoolWithSizeInfo::Intern(std::string_view data, uint32_t padding) {
+  auto it = views_.find(data);
+  if (it != views_.end()) {
+    // return offset
+    return it->data() - data_;
+  }
+  const uint32_t total_size = align(data.size() + padding, alignment_);
+  const char* pos = AddData(data, total_size - data.size());
+  views_.insert({pos, data.size()});
+  return pos - data_;
+}
+
 }  // namespace cwerg
