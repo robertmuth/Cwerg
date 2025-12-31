@@ -1145,11 +1145,13 @@ def MakeModWithComplexConstants(mod_topo_order: list[cwast.DefMod]) -> cwast.Def
 
 def PhaseEliminateSpanAndUnion(mod_gen: cwast.DefMod, mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
     # TODO: comment on ordering of span and union elimination
-    mod_gen.body_mod.extend(canonicalize_span.MakeAndRegisterSpanTypeReplacements(tc))
+    mod_gen.body_mod.extend(
+        canonicalize_span.MakeAndRegisterSpanTypeReplacements(tc))
     for mod in ([mod_gen] + mod_topo_order):
         canonicalize_span.ReplaceSpans(mod)
     #
-    mod_gen.body_mod.extend(canonicalize_union.MakeAndRegisterUnionTypeReplacements(tc))
+    mod_gen.body_mod.extend(
+        canonicalize_union.MakeAndRegisterUnionTypeReplacements(tc))
     for mod in ([mod_gen] + mod_topo_order):
         canonicalize_union.ReplaceUnions(mod)
 
@@ -1281,6 +1283,7 @@ def main() -> int:
                              cwast.ExprTypeId,
                              cwast.StmtDefer,
                              #
+                             cwast.DefType,
                              cwast.TypeBase,
                              cwast.TypeSpan,
                              cwast.TypeVec,

@@ -658,7 +658,7 @@ def _CheckUnderlyingTypeIs(node, expected: cwast.CanonType):
     actual = node.x_type.underlying_type()
     if actual != expected:
         cwast.CompilerError(node.x_srcloc,
-                            f"{node}: unerlying types not the same actual: {actual} expected: {expected}")
+                            f"{node}: underlying types not the same actual: {actual} expected: {expected}")
 
 
 def _CheckTypeKind(node, kind):
@@ -1204,7 +1204,7 @@ def ModStripTypeNodesRecursively(mod: cwast.DefMod):
             def_node = node.x_symbol
             if isinstance(def_node, (cwast.DefRec, cwast.DefEnum, cwast.DefType)):
                 return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)
-        if isinstance(node, (cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan,
+        if isinstance(node, (cwast.DefType, cwast.TypeBase, cwast.TypePtr, cwast.TypeSpan,
                              cwast.TypeVec, cwast.TypeOf, cwast.TypeUnionDelta,
                              cwast.TypeUnion, cwast.TypeFun)):
             return cwast.TypeAuto(x_srcloc=node.x_srcloc, x_type=node.x_type)

@@ -562,15 +562,15 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
     if type_corpus.IsVecToSpanConversion(src_type, dst_type):
         if src_value is None:
             return EvalSpan(None, src_type.array_dim(), None)
-        else:
-            assert isinstance(src_value, (EvalCompound, EvalBytes)
-                              ), f"{src_value} {src_node.x_srcloc}"
-            pointer = None
-            if isinstance(src_node, cwast.Id):
-                pointer = src_node.x_symbol
-            assert pointer is None or isinstance(
-                pointer, (cwast.DefGlobal, cwast.DefVar))
-            return EvalSpan(pointer, src_type.array_dim(), src_value)
+
+        assert isinstance(src_value, (EvalCompound, EvalBytes)
+                          ), f"{src_value} {src_node.x_srcloc}"
+        pointer = None
+        if isinstance(src_node, cwast.Id):
+            pointer = src_node.x_symbol
+        assert pointer is None or isinstance(
+            pointer, (cwast.DefGlobal, cwast.DefVar))
+        return EvalSpan(pointer, src_type.array_dim(), src_value)
     elif src_value is None:
         return None
     # assert False, f"{src_node}: {src_node.x_type} -> {dst_type} [{src_value}]"

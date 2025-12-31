@@ -2586,7 +2586,7 @@ class DefType:
     """
     ALIAS: ClassVar = "type"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL| NF.NON_CORE
     #
     name: NAME
     type: NODES_TYPES_T

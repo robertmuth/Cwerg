@@ -41,6 +41,12 @@ def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwas
     # a snapshot first
     out = []
     for ct in tc.topo_order[:]:
+        if ct.node is cwast.DefType:
+            new_ct = tc.MaybeGetReplacementType(ct.underlying_type())
+            if new_ct:
+                ct.children[0] = new_ct
+            continue
+
         if ct.is_span():
             rec = _MakeSpanReplacementStruct(ct, tc)
             out.append(rec)
@@ -117,7 +123,7 @@ def ReplaceSpans(node):
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             def_rec = node.x_type.replacement_type
             if def_rec is not None:
-                if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.DefFun,  cwast.DefType,
+                if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.DefFun,
                                      #
                                      cwast.Expr3, cwast.ExprAddrOf, cwast.ExprCall,
                                      cwast.ExprDeref, cwast.ExprField, cwast.ExprNarrow,
