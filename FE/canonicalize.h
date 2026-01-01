@@ -1,6 +1,8 @@
 
 
 // only used for interning comment strings
+#include <span>
+
 #include "FE/cwast_gen.h"
 #include "FE/type_corpus.h"
 #include "Util/assert.h"
@@ -41,4 +43,12 @@ extern void FunAddMissingReturnStmts(Node fun);
 extern void FunOptimizeKnownConditionals(Node fun);
 
 extern Node MakeExprField(Node container, Node rec_field, const SrcLoc& sl);
+
+struct FieldTypeAndValue {
+  CanonType type;
+  Node value;
+};
+
+extern Node MakeValCompound(CanonType ct, std::span<FieldTypeAndValue> fields,
+                            const SrcLoc& sl);
 }  // namespace cwerg::fe

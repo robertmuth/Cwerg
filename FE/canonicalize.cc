@@ -27,6 +27,31 @@ Node MakeExprField(Node container, Node rec_field, const SrcLoc& sl) {
   return out;
 }
 
+Node MakeValUndef(const SrcLoc& sl) {
+  Node out = NodeNew(NT::ValUndef);
+  NodeInitValUndef(out, kStrInvalid, sl);
+  Node_x_eval(out) = kConstUndef;
+  return out;
+}
+
+Node MakeValPoint(Node field_val, CanonType ct, const SrcLoc& sl) {
+  Node out = NodeNew(NT::ValPoint);
+  NodeInitValPoint(out, field_val, MakeValUndef(sl), kStrInvalid, sl, ct);
+  Node_x_eval(out) = Node_x_eval(field_val);
+  return out;
+}
+
+Node MakeValCompound(CanonType ct, std::span<FieldTypeAndValue> fields,
+                     const SrcLoc& sl) {
+  NodeChain chain;
+  for (const auto& f : fields) {
+    chain.Append(MakeValPoint(f.value, f.type, sl));
+  }
+  Node out = NodeNew(NT::ValCompound);
+  return NodeInitValCompound(out, MakeTypeAuto(ct, sl), chain.First(),
+                             kStrInvalid, sl, ct);
+}
+
 void FunRemoveParentheses(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (Node_kind(node) == NT::ExprParen) {

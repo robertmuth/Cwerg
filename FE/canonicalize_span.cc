@@ -53,33 +53,15 @@ void MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc, NodeChain* out) {
   }
 }
 
-Node MakeValUndef(const SrcLoc& sl) {
-  Node out = NodeNew(NT::ValUndef);
-  NodeInitValUndef(out, kStrInvalid, sl);
-  Node_x_eval(out) = kConstUndef;
-  return out;
-}
-
-Node MakeValPoint(Node field_val, CanonType ct, const SrcLoc& sl) {
-  Node out = NodeNew(NT::ValPoint);
-  NodeInitValPoint(out, field_val, MakeValUndef(sl), kStrInvalid, sl, ct);
-  Node_x_eval(out) = Node_x_eval(field_val);
-  return out;
-}
-
 Node MakeValRecForSpan(Node pointer, Node length, CanonType replacement_ct,
                        const SrcLoc& sl) {
   Node field_pointer = Node_fields(CanonType_ast_node(replacement_ct));
   Node field_length = Node_next(field_pointer);
-
-  NodeChain fields;
-  fields.Append(MakeValPoint(pointer, Node_x_type(field_pointer), sl));
-  fields.Append(MakeValPoint(length, Node_x_type(field_length), sl));
-
-  Node out = NodeNew(NT::ValCompound);
-  NodeInitValCompound(out, MakeTypeAuto(replacement_ct, sl), fields.First(),
-                      kStrInvalid, sl, replacement_ct);
-  return out;
+  std::array<FieldTypeAndValue, 2> fields = {{
+      {Node_x_type(field_pointer), pointer},
+      {Node_x_type(field_length), length},
+  }};
+  return MakeValCompound(replacement_ct,fields, sl);
 }
 
 void ReplaceSpans(Node mod) {
