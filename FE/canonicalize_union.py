@@ -70,7 +70,7 @@ def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.Va
                         x_type=ct_typeid, x_srcloc=srcloc)
 
 
-def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc) -> cwast.ValCompound:
+def _MakeValRecForTaggedUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc) -> cwast.ValCompound:
     tag_field, union_field = sum_rec.ast_node.fields
     return canonicalize.MakeValCompound(sum_rec,
                                         [(tag_field.x_type, tag_value),
@@ -88,7 +88,7 @@ def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.Canon
     value.x_type = union_field.x_type
     value.type = cwast.TypeAuto(x_srcloc=srcloc, x_type=union_field.x_type)
 
-    return _MakeValRecForUnion(sum_rec,
+    return _MakeValRecForTaggedUnion(sum_rec,
                                _MakeTypeidVal(
                                    value.expr.x_type.get_original_typeid(), srcloc, tag_field.x_type),
                                value,
@@ -101,9 +101,9 @@ def _CloneId(node: cwast.Id) -> cwast.Id:
                     x_srcloc=node.x_srcloc)
 
 
-def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) -> cwast.ValCompound:
-    assert dst_sum_rec.is_rec()
-    dst_untagged_union_ct: cwast.CanonType = dst_sum_rec.ast_node.fields[1].x_type
+def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_ct: cwast.CanonType) -> cwast.ValCompound:
+    assert dst_ct.is_rec()
+    dst_untagged_union_ct: cwast.CanonType = dst_ct.ast_node.fields[1].x_type
     assert dst_untagged_union_ct.is_untagged_union()
     src_sum_rec: cwast.CanonType = value.expr.x_type
     assert src_sum_rec.is_rec()
@@ -126,33 +126,34 @@ def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_sum_rec: cwast.CanonType) 
                                    x_eval=value.x_eval,
                                    x_type=dst_untagged_union_ct)
     # tag is the same as with the src but (untagged) union is narrowed
-    return _MakeValRecForUnion(dst_sum_rec, src_tag, union_value, sl)
+    return _MakeValRecForTaggedUnion(dst_ct, src_tag, union_value, sl)
 
 
-def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.CanonType) -> cwast.ValCompound:
+def _MakeValRecForWidenFromUnion(widen: cwast.ExprWiden, dst_sum_rec: cwast.CanonType) -> cwast.ValCompound:
     assert dst_sum_rec.is_rec()
     _, dst_union_field = dst_sum_rec.ast_node.fields
-    src_sum_rec: cwast.CanonType = value.expr.x_type
+    src = widen.expr
+    sl = widen.x_srcloc
+
+    src_sum_rec: cwast.CanonType = src.x_type
     assert src_sum_rec.is_rec()
     assert src_sum_rec.original_type.is_tagged_union()
     src_tag_field, src_union_field = src_sum_rec.ast_node.fields
     # to drop this we would need to introduce a temporary since we access it more than once
-    assert isinstance(value.expr, cwast.Id), f"{value.expr}"
-    sl = value.x_srcloc
+    assert isinstance(src, cwast.Id), f"{src}"
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
 
     tag_value = canonicalize.MakeExprField(
-        _CloneId(value.expr), src_tag_field, sl)
+        _CloneId(src), src_tag_field, sl)
     union_field = canonicalize.MakeExprField(
-        _CloneId(value.expr),  src_union_field, sl)
+        _CloneId(src),  src_union_field, sl)
     union_value = cwast.ExprWiden(union_field,
                                   cwast.TypeAuto(
                                       x_srcloc=sl, x_type=dst_union_field.x_type),
                                   x_srcloc=sl,
-                                  x_eval=value.x_eval,
+                                  x_eval=widen.x_eval,
                                   x_type=dst_union_field.x_type)
-
-    return _MakeValRecForUnion(dst_sum_rec,
+    return _MakeValRecForTaggedUnion(dst_sum_rec,
                                tag_value, union_value,
                                sl)
 
@@ -230,7 +231,7 @@ def FunSimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def ReplaceUnions(node):
+def ReplaceUnions(node: cwast.DefMod):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
     """
@@ -264,18 +265,25 @@ def ReplaceUnions(node):
         new_ct: Optional[cwast.CanonType] = node.x_type.replacement_type
         if new_ct is None:
             return None
-        if isinstance(node, (cwast.Id, cwast.TypeAuto, cwast.Expr3, cwast.DefType,
-                             cwast.ExprStmt, cwast.DefFun,
-                             cwast.DefVar, cwast.DefGlobal,
-                             cwast.FunParam, cwast.ExprCall, cwast.RecField,
-                             cwast.ExprField, cwast.ValPoint,
-                             cwast.ValCompound, cwast.ExprPointer,
-                             cwast.ExprFront, cwast.ExprDeref, cwast.ExprAddrOf)):
+        if isinstance(node, (cwast.DefFun, cwast.DefGlobal,  cwast.DefVar,
+                             #
+                             cwast.Expr3, cwast.ExprAddrOf, cwast.ExprCall,
+                             cwast.ExprDeref, cwast.ExprField, cwast.ExprFront,
+                             cwast.ExprPointer, cwast.ExprStmt,
+                             #
+                             cwast.FunParam,
+                             cwast.Id,
+                             cwast.RecField,
+
+                             cwast.TypeAuto,
+                             #
+                             cwast.ValPoint, cwast.ValCompound)):
             typify.NodeChangeType(node, new_ct)
             return None
         elif isinstance(node, cwast.ExprWiden):
-            ct_src: cwast.CanonType = node.expr.x_type
-            if ct_src.original_type is not None and ct_src.original_type.is_tagged_union():
+            # Note, node.expr has already been processed by the recursion
+            ct_orig: cwast.CanonType = node.expr.x_type.original_type
+            if ct_orig is not None and ct_orig.is_tagged_union():
                 return _MakeValRecForWidenFromUnion(node, new_ct)
             else:
                 return _MakeValRecForWidenFromNonUnion(node, new_ct)

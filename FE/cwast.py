@@ -1027,7 +1027,6 @@ class CanonType:
             ct = ct.original_type
         return ct.typeid
 
-
     def set_union_kind(self):
         seen_pointer = False
         for t in self.union_member_types():
@@ -2589,7 +2588,7 @@ class DefType:
     """
     ALIAS: ClassVar = "type"
     GROUP: ClassVar = GROUP.Statement
-    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL| NF.NON_CORE
+    FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.GLOBAL_SYM_DEF | NF.TOP_LEVEL | NF.NON_CORE
     #
     name: NAME
     type: NODES_TYPES_T
