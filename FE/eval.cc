@@ -964,7 +964,8 @@ std::string to_string(Const c, const std::map<Node, std::string>* labels) {
     case BASE_TYPE_KIND::BYTES: {
       std::string_view str = ConstBytesData(c);
 
-      std::string buf(str.size() * 4, 0);  // worst case is every byte become \xXX
+      std::string buf(str.size() * 4,
+                      0);  // worst case is every byte become \xXX
       size_t length = BytesToEscapedString(str, buf.data());
       buf.resize(length);
       ss << "EvalBytes[" << buf << "]";
@@ -1108,7 +1109,8 @@ Node GlobalConstantPool::add_def_global(Node node) {
   CanonType ct = Node_x_type(node);
   ASSERT(!ct.isnull(), "");
   Node out = NodeNew(NT::DefGlobal);
-  NodeInitDefGlobal(out, NameNew("global_val"), MakeTypeAuto(ct, sl), node,
+  std::string name = "global_val_" + std::to_string(current_no_);
+  NodeInitDefGlobal(out, NameNew(name), MakeTypeAuto(ct, sl), node,
                     Mask(BF::PUB), kStrInvalid, sl, ct);
   all_globals_.push_back(out);
   return out;
@@ -1116,15 +1118,12 @@ Node GlobalConstantPool::add_def_global(Node node) {
 
 Node GlobalConstantPool::add_val_string(Node node) {
   ASSERT(node.kind() == NT::ValString, "");
-  std::string_view str = StrData(Node_string(node));
-  std::string buf;
-  buf.reserve(str.size());
-  size_t len = StringLiteralToBytes(str, buf.data());
-  buf.resize(len);
-  Node def_node = GetWithDefault(val_string_pool_, buf, kNodeInvalid);
+  Const eval = Node_x_eval(node);
+  ASSERT(eval.kind() == BASE_TYPE_KIND::BYTES, "");
+  Node def_node = GetWithDefault(val_string_pool_, eval.index(), kNodeInvalid);
   if (def_node.isnull()) {
     def_node = add_def_global(node);
-    val_string_pool_[buf] = def_node;
+    val_string_pool_[eval.index()] = def_node;
   } else {
     NodeFreeRecursively(node);
   }
@@ -1149,7 +1148,6 @@ void GlobalConstantPool::EliminateValStringAndValCompoundOutsideOfDefGlobal(
         } else {
           return node;
         }
-        break;
       }
       default:
         return node;

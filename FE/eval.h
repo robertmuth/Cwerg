@@ -7,6 +7,7 @@
 // For details see the implementation of: std::ostream& operator<<(std::ostream&
 // os, Const c)
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 #include "FE/cwast_gen.h"
@@ -266,7 +267,7 @@ class GlobalConstantPool {
 
  private:
   int current_no_ = 0;
-  std::map<std::string, Node> val_string_pool_;
+  std::unordered_map<uint32_t, Node> val_string_pool_;
   std::vector<Node> all_globals_;
 
   Node add_def_global(Node node);
