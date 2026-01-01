@@ -26,6 +26,15 @@ def MakeExprField(container, rec_field: cwast.RecField, sl) -> cwast.ExprField:
     return cwast.ExprField(container, field_name, sl, x_type=rec_field.x_type)
 
 
+def _MakeValPoint(val, ct, sl) -> cwast.ValPoint:
+    return cwast.ValPoint(val, cwast.ValUndef(x_srcloc=sl, x_eval=eval.VAL_UNDEF),
+                          x_type=ct, x_srcloc=sl, x_eval=val.x_eval)
+
+def MakeValCompound(ct: cwast.CanonType, points: list[tuple], sl: cwast.SrcLoc) -> cwast.ValCompound:
+    val_points = [_MakeValPoint(val, field.x_type, sl) for field, val in points]
+    return cwast.ValCompound(cwast.TypeAuto(x_srcloc=sl, x_type=ct), val_points, x_srcloc=sl, x_type=ct)
+
+
 def _ShouldBeBoolExpanded(node, parent):
     # these nodes do not represent a complex boolean expression
     if not isinstance(node, (cwast.Expr1, cwast.Expr2)):

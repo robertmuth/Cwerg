@@ -62,11 +62,6 @@ def MakeAndRegisterUnionTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwa
     return out
 
 
-def _MakeIdForDefRec(def_rec: cwast.CanonType, srcloc) -> cwast.Id:
-    return cwast.Id(def_rec.ast_node.name, None, x_symbol=def_rec.ast_node, x_type=def_rec,
-                    x_srcloc=srcloc)
-
-
 def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
     assert typeid >= 0
     return cwast.ValNum(eval.EVAL_STR,
@@ -77,16 +72,9 @@ def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.Va
 
 def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc) -> cwast.ValCompound:
     tag_field, union_field = sum_rec.ast_node.fields
-    return cwast.ValCompound(_MakeIdForDefRec(sum_rec, srcloc), [
-        cwast.ValPoint(tag_value, cwast.ValUndef(x_srcloc=srcloc, x_eval=eval.VAL_UNDEF),
-                       x_type=tag_field.x_type, x_srcloc=srcloc,
-                       x_eval=tag_value.x_eval),
-        cwast.ValPoint(union_value, cwast.ValUndef(x_srcloc=srcloc, x_eval=eval.VAL_UNDEF),
-                       x_type=union_field.x_type,
-                       x_srcloc=srcloc, x_eval=union_value.x_eval)
-
-    ], x_srcloc=srcloc,
-        x_type=sum_rec)
+    return canonicalize.MakeValCompound(sum_rec,
+                                        [(tag_field, tag_value),
+                                         (union_field, union_value)], srcloc)
 
 
 def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.CanonType) -> cwast.ValCompound:
@@ -153,8 +141,10 @@ def _MakeValRecForWidenFromUnion(value: cwast.ExprWiden, dst_sum_rec: cwast.Cano
     sl = value.x_srcloc
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
 
-    tag_value = canonicalize.MakeExprField(_CloneId(value.expr), src_tag_field, sl)
-    union_field = canonicalize.MakeExprField(_CloneId(value.expr),  src_union_field, sl)
+    tag_value = canonicalize.MakeExprField(
+        _CloneId(value.expr), src_tag_field, sl)
+    union_field = canonicalize.MakeExprField(
+        _CloneId(value.expr),  src_union_field, sl)
     union_value = cwast.ExprWiden(union_field,
                                   cwast.TypeAuto(
                                       x_srcloc=sl, x_type=dst_union_field.x_type),

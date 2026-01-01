@@ -64,16 +64,11 @@ def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwas
     return out
 
 
-def _MakeValPoint(val, ct, sl) -> cwast.ValPoint:
-    return cwast.ValPoint(val, cwast.ValUndef(x_srcloc=sl, x_eval=eval.VAL_UNDEF),
-                          x_type=ct, x_srcloc=sl, x_eval=val.x_eval)
-
-
 def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValCompound:
     pointer_field, length_field = span_rec.ast_node.fields
-    inits = [_MakeValPoint(pointer, pointer_field.x_type, srcloc),
-             _MakeValPoint(length, length_field.x_type, srcloc)]
-    return cwast.ValCompound(cwast.TypeAuto(srcloc, x_type=span_rec), inits, x_srcloc=srcloc, x_type=span_rec)
+    return canonicalize.MakeValCompound(span_rec,
+                                        [(pointer_field, pointer),
+                                         (length_field, length)], srcloc)
 
 
 def FunReplaceSpanCastWithSpanVal(node, tc: type_corpus.TypeCorpus):
