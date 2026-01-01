@@ -81,10 +81,15 @@ $(DIR)/%.cw.meta: %.cw
 assimilation_after_opt_tests: $(ALL_SOURCES_NO_GENERIC_NO_BUILTIN:%.cw=$(DIR)/%.cw.assim)
 	@echo "PASSED $@"
 
+# PHASE =  -dump_ast after_partial_eval
+PHASE =  -dump_ast after_optimization
+# PHASE =  -dump_ast after_eliminate_span_and_union
+# PHASE =  -dump_types after_optimization
+
 $(DIR)/%.cw.assim: %.cw
 	@echo "[assim $@]"
-	$(EMIT_IR) -dump_ast after_optimization $< > $@.cc
-	./emit_ir.py  -dump_ast after_optimization $< > $@.py
+	$(EMIT_IR) $(PHASE) $< > $@.cc
+	./emit_ir.py  $(PHASE) $< > $@.py
 	diff $@.py $@.cc
 
 ############################################################
