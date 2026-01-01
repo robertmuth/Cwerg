@@ -1073,6 +1073,7 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             ct: cwast.CanonType = node.x_type
+            assert not ct.desugared, f"desugared node {node}"
             if ct is cwast.NO_TYPE:
                 assert isinstance(
                     node, (cwast.Id, cwast.ValAuto)), f"untype node {node}"

@@ -821,8 +821,15 @@ void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
   // std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
 
-  auto type_checker = [&tc, &strict](Node node, Node parent) {
-    CanonType ct = Node_x_type(node);
+  auto type_checker = [&tc, &strict](Node node, Node parent) -> void {
+    const CanonType ct = Node_x_type(node);
+
+    if (!NodeHasField(node, NFD_X_FIELD::type)) {
+      ASSERT(ct.isnull(), "");
+      return;
+    }
+    ASSERT(!ct.isnull(), "");
+    ASSERT(!CanonType_desugared(ct), "");
 
     switch (Node_kind(node)) {
       case NT::ExprIs:

@@ -263,6 +263,10 @@ void CanonTypeLinkReplacementType(CanonType ct, CanonType replacement_ct) {
 // ====================================================================
 
 TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch) {
+  // TODO: this is a little hacking to assure that TypeCorpus::InTopoOrder()
+  // will never be invalidated.
+  // This relies on gStripeGroupCanonType to never grow.
+  corpus_in_topo_order_.reserve(gStripeGroupCanonType.MaxInstances());
   for (BASE_TYPE_KIND kind : {BASE_TYPE_KIND::VOID,
                               //
                               BASE_TYPE_KIND::S8, BASE_TYPE_KIND::S16,
@@ -571,13 +575,16 @@ void TypeCorpus::SetAbiInfoForAllTypes() {
 
 CanonType TypeCorpus::MaybeGetReplacementType(CanonType ct) {
   const CanonTypeCore& core = gCanonTypeCore[ct];
+
   const NT kind = core.node;
   if (kind == NT::DefType || kind == NT::DefRec) {
     return kCanonTypeInvalid;
   }
+
   if (!core.replacement_type.isnull()) {
     return core.replacement_type;
   }
+
   bool needs_replacement = false;
   for (CanonType child : core.children) {
     if (!CanonType_replacement_type(child).isnull()) {
@@ -634,6 +641,12 @@ void TypeCorpus::Dump() {
               << " size=" << CanonType_size(ct)
               << " align=" << CanonType_alignment(ct) << " original=" << orginal
               << "\n";
+  }
+}
+
+void TypeCorpus::Check() {
+  for (CanonType ct : corpus_in_topo_order_) {
+    ASSERT(!ct.isnull(), "");
   }
 }
 

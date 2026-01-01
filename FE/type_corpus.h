@@ -199,6 +199,7 @@ class TypeCorpus {
 
   std::span<CanonType> InTopoOrder() { return corpus_in_topo_order_; }
 
+  void Check();
   void Dump();
 };
 
