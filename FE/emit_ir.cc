@@ -122,14 +122,16 @@ void PhaseEliminateSpanAndUnion(Node mod_gen,
                                 std::vector<Node>& mods__topo_order,
                                 TypeCorpus* tc, NodeChain* chain) {
 #if 0
+
   MakeAndRegisterSpanTypeReplacements(tc, chain);
+
   Node_body_mod(mod_gen) = chain->First();
+
   ReplaceSpans(mod_gen);
 
   for (Node mod : mods__topo_order) {
     ReplaceSpans(mod);
   }
-
   //
   NodeChain union_recs = MakeAndRegisterUnionTypeReplacements(tc);
   ReplaceUnions(mod_gen);

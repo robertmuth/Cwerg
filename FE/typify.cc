@@ -684,7 +684,7 @@ void CheckTypeIs(Node node, CanonType expected) {
 
   if (actual != expected) {
     CompilerError(Node_srcloc(node))
-        << "type mismatch for " << EnumToString(Node_kind(node))
+        << "CheckTypeIs type mismatch for " << EnumToString(Node_kind(node))
         << " actual: " << CanonType_name(actual)
         << " expected: " << CanonType_name(expected);
   }
@@ -695,9 +695,9 @@ void CheckUnderlyingTypeIs(Node node, CanonType expected) {
 
   if (actual != expected) {
     CompilerError(Node_srcloc(node))
-        << "type mismatch for " << EnumToString(Node_kind(node))
-        << " actual: " << CanonType_name(actual)
-        << " expected: " << CanonType_name(expected);
+        << "CheckUnderlyingTypeIs type mismatch for " << node << " "
+        << Node_x_type(node) << " actual: " << actual
+        << " expected: " << expected;
   }
 }
 
@@ -812,8 +812,8 @@ void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
         CanonType_kind(src_ct) == NT::TypeVec && IsProperLhs(src_node);
     if (!IsCompatibleType(src_ct, dst_ct, writable)) {
       CompilerError(Node_srcloc(src_node))
-          << "type mismatch for " << src_node << ": " << src_ct << " -> "
-          << dst_ct;
+          << "CheckTypeCompatibleWithOptionalStrict type mismatch for "
+          << src_node << ": " << src_ct << " -> " << dst_ct;
     }
   }
 }
@@ -1180,10 +1180,10 @@ Node MakeDefRec(Name name, std::span<NameAndType> fields, TypeCorpus* tc) {
   }
 
   Node out = NodeNew(NT::DefRec);
-  NodeInitDefRec(out, name, chain.First(), 0, kStrInvalid, kSrcLocInvalid,
-                 kCanonTypeInvalid);
-  CanonType ct = tc->InsertRecType(NameData(name), out, true);
-  NodeSetType(out, ct);
+  NodeInitDefRec(out, name, chain.First(), Mask(BF::PUB), kStrInvalid,
+                 kSrcLocInvalid, kCanonTypeInvalid);
+  CanonType rec_ct = tc->InsertRecType(NameData(name), out, true);
+  NodeSetType(out, rec_ct);
   return out;
 }
 
@@ -1350,7 +1350,7 @@ void ModStripTypeNodesRecursively(Node node) {
 
         return node;
       }
-
+      case NT::DefType:
       case NT::TypeOf:
       case NT::TypeFun:
       case NT::TypeBase:

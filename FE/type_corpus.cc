@@ -57,7 +57,7 @@ SizeOrDim CanonType_alignment(CanonType ct) {
   return gCanonTypeCore[ct].alignment;
 }
 
-CanonType& CanonType_replacement_type(CanonType ct) {
+CanonType CanonType_replacement_type(CanonType ct) {
   return gCanonTypeCore[ct].replacement_type;
 }
 
@@ -147,8 +147,13 @@ std::vector<CanonType>& CanonType_children(CanonType n) {
 }
 
 int CanonType_get_original_typeid(CanonType n) {
-  return gCanonTypeCore[n].type_id;
+  CanonType ot = CanonType_original_type(n);
+  if (ot.isnull()) {
+    return gCanonTypeCore[n].type_id;
+  }
+  return gCanonTypeCore[ot].type_id;
 }
+
 int& CanonType_typeid(CanonType n) { return gCanonTypeCore[n].type_id; }
 
 Node CanonType_lookup_rec_field(CanonType ct, Name field_name) {
@@ -245,7 +250,7 @@ CanonType CanonTypeNewFunType(Name name,
 }
 
 void CanonTypeLinkReplacementType(CanonType ct, CanonType replacement_ct) {
-  CanonType_replacement_type(ct) = replacement_ct;
+  gCanonTypeCore[ct].replacement_type = replacement_ct;
   gCanonTypeCore[replacement_ct].original_type = ct;
 }
 
@@ -606,7 +611,7 @@ CanonType TypeCorpus::MaybeGetReplacementType(CanonType ct) {
 
 void TypeCorpus::ClearReplacementInfo() {
   for (CanonType ct : corpus_in_topo_order_) {
-    CanonType_replacement_type(ct) = kCanonTypeInvalid;
+    gCanonTypeCore[ct].replacement_type = kCanonTypeInvalid;
   }
 }
 
