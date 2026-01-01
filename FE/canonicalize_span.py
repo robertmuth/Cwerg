@@ -67,8 +67,8 @@ def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwas
 def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValCompound:
     pointer_field, length_field = span_rec.ast_node.fields
     return canonicalize.MakeValCompound(span_rec,
-                                        [(pointer_field, pointer),
-                                         (length_field, length)], srcloc)
+                                        [(pointer_field.x_type, pointer),
+                                         (length_field.x_type, length)], srcloc)
 
 
 def FunReplaceSpanCastWithSpanVal(node, tc: type_corpus.TypeCorpus):

@@ -30,8 +30,10 @@ def _MakeValPoint(val, ct, sl) -> cwast.ValPoint:
     return cwast.ValPoint(val, cwast.ValUndef(x_srcloc=sl, x_eval=eval.VAL_UNDEF),
                           x_type=ct, x_srcloc=sl, x_eval=val.x_eval)
 
+
 def MakeValCompound(ct: cwast.CanonType, points: list[tuple], sl: cwast.SrcLoc) -> cwast.ValCompound:
-    val_points = [_MakeValPoint(val, field.x_type, sl) for field, val in points]
+    val_points = [_MakeValPoint(field_val, field_type, sl)
+                  for field_type, field_val in points]
     return cwast.ValCompound(cwast.TypeAuto(x_srcloc=sl, x_type=ct), val_points, x_srcloc=sl, x_type=ct)
 
 

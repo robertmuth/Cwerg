@@ -73,8 +73,8 @@ def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.Va
 def _MakeValRecForUnion(sum_rec: cwast.CanonType, tag_value, union_value, srcloc) -> cwast.ValCompound:
     tag_field, union_field = sum_rec.ast_node.fields
     return canonicalize.MakeValCompound(sum_rec,
-                                        [(tag_field, tag_value),
-                                         (union_field, union_value)], srcloc)
+                                        [(tag_field.x_type, tag_value),
+                                         (union_field.x_type, union_value)], srcloc)
 
 
 def _MakeValRecForWidenFromNonUnion(value: cwast.ExprWiden, sum_rec: cwast.CanonType) -> cwast.ValCompound:
