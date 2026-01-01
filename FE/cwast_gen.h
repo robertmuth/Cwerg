@@ -1441,6 +1441,12 @@ V GetWithDefault(const std::map<K, V>& m, const K& key, const V& default_val) {
   return (it == m.end()) ? default_val : it->second;
 }
 
+template <typename K, typename V>
+V GetWithDefault(const std::unordered_map<K, V>& m, const K& key, const V& default_val) {
+  auto it = m.find(key);
+  return (it == m.end()) ? default_val : it->second;
+}
+
 void RemoveNodesOfType(Node node, NT kind);
 
 // Clones gNodeCore, gNodeExtra, gNodeAuxTyping
