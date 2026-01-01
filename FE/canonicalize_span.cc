@@ -23,8 +23,11 @@ Node MakeSpanReplacementStruct(CanonType span_ct, TypeCorpus* tc) {
 
 void MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc, NodeChain* out) {
   tc->ClearReplacementInfo();
-  CanonType new_ct;
   for (CanonType ct : tc->InTopoOrder()) {
+    if (CanonType_desugared(ct)) {
+      continue;
+    }
+    CanonType new_ct;
     if (CanonType_is_span(ct)) {
       Node rec = MakeSpanReplacementStruct(ct, tc);
       out->Append(rec);
@@ -37,11 +40,12 @@ void MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc, NodeChain* out) {
     }
     CanonTypeLinkReplacementType(ct, new_ct);
   }
-  // TODO:
+
+  // Fixup DefType related types
   for (CanonType ct : tc->InTopoOrder()) {
     if (CanonType_is_wrapped(ct)) {
       CanonType unwrapped = CanonType_underlying_type(ct);
-      new_ct = tc->MaybeGetReplacementType(unwrapped);
+      CanonType new_ct = tc->MaybeGetReplacementType(unwrapped);
       if (!new_ct.isnull()) {
         CanonType_children(ct)[0] = new_ct;
       }

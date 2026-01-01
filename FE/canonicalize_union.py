@@ -48,6 +48,8 @@ def MakeAndRegisterUnionTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwa
     tc.ClearReplacementInfo()
     out = []
     for ct in tc.topo_order[:]:
+        if ct.desugared:
+            continue
         if ct.is_tagged_union():
             rec = _MakeUnionReplacementStruct(ct, tc)
             out.append(rec)

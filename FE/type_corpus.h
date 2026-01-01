@@ -39,6 +39,7 @@ extern bool CanonType_untagged(CanonType ct);
 extern SizeOrDim CanonType_alignment(CanonType n);
 extern SizeOrDim CanonType_size(CanonType n);
 extern SizeOrDim CanonType_dim(CanonType n);
+extern bool CanonType_desugared(CanonType n);
 
 extern CanonType CanonType_original_type(CanonType n);
 

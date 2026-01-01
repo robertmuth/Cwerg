@@ -41,6 +41,8 @@ def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwas
     # a snapshot first
     out = []
     for ct in tc.topo_order[:]:
+        if ct.desugared:
+            continue
         if ct.is_span():
             rec = _MakeSpanReplacementStruct(ct, tc)
             out.append(rec)

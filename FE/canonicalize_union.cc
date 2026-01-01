@@ -25,6 +25,10 @@ Node MakeUnionReplacementStruct(CanonType union_ct, TypeCorpus* tc) {
 void MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc, NodeChain* out) {
   tc->ClearReplacementInfo();
   for (CanonType ct : tc->InTopoOrder()) {
+    if (CanonType_desugared(ct)) {
+      continue;
+    }
+
     CanonType new_ct;
     if (CanonType_is_union(ct) && !CanonType_untagged(ct)) {
       Node rec = MakeUnionReplacementStruct(ct, tc);
@@ -37,6 +41,16 @@ void MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc, NodeChain* out) {
       }
     }
     CanonTypeLinkReplacementType(ct, new_ct);
+  }
+  // Fixup DefType related types
+  for (CanonType ct : tc->InTopoOrder()) {
+    if (CanonType_is_wrapped(ct)) {
+      CanonType unwrapped = CanonType_underlying_type(ct);
+      CanonType new_ct = tc->MaybeGetReplacementType(unwrapped);
+      if (!new_ct.isnull()) {
+        CanonType_children(ct)[0] = new_ct;
+      }
+    }
   }
 }
 
