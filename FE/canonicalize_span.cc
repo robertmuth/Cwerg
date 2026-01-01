@@ -58,8 +58,7 @@ Node MakeValUndef(const SrcLoc& sl) {
 
 Node MakeValPoint(Node field_val, CanonType ct, const SrcLoc& sl) {
   Node out = NodeNew(NT::ValPoint);
-  NodeInitValPoint(out, field_val, MakeValUndef(sl), kStrInvalid, sl,
-                   Node_x_type(field_val));
+  NodeInitValPoint(out, field_val, MakeValUndef(sl), kStrInvalid, sl, ct);
   Node_x_eval(out) = Node_x_eval(field_val);
   return out;
 }
