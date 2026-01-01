@@ -883,6 +883,7 @@ class CanonType:
     # this provides a way to access the original type (mostly its typeid)
     original_type: Optional["CanonType"] = None
     replacement_type: Optional["CanonType"] = None
+    desugared = False
     # The fields below are filled during finalization
     alignment: int = -1
     size: int = -1
@@ -1021,10 +1022,11 @@ class CanonType:
         return reg_type[0]
 
     def get_original_typeid(self):
-        if not self.original_type:
-            return self.typeid
-        else:
-            return self.original_type.get_original_typeid()
+        ct = self
+        while ct.original_type:
+            ct = ct.original_type
+        return ct.typeid
+
 
     def set_union_kind(self):
         seen_pointer = False
@@ -1070,6 +1072,7 @@ class CanonType:
 
     def LinkReplacementType(self, replacement_ct: "CanonType"):
         self.replacement_type = replacement_ct
+        self.desugared = True
         replacement_ct.original_type = self
 
     def __str__(self):

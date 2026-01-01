@@ -22,14 +22,13 @@ Node MakeUnionReplacementStruct(CanonType union_ct, TypeCorpus* tc) {
   return MakeDefRec(NameNew(name), fields, tc);
 }
 
-NodeChain MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc) {
-  NodeChain out;
+void MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc, NodeChain* out) {
   tc->ClearReplacementInfo();
   for (CanonType ct : tc->InTopoOrder()) {
     CanonType new_ct;
     if (CanonType_is_union(ct) && !CanonType_untagged(ct)) {
       Node rec = MakeUnionReplacementStruct(ct, tc);
-      out.Append(rec);
+      out->Append(rec);
       new_ct = Node_x_type(rec);
     } else {
       new_ct = tc->MaybeGetReplacementType(ct);
@@ -39,7 +38,6 @@ NodeChain MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc) {
     }
     CanonTypeLinkReplacementType(ct, new_ct);
   }
-  return out;
 }
 
 void ReplaceUnions(Node mod) {

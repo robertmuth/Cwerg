@@ -18,6 +18,7 @@ struct CanonTypeCore {
   std::vector<CanonType> children;
   bool mut = false;
   bool untagged = false;
+  bool desugared = false;
   SizeOrDim dim = kSizeOrDimInvalid;
   BASE_TYPE_KIND base_type_kind = BASE_TYPE_KIND::INVALID;
   Node ast_node = kNodeInvalid;
@@ -147,11 +148,13 @@ std::vector<CanonType>& CanonType_children(CanonType n) {
 }
 
 int CanonType_get_original_typeid(CanonType n) {
-  CanonType ot = CanonType_original_type(n);
-  if (ot.isnull()) {
-    return gCanonTypeCore[n].type_id;
+  while (true) {
+    CanonType ot = CanonType_original_type(n);
+    if (ot.isnull()) {
+      return gCanonTypeCore[n].type_id;
+    }
+    n = ot;
   }
-  return gCanonTypeCore[ot].type_id;
 }
 
 int& CanonType_typeid(CanonType n) { return gCanonTypeCore[n].type_id; }
@@ -251,6 +254,7 @@ CanonType CanonTypeNewFunType(Name name,
 
 void CanonTypeLinkReplacementType(CanonType ct, CanonType replacement_ct) {
   gCanonTypeCore[ct].replacement_type = replacement_ct;
+  gCanonTypeCore[ct].desugared = true;
   gCanonTypeCore[replacement_ct].original_type = ct;
 }
 
