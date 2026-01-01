@@ -21,14 +21,13 @@ Node MakeSpanReplacementStruct(CanonType span_ct, TypeCorpus* tc) {
   return MakeDefRec(NameNew(name), fields, tc);
 }
 
-NodeChain MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc) {
-  NodeChain out;
+void MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc, NodeChain* out) {
   tc->ClearReplacementInfo();
   CanonType new_ct;
   for (CanonType ct : tc->InTopoOrder()) {
     if (CanonType_is_span(ct)) {
       Node rec = MakeSpanReplacementStruct(ct, tc);
-      out.Append(rec);
+      out->Append(rec);
       new_ct = Node_x_type(rec);
     } else {
       new_ct = tc->MaybeGetReplacementType(ct);
@@ -38,7 +37,16 @@ NodeChain MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc) {
     }
     CanonTypeLinkReplacementType(ct, new_ct);
   }
-  return out;
+  // TODO:
+  for (CanonType ct : tc->InTopoOrder()) {
+    if (CanonType_is_wrapped(ct)) {
+      CanonType unwrapped = CanonType_underlying_type(ct);
+      new_ct = tc->MaybeGetReplacementType(unwrapped);
+      if (!new_ct.isnull()) {
+        CanonType_children(ct)[0] = new_ct;
+      }
+    }
+  }
 }
 
 Node MakeValUndef(const SrcLoc& sl) {
@@ -60,6 +68,7 @@ Node MakeValRecForSpan(Node pointer, Node length, CanonType replacement_ct,
                        const SrcLoc& sl) {
   Node field_pointer = Node_fields(CanonType_ast_node(replacement_ct));
   Node field_length = Node_next(field_pointer);
+
   NodeChain fields;
   fields.Append(MakeValPoint(pointer, Node_x_type(field_pointer), sl));
   fields.Append(MakeValPoint(length, Node_x_type(field_length), sl));
@@ -74,23 +83,30 @@ void ReplaceSpans(Node mod) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (node.kind() == NT::ExprLen) {
       CanonType rec_ct = Node_x_type(Node_container(node));
-      Node def_rec = CanonType_ast_node(rec_ct);
-      Node len_field = Node_next(Node_fields(def_rec));
-      const SrcLoc& sl = Node_srcloc(node);
-      Node container = Node_container(node);
-      NodeFree(node);
-      return MakeExprField(container, len_field, sl);
+      if (CanonType_kind(rec_ct) == NT::DefRec) {
+        Node def_rec = CanonType_ast_node(rec_ct);
+        Node len_field = Node_next(Node_fields(def_rec));
+        ASSERT(len_field.kind() == NT::RecField, "");
+        const SrcLoc& sl = Node_srcloc(node);
+        Node container = Node_container(node);
+        NodeFree(node);
+        return MakeExprField(container, len_field, sl);
+      }
     }
 
     if (node.kind() == NT::ExprFront) {
       CanonType rec_ct = Node_x_type(Node_container(node));
-      Node def_rec = CanonType_ast_node(rec_ct);
-      Node pointer_field = Node_fields(def_rec);
-      const SrcLoc& sl = Node_srcloc(node);
-      Node container = Node_container(node);
-      NodeFree(node);
-      return MakeExprField(container, pointer_field, sl);
+      if (CanonType_kind(rec_ct) == NT::DefRec) {
+        Node def_rec = CanonType_ast_node(rec_ct);
+        Node pointer_field = Node_fields(def_rec);
+        ASSERT(pointer_field.kind() == NT::RecField, "");
+        const SrcLoc& sl = Node_srcloc(node);
+        Node container = Node_container(node);
+        NodeFree(node);
+        return MakeExprField(container, pointer_field, sl);
+      }
     }
+
     if (!NodeHasField(node, NFD_X_FIELD::type)) {
       return node;
     }
@@ -103,7 +119,6 @@ void ReplaceSpans(Node mod) {
     switch (node.kind()) {
       case NT::DefFun:
       case NT::DefGlobal:
-      case NT::DefType:
       case NT::DefVar:
       //
       case NT::Expr3:

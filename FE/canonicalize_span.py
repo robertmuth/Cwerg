@@ -41,12 +41,6 @@ def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwas
     # a snapshot first
     out = []
     for ct in tc.topo_order[:]:
-        if ct.node is cwast.DefType:
-            new_ct = tc.MaybeGetReplacementType(ct.underlying_type())
-            if new_ct:
-                ct.children[0] = new_ct
-            continue
-
         if ct.is_span():
             rec = _MakeSpanReplacementStruct(ct, tc)
             out.append(rec)
@@ -56,6 +50,15 @@ def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwas
             if not new_ct:
                 continue
         ct.LinkReplacementType(new_ct)
+    # Note: the DefType violates topplogical ordering
+    # with respect to the underlying type
+    # TODO: explain this - note that we used too phase for
+    #       creating a wrapped type.
+    for ct in tc.topo_order[:]:
+        if ct.node is cwast.DefType:
+            new_ct = tc.MaybeGetReplacementType(ct.underlying_type())
+            if new_ct:
+                ct.children[0] = new_ct
     return out
 
 

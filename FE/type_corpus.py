@@ -602,4 +602,7 @@ class TypeCorpus:
     def Dump(self):
         print(f"Dump of CanonTypes: ({len(self.corpus)})")
         for name, ct in sorted((x.typeid, x) for x in self.corpus.values()):
-            print(f"{ct.name} id={ct.typeid} size={ct.size} align={ct.alignment}")
+            original = -1
+            if ct.original_type:
+                original = ct.original_type.typeid
+            print(f"{ct.name} id={ct.typeid} size={ct.size} align={ct.alignment} original={original}")

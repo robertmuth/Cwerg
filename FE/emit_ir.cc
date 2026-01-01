@@ -42,22 +42,24 @@ SwitchBool sw_dump_handles("dump_handles", "include handles when dumping AST");
 void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
                      const std::set<NT>& eliminated_nodes, COMPILE_STAGE stage,
                      TypeCorpus* tc) {
-  ValidateAST(mods, stage);
-  if (tc != nullptr) {
-    TypeCheckAst(mods, tc, false);
-    if (sw_dump_types.Value() == phase) {
-      for (Node mod : mods) {
-        std::cout << Node_name(mod) << "\n";
-      }
-      tc->Dump();
-      exit(0);
+  if (sw_dump_types.Value() == phase) {
+    for (Node mod : mods) {
+      std::cout << Node_name(mod) << "\n";
     }
+    tc->Dump();
+    exit(0);
   }
 
   if (sw_dump_ast.Value() == phase) {
     DumpAstMods(mods, sw_dump_handles.Value());
     exit(0);
   }
+
+  if (tc != nullptr) {
+    TypeCheckAst(mods, tc, false);
+  }
+
+  ValidateAST(mods, stage);
 }
 
 void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
@@ -99,38 +101,43 @@ void PhaseOptimization(const std::vector<Node>& mods_in_topo_order,
 
 constexpr char _GENERATED_MODULE_NAME[] = "GeNeRaTeD";
 
-Node MakeModWithComplexConstants(const std::vector<Node>& mods_in_topo_order) {
-  GlobalConstantPool gcp;
-  for (Node mod : mods_in_topo_order) {
-    gcp.EliminateValStringAndValCompoundOutsideOfDefGlobal(mod);
-  }
+Node MakeModGen() {
   Node out = NodeNew(NT::DefMod);
   NodeInitDefMod(out, NameNew(_GENERATED_MODULE_NAME), kNodeInvalid,
                  kNodeInvalid, 0, kStrInvalid, kSrcLocInvalid);
   Node_x_symtab(out) = new SymTab();
-  Node_body_mod(out) = gcp.GetDefGlobals().First();
-
   return out;
+}
+
+NodeChain MakeModWithComplexConstants(
+    const std::vector<Node>& mods_in_topo_order) {
+  GlobalConstantPool gcp;
+  for (Node mod : mods_in_topo_order) {
+    gcp.EliminateValStringAndValCompoundOutsideOfDefGlobal(mod);
+  }
+  return gcp.GetDefGlobals();
 }
 
 void PhaseEliminateSpanAndUnion(Node mod_gen,
                                 std::vector<Node>& mods__topo_order,
-                                TypeCorpus* tc) {
-  // NodeChain span_recs =
-  MakeAndRegisterSpanTypeReplacements(tc);
+                                TypeCorpus* tc, NodeChain* chain) {
+#if 0
+  MakeAndRegisterSpanTypeReplacements(tc, chain);
+  Node_body_mod(mod_gen) = chain->First();
   ReplaceSpans(mod_gen);
 
   for (Node mod : mods__topo_order) {
     ReplaceSpans(mod);
   }
+
   //
-  // NodeChain union_recs =
-  MakeAndRegisterUnionTypeReplacements(tc);
+  NodeChain union_recs = MakeAndRegisterUnionTypeReplacements(tc);
   ReplaceUnions(mod_gen);
 
   for (Node mod : mods__topo_order) {
     ReplaceUnions(mod);
   }
+#endif
 }
 
 int main(int argc, const char* argv[]) {
@@ -206,14 +213,17 @@ int main(int argc, const char* argv[]) {
 
   SanityCheckMods("after_optimization", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_DESUGAR, &tc);
+  Node mod_gen = MakeModGen();
 
-  // Node mod_gen =
-  Node mod_gen = MakeModWithComplexConstants(mp.mods_in_topo_order);
-  mp.mods_in_topo_order.insert(mp.mods_in_topo_order.begin(), mod_gen);
+  NodeChain chain = MakeModWithComplexConstants(mp.mods_in_topo_order);
+  Node_body_mod(mod_gen) = chain.First();
+
   //
-  // PhaseEliminateSpanAndUnion(mod_gen, mp.mods_in_topo_order, &tc);
-  SanityCheckMods("after_eliminate_span_and_union", mp.mods_in_topo_order, eliminated_nodes,
-                  COMPILE_STAGE::AFTER_DESUGAR, &tc);
+  PhaseEliminateSpanAndUnion(mod_gen, mp.mods_in_topo_order, &tc, &chain);
+  mp.mods_in_topo_order.insert(mp.mods_in_topo_order.begin(), mod_gen);
+
+  SanityCheckMods("after_eliminate_span_and_union", mp.mods_in_topo_order,
+                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files

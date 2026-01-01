@@ -40,6 +40,10 @@ Name CanonType_name(CanonType ct) { return gCanonTypeCore[ct].name; }
 
 bool CanonType_mut(CanonType ct) { return gCanonTypeCore[ct].mut; }
 
+CanonType CanonType_original_type(CanonType ct) {
+  return gCanonTypeCore[ct].original_type;
+}
+
 SizeOrDim CanonType_dim(CanonType ct) {
   ASSERT(CanonType_kind(ct) == NT::TypeVec, "");
   return gCanonTypeCore[ct].dim;
@@ -609,11 +613,16 @@ void TypeCorpus::ClearReplacementInfo() {
 void TypeCorpus::Dump() {
   std::cout << "Dump of CanonTypes: (" << corpus_in_topo_order_.size() << ")\n";
   for (CanonType ct : corpus_in_topo_order_) {
+    int orginal = -1;
+    if (!CanonType_original_type(ct).isnull()) {
+      orginal = CanonType_typeid(CanonType_original_type(ct));
+    }
     std::cout << CanonType_name(ct)
               // << " " << EnumToString(CanonType_kind(ct))
               << " id=" << CanonType_typeid(ct)
               << " size=" << CanonType_size(ct)
-              << " align=" << CanonType_alignment(ct) << "\n";
+              << " align=" << CanonType_alignment(ct) << " original=" << orginal
+              << "\n";
   }
 }
 
@@ -695,6 +704,11 @@ bool IsSubtypeOfUnion(CanonType src_ct, CanonType dst_ct) {
 }
 
 bool IsDropMutConversion(CanonType src, CanonType dst) {
+  if (!CanonType_original_type(src).isnull())
+    src = CanonType_original_type(src);
+  if (!CanonType_original_type(dst).isnull())
+    dst = CanonType_original_type(dst);
+
   if ((CanonType_kind(src) == NT::TypePtr &&
        CanonType_kind(dst) == NT::TypePtr) ||
       (CanonType_kind(src) == NT::TypeSpan &&
@@ -706,6 +720,9 @@ bool IsDropMutConversion(CanonType src, CanonType dst) {
 }
 
 bool IsCompatibleType(CanonType src, CanonType dst, bool src_is_writable) {
+  if (src == dst || CanonType_original_type(src) == dst) {
+    return true;
+  }
   if (IsDropMutConversion(src, dst)) return true;
   if (src_is_writable || !CanonType_mut(dst)) {
     if (IsVecToSpanConversion(src, dst)) return true;

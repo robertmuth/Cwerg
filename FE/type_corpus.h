@@ -40,6 +40,8 @@ extern SizeOrDim CanonType_alignment(CanonType n);
 extern SizeOrDim CanonType_size(CanonType n);
 extern SizeOrDim CanonType_dim(CanonType n);
 
+extern CanonType CanonType_original_type(CanonType n);
+
 extern int CanonType_get_original_typeid(CanonType n);
 extern int& CanonType_typeid(CanonType n);
 
