@@ -62,11 +62,11 @@ def MakeAndRegisterUnionTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwa
     return out
 
 
-def _MakeTypeidVal(typeid: int, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
+def _MakeTypeidVal(ct: cwast.CanonType, srcloc,  ct_typeid: cwast.CanonType) -> cwast.ValNum:
+    typeid = ct.get_original_typeid()
     assert typeid >= 0
     return cwast.ValNum(eval.EVAL_STR,
-                        x_eval=eval.EvalNum(
-                            typeid, ct_typeid.base_type_kind),
+                        x_eval=eval.EvalNum(typeid, ct_typeid.base_type_kind),
                         x_type=ct_typeid, x_srcloc=srcloc)
 
 
@@ -120,16 +120,14 @@ def _MakeValRecForWidenFromNonUnion(widen: cwast.ExprWiden, sum_rec: cwast.Canon
     ), f"{widen.expr.x_type} -> {sum_rec} {widen.x_srcloc}"
 
     tag_field, union_field = sum_rec.ast_node.fields
-    srcloc = widen.x_srcloc
+    sl = widen.x_srcloc
+    tag_value = _MakeTypeidVal(widen.expr.x_type, sl, tag_field.x_type)
+    #
     widen.x_type = union_field.x_type
     assert isinstance(widen.type, cwast.TypeAuto)
     widen.type.x_type = union_field.x_type
 
-    return _MakeValRecForTaggedUnion(sum_rec,
-                                     _MakeTypeidVal(
-                                         widen.expr.x_type.get_original_typeid(), srcloc, tag_field.x_type),
-                                     widen,
-                                     srcloc)
+    return _MakeValRecForTaggedUnion(sum_rec, tag_value, widen, sl)
 
 
 def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_ct: cwast.CanonType) -> cwast.ValCompound:
