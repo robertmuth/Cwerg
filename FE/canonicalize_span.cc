@@ -53,7 +53,7 @@ void MakeAndRegisterSpanTypeReplacements(TypeCorpus* tc, NodeChain* out) {
   }
 }
 
-Node MakeValRecForSpan(Node pointer, Node length, CanonType replacement_ct,
+Node MakeValRecForSpan(CanonType replacement_ct, Node pointer, Node length,
                        const SrcLoc& sl) {
   Node field_pointer = Node_fields(CanonType_ast_node(replacement_ct));
   Node field_length = Node_next(field_pointer);
@@ -61,7 +61,7 @@ Node MakeValRecForSpan(Node pointer, Node length, CanonType replacement_ct,
       {Node_x_type(field_pointer), pointer},
       {Node_x_type(field_length), length},
   }};
-  return MakeValCompound(replacement_ct,fields, sl);
+  return MakeValCompound(replacement_ct, fields, sl);
 }
 
 void ReplaceSpans(Node mod) {
@@ -128,8 +128,8 @@ void ReplaceSpans(Node mod) {
         NodeChangeType(node, replacement_ct);
         return node;
       case NT::ValSpan: {
-        Node out = MakeValRecForSpan(Node_pointer(node), Node_expr_size(node),
-                                     replacement_ct, Node_srcloc(node));
+        Node out = MakeValRecForSpan(replacement_ct, Node_pointer(node),
+                                     Node_expr_size(node), Node_srcloc(node));
         NodeFree(node);
         return out;
       }

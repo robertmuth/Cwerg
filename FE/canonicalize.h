@@ -42,6 +42,9 @@ extern void FunAddMissingReturnStmts(Node fun);
 
 extern void FunOptimizeKnownConditionals(Node fun);
 
+extern Node CloneId(Node id);
+
+
 extern Node MakeExprField(Node container, Node rec_field, const SrcLoc& sl);
 
 struct FieldTypeAndValue {

@@ -427,10 +427,10 @@ void FunDesugarTaggedUnionComparisons(Node fun) {
     Node e2 = Node_expr2(node);
     CanonType t1 = Node_x_type(e1);
     CanonType t2 = Node_x_type(e2);
-    if (CanonType_is_union(t1) && !CanonType_untagged(t1)) {
+    if (CanonType_is_tagged_union(t1)) {
       return MakeCmp(node, e1, e2, op_kind);
     }
-    if (CanonType_is_union(t2) && !CanonType_untagged(t2)) {
+    if (CanonType_is_tagged_union(t2)) {
       return MakeCmp(node, e2, e1, op_kind);
     }
     return node;
