@@ -141,7 +141,7 @@ bool CanonType_is_unwrapped_complex(CanonType ct) {
 }
 
 BASE_TYPE_KIND CanonType_base_type_kind(CanonType ct) {
-  ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
+  ASSERT(CanonType_kind(ct) == NT::TypeBase, "expected base type " << ct);
   return gCanonTypeCore[ct].base_type_kind;
 }
 
@@ -164,7 +164,7 @@ int& CanonType_typeid(CanonType n) { return gCanonTypeCore[n].type_id; }
 Node CanonType_lookup_rec_field(CanonType ct, Name field_name) {
   ASSERT(CanonType_kind(ct) == NT::DefRec, "");
   Node defrec = CanonType_ast_node(ct);
-  ASSERT(Node_kind(defrec) == NT::DefRec, "");
+  ASSERT(defrec.kind() == NT::DefRec, "");
   for (Node field = Node_fields(defrec); !field.isnull();
        field = Node_next(field)) {
     if (Node_name(field) == field_name) {
@@ -172,6 +172,19 @@ Node CanonType_lookup_rec_field(CanonType ct, Name field_name) {
     }
   }
   return kNodeInvalid;
+}
+
+Node CanonType_get_rec_field(CanonType ct, int no) {
+  ASSERT(CanonType_kind(ct) == NT::DefRec, "");
+  Node defrec = CanonType_ast_node(ct);
+  ASSERT(defrec.kind() == NT::DefRec, "");
+  Node f = Node_fields(defrec);
+  for (int i = 0; i < no; ++i) {
+    ASSERT(f.kind() == NT::RecField, "");
+    f = Node_next(f);
+  }
+  ASSERT(f.kind() == NT::RecField, "");
+  return f;
 }
 
 CanonType CanonTypeNew() {

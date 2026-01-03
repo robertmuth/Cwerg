@@ -24,6 +24,6 @@ struct NameAndType {
 extern Node MakeDefRec(Name name, std::span<NameAndType> fields,
                        TypeCorpus* tc);
 
-extern void NodeChangeType(Node node, CanonType ct);
+extern Node NodeChangeType(Node node, CanonType ct);
 
 }  // namespace cwerg::fe

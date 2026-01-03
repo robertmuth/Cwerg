@@ -80,6 +80,8 @@ extern std::vector<CanonType>& CanonType_children(CanonType n);
 
 extern Node CanonType_lookup_rec_field(CanonType ct, Name field);
 
+extern Node CanonType_get_rec_field(CanonType ct, int no);
+
 inline CanonType CanonType_underlying_type(CanonType ct) {
   ASSERT(CanonType_children(ct).size() == 1, "");
   return CanonType_children(ct)[0];

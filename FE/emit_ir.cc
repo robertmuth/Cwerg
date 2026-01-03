@@ -129,12 +129,10 @@ void PhaseEliminateSpanAndUnion(Node mod_gen,
   for (Node mod : mods__topo_order) {
     ReplaceSpans(mod);
   }
-
 //
-#if 0
+#if 1
   MakeAndRegisterUnionTypeReplacements(tc, chain);
   Node_body_mod(mod_gen) = chain->First();
-
 
   ReplaceUnions(mod_gen);
   for (Node mod : mods__topo_order) {

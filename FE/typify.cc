@@ -1175,7 +1175,10 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
 
 }  //  namespace
 
-void NodeChangeType(Node node, CanonType ct) { Node_x_type(node) = ct; }
+Node NodeChangeType(Node node, CanonType ct) {
+  Node_x_type(node) = ct;
+  return node;
+}
 
 Node MakeDefRec(Name name, std::span<NameAndType> fields, TypeCorpus* tc) {
   NodeChain chain;

@@ -45,18 +45,19 @@ Node MakeValRecForWidenFromNonUnion(Node widen, CanonType dst_ct) {
   const SrcLoc& sl = Node_srcloc(widen);
   Node src = Node_expr(widen);
 
-  Node dst_rec = CanonType_ast_node(dst_ct);
-  Node dst_tag_field = Node_fields(dst_rec);
+  // Node dst_rec = CanonType_ast_node(dst_ct);
+  Node dst_tag_field = CanonType_get_rec_field(dst_ct, 0);
   Node dst_union_field = Node_next(dst_tag_field);
+
   //
-  Node tag_value = MakeTypeidVal(Node_x_type(src),
-                          sl, Node_x_type(dst_tag_field));
+  Node tag_value =
+      MakeTypeidVal(Node_x_type(src), sl, Node_x_type(dst_tag_field));
   //
   Node_x_type(widen) = Node_x_type(dst_union_field);
   ASSERT(Node_type(widen).kind() == NT::TypeAuto, "");
   Node_x_type(Node_type(widen)) = Node_x_type(dst_union_field);
 
-  return  MakeValRecForTaggedUnion(dst_ct, tag_value, widen, sl);
+  return MakeValRecForTaggedUnion(dst_ct, tag_value, widen, sl);
 }
 
 Node MakeExprWidenBetweeUntaggedUnions(Node expr, CanonType dst_ct,
@@ -71,22 +72,44 @@ Node MakeExprWidenBetweeUntaggedUnions(Node expr, CanonType dst_ct,
 Node MakeValRecForWidenFromUnion(Node widen, CanonType dst_ct) {
   const SrcLoc& sl = Node_srcloc(widen);
   Node src = Node_expr(widen);
+  CanonType src_ct = Node_x_type(src);
 
-  Node dst_rec = CanonType_ast_node(dst_ct);
-  Node dst_tag_field = Node_fields(dst_rec);
+  Node dst_tag_field = CanonType_get_rec_field(dst_ct, 0);
   Node dst_union_field = Node_next(dst_tag_field);
 
-  Node src_rec = CanonType_ast_node(Node_x_type(src));
-  Node src_tag_field = Node_fields(src_rec);
+  Node src_tag_field = CanonType_get_rec_field(src_ct, 0);
   Node src_union_field = Node_next(src_tag_field);
 
   CHECK(src.kind() == NT::Id, "Support for non-ID NYI");
   Node tag_value = MakeExprField(CloneId(src), src_tag_field, sl);
-  Node union_field = MakeExprField(CloneId(src), src_union_field, sl);
+  Node union_field = MakeExprField(src, src_union_field, sl);
 
   Node union_value = MakeExprWidenBetweeUntaggedUnions(
       union_field, Node_x_type(dst_union_field), sl, Node_x_eval(widen));
+  NodeFree(Node_type(widen));
+  NodeFree(widen);
   return MakeValRecForTaggedUnion(dst_ct, tag_value, union_value, sl);
+}
+
+Node MakeValRecForNarrow(Node narrow, CanonType dst_ct) {
+  const SrcLoc& sl = Node_srcloc(narrow);
+  Node src = Node_expr(narrow);
+  ASSERT(src.kind() == NT::Id, "Support for non-ID NYI");
+
+  Node dst_union_field = CanonType_get_rec_field(dst_ct, 1);
+  CanonType src_ct = Node_x_type(Node_expr(narrow));
+  Node src_tag_field = CanonType_get_rec_field(src_ct, 0);
+  Node src_union_field = Node_next(src_tag_field);
+  Node val_tag = MakeExprField(CloneId(src), src_tag_field, sl);
+  Node val_union_tmp = MakeExprField(src, src_union_field, sl);
+  Node val_union = NodeNew(NT::ExprNarrow);
+  NodeInitExprNarrow(
+      val_union, val_union_tmp, MakeTypeAuto(Node_x_type(dst_union_field), sl),
+      Mask(BF::UNCHECKED), kStrInvalid, sl, Node_x_type(dst_union_field));
+  Node_x_eval(val_union) = Node_x_eval(narrow);
+  NodeFree(Node_type(narrow));
+  NodeFree(narrow);
+  return MakeValRecForTaggedUnion(dst_ct, val_tag, val_union, sl);
 }
 
 void MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc, NodeChain* out) {
@@ -123,20 +146,18 @@ void MakeAndRegisterUnionTypeReplacements(TypeCorpus* tc, NodeChain* out) {
 
 void ReplaceUnions(Node mod) {
   auto replacer = [](Node node, Node parent) -> Node {
-    if (node.kind() == NT::ExprUnionTag) {
+    if (node.kind() == NT::ExprUnionUntagged) {
       CanonType rec_ct = Node_x_type(Node_container(node));
-      Node def_rec = CanonType_ast_node(rec_ct);
-      Node union_field = Node_next(Node_fields(def_rec));
+      Node union_field = CanonType_get_rec_field(rec_ct, 1);
       const SrcLoc& sl = Node_srcloc(node);
       Node container = Node_container(node);
       NodeFree(node);
       return MakeExprField(container, union_field, sl);
     }
 
-    if (node.kind() == NT::ExprUnionUntagged) {
+    if (node.kind() == NT::ExprUnionTag) {
       CanonType rec_ct = Node_x_type(Node_container(node));
-      Node def_rec = CanonType_ast_node(rec_ct);
-      Node tag_field = Node_fields(def_rec);
+      Node tag_field = CanonType_get_rec_field(rec_ct, 0);
       const SrcLoc& sl = Node_srcloc(node);
       Node container = Node_container(node);
       NodeFree(node);
@@ -173,19 +194,24 @@ void ReplaceUnions(Node mod) {
       case NT::ValAuto:
       case NT::ValPoint:
       case NT::ValCompound:
-        NodeChangeType(node, replacement_ct);
-        return node;
+        return NodeChangeType(node, replacement_ct);
       case NT::ExprWiden: {
         CanonType ct_orig =
             CanonType_original_type(Node_x_type(Node_expr(node)));
-        if (!ct.isnull() && CanonType_is_tagged_union(ct_orig)) {
+        if (!ct_orig.isnull() && CanonType_is_tagged_union(ct_orig)) {
           return MakeValRecForWidenFromUnion(node, replacement_ct);
         } else {
           return MakeValRecForWidenFromNonUnion(node, replacement_ct);
         }
       }
-      case NT::ExprNarrow:
-        return node;
+      case NT::ExprNarrow: {
+        if (CanonType_is_tagged_union(
+                CanonType_original_type(replacement_ct))) {
+          return MakeValRecForNarrow(node, replacement_ct);
+        } else {
+          return NodeChangeType(node, replacement_ct);
+        }
+      }
       default:
         CHECK(false, "");
         return node;
