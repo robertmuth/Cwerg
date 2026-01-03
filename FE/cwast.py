@@ -1069,6 +1069,12 @@ class CanonType:
                 return x
         return None
 
+    def get_rec_field(self, no: int) -> "RecField":
+        assert self.node is DefRec
+        assert isinstance(self.ast_node, DefRec)
+        return self.ast_node.fields[no]
+
+
     def LinkReplacementType(self, replacement_ct: "CanonType"):
         self.replacement_type = replacement_ct
         self.desugared = True

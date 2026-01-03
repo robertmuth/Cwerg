@@ -88,16 +88,15 @@ def _MakeExpWidenBetweeUntaggedUnions(expr, dst_ct, sl, x_eval):
                            x_srcloc=sl, x_eval=x_eval, x_type=dst_ct)
 
 
-def _MakeValRecForWidenFromUnion(widen: cwast.ExprWiden, dst_sum_rec: cwast.CanonType) -> cwast.ValCompound:
-    assert dst_sum_rec.is_rec()
-    _, dst_union_field = dst_sum_rec.ast_node.fields
+def _MakeValRecForWidenFromUnion(widen: cwast.ExprWiden, dst_ct: cwast.CanonType) -> cwast.ValCompound:
     src = widen.expr
     sl = widen.x_srcloc
+    dst_union_field = dst_ct.get_rec_field(1)
 
-    src_sum_rec: cwast.CanonType = src.x_type
-    assert src_sum_rec.is_rec()
-    assert src_sum_rec.original_type.is_tagged_union()
-    src_tag_field, src_union_field = src_sum_rec.ast_node.fields
+    src_ct: cwast.CanonType = src.x_type
+    assert src_ct.original_type.is_tagged_union()
+    src_tag_field = src_ct.get_rec_field(0)
+    src_union_field = src_ct.get_rec_field(1)
     # to drop this we would need to introduce a temporary since we access it more than once
     assert isinstance(src, cwast.Id), f"{src}"
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
@@ -110,34 +109,32 @@ def _MakeValRecForWidenFromUnion(widen: cwast.ExprWiden, dst_sum_rec: cwast.Cano
         union_field, dst_union_field.x_type, sl, widen.x_eval)
 
     return _MakeValRecForTaggedUnion(
-        dst_sum_rec, tag_value, union_value, sl)
+        dst_ct, tag_value, union_value, sl)
 
 
-def _MakeValRecForWidenFromNonUnion(widen: cwast.ExprWiden, sum_rec: cwast.CanonType) -> cwast.ValCompound:
-    assert sum_rec.is_rec()
+def _MakeValRecForWidenFromNonUnion(widen: cwast.ExprWiden, dst_ct: cwast.CanonType) -> cwast.ValCompound:
     assert widen.x_type.is_tagged_union()
     assert not widen.expr.x_type.is_union(
-    ), f"{widen.expr.x_type} -> {sum_rec} {widen.x_srcloc}"
+    ), f"{widen.expr.x_type} -> {dst_ct} {widen.x_srcloc}"
 
-    tag_field, union_field = sum_rec.ast_node.fields
+    dst_tag_field = dst_ct.get_rec_field(0)
+    dst_union_field = dst_ct.get_rec_field(1)
     sl = widen.x_srcloc
-    tag_value = _MakeTypeidVal(widen.expr.x_type, sl, tag_field.x_type)
+    tag_value = _MakeTypeidVal(widen.expr.x_type, sl, dst_tag_field.x_type)
     #
-    widen.x_type = union_field.x_type
+    widen.x_type = dst_union_field.x_type
     assert isinstance(widen.type, cwast.TypeAuto)
-    widen.type.x_type = union_field.x_type
+    widen.type.x_type = dst_union_field.x_type
 
-    return _MakeValRecForTaggedUnion(sum_rec, tag_value, widen, sl)
+    return _MakeValRecForTaggedUnion(dst_ct, tag_value, widen, sl)
 
 
 def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_ct: cwast.CanonType) -> cwast.ValCompound:
-    assert dst_ct.is_rec()
-    dst_untagged_union_ct: cwast.CanonType = dst_ct.ast_node.fields[1].x_type
-    assert dst_untagged_union_ct.is_untagged_union()
-    src_sum_rec: cwast.CanonType = value.expr.x_type
-    assert src_sum_rec.is_rec()
-    assert src_sum_rec.original_type.is_tagged_union()
-    src_tag_field, src_union_field = src_sum_rec.ast_node.fields
+    src_ct: cwast.CanonType = value.expr.x_type
+    assert src_ct.original_type.is_tagged_union()
+    dst_untagged_union: cwast.CanonType = dst_ct.get_rec_field(1)
+    src_tag_field = src_ct.get_rec_field(0)
+    src_union_field = src_ct.get_rec_field(1)
     # to drop this we would need to introducea temporary
     assert isinstance(value.expr, cwast.Id)
     sl = value.x_srcloc
@@ -148,12 +145,11 @@ def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_ct: cwast.CanonType) -> cw
     src_union = canonicalize.MakeExprField(
         _CloneId(value.expr), src_union_field, sl)
     union_value = cwast.ExprNarrow(src_union,
-                                   cwast.TypeAuto(x_srcloc=sl,
-                                                  x_type=dst_untagged_union_ct),
+                                   cwast.TypeAuto(sl, dst_untagged_union.x_type),
                                    unchecked=True,
                                    x_srcloc=sl,
                                    x_eval=value.x_eval,
-                                   x_type=dst_untagged_union_ct)
+                                   x_type=dst_untagged_union.x_type)
     # tag is the same as with the src but (untagged) union is narrowed
     return _MakeValRecForTaggedUnion(dst_ct, src_tag, union_value, sl)
 
@@ -168,6 +164,8 @@ def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus
 
 def FunSimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Simplifies ExprNarrow for tagged unions `u`
+
+    After this only unchecked ExprNarrow will be left in the AST
 
     (narrowto @unchecked u t)
 
@@ -234,6 +232,8 @@ def FunSimplifyTaggedExprNarrow(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
 def ReplaceUnions(node: cwast.DefMod):
     """
     Replaces all sum expressions with rec named tuple_sum<X>
+
+    After this tagged unions will be gone from the ASTs
     """
     def replacer(node, _parent):
         if isinstance(node, cwast.ExprUnionTag):
@@ -289,6 +289,8 @@ def ReplaceUnions(node: cwast.DefMod):
                 return _MakeValRecForWidenFromNonUnion(node, new_ct)
 
         elif isinstance(node, cwast.ExprNarrow):
+            # checked ExprNarrow were eliminated by FunSimplifyTaggedExprNarrow
+            assert node.unchecked
             if new_ct.original_type.is_tagged_union():
                 assert new_ct.is_rec()
                 # node.expr has already been processed
