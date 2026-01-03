@@ -129,29 +129,30 @@ def _MakeValRecForWidenFromNonUnion(widen: cwast.ExprWiden, dst_ct: cwast.CanonT
     return _MakeValRecForTaggedUnion(dst_ct, tag_value, widen, sl)
 
 
-def _MakeValRecForNarrow(value: cwast.ExprNarrow, dst_ct: cwast.CanonType) -> cwast.ValCompound:
-    src_ct: cwast.CanonType = value.expr.x_type
+def _MakeValRecForNarrow(narrow: cwast.ExprNarrow, dst_ct: cwast.CanonType) -> cwast.ValCompound:
+    src = narrow.expr
+    src_ct: cwast.CanonType = src.x_type
     assert src_ct.original_type.is_tagged_union()
-    dst_untagged_union: cwast.CanonType = dst_ct.get_rec_field(1)
+    dst_union_field: cwast.CanonType = dst_ct.get_rec_field(1)
     src_tag_field = src_ct.get_rec_field(0)
     src_union_field = src_ct.get_rec_field(1)
+    # TODO
     # to drop this we would need to introducea temporary
-    assert isinstance(value.expr, cwast.Id)
-    sl = value.x_srcloc
+    assert isinstance(src, cwast.Id)
+    sl = narrow.x_srcloc
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"
 
-    src_tag = canonicalize.MakeExprField(
-        _CloneId(value.expr), src_tag_field, sl)
-    src_union = canonicalize.MakeExprField(
-        _CloneId(value.expr), src_union_field, sl)
-    union_value = cwast.ExprNarrow(src_union,
-                                   cwast.TypeAuto(sl, dst_untagged_union.x_type),
-                                   unchecked=True,
-                                   x_srcloc=sl,
-                                   x_eval=value.x_eval,
-                                   x_type=dst_untagged_union.x_type)
+    val_tag = canonicalize.MakeExprField(_CloneId(src), src_tag_field, sl)
+    val_union_tmp = canonicalize.MakeExprField(
+        _CloneId(src), src_union_field, sl)
+    val_union = cwast.ExprNarrow(val_union_tmp,
+                                 cwast.TypeAuto(sl, dst_union_field.x_type),
+                                 unchecked=True,
+                                 x_srcloc=sl,
+                                 x_eval=narrow.x_eval,
+                                 x_type=dst_union_field.x_type)
     # tag is the same as with the src but (untagged) union is narrowed
-    return _MakeValRecForTaggedUnion(dst_ct, src_tag, union_value, sl)
+    return _MakeValRecForTaggedUnion(dst_ct, val_tag, val_union, sl)
 
 
 def _ConvertTaggedNarrowToUntaggedNarrow(node: cwast.ExprNarrow, tc: type_corpus.TypeCorpus):
@@ -237,26 +238,13 @@ def ReplaceUnions(node: cwast.DefMod):
     """
     def replacer(node, _parent):
         if isinstance(node, cwast.ExprUnionTag):
-            sl = node.x_srcloc
             # get the tag field from the rec that now represents the union
             # because of the post-order traversal, node.expr has already been processed
-            new_ct = node.expr.x_type
-            assert new_ct.is_rec()
-            assert new_ct.original_type is not None
-            assert new_ct.original_type.is_union()
-            assert len(new_ct.ast_node.fields) == 2
-            tag_field: cwast.RecField = new_ct.ast_node.fields[0]
+            tag_field: cwast.RecField = node.expr.x_type.get_rec_field(0)
             return canonicalize.MakeExprField(node.expr, tag_field, node.x_srcloc)
-
         elif isinstance(node, cwast.ExprUnionUntagged):
-            sl = node.x_srcloc
             # get the payload field from the rec that now represents the union
-            new_ct = node.expr.x_type
-            assert new_ct.is_rec()
-            assert new_ct.original_type is not None
-            assert new_ct.original_type.is_union()
-            assert len(new_ct.ast_node.fields) == 2
-            union_field: cwast.RecField = new_ct.ast_node.fields[1]
+            union_field: cwast.RecField = node.expr.x_type.get_rec_field(1)
             return canonicalize.MakeExprField(node.expr, union_field, node.x_srcloc)
 
         if cwast.NF.TYPE_ANNOTATED not in node.FLAGS:

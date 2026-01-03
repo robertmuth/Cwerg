@@ -100,25 +100,27 @@ def ReplaceSpans(node):
     """
     def replacer(node):
         if isinstance(node, cwast.ExprFront):
-            def_rec = node.container.x_type
-            if def_rec.is_rec():
-                assert def_rec.original_type is not None
-                assert def_rec.original_type.is_span()
-                pointer_field = def_rec.ast_node.fields[0]
+            cont_ct = node.container.x_type
+            if cont_ct.is_rec():
+                # get the pointer field from the rec that now represents the span
+                # because of the post-order traversal, node.container has already been processed
+                assert cont_ct.original_type.is_span()
+                pointer_field = cont_ct.get_rec_field(0)
                 return canonicalize.MakeExprField(node.container,  pointer_field, node.x_srcloc)
 
         # len of array is constant and should have already been eliminated
         elif isinstance(node, cwast.ExprLen):
-            def_rec = node.container.x_type
-            if def_rec.is_rec():
-                assert def_rec.original_type is not None
-                assert def_rec.original_type.is_span()
-                len_field = def_rec.ast_node.fields[1]
-                return canonicalize.MakeExprField(node.container, len_field, node.x_srcloc)
+            cont_ct = node.container.x_type
+            if cont_ct.is_rec():
+                # get the length field from the rec that now represents the span
+                # because of the post-order traversal, node.container has already been processed
+                assert cont_ct.original_type.is_span()
+                length_field = cont_ct.get_rec_field(1)
+                return canonicalize.MakeExprField(node.container, length_field, node.x_srcloc)
 
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
-            def_rec = node.x_type.replacement_type
-            if def_rec is not None:
+            rec_ct = node.x_type.replacement_type
+            if rec_ct is not None:
                 if isinstance(node, (cwast.DefVar, cwast.DefGlobal, cwast.DefFun,
                                      #
                                      cwast.Expr3, cwast.ExprAddrOf, cwast.ExprCall,
@@ -129,14 +131,14 @@ def ReplaceSpans(node):
                                      cwast.FunParam, cwast.Id, cwast.RecField, cwast.TypeAuto,
                                      #
                                      cwast.ValAuto, cwast.ValPoint, cwast.ValCompound)):
-                    typify.NodeChangeType(node, def_rec)
+                    typify.NodeChangeType(node, rec_ct)
                     return None
                 elif isinstance(node, cwast.ValSpan):
-                    return _MakeValRecForSpan(node.pointer, node.expr_size, def_rec, node.x_srcloc)
+                    return _MakeValRecForSpan(node.pointer, node.expr_size, rec_ct, node.x_srcloc)
 
                 cwast.CompilerError(
                     node.x_srcloc, "do not know how to convert span related node " +
-                    f"[{def_rec.name}]: {type(node)} of type {node.x_type}")
+                    f"[{rec_ct.name}]: {type(node)} of type {node.x_type}")
         return None
 
     cwast.MaybeReplaceAstRecursivelyPost(node, replacer)
