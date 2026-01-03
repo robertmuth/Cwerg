@@ -1144,7 +1144,7 @@ def MakeModWithComplexConstants(mod_topo_order: list[cwast.DefMod]) -> cwast.Def
 
 
 def PhaseEliminateSpanAndUnion(mod_gen: cwast.DefMod, mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
-    # TODO: comment on ordering of span and union elimination
+    # it should not matter if we replace spans or tagged unions first
     mod_gen.body_mod.extend(
         canonicalize_span.MakeAndRegisterSpanTypeReplacements(tc))
     for mod in ([mod_gen] + mod_topo_order):
@@ -1157,17 +1157,16 @@ def PhaseEliminateSpanAndUnion(mod_gen: cwast.DefMod, mod_topo_order: list[cwast
 
 
 def PhaseEliminateLargeArgs(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
-    fun_sigs_with_large_args = canonicalize_large_args.FindFunSigsWithLargeArgs(
-        tc)
+    canonicalize_large_args.FindFunSigsWithLargeArgs(tc)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
                 continue
-            canonicalize_large_args.FunRewriteLargeArgsCallerSide(
-                fun, fun_sigs_with_large_args, tc)
-            if fun.x_type in fun_sigs_with_large_args:
+            canonicalize_large_args.FunRewriteLargeArgsCallerSide(fun, tc)
+            new_sig = fun.x_type.replacement_type
+            if new_sig:
                 canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
-                    fun, fun_sigs_with_large_args[fun.x_type], tc)
+                    fun, new_sig, tc)
 
 
 def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
