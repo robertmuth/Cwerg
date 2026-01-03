@@ -69,22 +69,18 @@ void ReplaceSpans(Node mod) {
     if (node.kind() == NT::ExprLen) {
       CanonType rec_ct = Node_x_type(Node_container(node));
       if (CanonType_kind(rec_ct) == NT::DefRec) {
-        Node def_rec = CanonType_ast_node(rec_ct);
-        Node len_field = Node_next(Node_fields(def_rec));
-        ASSERT(len_field.kind() == NT::RecField, "");
+        Node length_field = CanonType_get_rec_field(rec_ct, 1);
         const SrcLoc& sl = Node_srcloc(node);
         Node container = Node_container(node);
         NodeFree(node);
-        return MakeExprField(container, len_field, sl);
+        return MakeExprField(container, length_field, sl);
       }
     }
 
     if (node.kind() == NT::ExprFront) {
       CanonType rec_ct = Node_x_type(Node_container(node));
       if (CanonType_kind(rec_ct) == NT::DefRec) {
-        Node def_rec = CanonType_ast_node(rec_ct);
-        Node pointer_field = Node_fields(def_rec);
-        ASSERT(pointer_field.kind() == NT::RecField, "");
+        Node pointer_field = CanonType_get_rec_field(rec_ct, 0);
         const SrcLoc& sl = Node_srcloc(node);
         Node container = Node_container(node);
         NodeFree(node);

@@ -7,8 +7,9 @@
 #include <vector>
 
 #include "FE/canonicalize.h"
-#include "FE/canonicalize_span.h"
 #include "FE/canonicalize_large_args.h"
+#include "FE/canonicalize_span.h"
+#include "FE/canonicalize_union.h"
 #include "FE/checker.h"
 #include "FE/cwast_gen.h"
 #include "FE/eval.h"
@@ -120,13 +121,13 @@ NodeChain MakeModWithComplexConstants(
 }
 
 void PhaseEliminateSpanAndUnion(Node mod_gen,
-                                std::vector<Node>& mods__topo_order,
+                                std::vector<Node>& mods_in_topo_order,
                                 TypeCorpus* tc, NodeChain* chain) {
   MakeAndRegisterSpanTypeReplacements(tc, chain);
   Node_body_mod(mod_gen) = chain->First();
 
   ReplaceSpans(mod_gen);
-  for (Node mod : mods__topo_order) {
+  for (Node mod : mods_in_topo_order) {
     ReplaceSpans(mod);
   }
   //
@@ -134,13 +135,26 @@ void PhaseEliminateSpanAndUnion(Node mod_gen,
   Node_body_mod(mod_gen) = chain->First();
 
   ReplaceUnions(mod_gen);
-  for (Node mod : mods__topo_order) {
+  for (Node mod : mods_in_topo_order) {
     ReplaceUnions(mod);
   }
 }
 
-void PhaseEliminateLargeArgs(std::vector<Node>& mods__topo_order,
-                             TypeCorpus* tc, NodeChain* chain) {}
+void PhaseEliminateLargeArgs(std::vector<Node>& mods_in_topo_order,
+                             TypeCorpus* tc, NodeChain* chain) {
+  FindFunSigsWithLargeArgs(tc);
+  for (Node mod : mods_in_topo_order) {
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      if (fun.kind() == NT::DefFun) {
+        FunRewriteLargeArgsCallerSide(fun, tc);
+        CanonType new_sig = CanonType_replacement_type(Node_x_type(fun));
+        if (!new_sig.isnull()) {
+          FunRewriteLargeArgsCalleeSide(fun, new_sig, tc);
+        }
+      }
+    }
+  }
+}
 
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
