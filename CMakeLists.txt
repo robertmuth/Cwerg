@@ -451,6 +451,8 @@ add_executable(emit_ir.exe
         FE/canonicalize_span.cc
         FE/canonicalize_union.h
         FE/canonicalize_union.cc
+        FE/canonicalize_large_args.h
+        FE/canonicalize_large_args.cc 
         FE/eval.h
         FE/eval.cc
         FE/optimize.h

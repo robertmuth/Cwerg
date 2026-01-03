@@ -8,7 +8,7 @@
 
 #include "FE/canonicalize.h"
 #include "FE/canonicalize_span.h"
-#include "FE/canonicalize_union.h"
+#include "FE/canonicalize_large_args.h"
 #include "FE/checker.h"
 #include "FE/cwast_gen.h"
 #include "FE/eval.h"
@@ -129,8 +129,7 @@ void PhaseEliminateSpanAndUnion(Node mod_gen,
   for (Node mod : mods__topo_order) {
     ReplaceSpans(mod);
   }
-//
-#if 1
+  //
   MakeAndRegisterUnionTypeReplacements(tc, chain);
   Node_body_mod(mod_gen) = chain->First();
 
@@ -138,8 +137,10 @@ void PhaseEliminateSpanAndUnion(Node mod_gen,
   for (Node mod : mods__topo_order) {
     ReplaceUnions(mod);
   }
-#endif
 }
+
+void PhaseEliminateLargeArgs(std::vector<Node>& mods__topo_order,
+                             TypeCorpus* tc, NodeChain* chain) {}
 
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
@@ -219,11 +220,15 @@ int main(int argc, const char* argv[]) {
   NodeChain chain = MakeModWithComplexConstants(mp.mods_in_topo_order);
   Node_body_mod(mod_gen) = chain.First();
 
-  //
   PhaseEliminateSpanAndUnion(mod_gen, mp.mods_in_topo_order, &tc, &chain);
   mp.mods_in_topo_order.insert(mp.mods_in_topo_order.begin(), mod_gen);
 
   SanityCheckMods("after_eliminate_span_and_union", mp.mods_in_topo_order,
+                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
+
+  PhaseEliminateLargeArgs(mp.mods_in_topo_order, &tc, &chain);
+
+  SanityCheckMods("after_large_arg_conversion", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
   if (sw_dump_stats.Value()) {
