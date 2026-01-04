@@ -29,7 +29,7 @@ from FE import eval
 ############################################################
 
 
-def FindFunSigsWithLargeArgs(tc: type_corpus.TypeCorpus):
+def MakeAndRegisterLargeArgReplacements(tc: type_corpus.TypeCorpus):
     tc.ClearReplacementInfo()
     for fun_sig in tc.topo_order[:]:
         if not fun_sig.is_fun():

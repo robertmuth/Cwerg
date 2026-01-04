@@ -192,16 +192,19 @@ class TargetArchConfig:
     code_addr_bitwidth: int
     optimize_union_tag: bool
 
-    def get_data_address_reg_type(self):
+    def get_data_address_reg_type(self) -> str:
         return f"A{self.data_addr_bitwidth}"
 
-    def get_uint_reg_type(self):
+    def get_code_address_reg_type(self) -> str:
+        return f"C{self.code_addr_bitwidth}"
+
+    def get_uint_reg_type(self) -> str:
         return f"U{self.uint_bitwidth}"
 
-    def get_sint_reg_type(self):
+    def get_sint_reg_type(self) -> str:
         return f"S{self.sint_bitwidth}"
 
-    def get_address_size(self):
+    def get_address_size(self) -> int:
         return self.data_addr_bitwidth // 8
 
 
@@ -222,12 +225,12 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
         if t.is_void():
             num_void += 1
             continue
-        regs = t.register_types
-        if regs is None or len(regs) > 1:
+        if not t.fits_in_register():
             return None
         scalars.append(t)
-        k = regs[0][0]
-        size = int(regs[0][1:])
+        regs = t.get_single_register_type()
+        k = regs[0]
+        size = int(regs[1:])
         largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
         largest = max(largest, size)
     # special hack for pointer + error-code
@@ -276,7 +279,7 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[li
     elif ct.node is cwast.DefType:
         return _get_register_type(ct.children[0], ta)
     elif ct.node is cwast.TypeFun:
-        return [f"C{ta.data_addr_bitwidth}"]
+        return [ta.get_code_address_reg_type()]
     else:
         assert False, f"unknown type {ct.name}"
         return None
@@ -339,37 +342,39 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
         # prevent infinite recursion (mostly applies to TypePtr)
         for ct_field in ct.children:
             SetAbiInfoRecursively(ct_field, ta)
+
+    machines_regs = cwast.MachineRegs(_get_register_type(ct, ta))
     if n is cwast.TypeBase:
         size = ct.base_type_kind.ByteSize()
-        ct.Finalize(size, size, _get_register_type(ct, ta))
+        ct.Finalize(size, size, machines_regs)
     elif n is cwast.TypePtr:
         size = ta.code_addr_bitwidth // 8
-        ct.Finalize(size, size, _get_register_type(ct, ta))
+        ct.Finalize(size, size, machines_regs)
     elif n is cwast.TypeSpan:
         # span is converted to (pointer, length) tuple
         ptr_field_size = ta.data_addr_bitwidth // 8
         len_field_size = ta.uint_bitwidth // 8
         ct.Finalize(ptr_field_size + len_field_size,
-                    ptr_field_size, _get_register_type(ct, ta))
+                    ptr_field_size, machines_regs)
     elif n is cwast.TypeVec:
         ct_dep = ct.children[0]
         ct.Finalize(ct_dep.aligned_size() * ct.dim,
-                    ct_dep.alignment,  _get_register_type(ct, ta))
+                    ct_dep.alignment,  machines_regs)
     elif n is cwast.TypeUnion:
         size, alignment = _GetAbiInfoForSum(ct, ta)
-        ct.Finalize(size, alignment, _get_register_type(ct, ta))
+        ct.Finalize(size, alignment, machines_regs)
     elif n is cwast.DefEnum:
         size = ct.children[0].base_type_kind.ByteSize()
-        ct.Finalize(size, size, _get_register_type(ct, ta))
+        ct.Finalize(size, size, machines_regs)
     elif n is cwast.TypeFun:
         size = ta.code_addr_bitwidth // 8
-        ct.Finalize(size, size, _get_register_type(ct, ta))
+        ct.Finalize(size, size, machines_regs)
     elif n is cwast.DefType:
         ct_dep = ct.children[0]
-        ct.Finalize(ct_dep.size, ct_dep.alignment, _get_register_type(ct, ta))
+        ct.Finalize(ct_dep.size, ct_dep.alignment, machines_regs)
     elif n is cwast.DefRec:
         size, alignment = _GetAbiInfoForRec(ct)
-        ct.Finalize(size, alignment, _get_register_type(ct, ta))
+        ct.Finalize(size, alignment, machines_regs)
     else:
         assert False, f"unknown type {ct}"
 
@@ -605,4 +610,5 @@ class TypeCorpus:
             original = -1
             if ct.original_type:
                 original = ct.original_type.typeid
-            print(f"{ct.name} id={ct.typeid} size={ct.size} align={ct.alignment} original={original}")
+            print(
+                f"{ct.name} id={ct.typeid} size={ct.size} align={ct.alignment} original={original}")
