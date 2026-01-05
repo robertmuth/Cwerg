@@ -285,7 +285,7 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.Machi
         return cwast.MACHINE_REGS_IN_MEMORY
 
 
-def _GetAbiInfoForSum(ct: cwast.CanonType, ta: TargetArchConfig):
+def _GetAbiInfoForSum(ct: cwast.CanonType, ta: TargetArchConfig) -> tuple[int, int]:
     assert ct.node is cwast.TypeUnion
     num_pointer = 0
     num_other = 0
@@ -317,7 +317,7 @@ def _GetAbiInfoForSum(ct: cwast.CanonType, ta: TargetArchConfig):
     return align(tag_size, max_alignment) + max_size, max_alignment
 
 
-def _GetAbiInfoForRec(ct: cwast.CanonType):
+def _GetAbiInfoForRec(ct: cwast.CanonType) -> tuple[int, int]:
     assert isinstance(ct.ast_node, cwast.DefRec)
     def_rec: cwast.DefRec = ct.ast_node
     assert ct.children, f"{def_rec}"
@@ -334,6 +334,39 @@ def _GetAbiInfoForRec(ct: cwast.CanonType):
     return size, alignment
 
 
+def _GetAbiInfo(ct: cwast.CanonType,  ta: TargetArchConfig):
+    n = ct. node
+    if n is cwast.TypeBase:
+        size = ct.base_type_kind.ByteSize()
+        return size, size
+    elif n is cwast.TypePtr:
+        size = ta.code_addr_bitwidth // 8
+        return size, size
+    elif n is cwast.TypeSpan:
+        # span is converted to (pointer, length) tuple
+        ptr_field_size = ta.data_addr_bitwidth // 8
+        len_field_size = ta.uint_bitwidth // 8
+        return ptr_field_size + len_field_size, ptr_field_size,
+    elif n is cwast.TypeVec:
+        ct_dep = ct.children[0]
+        return ct_dep.aligned_size() * ct.dim, ct_dep.alignment,
+    elif n is cwast.TypeUnion:
+        return _GetAbiInfoForSum(ct, ta)
+    elif n is cwast.DefEnum:
+        size = ct.children[0].base_type_kind.ByteSize()
+        return size, size
+    elif n is cwast.TypeFun:
+        size = ta.code_addr_bitwidth // 8
+        return size, size
+    elif n is cwast.DefType:
+        ct_dep = ct.children[0]
+        return ct_dep.size, ct_dep.alignment
+    elif n is cwast.DefRec:
+        return _GetAbiInfoForRec(ct)
+    else:
+        assert False, f"unknown type {ct}"
+
+
 def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
     if ct.alignment >= 0:
         return
@@ -342,41 +375,9 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
         # prevent infinite recursion (mostly applies to TypePtr)
         for ct_field in ct.children:
             SetAbiInfoRecursively(ct_field, ta)
-
     machines_regs = _get_register_type(ct, ta)
-    if n is cwast.TypeBase:
-        size = ct.base_type_kind.ByteSize()
-        ct.Finalize(size, size, machines_regs)
-    elif n is cwast.TypePtr:
-        size = ta.code_addr_bitwidth // 8
-        ct.Finalize(size, size, machines_regs)
-    elif n is cwast.TypeSpan:
-        # span is converted to (pointer, length) tuple
-        ptr_field_size = ta.data_addr_bitwidth // 8
-        len_field_size = ta.uint_bitwidth // 8
-        ct.Finalize(ptr_field_size + len_field_size,
-                    ptr_field_size, machines_regs)
-    elif n is cwast.TypeVec:
-        ct_dep = ct.children[0]
-        ct.Finalize(ct_dep.aligned_size() * ct.dim,
-                    ct_dep.alignment,  machines_regs)
-    elif n is cwast.TypeUnion:
-        size, alignment = _GetAbiInfoForSum(ct, ta)
-        ct.Finalize(size, alignment, machines_regs)
-    elif n is cwast.DefEnum:
-        size = ct.children[0].base_type_kind.ByteSize()
-        ct.Finalize(size, size, machines_regs)
-    elif n is cwast.TypeFun:
-        size = ta.code_addr_bitwidth // 8
-        ct.Finalize(size, size, machines_regs)
-    elif n is cwast.DefType:
-        ct_dep = ct.children[0]
-        ct.Finalize(ct_dep.size, ct_dep.alignment, machines_regs)
-    elif n is cwast.DefRec:
-        size, alignment = _GetAbiInfoForRec(ct)
-        ct.Finalize(size, alignment, machines_regs)
-    else:
-        assert False, f"unknown type {ct}"
+    size, alignment = _GetAbiInfo(ct, ta)
+    ct.Finalize(size, alignment, machines_regs)
 
 
 class TypeCorpus:
