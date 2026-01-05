@@ -865,6 +865,44 @@ def align(x, a):
     return (x + a - 1) // a * a
 
 
+@dataclasses.dataclass(frozen=True)
+class MachineRegs:
+    """Machine Registers representing a CanonType
+
+    Complex types will not have a register representation
+    in which case "is_mem" will be true.
+    There is a plan to desugar ValSpans into register tuples.
+    This class anticipates this optimization but the frontend does
+    not use it yet.
+    """
+    regs:  list[str]
+    is_mem: bool = False
+
+    def get_scalar(self):
+        assert len(self.regs) == 1
+        return self.regs[0]
+
+    def is_scalar(self):
+        return len(self.regs) == 1
+
+    def merge(self, other) -> MachineRegs:
+        if self.is_mem:
+            return self
+        elif other.is_mem:
+            return other
+        if len(self.regs) == 0:
+            return other
+        elif len(other.regs) == 0:
+            return self
+        if len(self.regs) == 1 and len(other.regs) == 1:
+            return MachineRegs([self.regs[0], other.regs[0]])
+        return MACHINE_REGS_IN_MEMORY
+
+
+MACHINE_REGS_IN_MEMORY = MachineRegs([], is_mem=True)
+MACHINE_REGS_NONE = MachineRegs([], is_mem=False)
+
+
 @dataclasses.dataclass()
 class CanonType:
     """Canonical Type"""
@@ -887,7 +925,7 @@ class CanonType:
     # The fields below are filled during finalization
     alignment: int = -1
     size: int = -1
-    register_types: Optional[list[Any]] = None
+    register_types: MachineRegs = MACHINE_REGS_IN_MEMORY
     typeid: int = -1
     union_kind: UnionKind = UnionKind.INVALID
 
@@ -1011,15 +1049,11 @@ class CanonType:
 
     def fits_in_register(self) -> bool:
         assert self.size > 0
-        reg_type = self.register_types
-        return reg_type is not None and len(reg_type) == 1
+        return self.register_types.is_scalar()
 
     def get_single_register_type(self) -> str:
         assert self.size > 0, f"{self} is zero size type {self.size} {self.register_types}"
-        reg_type = self.register_types
-        assert reg_type is not None and len(
-            reg_type) == 1, f"{self} {reg_type}"
-        return reg_type[0]
+        return self.register_types.get_scalar()
 
     def get_original_typeid(self):
         ct = self
@@ -1047,7 +1081,7 @@ class CanonType:
     def is_finalized(self) -> bool:
         return self.alignment != -1
 
-    def Finalize(self, size: int, alignment: int, register_types):
+    def Finalize(self, size: int, alignment: int, register_types: MachineRegs):
         assert self.alignment == -1
         if size == 0:
             # TODO
@@ -1073,7 +1107,6 @@ class CanonType:
         assert self.node is DefRec
         assert isinstance(self.ast_node, DefRec)
         return self.ast_node.fields[no]
-
 
     def LinkReplacementType(self, replacement_ct: "CanonType"):
         self.replacement_type = replacement_ct

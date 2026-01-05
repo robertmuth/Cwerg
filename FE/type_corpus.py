@@ -158,27 +158,27 @@ def IsProperLhs(node) -> bool:
 
 # maps FE types to BE names.
 # Note: it would be cleaner to use the BE enum
-_BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, list[str]] = {
-    cwast.BASE_TYPE_KIND.SINT: ["S64"],
-    cwast.BASE_TYPE_KIND.S8: ["S8"],
-    cwast.BASE_TYPE_KIND.S16: ["S16"],
-    cwast.BASE_TYPE_KIND.S32: ["S32"],
-    cwast.BASE_TYPE_KIND.S64: ["S64"],
+_BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, cwast.MachineRegs] = {
+    cwast.BASE_TYPE_KIND.SINT: cwast.MachineRegs(["S64"]),
+    cwast.BASE_TYPE_KIND.S8: cwast.MachineRegs(["S8"]),
+    cwast.BASE_TYPE_KIND.S16: cwast.MachineRegs(["S16"]),
+    cwast.BASE_TYPE_KIND.S32: cwast.MachineRegs(["S32"]),
+    cwast.BASE_TYPE_KIND.S64: cwast.MachineRegs(["S64"]),
     #
-    cwast.BASE_TYPE_KIND.UINT: ["U64"],
-    cwast.BASE_TYPE_KIND.U8: ["U8"],
-    cwast.BASE_TYPE_KIND.U16: ["U16"],
-    cwast.BASE_TYPE_KIND.U32: ["U32"],
-    cwast.BASE_TYPE_KIND.U64: ["U64"],
+    cwast.BASE_TYPE_KIND.UINT: cwast.MachineRegs(["U64"]),
+    cwast.BASE_TYPE_KIND.U8: cwast.MachineRegs(["U8"]),
+    cwast.BASE_TYPE_KIND.U16: cwast.MachineRegs(["U16"]),
+    cwast.BASE_TYPE_KIND.U32: cwast.MachineRegs(["U32"]),
+    cwast.BASE_TYPE_KIND.U64: cwast.MachineRegs(["U64"]),
     #
-    cwast.BASE_TYPE_KIND.R32: ["R32"],
-    cwast.BASE_TYPE_KIND.R64: ["R64"],
+    cwast.BASE_TYPE_KIND.R32: cwast.MachineRegs(["R32"]),
+    cwast.BASE_TYPE_KIND.R64: cwast.MachineRegs(["R64"]),
     #
-    cwast.BASE_TYPE_KIND.BOOL: ["U8"],
-    cwast.BASE_TYPE_KIND.TYPEID: ["U16"],
+    cwast.BASE_TYPE_KIND.BOOL: cwast.MachineRegs(["U8"]),
+    cwast.BASE_TYPE_KIND.TYPEID: cwast.MachineRegs(["U16"]),
     #
-    cwast.BASE_TYPE_KIND.VOID: [],
-    cwast.BASE_TYPE_KIND.NORET: [],
+    cwast.BASE_TYPE_KIND.VOID: cwast.MachineRegs([]),
+    cwast.BASE_TYPE_KIND.NORET: cwast.MachineRegs([]),
 }
 
 
@@ -213,7 +213,7 @@ STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64, False)
 STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32, False)
 
 
-def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[list[str]]:
+def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
     assert ct.node is cwast.TypeUnion
     num_void = 0
     scalars: list[cwast.CanonType] = []
@@ -226,7 +226,7 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
             num_void += 1
             continue
         if not t.fits_in_register():
-            return None
+            return cwast.MACHINE_REGS_IN_MEMORY
         scalars.append(t)
         regs = t.get_single_register_type()
         k = regs[0]
@@ -240,38 +240,38 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
     # TODO
     if ct.untagged and False:
         if largest == 0:
-            return []
-        return [f"U{largest}"]
+            return cwast.MACHINE_REGS_NONE
+        return cwast.MachineRegs([f"U{largest}"])
     else:
         if largest == 0:
-            return [f"U{ta.typeid_bitwidth}"]
-        return [f"U{largest}", f"U{ta.typeid_bitwidth}"]
+            return cwast.MachineRegs([f"U{ta.typeid_bitwidth}"])
+        return cwast.MachineRegs([f"U{largest}", f"U{ta.typeid_bitwidth}"])
 
 
-def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[list[str]]:
+def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
     """As long as a type can fit into no more than two regs it will have
     register representation which is also how it will be past in function calls.
     """
     if ct.node is cwast.TypeBase:
         return _BASE_TYPE_MAP.get(ct.base_type_kind)
     elif ct.node is cwast.TypePtr:
-        return [ta.get_data_address_reg_type()]
+        return cwast.MachineRegs([ta.get_data_address_reg_type()])
     elif ct.node is cwast.TypeSpan:
-        return [ta.get_data_address_reg_type(),
-                ta.get_uint_reg_type()]
+        return cwast.MachineRegs([ta.get_data_address_reg_type(),
+                ta.get_uint_reg_type()])
     elif ct.node is cwast.DefRec:
         assert isinstance(ct.ast_node, cwast.DefRec)
         fields = ct.ast_node.fields
-        if len(fields) == 1:
-            return _get_register_type(fields[0].type.x_type, ta)
-        elif len(fields) == 2:
-            a = _get_register_type(fields[0].type.x_type, ta)
-            b = _get_register_type(fields[1].type.x_type, ta)
-            if a is not None and b is not None and len(a) + len(b) <= 2:
-                return a + b
-        return None
+        if len(fields) == 0:
+            cwast.MACHINE_REGS_NONE
+        out = _get_register_type(fields[0].type.x_type, ta)
+        for f in fields[1:]:
+            out = out.merge(_get_register_type(f.type.x_type, ta))
+            if out.is_mem:
+                return out
+        return out
     elif ct.node is cwast.TypeVec:
-        return None
+        return cwast.MACHINE_REGS_IN_MEMORY
     elif ct.node is cwast.DefEnum:
         return _BASE_TYPE_MAP[ct.children[0].base_type_kind]
     elif ct.node is cwast.TypeUnion:
@@ -279,10 +279,10 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> Optional[li
     elif ct.node is cwast.DefType:
         return _get_register_type(ct.children[0], ta)
     elif ct.node is cwast.TypeFun:
-        return [ta.get_code_address_reg_type()]
+        return cwast.MachineRegs([ta.get_code_address_reg_type()])
     else:
         assert False, f"unknown type {ct.name}"
-        return None
+        return cwast.MACHINE_REGS_IN_MEMORY
 
 
 def _GetAbiInfoForSum(ct: cwast.CanonType, ta: TargetArchConfig):
@@ -343,7 +343,7 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
         for ct_field in ct.children:
             SetAbiInfoRecursively(ct_field, ta)
 
-    machines_regs = cwast.MachineRegs(_get_register_type(ct, ta))
+    machines_regs = _get_register_type(ct, ta)
     if n is cwast.TypeBase:
         size = ct.base_type_kind.ByteSize()
         ct.Finalize(size, size, machines_regs)
