@@ -159,26 +159,26 @@ def IsProperLhs(node) -> bool:
 # maps FE types to BE names.
 # Note: it would be cleaner to use the BE enum
 _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, cwast.MachineRegs] = {
-    cwast.BASE_TYPE_KIND.SINT: cwast.MachineRegs(["S64"]),
-    cwast.BASE_TYPE_KIND.S8: cwast.MachineRegs(["S8"]),
-    cwast.BASE_TYPE_KIND.S16: cwast.MachineRegs(["S16"]),
-    cwast.BASE_TYPE_KIND.S32: cwast.MachineRegs(["S32"]),
-    cwast.BASE_TYPE_KIND.S64: cwast.MachineRegs(["S64"]),
+    cwast.BASE_TYPE_KIND.SINT: cwast.MachineRegs(1, "S64"),
+    cwast.BASE_TYPE_KIND.S8: cwast.MachineRegs(1, "S8"),
+    cwast.BASE_TYPE_KIND.S16: cwast.MachineRegs(1, "S16"),
+    cwast.BASE_TYPE_KIND.S32: cwast.MachineRegs(1, "S32"),
+    cwast.BASE_TYPE_KIND.S64: cwast.MachineRegs(1, "S64"),
     #
-    cwast.BASE_TYPE_KIND.UINT: cwast.MachineRegs(["U64"]),
-    cwast.BASE_TYPE_KIND.U8: cwast.MachineRegs(["U8"]),
-    cwast.BASE_TYPE_KIND.U16: cwast.MachineRegs(["U16"]),
-    cwast.BASE_TYPE_KIND.U32: cwast.MachineRegs(["U32"]),
-    cwast.BASE_TYPE_KIND.U64: cwast.MachineRegs(["U64"]),
+    cwast.BASE_TYPE_KIND.UINT: cwast.MachineRegs(1, "U64"),
+    cwast.BASE_TYPE_KIND.U8: cwast.MachineRegs(1, "U8"),
+    cwast.BASE_TYPE_KIND.U16: cwast.MachineRegs(1, "U16"),
+    cwast.BASE_TYPE_KIND.U32: cwast.MachineRegs(1, "U32"),
+    cwast.BASE_TYPE_KIND.U64: cwast.MachineRegs(1, "U64"),
     #
-    cwast.BASE_TYPE_KIND.R32: cwast.MachineRegs(["R32"]),
-    cwast.BASE_TYPE_KIND.R64: cwast.MachineRegs(["R64"]),
+    cwast.BASE_TYPE_KIND.R32: cwast.MachineRegs(1, "R32"),
+    cwast.BASE_TYPE_KIND.R64: cwast.MachineRegs(1, "R64"),
     #
-    cwast.BASE_TYPE_KIND.BOOL: cwast.MachineRegs(["U8"]),
-    cwast.BASE_TYPE_KIND.TYPEID: cwast.MachineRegs(["U16"]),
+    cwast.BASE_TYPE_KIND.BOOL: cwast.MachineRegs(1, "U8"),
+    cwast.BASE_TYPE_KIND.TYPEID: cwast.MachineRegs(1, "U16"),
     #
-    cwast.BASE_TYPE_KIND.VOID: cwast.MachineRegs([]),
-    cwast.BASE_TYPE_KIND.NORET: cwast.MachineRegs([]),
+    cwast.BASE_TYPE_KIND.VOID: cwast.MACHINE_REGS_NONE,
+    cwast.BASE_TYPE_KIND.NORET: cwast.MACHINE_REGS_NONE,
 }
 
 
@@ -244,8 +244,8 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
         return cwast.MachineRegs([f"U{largest}"])
     else:
         if largest == 0:
-            return cwast.MachineRegs([f"U{ta.typeid_bitwidth}"])
-        return cwast.MachineRegs([f"U{largest}", f"U{ta.typeid_bitwidth}"])
+            return cwast.MachineRegs(1, f"U{ta.typeid_bitwidth}")
+        return cwast.MachineRegs(2, f"U{largest}", f"U{ta.typeid_bitwidth}")
 
 
 def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
@@ -255,10 +255,10 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.Machi
     if ct.node is cwast.TypeBase:
         return _BASE_TYPE_MAP.get(ct.base_type_kind)
     elif ct.node is cwast.TypePtr:
-        return cwast.MachineRegs([ta.get_data_address_reg_type()])
+        return cwast.MachineRegs(1, ta.get_data_address_reg_type())
     elif ct.node is cwast.TypeSpan:
-        return cwast.MachineRegs([ta.get_data_address_reg_type(),
-                ta.get_uint_reg_type()])
+        return cwast.MachineRegs(
+            2, ta.get_data_address_reg_type(), ta.get_uint_reg_type())
     elif ct.node is cwast.DefRec:
         assert isinstance(ct.ast_node, cwast.DefRec)
         fields = ct.ast_node.fields
@@ -267,7 +267,7 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.Machi
         out = _get_register_type(fields[0].type.x_type, ta)
         for f in fields[1:]:
             out = out.merge(_get_register_type(f.type.x_type, ta))
-            if out.is_mem:
+            if out.num_regs < 0:
                 return out
         return out
     elif ct.node is cwast.TypeVec:
@@ -279,7 +279,7 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.Machi
     elif ct.node is cwast.DefType:
         return _get_register_type(ct.children[0], ta)
     elif ct.node is cwast.TypeFun:
-        return cwast.MachineRegs([ta.get_code_address_reg_type()])
+        return cwast.MachineRegs(1, ta.get_code_address_reg_type())
     else:
         assert False, f"unknown type {ct.name}"
         return cwast.MACHINE_REGS_IN_MEMORY

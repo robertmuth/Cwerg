@@ -865,6 +865,9 @@ def align(x, a):
     return (x + a - 1) // a * a
 
 
+_IN_MEM: int = -1
+
+
 @dataclasses.dataclass(frozen=True)
 class MachineRegs:
     """Machine Registers representing a CanonType
@@ -875,32 +878,33 @@ class MachineRegs:
     This class anticipates this optimization but the frontend does
     not use it yet.
     """
-    regs:  list[str]
-    is_mem: bool = False
+    num_regs: int = _IN_MEM
+    reg1:  Optional[str] = None
+    reg2:  Optional[str] = None
 
     def get_scalar(self):
-        assert len(self.regs) == 1
-        return self.regs[0]
+        assert self.num_regs == 1
+        return self.reg1
 
     def is_scalar(self):
-        return len(self.regs) == 1
+        return self.num_regs == 1
 
     def merge(self, other) -> MachineRegs:
-        if self.is_mem:
+        if self.num_regs == _IN_MEM:
             return self
-        elif other.is_mem:
+        elif other.num_regs == _IN_MEM:
             return other
-        if len(self.regs) == 0:
+        if self.num_regs == 0:
             return other
-        elif len(other.regs) == 0:
+        elif other.num_regs == 0:
             return self
-        if len(self.regs) == 1 and len(other.regs) == 1:
-            return MachineRegs([self.regs[0], other.regs[0]])
+        if self.num_regs == 1 and other.num_regs == 1:
+            return MachineRegs(2, self.reg1, other.reg2)
         return MACHINE_REGS_IN_MEMORY
 
 
-MACHINE_REGS_IN_MEMORY = MachineRegs([], is_mem=True)
-MACHINE_REGS_NONE = MachineRegs([], is_mem=False)
+MACHINE_REGS_IN_MEMORY = MachineRegs(_IN_MEM)
+MACHINE_REGS_NONE = MachineRegs(0)
 
 
 @dataclasses.dataclass()
