@@ -159,13 +159,11 @@ def IsProperLhs(node) -> bool:
 # maps FE types to BE names.
 # Note: it would be cleaner to use the BE enum
 _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, cwast.MachineRegs] = {
-    cwast.BASE_TYPE_KIND.SINT: cwast.MachineRegs(1, "S64"),
     cwast.BASE_TYPE_KIND.S8: cwast.MachineRegs(1, "S8"),
     cwast.BASE_TYPE_KIND.S16: cwast.MachineRegs(1, "S16"),
     cwast.BASE_TYPE_KIND.S32: cwast.MachineRegs(1, "S32"),
     cwast.BASE_TYPE_KIND.S64: cwast.MachineRegs(1, "S64"),
     #
-    cwast.BASE_TYPE_KIND.UINT: cwast.MachineRegs(1, "U64"),
     cwast.BASE_TYPE_KIND.U8: cwast.MachineRegs(1, "U8"),
     cwast.BASE_TYPE_KIND.U16: cwast.MachineRegs(1, "U16"),
     cwast.BASE_TYPE_KIND.U32: cwast.MachineRegs(1, "U32"),
@@ -175,7 +173,6 @@ _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, cwast.MachineRegs] = {
     cwast.BASE_TYPE_KIND.R64: cwast.MachineRegs(1, "R64"),
     #
     cwast.BASE_TYPE_KIND.BOOL: cwast.MachineRegs(1, "U8"),
-    cwast.BASE_TYPE_KIND.TYPEID: cwast.MachineRegs(1, "U16"),
     #
     cwast.BASE_TYPE_KIND.VOID: cwast.MACHINE_REGS_NONE,
     cwast.BASE_TYPE_KIND.NORET: cwast.MACHINE_REGS_NONE,
@@ -248,7 +245,7 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
         return cwast.MachineRegs(2, f"U{largest}", f"U{ta.typeid_bitwidth}")
 
 
-def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
+def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
     """As long as a type can fit into no more than two regs it will have
     register representation which is also how it will be past in function calls.
     """
@@ -264,9 +261,9 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.Machi
         fields = ct.ast_node.fields
         if len(fields) == 0:
             cwast.MACHINE_REGS_NONE
-        out = _get_register_type(fields[0].type.x_type, ta)
+        out = _GetMachineRegs(fields[0].type.x_type, ta)
         for f in fields[1:]:
-            out = out.merge(_get_register_type(f.type.x_type, ta))
+            out = out.merge(_GetMachineRegs(f.type.x_type, ta))
             if out.num_regs < 0:
                 return out
         return out
@@ -277,7 +274,7 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.Machi
     elif ct.node is cwast.TypeUnion:
         return _get_register_type_for_union_type(ct, ta)
     elif ct.node is cwast.DefType:
-        return _get_register_type(ct.children[0], ta)
+        return _GetMachineRegs(ct.children[0], ta)
     elif ct.node is cwast.TypeFun:
         return cwast.MachineRegs(1, ta.get_code_address_reg_type())
     else:
@@ -285,7 +282,7 @@ def _get_register_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.Machi
         return cwast.MACHINE_REGS_IN_MEMORY
 
 
-def _GetAbiInfoForSum(ct: cwast.CanonType, ta: TargetArchConfig) -> tuple[int, int]:
+def _GetSizeAndAlignmentForSum(ct: cwast.CanonType, ta: TargetArchConfig) -> tuple[int, int]:
     assert ct.node is cwast.TypeUnion
     num_pointer = 0
     num_other = 0
@@ -317,7 +314,7 @@ def _GetAbiInfoForSum(ct: cwast.CanonType, ta: TargetArchConfig) -> tuple[int, i
     return align(tag_size, max_alignment) + max_size, max_alignment
 
 
-def _GetAbiInfoForRec(ct: cwast.CanonType) -> tuple[int, int]:
+def _GetSizeAndAlignmentForRec(ct: cwast.CanonType) -> tuple[int, int]:
     assert isinstance(ct.ast_node, cwast.DefRec)
     def_rec: cwast.DefRec = ct.ast_node
     assert ct.children, f"{def_rec}"
@@ -334,7 +331,7 @@ def _GetAbiInfoForRec(ct: cwast.CanonType) -> tuple[int, int]:
     return size, alignment
 
 
-def _GetAbiInfo(ct: cwast.CanonType,  ta: TargetArchConfig):
+def _GetSizeAndAlignment(ct: cwast.CanonType,  ta: TargetArchConfig):
     n = ct. node
     if n is cwast.TypeBase:
         size = ct.base_type_kind.ByteSize()
@@ -351,7 +348,7 @@ def _GetAbiInfo(ct: cwast.CanonType,  ta: TargetArchConfig):
         ct_dep = ct.children[0]
         return ct_dep.aligned_size() * ct.dim, ct_dep.alignment,
     elif n is cwast.TypeUnion:
-        return _GetAbiInfoForSum(ct, ta)
+        return _GetSizeAndAlignmentForSum(ct, ta)
     elif n is cwast.DefEnum:
         size = ct.children[0].base_type_kind.ByteSize()
         return size, size
@@ -362,7 +359,7 @@ def _GetAbiInfo(ct: cwast.CanonType,  ta: TargetArchConfig):
         ct_dep = ct.children[0]
         return ct_dep.size, ct_dep.alignment
     elif n is cwast.DefRec:
-        return _GetAbiInfoForRec(ct)
+        return _GetSizeAndAlignmentForRec(ct)
     else:
         assert False, f"unknown type {ct}"
 
@@ -372,11 +369,24 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
         return
     n = ct.node
     if n != cwast.TypePtr and n != cwast.TypeFun:
-        # prevent infinite recursion (mostly applies to TypePtr)
+        # the size of TypePtr and cwast.TypeFun does not depend
+        # on their children.
+        # This also prevents infinite recursion (mostly applies to TypePtr), e.g.:
+        #
+        # pub rec LinkedListNode:
+        #     next union(NoneType, ^!LinkedListNode)
+        #     payload u32
         for ct_field in ct.children:
             SetAbiInfoRecursively(ct_field, ta)
-    machines_regs = _get_register_type(ct, ta)
-    size, alignment = _GetAbiInfo(ct, ta)
+        # Note, for records the children are empty!
+        # They do NOT contain the record fields
+        # This helps keeping the type graph acyclic.
+        if n == cwast.DefRec:
+            for rf in ct.ast_node.fields:
+                assert isinstance(rf, cwast.RecField)
+                SetAbiInfoRecursively(rf.type.x_type, ta)
+    machines_regs = _GetMachineRegs(ct, ta)
+    size, alignment = _GetSizeAndAlignment(ct, ta)
     ct.Finalize(size, alignment, machines_regs)
 
 
