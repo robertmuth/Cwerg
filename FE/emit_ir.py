@@ -1157,7 +1157,7 @@ def PhaseEliminateSpanAndUnion(mod_gen: cwast.DefMod, mod_topo_order: list[cwast
 
 
 def PhaseEliminateLargeArgs(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
-    canonicalize_large_args.FindFunSigsWithLargeArgs(tc)
+    canonicalize_large_args.MakeAndRegisterLargeArgReplacements(tc)
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
