@@ -9,6 +9,8 @@ import logging
 import enum
 import re
 
+from IR import opcode_tab as o
+
 from Util import cgen
 from Util.parse import EscapedStringToBytes, HexStringToBytes
 
@@ -879,8 +881,8 @@ class MachineRegs:
     not use it yet.
     """
     num_regs: int = _IN_MEM
-    reg1:  Optional[str] = None
-    reg2:  Optional[str] = None
+    reg1:  o.DK = o.DK.INVALID
+    reg2:  o.DK = o.DK.INVALID
 
     def get_scalar(self):
         assert self.num_regs == 1

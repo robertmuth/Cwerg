@@ -6,6 +6,7 @@ import dataclasses
 from typing import Optional
 
 from FE import cwast
+from IR import opcode_tab as o
 
 
 logger = logging.getLogger(__name__)
@@ -159,20 +160,20 @@ def IsProperLhs(node) -> bool:
 # maps FE types to BE names.
 # Note: it would be cleaner to use the BE enum
 _BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, cwast.MachineRegs] = {
-    cwast.BASE_TYPE_KIND.S8: cwast.MachineRegs(1, "S8"),
-    cwast.BASE_TYPE_KIND.S16: cwast.MachineRegs(1, "S16"),
-    cwast.BASE_TYPE_KIND.S32: cwast.MachineRegs(1, "S32"),
-    cwast.BASE_TYPE_KIND.S64: cwast.MachineRegs(1, "S64"),
+    cwast.BASE_TYPE_KIND.S8: cwast.MachineRegs(1, o.DK.S8),
+    cwast.BASE_TYPE_KIND.S16: cwast.MachineRegs(1, o.DK.S16),
+    cwast.BASE_TYPE_KIND.S32: cwast.MachineRegs(1, o.DK.S32),
+    cwast.BASE_TYPE_KIND.S64: cwast.MachineRegs(1, o.DK.S64),
     #
-    cwast.BASE_TYPE_KIND.U8: cwast.MachineRegs(1, "U8"),
-    cwast.BASE_TYPE_KIND.U16: cwast.MachineRegs(1, "U16"),
-    cwast.BASE_TYPE_KIND.U32: cwast.MachineRegs(1, "U32"),
-    cwast.BASE_TYPE_KIND.U64: cwast.MachineRegs(1, "U64"),
+    cwast.BASE_TYPE_KIND.U8: cwast.MachineRegs(1, o.DK.U8),
+    cwast.BASE_TYPE_KIND.U16: cwast.MachineRegs(1, o.DK.U16),
+    cwast.BASE_TYPE_KIND.U32: cwast.MachineRegs(1, o.DK.U32),
+    cwast.BASE_TYPE_KIND.U64: cwast.MachineRegs(1, o.DK.U64),
     #
-    cwast.BASE_TYPE_KIND.R32: cwast.MachineRegs(1, "R32"),
-    cwast.BASE_TYPE_KIND.R64: cwast.MachineRegs(1, "R64"),
+    cwast.BASE_TYPE_KIND.R32: cwast.MachineRegs(1, o.DK.R32),
+    cwast.BASE_TYPE_KIND.R64: cwast.MachineRegs(1, o.DK.R64),
     #
-    cwast.BASE_TYPE_KIND.BOOL: cwast.MachineRegs(1, "U8"),
+    cwast.BASE_TYPE_KIND.BOOL: cwast.MachineRegs(1, o.DK.U8),
     #
     cwast.BASE_TYPE_KIND.VOID: cwast.MACHINE_REGS_NONE,
     cwast.BASE_TYPE_KIND.NORET: cwast.MACHINE_REGS_NONE,
@@ -189,23 +190,20 @@ class TargetArchConfig:
     code_addr_bitwidth: int
     optimize_union_tag: bool
 
-    def get_data_address_reg_type(self) -> str:
-        return f"A{self.data_addr_bitwidth}"
+    def get_data_address_reg_type(self) -> o.DK:
+        return o.DK.Make(o.DK_FLAVOR_A, self.data_addr_bitwidth)
 
-    def get_code_address_reg_type(self) -> str:
-        return f"C{self.code_addr_bitwidth}"
+    def get_code_address_reg_type(self) -> o.DK:
+        return o.DK.Make(o.DK_FLAVOR_C, self.code_addr_bitwidth)
 
-    def get_uxx_reg_type(self, bitwidth: int) -> str:
-        return f"U{bitwidth}"
+    def get_uint_reg_type(self) -> o.DK:
+        return o.DK.Make(o.DK_FLAVOR_U, self.uint_bitwidth)
 
-    def get_uint_reg_type(self) -> str:
-        return self.get_uxx_reg_type(self.uint_bitwidth)
+    def get_typeid_reg_type(self) -> o.DK:
+        return o.DK.Make(o.DK_FLAVOR_U,  self.typeid_bitwidth)
 
-    def get_typeid_reg_type(self) -> str:
-        return f"U{self.typeid_bitwidth}"
-
-    def get_sint_reg_type(self) -> str:
-        return f"S{self.sint_bitwidth}"
+    def get_sint_reg_type(self) -> o.DK:
+        return o.DK.Make(o.DK_FLAVOR_S, self.sint_bitwidth)
 
     #
     def get_data_address_size(self) -> int:
@@ -216,6 +214,7 @@ class TargetArchConfig:
 
     def get_typeid_size(self) -> int:
         return self.typeid_bitwidth // 8
+
 
 STD_TARGET_X64 = TargetArchConfig(64, 64, 16, 64, 64, False)
 STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64, False)
@@ -237,11 +236,11 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
         if not t.fits_in_register():
             return cwast.MACHINE_REGS_IN_MEMORY
         scalars.append(t)
-        regs = t.get_single_register_type()
-        k = regs[0]
-        size = int(regs[1:])
-        largest_by_kind[k] = max(largest_by_kind.get(k, 0), size)
-        largest = max(largest, size)
+        rt: o.DK = t.get_single_register_type()
+        flavor = rt.flavor()
+        bitwidth = rt.bitwidth()
+        largest_by_kind[flavor] = max(largest_by_kind.get(flavor, 0), bitwidth)
+        largest = max(largest, bitwidth)
     # special hack for pointer + error-code
     if ta.optimize_union_tag and len(scalars) == 1 and scalars[0].is_pointer():
         return scalars[0].register_types

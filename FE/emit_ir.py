@@ -140,10 +140,10 @@ def _FunTypeStrings(ct: cwast.CanonType) -> tuple[str, list[str]]:
     assert ct.is_fun()
     arg_types: list[Any] = []
     for p in ct.parameter_types():
-        arg_types.append(p.get_single_register_type())
+        arg_types.append(str(p.get_single_register_type()))
     result_type = ""
     if not ct.result_type().is_void():
-        result_type = ct.result_type().get_single_register_type()
+        result_type = str(ct.result_type().get_single_register_type())
     return result_type, arg_types
 
 
@@ -931,16 +931,16 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
             # we need to emit an address
             assert isinstance(node.container, cwast.Id), f"{node.container}"
             name = node.container.x_symbol.name
-            print(f".addr.mem {ta.get_address_size()} {name} 0")
+            print(f".addr.mem {ta.get_data_address_size()} {name} 0")
             # assert False, f"{name} {node.container}"
-            return ta.get_address_size()
+            return ta.get_data_address_size()
         elif isinstance(node, cwast.ExprAddrOf):
             assert isinstance(
                 node.expr_lhs, cwast.Id), "NYI complex static addresses"
             data = node.expr_lhs
             print(
-                f"\n.addr.mem {ta.get_address_size()} {data.x_symbol.name} 0")
-            return ta.get_address_size()
+                f"\n.addr.mem {ta.get_data_address_size()} {data.x_symbol.name} 0")
+            return ta.get_data_address_size()
         elif isinstance(node, cwast.ExprWiden):
             count = _emit_recursively(node.expr, node.expr.x_type, offset)
             target = node.x_type.size

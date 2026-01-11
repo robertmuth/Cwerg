@@ -236,6 +236,16 @@ class DK(enum.Enum):
     def bitwidth(self) -> int:
         return 8 << (self.value & 0x7)
 
+    @classmethod
+    def Make(cls, flavor, bitwidth):
+        if bitwidth < 32:
+            # we want 8->0, 16->1
+            val = (bitwidth >> 3) - 1
+        else:
+            # we want 32-> 2, 64->3
+            val = (bitwidth >> 5) + 1
+        return DK(val | flavor)
+
     def __str__(self):
         return self.name
 
