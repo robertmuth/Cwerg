@@ -2,7 +2,7 @@
 
 #include "BE/Base/eval.h"
 
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "BE/Base/serialize.h"
 
 namespace cwerg::base {

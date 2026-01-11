@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "BE/CpuX64/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "BE/CpuX64/symbolic.h"
 #include "Util/assert.h"
 

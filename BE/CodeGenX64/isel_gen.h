@@ -5,7 +5,7 @@
 #include <cstdint>
 
 #include "BE/Base/ir.h"
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "BE/CodeGenX64/regs.h"
 #include "BE/CpuX64/opcode_gen.h"
 

@@ -1,7 +1,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "BE/Base/canonicalize.h"
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 
 namespace cwerg::base {
 

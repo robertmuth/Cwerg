@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cstdint>
 
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "BE/Base/serialize.h"
 #include "BE/CpuX64//opcode_gen.h"
 

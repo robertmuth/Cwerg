@@ -9,21 +9,6 @@ tests:  $(DIR)/serialize_regression_test_c  $(DIR)/cfg_regression_test_c \
 	@echo "[OK C++ Base]"
 
 ############################################################
-# CodeGen
-############################################################
-
-opcode_gen.h: opcode_tab.py
-	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_h < opcode_gen.h > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-opcode_gen.cc: opcode_tab.py opcode_gen.h
-	@echo "[$@]"
-	$(PYPY) ./opcode_tab.py gen_cc  < opcode_gen.cc > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-GENERATED = opcode_gen.h opcode_gen.cc
-############################################################
 
 STDLIB64 = ../StdLib/syscall.extern64.asm ../StdLib/std_lib.64.asm
 
@@ -36,7 +21,7 @@ $(OPTIMIZE_TOOL)::
 
 
 
-$(DIR)/serialize_regression_test_c: opcode_gen.h opcode_gen.cc $(OPTIMIZE_TOOL)
+$(DIR)/serialize_regression_test_c: ../../IR/opcode_gen.h ../../IR/opcode_gen.cc $(OPTIMIZE_TOOL)
 	@echo "[$@]"
 	cat ${STDLIB64} ../TestData/nano_jpeg.64.asm | $(OPTIMIZE_TOOL) -mode serialize > $@.1.out
 	$(BUILD_DIR)/optimize_tool.exe  -mode serialize < $@.1.out > $@.2.out

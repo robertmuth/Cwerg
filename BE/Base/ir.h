@@ -10,7 +10,7 @@ All the basic abstractions and their stripes.
 #include <string_view>
 #include <vector>
 
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "Util/assert.h"
 #include "Util/bitvec.h"
 #include "Util/bst.h"

@@ -5,7 +5,7 @@
 #include "BE/Base/cfg.h"
 #include "BE/Base/liveness.h"
 #include "BE/Base/lowering.h"
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "BE/Base/reaching_defs.h"
 #include "BE/Base/reg_stats.h"
 #include "BE/Base/sanity.h"

@@ -2,7 +2,7 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include "BE/CodeGenA64/isel_gen.h"
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 
 #include <algorithm>
 #include <cstdint>

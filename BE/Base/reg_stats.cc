@@ -7,7 +7,7 @@
 #include <map>
 
 #include "BE/Base/liveness.h"
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "BE/Base/reg_alloc.h"
 #include "BE/Base/serialize.h"
 

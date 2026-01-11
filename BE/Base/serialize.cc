@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "Util/parse.h"
 
 namespace cwerg::base {

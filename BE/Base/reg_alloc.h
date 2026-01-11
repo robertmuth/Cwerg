@@ -6,7 +6,7 @@
 
 #include "BE/Base/ir.h"
 #include "BE/Base/liveness.h"
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 
 namespace cwerg::base {
 

@@ -6,7 +6,7 @@
 
 #include "BE/Base/cfg.h"
 #include "BE/Base/eval.h"
-#include "BE/Base/opcode_gen.h"
+#include "IR/opcode_gen.h"
 #include "BE/Base/serialize.h"
 #include "Util/handlevec.h"
 
