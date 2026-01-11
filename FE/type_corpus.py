@@ -221,7 +221,7 @@ STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64, False)
 STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32, False)
 
 
-def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
+def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
     assert ct.node is cwast.TypeUnion
     num_void = 0
     scalars: list[cwast.CanonType] = []
@@ -249,11 +249,11 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
     if ct.untagged and False:
         if largest == 0:
             return cwast.MACHINE_REGS_NONE
-        return cwast.MachineRegs([f"U{largest}"])
+        return cwast.MachineRegs(1, o.DK.Make(o.DK_FLAVOR_U, largest))
     else:
         if largest == 0:
             return cwast.MachineRegs(1, ta.get_typeid_reg_type())
-        return cwast.MachineRegs(2, f"U{largest}", ta.get_typeid_reg_type())
+        return cwast.MachineRegs(2, o.DK.Make(o.DK_FLAVOR_U, largest), ta.get_typeid_reg_type())
 
 
 def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
@@ -272,9 +272,9 @@ def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineR
         fields = ct.ast_node.fields
         if len(fields) == 0:
             cwast.MACHINE_REGS_NONE
-        out = _GetMachineRegs(fields[0].type.x_type, ta)
+        out = _GetMachineRegs(fields[0].x_type, ta)
         for f in fields[1:]:
-            out = out.merge(_GetMachineRegs(f.type.x_type, ta))
+            out = out.merge(_GetMachineRegs(f.x_type, ta))
             if out.num_regs < 0:
                 return out
         return out
@@ -283,7 +283,7 @@ def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineR
     elif ct.node is cwast.DefEnum:
         return _BASE_TYPE_MAP[ct.children[0].base_type_kind]
     elif ct.node is cwast.TypeUnion:
-        return _get_register_type_for_union_type(ct, ta)
+        return _GetMachineRegsForUnion(ct, ta)
     elif ct.node is cwast.DefType:
         return _GetMachineRegs(ct.children[0], ta)
     elif ct.node is cwast.TypeFun:
