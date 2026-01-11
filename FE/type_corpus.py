@@ -195,15 +195,27 @@ class TargetArchConfig:
     def get_code_address_reg_type(self) -> str:
         return f"C{self.code_addr_bitwidth}"
 
+    def get_uxx_reg_type(self, bitwidth: int) -> str:
+        return f"U{bitwidth}"
+
     def get_uint_reg_type(self) -> str:
-        return f"U{self.uint_bitwidth}"
+        return self.get_uxx_reg_type(self.uint_bitwidth)
+
+    def get_typeid_reg_type(self) -> str:
+        return f"U{self.typeid_bitwidth}"
 
     def get_sint_reg_type(self) -> str:
         return f"S{self.sint_bitwidth}"
 
-    def get_address_size(self) -> int:
+    #
+    def get_data_address_size(self) -> int:
         return self.data_addr_bitwidth // 8
 
+    def get_code_address_size(self) -> int:
+        return self.code_addr_bitwidth // 8
+
+    def get_typeid_size(self) -> int:
+        return self.typeid_bitwidth // 8
 
 STD_TARGET_X64 = TargetArchConfig(64, 64, 16, 64, 64, False)
 STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64, False)
@@ -241,8 +253,8 @@ def _get_register_type_for_union_type(ct: cwast.CanonType, ta: TargetArchConfig)
         return cwast.MachineRegs([f"U{largest}"])
     else:
         if largest == 0:
-            return cwast.MachineRegs(1, f"U{ta.typeid_bitwidth}")
-        return cwast.MachineRegs(2, f"U{largest}", f"U{ta.typeid_bitwidth}")
+            return cwast.MachineRegs(1, ta.get_typeid_reg_type())
+        return cwast.MachineRegs(2, f"U{largest}", ta.get_typeid_reg_type())
 
 
 def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
@@ -288,7 +300,7 @@ def _GetSizeAndAlignmentForSum(ct: cwast.CanonType, ta: TargetArchConfig) -> tup
     num_other = 0
     max_size = 0
     max_alignment = 1
-    ptr_size = ta.data_addr_bitwidth // 8
+    ptr_size = ta.get_data_address_size()
     for child_ct in ct.union_member_types():
         if child_ct.is_zero_sized():
             continue
@@ -308,7 +320,7 @@ def _GetSizeAndAlignmentForSum(ct: cwast.CanonType, ta: TargetArchConfig) -> tup
     if ta.optimize_union_tag and num_other == 0 and num_pointer == 1:
         # special hack for pointer + error-code
         return ptr_size, ptr_size
-    tag_size = ta.typeid_bitwidth // 8
+    tag_size = ta.get_typeid_size()
     # the tag is the first component of the tagged union in memory
     max_alignment = max(max_alignment, tag_size)
     return align(tag_size, max_alignment) + max_size, max_alignment
@@ -337,11 +349,11 @@ def _GetSizeAndAlignment(ct: cwast.CanonType,  ta: TargetArchConfig):
         size = ct.base_type_kind.ByteSize()
         return size, size
     elif n is cwast.TypePtr:
-        size = ta.code_addr_bitwidth // 8
+        size = ta.get_code_address_size()
         return size, size
     elif n is cwast.TypeSpan:
         # span is converted to (pointer, length) tuple
-        ptr_field_size = ta.data_addr_bitwidth // 8
+        ptr_field_size = ta.get_data_address_size()
         len_field_size = ta.uint_bitwidth // 8
         return ptr_field_size + len_field_size, ptr_field_size,
     elif n is cwast.TypeVec:
@@ -353,7 +365,7 @@ def _GetSizeAndAlignment(ct: cwast.CanonType,  ta: TargetArchConfig):
         size = ct.children[0].base_type_kind.ByteSize()
         return size, size
     elif n is cwast.TypeFun:
-        size = ta.code_addr_bitwidth // 8
+        size = ta.get_code_address_size()
         return size, size
     elif n is cwast.DefType:
         ct_dep = ct.children[0]
