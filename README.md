@@ -8,19 +8,23 @@
 
 Cwerg aims to be a complete, compact and fast "from-scratch" compiler for a C-like language.
 It has no dependencies and consists of the following components:
+
 * **Frontend (FE)**: [Overview](FE/Docs/tutorial.md), [Additional Docs](FE/Docs/), [Code](FE/)
 
   A low-level C-like language with a Python inspired concrete syntax.
   Still under active development
 
+* **Intermediate Representation (IR)**: [Overview](IR/Docs/opcodes.md), [Code](IR/)
 
-* **Backend (BE)**: [Overview](BE/README.md),  [Backend IR](BE/Docs/opcodes.md), [Additional Docs](BE/Docs/), [Code](BE/)
+  Defines an IR that serves as the interface between frontend and backend.
+
+* **Backend (BE)**: [Overview](BE/README.md), [Additional Docs](BE/Docs/), [Code](BE/)
 
   Muti-target (currently: X86-64, Aarch64, Arm32).
 
   Also suitable for other compilers and as a JIT.
 
-  Defines an IR that serves as the interface between frontend and backend.
+
 
 To get started hacking on Cwerg please read [getting_started.md](getting_started.md).
 
