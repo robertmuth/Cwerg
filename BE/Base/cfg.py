@@ -4,7 +4,7 @@
 from typing import List, Tuple, Set
 
 from BE.Base import ir
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 
 _OPCODE_BRANCH_INVERSION = {  #
     o.BNE: (o.BEQ, False),

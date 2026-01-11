@@ -8,7 +8,7 @@ import enum
 from typing import List, Dict, Any, Optional
 
 from BE.Base import ir
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 from BE.CodeGenX64 import regs
 from BE.CpuX64 import opcode_tab as x64
 from BE.Elf import enum_tab

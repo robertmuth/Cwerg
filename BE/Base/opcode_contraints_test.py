@@ -8,7 +8,7 @@ import unittest
 
 from BE.Base import ir
 from BE.Base import sanity
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 
 reg_s64 = ir.Reg("reg_s64", o.DK.S64)
 reg_s32 = ir.Reg("reg_s32", o.DK.S32)

@@ -6,7 +6,7 @@ import unittest
 from BE.Base import cfg
 from BE.Base import ir
 from BE.Base import liveness
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 from BE.Base import serialize
 from BE.Base import optimize
 

@@ -29,7 +29,7 @@ import http.server
 from BE.Base import ir
 from BE.Base import reg_alloc
 from BE.Base import liveness
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 
 # NOTE NOTE NOTE: you must change this to reflect the  backend where he liveranges originate
 if False:

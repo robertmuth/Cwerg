@@ -5,7 +5,7 @@ are known/constant.
 
 from typing import Optional
 from BE.Base import ir
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 
 # TODO: naive implementation -> needs a lot more scrutiny
 _EVALUATORS_ALU = {

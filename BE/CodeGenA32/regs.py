@@ -9,7 +9,7 @@ import enum
 from BE.Base import ir
 from BE.Base import liveness
 from BE.Base import lowering
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 from BE.Base import reg_alloc
 from BE.Base import serialize
 

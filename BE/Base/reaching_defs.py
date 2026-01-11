@@ -5,7 +5,7 @@ import dataclasses
 from typing import Dict, Tuple, Any, Optional, List, Set
 
 from BE.Base import ir
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 from BE.Base import serialize
 from BE.Base import eval
 

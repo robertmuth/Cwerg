@@ -2,7 +2,7 @@
 from typing import List, Optional
 
 from BE.Base import ir
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 
 
 def _InsCanonicalize(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:

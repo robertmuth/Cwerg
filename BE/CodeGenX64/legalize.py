@@ -5,7 +5,7 @@ from BE.Base import canonicalize
 from BE.Base import ir
 from BE.Base import liveness
 from BE.Base import lowering
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 from BE.Base import optimize
 from BE.Base import reg_stats
 from BE.Base import sanity

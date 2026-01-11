@@ -7,7 +7,7 @@ import struct
 from typing import List, Dict, Optional, Any
 
 from BE.Base import ir
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 from Util import parse
 from BE.Base import sanity
 

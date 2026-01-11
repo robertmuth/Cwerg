@@ -4,7 +4,7 @@ import unittest
 
 from BE.CodeGenA32 import isel_tab
 from BE.Base import ir
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 
 
 class TestRanges(unittest.TestCase):

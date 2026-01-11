@@ -17,7 +17,7 @@ import enum
 import struct
 from typing import List, Dict, Set, Optional, Any
 
-from BE.Base import opcode_tab as o
+from IR import opcode_tab as o
 
 
 class ParseError(Exception):
