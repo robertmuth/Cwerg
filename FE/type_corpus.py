@@ -275,7 +275,7 @@ def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineR
         out = _GetMachineRegs(fields[0].x_type, ta)
         for f in fields[1:]:
             out = out.merge(_GetMachineRegs(f.x_type, ta))
-            if out.num_regs < 0:
+            if out.num_regs == -1:
                 return out
         return out
     elif ct.node is cwast.TypeVec:
