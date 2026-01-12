@@ -188,11 +188,11 @@ class TC(enum.Enum):
 # DataType Flavors
 ############################################################
 
-DK_FLAVOR_S = 1 << 4   # signed int
-DK_FLAVOR_U = 2 << 4  # unsigned int
-DK_FLAVOR_R = 3 << 4  # ieee floating point
-DK_FLAVOR_A = 4 << 4  # data address
-DK_FLAVOR_C = 5 << 4  # code address
+DK_FLAVOR_S = 1   # signed int
+DK_FLAVOR_U = 2   # unsigned int
+DK_FLAVOR_R = 3   # ieee floating point
+DK_FLAVOR_A = 4   # data address
+DK_FLAVOR_C = 5   # code address
 
 _DK_WIDTH_8 = 0
 _DK_WIDTH_16 = 1
@@ -209,29 +209,29 @@ class DK(enum.Enum):
     INVALID = 0
 
     # signed
-    S8 = DK_FLAVOR_S + _DK_WIDTH_8
-    S16 = DK_FLAVOR_S + _DK_WIDTH_16
-    S32 = DK_FLAVOR_S + _DK_WIDTH_32
-    S64 = DK_FLAVOR_S + _DK_WIDTH_64
+    S8 = (DK_FLAVOR_S << 4) + _DK_WIDTH_8
+    S16 = (DK_FLAVOR_S << 4) + _DK_WIDTH_16
+    S32 = (DK_FLAVOR_S << 4) + _DK_WIDTH_32
+    S64 = (DK_FLAVOR_S << 4) + _DK_WIDTH_64
     # unsigned
-    U8 = DK_FLAVOR_U + _DK_WIDTH_8
-    U16 = DK_FLAVOR_U + _DK_WIDTH_16
-    U32 = DK_FLAVOR_U + _DK_WIDTH_32
-    U64 = DK_FLAVOR_U + _DK_WIDTH_64
+    U8 = (DK_FLAVOR_U << 4) + _DK_WIDTH_8
+    U16 = (DK_FLAVOR_U << 4) + _DK_WIDTH_16
+    U32 = (DK_FLAVOR_U << 4) + _DK_WIDTH_32
+    U64 = (DK_FLAVOR_U << 4) + _DK_WIDTH_64
     # float
-    R8 = DK_FLAVOR_R + _DK_WIDTH_8
-    R16 = DK_FLAVOR_R + _DK_WIDTH_16
-    R32 = DK_FLAVOR_R + _DK_WIDTH_32
-    R64 = DK_FLAVOR_R + _DK_WIDTH_64
+    R8 = (DK_FLAVOR_R << 4) + _DK_WIDTH_8
+    R16 = (DK_FLAVOR_R << 4) + _DK_WIDTH_16
+    R32 = (DK_FLAVOR_R << 4) + _DK_WIDTH_32
+    R64 = (DK_FLAVOR_R << 4) + _DK_WIDTH_64
     # data address
-    A32 = DK_FLAVOR_A + _DK_WIDTH_32
-    A64 = DK_FLAVOR_A + _DK_WIDTH_64
+    A32 = (DK_FLAVOR_A << 4) + _DK_WIDTH_32
+    A64 = (DK_FLAVOR_A << 4) + _DK_WIDTH_64
     # code address
-    C32 = DK_FLAVOR_C + _DK_WIDTH_32
-    C64 = DK_FLAVOR_C + _DK_WIDTH_64
+    C32 = (DK_FLAVOR_C << 4) + _DK_WIDTH_32
+    C64 = (DK_FLAVOR_C << 4) + _DK_WIDTH_64
 
     def flavor(self) -> int:
-        return self.value & 0x70
+        return (self.value & 0x70) >> 4
 
     def bitwidth(self) -> int:
         return 8 << (self.value & 0x7)
@@ -244,7 +244,7 @@ class DK(enum.Enum):
         else:
             # we want 32-> 2, 64->3
             val = (bitwidth >> 5) + 1
-        return DK(val | flavor)
+        return DK(val | (flavor << 4))
 
     def __str__(self):
         return self.name
