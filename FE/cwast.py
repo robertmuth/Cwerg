@@ -904,6 +904,16 @@ class MachineRegs:
             return MachineRegs(2, self.reg1, other.reg2)
         return MACHINE_REGS_IN_MEMORY
 
+    def __str__(self):
+        if self._num_regs:
+            return "IN_MEMORY"
+        if self.num_regs == 0:
+            return "[]"
+        if self.num_regs == 1:
+            return "[" + str(self.reg1) + "]"
+        if self.num_regs == 2:
+            return "[" + str(self.reg1) + ", " + str(self.reg2) + "]"
+
 
 MACHINE_REGS_IN_MEMORY = MachineRegs(_IN_MEM)
 MACHINE_REGS_NONE = MachineRegs(0)

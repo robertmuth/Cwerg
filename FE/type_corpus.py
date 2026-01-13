@@ -228,8 +228,7 @@ def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.
     largest_by_kind: dict[str, int] = {}
     largest = 0
     for t in ct.union_member_types():
-        if t.is_wrapped():
-            t = t.children[0]
+        t = t.get_unwrapped()
         if t.is_void():
             num_void += 1
             continue
@@ -245,15 +244,15 @@ def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.
     if ta.optimize_union_tag and len(scalars) == 1 and scalars[0].is_pointer():
         return scalars[0].register_types
 
-    # TODO
-    if ct.untagged and False:
+    # BUG repro: ./emit_ir.py LangTest/linked_list_gen_test.cw
+    if False and ct.untagged:
         if largest == 0:
             return cwast.MACHINE_REGS_NONE
         return cwast.MachineRegs(1, o.DK.Make(o.DK_FLAVOR_U, largest))
-    else:
-        if largest == 0:
-            return cwast.MachineRegs(1, ta.get_typeid_reg_type())
-        return cwast.MachineRegs(2, o.DK.Make(o.DK_FLAVOR_U, largest), ta.get_typeid_reg_type())
+
+    if largest == 0:
+        return cwast.MachineRegs(1, ta.get_typeid_reg_type())
+    return cwast.MachineRegs(2, ta.get_typeid_reg_type(), o.DK.Make(o.DK_FLAVOR_U, largest))
 
 
 def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
@@ -281,11 +280,11 @@ def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineR
     elif ct.node is cwast.TypeVec:
         return cwast.MACHINE_REGS_IN_MEMORY
     elif ct.node is cwast.DefEnum:
-        return _BASE_TYPE_MAP[ct.children[0].base_type_kind]
+        return _BASE_TYPE_MAP[ct.underlying_type().base_type_kind]
     elif ct.node is cwast.TypeUnion:
         return _GetMachineRegsForUnion(ct, ta)
     elif ct.node is cwast.DefType:
-        return _GetMachineRegs(ct.children[0], ta)
+        return _GetMachineRegs(ct.underlying_type(), ta)
     elif ct.node is cwast.TypeFun:
         return cwast.MachineRegs(1, ta.get_code_address_reg_type())
     else:

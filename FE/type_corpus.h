@@ -16,15 +16,9 @@ struct TargetArchConfig {
   int code_addr_bitwidth;
   bool optimize_union_tag;
 
-  inline BASE_TYPE_KIND get_uint_kind() const {
-    return MakeUint(uint_bitwidth);
-  }
-  inline BASE_TYPE_KIND get_sint_kind() const {
-    return MakeSint(sint_bitwidth);
-  }
-  inline BASE_TYPE_KIND get_typeid_kind() const {
-    return MakeUint(typeid_bitwidth);
-  }
+  BASE_TYPE_KIND get_uint_kind() const { return MakeUint(uint_bitwidth); }
+  BASE_TYPE_KIND get_sint_kind() const { return MakeSint(sint_bitwidth); }
+  BASE_TYPE_KIND get_typeid_kind() const { return MakeUint(typeid_bitwidth); }
 };
 
 constexpr TargetArchConfig STD_TARGET_X64 = {64, 64, 16, 64, 64, false};
@@ -48,6 +42,10 @@ extern int& CanonType_typeid(CanonType n);
 
 inline bool CanonType_is_wrapped(CanonType ct) {
   return CanonType_kind(ct) == NT::DefType;
+}
+
+inline bool CanonType_is_fun(CanonType ct) {
+  return CanonType_kind(ct) == NT::TypeFun;
 }
 
 inline bool CanonType_is_base_type(CanonType ct) {
@@ -95,6 +93,12 @@ inline CanonType CanonType_result_type(CanonType ct) {
 
 extern BASE_TYPE_KIND CanonType_get_unwrapped_base_type_kind(CanonType n);
 extern BASE_TYPE_KIND CanonType_base_type_kind(CanonType n);
+
+inline bool CanonType_is_void(CanonType ct) {
+  return CanonType_kind(ct) == NT::TypeBase &&
+         CanonType_base_type_kind(ct) == BASE_TYPE_KIND::VOID;
+}
+
 extern bool CanonType_is_unwrapped_complex(CanonType ct);
 extern CanonType CanonType_get_unwrapped(CanonType n);
 extern bool CanonType_tagged_union_contains(CanonType haystack,

@@ -1,16 +1,85 @@
 #include "FE/type_corpus.h"
 
 #include <array>
+#include <iostream>
 #include <map>
 #include <set>
 
+#include "IR/opcode_gen.h"
 #include "Util/assert.h"
 
 namespace cwerg::fe {
 
+using namespace cwerg::base;
 // =======================================
 // CanonType API
 // =======================================
+
+struct MachineRegs {
+  int8_t num_regs = 0;
+  DK reg1 = DK::INVALID;
+  DK reg2 = DK::INVALID;
+
+  MachineRegs Merge(const MachineRegs& other) const {
+    if (num_regs == -1) return *this;
+    if (other.num_regs == -1) return other;
+    if (num_regs == 0) return other;
+    if (other.num_regs == 0) return *this;
+    if (num_regs == 1 && other.num_regs == 1) {
+      return {2, reg1, other.reg2};
+    }
+    //  MACHINE_REGS_IN_MEMORY
+    return {-1, DK::INVALID, DK::INVALID};
+  }
+};
+
+std::ostream& operator<<(std::ostream& os, const MachineRegs& mr) {
+  if (mr.num_regs == -1) {
+    os << "IN_MEMORY";
+  }
+
+  os << "[";
+  if (mr.reg1 != DK::INVALID) {
+    os << EnumToString(mr.reg1);
+  }
+  if (mr.reg2 != DK::INVALID) {
+    os << ", " << EnumToString(mr.reg2);
+  }
+  os << "]";
+  return os;
+}
+
+constexpr MachineRegs MACHINE_REGS_NONE = {0, DK::INVALID, DK::INVALID};
+constexpr MachineRegs MACHINE_REGS_IN_MEMORY = {-1, DK::INVALID, DK::INVALID};
+
+constexpr std::array<MachineRegs, 128> InitMachineRegsDK() {
+  std::array<MachineRegs, 128> out;
+  //
+  out[int(BASE_TYPE_KIND::S8)] = {1, DK::S8};
+  out[int(BASE_TYPE_KIND::S16)] = {1, DK::S16};
+  out[int(BASE_TYPE_KIND::S32)] = {1, DK::S32};
+  out[int(BASE_TYPE_KIND::S64)] = {1, DK::S64};
+  //
+  out[int(BASE_TYPE_KIND::U8)] = {1, DK::U8};
+  out[int(BASE_TYPE_KIND::U16)] = {1, DK::U16};
+  out[int(BASE_TYPE_KIND::U32)] = {1, DK::U32};
+  out[int(BASE_TYPE_KIND::U64)] = {1, DK::U64};
+  //
+  out[int(BASE_TYPE_KIND::R32)] = {1, DK::R32};
+  out[int(BASE_TYPE_KIND::R64)] = {1, DK::R64};
+  //
+  out[int(BASE_TYPE_KIND::BOOL)] = {1, DK::U8};
+  out[int(BASE_TYPE_KIND::VOID)] = MACHINE_REGS_NONE;
+  out[int(BASE_TYPE_KIND::NORET)] = MACHINE_REGS_NONE;
+  //
+  return out;
+}
+
+const std::array<MachineRegs, 128> gMachineRegsDK = InitMachineRegsDK();
+
+const MachineRegs& GetMachineRegsForTypeBase(BASE_TYPE_KIND kind) {
+  return gMachineRegsDK[int(kind)];
+}
 
 struct CanonTypeCore {
   NT node;
@@ -28,6 +97,7 @@ struct CanonTypeCore {
   int type_id = -1;
   CanonType replacement_type = kCanonTypeInvalid;
   CanonType original_type = kCanonTypeInvalid;
+  MachineRegs register_type;
 };
 
 struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore("CanonTypeCore");
@@ -81,12 +151,14 @@ bool CanonType_is_finalized(CanonType ct) {
   return gCanonTypeCore[ct].alignment > 0;
 }
 
-void CanonType_Finalize(CanonType ct, SizeOrDim size, size_t alignment) {
+void CanonType_Finalize(CanonType ct, SizeOrDim size, size_t alignment,
+                        MachineRegs regs) {
   ASSERT(size >= 0 && alignment >= 0,
          "" << size << " " << alignment << " " << ct);
   ASSERT(gCanonTypeCore[ct].alignment < 0, "already finalized " << ct);
   gCanonTypeCore[ct].alignment = alignment;
   gCanonTypeCore[ct].size = size;
+  gCanonTypeCore[ct].register_type = regs;
 }
 
 NT CanonType_kind(CanonType ct) { return gCanonTypeCore[ct].node; }
@@ -185,6 +257,19 @@ Node CanonType_get_rec_field(CanonType ct, int no) {
   }
   ASSERT(f.kind() == NT::RecField, "");
   return f;
+}
+
+bool CanonType_fits_in_register(CanonType ct) {
+  return gCanonTypeCore[ct].register_type.num_regs == 1;
+}
+
+DK CanonType_single_register_type(CanonType ct) {
+  ASSERT(gCanonTypeCore[ct].register_type.num_regs == 1, "");
+  return gCanonTypeCore[ct].register_type.reg1;
+}
+
+MachineRegs CanonType_register_type(CanonType ct) {
+  return gCanonTypeCore[ct].register_type;
 }
 
 CanonType CanonTypeNew() {
@@ -299,104 +384,199 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch) {
       base_type_map_[arch.get_typeid_kind()];
 }
 
+struct SizeAndAlignment {
+  SizeOrDim size;
+  SizeOrDim alignment;
+};
+
+SizeAndAlignment GetSizeAndAlignmentForSum(CanonType ct,
+                                           const TargetArchConfig& ta) {
+  int num_pointer = 0;
+  int num_other = 0;
+  SizeOrDim max_size = 0;
+  SizeOrDim max_alignment = 1;
+  SizeOrDim ptr_size = ta.code_addr_bitwidth / 8;
+  for (CanonType child_ct : CanonType_children(ct)) {
+    if (CanonType_size(child_ct) == 0) continue;
+    while (CanonType_kind(child_ct) == NT::DefType) {
+      child_ct = CanonType_children(child_ct)[0];
+    }
+    if (CanonType_kind(child_ct) == NT::TypePtr) {
+      ++num_pointer;
+      max_size = std::max(max_size, ptr_size);
+      max_alignment = std::max(max_alignment, ptr_size);
+    } else {
+      ++num_other;
+      max_size = std::max(max_size, CanonType_size(child_ct));
+      max_alignment = std::max(max_alignment, CanonType_alignment(child_ct));
+    }
+  }
+  if (CanonType_untagged(ct)) {
+    return {max_size, max_alignment};
+  }
+
+  if (ta.optimize_union_tag && num_pointer == 1 && num_other == 0) {
+    return {ptr_size, ptr_size};
+  }
+  SizeOrDim tag_size = ta.typeid_bitwidth / 8;
+  max_alignment = std::max(max_alignment, tag_size);
+
+  return {align(tag_size, max_alignment) + max_size, max_alignment};
+}
+
+SizeAndAlignment GetSizeAndAlignmentForRec(CanonType ct,
+                                           const TargetArchConfig& ta) {
+  SizeOrDim size = 0;
+  SizeOrDim alignment = 1;
+  Node def_rec = CanonType_ast_node(ct);
+  for (Node field = Node_fields(def_rec); !field.isnull();
+       field = Node_next(field)) {
+    CanonType field_ct = Node_x_type(field);
+    size = align(size, CanonType_alignment(field_ct));
+    Node_x_offset(field) = size;
+    size += CanonType_size(field_ct);
+    alignment = std::max(alignment, CanonType_alignment(field_ct));
+  }
+  return {size, alignment};
+}
+
+SizeAndAlignment GetSizeAndAlignment(CanonType ct, const TargetArchConfig& ta) {
+  switch (CanonType_kind(ct)) {
+    case NT::TypeBase: {
+      auto size = BaseTypeKindByteSize(CanonType_base_type_kind(ct));
+      return {size, size};
+    }
+    case NT::TypePtr: {
+      SizeOrDim size = ta.data_addr_bitwidth / 8;
+      return {size, size};
+    }
+    case NT::TypeSpan: {
+      SizeOrDim ptr_size = ta.data_addr_bitwidth / 8;
+      SizeOrDim len_size = ta.uint_bitwidth / 8;
+      ASSERT(ptr_size == len_size, "TODO: needs more work");
+      return {SizeOrDim(ptr_size + len_size), ptr_size};
+    }
+    case NT::TypeVec: {
+      CanonType ct_dep = CanonType_underlying_type(ct);
+      auto dim = CanonType_dim(ct);
+      auto elem_size = CanonType_aligned_size(ct_dep);
+      return {SizeOrDim(elem_size * dim), CanonType_alignment(ct_dep)};
+    }
+    case NT::TypeUnion:
+      return GetSizeAndAlignmentForSum(ct, ta);
+    case NT::DefEnum: {
+      SizeOrDim size = CanonType_size(CanonType_underlying_type(ct));
+      return {size, size};
+    }
+    case NT::TypeFun: {
+      SizeOrDim size = ta.code_addr_bitwidth / 8;
+      return {size, size};
+    }
+
+    case NT::DefRec:
+      return GetSizeAndAlignmentForRec(ct, ta);
+
+    case NT::DefType: {
+      CanonType ct_dep = CanonType_underlying_type(ct);
+      return {CanonType_size(ct_dep), CanonType_alignment(ct_dep)};
+    }
+    default:
+      ASSERT(false, "UNREACHABLE");
+      return {0, 0};
+  }
+}
+
+MachineRegs GetMachineRegsForUnion(CanonType ct, const TargetArchConfig& ta) {
+  std::vector<CanonType> scalars;
+  std::array<int, 16> larges_by_kind{
+      0};  // zero initializes all elements to zero
+  int num_void = 0;
+  int largest = 0;
+  for (CanonType child : CanonType_children(ct)) {
+    child = CanonType_get_unwrapped(child);
+    if (CanonType_is_void(child)) {
+      ++num_void;
+      continue;
+    }
+    if (!CanonType_fits_in_register(child)) {
+      return MACHINE_REGS_IN_MEMORY;
+    }
+    scalars.push_back(child);
+    DK rt = CanonType_single_register_type(child);
+    larges_by_kind[DKFlavor(rt)] =
+        std::max(larges_by_kind[DKFlavor(rt)], DKBitWidth(rt));
+    largest = std::max(largest, DKBitWidth(rt));
+  }
+  if (ta.optimize_union_tag && scalars.size() == 1 &&
+      CanonType_kind(scalars[0]) == NT::TypePtr) {
+    return CanonType_register_type(scalars[0]);
+  }
+
+  if (largest == 0) {
+    return {1, DKMake(DK_FLAVOR_U, ta.typeid_bitwidth)};
+  }
+   return {2, DKMake(DK_FLAVOR_U, ta.typeid_bitwidth), DKMake(DK_FLAVOR_U, largest)};
+}
+
+MachineRegs GetMachineRegs(CanonType ct, const TargetArchConfig& ta) {
+  switch (CanonType_kind(ct)) {
+    case NT::TypeBase:
+      return GetMachineRegsForTypeBase(CanonType_base_type_kind(ct));
+    case NT::TypePtr:
+      return {1, DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth)};
+    case NT::TypeSpan:
+      return {2, DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth),
+              DKMake(DK_FLAVOR_U, ta.uint_bitwidth)};
+    case NT::DefRec: {
+      Node f = Node_fields(CanonType_ast_node(ct));
+      if (!f.isnull()) return MACHINE_REGS_NONE;
+      MachineRegs out = GetMachineRegs(Node_x_type(f), ta);
+      for (;;) {
+        f = Node_next(f);
+        if (f.isnull()) break;
+        out.Merge(GetMachineRegs(Node_x_type(f), ta));
+        if (out.num_regs == -1) return out;
+      }
+      return out;
+    }
+
+    case NT::TypeVec:
+      return MACHINE_REGS_IN_MEMORY;
+    case NT::TypeUnion:
+      return GetMachineRegsForUnion(ct, ta);
+    case NT::DefEnum:
+      return GetMachineRegsForTypeBase(
+          CanonType_base_type_kind(CanonType_underlying_type(ct)));
+    case NT::DefType:
+      return GetMachineRegs(CanonType_underlying_type(ct), ta);
+    case NT::TypeFun:
+      return {1, DKMake(DK_FLAVOR_C, ta.code_addr_bitwidth)};
+
+    default:
+      ASSERT(false, "UNREACHABLE");
+      return {};
+  }
+}
+
 void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
   if (CanonType_alignment(ct) >= 0) return;
   if (CanonType_kind(ct) != NT::TypePtr && CanonType_kind(ct) != NT::TypeFun) {
     for (CanonType child : CanonType_children(ct)) {
       SetAbiInfoRecursively(child, ta);
     }
+    if (CanonType_kind(ct) == NT::DefRec) {
+      for (Node rf = Node_fields(CanonType_ast_node(ct)); !rf.isnull();
+           rf = Node_next(rf)) {
+        SetAbiInfoRecursively(Node_x_type(rf), ta);
+      }
+    }
   }
 
-  switch (CanonType_kind(ct)) {
-    case NT::TypeBase: {
-      auto size = BaseTypeKindByteSize(CanonType_base_type_kind(ct));
-      return CanonType_Finalize(ct, size, size);
-    }
-    case NT::TypePtr: {
-      size_t size = ta.data_addr_bitwidth / 8;
-      return CanonType_Finalize(ct, SizeOrDim(size), size);
-    }
-    case NT::TypeSpan: {
-      size_t ptr_size = ta.data_addr_bitwidth / 8;
-      size_t len_size = ta.uint_bitwidth / 8;
-      ASSERT(ptr_size == len_size, "TODO: needs more work");
-      return CanonType_Finalize(ct, SizeOrDim(ptr_size + len_size), ptr_size);
-    }
-    case NT::TypeVec: {
-      CanonType ct_dep = CanonType_underlying_type(ct);
-      auto dim = CanonType_dim(ct);
-      auto elem_size = CanonType_aligned_size(ct_dep);
-      return CanonType_Finalize(ct, SizeOrDim(elem_size * dim),
-                                CanonType_alignment(ct_dep));
-    }
-    case NT::TypeUnion: {
-      int num_pointer = 0;
-      int num_other = 0;
-      SizeOrDim max_size = 0;
-      SizeOrDim max_alignment = 1;
-      SizeOrDim ptr_size = ta.code_addr_bitwidth / 8;
-      for (CanonType child_ct : CanonType_children(ct)) {
-        if (CanonType_size(child_ct) == 0) continue;
-        while (CanonType_kind(child_ct) == NT::DefType) {
-          child_ct = CanonType_children(child_ct)[0];
-        }
-        if (CanonType_kind(child_ct) == NT::TypePtr) {
-          ++num_pointer;
-          max_size = std::max(max_size, ptr_size);
-          max_alignment = std::max(max_alignment, ptr_size);
-        } else {
-          ++num_other;
-          max_size = std::max(max_size, CanonType_size(child_ct));
-          max_alignment =
-              std::max(max_alignment, CanonType_alignment(child_ct));
-        }
-      }
-      if (CanonType_untagged(ct)) {
-        return CanonType_Finalize(ct, max_size, max_alignment);
-      }
+  MachineRegs regs = GetMachineRegs(ct, ta);
 
-      if (ta.optimize_union_tag && num_pointer == 1 && num_other == 0) {
-        return CanonType_Finalize(ct, ptr_size, ptr_size);
-      }
-      SizeOrDim tag_size = ta.typeid_bitwidth / 8;
-      max_alignment = std::max(max_alignment, tag_size);
+  auto [size, alignment] = GetSizeAndAlignment(ct, ta);
 
-      return CanonType_Finalize(ct, align(tag_size, max_alignment) + max_size,
-                                max_alignment);
-    }
-    case NT::DefEnum: {
-      int size = CanonType_size(CanonType_underlying_type(ct));
-      return CanonType_Finalize(ct, size, size);
-    }
-    case NT::TypeFun: {
-      size_t size = ta.code_addr_bitwidth / 8;
-      return CanonType_Finalize(ct, size, size);
-    }
-
-    case NT::DefRec: {
-      SizeOrDim size = 0;
-      SizeOrDim alignment = 1;
-      Node def_rec = CanonType_ast_node(ct);
-      for (Node field = Node_fields(def_rec); !field.isnull();
-           field = Node_next(field)) {
-        CanonType field_ct = Node_x_type(field);
-        size = align(size, CanonType_alignment(field_ct));
-        Node_x_offset(field) = size;
-        size += CanonType_size(field_ct);
-        alignment = std::max(alignment, CanonType_alignment(field_ct));
-      }
-      return CanonType_Finalize(ct, size, alignment);
-    }
-
-    case NT::DefType: {
-      CanonType ct_dep = CanonType_underlying_type(ct);
-      return CanonType_Finalize(ct, CanonType_size(ct_dep),
-                                CanonType_alignment(ct_dep));
-    }
-    default:
-      ASSERT(false, "UNREACHABLE");
-      break;
-  }
+  CanonType_Finalize(ct, size, alignment, regs);
 }
 
 CanonType TypeCorpus::Insert(CanonType ct) {
