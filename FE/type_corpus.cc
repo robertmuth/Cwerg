@@ -16,26 +16,24 @@ using namespace cwerg::base;
 // =======================================
 
 struct MachineRegs {
-  int8_t num_regs = 0;
+  int16_t num_regs = 0;
   DK reg1 = DK::INVALID;
   DK reg2 = DK::INVALID;
 
-  MachineRegs Merge(const MachineRegs& other) const {
-    if (num_regs == -1) return *this;
-    if (other.num_regs == -1) return other;
-    if (num_regs == 0) return other;
-    if (other.num_regs == 0) return *this;
-    if (num_regs == 1 && other.num_regs == 1) {
-      return {2, reg1, other.reg2};
-    }
-    //  MACHINE_REGS_IN_MEMORY
-    return {-1, DK::INVALID, DK::INVALID};
+  void Merge(const MachineRegs& other) {
+    if (num_regs == -1 || other.num_regs == 0) return;
+    else if (other.num_regs == -1 || num_regs == 0) *this = other;
+    else if (num_regs == 1 && other.num_regs == 1)
+      *this = {2, reg1, other.reg1};
+    else
+      num_regs = -1;
   }
 };
 
 std::ostream& operator<<(std::ostream& os, const MachineRegs& mr) {
   if (mr.num_regs == -1) {
     os << "IN_MEMORY";
+    return os;
   }
 
   os << "[";
@@ -97,7 +95,7 @@ struct CanonTypeCore {
   int type_id = -1;
   CanonType replacement_type = kCanonTypeInvalid;
   CanonType original_type = kCanonTypeInvalid;
-  MachineRegs register_type;
+  MachineRegs ir_regs = MACHINE_REGS_IN_MEMORY;
 };
 
 struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore("CanonTypeCore");
@@ -158,7 +156,7 @@ void CanonType_Finalize(CanonType ct, SizeOrDim size, size_t alignment,
   ASSERT(gCanonTypeCore[ct].alignment < 0, "already finalized " << ct);
   gCanonTypeCore[ct].alignment = alignment;
   gCanonTypeCore[ct].size = size;
-  gCanonTypeCore[ct].register_type = regs;
+  gCanonTypeCore[ct].ir_regs = regs;
 }
 
 NT CanonType_kind(CanonType ct) { return gCanonTypeCore[ct].node; }
@@ -260,16 +258,16 @@ Node CanonType_get_rec_field(CanonType ct, int no) {
 }
 
 bool CanonType_fits_in_register(CanonType ct) {
-  return gCanonTypeCore[ct].register_type.num_regs == 1;
+  return gCanonTypeCore[ct].ir_regs.num_regs == 1;
 }
 
 DK CanonType_single_register_type(CanonType ct) {
-  ASSERT(gCanonTypeCore[ct].register_type.num_regs == 1, "");
-  return gCanonTypeCore[ct].register_type.reg1;
+  ASSERT(gCanonTypeCore[ct].ir_regs.num_regs == 1, "");
+  return gCanonTypeCore[ct].ir_regs.reg1;
 }
 
-MachineRegs CanonType_register_type(CanonType ct) {
-  return gCanonTypeCore[ct].register_type;
+MachineRegs CanonType_ir_regs(CanonType ct) {
+  return gCanonTypeCore[ct].ir_regs;
 }
 
 CanonType CanonTypeNew() {
@@ -509,13 +507,14 @@ MachineRegs GetMachineRegsForUnion(CanonType ct, const TargetArchConfig& ta) {
   }
   if (ta.optimize_union_tag && scalars.size() == 1 &&
       CanonType_kind(scalars[0]) == NT::TypePtr) {
-    return CanonType_register_type(scalars[0]);
+    return CanonType_ir_regs(scalars[0]);
   }
 
   if (largest == 0) {
     return {1, DKMake(DK_FLAVOR_U, ta.typeid_bitwidth)};
   }
-   return {2, DKMake(DK_FLAVOR_U, ta.typeid_bitwidth), DKMake(DK_FLAVOR_U, largest)};
+  return {2, DKMake(DK_FLAVOR_U, ta.typeid_bitwidth),
+          DKMake(DK_FLAVOR_U, largest)};
 }
 
 MachineRegs GetMachineRegs(CanonType ct, const TargetArchConfig& ta) {
@@ -523,13 +522,13 @@ MachineRegs GetMachineRegs(CanonType ct, const TargetArchConfig& ta) {
     case NT::TypeBase:
       return GetMachineRegsForTypeBase(CanonType_base_type_kind(ct));
     case NT::TypePtr:
-      return {1, DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth)};
+      return {1, DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth), DK::INVALID};
     case NT::TypeSpan:
       return {2, DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth),
               DKMake(DK_FLAVOR_U, ta.uint_bitwidth)};
     case NT::DefRec: {
       Node f = Node_fields(CanonType_ast_node(ct));
-      if (!f.isnull()) return MACHINE_REGS_NONE;
+      if (f.isnull()) return MACHINE_REGS_NONE;
       MachineRegs out = GetMachineRegs(Node_x_type(f), ta);
       for (;;) {
         f = Node_next(f);
@@ -573,7 +572,6 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
   }
 
   MachineRegs regs = GetMachineRegs(ct, ta);
-
   auto [size, alignment] = GetSizeAndAlignment(ct, ta);
 
   CanonType_Finalize(ct, size, alignment, regs);
@@ -833,7 +831,7 @@ void TypeCorpus::Dump() {
               << " id=" << CanonType_typeid(ct)
               << " size=" << CanonType_size(ct)
               << " align=" << CanonType_alignment(ct) << " original=" << orginal
-              << "\n";
+              << " ir=" << CanonType_ir_regs(ct) << "\n";
   }
 }
 

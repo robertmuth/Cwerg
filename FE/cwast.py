@@ -901,11 +901,11 @@ class MachineRegs:
         elif other.num_regs == 0:
             return self
         if self.num_regs == 1 and other.num_regs == 1:
-            return MachineRegs(2, self.reg1, other.reg2)
+            return MachineRegs(2, self.reg1, other.reg1)
         return MACHINE_REGS_IN_MEMORY
 
     def __str__(self):
-        if self._num_regs:
+        if self.num_regs == -1:
             return "IN_MEMORY"
         if self.num_regs == 0:
             return "[]"
@@ -941,7 +941,7 @@ class CanonType:
     # The fields below are filled during finalization
     alignment: int = -1
     size: int = -1
-    register_types: MachineRegs = MACHINE_REGS_IN_MEMORY
+    ir_regs: MachineRegs = MACHINE_REGS_IN_MEMORY
     typeid: int = -1
     union_kind: UnionKind = UnionKind.INVALID
 
@@ -1065,11 +1065,11 @@ class CanonType:
 
     def fits_in_register(self) -> bool:
         assert self.size > 0
-        return self.register_types.is_scalar()
+        return self.ir_regs.is_scalar()
 
     def get_single_register_type(self) -> str:
-        assert self.size > 0, f"{self} is zero size type {self.size} {self.register_types}"
-        return self.register_types.get_scalar()
+        assert self.size > 0, f"{self} is zero size type {self.size} {self.ir_regs}"
+        return self.ir_regs.get_scalar()
 
     def get_original_typeid(self):
         ct = self
@@ -1105,7 +1105,7 @@ class CanonType:
             pass
         self.size = size
         self.alignment = alignment
-        self.register_types = register_types
+        self.ir_regs = register_types
 
     def lookup_rec_field(self, field_name) -> Optional[RecField]:
         """Oddball since the node returned is NOT inside corpus

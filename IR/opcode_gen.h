@@ -233,7 +233,7 @@ inline DK DKMake(uint8_t flavor, int bitwidth) {
     case 32:
       return DK((flavor << 4) | 2);
     case 64:
-      return DK((flavor < 4) | 3);
+      return DK((flavor << 4) | 3);
     default:
       return DK::INVALID;
   }

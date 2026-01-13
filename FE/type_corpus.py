@@ -242,7 +242,7 @@ def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.
         largest = max(largest, bitwidth)
     # special hack for pointer + error-code
     if ta.optimize_union_tag and len(scalars) == 1 and scalars[0].is_pointer():
-        return scalars[0].register_types
+        return scalars[0].ir_regs
 
     # BUG repro: ./emit_ir.py LangTest/linked_list_gen_test.cw
     if False and ct.untagged:
@@ -376,6 +376,7 @@ def _GetSizeAndAlignment(ct: cwast.CanonType,  ta: TargetArchConfig):
 
 def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
     if ct.alignment >= 0:
+        # already processed
         return
     n = ct.node
     if n != cwast.TypePtr and n != cwast.TypeFun:
@@ -632,4 +633,4 @@ class TypeCorpus:
             if ct.original_type:
                 original = ct.original_type.typeid
             print(
-                f"{ct.name} id={ct.typeid} size={ct.size} align={ct.alignment} original={original}")
+                f"{ct.name} id={ct.typeid} size={ct.size} align={ct.alignment} original={original} ir={ct.ir_regs}")

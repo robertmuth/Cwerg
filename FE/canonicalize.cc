@@ -764,8 +764,7 @@ void FunDesugarExpr3(Node fun) {
 void FunAddMissingReturnStmts(Node fun) {
   CanonType result_ct = CanonType_result_type(Node_x_type(fun));
   CanonType unwrapped_ct = CanonType_get_unwrapped(result_ct);
-  if (!CanonType_is_base_type(unwrapped_ct) ||
-      CanonType_base_type_kind(unwrapped_ct) != BASE_TYPE_KIND::VOID) {
+  if (!CanonType_is_void(unwrapped_ct)) {
     return;
   }
   Node last = NodeLastSibling(Node_body(fun));
