@@ -22,6 +22,7 @@ from FE import cwast
 from FE import type_corpus
 from FE import typify
 from FE import eval
+from FE import canonicalize
 
 ############################################################
 # Convert large parameter into pointer to object allocated
@@ -111,10 +112,16 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def MakeDefVarForParam(name, init, ct: cwast.CanonType, mut: bool) -> Any:
+def MakeDefAndAddrOfForParam(name, init, ct_old: cwast.CanonType,
+                             ct_new, mut: bool) -> tuple[cwast.DefVar,
+                                                         cwast.ExprAddrOf]:
     sl = init.x_srcloc
-    at = cwast.TypeAuto(x_srcloc=sl, x_type=ct)
-    return cwast.DefVar(name, at, init, x_srcloc=sl, x_type=ct, ref=True, mut=mut)
+    at = cwast.TypeAuto(x_srcloc=sl, x_type=ct_old)
+    def_var = cwast.DefVar(name, at, init, x_srcloc=sl,
+                           x_type=ct_old, ref=True, mut=mut)
+    name = canonicalize.IdNodeFromDef(def_var, sl)
+    addr_of = cwast.ExprAddrOf(name, x_srcloc=sl, x_type=ct_new)
+    return def_var, addr_of
 
 
 def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
@@ -153,34 +160,30 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, tc: type_corpus.TypeCorpus)
         expr = cwast.ExprStmt(
             expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
         # note: new_sig might be longer if the result type was changed
-        for n, (old, new) in enumerate(zip(orig_fun_ct.parameter_types(),
-                                           new_fun_ct.parameter_types())):
-            if old == new:
+        for n, (old_ct, new_ct) in enumerate(zip(orig_fun_ct.parameter_types(),
+                                                 new_fun_ct.parameter_types())):
+            if old_ct == new_ct:
                 continue
-            new_def = MakeDefVarForParam(cwast.NAME.Make(f"arg{n}"),
-                                         call.args[n], old, mut=False)
-
+            # Note: the type of this new variable is NOT call.args[n].x_type
+            # BUT old since we still rely on some basic implicit conversion.
+            # E.g. from mut to non-mut.
+            new_def, addr_of = MakeDefAndAddrOfForParam(cwast.NAME.Make(f"arg{n}"),
+                                                        call.args[n], old_ct, new_ct, mut=False)
             expr_body.append(new_def)
-            name = cwast.Id(
-                new_def.name, None, x_srcloc=sl, x_type=old, x_symbol=new_def)
-            call.args[n] = cwast.ExprAddrOf(
-                name, x_srcloc=sl, x_type=new)
+            call.args[n] = addr_of
         if len(orig_fun_ct.parameter_types()) != len(new_fun_ct.parameter_types()):
+            old_ct = orig_fun_ct.result_type()
+            new_ct = new_fun_ct.parameter_types()[-1]
             undef_init = cwast.ValUndef(x_srcloc=sl, x_eval=eval.VAL_UNDEF)
             # the result is not a argument
-            new_def = MakeDefVarForParam(cwast.NAME.Make("result"),
-                                         undef_init,
-                                         orig_fun_ct.result_type(), mut=True)
-
-            name = cwast.Id(new_def.name, None, x_srcloc=sl,
-                            x_type=orig_fun_ct.result_type(), x_symbol=new_def)
-            call.args.append(cwast.ExprAddrOf(
-                name, mut=True, x_srcloc=call.x_srcloc, x_type=new_fun_ct.parameter_types()[-1]))
+            new_def, addr_of = MakeDefAndAddrOfForParam(cwast.NAME.Make("result"),
+                                                        undef_init, old_ct, new_ct, mut=True)
+            call.args.append(addr_of)
             typify.NodeChangeType(call, tc.get_void_canon_type())
             expr_body.append(new_def)
             expr_body.append(cwast.StmtExpr(call, x_srcloc=sl))
             expr_body.append(cwast.StmtReturn(
-                expr_ret=name, x_srcloc=call.x_srcloc, x_target=expr))
+                expr_ret=canonicalize.IdNodeFromDef(new_def, sl), x_srcloc=call.x_srcloc, x_target=expr))
         else:
             expr_body.append(cwast.StmtReturn(
                 expr_ret=call, x_srcloc=call.x_srcloc, x_target=expr))

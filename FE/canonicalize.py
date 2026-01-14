@@ -14,7 +14,7 @@ from FE import typify
 ############################################################
 
 
-def _IdNodeFromDef(def_node: cwast.DefVar, sl):
+def IdNodeFromDef(def_node: cwast.DefVar, sl):
     assert def_node.type_or_auto.x_type is not None
     return cwast.Id(def_node.name, None, x_srcloc=sl, x_type=def_node.type_or_auto.x_type,
                     x_eval=def_node.initial_or_undef_or_auto.x_eval, x_symbol=def_node)
@@ -140,13 +140,13 @@ def FunDesugarExpr3(fun: cwast.DefFun):
         val_t = node.expr_t
         if not isinstance(val_t,  (cwast.ValNum, cwast.Id)):
             def_t = MakeDefVar(cwast.NAME.Make("expr3_t"), val_t)
-            val_t = _IdNodeFromDef(def_t, sl)
+            val_t = IdNodeFromDef(def_t, sl)
             expr.body.append(def_t)
         #
         val_f = node.expr_f
         if not isinstance(val_f,  (cwast.ValNum, cwast.Id)):
             def_f = MakeDefVar(cwast.NAME.Make("expr3_f"), val_f)
-            val_f = _IdNodeFromDef(def_f, sl)
+            val_f = IdNodeFromDef(def_f, sl)
             expr.body.append(def_f)
 
         expr.body.append(
@@ -193,7 +193,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
         pointer = lhs.expr
         def_node = MakeDefVar(cwast.NAME.Make("deref_assign"), pointer)
         stmts.append(def_node)
-        lhs.expr = _IdNodeFromDef(def_node, pointer.x_srcloc)
+        lhs.expr = IdNodeFromDef(def_node, pointer.x_srcloc)
         return lhs
     elif isinstance(lhs, cwast.ExprField):
         lhs.container = MakeNodeCopyableWithoutRiskOfSideEffects(
@@ -207,7 +207,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
         assert not is_lhs
         def_node = MakeDefVar(cwast.NAME.Make("assign"), lhs)
         stmts.append(def_node)
-        return _IdNodeFromDef(def_node, lhs.x_srcloc)
+        return IdNodeFromDef(def_node, lhs.x_srcloc)
 
 
 # this is not a very accurate analysis erring on the side of safety
@@ -241,7 +241,7 @@ def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
             def_node = cwast.DefVar(cwast.NAME.Make("assign"),
                                     at,
                                     node.expr, x_srcloc=sl, x_type=at.x_type)
-            node.expr = _IdNodeFromDef(def_node, node.x_srcloc)
+            node.expr = IdNodeFromDef(def_node, node.x_srcloc)
             return [def_node, node]
         elif isinstance(node, cwast.ExprField):
             c = node.container
@@ -416,9 +416,9 @@ def _RewriteExprIndex(node: cwast.ExprIndex, uint_type: cwast.CanonType,
             at = cwast.TypeAuto(x_srcloc=sl, x_type=container_ct)
             new_var = cwast.DefVar(cwast.NAME.Make("val_span_tmp"), at, node.container,
                                    x_srcloc=sl, x_type=container_ct)
-            bound: Any = cwast.ExprLen(_IdNodeFromDef(
+            bound: Any = cwast.ExprLen(IdNodeFromDef(
                 new_var, sl), x_srcloc=sl, x_type=uint_type)
-            pinc = _CovertExprIndexToExprPoiner(_IdNodeFromDef(
+            pinc = _CovertExprIndexToExprPoiner(IdNodeFromDef(
                 new_var, sl), node.expr_index, bound, mut, sl, elem_ct, tc)
             expr = cwast.ExprStmt([], sl, pinc.x_type)
             stmt_ret = cwast.StmtReturn(pinc, x_srcloc=sl, x_target=expr)
@@ -743,7 +743,7 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
                                            at, i.value_or_undef,
                                            x_srcloc=sl, x_type=at.x_type)
                     extra.append(def_tmp)
-                    i.value_or_undef = _IdNodeFromDef(def_tmp, sl)
+                    i.value_or_undef = IdNodeFromDef(def_tmp, sl)
                     # assert False, f"{i.value_or_undef} {i.x_type}"
             if not extra:
                 return None
