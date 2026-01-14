@@ -44,6 +44,7 @@ extern void FunOptimizeKnownConditionals(Node fun);
 
 extern Node CloneId(Node id);
 
+extern Node MakeDefVar(Name name, Node init);
 
 extern Node MakeExprField(Node container, Node rec_field, const SrcLoc& sl);
 

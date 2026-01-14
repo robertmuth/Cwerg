@@ -5,8 +5,15 @@
 #include <vector>
 
 #include "FE/cwast_gen.h"
+#include "IR/opcode_gen.h"
 #include "Util/assert.h"
+
 namespace cwerg::fe {
+
+using cwerg::base::DK, cwerg::base::DKMake, cwerg::base::DK_FLAVOR_A,
+    cwerg::base::DK_FLAVOR_C, cwerg::base::DK_FLAVOR_F,
+    cwerg::base::DK_FLAVOR_S, cwerg::base::DK_FLAVOR_U;
+;
 
 struct TargetArchConfig {
   int uint_bitwidth;
@@ -103,6 +110,11 @@ extern bool CanonType_is_unwrapped_complex(CanonType ct);
 extern CanonType CanonType_get_unwrapped(CanonType n);
 extern bool CanonType_tagged_union_contains(CanonType haystack,
                                             CanonType needle);
+
+extern bool CanonType_fits_in_register(CanonType ct);
+
+extern DK CanonType_single_register_type(CanonType ct);
+
 extern CanonType CanonType_replacement_type(CanonType ct);
 
 extern void CanonTypeLinkReplacementType(CanonType ct,

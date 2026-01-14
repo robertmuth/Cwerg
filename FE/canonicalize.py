@@ -118,6 +118,12 @@ def FunDesugarExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
+def _DefVarNew(name, init) -> Any:
+    sl = init.x_srcloc
+    at = cwast.TypeAuto(x_srcloc=sl, x_type=init.x_type)
+    return cwast.DefVar(name, at, init, x_srcloc=sl, x_type=init.x_type)
+
+
 def FunDesugarExpr3(fun: cwast.DefFun):
     """Convert ternary operator nodes into expr with if statements
 
@@ -133,17 +139,13 @@ def FunDesugarExpr3(fun: cwast.DefFun):
         #
         val_t = node.expr_t
         if not isinstance(val_t,  (cwast.ValNum, cwast.Id)):
-            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
-            def_t = cwast.DefVar(cwast.NAME.Make("expr3_t"), at,
-                                 node.expr_t, x_srcloc=sl, x_type=node.x_type)
+            def_t = _DefVarNew(cwast.NAME.Make("expr3_t"), val_t)
             val_t = _IdNodeFromDef(def_t, sl)
             expr.body.append(def_t)
         #
         val_f = node.expr_f
         if not isinstance(val_f,  (cwast.ValNum, cwast.Id)):
-            at = cwast.TypeAuto(x_srcloc=sl, x_type=node.x_type)
-            def_f = cwast.DefVar(cwast.NAME.Make("expr3_f"), at,
-                                 node.expr_f, x_srcloc=sl, x_type=node.x_type)
+            def_f = _DefVarNew(cwast.NAME.Make("expr3_f"), val_f)
             val_f = _IdNodeFromDef(def_f, sl)
             expr.body.append(def_f)
 
@@ -158,11 +160,6 @@ def FunDesugarExpr3(fun: cwast.DefFun):
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
-
-def _DefVarNew(name, init) -> Any:
-    sl = init.x_srcloc
-    at = cwast.TypeAuto(x_srcloc=sl, x_type=init.x_type)
-    return cwast.DefVar(name, at, init, x_srcloc=sl, x_type=init.x_type)
 
 ############################################################
 #

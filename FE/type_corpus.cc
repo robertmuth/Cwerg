@@ -5,12 +5,10 @@
 #include <map>
 #include <set>
 
-#include "IR/opcode_gen.h"
 #include "Util/assert.h"
 
 namespace cwerg::fe {
 
-using namespace cwerg::base;
 // =======================================
 // CanonType API
 // =======================================

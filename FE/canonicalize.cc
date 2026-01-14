@@ -462,7 +462,7 @@ bool IsNodeCopyableWithoutRiskOfSideEffects(Node node) {
   }
 }
 
-Node DefVarNew(Name name, Node init) {
+Node MakeDefVar(Name name, Node init) {
   const SrcLoc& sl = Node_srcloc(init);
   CanonType ct = Node_x_type(init);
   Node at = MakeTypeAuto(ct, sl);
@@ -481,7 +481,7 @@ Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts,
       if (pointer.kind() == NT::Id) {
         return lhs;
       }
-      Node def_node = DefVarNew(NameNew("deref_assign"), pointer);
+      Node def_node = MakeDefVar(NameNew("deref_assign"), pointer);
       stmts->Append(def_node);
       Node_expr(lhs) = IdNodeFromDef(def_node, Node_srcloc(def_node));
       return lhs;
@@ -495,7 +495,7 @@ Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts,
       return kNodeInvalid;
     default: {
       ASSERT(!is_lhs, "NYI");
-      Node def_node = DefVarNew(NameNew("assign"), lhs);
+      Node def_node = MakeDefVar(NameNew("assign"), lhs);
       stmts->Append(def_node);
       return IdNodeFromDef(def_node, Node_srcloc(def_node));
     }
@@ -724,10 +724,7 @@ void FunDesugarExpr3(Node fun) {
     //
     Node val_t = Node_expr_t(node);
     if (val_t.kind() != NT::ValNum && val_t.kind() != NT::Id) {
-      Node at = MakeTypeAuto(Node_x_type(node), sl);
-      Node def_t = NodeNew(NT::DefVar);
-      NodeInitDefVar(def_t, NameNew("expr3_t"), at, val_t, 0, kStrInvalid, sl,
-                     Node_x_type(node));
+      Node def_t = MakeDefVar(NameNew("expr3_t"), val_t);
       body.Append(def_t);
       val_t = IdNodeFromDef(def_t, sl);
       Node_x_eval(val_t) = Node_x_eval(Node_expr_t(node));
@@ -737,10 +734,7 @@ void FunDesugarExpr3(Node fun) {
     //
     Node val_f = Node_expr_f(node);
     if (val_f.kind() != NT::ValNum && val_f.kind() != NT::Id) {
-      Node at = MakeTypeAuto(Node_x_type(node), sl);
-      Node def_f = NodeNew(NT::DefVar);
-      NodeInitDefVar(def_f, NameNew("expr3_f"), at, val_f, 0, kStrInvalid, sl,
-                     Node_x_type(node));
+      Node def_f = MakeDefVar(NameNew("expr3_f"), val_f);
       body.Append(def_f);
       val_f = IdNodeFromDef(def_f, sl);
       Node_x_eval(val_f) = Node_x_eval(Node_expr_f(node));
