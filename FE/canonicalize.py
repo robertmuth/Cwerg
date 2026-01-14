@@ -118,7 +118,7 @@ def FunDesugarExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
 
-def _DefVarNew(name, init) -> Any:
+def MakeDefVar(name, init) -> Any:
     sl = init.x_srcloc
     at = cwast.TypeAuto(x_srcloc=sl, x_type=init.x_type)
     return cwast.DefVar(name, at, init, x_srcloc=sl, x_type=init.x_type)
@@ -139,13 +139,13 @@ def FunDesugarExpr3(fun: cwast.DefFun):
         #
         val_t = node.expr_t
         if not isinstance(val_t,  (cwast.ValNum, cwast.Id)):
-            def_t = _DefVarNew(cwast.NAME.Make("expr3_t"), val_t)
+            def_t = MakeDefVar(cwast.NAME.Make("expr3_t"), val_t)
             val_t = _IdNodeFromDef(def_t, sl)
             expr.body.append(def_t)
         #
         val_f = node.expr_f
         if not isinstance(val_f,  (cwast.ValNum, cwast.Id)):
-            def_f = _DefVarNew(cwast.NAME.Make("expr3_f"), val_f)
+            def_f = MakeDefVar(cwast.NAME.Make("expr3_f"), val_f)
             val_f = _IdNodeFromDef(def_f, sl)
             expr.body.append(def_f)
 
@@ -191,7 +191,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
         if isinstance(lhs.expr, cwast.Id):
             return lhs
         pointer = lhs.expr
-        def_node = _DefVarNew(cwast.NAME.Make("deref_assign"), pointer)
+        def_node = MakeDefVar(cwast.NAME.Make("deref_assign"), pointer)
         stmts.append(def_node)
         lhs.expr = _IdNodeFromDef(def_node, pointer.x_srcloc)
         return lhs
@@ -205,7 +205,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
         assert False, "this should have been eliminated by FunReplaceExprIndex()"
     else:
         assert not is_lhs
-        def_node = _DefVarNew(cwast.NAME.Make("assign"), lhs)
+        def_node = MakeDefVar(cwast.NAME.Make("assign"), lhs)
         stmts.append(def_node)
         return _IdNodeFromDef(def_node, lhs.x_srcloc)
 
