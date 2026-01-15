@@ -52,9 +52,8 @@ def MakeAndRegisterLargeArgReplacements(tc: type_corpus.TypeCorpus):
             fun_sig.LinkReplacementType(tc.InsertFunType(params, result))
 
 
-def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonType,
-                                       tc: type_corpus.TypeCorpus):
-    old_sig: cwast.CanonType = fun.x_type
+def _FixupFunctionSignature(fun: cwast.DefFun,  old_sig: cwast.CanonType, new_sig: cwast.CanonType,
+                            tc: type_corpus.TypeCorpus):
     typify.NodeChangeType(fun, new_sig)
     result_changes = old_sig.result_type() != new_sig.result_type()
     if result_changes:
@@ -67,31 +66,31 @@ def _FixupFunctionPrototypeForLargArgs(fun: cwast.DefFun, new_sig: cwast.CanonTy
             "large_result"), result_type, x_srcloc=sl, x_type=result_type.x_type, res_ref=True)
         fun.params.append(result_param)
         fun.result = cwast.TypeAuto(sl, tc.get_void_canon_type())
-    changing_params = {}
 
     # note: new_sig may contain an extra param at the end
     for p, old, new in zip(fun.params, old_sig.parameter_types(), new_sig.parameter_types()):
         if old != new:
-            changing_params[p] = new
-            p.type = cwast.TypeAuto(x_srcloc=p.x_srcloc, x_type=new)
+            assert isinstance(p.type, cwast.TypeAuto)
+            p.x_type = new
+            p.type.x_type = new
             p.arg_ref = True
-    assert result_changes or changing_params
-    return changing_params, result_changes
 
 
-def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_sig: cwast.CanonType,
+def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_fun_ct: cwast.CanonType,
                                   tc: type_corpus.TypeCorpus):
-    changing_params, result_changes = _FixupFunctionPrototypeForLargArgs(
-        fun, new_sig, tc)
+    old_fun_ct: cwast.CanonType = fun.x_type
+    result_changes = old_fun_ct.result_type() != new_fun_ct.result_type()
+
+    _FixupFunctionSignature(fun, old_fun_ct,  new_fun_ct, tc)
 
     # print([k.name for k, v in changing_params.items()], result_changes)
 
     def replacer(node) -> Optional[Any]:
 
-        if isinstance(node, cwast.Id) and node.x_symbol in changing_params:
+        if isinstance(node, cwast.Id) and isinstance(node.x_symbol, cwast.FunParam) and node.x_symbol.arg_ref:
             new_node = cwast.ExprDeref(
                 node, x_srcloc=node.x_srcloc, x_type=node.x_type)
-            typify.NodeChangeType(node, changing_params[node.x_symbol])
+            typify.NodeChangeType(node, node.x_symbol.x_type)
             return new_node
 
         if isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
@@ -124,6 +123,45 @@ def MakeDefAndAddrOfForParam(name, init, ct_old: cwast.CanonType,
     return def_var, addr_of
 
 
+def FixupCall(call: cwast.ExprCall, orig_fun_ct: cwast.CanonType,
+              new_fun_ct: cwast.CanonType, tc: type_corpus.TypeCorpus):
+    sl = call.x_srcloc
+
+    typify.NodeChangeType(call.callee, new_fun_ct)
+    expr_body: list[Any] = []
+    expr = cwast.ExprStmt(
+        expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
+    # note: new_sig might be longer if the result type was changed
+    for n, (old_ct, new_ct) in enumerate(zip(orig_fun_ct.parameter_types(),
+                                             new_fun_ct.parameter_types())):
+        if old_ct == new_ct:
+            continue
+        # Note: the type of this new variable is NOT call.args[n].x_type
+        # BUT old since we still rely on some basic implicit conversion.
+        # E.g. from mut to non-mut.
+        new_def, addr_of = MakeDefAndAddrOfForParam(cwast.NAME.Make(f"arg{n}"),
+                                                    call.args[n], old_ct, new_ct, mut=False)
+        expr_body.append(new_def)
+        call.args[n] = addr_of
+    if len(orig_fun_ct.parameter_types()) != len(new_fun_ct.parameter_types()):
+        old_ct = orig_fun_ct.result_type()
+        new_ct = new_fun_ct.parameter_types()[-1]
+        undef_init = cwast.ValUndef(x_srcloc=sl, x_eval=eval.VAL_UNDEF)
+        # the result is not a argument
+        new_def, addr_of = MakeDefAndAddrOfForParam(cwast.NAME.Make("result"),
+                                                    undef_init, old_ct, new_ct, mut=True)
+        call.args.append(addr_of)
+        typify.NodeChangeType(call, tc.get_void_canon_type())
+        expr_body.append(new_def)
+        expr_body.append(cwast.StmtExpr(call, x_srcloc=sl))
+        expr_body.append(cwast.StmtReturn(
+            canonicalize.IdNodeFromDef(new_def, sl), x_srcloc=call.x_srcloc, x_target=expr))
+    else:
+        expr_body.append(cwast.StmtReturn(
+            call, x_srcloc=sl, x_target=expr))
+    return expr
+
+
 def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Assuming the callee signature was changed like so
           foo(a: rec A, b: rec B, c: rec C)
@@ -153,39 +191,6 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, tc: type_corpus.TypeCorpus)
         new_fun_ct: cwast.CanonType = orig_fun_ct.replacement_type
         if new_fun_ct is None:
             return None
-        sl = call.x_srcloc
+        return FixupCall(call, orig_fun_ct, new_fun_ct, tc)
 
-        typify.NodeChangeType(call.callee, new_fun_ct)
-        expr_body: list[Any] = []
-        expr = cwast.ExprStmt(
-            expr_body, x_srcloc=call.x_srcloc, x_type=call.x_type)
-        # note: new_sig might be longer if the result type was changed
-        for n, (old_ct, new_ct) in enumerate(zip(orig_fun_ct.parameter_types(),
-                                                 new_fun_ct.parameter_types())):
-            if old_ct == new_ct:
-                continue
-            # Note: the type of this new variable is NOT call.args[n].x_type
-            # BUT old since we still rely on some basic implicit conversion.
-            # E.g. from mut to non-mut.
-            new_def, addr_of = MakeDefAndAddrOfForParam(cwast.NAME.Make(f"arg{n}"),
-                                                        call.args[n], old_ct, new_ct, mut=False)
-            expr_body.append(new_def)
-            call.args[n] = addr_of
-        if len(orig_fun_ct.parameter_types()) != len(new_fun_ct.parameter_types()):
-            old_ct = orig_fun_ct.result_type()
-            new_ct = new_fun_ct.parameter_types()[-1]
-            undef_init = cwast.ValUndef(x_srcloc=sl, x_eval=eval.VAL_UNDEF)
-            # the result is not a argument
-            new_def, addr_of = MakeDefAndAddrOfForParam(cwast.NAME.Make("result"),
-                                                        undef_init, old_ct, new_ct, mut=True)
-            call.args.append(addr_of)
-            typify.NodeChangeType(call, tc.get_void_canon_type())
-            expr_body.append(new_def)
-            expr_body.append(cwast.StmtExpr(call, x_srcloc=sl))
-            expr_body.append(cwast.StmtReturn(
-                canonicalize.IdNodeFromDef(new_def, sl), x_srcloc=call.x_srcloc, x_target=expr))
-        else:
-            expr_body.append(cwast.StmtReturn(
-                call, x_srcloc=sl, x_target=expr))
-        return expr
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
