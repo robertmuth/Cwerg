@@ -119,8 +119,8 @@ def MakeDefAndAddrOfForParam(name, init, ct_old: cwast.CanonType,
     at = cwast.TypeAuto(x_srcloc=sl, x_type=ct_old)
     def_var = cwast.DefVar(name, at, init, x_srcloc=sl,
                            x_type=ct_old, ref=True, mut=mut)
-    name = canonicalize.IdNodeFromDef(def_var, sl)
-    addr_of = cwast.ExprAddrOf(name, x_srcloc=sl, x_type=ct_new)
+    sym = canonicalize.IdNodeFromDef(def_var, sl)
+    addr_of = cwast.ExprAddrOf(sym, x_srcloc=sl, x_type=ct_new)
     return def_var, addr_of
 
 
@@ -183,9 +183,9 @@ def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, tc: type_corpus.TypeCorpus)
             expr_body.append(new_def)
             expr_body.append(cwast.StmtExpr(call, x_srcloc=sl))
             expr_body.append(cwast.StmtReturn(
-                expr_ret=canonicalize.IdNodeFromDef(new_def, sl), x_srcloc=call.x_srcloc, x_target=expr))
+                canonicalize.IdNodeFromDef(new_def, sl), x_srcloc=call.x_srcloc, x_target=expr))
         else:
             expr_body.append(cwast.StmtReturn(
-                expr_ret=call, x_srcloc=call.x_srcloc, x_target=expr))
+                call, x_srcloc=sl, x_target=expr))
         return expr
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
