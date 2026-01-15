@@ -53,7 +53,8 @@ def MakeAndRegisterLargeArgReplacements(tc: type_corpus.TypeCorpus):
 
 
 def _FixupFunctionSignature(fun: cwast.DefFun,  old_sig: cwast.CanonType, new_sig: cwast.CanonType,
-                            tc: type_corpus.TypeCorpus):
+                            tc: type_corpus.TypeCorpus) -> Optional[cwast.FunParam]:
+    result_param = None
     typify.NodeChangeType(fun, new_sig)
     result_changes = old_sig.result_type() != new_sig.result_type()
     if result_changes:
@@ -76,14 +77,14 @@ def _FixupFunctionSignature(fun: cwast.DefFun,  old_sig: cwast.CanonType, new_si
             typify.NodeChangeType(p, new)
             typify.NodeChangeType(p.type, new)
             p.arg_ref = True
+    return result_param
 
 
 def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_fun_ct: cwast.CanonType,
                                   tc: type_corpus.TypeCorpus):
     old_fun_ct: cwast.CanonType = fun.x_type
-    result_changes = old_fun_ct.result_type() != new_fun_ct.result_type()
 
-    _FixupFunctionSignature(fun, old_fun_ct,  new_fun_ct, tc)
+    result_param = _FixupFunctionSignature(fun, old_fun_ct,  new_fun_ct, tc)
 
     # print([k.name for k, v in changing_params.items()], result_changes)
 
@@ -95,8 +96,7 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_fun_ct: cwast.CanonType
             typify.NodeChangeType(node, node.x_symbol.x_type)
             return new_node
 
-        if isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_changes:
-            result_param: cwast.FunParam = fun.params[-1]
+        elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_param:
             result_type: cwast.CanonType = result_param.type.x_type
             assert result_type.is_pointer()
             lhs = cwast.ExprDeref(
