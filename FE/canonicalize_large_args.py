@@ -57,22 +57,24 @@ def _FixupFunctionSignature(fun: cwast.DefFun,  old_sig: cwast.CanonType, new_si
     typify.NodeChangeType(fun, new_sig)
     result_changes = old_sig.result_type() != new_sig.result_type()
     if result_changes:
-        assert new_sig.result_type().is_void()
         assert len(new_sig.parameter_types()) == 1 + \
             len(old_sig.parameter_types())
+        assert new_sig.result_type().is_void()
+        typify.NodeChangeType(fun.result, tc.get_void_canon_type())
+        #
         sl = fun.x_srcloc
-        result_type = cwast.TypeAuto(sl, new_sig.parameter_types()[-1])
+        at = cwast.TypeAuto(sl, new_sig.parameter_types()[-1])
         result_param = cwast.FunParam(cwast.NAME.Make(
-            "large_result"), result_type, x_srcloc=sl, x_type=result_type.x_type, res_ref=True)
+            "large_result"), at, x_srcloc=sl, x_type=at.x_type, res_ref=True)
         fun.params.append(result_param)
-        fun.result = cwast.TypeAuto(sl, tc.get_void_canon_type())
+        assert isinstance(fun.result, cwast.TypeAuto)
 
     # note: new_sig may contain an extra param at the end
     for p, old, new in zip(fun.params, old_sig.parameter_types(), new_sig.parameter_types()):
         if old != new:
             assert isinstance(p.type, cwast.TypeAuto)
-            p.x_type = new
-            p.type.x_type = new
+            typify.NodeChangeType(p, new)
+            typify.NodeChangeType(p.type, new)
             p.arg_ref = True
 
 
