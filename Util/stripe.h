@@ -63,7 +63,7 @@ struct StripeGroup {
               uint32_t max_allocated);
 
   // Get next free index for this group.
-  // Will call Reserve if necessary.
+  // Currently, this will assert if we max_allocated is reached.
   Handle New();
 
   // Delete handle and add it to the free list.
@@ -89,9 +89,6 @@ struct StripeGroup {
   uint32_t num_dels_ = 0;
   uint32_t num_news_ = 0;
   const char* const name_;
-
-  // Increase the size of all stripes to n elements
-  void Reserve(int32_t n);
 
   // nullptr terminated arrays of StripeBase pointers
   StripeBase* const* stripes_;

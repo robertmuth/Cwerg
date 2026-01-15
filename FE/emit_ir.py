@@ -1162,10 +1162,10 @@ def PhaseEliminateLargeArgs(mod_topo_order: list[cwast.DefMod], tc: type_corpus.
         for fun in mod.body_mod:
             if not isinstance(fun, cwast.DefFun):
                 continue
-            canonicalize_large_args.FunRewriteLargeArgsCallerSide(fun, tc)
+            canonicalize_large_args.FunRewriteLargeArgsCallsites(fun, tc)
             new_sig = fun.x_type.replacement_type
             if new_sig:
-                canonicalize_large_args.FunRewriteLargeArgsCalleeSide(
+                canonicalize_large_args.FunRewriteLargeArgsParameter(
                     fun, new_sig, tc)
 
 
@@ -1322,7 +1322,7 @@ def main() -> int:
     logger.info("phase: eliminate large args")
     PhaseEliminateLargeArgs(mod_topo_order, tc)
     SanityCheckMods("after_large_arg_conversion", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
-                    mod_topo_order, tc,  eliminated_nodes)
+                    [mod_gen] + mod_topo_order, tc,  eliminated_nodes)
     #
     logger.info("phase: legalize")
     PhaseLegalize(mod_topo_order, tc)

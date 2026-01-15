@@ -80,8 +80,8 @@ def _FixupFunctionSignature(fun: cwast.DefFun,  old_sig: cwast.CanonType, new_si
     return result_param
 
 
-def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_fun_ct: cwast.CanonType,
-                                  tc: type_corpus.TypeCorpus):
+def FunRewriteLargeArgsParameter(fun: cwast.DefFun, new_fun_ct: cwast.CanonType,
+                                 tc: type_corpus.TypeCorpus):
     old_fun_ct: cwast.CanonType = fun.x_type
 
     result_param = _FixupFunctionSignature(fun, old_fun_ct,  new_fun_ct, tc)
@@ -97,16 +97,17 @@ def FunRewriteLargeArgsCalleeSide(fun: cwast.DefFun, new_fun_ct: cwast.CanonType
             return new_node
 
         elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_param:
-            result_type: cwast.CanonType = result_param.type.x_type
-            assert result_type.is_pointer()
+            result_ct: cwast.CanonType = result_param.type.x_type
+            assert result_ct.is_pointer()
+            sl = node.x_srcloc
             lhs = cwast.ExprDeref(
-                cwast.Id(result_param.name, None, x_srcloc=node.x_srcloc,
-                         x_type=result_type, x_symbol=result_param),
-                x_srcloc=node.x_srcloc, x_type=result_type.underlying_type())
+                cwast.Id(result_param.name, None, x_srcloc=sl,
+                         x_type=result_ct, x_symbol=result_param),
+                x_srcloc=sl, x_type=result_ct.underlying_type())
             assign = cwast.StmtAssignment(
                 lhs, node.expr_ret, x_srcloc=node.x_srcloc)
-            node.expr_ret = cwast.ValVoid(x_srcloc=node.x_srcloc,
-                                          x_type=tc.get_void_canon_type())
+            node.expr_ret = cwast.ValVoid(
+                x_srcloc=sl, x_type=tc.get_void_canon_type(), x_eval=eval.VAL_VOID)
             return [assign, node]
         return None
 
@@ -164,7 +165,7 @@ def FixupCall(call: cwast.ExprCall, orig_fun_ct: cwast.CanonType,
     return expr
 
 
-def FunRewriteLargeArgsCallerSide(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+def FunRewriteLargeArgsCallsites(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     """Assuming the callee signature was changed like so
           foo(a: rec A, b: rec B, c: rec C)
        To

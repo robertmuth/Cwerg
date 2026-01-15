@@ -6,9 +6,9 @@ namespace cwerg::fe {
 
 extern void MakeAndRegisterLargeArgReplacements(TypeCorpus* tc);
 
-extern void FunRewriteLargeArgsCallerSide(Node fun, TypeCorpus* tc);
+extern void FunRewriteLargeArgsCallsites(Node fun, TypeCorpus* tc);
 
-extern void FunRewriteLargeArgsCalleeSide(Node fun, CanonType new_sig,
-                                          TypeCorpus* tc);
+extern void FunRewriteLargeArgsParameter(Node fun, CanonType old_sig,
+                                         CanonType new_sig, TypeCorpus* tc);
 
 }  // namespace cwerg::fe
