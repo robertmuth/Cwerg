@@ -3,7 +3,8 @@
 #include "Util/assert.h"
 
 namespace cwerg::fe {
-extern void FindFunSigsWithLargeArgs(TypeCorpus* tc);
+
+extern void MakeAndRegisterLargeArgReplacements(TypeCorpus* tc);
 
 extern void FunRewriteLargeArgsCallerSide(Node fun, TypeCorpus* tc);
 

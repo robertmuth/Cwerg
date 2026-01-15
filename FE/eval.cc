@@ -1109,9 +1109,9 @@ Node GlobalConstantPool::add_def_global(Node node) {
   CanonType ct = Node_x_type(node);
   ASSERT(!ct.isnull(), "");
   Node out = NodeNew(NT::DefGlobal);
-  std::string name = "global_val_" + std::to_string(current_no_);
-  NodeInitDefGlobal(out, NameNew(name), MakeTypeAuto(ct, sl), node,
-                    Mask(BF::PUB), kStrInvalid, sl, ct);
+  NodeInitDefGlobal(out, NameNew("global_val_", current_no_),
+                    MakeTypeAuto(ct, sl), node, Mask(BF::PUB), kStrInvalid, sl,
+                    ct);
   all_globals_.push_back(out);
   return out;
 }

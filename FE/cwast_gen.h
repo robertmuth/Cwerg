@@ -278,6 +278,11 @@ inline Name NameNew(std::string_view s) {
   return Name(gNamePool.Intern(s, 1));
 }
 
+inline Name NameNew(std::string_view prefix, uint32_t no) {
+  std::string s = std::string(prefix) + std::to_string(no);
+  return Name(gNamePool.Intern(s, 1));
+}
+
 // TODO: this does not include the the seq
 inline const char* NameData(Name name) { return gNamePool.Data(name.index()); }
 

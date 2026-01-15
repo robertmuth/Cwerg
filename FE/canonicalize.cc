@@ -467,8 +467,7 @@ Node MakeDefVar(Name name, Node init) {
   CanonType ct = Node_x_type(init);
   Node at = MakeTypeAuto(ct, sl);
   Node out = NodeNew(NT::DefVar);
-  NodeInitDefVar(out, name, at, init, 0, kStrInvalid, sl, ct);
-  return out;
+  return NodeInitDefVar(out, name, at, init, 0, kStrInvalid, sl, ct);
 }
 
 Node MakeNodeCopyableWithoutRiskOfSideEffects(Node lhs, NodeChain* stmts,

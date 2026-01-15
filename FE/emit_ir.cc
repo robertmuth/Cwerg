@@ -142,7 +142,7 @@ void PhaseEliminateSpanAndUnion(Node mod_gen,
 
 void PhaseEliminateLargeArgs(std::vector<Node>& mods_in_topo_order,
                              TypeCorpus* tc, NodeChain* chain) {
-  FindFunSigsWithLargeArgs(tc);
+  MakeAndRegisterLargeArgReplacements(tc);
   for (Node mod : mods_in_topo_order) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
       if (fun.kind() == NT::DefFun) {
@@ -240,7 +240,7 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_eliminate_span_and_union", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
-  PhaseEliminateLargeArgs(mp.mods_in_topo_order, &tc, &chain);
+  // PhaseEliminateLargeArgs(mp.mods_in_topo_order, &tc, &chain);
 
   SanityCheckMods("after_large_arg_conversion", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
