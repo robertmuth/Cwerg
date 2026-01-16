@@ -90,8 +90,8 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
   }
 }
 
-void PhaseOptimization(const std::vector<Node>& mods_in_topo_order,
-                       TypeCorpus* tc) {
+void PhaseOptimize(const std::vector<Node>& mods_in_topo_order,
+                   TypeCorpus* tc) {
   for (Node mod : mods_in_topo_order) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
       if (fun.kind() == NT::DefFun) {
@@ -141,7 +141,7 @@ void PhaseEliminateSpanAndUnion(Node mod_gen,
 }
 
 void PhaseEliminateLargeArgs(std::vector<Node>& mods_in_topo_order,
-                             TypeCorpus* tc, NodeChain* chain) {
+                             TypeCorpus* tc) {
   MakeAndRegisterLargeArgReplacements(tc);
   for (Node mod : mods_in_topo_order) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
@@ -151,6 +151,18 @@ void PhaseEliminateLargeArgs(std::vector<Node>& mods_in_topo_order,
         if (!new_sig.isnull()) {
           FunRewriteLargeArgsParameter(fun, Node_x_type(fun), new_sig, tc);
         }
+      }
+    }
+  }
+}
+
+void PhaseLegalize(std::vector<Node>& mods_in_topo_order, TypeCorpus* tc) {
+  for (Node mod : mods_in_topo_order) {
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      if (fun.kind() == NT::DefFun) {
+        FunCanonicalizeCompoundAssignments(fun);
+        FunCanonicalizeRemoveStmtCond(fun);
+        FunRewriteComplexAssignments(fun, tc);
       }
     }
   }
@@ -224,7 +236,7 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_initial_lowering", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
-  PhaseOptimization(mp.mods_in_topo_order, &tc);
+  PhaseOptimize(mp.mods_in_topo_order, &tc);
   eliminated_nodes.insert(NT::Expr3);
 
   SanityCheckMods("after_optimization", mp.mods_in_topo_order, eliminated_nodes,
@@ -240,9 +252,15 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_eliminate_span_and_union", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
-  PhaseEliminateLargeArgs(mp.mods_in_topo_order, &tc, &chain);
+  PhaseEliminateLargeArgs(mp.mods_in_topo_order, &tc);
 
   SanityCheckMods("after_large_arg_conversion", mp.mods_in_topo_order,
+                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
+
+  PhaseLegalize(mp.mods_in_topo_order, &tc);
+  PhaseOptimize(mp.mods_in_topo_order, &tc);
+
+  SanityCheckMods("after_legalize", mp.mods_in_topo_order,
                   eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
   if (sw_dump_stats.Value()) {

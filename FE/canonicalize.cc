@@ -807,4 +807,40 @@ void FunOptimizeKnownConditionals(Node fun) {
   VisitAstRecursivelyPost(fun, visitor, kNodeInvalid);
 }
 
+void FunCanonicalizeCompoundAssignments(Node fun) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (node.kind() != NT::StmtCompoundAssignment) return node;
+    return node;
+  };
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
+
+void FunCanonicalizeRemoveStmtCond(Node fun) {
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (node.kind() != NT::StmtCond) return node;
+    std::vector<Node> cases;
+    for (Node c = Node_cases(node); !c.isnull(); c = Node_next(c)) {
+      cases.push_back(c);
+    }
+    if (cases.empty()) return kNodeInvalid;
+
+    Node out = kNodeInvalid;
+    for (auto it = cases.rbegin(); it != cases.rend(); ++it) {
+      Node t = NodeNew(NT::StmtIf);
+      NodeInitStmtIf(t, Node_cond(*it), Node_body(*it), out, kStrInvalid,
+                     Node_srcloc(*it));
+      NodeFree(*it);
+      out = t;
+    }
+    NodeFree(node);
+    return out;
+  };
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
+
+void FunRewriteComplexAssignments(Node fun, TypeCorpus* tc) {
+  auto replacer = [](Node node, Node parent) -> Node { return node; };
+  MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
+}
+
 }  // namespace cwerg::fe

@@ -55,4 +55,9 @@ struct FieldTypeAndValue {
 
 extern Node MakeValCompound(CanonType ct, std::span<FieldTypeAndValue> fields,
                             const SrcLoc& sl);
+
+extern void FunCanonicalizeCompoundAssignments(Node fun);
+extern void FunCanonicalizeRemoveStmtCond(Node fun);
+extern void FunRewriteComplexAssignments(Node fun, TypeCorpus* tc);
+
 }  // namespace cwerg::fe
