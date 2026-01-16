@@ -1124,7 +1124,7 @@ def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.Typ
                 canonicalize.FunAddMissingReturnStmts(fun)
 
 
-def PhaseOptimization(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
+def PhaseOptimize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):
@@ -1177,11 +1177,6 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
             canonicalize.FunCanonicalizeCompoundAssignments(fun)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, tc)
-    for mod in mod_topo_order:
-        for fun in mod.body_mod:
-            if isinstance(fun, cwast.DefFun):
-                # Note, the inlining inside FunOptimize will invalidate id_gen
-                optimize.FunOptimize(fun)
 
 
 def main() -> int:
@@ -1299,7 +1294,7 @@ def main() -> int:
 
     #
     logger.info("phase: early cleanup and optimization")
-    PhaseOptimization(mod_topo_order, tc)
+    PhaseOptimize(mod_topo_order, tc)
     eliminated_nodes.add(cwast.Expr3)
 
     SanityCheckMods("after_optimization", checker.COMPILE_STAGE.AFTER_DESUGAR,
@@ -1326,10 +1321,11 @@ def main() -> int:
     #
     logger.info("phase: legalize")
     PhaseLegalize(mod_topo_order, tc)
+    PhaseOptimize(mod_topo_order, tc)
     eliminated_nodes.update([cwast.StmtCompoundAssignment,
                              cwast.StmtCond,
                              cwast.Case])
-    SanityCheckMods("after_canonicalization", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
+    SanityCheckMods("after_legalize", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
                     [mod_gen] + mod_topo_order, tc, eliminated_nodes)
 
     assert eliminated_nodes == cwast.ALL_NODES_NON_CORE
