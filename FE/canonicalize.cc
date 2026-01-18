@@ -807,9 +807,13 @@ void FunOptimizeKnownConditionals(Node fun) {
   VisitAstRecursivelyPost(fun, visitor, kNodeInvalid);
 }
 
+
+
 void FunCanonicalizeCompoundAssignments(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (node.kind() != NT::StmtCompoundAssignment) return node;
+    NodeChain stmts;
+
     return node;
   };
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
@@ -838,8 +842,47 @@ void FunCanonicalizeRemoveStmtCond(Node fun) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
+bool IsSimpleInitializer(Node node) {
+  switch (node.kind()) {
+    case NT::ValUndef:
+    case NT::ValNum:
+    case NT::ValVoid:
+    case NT::Id:
+      return true;
+
+    case NT::ExprWiden:
+    case NT::ExprBitCast:
+    case NT::ExprWrap:
+    case NT::ExprUnwrap:
+    case NT::ExprAs:
+      return IsSimpleInitializer(Node_expr(node));
+    default:
+      return false;
+  }
+}
 void FunRewriteComplexAssignments(Node fun, TypeCorpus* tc) {
-  auto replacer = [](Node node, Node parent) -> Node { return node; };
+  auto replacer = [](Node node, Node parent) -> Node {
+    if (node.kind() != NT::StmtAssignment) return node;
+    Node rhs = Node_expr_rhs(node);
+    if (rhs.kind() != NT::ValCompound) return node;
+    NodeChain extra;
+    for (Node i = Node_inits(rhs); !i.isnull(); i = Node_next(i)) {
+      if (IsSimpleInitializer(i)) continue;
+      const SrcLoc& sl = Node_srcloc(i);
+      Node at = MakeTypeAuto(Node_x_type(i), sl);
+      Node def_var = NodeNew(NT::DefVar);
+      NodeInitDefVar(def_var, NameNew("complex_init_tmp"), at,
+                     Node_value_or_undef(i), 0, kStrInvalid, sl,
+                     Node_x_type(i));
+      extra.Append(def_var);
+      Node_value_or_undef(i) = IdNodeFromDef(def_var, sl);
+    }
+    if (extra.First().isnull()) {
+      return node;
+    }
+    extra.Append(node);
+    return extra.First();
+  };
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 

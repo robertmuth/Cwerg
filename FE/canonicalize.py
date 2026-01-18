@@ -172,7 +172,8 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
     2) (^ Id)
     3) (. Id field_name)
     4) (. (^ Id) field_name)
-    5) (. (. (...)))  where the innermost expression s 3) or 4)
+    5) (. (. (...)))  where the innermost expression is 3) or 4)
+    6) TODO: cwast.ExprNarrow
 
     This is advantageous because we can now clone this node without having to worry about
     changing the semantics of the program.
@@ -290,18 +291,19 @@ def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
 def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
     """Convert StmtCompoundAssignment to StmtAssignment"""
     def replacer(node):
-        if isinstance(node, cwast.StmtCompoundAssignment):
-            stmts = []
-            new_lhs = MakeNodeCopyableWithoutRiskOfSideEffects(
-                node.lhs, stmts, True)
-            assert IsNodeCopyableWithoutRiskOfSideEffects(
-                new_lhs), f"{new_lhs}"
-            assignment = _AssigmemtNode(node.binary_expr_kind,
-                                        new_lhs, node.expr_rhs, node.x_srcloc)
-            if not stmts:
-                return assignment
-            stmts.append(assignment)
-            return stmts
+        if not isinstance(node, cwast.StmtCompoundAssignment):
+            return None
+        stmts = []
+        new_lhs = MakeNodeCopyableWithoutRiskOfSideEffects(
+            node.lhs, stmts, True)
+        assert IsNodeCopyableWithoutRiskOfSideEffects(
+            new_lhs), f"{new_lhs}"
+        assignment = _AssigmemtNode(node.binary_expr_kind,
+                                    new_lhs, node.expr_rhs, node.x_srcloc)
+        if not stmts:
+            return assignment
+        stmts.append(assignment)
+        return stmts
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
@@ -731,26 +733,26 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
     def replacer(node):
         if not isinstance(node, cwast.StmtAssignment):
             return None
-
         rhs = node.expr_rhs
-        if isinstance(rhs, cwast.ValCompound):
-            extra = []
-            for i in rhs.inits:
-                if not _IsSimpleInitializer(i.value_or_undef):
-                    sl = i.x_srcloc
-                    at = cwast.TypeAuto(x_srcloc=sl, x_type=i.x_type)
-                    def_tmp = cwast.DefVar(cwast.NAME.Make("val_array_tmp"),
-                                           at, i.value_or_undef,
-                                           x_srcloc=sl, x_type=at.x_type)
-                    extra.append(def_tmp)
-                    i.value_or_undef = IdNodeFromDef(def_tmp, sl)
-                    # assert False, f"{i.value_or_undef} {i.x_type}"
-            if not extra:
-                return None
-            extra.append(node)
-            return extra
-        else:
+        if not isinstance(rhs, cwast.ValCompound):
             return None
+        extra = []
+        for i in rhs.inits:
+            if _IsSimpleInitializer(i.value_or_undef):
+                continue
+            # patch up the complex initializer
+            sl = i.x_srcloc
+            at = cwast.TypeAuto(x_srcloc=sl, x_type=i.x_type)
+            def_tmp = cwast.DefVar(cwast.NAME.Make("complex_init_tmp"),
+                                   at, i.value_or_undef,
+                                   x_srcloc=sl, x_type=at.x_type)
+            extra.append(def_tmp)
+            i.value_or_undef = IdNodeFromDef(def_tmp, sl)
+            # assert False, f"{i.value_or_undef} {i.x_type}"
+        if not extra:
+            return None
+        extra.append(node)
+        return extra
 
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
