@@ -19,8 +19,10 @@ struct MachineRegs {
   DK reg2 = DK::INVALID;
 
   void Merge(const MachineRegs& other) {
-    if (num_regs == -1 || other.num_regs == 0) return;
-    else if (other.num_regs == -1 || num_regs == 0) *this = other;
+    if (num_regs == -1 || other.num_regs == 0)
+      return;
+    else if (other.num_regs == -1 || num_regs == 0)
+      *this = other;
     else if (num_regs == 1 && other.num_regs == 1)
       *this = {2, reg1, other.reg1};
     else
@@ -538,6 +540,9 @@ MachineRegs GetMachineRegs(CanonType ct, const TargetArchConfig& ta) {
     }
 
     case NT::TypeVec:
+      if (CanonType_dim(ct) == 0) {
+        return MACHINE_REGS_NONE;
+      }
       return MACHINE_REGS_IN_MEMORY;
     case NT::TypeUnion:
       return GetMachineRegsForUnion(ct, ta);

@@ -791,7 +791,7 @@ def _ParseTopLevel(inp: lexer.Lexer):
                              entries, **extra)
     elif kw.text == "static_assert":
         cond = _ParseExpr(inp)
-        # TODO
+        # TODO: support message
         return cwast.StmtStaticAssert(cond, "", **extra)
     else:
         assert False, f"unexpected topelevel [{kw}]"
