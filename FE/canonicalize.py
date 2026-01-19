@@ -166,7 +166,7 @@ def FunDesugarExpr3(fun: cwast.DefFun):
 ############################################################
 
 
-def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool):
+def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool) -> Any:
     """Ensures that the node has one of the following shapes:
     1) Id
     2) (^ Id)
@@ -205,6 +205,7 @@ def MakeNodeCopyableWithoutRiskOfSideEffects(lhs, stmts: list[Any], is_lhs: bool
         # much earlier to a cwast.ExprDeref
         assert False, "this should have been eliminated by FunReplaceExprIndex()"
     else:
+        # this is the bad case where we have to copy the object into a temp variable
         assert not is_lhs
         def_node = MakeDefVar(cwast.NAME.Make("assign"), lhs)
         stmts.append(def_node)
@@ -264,12 +265,12 @@ def FunMakeCertainNodeCopyableWithoutRiskOfSideEffects(
     cwast.MaybeReplaceAstRecursivelyPost(fun, replacer)
 
 
-def _AssigmemtNode(assignment_kind, lhs, expr, x_srcloc):
-    assert assignment_kind.IsArithmetic()
-    rhs = cwast.Expr2(assignment_kind,
+def _MakeSimpleAssigmemt(kind: cwast.BINARY_EXPR_KIND, lhs, expr, sl: cwast.SrcLoc) -> cwast.StmtAssignment:
+    assert kind.IsArithmetic()
+    rhs = cwast.Expr2(kind,
                       cwast.CloneNodeRecursively(lhs, {}, {}),
-                      expr, x_srcloc=x_srcloc, x_type=lhs.x_type)
-    return cwast.StmtAssignment(lhs, rhs, x_srcloc=x_srcloc)
+                      expr, x_srcloc=sl, x_type=lhs.x_type)
+    return cwast.StmtAssignment(lhs, rhs, x_srcloc=sl)
 
 
 # Note, the desugaring of CompoundAssignment is made more complicated because we do not want
@@ -298,7 +299,7 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
             node.lhs, stmts, True)
         assert IsNodeCopyableWithoutRiskOfSideEffects(
             new_lhs), f"{new_lhs}"
-        assignment = _AssigmemtNode(node.binary_expr_kind,
+        assignment = _MakeSimpleAssigmemt(node.binary_expr_kind,
                                     new_lhs, node.expr_rhs, node.x_srcloc)
         if not stmts:
             return assignment

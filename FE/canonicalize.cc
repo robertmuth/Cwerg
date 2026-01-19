@@ -807,14 +807,31 @@ void FunOptimizeKnownConditionals(Node fun) {
   VisitAstRecursivelyPost(fun, visitor, kNodeInvalid);
 }
 
+Node _MakeSimpleForAssigmemt(BINARY_EXPR_KIND kind, Node lhs, Node expr,
+                             const SrcLoc& sl) {
+  Node rhs = NodeNew(NT::Expr2);
+  std::map<Node, Node> dummy1;
+  std::map<Node, Node> dummy2;
 
+  NodeInitExpr2(rhs, kind, NodeCloneRecursively(lhs, &dummy1, &dummy2), expr,
+                kStrInvalid, sl, Node_x_type(lhs));
+  Node out = NodeNew(NT::StmtAssignment);
+  return NodeInitStmtAssignment(out, lhs, rhs, kStrInvalid, sl);
+}
 
 void FunCanonicalizeCompoundAssignments(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (node.kind() != NT::StmtCompoundAssignment) return node;
     NodeChain stmts;
-
-    return node;
+    Node new_lhs =
+        MakeNodeCopyableWithoutRiskOfSideEffects(Node_lhs(node), &stmts, true);
+    Node assignment =
+        _MakeSimpleForAssigmemt(Node_binary_expr_kind(node), new_lhs,
+                                Node_expr_rhs(node), Node_srcloc(node));
+    NodeFree(node);
+    if (stmts.First().isnull()) return assignment;
+    stmts.Append(assignment);
+    return stmts.First();
   };
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
