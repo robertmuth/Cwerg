@@ -884,7 +884,7 @@ void FunRewriteComplexAssignments(Node fun, TypeCorpus* tc) {
     if (rhs.kind() != NT::ValCompound) return node;
     NodeChain extra;
     for (Node i = Node_inits(rhs); !i.isnull(); i = Node_next(i)) {
-      if (IsSimpleInitializer(i)) continue;
+      if (IsSimpleInitializer(Node_value_or_undef(i))) continue;
       const SrcLoc& sl = Node_srcloc(i);
       Node at = MakeTypeAuto(Node_x_type(i), sl);
       Node def_var = NodeNew(NT::DefVar);

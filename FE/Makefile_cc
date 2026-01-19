@@ -84,7 +84,9 @@ assimilation_after_opt_tests: $(ALL_SOURCES_NO_GENERIC_NO_BUILTIN:%.cw=$(DIR)/%.
 # PHASE =  -dump_ast after_partial_eval
 # PHASE =  -dump_ast after_optimization
 # PHASE =  -dump_ast after_eliminate_span_and_union
-PHASE =  -dump_ast after_large_arg_conversion
+# PHASE =  -dump_ast after_large_arg_conversion
+PHASE =  -dump_ast after_legalize
+
 # PHASE =  -dump_types after_optimization
 
 $(DIR)/%.cw.assim: %.cw
