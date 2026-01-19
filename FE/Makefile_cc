@@ -5,7 +5,7 @@ DIR=build_cc
 BUILD_DIR=../build
 LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
 PP=$(BUILD_DIR)/pp.exe
-EMIT_IR=$(BUILD_DIR)/emit_ir.exe
+EMIT_IR=$(BUILD_DIR)/compiler.exe
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -57,7 +57,7 @@ $(PP)::
 	@cd $(BUILD_DIR); $(MAKE) -s pp.exe
 
 $(EMIT_IR)::
-	@cd $(BUILD_DIR); $(MAKE) -s emit_ir.exe
+	@cd $(BUILD_DIR); $(MAKE) -s compiler.exe
 
 run_lexer_bench: $(LEXER_BENCH)
 	/bin/time -p $(LEXER_BENCH)  Lib/*cw TestData/*cw  LangTest/*cw  > /dev/null
@@ -117,7 +117,7 @@ profile_lexer: $(LEXER_BENCH)
 benchmark_lexer: $(LEXER_BENCH)
 	/bin/time -p $(LEXER_BENCH) -m parser $(XXX7) $(XXX5) $(XXX1)
 
-profile_emit_ir: $(EMIT_IR)
+profile_compiler: $(EMIT_IR)
 	perf record -g -F max $(EMIT_IR) $(filter-out $(wildcard */*gen.cw), $(LIB_SOURCES))
 
 benchmark_emit_ir: $(EMIT_IR)

@@ -435,7 +435,7 @@ add_executable(pp.exe
 )
 
 
-add_executable(emit_ir.exe
+add_executable(compiler.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:LEXER_LIB>
@@ -474,4 +474,6 @@ add_executable(emit_ir.exe
         FE/optimize.h
         FE/optimize.cc
         FE/emit_ir.cc
+        FE/emit_ir.h
+        FE/compiler.cc
 )
