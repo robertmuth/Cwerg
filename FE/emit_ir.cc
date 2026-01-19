@@ -259,9 +259,12 @@ int main(int argc, const char* argv[]) {
 
   PhaseLegalize(mp.mods_in_topo_order, &tc);
   PhaseOptimize(mp.mods_in_topo_order, &tc);
+  eliminated_nodes.insert(NT::StmtCompoundAssignment);
+  eliminated_nodes.insert(NT::StmtCond);
+  eliminated_nodes.insert(NT::Case);
 
-  SanityCheckMods("after_legalize", mp.mods_in_topo_order,
-                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
+  SanityCheckMods("after_legalize", mp.mods_in_topo_order, eliminated_nodes,
+                  COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files

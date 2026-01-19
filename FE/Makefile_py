@@ -114,31 +114,31 @@ $(DIR)/%.cws.pp: %.cws
 
 $(DIR)/%.x64.exe: %.cw
 	@echo "[lang $@]"
-	$(PYPY) ./emit_ir.py $< > $@.asm
+	$(PYPY) ./compiler.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../BE/CodeGenX64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 $(DIR)/%.a64.exe: %.cw
 	@echo "[lang $@]"
-	$(PYPY) ./emit_ir.py $< > $@.asm
+	$(PYPY) ./compiler.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../BE/CodeGenA64/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 
 $(DIR)/%.a32.exe: %.cw
 	@echo "[lang $@]"
-	$(PYPY) ./emit_ir.py -shake_tree -arch a32 $< > $@.asm
+	$(PYPY) ./compiler.py -shake_tree -arch a32 $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../BE/CodeGenA32/codegen.py -mode binary - $@ > $@.out
 	${QEMU} $@
 ## Compile only Tests
 
 $(DIR)/%.compile.x64.exe: %.cw
 	@echo "[run $@]"
-	$(PYPY) ./emit_ir.py $< > $@.asm
+	$(PYPY) ./compiler.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../BE/CodeGenX64/codegen.py -mode binary - $@ > $@.out
 
 $(DIR)/%.compile.a64.exe: %.cw
 	@echo "[run $@]"
-	$(PYPY) ./emit_ir.py $< > $@.asm
+	$(PYPY) ./compiler.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../BE/CodeGenA64/codegen.py -mode binary - $@ > $@.out
 
 # concrete

@@ -92,7 +92,7 @@ PHASE =  -dump_ast after_legalize
 $(DIR)/%.cw.assim: %.cw
 	@echo "[assim $@]"
 	$(EMIT_IR) $(PHASE) $< > $@.cc
-	./emit_ir.py  $(PHASE) $< > $@.py
+	./compiler.py  $(PHASE) $< > $@.py
 	diff $@.py $@.cc
 
 ############################################################
