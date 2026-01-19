@@ -100,7 +100,15 @@ fun test_tagged_union_void() void:
     let! x012 union(void, void_t1, void_t2) = void_val
     let! x123 union(void_t1, void_t2, void_t3) = void_t3_val
     let! x12 union(void_t1, void_t2) = void_t1_val
+    test::AssertTrue#(x012 == void_val)
+    test::AssertTrue#(x123 == void_t3_val)
+    test::AssertTrue#(x12 == void_t1_val)
     set x012 = x12
+    test::AssertTrue#(x012 == void_t1_val)
+    let! x12_bool union(void_t1, void_t2, bool) = x12
+    test::AssertTrue#(x12_bool == void_t1_val)
+    set x12_bool  = true
+    test::AssertTrue#(x12_bool == true)
 
 fun fun_param(a bool, b bool, c s32, x Union3) void:
     if a:

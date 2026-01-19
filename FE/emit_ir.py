@@ -105,10 +105,6 @@ def _InitDataForBaseType(x_type: cwast.CanonType, val: Union[eval.EvalNum, eval.
     return eval.SerializeBaseType(val)
 
 
-def RenderList(items):
-    return "[" + " ".join(items) + "]"
-
-
 def _FunTypeStrings(ct: cwast.CanonType) -> tuple[str, list[str]]:
     assert ct.is_fun()
     arg_types: list[Any] = []
@@ -412,6 +408,16 @@ def _FormatNumber(val: cwast.ValNum) -> str:
         assert False, f"unsupported scalar: {bt} {val}"
 
 
+def _EmitCast(expr, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
+    assert dst_ct.size > 0
+    src_reg_type = src_ct.get_single_register_type()
+    dst_reg_type = dst_ct.get_single_register_type()
+    if src_reg_type == dst_reg_type:
+        return expr
+    res = id_gen.NewName("bitcast")
+    print(f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
+    return res
+
 def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
@@ -495,15 +501,8 @@ def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGen
             assert False, f"unsupported expression {node}"
         return res
     elif isinstance(node, cwast.ExprBitCast):
-        res = id_gen.NewName("bitcast")
         expr = _EmitIRExpr(node.expr, ta, id_gen)
-        src_reg_type = node.expr.x_type.get_single_register_type()
-        dst_reg_type = node.type.x_type.get_single_register_type()
-        if src_reg_type == dst_reg_type:
-            print(f"{TAB}mov {res}:{dst_reg_type} = {expr}")
-        else:
-            print(f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
-        return res
+        return _EmitCast(expr, node.expr.x_type, node.type.x_type, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
         addr = _GetLValueAddress(node.expr, ta, id_gen)
         if ct_dst.is_zero_sized():
@@ -568,16 +567,20 @@ def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGen
         return res
     elif isinstance(node, cwast.ExprWiden):
         # this should only happen for widening empty untagged unions
-        assert node.x_type.size == 0
+        # assert node.x_type.size == 0, f"{node} {node.x_type}"
         # make sure we evaluate the rest for side-effects
-        return _EmitIRExpr(node.expr, ta, id_gen)
+        tmp = _EmitIRExpr(node.expr, ta, id_gen)
+        dst_ct = node.type.x_type
+        if dst_ct.size == 0:
+            return None
+        return _EmitCast(tmp, node.expr.x_type, dst_ct, id_gen)
     elif isinstance(node, cwast.ValVoid):
         return None
     # elif isinstance(node, cwast.ValCompound):
     #    assert node.x_type.size == 0, f"{node} {node.x_type} {node.x_type.size}"
     #    return None
     else:
-        assert False, f"unsupported expression {node.x_srcloc} {node}"
+        assert False, f"unsupported expression {node.x_srcloc} {node} {node.x_type.ir_regs}"
 
 
 def _EmitZero(dst: BaseOffset, length, alignment,
