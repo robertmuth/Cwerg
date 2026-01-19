@@ -3,7 +3,7 @@
 set -o nounset
 set -o errexit
 
-# --docstring-as-code:  https://github.com/AlDanial/cloc/issues/375 
+# --docstring-as-code:  https://github.com/AlDanial/cloc/issues/375
 readonly CLOC_FLAGS="-quiet --hide-rate --docstring-as-code"
 
 
@@ -25,22 +25,22 @@ ComputeStats() {
     echo
     echo "### Table Code (Python)"
     echo
-    RunCloc --by-file  '--match-f=(cwast|_tab).*[.](py)$$'  --match-d="$2"  $1 
+    RunCloc --by-file  '--match-f=(cwast|_tab).*[.](py)$$'  --match-d="$2"  $1
 
     echo "### Regular Code (C++)"
     echo
     RunCloc --by-file '--match-f=[.](cc|h)$$' '--not-match-f=(_test|_tab|_gen.*)[.](|h|cc)$$' --match-d="$2"  $1
-    
+
     echo
     echo "### Generated Files (C++)"
     echo
-    RunCloc --by-file  '--match-f=_gen.*[.](cc|h)$$'  --match-d="$2"  $1   
-    
-    
+    RunCloc --by-file  '--match-f=_gen.*[.](cc|h)$$'  --match-d="$2"  $1
+
+
 }
 
-backend() {
-	   
+BE() {
+
     echo "## ISA Neutral Code"
     ComputeStats BE "Base|Elf"
 
@@ -54,11 +54,14 @@ backend() {
     ComputeStats BE "CpuX64|CodeGenX64"
 }
 
-
-frontend() {
-	   
+FE() {
     ComputeStats FE ".*"
 }
+
+IR() {
+    ComputeStats IR ".*"
+}
+
 
 if [ $# = 0 ]; then
    echo "ERROR: No command specified." >&2
@@ -70,5 +73,5 @@ if [ "$(type -t $1)" != "function" ]; then
    echo "ERROR: unknown command '$1'." >&2
    exit 1
  fi
-  
+
 "$@"

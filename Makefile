@@ -62,8 +62,9 @@ lint:
 
 
 cloc:
-	./cloc.sh frontend > FE/CLOC.md
-	./cloc.sh backend > BE/CLOC.md
+	./cloc.sh FE > FE/CLOC.md
+	./cloc.sh BE > BE/CLOC.md
+	./cloc.sh IR > IR/CLOC.md
 
 
 #@ format - reformat python and c(++) files
