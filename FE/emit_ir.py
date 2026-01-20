@@ -15,6 +15,8 @@ from FE import cwast
 from FE import eval
 from FE import identifier
 
+from IR import opcode_tab as o
+
 logger = logging.getLogger(__name__)
 
 TAB = "  "
@@ -60,7 +62,7 @@ class STORAGE_KIND(enum.Enum):
 def _IsDefVarOnStack(node: cwast.DefVar) -> bool:
     if node.ref:
         return True
-    return not node.type_or_auto.x_type.fits_in_register()
+    return node.type_or_auto.x_type.ir_regs == o.DK.MEM
 
 
 def _StorageForId(node: cwast.Id) -> STORAGE_KIND:
@@ -291,8 +293,8 @@ def _EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.Tar
             else:
                 print(f"{TAB}bne {op} 0 {label_false}")
         else:
-            assert cond.expr1.x_type.fits_in_register(
-            ), f"NYI Expr2 for {cond} {cond.expr1.x_type}"
+            assert cond.expr1.x_type.ir_regs not in (
+                o.DK.MEM, o.DK.NONE), f"NYI Expr2 for {cond} {cond.expr1.x_type}"
             op1 = _EmitIRExpr(cond.expr1, ta, id_gen)
             op2 = _EmitIRExpr(cond.expr2, ta, id_gen)
             if invert:
@@ -419,7 +421,8 @@ def _EmitCast(expr, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
 def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
-    assert ct_dst.size == 0 or ct_dst.fits_in_register(), f"{node} ct={ct_dst}"
+    ir_reg = ct_dst.ir_regs
+    assert ir_reg != o.DK.MEM, f"{node} ct={ct_dst}"
     if isinstance(node, cwast.ExprCall):
         sig: cwast.CanonType = node.callee.x_type
         assert sig.is_fun()
@@ -625,8 +628,8 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         #       bools may need special treatment
         assert init_node.x_type == init_node.type.x_type, f"ExprAs {
             init_node.type.x_type} ->  {init_node.x_type}"
-        assert init_node.x_type.fits_in_register(
-        ), f"{init_node} {init_node.x_type}"
+        assert init_node.x_type.ir_regs not in (o.DK.MEM, o.DK.NONE
+                                                ), f"{init_node} {init_node.x_type}"
         reg = _EmitIRExpr(init_node, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, cwast.ExprNarrow):
@@ -802,7 +805,7 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
         print(f"{TAB}bra {block}  # continue")
     elif isinstance(node, cwast.StmtExpr):
         ct: cwast.CanonType = node.expr.x_type
-        if ct.is_zero_sized() or ct.fits_in_register():
+        if ct.ir_regs != o.DK.MEM:
             _EmitIRExpr(node.expr, ta, id_gen)
         else:
             name = id_gen.NewName("stmt_stk_var")
@@ -840,7 +843,7 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
             print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
         lhs = node.lhs
-        if lhs.x_type.fits_in_register() and _AssignmentLhsIsInReg(lhs):
+        if lhs.x_type.ir_regs not in (o.DK.NONE, o.DK.MEM) and _AssignmentLhsIsInReg(lhs):
             assert isinstance(node.lhs, cwast.Id)
             out = _EmitIRExpr(node.expr_rhs, ta, id_gen)
             print(f"{TAB}mov {lhs.x_symbol.name} = {out}  # {node}")

@@ -1009,12 +1009,8 @@ class CanonType:
     def is_mutable(self) -> bool:
         return self.mut
 
-    def fits_in_register(self) -> bool:
-        assert self.size > 0
-        return self.ir_regs not in (o.DK.MEM, o.DK.NONE)
-
     def get_single_register_type(self) -> str:
-        assert self.fits_in_register()
+        assert self.ir_regs not in (o.DK.MEM, o.DK.NONE)
         return self.ir_regs
 
     def get_original_typeid(self):
