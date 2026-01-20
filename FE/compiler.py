@@ -318,18 +318,20 @@ def main() -> int:
     #
     logger.info("phase: eliminate span and union")
     PhaseEliminateSpanAndUnion(mod_gen, mod_topo_order, tc)
+    mod_topo_order = [mod_gen] + mod_topo_order
+
     eliminated_nodes.update([cwast.ExprLen,
                              cwast.ValSpan,
                              cwast.ExprUnionTag,
                              cwast.ExprUnionUntagged])
     SanityCheckMods("after_eliminate_span_and_union", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
-                    [mod_gen] + mod_topo_order, tc, eliminated_nodes)
+                    mod_topo_order, tc, eliminated_nodes)
 
     #
     logger.info("phase: eliminate large args")
     PhaseEliminateLargeArgs(mod_topo_order, tc)
     SanityCheckMods("after_large_arg_conversion", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
-                    [mod_gen] + mod_topo_order, tc,  eliminated_nodes)
+                    mod_topo_order, tc,  eliminated_nodes)
     #
     logger.info("phase: legalize")
     PhaseLegalize(mod_topo_order, tc)
@@ -338,10 +340,9 @@ def main() -> int:
                              cwast.StmtCond,
                              cwast.Case])
     SanityCheckMods("after_legalize", checker.COMPILE_STAGE.AFTER_DESUGAR, args,
-                    [mod_gen] + mod_topo_order, tc, eliminated_nodes)
+                    mod_topo_order, tc, eliminated_nodes)
 
     assert eliminated_nodes == cwast.ALL_NODES_NON_CORE
-    mod_topo_order = [mod_gen] + mod_topo_order
 
     # Naming cleanup:
     # * Set fully qualified names for all module level symbols
@@ -350,7 +351,7 @@ def main() -> int:
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
-                node.name = MangledGlobalName(
+                node.name=MangledGlobalName(
                     mod, str(mod.name), node, node.cdecl or node == main_entry_fun)
 
     SanityCheckMods("after_name_cleanup", checker.COMPILE_STAGE.AFTER_DESUGAR,
@@ -362,11 +363,11 @@ def main() -> int:
     # for mod in mod_topo_order:
     #    print (f"# {mod.name}")
 
-    sig_names: set[str] = set()
+    sig_names: set[str]=set()
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):
-                sn = emit_ir.MakeFunSigName(fun.x_type)
+                sn=emit_ir.MakeFunSigName(fun.x_type)
                 if sn not in sig_names:
                     emit_ir.EmitFunctionHeader(sn, "SIGNATURE", fun.x_type)
                     sig_names.add(sn)
@@ -390,7 +391,7 @@ if __name__ == "__main__":
         from cProfile import Profile
         from pstats import SortKey, Stats
         with Profile() as profile:
-            ret = main()
+            ret=main()
             Stats(profile).strip_dirs().sort_stats(SortKey.CALLS).print_stats()
             exit(ret)
     else:
