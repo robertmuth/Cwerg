@@ -208,6 +208,8 @@ class DK(enum.Enum):
 
     INVALID = 0
 
+    NONE = 1
+    MEM = 2
     # signed
     S8 = (DK_FLAVOR_S << 4) + _DK_WIDTH_8
     S16 = (DK_FLAVOR_S << 4) + _DK_WIDTH_16
