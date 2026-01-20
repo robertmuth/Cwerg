@@ -87,9 +87,10 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
                     line.append(val)
                 else:
                     line.append(f"{nfd.name}={val}")
-    label = labels.get(node)
-    if label is not None:
-        line.append(f"label={label}")
+    if labels is not None:
+        label = labels.get(node)
+        if label is not None:
+            line.append(f"label={label}")
 
     for name in cls.X_FIELD_NAMES:
         val = getattr(node, name)
@@ -106,9 +107,10 @@ def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_col
             val = val.render(labels)
 
         if name == "x_symbol" or name == "x_target" or name == "x_poly_mod":
-            def_sym = getattr(node, name)
-            assert def_sym in labels, f"{node} -> {def_sym} ---  {node.x_srcloc} {def_sym.x_srcloc}"
-            line.append(f"{name}={labels[def_sym]}")
+            if labels is not None:
+                def_sym = getattr(node, name)
+                assert def_sym in labels, f"{node} -> {def_sym} ---  {node.x_srcloc} {def_sym.x_srcloc}"
+                line.append(f"{name}={labels[def_sym]}")
             continue
         if name == "x_import" or name == "x_symtab":
             continue
@@ -201,6 +203,9 @@ def DumpMods(mods: list[cwast.DefMod], fout):
         print("", file=fout)
         _DumpNode(mod, -1, labels, fout, [], True)
 
+
+def DumpNode(node, fout):
+    _DumpNode(node, 0, None, fout, [], True)
 ############################################################
 #
 ############################################################

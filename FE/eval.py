@@ -60,7 +60,7 @@ class EvalVarAddr(EvalBase):
 
     @override
     def render(self, label_map: dict[Any, str]) -> str:
-        if self.sym not in label_map:
+        if label_map is None or self.sym not in label_map:
             return f"EvalVarAddr[DANGLING: {self.sym}]"
         return f"EvalVarAddr[{label_map[self.sym]}]"
 
@@ -108,6 +108,8 @@ class EvalFunAddr(EvalBase):
 
     @override
     def render(self, label_map: dict[Any, str]) -> str:
+        if label_map is None or self.sym not in label_map:
+            return f"EvalFunAddr[DANGLING: {self.sym}]"
         return f"EvalFunAddr[{label_map[self.sym]}]"
 
     def __str__(self):
@@ -138,6 +140,8 @@ class EvalCompound(EvalBase):
     def render(self, label_map: dict[Any, str]) -> str:
         init = self.init_node
         if init:
+            if label_map is None or init not in label_map:
+                return f"EvalCompound[DANGLING: {init}]"
             return f"EvalCompound[{label_map[init]}]"
         else:
             return "EvalCompound[]"
