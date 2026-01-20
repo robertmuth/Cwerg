@@ -337,9 +337,9 @@ class _ModPoolState:
         return mod
 
 
-def _MainEntryFun(mod: cwast.DefMod) -> Optional[cwast.DefFun]:
+def _FindFun(mod: cwast.DefMod, name: cwast.NAME) -> Optional[cwast.DefFun]:
     for fun in mod.body_mod:
-        if isinstance(fun, cwast.DefFun) and fun.name == _MAIN_FUN_NAME:
+        if isinstance(fun, cwast.DefFun) and fun.name == name:
             return fun
     return None
 
@@ -402,7 +402,7 @@ def ReadModulesRecursively(root: Path,
         mod = read_mod_fun(path)
         mod_info = state.AddModInfo(path, [], mod)
         if not out.main_fun:
-            out.main_fun = _MainEntryFun(mod_info.mod)
+            out.main_fun = _FindFun(mod_info.mod, _MAIN_FUN_NAME)
         active.append(mod_info)
         assert not mod_info.mod.builtin
 

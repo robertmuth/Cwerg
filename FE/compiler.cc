@@ -40,6 +40,25 @@ SwitchBool sw_dump_stats("dump_stats", "dump stats before exiting");
 
 SwitchBool sw_dump_handles("dump_handles", "include handles when dumping AST");
 
+Name MangledGlobalName(Name mod_name, Node node, bool is_cdecl) {
+  std::string mangled_name;
+  if (!is_cdecl) {
+    mangled_name += NameData(mod_name);
+    mangled_name += "/";
+  }
+
+  mangled_name += NameData(Node_name(node));
+
+  if (node.kind() == NT::DefFun && Node_has_flag(node, BF::POLY)) {
+    mangled_name += "<";
+    CanonType first = CanonType_children(Node_x_type(node))[0];
+    mangled_name += NameData(CanonType_name(first));
+    mangled_name += ">";
+  }
+
+  return NameNew(mangled_name);
+}
+
 void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
                      const std::set<NT>& eliminated_nodes, COMPILE_STAGE stage,
                      TypeCorpus* tc) {
@@ -264,6 +283,19 @@ int main(int argc, const char* argv[]) {
   eliminated_nodes.insert(NT::Case);
 
   SanityCheckMods("after_legalize", mp.mods_in_topo_order, eliminated_nodes,
+                  COMPILE_STAGE::AFTER_DESUGAR, &tc);
+
+  for (Node mod : mp.mods_in_topo_order) {
+    for (Node node = Node_body_mod(mod); !node.isnull();
+         node = Node_next(node)) {
+      if (node.kind() == NT::DefFun || node.kind() == NT::DefGlobal) {
+        Node_name(node) = MangledGlobalName(
+            Node_name(mod), node,
+            Node_has_flag(node, BF::CDECL) || node == mp.main_fun);
+      }
+    }
+  }
+  SanityCheckMods("after_name_cleanup", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_DESUGAR, &tc);
 
   if (sw_dump_stats.Value()) {

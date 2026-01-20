@@ -442,7 +442,8 @@ Node ReadMod(const Path& path) {
   Path with_suffix = path;
   with_suffix.replace_extension(".cw");
   Path absolute = std::filesystem::absolute(with_suffix.lexically_normal());
-  // std::cout << "ReadMod [" << absolute << "] as [" << path.filename() << "]\n";
+  // std::cout << "ReadMod [" << absolute << "] as [" << path.filename() <<
+  // "]\n";
   auto data = ReadFile(with_suffix.c_str());
 
   Path filename = path.stem();
@@ -458,10 +459,21 @@ Node ReadMod(const Path& path) {
   return mod;
 }
 
+Node FindFun(Node mod, Name name) {
+  for (Node child = Node_body_mod(mod); !child.isnull();
+       child = Node_next(Node(child))) {
+    if (Node_kind(child) == NT::DefFun && Node_name(child) == name) {
+      return child;
+    }
+  }
+  return kNodeInvalid;
+}
+
 ModPool ReadModulesRecursively(Path root_path,
                                const std::vector<Path>& seed_modules,
                                bool add_builtin,
                                std::function<Node(Path)> read_mod_fun) {
+  Name name_main = NameNew("main");
   ModPoolState state;
   ModPool out;
   std::vector<ModInfo> active;
@@ -476,6 +488,9 @@ ModPool ReadModulesRecursively(Path root_path,
     Path path = ModUniquePathName(root_path, PATH_INVALID, filename.c_str());
     Node mod = read_mod_fun(path);
     ModInfo mi = state.AddModInfo(path, {}, mod);
+    if (out.main_fun.isnull()) {
+      out.main_fun = FindFun(mod, name_main);
+    }
     active.push_back(mi);
   }
 

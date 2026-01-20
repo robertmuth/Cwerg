@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 _GENERATED_MODULE_NAME = "GeNeRaTeD"
 
 
-def MangledGlobalName(mod: cwast.DefMod, mod_name: str, node: Any, is_cdecl: bool) -> cwast.NAME:
+def MangledGlobalName(mod_name: str, node: Any, is_cdecl: bool) -> cwast.NAME:
     assert isinstance(node, (cwast.DefFun, cwast.DefGlobal))
     # when we emit Cwerg IR we use the "/" sepearator not "::" because
     # : is used for type annotations
@@ -351,8 +351,8 @@ def main() -> int:
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
-                node.name=MangledGlobalName(
-                    mod, str(mod.name), node, node.cdecl or node == main_entry_fun)
+                node.name = MangledGlobalName(
+                    str(mod.name), node, node.cdecl or node == main_entry_fun)
 
     SanityCheckMods("after_name_cleanup", checker.COMPILE_STAGE.AFTER_DESUGAR,
                     args,
@@ -363,11 +363,11 @@ def main() -> int:
     # for mod in mod_topo_order:
     #    print (f"# {mod.name}")
 
-    sig_names: set[str]=set()
+    sig_names: set[str] = set()
     for mod in mod_topo_order:
         for fun in mod.body_mod:
             if isinstance(fun, cwast.DefFun):
-                sn=emit_ir.MakeFunSigName(fun.x_type)
+                sn = emit_ir.MakeFunSigName(fun.x_type)
                 if sn not in sig_names:
                     emit_ir.EmitFunctionHeader(sn, "SIGNATURE", fun.x_type)
                     sig_names.add(sn)
@@ -391,7 +391,7 @@ if __name__ == "__main__":
         from cProfile import Profile
         from pstats import SortKey, Stats
         with Profile() as profile:
-            ret=main()
+            ret = main()
             Stats(profile).strip_dirs().sort_stats(SortKey.CALLS).print_stats()
             exit(ret)
     else:
