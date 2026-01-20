@@ -509,6 +509,12 @@ MachineRegs GetMachineRegsForUnion(CanonType ct, const TargetArchConfig& ta) {
       CanonType_kind(scalars[0]) == NT::TypePtr) {
     return CanonType_ir_regs(scalars[0]);
   }
+  if (CanonType_untagged(ct)) {
+    if (scalars.size() == 0) {
+      return MACHINE_REGS_NONE;
+    }
+    return {1, DKMake(DK_FLAVOR_U, largest)};
+  }
 
   if (largest == 0) {
     return {1, DKMake(DK_FLAVOR_U, ta.typeid_bitwidth)};
@@ -526,23 +532,9 @@ MachineRegs GetMachineRegs(CanonType ct, const TargetArchConfig& ta) {
     case NT::TypeSpan:
       return {2, DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth),
               DKMake(DK_FLAVOR_U, ta.uint_bitwidth)};
-    case NT::DefRec: {
-      Node f = Node_fields(CanonType_ast_node(ct));
-      if (f.isnull()) return MACHINE_REGS_NONE;
-      MachineRegs out = GetMachineRegs(Node_x_type(f), ta);
-      for (;;) {
-        f = Node_next(f);
-        if (f.isnull()) break;
-        out.Merge(GetMachineRegs(Node_x_type(f), ta));
-        if (out.num_regs == -1) return out;
-      }
-      return out;
-    }
-
+    case NT::DefRec:
+      return MACHINE_REGS_IN_MEMORY;
     case NT::TypeVec:
-      if (CanonType_dim(ct) == 0) {
-        return MACHINE_REGS_NONE;
-      }
       return MACHINE_REGS_IN_MEMORY;
     case NT::TypeUnion:
       return GetMachineRegsForUnion(ct, ta);
@@ -574,8 +566,9 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
     }
   }
 
-  MachineRegs regs = GetMachineRegs(ct, ta);
   auto [size, alignment] = GetSizeAndAlignment(ct, ta);
+
+  MachineRegs regs = size == 0 ? MACHINE_REGS_NONE : GetMachineRegs(ct, ta);
 
   CanonType_Finalize(ct, size, alignment, regs);
 }

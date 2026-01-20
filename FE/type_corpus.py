@@ -244,8 +244,10 @@ def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.
     if ta.optimize_union_tag and len(scalars) == 1 and scalars[0].is_pointer():
         return scalars[0].ir_regs
 
-    # BUG repro: ./emit_ir.py LangTest/linked_list_gen_test.cw
-    if False and ct.untagged:
+    # BUG repro:
+    # ./compiler.py LangTest/linked_list_gen_test.cw
+    # ./compiler.py LangTest/sum_tagged_test.cw
+    if ct.untagged:
         if largest == 0:
             return cwast.MACHINE_REGS_NONE
         return cwast.MachineRegs(1, o.DK.Make(o.DK_FLAVOR_U, largest))
@@ -258,6 +260,8 @@ def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.
 def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
     """As long as a type can fit into no more than two regs it will have
     register representation which is also how it will be past in function calls.
+
+    Note: this will only be called for non-zero sized types
     """
     if ct.node is cwast.TypeBase:
         return _BASE_TYPE_MAP.get(ct.base_type_kind)
@@ -267,19 +271,8 @@ def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineR
         return cwast.MachineRegs(
             2, ta.get_data_address_reg_type(), ta.get_uint_reg_type())
     elif ct.node is cwast.DefRec:
-        assert isinstance(ct.ast_node, cwast.DefRec)
-        fields = ct.ast_node.fields
-        if len(fields) == 0:
-            cwast.MACHINE_REGS_NONE
-        out = _GetMachineRegs(fields[0].x_type, ta)
-        for f in fields[1:]:
-            out = out.merge(_GetMachineRegs(f.x_type, ta))
-            if out.num_regs == -1:
-                return out
-        return out
+        return cwast.MACHINE_REGS_IN_MEMORY
     elif ct.node is cwast.TypeVec:
-        if ct.array_dim() == 0:
-            return cwast.MACHINE_REGS_NONE
         return cwast.MACHINE_REGS_IN_MEMORY
     elif ct.node is cwast.DefEnum:
         return _BASE_TYPE_MAP[ct.underlying_type().base_type_kind]
@@ -398,8 +391,8 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
             for rf in ct.ast_node.fields:
                 assert isinstance(rf, cwast.RecField)
                 SetAbiInfoRecursively(rf.type.x_type, ta)
-    machines_regs = _GetMachineRegs(ct, ta)
     size, alignment = _GetSizeAndAlignment(ct, ta)
+    machines_regs = cwast.MACHINE_REGS_NONE if size == 0 else _GetMachineRegs(ct, ta)
     ct.Finalize(size, alignment, machines_regs)
 
 

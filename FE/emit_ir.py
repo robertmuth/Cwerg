@@ -5,18 +5,15 @@ import dataclasses
 import enum
 import math
 
-
 from typing import Union, Any, Optional
 
 from Util.parse import BytesToEscapedString
-
 
 from FE import symbolize
 from FE import type_corpus
 from FE import cwast
 from FE import eval
 from FE import identifier
-
 
 logger = logging.getLogger(__name__)
 
@@ -418,6 +415,7 @@ def _EmitCast(expr, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
     print(f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
     return res
 
+
 def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
@@ -573,6 +571,10 @@ def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGen
         dst_ct = node.type.x_type
         if dst_ct.size == 0:
             return None
+        if node.expr.x_type.size == 0:
+            assert tmp is None
+            # TODO: does this work for all types?
+            return "0"
         return _EmitCast(tmp, node.expr.x_type, dst_ct, id_gen)
     elif isinstance(node, cwast.ValVoid):
         return None

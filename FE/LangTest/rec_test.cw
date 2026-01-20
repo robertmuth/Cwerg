@@ -3,9 +3,9 @@ module:
 import test
 
 pub rec type_rec1:
-    ; this is a comment with \" with quotes \t 
+    ; this is a comment with \" with quotes \t
     s1 s32
-    ; s2 comment 
+    ; s2 comment
     s2 s32
     ; s3 is ...
     s3 s32
@@ -63,6 +63,17 @@ global g6 type_rec5 = {type_rec5: 0, buffer, false}
 global g7 = {[1]type_rec5:
              {type_rec5: 0, buffer, false}}
 
+; single element rec
+pub rec rec_type8:
+    t1 u32
+
+
+
+fun test_rec_basic() void:
+    let! g8 = {rec_type8: 66}
+    set g8.t1 = 123
+    test::AssertEq#(g8.t1, 123_u32)
+
 fun main(argc s32, argv ^^u8) s32:
     ; LOCAL
     let! v1 = {type_rec3:}
@@ -112,6 +123,9 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(g3.u5[2], 502_u16)
     test::AssertEq#(g3.u5[3], 503_u16)
     test::AssertEq#(g3.u5[10], 510_u16)
+
+    do test_rec_basic()
+
     ; test end
     test::Success#()
     ; return

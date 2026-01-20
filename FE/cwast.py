@@ -562,9 +562,7 @@ ALL_FIELDS = [
             f"one of: [{_EnumValues(POINTER_EXPR_KIND)}](#pointerop-kind)",
             POINTER_EXPR_KIND),
 
-
     #
-    # TODO: fix all the None below
     NfdNodeList("params", "function parameters and/or comments",
                 NODES_PARAMS_T),
     NfdNodeList("params_mod", "module template parameters",
@@ -1100,9 +1098,7 @@ class CanonType:
     def Finalize(self, size: int, alignment: int, register_types: MachineRegs):
         assert self.alignment == -1
         if size == 0:
-            # TODO
-            # assert not register_types
-            pass
+            assert register_types.num_regs == 0, f"{self} {register_types}"
         self.size = size
         self.alignment = alignment
         self.ir_regs = register_types
