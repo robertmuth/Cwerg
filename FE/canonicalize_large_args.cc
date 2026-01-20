@@ -25,17 +25,17 @@ void MakeAndRegisterLargeArgReplacements(TypeCorpus* tc) {
 
     for (CanonType child :
          orig_children_ct.first(orig_children_ct.size() - 1)) {
-      if (CanonType_fits_in_register(child)) {
-        new_children_ct.push_back(child);
-      } else {
+      DK ir_regs = CanonType_ir_regs(child);
+      if (ir_regs == DK::MEM) {
         new_children_ct.push_back(tc->InsertPtrType(false, child));
         change = true;
+      } else {
+        new_children_ct.push_back(child);
       }
     }
 
     CanonType new_result_ct = orig_children_ct.back();
-    if (!CanonType_is_void(new_result_ct) &&
-        !CanonType_fits_in_register(new_result_ct)) {
+    if (CanonType_ir_regs(new_result_ct) == DK::MEM) {
       new_children_ct.push_back(tc->InsertPtrType(true, new_result_ct));
       new_result_ct = tc->get_void_canon_type();
       change = true;

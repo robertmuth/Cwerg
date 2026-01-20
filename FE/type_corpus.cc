@@ -220,16 +220,6 @@ Node CanonType_get_rec_field(CanonType ct, int no) {
   return f;
 }
 
-bool CanonType_fits_in_register(CanonType ct) {
-  return gCanonTypeCore[ct].ir_regs != DK::MEM &&
-         gCanonTypeCore[ct].ir_regs != DK::NONE;
-}
-
-DK CanonType_single_register_type(CanonType ct) {
-  ASSERT(CanonType_fits_in_register(ct), "");
-  return gCanonTypeCore[ct].ir_regs;
-}
-
 DK CanonType_ir_regs(CanonType ct) { return gCanonTypeCore[ct].ir_regs; }
 
 CanonType CanonTypeNew() {
@@ -462,10 +452,9 @@ DK GetMachineRegsForUnion(CanonType ct, const TargetArchConfig& ta) {
       return DK::MEM;
     }
     scalars.push_back(child);
-    DK rt = CanonType_single_register_type(child);
-    larges_by_kind[DKFlavor(rt)] =
-        std::max(larges_by_kind[DKFlavor(rt)], DKBitWidth(rt));
-    largest = std::max(largest, DKBitWidth(rt));
+    larges_by_kind[DKFlavor(ir_reg)] =
+        std::max(larges_by_kind[DKFlavor(ir_reg)], DKBitWidth(ir_reg));
+    largest = std::max(largest, DKBitWidth(ir_reg));
   }
   if (ta.optimize_union_tag && scalars.size() == 1 &&
       CanonType_kind(scalars[0]) == NT::TypePtr) {

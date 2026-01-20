@@ -111,9 +111,7 @@ extern CanonType CanonType_get_unwrapped(CanonType n);
 extern bool CanonType_tagged_union_contains(CanonType haystack,
                                             CanonType needle);
 
-extern bool CanonType_fits_in_register(CanonType ct);
-
-extern DK CanonType_single_register_type(CanonType ct);
+extern DK CanonType_ir_regs(CanonType ct);
 
 extern CanonType CanonType_replacement_type(CanonType ct);
 
