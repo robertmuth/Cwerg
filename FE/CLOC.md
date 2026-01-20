@@ -27,8 +27,8 @@ FE/build_cc/Lib/json_parser.cw.assim.py                                8        
 FE/build_cc/Lib/sha3.cw.assim.py                                       8              0           8612
 FE/build_cc/Lib/bigint_test.cw.assim.py                               11              0           8384
 FE/build_cc/TestData/ascii_anim.cw.assim.py                            9              0           8136
+FE/build_cc/LangTest/rec_test.cw.assim.py                              6              0           7583
 FE/build_cc/Lib/parse_real.cw.assim.py                                 8              0           7471
-FE/build_cc/LangTest/rec_test.cw.assim.py                              6              0           7331
 FE/build_cc/LangTest/nbody_test.cw.assim.py                           10              0           7169
 FE/build_cc/TestData/nqueens_test.cw.assim.py                         10              0           6903
 FE/build_cc/LangTest/heapsort_test.cw.assim.py                         9              0           6824
@@ -41,9 +41,9 @@ FE/build_cc/TestData/print_argv_exe.cw.assim.py                        8        
 FE/build_cc/TestData/hello_world_test.cw.assim.py                      9              0           5645
 FE/build_cc/Lib/fmt.cw.assim.py                                        7              0           5522
 FE/build_cc/Lib/fmt_real.cw.assim.py                                   5              0           4399
+FE/build_cc/LangTest/sum_tagged_test.cw.assim.py                       6              0           4363
 FE/build_cc/LangTest/enum_test.cw.assim.py                             6              0           3867
 FE/build_cc/Lib/trig_test.cw.assim.py                                  8              0           3733
-FE/build_cc/LangTest/sum_tagged_test.cw.assim.py                       6              0           3654
 FE/build_cc/LangTest/assign_test.cw.assim.py                           6              0           3529
 FE/build_cc/LangTest/expr_test.cw.assim.py                             6              0           3188
 FE/build_cc/LangTest/defer_test.cw.assim.py                            6              0           1359
@@ -56,15 +56,15 @@ FE/build_cc/TestData/fibonacci_test.cw.assim.py                        6        
 FE/typify.py                                                         188             60           1009
 FE/build_cc/LangTest/permute_test.cw.assim.py                          6              0            981
 FE/build_cc/LangTest/sieve_test.cw.assim.py                            6              0            960
-FE/emit_ir.py                                                        103             37            867
+FE/emit_ir.py                                                        100             39            875
 FE/build_cc/Lib/string.cw.assim.py                                     3              0            845
-FE/eval.py                                                           147             60            751
+FE/eval.py                                                           147             60            755
 FE/parse.py                                                          138             33            689
 FE/pp.py                                                             118             53            632
 FE/canonicalize.py                                                   148             56            573
 FE/build_cc/Lib/test.cw.assim.py                                       5              0            561
 FE/build_cc/Lib/ansi.cw.assim.py                                       3              0            548
-FE/type_corpus.py                                                    103             37            496
+FE/type_corpus.py                                                    104             39            486
 FE/build_cc/Lib/bitstream.cw.assim.py                                  3              0            382
 FE/build_cc/Lib/checksum.cw.assim.py                                   3              0            375
 FE/mod_pool.py                                                        99             34            359
@@ -80,11 +80,11 @@ FE/build_cc/Lib/os.cw.assim.py                                         3        
 FE/build_cc/Lib/trig.cw.assim.py                                       3              0            235
 FE/build_cc/Lib/bigint.cw.assim.py                                     3              0            211
 FE/canonicalize_union.py                                              57             31            211
+FE/pp_ast.py                                                          51              4            200
 FE/pp_sexpr.py                                                        51             13            197
-FE/pp_ast.py                                                          50              4            196
 FE/macro.py                                                           38             21            190
 FE/optimize.py                                                        37             24            164
-FE/canonicalize_large_args.py                                         31             12            156
+FE/canonicalize_large_args.py                                         32             12            157
 FE/build_cc/Lib/random.cw.assim.py                                     3              0            142
 FE/pp_html.py                                                         30              7            132
 FE/checker.py                                                         26              3            121
@@ -102,7 +102,7 @@ FE/cws2cw.py                                                           9        
 FE/cw2cws.py                                                           9              1             13
 FE/string_re.py                                                        4              3             11
 ------------------------------------------------------------------------------------------------------
-SUM:                                                                2191            597         458831
+SUM:                                                                2191            601         459799
 ------------------------------------------------------------------------------------------------------
 ```
 
@@ -111,10 +111,10 @@ SUM:                                                                2191        
 ```
 File                             blank        comment           code
 -------------------------------------------------------------------------------
-FE/cwast.py                        705            363           2796
+FE/cwast.py                        692            360           2752
 FE/lexer_tab.py                     94             37            532
 -------------------------------------------------------------------------------
-SUM:                               799            400           3328
+SUM:                               786            397           3284
 -------------------------------------------------------------------------------
 ```
 ### Regular Code (C++)
@@ -146,8 +146,8 @@ FE/build_cc/Lib/json_parser.cw.assim.cc                                8        
 FE/build_cc/Lib/sha3.cw.assim.cc                                       8              0           8612
 FE/build_cc/Lib/bigint_test.cw.assim.cc                               11              0           8384
 FE/build_cc/TestData/ascii_anim.cw.assim.cc                            9              0           8136
+FE/build_cc/LangTest/rec_test.cw.assim.cc                              6              0           7583
 FE/build_cc/Lib/parse_real.cw.assim.cc                                 8              0           7471
-FE/build_cc/LangTest/rec_test.cw.assim.cc                              6              0           7331
 FE/build_cc/LangTest/nbody_test.cw.assim.cc                           10              0           7169
 FE/build_cc/TestData/nqueens_test.cw.assim.cc                         10              0           6903
 FE/build_cc/LangTest/heapsort_test.cw.assim.cc                         9              0           6824
@@ -160,9 +160,9 @@ FE/build_cc/TestData/print_argv_exe.cw.assim.cc                        8        
 FE/build_cc/TestData/hello_world_test.cw.assim.cc                      9              0           5645
 FE/build_cc/Lib/fmt.cw.assim.cc                                        7              0           5522
 FE/build_cc/Lib/fmt_real.cw.assim.cc                                   5              0           4399
+FE/build_cc/LangTest/sum_tagged_test.cw.assim.cc                       6              0           4363
 FE/build_cc/LangTest/enum_test.cw.assim.cc                             6              0           3867
 FE/build_cc/Lib/trig_test.cw.assim.cc                                  8              0           3733
-FE/build_cc/LangTest/sum_tagged_test.cw.assim.cc                       6              0           3654
 FE/build_cc/LangTest/assign_test.cw.assim.cc                           6              0           3529
 FE/build_cc/LangTest/expr_test.cw.assim.cc                             6              0           3188
 FE/build_cc/LangTest/defer_test.cw.assim.cc                            6              0           1359
@@ -177,9 +177,9 @@ FE/build_cc/Lib/fmt_int.cw.assim.cc                                    3        
 FE/build_cc/TestData/fibonacci_test.cw.assim.cc                        6              0           1040
 FE/build_cc/LangTest/permute_test.cw.assim.cc                          6              0            981
 FE/build_cc/LangTest/sieve_test.cw.assim.cc                            6              0            960
-FE/type_corpus.cc                                                    130             19            877
 FE/pp.cc                                                              41             10            873
 FE/build_cc/Lib/string.cw.assim.cc                                     3              0            845
+FE/type_corpus.cc                                                    122             19            831
 FE/canonicalize.cc                                                    85             15            806
 FE/build_cc/Lib/test.cw.assim.cc                                       5              0            561
 FE/build_cc/Lib/ansi.cw.assim.cc                                       3              0            548
@@ -204,7 +204,7 @@ FE/eval.h                                                             53        
 FE/build_cc/Lib/bigint.cw.assim.cc                                     3              0            211
 FE/checker.cc                                                         19              3            205
 FE/canonicalize_large_args.cc                                         22              5            191
-FE/type_corpus.h                                                      55              1            172
+FE/type_corpus.h                                                      54              1            171
 FE/build_cc/Lib/random.cw.assim.cc                                     3              0            142
 FE/lexer.h                                                            30              5            139
 FE/canonicalize_span.cc                                               14              4            124
@@ -230,7 +230,7 @@ FE/optimize.h                                                          3        
 FE/pp.h                                                                3              1              5
 FE/pp_ast.h                                                            4              1              5
 ------------------------------------------------------------------------------------------------------
-SUM:                                                                1638            237         460688
+SUM:                                                                1629            237         461602
 ------------------------------------------------------------------------------------------------------
 ```
 
