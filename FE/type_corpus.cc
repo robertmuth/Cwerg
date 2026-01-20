@@ -13,69 +13,32 @@ namespace cwerg::fe {
 // CanonType API
 // =======================================
 
-struct MachineRegs {
-  int16_t num_regs = 0;
-  DK reg1 = DK::INVALID;
-  DK reg2 = DK::INVALID;
-
-  void Merge(const MachineRegs& other) {
-    if (num_regs == -1 || other.num_regs == 0)
-      return;
-    else if (other.num_regs == -1 || num_regs == 0)
-      *this = other;
-    else if (num_regs == 1 && other.num_regs == 1)
-      *this = {2, reg1, other.reg1};
-    else
-      num_regs = -1;
-  }
-};
-
-std::ostream& operator<<(std::ostream& os, const MachineRegs& mr) {
-  if (mr.num_regs == -1) {
-    os << "IN_MEMORY";
-    return os;
-  }
-
-  os << "[";
-  if (mr.reg1 != DK::INVALID) {
-    os << EnumToString(mr.reg1);
-  }
-  if (mr.reg2 != DK::INVALID) {
-    os << ", " << EnumToString(mr.reg2);
-  }
-  os << "]";
-  return os;
-}
-
-constexpr MachineRegs MACHINE_REGS_NONE = {0, DK::INVALID, DK::INVALID};
-constexpr MachineRegs MACHINE_REGS_IN_MEMORY = {-1, DK::INVALID, DK::INVALID};
-
-constexpr std::array<MachineRegs, 128> InitMachineRegsDK() {
-  std::array<MachineRegs, 128> out;
+constexpr std::array<DK, 128> InitMachineRegsDK() {
+  std::array<DK, 128> out;
   //
-  out[int(BASE_TYPE_KIND::S8)] = {1, DK::S8};
-  out[int(BASE_TYPE_KIND::S16)] = {1, DK::S16};
-  out[int(BASE_TYPE_KIND::S32)] = {1, DK::S32};
-  out[int(BASE_TYPE_KIND::S64)] = {1, DK::S64};
+  out[int(BASE_TYPE_KIND::S8)] = DK::S8;
+  out[int(BASE_TYPE_KIND::S16)] = DK::S16;
+  out[int(BASE_TYPE_KIND::S32)] = DK::S32;
+  out[int(BASE_TYPE_KIND::S64)] = DK::S64;
   //
-  out[int(BASE_TYPE_KIND::U8)] = {1, DK::U8};
-  out[int(BASE_TYPE_KIND::U16)] = {1, DK::U16};
-  out[int(BASE_TYPE_KIND::U32)] = {1, DK::U32};
-  out[int(BASE_TYPE_KIND::U64)] = {1, DK::U64};
+  out[int(BASE_TYPE_KIND::U8)] = DK::U8;
+  out[int(BASE_TYPE_KIND::U16)] = DK::U16;
+  out[int(BASE_TYPE_KIND::U32)] = DK::U32;
+  out[int(BASE_TYPE_KIND::U64)] = DK::U64;
   //
-  out[int(BASE_TYPE_KIND::R32)] = {1, DK::R32};
-  out[int(BASE_TYPE_KIND::R64)] = {1, DK::R64};
+  out[int(BASE_TYPE_KIND::R32)] = DK::R32;
+  out[int(BASE_TYPE_KIND::R64)] = DK::R64;
   //
-  out[int(BASE_TYPE_KIND::BOOL)] = {1, DK::U8};
-  out[int(BASE_TYPE_KIND::VOID)] = MACHINE_REGS_NONE;
-  out[int(BASE_TYPE_KIND::NORET)] = MACHINE_REGS_NONE;
+  out[int(BASE_TYPE_KIND::BOOL)] = DK::U8;
+  out[int(BASE_TYPE_KIND::VOID)] = DK::NONE;
+  out[int(BASE_TYPE_KIND::NORET)] = DK::NONE;
   //
   return out;
 }
 
-const std::array<MachineRegs, 128> gMachineRegsDK = InitMachineRegsDK();
+const std::array<DK, 128> gMachineRegsDK = InitMachineRegsDK();
 
-const MachineRegs& GetMachineRegsForTypeBase(BASE_TYPE_KIND kind) {
+DK GetMachineRegsForTypeBase(BASE_TYPE_KIND kind) {
   return gMachineRegsDK[int(kind)];
 }
 
@@ -95,7 +58,7 @@ struct CanonTypeCore {
   int type_id = -1;
   CanonType replacement_type = kCanonTypeInvalid;
   CanonType original_type = kCanonTypeInvalid;
-  MachineRegs ir_regs = MACHINE_REGS_IN_MEMORY;
+  DK ir_regs = DK::MEM;
 };
 
 struct Stripe<CanonTypeCore, CanonType> gCanonTypeCore("CanonTypeCore");
@@ -150,7 +113,7 @@ bool CanonType_is_finalized(CanonType ct) {
 }
 
 void CanonType_Finalize(CanonType ct, SizeOrDim size, size_t alignment,
-                        MachineRegs regs) {
+                        DK regs) {
   ASSERT(size >= 0 && alignment >= 0,
          "" << size << " " << alignment << " " << ct);
   ASSERT(gCanonTypeCore[ct].alignment < 0, "already finalized " << ct);
@@ -258,17 +221,16 @@ Node CanonType_get_rec_field(CanonType ct, int no) {
 }
 
 bool CanonType_fits_in_register(CanonType ct) {
-  return gCanonTypeCore[ct].ir_regs.num_regs == 1;
+  return gCanonTypeCore[ct].ir_regs != DK::MEM &&
+         gCanonTypeCore[ct].ir_regs != DK::NONE;
 }
 
 DK CanonType_single_register_type(CanonType ct) {
-  ASSERT(gCanonTypeCore[ct].ir_regs.num_regs == 1, "");
-  return gCanonTypeCore[ct].ir_regs.reg1;
-}
-
-MachineRegs CanonType_ir_regs(CanonType ct) {
+  ASSERT(CanonType_fits_in_register(ct), "");
   return gCanonTypeCore[ct].ir_regs;
 }
+
+DK CanonType_ir_regs(CanonType ct) { return gCanonTypeCore[ct].ir_regs; }
 
 CanonType CanonTypeNew() {
   CanonType out = CanonType(gStripeGroupCanonType.New().index());
@@ -484,20 +446,20 @@ SizeAndAlignment GetSizeAndAlignment(CanonType ct, const TargetArchConfig& ta) {
   }
 }
 
-MachineRegs GetMachineRegsForUnion(CanonType ct, const TargetArchConfig& ta) {
+DK GetMachineRegsForUnion(CanonType ct, const TargetArchConfig& ta) {
   std::vector<CanonType> scalars;
   std::array<int, 16> larges_by_kind{
       0};  // zero initializes all elements to zero
   int num_void = 0;
   int largest = 0;
   for (CanonType child : CanonType_children(ct)) {
-    child = CanonType_get_unwrapped(child);
-    if (CanonType_is_void(child)) {
+    DK ir_reg = CanonType_ir_regs(child);
+    if (ir_reg == DK::NONE) {
       ++num_void;
       continue;
     }
-    if (!CanonType_fits_in_register(child)) {
-      return MACHINE_REGS_IN_MEMORY;
+    if (ir_reg == DK::MEM) {
+      return DK::MEM;
     }
     scalars.push_back(child);
     DK rt = CanonType_single_register_type(child);
@@ -511,31 +473,29 @@ MachineRegs GetMachineRegsForUnion(CanonType ct, const TargetArchConfig& ta) {
   }
   if (CanonType_untagged(ct)) {
     if (scalars.size() == 0) {
-      return MACHINE_REGS_NONE;
+      return DK::NONE;
     }
-    return {1, DKMake(DK_FLAVOR_U, largest)};
+    return DKMake(DK_FLAVOR_U, largest);
   }
 
   if (largest == 0) {
-    return {1, DKMake(DK_FLAVOR_U, ta.typeid_bitwidth)};
+    return DKMake(DK_FLAVOR_U, ta.typeid_bitwidth);
   }
-  return {2, DKMake(DK_FLAVOR_U, ta.typeid_bitwidth),
-          DKMake(DK_FLAVOR_U, largest)};
+  return DK::MEM;
 }
 
-MachineRegs GetMachineRegs(CanonType ct, const TargetArchConfig& ta) {
+DK GetMachineRegs(CanonType ct, const TargetArchConfig& ta) {
   switch (CanonType_kind(ct)) {
     case NT::TypeBase:
       return GetMachineRegsForTypeBase(CanonType_base_type_kind(ct));
     case NT::TypePtr:
-      return {1, DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth), DK::INVALID};
+      return DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth);
     case NT::TypeSpan:
-      return {2, DKMake(DK_FLAVOR_A, ta.data_addr_bitwidth),
-              DKMake(DK_FLAVOR_U, ta.uint_bitwidth)};
+      return DK::MEM;
     case NT::DefRec:
-      return MACHINE_REGS_IN_MEMORY;
+      return DK::MEM;
     case NT::TypeVec:
-      return MACHINE_REGS_IN_MEMORY;
+      return DK::MEM;
     case NT::TypeUnion:
       return GetMachineRegsForUnion(ct, ta);
     case NT::DefEnum:
@@ -544,11 +504,10 @@ MachineRegs GetMachineRegs(CanonType ct, const TargetArchConfig& ta) {
     case NT::DefType:
       return GetMachineRegs(CanonType_underlying_type(ct), ta);
     case NT::TypeFun:
-      return {1, DKMake(DK_FLAVOR_C, ta.code_addr_bitwidth)};
-
+      return DKMake(DK_FLAVOR_C, ta.code_addr_bitwidth);
     default:
       ASSERT(false, "UNREACHABLE");
-      return {};
+      return DK::MEM;
   }
 }
 
@@ -568,7 +527,7 @@ void SetAbiInfoRecursively(CanonType ct, const TargetArchConfig& ta) {
 
   auto [size, alignment] = GetSizeAndAlignment(ct, ta);
 
-  MachineRegs regs = size == 0 ? MACHINE_REGS_NONE : GetMachineRegs(ct, ta);
+  DK regs = size == 0 ? DK::NONE : GetMachineRegs(ct, ta);
 
   CanonType_Finalize(ct, size, alignment, regs);
 }
@@ -827,7 +786,7 @@ void TypeCorpus::Dump() {
               << " id=" << CanonType_typeid(ct)
               << " size=" << CanonType_size(ct)
               << " align=" << CanonType_alignment(ct) << " original=" << orginal
-              << " ir=" << CanonType_ir_regs(ct) << "\n";
+              << " ir=" << EnumToString(CanonType_ir_regs(ct)) << "\n";
   }
 }
 

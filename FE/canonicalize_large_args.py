@@ -24,6 +24,8 @@ from FE import typify
 from FE import eval
 from FE import canonicalize
 
+from IR import opcode_tab as o
+
 ############################################################
 # Convert large parameter into pointer to object allocated
 # in the caller
@@ -38,13 +40,13 @@ def MakeAndRegisterLargeArgReplacements(tc: type_corpus.TypeCorpus):
         change = False
         params: list[cwast.CanonType] = []
         for p in fun_sig.parameter_types():
-            if p.fits_in_register():
-                params.append(p)
-            else:
+            if p.ir_regs == o.DK.MEM:
                 params.append(tc.InsertPtrType(False, p))
                 change = True
+            else:
+                params.append(p)
         result = fun_sig.result_type()
-        if not result.is_void() and not result.fits_in_register():
+        if result.ir_regs == o.DK.MEM:
             change = True
             params.append(tc.InsertPtrType(True, result))
             result = tc.get_void_canon_type()

@@ -865,58 +865,6 @@ def align(x, a):
     return (x + a - 1) // a * a
 
 
-_IN_MEM: int = -1
-
-
-@dataclasses.dataclass(frozen=True)
-class MachineRegs:
-    """Machine Registers representing a CanonType
-
-    Complex types will not have a register representation
-    in which case "is_mem" will be true.
-    There is a plan to desugar ValSpans into register tuples.
-    This class anticipates this optimization but the frontend does
-    not use it yet.
-    """
-    num_regs: int = _IN_MEM
-    reg1:  o.DK = o.DK.INVALID
-    reg2:  o.DK = o.DK.INVALID
-
-    def get_scalar(self):
-        assert self.num_regs == 1
-        return self.reg1
-
-    def is_scalar(self):
-        return self.num_regs == 1
-
-    def merge(self, other) -> MachineRegs:
-        if self.num_regs == _IN_MEM:
-            return self
-        elif other.num_regs == _IN_MEM:
-            return other
-        if self.num_regs == 0:
-            return other
-        elif other.num_regs == 0:
-            return self
-        if self.num_regs == 1 and other.num_regs == 1:
-            return MachineRegs(2, self.reg1, other.reg1)
-        return MACHINE_REGS_IN_MEMORY
-
-    def __str__(self):
-        if self.num_regs == -1:
-            return "IN_MEMORY"
-        if self.num_regs == 0:
-            return "[]"
-        if self.num_regs == 1:
-            return "[" + str(self.reg1) + "]"
-        if self.num_regs == 2:
-            return "[" + str(self.reg1) + ", " + str(self.reg2) + "]"
-
-
-MACHINE_REGS_IN_MEMORY = MachineRegs(_IN_MEM)
-MACHINE_REGS_NONE = MachineRegs(0)
-
-
 @dataclasses.dataclass()
 class CanonType:
     """Canonical Type"""
@@ -939,7 +887,7 @@ class CanonType:
     # The fields below are filled during finalization
     alignment: int = -1
     size: int = -1
-    ir_regs: MachineRegs = MACHINE_REGS_IN_MEMORY
+    ir_regs: o.DK = o.DK.MEM
     typeid: int = -1
     union_kind: UnionKind = UnionKind.INVALID
 
@@ -1063,11 +1011,11 @@ class CanonType:
 
     def fits_in_register(self) -> bool:
         assert self.size > 0
-        return self.ir_regs.is_scalar()
+        return self.ir_regs not in (o.DK.MEM, o.DK.NONE)
 
     def get_single_register_type(self) -> str:
-        assert self.size > 0, f"{self} is zero size type {self.size} {self.ir_regs}"
-        return self.ir_regs.get_scalar()
+        assert self.fits_in_register()
+        return self.ir_regs
 
     def get_original_typeid(self):
         ct = self
@@ -1095,10 +1043,10 @@ class CanonType:
     def is_finalized(self) -> bool:
         return self.alignment != -1
 
-    def Finalize(self, size: int, alignment: int, register_types: MachineRegs):
+    def Finalize(self, size: int, alignment: int, register_types: o.DK):
         assert self.alignment == -1
         if size == 0:
-            assert register_types.num_regs == 0, f"{self} {register_types}"
+            assert register_types == o.DK.NONE, f"{self} {register_types}"
         self.size = size
         self.alignment = alignment
         self.ir_regs = register_types

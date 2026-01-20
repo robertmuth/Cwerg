@@ -159,24 +159,24 @@ def IsProperLhs(node) -> bool:
 
 # maps FE types to BE names.
 # Note: it would be cleaner to use the BE enum
-_BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, cwast.MachineRegs] = {
-    cwast.BASE_TYPE_KIND.S8: cwast.MachineRegs(1, o.DK.S8),
-    cwast.BASE_TYPE_KIND.S16: cwast.MachineRegs(1, o.DK.S16),
-    cwast.BASE_TYPE_KIND.S32: cwast.MachineRegs(1, o.DK.S32),
-    cwast.BASE_TYPE_KIND.S64: cwast.MachineRegs(1, o.DK.S64),
+_BASE_TYPE_MAP: dict[cwast.BASE_TYPE_KIND, o.DK] = {
+    cwast.BASE_TYPE_KIND.S8: o.DK.S8,
+    cwast.BASE_TYPE_KIND.S16: o.DK.S16,
+    cwast.BASE_TYPE_KIND.S32: o.DK.S32,
+    cwast.BASE_TYPE_KIND.S64: o.DK.S64,
     #
-    cwast.BASE_TYPE_KIND.U8: cwast.MachineRegs(1, o.DK.U8),
-    cwast.BASE_TYPE_KIND.U16: cwast.MachineRegs(1, o.DK.U16),
-    cwast.BASE_TYPE_KIND.U32: cwast.MachineRegs(1, o.DK.U32),
-    cwast.BASE_TYPE_KIND.U64: cwast.MachineRegs(1, o.DK.U64),
+    cwast.BASE_TYPE_KIND.U8: o.DK.U8,
+    cwast.BASE_TYPE_KIND.U16: o.DK.U16,
+    cwast.BASE_TYPE_KIND.U32: o.DK.U32,
+    cwast.BASE_TYPE_KIND.U64: o.DK.U64,
     #
-    cwast.BASE_TYPE_KIND.R32: cwast.MachineRegs(1, o.DK.R32),
-    cwast.BASE_TYPE_KIND.R64: cwast.MachineRegs(1, o.DK.R64),
+    cwast.BASE_TYPE_KIND.R32: o.DK.R32,
+    cwast.BASE_TYPE_KIND.R64: o.DK.R64,
     #
-    cwast.BASE_TYPE_KIND.BOOL: cwast.MachineRegs(1, o.DK.U8),
+    cwast.BASE_TYPE_KIND.BOOL: o.DK.U8,
     #
-    cwast.BASE_TYPE_KIND.VOID: cwast.MACHINE_REGS_NONE,
-    cwast.BASE_TYPE_KIND.NORET: cwast.MACHINE_REGS_NONE,
+    cwast.BASE_TYPE_KIND.VOID: o.DK.NONE,
+    cwast.BASE_TYPE_KIND.NORET: o.DK.NONE,
 }
 
 
@@ -221,21 +221,20 @@ STD_TARGET_A64 = TargetArchConfig(64, 64, 16, 64, 64, False)
 STD_TARGET_A32 = TargetArchConfig(32, 32, 16, 32, 32, False)
 
 
-def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
+def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> o.DK:
     assert ct.node is cwast.TypeUnion
     num_void = 0
     scalars: list[cwast.CanonType] = []
     largest_by_kind: dict[str, int] = {}
     largest = 0
     for t in ct.union_member_types():
-        t = t.get_unwrapped()
-        if t.is_void():
+        rt = t.ir_regs
+        if rt == o.DK.NONE:
             num_void += 1
             continue
-        if not t.fits_in_register():
-            return cwast.MACHINE_REGS_IN_MEMORY
+        if rt == o.DK.MEM:
+            return o.DK.MEM
         scalars.append(t)
-        rt: o.DK = t.get_single_register_type()
         flavor = rt.flavor()
         bitwidth = rt.bitwidth()
         largest_by_kind[flavor] = max(largest_by_kind.get(flavor, 0), bitwidth)
@@ -249,15 +248,15 @@ def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.
     # ./compiler.py LangTest/sum_tagged_test.cw
     if ct.untagged:
         if largest == 0:
-            return cwast.MACHINE_REGS_NONE
-        return cwast.MachineRegs(1, o.DK.Make(o.DK_FLAVOR_U, largest))
+            return o.DK.NONE
+        return o.DK.Make(o.DK_FLAVOR_U, largest)
 
     if largest == 0:
-        return cwast.MachineRegs(1, ta.get_typeid_reg_type())
-    return cwast.MachineRegs(2, ta.get_typeid_reg_type(), o.DK.Make(o.DK_FLAVOR_U, largest))
+        return ta.get_typeid_reg_type()
+    return o.DK.MEM
 
 
-def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineRegs:
+def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> o.DK:
     """As long as a type can fit into no more than two regs it will have
     register representation which is also how it will be past in function calls.
 
@@ -266,14 +265,13 @@ def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineR
     if ct.node is cwast.TypeBase:
         return _BASE_TYPE_MAP.get(ct.base_type_kind)
     elif ct.node is cwast.TypePtr:
-        return cwast.MachineRegs(1, ta.get_data_address_reg_type())
+        return ta.get_data_address_reg_type()
     elif ct.node is cwast.TypeSpan:
-        return cwast.MachineRegs(
-            2, ta.get_data_address_reg_type(), ta.get_uint_reg_type())
+        return o.DK.MEM
     elif ct.node is cwast.DefRec:
-        return cwast.MACHINE_REGS_IN_MEMORY
+        return o.DK.MEM
     elif ct.node is cwast.TypeVec:
-        return cwast.MACHINE_REGS_IN_MEMORY
+        return o.DK.MEM
     elif ct.node is cwast.DefEnum:
         return _BASE_TYPE_MAP[ct.underlying_type().base_type_kind]
     elif ct.node is cwast.TypeUnion:
@@ -281,7 +279,7 @@ def _GetMachineRegs(ct: cwast.CanonType, ta: TargetArchConfig) -> cwast.MachineR
     elif ct.node is cwast.DefType:
         return _GetMachineRegs(ct.underlying_type(), ta)
     elif ct.node is cwast.TypeFun:
-        return cwast.MachineRegs(1, ta.get_code_address_reg_type())
+        return ta.get_code_address_reg_type()
     else:
         assert False, f"unknown type {ct.name}"
         return cwast.MACHINE_REGS_IN_MEMORY
@@ -392,7 +390,7 @@ def SetAbiInfoRecursively(ct: cwast.CanonType, ta: TargetArchConfig):
                 assert isinstance(rf, cwast.RecField)
                 SetAbiInfoRecursively(rf.type.x_type, ta)
     size, alignment = _GetSizeAndAlignment(ct, ta)
-    machines_regs = cwast.MACHINE_REGS_NONE if size == 0 else _GetMachineRegs(ct, ta)
+    machines_regs = o.DK.NONE if size == 0 else _GetMachineRegs(ct, ta)
     ct.Finalize(size, alignment, machines_regs)
 
 
