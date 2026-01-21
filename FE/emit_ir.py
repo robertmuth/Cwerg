@@ -104,24 +104,26 @@ def _InitDataForBaseType(x_type: cwast.CanonType, val: Union[eval.EvalNum, eval.
     return eval.SerializeBaseType(val)
 
 
-def _FunTypeStrings(ct: cwast.CanonType) -> tuple[str, list[str]]:
+def _FunMachineTypes(ct: cwast.CanonType) -> tuple[list[str], list[str]]:
     assert ct.is_fun()
-    arg_types: list[Any] = []
+    arg_types: list[str] = []
     for p in ct.parameter_types():
-        arg_types.append(str(p.get_single_register_type()))
-    result_type = ""
-    if not ct.result_type().is_void():
-        result_type = str(ct.result_type().get_single_register_type())
-    return result_type, arg_types
+        assert p.ir_regs not in (o.DK.NONE, o.DK.MEM)
+        arg_types.append(str(p.ir_regs))
+    res_types: list[str] = []
+    if ct.result_type().ir_regs != o.DK.NONE:
+        res_types.append(str(ct.result_type().ir_regs))
+    return res_types, arg_types
 
 
 def MakeFunSigName(ct: cwast.CanonType) -> str:
-    result_type, arg_types = _FunTypeStrings(ct)
-    if not result_type:
-        result_type = "void"
+    res_types, arg_types = _FunMachineTypes(ct)
+    if not res_types:
+        res_types.append("void")
     if not arg_types:
         arg_types = ["void"]
-    return f"$sig/{result_type}_{'_'.join(arg_types)}"
+    assert len(res_types) == 1
+    return f"$sig/{res_types[0]}_{'_'.join(arg_types)}"
 
 
 def _EmitFunctionProlog(fun: cwast.DefFun,
@@ -1001,9 +1003,9 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
 
 
 def EmitFunctionHeader(name, kind, ct: cwast.CanonType):
-    result_type, arg_types = _FunTypeStrings(ct)
+    res_types, arg_types = _FunMachineTypes(ct)
     print(
-        f"\n\n.fun {name} {kind} [{result_type}] = [{' '.join(arg_types)}]")
+        f"\n\n.fun {name} {kind} [{r' '.join(res_types)}] = [{' '.join(arg_types)}]")
 
 
 def EmitIRDefFun(node: cwast.DefFun, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):

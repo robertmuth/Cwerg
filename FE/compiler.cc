@@ -23,6 +23,7 @@
 #include "FE/typify.h"
 #include "Util/assert.h"
 #include "Util/switch.h"
+#include "FE/emit_ir.h"
 
 using namespace cwerg::fe;
 using namespace cwerg;
@@ -187,6 +188,21 @@ void PhaseLegalize(std::vector<Node>& mods_in_topo_order, TypeCorpus* tc) {
   }
 }
 
+void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
+                   const TargetArchConfig& ta) {
+  std::unordered_set<std::string> sig_names;
+  for (Node mod : mods_in_topo_order) {
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      if (fun.kind() == NT::DefFun) {
+        std::string sig_name = MakeFunSigName(Node_x_type(fun));
+        EmitFunctionHeader(sig_name, "SIGNATURE", Node_x_type(fun));
+        sig_names.insert(sig_name);
+      }
+    }
+  }
+  //
+}
+
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
   std::ios_base::sync_with_stdio(true);
@@ -222,7 +238,8 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_symbolizing", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_SYMBOLIZE, nullptr);
 
-  TypeCorpus tc(STD_TARGET_X64);
+  const TargetArchConfig& ta = STD_TARGET_X64;
+  TypeCorpus tc(ta);
   AddTypesToAst(mp.mods_in_topo_order, &tc);
   SanityCheckMods("after_typing", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_TYPIFY, &tc);
@@ -302,6 +319,8 @@ int main(int argc, const char* argv[]) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files
               << " lines=" << LexerRaw::stats.num_lines
               << " nodes=" << gStripeGroupNode.NextAvailable() << "\n";
+    exit(0);
   }
+  PhaseEmitCode(mp.mods_in_topo_order, ta);
   return 0;
 }

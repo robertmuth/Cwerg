@@ -191,6 +191,27 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
             canonicalize.FunRewriteComplexAssignments(fun, tc)
 
 
+def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArchConfig):
+
+    sig_names: set[str] = set()
+    for mod in mod_topo_order:
+        for fun in mod.body_mod:
+            if isinstance(fun, cwast.DefFun):
+                sn = emit_ir.MakeFunSigName(fun.x_type)
+                if sn not in sig_names:
+                    emit_ir.EmitFunctionHeader(sn, "SIGNATURE", fun.x_type)
+                    sig_names.add(sn)
+
+    for mod in mod_topo_order:
+        for node in mod.body_mod:
+            if isinstance(node, cwast.DefGlobal):
+                emit_ir.EmitIRDefGlobal(node, ta)
+        for node in mod.body_mod:
+
+            if isinstance(node, cwast.DefFun):
+                emit_ir.EmitIRDefFun(node, ta, identifier.IdGenIR())
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description='pretty_printer')
     parser.add_argument("-shake_tree",
@@ -344,10 +365,8 @@ def main() -> int:
 
     assert eliminated_nodes == cwast.ALL_NODES_NON_CORE
 
-    # Naming cleanup:
-    # * Set fully qualified names for all module level symbols
-    # * uniquify local variables so we can use them directly
-    #   for codegen without having to worry about name clashes
+    # Make global names unique by setting fully qualified names
+    # Unquifying local names is done during IR emission
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):
@@ -358,28 +377,8 @@ def main() -> int:
                     args,
                     mod_topo_order, tc, eliminated_nodes)
 
-    # Emit Cwert IR
-    # print ("# TOPO-ORDER")
-    # for mod in mod_topo_order:
-    #    print (f"# {mod.name}")
+    PhaseEmitCode(mod_topo_order, ta)
 
-    sig_names: set[str] = set()
-    for mod in mod_topo_order:
-        for fun in mod.body_mod:
-            if isinstance(fun, cwast.DefFun):
-                sn = emit_ir.MakeFunSigName(fun.x_type)
-                if sn not in sig_names:
-                    emit_ir.EmitFunctionHeader(sn, "SIGNATURE", fun.x_type)
-                    sig_names.add(sn)
-
-    for mod in mod_topo_order:
-        for node in mod.body_mod:
-            if isinstance(node, cwast.DefGlobal):
-                emit_ir.EmitIRDefGlobal(node, ta)
-        for node in mod.body_mod:
-
-            if isinstance(node, cwast.DefFun):
-                emit_ir.EmitIRDefFun(node, ta, identifier.IdGenIR())
     return 0
 
 
