@@ -121,7 +121,7 @@ void PhaseOptimize(const std::vector<Node>& mods_in_topo_order,
   }
 }
 
-constexpr char _GENERATED_MODULE_NAME[] = "GeNeRaTeD";
+constexpr char _GENERATED_MODULE_NAME[] = "$gen";
 
 Node MakeModGen() {
   Node out = NodeNew(NT::DefMod);
@@ -195,6 +195,9 @@ void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
       if (fun.kind() == NT::DefFun) {
         std::string sig_name = MakeFunSigName(Node_x_type(fun));
+        if (sig_names.contains(sig_name)) {
+          continue;
+        }
         EmitFunctionHeader(sig_name, "SIGNATURE", Node_x_type(fun));
         sig_names.insert(sig_name);
       }

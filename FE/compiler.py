@@ -31,7 +31,7 @@ from FE import emit_ir
 logger = logging.getLogger(__name__)
 
 
-_GENERATED_MODULE_NAME = "GeNeRaTeD"
+_GENERATED_MODULE_NAME = "$gen"
 
 
 def MangledGlobalName(mod_name: str, node: Any, is_cdecl: bool) -> cwast.NAME:
@@ -192,7 +192,6 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
 
 
 def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArchConfig):
-
     sig_names: set[str] = set()
     for mod in mod_topo_order:
         for fun in mod.body_mod:
