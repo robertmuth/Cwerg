@@ -106,13 +106,14 @@ def _InitDataForBaseType(x_type: cwast.CanonType, val: Union[eval.EvalNum, eval.
 
 def _FunMachineTypes(ct: cwast.CanonType) -> tuple[list[str], list[str]]:
     assert ct.is_fun()
+    res_types: list[str] = []
+    if ct.result_type().ir_regs != o.DK.NONE:
+        res_types.append(str(ct.result_type().ir_regs))
     arg_types: list[str] = []
     for p in ct.parameter_types():
         assert p.ir_regs not in (o.DK.NONE, o.DK.MEM)
         arg_types.append(str(p.ir_regs))
-    res_types: list[str] = []
-    if ct.result_type().ir_regs != o.DK.NONE:
-        res_types.append(str(ct.result_type().ir_regs))
+
     return res_types, arg_types
 
 
@@ -508,7 +509,7 @@ def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGen
         return _EmitCast(expr, node.expr.x_type, node.type.x_type, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
         addr = _GetLValueAddress(node.expr, ta, id_gen)
-        if ct_dst.is_zero_sized():
+        if ct_dst.size == 0:
             return None
         ct_src: cwast.CanonType = node.expr.x_type
         assert ct_src.is_union() or ct_src.original_type.is_union()
@@ -539,7 +540,7 @@ def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGen
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprStmt):
-        if node.x_type.is_zero_sized():
+        if node.x_type.size == 0:
             result = _DUMMY_VOID_REG
         else:
             result = id_gen.NewName("expr")
@@ -784,7 +785,7 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
 
             # for this kind of return we need to save the computed value
             # and the branch to the end of the ExprStmt
-            if not node.expr_ret.x_type.is_zero_sized():
+            if node.expr_ret.x_type.size != 0:
                 if isinstance(result.dst, str):
                     out = _EmitIRExpr(node.expr_ret, ta, id_gen)
                     print(f"{TAB}mov {result.dst} {out}")
@@ -796,7 +797,7 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
             print(f"{TAB}bra {result.end_label}  # end of expr")
         else:
             out = _EmitIRExpr(node.expr_ret, ta, id_gen)
-            if not node.expr_ret.x_type.is_zero_sized():
+            if node.expr_ret.x_type.size != 0:
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
@@ -880,6 +881,115 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"   # intentioanlly not zero?
 
 
+def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
+    """When does  node.x_type != ct not hold?"""
+    if ct.size == 0:
+        # global data initialization may not have side-effects
+        return 0
+    assert offset == type_corpus.align(offset, ct.alignment)
+    if isinstance(node, cwast.ValUndef):
+        return _EmitMem(_BYTE_UNDEF * ct.size, f"{offset} undef={ct.name}")
+
+    if isinstance(node, cwast.Id):
+        node_def = node.x_symbol
+        assert isinstance(node_def, cwast.DefGlobal), f"{node_def}"
+        return _EmitInitializerRecursively(node_def.initial_or_undef_or_auto, ct, offset, ta)
+    elif isinstance(node, cwast.ExprFront):
+        # we need to emit an address
+        assert isinstance(node.container, cwast.Id), f"{node.container}"
+        name = node.container.x_symbol.name
+        print(f".addr.mem {ta.get_data_address_size()} {name} 0")
+        # assert False, f"{name} {node.container}"
+        return ta.get_data_address_size()
+    elif isinstance(node, cwast.ExprAddrOf):
+        assert isinstance(
+            node.expr_lhs, cwast.Id), "NYI complex static addresses"
+        data = node.expr_lhs
+        print(
+            f"\n.addr.mem {ta.get_data_address_size()} {data.x_symbol.name} 0")
+        return ta.get_data_address_size()
+    elif isinstance(node, cwast.ExprWiden):
+        count = _EmitInitializerRecursively(
+            node.expr, node.expr.x_type, offset, ta)
+        target = node.x_type.size
+        if target != count:
+            _EmitMem(_BYTE_PADDING * (target - count),
+                     f"{target - count} padding")
+        return target
+    elif isinstance(node, cwast.ValNum):
+        assert ct.get_unwrapped().is_base_type()
+        assert node.x_eval
+        return _EmitMem(_InitDataForBaseType(ct, node.x_eval),  f"{offset} {ct.name}")
+
+    if ct.is_wrapped():
+        assert isinstance(node, cwast.ExprWrap)
+        return _EmitInitializerRecursively(node.expr, node.expr.x_type, offset, ta)
+    elif ct.is_vec():
+        if isinstance(node, cwast.ValAuto):
+            return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
+        assert isinstance(
+            node, (cwast.ValCompound, cwast.ValString)), f"{node}"
+        print(f"# array: {ct.name}")
+        width = ct.array_dim()
+        x_type = ct.underlying_type()
+        if isinstance(node, cwast.ValString):
+            assert isinstance(node.x_eval, eval.EvalBytes)
+            value = node.x_eval.data
+            assert len(
+                value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
+            return _EmitMem(value, f"{offset} {ct.name}")
+
+        assert isinstance(node, cwast.ValCompound), f"{node}"
+        if x_type.is_base_type() or x_type.is_enum():
+            # this special case creates a smaller IR
+            out = bytearray()
+            last = _InitDataForBaseType(
+                x_type, eval.GetDefaultForBaseType(x_type.base_type_kind))
+            for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
+                if init is not None:
+                    last = _InitDataForBaseType(x_type, init.x_eval)
+                out += last
+            return _EmitMem(out, ct.name)
+        else:
+            last = cwast.ValUndef()
+            stride = ct.size // width
+            assert stride * width == ct.size, f"{ct.size} {width}"
+            for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
+                if init is None:
+                    count = _EmitInitializerRecursively(
+                        last, x_type, offset + n * stride, ta)
+                else:
+                    assert isinstance(init, cwast.ValPoint)
+                    last = init.value_or_undef
+                    count = _EmitInitializerRecursively(
+                        last, x_type, offset + n * stride, ta)
+                if count != stride:
+                    _EmitMem(_BYTE_PADDING * (stride - count),
+                             f"{stride - count} padding")
+            return ct.size
+    elif ct.is_rec():
+        if isinstance(node, cwast.ValAuto):
+            return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
+        assert isinstance(
+            node, cwast.ValCompound), f"unexpected value {node}"
+        print(f"# record: {ct.name}")
+        rel_off = 0
+        # note node.x_type may be compatible but not equal to ct
+        for f, i in symbolize.IterateValRec(node.inits, node.x_type):
+            if f.x_offset > rel_off:
+                rel_off += _EmitMem(_BYTE_PADDING *
+                                    (f.x_offset - rel_off), f"{offset+rel_off} padding")
+            if i is not None and not isinstance(i.value_or_undef, cwast.ValUndef):
+                rel_off += _EmitInitializerRecursively(i.value_or_undef,
+                                                       f.type.x_type, offset + rel_off, ta)
+            else:
+                rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.size,
+                                    f.type.x_type.name)
+        return rel_off
+    else:
+        assert False, f"unhandled node: {node} {ct.name}"
+
+
 def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> int:
     """Note there is some similarity to  EmitIRExprToMemory
 
@@ -887,125 +997,20 @@ def EmitIRDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> 
     """
     def_type: cwast.CanonType = node.type_or_auto.x_type
     if def_type.get_unwrapped().is_void():
+        # Note: we currently cannot use ct.size == 0 here because
+        # we have globals like [0]U8 for empty strings
         return 0
     print(
         f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
 
-    def _emit_recursively(node, ct: cwast.CanonType, offset: int) -> int:
-        """When does  node.x_type != ct not hold?"""
-        if ct.is_zero_sized():
-            # global data initialization may not have side-effects
-            return 0
-        assert offset == type_corpus.align(offset, ct.alignment)
-        if isinstance(node, cwast.ValUndef):
-            return _EmitMem(_BYTE_UNDEF * ct.size, f"{offset} undef={ct.name}")
-
-        if isinstance(node, cwast.Id):
-            node_def = node.x_symbol
-            assert isinstance(node_def, cwast.DefGlobal), f"{node_def}"
-            return _emit_recursively(node_def.initial_or_undef_or_auto, ct, offset)
-        elif isinstance(node, cwast.ExprFront):
-            # we need to emit an address
-            assert isinstance(node.container, cwast.Id), f"{node.container}"
-            name = node.container.x_symbol.name
-            print(f".addr.mem {ta.get_data_address_size()} {name} 0")
-            # assert False, f"{name} {node.container}"
-            return ta.get_data_address_size()
-        elif isinstance(node, cwast.ExprAddrOf):
-            assert isinstance(
-                node.expr_lhs, cwast.Id), "NYI complex static addresses"
-            data = node.expr_lhs
-            print(
-                f"\n.addr.mem {ta.get_data_address_size()} {data.x_symbol.name} 0")
-            return ta.get_data_address_size()
-        elif isinstance(node, cwast.ExprWiden):
-            count = _emit_recursively(node.expr, node.expr.x_type, offset)
-            target = node.x_type.size
-            if target != count:
-                _EmitMem(_BYTE_PADDING * (target - count),
-                         f"{target - count} padding")
-            return target
-        elif isinstance(node, cwast.ValNum):
-            assert ct.get_unwrapped().is_base_type()
-            assert node.x_eval
-            return _EmitMem(_InitDataForBaseType(ct, node.x_eval),  f"{offset} {ct.name}")
-
-        if ct.is_wrapped():
-            assert isinstance(node, cwast.ExprWrap)
-            return _emit_recursively(node.expr, node.expr.x_type, offset)
-        elif ct.is_vec():
-            if isinstance(node, cwast.ValAuto):
-                return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
-            assert isinstance(
-                node, (cwast.ValCompound, cwast.ValString)), f"{node}"
-            print(f"# array: {ct.name}")
-            width = ct.array_dim()
-            x_type = ct.underlying_type()
-            if isinstance(node, cwast.ValString):
-                assert isinstance(node.x_eval, eval.EvalBytes)
-                value = node.x_eval.data
-                assert len(
-                    value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
-                return _EmitMem(value, f"{offset} {ct.name}")
-
-            assert isinstance(node, cwast.ValCompound), f"{node}"
-            if x_type.is_base_type() or x_type.is_enum():
-                # this special case creates a smaller IR
-                out = bytearray()
-                last = _InitDataForBaseType(
-                    x_type, eval.GetDefaultForBaseType(x_type.base_type_kind))
-                for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
-                    if init is not None:
-                        last = _InitDataForBaseType(x_type, init.x_eval)
-                    out += last
-                return _EmitMem(out, ct.name)
-            else:
-                last = cwast.ValUndef()
-                stride = ct.size // width
-                assert stride * width == ct.size, f"{ct.size} {width}"
-                for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
-                    if init is None:
-                        count = _emit_recursively(
-                            last, x_type, offset + n * stride)
-                    else:
-                        assert isinstance(init, cwast.ValPoint)
-                        last = init.value_or_undef
-                        count = _emit_recursively(
-                            last, x_type, offset + n * stride)
-                    if count != stride:
-                        _EmitMem(_BYTE_PADDING * (stride - count),
-                                 f"{stride - count} padding")
-                return ct.size
-        elif ct.is_rec():
-            if isinstance(node, cwast.ValAuto):
-                return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
-            assert isinstance(
-                node, cwast.ValCompound), f"unexpected value {node}"
-            print(f"# record: {ct.name}")
-            rel_off = 0
-            # note node.x_type may be compatible but not equal to ct
-            for f, i in symbolize.IterateValRec(node.inits, node.x_type):
-                if f.x_offset > rel_off:
-                    rel_off += _EmitMem(_BYTE_PADDING *
-                                        (f.x_offset - rel_off), f"{offset+rel_off} padding")
-                if i is not None and not isinstance(i.value_or_undef, cwast.ValUndef):
-                    rel_off += _emit_recursively(i.value_or_undef,
-                                                 f.type.x_type, offset + rel_off)
-                else:
-                    rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.size,
-                                        f.type.x_type.name)
-            return rel_off
-        else:
-            assert False, f"unhandled node: {node} {ct.name}"
-
-    return _emit_recursively(node.initial_or_undef_or_auto,
-                             node.type_or_auto.x_type, 0)
+    return _EmitInitializerRecursively(node.initial_or_undef_or_auto,
+                                       node.type_or_auto.x_type, 0, ta)
 
 
-def EmitFunctionHeader(name, kind, ct: cwast.CanonType):
+def EmitFunctionHeader(sig_name, kind, ct: cwast.CanonType):
     res_types, arg_types = _FunMachineTypes(ct)
     print(
-        f"\n\n.fun {name} {kind} [{r' '.join(res_types)}] = [{' '.join(arg_types)}]")
+        f"\n\n.fun {sig_name} {kind} [{r' '.join(res_types)}] = [{' '.join(arg_types)}]")
 
 
 def EmitIRDefFun(node: cwast.DefFun, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):

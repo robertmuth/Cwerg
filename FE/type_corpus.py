@@ -293,7 +293,7 @@ def _GetSizeAndAlignmentForSum(ct: cwast.CanonType, ta: TargetArchConfig) -> tup
     max_alignment = 1
     ptr_size = ta.get_data_address_size()
     for child_ct in ct.union_member_types():
-        if child_ct.is_zero_sized():
+        if child_ct.size == 0:
             continue
         while child_ct.is_wrapped():
             child_ct = child_ct.children[0]
