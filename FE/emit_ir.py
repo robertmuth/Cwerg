@@ -95,15 +95,6 @@ class ReturnResultLocation:
     end_label: str
 
 
-def _InitDataForBaseType(x_type: cwast.CanonType, val: Union[eval.EvalNum, eval.EvalUndef]) -> bytes:
-    byte_width = x_type.size
-    if isinstance(val, eval.EvalUndef):
-        return ZEROS[byte_width]
-    assert isinstance(val, eval.EvalNum), f"{val} {x_type}"
-    assert (x_type.get_unwrapped_base_type_kind() == val.kind)
-    return eval.SerializeBaseType(val)
-
-
 def _FunMachineTypes(ct: cwast.CanonType) -> tuple[list[str], list[str]]:
     assert ct.is_fun()
     res_types: list[str] = []
@@ -861,7 +852,7 @@ def _is_repeated_single_char(data: bytes):
 
 
 def _EmitMemRepatedByte(b, count: int, offset: int, purpose: str, purpose2="") -> int:
-    print(f".data {count}[{b[0]}]  # {offset} {count} {purpose}{purpose2}")
+    print(f".data {count} [{b[0]}]  # {offset} {count} {purpose}{purpose2}")
     return count
 
 
@@ -872,14 +863,23 @@ def _EmitMem(data, offset: int, purpose: str) -> int:
         return _EmitMemRepatedByte(data[0:1], len(data), offset, purpose)
     elif isinstance(data, (bytes, bytearray)):
         if len(data) < 100:
-            print(f'.data 1 "{BytesToEscapedString(data)}"  # {purpose}')
+            print(f'.data 1 "{BytesToEscapedString(data)}" # {purpose}')
         else:
             for count, value in RLE(data):
-                print(f".data {count} [{value}]  # {offset} {count} {purpose}")
+                print(f".data {count} [{value}] # {offset} {count} {purpose}")
                 offset += count
     else:
         assert False
     return len(data)
+
+
+def _InitDataForBaseType(x_type: cwast.CanonType, val: Union[eval.EvalNum, eval.EvalUndef]) -> bytes:
+    byte_width = x_type.size
+    if isinstance(val, eval.EvalUndef):
+        return ZEROS[byte_width]
+    assert isinstance(val, eval.EvalNum), f"{val} {x_type}"
+    assert (x_type.get_unwrapped_base_type_kind() == val.kind)
+    return eval.SerializeBaseType(val)
 
 
 _BYTE_ZERO = b"\0"
@@ -944,20 +944,20 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
                 value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
             return _EmitMem(value, offset, ct.name)
 
-        x_type = ct.underlying_type()
-        print(f"# array: {ct.name}")
+        x_type = ct.underlying_type().get_unwrapped()
         assert isinstance(node, cwast.ValCompound), f"{node}"
-        if x_type.is_base_type() or x_type.is_enum():
+        if x_type.is_base_type():
             # this special case creates a smaller IR
             out = bytearray()
-            last = _InitDataForBaseType(
-                x_type, eval.GetDefaultForBaseType(x_type.base_type_kind))
+            last = _InitDataForBaseType(x_type,
+                                        eval.GetDefaultForBaseType(x_type.base_type_kind))
             for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
                 if init is not None:
                     last = _InitDataForBaseType(x_type, init.x_eval)
                 out += last
             return _EmitMem(out, offset, ct.name)
         else:
+            print(f"# array: {ct.name}")
             last = cwast.ValUndef()
             stride = ct.size // width
             assert stride * width == ct.size, f"{ct.size} {width}"
