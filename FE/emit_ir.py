@@ -138,28 +138,6 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
         print(f"{TAB}poparg {p.name}:{p.type.x_type.get_single_register_type()}")
 
 
-def RLE(data: bytes):
-    last = None
-    count = 0
-    for d in data:
-        if d != last:
-            if last is not None:
-                yield count, last
-            last = d
-            count = 1
-        else:
-            count += 1
-    yield count, last
-
-
-def _is_repeated_single_char(data: bytes):
-    c = data[0]
-    for x in data:
-        if x != c:
-            return False
-    return True
-
-
 ZERO_INDEX = "0"
 
 
@@ -860,17 +838,45 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
         assert False, f"cannot generate code for {node}"
 
 
-def _EmitMem(data, comment) -> int:
+def RLE(data: bytes):
+    last = None
+    count = 0
+    for d in data:
+        if d != last:
+            if last is not None:
+                yield count, last
+            last = d
+            count = 1
+        else:
+            count += 1
+    yield count, last
+
+
+def _is_repeated_single_char(data: bytes):
+    c = data[0]
+    for x in data:
+        if x != c:
+            return False
+    return True
+
+
+def _EmitMemRepatedByte(b, count: int, offset: int, purpose: str, purpose2="") -> int:
+    print(f".data {count}[{b[0]}]  # {offset} {count} {purpose}{purpose2}")
+    return count
+
+
+def _EmitMem(data, offset: int, purpose: str) -> int:
     if len(data) == 0:
-        print(f'.data 0 []  # {comment}')
+        print(f'.data 0 []  # {offset} 0 {purpose}')
     elif _is_repeated_single_char(data):
-        print(f'.data {len(data)} [{data[0]}]  # {comment}')
+        return _EmitMemRepatedByte(data[0:1], len(data), offset, purpose)
     elif isinstance(data, (bytes, bytearray)):
         if len(data) < 100:
-            print(f'.data 1 "{BytesToEscapedString(data)}"  # {comment}')
+            print(f'.data 1 "{BytesToEscapedString(data)}"  # {purpose}')
         else:
             for count, value in RLE(data):
-                print(f".data {count} [{value}]  # {comment}")
+                print(f".data {count} [{value}]  # {offset} {count} {purpose}")
+                offset += count
     else:
         assert False
     return len(data)
@@ -878,7 +884,7 @@ def _EmitMem(data, comment) -> int:
 
 _BYTE_ZERO = b"\0"
 _BYTE_UNDEF = b"\0"
-_BYTE_PADDING = b"\x6f"   # intentioanlly not zero?
+_BYTE_PADDING = b"\x6f"   # intentionally not zero?
 
 
 def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
@@ -887,10 +893,10 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
         # global data initialization may not have side-effects
         return 0
     assert offset == type_corpus.align(offset, ct.alignment)
+    #
     if isinstance(node, cwast.ValUndef):
-        return _EmitMem(_BYTE_UNDEF * ct.size, f"{offset} undef={ct.name}")
-
-    if isinstance(node, cwast.Id):
+        return _EmitMemRepatedByte(_BYTE_UNDEF, ct.size, offset,  "undef ", ct.name)
+    elif isinstance(node, cwast.Id):
         node_def = node.x_symbol
         assert isinstance(node_def, cwast.DefGlobal), f"{node_def}"
         return _EmitInitializerRecursively(node_def.initial_or_undef_or_auto, ct, offset, ta)
@@ -913,32 +919,33 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
             node.expr, node.expr.x_type, offset, ta)
         target = node.x_type.size
         if target != count:
-            _EmitMem(_BYTE_PADDING * (target - count),
-                     f"{target - count} padding")
+            _EmitMemRepatedByte(_BYTE_PADDING, target - count,
+                                offset + count, "padding")
         return target
     elif isinstance(node, cwast.ValNum):
         assert ct.get_unwrapped().is_base_type()
         assert node.x_eval
-        return _EmitMem(_InitDataForBaseType(ct, node.x_eval),  f"{offset} {ct.name}")
+        return _EmitMem(_InitDataForBaseType(ct, node.x_eval), offset, ct.name)
 
+    #
     if ct.is_wrapped():
         assert isinstance(node, cwast.ExprWrap)
         return _EmitInitializerRecursively(node.expr, node.expr.x_type, offset, ta)
     elif ct.is_vec():
         if isinstance(node, cwast.ValAuto):
-            return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
+            return _EmitMemRepatedByte(_BYTE_ZERO, ct.size, offset, "auto")
         assert isinstance(
             node, (cwast.ValCompound, cwast.ValString)), f"{node}"
-        print(f"# array: {ct.name}")
         width = ct.array_dim()
-        x_type = ct.underlying_type()
         if isinstance(node, cwast.ValString):
             assert isinstance(node.x_eval, eval.EvalBytes)
             value = node.x_eval.data
             assert len(
                 value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
-            return _EmitMem(value, f"{offset} {ct.name}")
+            return _EmitMem(value, offset, ct.name)
 
+        x_type = ct.underlying_type()
+        print(f"# array: {ct.name}")
         assert isinstance(node, cwast.ValCompound), f"{node}"
         if x_type.is_base_type() or x_type.is_enum():
             # this special case creates a smaller IR
@@ -949,7 +956,7 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
                 if init is not None:
                     last = _InitDataForBaseType(x_type, init.x_eval)
                 out += last
-            return _EmitMem(out, ct.name)
+            return _EmitMem(out, offset, ct.name)
         else:
             last = cwast.ValUndef()
             stride = ct.size // width
@@ -964,12 +971,12 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
                     count = _EmitInitializerRecursively(
                         last, x_type, offset + n * stride, ta)
                 if count != stride:
-                    _EmitMem(_BYTE_PADDING * (stride - count),
-                             f"{stride - count} padding")
+                    _EmitMemRepatedByte(_BYTE_PADDING, stride - count,
+                                        offset + stride - count, "padding")
             return ct.size
     elif ct.is_rec():
         if isinstance(node, cwast.ValAuto):
-            return _EmitMem(_BYTE_ZERO * ct.size, f"{ct.size} zero")
+            return _EmitMemRepatedByte(_BYTE_ZERO, ct.size, offset, "zero")
         assert isinstance(
             node, cwast.ValCompound), f"unexpected value {node}"
         print(f"# record: {ct.name}")
@@ -977,14 +984,14 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
         # note node.x_type may be compatible but not equal to ct
         for f, i in symbolize.IterateValRec(node.inits, node.x_type):
             if f.x_offset > rel_off:
-                rel_off += _EmitMem(_BYTE_PADDING *
-                                    (f.x_offset - rel_off), f"{offset+rel_off} padding")
+                rel_off += _EmitMemRepatedByte(_BYTE_PADDING,
+                                               f.x_offset - rel_off, offset+rel_off, "padding")
             if i is not None and not isinstance(i.value_or_undef, cwast.ValUndef):
                 rel_off += _EmitInitializerRecursively(i.value_or_undef,
                                                        f.type.x_type, offset + rel_off, ta)
             else:
-                rel_off += _EmitMem(_BYTE_UNDEF * f.type.x_type.size,
-                                    f.type.x_type.name)
+                rel_off += _EmitMemRepatedByte(_BYTE_UNDEF, f.type.x_type.size, offset+rel_off,
+                                               f.type.x_type.name)
         return rel_off
     else:
         assert False, f"unhandled node: {node} {ct.name}"
