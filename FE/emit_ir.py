@@ -32,21 +32,21 @@ def _IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
     curr_index = 0
     for init in points:
         if isinstance(init.point_or_undef, cwast.ValUndef):
-            yield curr_index, init
+            yield init
             curr_index += 1
             continue
         index = init.point_or_undef.x_eval.val
         assert isinstance(index, int)
         while curr_index < index:
-            yield curr_index, None
+            yield None
             curr_index += 1
-        yield curr_index, init
+        yield init
         curr_index += 1
     if curr_index > dim:
         cwast.CompilerError(
             srcloc, f"Out of bounds array access at {curr_index}. Array size is  {dim}")
     while curr_index < dim:
-        yield curr_index, None
+        yield None
         curr_index += 1
 
 
@@ -661,9 +661,9 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         else:
             assert src_type.is_vec()
             element_size: int = src_type.array_element_size()
-            for index, c in _IterateValVec(init_node.inits,
-                                           init_node.x_type.array_dim(),
-                                           init_node.x_srcloc):
+            for index, c in enumerate(_IterateValVec(init_node.inits,
+                                                     init_node.x_type.array_dim(),
+                                                     init_node.x_srcloc)):
                 if c is None:
                     continue
                 if isinstance(c.value_or_undef, cwast.ValUndef):
@@ -887,6 +887,52 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"   # intentionally not zero?
 
 
+def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
+    """When does  node.x_type != ct not hold?"""
+    if isinstance(node, cwast.ValAuto):
+        return _EmitMemRepatedByte(_BYTE_ZERO, ct.size, offset, "auto")
+    assert isinstance(
+        node, (cwast.ValCompound, cwast.ValString)), f"{node}"
+    width = ct.array_dim()
+    if isinstance(node, cwast.ValString):
+        assert isinstance(node.x_eval, eval.EvalBytes)
+        value = node.x_eval.data
+        assert len(
+            value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
+        return _EmitMem(value, offset, ct.name)
+
+    x_type = ct.underlying_type().get_unwrapped()
+    assert isinstance(node, cwast.ValCompound), f"{node}"
+    if x_type.is_base_type():
+        # this special case creates a smaller IR
+        out = bytearray()
+        last = _InitDataForBaseType(x_type,
+                                    eval.GetDefaultForBaseType(x_type.base_type_kind))
+        for init in _IterateValVec(node.inits, width, node.x_srcloc):
+            if init is not None:
+                last = _InitDataForBaseType(x_type, init.x_eval)
+            out += last
+        return _EmitMem(out, offset, ct.name)
+    else:
+        print(f"# array: {ct.name}")
+        last = cwast.ValUndef()
+        stride = ct.size // width
+        assert stride * width == ct.size, f"{ct.size} {width}"
+        for n, init in enumerate(_IterateValVec(node.inits, width, node.x_srcloc)):
+            if init is None:
+                count = _EmitInitializerRecursively(
+                    last, x_type, offset + n * stride, ta)
+            else:
+                assert isinstance(init, cwast.ValPoint)
+                last = init.value_or_undef
+                count = _EmitInitializerRecursively(
+                    last, x_type, offset + n * stride, ta)
+            if count != stride:
+                _EmitMemRepatedByte(_BYTE_PADDING, stride - count,
+                                    offset + stride - count, "padding")
+        return ct.size
+
+
 def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
     """When does  node.x_type != ct not hold?"""
     if ct.size == 0:
@@ -932,48 +978,7 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
         assert isinstance(node, cwast.ExprWrap)
         return _EmitInitializerRecursively(node.expr, node.expr.x_type, offset, ta)
     elif ct.is_vec():
-        if isinstance(node, cwast.ValAuto):
-            return _EmitMemRepatedByte(_BYTE_ZERO, ct.size, offset, "auto")
-        assert isinstance(
-            node, (cwast.ValCompound, cwast.ValString)), f"{node}"
-        width = ct.array_dim()
-        if isinstance(node, cwast.ValString):
-            assert isinstance(node.x_eval, eval.EvalBytes)
-            value = node.x_eval.data
-            assert len(
-                value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
-            return _EmitMem(value, offset, ct.name)
-
-        x_type = ct.underlying_type().get_unwrapped()
-        assert isinstance(node, cwast.ValCompound), f"{node}"
-        if x_type.is_base_type():
-            # this special case creates a smaller IR
-            out = bytearray()
-            last = _InitDataForBaseType(x_type,
-                                        eval.GetDefaultForBaseType(x_type.base_type_kind))
-            for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
-                if init is not None:
-                    last = _InitDataForBaseType(x_type, init.x_eval)
-                out += last
-            return _EmitMem(out, offset, ct.name)
-        else:
-            print(f"# array: {ct.name}")
-            last = cwast.ValUndef()
-            stride = ct.size // width
-            assert stride * width == ct.size, f"{ct.size} {width}"
-            for n, init in _IterateValVec(node.inits, width, node.x_srcloc):
-                if init is None:
-                    count = _EmitInitializerRecursively(
-                        last, x_type, offset + n * stride, ta)
-                else:
-                    assert isinstance(init, cwast.ValPoint)
-                    last = init.value_or_undef
-                    count = _EmitInitializerRecursively(
-                        last, x_type, offset + n * stride, ta)
-                if count != stride:
-                    _EmitMemRepatedByte(_BYTE_PADDING, stride - count,
-                                        offset + stride - count, "padding")
-            return ct.size
+        return _EmitInitializerVec(node, ct, offset, ta)
     elif ct.is_rec():
         if isinstance(node, cwast.ValAuto):
             return _EmitMemRepatedByte(_BYTE_ZERO, ct.size, offset, "zero")
