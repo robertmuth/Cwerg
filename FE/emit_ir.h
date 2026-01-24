@@ -15,7 +15,7 @@ extern std::string MakeFunSigName(CanonType ct);
 extern void EmitFunctionHeader(std::string_view sig_name, std::string_view kind,
                                CanonType ct);
 
-extern void EmitIRDefGlobal(Node node, const TargetArchConfig& ta);
+extern uint32_t EmitIRDefGlobal(Node node, const TargetArchConfig& ta);
 
 // extern void EmitIRDefFun(Node node, const TargetArchConfig& ta);
 

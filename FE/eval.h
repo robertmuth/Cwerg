@@ -135,7 +135,8 @@ inline Const ConstNewBytes(std::string_view str) {
 }
 
 inline std::string_view ConstBytesData(Const c) {
-  ASSERT(c.kind() == BASE_TYPE_KIND::BYTES, "");
+  ASSERT(c.kind() == BASE_TYPE_KIND::BYTES,
+         "expected bytes got " << EnumToString(c.kind()));
   return ConstPoolForString.Data(c.index());
 }
 
@@ -244,12 +245,17 @@ extern double ConstGetFloat(Const c);
 extern uint64_t ConstGetBitcastUnsigned(Const c);
 extern Const ConstNewBitcastUnsigned(uint64_t val, BASE_TYPE_KIND bt);
 
+extern std::string ConstBaseTypeSerialize(Const val);
+
+
 extern std::ostream& operator<<(std::ostream& os, Const c);
 
 extern std::string to_string(Const c,
                              const std::map<Node, std::string>* labels);
 
 extern void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
+
+extern Const GetDefaultForBaseType(BASE_TYPE_KIND bt);
 
 class GlobalConstantPool {
  public:

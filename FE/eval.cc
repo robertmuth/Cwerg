@@ -71,6 +71,59 @@ Const ParseNum(Node node) {
   return ConstNewReal(val.value(), target_kind);
 }
 
+std::string ConstBaseTypeSerialize(Const val) {
+  union {
+    char c;
+    uint64_t u64;
+    int64_t s64;
+    float r32;
+    double r64;
+  } u;
+
+  switch (val.kind()) {
+    case BASE_TYPE_KIND::U8:
+    case BASE_TYPE_KIND::U16:
+    case BASE_TYPE_KIND::U32:
+    case BASE_TYPE_KIND::U64:
+      u.u64 = ConstGetUnsigned(val);
+      return std::string(
+          std::string_view(&u.c, BaseTypeKindByteSize(val.kind())));
+    case BASE_TYPE_KIND::S8:
+    case BASE_TYPE_KIND::S16:
+    case BASE_TYPE_KIND::S32:
+    case BASE_TYPE_KIND::S64:
+      u.u64 = ConstGetSigned(val);
+      return std::string(
+          std::string_view(&u.c, BaseTypeKindByteSize(val.kind())));
+    case BASE_TYPE_KIND::R32:
+      u.r32 = ConstGetFloat(val);
+      return std::string(
+          std::string_view(&u.c, BaseTypeKindByteSize(val.kind())));
+    case BASE_TYPE_KIND::R64:
+      u.r64 = ConstGetFloat(val);
+      return std::string(
+          std::string_view(&u.c, BaseTypeKindByteSize(val.kind())));
+    default:
+      ASSERT(false, "");
+      return "";
+  }
+}
+
+Const GetDefaultForBaseType(BASE_TYPE_KIND bt) {
+  if (IsUint(bt))
+    return ConstNewUnsigned(0, bt);
+  else if (IsSint(bt))
+    return ConstNewSigned(0, bt);
+  else if (IsReal(bt))
+    return ConstNewReal(0.0, bt);
+  else if (bt == BASE_TYPE_KIND::BOOL)
+    return ConstNewBool(false);
+  else {
+    ASSERT(false, "");
+    return kConstInvalid;
+  }
+}
+
 namespace {
 
 Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
@@ -97,21 +150,6 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
 }
 
 void AssignValue(Node node, Const val) { Node_x_eval(node) = val; }
-
-Const GetDefaultForBaseType(BASE_TYPE_KIND bt) {
-  if (IsUint(bt))
-    return ConstNewUnsigned(0, bt);
-  else if (IsSint(bt))
-    return ConstNewSigned(0, bt);
-  else if (IsReal(bt))
-    return ConstNewReal(0.0, bt);
-  else if (bt == BASE_TYPE_KIND::BOOL)
-    return ConstNewBool(false);
-  else {
-    ASSERT(false, "");
-    return kConstInvalid;
-  }
-}
 
 Const GetDefaultForType(CanonType ct) {
   switch (CanonType_kind(ct)) {

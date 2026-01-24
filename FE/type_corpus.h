@@ -47,6 +47,10 @@ extern CanonType CanonType_original_type(CanonType n);
 extern int CanonType_get_original_typeid(CanonType n);
 extern int& CanonType_typeid(CanonType n);
 
+inline int align(int size, int alignment) {
+  return (size + alignment - 1) / alignment * alignment;
+}
+
 inline bool CanonType_is_wrapped(CanonType ct) {
   return CanonType_kind(ct) == NT::DefType;
 }

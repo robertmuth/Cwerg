@@ -852,7 +852,7 @@ def _is_repeated_single_char(data: bytes):
 
 
 def _EmitMemRepatedByte(b, count: int, offset: int, purpose: str, purpose2="") -> int:
-    print(f".data {count} [{b[0]}]  # {offset} {count} {purpose}{purpose2}")
+    print(f".data {count} [{b[0]}] # {offset} {count} {purpose}{purpose2}")
     return count
 
 
@@ -863,7 +863,7 @@ def _EmitMem(data, offset: int, purpose: str) -> int:
         return _EmitMemRepatedByte(data[0:1], len(data), offset, purpose)
     elif isinstance(data, (bytes, bytearray)):
         if len(data) < 100:
-            print(f'.data 1 "{BytesToEscapedString(data)}" # {purpose}')
+            print(f'.data 1 "{BytesToEscapedString(data)}" # {offset} {len(data)} {purpose}')
         else:
             for count, value in RLE(data):
                 print(f".data {count} [{value}] # {offset} {count} {purpose}")

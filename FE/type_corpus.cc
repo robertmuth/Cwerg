@@ -83,10 +83,6 @@ SizeOrDim CanonType_dim(CanonType ct) {
 
 bool CanonType_desugared(CanonType n) { return gCanonTypeCore[n].desugared; }
 
-int align(int size, int alignment) {
-  return (size + alignment - 1) / alignment * alignment;
-}
-
 SizeOrDim CanonType_alignment(CanonType ct) {
   return gCanonTypeCore[ct].alignment;
 }

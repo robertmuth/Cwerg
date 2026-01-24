@@ -3,10 +3,51 @@
 #include <span>
 
 #include "FE/cwast_gen.h"
+#include "FE/eval.h"
 #include "FE/type_corpus.h"
 #include "Util/assert.h"
+#include "Util/parse.h"
 
 namespace cwerg::fe {
+
+class IterateValVec {
+ public:
+  IterateValVec(Node point, int dim, const SrcLoc& sl)
+      : point_(point), dim_(dim), sl_(sl) {}
+
+  Node next() {
+    if (point_.isnull()) {
+      ASSERT(curr_index_ < dim_, "");
+
+      if (curr_index_ < dim_) {
+        ++curr_index_;
+        return kNodeInvalid;
+      }
+    }
+    if (Node_point_or_undef(point_).kind() == NT::ValUndef) {
+      ++curr_index_;
+      Node out = point_;
+      point_ = Node_next(point_);
+      return out;
+    }
+    int target_index =
+        ConstGetUnsigned(Node_x_eval(Node_point_or_undef(point_)));
+    if (curr_index_ < target_index) {
+      ++curr_index_;
+      return kNodeInvalid;
+    }
+    ++curr_index_;
+    Node out = point_;
+    point_ = Node_next(point_);
+    return out;
+  }
+
+ private:
+  Node point_;
+  int dim_;
+  int curr_index_ = 0;
+  const SrcLoc& sl_;
+};
 
 void FunMachineTypes(CanonType ct, std::vector<std::string>* res_types,
                      std::vector<std::string>* arg_types) {
@@ -65,6 +106,164 @@ void EmitFunctionHeader(std::string_view sig_name, std::string_view kind,
     sep = " ";
   }
   std::cout << "]\n";
+}
+
+bool is_repeated_single_char(std::string_view data) {
+  auto first_char = data[0];
+  for (auto c : data) {
+    if (c != first_char) {
+      return false;
+    }
+  }
+  return true;
+}
+
+class RLE {
+ public:
+  RLE(std::string_view data) : data_(data) {}
+
+  struct Run {
+    uint8_t byte;
+    size_t length;
+  };
+
+  Run next() {
+    if (data_.empty()) return {0, 0};
+    uint8_t current_byte = data_[0];
+    for (size_t i = 1; i < data_.size(); ++i) {
+      if (uint8_t(data_[i]) != current_byte) {
+        data_ = data_.substr(i);
+        return {current_byte, i};
+      }
+    }
+    auto out = data_;
+    data_ = "";
+    return {current_byte, out.size()};
+  }
+
+ private:
+  std::string_view data_;
+};
+
+uint32_t EmitMemRepeatedByte(uint8_t data, int count, int offset,
+                             std::string_view purpose,
+                             std::string_view purpoose2 = "") {
+  std::cout << ".data ";
+  std::cout << count << " [" << int(data) << "]";
+  std::cout << " # " << offset << " " << count << " " << purpose << "\n";
+  return count;
+}
+
+uint32_t EmitMem(std::string_view data, int offset, std::string_view comment) {
+  if (data.size() == 0) {
+    std::cout << ".data ";
+    std::cout << " 0 []";
+    std::cout << " # " << offset << " 0 " << comment << "\n";
+  } else if (is_repeated_single_char(data)) {
+    return EmitMemRepeatedByte(data[0], data.size(), offset, comment);
+  } else {
+    if (data.size() < 100) {
+      std::string buf(data.size() * 4,
+                      0);  // worst case is every byte become \xXX
+      size_t length = BytesToEscapedString(data, buf.data());
+      buf.resize(length);
+      std::cout << ".data ";
+      std::cout << 1 << " \"" << buf << "\"";
+      std::cout << " # " << offset << " " << data.size() << " " << comment
+                << "\n";
+
+    } else {
+      RLE rle(data);
+      std::string sep = "";
+      auto run = rle.next();
+      while (run.length != 0) {
+        std::cout << ".data " << run.length << " [" << int(run.byte) << "]";
+        std::cout << " # " << offset << " " << run.length << " " << comment
+                  << "\n";
+        offset += run.length;
+        run = rle.next();
+      }
+    }
+  }
+
+  return data.size();
+}
+
+const std::string_view BYTE_ZERO = "\0";
+const std::string_view BYTE_UNDEF = "\0";
+const std::string_view BYTE_PADDING = "\x6f";  // intentionally not zero?
+
+uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
+                            const TargetArchConfig& ta) {
+  if (node.kind() == NT::ValAuto) {
+    return EmitMemRepeatedByte(0, CanonType_size(ct), offset, "auto ",
+                               NameData(CanonType_name(ct)));
+  } else if (node.kind() == NT::ValString) {
+    Const val = Node_x_eval(node);
+    return EmitMem(ConstBytesData(val), offset, NameData(CanonType_name(ct)));
+  }
+
+  CanonType et = CanonType_get_unwrapped(CanonType_underlying_type(ct));
+  if (CanonType_kind(et) == NT::TypeBase) {
+    IterateValVec iv(Node_inits(node), CanonType_dim(ct), Node_srcloc(node));
+    std::string buf;
+    buf.reserve(CanonType_size(ct));
+
+    std::string last = ConstBaseTypeSerialize(
+        GetDefaultForBaseType(CanonType_base_type_kind(et)));
+    for (int i = 0; i < CanonType_dim(ct); ++i) {
+      Node point = iv.next();
+      if (!point.isnull()) last = ConstBaseTypeSerialize(Node_x_eval(point));
+      buf += last;
+    }
+    return EmitMem(buf, offset, NameData(CanonType_name(ct)));
+  }
+  return 0;
+}
+
+uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
+                                    const TargetArchConfig& ta) {
+  if (CanonType_size(ct) == 0) {
+    return 0;
+  }
+  ASSERT(offset == align(offset, CanonType_alignment(ct)), "");
+  switch (node.kind()) {
+    case NT::ValUndef:
+      return EmitMemRepeatedByte(0, CanonType_size(ct), offset, "undef ",
+                                 NameData(CanonType_name(ct)));
+    case NT::Id: {
+      Node sym = Node_x_symbol(node);
+      ASSERT(sym.kind() == NT::DefGlobal, "");
+      return EmitInitializerRecursively(Node_initial_or_undef_or_auto(sym), ct,
+                                        offset, ta);
+    }
+
+    default:
+      break;
+  }
+  switch (CanonType_kind(ct)) {
+    case NT::DefType:
+      return EmitInitializerRecursively(
+          Node_expr(node), Node_x_type(Node_expr(node)), offset, ta);
+    case NT::TypeVec:
+      return EmitInitializerVec(node, ct, offset, ta);
+    default:
+      break;
+  }
+
+  return 0;
+}
+
+uint32_t EmitIRDefGlobal(Node node, const TargetArchConfig& ta) {
+  CanonType def_type = Node_x_type(Node_type_or_auto(node));
+  if (CanonType_is_void(CanonType_get_unwrapped(def_type))) {
+    return 0;
+  }
+  std::cout << "\n.mem " << Node_name(node) << " "
+            << CanonType_alignment(def_type) << " "
+            << (Node_has_flag(node, BF::MUT) ? "RW" : "RO") << "\n";
+  return EmitInitializerRecursively(Node_initial_or_undef_or_auto(node),
+                                    def_type, 0, ta);
 }
 
 }  // namespace cwerg::fe
