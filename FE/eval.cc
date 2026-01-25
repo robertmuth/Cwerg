@@ -216,19 +216,7 @@ Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
   return kConstInvalid;
 }
 
-Node MaybewAdvanceRecField(Node point, Node field) {
-  ASSERT(Node_kind(field) == NT::RecField, "");
-  ASSERT(Node_kind(point) == NT::ValPoint, "");
-  Node field_name = Node_point_or_undef(point);
-  if (Node_kind(field_name) != NT::ValUndef) {
-    ASSERT(Node_kind(field_name) == NT::Id, "unexpected index " << field_name);
-    while (Node_name(field_name) != Node_name(field)) {
-      field = Node_next(field);
-      ASSERT(!field.isnull(), "");
-    }
-  }
-  return field;
-}
+
 
 Const GetValForRecAtField(Const container, Node target_field) {
   ASSERT(container.kind() == BASE_TYPE_KIND::COMPOUND, "");
@@ -239,17 +227,20 @@ Const GetValForRecAtField(Const container, Node target_field) {
   }
   ASSERT(compound.kind() == NT::ValCompound,
          "expected compound val " << int(compound.kind()));
-  Node defrec = CanonType_ast_node(Node_x_type(compound));
-  ASSERT(defrec.kind() == NT::DefRec, "");
-  Node field = Node_fields(defrec);
-  for (Node point = Node_inits(compound); !point.isnull();
-       point = Node_next(point), field = Node_next(field)) {
-    field = MaybewAdvanceRecField(point, field);
+  auto it =
+      IterateValRec(Node_inits(compound),
+                    Node_fields(CanonType_ast_node(Node_x_type(compound))));
+  while (true) {
+    Node point = it.next();
+    Node field = it.curr_field;
+    ASSERT(!field.isnull(), "");
     if (field == target_field) {
+      if (point.isnull()) {
+        return GetDefaultForType(Node_x_type(field));
+      }
       return Node_x_eval(Node_value_or_undef(point));
     }
   }
-  return GetDefaultForType(Node_x_type(target_field));
 }
 
 Const EvalExpr1(UNARY_EXPR_KIND op, Const e, CanonType ct) {

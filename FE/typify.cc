@@ -206,20 +206,6 @@ CanonType TypifyId(Node id, TypeCorpus* tc, CanonType ct_target, PolyMap* pm) {
   return NodeSetType(id, ct);
 }
 
-Node MaybewAdvanceRecField(Node field, Node point) {
-  ASSERT(Node_kind(field) == NT::RecField, "");
-  ASSERT(Node_kind(point) == NT::ValPoint, "");
-  Node field_name = Node_point_or_undef(point);
-  if (Node_kind(field_name) != NT::ValUndef) {
-    ASSERT(Node_kind(field_name) == NT::Id, "unexpected index " << field_name);
-    while (Node_name(field_name) != Node_name(field)) {
-      field = Node_next(field);
-      ASSERT(!field.isnull(), "");
-    }
-  }
-  return field;
-}
-
 void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
   // std::cout << "@@ FIELD ANNOTATION " << Node_srcloc(id) << " " <<
   // Node_name(id)
@@ -256,13 +242,15 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
     ASSERT(CanonType_kind(ct) == NT::DefRec,
            "expected DefRec " << Node_srcloc(node) << " "
                               << EnumToString(CanonType_kind(ct)));
-    Node defrec = CanonType_ast_node(ct);
-    ASSERT(Node_kind(defrec) == NT::DefRec, "");
-    Node field = Node_fields(defrec);
-    for (Node point = Node_inits(node); !point.isnull();
-         point = Node_next(point), field = Node_next(field)) {
-      field = MaybewAdvanceRecField(field, point);
-      ASSERT(Node_kind(field) == NT::RecField, "");
+
+    auto it =
+        IterateValRec(Node_inits(node), Node_fields(CanonType_ast_node(ct)));
+    while (true) {
+      Node point = it.next();
+      Node field = it.curr_field;
+      if (field.isnull()) break;
+      if (point.isnull()) continue;
+
       CanonType ct_field = Node_x_type(field);
       NodeSetType(point, ct_field);
       if (Node_kind(Node_point_or_undef(point)) == NT::Id) {
@@ -1060,14 +1048,13 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
             CheckValUndefOrTypeIsUint(Node_point_or_undef(field));
           }
         } else {
-          CHECK(CanonType_kind(ct) == NT::DefRec, "");
-          Node defrec = CanonType_ast_node(ct);
-          Node field = Node_fields(defrec);
-
-          for (Node point = Node_inits(node); !point.isnull();
-               point = Node_next(point), field = Node_next(field)) {
-            field = MaybewAdvanceRecField(field, point);
-            CHECK(Node_kind(field) == NT::RecField, "");
+          auto it = IterateValRec(Node_inits(node),
+                                  Node_fields(CanonType_ast_node(ct)));
+          while (true) {
+            Node point = it.next();
+            Node field = it.curr_field;
+            if (field.isnull()) break;
+            if (point.isnull()) continue;
             CanonType ct_field = Node_x_type(field);
             CheckTypeIs(point, ct_field);
           }

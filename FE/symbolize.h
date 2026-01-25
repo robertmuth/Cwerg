@@ -31,7 +31,10 @@ extern void VerifySymbols(Node node);
 class IterateValRec {
  public:
   IterateValRec(Node points, Node fields)
-      : point_next_(points), field_next_(fields) {}
+      : point_next_(points), field_next_(fields) {
+    ASSERT(points.isnull() || points.kind() == NT::ValPoint, "");
+    ASSERT(fields.kind() == NT::RecField, "");
+  }
 
   Node next() {
     curr_field = field_next_;
@@ -61,6 +64,5 @@ class IterateValRec {
   Node point_next_;
   Node field_next_;
 };
-
 
 }  // namespace cwerg::fe
