@@ -216,8 +216,6 @@ Const GetValForVecAtPos(Const container_val, uint64_t index, CanonType ct) {
   return kConstInvalid;
 }
 
-
-
 Const GetValForRecAtField(Const container, Node target_field) {
   ASSERT(container.kind() == BASE_TYPE_KIND::COMPOUND, "");
   ASSERT(target_field.kind() == NT::RecField, "");

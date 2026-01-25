@@ -985,8 +985,6 @@ class CanonType:
             self = self.children[0]
         return self.node in (TypeVec, DefRec, TypeUnion)
 
-
-
     def contained_type(self) -> "CanonType":
         if self.node is TypeVec or self.node is TypeSpan:
             return self.children[0]
