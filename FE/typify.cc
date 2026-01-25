@@ -238,7 +238,7 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
 
     for (Node point = Node_inits(node); !point.isnull();
          point = Node_next(point)) {
-      ASSERT(Node_kind(point) == NT::ValPoint, "");
+      ASSERT(point.kind() == NT::ValPoint, "");
       NodeSetType(point, element_type);
       //
       Node val = Node_value_or_undef(point);

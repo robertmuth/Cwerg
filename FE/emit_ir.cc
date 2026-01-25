@@ -4,6 +4,7 @@
 
 #include "FE/cwast_gen.h"
 #include "FE/eval.h"
+#include "FE/symbolize.h"
 #include "FE/type_corpus.h"
 #include "Util/assert.h"
 #include "Util/parse.h"
@@ -203,6 +204,8 @@ uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
     return EmitMem(ConstBytesData(val), offset, NameData(CanonType_name(ct)));
   }
 
+  ASSERT(node.kind() == NT::ValCompound, "");
+
   CanonType et = CanonType_get_unwrapped(CanonType_underlying_type(ct));
   if (CanonType_kind(et) == NT::TypeBase) {
     IterateValVec iv(Node_inits(node), CanonType_dim(ct), Node_srcloc(node));
@@ -221,6 +224,59 @@ uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
   return 0;
 }
 
+// forward decl
+uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
+                                    const TargetArchConfig& ta);
+
+uint32_t EmitInitializerRec(Node node, CanonType ct, uint32_t offset,
+                            const TargetArchConfig& ta) {
+  if (node.kind() == NT::ValAuto) {
+    return EmitMemRepeatedByte(0, CanonType_size(ct), offset, "auto",
+                               NameData(CanonType_name(ct)));
+  }
+  ASSERT(node.kind() == NT::ValCompound, "");
+  std::cout << "# record: " << NameData(CanonType_name(ct)) << "\n";
+  auto it =
+      IterateValRec(Node_inits(node), Node_fields(CanonType_ast_node(ct)));
+  int reloff = 0;
+  while (true) {
+    Node point = it.next();
+    Node field = it.curr_field;
+    if (field.isnull()) {
+      if (reloff < CanonType_size(ct)) {
+        reloff += EmitMemRepeatedByte(0, CanonType_size(ct) - reloff,
+                                      offset + reloff, "auto");
+      }
+      break;
+    }
+
+    if (Node_x_offset(field) > reloff) {
+      reloff += EmitMemRepeatedByte('o', Node_x_offset(field) - reloff,
+                                    offset + reloff, "padding");
+    }
+
+    Node val = point.isnull() ? kNodeInvalid : Node_value_or_undef(point);
+    CanonType field_ct = Node_x_type(field);
+    if (val.isnull()) {
+      reloff +=
+          EmitMemRepeatedByte(0, CanonType_size(field_ct), offset + reloff,
+                              NameData(CanonType_name(field_ct)));
+    } else {
+      reloff += EmitInitializerRecursively(val, field_ct, offset + reloff, ta);
+    }
+  }
+  return reloff;
+}
+
+uint32_t EmitDataAddress(Node node, uint32_t offset,
+                         const TargetArchConfig& ta) {
+  ASSERT(node.kind() == NT::Id, "");
+  Name name = Node_name(Node_x_symbol(node));
+  std::cout << ".addr.mem " << ta.code_addr_bitwidth / 8 << " "
+            << NameData(name) << " " << 0 << "\n";
+  return ta.code_addr_bitwidth / 8;
+}
+
 uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
                                     const TargetArchConfig& ta) {
   if (CanonType_size(ct) == 0) {
@@ -237,6 +293,22 @@ uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
       return EmitInitializerRecursively(Node_initial_or_undef_or_auto(sym), ct,
                                         offset, ta);
     }
+    case NT::ExprFront:
+      return EmitDataAddress(Node_container(node), offset, ta);
+    case NT::ExprAddrOf:
+      return EmitDataAddress(Node_expr_lhs(node), offset, ta);
+    case NT::ExprWiden: {
+      uint32_t target = CanonType_size(ct);
+      uint32_t count = EmitInitializerRecursively(
+          Node_expr(node), Node_x_type(Node_expr(node)), offset, ta);
+      if (count != target) {
+        EmitMemRepeatedByte(0, target - count, offset + count, "widen_padding");
+      }
+      return target;
+    }
+    case NT::ValNum:
+      return EmitMem(ConstBaseTypeSerialize(Node_x_eval(node)), offset,
+                     NameData(CanonType_name(ct)));
 
     default:
       break;
@@ -247,6 +319,8 @@ uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
           Node_expr(node), Node_x_type(Node_expr(node)), offset, ta);
     case NT::TypeVec:
       return EmitInitializerVec(node, ct, offset, ta);
+    case NT::DefRec:
+      return EmitInitializerRec(node, ct, offset, ta);
     default:
       break;
   }
