@@ -890,7 +890,7 @@ _BYTE_PADDING = b"\x6f"   # intentionally not zero?
 
 def _EmitInitializerRec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
     if isinstance(node, cwast.ValAuto):
-        return _EmitMemRepatedByte(_BYTE_ZERO, ct.size, offset, "zero")
+        return _EmitMemRepatedByte(_BYTE_ZERO, ct.size, offset, "auto")
     assert isinstance(
         node, cwast.ValCompound), f"unexpected value {node}"
     print(f"# record: {ct.name}")
@@ -900,12 +900,12 @@ def _EmitInitializerRec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
         if f.x_offset > rel_off:
             rel_off += _EmitMemRepatedByte(_BYTE_PADDING,
                                            f.x_offset - rel_off, offset+rel_off, "padding")
-        if i is not None and not isinstance(i.value_or_undef, cwast.ValUndef):
-            rel_off += _EmitInitializerRecursively(i.value_or_undef,
-                                                   f.type.x_type, offset + rel_off, ta)
-        else:
+        if i is None or isinstance(i.value_or_undef, cwast.ValUndef):
             rel_off += _EmitMemRepatedByte(_BYTE_UNDEF, f.type.x_type.size, offset+rel_off,
                                            f.type.x_type.name)
+        else:
+            rel_off += _EmitInitializerRecursively(i.value_or_undef,
+                                                   f.type.x_type, offset + rel_off, ta)
     return rel_off
 
 
