@@ -151,7 +151,8 @@ uint32_t EmitMemRepeatedByte(uint8_t data, int count, int offset,
                              std::string_view purpose2 = "") {
   std::cout << ".data ";
   std::cout << count << " [" << int(data) << "]";
-  std::cout << " # " << offset << " " << count << " " << purpose << purpose2 << "\n";
+  std::cout << " # " << offset << " " << count << " " << purpose << purpose2
+            << "\n";
   return count;
 }
 
@@ -190,9 +191,9 @@ uint32_t EmitMem(std::string_view data, int offset, std::string_view comment) {
   return data.size();
 }
 
-const std::string_view BYTE_ZERO = "\0";
-const std::string_view BYTE_UNDEF = "\0";
-const std::string_view BYTE_PADDING = "\x6f";  // intentionally not zero?
+const uint8_t BYTE_ZERO = '\0';
+const uint8_t BYTE_UNDEF = '\0';
+const uint8_t BYTE_PADDING = 'o';  // intentionally not zero?
 
 // forward decl
 uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
@@ -201,7 +202,7 @@ uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
 uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
                             const TargetArchConfig& ta) {
   if (node.kind() == NT::ValAuto) {
-    return EmitMemRepeatedByte(0, CanonType_size(ct), offset, "auto ",
+    return EmitMemRepeatedByte(BYTE_ZERO, CanonType_size(ct), offset, "auto ",
                                NameData(CanonType_name(ct)));
   }
 
@@ -239,7 +240,7 @@ uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
     SizeOrDim count =
         EmitInitializerRecursively(last, et, offset + i * stride, ta);
     if (count != stride) {
-      EmitMemRepeatedByte(0, stride - count, offset + stride - count,
+      EmitMemRepeatedByte(BYTE_PADDING, stride - count, offset + stride - count,
                           "padding");
     }
   }
@@ -251,7 +252,7 @@ uint32_t EmitInitializerRec(Node node, CanonType ct, uint32_t offset,
                             const TargetArchConfig& ta) {
   std::cout << "# rec: " << NameData(CanonType_name(ct)) << "\n";
   if (node.kind() == NT::ValAuto) {
-    return EmitMemRepeatedByte(0, CanonType_size(ct), offset, "auto");
+    return EmitMemRepeatedByte(BYTE_ZERO, CanonType_size(ct), offset, "auto");
   }
   ASSERT(node.kind() == NT::ValCompound, "");
   auto it =
@@ -268,15 +269,15 @@ uint32_t EmitInitializerRec(Node node, CanonType ct, uint32_t offset,
     }
 
     if (Node_x_offset(field) > reloff) {
-      reloff += EmitMemRepeatedByte('o', Node_x_offset(field) - reloff,
+      reloff += EmitMemRepeatedByte(BYTE_PADDING, Node_x_offset(field) - reloff,
                                     offset + reloff, "padding");
     }
 
     Node val = point.isnull() ? kNodeInvalid : Node_value_or_undef(point);
     if (val.isnull()) {
-      reloff +=
-          EmitMemRepeatedByte(0, CanonType_size(field_ct), offset + reloff,
-                              NameData(CanonType_name(field_ct)));
+      reloff += EmitMemRepeatedByte(BYTE_ZERO, CanonType_size(field_ct),
+                                    offset + reloff,
+                                    NameData(CanonType_name(field_ct)));
     } else {
       reloff += EmitInitializerRecursively(val, field_ct, offset + reloff, ta);
     }
@@ -300,7 +301,7 @@ uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
   ASSERT(offset == align(offset, CanonType_alignment(ct)), "");
   switch (node.kind()) {
     case NT::ValUndef:
-      return EmitMemRepeatedByte(0, CanonType_size(ct), offset, "undef ",
+      return EmitMemRepeatedByte(BYTE_UNDEF, CanonType_size(ct), offset, "undef ",
                                  NameData(CanonType_name(ct)));
     case NT::Id: {
       Node sym = Node_x_symbol(node);

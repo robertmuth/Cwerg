@@ -103,8 +103,11 @@ std::string ConstBaseTypeSerialize(Const val) {
       u.r64 = ConstGetFloat(val);
       return std::string(
           std::string_view(&u.c, BaseTypeKindByteSize(val.kind())));
+    case BASE_TYPE_KIND::BOOL:
+      u.c = ConstGetUnsigned(val);
+      return std::string(std::string_view(&u.c, 1));
     default:
-      ASSERT(false, "");
+      ASSERT(false, "unexpected val " << val);
       return "";
   }
 }

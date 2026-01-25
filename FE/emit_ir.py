@@ -912,7 +912,7 @@ def _EmitInitializerRec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
 def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
     """When does  node.x_type != ct not hold?"""
     if isinstance(node, cwast.ValAuto):
-        return _EmitMemRepeatedByte(_BYTE_ZERO, ct.size, offset, "auto")
+        return _EmitMemRepeatedByte(_BYTE_ZERO, ct.size, offset, "auto ", ct.name)
     assert isinstance(
         node, (cwast.ValCompound, cwast.ValString)), f"{node}"
     width = ct.array_dim()
