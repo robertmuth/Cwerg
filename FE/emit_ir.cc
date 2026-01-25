@@ -223,7 +223,14 @@ uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
         GetDefaultForBaseType(CanonType_base_type_kind(et)));
     for (int i = 0; i < dim; ++i) {
       Node point = iv.next();
-      if (!point.isnull()) last = ConstBaseTypeSerialize(Node_x_eval(point));
+      if (!point.isnull()) {
+        if (Node_value_or_undef(point).kind() == NT::ValUndef) {
+          last = std::string(CanonType_size(et), BYTE_UNDEF);
+        } else {
+          last = ConstBaseTypeSerialize(Node_x_eval(point));
+        }
+      }
+
       buf += last;
     }
     return EmitMem(buf, offset, NameData(CanonType_name(ct)));
@@ -301,8 +308,8 @@ uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
   ASSERT(offset == align(offset, CanonType_alignment(ct)), "");
   switch (node.kind()) {
     case NT::ValUndef:
-      return EmitMemRepeatedByte(BYTE_UNDEF, CanonType_size(ct), offset, "undef ",
-                                 NameData(CanonType_name(ct)));
+      return EmitMemRepeatedByte(BYTE_UNDEF, CanonType_size(ct), offset,
+                                 "undef ", NameData(CanonType_name(ct)));
     case NT::Id: {
       Node sym = Node_x_symbol(node);
       ASSERT(sym.kind() == NT::DefGlobal, "");
@@ -318,7 +325,7 @@ uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
       uint32_t count = EmitInitializerRecursively(
           Node_expr(node), Node_x_type(Node_expr(node)), offset, ta);
       if (count != target) {
-        EmitMemRepeatedByte(0, target - count, offset + count, "widen_padding");
+        EmitMemRepeatedByte(BYTE_PADDING, target - count, offset + count, "widen_padding");
       }
       return target;
     }

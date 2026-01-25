@@ -875,9 +875,6 @@ def _EmitMem(data, offset: int, purpose: str) -> int:
 
 
 def _InitDataForBaseType(x_type: cwast.CanonType, val: Union[eval.EvalNum, eval.EvalUndef]) -> bytes:
-    byte_width = x_type.size
-    if isinstance(val, eval.EvalUndef):
-        return ZEROS[byte_width]
     assert isinstance(val, eval.EvalNum), f"{val} {x_type}"
     assert (x_type.get_unwrapped_base_type_kind() == val.kind)
     return eval.SerializeBaseType(val)
@@ -932,7 +929,10 @@ def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
                                     eval.GetDefaultForBaseType(et.base_type_kind))
         for init in _IterateValVec(node.inits, width, node.x_srcloc):
             if init is not None:
-                last = _InitDataForBaseType(et, init.x_eval)
+                if isinstance(init.value_or_undef, cwast.ValUndef):
+                    last =  ZEROS[et.size]
+                else:
+                    last = _InitDataForBaseType(et, init.x_eval)
             out += last
         return _EmitMem(out, offset, ct.name)
     else:
