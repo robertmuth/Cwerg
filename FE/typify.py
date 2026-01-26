@@ -135,13 +135,13 @@ class _PolyMap:
         first_param_type = ct.children[0]
         logger.info("Register polymorphic fun %s::%s: %s",
                     str(mod.name), name, first_param_type.name)
-        # TODO: Should this work with parameterized volumes
+        # TODO: Should this work with parameterized modules?
         key = (mod, name, first_param_type)
         assert key not in self._map, f"duplicate poly def {fun.x_srcloc}"
         self._map[key] = fun
 
     def Resolve(self, callee: cwast.Id, first_param_type: cwast.CanonType) -> cwast.DefFun:
-        # TODO: why are we not using the mod_name here?
+        # TODO: why are we NOT using the mod_name here?
         fun_name = callee.name
         type_name = first_param_type
         logger.info("Resolving polymorphic fun %s: %s",
@@ -460,7 +460,7 @@ def _TypifyVal(node, tc: type_corpus.TypeCorpus,
         return _TypifyValCompound(node, tc, target_type, pm)
     elif isinstance(node, cwast.ValString):
         # TODO: we are calling parse.StringLiteralToBytes(node.string)
-        # again in eval.py - avoid this duplication
+        # again in eval.py - maybe avoid this duplication
         dim = len(parse.StringLiteralToBytes(node.string))
         ct = tc.InsertVecType(
             dim, tc.get_base_canon_type(cwast.BASE_TYPE_KIND.U8))
