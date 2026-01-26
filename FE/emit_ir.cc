@@ -10,7 +10,9 @@
 #include "Util/parse.h"
 
 namespace cwerg::fe {
+void EmitIRDefFun(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {}
 
+//
 class IterateValVec {
  public:
   IterateValVec(Node point, SizeOrDim dim, const SrcLoc& sl)

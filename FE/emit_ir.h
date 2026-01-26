@@ -6,7 +6,7 @@
 
 #include "FE/cwast_gen.h"
 #include "FE/type_corpus.h"
-
+#include "FE/identifier.h"
 
 namespace cwerg::fe {
 
@@ -17,6 +17,6 @@ extern void EmitFunctionHeader(std::string_view sig_name, std::string_view kind,
 
 extern uint32_t EmitIRDefGlobal(Node node, const TargetArchConfig& ta);
 
-// extern void EmitIRDefFun(Node node, const TargetArchConfig& ta);
-
+extern void EmitIRDefFun(Node node, const TargetArchConfig& ta,
+                         IdGenIR* id_gen);
 }  // namespace cwerg::fe

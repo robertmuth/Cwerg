@@ -12,6 +12,7 @@
 #include "FE/canonicalize_union.h"
 #include "FE/checker.h"
 #include "FE/cwast_gen.h"
+#include "FE/emit_ir.h"
 #include "FE/eval.h"
 #include "FE/lexer.h"
 #include "FE/macro.h"
@@ -23,7 +24,6 @@
 #include "FE/typify.h"
 #include "Util/assert.h"
 #include "Util/switch.h"
-#include "FE/emit_ir.h"
 
 using namespace cwerg::fe;
 using namespace cwerg;
@@ -204,6 +204,19 @@ void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
     }
   }
   //
+  for (Node mod : mods_in_topo_order) {
+    for (Node def = Node_body_mod(mod); !def.isnull(); def = Node_next(def)) {
+      if (def.kind() == NT::DefGlobal) {
+        EmitIRDefGlobal(def, ta);
+      }
+    }
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      if (fun.kind() == NT::DefFun) {
+        IdGenIR id_gen;
+        EmitIRDefFun(fun, ta, &id_gen);
+      }
+    }
+  }
 }
 
 int main(int argc, const char* argv[]) {
