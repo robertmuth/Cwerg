@@ -40,7 +40,9 @@ def MakeAndRegisterUnionTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwa
     """For all types directly involving tagged sums, produce a replacement type, a DefRec,
     and return the map from one the other.
 
-    Note: recs containing sum fields are not thought of as directly involving sums
+    Note: recs need no replacement because the type name of a rec does no depend on the
+          fields. So if a field contains a union we can just update that type which we do
+          in ReplaceSpans()
     """
 
     # Go through the type table in topological order and generate the map.
@@ -54,11 +56,14 @@ def MakeAndRegisterUnionTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwa
             rec = _MakeUnionReplacementStruct(ct, tc)
             out.append(rec)
             new_ct = rec.x_type
+        elif ct.node in (cwast.DefRec, cwast.DefType):
+            continue
         else:
             new_ct = tc.MaybeGetReplacementType(ct)
             if not new_ct:
                 continue
         ct.LinkReplacementType(new_ct)
+    # TODO: what about DefType?
     return out
 
 
@@ -137,7 +142,7 @@ def _MakeValRecForNarrow(narrow: cwast.ExprNarrow, dst_ct: cwast.CanonType) -> c
     src_tag_field = src_ct.get_rec_field(0)
     src_union_field = src_ct.get_rec_field(1)
     # TODO
-    # to drop this we would need to introducea temporary
+    # to drop this we would need to introduce a temporary
     assert isinstance(src, cwast.Id)
     sl = narrow.x_srcloc
     # assert False, f"{value.expr} {value.expr.x_type} -> {value.x_type} {value.x_srcloc}"

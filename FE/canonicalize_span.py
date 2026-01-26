@@ -32,8 +32,9 @@ def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwas
     """For all types directly involving spans, produce a replacement type
     and return the map from one the other
 
-    Note: recs containing span fields are not thought of as directly involving spans
-    TODO: what about sum types?
+    Note: recs need no replacement because the type name of a rec does no depend on the
+          fields. So if a field contains a span we can just update that type which we do
+          in ReplaceSpans()
     """
     tc.ClearReplacementInfo()
     # Go through the type table in topological order.
@@ -47,24 +48,33 @@ def MakeAndRegisterSpanTypeReplacements(tc: type_corpus.TypeCorpus) -> list[cwas
             rec = _MakeSpanReplacementStruct(ct, tc)
             out.append(rec)
             new_ct = rec.x_type
+        # Rec and DefType are handled are not replaced.
+        # Their names do not reflect their children.
+        # In the case of DefRec we patch up the RecFields separately.
+        # DefType is handled further down
+        elif ct.node in (cwast.DefRec, cwast.DefType):
+            continue
         else:
             new_ct = tc.MaybeGetReplacementType(ct)
             if not new_ct:
                 continue
         ct.LinkReplacementType(new_ct)
-    # Note: the DefType violates topplogical ordering
-    # with respect to the underlying type
-    # TODO: explain this - note that we used too phase for
-    #       creating a wrapped type.
+    # Note: the DefType can violate topplogical ordering
+    # with respect to the underlying type in the presence of generic modules.
+    # So we handle it in a sepatate loop
+    # (For the same reason we use two phase for creating a wrapped type.)
     for ct in tc.topo_order[:]:
         if ct.node is cwast.DefType:
-            new_ct = tc.MaybeGetReplacementType(ct.underlying_type())
-            if new_ct:
-                ct.children[0] = new_ct
+            ut = ct.underlying_type()
+            if ut.node not in (cwast.DefRec, cwast.DefType):
+                new_ct = tc.MaybeGetReplacementType(ut)
+                if new_ct:
+                    ct.children[0] = new_ct
     return out
 
 
 def _MakeValRecForSpan(pointer, length, span_rec: cwast.CanonType, srcloc) -> cwast.ValCompound:
+
     pointer_field, length_field = span_rec.ast_node.fields
     return canonicalize.MakeValCompound(span_rec,
                                         [(pointer_field.x_type, pointer),

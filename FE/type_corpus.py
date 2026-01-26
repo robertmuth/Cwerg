@@ -580,12 +580,7 @@ class TypeCorpus:
         return self.InsertUnionType(all.untagged, out)
 
     def MaybeGetReplacementType(self, ct: cwast.CanonType) -> Optional[cwast.CanonType]:
-        # Rec and DefType are handled are not replaced.
-        # Their names do not reflect their children.
-        # In the case of DefRec we patch up the RecFields separately.
-        if ct.node in (cwast.DefRec, cwast.DefType):
-            return None
-
+        assert ct.node not in (cwast.DefRec, cwast.DefType)
         if ct.replacement_type:
             return ct.replacement_type
         for child in ct.children:
