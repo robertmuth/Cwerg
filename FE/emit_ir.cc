@@ -13,7 +13,7 @@ namespace cwerg::fe {
 
 class IterateValVec {
  public:
-  IterateValVec(Node point, int dim, const SrcLoc& sl)
+  IterateValVec(Node point, SizeOrDim dim, const SrcLoc& sl)
       : point_(point), dim_(dim), sl_(sl) {}
 
   Node next() {
@@ -31,7 +31,7 @@ class IterateValVec {
       point_ = Node_next(point_);
       return out;
     }
-    int target_index =
+    SizeOrDim target_index =
         ConstGetUnsigned(Node_x_eval(Node_point_or_undef(point_)));
     if (curr_index_ < target_index) {
       ++curr_index_;
@@ -45,8 +45,8 @@ class IterateValVec {
 
  private:
   Node point_;
-  int dim_;
-  int curr_index_ = 0;
+  SizeOrDim dim_;
+  SizeOrDim curr_index_ = 0;
   const SrcLoc& sl_;
 };
 
@@ -146,7 +146,7 @@ class RLE {
   std::string_view data_;
 };
 
-uint32_t EmitMemRepeatedByte(uint8_t data, int count, int offset,
+uint32_t EmitMemRepeatedByte(uint8_t data, SizeOrDim count, SizeOrDim offset,
                              std::string_view purpose,
                              std::string_view purpose2 = "") {
   std::cout << ".data ";
@@ -156,7 +156,8 @@ uint32_t EmitMemRepeatedByte(uint8_t data, int count, int offset,
   return count;
 }
 
-uint32_t EmitMem(std::string_view data, int offset, std::string_view comment) {
+uint32_t EmitMem(std::string_view data, SizeOrDim offset,
+                 std::string_view comment) {
   if (data.size() == 0) {
     std::cout << ".data ";
     std::cout << " 0 []";
@@ -196,11 +197,11 @@ const uint8_t BYTE_UNDEF = '\0';
 const uint8_t BYTE_PADDING = 'o';  // intentionally not zero?
 
 // forward decl
-uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
-                                    const TargetArchConfig& ta);
+SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
+                                     const TargetArchConfig& ta);
 
-uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
-                            const TargetArchConfig& ta) {
+SizeOrDim EmitInitializerVec(Node node, CanonType ct, SizeOrDim offset,
+                             const TargetArchConfig& ta) {
   if (node.kind() == NT::ValAuto) {
     return EmitMemRepeatedByte(BYTE_ZERO, CanonType_size(ct), offset, "auto ",
                                NameData(CanonType_name(ct)));
@@ -221,7 +222,7 @@ uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
 
     std::string last = ConstBaseTypeSerialize(
         GetDefaultForBaseType(CanonType_base_type_kind(et)));
-    for (int i = 0; i < dim; ++i) {
+    for (SizeOrDim i = 0; i < dim; ++i) {
       Node point = iv.next();
       if (!point.isnull()) {
         if (Node_value_or_undef(point).kind() == NT::ValUndef) {
@@ -239,7 +240,7 @@ uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
   Node last = Node(NT::ValUndef, 666);  // hack
   IterateValVec iv(Node_inits(node), dim, Node_srcloc(node));
   SizeOrDim stride = CanonType_size(ct) / dim;
-  for (int i = 0; i < dim; ++i) {
+  for (SizeOrDim i = 0; i < dim; ++i) {
     Node point = iv.next();
     if (!point.isnull()) {
       last = Node_value_or_undef(point);
@@ -255,8 +256,8 @@ uint32_t EmitInitializerVec(Node node, CanonType ct, uint32_t offset,
   return CanonType_size(ct);
 }
 
-uint32_t EmitInitializerRec(Node node, CanonType ct, uint32_t offset,
-                            const TargetArchConfig& ta) {
+SizeOrDim EmitInitializerRec(Node node, CanonType ct, SizeOrDim offset,
+                             const TargetArchConfig& ta) {
   std::cout << "# rec: " << NameData(CanonType_name(ct)) << "\n";
   if (node.kind() == NT::ValAuto) {
     return EmitMemRepeatedByte(BYTE_ZERO, CanonType_size(ct), offset, "auto");
@@ -264,7 +265,7 @@ uint32_t EmitInitializerRec(Node node, CanonType ct, uint32_t offset,
   ASSERT(node.kind() == NT::ValCompound, "");
   auto it =
       IterateValRec(Node_inits(node), Node_fields(CanonType_ast_node(ct)));
-  int reloff = 0;
+  SizeOrDim reloff = 0;
   while (true) {
     Node point = it.next();
     Node field = it.curr_field;
@@ -291,17 +292,25 @@ uint32_t EmitInitializerRec(Node node, CanonType ct, uint32_t offset,
   }
 }
 
-uint32_t EmitDataAddress(Node node, uint32_t offset,
-                         const TargetArchConfig& ta) {
+SizeOrDim EmitDataAddress(Node node, SizeOrDim offset,
+                          const TargetArchConfig& ta) {
   ASSERT(node.kind() == NT::Id, "");
   Name name = Node_name(Node_x_symbol(node));
-  std::cout << ".addr.mem " << ta.code_addr_bitwidth / 8 << " "
+  std::cout << ".addr.mem " << ta.data_addr_bitwidth / 8 << " "
             << NameData(name) << " " << 0 << "\n";
+  return ta.data_addr_bitwidth / 8;
+}
+
+SizeOrDim EmitCodeAddress(Node node, SizeOrDim offset,
+                          const TargetArchConfig& ta) {
+  ASSERT(node.kind() == NT::DefFun, "");
+  std::cout << ".addr.fun " << ta.code_addr_bitwidth / 8 << " "
+            << NameData(Node_name(node)) << "\n";
   return ta.code_addr_bitwidth / 8;
 }
 
-uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
-                                    const TargetArchConfig& ta) {
+SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
+                                     const TargetArchConfig& ta) {
   if (CanonType_size(ct) == 0) {
     return 0;
   }
@@ -312,6 +321,9 @@ uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
                                  "undef ", NameData(CanonType_name(ct)));
     case NT::Id: {
       Node sym = Node_x_symbol(node);
+      if (sym.kind() == NT::DefFun) {
+        return EmitCodeAddress(sym, offset, ta);
+      }
       ASSERT(sym.kind() == NT::DefGlobal, "");
       return EmitInitializerRecursively(Node_initial_or_undef_or_auto(sym), ct,
                                         offset, ta);
@@ -325,7 +337,8 @@ uint32_t EmitInitializerRecursively(Node node, CanonType ct, uint32_t offset,
       uint32_t count = EmitInitializerRecursively(
           Node_expr(node), Node_x_type(Node_expr(node)), offset, ta);
       if (count != target) {
-        EmitMemRepeatedByte(BYTE_PADDING, target - count, offset + count, "widen_padding");
+        EmitMemRepeatedByte(BYTE_PADDING, target - count, offset + count,
+                            "widen_padding");
       }
       return target;
     }

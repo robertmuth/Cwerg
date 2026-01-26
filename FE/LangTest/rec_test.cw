@@ -67,32 +67,22 @@ global g7 = {[1]type_rec5:
 pub rec rec_type8:
     t1 u32
 
+type funptr = funtype(x u32, y u32, b bool) u32
 
 
-fun test_rec_basic() void:
-    let! g8 = {rec_type8: 66}
-    set g8.t1 = 123
-    test::AssertEq#(g8.t1, 123_u32)
+fun addsub(x u32, y u32, b bool) u32:
+    return b ? x - y : x + y
 
-fun main(argc s32, argv ^^u8) s32:
-    ; LOCAL
-    let! v1 = {type_rec3:}
-    set v1.u2 = 102
-    set v1.u3 = 103
-    set v1.u6 = 106
-    test::AssertEq#(v1.u2, 102_u16)
-    test::AssertEq#(v1.u3, 103_u64)
-    test::AssertEq#(v1.u6, 106_u64)
-    set v1.u4.t1 = false
-    set v1.u4.t2 = 402
-    test::AssertEq#(v1.u4.t2, 402_u32)
-    test::AssertEq#(v1.u4.t1, false)
-    set v1.u5[2] = 502
-    set v1.u5[3] = 503
-    set v1.u5[10] = 510
-    test::AssertEq#(v1.u5[2], 502_u16)
-    test::AssertEq#(v1.u5[3], 503_u16)
-    test::AssertEq#(v1.u5[10], 510_u16)
+pub rec rec_funptr:
+    fp funptr
+
+global f1 rec_funptr = undef
+global f2 rec_funptr = {:}
+global f3 rec_funptr = {: addsub}
+
+
+
+fun test_rec_global() void:
     ; GLOBAL ALT
     test::AssertEq#(g3_alt.u2, 0x1234_u16)
     test::AssertEq#(g3_alt.u3, 0x4321_u64)
@@ -124,7 +114,36 @@ fun main(argc s32, argv ^^u8) s32:
     test::AssertEq#(g3.u5[3], 503_u16)
     test::AssertEq#(g3.u5[10], 510_u16)
 
+fun test_rec_local() void:
+    ; LOCAL
+    let! v1 = {type_rec3:}
+    set v1.u2 = 102
+    set v1.u3 = 103
+    set v1.u6 = 106
+    test::AssertEq#(v1.u2, 102_u16)
+    test::AssertEq#(v1.u3, 103_u64)
+    test::AssertEq#(v1.u6, 106_u64)
+    set v1.u4.t1 = false
+    set v1.u4.t2 = 402
+    test::AssertEq#(v1.u4.t2, 402_u32)
+    test::AssertEq#(v1.u4.t1, false)
+    set v1.u5[2] = 502
+    set v1.u5[3] = 503
+    set v1.u5[10] = 510
+    test::AssertEq#(v1.u5[2], 502_u16)
+    test::AssertEq#(v1.u5[3], 503_u16)
+    test::AssertEq#(v1.u5[10], 510_u16)
+
+fun test_rec_basic() void:
+    let! g8 = {rec_type8: 66}
+    set g8.t1 = 123
+    test::AssertEq#(g8.t1, 123_u32)
+
+
+fun main(argc s32, argv ^^u8) s32:
     do test_rec_basic()
+    do test_rec_global()
+    do test_rec_local()
 
     ; test end
     test::Success#()

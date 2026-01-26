@@ -958,6 +958,10 @@ def _EmitDataAddress(node, ct, offset, ta) -> int:
     print(f".addr.mem {ta.get_data_address_size()} {name} 0")
     return ta.get_data_address_size()
 
+def _EmitCodeAddress(node, ct, offset, ta) -> int:
+    assert isinstance(node, cwast.DefFun), f"{node}"
+    print(f".addr.fun {ta.get_code_address_size()} {node.name}")
+    return ta.get_code_address_size()
 
 def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
     """When does  node.x_type != ct not hold?"""
@@ -970,6 +974,8 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
         return _EmitMemRepeatedByte(_BYTE_UNDEF, ct.size, offset,  "undef ", ct.name)
     elif isinstance(node, cwast.Id):
         node_def = node.x_symbol
+        if isinstance(node_def, cwast.DefFun):
+            return  _EmitCodeAddress(node_def, ct, offset, ta)
         assert isinstance(node_def, cwast.DefGlobal), f"{node_def}"
         return _EmitInitializerRecursively(node_def.initial_or_undef_or_auto, ct, offset, ta)
     elif isinstance(node, cwast.ExprFront):
