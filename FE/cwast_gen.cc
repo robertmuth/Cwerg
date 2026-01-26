@@ -1,7 +1,6 @@
 #include "FE/cwast_gen.h"
 
 #include <cstdint>
-#include <map>
 
 #include "Util/assert.h"
 
@@ -932,7 +931,7 @@ const char* const BF_CURLY_ToStringMap[] = {
 const char* EnumToString_CURLY(BF x) { return BF_CURLY_ToStringMap[unsigned(x)]; }
 
 
-const std::map<std::string_view, NT> KeywordToNodeTypeMap = {
+const std::unordered_map<std::string_view, NT> KeywordToNodeTypeMap = {
     {"case", NT::Case},
     {"enum", NT::DefEnum},
     {"fun", NT::DefFun},
@@ -1098,12 +1097,12 @@ void RemoveNodesOfType(Node node, NT kind) {
   MaybeReplaceAstRecursively(node, replacer);
 }
 
-Node Translate(const std::map<Node, Node>* xmap, Node node) {
+Node Translate(const NodeToNodeMap* xmap, Node node) {
   return GetWithDefault(*xmap, node, node);
 }
 
-Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
-                          std::map<Node, Node>* target_map) {
+Node NodeCloneRecursively(Node node, NodeToNodeMap* symbol_map,
+                          NodeToNodeMap* target_map) {
   Node clone = NodeCloneBasics(node);
 
   switch (Node_kind(clone)) {
@@ -1149,8 +1148,8 @@ Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
 }
 
 void UpdateSymbolAndTargetLinks(Node node,
-                                const std::map<Node, Node>* symbol_map,
-                                const std::map<Node, Node>* target_map) {
+                                const NodeToNodeMap* symbol_map,
+                                const NodeToNodeMap* target_map) {
   auto visitor = [symbol_map, target_map](Node node, Node parent) -> bool {
     switch (node.kind()) {
       case NT::Id:

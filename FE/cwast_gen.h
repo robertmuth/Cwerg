@@ -6,7 +6,6 @@
 #include <cstring>
 #include <functional>
 #include <iostream>
-#include <map>
 #include <vector>
 
 #include "Util/assert.h"
@@ -158,7 +157,7 @@ struct NodeExtra {
   };
 };
 
-using SymTab = std::map<Name, Node>;
+using SymTab = std::unordered_map<Name, Node>;
 
 struct NodeAuxTyping {
   union {
@@ -1441,13 +1440,8 @@ inline void MaybeReplaceAstRecursivelyPost(
 }
 
 template <typename K, typename V>
-V GetWithDefault(const std::map<K, V>& m, const K& key, const V& default_val) {
-  auto it = m.find(key);
-  return (it == m.end()) ? default_val : it->second;
-}
-
-template <typename K, typename V>
-V GetWithDefault(const std::unordered_map<K, V>& m, const K& key, const V& default_val) {
+V GetWithDefault(const std::unordered_map<K, V>& m, const K& key,
+                 const V& default_val) {
   auto it = m.find(key);
   return (it == m.end()) ? default_val : it->second;
 }
@@ -1465,15 +1459,17 @@ inline Node NodeCloneBasics(Node node) {
   return clone;
 }
 
+using NodeToNodeMap = std::unordered_map<Node, Node>;
+
 // Note:
 // * Node_next(result) will be set to kNodeInvalid
 // * symbol_map/target_map may be updated
-extern Node NodeCloneRecursively(Node node, std::map<Node, Node>* symbol_map,
-                                 std::map<Node, Node>* target_map);
+extern Node NodeCloneRecursively(Node node, NodeToNodeMap* symbol_map,
+                                 NodeToNodeMap* target_map);
 
 extern void UpdateSymbolAndTargetLinks(Node node,
-                                       const std::map<Node, Node>* symbol_map,
-                                       const std::map<Node, Node>* target_map);
+                                       const NodeToNodeMap* symbol_map,
+                                       const NodeToNodeMap* target_map);
 
 // TODO: move this to a helper lib
 struct CompilerError : public std::ostream, private std::streambuf {
@@ -1545,3 +1541,14 @@ extern Node MakeTypeAuto(CanonType ct, const SrcLoc& sl);
 extern Node IdNodeFromDef(Node def_var, const SrcLoc& sl);
 
 }  // namespace cwerg::fe
+namespace std {
+template <>
+struct hash<cwerg::fe::Node> {
+  std::size_t operator()(const cwerg::fe::Node& h) const { return h.value; }
+};
+
+template <>
+struct hash<cwerg::fe::Name> {
+  std::size_t operator()(const cwerg::fe::Name& h) const { return h.value; }
+};
+}  // namespace std

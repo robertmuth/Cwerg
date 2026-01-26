@@ -6,7 +6,6 @@
 // (BASE_TYPE_KIND) and a value. Short values are directly encoded the handle.
 // For details see the implementation of: std::ostream& operator<<(std::ostream&
 // os, Const c)
-#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -247,11 +246,10 @@ extern Const ConstNewBitcastUnsigned(uint64_t val, BASE_TYPE_KIND bt);
 
 extern std::string ConstBaseTypeSerialize(Const val);
 
-
 extern std::ostream& operator<<(std::ostream& os, Const c);
 
-extern std::string to_string(Const c,
-                             const std::map<Node, std::string>* labels);
+extern std::string to_string(
+    Const c, const std::unordered_map<Node, std::string>* labels);
 
 extern void DecorateASTWithPartialEvaluation(const std::vector<Node>& mods);
 

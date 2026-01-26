@@ -263,8 +263,8 @@ void FunSimplifyTaggedExprNarrow(Node fun, TypeCorpus* tc) {
     Node at = NodeNew(NT::TypeAuto);
     NodeInitTypeAuto(at, kStrInvalid, sl, ct_dst);
     Node cond = NodeNew(NT::ExprIs);
-    std::map<Node, Node> dummy1;
-    std::map<Node, Node> dummy2;
+    NodeToNodeMap dummy1;
+    NodeToNodeMap dummy2;
     NodeInitExprIs(cond,
                    NodeCloneRecursively(Node_expr(node), &dummy1, &dummy2), at,
                    kStrInvalid, sl, ct_bool);

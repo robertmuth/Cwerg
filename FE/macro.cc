@@ -17,8 +17,8 @@ class MacroContext {
   Node invoke_;
   IdGen* id_gen_;
   SrcLoc srcloc_;
-  std::map<Name, Node> symtab_;
-  std::map<Name, Node> symtab_not_owned_;
+  SymTab symtab_;
+  SymTab symtab_not_owned_;
 
  public:
   MacroContext(Node invoke, IdGen* id_gen, const SrcLoc& srcloc)
@@ -114,8 +114,8 @@ Node ExpandMacroBodyNodeRecursively(Node node, MacroContext* ctx) {
             << "\n";
 #endif
   // Note these may be written.
-  std::map<Node, Node> dummy1;
-  std::map<Node, Node> dummy2;
+  NodeToNodeMap dummy1;
+  NodeToNodeMap dummy2;
   switch (Node_kind(node)) {
     case NT::DefVar:
       if (NameIsMacro(Node_name(node))) {

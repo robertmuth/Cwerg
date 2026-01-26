@@ -1,6 +1,5 @@
 #include "FE/optimize.h"
 
-#include <map>
 #include <set>
 
 #include "FE/canonicalize.h"
@@ -20,7 +19,7 @@ Node MakeExprStmtForCall(Node call) {
   NodeChain body;
   Node_body(out) = body.First();
   //
-  std::map<Node, Node> symbol_map;
+  NodeToNodeMap symbol_map;
   Node arg = Node_args(call);
   for (Node param = Node_params(fun_def); !param.isnull();
        param = Node_next(param)) {
@@ -37,7 +36,7 @@ Node MakeExprStmtForCall(Node call) {
     body.Append(dv);
   }
   //
-  std::map<Node, Node> target_map;
+  NodeToNodeMap target_map;
   target_map[fun_def] = out;
   for (Node n = Node_body(fun_def); !n.isnull(); n = Node_next(n)) {
     Node c = NodeCloneRecursively(n, &symbol_map, &target_map);
@@ -84,7 +83,7 @@ bool IsConstantSymbol(Node sym) {
 }
 
 void FunCopyPropagation(Node fun) {
-  std::map<Node, Node> replacements;
+  NodeToNodeMap replacements;
   auto visitor = [&replacements](Node node) {
     if (node.kind() != NT::DefVar || Node_has_flag(node, BF::MUT) ||
         Node_initial_or_undef_or_auto(node).kind() != NT::Id) {
@@ -231,8 +230,8 @@ void FunRemoveSimpleExprStmts(Node fun) {
   auto replacer = [](Node node, Node parent) -> Node {
     if (node.kind() == NT::StmtReturn &&
         Node_expr_ret(node).kind() == NT::ExprStmt) {
-      std::map<Node, Node> dummy1;
-      std::map<Node, Node> target_map;
+      NodeToNodeMap dummy1;
+      NodeToNodeMap target_map;
       target_map[Node_expr_ret(node)] = Node_x_target(node);
       Node ret_expr = Node_expr_ret(node);
       UpdateSymbolAndTargetLinks(ret_expr, &dummy1, &target_map);

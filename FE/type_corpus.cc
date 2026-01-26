@@ -2,7 +2,6 @@
 
 #include <array>
 #include <iostream>
-#include <map>
 #include <set>
 
 #include "Util/assert.h"
@@ -322,12 +321,12 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch) {
                               BASE_TYPE_KIND::R32, BASE_TYPE_KIND::R64,
                               //
                               BASE_TYPE_KIND::BOOL, BASE_TYPE_KIND::NORET}) {
-    base_type_map_[kind] = InsertBaseType(kind);
+    base_type_map_[int(kind)] = InsertBaseType(kind);
   }
-  base_type_map_[BASE_TYPE_KIND::SINT] = base_type_map_[arch.get_sint_kind()];
-  base_type_map_[BASE_TYPE_KIND::UINT] = base_type_map_[arch.get_uint_kind()];
-  base_type_map_[BASE_TYPE_KIND::TYPEID] =
-      base_type_map_[arch.get_typeid_kind()];
+  base_type_map_[int(BASE_TYPE_KIND::SINT)] = base_type_map_[int(arch.get_sint_kind())];
+  base_type_map_[int(BASE_TYPE_KIND::UINT)] = base_type_map_[int(arch.get_uint_kind())];
+  base_type_map_[int(BASE_TYPE_KIND::TYPEID)] =
+      base_type_map_[int(arch.get_typeid_kind())];
 }
 
 struct SizeAndAlignment {

@@ -953,7 +953,8 @@ std::ostream& operator<<(std::ostream& os, Const c) {
   }
 }
 
-std::string to_string(Const c, const std::map<Node, std::string>* labels) {
+std::string to_string(Const c,
+                      const std::unordered_map<Node, std::string>* labels) {
   if (c.isnull()) return "null";
 
   std::stringstream ss;

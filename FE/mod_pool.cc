@@ -6,8 +6,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
-#include <map>
 #include <set>
+#include <map>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -158,7 +158,7 @@ Name StripQualifier(Name name) {
 }
 
 void ResolveImportsForQualifers(Node mod) {
-  std::map<Name, Node> imports;
+  std::unordered_map<Name, Node> imports;
 
   auto visitor = [&imports](Node node, Node parent) {
     switch (Node_kind(node)) {
@@ -300,8 +300,8 @@ class ModPoolState {
       raw_generic_[path] = generic_mod;
     }
     ++gen_mod_uid;
-    std::map<Node, Node> dummy1;
-    std::map<Node, Node> dummy2;
+    NodeToNodeMap dummy1;
+    NodeToNodeMap dummy2;
 
     Node mod = NodeCloneRecursively(generic_mod, &dummy1, &dummy2);
     std::string s = NameData(Node_name(generic_mod));
@@ -385,7 +385,7 @@ void ResolvePolyMods(const std::vector<Node>& mods_in_topo_order) {
 void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
   ASSERT(Node_kind(mod) == NT::DefMod, "");
   ASSERT(NodeNumSiblings(Node_params_mod(mod)) == args.size(), "");
-  std::map<Name, Node> arg_map;
+  std::unordered_map<Name, Node> arg_map;
   int i = 0;
   for (Node p = Node_params_mod(mod); !p.isnull(); p = Node_next(p), ++i) {
     ASSERT(Node_kind(p) == NT::ModParam, "");
@@ -416,8 +416,8 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
     child = next;
   }
   Node_params_mod(mod) = kNodeInvalid;
-  std::map<Node, Node> dummy1;
-  std::map<Node, Node> dummy2;
+  NodeToNodeMap dummy1;
+  NodeToNodeMap dummy2;
   auto replacer = [&dummy1, &dummy2, &arg_map](Node node, Node parent) {
     if (Node_kind(node) == NT::MacroId) {
       auto it = arg_map.find(Node_name(node));

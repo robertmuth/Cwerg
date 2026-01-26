@@ -85,7 +85,7 @@ class PolyMap {
 class TypeContext {
   std::array<CanonType, 10> base_type_map_;
 
-  std::map<Name, CanonType> corpus_;
+  std::unordered_map<Name, CanonType> corpus_;
 
   void insert(CanonType ct) {
     ASSERT(!corpus_.contains(CanonType_name(ct)), "");

@@ -14,6 +14,8 @@
 
 namespace cwerg::fe {
 
+using LabelMap = std::unordered_map<Node, std::string>;
+
 std::string MakeLabel(std::string_view c,
                       const std::vector<std::string_view>& prefix) {
   std::string out;
@@ -92,7 +94,7 @@ std::string_view GetLabelTag(NT kind) {
   }
 }
 
-void LabelDefs(Node node, Prefix* prefix, std::map<Node, std::string>* labels) {
+void LabelDefs(Node node, Prefix* prefix, LabelMap* labels) {
   std::string_view tag = GetLabelTag(node.kind());
   if (!tag.empty()) {
     (*labels)[node] = prefix->GetLabel(tag);
@@ -120,8 +122,7 @@ void LabelDefs(Node node, Prefix* prefix, std::map<Node, std::string>* labels) {
   }
 }
 
-void ExtractSymDefLabels(const std::vector<Node>& mods,
-                         std::map<Node, std::string>* labels) {
+void ExtractSymDefLabels(const std::vector<Node>& mods, LabelMap* labels) {
   Prefix prefix;
   prefix.PushLevel();
   for (int i = 0; i < mods.size(); ++i) {
@@ -131,8 +132,7 @@ void ExtractSymDefLabels(const std::vector<Node>& mods,
   }
 }
 
-void ExtractTargetLabels(const std::vector<Node>& mods,
-                         std::map<Node, std::string>* labels) {
+void ExtractTargetLabels(const std::vector<Node>& mods, LabelMap* labels) {
   Prefix prefix;
   prefix.PushLevel();
 
@@ -187,12 +187,11 @@ void _EmitLine(const std::vector<std::string>& line, int indent,
 }
 
 // forward decl
-void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
+void DumpNode(Node node, int indent, const LabelMap* labels,
               std::vector<int>* active_columns, bool is_last,
               bool dump_handles);
 
-void DumpList(std::string_view name, Node node, int indent,
-              const std::map<Node, std::string>* labels,
+void DumpList(std::string_view name, Node node, int indent, const LabelMap* labels,
               std::vector<int>* active_columns, bool is_last,
               bool dump_handles) {
   std::vector<std::string> line = {std::string(name)};
@@ -277,7 +276,7 @@ std::string RenderKind(Node node) {
   }
 }
 
-void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
+void DumpNode(Node node, int indent, const LabelMap* labels,
               std::vector<int>* active_columns, bool is_last,
               bool dump_handles) {
   const NodeDesc& desc = GlobalNodeDescs[int(node.kind())];
@@ -413,7 +412,7 @@ void DumpNode(Node node, int indent, const std::map<Node, std::string>* labels,
 }
 
 void DumpAstMods(const std::vector<Node>& mods, bool dump_handles) {
-  std::map<Node, std::string> labels;
+  LabelMap labels;
   ExtractSymDefLabels(mods, &labels);
   ExtractTargetLabels(mods, &labels);
   std::vector<int> active_columns;

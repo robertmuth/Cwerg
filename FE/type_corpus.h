@@ -3,6 +3,7 @@
 
 #include <span>
 #include <vector>
+#include <unordered_map>
 
 #include "FE/cwast_gen.h"
 #include "IR/opcode_gen.h"
@@ -161,9 +162,9 @@ extern void TypeListDelta(const std::vector<CanonType>& children1,
                           std::vector<CanonType>* out);
 
 class TypeCorpus {
-  std::map<Name, CanonType> corpus_;
+  std::unordered_map<Name, CanonType> corpus_;
   std::vector<CanonType> corpus_in_topo_order_;
-  std::map<BASE_TYPE_KIND, CanonType> base_type_map_;
+  std::array<CanonType, 256> base_type_map_;
   int typeid_curr_ = 0;
   const TargetArchConfig& arch_config_;
   bool initial_typing_ = true;
@@ -176,26 +177,26 @@ class TypeCorpus {
 
   CanonType get_base_canon_type(BASE_TYPE_KIND kind) const {
     ASSERT(kind != BASE_TYPE_KIND::INVALID, "");
-    return base_type_map_.at(kind);
+    return base_type_map_[int(kind)];
   }
 
   CanonType get_void_canon_type() const {
-    return base_type_map_.at(BASE_TYPE_KIND::VOID);
+    return base_type_map_[int(BASE_TYPE_KIND::VOID)];
   }
   CanonType get_bool_canon_type() const {
-    return base_type_map_.at(BASE_TYPE_KIND::BOOL);
+    return base_type_map_[int(BASE_TYPE_KIND::BOOL)];
   }
 
   CanonType get_sint_canon_type() const {
-    return base_type_map_.at(BASE_TYPE_KIND::SINT);
+    return base_type_map_[int(BASE_TYPE_KIND::SINT)];
   }
 
   CanonType get_uint_canon_type() const {
-    return base_type_map_.at(BASE_TYPE_KIND::UINT);
+    return base_type_map_[int(BASE_TYPE_KIND::UINT)];
   }
 
   CanonType get_typeid_canon_type() const {
-    return base_type_map_.at(BASE_TYPE_KIND::TYPEID);
+    return base_type_map_[int(BASE_TYPE_KIND::TYPEID)];
   }
 
   CanonType InsertPtrType(bool mut, CanonType child);

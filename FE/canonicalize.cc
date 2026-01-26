@@ -103,8 +103,8 @@ Node RewriteExprIndex(Node node, CanonType uint_ct, TypeCorpus* tc) {
     ASSERT(CanonType_kind(container_ct) == NT::TypeSpan, "");
     bool mut = CanonType_mut(container_ct);
     if (Node_kind(container) == NT::Id) {
-      std::map<Node, Node> dummy1;
-      std::map<Node, Node> dummy2;
+      NodeToNodeMap dummy1;
+      NodeToNodeMap dummy2;
       Node bound = NodeNew(NT::ExprLen);
       NodeInitExprLen(bound, NodeCloneRecursively(container, &dummy1, &dummy2),
                       kStrInvalid, sl, uint_ct);
@@ -563,8 +563,8 @@ void FunDesugarExprIs(Node fun, const TypeCorpus* tc) {
     typeids.pop_back();
     while (!typeids.empty()) {
       ASSERT(IsNodeCopyableWithoutRiskOfSideEffects(Node_expr(tag)), "");
-      std::map<Node, Node> dummy1;
-      std::map<Node, Node> dummy2;
+      NodeToNodeMap dummy1;
+      NodeToNodeMap dummy2;
       Node next_test = MakeTypeIdTest(
           typeids.back(), NodeCloneRecursively(tag, &dummy1, &dummy2));
       typeids.pop_back();
@@ -605,8 +605,8 @@ Node EliminateDeferRecursively(Node node, std::vector<Scope>* scopes) {
     for (auto s = scopes->rbegin(); s != scopes->rend(); ++s) {
       for (auto d = s->defer_stmts.rbegin(); d != s->defer_stmts.rend(); ++d) {
         for (Node n = Node_body(*d); !n.isnull(); n = Node_next(n)) {
-          std::map<Node, Node> dummy1;
-          std::map<Node, Node> dummy2;
+          NodeToNodeMap dummy1;
+          NodeToNodeMap dummy2;
           chain->Append(NodeCloneRecursively(n, &dummy1, &dummy2));
         }
       }
@@ -810,8 +810,8 @@ void FunOptimizeKnownConditionals(Node fun) {
 Node _MakeSimpleForAssigmemt(BINARY_EXPR_KIND kind, Node lhs, Node expr,
                              const SrcLoc& sl) {
   Node rhs = NodeNew(NT::Expr2);
-  std::map<Node, Node> dummy1;
-  std::map<Node, Node> dummy2;
+  NodeToNodeMap dummy1;
+  NodeToNodeMap dummy2;
 
   NodeInitExpr2(rhs, kind, NodeCloneRecursively(lhs, &dummy1, &dummy2), expr,
                 kStrInvalid, sl, Node_x_type(lhs));
