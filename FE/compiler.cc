@@ -1,8 +1,10 @@
 
+#include <chrono>
 #include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <set>
 #include <vector>
 
@@ -27,6 +29,29 @@
 
 using namespace cwerg::fe;
 using namespace cwerg;
+
+class TimerStats {
+ private:
+  std::chrono::steady_clock::time_point start_ =
+      std::chrono::steady_clock::now();
+  std::map<std::string, int64_t> measurements_;
+
+ public:
+  void RecordDuration(std::string_view name) {
+    auto end = std::chrono::steady_clock::now();
+    auto duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start_);
+    measurements_[std::string(name)] = duration.count();
+    start_ = end;
+  }
+
+  void Dump() {
+    std::cout << "Phase Duration in ms\n";
+    for (auto [key, val] : measurements_) {
+      std::cout << key << ": " << val << "\n";
+    }
+  }
+};
 
 SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
@@ -62,7 +87,9 @@ Name MangledGlobalName(Name mod_name, Node node, bool is_cdecl) {
 
 void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
                      const std::set<NT>& eliminated_nodes, COMPILE_STAGE stage,
-                     TypeCorpus* tc) {
+                     TypeCorpus* tc, TimerStats* ts) {
+  ts->RecordDuration(phase);
+
   if (sw_dump_types.Value() == phase) {
     for (Node mod : mods) {
       std::cout << Node_name(mod) << "\n";
@@ -82,6 +109,7 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
   }
 
   ValidateAST(mods, stage);
+  ts->RecordDuration(std::string(phase) + "-valitdation");
 }
 
 void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
@@ -229,11 +257,12 @@ int main(int argc, const char* argv[]) {
   for (int i = arg_start; i < argc; ++i) {
     seed_modules.push_back(std::filesystem::absolute((argv[i])));
   }
+  TimerStats ts;
 
   ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
   std::set<NT> eliminated_nodes = {NT::Import, NT::ModParam};
   SanityCheckMods("after_parsing", mp.mods_in_topo_order, eliminated_nodes,
-                  COMPILE_STAGE::AFTER_PARSING, nullptr);
+                  COMPILE_STAGE::AFTER_PARSING, nullptr, &ts);
   //
   for (Node mod : mp.mods_in_topo_order) {
     FunRemoveParentheses(mod);
@@ -252,13 +281,13 @@ int main(int argc, const char* argv[]) {
   SetTargetFields(mp.mods_in_topo_order);
   ResolveSymbolsInsideFunctions(mp.mods_in_topo_order, mp.builtin_symtab);
   SanityCheckMods("after_symbolizing", mp.mods_in_topo_order, eliminated_nodes,
-                  COMPILE_STAGE::AFTER_SYMBOLIZE, nullptr);
+                  COMPILE_STAGE::AFTER_SYMBOLIZE, nullptr, &ts);
 
   const TargetArchConfig& ta = STD_TARGET_X64;
   TypeCorpus tc(ta);
   AddTypesToAst(mp.mods_in_topo_order, &tc);
   SanityCheckMods("after_typing", mp.mods_in_topo_order, eliminated_nodes,
-                  COMPILE_STAGE::AFTER_TYPIFY, &tc);
+                  COMPILE_STAGE::AFTER_TYPIFY, &tc, &ts);
   ValidateAST(mp.mods_in_topo_order, COMPILE_STAGE::AFTER_TYPIFY);
   //
   DecorateASTWithPartialEvaluation(mp.mods_in_topo_order);
@@ -266,7 +295,7 @@ int main(int argc, const char* argv[]) {
     RemoveNodesOfType(mod, NT::StmtStaticAssert);
   }
   SanityCheckMods("after_partial_eval", mp.mods_in_topo_order, eliminated_nodes,
-                  COMPILE_STAGE::AFTER_EVAL, &tc);
+                  COMPILE_STAGE::AFTER_EVAL, &tc, &ts);
 
   PhaseInitialLowering(mp.mods_in_topo_order, &tc);
   eliminated_nodes.insert(NT::ExprIndex);
@@ -286,13 +315,13 @@ int main(int argc, const char* argv[]) {
   eliminated_nodes.insert(NT::TypeUnionDelta);
 
   SanityCheckMods("after_initial_lowering", mp.mods_in_topo_order,
-                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
+                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
 
   PhaseOptimize(mp.mods_in_topo_order, &tc);
   eliminated_nodes.insert(NT::Expr3);
 
   SanityCheckMods("after_optimization", mp.mods_in_topo_order, eliminated_nodes,
-                  COMPILE_STAGE::AFTER_DESUGAR, &tc);
+                  COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
   Node mod_gen = MakeModGen();
 
   NodeChain chain = MakeModWithComplexConstants(mp.mods_in_topo_order);
@@ -302,12 +331,12 @@ int main(int argc, const char* argv[]) {
   mp.mods_in_topo_order.insert(mp.mods_in_topo_order.begin(), mod_gen);
 
   SanityCheckMods("after_eliminate_span_and_union", mp.mods_in_topo_order,
-                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
+                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
 
   PhaseEliminateLargeArgs(mp.mods_in_topo_order, &tc);
 
   SanityCheckMods("after_large_arg_conversion", mp.mods_in_topo_order,
-                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc);
+                  eliminated_nodes, COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
 
   PhaseLegalize(mp.mods_in_topo_order, &tc);
   PhaseOptimize(mp.mods_in_topo_order, &tc);
@@ -316,7 +345,7 @@ int main(int argc, const char* argv[]) {
   eliminated_nodes.insert(NT::Case);
 
   SanityCheckMods("after_legalize", mp.mods_in_topo_order, eliminated_nodes,
-                  COMPILE_STAGE::AFTER_DESUGAR, &tc);
+                  COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
 
   for (Node mod : mp.mods_in_topo_order) {
     for (Node node = Node_body_mod(mod); !node.isnull();
@@ -329,12 +358,13 @@ int main(int argc, const char* argv[]) {
     }
   }
   SanityCheckMods("after_name_cleanup", mp.mods_in_topo_order, eliminated_nodes,
-                  COMPILE_STAGE::AFTER_DESUGAR, &tc);
+                  COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
 
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files
               << " lines=" << LexerRaw::stats.num_lines
               << " nodes=" << gStripeGroupNode.NextAvailable() << "\n";
+    ts.Dump();
     exit(0);
   }
   PhaseEmitCode(mp.mods_in_topo_order, ta);
