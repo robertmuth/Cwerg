@@ -32,23 +32,27 @@ using namespace cwerg;
 
 class TimerStats {
  private:
+  struct Stat {
+    std::string name;
+    int64_t value;
+  };
   std::chrono::steady_clock::time_point start_ =
       std::chrono::steady_clock::now();
-  std::map<std::string, int64_t> measurements_;
+  std::vector<Stat> measurements_;
 
  public:
   void RecordDuration(std::string_view name) {
     auto end = std::chrono::steady_clock::now();
     auto duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start_);
-    measurements_[std::string(name)] = duration.count();
+    measurements_.push_back({std::string(name), duration.count()});
     start_ = end;
   }
 
   void Dump() {
     std::cout << "Phase Duration in ms\n";
-    for (auto [key, val] : measurements_) {
-      std::cout << key << ": " << val << "\n";
+    for (const auto& s: measurements_) {
+      std::cout << std::setw(40) << s.name << ": " << s.value << "\n";
     }
   }
 };
@@ -109,7 +113,7 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
   }
 
   ValidateAST(mods, stage);
-  ts->RecordDuration(std::string(phase) + "-valitdation");
+  ts->RecordDuration(std::string(phase) + "-check");
 }
 
 void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
@@ -117,7 +121,7 @@ void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
   for (Node mod : mods_in_topo_order) {
     ModStripTypeNodesRecursively(mod);
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
-      FunReplaceConstExpr(fun, *tc);
+      FunReplaceConstExpr(fun, tc);
       FunMakeImplicitConversionsExplicit(fun, tc);
       FunReplaceExprIndex(fun, tc);
       FunDesugarTaggedUnionComparisons(fun);
@@ -250,14 +254,16 @@ void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
   std::ios_base::sync_with_stdio(true);
+  TimerStats ts;
 
   InitStripes(sw_multiplier.Value());
   InitParser();
+  ts.RecordDuration("after_initialization");
+
   std::vector<Path> seed_modules;
   for (int i = arg_start; i < argc; ++i) {
     seed_modules.push_back(std::filesystem::absolute((argv[i])));
   }
-  TimerStats ts;
 
   ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
   std::set<NT> eliminated_nodes = {NT::Import, NT::ModParam};
@@ -360,6 +366,9 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_name_cleanup", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
 
+  PhaseEmitCode(mp.mods_in_topo_order, ta);
+  ts.RecordDuration("after_emitting_code");
+
   if (sw_dump_stats.Value()) {
     std::cout << "Stats:  files=" << LexerRaw::stats.num_files
               << " lines=" << LexerRaw::stats.num_lines
@@ -367,6 +376,5 @@ int main(int argc, const char* argv[]) {
     ts.Dump();
     exit(0);
   }
-  PhaseEmitCode(mp.mods_in_topo_order, ta);
   return 0;
 }

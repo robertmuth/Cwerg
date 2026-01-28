@@ -155,7 +155,7 @@ void FunReplaceExprIndex(Node node, TypeCorpus* tc) {
   MaybeReplaceAstRecursivelyPost(node, replacer, kNodeInvalid);
 }
 
-void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {
+void FunReplaceConstExpr(Node node, const TypeCorpus* tc) {
   auto replacer = [tc](Node node, Node parent) -> Node {
     if (!NodeHasField(node, NFD_X_FIELD::eval)) {
       return node;
@@ -196,7 +196,7 @@ void FunReplaceConstExpr(Node node, const TypeCorpus& tc) {
     if (CanonType_is_base_type(ct)) {
       ct = Node_x_type(node);
     } else {
-      CanonType val_ct = tc.get_base_canon_type(val.kind());
+      CanonType val_ct = tc->get_base_canon_type(val.kind());
       ASSERT(CanonType_is_union(ct) && CanonType_union_contains(ct, val_ct),
              "");
       ct = val_ct;

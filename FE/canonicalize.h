@@ -14,7 +14,7 @@ extern void FunRemoveParentheses(Node fun);
 // May add ... type
 extern void FunReplaceExprIndex(Node node, TypeCorpus* tc);
 
-extern void FunReplaceConstExpr(Node node, const TypeCorpus& tc);
+extern void FunReplaceConstExpr(Node node, const TypeCorpus* tc);
 
 // May add ... type
 extern void FunMakeImplicitConversionsExplicit(Node node, TypeCorpus* tc);
