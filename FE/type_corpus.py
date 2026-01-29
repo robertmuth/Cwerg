@@ -514,7 +514,9 @@ class TypeCorpus:
         """Note: we re-use the original ast node"""
         assert isinstance(ast_node, cwast.DefEnum)
         name = f"enum<{name}>"
-        bt = self.get_base_canon_type(ast_node.base_type_kind)
+        bt_kind = ast_node.base_type_kind
+        assert bt_kind.IsInt()
+        bt = self.get_base_canon_type(bt_kind)
         ct = cwast.CanonType(cwast.DefEnum, name,
                              ast_node=ast_node, children=[bt])
         return self._insert(ct)

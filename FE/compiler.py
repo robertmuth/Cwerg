@@ -90,9 +90,10 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
         if stage.value >= checker.COMPILE_STAGE.AFTER_SYMBOLIZE.value:
             symbolize.VerifySymbols(mod)
 
-        if stage in (checker.COMPILE_STAGE.AFTER_TYPIFY, checker.COMPILE_STAGE.AFTER_EVAL, checker.COMPILE_STAGE.AFTER_DESUGAR):
+        if stage in (checker.COMPILE_STAGE.AFTER_TYPIFY, checker.COMPILE_STAGE.AFTER_EVAL):
             typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
-        if stage.value > checker.COMPILE_STAGE.AFTER_EVAL.value:
+        elif stage.value >= checker.COMPILE_STAGE.AFTER_DESUGAR.value:
+            # desugaring eliminate implicit conversions, so we can be stricter
             typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_STRICT)
 
         if stage.value >= checker.COMPILE_STAGE.AFTER_EVAL.value:
@@ -206,7 +207,6 @@ def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArch
             if isinstance(node, cwast.DefGlobal):
                 emit_ir.EmitIRDefGlobal(node, ta)
         for node in mod.body_mod:
-
             if isinstance(node, cwast.DefFun):
                 emit_ir.EmitIRDefFun(node, ta, identifier.IdGenIR())
 
@@ -365,7 +365,9 @@ def main() -> int:
     assert eliminated_nodes == cwast.ALL_NODES_NON_CORE
 
     # Make global names unique by setting fully qualified names
-    # Unquifying local names is done during IR emission
+    # Unquifying local names (DefVar, FunParam) is done during IR emission,
+    # because we need to keep track of all the local names when we generate new
+    # names for temporaries so we can avoid clashes.
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, (cwast.DefFun, cwast.DefGlobal)):

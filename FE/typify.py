@@ -828,7 +828,8 @@ def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
         assert ct_expr.underlying_type() in (
             ct_node, ct_node.original_type), f"{ct_node} vs {ct_expr}"
     else:
-        assert False
+        assert False, f"{ct_expr} -> {ct_node}"
+
 
 
 def _CheckDefFunTypeFun(node, _):
@@ -986,11 +987,11 @@ VERIFIERS_COMMON = {
 }
 
 
-def _CheckTypeCompatibleWithOptionalStrict(src_node, dst_ct: cwast.CanonType, strict: bool):
+def _CheckTypeCompatibleWithOptionalStrict(src_node, dst_ct: cwast.CanonType, no_implicit_conv: bool):
     src_ct = src_node.x_type
     if src_ct == dst_ct:
         return
-    if strict:
+    if no_implicit_conv:
         if not type_corpus.IsDropMutConversion(src_ct, dst_ct):
             cwast.CompilerError(src_node.x_srcloc,
                                 f"{src_node}: not the same actual: {src_ct} expected: {dst_ct}")
