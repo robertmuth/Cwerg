@@ -1,16 +1,14 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 #include "FE/cwast_gen.h"
 #include "Util/assert.h"
 
 namespace cwerg::fe {
 
-
-
-  // same as above but returs std::string
+// same as above but returs std::string
 class IdGenIR {
  private:
   std::unordered_map<Name, uint32_t> last_used_seq_;
@@ -18,11 +16,13 @@ class IdGenIR {
  public:
   std::string NameNewNext(Name name) {
     uint32_t& n = last_used_seq_[name];
-    ++n;
-    char buf[1024];
-    strcpy(buf, NameData(name));
-    sprintf(buf + strlen(buf), "%%%u", n);
 
+    std::string buf(NameData(name));
+    if (n) {
+      buf += "%";
+      buf += std::to_string(n);
+      ++n;
+    }
     return std::string(buf);
   }
 
@@ -46,7 +46,5 @@ class IdGen {
 
   IdGen() {}
 };
-
-
 
 }  // namespace cwerg::fe

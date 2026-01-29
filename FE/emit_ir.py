@@ -126,7 +126,7 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
         # this uniquifies names
         # Name translation!
         p.name = id_gen.NewName(str(p.name))
-        print(f"{TAB}poparg {p.name}:{p.type.x_type.get_single_register_type()}")
+        print(f"{TAB}poparg {p.name}:{p.x_type.get_single_register_type()}")
 
 
 ZERO_INDEX = "0"

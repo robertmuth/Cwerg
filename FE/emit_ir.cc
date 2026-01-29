@@ -10,7 +10,6 @@
 #include "Util/parse.h"
 
 namespace cwerg::fe {
-void EmitIRDefFun(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {}
 
 //
 class IterateValVec {
@@ -109,6 +108,33 @@ void EmitFunctionHeader(std::string_view sig_name, std::string_view kind,
     sep = " ";
   }
   std::cout << "]\n";
+}
+
+constexpr std::string_view kTAB("  ");
+
+void EmitFunctionProlog(Node node, IdGenIR* id_gen) {
+  std::cout << ".bbl " << id_gen->NameNewNext(NameNew("entry")) << "\n";
+  for (Node p = Node_params(node); !p.isnull(); p = Node_next(p)) {
+    std::string new_name = id_gen->NameNewNext(Node_name(p));
+    Node_name(p) = NameNew(new_name);
+    std::cout << kTAB << "poparg " << new_name << ":"
+              << EnumToString(CanonType_ir_regs(Node_x_type(p))) << "\n";
+  }
+}
+
+struct ReturnResultLocation {};
+
+void EmitIRStmt(Node node, const ReturnResultLocation* result,
+                const TargetArchConfig& ta, IdGenIR* id_gen) {}
+
+void EmitIRDefFun(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
+  if (!Node_has_flag(node, BF::EXTERN)) {
+    EmitFunctionHeader(NameData(Node_name(node)), "NORMAL", Node_x_type(node));
+    EmitFunctionProlog(node, id_gen);
+    for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
+      EmitIRStmt(s, nullptr, ta, id_gen);
+    }
+  }
 }
 
 bool is_repeated_single_char(std::string_view data) {
