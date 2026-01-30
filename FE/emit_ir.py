@@ -229,7 +229,10 @@ def _ChangesControlFlow(node):
 def _EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
                        id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
+    assert cond.x_type.is_bool()
     if cond.x_eval is not None:
+        # TODO: we probably should check for side effects, though it seems hard to imagine how
+        #       we can partially eval in the presence of side-effects
         if cond.x_eval.val != invert:
             print(f"{TAB}bra {label_false}")
     elif isinstance(cond, cwast.Expr1):
@@ -287,12 +290,10 @@ def _EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.Tar
         else:
             print(f"{TAB}bne {op} 0 {label_false}")
     elif isinstance(cond, cwast.Id):
-        assert cond.x_type.is_bool()
+        # TODO: do we have to handle DefGlobal
         assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
-        if invert:
-            print(f"{TAB}beq {cond.x_symbol.name} 0 {label_false}")
-        else:
-            print(f"{TAB}bne {cond.x_symbol.name} 0 {label_false}")
+        branch = "beq" if invert else "bne"
+        print(f"{TAB}{branch} {cond.x_symbol.name} 0 {label_false}")
     else:
         assert False, f"unexpected expression {cond}"
 
@@ -709,28 +710,28 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
         node.name = id_gen.NewName(str(node.name))
 
         ct: cwast.CanonType = node.x_type
-        initial = node.initial_or_undef_or_auto
+        init = node.initial_or_undef_or_auto
         if ct.size == 0:
-            if not isinstance(initial, cwast.ValUndef):
+            if not isinstance(init, cwast.ValUndef):
                 # still need to evaluate the expression for the side effect
-                _EmitIRExpr(initial, ta, id_gen)
+                _EmitIRExpr(init, ta, id_gen)
         elif _IsDefVarOnStack(node):
             assert ct.size > 0
             print(f"{TAB}.stk {node.name} {
                   ct.alignment} {ct.size}")
-            if not isinstance(initial, cwast.ValUndef):
+            if not isinstance(init, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
                 kind = ta.get_data_address_reg_type()
                 print(f"{TAB}lea.stk {init_base}:{kind} {node.name} 0")
-                EmitIRExprToMemory(initial, BaseOffset(
+                EmitIRExprToMemory(init, BaseOffset(
                     init_base, 0), ta, id_gen)
         else:
-            if isinstance(initial, cwast.ValUndef):
+            if isinstance(init, cwast.ValUndef):
                 print(
                     f"{TAB}.reg {ct.get_single_register_type()} [{node.name}]")
             else:
-                out = _EmitIRExpr(initial, ta, id_gen)
-                assert out is not None, f"Failure to gen code for {initial}"
+                out = _EmitIRExpr(init, ta, id_gen)
+                assert out is not None, f"Failure to gen code for {init}"
                 print(
                     f"{TAB}mov {node.name}:{ct.get_single_register_type()} = {out}")
     elif isinstance(node, cwast.StmtBlock):
@@ -776,10 +777,10 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
         if ct.ir_regs != o.DK.MEM:
             _EmitIRExpr(node.expr, ta, id_gen)
         else:
-            name = id_gen.NewName("stmt_stk_var")
             assert ct.size > 0
+            name = id_gen.NewName("stmt_stk_var")
             print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
-            base = id_gen.NewName("stmt_stk_base")
+            base = id_gen.NewName("stmt_stk_var_addr")
             kind = ta.get_data_address_reg_type()
             print(f"{TAB}lea.stk {base}:{kind} {name} 0")
             EmitIRExprToMemory(node.expr,  BaseOffset(base, 0), ta, id_gen)
