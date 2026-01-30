@@ -62,7 +62,7 @@ class STORAGE_KIND(enum.Enum):
 def _IsDefVarOnStack(node: cwast.DefVar) -> bool:
     if node.ref:
         return True
-    return node.type_or_auto.x_type.ir_regs == o.DK.MEM
+    return node.x_type.ir_regs == o.DK.MEM
 
 
 def _StorageForId(node: cwast.Id) -> STORAGE_KIND:
@@ -222,10 +222,8 @@ _MAP_COMPARE_INVERT = {
 }
 
 
-def _IsUnconditionalBranch(node):
-    if cwast.NF.TARGET_ANNOTATED not in node.FLAGS:
-        return False
-    return not isinstance(node, cwast.StmtReturn) or isinstance(node.x_target, cwast.DefFun)
+def _ChangesControlFlow(node):
+    return isinstance(node, (cwast.StmtBreak, cwast.StmtContinue, cwast.StmtReturn))
 
 
 def _EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
@@ -710,16 +708,16 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
         # name translation!
         node.name = id_gen.NewName(str(node.name))
 
-        def_type: cwast.CanonType = node.type_or_auto.x_type
+        ct: cwast.CanonType = node.x_type
         initial = node.initial_or_undef_or_auto
-        if def_type.size == 0:
+        if ct.size == 0:
             if not isinstance(initial, cwast.ValUndef):
                 # still need to evaluate the expression for the side effect
                 _EmitIRExpr(initial, ta, id_gen)
         elif _IsDefVarOnStack(node):
-            assert def_type.size > 0
+            assert ct.size > 0
             print(f"{TAB}.stk {node.name} {
-                  def_type.alignment} {def_type.size}")
+                  ct.alignment} {ct.size}")
             if not isinstance(initial, cwast.ValUndef):
                 init_base = id_gen.NewName("init_base")
                 kind = ta.get_data_address_reg_type()
@@ -729,25 +727,23 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
         else:
             if isinstance(initial, cwast.ValUndef):
                 print(
-                    f"{TAB}.reg {def_type.get_single_register_type()} [{node.name}]")
+                    f"{TAB}.reg {ct.get_single_register_type()} [{node.name}]")
             else:
                 out = _EmitIRExpr(initial, ta, id_gen)
                 assert out is not None, f"Failure to gen code for {initial}"
                 print(
-                    f"{TAB}mov {node.name}:{def_type.get_single_register_type()} = {out}")
+                    f"{TAB}mov {node.name}:{ct.get_single_register_type()} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         label = str(node.label)
         if not label:
             label = "_"
 
-        continue_label = id_gen.NewName(label)
-        break_label = id_gen.NewName(label)
-        node.label = (continue_label, break_label)
+        node.label = id_gen.NewName(label)
 
-        print(f".bbl {continue_label}  # block start")
+        print(f".bbl {node.label}")
         for c in node.body:
             _EmitIRStmt(c, result, ta, id_gen)
-        print(f".bbl {break_label}  # block end")
+        print(f".bbl {node.label}.end")
     elif isinstance(node, cwast.StmtReturn):
         if isinstance(node.x_target, cwast.ExprStmt):
             assert result is not None
@@ -770,10 +766,10 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
                 print(f"{TAB}pusharg {out}")
             print(f"{TAB}ret")
     elif isinstance(node, cwast.StmtBreak):
-        block = node.x_target.label[1]
+        block = node.x_target.label + ".end"
         print(f"{TAB}bra {block}  # break")
     elif isinstance(node, cwast.StmtContinue):
-        block = node.x_target.label[0]
+        block = node.x_target.label
         print(f"{TAB}bra {block}  # continue")
     elif isinstance(node, cwast.StmtExpr):
         ct: cwast.CanonType = node.expr.x_type
@@ -788,31 +784,26 @@ def _EmitIRStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Ta
             print(f"{TAB}lea.stk {base}:{kind} {name} 0")
             EmitIRExprToMemory(node.expr,  BaseOffset(base, 0), ta, id_gen)
     elif isinstance(node, cwast.StmtIf):
-        label_f = id_gen.NewName("br_f")
         label_join = id_gen.NewName("br_join")
         if node.body_t and node.body_f:
+            label_f = id_gen.NewName("br_f")
             _EmitIRConditional(node.cond, True, label_f, ta, id_gen)
             for c in node.body_t:
                 _EmitIRStmt(c, result, ta, id_gen)
-            if not _IsUnconditionalBranch(node.body_t[-1]):
+            if not _ChangesControlFlow(node.body_t[-1]):
                 print(f"{TAB}bra {label_join}")
             print(f".bbl {label_f}")
             for c in node.body_f:
                 _EmitIRStmt(c, result, ta, id_gen)
-            print(f".bbl {label_join}")
         elif node.body_t:
             _EmitIRConditional(node.cond, True, label_join, ta, id_gen)
             for c in node.body_t:
                 _EmitIRStmt(c, result, ta, id_gen)
-            print(f".bbl {label_join}")
-        elif node.body_f:
+        else:  # also works for the case where body_f is empty
             _EmitIRConditional(node.cond, False, label_join, ta, id_gen)
             for c in node.body_f:
                 _EmitIRStmt(c, result, ta, id_gen)
-            print(f".bbl {label_join}")
-        else:
-            _EmitIRConditional(node.cond, False, label_join, ta, id_gen)
-            print(f".bbl {label_join}")
+        print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
         lhs = node.lhs
         if lhs.x_type.ir_regs not in (o.DK.NONE, o.DK.MEM) and _AssignmentLhsIsInReg(lhs):
@@ -930,7 +921,7 @@ def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
         for init in _IterateValVec(node.inits, width, node.x_srcloc):
             if init is not None:
                 if isinstance(init.value_or_undef, cwast.ValUndef):
-                    last =  ZEROS[et.size]
+                    last = ZEROS[et.size]
                 else:
                     last = _InitDataForBaseType(et, init.x_eval)
             out += last
@@ -958,10 +949,12 @@ def _EmitDataAddress(node, ct, offset, ta) -> int:
     print(f".addr.mem {ta.get_data_address_size()} {name} 0")
     return ta.get_data_address_size()
 
+
 def _EmitCodeAddress(node, ct, offset, ta) -> int:
     assert isinstance(node, cwast.DefFun), f"{node}"
     print(f".addr.fun {ta.get_code_address_size()} {node.name}")
     return ta.get_code_address_size()
+
 
 def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
     """When does  node.x_type != ct not hold?"""
@@ -975,7 +968,7 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
     elif isinstance(node, cwast.Id):
         node_def = node.x_symbol
         if isinstance(node_def, cwast.DefFun):
-            return  _EmitCodeAddress(node_def, ct, offset, ta)
+            return _EmitCodeAddress(node_def, ct, offset, ta)
         assert isinstance(node_def, cwast.DefGlobal), f"{node_def}"
         return _EmitInitializerRecursively(node_def.initial_or_undef_or_auto, ct, offset, ta)
     elif isinstance(node, cwast.ExprFront):
