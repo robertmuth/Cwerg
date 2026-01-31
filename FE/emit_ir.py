@@ -427,35 +427,39 @@ def _EmitCast(expr, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
     return res
 
 
+def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
+    callee = node.callee
+    fun_ct: cwast.CanonType = callee.x_type
+    assert fun_ct.is_fun()
+    arg_ops = [_EmitExpr(a, ta, id_gen) for a in node.args]
+    for a in reversed(arg_ops):
+        print(f"{TAB}pusharg {a}")
+    if isinstance(callee, cwast.Id):
+        is_direct = isinstance(callee.x_symbol, cwast.DefFun)
+        name = callee.x_symbol.name
+        if is_direct:
+            print(f"{TAB}bsr {name}")
+        else:
+            print(f"{TAB}jsr {name} {MakeFunSigName(fun_ct)}")
+    else:
+        # TODO
+        assert False, "NYI"
+    if fun_ct.result_type().is_void():
+        return None
+    else:
+        res = id_gen.NewName("call")
+        print(f"{TAB}poparg {res}:{
+              fun_ct.result_type().get_single_register_type()}")
+        return res
+
+
 def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
     ir_reg = ct_dst.ir_regs
     assert ir_reg != o.DK.MEM, f"{node} ct={ct_dst}"
     if isinstance(node, cwast.ExprCall):
-        sig: cwast.CanonType = node.callee.x_type
-        assert sig.is_fun()
-        args = [_EmitExpr(a, ta, id_gen) for a in node.args]
-        for a in reversed(args):
-            assert not a.startswith("["), f"{a} {node.args[4]}"
-            print(f"{TAB}pusharg {a}")
-        if isinstance(node.callee, cwast.Id):
-            def_node = node.callee.x_symbol
-            is_direct = isinstance(def_node, cwast.DefFun)
-            name = node.callee.x_symbol.name
-            if is_direct:
-                print(f"{TAB}bsr {name}")
-            else:
-                print(f"{TAB}jsr {name} {MakeFunSigName(node.callee.x_type)}")
-        else:
-            assert False
-        if sig.result_type().is_void():
-            return None
-        else:
-            res = id_gen.NewName("call")
-            print(f"{TAB}poparg {res}:{
-                  sig.result_type().get_single_register_type()}")
-            return res
+        return _EmitExprCall(node, ta, id_gen)
     elif isinstance(node, cwast.ValNum):
         return _FormatNumber(node)
     elif isinstance(node, cwast.Id):
@@ -811,7 +815,7 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
         assert lhs.x_type.size != 0
         if isinstance(lhs, cwast.Id) and _StorageKindForId(lhs) is STORAGE_KIND.REGISTER:
             out = _EmitExpr(node.expr_rhs, ta, id_gen)
-            print(f"{TAB}mov {lhs.x_symbol.name} = {out}  # {node}")
+            print(f"{TAB}mov {lhs.x_symbol.name} = {out}")
         else:
             lhs = _GetLValueAddressAsBaseOffset(lhs, ta, id_gen)
             assert node.expr_rhs.x_type.size > 0, f"{node.expr_rhs} {node.x_srcloc} {node.expr_rhs.x_type}"
