@@ -65,7 +65,7 @@ def _IsDefVarOnStack(node: cwast.DefVar) -> bool:
     return node.x_type.ir_regs == o.DK.MEM
 
 
-def _StorageForId(node: cwast.Id) -> STORAGE_KIND:
+def _StorageKindForId(node: cwast.Id) -> STORAGE_KIND:
     def_node = node.x_symbol
     if isinstance(def_node, cwast.DefGlobal):
         return STORAGE_KIND.DATA
@@ -167,7 +167,7 @@ def _GetLValueAddressAsBaseOffset(node, ta: type_corpus.TargetArchConfig,
         name = node.x_symbol.name
         base = id_gen.NewName("lhsaddr")
         kind = ta.get_data_address_reg_type()
-        storage = _StorageForId(node)
+        storage = _StorageKindForId(node)
         if storage is STORAGE_KIND.DATA:
             print(f"{TAB}lea.mem {base}:{kind} = {name} 0")
         elif storage is STORAGE_KIND.STACK:
@@ -632,7 +632,7 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
         ct: cwast.CanonType = init_node.expr.x_type
         if ct.size != 0:
             EmitExprToMemory(init_node.expr, dst, ta, id_gen)
-    elif isinstance(init_node, cwast.Id) and _StorageForId(init_node) is STORAGE_KIND.REGISTER:
+    elif isinstance(init_node, cwast.Id) and _StorageKindForId(init_node) is STORAGE_KIND.REGISTER:
         reg = _EmitId(init_node, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprIndex, cwast.ExprField)):
@@ -687,21 +687,6 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
                     c.value_or_undef, BaseOffset(dst.base, dst.offset + element_size * index), ta, id_gen)
     else:
         assert False, f"NYI: {init_node}"
-
-
-def _AssignmentLhsIsInReg(lhs):
-    if not isinstance(lhs, cwast.Id):
-        return False
-    def_node = lhs.x_symbol
-    # TODO: support stack allocated objects
-    if isinstance(def_node, cwast.DefGlobal):
-        return False
-    elif isinstance(def_node, cwast.FunParam):
-        return True
-    elif isinstance(def_node, cwast.DefVar):
-        return not def_node.ref
-    else:
-        assert False, f"unpected lhs {lhs}"
 
 
 def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
@@ -823,8 +808,8 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
         print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
         lhs = node.lhs
-        if lhs.x_type.ir_regs not in (o.DK.NONE, o.DK.MEM) and _AssignmentLhsIsInReg(lhs):
-            assert isinstance(node.lhs, cwast.Id)
+        assert lhs.x_type.size != 0
+        if isinstance(lhs, cwast.Id) and _StorageKindForId(lhs) is STORAGE_KIND.REGISTER:
             out = _EmitExpr(node.expr_rhs, ta, id_gen)
             print(f"{TAB}mov {lhs.x_symbol.name} = {out}  # {node}")
         else:
