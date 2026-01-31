@@ -1,6 +1,7 @@
 #include "FE/emit_ir.h"
 
 #include <span>
+#include <tuple>
 
 #include "FE/cwast_gen.h"
 #include "FE/eval.h"
@@ -208,7 +209,7 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
                       const TargetArchConfig& ta, IdGenIR* id_gen) {}
 
 std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
-  //CanonType ct = Node_x_type(node);
+  // CanonType ct = Node_x_type(node);
   switch (node.kind()) {
     case NT::ValNum:
       return FormatNumber(node);
@@ -218,6 +219,107 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       return NameData(Node_name(Node_x_symbol(node)));
     default:
       return "";
+  }
+}
+
+// forward decl
+void EmitConditional(Node node, bool invert, std::string_view label_f,
+                     const TargetArchConfig& ta, IdGenIR* id_gen);
+
+BINARY_EXPR_KIND InvertBranch(BINARY_EXPR_KIND kind) {
+  switch (kind) {
+    case BINARY_EXPR_KIND::EQ:
+      return BINARY_EXPR_KIND::NE;
+    case BINARY_EXPR_KIND::NE:
+      return BINARY_EXPR_KIND::EQ;
+    case BINARY_EXPR_KIND::LT:
+      return BINARY_EXPR_KIND::GE;
+    case BINARY_EXPR_KIND::LE:
+      return BINARY_EXPR_KIND::GT;
+    case BINARY_EXPR_KIND::GT:
+      return BINARY_EXPR_KIND::LE;
+    case BINARY_EXPR_KIND::GE:
+      return BINARY_EXPR_KIND::LT;
+    default:
+      CHECK(false, "UNREACHABLE");
+      return BINARY_EXPR_KIND::INVALID;
+  }
+}
+
+std::tuple<std::string_view, bool> GetBranchOpcode(BINARY_EXPR_KIND kind,
+                                                   bool invert) {
+  bool swap = false;
+  if (invert) {
+    kind = InvertBranch(kind);
+  }
+  if (kind == BINARY_EXPR_KIND::GT) {
+    kind = BINARY_EXPR_KIND::LT;
+    swap = true;
+  } else if (kind == BINARY_EXPR_KIND::GE) {
+    kind = BINARY_EXPR_KIND::LE;
+    swap = true;
+  }
+
+  switch (kind) {
+    case BINARY_EXPR_KIND::EQ:
+      return std::make_tuple("beq", swap);
+    case BINARY_EXPR_KIND::NE:
+      return std::make_tuple("bne", swap);
+    case BINARY_EXPR_KIND::LT:
+      return std::make_tuple("blt", swap);
+    case BINARY_EXPR_KIND::LE:
+      return std::make_tuple("ble", swap);
+    default:
+      CHECK(false, "UNREACHABLE");
+      return std::make_tuple("@bad@", false);
+  }
+}
+
+void EmitConditionalExpr2(Node cond, bool invert, std::string_view label_f,
+                          const TargetArchConfig& ta, IdGenIR* id_gen) {
+  switch (Node_binary_expr_kind(cond)) {
+    case BINARY_EXPR_KIND::ANDSC:
+      if (invert) {
+        EmitConditional(Node_expr1(cond), true, label_f, ta, id_gen);
+        EmitConditional(Node_expr2(cond), true, label_f, ta, id_gen);
+      } else {
+        std::string failed = id_gen->NameNewNext(NameNew("br_failed_and"));
+        EmitConditional(Node_expr1(cond), true, failed, ta, id_gen);
+        EmitConditional(Node_expr2(cond), false, label_f, ta, id_gen);
+        std::cout << ".bbl " << failed << "\n";
+      }
+      break;
+    case BINARY_EXPR_KIND::ORSC:
+      if (invert) {
+        std::string failed = id_gen->NameNewNext(NameNew("br_failed_or"));
+        EmitConditional(Node_expr1(cond), false, failed, ta, id_gen);
+        EmitConditional(Node_expr2(cond), true, label_f, ta, id_gen);
+        std::cout << ".bbl " << failed << "\n";
+      } else {
+        EmitConditional(Node_expr1(cond), false, label_f, ta, id_gen);
+        EmitConditional(Node_expr2(cond), false, label_f, ta, id_gen);
+      }
+      break;
+    case BINARY_EXPR_KIND::XOR:
+    case BINARY_EXPR_KIND::AND:
+    case BINARY_EXPR_KIND::OR: {
+      std::string op = EmitExpr(cond, ta, id_gen);
+      std::cout << kTAB << (invert ? "beq " : "bne ") << op << " 0 " << label_f
+                << "\n";
+      break;
+    }
+    default: {
+      std::string op1 = EmitExpr(Node_expr1(cond), ta, id_gen);
+      std::string op2 = EmitExpr(Node_expr2(cond), ta, id_gen);
+      auto const [branch, swap] =
+          GetBranchOpcode(Node_binary_expr_kind(cond), invert);
+      if (swap) {
+        std::swap(op1, op2);
+      }
+      std::cout << kTAB << branch << " " << op1 << " " << op2 << " " << label_f
+                << "\n";
+      break;
+    }
   }
 }
 
@@ -236,6 +338,7 @@ void EmitConditional(Node node, bool invert, std::string_view label_f,
       EmitConditional(Node_expr(node), !invert, label_f, ta, id_gen);
       break;
     case NT::Expr2:
+      EmitConditionalExpr2(node, invert, label_f, ta, id_gen);
       break;
     case NT::ExprCall:
     case NT::ExprStmt:
@@ -374,7 +477,7 @@ void EmitStmt(Node node, const ReturnResultLocation* result,
           EmitStmt(s, result, ta, id_gen);
         }
       }
-
+      std::cout << ".bbl " << label_join << "\n";
       break;
     }
     case NT::StmtAssignment:

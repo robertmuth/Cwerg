@@ -222,6 +222,21 @@ _MAP_COMPARE_INVERT = {
 }
 
 
+def _GetBranchOpcode(kind: cwast.BINARY_EXPR_KIND, invert: bool) -> tuple[str, bool]:
+    swap = False
+    if invert:
+        kind = _MAP_COMPARE_INVERT[kind]
+    # reduce comparison to what can be easily tranalate IR
+
+    if kind is cwast.BINARY_EXPR_KIND.GT:
+        kind = cwast.BINARY_EXPR_KIND.LT
+        swap = True
+    elif kind is cwast.BINARY_EXPR_KIND.GE:
+        kind = cwast.BINARY_EXPR_KIND.LE
+        swap = True
+    return _MAP_COMPARE[kind], swap
+
+
 def _ChangesControlFlow(node):
     return isinstance(node, (cwast.StmtBreak, cwast.StmtContinue, cwast.StmtReturn))
 
@@ -255,6 +270,44 @@ def _EmitId(node, id_gen: identifier.IdGenIR) -> str:
         assert False, f"Unexpected ID {def_node}"
 
 
+def _EmitConditionalExpr2(cond, invert: bool, label_f: str, ta: type_corpus.TargetArchConfig,
+                          id_gen: identifier.IdGenIR):
+    kind: cwast.BINARY_EXPR_KIND = cond.binary_expr_kind
+    if kind is cwast.BINARY_EXPR_KIND.ANDSC:
+        if invert:
+            _EmitConditional(cond.expr1, True, label_f, ta, id_gen)
+            _EmitConditional(cond.expr2, True, label_f, ta, id_gen)
+        else:
+            failed = id_gen.NewName("br_failed_and")
+            _EmitConditional(cond.expr1, True, failed, ta, id_gen)
+            _EmitConditional(cond.expr2, False, label_f, ta, id_gen)
+            print(f".bbl {failed}")
+    elif kind is cwast.BINARY_EXPR_KIND.ORSC:
+        if invert:
+            failed = id_gen.NewName("br_failed_or")
+            _EmitConditional(cond.expr1, False, failed, ta, id_gen)
+            _EmitConditional(cond.expr2, True, label_f, ta, id_gen)
+            print(f".bbl {failed}")
+        else:
+            _EmitConditional(cond.expr1, False, label_f, ta, id_gen)
+            _EmitConditional(cond.expr2, False, label_f, ta, id_gen)
+    elif kind in (cwast.BINARY_EXPR_KIND.AND, cwast.BINARY_EXPR_KIND.OR,
+                  cwast.BINARY_EXPR_KIND.XOR):
+        op = _EmitExpr(cond, ta, id_gen)
+        branch = "beq" if invert else "bne"
+        print(f"{TAB}{branch} {op} 0 {label_f}")
+    else:
+        assert cond.expr1.x_type.ir_regs not in (
+            o.DK.MEM, o.DK.NONE), f"NYI Expr2 for {cond} {cond.expr1.x_type}"
+        op1 = _EmitExpr(cond.expr1, ta, id_gen)
+        op2 = _EmitExpr(cond.expr2, ta, id_gen)
+        branch, swap = _GetBranchOpcode(kind, invert)
+        if swap:
+            op1, op2 = op2, op1
+        print(
+            f"{TAB}{branch} {op1} {op2} {label_f}")
+
+
 def _EmitConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
                      id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
@@ -268,49 +321,7 @@ def _EmitConditional(cond, invert: bool, label_false: str, ta: type_corpus.Targe
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
         _EmitConditional(cond.expr, not invert, label_false, ta, id_gen)
     elif isinstance(cond, cwast.Expr2):
-        kind: cwast.BINARY_EXPR_KIND = cond.binary_expr_kind
-        if kind is cwast.BINARY_EXPR_KIND.ANDSC:
-            if invert:
-                _EmitConditional(cond.expr1, True, label_false, ta, id_gen)
-                _EmitConditional(cond.expr2, True, label_false, ta, id_gen)
-            else:
-                failed = id_gen.NewName("br_failed_and")
-                _EmitConditional(cond.expr1, True, failed, ta, id_gen)
-                _EmitConditional(cond.expr2, False, label_false, ta, id_gen)
-                print(f".bbl {failed}")
-        elif kind is cwast.BINARY_EXPR_KIND.ORSC:
-            if invert:
-                failed = id_gen.NewName("br_failed_or")
-                _EmitConditional(cond.expr1, False, failed, ta, id_gen)
-                _EmitConditional(cond.expr2, True, label_false, ta, id_gen)
-                print(f".bbl {failed}")
-            else:
-                _EmitConditional(cond.expr1, False, label_false, ta, id_gen)
-                _EmitConditional(cond.expr2, False, label_false, ta, id_gen)
-        elif kind in (cwast.BINARY_EXPR_KIND.AND, cwast.BINARY_EXPR_KIND.OR,
-                      cwast.BINARY_EXPR_KIND.XOR):
-            op = _EmitExpr(cond, ta, id_gen)
-            if invert:
-                print(f"{TAB}beq {op} 0 {label_false}")
-            else:
-                print(f"{TAB}bne {op} 0 {label_false}")
-        else:
-            assert cond.expr1.x_type.ir_regs not in (
-                o.DK.MEM, o.DK.NONE), f"NYI Expr2 for {cond} {cond.expr1.x_type}"
-            op1 = _EmitExpr(cond.expr1, ta, id_gen)
-            op2 = _EmitExpr(cond.expr2, ta, id_gen)
-            if invert:
-                kind = _MAP_COMPARE_INVERT[kind]
-            # reduce comparison to what can be easily tranalate IR
-
-            if kind is cwast.BINARY_EXPR_KIND.GT:
-                kind = cwast.BINARY_EXPR_KIND.LT
-                op1, op2 = op2, op1
-            elif kind is cwast.BINARY_EXPR_KIND.GE:
-                kind = cwast.BINARY_EXPR_KIND.LE
-                op1, op2 = op2, op1
-            print(
-                f"{TAB}{_MAP_COMPARE[kind]} {op1} {op2} {label_false}  # {cond}")
+        _EmitConditionalExpr2(cond, invert, label_false, ta, id_gen)
     elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt, cwast.ExprField,
                            cwast.ExprIndex, cwast.ExprDeref)):
         op = _EmitExpr(cond, ta, id_gen)
