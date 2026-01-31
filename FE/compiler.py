@@ -205,10 +205,10 @@ def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArch
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
-                emit_ir.EmitIRDefGlobal(node, ta)
+                emit_ir.EmitDefGlobal(node, ta)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
-                emit_ir.EmitIRDefFun(node, ta, identifier.IdGenIR())
+                emit_ir.EmitDefFun(node, ta, identifier.IdGenIR())
 
 
 def main() -> int:
