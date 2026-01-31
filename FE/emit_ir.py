@@ -436,16 +436,12 @@ def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdG
     arg_ops = [_EmitExpr(a, ta, id_gen) for a in node.args]
     for a in reversed(arg_ops):
         print(f"{TAB}pusharg {a}")
-    if isinstance(callee, cwast.Id):
-        is_direct = isinstance(callee.x_symbol, cwast.DefFun)
-        if isinstance(callee.x_symbol, cwast.DefFun):
-            print(f"{TAB}bsr {callee.x_symbol.name}")
-        else:
-            op = _EmitId(callee, id_gen)
-            print(f"{TAB}jsr {op} {MakeFunSigName(fun_ct)}")
+    if isinstance(callee, cwast.Id) and isinstance(callee.x_symbol, cwast.DefFun):
+        print(f"{TAB}bsr {callee.x_symbol.name}")
     else:
-        # TODO
-        assert False, "NYI"
+        op = _EmitExpr(callee, ta, id_gen)
+        print(f"{TAB}jsr {op} {MakeFunSigName(fun_ct)}")
+
     if fun_ct.result_type().is_void():
         return None
     else:
