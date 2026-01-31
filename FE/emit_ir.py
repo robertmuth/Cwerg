@@ -442,13 +442,13 @@ def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdG
         op = _EmitExpr(callee, ta, id_gen)
         print(f"{TAB}jsr {op} {MakeFunSigName(fun_ct)}")
 
-    if fun_ct.result_type().is_void():
-        return None
-    else:
-        res = id_gen.NewName("call")
-        print(f"{TAB}poparg {res}:{
-              fun_ct.result_type().get_single_register_type()}")
-        return res
+    res_ct = fun_ct.result_type()
+    if res_ct.size == 0:
+        return "@DO_NOT_USE@"
+
+    res = id_gen.NewName("call")
+    print(f"{TAB}poparg {res}:{res_ct.get_single_register_type()}")
+    return res
 
 
 def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:

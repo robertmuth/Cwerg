@@ -52,6 +52,34 @@ class IterateValVec {
   const SrcLoc& sl_;
 };
 
+enum class STORAGE_KIND {
+  INVALID,
+  REGISTER,
+  STACK,
+  DATA,
+};
+
+bool IsDefOnStack(Node node) {
+  if (Node_has_flag(node, BF::REF)) return true;
+  return CanonType_ir_regs(Node_x_type(node)) == DK::MEM;
+}
+
+STORAGE_KIND StorageKindForId(Node node) {
+  ASSERT(node.kind() == NT::Id, "");
+  Node def_node = Node_x_symbol(node);
+  switch (def_node.kind()) {
+    case NT::DefGlobal:
+      return STORAGE_KIND::DATA;
+    case NT::FunParam:
+      return STORAGE_KIND::REGISTER;
+    case NT::DefVar:
+      return IsDefOnStack(node) ? STORAGE_KIND::STACK : STORAGE_KIND::REGISTER;
+    default:
+      UNREACHABLE("");
+      return STORAGE_KIND::INVALID;
+  }
+}
+
 void FunMachineTypes(CanonType ct, std::vector<std::string>* res_types,
                      std::vector<std::string>* arg_types) {
   ASSERT(CanonType_is_fun(ct), "");
@@ -110,6 +138,14 @@ void EmitFunctionHeader(std::string_view sig_name, std::string_view kind,
   }
   std::cout << "]\n";
 }
+// forward decls
+void EmitConditional(Node node, bool invert, std::string_view label_f,
+                     const TargetArchConfig& ta, IdGenIR* id_gen);
+
+std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen);
+
+SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
+                                     const TargetArchConfig& ta);
 
 constexpr std::string_view kTAB("  ");
 
@@ -129,11 +165,6 @@ struct BaseOffset {
 };
 
 struct ReturnResultLocation {};
-
-bool IsDefOnStack(Node node) {
-  if (Node_has_flag(node, BF::REF)) return true;
-  return CanonType_ir_regs(Node_x_type(node)) == DK::MEM;
-}
 
 std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
   CanonType ct = Node_x_type(node);
@@ -208,9 +239,39 @@ std::string FormatNumber(Node node) {
 void EmitExprToMemory(Node node, const BaseOffset& dst,
                       const TargetArchConfig& ta, IdGenIR* id_gen) {}
 
+std::string EmitExprCall(Node node, const TargetArchConfig& ta,
+                         IdGenIR* id_gen) {
+  Node callee = Node_callee(node);
+  CanonType fun_ct = Node_x_type(callee);
+  std::vector<std::string> arg_ops;
+  for (Node arg = Node_args(node); !arg.isnull(); arg = Node_next(arg)) {
+    arg_ops.push_back(EmitExpr(arg, ta, id_gen));
+  }
+  for (auto it = arg_ops.rbegin(); it != arg_ops.rend(); ++it) {
+    std::cout << kTAB << "pusharg " << *it << "\n";
+  }
+  if (callee.kind() == NT::Id && Node_x_symbol(callee).kind() == NT::DefFun) {
+    std::cout << kTAB << "bsr " << NameData(Node_name(Node_x_symbol(callee)))
+              << "\n";
+  } else {
+    std::string op = EmitExpr(callee, ta, id_gen);
+    std::cout << kTAB << "jsr " << op << " " << MakeFunSigName(fun_ct) << "\n";
+  }
+  CanonType res_ct = CanonType_result_type(fun_ct);
+  if (CanonType_size(res_ct) == 0) {
+    return "@DO_NOT_USE@";
+  }
+  std::string out = id_gen->NameNewNext(NameNew("call"));
+  std::cout << kTAB << "poparg " << out << ":"
+            << EnumToString(CanonType_ir_regs(res_ct)) << "\n";
+  return out;
+}
+
 std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
   // CanonType ct = Node_x_type(node);
   switch (node.kind()) {
+    case NT::ExprCall:
+      return EmitExprCall(node, ta, id_gen);
     case NT::ValNum:
       return FormatNumber(node);
     case NT::Id:
@@ -221,10 +282,6 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       return "";
   }
 }
-
-// forward decl
-void EmitConditional(Node node, bool invert, std::string_view label_f,
-                     const TargetArchConfig& ta, IdGenIR* id_gen);
 
 BINARY_EXPR_KIND InvertBranch(BINARY_EXPR_KIND kind) {
   switch (kind) {
@@ -480,8 +537,17 @@ void EmitStmt(Node node, const ReturnResultLocation* result,
       std::cout << ".bbl " << label_join << "\n";
       break;
     }
-    case NT::StmtAssignment:
+    case NT::StmtAssignment: {
+      Node lhs = Node_lhs(node);
+      if (lhs.kind() == NT::Id &&
+          StorageKindForId(lhs) == STORAGE_KIND::REGISTER) {
+        std::string op = EmitExpr(Node_expr_rhs(node), ta, id_gen);
+        std::cout << kTAB << "mov " << NameData(Node_name(Node_x_symbol(lhs)))
+                  << " = " << op << "\n";
+      } else {
+      }
       break;
+    }
     case NT::StmtTrap:
       std::cout << kTAB << "trap\n";
       break;
@@ -587,10 +653,6 @@ uint32_t EmitMem(std::string_view data, SizeOrDim offset,
 const uint8_t BYTE_ZERO = '\0';
 const uint8_t BYTE_UNDEF = '\0';
 const uint8_t BYTE_PADDING = 'o';  // intentionally not zero?
-
-// forward decl
-SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
-                                     const TargetArchConfig& ta);
 
 SizeOrDim EmitInitializerVec(Node node, CanonType ct, SizeOrDim offset,
                              const TargetArchConfig& ta) {
