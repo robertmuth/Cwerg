@@ -226,6 +226,35 @@ def _ChangesControlFlow(node):
     return isinstance(node, (cwast.StmtBreak, cwast.StmtContinue, cwast.StmtReturn))
 
 
+def _EmitIRId(node, id_gen: identifier.IdGenIR) -> str:
+    if node.x_type.size == 0:
+        # TODO: This is a bit hackish
+        return "@@@@@ BAD, DO NOT USE @@@@@@ "
+    def_node = node.x_symbol
+    if isinstance(def_node, cwast.DefGlobal):
+        res = id_gen.NewName("globread")
+        print(
+            f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
+        return res
+    elif isinstance(def_node, cwast.FunParam):
+        return str(node.x_symbol.name)
+    elif isinstance(def_node, cwast.DefFun):
+        res = id_gen.NewName("funaddr")
+        print(
+            f"{TAB}lea.fun {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name}")
+        return res
+    elif isinstance(def_node, cwast.DefVar):
+        if _IsDefVarOnStack(def_node):
+            res = id_gen.NewName("stkread")
+            print(
+                f"{TAB}ld.stk {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
+            return res
+        else:
+            return str(node.x_symbol.name)
+    else:
+        assert False, f"Unexpected ID {def_node}"
+
+
 def _EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
                        id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
@@ -285,15 +314,12 @@ def _EmitIRConditional(cond, invert: bool, label_false: str, ta: type_corpus.Tar
     elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt, cwast.ExprField,
                            cwast.ExprIndex, cwast.ExprDeref)):
         op = _EmitIRExpr(cond, ta, id_gen)
-        if invert:
-            print(f"{TAB}beq {op} 0 {label_false}")
-        else:
-            print(f"{TAB}bne {op} 0 {label_false}")
-    elif isinstance(cond, cwast.Id):
-        # TODO: do we have to handle DefGlobal
-        assert isinstance(cond.x_symbol, (cwast.DefVar, cwast.FunParam))
         branch = "beq" if invert else "bne"
-        print(f"{TAB}{branch} {cond.x_symbol.name} 0 {label_false}")
+        print(f"{TAB}{branch} {op} 0 {label_false}")
+    elif isinstance(cond, cwast.Id):
+        op = _EmitIRId(cond, id_gen)
+        branch = "beq" if invert else "bne"
+        print(f"{TAB}{branch} {op} 0 {label_false}")
     else:
         assert False, f"unexpected expression {cond}"
 
@@ -421,28 +447,7 @@ def _EmitIRExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGen
     elif isinstance(node, cwast.ValNum):
         return f"{_FormatNumber(node)}:{node.x_type.get_single_register_type()}"
     elif isinstance(node, cwast.Id):
-        if node.x_type.size == 0:
-            return "@@@@@ BAD, DO NOT USE @@@@@@ "
-        def_node = node.x_symbol
-        if isinstance(def_node, cwast.DefGlobal):
-            res = id_gen.NewName("globread")
-            print(
-                f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
-            return res
-        elif isinstance(def_node, cwast.FunParam):
-            return str(node.x_symbol.name)
-        elif isinstance(def_node, cwast.DefFun):
-            res = id_gen.NewName("funaddr")
-            print(
-                f"{TAB}lea.fun {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name}")
-            return res
-        elif _IsDefVarOnStack(def_node):
-            res = id_gen.NewName("stkread")
-            print(
-                f"{TAB}ld.stk {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
-            return res
-        else:
-            return str(node.x_symbol.name)
+        return _EmitIRId(node, id_gen)
     elif isinstance(node, cwast.ExprAddrOf):
         return _GetLValueAddress(node.expr_lhs, ta, id_gen)
     elif isinstance(node, cwast.Expr1):
@@ -616,8 +621,7 @@ def EmitIRExprToMemory(init_node, dst: BaseOffset,
         if ct.size != 0:
             EmitIRExprToMemory(init_node.expr, dst, ta, id_gen)
     elif isinstance(init_node, cwast.Id) and _StorageForId(init_node) is STORAGE_KIND.REGISTER:
-        reg = _EmitIRExpr(init_node, ta, id_gen)
-        assert reg is not None
+        reg = _EmitIRId(init_node, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
     elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprIndex, cwast.ExprField)):
         src_base = _GetLValueAddress(init_node, ta, id_gen)
