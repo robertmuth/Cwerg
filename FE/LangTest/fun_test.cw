@@ -54,14 +54,30 @@ fun test_simple() void:
     test::AssertEq#(res, 1_u32)
     set res = bar2()
     test::AssertEq#(res, 2_u32)
-    ;
+    ; indirect local var
     let! local_funptr = bar3
     set res = local_funptr()
+    test::AssertEq#(local_funptr, bar3)
+    test::AssertNe#(local_funptr, bar4)
     test::AssertEq#(res, 3_u32)
+    ;
     set local_funptr = bar4
+    test::AssertEq#(local_funptr, bar4)
+    test::AssertNe#(local_funptr, bar3)
     set res = local_funptr()
     test::AssertEq#(res, 4_u32)
-
+    ; indirect global var
+    set global_funptr = bar3
+    test::AssertEq#(global_funptr, bar3)
+    test::AssertNe#(global_funptr, bar4)
+    set res = global_funptr()
+    test::AssertEq#(res, 3_u32)
+    ;
+    set global_funptr = bar4
+    test::AssertEq#(global_funptr, bar4)
+    test::AssertNe#(global_funptr, bar3)
+    set res = global_funptr()
+    test::AssertEq#(res, 4_u32)
 
 fun main(argc s32, argv ^^u8) s32:
     do test_simple()

@@ -69,7 +69,9 @@ def _StorageKindForId(node: cwast.Id) -> STORAGE_KIND:
     def_node = node.x_symbol
     if isinstance(def_node, cwast.DefGlobal):
         return STORAGE_KIND.DATA
-    if isinstance(def_node, cwast.FunParam):
+    elif isinstance(def_node, cwast.FunParam):
+        return STORAGE_KIND.REGISTER
+    elif isinstance(def_node, cwast.DefFun):
         return STORAGE_KIND.REGISTER
     elif isinstance(def_node, cwast.DefVar):
         return STORAGE_KIND.STACK if _IsDefVarOnStack(def_node) else STORAGE_KIND.REGISTER
@@ -436,11 +438,11 @@ def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdG
         print(f"{TAB}pusharg {a}")
     if isinstance(callee, cwast.Id):
         is_direct = isinstance(callee.x_symbol, cwast.DefFun)
-        name = callee.x_symbol.name
-        if is_direct:
-            print(f"{TAB}bsr {name}")
+        if isinstance(callee.x_symbol, cwast.DefFun):
+            print(f"{TAB}bsr {callee.x_symbol.name}")
         else:
-            print(f"{TAB}jsr {name} {MakeFunSigName(fun_ct)}")
+            op = _EmitId(callee, id_gen)
+            print(f"{TAB}jsr {op} {MakeFunSigName(fun_ct)}")
     else:
         # TODO
         assert False, "NYI"
