@@ -234,29 +234,29 @@ def _EmitId(node, id_gen: identifier.IdGenIR) -> str:
     if isinstance(def_node, cwast.DefGlobal):
         res = id_gen.NewName("globread")
         print(
-            f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
+            f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {def_node.name} 0")
         return res
     elif isinstance(def_node, cwast.FunParam):
-        return str(node.x_symbol.name)
+        return str(def_node.name)
     elif isinstance(def_node, cwast.DefFun):
         res = id_gen.NewName("funaddr")
         print(
-            f"{TAB}lea.fun {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name}")
+            f"{TAB}lea.fun {res}:{node.x_type.get_single_register_type()} = {def_node.name}")
         return res
     elif isinstance(def_node, cwast.DefVar):
         if _IsDefVarOnStack(def_node):
             res = id_gen.NewName("stkread")
             print(
-                f"{TAB}ld.stk {res}:{node.x_type.get_single_register_type()} = {node.x_symbol.name} 0")
+                f"{TAB}ld.stk {res}:{node.x_type.get_single_register_type()} = {def_node.name} 0")
             return res
         else:
-            return str(node.x_symbol.name)
+            return str(def_node.name)
     else:
         assert False, f"Unexpected ID {def_node}"
 
 
 def _EmitConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
-                       id_gen: identifier.IdGenIR):
+                     id_gen: identifier.IdGenIR):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     assert cond.x_type.is_bool()
     if cond.x_eval is not None:
@@ -383,6 +383,7 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
 
 
 def _FormatNumber(val: cwast.ValNum) -> str:
+    suffix = ":" + str(val.x_type.get_single_register_type())
     assert isinstance(val.x_eval, eval.EvalNum)
     bt = val.x_type.get_unwrapped_base_type_kind()
     assert bt == val.x_eval.kind, f"{val.x_eval} {bt} {val.x_eval.kind}"
@@ -390,16 +391,16 @@ def _FormatNumber(val: cwast.ValNum) -> str:
     assert num is not None, f"{val.x_eval}"
 
     if bt is cwast.BASE_TYPE_KIND.BOOL:
-        return "1" if num else "0"
+        return "1" + suffix if num else "0" + suffix
     elif bt.IsInt():
-        return str(num)
+        return str(num) + suffix
     elif bt.IsReal():
         if math.isnan(num) or math.isinf(num):
             # note, python renders -nan and +nan as just nan
             sign = math.copysign(1, num)
             num = abs(num)
-            return ("+" if sign >= 0 else "-") + str(num)
-        return str(num)
+            return ("+" if sign >= 0 else "-") + str(num) + suffix
+        return str(num) + suffix
     else:
         assert False, f"unsupported scalar: {bt} {val}"
 
@@ -445,7 +446,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
                   sig.result_type().get_single_register_type()}")
             return res
     elif isinstance(node, cwast.ValNum):
-        return f"{_FormatNumber(node)}:{node.x_type.get_single_register_type()}"
+        return _FormatNumber(node)
     elif isinstance(node, cwast.Id):
         return _EmitId(node, id_gen)
     elif isinstance(node, cwast.ExprAddrOf):
@@ -577,8 +578,8 @@ def _EmitZero(dst: BaseOffset, length, alignment,
 
 
 def EmitExprToMemory(init_node, dst: BaseOffset,
-                       ta: type_corpus.TargetArchConfig,
-                       id_gen: identifier.IdGenIR):
+                     ta: type_corpus.TargetArchConfig,
+                     id_gen: identifier.IdGenIR):
     """This will instantiate objects on the stack or heap.
 
     Note, that this can occur in two ways:
@@ -708,7 +709,7 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
 
 
 def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.TargetArchConfig,
-                id_gen: identifier.IdGenIR):
+              id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
         # name translation!
         node.name = id_gen.NewName(str(node.name))

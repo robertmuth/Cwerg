@@ -239,13 +239,13 @@ void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
   for (Node mod : mods_in_topo_order) {
     for (Node def = Node_body_mod(mod); !def.isnull(); def = Node_next(def)) {
       if (def.kind() == NT::DefGlobal) {
-        EmitIRDefGlobal(def, ta);
+        EmitDefGlobal(def, ta);
       }
     }
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
       if (fun.kind() == NT::DefFun) {
         IdGenIR id_gen;
-        EmitIRDefFun(fun, ta, &id_gen);
+        EmitDefFun(fun, ta, &id_gen);
       }
     }
   }

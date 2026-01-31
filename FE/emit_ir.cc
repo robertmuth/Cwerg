@@ -129,15 +129,100 @@ struct BaseOffset {
 
 struct ReturnResultLocation {};
 
-void EmitIRExprToMemory(Node node, const BaseOffset& dst,
-                        const TargetArchConfig& ta, IdGenIR* id_gen) {}
-
-std::string EmitIRExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
-  return "";
+bool IsDefOnStack(Node node) {
+  if (Node_has_flag(node, BF::REF)) return true;
+  return CanonType_ir_regs(Node_x_type(node)) == DK::MEM;
 }
 
-void EmitIRConditional(Node node, bool invert, std::string_view label_f,
-                       const TargetArchConfig& ta, IdGenIR* id_gen) {
+std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
+  CanonType ct = Node_x_type(node);
+  if (CanonType_size(ct) == 0) {
+    return "@_BAD_DO_NOT_USE@";
+  }
+  Node def_node = Node_x_symbol(node);
+  switch (def_node.kind()) {
+    case NT::DefGlobal: {
+      std::string out = id_gen->NameNewNext(NameNew("globread"));
+      std::cout << kTAB << "ld.mem " << out << ":"
+                << EnumToString(CanonType_ir_regs(ct)) << " = "
+                << NameData(Node_name(def_node)) << " 0 \n";
+      return out;
+    }
+    case NT::FunParam:
+      return NameData(Node_name(def_node));
+    case NT::DefFun: {
+      std::string out = id_gen->NameNewNext(NameNew("funaddr"));
+      std::cout << kTAB << "lea.fun " << out << ":"
+                << EnumToString(CanonType_ir_regs(ct)) << " = "
+                << NameData(Node_name(def_node)) << "\n";
+      return out;
+    }
+    case NT::DefVar:
+      if (IsDefOnStack(node)) {
+        std::string out = id_gen->NameNewNext(NameNew("stkread"));
+        std::cout << kTAB << "ld.stk " << out << ":"
+                  << EnumToString(CanonType_ir_regs(ct)) << " = "
+                  << NameData(Node_name(def_node)) << " 0 \n";
+        return out;
+      } else {
+        return NameData(Node_name(def_node));
+      }
+    default:
+      ASSERT(false, "unexpected node " << node);
+      return "";
+  }
+}
+
+std::string FormatNumber(Node node) {
+  std::string out;
+  CanonType ct = Node_x_type(node);
+  Const val = Node_x_eval(node);
+  switch (val.kind()) {
+    case BASE_TYPE_KIND::BOOL:
+    case BASE_TYPE_KIND::U8:
+    case BASE_TYPE_KIND::U16:
+    case BASE_TYPE_KIND::U32:
+    case BASE_TYPE_KIND::U64:
+      out += std::to_string(ConstGetUnsigned(val));
+      break;
+    case BASE_TYPE_KIND::S8:
+    case BASE_TYPE_KIND::S16:
+    case BASE_TYPE_KIND::S32:
+    case BASE_TYPE_KIND::S64:
+      out += std::to_string(ConstGetSigned(val));
+      break;
+    case BASE_TYPE_KIND::R32:
+    case BASE_TYPE_KIND::R64:
+      out += std::to_string(ConstGetFloat(val));
+      break;
+    default:
+      ASSERT(false, "UNREACHABLE");
+      break;
+  }
+  out += ":";
+  out += EnumToString(CanonType_ir_regs(ct));
+  return out;
+}
+
+void EmitExprToMemory(Node node, const BaseOffset& dst,
+                      const TargetArchConfig& ta, IdGenIR* id_gen) {}
+
+std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
+  //CanonType ct = Node_x_type(node);
+  switch (node.kind()) {
+    case NT::ValNum:
+      return FormatNumber(node);
+    case NT::Id:
+      return EmitId(node, ta, id_gen);
+    case NT::FunParam:
+      return NameData(Node_name(Node_x_symbol(node)));
+    default:
+      return "";
+  }
+}
+
+void EmitConditional(Node node, bool invert, std::string_view label_f,
+                     const TargetArchConfig& ta, IdGenIR* id_gen) {
   if (Node_x_eval(node) != kConstInvalid) {
     if (ConstGetUnsigned(Node_x_eval(node)) != invert) {
       std::cout << kTAB << ".bra " << label_f << "\n";
@@ -147,6 +232,8 @@ void EmitIRConditional(Node node, bool invert, std::string_view label_f,
 
   switch (node.kind()) {
     case NT::Expr1:
+      ASSERT(Node_unary_expr_kind(node) == UNARY_EXPR_KIND::NOT, "");
+      EmitConditional(Node_expr(node), !invert, label_f, ta, id_gen);
       break;
     case NT::Expr2:
       break;
@@ -154,13 +241,18 @@ void EmitIRConditional(Node node, bool invert, std::string_view label_f,
     case NT::ExprStmt:
     case NT::ExprField:
     case NT::ExprIndex:
-    case NT::ExprDeref:
-      break;
-    case NT::Id:
-      std::cout << kTAB << (invert ? "beq " : "bne ")
-                << NameData(Node_name(Node_x_symbol(node))) << " 0 " << label_f
+    case NT::ExprDeref: {
+      std::string op = EmitExpr(Node_expr(node), ta, id_gen);
+      std::cout << kTAB << (invert ? "beq " : "bne ") << op << " 0 " << label_f
                 << "\n";
       break;
+    }
+    case NT::Id: {
+      std::string op = EmitId(node, ta, id_gen);
+      std::cout << kTAB << (invert ? "beq " : "bne ") << op << " 0 " << label_f
+                << "\n";
+      break;
+    }
     default:
       ASSERT(false, "NYI");
       break;
@@ -178,14 +270,8 @@ bool ChangesControlFlow(Node node) {
   }
 }
 
-bool IsDefOnStack(Node node) {
-  if (Node_has_flag(node, BF::REF)) return true;
-  return CanonType_ir_regs(Node_x_type(node)) == DK::MEM;
-  ;
-}
-
-void EmitIRStmt(Node node, const ReturnResultLocation* result,
-                const TargetArchConfig& ta, IdGenIR* id_gen) {
+void EmitStmt(Node node, const ReturnResultLocation* result,
+              const TargetArchConfig& ta, IdGenIR* id_gen) {
   switch (node.kind()) {
     case NT::DefVar: {
       std::string name = id_gen->NameNewNext(Node_name(node));
@@ -194,21 +280,21 @@ void EmitIRStmt(Node node, const ReturnResultLocation* result,
       Node init = Node_initial_or_undef_or_auto(node);
       if (CanonType_size(ct) == 0) {
         if (init.kind() != NT::ValUndef) {
-          EmitIRExpr(init, ta, id_gen);
+          EmitExpr(init, ta, id_gen);
         }
       } else if (IsDefOnStack(node)) {
         std::cout << kTAB << ".stk " << NameData(Node_name(node)) << " "
                   << CanonType_alignment(ct) << " " << CanonType_size(ct)
                   << "\n";
         if (init.kind() != NT::ValUndef) {
-          EmitIRExpr(init, ta, id_gen);
+          EmitExpr(init, ta, id_gen);
         }
       } else {
         if (init.kind() == NT::ValUndef) {
           std::cout << kTAB << ".reg " << EnumToString(CanonType_ir_regs(ct))
                     << " " << name << "\n";
         } else {
-          EmitIRExpr(init, ta, id_gen);
+          EmitExpr(init, ta, id_gen);
         }
       }
       break;
@@ -221,12 +307,21 @@ void EmitIRStmt(Node node, const ReturnResultLocation* result,
       Node_name(node) = NameNew(id_gen->NameNewNext(name));
       std::cout << ".bbl " << NameData(Node_label(node)) << "\n";
       for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
-        EmitIRStmt(s, result, ta, id_gen);
+        EmitStmt(s, result, ta, id_gen);
       }
       std::cout << ".bbl " << NameData(Node_name(node)) << ".end" << "\n";
       break;
     }
     case NT::StmtReturn:
+      if (Node_x_target(node).kind() == NT::ExprStmt) {
+      } else {
+        Node ret = Node_expr_ret(node);
+        std::string out = EmitExpr(ret, ta, id_gen);
+        if (CanonType_size(Node_x_type(ret)) != 0) {
+          std::cout << kTAB << "pusharg " << out << "\n";
+        }
+        std::cout << kTAB << "ret\n";
+      }
       break;
     case NT::StmtBreak:
       std::cout << kTAB << ".bra " << NameData(Node_label(Node_x_target(node)))
@@ -239,7 +334,7 @@ void EmitIRStmt(Node node, const ReturnResultLocation* result,
     case NT::StmtExpr: {
       CanonType ct = Node_x_type(Node_expr(node));
       if (CanonType_ir_regs(ct) != DK::MEM) {
-        EmitIRExpr(Node_expr(node), ta, id_gen);
+        EmitExpr(Node_expr(node), ta, id_gen);
       } else {
         std::string name = id_gen->NameNewNext(NameNew("stmt_stk_var"));
         std::cout << kTAB << ".stk " << name << " " << CanonType_alignment(ct)
@@ -247,9 +342,8 @@ void EmitIRStmt(Node node, const ReturnResultLocation* result,
         std::string name_addr =
             id_gen->NameNewNext(NameNew("stmt_stk_var_addr"));
         std::cout << kTAB << "lea.stk " << name_addr << ":" << name << " 0 \n";
-        EmitIRExpr(Node_expr(node), ta, id_gen);
-        EmitIRExprToMemory(Node_expr(node), BaseOffset(name_addr, 0), ta,
-                           id_gen);
+        EmitExpr(Node_expr(node), ta, id_gen);
+        EmitExprToMemory(Node_expr(node), BaseOffset(name_addr, 0), ta, id_gen);
       }
       break;
     }
@@ -257,10 +351,10 @@ void EmitIRStmt(Node node, const ReturnResultLocation* result,
       std::string label_join = id_gen->NameNewNext(NameNew("br_join"));
       if (!Node_body_t(node).isnull() && !Node_body_f(node).isnull()) {
         std::string label_f = id_gen->NameNewNext(NameNew("br_f"));
-        EmitIRConditional(Node_cond(node), true, label_f, ta, id_gen);
+        EmitConditional(Node_cond(node), true, label_f, ta, id_gen);
         Node last_s = kNodeInvalid;
         for (Node s = Node_body_t(node); !s.isnull(); s = Node_next(s)) {
-          EmitIRStmt(s, result, ta, id_gen);
+          EmitStmt(s, result, ta, id_gen);
           last_s = s;
         }
         if (!ChangesControlFlow(last_s)) {
@@ -269,15 +363,15 @@ void EmitIRStmt(Node node, const ReturnResultLocation* result,
 
         std::cout << ".bbl " << label_f << "\n";
         for (Node s = Node_body_f(node); !s.isnull(); s = Node_next(s)) {
-          EmitIRStmt(s, result, ta, id_gen);
+          EmitStmt(s, result, ta, id_gen);
         }
       } else if (!Node_body_t(node).isnull()) {
         for (Node s = Node_body_t(node); !s.isnull(); s = Node_next(s)) {
-          EmitIRStmt(s, result, ta, id_gen);
+          EmitStmt(s, result, ta, id_gen);
         }
       } else {
         for (Node s = Node_body_f(node); !s.isnull(); s = Node_next(s)) {
-          EmitIRStmt(s, result, ta, id_gen);
+          EmitStmt(s, result, ta, id_gen);
         }
       }
 
@@ -294,12 +388,12 @@ void EmitIRStmt(Node node, const ReturnResultLocation* result,
   }
 }
 
-void EmitIRDefFun(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
+void EmitDefFun(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
   if (!Node_has_flag(node, BF::EXTERN)) {
     EmitFunctionHeader(NameData(Node_name(node)), "NORMAL", Node_x_type(node));
     EmitFunctionProlog(node, id_gen);
     for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
-      EmitIRStmt(s, nullptr, ta, id_gen);
+      EmitStmt(s, nullptr, ta, id_gen);
     }
   }
 }
@@ -559,7 +653,7 @@ SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
   return 0;
 }
 
-uint32_t EmitIRDefGlobal(Node node, const TargetArchConfig& ta) {
+uint32_t EmitDefGlobal(Node node, const TargetArchConfig& ta) {
   CanonType def_type = Node_x_type(Node_type_or_auto(node));
   if (CanonType_is_void(CanonType_get_unwrapped(def_type))) {
     return 0;
