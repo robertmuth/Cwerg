@@ -429,6 +429,9 @@ def _EmitCast(expr, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
     return res
 
 
+_OP_DO_NOT_USE = "@DO_NOT_USE@"
+
+
 def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
     callee = node.callee
     fun_ct: cwast.CanonType = callee.x_type
@@ -444,7 +447,7 @@ def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdG
 
     res_ct = fun_ct.result_type()
     if res_ct.size == 0:
-        return "@DO_NOT_USE@"
+        return _OP_DO_NOT_USE
 
     res = id_gen.NewName("call")
     print(f"{TAB}poparg {res}:{res_ct.get_single_register_type()}")
@@ -497,7 +500,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
     elif isinstance(node, cwast.ExprNarrow):
         addr = _GetLValueAddress(node.expr, ta, id_gen)
         if ct_dst.size == 0:
-            return None
+            return _OP_DO_NOT_USE
         ct_src: cwast.CanonType = node.expr.x_type
         assert ct_src.is_union() or ct_src.original_type.is_union()
         res = id_gen.NewName("union_access")
@@ -552,7 +555,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         res = id_gen.NewName(f"field_{recfield.name}")
         addr = _GetLValueAddress(node.container, ta, id_gen)
         if node.x_type.size == 0:
-            return None
+            return _OP_DO_NOT_USE
         print(
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {recfield.x_offset}")
         return res
@@ -563,14 +566,14 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         tmp = _EmitExpr(node.expr, ta, id_gen)
         dst_ct = node.type.x_type
         if dst_ct.size == 0:
-            return None
+            return _OP_DO_NOT_USE
         if node.expr.x_type.size == 0:
-            assert tmp is None
+            assert tmp is _OP_DO_NOT_USE, f"{tmp} {node.expr}"
             # TODO: does this work for all types?
             return "0"
         return _EmitCast(tmp, node.expr.x_type, dst_ct, id_gen)
     elif isinstance(node, cwast.ValVoid):
-        return None
+        return _OP_DO_NOT_USE
     # elif isinstance(node, cwast.ValCompound):
     #    assert node.x_type.size == 0, f"{node} {node.x_type} {node.x_type.size}"
     #    return None
@@ -728,15 +731,14 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
                 print(f"{TAB}lea.stk {init_base}:{kind} {node.name} 0")
                 EmitExprToMemory(init, BaseOffset(
                     init_base, 0), ta, id_gen)
+        elif isinstance(init, cwast.ValUndef):
+            print(
+                f"{TAB}.reg {ct.get_single_register_type()} [{node.name}]")
         else:
-            if isinstance(init, cwast.ValUndef):
-                print(
-                    f"{TAB}.reg {ct.get_single_register_type()} [{node.name}]")
-            else:
-                out = _EmitExpr(init, ta, id_gen)
-                assert out is not None, f"Failure to gen code for {init}"
-                print(
-                    f"{TAB}mov {node.name}:{ct.get_single_register_type()} = {out}")
+            out = _EmitExpr(init, ta, id_gen)
+            assert out is not None, f"Failure to gen code for {init}"
+            print(
+                f"{TAB}mov {node.name}:{ct.get_single_register_type()} = {out}")
     elif isinstance(node, cwast.StmtBlock):
         label = str(node.label)
         if not label:
