@@ -39,3 +39,4 @@ void SetAbortHandler(AbortHandlerFun handler);
 #endif
 
 #define CHECK(x, m) do { if (!(x)) AssertHelper(__LINE__, __FILE__) << m; } while(0)
+#define UNREACHABLE(m) do { AssertHelper(__LINE__, __FILE__) << m; } while(0)
