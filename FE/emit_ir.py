@@ -79,24 +79,6 @@ def _StorageKindForId(node: cwast.Id) -> STORAGE_KIND:
         assert False, f"Unexpected ID {def_node}"
 
 
-@dataclasses.dataclass()
-class BaseOffset:
-    """Represents and address as pair of base and offset"""
-    base: str
-    offset: Any
-
-
-@dataclasses.dataclass()
-class ReturnResultLocation:
-    """Where to store a return expression
-
-    if type is str, the result must fit into a register whose name is provide.
-    Otherwise the result is to be copied into the memory location provided.
-    """
-    dst: Union[str, BaseOffset]
-    end_label: str
-
-
 def _FunMachineTypes(ct: cwast.CanonType) -> tuple[list[str], list[str]]:
     assert ct.is_fun()
     res_types: list[str] = []
@@ -134,6 +116,43 @@ def _EmitFunctionProlog(fun: cwast.DefFun,
 ZERO_INDEX = "0"
 
 
+@dataclasses.dataclass()
+class BaseOffset:
+    """Represents and address as pair of base and offset"""
+    base: str
+    offset_num: int = 0
+
+    def AddScaledOffset(self, offset_expr, scale: int, ta, id_gen) -> "BaseOffset":
+        if offset_expr.x_eval is not None:
+            return BaseOffset(self.base, offset_expr.x_eval.val * scale)
+        offset = _EmitExpr(offset_expr, ta, id_gen)
+        if scale != 1:
+            scaled = id_gen.NewName("scaled")
+            print(
+                f"{TAB}conv {scaled}:{ta.get_sint_reg_type()} = {offset}")
+            print(
+                f"{TAB}mul {scaled} = {scaled} {scale}")
+            offset = scaled
+        new_base = id_gen.NewName("new_base")
+        print(
+            f"{TAB}lea {new_base}:{ta.get_sint_reg_type()} = {self.base} {offset}")
+        return BaseOffset(new_base, self.offset_num)
+
+    def AddIntOffset(self, offset) -> "BaseOffset":
+        return BaseOffset(self.base, self.offset_num + offset)
+
+
+@dataclasses.dataclass()
+class ReturnResultLocation:
+    """Where to store a return expression
+
+    if type is str, the result must fit into a register whose name is provide.
+    Otherwise the result is to be copied into the memory location provided.
+    """
+    dst: Union[str, BaseOffset]
+    end_label: str
+
+
 def _OffsetScaleToOffset(offset_expr, scale: int, ta: type_corpus.TargetArchConfig,
                          id_gen: identifier.IdGenIR) -> str:
     if offset_expr.x_eval is not None:
@@ -155,16 +174,13 @@ def _GetLValueAddressAsBaseOffset(node, ta: type_corpus.TargetArchConfig,
     if isinstance(node, cwast.ExprIndex):
         x_type: cwast.CanonType = node.container.x_type
         assert x_type.is_vec(), f"{x_type}"
-        base = _GetLValueAddress(node.container, ta, id_gen)
-        offset = _OffsetScaleToOffset(node.expr_index, x_type.underlying_type().size,
-                                      ta, id_gen)
-        return BaseOffset(base, offset)
-
+        base = _GetLValueAddressAsBaseOffset(node.container, ta, id_gen)
+        return base.AddScaledOffset(node.expr_index, x_type.underlying_type().size, ta, id_gen)
     elif isinstance(node, cwast.ExprDeref):
-        return BaseOffset(_EmitExpr(node.expr, ta, id_gen), 0)
+        return BaseOffset(_EmitExpr(node.expr, ta, id_gen))
     elif isinstance(node, cwast.ExprField):
-        base = _GetLValueAddress(node.container, ta, id_gen)
-        return BaseOffset(base, node.field.GetRecFieldRef().x_offset)
+        base = _GetLValueAddressAsBaseOffset(node.container, ta, id_gen)
+        return base.AddIntOffset(node.field.GetRecFieldRef().x_offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
         base = id_gen.NewName("lhsaddr")
@@ -176,12 +192,11 @@ def _GetLValueAddressAsBaseOffset(node, ta: type_corpus.TargetArchConfig,
             print(f"{TAB}lea.stk {base}:{kind} = {name} 0")
         else:
             assert False, f"unsupported storage class {storage}"
-        return BaseOffset(base, 0)
+        return BaseOffset(base)
     elif isinstance(node, cwast.ExprNarrow):
         #
         assert node.expr.x_type.is_untagged_union()
-        base = _GetLValueAddress(node.expr, ta, id_gen)
-        return BaseOffset(base, 0)
+        return _GetLValueAddressAsBaseOffset(node.expr, ta, id_gen)
     elif isinstance(node, cwast.ExprStmt):
         ct = node.x_type
         name = id_gen.NewName("expr_stk_var")
@@ -190,20 +205,20 @@ def _GetLValueAddressAsBaseOffset(node, ta: type_corpus.TargetArchConfig,
         base = id_gen.NewName("stmt_stk_base")
         kind = ta.get_data_address_reg_type()
         print(f"{TAB}lea.stk {base}:{kind} {name} 0")
-        EmitExprToMemory(node,  BaseOffset(base, 0), ta, id_gen)
-        return BaseOffset(base, 0)
+        EmitExprToMemory(node,  BaseOffset(base), ta, id_gen)
+        return BaseOffset(base)
     else:
         assert False, f"unsupported node for lvalue {node} at {node.x_srcloc}"
 
 
 def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> str:
     bo = _GetLValueAddressAsBaseOffset(node, ta, id_gen)
-    if bo.offset == 0:
+    if bo.offset_num == 0:
         return bo.base
     else:
         res = id_gen.NewName("at")
         kind = ta.get_data_address_reg_type()
-        print(f"{TAB}lea {res}:{kind} = {bo.base} {bo.offset}")
+        print(f"{TAB}lea {res}:{kind} = {bo.base} {bo.offset_num}")
         return res
 
 
@@ -589,7 +604,7 @@ def _EmitZero(dst: BaseOffset, length, alignment,
         while width > (length - curr):
             width //= 2
         while curr + width <= length:
-            print(f"{TAB}st {dst.base} {dst.offset + curr} = 0:U{width * 8}")
+            print(f"{TAB}st {dst.base} {dst.offset_num + curr} = 0:U{width * 8}")
             curr += width
 
 
@@ -607,11 +622,11 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ExprLen, cwast.ExprAddrOf,
                               cwast.Expr1, cwast.Expr2, cwast.ExprPointer, cwast.ExprFront)):
         reg = _EmitExpr(init_node, ta, id_gen)
-        print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
     elif isinstance(init_node, cwast.ExprBitCast):
         # both imply scalar and both do not change the bits
         reg = _EmitExpr(init_node.expr, ta, id_gen)
-        print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
     elif isinstance(init_node, (cwast.ExprWrap, cwast.ExprUnwrap)):
         # these do NOT imply scalars
         EmitExprToMemory(init_node.expr, dst, ta, id_gen)
@@ -624,14 +639,14 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
         assert init_node.x_type.ir_regs not in (o.DK.MEM, o.DK.NONE
                                                 ), f"{init_node} {init_node.x_type}"
         reg = _EmitExpr(init_node, ta, id_gen)
-        print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
     elif isinstance(init_node, cwast.ExprNarrow):
         # if we are narrowing the dst determines the size
         ct: cwast.CanonType = init_node.x_type
         if ct.size != 0:
-            src_base = _GetLValueAddress(init_node.expr, ta, id_gen)
-            _EmitCopy(dst, BaseOffset(src_base, 0),
-                      ct.size, ct.alignment, id_gen)
+            src_base = _GetLValueAddressAsBaseOffset(
+                init_node.expr, ta, id_gen)
+            _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
     elif isinstance(init_node, cwast.ExprWiden):
         assert init_node.x_type.is_untagged_union()
         ct: cwast.CanonType = init_node.expr.x_type
@@ -639,16 +654,13 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
             EmitExprToMemory(init_node.expr, dst, ta, id_gen)
     elif isinstance(init_node, cwast.Id) and _StorageKindForId(init_node) is STORAGE_KIND.REGISTER:
         reg = _EmitId(init_node, id_gen)
-        print(f"{TAB}st {dst.base} {dst.offset} = {reg}")
+        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
     elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprIndex, cwast.ExprField)):
-        src_base = _GetLValueAddress(init_node, ta, id_gen)
+        src_base = _GetLValueAddressAsBaseOffset(init_node, ta, id_gen)
         src_type = init_node.x_type
         # if isinstance(init_node,  cwast.ExprField):
         #    print ("@@@@@@", init_node, src_type)
-        _EmitCopy(dst, BaseOffset(
-
-
-            src_base, 0), src_type.size, src_type.alignment, id_gen)
+        _EmitCopy(dst, src_base, src_type.size, src_type.alignment, id_gen)
     elif isinstance(init_node, cwast.ExprStmt):
         end_label = id_gen.NewName("end_expr")
         for c in init_node.body:
@@ -669,7 +681,7 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
             for field, init in symbolize.IterateValRec(init_node.inits, src_type):
 
                 if init is None:
-                    _EmitZero(BaseOffset(dst.base, dst.offset+field.x_offset),
+                    _EmitZero(BaseOffset(dst.base, dst.offset_num+field.x_offset),
                               field.x_type.size, field.x_type.alignment, id_gen)
                 elif isinstance(init.value_or_undef, cwast.ValUndef):
                     pass
@@ -677,7 +689,7 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
                     pass
                 else:
                     EmitExprToMemory(init.value_or_undef, BaseOffset(
-                        dst.base, dst.offset+field.x_offset), ta, id_gen)
+                        dst.base, dst.offset_num+field.x_offset), ta, id_gen)
         else:
             assert src_type.is_vec()
             element_size: int = src_type.array_element_size()
@@ -689,7 +701,7 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
                 if isinstance(c.value_or_undef, cwast.ValUndef):
                     continue
                 EmitExprToMemory(
-                    c.value_or_undef, BaseOffset(dst.base, dst.offset + element_size * index), ta, id_gen)
+                    c.value_or_undef, BaseOffset(dst.base, dst.offset_num + element_size * index), ta, id_gen)
     else:
         assert False, f"NYI: {init_node}"
 
@@ -704,8 +716,8 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
         tmp = id_gen.NewName(f"copy{width}")
         print(f"{TAB}.reg U{width*8} [{tmp}]")
         while curr + width <= length:
-            print(f"{TAB}ld {tmp} = {src.base} {src.offset + curr}")
-            print(f"{TAB}st {dst.base} {dst.offset + curr} = {tmp}")
+            print(f"{TAB}ld {tmp} = {src.base} {src.offset_num + curr}")
+            print(f"{TAB}st {dst.base} {dst.offset_num + curr} = {tmp}")
             curr += width
 
 
@@ -729,8 +741,7 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
                 init_base = id_gen.NewName("init_base")
                 kind = ta.get_data_address_reg_type()
                 print(f"{TAB}lea.stk {init_base}:{kind} {node.name} 0")
-                EmitExprToMemory(init, BaseOffset(
-                    init_base, 0), ta, id_gen)
+                EmitExprToMemory(init, BaseOffset(init_base), ta, id_gen)
         elif isinstance(init, cwast.ValUndef):
             print(
                 f"{TAB}.reg {ct.get_single_register_type()} [{node.name}]")
@@ -788,7 +799,7 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
             base = id_gen.NewName("stmt_stk_var_addr")
             kind = ta.get_data_address_reg_type()
             print(f"{TAB}lea.stk {base}:{kind} {name} 0")
-            EmitExprToMemory(node.expr,  BaseOffset(base, 0), ta, id_gen)
+            EmitExprToMemory(node.expr,  BaseOffset(base), ta, id_gen)
     elif isinstance(node, cwast.StmtIf):
         label_join = id_gen.NewName("br_join")
         if node.body_t and node.body_f:
