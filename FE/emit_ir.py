@@ -122,7 +122,7 @@ class BaseOffset:
     base: str
     offset_num: int = 0
 
-    def AddScaledOffset(self, offset_expr, scale: int, ta, id_gen) -> "BaseOffset":
+    def AddScaledOffsetExpr(self, offset_expr, scale: int, ta: type_corpus.TargetArchConfig, id_gen) -> "BaseOffset":
         if offset_expr.x_eval is not None:
             return BaseOffset(self.base, offset_expr.x_eval.val * scale)
         offset = _EmitExpr(offset_expr, ta, id_gen)
@@ -138,7 +138,7 @@ class BaseOffset:
             f"{TAB}lea {new_base}:{ta.get_data_address_reg_type()} = {self.base} {offset}")
         return BaseOffset(new_base, self.offset_num)
 
-    def AddIntOffset(self, offset) -> "BaseOffset":
+    def AddOffset(self, offset) -> "BaseOffset":
         return BaseOffset(self.base, self.offset_num + offset)
 
     def MaterializeBase(self, ta, id_gen) -> str:
@@ -162,35 +162,43 @@ class ReturnResultLocation:
     end_label: str
 
 
+_STORAGE_TO_MEM_SUFFIX = {
+    STORAGE_KIND.DATA: "mem",
+    STORAGE_KIND.STACK: "stk",
+}
+
+
 def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig,
-                                  id_gen: identifier.IdGenIR) -> BaseOffset:
+                      id_gen: identifier.IdGenIR) -> BaseOffset:
     if isinstance(node, cwast.ExprIndex):
         x_type: cwast.CanonType = node.container.x_type
         assert x_type.is_vec(), f"{x_type}"
-        base = _GetLValueAddress(node.container, ta, id_gen)
-        return base.AddScaledOffset(node.expr_index, x_type.underlying_type().aligned_size(), ta, id_gen)
+        bo = _GetLValueAddress(node.container, ta, id_gen)
+        return bo.AddScaledOffsetExpr(node.expr_index, x_type.underlying_type().aligned_size(), ta, id_gen)
     elif isinstance(node, cwast.ExprDeref):
         return BaseOffset(_EmitExpr(node.expr, ta, id_gen))
     elif isinstance(node, cwast.ExprField):
-        base = _GetLValueAddress(node.container, ta, id_gen)
-        return base.AddIntOffset(node.field.GetRecFieldRef().x_offset)
+        bo = _GetLValueAddress(node.container, ta, id_gen)
+        return bo.AddOffset(node.field.GetRecFieldRef().x_offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
         base = id_gen.NewName("lhsaddr")
         kind = ta.get_data_address_reg_type()
         storage = _StorageKindForId(node)
-        if storage is STORAGE_KIND.DATA:
-            print(f"{TAB}lea.mem {base}:{kind} = {name} 0")
-        elif storage is STORAGE_KIND.STACK:
-            print(f"{TAB}lea.stk {base}:{kind} = {name} 0")
-        else:
-            assert False, f"unsupported storage class {storage}"
+        print(
+            f"{TAB}lea.{_STORAGE_TO_MEM_SUFFIX[storage]} {base}:{kind} = {name} 0")
         return BaseOffset(base)
     elif isinstance(node, cwast.ExprNarrow):
         #
         assert node.expr.x_type.is_untagged_union()
         return _GetLValueAddress(node.expr, ta, id_gen)
     elif isinstance(node, cwast.ExprStmt):
+        # Only a few expressions can generate l-values or objects whose
+        # address can be taken, basically ExprCall and ExprStmt
+        # That latter often occurs after inlining functions.
+        # We rewrite function signatures with complex result types
+        # so that space for the result is allocated at the call site.
+        # So here we only have to deal with StmtExpr
         ct = node.x_type
         name = id_gen.NewName("expr_stk_var")
         assert ct.size > 0
@@ -481,7 +489,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         # assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
         ct: cwast.CanonType = node.expr1.x_type
         if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
-            base = base.AddScaledOffset(
+            base = base.AddScaledOffsetExpr(
                 node.expr2, ct.underlying_type().aligned_size(), ta, id_gen)
             return base.MaterializeBase(ta, id_gen)
         else:
@@ -658,7 +666,6 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
                 _EmitZero(dst, src_type.size, src_type.alignment, id_gen)
                 return
             for field, init in symbolize.IterateValRec(init_node.inits, src_type):
-
                 if init is None:
                     _EmitZero(BaseOffset(dst.base, dst.offset_num+field.x_offset),
                               field.x_type.size, field.x_type.alignment, id_gen)
