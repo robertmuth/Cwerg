@@ -100,7 +100,7 @@ def FunRewriteLargeArgsParameter(fun: cwast.DefFun, new_fun_ct: cwast.CanonType,
 
         elif isinstance(node, cwast.StmtReturn) and node.x_target == fun and result_param:
             result_ct: cwast.CanonType = result_param.type.x_type
-            assert result_ct.is_pointer()
+            assert result_ct.is_ptr()
             sl = node.x_srcloc
             lhs = cwast.ExprDeref(
                 cwast.Id(result_param.name, None, x_srcloc=sl,

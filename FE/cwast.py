@@ -928,7 +928,7 @@ class CanonType:
         assert self.is_fun()
         return self.children[-1]
 
-    def is_pointer(self) -> bool:
+    def is_ptr(self) -> bool:
         return self.node is TypePtr
 
     def is_span(self) -> bool:
@@ -1023,7 +1023,7 @@ class CanonType:
                 t = t.children[0]
             if t.is_void():
                 continue
-            elif t.is_pointer():
+            elif t.is_ptr():
                 if seen_pointer:
                     return UnionKind.NORMAL
                 seen_pointer = True

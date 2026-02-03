@@ -240,7 +240,7 @@ BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
       std::string base = id_gen->NameNewNext(NameNew("lhsaddr"));
       std::cout << kTAB << "lea." << GetSuffixForStorage(StorageKindForId(node))
                 << " " << base << ":" << ta.get_data_addr_kind_ir() << " = "
-                << name << " 0 \n";
+                << name << " 0\n";
       return {base};
     }
     case NT::ExprNarrow:
@@ -252,7 +252,7 @@ BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
                 << CanonType_alignment(ct) << "\n";
       std::string base = id_gen->NameNewNext(NameNew("stmt_stk_base"));
       std::cout << kTAB << "lea.stk " << base << ":"
-                << ta.get_data_addr_kind_ir() << " " << name << " 0 \n";
+                << ta.get_data_addr_kind_ir() << " " << name << " 0\n";
       EmitExprToMemory(node, BaseOffset(base), ta, id_gen);
       return {base};
     }
@@ -272,7 +272,7 @@ std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
     case NT::DefGlobal: {
       std::string out = id_gen->NameNewNext(NameNew("globread"));
       std::cout << kTAB << "ld.mem " << out << ":" << CanonType_ir_regs(ct)
-                << " = " << NameData(Node_name(def_node)) << " 0 \n";
+                << " = " << NameData(Node_name(def_node)) << " 0\n";
       return out;
     }
     case NT::FunParam:
@@ -287,7 +287,7 @@ std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       if (IsDefOnStack(node)) {
         std::string out = id_gen->NameNewNext(NameNew("stkread"));
         std::cout << kTAB << "ld.stk " << out << ":" << CanonType_ir_regs(ct)
-                  << " = " << NameData(Node_name(def_node)) << " 0 \n";
+                  << " = " << NameData(Node_name(def_node)) << " 0\n";
         return out;
       } else {
         return NameData(Node_name(def_node));
@@ -335,6 +335,7 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
     case NT::ExprCall:
     case NT::ValNum:
     case NT::ExprAddrOf:
+    case NT::ExprAs:
     case NT::Expr1:
     case NT::Expr2:
     case NT::ExprPointer:
@@ -344,6 +345,7 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
                 << "\n";
       break;
     }
+
     case NT::ExprStmt: {
       std::string end_label = id_gen->NameNewNext(NameNew("end_expr"));
       ReturnResultLocation rrl("", dst, end_label);
@@ -384,7 +386,7 @@ std::string EmitExpr1(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       std::cout << kTAB << "sub " << res << ":" << CanonType_ir_regs(ct)
                 << " = 0 " << op << "\n";
       std::cout << kTAB << "cmplt " << res << " = " << res << " " << op << " "
-                << op << " 0 \n";
+                << op << " 0\n";
       break;
     case UNARY_EXPR_KIND::SQRT:
       std::cout << kTAB << "sqrt " << res << ":" << CanonType_ir_regs(ct)
@@ -513,6 +515,38 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       return EmitExpr1(node, ta, id_gen);
     case NT::Expr2:
       return EmitExpr2(node, ta, id_gen);
+    case NT::ExprAs: {
+      CanonType ct_dst = CanonType_get_unwrapped(Node_x_type(node));
+      CanonType ct_src = CanonType_get_unwrapped(Node_x_type(Node_expr(node)));
+      if (CanonType_is_base_type(ct_dst) && CanonType_is_base_type(ct_src)) {
+        std::string src = EmitExpr(Node_expr(node), ta, id_gen);
+        std::string res = id_gen->NameNewNext(NameNew("as"));
+        std::cout << kTAB << "conv " << res << ":" << CanonType_ir_regs(ct_dst)
+                  << " = " << src << "\n";
+        return res;
+      } else if (CanonType_is_ptr(ct_dst) && CanonType_is_ptr(ct_src)) {
+        return EmitExpr(Node_expr(node), ta, id_gen);
+      } else {
+        UNREACHABLE("");
+        return std::string(DO_NOT_USE);
+      }
+    }
+
+    case NT::ExprUnwrap:
+    case NT::ExprWrap:
+      return EmitExpr(Node_expr(node), ta, id_gen);
+    case NT::ExprDeref: {
+      CanonType ct = Node_x_type(node);
+      if (CanonType_size(ct) == 0) {
+        return std::string(DO_NOT_USE);
+      } else {
+        std::string addr = EmitExpr(Node_expr(node), ta, id_gen);
+        std::string res = id_gen->NameNewNext(NameNew("deref"));
+        std::cout << kTAB << "ld " << res << ":" << CanonType_ir_regs(ct)
+                  << " = " << addr << " 0\n";
+        return res;
+      }
+    }
     case NT::ExprStmt: {
       CanonType ct = Node_x_type(node);
       ReturnResultLocation rrl;
@@ -720,7 +754,7 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
           std::string base = id_gen->NameNewNext(NameNew("var_stk_base"));
           std::cout << kTAB << "lea.stk " << base << ":"
                     << ta.get_data_addr_kind_ir() << " "
-                    << NameData(Node_name(node)) << " 0 \n";
+                    << NameData(Node_name(node)) << " 0\n";
           EmitExprToMemory(init, BaseOffset(base), ta, id_gen);
         }
       } else {
@@ -728,7 +762,9 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
           std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " " << name
                     << "\n";
         } else {
-          EmitExpr(init, ta, id_gen);
+          std::string out = EmitExpr(init, ta, id_gen);
+          std::cout << kTAB << "mov " << name << ":" << CanonType_ir_regs(ct)
+                    << " = " << out << "\n";
         }
       }
       break;
@@ -787,7 +823,7 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
                   << " " << CanonType_size(ct) << "\n";
         std::string name_addr =
             id_gen->NameNewNext(NameNew("stmt_stk_var_addr"));
-        std::cout << kTAB << "lea.stk " << name_addr << ":" << name << " 0 \n";
+        std::cout << kTAB << "lea.stk " << name_addr << ":" << name << " 0\n";
         EmitExpr(Node_expr(node), ta, id_gen);
         EmitExprToMemory(Node_expr(node), BaseOffset(name_addr, 0), ta, id_gen);
       }
@@ -831,6 +867,8 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
         std::cout << kTAB << "mov " << NameData(Node_name(Node_x_symbol(lhs)))
                   << " = " << op << "\n";
       } else {
+        BaseOffset bo = GetLValueAddress(lhs, ta, id_gen);
+        EmitExprToMemory(Node_expr_rhs(node), bo, ta, id_gen);
       }
       break;
     }

@@ -505,7 +505,8 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
             f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
         return res
     elif isinstance(node, cwast.ExprAs):
-        ct_src: cwast.CanonType = node.expr.x_type
+        ct_src: cwast.CanonType = node.expr.x_type.get_unwrapped()
+        ct_dst = node.x_type.get_unwrapped()
         if ct_src.is_base_type() and ct_dst.is_base_type():
             # more compatibility checking needed
             expr = _EmitExpr(node.expr, ta, id_gen)
@@ -513,7 +514,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
             print(
                 f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {expr}")
             return res
-        elif ct_src.is_pointer() and ct_dst.is_pointer():
+        elif ct_src.is_ptr() and ct_dst.is_ptr():
             return _EmitExpr(node.expr, ta, id_gen)
         else:
             assert False, f"unsupported cast {
@@ -597,7 +598,7 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
     """
     assert init_node.x_type.size > 0, f"{init_node}"
     if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ExprAddrOf,
-                              cwast.Expr1, cwast.Expr2, cwast.ExprPointer, cwast.ExprFront)):
+                              cwast.Expr1, cwast.Expr2, cwast.ExprAs, cwast.ExprPointer, cwast.ExprFront)):
         reg = _EmitExpr(init_node, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
     elif isinstance(init_node, cwast.ExprBitCast):
@@ -607,16 +608,6 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
     elif isinstance(init_node, (cwast.ExprWrap, cwast.ExprUnwrap)):
         # these do NOT imply scalars
         EmitExprToMemory(init_node.expr, dst, ta, id_gen)
-    elif isinstance(init_node, cwast.ExprAs):
-        # this implies scalar
-        # TODO: add the actual conversion step using IR opcode `conv`
-        #       bools may need special treatment
-        assert init_node.x_type == init_node.type.x_type, f"ExprAs {
-            init_node.type.x_type} ->  {init_node.x_type}"
-        assert init_node.x_type.ir_regs not in (o.DK.MEM, o.DK.NONE
-                                                ), f"{init_node} {init_node.x_type}"
-        reg = _EmitExpr(init_node, ta, id_gen)
-        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
     elif isinstance(init_node, cwast.ExprNarrow):
         # if we are narrowing the dst determines the size
         ct: cwast.CanonType = init_node.x_type
@@ -723,7 +714,6 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
                 f"{TAB}.reg {ct.get_single_register_type()} [{node.name}]")
         else:
             out = _EmitExpr(init, ta, id_gen)
-            assert out is not None, f"Failure to gen code for {init}"
             print(
                 f"{TAB}mov {node.name}:{ct.get_single_register_type()} = {out}")
     elif isinstance(node, cwast.StmtBlock):
@@ -799,13 +789,12 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
         print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
         lhs = node.lhs
-        assert lhs.x_type.size != 0
+        assert lhs.x_type.size > 0 and node.expr_rhs.x_type.size > 0, f"{node.expr_rhs} {node.x_srcloc} {node.expr_rhs.x_type}"
         if isinstance(lhs, cwast.Id) and _StorageKindForId(lhs) is STORAGE_KIND.REGISTER:
             out = _EmitExpr(node.expr_rhs, ta, id_gen)
             print(f"{TAB}mov {lhs.x_symbol.name} = {out}")
         else:
             lhs = _GetLValueAddress(lhs, ta, id_gen)
-            assert node.expr_rhs.x_type.size > 0, f"{node.expr_rhs} {node.x_srcloc} {node.expr_rhs.x_type}"
             EmitExprToMemory(node.expr_rhs, lhs, ta, id_gen)
     elif isinstance(node, cwast.StmtTrap):
         print(f"{TAB}trap")
