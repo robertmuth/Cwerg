@@ -397,6 +397,78 @@ std::string EmitExpr1(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
   return res;
 }
 
+std::string EmitExpr2(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
+  std::string op1 = EmitExpr(Node_expr1(node), ta, id_gen);
+  std::string op2 = EmitExpr(Node_expr2(node), ta, id_gen);
+  std::string res = id_gen->NameNewNext(NameNew("expr2"));
+  DK res_dk = CanonType_ir_regs(Node_x_type(node));
+
+  auto emit_simple = [&op1, &op2, &res, &res_dk](std::string_view operation) {
+    std::cout << kTAB << operation << res << ":" << res_dk << " = " << op1
+              << " " << op2 << "\n";
+  };
+  switch (Node_binary_expr_kind(node)) {
+    case BINARY_EXPR_KIND::ADD:
+      emit_simple("add ");
+      break;
+    case BINARY_EXPR_KIND::SUB:
+      emit_simple("sub ");
+      break;
+    case BINARY_EXPR_KIND::MUL:
+      emit_simple("mul ");
+      break;
+    case BINARY_EXPR_KIND::DIV:
+      emit_simple("div ");
+      break;
+    case BINARY_EXPR_KIND::MOD:
+      emit_simple("rem ");
+      break;
+    case BINARY_EXPR_KIND::AND:
+      emit_simple("and ");
+      break;
+    case BINARY_EXPR_KIND::OR:
+      emit_simple("or ");
+      break;
+    case BINARY_EXPR_KIND::XOR:
+      emit_simple("xor ");
+      break;
+    case BINARY_EXPR_KIND::SHL:
+      emit_simple("shl ");
+      break;
+    case BINARY_EXPR_KIND::SHR:
+      emit_simple("shr ");
+      break;
+
+    case BINARY_EXPR_KIND::MAX:
+      std::cout << kTAB << "cmplt " << res << ":" << res_dk << " = " << op1
+                << " " << op2 << " " << op2 << " " << op1 << "\n";
+      break;
+    case BINARY_EXPR_KIND::MIN:
+      std::cout << kTAB << "cmplt " << res << ":" << res_dk << " = " << op1
+                << " " << op2 << " " << op1 << " " << op2 << "\n";
+      break;
+    case BINARY_EXPR_KIND::PDELTA: {
+      std::string conv_op1 = id_gen->NameNewNext(NameNew("pdelta1"));
+      std::string conv_op2 = id_gen->NameNewNext(NameNew("pdelta2"));
+      std::cout << kTAB << "bitcast " << conv_op1 << ":" << res_dk << " = "
+                << op1 << "\n";
+      std::cout << kTAB << "bitcast " << conv_op2 << ":" << res_dk << " = "
+                << op2 << "\n";
+      std::cout << kTAB << "sub " << res << ":" << res_dk << " = " << conv_op1
+                << " " << conv_op2 << "\n";
+      SizeOrDim width = CanonType_aligned_size(
+          CanonType_underlying_type(Node_x_type(Node_expr1(node))));
+      std::cout << kTAB << "div " << res << " = " << res << " " << width
+                << "\n";
+      break;
+    }
+    default:
+      UNREACHABLE("");
+      break;
+  }
+  return res;
+}
+
 std::string EmitExprCall(Node node, const TargetArchConfig& ta,
                          IdGenIR* id_gen) {
   Node callee = Node_callee(node);
@@ -439,6 +511,8 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
           .MaterializeBase(ta, id_gen);
     case NT::Expr1:
       return EmitExpr1(node, ta, id_gen);
+    case NT::Expr2:
+      return EmitExpr2(node, ta, id_gen);
     case NT::ExprStmt: {
       CanonType ct = Node_x_type(node);
       ReturnResultLocation rrl;

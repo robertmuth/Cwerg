@@ -15,13 +15,12 @@ class IdGenIR {
 
  public:
   std::string NameNewNext(Name name) {
-    uint32_t& n = last_used_seq_[name];
+    uint32_t n = last_used_seq_[name]++;
 
     std::string buf(NameData(name));
     if (n) {
-      buf += "%";
+      buf += ".";
       buf += std::to_string(n);
-      ++n;
     }
     return std::string(buf);
   }

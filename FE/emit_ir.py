@@ -351,10 +351,12 @@ _BIN_OP_MAP = {
 }
 
 
-def _EmitExpr2(node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
+def _EmitExpr2(node: cwast.Expr2, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
+    op1 = _EmitExpr(node.expr1, ta, id_gen)
+    op2 = _EmitExpr(node.expr2, ta, id_gen)
+    res = id_gen.NewName("expr2")
     kind = node.binary_expr_kind
-    ct = node.x_type
-    res_type = ct.get_single_register_type()
+    res_type = node.x_type.get_single_register_type()
     op = _BIN_OP_MAP.get(kind)
     if op is not None:
         print(f"{TAB}{op} {res}:{res_type} = {op1} {op2}")
@@ -375,6 +377,7 @@ def _EmitExpr2(node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
             f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op1} {op2}")
     else:
         assert False, f"unsupported expression {kind}"
+    return res
 
 
 def _EmitExpr1(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
@@ -475,11 +478,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
     elif isinstance(node, cwast.Expr1):
         return _EmitExpr1(node, ta, id_gen)
     elif isinstance(node, cwast.Expr2):
-        op1 = _EmitExpr(node.expr1, ta, id_gen)
-        op2 = _EmitExpr(node.expr2, ta, id_gen)
-        res = id_gen.NewName("expr2")
-        _EmitExpr2(node, res, op1, op2, id_gen)
-        return res
+       return _EmitExpr2(node, ta, id_gen)
     elif isinstance(node, cwast.ExprPointer):
         base = BaseOffset(_EmitExpr(node.expr1, ta, id_gen))
         # TODO: add range check
