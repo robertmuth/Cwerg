@@ -537,7 +537,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         end_label = id_gen.NewName("end_expr")
         for c in node.body:
             _EmitStmt(c, ReturnResultLocation(result, end_label), ta, id_gen)
-        print(f".bbl {end_label}  # block end")
+        print(f".bbl {end_label}")
         return result
     elif isinstance(node, cwast.ExprFront):
         assert node.container.x_type.is_vec(), f"unexpected {node}"
@@ -715,10 +715,9 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
             print(f"{TAB}.stk {node.name} {
                   ct.alignment} {ct.size}")
             if not isinstance(init, cwast.ValUndef):
-                init_base = id_gen.NewName("init_base")
-                kind = ta.get_data_address_reg_type()
-                print(f"{TAB}lea.stk {init_base}:{kind} {node.name} 0")
-                EmitExprToMemory(init, BaseOffset(init_base), ta, id_gen)
+                base = id_gen.NewName("var_stk_base")
+                print(f"{TAB}lea.stk {base}:{ta.get_data_address_reg_type()} {node.name} 0")
+                EmitExprToMemory(init, BaseOffset(base), ta, id_gen)
         elif isinstance(init, cwast.ValUndef):
             print(
                 f"{TAB}.reg {ct.get_single_register_type()} [{node.name}]")

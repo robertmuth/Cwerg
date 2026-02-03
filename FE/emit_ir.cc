@@ -12,6 +12,11 @@
 
 namespace cwerg::fe {
 
+std::ostream& operator<<(std::ostream& os, DK dk) {
+  os << EnumToString(dk);
+  return os;
+}
+
 std::string_view DO_NOT_USE = "@DO_NOT_USE@";
 
 //
@@ -75,7 +80,8 @@ STORAGE_KIND StorageKindForId(Node node) {
     case NT::FunParam:
       return STORAGE_KIND::REGISTER;
     case NT::DefVar:
-      return IsDefOnStack(def_node) ? STORAGE_KIND::STACK : STORAGE_KIND::REGISTER;
+      return IsDefOnStack(def_node) ? STORAGE_KIND::STACK
+                                    : STORAGE_KIND::REGISTER;
     default:
       UNREACHABLE("bad node type " << def_node);
       return STORAGE_KIND::INVALID;
@@ -149,7 +155,7 @@ void EmitFunctionProlog(Node node, IdGenIR* id_gen) {
     std::string new_name = id_gen->NameNewNext(Node_name(p));
     Node_name(p) = NameNew(new_name);
     std::cout << kTAB << "poparg " << new_name << ":"
-              << EnumToString(CanonType_ir_regs(Node_x_type(p))) << "\n";
+              << CanonType_ir_regs(Node_x_type(p)) << "\n";
   }
 }
 
@@ -165,17 +171,15 @@ struct BaseOffset {
     std::string offset = EmitExpr(offset_expr, ta, id_gen);
     if (scale != 1) {
       std::string scaled = id_gen->NameNewNext(NameNew("scaled"));
-      std::cout << kTAB << "conv " << scaled << ":"
-                << EnumToString(ta.get_sint_kind_ir()) << " = " << ADJ_OFFSET
-                << "\n";
+      std::cout << kTAB << "conv " << scaled << ":" << ta.get_sint_kind_ir()
+                << " = " << ADJ_OFFSET << "\n";
       std::cout << kTAB << "mul " << offset << " = " << scaled << " " << scale
                 << "\n";
       offset = scaled;
     }
     std::string new_base = id_gen->NameNewNext(NameNew("new_base"));
-    std::cout << kTAB << "lea " << new_base << ":"
-              << EnumToString(ta.get_data_addr_kind_ir()) << " = " << base
-              << " " << offset << "\n";
+    std::cout << kTAB << "lea " << new_base << ":" << ta.get_data_addr_kind_ir()
+              << " = " << base << " " << offset << "\n";
     return {new_base, 0};
   }
 
@@ -186,11 +190,15 @@ struct BaseOffset {
   std::string MaterializeBase(const TargetArchConfig& ta, IdGenIR* id_gen) {
     if (offset == 0) return base;
     std::string out = id_gen->NameNewNext(NameNew("at"));
-    std::cout << kTAB << "lea " << out << ":"
-              << EnumToString(ta.get_data_addr_kind_ir()) << " = " << base
-              << " " << offset << "\n";
+    std::cout << kTAB << "lea " << out << ":" << ta.get_data_addr_kind_ir()
+              << " = " << base << " " << offset << "\n";
     return out;
   }
+};
+
+struct ReturnResultLocation {
+  std::string dst;
+  std::string end_label;
 };
 
 // forward decls
@@ -202,8 +210,10 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
 
 SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
                                      const TargetArchConfig& ta);
+void EmitStmt(Node node, const ReturnResultLocation& result,
+              const TargetArchConfig& ta, IdGenIR* id_gen);
 
-struct ReturnResultLocation {};
+
 
 std::string_view GetSuffixForStorage(STORAGE_KIND kind) {
   switch (kind) {
@@ -220,14 +230,6 @@ std::string_view GetSuffixForStorage(STORAGE_KIND kind) {
 BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
                             IdGenIR* id_gen) {
   switch (node.kind()) {
-    case NT::ExprIndex: {
-      CanonType ct = Node_x_type(Node_container(node));
-      BaseOffset base = GetLValueAddress(Node_container(node), ta, id_gen);
-
-      return base.AddScaledOffset(
-          Node_expr_index(node),
-          CanonType_aligned_size(CanonType_underlying_type(ct)), ta, id_gen);
-    }
     case NT::ExprDeref:
       return {EmitExpr(Node_expr(node), ta, id_gen)};
     case NT::ExprField: {
@@ -238,9 +240,8 @@ BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
       Name name = Node_name(Node_x_symbol(node));
       std::string base = id_gen->NameNewNext(NameNew("lhsaddr"));
       std::cout << kTAB << "lea." << GetSuffixForStorage(StorageKindForId(node))
-                << " " << base << ":"
-                << EnumToString(ta.get_data_addr_kind_ir()) << " = " << name
-                << " 0 \n";
+                << " " << base << ":" << ta.get_data_addr_kind_ir() << " = "
+                << name << " 0 \n";
       return {base};
     }
     case NT::ExprNarrow:
@@ -252,8 +253,7 @@ BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
                 << CanonType_alignment(ct) << "\n";
       std::string base = id_gen->NameNewNext(NameNew("stmt_stk_base"));
       std::cout << kTAB << "lea.stk " << base << ":"
-                << EnumToString(ta.get_data_addr_kind_ir()) << " " << name
-                << " 0 \n";
+                << ta.get_data_addr_kind_ir() << " " << name << " 0 \n";
       EmitExprToMemory(node, BaseOffset(base), ta, id_gen);
       return {base};
     }
@@ -272,26 +272,23 @@ std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
   switch (def_node.kind()) {
     case NT::DefGlobal: {
       std::string out = id_gen->NameNewNext(NameNew("globread"));
-      std::cout << kTAB << "ld.mem " << out << ":"
-                << EnumToString(CanonType_ir_regs(ct)) << " = "
-                << NameData(Node_name(def_node)) << " 0 \n";
+      std::cout << kTAB << "ld.mem " << out << ":" << CanonType_ir_regs(ct)
+                << " = " << NameData(Node_name(def_node)) << " 0 \n";
       return out;
     }
     case NT::FunParam:
       return NameData(Node_name(def_node));
     case NT::DefFun: {
       std::string out = id_gen->NameNewNext(NameNew("funaddr"));
-      std::cout << kTAB << "lea.fun " << out << ":"
-                << EnumToString(CanonType_ir_regs(ct)) << " = "
-                << NameData(Node_name(def_node)) << "\n";
+      std::cout << kTAB << "lea.fun " << out << ":" << CanonType_ir_regs(ct)
+                << " = " << NameData(Node_name(def_node)) << "\n";
       return out;
     }
     case NT::DefVar:
       if (IsDefOnStack(node)) {
         std::string out = id_gen->NameNewNext(NameNew("stkread"));
-        std::cout << kTAB << "ld.stk " << out << ":"
-                  << EnumToString(CanonType_ir_regs(ct)) << " = "
-                  << NameData(Node_name(def_node)) << " 0 \n";
+        std::cout << kTAB << "ld.stk " << out << ":" << CanonType_ir_regs(ct)
+                  << " = " << NameData(Node_name(def_node)) << " 0 \n";
         return out;
       } else {
         return NameData(Node_name(def_node));
@@ -338,6 +335,45 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
   // TODO
 }
 
+uint64_t AllBitsSet(uint64_t n) {
+  if (n == 64) return ~uint64_t(0);
+  return (1 << n) - 1;
+}
+
+std::string EmitExpr1(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
+  CanonType ct = Node_x_type(node);
+  std::string op = EmitExpr(Node_expr(node), ta, id_gen);
+  std::string res = id_gen->NameNewNext(NameNew("expr1"));
+  switch (Node_unary_expr_kind(node)) {
+    case UNARY_EXPR_KIND::NEG: {
+      auto ff =
+          AllBitsSet(8 * BaseTypeKindByteSize(CanonType_base_type_kind(ct)));
+      std::cout << kTAB << "sub " << res << ":" << CanonType_ir_regs(ct)
+                << " = 0x" << std::hex << ff << " " << op << "\n";
+      break;
+    }
+    case UNARY_EXPR_KIND::NOT: {
+      std::cout << kTAB << "xor " << res << ":" << CanonType_ir_regs(ct)
+                << " = 0 " << op << "\n";
+      break;
+    }
+    case UNARY_EXPR_KIND::ABS:
+      std::cout << kTAB << "sub " << res << ":" << CanonType_ir_regs(ct)
+                << " = 0 " << op << "\n";
+      std::cout << kTAB << "cmplt " << res << " = " << res << " " << op << " "
+                << op << " 0 \n";
+      break;
+    case UNARY_EXPR_KIND::SQRT:
+      std::cout << kTAB << "sqrt " << res << ":" << CanonType_ir_regs(ct)
+                << " = " << op << "\n";
+      break;
+    default:
+      UNREACHABLE("");
+      break;
+  }
+  return res;
+}
+
 std::string EmitExprCall(Node node, const TargetArchConfig& ta,
                          IdGenIR* id_gen) {
   Node callee = Node_callee(node);
@@ -361,8 +397,8 @@ std::string EmitExprCall(Node node, const TargetArchConfig& ta,
     return "@DO_NOT_USE@";
   }
   std::string out = id_gen->NameNewNext(NameNew("call"));
-  std::cout << kTAB << "poparg " << out << ":"
-            << EnumToString(CanonType_ir_regs(res_ct)) << "\n";
+  std::cout << kTAB << "poparg " << out << ":" << CanonType_ir_regs(res_ct)
+            << "\n";
   return out;
 }
 
@@ -378,6 +414,43 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
     case NT::ExprAddrOf:
       return GetLValueAddress(Node_expr_lhs(node), ta, id_gen)
           .MaterializeBase(ta, id_gen);
+    case NT::Expr1:
+      return EmitExpr1(node, ta, id_gen);
+    case NT::ExprStmt: {
+      CanonType ct = Node_x_type(node);
+      ReturnResultLocation rrl;
+
+      if (CanonType_size(ct) == 0) {
+        rrl.dst = std::string(DO_NOT_USE);
+      } else {
+        rrl.dst = id_gen->NameNewNext(NameNew("expr"));
+        std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " [" << rrl.dst
+                  << "]\n";
+      }
+      rrl.end_label = id_gen->NameNewNext(NameNew("end_expr"));
+      for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
+        EmitStmt(s, rrl, ta, id_gen);
+      }
+
+      std::cout << kTAB << ".bbl " << rrl.end_label << "\n";
+      return rrl.dst;
+    }
+    case NT::ExprFront:
+      return GetLValueAddress(Node_container(node), ta, id_gen)
+          .MaterializeBase(ta, id_gen);
+    case NT::ExprField: {
+      CanonType ct = Node_x_type(node);
+      Node rec_field = Node_x_symbol(Node_field(node));
+      std::string addr = GetLValueAddress(Node_container(node), ta, id_gen)
+                             .MaterializeBase(ta, id_gen);
+      if (CanonType_size(ct) == 0) {
+        return std::string(DO_NOT_USE);
+      }
+      std::string res = id_gen->NameNewNext(Node_name(rec_field));
+      std::cout << kTAB << "ld.mem " << res << ":" << CanonType_ir_regs(ct)
+                << " = " << addr << " " << Node_x_offset(rec_field) << "\n";
+      return res;
+    }
 
     default:
       return "";
@@ -501,7 +574,6 @@ void EmitConditional(Node node, bool invert, std::string_view label_f,
     case NT::ExprCall:
     case NT::ExprStmt:
     case NT::ExprField:
-    case NT::ExprIndex:
     case NT::ExprDeref: {
       std::string op = EmitExpr(Node_expr(node), ta, id_gen);
       std::cout << kTAB << (invert ? "beq " : "bne ") << op << " 0 " << label_f
@@ -531,7 +603,7 @@ bool ChangesControlFlow(Node node) {
   }
 }
 
-void EmitStmt(Node node, const ReturnResultLocation* result,
+void EmitStmt(Node node, const ReturnResultLocation& result,
               const TargetArchConfig& ta, IdGenIR* id_gen) {
   switch (node.kind()) {
     case NT::DefVar: {
@@ -548,12 +620,15 @@ void EmitStmt(Node node, const ReturnResultLocation* result,
                   << CanonType_alignment(ct) << " " << CanonType_size(ct)
                   << "\n";
         if (init.kind() != NT::ValUndef) {
-          EmitExpr(init, ta, id_gen);
+          std::string base = id_gen->NameNewNext(NameNew("var_stk_base"));
+          std::cout << kTAB << "lea.stk " << base << ":" << ta.get_data_addr_kind_ir()
+                    << " " << NameData(Node_name(node)) << " 0 \n";
+          EmitExprToMemory(init, BaseOffset(base), ta, id_gen);
         }
       } else {
         if (init.kind() == NT::ValUndef) {
-          std::cout << kTAB << ".reg " << EnumToString(CanonType_ir_regs(ct))
-                    << " " << name << "\n";
+          std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " " << name
+                    << "\n";
         } else {
           EmitExpr(init, ta, id_gen);
         }
@@ -663,7 +738,7 @@ void EmitDefFun(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
     EmitFunctionHeader(NameData(Node_name(node)), "NORMAL", Node_x_type(node));
     EmitFunctionProlog(node, id_gen);
     for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
-      EmitStmt(s, nullptr, ta, id_gen);
+      EmitStmt(s, ReturnResultLocation(), ta, id_gen);
     }
   }
 }
