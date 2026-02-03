@@ -33,7 +33,7 @@ def IsDropMutConversion(ct_src: cwast.CanonType, ct_dst: cwast.CanonType) -> boo
         ct_src = ct_src.original_type
     if ct_dst.original_type is not None:
         ct_dst = ct_dst.original_type
-    if (ct_src.is_pointer() and ct_dst.is_pointer() or
+    if (ct_src.is_ptr() and ct_dst.is_ptr() or
             ct_src.is_span() and ct_dst.is_span()):
         return ct_src.underlying_type() == ct_dst.underlying_type() and not ct_dst.is_mutable()
     return False
@@ -78,12 +78,12 @@ def UnwrapType(ct: cwast.CanonType, tc: "TypeCorpus") -> Optional[cwast.CanonTyp
 # maybe add records if all their fields are comparable?
 def IsTypeForCmp(ct: cwast.CanonType) -> bool:
     unwrapped_ct = ct.get_unwrapped()
-    return unwrapped_ct.is_base_type() or unwrapped_ct.is_pointer()
+    return unwrapped_ct.is_base_type() or unwrapped_ct.is_ptr()
 
 
 def IsTypeForEq(ct: cwast.CanonType) -> bool:
     unwrapped_ct = ct.get_unwrapped()
-    return unwrapped_ct.is_base_type() or unwrapped_ct.is_pointer() or unwrapped_ct.is_fun()
+    return unwrapped_ct.is_base_type() or unwrapped_ct.is_ptr() or unwrapped_ct.is_fun()
 
 
 def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) -> bool:
@@ -96,7 +96,7 @@ def IsCompatibleTypeForEq(actual: cwast.CanonType, expected: cwast.CanonType) ->
         if actual == expected:
             return True
 
-        if actual.is_pointer() and expected.is_pointer():
+        if actual.is_ptr() and expected.is_ptr():
             return actual.underlying_type() == expected.underlying_type()
 
         if expected.tagged_union_contains(actual):
@@ -125,9 +125,9 @@ def IsCompatibleTypeForBitcast(ct_src: cwast.CanonType, ct_dst: cwast.CanonType)
     unwrapped_src = ct_src.get_unwrapped()
     unwrapped_dst = ct_dst.get_unwrapped()
 
-    if not unwrapped_src.is_base_type() and not unwrapped_src.is_pointer():
+    if not unwrapped_src.is_base_type() and not unwrapped_src.is_ptr():
         return False
-    if not unwrapped_dst.is_base_type() and not unwrapped_dst.is_pointer():
+    if not unwrapped_dst.is_base_type() and not unwrapped_dst.is_ptr():
         return False
     return ct_src.aligned_size() == ct_dst.aligned_size()
 
@@ -139,7 +139,7 @@ def IsProperLhs(node) -> bool:
             return s.mut
         return False
     elif isinstance(node, cwast.ExprDeref):
-        assert node.expr.x_type.is_pointer()
+        assert node.expr.x_type.is_ptr()
         return node.expr.x_type.is_mutable()
         # isinstance(node, cwast.ExprDeref) and types.is_mutable_def(node.expr) or
     elif isinstance(node, cwast.ExprField):
@@ -240,7 +240,7 @@ def _GetMachineRegsForUnion(ct: cwast.CanonType, ta: TargetArchConfig) -> o.DK:
         largest_by_kind[flavor] = max(largest_by_kind.get(flavor, 0), bitwidth)
         largest = max(largest, bitwidth)
     # special hack for pointer + error-code
-    if ta.optimize_union_tag and len(scalars) == 1 and scalars[0].is_pointer():
+    if ta.optimize_union_tag and len(scalars) == 1 and scalars[0].is_ptr():
         return scalars[0].ir_regs
 
     # BUG repro:
@@ -297,7 +297,7 @@ def _GetSizeAndAlignmentForSum(ct: cwast.CanonType, ta: TargetArchConfig) -> tup
             continue
         while child_ct.is_wrapped():
             child_ct = child_ct.children[0]
-        if child_ct.is_pointer():
+        if child_ct.is_ptr():
             num_pointer += 1
             max_size = max(max_size, ptr_size)
             max_alignment = max(max_alignment, ptr_size)

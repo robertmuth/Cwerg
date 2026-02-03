@@ -527,7 +527,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         return _NodeSetType(node, field_node.x_type)
     elif isinstance(node, cwast.ExprDeref):
         ct = _TypifyExprOrType(node.expr, tc, cwast.NO_TYPE, pm)
-        if not ct.is_pointer():
+        if not ct.is_ptr():
             cwast.CompilerError(
                 node.x_srcloc, f"dereferenced expr must be pointer {node} but got {ct}")
         # TODO: how is mutability propagated?
@@ -548,8 +548,8 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
             ct = tc.get_bool_canon_type()
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.PDELTA:
             ct = tc.get_sint_canon_type()
-            assert ct_left.is_pointer()
-            assert ct_right.is_pointer()
+            assert ct_left.is_ptr()
+            assert ct_right.is_ptr()
         else:
             ct = ct_left
         return _NodeSetType(node, ct)

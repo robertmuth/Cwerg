@@ -90,6 +90,10 @@ inline bool CanonType_is_tagged_union(CanonType ct) {
   return CanonType_kind(ct) == NT::TypeUnion && !CanonType_untagged(ct);
 }
 
+inline bool CanonType_is_ptr(CanonType ct) {
+  return CanonType_kind(ct) == NT::TypePtr;
+}
+
 inline bool CanonType_is_vec(CanonType ct) {
   return CanonType_kind(ct) == NT::TypeVec;
 }

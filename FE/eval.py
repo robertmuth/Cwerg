@@ -482,7 +482,7 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
     ct = node.x_type
     bt = ct.base_type_kind
     ct_operand = node.expr1.x_type
-    if ct_operand.is_pointer() or ct_operand.is_fun():
+    if ct_operand.is_ptr() or ct_operand.is_fun():
         return EvalNum(_EVAL_EQ_NE[op](e1, e2), bt)
     # Note, we can compare pointers but there seem to few useful case
     # where we want to compare them at compile time.
@@ -853,7 +853,7 @@ def VerifyASTEvalsRecursively(node):
                 if cwast.NF.EVAL_ANNOTATED in def_node.FLAGS:
 
                     if def_node.x_eval is None:
-                        if parent.x_type.is_pointer():
+                        if parent.x_type.is_ptr():
                             # TODO: we do not track constant addresses yet
                             # for now assume they are constant
                             pass
