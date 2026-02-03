@@ -197,7 +197,8 @@ struct BaseOffset {
 };
 
 struct ReturnResultLocation {
-  std::string dst;
+  std::string dst_reg;
+  BaseOffset dst_mem;
   std::string end_label;
 };
 
@@ -212,8 +213,6 @@ SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
                                      const TargetArchConfig& ta);
 void EmitStmt(Node node, const ReturnResultLocation& result,
               const TargetArchConfig& ta, IdGenIR* id_gen);
-
-
 
 std::string_view GetSuffixForStorage(STORAGE_KIND kind) {
   switch (kind) {
@@ -332,7 +331,31 @@ std::string FormatNumber(Node node) {
 
 void EmitExprToMemory(Node node, const BaseOffset& dst,
                       const TargetArchConfig& ta, IdGenIR* id_gen) {
-  // TODO
+  switch (node.kind()) {
+    case NT::ExprCall:
+    case NT::ValNum:
+    case NT::ExprAddrOf:
+    case NT::Expr1:
+    case NT::Expr2:
+    case NT::ExprPointer:
+    case NT::ExprFront: {
+      std::string op = EmitExpr(node, ta, id_gen);
+      std::cout << kTAB << "st " << dst.base << " " << dst.offset << " = " << op
+                << "\n";
+      break;
+    }
+    case NT::ExprStmt: {
+      std::string end_label = id_gen->NameNewNext(NameNew("end_expr"));
+      ReturnResultLocation rrl("", dst, end_label);
+      for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
+        EmitStmt(s, rrl, ta, id_gen);
+      }
+      std::cout << kTAB << ".bbl " << end_label << "\n";
+      break;
+    }
+    default:
+      break;
+  }
 }
 
 uint64_t AllBitsSet(uint64_t n) {
@@ -421,11 +444,11 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       ReturnResultLocation rrl;
 
       if (CanonType_size(ct) == 0) {
-        rrl.dst = std::string(DO_NOT_USE);
+        rrl.dst_reg = std::string(DO_NOT_USE);
       } else {
-        rrl.dst = id_gen->NameNewNext(NameNew("expr"));
-        std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " [" << rrl.dst
-                  << "]\n";
+        rrl.dst_reg = id_gen->NameNewNext(NameNew("expr"));
+        std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " ["
+                  << rrl.dst_reg << "]\n";
       }
       rrl.end_label = id_gen->NameNewNext(NameNew("end_expr"));
       for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
@@ -433,7 +456,7 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       }
 
       std::cout << kTAB << ".bbl " << rrl.end_label << "\n";
-      return rrl.dst;
+      return rrl.dst_reg;
     }
     case NT::ExprFront:
       return GetLValueAddress(Node_container(node), ta, id_gen)
@@ -447,8 +470,8 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
         return std::string(DO_NOT_USE);
       }
       std::string res = id_gen->NameNewNext(Node_name(rec_field));
-      std::cout << kTAB << "ld.mem " << res << ":" << CanonType_ir_regs(ct)
-                << " = " << addr << " " << Node_x_offset(rec_field) << "\n";
+      std::cout << kTAB << "ld " << res << ":" << CanonType_ir_regs(ct) << " = "
+                << addr << " " << Node_x_offset(rec_field) << "\n";
       return res;
     }
 
@@ -621,8 +644,9 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
                   << "\n";
         if (init.kind() != NT::ValUndef) {
           std::string base = id_gen->NameNewNext(NameNew("var_stk_base"));
-          std::cout << kTAB << "lea.stk " << base << ":" << ta.get_data_addr_kind_ir()
-                    << " " << NameData(Node_name(node)) << " 0 \n";
+          std::cout << kTAB << "lea.stk " << base << ":"
+                    << ta.get_data_addr_kind_ir() << " "
+                    << NameData(Node_name(node)) << " 0 \n";
           EmitExprToMemory(init, BaseOffset(base), ta, id_gen);
         }
       } else {
@@ -650,6 +674,18 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
     }
     case NT::StmtReturn:
       if (Node_x_target(node).kind() == NT::ExprStmt) {
+        if (CanonType_size(Node_x_type(node)) != 0) {
+          if (!result.dst_reg.empty()) {
+            std::string op = EmitExpr1(Node_expr_ret(node), ta, id_gen);
+            std::cout << kTAB << "mov " << result.dst_reg << " = " << op
+                      << "\n";
+          } else {
+            EmitExprToMemory(Node_expr_ret(node), result.dst_mem, ta, id_gen);
+          }
+        } else {
+          EmitExpr(Node_expr_ret(node), ta, id_gen);
+        }
+        std::cout << kTAB << "bra " << result.end_label << "\n";
       } else {
         Node ret = Node_expr_ret(node);
         std::string out = EmitExpr(ret, ta, id_gen);

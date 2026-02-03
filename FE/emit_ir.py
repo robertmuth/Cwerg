@@ -597,7 +597,7 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
        (this works in conjunction with the GlobalConstantPool)
     """
     assert init_node.x_type.size > 0, f"{init_node}"
-    if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ExprLen, cwast.ExprAddrOf,
+    if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ExprAddrOf,
                               cwast.Expr1, cwast.Expr2, cwast.ExprPointer, cwast.ExprFront)):
         reg = _EmitExpr(init_node, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
@@ -643,7 +643,7 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
         end_label = id_gen.NewName("end_expr")
         for c in init_node.body:
             _EmitStmt(c, ReturnResultLocation(dst, end_label), ta, id_gen)
-        print(f".bbl {end_label}  # block end")
+        print(f".bbl {end_label}")
     elif isinstance(init_node, cwast.ValString):
         assert False, f"NYI {init_node}"
     elif isinstance(init_node, cwast.ValAuto):
@@ -716,7 +716,8 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
                   ct.alignment} {ct.size}")
             if not isinstance(init, cwast.ValUndef):
                 base = id_gen.NewName("var_stk_base")
-                print(f"{TAB}lea.stk {base}:{ta.get_data_address_reg_type()} {node.name} 0")
+                print(
+                    f"{TAB}lea.stk {base}:{ta.get_data_address_reg_type()} {node.name} 0")
                 EmitExprToMemory(init, BaseOffset(base), ta, id_gen)
         elif isinstance(init, cwast.ValUndef):
             print(
@@ -752,7 +753,7 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
             else:
                 # nothing to save here
                 _EmitExpr(node.expr_ret, ta, id_gen)
-            print(f"{TAB}bra {result.end_label}  # end of expr")
+            print(f"{TAB}bra {result.end_label}")
         else:
             out = _EmitExpr(node.expr_ret, ta, id_gen)
             if node.expr_ret.x_type.size != 0:
