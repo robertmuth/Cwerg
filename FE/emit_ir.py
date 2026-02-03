@@ -170,12 +170,7 @@ _STORAGE_TO_MEM_SUFFIX = {
 
 def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig,
                       id_gen: identifier.IdGenIR) -> BaseOffset:
-    if isinstance(node, cwast.ExprIndex):
-        x_type: cwast.CanonType = node.container.x_type
-        assert x_type.is_vec(), f"{x_type}"
-        bo = _GetLValueAddress(node.container, ta, id_gen)
-        return bo.AddScaledOffsetExpr(node.expr_index, x_type.underlying_type().aligned_size(), ta, id_gen)
-    elif isinstance(node, cwast.ExprDeref):
+    if isinstance(node, cwast.ExprDeref):
         return BaseOffset(_EmitExpr(node.expr, ta, id_gen))
     elif isinstance(node, cwast.ExprField):
         bo = _GetLValueAddress(node.container, ta, id_gen)
@@ -200,6 +195,7 @@ def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig,
         # so that space for the result is allocated at the call site.
         # So here we only have to deal with StmtExpr
         ct = node.x_type
+        assert ct.ir_regs is o.DK.MEM
         name = id_gen.NewName("expr_stk_var")
         assert ct.size > 0
         print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
@@ -329,8 +325,7 @@ def _EmitConditional(cond, invert: bool, label_false: str, ta: type_corpus.Targe
         _EmitConditional(cond.expr, not invert, label_false, ta, id_gen)
     elif isinstance(cond, cwast.Expr2):
         _EmitConditionalExpr2(cond, invert, label_false, ta, id_gen)
-    elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt, cwast.ExprField,
-                           cwast.ExprIndex, cwast.ExprDeref)):
+    elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt, cwast.ExprField, cwast.ExprDeref)):
         op = _EmitExpr(cond, ta, id_gen)
         branch = "beq" if invert else "bne"
         print(f"{TAB}{branch} {op} 0 {label_false}")
@@ -382,12 +377,16 @@ def _EmitExpr2(node: cwast.Expr2, res, op1, op2, id_gen: identifier.IdGenIR):
         assert False, f"unsupported expression {kind}"
 
 
-def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
+def _EmitExpr1(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
+    ct = node.x_type
+    kind = node.unary_expr_kind
+    op = _EmitExpr(node.expr, ta, id_gen)
+    res = id_gen.NewName("expr1")
     res_type = ct.get_single_register_type()
-    ff = (1 << (8 * ct.base_type_kind.ByteSize())) - 1
     if kind is cwast.UNARY_EXPR_KIND.NEG:
         print(f"{TAB}sub {res}:{res_type} = 0 {op}")
     elif kind is cwast.UNARY_EXPR_KIND.NOT:
+        ff: int = (1 << (8 * node.x_type.base_type_kind.ByteSize())) - 1
         print(f"{TAB}xor {res}:{res_type} = 0x{ff:x} {op}")
     elif kind is cwast.UNARY_EXPR_KIND.ABS:
         # TODO: special case unsigned
@@ -398,6 +397,7 @@ def _EmitExpr1(kind: cwast.UNARY_EXPR_KIND, res, ct: cwast.CanonType, op):
         print(f"{TAB}sqrt {res}:{res_type} = {op}")
     else:
         assert False, f"unsupported expression {kind}"
+    return res
 
 
 def _FormatNumber(val: cwast.ValNum) -> str:
@@ -473,10 +473,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
     elif isinstance(node, cwast.ExprAddrOf):
         return _GetLValueAddress(node.expr_lhs, ta, id_gen).MaterializeBase(ta, id_gen)
     elif isinstance(node, cwast.Expr1):
-        op = _EmitExpr(node.expr, ta, id_gen)
-        res = id_gen.NewName("expr1")
-        _EmitExpr1(node.unary_expr_kind, res, node.x_type, op)
-        return res
+        return _EmitExpr1(node, ta, id_gen)
     elif isinstance(node, cwast.Expr2):
         op1 = _EmitExpr(node.expr1, ta, id_gen)
         op2 = _EmitExpr(node.expr2, ta, id_gen)
@@ -542,18 +539,12 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
             _EmitStmt(c, ReturnResultLocation(result, end_label), ta, id_gen)
         print(f".bbl {end_label}  # block end")
         return result
-    elif isinstance(node, cwast.ExprIndex):
-        src = _GetLValueAddress(node, ta, id_gen)
-        res = id_gen.NewName("at")
-        print(
-            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {src.base} {src.offset}")
-        return res
     elif isinstance(node, cwast.ExprFront):
         assert node.container.x_type.is_vec(), f"unexpected {node}"
         return _GetLValueAddress(node.container, ta, id_gen).MaterializeBase(ta, id_gen)
     elif isinstance(node, cwast.ExprField):
         recfield: cwast.RecField = node.field.GetRecFieldRef()
-        res = id_gen.NewName(f"field_{recfield.name}")
+        res = id_gen.NewName(recfield.name.name)
         addr = _GetLValueAddress(
             node.container, ta, id_gen).MaterializeBase(ta, id_gen)
         if node.x_type.size == 0:
@@ -642,7 +633,7 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
     elif isinstance(init_node, cwast.Id) and _StorageKindForId(init_node) is STORAGE_KIND.REGISTER:
         reg = _EmitId(init_node, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
-    elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprIndex, cwast.ExprField)):
+    elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprField)):
         src_base = _GetLValueAddress(init_node, ta, id_gen)
         src_type = init_node.x_type
         # if isinstance(init_node,  cwast.ExprField):
