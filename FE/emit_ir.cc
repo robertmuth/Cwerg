@@ -12,6 +12,8 @@
 
 namespace cwerg::fe {
 
+std::string_view DO_NOT_USE = "@DO_NOT_USE@";
+
 //
 class IterateValVec {
  public:
@@ -73,9 +75,9 @@ STORAGE_KIND StorageKindForId(Node node) {
     case NT::FunParam:
       return STORAGE_KIND::REGISTER;
     case NT::DefVar:
-      return IsDefOnStack(node) ? STORAGE_KIND::STACK : STORAGE_KIND::REGISTER;
+      return IsDefOnStack(def_node) ? STORAGE_KIND::STACK : STORAGE_KIND::REGISTER;
     default:
-      UNREACHABLE("");
+      UNREACHABLE("bad node type " << def_node);
       return STORAGE_KIND::INVALID;
   }
 }
@@ -138,14 +140,6 @@ void EmitFunctionHeader(std::string_view sig_name, std::string_view kind,
   }
   std::cout << "]\n";
 }
-// forward decls
-void EmitConditional(Node node, bool invert, std::string_view label_f,
-                     const TargetArchConfig& ta, IdGenIR* id_gen);
-
-std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen);
-
-SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
-                                     const TargetArchConfig& ta);
 
 constexpr std::string_view kTAB("  ");
 
@@ -159,12 +153,115 @@ void EmitFunctionProlog(Node node, IdGenIR* id_gen) {
   }
 }
 
+// forward decls
+std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen);
+
 struct BaseOffset {
   std::string base;
-  SizeOrDim offset;
+  SizeOrDim offset = 0;
+
+  BaseOffset AddScaledOffset(Node offset_expr, SizeOrDim scale,
+                             const TargetArchConfig& ta, IdGenIR* id_gen) {
+    std::string offset = EmitExpr(offset_expr, ta, id_gen);
+    if (scale != 1) {
+      std::string scaled = id_gen->NameNewNext(NameNew("scaled"));
+      std::cout << kTAB << "conv " << scaled << ":"
+                << EnumToString(ta.get_sint_kind_ir()) << " = " << ADJ_OFFSET
+                << "\n";
+      std::cout << kTAB << "mul " << offset << " = " << scaled << " " << scale
+                << "\n";
+      offset = scaled;
+    }
+    std::string new_base = id_gen->NameNewNext(NameNew("new_base"));
+    std::cout << kTAB << "lea " << new_base << ":"
+              << EnumToString(ta.get_data_addr_kind_ir()) << " = " << base
+              << " " << offset << "\n";
+    return {new_base, 0};
+  }
+
+  BaseOffset AddOffset(SizeOrDim offset) {
+    return {base, this->offset + offset};
+  }
+
+  std::string MaterializeBase(const TargetArchConfig& ta, IdGenIR* id_gen) {
+    if (offset == 0) return base;
+    std::string out = id_gen->NameNewNext(NameNew("at"));
+    std::cout << kTAB << "lea " << out << ":"
+              << EnumToString(ta.get_data_addr_kind_ir()) << " = " << base
+              << " " << offset << "\n";
+    return out;
+  }
 };
 
+// forward decls
+void EmitConditional(Node node, bool invert, std::string_view label_f,
+                     const TargetArchConfig& ta, IdGenIR* id_gen);
+
+void EmitExprToMemory(Node node, const BaseOffset& dst,
+                      const TargetArchConfig& ta, IdGenIR* id_gen);
+
+SizeOrDim EmitInitializerRecursively(Node node, CanonType ct, SizeOrDim offset,
+                                     const TargetArchConfig& ta);
+
 struct ReturnResultLocation {};
+
+std::string_view GetSuffixForStorage(STORAGE_KIND kind) {
+  switch (kind) {
+    case STORAGE_KIND::STACK:
+      return "stk";
+    case STORAGE_KIND::DATA:
+      return "mem";
+    default:
+      UNREACHABLE("bad storage kind " << int(kind));
+      return "";
+  }
+}
+
+BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
+                            IdGenIR* id_gen) {
+  switch (node.kind()) {
+    case NT::ExprIndex: {
+      CanonType ct = Node_x_type(Node_container(node));
+      BaseOffset base = GetLValueAddress(Node_container(node), ta, id_gen);
+
+      return base.AddScaledOffset(
+          Node_expr_index(node),
+          CanonType_aligned_size(CanonType_underlying_type(ct)), ta, id_gen);
+    }
+    case NT::ExprDeref:
+      return {EmitExpr(Node_expr(node), ta, id_gen)};
+    case NT::ExprField: {
+      BaseOffset base = GetLValueAddress(Node_container(node), ta, id_gen);
+      return base.AddOffset(Node_x_offset(Node_x_symbol(Node_field(node))));
+    }
+    case NT::Id: {
+      Name name = Node_name(Node_x_symbol(node));
+      std::string base = id_gen->NameNewNext(NameNew("lhsaddr"));
+      std::cout << kTAB << "lea." << GetSuffixForStorage(StorageKindForId(node))
+                << " " << base << ":"
+                << EnumToString(ta.get_data_addr_kind_ir()) << " = " << name
+                << " 0 \n";
+      return {base};
+    }
+    case NT::ExprNarrow:
+      return GetLValueAddress(Node_expr(node), ta, id_gen);
+    case NT::ExprStmt: {
+      CanonType ct = Node_x_type(node);
+      std::string name = id_gen->NameNewNext(NameNew("expr_stk_var"));
+      std::cout << kTAB << ".stk " << name << " " << CanonType_size(ct) << " "
+                << CanonType_alignment(ct) << "\n";
+      std::string base = id_gen->NameNewNext(NameNew("stmt_stk_base"));
+      std::cout << kTAB << "lea.stk " << base << ":"
+                << EnumToString(ta.get_data_addr_kind_ir()) << " " << name
+                << " 0 \n";
+      EmitExprToMemory(node, BaseOffset(base), ta, id_gen);
+      return {base};
+    }
+    default:
+      UNREACHABLE("");
+      return {""};
+  }
+}
 
 std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
   CanonType ct = Node_x_type(node);
@@ -237,7 +334,9 @@ std::string FormatNumber(Node node) {
 }
 
 void EmitExprToMemory(Node node, const BaseOffset& dst,
-                      const TargetArchConfig& ta, IdGenIR* id_gen) {}
+                      const TargetArchConfig& ta, IdGenIR* id_gen) {
+  // TODO
+}
 
 std::string EmitExprCall(Node node, const TargetArchConfig& ta,
                          IdGenIR* id_gen) {
@@ -276,8 +375,10 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       return FormatNumber(node);
     case NT::Id:
       return EmitId(node, ta, id_gen);
-    case NT::FunParam:
-      return NameData(Node_name(Node_x_symbol(node)));
+    case NT::ExprAddrOf:
+      return GetLValueAddress(Node_expr_lhs(node), ta, id_gen)
+          .MaterializeBase(ta, id_gen);
+
     default:
       return "";
   }

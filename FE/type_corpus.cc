@@ -92,7 +92,7 @@ CanonType CanonType_replacement_type(CanonType ct) {
 
 SizeOrDim CanonType_size(CanonType ct) { return gCanonTypeCore[ct].size; }
 
-int CanonType_aligned_size(CanonType ct) {
+SizeOrDim CanonType_aligned_size(CanonType ct) {
   return align(gCanonTypeCore[ct].size, gCanonTypeCore[ct].alignment);
 }
 

@@ -2,8 +2,8 @@
 // (c) Robert Muth - see LICENSE for more info
 
 #include <span>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "FE/cwast_gen.h"
 #include "IR/opcode_gen.h"
@@ -27,6 +27,18 @@ struct TargetArchConfig {
   BASE_TYPE_KIND get_uint_kind() const { return MakeUint(uint_bitwidth); }
   BASE_TYPE_KIND get_sint_kind() const { return MakeSint(sint_bitwidth); }
   BASE_TYPE_KIND get_typeid_kind() const { return MakeUint(typeid_bitwidth); }
+
+  DK get_data_addr_kind_ir() const {
+    return DKMake(DK_FLAVOR_A, data_addr_bitwidth);
+  }
+
+  DK get_code_addr_kind_ir() const {
+    return DKMake(DK_FLAVOR_C, code_addr_bitwidth);
+  }
+
+  DK get_uint_kind_ir() const { return DKMake(DK_FLAVOR_U, uint_bitwidth); }
+
+  DK get_sint_kind_ir() const { return DKMake(DK_FLAVOR_S, sint_bitwidth); }
 };
 
 constexpr TargetArchConfig STD_TARGET_X64 = {64, 64, 16, 64, 64, false};
@@ -51,6 +63,8 @@ extern int& CanonType_typeid(CanonType n);
 inline int align(int size, int alignment) {
   return (size + alignment - 1) / alignment * alignment;
 }
+
+extern SizeOrDim CanonType_aligned_size(CanonType n);
 
 inline bool CanonType_is_wrapped(CanonType ct) {
   return CanonType_kind(ct) == NT::DefType;
