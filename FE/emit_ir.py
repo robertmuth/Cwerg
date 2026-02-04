@@ -586,8 +586,8 @@ def _EmitZero(dst: BaseOffset, length, alignment,
 
 
 def _EmitValCompoundRecToMemory(val: cwast.ValCompound, dst: BaseOffset,
-                               ta: type_corpus.TargetArchConfig,
-                               id_gen: identifier.IdGenIR):
+                                ta: type_corpus.TargetArchConfig,
+                                id_gen: identifier.IdGenIR):
     if not val.inits:
         _EmitZero(dst, val.x_type.size, val.x_type.alignment, id_gen)
         return
@@ -608,15 +608,18 @@ def _EmitValCompoundVecToMemory(val: cwast.ValCompound, dst: BaseOffset,
                                 ta: type_corpus.TargetArchConfig,
                                 id_gen: identifier.IdGenIR):
     element_size: int = val.x_type.array_element_size()
+    alignment: int = val.x_type.alignment
+    last_point_val = None
     for index, c in enumerate(_IterateValVec(val.inits,
                                              val.x_type.array_dim(),
                                              val.x_srcloc)):
-        if c is None:
-            continue
-        if isinstance(c.value_or_undef, cwast.ValUndef):
-            continue
-        EmitExprToMemory(
-            c.value_or_undef, BaseOffset(dst.base, dst.offset_num + element_size * index), ta, id_gen)
+        if c is not None:
+            last_point_val = c.value_or_undef
+        if last_point_val is None:
+            _EmitZero(dst, element_size, alignment, id_gen)
+        elif not isinstance(last_point_val, cwast.ValUndef):
+            EmitExprToMemory(last_point_val, dst, ta, id_gen)
+        dst = dst.AddOffset(element_size)
 
 
 def EmitExprToMemory(init_node, dst: BaseOffset,
