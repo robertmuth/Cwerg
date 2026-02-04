@@ -478,7 +478,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
     elif isinstance(node, cwast.Expr1):
         return _EmitExpr1(node, ta, id_gen)
     elif isinstance(node, cwast.Expr2):
-       return _EmitExpr2(node, ta, id_gen)
+        return _EmitExpr2(node, ta, id_gen)
     elif isinstance(node, cwast.ExprPointer):
         base = BaseOffset(_EmitExpr(node.expr1, ta, id_gen))
         # TODO: add range check
@@ -581,9 +581,42 @@ def _EmitZero(dst: BaseOffset, length, alignment,
     while curr < length:
         while width > (length - curr):
             width //= 2
-        while curr + width <= length:
-            print(f"{TAB}st {dst.base} {dst.offset_num + curr} = 0:U{width * 8}")
-            curr += width
+        print(f"{TAB}st {dst.base} {dst.offset_num + curr} = 0:U{width * 8}")
+        curr += width
+
+
+def _EmitValCompoundRecToMemory(val: cwast.ValCompound, dst: BaseOffset,
+                               ta: type_corpus.TargetArchConfig,
+                               id_gen: identifier.IdGenIR):
+    if not val.inits:
+        _EmitZero(dst, val.x_type.size, val.x_type.alignment, id_gen)
+        return
+    for field, point in symbolize.IterateValRec(val.inits, val.x_type):
+        if field.x_type.size == 0:
+            continue
+        bo = dst.AddOffset(field.x_offset)
+        if point is None:
+            _EmitZero(bo, field.x_type.size,
+                      field.x_type.alignment, id_gen)
+        elif isinstance(point.value_or_undef, cwast.ValUndef):
+            pass
+        else:
+            EmitExprToMemory(point.value_or_undef, bo, ta, id_gen)
+
+
+def _EmitValCompoundVecToMemory(val: cwast.ValCompound, dst: BaseOffset,
+                                ta: type_corpus.TargetArchConfig,
+                                id_gen: identifier.IdGenIR):
+    element_size: int = val.x_type.array_element_size()
+    for index, c in enumerate(_IterateValVec(val.inits,
+                                             val.x_type.array_dim(),
+                                             val.x_srcloc)):
+        if c is None:
+            continue
+        if isinstance(c.value_or_undef, cwast.ValUndef):
+            continue
+        EmitExprToMemory(
+            c.value_or_undef, BaseOffset(dst.base, dst.offset_num + element_size * index), ta, id_gen)
 
 
 def EmitExprToMemory(init_node, dst: BaseOffset,
@@ -625,50 +658,30 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
         print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
     elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprField)):
         src_base = _GetLValueAddress(init_node, ta, id_gen)
-        src_type = init_node.x_type
+        ct = init_node.x_type
         # if isinstance(init_node,  cwast.ExprField):
         #    print ("@@@@@@", init_node, src_type)
-        _EmitCopy(dst, src_base, src_type.size, src_type.alignment, id_gen)
+        _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
     elif isinstance(init_node, cwast.ExprStmt):
         end_label = id_gen.NewName("end_expr")
         for c in init_node.body:
             _EmitStmt(c, ReturnResultLocation(dst, end_label), ta, id_gen)
         print(f".bbl {end_label}")
     elif isinstance(init_node, cwast.ValString):
+        # probably not happening because all ValStrings have ben move
+        # to initializers in the generated module.
         assert False, f"NYI {init_node}"
     elif isinstance(init_node, cwast.ValAuto):
         # TODO: check if auto is legit (maybe add a check for this in another phase)
         _EmitZero(dst, init_node.x_type.size,
                   init_node.x_type.alignment, id_gen)
     elif isinstance(init_node, cwast.ValCompound):
-        src_type = init_node.x_type
-        if src_type.is_rec():
-            if not init_node.inits:
-                _EmitZero(dst, src_type.size, src_type.alignment, id_gen)
-                return
-            for field, init in symbolize.IterateValRec(init_node.inits, src_type):
-                if init is None:
-                    _EmitZero(BaseOffset(dst.base, dst.offset_num+field.x_offset),
-                              field.x_type.size, field.x_type.alignment, id_gen)
-                elif isinstance(init.value_or_undef, cwast.ValUndef):
-                    pass
-                elif init.value_or_undef.x_type.size == 0:
-                    pass
-                else:
-                    EmitExprToMemory(init.value_or_undef, BaseOffset(
-                        dst.base, dst.offset_num+field.x_offset), ta, id_gen)
+        if init_node.x_type.is_rec():
+            _EmitValCompoundRecToMemory(init_node, dst, ta, id_gen)
         else:
-            assert src_type.is_vec()
-            element_size: int = src_type.array_element_size()
-            for index, c in enumerate(_IterateValVec(init_node.inits,
-                                                     init_node.x_type.array_dim(),
-                                                     init_node.x_srcloc)):
-                if c is None:
-                    continue
-                if isinstance(c.value_or_undef, cwast.ValUndef):
-                    continue
-                EmitExprToMemory(
-                    c.value_or_undef, BaseOffset(dst.base, dst.offset_num + element_size * index), ta, id_gen)
+            assert init_node.x_type.is_vec()
+            _EmitValCompoundVecToMemory(init_node, dst, ta, id_gen)
+
     else:
         assert False, f"NYI: {init_node}"
 
