@@ -183,11 +183,12 @@ struct BaseOffset {
     return {new_base, 0};
   }
 
-  BaseOffset AddOffset(SizeOrDim offset) {
+  BaseOffset AddOffset(SizeOrDim offset) const {
     return {base, this->offset + offset};
   }
 
-  std::string MaterializeBase(const TargetArchConfig& ta, IdGenIR* id_gen) {
+  std::string MaterializeBase(const TargetArchConfig& ta,
+                              IdGenIR* id_gen) const {
     if (offset == 0) return base;
     std::string out = id_gen->NameNewNext(NameNew("at"));
     std::cout << kTAB << "lea " << out << ":" << ta.get_data_addr_kind_ir()
@@ -329,6 +330,38 @@ std::string FormatNumber(Node node) {
   return out;
 }
 
+void EmitZero(BaseOffset dst, SizeOrDim length, SizeOrDim alignment,
+              IdGenIR* id_gen) {
+  SizeOrDim width = alignment;
+  SizeOrDim curr = 0;
+  while (curr < length) {
+    while (width > length - curr) width >>= 1;
+    std::cout << kTAB << "st " << dst.base << " " << dst.offset + curr
+              << " = 0:U" << width * 8 << "\n";
+    curr += width;
+  }
+}
+
+void EmitValCompoundRecToMemory(Node val, const BaseOffset& dst,
+                                const TargetArchConfig& ta, IdGenIR* id_gen) {
+  CanonType ct = Node_x_type(val);
+  if (Node_inits(val).isnull()) {
+    EmitZero(dst, CanonType_size(ct), CanonType_alignment(ct), id_gen);
+  }
+
+  IterateValRec it(Node_inits(val), Node_fields(CanonType_ast_node(ct)));
+  for (Node point = it.next(); !it.curr_field.isnull(); point = it.next()) {
+    CanonType field_ct = Node_x_type(it.curr_field);
+    BaseOffset bo = dst.AddOffset(Node_x_offset(it.curr_field));
+    if (point.isnull()) {
+      EmitZero(bo, CanonType_size(field_ct), CanonType_alignment(field_ct),
+               id_gen);
+    } else if (Node_value_or_undef(point).kind() != NT::ValUndef) {
+      EmitExprToMemory(Node_value_or_undef(point), bo, ta, id_gen);
+    }
+  }
+}
+
 void EmitExprToMemory(Node node, const BaseOffset& dst,
                       const TargetArchConfig& ta, IdGenIR* id_gen) {
   switch (node.kind()) {
@@ -345,7 +378,13 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
                 << "\n";
       break;
     }
-
+    case NT::ExprWrap:
+    case NT::ExprUnwrap:
+      return EmitExprToMemory(Node_expr(node), dst, ta, id_gen);
+    case NT::ExprWiden:
+      if (CanonType_size(Node_x_type(node)) != 0) {
+        return EmitExprToMemory(Node_expr(node), dst, ta, id_gen);
+      }
     case NT::ExprStmt: {
       std::string end_label = id_gen->NameNewNext(NameNew("end_expr"));
       ReturnResultLocation rrl("", dst, end_label);
@@ -353,6 +392,15 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
         EmitStmt(s, rrl, ta, id_gen);
       }
       std::cout << kTAB << ".bbl " << end_label << "\n";
+      break;
+    }
+    case NT::ValCompound: {
+      CanonType ct = Node_x_type(node);
+      if (CanonType_is_rec(ct)) {
+        EmitValCompoundRecToMemory(node, dst, ta, id_gen);
+      } else {
+        ASSERT(CanonType_is_vec(ct), "");
+      }
       break;
     }
     default:

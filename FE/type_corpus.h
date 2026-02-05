@@ -98,6 +98,10 @@ inline bool CanonType_is_vec(CanonType ct) {
   return CanonType_kind(ct) == NT::TypeVec;
 }
 
+inline bool CanonType_is_rec(CanonType ct) {
+  return CanonType_kind(ct) == NT::DefRec;
+}
+
 inline bool CanonType_is_span(CanonType ct) {
   return CanonType_kind(ct) == NT::TypeSpan;
 }

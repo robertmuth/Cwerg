@@ -573,11 +573,8 @@ def _EmitValCompoundRecToMemory(val: cwast.ValCompound, dst: BaseOffset,
             continue
         bo = dst.AddOffset(field.x_offset)
         if point is None:
-            _EmitZero(bo, field.x_type.size,
-                      field.x_type.alignment, id_gen)
-        elif isinstance(point.value_or_undef, cwast.ValUndef):
-            pass
-        else:
+            _EmitZero(bo, field.x_type.size, field.x_type.alignment, id_gen)
+        elif not isinstance(point.value_or_undef, cwast.ValUndef):
             EmitExprToMemory(point.value_or_undef, bo, ta, id_gen)
 
 
@@ -599,7 +596,7 @@ def _EmitValCompoundVecToMemory(val: cwast.ValCompound, dst: BaseOffset,
         dst = dst.AddOffset(element_size)
 
 
-def EmitExprToMemory(init_node, dst: BaseOffset,
+def EmitExprToMemory(node, dst: BaseOffset,
                      ta: type_corpus.TargetArchConfig,
                      id_gen: identifier.IdGenIR):
     """This will instantiate objects on the stack or heap.
@@ -609,61 +606,60 @@ def EmitExprToMemory(init_node, dst: BaseOffset,
     2) we copy the contents from a global const location
        (this works in conjunction with the GlobalConstantPool)
     """
-    assert init_node.x_type.size > 0, f"{init_node}"
-    if isinstance(init_node, (cwast.ExprCall, cwast.ValNum, cwast.ExprAddrOf,
+    assert node.x_type.size > 0, f"{node}"
+    if isinstance(node, (cwast.ExprCall, cwast.ValNum, cwast.ExprAddrOf,
                               cwast.Expr1, cwast.Expr2, cwast.ExprAs, cwast.ExprPointer, cwast.ExprFront)):
-        reg = _EmitExpr(init_node, ta, id_gen)
+        reg = _EmitExpr(node, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
-    elif isinstance(init_node, cwast.ExprBitCast):
+    elif isinstance(node, cwast.ExprBitCast):
         # both imply scalar and both do not change the bits
-        reg = _EmitExpr(init_node.expr, ta, id_gen)
+        reg = _EmitExpr(node.expr, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
-    elif isinstance(init_node, (cwast.ExprWrap, cwast.ExprUnwrap)):
+    elif isinstance(node, (cwast.ExprWrap, cwast.ExprUnwrap)):
         # these do NOT imply scalars
-        EmitExprToMemory(init_node.expr, dst, ta, id_gen)
-    elif isinstance(init_node, cwast.ExprNarrow):
+        EmitExprToMemory(node.expr, dst, ta, id_gen)
+    elif isinstance(node, cwast.ExprNarrow):
         # if we are narrowing the dst determines the size
-        ct: cwast.CanonType = init_node.x_type
+        ct: cwast.CanonType = node.x_type
         if ct.size != 0:
             src_base = _GetLValueAddress(
-                init_node.expr, ta, id_gen)
+                node.expr, ta, id_gen)
             _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
-    elif isinstance(init_node, cwast.ExprWiden):
-        assert init_node.x_type.is_untagged_union()
-        ct: cwast.CanonType = init_node.expr.x_type
-        if ct.size != 0:
-            EmitExprToMemory(init_node.expr, dst, ta, id_gen)
-    elif isinstance(init_node, cwast.Id) and _StorageKindForId(init_node) is STORAGE_KIND.REGISTER:
-        reg = _EmitId(init_node, id_gen)
+    elif isinstance(node, cwast.ExprWiden):
+        assert node.x_type.is_untagged_union()
+        if node.expr.x_type.size != 0:
+            EmitExprToMemory(node.expr, dst, ta, id_gen)
+    elif isinstance(node, cwast.Id) and _StorageKindForId(node) is STORAGE_KIND.REGISTER:
+        reg = _EmitId(node, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
-    elif isinstance(init_node, (cwast.Id, cwast.ExprDeref, cwast.ExprField)):
-        src_base = _GetLValueAddress(init_node, ta, id_gen)
-        ct = init_node.x_type
+    elif isinstance(node, (cwast.Id, cwast.ExprDeref, cwast.ExprField)):
+        src_base = _GetLValueAddress(node, ta, id_gen)
+        ct = node.x_type
         # if isinstance(init_node,  cwast.ExprField):
         #    print ("@@@@@@", init_node, src_type)
         _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
-    elif isinstance(init_node, cwast.ExprStmt):
+    elif isinstance(node, cwast.ExprStmt):
         end_label = id_gen.NewName("end_expr")
-        for c in init_node.body:
+        for c in node.body:
             _EmitStmt(c, ReturnResultLocation(dst, end_label), ta, id_gen)
         print(f".bbl {end_label}")
-    elif isinstance(init_node, cwast.ValString):
+    elif isinstance(node, cwast.ValString):
         # probably not happening because all ValStrings have ben move
         # to initializers in the generated module.
-        assert False, f"NYI {init_node}"
-    elif isinstance(init_node, cwast.ValAuto):
+        assert False, f"NYI {node}"
+    elif isinstance(node, cwast.ValAuto):
         # TODO: check if auto is legit (maybe add a check for this in another phase)
-        _EmitZero(dst, init_node.x_type.size,
-                  init_node.x_type.alignment, id_gen)
-    elif isinstance(init_node, cwast.ValCompound):
-        if init_node.x_type.is_rec():
-            _EmitValCompoundRecToMemory(init_node, dst, ta, id_gen)
+        _EmitZero(dst, node.x_type.size,
+                  node.x_type.alignment, id_gen)
+    elif isinstance(node, cwast.ValCompound):
+        if node.x_type.is_rec():
+            _EmitValCompoundRecToMemory(node, dst, ta, id_gen)
         else:
-            assert init_node.x_type.is_vec()
-            _EmitValCompoundVecToMemory(init_node, dst, ta, id_gen)
+            assert node.x_type.is_vec()
+            _EmitValCompoundVecToMemory(node, dst, ta, id_gen)
 
     else:
-        assert False, f"NYI: {init_node}"
+        assert False, f"NYI: {node}"
 
 
 def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
