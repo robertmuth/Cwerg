@@ -393,7 +393,7 @@ def GetDefaultForBaseType(bt: cwast.BASE_TYPE_KIND) -> Any:
         assert False
 
 
-def GetDefaultForType(ct: cwast.CanonType) -> Any:
+def GetDefaultForType(ct: cwast.CanonType) -> Optional[EvalBase]:
     if ct.is_base_type():
         return GetDefaultForBaseType(ct.base_type_kind)
     elif ct.is_wrapped():
@@ -506,7 +506,30 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
         return None
 
 
-def _GetValForVecAtPos(container_val: EvalBase, index: int, ct: cwast.CanonType):
+def IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
+    """Pairs given ValPoints from a ValCompound repesenting a Vec with their indices"""
+    curr_index = 0
+    for init in points:
+        if isinstance(init.point_or_undef, cwast.ValUndef):
+            yield init
+            curr_index += 1
+            continue
+        index = init.point_or_undef.x_eval.val
+        assert isinstance(index, int)
+        while curr_index < index:
+            yield None
+            curr_index += 1
+        yield init
+        curr_index += 1
+    if curr_index > dim:
+        cwast.CompilerError(
+            srcloc, f"Out of bounds array access at {curr_index}. Array size is  {dim}")
+    while curr_index < dim:
+        yield None
+        curr_index += 1
+
+
+def _GetValForVecAtPos(container_val: EvalBase, index: int, ct: cwast.CanonType) -> Optional[EvalBase]:
     if isinstance(container_val, EvalSpan):
         container_val = container_val.content
         if container_val is None:
@@ -523,20 +546,17 @@ def _GetValForVecAtPos(container_val: EvalBase, index: int, ct: cwast.CanonType)
     if init_node is None:
         return GetDefaultForType(ct)
 
-    assert index < init_node.x_type.array_dim()
+    width =  init_node.x_type.array_dim()
+    assert index < width
 
     assert isinstance(init_node, cwast.ValCompound), f"{init_node}"
-    n = 0
-    for point in init_node.inits:
-        if not isinstance(point.point_or_undef, cwast.ValUndef):
-            assert isinstance(point.point_or_undef.x_eval, EvalNum)
-            n = point.point_or_undef.x_eval.val
+    last: Optional[EvalBase] = None
+    for n, point in enumerate(IterateValVec(init_node.inits, width, init_node.x_srcloc)):
+        if point is not None:
+            last = point.value_or_undef.x_eval
         if n == index:
-            return point.value_or_undef.x_eval
-        if n > index:
-            break
-        n += 1
-    return GetDefaultForType(ct)
+            return last
+    assert False
 
 
 def _GetValForRecAtField(container_val, field: cwast.RecField):

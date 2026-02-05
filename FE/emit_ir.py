@@ -27,29 +27,6 @@ ZEROS = [b"\0" * i for i in range(128)]
 _DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
 
 
-def _IterateValVec(points: list[cwast.ValPoint], dim, srcloc):
-    """Pairs given ValPoints from a ValCompound repesenting a Vec with their indices"""
-    curr_index = 0
-    for init in points:
-        if isinstance(init.point_or_undef, cwast.ValUndef):
-            yield init
-            curr_index += 1
-            continue
-        index = init.point_or_undef.x_eval.val
-        assert isinstance(index, int)
-        while curr_index < index:
-            yield None
-            curr_index += 1
-        yield init
-        curr_index += 1
-    if curr_index > dim:
-        cwast.CompilerError(
-            srcloc, f"Out of bounds array access at {curr_index}. Array size is  {dim}")
-    while curr_index < dim:
-        yield None
-        curr_index += 1
-
-
 @enum.unique
 class STORAGE_KIND(enum.Enum):
     """Macro Parameter Kinds"""
@@ -610,9 +587,9 @@ def _EmitValCompoundVecToMemory(val: cwast.ValCompound, dst: BaseOffset,
     element_size: int = val.x_type.array_element_size()
     alignment: int = val.x_type.alignment
     last_point_val = None
-    for index, c in enumerate(_IterateValVec(val.inits,
-                                             val.x_type.array_dim(),
-                                             val.x_srcloc)):
+    for index, c in enumerate(eval.IterateValVec(val.inits,
+                                                 val.x_type.array_dim(),
+                                                 val.x_srcloc)):
         if c is not None:
             last_point_val = c.value_or_undef
         if last_point_val is None:
@@ -916,22 +893,23 @@ def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
         out = bytearray()
         last = _InitDataForBaseType(et,
                                     eval.GetDefaultForBaseType(et.base_type_kind))
-        for init in _IterateValVec(node.inits, width, node.x_srcloc):
-            if init is not None:
-                if isinstance(init.value_or_undef, cwast.ValUndef):
+        for point in eval.IterateValVec(node.inits, width, node.x_srcloc):
+            if point is not None:
+                if isinstance(point.value_or_undef, cwast.ValUndef):
                     last = ZEROS[et.size]
                 else:
-                    last = _InitDataForBaseType(et, init.x_eval)
+                    last = _InitDataForBaseType(et, point.x_eval)
             out += last
         return _EmitMem(out, offset, ct.name)
     else:
         print(f"# vec: {ct.name}")
+        # TODO: should this be zero
         last = cwast.ValUndef()
         stride = ct.size // width
         assert stride * width == ct.size, f"{ct.size} {width}"
-        for i, init in enumerate(_IterateValVec(node.inits, width, node.x_srcloc)):
-            if init is not None:
-                last = init.value_or_undef
+        for i, point in enumerate(eval.IterateValVec(node.inits, width, node.x_srcloc)):
+            if point is not None:
+                last = point.value_or_undef
             count = _EmitInitializerRecursively(
                 last, et, offset + i * stride, ta)
             if count != stride:

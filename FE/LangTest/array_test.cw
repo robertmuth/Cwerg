@@ -113,7 +113,7 @@ fun global_count() u32:
 
 
 fun test_complex_init() void:
-    let! a = {[10]u32: 0, 0, 1, 1, 0, global_count()}
+    let a = {[10]u32: 0, 0, 1, 1, 0, global_count()}
     test::AssertEq#(a[0], 0_u32)
     test::AssertEq#(a[1], 0_u32)
     test::AssertEq#(a[2], 1_u32)
