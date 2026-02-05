@@ -249,9 +249,9 @@ BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
     case NT::Id: {
       Name name = Node_name(Node_x_symbol(node));
       std::string base = id_gen->NameNewNext(NameNew("lhsaddr"));
-      std::cout << kTAB << "lea."
-                << GetSuffixForStorage(StorageKindForId(node)) << " " << base
-                << ":" << ta.get_data_addr_kind_ir() << " = " << name << " 0\n";
+      std::cout << kTAB << "lea." << GetSuffixForStorage(StorageKindForId(node))
+                << " " << base << ":" << ta.get_data_addr_kind_ir() << " = "
+                << name << " 0\n";
       return {base};
     }
 
@@ -365,8 +365,8 @@ void EmitCopy(BaseOffset dst, BaseOffset src, SizeOrDim length,
     while (curr + width <= length) {
       std::cout << kTAB << "ld " << tmp << " = " << src.base << " "
                 << src.offset + curr << "\n";
-      std::cout << kTAB << "st " << dst.base << " " << dst.offset + curr << " = "
-                << tmp << "\n";
+      std::cout << kTAB << "st " << dst.base << " " << dst.offset + curr
+                << " = " << tmp << "\n";
       curr += width;
     }
   }
@@ -446,7 +446,7 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
       for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
         EmitStmt(s, rrl, ta, id_gen);
       }
-      std::cout << kTAB << ".bbl " << end_label << "\n";
+      std::cout << ".bbl " << end_label << "\n";
       break;
     }
     case NT::ValCompound: {
@@ -674,7 +674,7 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
         EmitStmt(s, rrl, ta, id_gen);
       }
 
-      std::cout << kTAB << ".bbl " << rrl.end_label << "\n";
+      std::cout << ".bbl " << rrl.end_label << "\n";
       return rrl.dst_reg;
     }
     case NT::ExprFront:
@@ -959,10 +959,12 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
           EmitStmt(s, result, ta, id_gen);
         }
       } else if (!Node_body_t(node).isnull()) {
+        EmitConditional(Node_cond(node), true, label_join, ta, id_gen);
         for (Node s = Node_body_t(node); !s.isnull(); s = Node_next(s)) {
           EmitStmt(s, result, ta, id_gen);
         }
       } else {
+        EmitConditional(Node_cond(node), false, label_join, ta, id_gen);
         for (Node s = Node_body_f(node); !s.isnull(); s = Node_next(s)) {
           EmitStmt(s, result, ta, id_gen);
         }
