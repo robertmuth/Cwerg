@@ -100,8 +100,8 @@ class BaseOffset:
     offset_num: int = 0
 
     def AddScaledOffsetExpr(self, offset_expr, scale: int, ta: type_corpus.TargetArchConfig, id_gen) -> "BaseOffset":
-        if offset_expr.x_eval is not None:
-            return BaseOffset(self.base, offset_expr.x_eval.val * scale)
+        if isinstance(offset_expr, cwast.ValNum):
+            return BaseOffset(self.base, self.offset_num + offset_expr.x_eval.val * scale)
         offset = _EmitExpr(offset_expr, ta, id_gen)
         if scale != 1:
             scaled = id_gen.NewName("scaled")
@@ -460,13 +460,10 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         base = BaseOffset(_EmitExpr(node.expr1, ta, id_gen))
         # TODO: add range check
         # assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
-        ct: cwast.CanonType = node.expr1.x_type
-        if node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP:
-            base = base.AddScaledOffsetExpr(
-                node.expr2, ct.underlying_type().aligned_size(), ta, id_gen)
-            return base.MaterializeBase(ta, id_gen)
-        else:
-            assert False, f"unsupported expression {node}"
+        width = node.expr1.x_type.underlying_type().aligned_size()
+        assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP, f"NYI"
+        base = base.AddScaledOffsetExpr(node.expr2, width, ta, id_gen)
+        return base.MaterializeBase(ta, id_gen)
     elif isinstance(node, cwast.ExprBitCast):
         expr = _EmitExpr(node.expr, ta, id_gen)
         return _EmitCast(expr, node.expr.x_type, node.type.x_type, id_gen)
@@ -608,12 +605,9 @@ def EmitExprToMemory(node, dst: BaseOffset,
     """
     assert node.x_type.size > 0, f"{node}"
     if isinstance(node, (cwast.ExprCall, cwast.ValNum, cwast.ExprAddrOf,
-                              cwast.Expr1, cwast.Expr2, cwast.ExprAs, cwast.ExprPointer, cwast.ExprFront)):
+                         cwast.Expr1, cwast.Expr2, cwast.ExprAs, cwast.ExprPointer, cwast.ExprFront,
+                         cwast.ExprBitCast)):
         reg = _EmitExpr(node, ta, id_gen)
-        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
-    elif isinstance(node, cwast.ExprBitCast):
-        # both imply scalar and both do not change the bits
-        reg = _EmitExpr(node.expr, ta, id_gen)
         print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
     elif isinstance(node, (cwast.ExprWrap, cwast.ExprUnwrap)):
         # these do NOT imply scalars
@@ -629,14 +623,17 @@ def EmitExprToMemory(node, dst: BaseOffset,
         assert node.x_type.is_untagged_union()
         if node.expr.x_type.size != 0:
             EmitExprToMemory(node.expr, dst, ta, id_gen)
-    elif isinstance(node, cwast.Id) and _StorageKindForId(node) is STORAGE_KIND.REGISTER:
-        reg = _EmitId(node, id_gen)
-        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
-    elif isinstance(node, (cwast.Id, cwast.ExprDeref, cwast.ExprField)):
+    elif isinstance(node, cwast.Id):
+        if _StorageKindForId(node) is STORAGE_KIND.REGISTER:
+            reg = _EmitId(node, id_gen)
+            print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
+        else:
+            src_base = _GetLValueAddress(node, ta, id_gen)
+            ct = node.x_type
+            _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
+    elif isinstance(node, (cwast.ExprDeref, cwast.ExprField)):
         src_base = _GetLValueAddress(node, ta, id_gen)
         ct = node.x_type
-        # if isinstance(init_node,  cwast.ExprField):
-        #    print ("@@@@@@", init_node, src_type)
         _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
     elif isinstance(node, cwast.ExprStmt):
         end_label = id_gen.NewName("end_expr")
@@ -669,7 +666,7 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
     while curr < length:
         while width > (length - curr):
             width //= 2
-        tmp = id_gen.NewName(f"copy{width}")
+        tmp = id_gen.NewName("copy")
         print(f"{TAB}.reg U{width*8} [{tmp}]")
         while curr + width <= length:
             print(f"{TAB}ld {tmp} = {src.base} {src.offset_num + curr}")

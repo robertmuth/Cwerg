@@ -323,8 +323,10 @@ TypeCorpus::TypeCorpus(const TargetArchConfig& arch) : arch_config_(arch) {
                               BASE_TYPE_KIND::BOOL, BASE_TYPE_KIND::NORET}) {
     base_type_map_[int(kind)] = InsertBaseType(kind);
   }
-  base_type_map_[int(BASE_TYPE_KIND::SINT)] = base_type_map_[int(arch.get_sint_kind())];
-  base_type_map_[int(BASE_TYPE_KIND::UINT)] = base_type_map_[int(arch.get_uint_kind())];
+  base_type_map_[int(BASE_TYPE_KIND::SINT)] =
+      base_type_map_[int(arch.get_sint_kind())];
+  base_type_map_[int(BASE_TYPE_KIND::UINT)] =
+      base_type_map_[int(arch.get_uint_kind())];
   base_type_map_[int(BASE_TYPE_KIND::TYPEID)] =
       base_type_map_[int(arch.get_typeid_kind())];
 }

@@ -168,12 +168,22 @@ struct BaseOffset {
 
   BaseOffset AddScaledOffset(Node offset_expr, SizeOrDim scale,
                              const TargetArchConfig& ta, IdGenIR* id_gen) {
+    if (offset_expr.kind() == NT::ValNum) {
+      // TODO is this safe?
+      Const val = Node_x_eval(offset_expr);
+      if (IsSint(val.kind())) {
+        return {base, SizeOrDim(offset + scale * ConstGetSigned(val))};
+      } else {
+        ASSERT(IsUint(val.kind()), "");
+        return {base, SizeOrDim(offset + scale * ConstGetUnsigned(val))};
+      }
+    }
     std::string offset = EmitExpr(offset_expr, ta, id_gen);
     if (scale != 1) {
       std::string scaled = id_gen->NameNewNext(NameNew("scaled"));
       std::cout << kTAB << "conv " << scaled << ":" << ta.get_sint_kind_ir()
-                << " = " << ADJ_OFFSET << "\n";
-      std::cout << kTAB << "mul " << offset << " = " << scaled << " " << scale
+                << " = " << offset << "\n";
+      std::cout << kTAB << "mul " << scaled << " = " << scaled << " " << scale
                 << "\n";
       offset = scaled;
     }
@@ -239,11 +249,12 @@ BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
     case NT::Id: {
       Name name = Node_name(Node_x_symbol(node));
       std::string base = id_gen->NameNewNext(NameNew("lhsaddr"));
-      std::cout << kTAB << "lea." << GetSuffixForStorage(StorageKindForId(node))
-                << " " << base << ":" << ta.get_data_addr_kind_ir() << " = "
-                << name << " 0\n";
+      std::cout << kTAB << "lea."
+                << GetSuffixForStorage(StorageKindForId(node)) << " " << base
+                << ":" << ta.get_data_addr_kind_ir() << " = " << name << " 0\n";
       return {base};
     }
+
     case NT::ExprNarrow:
       return GetLValueAddress(Node_expr(node), ta, id_gen);
     case NT::ExprStmt: {
@@ -309,17 +320,18 @@ std::string FormatNumber(Node node) {
     case BASE_TYPE_KIND::U16:
     case BASE_TYPE_KIND::U32:
     case BASE_TYPE_KIND::U64:
-      out += std::to_string(ConstGetUnsigned(val));
+      out = std::to_string(ConstGetUnsigned(val));
+
       break;
     case BASE_TYPE_KIND::S8:
     case BASE_TYPE_KIND::S16:
     case BASE_TYPE_KIND::S32:
     case BASE_TYPE_KIND::S64:
-      out += std::to_string(ConstGetSigned(val));
+      out = std::to_string(ConstGetSigned(val));
       break;
     case BASE_TYPE_KIND::R32:
     case BASE_TYPE_KIND::R64:
-      out += std::to_string(ConstGetFloat(val));
+      out = std::to_string(ConstGetFloat(val));
       break;
     default:
       ASSERT(false, "UNREACHABLE");
@@ -339,6 +351,24 @@ void EmitZero(BaseOffset dst, SizeOrDim length, SizeOrDim alignment,
     std::cout << kTAB << "st " << dst.base << " " << dst.offset + curr
               << " = 0:U" << width * 8 << "\n";
     curr += width;
+  }
+}
+
+void EmitCopy(BaseOffset dst, BaseOffset src, SizeOrDim length,
+              SizeOrDim alignment, IdGenIR* id_gen) {
+  SizeOrDim width = alignment;
+  SizeOrDim curr = 0;
+  while (curr < length) {
+    while (width > length - curr) width >>= 1;
+    std::string tmp = id_gen->NameNewNext(NameNew("copy"));
+    std::cout << kTAB << ".reg U" << width * 8 << " [" << tmp << "]\n";
+    while (curr + width <= length) {
+      std::cout << kTAB << "ld " << tmp << " = " << src.base << " "
+                << src.offset + curr << "\n";
+      std::cout << kTAB << "st " << dst.base << " " << dst.offset + curr << " = "
+                << tmp << "\n";
+      curr += width;
+    }
   }
 }
 
@@ -371,6 +401,7 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
     case NT::ExprAs:
     case NT::Expr1:
     case NT::Expr2:
+    case NT::ExprBitCast:
     case NT::ExprPointer:
     case NT::ExprFront: {
       std::string op = EmitExpr(node, ta, id_gen);
@@ -378,6 +409,15 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
                 << "\n";
       break;
     }
+    case NT::ExprNarrow: {
+      CanonType ct = Node_x_type(node);
+      if (CanonType_size(ct) != 0) {
+        BaseOffset src = GetLValueAddress(node, ta, id_gen);
+        EmitCopy(dst, src, CanonType_size(ct), CanonType_alignment(ct), id_gen);
+      }
+      break;
+    }
+    //
     case NT::ExprWrap:
     case NT::ExprUnwrap:
       return EmitExprToMemory(Node_expr(node), dst, ta, id_gen);
@@ -385,6 +425,21 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
       if (CanonType_size(Node_x_type(node)) != 0) {
         return EmitExprToMemory(Node_expr(node), dst, ta, id_gen);
       }
+    case NT::Id:
+      if (StorageKindForId(node) == STORAGE_KIND::REGISTER) {
+        std::string res = EmitId(node, ta, id_gen);
+        std::cout << kTAB << "st " << dst.base << " " << dst.offset << " = "
+                  << res << "\n";
+        break;
+      }
+    // FALLTHROUGH
+    case NT::ExprField:
+    case NT::ExprDeref: {
+      CanonType ct = Node_x_type(node);
+      BaseOffset src = GetLValueAddress(node, ta, id_gen);
+      EmitCopy(dst, src, CanonType_size(ct), CanonType_alignment(ct), id_gen);
+      break;
+    }
     case NT::ExprStmt: {
       std::string end_label = id_gen->NameNewNext(NameNew("end_expr"));
       ReturnResultLocation rrl("", dst, end_label);
@@ -563,6 +618,14 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       return EmitExpr1(node, ta, id_gen);
     case NT::Expr2:
       return EmitExpr2(node, ta, id_gen);
+    case NT::ExprPointer: {
+      ASSERT(Node_pointer_expr_kind(node) == POINTER_EXPR_KIND::INCP, "");
+      SizeOrDim width = CanonType_aligned_size(
+          CanonType_underlying_type(Node_x_type(Node_expr1(node))));
+      BaseOffset bo(EmitExpr(Node_expr1(node), ta, id_gen));
+      return bo.AddScaledOffset(Node_expr2(node), width, ta, id_gen)
+          .MaterializeBase(ta, id_gen);
+    }
     case NT::ExprAs: {
       CanonType ct_dst = CanonType_get_unwrapped(Node_x_type(node));
       CanonType ct_src = CanonType_get_unwrapped(Node_x_type(Node_expr(node)));
