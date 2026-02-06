@@ -18,7 +18,7 @@ struct TK_RAW {
   std::string_view text = std::string_view();
 };
 
-struct LexerStats{
+struct LexerStats {
   uint32_t num_files = 0;
   uint32_t num_lines = 0;
 };
@@ -55,7 +55,6 @@ class LexerRaw {
     stats.num_lines += line_no_;
   }
 
-
   const SrcLoc& GetSrcLoc() { return srcloc_; }
 
   int LinesProcessed() { return line_no_; }
@@ -80,8 +79,7 @@ class Lexer {
   TK peek_cached_;
 
  public:
-  Lexer(std::string_view input, Name file_id)
-      : lexer_raw_(input, file_id) {}
+  Lexer(std::string_view input, Name file_id) : lexer_raw_(input, file_id) {}
 
   TK Peek() {
     if (!peek_valid_) {
@@ -92,7 +90,6 @@ class Lexer {
   }
 
   int LinesProcessed() { return lexer_raw_.LinesProcessed(); }
-
 
   bool Match(TK_KIND kind, std::string_view text = std::string_view()) {
     Peek();
@@ -110,8 +107,8 @@ class Lexer {
       peek_valid_ = false;
       return;
     }
-    ASSERT(false, "expected: " << EnumToString(kind) << " " << " got "
-                               << peek_cached_);
+    UNREACHABLE("expected: " << EnumToString(kind) << " " << " got "
+                             << peek_cached_);
     abort();
   }
 
@@ -121,7 +118,7 @@ class Lexer {
       peek_valid_ = false;
       return peek_cached_;
     }
-    ASSERT(false, "expected ID: " << " got " << peek_cached_);
+    UNREACHABLE("expected ID: " << " got " << peek_cached_);
     abort();
     return peek_cached_;
   }

@@ -317,7 +317,7 @@ std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
         return NameData(Node_name(def_node));
       }
     default:
-      ASSERT(false, "unexpected node " << node);
+      UNREACHABLE("unexpected node " << node);
       return "";
   }
 }
@@ -840,40 +840,40 @@ void EmitConditionalExpr2(Node cond, bool invert, std::string_view label_f,
   }
 }
 
-void EmitConditional(Node node, bool invert, std::string_view label_f,
+void EmitConditional(Node cond, bool invert, std::string_view label_f,
                      const TargetArchConfig& ta, IdGenIR* id_gen) {
-  if (Node_x_eval(node) != kConstInvalid) {
-    if (ConstGetUnsigned(Node_x_eval(node)) != invert) {
+  if (Node_x_eval(cond) != kConstInvalid) {
+    if (ConstGetUnsigned(Node_x_eval(cond)) != invert) {
       std::cout << kTAB << "bra " << label_f << "\n";
     }
     return;
   }
 
-  switch (node.kind()) {
+  switch (cond.kind()) {
     case NT::Expr1:
-      ASSERT(Node_unary_expr_kind(node) == UNARY_EXPR_KIND::NOT, "");
-      EmitConditional(Node_expr(node), !invert, label_f, ta, id_gen);
+      ASSERT(Node_unary_expr_kind(cond) == UNARY_EXPR_KIND::NOT, "");
+      EmitConditional(Node_expr(cond), !invert, label_f, ta, id_gen);
       break;
     case NT::Expr2:
-      EmitConditionalExpr2(node, invert, label_f, ta, id_gen);
+      EmitConditionalExpr2(cond, invert, label_f, ta, id_gen);
       break;
     case NT::ExprCall:
     case NT::ExprStmt:
     case NT::ExprField:
     case NT::ExprDeref: {
-      std::string op = EmitExpr(Node_expr(node), ta, id_gen);
+      std::string op = EmitExpr(cond, ta, id_gen);
       std::cout << kTAB << (invert ? "beq " : "bne ") << op << " 0 " << label_f
                 << "\n";
       break;
     }
     case NT::Id: {
-      std::string op = EmitId(node, ta, id_gen);
+      std::string op = EmitId(cond, ta, id_gen);
       std::cout << kTAB << (invert ? "beq " : "bne ") << op << " 0 " << label_f
                 << "\n";
       break;
     }
     default:
-      ASSERT(false, "NYI");
+      UNREACHABLE("NYI");
       break;
   }
 }
@@ -914,8 +914,8 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
         }
       } else {
         if (init.kind() == NT::ValUndef) {
-          std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " " << name
-                    << "\n";
+          std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " [" << name
+                    << "]\n";
         } else {
           std::string out = EmitExpr(init, ta, id_gen);
           std::cout << kTAB << "mov " << name << ":" << CanonType_ir_regs(ct)

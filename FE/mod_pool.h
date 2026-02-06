@@ -51,7 +51,7 @@ struct ModId {
       NT ka = Node_kind(a);
       NT kb = Node_kind(b);
       if (ka != kb) return ka < kb;
-      ASSERT(false, "ModId operator< not fully implemented");
+      UNREACHABLE("ModId operator< not fully implemented");
     }
     return false;
   }
