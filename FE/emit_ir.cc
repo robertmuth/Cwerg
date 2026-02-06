@@ -517,15 +517,15 @@ std::string EmitExpr1(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
   std::string op = EmitExpr(Node_expr(node), ta, id_gen);
   std::string res = id_gen->NameNewNext(NameNew("expr1"));
   switch (Node_unary_expr_kind(node)) {
-    case UNARY_EXPR_KIND::NEG: {
+    case UNARY_EXPR_KIND::NOT: {
       auto ff =
           AllBitsSet(8 * BaseTypeKindByteSize(CanonType_base_type_kind(ct)));
-      std::cout << kTAB << "sub " << res << ":" << CanonType_ir_regs(ct)
-                << " = 0x" << std::hex << ff << " " << op << "\n";
+      std::cout << kTAB << "xor " << res << ":" << CanonType_ir_regs(ct)
+                << " = 0x" << std::hex << ff << std::dec << " " << op << "\n";
       break;
     }
-    case UNARY_EXPR_KIND::NOT: {
-      std::cout << kTAB << "xor " << res << ":" << CanonType_ir_regs(ct)
+    case UNARY_EXPR_KIND::NEG: {
+      std::cout << kTAB << "sub " << res << ":" << CanonType_ir_regs(ct)
                 << " = 0 " << op << "\n";
       break;
     }
@@ -844,7 +844,7 @@ void EmitConditional(Node node, bool invert, std::string_view label_f,
                      const TargetArchConfig& ta, IdGenIR* id_gen) {
   if (Node_x_eval(node) != kConstInvalid) {
     if (ConstGetUnsigned(Node_x_eval(node)) != invert) {
-      std::cout << kTAB << ".bra " << label_f << "\n";
+      std::cout << kTAB << "bra " << label_f << "\n";
     }
     return;
   }
@@ -926,10 +926,10 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
     }
     case NT::StmtBlock: {
       Name name = Node_label(node);
-      if (name.isnull()) {
+      if (NameIsEmpty(name)) {
         name = NameNew("_");
       }
-      Node_name(node) = NameNew(id_gen->NameNewNext(name));
+      Node_label(node) = NameNew(id_gen->NameNewNext(name));
       std::cout << ".bbl " << NameData(Node_label(node)) << "\n";
       for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
         EmitStmt(s, rrl, ta, id_gen);
@@ -961,12 +961,12 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
       }
       break;
     case NT::StmtBreak:
-      std::cout << kTAB << ".bra " << NameData(Node_label(Node_x_target(node)))
+      std::cout << kTAB << "bra " << NameData(Node_label(Node_x_target(node)))
                 << ".end  # break\n";
       break;
     case NT::StmtContinue:
-      std::cout << kTAB << ".bra " << NameData(Node_label(Node_x_target(node)))
-                << "  # break\n";
+      std::cout << kTAB << "bra " << NameData(Node_label(Node_x_target(node)))
+                << "  # continue\n";
       break;
     case NT::StmtExpr: {
       CanonType ct = Node_x_type(Node_expr(node));
@@ -995,7 +995,7 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
           last_s = s;
         }
         if (!ChangesControlFlow(last_s)) {
-          std::cout << kTAB << ".bra " << label_join << "\n";
+          std::cout << kTAB << "bra " << label_join << "\n";
         }
 
         std::cout << ".bbl " << label_f << "\n";
