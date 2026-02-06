@@ -23,10 +23,10 @@ std::string_view DO_NOT_USE = "@DO_NOT_USE@";
 class IterateValVec {
  public:
   IterateValVec(Node point, SizeOrDim dim, const SrcLoc& sl)
-      : point_(point), dim_(dim), sl_(sl) {}
+      : next_point_(point), dim_(dim), sl_(sl) {}
 
   Node next() {
-    if (point_.isnull()) {
+    if (next_point_.isnull()) {
       ASSERT(curr_index_ < dim_, "");
 
       if (curr_index_ < dim_) {
@@ -34,26 +34,26 @@ class IterateValVec {
         return kNodeInvalid;
       }
     }
-    if (Node_point_or_undef(point_).kind() == NT::ValUndef) {
+    if (Node_point_or_undef(next_point_).kind() == NT::ValUndef) {
       ++curr_index_;
-      Node out = point_;
-      point_ = Node_next(point_);
+      Node out = next_point_;
+      next_point_ = Node_next(next_point_);
       return out;
     }
     SizeOrDim target_index =
-        ConstGetUnsigned(Node_x_eval(Node_point_or_undef(point_)));
+        ConstGetUnsigned(Node_x_eval(Node_point_or_undef(next_point_)));
     if (curr_index_ < target_index) {
       ++curr_index_;
       return kNodeInvalid;
     }
     ++curr_index_;
-    Node out = point_;
-    point_ = Node_next(point_);
+    Node out = next_point_;
+    next_point_ = Node_next(next_point_);
     return out;
   }
 
  private:
-  Node point_;
+  Node next_point_;
   SizeOrDim dim_;
   SizeOrDim curr_index_ = 0;
   const SrcLoc& sl_;
@@ -207,11 +207,23 @@ struct BaseOffset {
   }
 };
 
+std::ostream& operator<<(std::ostream& os, const BaseOffset& bo) {
+  os << "BaseOffset(" << bo.base << ", " << bo.offset << ")";
+  return os;
+}
+
 struct ReturnResultLocation {
   std::string dst_reg;
   BaseOffset dst_mem;
   std::string end_label;
 };
+
+std::ostream& operator<<(std::ostream& os, const ReturnResultLocation& rrl) {
+  os << "ReturnResultLocation(" << rrl.dst_reg << ", " << rrl.dst_mem << ", "
+     << rrl.end_label << ")";
+  return os;
+}
+
 
 // forward decls
 void EmitConditional(Node node, bool invert, std::string_view label_f,
@@ -392,6 +404,29 @@ void EmitValCompoundRecToMemory(Node val, const BaseOffset& dst,
   }
 }
 
+void EmitValCompoundVecToMemory(Node val, BaseOffset dst,
+                                const TargetArchConfig& ta, IdGenIR* id_gen) {
+  CanonType ct = Node_x_type(val);
+  SizeOrDim dim = CanonType_vec_dim(ct);
+  SizeOrDim element_size = CanonType_size(ct) / dim;
+  SizeOrDim alignment = CanonType_alignment(ct);
+  Node last = kNodeInvalid;
+
+  IterateValVec it(Node_inits(val), dim, Node_srcloc(val));
+  for (SizeOrDim i = 0; i < dim; ++i) {
+    Node point = it.next();
+    if (!point.isnull()) {
+      last = Node_value_or_undef(point);
+    }
+    if (last.isnull()) {
+      EmitZero(dst, element_size, alignment, id_gen);
+    } else if (last.kind() != NT::ValUndef) {
+      EmitExprToMemory(last, dst, ta, id_gen);
+    }
+    dst = dst.AddOffset(element_size);
+  }
+}
+
 void EmitExprToMemory(Node node, const BaseOffset& dst,
                       const TargetArchConfig& ta, IdGenIR* id_gen) {
   switch (node.kind()) {
@@ -455,6 +490,7 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
         EmitValCompoundRecToMemory(node, dst, ta, id_gen);
       } else {
         ASSERT(CanonType_is_vec(ct), "");
+        EmitValCompoundVecToMemory(node, dst, ta, id_gen);
       }
       break;
     }
@@ -845,7 +881,7 @@ bool ChangesControlFlow(Node node) {
   }
 }
 
-void EmitStmt(Node node, const ReturnResultLocation& result,
+void EmitStmt(Node node, const ReturnResultLocation& rrl,
               const TargetArchConfig& ta, IdGenIR* id_gen) {
   switch (node.kind()) {
     case NT::DefVar: {
@@ -888,25 +924,26 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
       Node_name(node) = NameNew(id_gen->NameNewNext(name));
       std::cout << ".bbl " << NameData(Node_label(node)) << "\n";
       for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
-        EmitStmt(s, result, ta, id_gen);
+        EmitStmt(s, rrl, ta, id_gen);
       }
       std::cout << ".bbl " << NameData(Node_name(node)) << ".end" << "\n";
       break;
     }
     case NT::StmtReturn:
       if (Node_x_target(node).kind() == NT::ExprStmt) {
-        if (CanonType_size(Node_x_type(node)) != 0) {
-          if (!result.dst_reg.empty()) {
-            std::string op = EmitExpr1(Node_expr_ret(node), ta, id_gen);
-            std::cout << kTAB << "mov " << result.dst_reg << " = " << op
+        Node ret = Node_expr_ret(node);
+        if (CanonType_size(Node_x_type(ret)) != 0) {
+          if (!rrl.dst_reg.empty()) {
+            std::string op = EmitExpr(ret, ta, id_gen);
+            std::cout << kTAB << "mov " << rrl.dst_reg << " = " << op
                       << "\n";
           } else {
-            EmitExprToMemory(Node_expr_ret(node), result.dst_mem, ta, id_gen);
+            EmitExprToMemory(ret, rrl.dst_mem, ta, id_gen);
           }
         } else {
-          EmitExpr(Node_expr_ret(node), ta, id_gen);
+          EmitExpr(ret, ta, id_gen);
         }
-        std::cout << kTAB << "bra " << result.end_label << "\n";
+        std::cout << kTAB << "bra " << rrl.end_label << "\n";
       } else {
         Node ret = Node_expr_ret(node);
         std::string out = EmitExpr(ret, ta, id_gen);
@@ -947,7 +984,7 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
         EmitConditional(Node_cond(node), true, label_f, ta, id_gen);
         Node last_s = kNodeInvalid;
         for (Node s = Node_body_t(node); !s.isnull(); s = Node_next(s)) {
-          EmitStmt(s, result, ta, id_gen);
+          EmitStmt(s, rrl, ta, id_gen);
           last_s = s;
         }
         if (!ChangesControlFlow(last_s)) {
@@ -956,17 +993,17 @@ void EmitStmt(Node node, const ReturnResultLocation& result,
 
         std::cout << ".bbl " << label_f << "\n";
         for (Node s = Node_body_f(node); !s.isnull(); s = Node_next(s)) {
-          EmitStmt(s, result, ta, id_gen);
+          EmitStmt(s, rrl, ta, id_gen);
         }
       } else if (!Node_body_t(node).isnull()) {
         EmitConditional(Node_cond(node), true, label_join, ta, id_gen);
         for (Node s = Node_body_t(node); !s.isnull(); s = Node_next(s)) {
-          EmitStmt(s, result, ta, id_gen);
+          EmitStmt(s, rrl, ta, id_gen);
         }
       } else {
         EmitConditional(Node_cond(node), false, label_join, ta, id_gen);
         for (Node s = Node_body_f(node); !s.isnull(); s = Node_next(s)) {
-          EmitStmt(s, result, ta, id_gen);
+          EmitStmt(s, rrl, ta, id_gen);
         }
       }
       std::cout << ".bbl " << label_join << "\n";
@@ -1104,7 +1141,7 @@ SizeOrDim EmitInitializerVec(Node node, CanonType ct, SizeOrDim offset,
   }
 
   ASSERT(node.kind() == NT::ValCompound, "");
-  SizeOrDim dim = CanonType_dim(ct);
+  SizeOrDim dim = CanonType_vec_dim(ct);
   CanonType et = CanonType_get_unwrapped(CanonType_underlying_type(ct));
   if (CanonType_kind(et) == NT::TypeBase) {
     IterateValVec iv(Node_inits(node), dim, Node_srcloc(node));

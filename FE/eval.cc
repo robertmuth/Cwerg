@@ -139,7 +139,7 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
   if (IsVecToSpanConversion(src_type, dst_type)) {
     if (src_value.isnull()) {
       return ConstNewSpan(
-          {kNodeInvalid, CanonType_dim(src_type), kConstInvalid});
+          {kNodeInvalid, CanonType_vec_dim(src_type), kConstInvalid});
     }
     ASSERT(src_value.kind() == BASE_TYPE_KIND::COMPOUND ||
                src_value.kind() == BASE_TYPE_KIND::BYTES,
@@ -147,7 +147,7 @@ Const EvalValWithPossibleImplicitConversion(CanonType dst_type, Node src_node) {
     Node pointer =
         src_node.kind() == NT::Id ? Node_x_symbol(src_node) : kNodeInvalid;
 
-    return ConstNewSpan({pointer, CanonType_dim(src_type), src_value});
+    return ConstNewSpan({pointer, CanonType_vec_dim(src_type), src_value});
   }
   return src_value;
 }
@@ -635,7 +635,7 @@ Const EvalNode(Node node) {
       BASE_TYPE_KIND bt =
           CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
       if (CanonType_kind(Node_x_type(cont)) == NT::TypeVec) {
-        return ConstNewUnsigned(CanonType_dim(Node_x_type(cont)), bt);
+        return ConstNewUnsigned(CanonType_vec_dim(Node_x_type(cont)), bt);
       } else {
         Const val_cont = Node_x_eval(cont);
         ASSERT(CanonType_kind(Node_x_type(cont)) == NT::TypeSpan,

@@ -75,7 +75,7 @@ CanonType CanonType_original_type(CanonType ct) {
   return gCanonTypeCore[ct].original_type;
 }
 
-SizeOrDim CanonType_dim(CanonType ct) {
+SizeOrDim CanonType_vec_dim(CanonType ct) {
   ASSERT(CanonType_kind(ct) == NT::TypeVec, "");
   return gCanonTypeCore[ct].dim;
 }
@@ -405,7 +405,7 @@ SizeAndAlignment GetSizeAndAlignment(CanonType ct, const TargetArchConfig& ta) {
     }
     case NT::TypeVec: {
       CanonType ct_dep = CanonType_underlying_type(ct);
-      auto dim = CanonType_dim(ct);
+      auto dim = CanonType_vec_dim(ct);
       auto elem_size = CanonType_aligned_size(ct_dep);
       return {SizeOrDim(elem_size * dim), CanonType_alignment(ct_dep)};
     }

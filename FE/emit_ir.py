@@ -578,12 +578,12 @@ def _EmitValCompoundRecToMemory(val: cwast.ValCompound, dst: BaseOffset,
 def _EmitValCompoundVecToMemory(val: cwast.ValCompound, dst: BaseOffset,
                                 ta: type_corpus.TargetArchConfig,
                                 id_gen: identifier.IdGenIR):
-    element_size: int = val.x_type.array_element_size()
-    alignment: int = val.x_type.alignment
+    dim = val.x_type.array_dim()
+    element_size: int = val.x_type.size // dim
+    alignment: int = val.x_type.alignment  # alignment of vec is same as elements
     last_point_val = None
-    for index, c in enumerate(eval.IterateValVec(val.inits,
-                                                 val.x_type.array_dim(),
-                                                 val.x_srcloc)):
+    for index, c in enumerate(eval.IterateValVec(
+            val.inits, dim, val.x_srcloc)):
         if c is not None:
             last_point_val = c.value_or_undef
         if last_point_val is None:
@@ -714,20 +714,20 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
             _EmitStmt(c, result, ta, id_gen)
         print(f".bbl {node.label}.end")
     elif isinstance(node, cwast.StmtReturn):
+        ret = node.expr_ret
         if isinstance(node.x_target, cwast.ExprStmt):
             assert result is not None
-
             # for this kind of return we need to save the computed value
             # and the branch to the end of the ExprStmt
-            if node.expr_ret.x_type.size != 0:
+            if ret.x_type.size != 0:
                 if isinstance(result.dst, str):
-                    out = _EmitExpr(node.expr_ret, ta, id_gen)
-                    print(f"{TAB}mov {result.dst} {out}")
+                    out = _EmitExpr(ret, ta, id_gen)
+                    print(f"{TAB}mov {result.dst} = {out}")
                 else:
-                    EmitExprToMemory(node.expr_ret, result.dst, ta, id_gen)
+                    EmitExprToMemory(ret, result.dst, ta, id_gen)
             else:
                 # nothing to save here
-                _EmitExpr(node.expr_ret, ta, id_gen)
+                _EmitExpr(ret, ta, id_gen)
             print(f"{TAB}bra {result.end_label}")
         else:
             out = _EmitExpr(node.expr_ret, ta, id_gen)

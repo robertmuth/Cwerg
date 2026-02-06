@@ -999,10 +999,6 @@ class CanonType:
         assert self.is_vec()
         return self.dim
 
-    def array_element_size(self):
-        assert self.is_vec()
-        return self.size // self.dim
-
     def is_mutable(self) -> bool:
         return self.mut
 
