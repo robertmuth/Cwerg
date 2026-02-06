@@ -1,5 +1,6 @@
 #include "FE/pp_ast.h"
 
+#include <algorithm>
 #include <fstream>
 #include <functional>
 #include <iomanip>
