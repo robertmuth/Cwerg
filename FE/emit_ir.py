@@ -465,8 +465,8 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         base = base.AddScaledOffsetExpr(node.expr2, width, ta, id_gen)
         return base.MaterializeBase(ta, id_gen)
     elif isinstance(node, cwast.ExprBitCast):
-        expr = _EmitExpr(node.expr, ta, id_gen)
-        return _EmitCast(expr, node.expr.x_type, node.type.x_type, id_gen)
+        src = _EmitExpr(node.expr, ta, id_gen)
+        return _EmitCast(src, node.expr.x_type, node.type.x_type, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
         addr = _GetLValueAddress(
             node.expr, ta, id_gen).MaterializeBase(ta, id_gen)
@@ -483,10 +483,10 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         ct_dst = node.x_type.get_unwrapped()
         if ct_src.is_base_type() and ct_dst.is_base_type():
             # more compatibility checking needed
-            expr = _EmitExpr(node.expr, ta, id_gen)
+            src = _EmitExpr(node.expr, ta, id_gen)
             res = id_gen.NewName("as")
             print(
-                f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {expr}")
+                f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {src}")
             return res
         elif ct_src.is_ptr() and ct_dst.is_ptr():
             return _EmitExpr(node.expr, ta, id_gen)
@@ -567,6 +567,9 @@ def _EmitValCompoundRecToMemory(val: cwast.ValCompound, dst: BaseOffset,
         return
     for field, point in symbolize.IterateValRec(val.inits, val.x_type):
         if field.x_type.size == 0:
+            if point is not None and not isinstance(point.value_or_undef, cwast.ValUndef):
+                # NOTE: result is not used
+                _EmitExpr(point.value_or_undef, ta, id_gen)
             continue
         bo = dst.AddOffset(field.x_offset)
         if point is None:

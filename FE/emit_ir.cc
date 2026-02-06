@@ -72,11 +72,12 @@ bool IsDefOnStack(Node node) {
 }
 
 STORAGE_KIND StorageKindForId(Node node) {
-  ASSERT(node.kind() == NT::Id, "");
+  ASSERT(node.kind() == NT::Id, "unexpected arg " << node);
   Node def_node = Node_x_symbol(node);
   switch (def_node.kind()) {
     case NT::DefGlobal:
       return STORAGE_KIND::DATA;
+    case NT::DefFun:
     case NT::FunParam:
       return STORAGE_KIND::REGISTER;
     case NT::DefVar:
@@ -223,7 +224,6 @@ std::ostream& operator<<(std::ostream& os, const ReturnResultLocation& rrl) {
      << rrl.end_label << ")";
   return os;
 }
-
 
 // forward decls
 void EmitConditional(Node node, bool invert, std::string_view label_f,
@@ -394,6 +394,13 @@ void EmitValCompoundRecToMemory(Node val, const BaseOffset& dst,
   IterateValRec it(Node_inits(val), Node_fields(CanonType_ast_node(ct)));
   for (Node point = it.next(); !it.curr_field.isnull(); point = it.next()) {
     CanonType field_ct = Node_x_type(it.curr_field);
+    if (CanonType_size(field_ct) == 0) {
+      if (!point.isnull() &&
+          Node_value_or_undef(point).kind() != NT::ValUndef) {
+        EmitExpr(Node_value_or_undef(point), ta, id_gen);
+      }
+      continue;
+    }
     BaseOffset bo = dst.AddOffset(Node_x_offset(it.curr_field));
     if (point.isnull()) {
       EmitZero(bo, CanonType_size(field_ct), CanonType_alignment(field_ct),
@@ -457,9 +464,10 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
     case NT::ExprUnwrap:
       return EmitExprToMemory(Node_expr(node), dst, ta, id_gen);
     case NT::ExprWiden:
-      if (CanonType_size(Node_x_type(node)) != 0) {
-        return EmitExprToMemory(Node_expr(node), dst, ta, id_gen);
+      if (CanonType_size(Node_x_type(Node_expr(node))) != 0) {
+        EmitExprToMemory(Node_expr(node), dst, ta, id_gen);
       }
+      return;
     case NT::Id:
       if (StorageKindForId(node) == STORAGE_KIND::REGISTER) {
         std::string res = EmitId(node, ta, id_gen);
@@ -935,8 +943,7 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
         if (CanonType_size(Node_x_type(ret)) != 0) {
           if (!rrl.dst_reg.empty()) {
             std::string op = EmitExpr(ret, ta, id_gen);
-            std::cout << kTAB << "mov " << rrl.dst_reg << " = " << op
-                      << "\n";
+            std::cout << kTAB << "mov " << rrl.dst_reg << " = " << op << "\n";
           } else {
             EmitExprToMemory(ret, rrl.dst_mem, ta, id_gen);
           }
