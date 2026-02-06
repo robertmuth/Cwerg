@@ -84,7 +84,7 @@ Node RewriteExprIndex(Node node, CanonType uint_ct, TypeCorpus* tc) {
   const SrcLoc& sl = Node_srcloc(node);
   if (CanonType_kind(container_ct) == NT::TypeVec) {
     bool mut = IsProperLhs(container);
-    Const dim = ConstNewUnsigned(size_t(CanonType_dim(container_ct)),
+    Const dim = ConstNewUnsigned(size_t(CanonType_vec_dim(container_ct)),
                                  CanonType_base_type_kind(uint_ct));
     Node bound = NodeNew(NT::ValNum);
     NodeInitValNum(bound, StrNew(EVAL_STR), Node_comment(node),
@@ -219,7 +219,7 @@ Node MakeValSpanFromArray(Node node, CanonType expected_ct, CanonType uint_ct,
                           TypeCorpus* tc) {
   ASSERT(CanonType_is_vec(Node_x_type(node)) && CanonType_is_span(expected_ct),
          "");
-  SizeOrDim dim = CanonType_dim(Node_x_type(node));
+  SizeOrDim dim = CanonType_vec_dim(Node_x_type(node));
   const SrcLoc& sl = Node_srcloc(node);
   CanonType ptr_ct = GetFrontTypeForVec(expected_ct, tc);
   Node sym = node.kind() == NT::Id ? Node_x_symbol(node) : kNodeInvalid;

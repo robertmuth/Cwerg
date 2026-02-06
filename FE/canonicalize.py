@@ -300,7 +300,7 @@ def FunCanonicalizeCompoundAssignments(fun: cwast.DefFun):
         assert IsNodeCopyableWithoutRiskOfSideEffects(
             new_lhs), f"{new_lhs}"
         assignment = _MakeSimpleAssigmemt(node.binary_expr_kind,
-                                    new_lhs, node.expr_rhs, node.x_srcloc)
+                                          new_lhs, node.expr_rhs, node.x_srcloc)
         if not stmts:
             return assignment
         stmts.append(assignment)
@@ -542,7 +542,7 @@ def _MakeValSpanFromArray(node, expected_ct: cwast.CanonType,
     front = cwast.ExprFront(
         node, x_srcloc=node.x_srcloc, mut=expected_ct.mut, x_type=ptr_ct,
         x_eval=eval.MakeEvalVarOrGlobalAddr(sym) if sym else None)
-    dim = node.x_type.array_dim()
+    dim = node.x_type.vec_dim()
     length = cwast.ValNum(eval.EVAL_STR, x_eval=eval.EvalNum(dim, uint_type.base_type_kind),
                           x_srcloc=node.x_srcloc, x_type=uint_type)
     # TODO: propagate content for mut=false

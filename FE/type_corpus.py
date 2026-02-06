@@ -601,7 +601,7 @@ class TypeCorpus:
         elif ct.node is cwast.TypeSpan:
             return self.InsertSpanType(ct.mut, replacement_children[0])
         elif ct.node is cwast.TypeVec:
-            return self.InsertVecType(ct.array_dim(), replacement_children[0])
+            return self.InsertVecType(ct.vec_dim(), replacement_children[0])
         elif ct.node is cwast.TypeFun:
             return self.InsertFunType(
                 replacement_children[:-1], replacement_children[-1])

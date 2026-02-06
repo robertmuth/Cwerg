@@ -546,7 +546,7 @@ def _GetValForVecAtPos(container_val: EvalBase, index: int, ct: cwast.CanonType)
     if init_node is None:
         return GetDefaultForType(ct)
 
-    width =  init_node.x_type.array_dim()
+    width =  init_node.x_type.vec_dim()
     assert index < width
 
     assert isinstance(init_node, cwast.ValCompound), f"{init_node}"
@@ -585,7 +585,7 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
 
     if type_corpus.IsVecToSpanConversion(src_type, dst_type):
         if src_value is None:
-            return EvalSpan(None, src_type.array_dim(), None)
+            return EvalSpan(None, src_type.vec_dim(), None)
 
         assert isinstance(src_value, (EvalCompound, EvalBytes)
                           ), f"{src_value} {src_node.x_srcloc}"
@@ -594,7 +594,7 @@ def _EvalValWithPossibleImplicitConversion(dst_type: cwast.CanonType,
             pointer = src_node.x_symbol
         assert pointer is None or isinstance(
             pointer, (cwast.DefGlobal, cwast.DefVar))
-        return EvalSpan(pointer, src_type.array_dim(), src_value)
+        return EvalSpan(pointer, src_type.vec_dim(), src_value)
     elif src_value is None:
         return None
     # assert False, f"{src_node}: {src_node.x_type} -> {dst_type} [{src_value}]"
@@ -727,7 +727,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         cont = node.container
         bt_src = node.x_type.base_type_kind
         if cont.x_type.is_vec():
-            return EvalNum(cont.x_type.array_dim(), bt_src)
+            return EvalNum(cont.x_type.vec_dim(), bt_src)
         elif isinstance(cont.x_eval, EvalSpan) and cont.x_eval.size is not None:
             return EvalNum(cont.x_eval.size, bt_src)
         return None

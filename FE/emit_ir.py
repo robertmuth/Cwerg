@@ -578,7 +578,7 @@ def _EmitValCompoundRecToMemory(val: cwast.ValCompound, dst: BaseOffset,
 def _EmitValCompoundVecToMemory(val: cwast.ValCompound, dst: BaseOffset,
                                 ta: type_corpus.TargetArchConfig,
                                 id_gen: identifier.IdGenIR):
-    dim = val.x_type.array_dim()
+    dim = val.x_type.vec_dim()
     element_size: int = val.x_type.size // dim
     alignment: int = val.x_type.alignment  # alignment of vec is same as elements
     last_point_val = None
@@ -871,7 +871,7 @@ def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
         return _EmitMemRepeatedByte(_BYTE_ZERO, ct.size, offset, "auto ", ct.name)
     assert isinstance(
         node, (cwast.ValCompound, cwast.ValString)), f"{node}"
-    width = ct.array_dim()
+    width = ct.vec_dim()
     if isinstance(node, cwast.ValString):
         assert isinstance(node.x_eval, eval.EvalBytes)
         value = node.x_eval.data

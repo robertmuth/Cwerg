@@ -995,7 +995,7 @@ class CanonType:
         # sometimes we need to round up. e.g. struct {int32, int8} needs 3 bytes padding
         return align(self.size, self.alignment)
 
-    def array_dim(self):
+    def vec_dim(self):
         assert self.is_vec()
         return self.dim
 
