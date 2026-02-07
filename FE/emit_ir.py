@@ -403,14 +403,14 @@ def _FormatNumber(val: cwast.ValNum) -> str:
         assert False, f"unsupported scalar: {bt} {val}"
 
 
-def _EmitCast(expr, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
+def _EmitCast(src, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
     assert dst_ct.size > 0
     src_reg_type = src_ct.get_single_register_type()
     dst_reg_type = dst_ct.get_single_register_type()
     if src_reg_type == dst_reg_type:
-        return expr
+        return src
     res = id_gen.NewName("bitcast")
-    print(f"{TAB}bitcast {res}:{dst_reg_type} = {expr}")
+    print(f"{TAB}bitcast {res}:{dst_reg_type} = {src}")
     return res
 
 
@@ -466,7 +466,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         return base.MaterializeBase(ta, id_gen)
     elif isinstance(node, cwast.ExprBitCast):
         src = _EmitExpr(node.expr, ta, id_gen)
-        return _EmitCast(src, node.expr.x_type, node.type.x_type, id_gen)
+        return _EmitCast(src, node.expr.x_type, node.x_type, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
         addr = _GetLValueAddress(
             node.expr, ta, id_gen).MaterializeBase(ta, id_gen)

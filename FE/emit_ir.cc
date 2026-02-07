@@ -646,6 +646,17 @@ std::string EmitExprCall(Node node, const TargetArchConfig& ta,
   return out;
 }
 
+std::string EmitCast(const std::string& src, CanonType src_ct, CanonType dst_ct,
+                     IdGenIR* id_gen) {
+  if (CanonType_ir_regs(src_ct) == CanonType_ir_regs(dst_ct)) {
+    return src;
+  }
+  std::string res = id_gen->NameNewNext(NameNew("bitcast"));
+  std::cout << kTAB << "bitcast " << res << ":" << CanonType_ir_regs(dst_ct)
+            << " = " << src << "\n";
+  return res;
+}
+
 std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
   // CanonType ct = Node_x_type(node);
   switch (node.kind()) {
@@ -669,6 +680,11 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       BaseOffset bo(EmitExpr(Node_expr1(node), ta, id_gen));
       return bo.AddScaledOffset(Node_expr2(node), width, ta, id_gen)
           .MaterializeBase(ta, id_gen);
+    }
+    case NT::ExprBitCast: {
+      std::string src = EmitExpr(Node_expr(node), ta, id_gen);
+      return EmitCast(src, Node_x_type(Node_expr(node)), Node_x_type(node),
+                      id_gen);
     }
     case NT::ExprAs: {
       CanonType ct_dst = CanonType_get_unwrapped(Node_x_type(node));
