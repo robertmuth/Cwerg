@@ -18,6 +18,7 @@ import struct
 from typing import List, Dict, Set, Optional, Any
 
 from IR import opcode_tab as o
+from Util import parse
 
 
 class ParseError(Exception):
@@ -98,7 +99,7 @@ class Const:
 def ParseConst(value_str: str, kind: o.DK) -> Const:
     flavor = kind.flavor()
     if flavor is o.DK_FLAVOR_R:
-        return Const(kind, float(value_str))
+        return Const(kind, parse.ParseReal(value_str))
 
     bit_width = kind.bitwidth()
     x = int(value_str, 0)
@@ -112,7 +113,8 @@ def ParseConst(value_str: str, kind: o.DK) -> Const:
         x = x - (1 << bit_width)
 
     if x >= 0:
-        assert x < (1 << (bit_width - 1)), f"{x} value out of bounds for {kind}"
+        assert x < (1 << (bit_width - 1)
+                    ), f"{x} value out of bounds for {kind}"
     else:
         assert -x <= (1 << (bit_width - 1))
 
@@ -349,7 +351,8 @@ class FUN_FLAG(enum.Flag):
     """Fun Attributes"""
     CFG_NOT_LINEAR = 1 << 1  # bra instructions have been removed
     LIVENESS_VALID = 1 << 2  # liveness info is valid
-    STACK_FINALIZED = 1 << 3  # stack size must not change anymore (no more scratch regs!)
+    # stack size must not change anymore (no more scratch regs!)
+    STACK_FINALIZED = 1 << 3
     REACHACHABLE = 1 << 4
 
 

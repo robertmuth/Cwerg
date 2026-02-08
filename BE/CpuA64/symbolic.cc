@@ -134,7 +134,7 @@ uint32_t UnsymbolizeOperand(OK ok, std::string_view op) {
       if (val == fi.num_names) return kEncodeFailure;
       break;
     case FK::FLT_CUSTOM: {
-      auto maybe = ParseFlt64(op);
+      auto maybe = ParseReal(op);
       if (!maybe) return kEncodeFailure;
       val = Flt64ToBits(maybe.value());
       break;

@@ -408,7 +408,7 @@ bool IsLikelyNum(std::string_view s) {
   return Ctype.is_num_first(s[0]);
 }
 
-std::optional<double> ParseFlt64(std::string_view s) {
+std::optional<double> ParseReal(std::string_view s) {
   ASSERT(s.size() < 63, "");
   char buf[64];
   int j = 0;

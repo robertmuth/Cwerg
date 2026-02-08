@@ -77,7 +77,7 @@ std::optional<INT> ParseInt(std::string_view s) {
   return out;
 }
 
-extern std::optional<double> ParseFlt64(std::string_view s);
+extern std::optional<double> ParseReal(std::string_view s);
 
 extern std::optional<uint64_t> ParseChar(std::string_view s);
 

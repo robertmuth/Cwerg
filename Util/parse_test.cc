@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
               auto out = strtol(vec[1].data(), nullptr, 0);
               val = Flt64FromBits(out);
           } else {
-            val = ParseFlt64(vec[1]);
+            val = ParseReal(vec[1]);
           }
           if (!val.has_value()) {
               cout << "@BAD VALUE@\n";
