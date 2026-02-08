@@ -171,14 +171,7 @@ def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig,
         # We rewrite function signatures with complex result types
         # so that space for the result is allocated at the call site.
         # So here we only have to deal with StmtExpr
-        ct = node.x_type
-        assert ct.ir_regs is o.DK.MEM
-        name = id_gen.NewName("expr_stk_var")
-        assert ct.size > 0
-        print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
-        base = id_gen.NewName("stmt_stk_base")
-        kind = ta.get_data_address_reg_type()
-        print(f"{TAB}lea.stk {base}:{kind} {name} 0")
+        base = _EmitStackVarForExprStmt(node.x_type, ta, id_gen)
         EmitExprToMemory(node,  BaseOffset(base), ta, id_gen)
         return BaseOffset(base)
     else:
@@ -380,6 +373,15 @@ def _EmitExpr1(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
     return res
 
 
+def StdRenderReal(num: float) -> str:
+    if math.isnan(num) or math.isinf(num):
+        # note, python renders -nan and +nan as just nan
+        sign = math.copysign(1, num)
+        num = abs(num)
+        return ("+" if sign >= 0 else "-") + str(num)
+    return str(num)
+
+
 def _FormatNumber(val: cwast.ValNum) -> str:
     suffix = ":" + str(val.x_type.get_single_register_type())
     assert isinstance(val.x_eval, eval.EvalNum)
@@ -393,12 +395,7 @@ def _FormatNumber(val: cwast.ValNum) -> str:
     elif bt.IsInt():
         return str(num) + suffix
     elif bt.IsReal():
-        if math.isnan(num) or math.isinf(num):
-            # note, python renders -nan and +nan as just nan
-            sign = math.copysign(1, num)
-            num = abs(num)
-            return ("+" if sign >= 0 else "-") + str(num) + suffix
-        return str(num) + suffix
+        return StdRenderReal(num) + suffix
     else:
         assert False, f"unsupported scalar: {bt} {val}"
 
@@ -468,13 +465,15 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         src = _EmitExpr(node.expr, ta, id_gen)
         return _EmitCast(src, node.expr.x_type, node.x_type, id_gen)
     elif isinstance(node, cwast.ExprNarrow):
+        # Note, that GetLValueAddress will materialize objects when called on
+        # a ExprStmt
         addr = _GetLValueAddress(
             node.expr, ta, id_gen).MaterializeBase(ta, id_gen)
         if ct_dst.size == 0:
             return _OP_DO_NOT_USE
         ct_src: cwast.CanonType = node.expr.x_type
         assert ct_src.is_union() or ct_src.original_type.is_union()
-        res = id_gen.NewName("union_access")
+        res = id_gen.NewName("union_narrow")
         print(
             f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
         return res
@@ -530,15 +529,18 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         # this should only happen for widening empty untagged unions
         # assert node.x_type.size == 0, f"{node} {node.x_type}"
         # make sure we evaluate the rest for side-effects
-        tmp = _EmitExpr(node.expr, ta, id_gen)
+        src = _EmitExpr(node.expr, ta, id_gen)
         dst_ct = node.type.x_type
         if dst_ct.size == 0:
             return _OP_DO_NOT_USE
-        if node.expr.x_type.size == 0:
-            assert tmp is _OP_DO_NOT_USE, f"{tmp} {node.expr}"
+        src_ct = node.expr.x_type
+        if src_ct.size == 0:
+            assert src is _OP_DO_NOT_USE, f"{src} {node.expr}"
             # TODO: does this work for all types?
             return "0"
-        return _EmitCast(tmp, node.expr.x_type, dst_ct, id_gen)
+        # TODO: explain why Bitcasting will work
+        assert src_ct.size == dst_ct.size
+        return _EmitCast(src, src_ct, dst_ct, id_gen)
     elif isinstance(node, cwast.ValVoid):
         return _OP_DO_NOT_USE
     # elif isinstance(node, cwast.ValCompound):
@@ -677,6 +679,16 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
             curr += width
 
 
+def _EmitStackVarForExprStmt(ct: cwast.CanonType, ta: type_corpus.TargetArchConfig,
+                             id_gen: identifier.IdGenIR):
+    name = id_gen.NewName("expr_stk_var")
+    print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
+    base = id_gen.NewName("expr_stk_addr")
+    kind = ta.get_data_address_reg_type()
+    print(f"{TAB}lea.stk {base}:{kind} = {name} 0")
+    return base
+
+
 def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.TargetArchConfig,
               id_gen: identifier.IdGenIR):
     if isinstance(node, cwast.DefVar):
@@ -691,8 +703,7 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
                 _EmitExpr(init, ta, id_gen)
         elif _IsDefVarOnStack(node):
             assert ct.size > 0
-            print(f"{TAB}.stk {node.name} {
-                  ct.alignment} {ct.size}")
+            print(f"{TAB}.stk {node.name} {ct.alignment} {ct.size}")
             if not isinstance(init, cwast.ValUndef):
                 base = id_gen.NewName("var_stk_base")
                 print(
@@ -749,11 +760,7 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
             _EmitExpr(node.expr, ta, id_gen)
         else:
             assert ct.size > 0
-            name = id_gen.NewName("stmt_stk_var")
-            print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
-            base = id_gen.NewName("stmt_stk_var_addr")
-            kind = ta.get_data_address_reg_type()
-            print(f"{TAB}lea.stk {base}:{kind} {name} 0")
+            base = _EmitStackVarForExprStmt(ct, ta, id_gen)
             EmitExprToMemory(node.expr,  BaseOffset(base), ta, id_gen)
     elif isinstance(node, cwast.StmtIf):
         label_join = id_gen.NewName("br_join")
