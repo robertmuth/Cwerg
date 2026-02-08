@@ -156,7 +156,7 @@ def main(argv):
                 if len(token) == 3:
                     # Note this removes all the address mode syntax
                     # so we lose a bit of fidelity
-                    actual_ops = [x for x in re.split("[, \t\n\[\]!]+", token[2]) if x]
+                    actual_ops = [x for x in re.split("[, \t\n\\[\\]!]+", token[2]) if x]
                 HandleOneInstruction(
                     count, line, data, actual_name, actual_ops)
 
