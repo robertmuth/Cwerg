@@ -65,7 +65,7 @@ fun main(argc s32, argv ^^u8) s32:
     ; add obj
     fmt::print#(ansi::CURSOR_HIDE)
     let! last_t r32 = 0.0
-    for t = 0.0, 5.0_r32, 0.1:
+    for t = 0.0, 5.0_r32, 1.0 / 8.0_r32:
         do aanim::window_fill(@!window, ' ', ' ')
         set curr = front!(all_objects)
         for i = 0, 9_uint, 1:
