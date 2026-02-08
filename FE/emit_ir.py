@@ -3,7 +3,6 @@
 import logging
 import dataclasses
 import enum
-import math
 
 from typing import Union, Any, Optional
 
@@ -16,6 +15,7 @@ from FE import eval
 from FE import identifier
 
 from IR import opcode_tab as o
+from Util import parse
 
 logger = logging.getLogger(__name__)
 
@@ -373,15 +373,6 @@ def _EmitExpr1(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenI
     return res
 
 
-def StdRenderReal(num: float) -> str:
-    if math.isnan(num) or math.isinf(num):
-        # note, python renders -nan and +nan as just nan
-        sign = math.copysign(1, num)
-        num = abs(num)
-        return ("+" if sign >= 0 else "-") + str(num)
-    return str(num)
-
-
 def _FormatNumber(val: cwast.ValNum) -> str:
     suffix = ":" + str(val.x_type.get_single_register_type())
     assert isinstance(val.x_eval, eval.EvalNum)
@@ -395,7 +386,7 @@ def _FormatNumber(val: cwast.ValNum) -> str:
     elif bt.IsInt():
         return str(num) + suffix
     elif bt.IsReal():
-        return StdRenderReal(num) + suffix
+        return parse.RenderRealStd(num) + suffix
     else:
         assert False, f"unsupported scalar: {bt} {val}"
 

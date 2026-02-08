@@ -183,11 +183,7 @@ class EvalNum(EvalBase):
     def __str__(self):
         val = self.val
         if self.kind.IsReal():
-            extra = ""
-            if math.isnan(val) and math.copysign(1, val) < 0:
-                extra = "-"
-
-            return f"EvalNum[{extra}{val:e}_{self.kind.name.lower()}]"
+            return f"EvalNum[{parse.RenderRealStd(val)}_{self.kind.name.lower()}]"
         if self.kind == cwast.BASE_TYPE_KIND.BOOL:
             val = int(val)
         return f"EvalNum[{val}_{self.kind.name.lower()}]"

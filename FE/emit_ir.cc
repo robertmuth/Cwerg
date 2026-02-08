@@ -332,6 +332,7 @@ std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
 
 std::string FormatNumber(Node node) {
   std::string out;
+
   CanonType ct = Node_x_type(node);
   Const val = Node_x_eval(node);
   switch (val.kind()) {
@@ -350,10 +351,11 @@ std::string FormatNumber(Node node) {
       out = std::to_string(ConstGetSigned(val));
       break;
     case BASE_TYPE_KIND::R32:
-    case BASE_TYPE_KIND::R64:
-      // format "13a" matches the python behavior
-      out = std::format("{:.10f}", ConstGetFloat(val));
+    case BASE_TYPE_KIND::R64: {
+      char buf[64];
+      out = std::string(RenderRealStd(ConstGetFloat(val), buf));
       break;
+    }
     default:
       ASSERT(false, "UNREACHABLE");
       break;

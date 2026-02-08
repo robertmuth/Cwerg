@@ -66,7 +66,7 @@ Const ParseNum(Node node) {
     return ConstNewUnsigned(val.value(), target_kind);
   }
   ASSERT(IsReal(target_kind), "");
-  auto val = ParseFlt64(num);
+  auto val = ParseReal(num);
   if (!val) return kConstInvalid;
   return ConstNewReal(val.value(), target_kind);
 }
@@ -908,6 +908,7 @@ double ConstGetFloat(Const c) {
 }
 
 std::ostream& operator<<(std::ostream& os, Const c) {
+  char buf[64];
   if (c.isnull()) return os << "EvalNull";
   switch (c.kind()) {
     case BASE_TYPE_KIND::VOID:
@@ -930,7 +931,7 @@ std::ostream& operator<<(std::ostream& os, Const c) {
     case BASE_TYPE_KIND::R32:
     case BASE_TYPE_KIND::R64:
       // we want %e format
-      return os << "EvalNum[" << std::scientific << ConstGetFloat(c) << "_"
+      return os << "EvalNum[" << RenderRealStd(ConstGetFloat(c), buf) << "_"
                 << EnumToString_BASE_TYPE_KIND_LOWER(c.kind()) << "]";
     case BASE_TYPE_KIND::VAR_ADDR:
       return os << "EvalVarAddr[" << Node_name(ConstGetVarAddr(c)) << "]";
