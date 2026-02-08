@@ -1,5 +1,6 @@
 #include "FE/emit_ir.h"
 
+#include <format>
 #include <span>
 #include <tuple>
 
@@ -249,6 +250,17 @@ std::string_view GetSuffixForStorage(STORAGE_KIND kind) {
   }
 }
 
+std::string EmitStackVarForExprStmt(CanonType ct, const TargetArchConfig& ta,
+                                    IdGenIR* id_gen) {
+  std::string name = id_gen->NameNewNext(NameNew("expr_stk_var"));
+  std::cout << kTAB << ".stk " << name << " " << CanonType_alignment(ct) << " "
+            << CanonType_size(ct) << "\n";
+  std::string base = id_gen->NameNewNext(NameNew("expr_stk_addr"));
+  std::cout << kTAB << "lea.stk " << base << ":" << ta.get_data_addr_kind_ir()
+            << " = " << name << " 0\n";
+  return base;
+}
+
 BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
                             IdGenIR* id_gen) {
   switch (node.kind()) {
@@ -271,12 +283,7 @@ BaseOffset GetLValueAddress(Node node, const TargetArchConfig& ta,
       return GetLValueAddress(Node_expr(node), ta, id_gen);
     case NT::ExprStmt: {
       CanonType ct = Node_x_type(node);
-      std::string name = id_gen->NameNewNext(NameNew("expr_stk_var"));
-      std::cout << kTAB << ".stk " << name << " " << CanonType_size(ct) << " "
-                << CanonType_alignment(ct) << "\n";
-      std::string base = id_gen->NameNewNext(NameNew("stmt_stk_base"));
-      std::cout << kTAB << "lea.stk " << base << ":"
-                << ta.get_data_addr_kind_ir() << " " << name << " 0\n";
+      std::string base = EmitStackVarForExprStmt(ct, ta, id_gen);
       EmitExprToMemory(node, BaseOffset(base), ta, id_gen);
       return {base};
     }
@@ -307,8 +314,8 @@ std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
                 << " = " << NameData(Node_name(def_node)) << "\n";
       return out;
     }
-    case NT::DefVar:
-      if (IsDefOnStack(node)) {
+    case NT::DefVar: {
+      if (IsDefOnStack(def_node)) {
         std::string out = id_gen->NameNewNext(NameNew("stkread"));
         std::cout << kTAB << "ld.stk " << out << ":" << CanonType_ir_regs(ct)
                   << " = " << NameData(Node_name(def_node)) << " 0\n";
@@ -316,6 +323,7 @@ std::string EmitId(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       } else {
         return NameData(Node_name(def_node));
       }
+    }
     default:
       UNREACHABLE("unexpected node " << node);
       return "";
@@ -343,7 +351,8 @@ std::string FormatNumber(Node node) {
       break;
     case BASE_TYPE_KIND::R32:
     case BASE_TYPE_KIND::R64:
-      out = std::to_string(ConstGetFloat(val));
+      // format "13a" matches the python behavior
+      out = std::format("{:.10f}", ConstGetFloat(val));
       break;
     default:
       ASSERT(false, "UNREACHABLE");
@@ -389,6 +398,7 @@ void EmitValCompoundRecToMemory(Node val, const BaseOffset& dst,
   CanonType ct = Node_x_type(val);
   if (Node_inits(val).isnull()) {
     EmitZero(dst, CanonType_size(ct), CanonType_alignment(ct), id_gen);
+    return;
   }
 
   IterateValRec it(Node_inits(val), Node_fields(CanonType_ast_node(ct)));
@@ -502,14 +512,19 @@ void EmitExprToMemory(Node node, const BaseOffset& dst,
       }
       break;
     }
+    case NT::ValAuto:
+      EmitZero(dst, CanonType_size(Node_x_type(node)),
+               CanonType_alignment(Node_x_type(node)), id_gen);
+      break;
     default:
+      UNREACHABLE("NYI " << node);
       break;
   }
 }
 
 uint64_t AllBitsSet(uint64_t n) {
   if (n == 64) return ~uint64_t(0);
-  return (1 << n) - 1;
+  return (uint64_t(1) << n) - 1;
 }
 
 std::string EmitExpr1(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
@@ -686,6 +701,20 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       return EmitCast(src, Node_x_type(Node_expr(node)), Node_x_type(node),
                       id_gen);
     }
+    case NT::ExprNarrow: {
+      std::string addr = GetLValueAddress(Node_expr(node), ta, id_gen)
+                             .MaterializeBase(ta, id_gen);
+      // CanonType src_ct = Node_x_type(Node_expr(node));
+      CanonType dst_ct = Node_x_type(node);
+      if (CanonType_size(dst_ct) == 0) {
+        return std::string(DO_NOT_USE);
+      }
+      std::string res = id_gen->NameNewNext(NameNew("union_narrow"));
+      std::cout << kTAB << "ld " << res << ":" << CanonType_ir_regs(dst_ct)
+                << " = " << addr << " 0\n";
+      return res;
+    }
+
     case NT::ExprAs: {
       CanonType ct_dst = CanonType_get_unwrapped(Node_x_type(node));
       CanonType ct_src = CanonType_get_unwrapped(Node_x_type(Node_expr(node)));
@@ -725,6 +754,7 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       if (CanonType_size(ct) == 0) {
         rrl.dst_reg = std::string(DO_NOT_USE);
       } else {
+        ASSERT(CanonType_ir_regs(ct) != DK::MEM, " " << ct);
         rrl.dst_reg = id_gen->NameNewNext(NameNew("expr"));
         std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " ["
                   << rrl.dst_reg << "]\n";
@@ -753,8 +783,23 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
                 << addr << " " << Node_x_offset(rec_field) << "\n";
       return res;
     }
+    case NT::ExprWiden: {
+      std::string src = EmitExpr(Node_expr(node), ta, id_gen);
+      CanonType dst_ct = Node_x_type(node);
+      if (CanonType_size(dst_ct) == 0) {
+        return std::string(DO_NOT_USE);
+      }
+      CanonType src_ct = Node_x_type(Node_expr(node));
 
+      if (CanonType_size(src_ct) == 0) {
+        return "0";
+      }
+      return EmitCast(src, src_ct, dst_ct, id_gen);
+    }
+    case NT::ValVoid:
+      return std::string(DO_NOT_USE);
     default:
+      UNREACHABLE("NYI " << node);
       return "";
   }
 }
@@ -989,14 +1034,8 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
       if (CanonType_ir_regs(ct) != DK::MEM) {
         EmitExpr(Node_expr(node), ta, id_gen);
       } else {
-        std::string name = id_gen->NameNewNext(NameNew("stmt_stk_var"));
-        std::cout << kTAB << ".stk " << name << " " << CanonType_alignment(ct)
-                  << " " << CanonType_size(ct) << "\n";
-        std::string name_addr =
-            id_gen->NameNewNext(NameNew("stmt_stk_var_addr"));
-        std::cout << kTAB << "lea.stk " << name_addr << ":" << name << " 0\n";
-        EmitExpr(Node_expr(node), ta, id_gen);
-        EmitExprToMemory(Node_expr(node), BaseOffset(name_addr, 0), ta, id_gen);
+        std::string base = EmitStackVarForExprStmt(ct, ta, id_gen);
+        EmitExprToMemory(Node_expr(node), BaseOffset(base, 0), ta, id_gen);
       }
       break;
     }
@@ -1050,6 +1089,7 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
       break;
 
     default:
+      UNREACHABLE("NYI " << node);
       break;
   }
 }

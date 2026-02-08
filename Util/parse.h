@@ -90,6 +90,7 @@ extern std::string_view ToDecSignedString(int64_t v, char buf[32]);
 
 extern std::string_view ToFltString(double v, char buf[32]);
 extern std::string_view ToFltHexString(double v, char buf[32]);
+extern std::string_view RenderRealStd(double val, char buf[32]);
 
 extern std::string_view ToHexDataStringWithSep(std::string_view data, char sep,
                                                char* buf, size_t max_len);

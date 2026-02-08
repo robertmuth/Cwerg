@@ -9,6 +9,8 @@
 
 #include <string.h>
 
+#include <cmath>
+
 #include "Util/assert.h"
 
 namespace cwerg {
@@ -475,6 +477,65 @@ std::string_view ToFltHexString(double v, char buf[32]) {
   return ToHexString(u.val_u, buf);
 }
 
+std::string_view RenderRealStd(double val, char buf[32]) {
+  size_t pos = 0;
+  if (std::isnan(val)) {
+    return std::signbit(val) ? "-nan" : "nan";
+  } else if (std::isinf(val)) {
+    return std::signbit(val) ? "-inf" : "inf";
+  } else {
+    union {
+      double val_d;
+      uint64_t val_u;
+    } u = {val};
+
+    uint64_t mantissa_bits = u.val_u << 12;
+    int64_t exponent_bits = (u.val_u & 0x7ff0000000000000) >> 52;
+    // spicial casing to make it compatible with python
+    if (mantissa_bits == 0 && exponent_bits == 0) {
+      return std::signbit(val) ? "-0x0.0p+0" : "0x0.0p+0";
+    }
+
+    if (std::signbit(val)) {
+      buf[pos++] = '-';
+    }
+    // Extract the 52-bit mantissa field (mask for the lowest 52 bits)
+    // The mask is 0x000FFFFFFFFFFFFF
+
+    bool is_subnormal = exponent_bits == 0;
+    bool is_potential_zero = mantissa_bits == 0;
+
+    buf[pos++] = '0';
+    buf[pos++] = 'x';
+    buf[pos++] = is_subnormal ? '0' : '1';
+    buf[pos++] = '.';
+    for (int i = 0; i < 13; ++i) {
+      int nibble = (mantissa_bits >> 60) & 0xf;
+      mantissa_bits <<= 4;
+      buf[pos++] = nibble <= 9 ? nibble + '0' : nibble + 'a' - 10;
+    }
+
+    buf[pos++] = 'p';
+    if (is_subnormal) {
+      exponent_bits = is_potential_zero ? 0 : -1022;
+    } else {
+      exponent_bits -= 1023;
+    }
+
+    if (exponent_bits < 0) {
+      buf[pos++] = '-';
+      exponent_bits = -exponent_bits;
+    } else {
+      buf[pos++] = '+';
+    }
+    pos += ToDecString(exponent_bits, buf + pos).size();
+    buf[pos] = 0;
+    return {buf, pos};
+  }
+
+  return {buf, pos};
+}
+
 std::string_view ToHexDataStringWithSep(std::string_view data, char sep,
                                         char* buf, size_t max_len) {
   ASSERT(data.size() * 3 <= max_len, "");
@@ -555,7 +616,6 @@ std::vector<char>* SlurpDataFromStream(std::istream* fin) {
   out->resize(current_offset);
   return out;
 }
-
 
 bool IsWhiteSpace(char c) { return Ctype.is_space(c); }
 

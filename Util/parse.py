@@ -1,6 +1,6 @@
-import codecs
 import re
 import struct
+import math
 
 from typing import List, Optional, BinaryIO
 
@@ -226,6 +226,23 @@ def ParseUint64(s) -> Optional[int]:
         return val
     except Exception:
         return None
+
+
+def ParseReal(s: str) -> Optional[float]:
+    ss = s
+    if ss[0] in ("+", "-"):
+        ss = ss[1:]
+    if ss.startswith("0x"):
+        return float.fromhex(s)
+    else:
+        return float(s)
+
+
+def RenderRealStd(num: float) -> str:
+    if math.isnan(num) and math.copysign(1, num) < 0:
+        # note, python renders -nan and +nan as just nan
+        return "-" + str(num)
+    return float(num).hex()
 
 
 def ParseLine(line: str) -> List[str]:
