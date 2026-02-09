@@ -239,11 +239,11 @@ def ParseReal(s: str) -> Optional[float]:
 
 
 def RenderRealStd(num: float) -> str:
-    if math.isnan(num) and math.copysign(1, num) < 0:
-        # note, python renders -nan and +nan as just nan
-        return "-" + str(num)
+    if math.isnan(num):
+        return "-nan" if math.copysign(1, num) < 0 else "+nan"
+    if math.isinf(num):
+        return "-inf" if math.copysign(1, num) < 0 else "+inf"
     return float(num).hex()
-
 
 def ParseLine(line: str) -> List[str]:
     # TODO: hackish

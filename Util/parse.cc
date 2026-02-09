@@ -480,9 +480,9 @@ std::string_view ToFltHexString(double v, char buf[32]) {
 std::string_view RenderRealStd(double val, char buf[32]) {
   size_t pos = 0;
   if (std::isnan(val)) {
-    return std::signbit(val) ? "-nan" : "nan";
+    return std::signbit(val) ? "-nan" : "+nan";
   } else if (std::isinf(val)) {
-    return std::signbit(val) ? "-inf" : "inf";
+    return std::signbit(val) ? "-inf" : "+inf";
   } else {
     union {
       double val_d;
