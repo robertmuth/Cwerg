@@ -497,7 +497,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         else:
             result = id_gen.NewName("expr")
             print(
-                f"{TAB}.reg {node.x_type.get_single_register_type()} [{result}]")
+                f"{TAB}.reg {node.x_type.get_single_register_type()} {result}")
         end_label = id_gen.NewName("end_expr")
         for c in node.body:
             _EmitStmt(c, ReturnResultLocation(result, end_label), ta, id_gen)
@@ -663,7 +663,7 @@ def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
         while width > (length - curr):
             width //= 2
         tmp = id_gen.NewName("copy")
-        print(f"{TAB}.reg U{width*8} [{tmp}]")
+        print(f"{TAB}.reg U{width*8} {tmp}")
         while curr + width <= length:
             print(f"{TAB}ld {tmp} = {src.base} {src.offset_num + curr}")
             print(f"{TAB}st {dst.base} {dst.offset_num + curr} = {tmp}")
@@ -702,7 +702,7 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
                 EmitExprToMemory(init, BaseOffset(base), ta, id_gen)
         elif isinstance(init, cwast.ValUndef):
             print(
-                f"{TAB}.reg {ct.get_single_register_type()} [{node.name}]")
+                f"{TAB}.reg {ct.get_single_register_type()} {node.name}")
         else:
             out = _EmitExpr(init, ta, id_gen)
             print(

@@ -384,7 +384,7 @@ void EmitCopy(BaseOffset dst, BaseOffset src, SizeOrDim length,
   while (curr < length) {
     while (width > length - curr) width >>= 1;
     std::string tmp = id_gen->NameNewNext(NameNew("copy"));
-    std::cout << kTAB << ".reg U" << width * 8 << " [" << tmp << "]\n";
+    std::cout << kTAB << ".reg U" << width * 8 << " " << tmp << "\n";
     while (curr + width <= length) {
       std::cout << kTAB << "ld " << tmp << " = " << src.base << " "
                 << src.offset + curr << "\n";
@@ -758,8 +758,8 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen) {
       } else {
         ASSERT(CanonType_ir_regs(ct) != DK::MEM, " " << ct);
         rrl.dst_reg = id_gen->NameNewNext(NameNew("expr"));
-        std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " ["
-                  << rrl.dst_reg << "]\n";
+        std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " "
+                  << rrl.dst_reg << "\n";
       }
       rrl.end_label = id_gen->NameNewNext(NameNew("end_expr"));
       for (Node s = Node_body(node); !s.isnull(); s = Node_next(s)) {
@@ -977,8 +977,8 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
         }
       } else {
         if (init.kind() == NT::ValUndef) {
-          std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " [" << name
-                    << "]\n";
+          std::cout << kTAB << ".reg " << CanonType_ir_regs(ct) << " " << name
+                    << "\n";
         } else {
           std::string out = EmitExpr(init, ta, id_gen);
           std::cout << kTAB << "mov " << name << ":" << CanonType_ir_regs(ct)
