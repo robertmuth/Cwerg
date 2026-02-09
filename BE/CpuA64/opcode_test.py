@@ -308,7 +308,7 @@ def main(argv):
                 if len(token) == 3:
                     ops_str = token[2]
                     ops_str = ops_str.split("//")[0]
-                    actual_ops = [x for x in re.split("[, \t\n\[\]!]+", ops_str) if x]
+                    actual_ops = [x for x in re.split("[, \t\n\\[\\]!]+", ops_str) if x]
                 # print (actual_name, actual_ops)
                 HandleOneInstruction(
                     count, line, data, ins, actual_name, actual_ops)
