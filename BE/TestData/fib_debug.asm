@@ -2,10 +2,10 @@
 
 # ========================================
 .fun fibonacci NORMAL [U32] = [U32]
-    .reg U32 [x in out] 
+    .reg U32 out
 
 .bbl start
-	poparg in
+	poparg in:U32
 	line "file1"  1
     blt 1:U32 in difficult
     line "file1" 2
@@ -15,7 +15,7 @@
 	.bbl difficult
 	line "file1"  3
     mov out = 0
-    sub x = in 1
+    sub x:U32 = in 1
 
     pusharg x
     bsr fibonacci
@@ -35,10 +35,9 @@
 
 # ========================================
 .fun main NORMAL [S32] = []
-    .reg U32 [x]
 	.bbl start
 	line "file2" 1
-    mov x = 7
+    mov x:U32 = 7
 
     pusharg x
     bsr fibonacci
@@ -49,7 +48,3 @@
 
     pusharg 0:S32
     ret
-
-
-
-

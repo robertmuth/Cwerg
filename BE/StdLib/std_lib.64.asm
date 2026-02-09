@@ -10,13 +10,11 @@
 
 
 .fun write_s NORMAL [S64] = [S32 A64]
-.reg S64 [%out]
 
 .bbl %start
   poparg fd:S32
   poparg s:A64
-  .reg U64 [len]
-  mov len = 0
+  mov len:U64 = 0
   bra while_1_cond
 
 .bbl while_1
@@ -36,28 +34,25 @@
   pusharg fd
   bsr write
   poparg %S64_5:S64
-  mov %out = %S64_5
+  mov %out:S64 = %S64_5
   pusharg %out
   ret
 
 
 .fun write_x NORMAL [S64] = [S32 U32]
-.reg S64 [%out]
 
 .bbl %start
   poparg fd:S32
   poparg val:U32
 .stk buffer 1 16
-  .reg U64 [pos]
   lea %A64_1:A64 = buffer
-  mov pos = 16
+  mov pos:U64 = 16
 
 .bbl while_1
   sub %U64_2:U64 = pos 1
   mov pos = %U64_2
-  .reg U32 [digit]
   rem %U32_3:U32 = val 16
-  mov digit = %U32_3
+  mov digit:U32 = %U32_3
   ble digit 9 if_2_true
   bra if_2_false
 
@@ -96,21 +91,19 @@
   pusharg fd
   bsr write
   poparg %S64_19:S64
-  mov %out = %S64_19
+  mov %out:S64 = %S64_19
   pusharg %out
   ret
 
 
 .fun write_u NORMAL [S64] = [S32 U32]
-.reg S64 [%out]
 
 .bbl %start
   poparg fd:S32
   poparg val:U32
 .stk buffer 1 16
-  .reg U64 [pos]
   lea %A64_1:A64 = buffer
-  mov pos = 16
+  mov pos:U64 = 16
 
 .bbl while_1
   sub %U64_2:U64 = pos 1
@@ -138,13 +131,12 @@
   pusharg fd
   bsr write
   poparg %S64_13:S64
-  mov %out = %S64_13
+  mov %out:S64 = %S64_13
   pusharg %out
   ret
 
 
 .fun write_d NORMAL [S64] = [S32 S32]
-.reg S64 [%out]
 
 .bbl %start
   poparg fd:S32
@@ -158,19 +150,17 @@
   pusharg fd
   bsr write_u
   poparg %S64_2:S64
-  mov %out = %S64_2
+  mov %out:S64 = %S64_2
   pusharg %out
   ret
 
 .bbl if_2_end
-  .reg U32 [val]
   sub %S32_3:S32 = 0  sval
   conv %U32_4:U32 = %S32_3
-  mov val = %U32_4
+  mov val:U32 = %U32_4
 .stk buffer 1 16
-  .reg U64 [pos]
   lea %A64_5:A64 = buffer
-  mov pos = 16
+  mov pos:U64 = 16
 
 .bbl while_1
   sub %U64_6:U64 = pos 1
@@ -210,7 +200,6 @@
 
 
 .fun write_c NORMAL [S64] = [S32 U8]
-.reg S64 [%out]
 
 .bbl %start
   poparg fd:S32
@@ -228,7 +217,7 @@
   poparg %S64_4:S64
   conv %S32_6:S32 = %S64_4
   conv %S64_7:S64 = %S32_6
-  mov %out = %S64_7
+  mov %out:S64 = %S64_7
   pusharg %out
   ret
 
@@ -407,14 +396,12 @@
 
 
 .fun memset NORMAL [A64] = [A64 S32 U64]
-.reg A64 [%out]
 
 .bbl %start
   poparg ptr:A64
   poparg value:S32
   poparg n:U64
-  .reg U64 [i]
-  mov i = 0
+  mov i:U64 = 0
   bra for_1_cond
 
 .bbl for_1
@@ -431,20 +418,18 @@
   bra for_1_exit
 
 .bbl for_1_exit
-  mov %out = ptr
+  mov %out:A64 = ptr
   pusharg %out
   ret
 
 
 .fun memcpy NORMAL [A64] = [A64 A64 U64]
-.reg A64 [%out]
 
 .bbl %start
   poparg dst:A64
   poparg src:A64
   poparg n:U64
-  .reg U64 [i]
-  mov i = 0
+  mov i:U64 = 0
   bra for_1_cond
 
 .bbl for_1
@@ -462,7 +447,7 @@
   bra for_1_exit
 
 .bbl for_1_exit
-  mov %out = dst
+  mov %out:A64 = dst
   pusharg %out
   ret
 
@@ -484,13 +469,11 @@
 
 
 .fun malloc NORMAL [A64] = [U64]
-.reg A64 [%out]
 
 .bbl %start
   poparg size:U64
-  .reg U64 [page_size]
   shl %U64_1:U64 = 1:U64 20
-  mov page_size = %U64_1
+  mov page_size:U64 = %U64_1
   lea %A64_2:A64 = __static_1__malloc_start
   ld %A64_3:A64 = %A64_2 0
   beq %A64_3 0 if_1_true
@@ -509,11 +492,10 @@
   st %A64_9 0 = %A64_8
 
 .bbl if_1_end
-  .reg U64 [rounded_size]
   add %U64_10:U64 = size 15
   div %U64_11:U64 = %U64_10 16
   mul %U64_12:U64 = %U64_11 16
-  mov rounded_size = %U64_12
+  mov rounded_size:U64 = %U64_12
   lea %A64_13:A64 = __static_1__malloc_start
   ld %A64_14:A64 = %A64_13 0
   lea %A64_15:A64 = %A64_14 rounded_size
@@ -523,17 +505,15 @@
   bra if_3_end
 
 .bbl if_3_true
-  .reg U64 [increment]
   add %U64_18:U64 = rounded_size page_size
   sub %U64_19:U64 = %U64_18 1
   div %U64_20:U64 = %U64_19 page_size
   mul %U64_21:U64 = %U64_20 page_size
-  mov increment = %U64_21
-  .reg A64 [new_end]
+  mov increment:U64 = %U64_21
   lea %A64_22:A64 = __static_2__malloc_end
   ld %A64_23:A64 = %A64_22 0
   lea %A64_24:A64 = %A64_23 increment
-  mov new_end = %A64_24
+  mov new_end:A64 = %A64_24
   pusharg new_end
   bsr xbrk
   poparg %A64_25:A64
@@ -548,16 +528,15 @@
   bsr abort
 
 .bbl if_3_end
-  .reg A64 [result]
   lea %A64_29:A64 = __static_1__malloc_start
   ld %A64_30:A64 = %A64_29 0
-  mov result = %A64_30
+  mov result:A64 = %A64_30
   lea %A64_31:A64 = __static_1__malloc_start
   ld %A64_32:A64 = %A64_31 0
   lea %A64_33:A64 = %A64_32 rounded_size
   lea %A64_34:A64 = __static_1__malloc_start
   st %A64_34 0 = %A64_33
-  mov %out = result
+  mov %out:A64 = result
   pusharg %out
   ret
 

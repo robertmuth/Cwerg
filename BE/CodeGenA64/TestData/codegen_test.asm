@@ -3,11 +3,15 @@
 .data 4 [0]
 
 .fun TestMoveImmediates NORMAL [] = [A64]
-  .reg U32 [$r0_U32 $r1_U32 $r2_U32 rem div]
-  .reg S32 [$r0_S32]
-  .reg S64 [$r10]
-  .reg U8 [$r0_U8]
-  .reg A64 [addr]
+  .reg U32 $r0_U32
+  .reg U32 $r1_U32
+  .reg U32 $r2_U32
+  .reg U32 rem
+  .reg U32 div
+  .reg S32 $r0_S32
+  .reg S64 $r10
+  .reg U8 $r0_U8
+  .reg A64 addr
 .bbl start
   .stk buffer 1 16
     mov $r10@x20 0x1234567890123456:S64
@@ -37,18 +41,20 @@
     ret
 
 .fun TestR64 NORMAL [R64] = [R64 R64]
-  .reg R64 [d1 d2 d3]
+  .reg R64 d1
+  .reg R64 d2
+  .reg R64 d3
 .bbl start
    cmplt d3@d0 0.0:R64 d1@d1 d2@d2 0.0:R64
 .bbl skip
      ret
 
 .fun TestMoveImmediates_gpr_scratch NORMAL [] = [A64]
-  .reg S32 [$r0_S32]
-  .reg U8 [$r0_U8]
-  .reg A64 [addr]
-  .reg R32 [flt]
-  .reg R64 [dbl]
+  .reg S32 $r0_S32
+  .reg U8 $r0_U8
+  .reg A64 addr
+  .reg R32 flt
+  .reg R64 dbl
    .stk buffer 16 16
 .bbl start
      copysign flt@d1 flt@d1 0:R32   # abs
@@ -62,7 +68,8 @@
      ret
 
 .fun TestLea NORMAL [] = []
-  .reg A64 [fp argv]
+  .reg A64 fp
+  .reg A64 argv
   .bbl entry
 #  TODO: try negative offsets
 #  lea argv@x1 fp@x2 -8:S64

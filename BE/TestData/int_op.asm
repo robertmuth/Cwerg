@@ -3,18 +3,16 @@
 
 # ========================================
 .fun shr_u32 NORMAL [] = [U32 U32 U32]
-  .reg U32 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
   .bbl prolog
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+    poparg val:U32
+    poparg max:U32
+    poparg step:U32
+    mov n:U32 0
   .bbl loop
-    shr r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shr r:U32 val n
+    conv tmp_op1:U32 val
+    conv tmp_op2:U32 n
+    conv tmp_out:U32 r
 
     pusharg tmp_op2
     pusharg tmp_op1
@@ -27,18 +25,16 @@
 
 
 .fun shr_u16 NORMAL [] = [U16 U16 U16]
-  .reg U16 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
   .bbl prolog
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+    poparg val:U16
+    poparg max:U16
+    poparg step:U16
+    mov n:U16 0
   .bbl loop
-    shr r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shr r:U16 val n
+    conv tmp_op1:U32 val
+    conv tmp_op2:U32 n
+    conv tmp_out:U32 r
 
     pusharg tmp_op2
     pusharg tmp_op1
@@ -50,19 +46,16 @@
     ret
 
 .fun shr_u8 NORMAL [] = [U8 U8 U8]
-  .reg U8 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
   .bbl prolog
-
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+    poparg val:U8
+    poparg max:U8
+    poparg step:U8
+    mov n:U8 0
   .bbl loop
-    shr r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shr r:U8 val n
+    conv tmp_op1:U32  val
+    conv tmp_op2:U32  n
+    conv tmp_out:U32  r
 
     pusharg tmp_op2
     pusharg tmp_op1
@@ -75,20 +68,16 @@
 
 # ========================================
 .fun shl_u32 NORMAL [] = [U32 U32 U32]
-  .reg U32 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
-
-    .bbl prolog
-
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+  .bbl prolog
+    poparg val:U32
+    poparg max:U32
+    poparg step:U32
+    mov n:U32 0
   .bbl loop
-    shl r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shl r:U32 val n
+    conv tmp_op1:U32  val
+    conv tmp_op2:U32  n
+    conv tmp_out:U32  r
     pusharg tmp_op2
     pusharg tmp_op1
     pusharg tmp_out
@@ -100,19 +89,16 @@
 
 
 .fun shl_u16 NORMAL [] = [U16 U16 U16]
-  .reg U16 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
   .bbl prolog
-
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+    poparg val:U16
+    poparg max:U16
+    poparg step:U16
+    mov n:U16 0
   .bbl loop
-    shl r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shl r:U16 val n
+    conv tmp_op1:U32  val
+    conv tmp_op2:U32  n
+    conv tmp_out:U32  r
     pusharg tmp_op2
     pusharg tmp_op1
     pusharg tmp_out
@@ -123,19 +109,16 @@
     ret
 
 .fun shl_u8 NORMAL [] = [U8 U8 U8]
-  .reg U8 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
   .bbl prolog
-
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+    poparg val:U8
+    poparg max:U8
+    poparg step:U8
+    mov n:U8 0
   .bbl loop
-    shl r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shl r:U8 val n
+    conv tmp_op1:U32  val
+    conv tmp_op2:U32  n
+    conv tmp_out:U32  r
     pusharg tmp_op2
     pusharg tmp_op1
     pusharg tmp_out
@@ -147,18 +130,16 @@
 
 # ========================================
 .fun shr_s32 NORMAL [] = [S32 S32 S32]
-  .reg S32 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
   .bbl prolog
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+    poparg val:S32
+    poparg max:S32
+    poparg step:S32
+    mov n:S32 0
   .bbl loop
-    shr r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shr r:S32 val n
+    conv tmp_op1:U32  val
+    conv tmp_op2:U32  n
+    conv tmp_out:U32  r
     pusharg tmp_op2
     pusharg tmp_op1
     pusharg tmp_out
@@ -170,18 +151,16 @@
 
 
 .fun shr_s16 NORMAL [] = [S16 S16 S16]
-  .reg S16 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
   .bbl prolog
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+    poparg val:S16
+    poparg max:S16
+    poparg step:S16
+    mov n:S16 0
   .bbl loop
-    shr r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shr r:S16 val n
+    conv tmp_op1:U32  val
+    conv tmp_op2:U32  n
+    conv tmp_out:U32  r
     pusharg tmp_op2
     pusharg tmp_op1
     pusharg tmp_out
@@ -193,18 +172,16 @@
     ret
 
 .fun shr_s8 NORMAL [] = [S8 S8 S8]
-  .reg S8 [n r val max step]
-  .reg U32 [tmp_op1 tmp_op2 tmp_out ]
   .bbl prolog
-    poparg val
-    poparg max
-    poparg step
-    mov n 0
+    poparg val:S8
+    poparg max:S8
+    poparg step:S8
+    mov n:S8 0
   .bbl loop
-    shr r val n
-    conv tmp_op1 val
-    conv tmp_op2 n
-    conv tmp_out r
+    shr r:S8 val n
+    conv tmp_op1:U32  val
+    conv tmp_op2:U32  n
+    conv tmp_out:U32  r
     pusharg tmp_op2
     pusharg tmp_op1
     pusharg tmp_out
@@ -216,17 +193,15 @@
 
 
 .fun cntlz_u8 NORMAL [] = [U8 U8 U8]
-  .reg U8 [r val max step]
-  .reg U32 [tmp_op tmp_out ]
   .bbl prolog
 
-    poparg val
-    poparg max
-    poparg step
+    poparg val:U8
+    poparg max:U8
+    poparg step:U8
   .bbl loop
-    cntlz r val
-    conv tmp_op val
-    conv tmp_out r
+    cntlz r:U8 val
+    conv tmp_op:U32  val
+    conv tmp_out:U32  r
     pusharg tmp_op
     pusharg tmp_out
     bsr print_x_x_ln
@@ -236,17 +211,14 @@
     ret
 
 .fun cntlz_u32 NORMAL [] = [U32 U32 U32]
-  .reg U32 [r val max step]
-  .reg U32 [tmp_op tmp_out ]
   .bbl prolog
-
-    poparg val
-    poparg max
-    poparg step
+    poparg val:U32
+    poparg max:U32
+    poparg step:U32
   .bbl loop
-    cntlz r val
-    conv tmp_op val
-    conv tmp_out r
+    cntlz r:U32 val
+    conv tmp_op:U32  val
+    conv tmp_out:U32  r
     pusharg tmp_op
     pusharg tmp_out
     bsr print_x_x_ln
@@ -257,17 +229,14 @@
 
 
 .fun cnttz_u8 NORMAL [] = [U8 U8 U8]
-  .reg U8 [r val max step]
-  .reg U32 [tmp_op tmp_out ]
   .bbl prolog
-
-    poparg val
-    poparg max
-    poparg step
+    poparg val:U8
+    poparg max:U8
+    poparg step:U8
   .bbl loop
-    cnttz r val
-    conv tmp_op val
-    conv tmp_out r
+    cnttz r:U8 val
+    conv tmp_op:U32  val
+    conv tmp_out:U32  r
     pusharg tmp_op
     pusharg tmp_out
     bsr print_x_x_ln
@@ -277,17 +246,14 @@
     ret
 
  .fun cnttz_u32 NORMAL [] = [U32 U32 U32]
-  .reg U32 [r val max step]
-  .reg U32 [tmp_op tmp_out ]
   .bbl prolog
-
-    poparg val
-    poparg max
-    poparg step
+    poparg val:U32
+    poparg max:U32
+    poparg step:U32
   .bbl loop
-    cnttz r val
-    conv tmp_op val
-    conv tmp_out r
+    cnttz r:U32 val
+    conv tmp_op:U32  val
+    conv tmp_out:U32  r
     pusharg tmp_op
     pusharg tmp_out
     bsr print_x_x_ln
@@ -298,17 +264,14 @@
 
 # ========================================
 .fun cntpop_u32 NORMAL [] = [U32 U32 U32]
-  .reg U32 [r val max step]
-  .reg U32 [tmp_op tmp_out ]
   .bbl prolog
-
-    poparg val
-    poparg max
-    poparg step
+    poparg val:U32
+    poparg max:U32
+    poparg step:U32
   .bbl loop
-    cntpop r val
-    conv tmp_op val
-    conv tmp_out r
+    cntpop r:U32 val
+    conv tmp_op:U32  val
+    conv tmp_out:U32  r
     pusharg tmp_op
     pusharg tmp_out
     bsr print_x_x_ln
@@ -319,12 +282,18 @@
 
 # ========================================
 .fun main NORMAL [S32] = []
-    .reg U32 [ru32 nu32]
-    .reg U16 [ru16 nu16]
-    .reg U8 [ru8 nu8]
-    .reg S32 [rs32 ns32]
-    .reg S16 [rs16 ns16]
-    .reg S8 [rs8 ns8]
+    .reg U32 ru32
+    .reg U32 nu32
+    .reg U16 ru16
+    .reg U16 nu16
+    .reg U8 ru8
+    .reg U8 nu8
+    .reg S32 rs32
+    .reg S32 ns32
+    .reg S16 rs16
+    .reg S16 ns16
+    .reg S8 rs8
+    .reg S8 ns8
 
 .bbl start
     pusharg 10:U8

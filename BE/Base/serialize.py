@@ -113,8 +113,8 @@ def FunRenderToAsm(fun: ir.Fun) -> List[str]:
     for r in fun.regs:
         regs[r.kind.value].append(r)
     for kind, rr in sorted(regs.items()):
-        reg_names = ' '.join(_RenderReg(r) for r in sorted(rr))
-        out.append(f".reg {o.DK(kind).name} [{reg_names}]")
+        for r in sorted(rr):
+            out.append(f".reg {o.DK(kind).name} {_RenderReg(r)}")
     for _, stk in sorted(fun.stk_syms.items()):
         out.append(f".stk {stk.name} {stk.alignment} {stk.count}")
 
@@ -188,10 +188,10 @@ def DirBbl(unit: ir.Unit, operands: List):
 
 def DirReg(unit: ir.Unit, operands: List):
     fun = unit.funs[-1]
-    reg_list = operands[1]
-    assert isinstance(reg_list, list)
-    for r in reg_list:
-        fun.AddReg(ir.Reg(r, operands[0]))
+    reg = operands[1]
+    assert isinstance(reg, str)
+    assert isinstance(operands[0], o.DK)
+    fun.AddReg(ir.Reg(reg, operands[0]))
 
 
 def DirStk(unit: ir.Unit, operands: List):
@@ -318,9 +318,10 @@ def _GetRegOrConstOperand(fun: ir.Fun, last_kind: o.DK,
         if pos < 0:
             reg = fun.GetReg(token)
         else:
-            kind = token[pos + 1:]
             reg_name = token[:pos]
-            reg = ir.Reg(reg_name, o.SHORT_STR_TO_RK.get(kind))
+            kind = o.SHORT_STR_TO_RK.get(token[pos + 1:])
+            assert kind is not None, f"bad kind name [{token[pos + 1:]}]"
+            reg = ir.Reg(reg_name, kind)
             fun.AddReg(reg)
             assert o.CheckTypeConstraint(last_kind, tc, reg.kind)
         if cpu_reg:
@@ -383,10 +384,6 @@ def _GetOperand(unit: ir.Unit, fun: ir.Fun, ok: o.OP_KIND, v: Any) -> Any:
         return rk
     elif ok is o.OP_KIND.NAME:
         assert parse.RE_IDENTIFIER.match(v), f"bad identifier [{v}]"
-        return v
-    elif ok is o.OP_KIND.NAME_LIST:
-        for x in v:
-            assert parse.RE_IDENTIFIER.match(x), f"bad identifier [{x}]"
         return v
     elif ok is o.OP_KIND.MEM_KIND:
         return o.SHORT_STR_TO_MK[v]

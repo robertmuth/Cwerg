@@ -11,7 +11,7 @@
   poparg ptr:A64
   poparg value:S32
   poparg num:U64
-  .reg S32 [i]
+  .reg S32 i
   mov i = 0
   bra for_1_cond
 
@@ -39,7 +39,7 @@
   poparg destination:A64
   poparg source:A64
   poparg num:U64
-  .reg S32 [i]
+  .reg S32 i
   mov i = 0
   bra for_1_cond
 
@@ -69,7 +69,7 @@
 
 
 .fun njGetWidth NORMAL [S32] = []
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   lea %A64_10:A64 = nj
@@ -81,7 +81,7 @@
 
 
 .fun njGetHeight NORMAL [S32] = []
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   lea %A64_13:A64 = nj
@@ -93,7 +93,7 @@
 
 
 .fun njIsColor NORMAL [S32] = []
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   lea %A64_16:A64 = nj
@@ -117,7 +117,7 @@
 
 
 .fun njGetImage NORMAL [A64] = []
-.reg A64 [%out]
+.reg A64 %out
 
 .bbl %start
   lea %A64_19:A64 = nj
@@ -148,7 +148,7 @@
 
 
 .fun njGetImageSize NORMAL [S32] = []
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   lea %A64_29:A64 = nj
@@ -170,7 +170,7 @@
 
 
 .fun njClip NORMAL [U8] = [S32]
-.reg U8 [%out]
+.reg U8 %out
 
 .bbl %start
   poparg x:S32
@@ -203,15 +203,15 @@
 
 .bbl %start
   poparg blk:A64
-  .reg S32 [x0]
-  .reg S32 [x1]
-  .reg S32 [x2]
-  .reg S32 [x3]
-  .reg S32 [x4]
-  .reg S32 [x5]
-  .reg S32 [x6]
-  .reg S32 [x7]
-  .reg S32 [x8]
+  .reg S32 x0
+  .reg S32 x1
+  .reg S32 x2
+  .reg S32 x3
+  .reg S32 x4
+  .reg S32 x5
+  .reg S32 x6
+  .reg S32 x7
+  .reg S32 x8
   lea %A64_43:A64 = blk 16
   ld %S32_44:S32 = %A64_43 0
   shl %S32_45:S32 = %S32_44 11
@@ -371,15 +371,15 @@
   poparg blk:A64
   poparg out:A64
   poparg stride:S32
-  .reg S32 [x0]
-  .reg S32 [x1]
-  .reg S32 [x2]
-  .reg S32 [x3]
-  .reg S32 [x4]
-  .reg S32 [x5]
-  .reg S32 [x6]
-  .reg S32 [x7]
-  .reg S32 [x8]
+  .reg S32 x0
+  .reg S32 x1
+  .reg S32 x2
+  .reg S32 x3
+  .reg S32 x4
+  .reg S32 x5
+  .reg S32 x6
+  .reg S32 x7
+  .reg S32 x8
   mul %S32_141:S32 = 8:S32 4
   mul %S32_142:S32 = %S32_141 4
   lea %A64_143:A64 = blk %S32_142
@@ -606,11 +606,11 @@
 
 
 .fun __static_1_njShowBits NORMAL [S32] = [S32]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg bits:S32
-  .reg U8 [newbyte]
+  .reg U8 newbyte
   bne bits 0 if_2_end
   bra if_2_true
 
@@ -695,7 +695,7 @@
   bra if_5_false
 
 .bbl if_5_true
-  .reg U8 [marker]
+  .reg U8 marker
   lea %A64_328:A64 = nj
   lea %A64_329:A64 = %A64_328 4
   ld %A64_330:A64 = %A64_329 0
@@ -818,11 +818,11 @@
 
 
 .fun njGetBits NORMAL [S32] = [S32]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg bits:S32
-  .reg S32 [res]
+  .reg S32 res
   pusharg bits
   bsr __static_1_njShowBits
   poparg %S32_392:S32
@@ -888,7 +888,7 @@
 
 
 .fun njDecode16 NORMAL [U16] = [A64]
-.reg U16 [%out]
+.reg U16 %out
 
 .bbl %start
   poparg pos:A64
@@ -976,12 +976,12 @@
 .fun njDecodeSOF NORMAL [] = []
 
 .bbl %start
-  .reg S32 [i]
-  .reg S32 [ssxmax]
+  .reg S32 i
+  .reg S32 ssxmax
   mov ssxmax = 0
-  .reg S32 [ssymax]
+  .reg S32 ssymax
   mov ssymax = 0
-  .reg A64 [c]
+  .reg A64 c
   bsr __static_3_njDecodeLength
 
 .bbl while_1
@@ -1537,13 +1537,13 @@
 .fun njDecodeDHT NORMAL [] = []
 
 .bbl %start
-  .reg S32 [codelen]
-  .reg S32 [currcnt]
-  .reg S32 [remain]
-  .reg S32 [spread]
-  .reg S32 [i]
-  .reg S32 [j]
-  .reg A64 [vlc]
+  .reg S32 codelen
+  .reg S32 currcnt
+  .reg S32 remain
+  .reg S32 spread
+  .reg S32 i
+  .reg S32 j
+  .reg A64 vlc
   bsr __static_3_njDecodeLength
 
 .bbl while_1
@@ -1693,7 +1693,7 @@
   bra for_11_cond
 
 .bbl for_11
-  .reg U8 [code]
+  .reg U8 code
   lea %A64_773:A64 = nj
   lea %A64_774:A64 = %A64_773 4
   ld %A64_775:A64 = %A64_774 0
@@ -1785,8 +1785,8 @@
 .fun njDecodeDQT NORMAL [] = []
 
 .bbl %start
-  .reg S32 [i]
-  .reg A64 [t]
+  .reg S32 i
+  .reg A64 t
   bsr __static_3_njDecodeLength
 
 .bbl while_1
@@ -1951,18 +1951,18 @@
 
 
 .fun njGetVLC NORMAL [S32] = [A64 A64]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg vlc:A64
   poparg code:A64
-  .reg S32 [value]
+  .reg S32 value
   mov %S32_853:S32 = 16
   pusharg %S32_853
   bsr __static_1_njShowBits
   poparg %S32_852:S32
   mov value = %S32_852
-  .reg S32 [bits]
+  .reg S32 bits
   mul %S32_854:S32 = value 2
   lea %A64_855:A64 = vlc %S32_854
   lea %A64_856:A64 = %A64_855 0
@@ -2038,8 +2038,8 @@
   lea %A64_874:A64 = code
   mov %U8_875:U8 = 0
   st %A64_874 0 = %U8_875
-  .reg S32 [value]
-  .reg S32 [coef]
+  .reg S32 value
+  .reg S32 coef
   mov coef = 0
   lea %A64_876:A64 = nj
   lea %A64_877:A64 = %A64_876 524760
@@ -2226,19 +2226,19 @@
 .fun njDecodeScan NORMAL [] = []
 
 .bbl %start
-  .reg S32 [i]
-  .reg S32 [mbx]
-  .reg S32 [mby]
-  .reg S32 [sbx]
-  .reg S32 [sby]
-  .reg S32 [rstcount]
+  .reg S32 i
+  .reg S32 mbx
+  .reg S32 mby
+  .reg S32 sbx
+  .reg S32 sby
+  .reg S32 rstcount
   lea %A64_968:A64 = nj
   lea %A64_969:A64 = %A64_968 525016
   ld %S32_970:S32 = %A64_969 0
   mov rstcount = %S32_970
-  .reg S32 [nextrst]
+  .reg S32 nextrst
   mov nextrst = 0
-  .reg A64 [c]
+  .reg A64 c
   bsr __static_3_njDecodeLength
 
 .bbl while_1
@@ -2623,16 +2623,16 @@
 
 .bbl %start
   poparg c:A64
-  .reg S32 [xmax]
+  .reg S32 xmax
   lea %A64_1127:A64 = c 12
   ld %S32_1128:S32 = %A64_1127 0
   sub %S32_1129:S32 = %S32_1128 3
   mov xmax = %S32_1129
-  .reg A64 [out]
-  .reg A64 [lin]
-  .reg A64 [lout]
-  .reg S32 [x]
-  .reg S32 [y]
+  .reg A64 out
+  .reg A64 lin
+  .reg A64 lout
+  .reg S32 x
+  .reg S32 y
   lea %A64_1130:A64 = c 12
   ld %S32_1131:S32 = %A64_1130 0
   lea %A64_1132:A64 = c 16
@@ -2897,22 +2897,22 @@
 
 .bbl %start
   poparg c:A64
-  .reg S32 [w]
+  .reg S32 w
   lea %A64_1313:A64 = c 12
   ld %S32_1314:S32 = %A64_1313 0
   mov w = %S32_1314
-  .reg S32 [s1]
+  .reg S32 s1
   lea %A64_1315:A64 = c 20
   ld %S32_1316:S32 = %A64_1315 0
   mov s1 = %S32_1316
-  .reg S32 [s2]
+  .reg S32 s2
   add %S32_1317:S32 = s1 s1
   mov s2 = %S32_1317
-  .reg A64 [out]
-  .reg A64 [cin]
-  .reg A64 [cout]
-  .reg S32 [x]
-  .reg S32 [y]
+  .reg A64 out
+  .reg A64 cin
+  .reg A64 cout
+  .reg S32 x
+  .reg S32 y
   lea %A64_1318:A64 = c 12
   ld %S32_1319:S32 = %A64_1318 0
   lea %A64_1320:A64 = c 16
@@ -3175,8 +3175,8 @@
 .fun njConvert NORMAL [] = []
 
 .bbl %start
-  .reg S32 [i]
-  .reg A64 [c]
+  .reg S32 i
+  .reg A64 c
   mov i = 0
   lea %A64_1492:A64 = nj
   lea %A64_1493:A64 = %A64_1492 52
@@ -3308,27 +3308,27 @@
   bra if_23_false
 
 .bbl if_23_true
-  .reg S32 [x]
-  .reg S32 [yy]
-  .reg A64 [prgb]
+  .reg S32 x
+  .reg S32 yy
+  .reg A64 prgb
   lea %A64_1541:A64 = nj
   lea %A64_1542:A64 = %A64_1541 525020
   ld %A64_1543:A64 = %A64_1542 0
   mov prgb = %A64_1543
-  .reg A64 [py]
+  .reg A64 py
   lea %A64_1544:A64 = nj
   lea %A64_1545:A64 = %A64_1544 52
   lea %A64_1546:A64 = %A64_1545 40
   ld %A64_1547:A64 = %A64_1546 0
   mov py = %A64_1547
-  .reg A64 [pcb]
+  .reg A64 pcb
   lea %A64_1548:A64 = nj
   lea %A64_1549:A64 = %A64_1548 52
   lea %A64_1550:A64 = %A64_1549 48
   lea %A64_1551:A64 = %A64_1550 40
   ld %A64_1552:A64 = %A64_1551 0
   mov pcb = %A64_1552
-  .reg A64 [pcr]
+  .reg A64 pcr
   lea %A64_1553:A64 = nj
   lea %A64_1554:A64 = %A64_1553 52
   lea %A64_1555:A64 = %A64_1554 96
@@ -3346,19 +3346,19 @@
   bra for_6_cond
 
 .bbl for_6
-  .reg S32 [y]
+  .reg S32 y
   lea %A64_1561:A64 = py x
   ld %U8_1562:U8 = %A64_1561 0
   conv %S32_1563:S32 = %U8_1562
   shl %S32_1564:S32 = %S32_1563 8
   mov y = %S32_1564
-  .reg S32 [cb]
+  .reg S32 cb
   lea %A64_1565:A64 = pcb x
   ld %U8_1566:U8 = %A64_1565 0
   conv %S32_1567:S32 = %U8_1566
   sub %S32_1568:S32 = %S32_1567 128
   mov cb = %S32_1568
-  .reg S32 [cr]
+  .reg S32 cr
   lea %A64_1569:A64 = pcr x
   ld %U8_1570:U8 = %A64_1569 0
   conv %S32_1571:S32 = %U8_1570
@@ -3452,7 +3452,7 @@
   bra if_23_end
 
 .bbl if_22_true
-  .reg A64 [pin]
+  .reg A64 pin
   lea %A64_1623:A64 = nj
   lea %A64_1624:A64 = %A64_1623 52
   lea %A64_1625:A64 = %A64_1624 40
@@ -3463,7 +3463,7 @@
   ld %S32_1630:S32 = %A64_1629 0
   lea %A64_1631:A64 = %A64_1626 %S32_1630
   mov pin = %A64_1631
-  .reg A64 [pout]
+  .reg A64 pout
   lea %A64_1632:A64 = nj
   lea %A64_1633:A64 = %A64_1632 52
   lea %A64_1634:A64 = %A64_1633 40
@@ -3474,7 +3474,7 @@
   ld %S32_1639:S32 = %A64_1638 0
   lea %A64_1640:A64 = %A64_1635 %S32_1639
   mov pout = %A64_1640
-  .reg S32 [__local_26_y]
+  .reg S32 __local_26_y
   lea %A64_1641:A64 = nj
   lea %A64_1642:A64 = %A64_1641 52
   lea %A64_1643:A64 = %A64_1642 16
@@ -3544,7 +3544,7 @@
 .fun njDone NORMAL [] = []
 
 .bbl %start
-  .reg S32 [i]
+  .reg S32 i
   mov i = 0
   bra for_1_cond
 
@@ -3596,7 +3596,7 @@
 
 
 .fun njDecode NORMAL [S32] = [A64 S32]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg jpeg:A64
@@ -3762,7 +3762,7 @@
 .bbl %start
   poparg s:A64
   poparg fd:S32
-  .reg U64 [size]
+  .reg U64 size
   mov size = 0
   bra for_1_cond
 
@@ -3792,7 +3792,7 @@
   poparg fd:S32
   poparg a:S32
 .stk buf 1 64
-  .reg S32 [i]
+  .reg S32 i
   mov i = 63
   lea %A64_1755:A64 = buf
   lea %A64_1756:A64 = %A64_1755 i
@@ -3828,14 +3828,14 @@
 
 
 .fun main NORMAL [S32] = [S32 A64]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg argc:S32
   poparg argv:A64
-  .reg S32 [size]
-  .reg A64 [buf]
-  .reg S32 [fd]
+  .reg S32 size
+  .reg A64 buf
+  .reg S32 fd
   blt argc 3 if_1_true
   bra if_1_end
 

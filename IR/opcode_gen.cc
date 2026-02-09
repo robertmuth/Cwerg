@@ -312,7 +312,7 @@ const char* const OP_KIND_ToStringMap[] = {
     "FUN_KIND", // 24
     "FIELD", // 25
     "NAME", // 26
-    "NAME_LIST", // 27
+    "", // 27
     "INT", // 28
     "BBL_TAB", // 29
     "BYTES", // 30
@@ -448,7 +448,7 @@ const Opcode GlobalOpcodes[256] = {
        {TC::INVALID}, 
        ".bbl", 0 },
      {  //  7 .reg
-       {OP_KIND::DATA_KIND, OP_KIND::NAME_LIST}, 
+       {OP_KIND::DATA_KIND, OP_KIND::NAME}, 
        OPC_KIND::DIRECTIVE, OPC_GENUS::BASE, 2, 0,
        {TC::INVALID, TC::INVALID}, 
        ".reg", 0 },

@@ -245,6 +245,7 @@ def RenderRealStd(num: float) -> str:
         return "-inf" if math.copysign(1, num) < 0 else "+inf"
     return float(num).hex()
 
+
 def ParseLine(line: str) -> List[str]:
     # TODO: hackish
 
@@ -261,7 +262,7 @@ def ParseLine(line: str) -> List[str]:
             assert not in_list
             in_list = True
         elif t == "]":
-            assert in_list
+            assert in_list, f"list close without opening {line}"
             in_list = False
         elif t.startswith('"'):
             assert t.endswith('"')

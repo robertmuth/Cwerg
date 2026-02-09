@@ -17,7 +17,7 @@
 
 
 .fun main NORMAL [S32] = []
-.reg A32 [s]
+.reg A32 s
 .bbl start
     lea.mem x:A32  string_pointers 0
     ld s x 0

@@ -50,9 +50,9 @@ class TestConversion(unittest.TestCase):
 
 .fun foo NORMAL [] = []
     .stk array 4 4000
-    .reg S32 [x]
-    .reg U32 [y] 
-    .reg A32 [counter] 
+    .reg S32 x
+    .reg U32 y
+    .reg A32 counter
 
 .bbl start
     lea.mem counter = COUNTER 0
@@ -111,9 +111,10 @@ class TestConversion(unittest.TestCase):
     def testBaseRegPropagation2(self):
         code = io.StringIO(r"""
 .fun foo NORMAL [] = []
-    .reg S32 [x]
-    .reg U32 [y]
-    .reg A32 [a counter] 
+    .reg S32 x
+    .reg U32 y
+    .reg A32 a
+    .reg A32 counter
 
 .bbl start
     poparg counter

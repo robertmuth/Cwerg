@@ -3,12 +3,11 @@
 
 # ========================================
 .fun main NORMAL [S32] = []
-    .reg U32 [size i]
 
 .jtb switch_tab 5 labelD [1 labelA 2 labelB 4 labelC]
 
 .bbl start
-    mov i 0
+    mov i:U32 0
 
 .bbl loop
     switch i switch_tab

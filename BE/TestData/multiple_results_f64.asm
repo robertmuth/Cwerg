@@ -21,23 +21,20 @@
 
 # ========================================
 .fun main NORMAL [S32] = []
-.reg R64 [a s m d M x y]
-.reg A64 [f]
 .bbl start
     mov xi:S32 = 70
     mov yi:S32 = 6
 
-    conv x xi
-    conv y yi
+    conv x:R64 xi
+    conv y:R64 yi
 
     pusharg y
     pusharg x
     bsr multi
-    poparg a
-    poparg s
-    poparg m
-    poparg d
-    # poparg M
+    poparg a:R64
+    poparg s:R64
+    poparg m:R64
+    poparg d:R64
 
     conv a2:U32 a
     pusharg a2

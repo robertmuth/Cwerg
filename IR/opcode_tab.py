@@ -155,7 +155,6 @@ class OP_KIND(enum.Enum):
     FIELD = 25
 
     NAME = 26
-    NAME_LIST = 27
     INT = 28
     BBL_TAB = 29
     BYTES = 30
@@ -326,8 +325,7 @@ SHORT_STR_TO_FK = {x.name: x for x in FUN_KIND}
 # Operand Value Kind Sets
 ############################################################
 
-OKS_LIST = {OP_KIND.BYTES, OP_KIND.NAME_LIST, OP_KIND.BBL_TAB,
-            OP_KIND.TYPE_LIST}
+OKS_LIST = {OP_KIND.BYTES, OP_KIND.BBL_TAB, OP_KIND.TYPE_LIST}
 
 OKS_ALLOWED_FOR_INSTRUCTIONS = {OP_KIND.REG, OP_KIND.CONST,
                                 OP_KIND.REG_OR_CONST,
@@ -343,7 +341,7 @@ OKS_ALLOWED_FOR_INSTRUCTIONS = {OP_KIND.REG, OP_KIND.CONST,
 OKS_ALLOWED_FOR_DIRECTIVES = {OP_KIND.INT, OP_KIND.MEM_KIND, OP_KIND.BYTES,
                               OP_KIND.NAME, OP_KIND.BBL_TAB,
                               OP_KIND.FUN_KIND, OP_KIND.TYPE_LIST,
-                              OP_KIND.NAME_LIST, OP_KIND.DATA_KIND, OP_KIND.FUN,
+                              OP_KIND.DATA_KIND, OP_KIND.FUN,
                               OP_KIND.MEM, OP_KIND.BBL
                               }
 
@@ -990,7 +988,7 @@ Directive(0x05, ".fun", [OP_KIND.NAME, OP_KIND.FUN_KIND, OP_KIND.TYPE_LIST,
 Directive(0x06, ".bbl", [OP_KIND.NAME],
           "Add new bbl to current fun")
 
-Directive(0x07, ".reg", [OP_KIND.DATA_KIND, OP_KIND.NAME_LIST],
+Directive(0x07, ".reg", [OP_KIND.DATA_KIND, OP_KIND.NAME],
           "Add new regs to current fun")
 
 Directive(0x08, ".stk", [OP_KIND.NAME, OP_KIND.INT, OP_KIND.INT],

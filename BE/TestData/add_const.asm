@@ -22,7 +22,7 @@
 
 	
 .fun compute  NORMAL [S32] = []
-.reg S32 [tmp]
+.reg S32 tmp
 .bbl start
 	bsr const_1
 	poparg tmp

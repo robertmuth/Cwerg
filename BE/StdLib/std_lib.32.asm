@@ -10,13 +10,11 @@
 
 
 .fun write_s NORMAL [S32] = [S32 A32]
-.reg S32 [%out]
 
 .bbl %start
   poparg fd:S32
   poparg s:A32
-  .reg U32 [len]
-  mov len = 0
+  mov len:U32 = 0
   bra while_1_cond
 
 .bbl while_1
@@ -36,28 +34,25 @@
   pusharg fd
   bsr write
   poparg %S32_5:S32
-  mov %out = %S32_5
+  mov %out:S32 = %S32_5
   pusharg %out
   ret
 
 
 .fun write_x NORMAL [S32] = [S32 U32]
-.reg S32 [%out]
 
 .bbl %start
   poparg fd:S32
   poparg val:U32
 .stk buffer 1 16
-  .reg U32 [pos]
   lea %A32_1:A32 = buffer
-  mov pos = 16
+  mov pos:U32 = 16
 
 .bbl while_1
   sub %U32_2:U32 = pos 1
   mov pos = %U32_2
-  .reg U32 [digit]
   rem %U32_3:U32 = val 16
-  mov digit = %U32_3
+  mov digit:U32 = %U32_3
   ble digit 9 if_2_true
   bra if_2_false
 
@@ -96,21 +91,19 @@
   pusharg fd
   bsr write
   poparg %S32_19:S32
-  mov %out = %S32_19
+  mov %out:S32 = %S32_19
   pusharg %out
   ret
 
 
 .fun write_u NORMAL [S32] = [S32 U32]
-.reg S32 [%out]
 
 .bbl %start
   poparg fd:S32
   poparg val:U32
 .stk buffer 1 16
-  .reg U32 [pos]
   lea %A32_1:A32 = buffer
-  mov pos = 16
+  mov pos:U32 = 16
 
 .bbl while_1
   sub %U32_2:U32 = pos 1
@@ -138,13 +131,12 @@
   pusharg fd
   bsr write
   poparg %S32_13:S32
-  mov %out = %S32_13
+  mov %out:S32 = %S32_13
   pusharg %out
   ret
 
 
 .fun write_d NORMAL [S32] = [S32 S32]
-.reg S32 [%out]
 
 .bbl %start
   poparg fd:S32
@@ -158,19 +150,17 @@
   pusharg fd
   bsr write_u
   poparg %S32_2:S32
-  mov %out = %S32_2
+  mov %out:S32 = %S32_2
   pusharg %out
   ret
 
 .bbl if_2_end
-  .reg U32 [val]
   sub %S32_3:S32 = 0  sval
   conv %U32_4:U32 = %S32_3
-  mov val = %U32_4
+  mov val:U32 = %U32_4
 .stk buffer 1 16
-  .reg U32 [pos]
   lea %A32_5:A32 = buffer
-  mov pos = 16
+  mov pos:U32 = 16
 
 .bbl while_1
   sub %U32_6:U32 = pos 1
@@ -210,7 +200,6 @@
 
 
 .fun write_c NORMAL [S32] = [S32 U8]
-.reg S32 [%out]
 
 .bbl %start
   poparg fd:S32
@@ -226,7 +215,7 @@
   pusharg fd
   bsr write
   poparg %S32_4:S32
-  mov %out = %S32_4
+  mov %out:S32 = %S32_4
   pusharg %out
   ret
 
@@ -406,14 +395,12 @@
 
 
 .fun memset NORMAL [A32] = [A32 S32 U32]
-.reg A32 [%out]
 
 .bbl %start
   poparg ptr:A32
   poparg value:S32
   poparg n:U32
-  .reg U32 [i]
-  mov i = 0
+  mov i:U32 = 0
   bra for_1_cond
 
 .bbl for_1
@@ -430,20 +417,18 @@
   bra for_1_exit
 
 .bbl for_1_exit
-  mov %out = ptr
+  mov %out:A32 = ptr
   pusharg %out
   ret
 
 
 .fun memcpy NORMAL [A32] = [A32 A32 U32]
-.reg A32 [%out]
 
 .bbl %start
   poparg dst:A32
   poparg src:A32
   poparg n:U32
-  .reg U32 [i]
-  mov i = 0
+  mov i:U32 = 0
   bra for_1_cond
 
 .bbl for_1
@@ -461,7 +446,7 @@
   bra for_1_exit
 
 .bbl for_1_exit
-  mov %out = dst
+  mov %out:A32 = dst
   pusharg %out
   ret
 
@@ -483,13 +468,11 @@
 
 
 .fun malloc NORMAL [A32] = [U32]
-.reg A32 [%out]
 
 .bbl %start
   poparg size:U32
-  .reg U32 [page_size]
   shl %U32_1:U32 = 1:U32 20
-  mov page_size = %U32_1
+  mov page_size:U32 = %U32_1
   lea %A32_2:A32 = __static_1__malloc_start
   ld %A32_3:A32 = %A32_2 0
   beq %A32_3 0 if_1_true
@@ -508,11 +491,10 @@
   st %A32_9 0 = %A32_8
 
 .bbl if_1_end
-  .reg U32 [rounded_size]
   add %U32_10:U32 = size 15
   div %U32_11:U32 = %U32_10 16
   mul %U32_12:U32 = %U32_11 16
-  mov rounded_size = %U32_12
+  mov rounded_size:U32 = %U32_12
   lea %A32_13:A32 = __static_1__malloc_start
   ld %A32_14:A32 = %A32_13 0
   lea %A32_15:A32 = %A32_14 rounded_size
@@ -522,17 +504,15 @@
   bra if_3_end
 
 .bbl if_3_true
-  .reg U32 [increment]
   add %U32_18:U32 = rounded_size page_size
   sub %U32_19:U32 = %U32_18 1
   div %U32_20:U32 = %U32_19 page_size
   mul %U32_21:U32 = %U32_20 page_size
-  mov increment = %U32_21
-  .reg A32 [new_end]
+  mov increment:U32 = %U32_21
   lea %A32_22:A32 = __static_2__malloc_end
   ld %A32_23:A32 = %A32_22 0
   lea %A32_24:A32 = %A32_23 increment
-  mov new_end = %A32_24
+  mov new_end:A32 = %A32_24
   pusharg new_end
   bsr xbrk
   poparg %A32_25:A32
@@ -547,16 +527,15 @@
   bsr abort
 
 .bbl if_3_end
-  .reg A32 [result]
   lea %A32_29:A32 = __static_1__malloc_start
   ld %A32_30:A32 = %A32_29 0
-  mov result = %A32_30
+  mov result:A32 = %A32_30
   lea %A32_31:A32 = __static_1__malloc_start
   ld %A32_32:A32 = %A32_31 0
   lea %A32_33:A32 = %A32_32 rounded_size
   lea %A32_34:A32 = __static_1__malloc_start
   st %A32_34 0 = %A32_33
-  mov %out = result
+  mov %out:A32 = result
   pusharg %out
   ret
 

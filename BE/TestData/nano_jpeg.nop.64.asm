@@ -48,11 +48,15 @@
 .fun getpid BUILTIN [S32] = []
 
 .fun write_s NORMAL [S64] = [S32 A64]
-.reg S8 [%S8_3]
-.reg S32 [%S32_4 fd]
-.reg S64 [%S64_5 %out]
-.reg U64 [%U64_1 len]
-.reg A64 [%A64_2 s]
+.reg S8 %S8_3
+.reg S32 %S32_4
+.reg S32 fd
+.reg S64 %S64_5
+.reg S64 %out
+.reg U64 %U64_1
+.reg U64 len
+.reg A64 %A64_2
+.reg A64 s
 .bbl %start
     poparg fd
     poparg s
@@ -78,12 +82,30 @@
     ret
 
 .fun write_x NORMAL [S64] = [S32 U32]
-.reg S8 [%S8_11 %S8_5]
-.reg S32 [%S32_8 fd]
-.reg S64 [%S64_19 %out]
-.reg U32 [%U32_10 %U32_14 %U32_3 %U32_4 %U32_9 digit val]
-.reg U64 [%U64_18 %U64_2 pos]
-.reg A64 [%A64_1 %A64_12 %A64_13 %A64_15 %A64_16 %A64_17 %A64_6 %A64_7]
+.reg S8 %S8_11
+.reg S8 %S8_5
+.reg S32 %S32_8
+.reg S32 fd
+.reg S64 %S64_19
+.reg S64 %out
+.reg U32 %U32_10
+.reg U32 %U32_14
+.reg U32 %U32_3
+.reg U32 %U32_4
+.reg U32 %U32_9
+.reg U32 digit
+.reg U32 val
+.reg U64 %U64_18
+.reg U64 %U64_2
+.reg U64 pos
+.reg A64 %A64_1
+.reg A64 %A64_12
+.reg A64 %A64_13
+.reg A64 %A64_15
+.reg A64 %A64_16
+.reg A64 %A64_17
+.reg A64 %A64_6
+.reg A64 %A64_7
 .stk buffer 1 16
 .bbl %start
     poparg fd
@@ -133,12 +155,23 @@
     ret
 
 .fun write_u NORMAL [S64] = [S32 U32]
-.reg S8 [%S8_5]
-.reg S32 [fd]
-.reg S64 [%S64_13 %out]
-.reg U32 [%U32_3 %U32_4 %U32_8 val]
-.reg U64 [%U64_12 %U64_2 pos]
-.reg A64 [%A64_1 %A64_10 %A64_11 %A64_6 %A64_7 %A64_9]
+.reg S8 %S8_5
+.reg S32 fd
+.reg S64 %S64_13
+.reg S64 %out
+.reg U32 %U32_3
+.reg U32 %U32_4
+.reg U32 %U32_8
+.reg U32 val
+.reg U64 %U64_12
+.reg U64 %U64_2
+.reg U64 pos
+.reg A64 %A64_1
+.reg A64 %A64_10
+.reg A64 %A64_11
+.reg A64 %A64_6
+.reg A64 %A64_7
+.reg A64 %A64_9
 .stk buffer 1 16
 .bbl %start
     poparg fd
@@ -174,12 +207,32 @@
     ret
 
 .fun write_d NORMAL [S64] = [S32 S32]
-.reg S8 [%S8_16 %S8_9]
-.reg S32 [%S32_3 fd sval]
-.reg S64 [%S64_2 %S64_21 %out]
-.reg U32 [%U32_1 %U32_12 %U32_4 %U32_7 %U32_8 val]
-.reg U64 [%U64_13 %U64_20 %U64_6 pos]
-.reg A64 [%A64_10 %A64_11 %A64_14 %A64_15 %A64_17 %A64_18 %A64_19 %A64_5]
+.reg S8 %S8_16
+.reg S8 %S8_9
+.reg S32 %S32_3
+.reg S32 fd
+.reg S32 sval
+.reg S64 %S64_2
+.reg S64 %S64_21
+.reg S64 %out
+.reg U32 %U32_1
+.reg U32 %U32_12
+.reg U32 %U32_4
+.reg U32 %U32_7
+.reg U32 %U32_8
+.reg U32 val
+.reg U64 %U64_13
+.reg U64 %U64_20
+.reg U64 %U64_6
+.reg U64 pos
+.reg A64 %A64_10
+.reg A64 %A64_11
+.reg A64 %A64_14
+.reg A64 %A64_15
+.reg A64 %A64_17
+.reg A64 %A64_18
+.reg A64 %A64_19
+.reg A64 %A64_5
 .stk buffer 1 16
 .bbl %start
     poparg fd
@@ -236,12 +289,16 @@
     ret
 
 .fun write_c NORMAL [S64] = [S32 U8]
-.reg S8 [%S8_1]
-.reg S32 [%S32_6 fd]
-.reg S64 [%S64_4 %S64_7 %out]
-.reg U8 [c]
-.reg U64 [%U64_5]
-.reg A64 [%A64_2 %A64_3]
+.reg S8 %S8_1
+.reg S32 %S32_6
+.reg S32 fd
+.reg S64 %S64_4
+.reg S64 %S64_7
+.reg S64 %out
+.reg U8 c
+.reg U64 %U64_5
+.reg A64 %A64_2
+.reg A64 %A64_3
 .stk buffer 1 16
 .bbl %start
     poparg fd
@@ -263,11 +320,13 @@
     ret
 
 .fun print_ln NORMAL [] = [A64 U64]
-.reg S32 [%S32_2 %S32_4]
-.reg S64 [%S64_1 %S64_3]
-.reg U8 [%U8_5]
-.reg U64 [n]
-.reg A64 [s]
+.reg S32 %S32_2
+.reg S32 %S32_4
+.reg S64 %S64_1
+.reg S64 %S64_3
+.reg U8 %U8_5
+.reg U64 n
+.reg A64 s
 .bbl %start
     poparg s
     poparg n
@@ -286,10 +345,12 @@
     ret
 
 .fun print_s_ln NORMAL [] = [A64]
-.reg S32 [%S32_2 %S32_4]
-.reg S64 [%S64_1 %S64_3]
-.reg U8 [%U8_5]
-.reg A64 [s]
+.reg S32 %S32_2
+.reg S32 %S32_4
+.reg S64 %S64_1
+.reg S64 %S64_3
+.reg U8 %U8_5
+.reg A64 s
 .bbl %start
     poparg s
     mov %S32_2 1
@@ -306,9 +367,12 @@
     ret
 
 .fun print_d_ln NORMAL [] = [S32]
-.reg S32 [%S32_2 %S32_4 n]
-.reg S64 [%S64_1 %S64_3]
-.reg U8 [%U8_5]
+.reg S32 %S32_2
+.reg S32 %S32_4
+.reg S32 n
+.reg S64 %S64_1
+.reg S64 %S64_3
+.reg U8 %U8_5
 .bbl %start
     poparg n
     mov %S32_2 1
@@ -325,10 +389,12 @@
     ret
 
 .fun print_u_ln NORMAL [] = [U32]
-.reg S32 [%S32_2 %S32_4]
-.reg S64 [%S64_1 %S64_3]
-.reg U8 [%U8_5]
-.reg U32 [n]
+.reg S32 %S32_2
+.reg S32 %S32_4
+.reg S64 %S64_1
+.reg S64 %S64_3
+.reg U8 %U8_5
+.reg U32 n
 .bbl %start
     poparg n
     mov %S32_2 1
@@ -345,9 +411,10 @@
     ret
 
 .fun print_x_ln NORMAL [] = [U32]
-.reg S32 [%S32_2]
-.reg S64 [%S64_1 %S64_3]
-.reg U32 [n]
+.reg S32 %S32_2
+.reg S64 %S64_1
+.reg S64 %S64_3
+.reg U32 n
 .bbl %start
     poparg n
     mov %S32_2 1
@@ -362,8 +429,9 @@
     ret
 
 .fun print_x_x_ln NORMAL [] = [U32 U32]
-.reg S64 [dummy]
-.reg U32 [a b]
+.reg S64 dummy
+.reg U32 a
+.reg U32 b
 .bbl %start
     poparg a
     poparg b
@@ -386,8 +454,10 @@
     ret
 
 .fun print_x_x_x_ln NORMAL [] = [U32 U32 U32]
-.reg S64 [dummy]
-.reg U32 [a b c]
+.reg S64 dummy
+.reg U32 a
+.reg U32 b
+.reg U32 c
 .bbl %start
     poparg a
     poparg b
@@ -419,9 +489,12 @@
     ret
 
 .fun print_c_ln NORMAL [] = [U8]
-.reg S32 [%S32_2 %S32_4]
-.reg S64 [%S64_1 %S64_3]
-.reg U8 [%U8_5 c]
+.reg S32 %S32_2
+.reg S32 %S32_4
+.reg S64 %S64_1
+.reg S64 %S64_3
+.reg U8 %U8_5
+.reg U8 c
 .bbl %start
     poparg c
     mov %S32_2 1
@@ -438,10 +511,14 @@
     ret
 
 .fun memset NORMAL [A64] = [A64 S32 U64]
-.reg S8 [%S8_1]
-.reg S32 [value]
-.reg U64 [%U64_3 i n]
-.reg A64 [%A64_2 %out ptr]
+.reg S8 %S8_1
+.reg S32 value
+.reg U64 %U64_3
+.reg U64 i
+.reg U64 n
+.reg A64 %A64_2
+.reg A64 %out
+.reg A64 ptr
 .bbl %start
     poparg ptr
     poparg value
@@ -464,9 +541,15 @@
     ret
 
 .fun memcpy NORMAL [A64] = [A64 A64 U64]
-.reg S8 [%S8_2]
-.reg U64 [%U64_4 i n]
-.reg A64 [%A64_1 %A64_3 %out dst src]
+.reg S8 %S8_2
+.reg U64 %U64_4
+.reg U64 i
+.reg U64 n
+.reg A64 %A64_1
+.reg A64 %A64_3
+.reg A64 %out
+.reg A64 dst
+.reg A64 src
 .bbl %start
     poparg dst
     poparg src
@@ -490,7 +573,10 @@
     ret
 
 .fun abort NORMAL [] = []
-.reg S32 [%S32_1 %S32_2 %S32_3 %S32_4]
+.reg S32 %S32_1
+.reg S32 %S32_2
+.reg S32 %S32_3
+.reg S32 %S32_4
 .bbl %start
     bsr getpid
     poparg %S32_1
@@ -505,8 +591,47 @@
     ret
 
 .fun malloc NORMAL [A64] = [U64]
-.reg U64 [%U64_1 %U64_10 %U64_11 %U64_12 %U64_18 %U64_19 %U64_20 %U64_21 increment page_size rounded_size size]
-.reg A64 [%A64_13 %A64_14 %A64_15 %A64_16 %A64_17 %A64_2 %A64_22 %A64_23 %A64_24 %A64_25 %A64_26 %A64_27 %A64_28 %A64_29 %A64_3 %A64_30 %A64_31 %A64_32 %A64_33 %A64_34 %A64_4 %A64_5 %A64_6 %A64_7 %A64_8 %A64_9 %out new_end result]
+.reg U64 %U64_1
+.reg U64 %U64_10
+.reg U64 %U64_11
+.reg U64 %U64_12
+.reg U64 %U64_18
+.reg U64 %U64_19
+.reg U64 %U64_20
+.reg U64 %U64_21
+.reg U64 increment
+.reg U64 page_size
+.reg U64 rounded_size
+.reg U64 size
+.reg A64 %A64_13
+.reg A64 %A64_14
+.reg A64 %A64_15
+.reg A64 %A64_16
+.reg A64 %A64_17
+.reg A64 %A64_2
+.reg A64 %A64_22
+.reg A64 %A64_23
+.reg A64 %A64_24
+.reg A64 %A64_25
+.reg A64 %A64_26
+.reg A64 %A64_27
+.reg A64 %A64_28
+.reg A64 %A64_29
+.reg A64 %A64_3
+.reg A64 %A64_30
+.reg A64 %A64_31
+.reg A64 %A64_32
+.reg A64 %A64_33
+.reg A64 %A64_34
+.reg A64 %A64_4
+.reg A64 %A64_5
+.reg A64 %A64_6
+.reg A64 %A64_7
+.reg A64 %A64_8
+.reg A64 %A64_9
+.reg A64 %out
+.reg A64 new_end
+.reg A64 result
 .bbl %start
     poparg size
     shl %U64_1 1 20
@@ -573,16 +698,20 @@
     ret
 
 .fun free NORMAL [] = [A64]
-.reg A64 [ptr]
+.reg A64 ptr
 .bbl %start
     poparg ptr
     ret
 
 .fun mymemset NORMAL [] = [A64 S32 U64]
-.reg S8 [%S8_1]
-.reg S32 [%S32_3 i value]
-.reg U64 [%U64_4 num]
-.reg A64 [%A64_2 ptr]
+.reg S8 %S8_1
+.reg S32 %S32_3
+.reg S32 i
+.reg S32 value
+.reg U64 %U64_4
+.reg U64 num
+.reg A64 %A64_2
+.reg A64 ptr
 .bbl %start
     poparg ptr
     poparg value
@@ -604,10 +733,15 @@
     ret
 
 .fun mymemcpy NORMAL [] = [A64 A64 U64]
-.reg S8 [%S8_6]
-.reg S32 [%S32_8 i]
-.reg U64 [%U64_9 num]
-.reg A64 [%A64_5 %A64_7 destination source]
+.reg S8 %S8_6
+.reg S32 %S32_8
+.reg S32 i
+.reg U64 %U64_9
+.reg U64 num
+.reg A64 %A64_5
+.reg A64 %A64_7
+.reg A64 destination
+.reg A64 source
 .bbl %start
     poparg destination
     poparg source
@@ -630,8 +764,10 @@
     ret
 
 .fun njGetWidth NORMAL [S32] = []
-.reg S32 [%S32_12 %out]
-.reg A64 [%A64_10 %A64_11]
+.reg S32 %S32_12
+.reg S32 %out
+.reg A64 %A64_10
+.reg A64 %A64_11
 .bbl %start
     lea.mem %A64_10 nj 0
     lea %A64_11 %A64_10 24
@@ -641,8 +777,10 @@
     ret
 
 .fun njGetHeight NORMAL [S32] = []
-.reg S32 [%S32_15 %out]
-.reg A64 [%A64_13 %A64_14]
+.reg S32 %S32_15
+.reg S32 %out
+.reg A64 %A64_13
+.reg A64 %A64_14
 .bbl %start
     lea.mem %A64_13 nj 0
     lea %A64_14 %A64_13 28
@@ -652,9 +790,10 @@
     ret
 
 .fun njIsColor NORMAL [S32] = []
-.reg S32 [%out]
-.reg U32 [%U32_18]
-.reg A64 [%A64_16 %A64_17]
+.reg S32 %out
+.reg U32 %U32_18
+.reg A64 %A64_16
+.reg A64 %A64_17
 .bbl %start
     lea.mem %A64_16 nj 0
     lea %A64_17 %A64_16 48
@@ -673,8 +812,17 @@
 .bbl if_1_end
 
 .fun njGetImage NORMAL [A64] = []
-.reg U32 [%U32_21]
-.reg A64 [%A64_19 %A64_20 %A64_22 %A64_23 %A64_24 %A64_25 %A64_26 %A64_27 %A64_28 %out]
+.reg U32 %U32_21
+.reg A64 %A64_19
+.reg A64 %A64_20
+.reg A64 %A64_22
+.reg A64 %A64_23
+.reg A64 %A64_24
+.reg A64 %A64_25
+.reg A64 %A64_26
+.reg A64 %A64_27
+.reg A64 %A64_28
+.reg A64 %out
 .bbl %start
     lea.mem %A64_19 nj 0
     lea %A64_20 %A64_19 48
@@ -700,9 +848,20 @@
 .bbl if_1_end
 
 .fun njGetImageSize NORMAL [S32] = []
-.reg S32 [%S32_31 %S32_34 %S32_35 %S32_41 %out]
-.reg U32 [%U32_36 %U32_39 %U32_40]
-.reg A64 [%A64_29 %A64_30 %A64_32 %A64_33 %A64_37 %A64_38]
+.reg S32 %S32_31
+.reg S32 %S32_34
+.reg S32 %S32_35
+.reg S32 %S32_41
+.reg S32 %out
+.reg U32 %U32_36
+.reg U32 %U32_39
+.reg U32 %U32_40
+.reg A64 %A64_29
+.reg A64 %A64_30
+.reg A64 %A64_32
+.reg A64 %A64_33
+.reg A64 %A64_37
+.reg A64 %A64_38
 .bbl %start
     lea.mem %A64_29 nj 0
     lea %A64_30 %A64_29 24
@@ -722,8 +881,9 @@
     ret
 
 .fun njClip NORMAL [U8] = [S32]
-.reg S32 [x]
-.reg U8 [%U8_42 %out]
+.reg S32 x
+.reg U8 %U8_42
+.reg U8 %out
 .bbl %start
     poparg x
     blt x 0 if_2_true
@@ -747,8 +907,114 @@
     ret
 
 .fun njRowIDCT NORMAL [] = [A64]
-.reg S32 [%S32_100 %S32_101 %S32_102 %S32_103 %S32_104 %S32_105 %S32_106 %S32_107 %S32_108 %S32_109 %S32_110 %S32_111 %S32_112 %S32_113 %S32_114 %S32_115 %S32_116 %S32_117 %S32_118 %S32_119 %S32_120 %S32_121 %S32_123 %S32_124 %S32_126 %S32_127 %S32_129 %S32_130 %S32_132 %S32_133 %S32_135 %S32_136 %S32_138 %S32_139 %S32_44 %S32_45 %S32_47 %S32_48 %S32_50 %S32_51 %S32_53 %S32_54 %S32_56 %S32_57 %S32_59 %S32_60 %S32_62 %S32_63 %S32_64 %S32_65 %S32_73 %S32_74 %S32_75 %S32_76 %S32_77 %S32_78 %S32_79 %S32_80 %S32_81 %S32_82 %S32_83 %S32_84 %S32_85 %S32_86 %S32_87 %S32_88 %S32_89 %S32_90 %S32_91 %S32_92 %S32_93 %S32_94 %S32_95 %S32_96 %S32_97 %S32_98 %S32_99 x0 x1 x2 x3 x4 x5 x6 x7 x8]
-.reg A64 [%A64_122 %A64_125 %A64_128 %A64_131 %A64_134 %A64_137 %A64_140 %A64_43 %A64_46 %A64_49 %A64_52 %A64_55 %A64_58 %A64_61 %A64_66 %A64_67 %A64_68 %A64_69 %A64_70 %A64_71 %A64_72 blk]
+.reg S32 %S32_100
+.reg S32 %S32_101
+.reg S32 %S32_102
+.reg S32 %S32_103
+.reg S32 %S32_104
+.reg S32 %S32_105
+.reg S32 %S32_106
+.reg S32 %S32_107
+.reg S32 %S32_108
+.reg S32 %S32_109
+.reg S32 %S32_110
+.reg S32 %S32_111
+.reg S32 %S32_112
+.reg S32 %S32_113
+.reg S32 %S32_114
+.reg S32 %S32_115
+.reg S32 %S32_116
+.reg S32 %S32_117
+.reg S32 %S32_118
+.reg S32 %S32_119
+.reg S32 %S32_120
+.reg S32 %S32_121
+.reg S32 %S32_123
+.reg S32 %S32_124
+.reg S32 %S32_126
+.reg S32 %S32_127
+.reg S32 %S32_129
+.reg S32 %S32_130
+.reg S32 %S32_132
+.reg S32 %S32_133
+.reg S32 %S32_135
+.reg S32 %S32_136
+.reg S32 %S32_138
+.reg S32 %S32_139
+.reg S32 %S32_44
+.reg S32 %S32_45
+.reg S32 %S32_47
+.reg S32 %S32_48
+.reg S32 %S32_50
+.reg S32 %S32_51
+.reg S32 %S32_53
+.reg S32 %S32_54
+.reg S32 %S32_56
+.reg S32 %S32_57
+.reg S32 %S32_59
+.reg S32 %S32_60
+.reg S32 %S32_62
+.reg S32 %S32_63
+.reg S32 %S32_64
+.reg S32 %S32_65
+.reg S32 %S32_73
+.reg S32 %S32_74
+.reg S32 %S32_75
+.reg S32 %S32_76
+.reg S32 %S32_77
+.reg S32 %S32_78
+.reg S32 %S32_79
+.reg S32 %S32_80
+.reg S32 %S32_81
+.reg S32 %S32_82
+.reg S32 %S32_83
+.reg S32 %S32_84
+.reg S32 %S32_85
+.reg S32 %S32_86
+.reg S32 %S32_87
+.reg S32 %S32_88
+.reg S32 %S32_89
+.reg S32 %S32_90
+.reg S32 %S32_91
+.reg S32 %S32_92
+.reg S32 %S32_93
+.reg S32 %S32_94
+.reg S32 %S32_95
+.reg S32 %S32_96
+.reg S32 %S32_97
+.reg S32 %S32_98
+.reg S32 %S32_99
+.reg S32 x0
+.reg S32 x1
+.reg S32 x2
+.reg S32 x3
+.reg S32 x4
+.reg S32 x5
+.reg S32 x6
+.reg S32 x7
+.reg S32 x8
+.reg A64 %A64_122
+.reg A64 %A64_125
+.reg A64 %A64_128
+.reg A64 %A64_131
+.reg A64 %A64_134
+.reg A64 %A64_137
+.reg A64 %A64_140
+.reg A64 %A64_43
+.reg A64 %A64_46
+.reg A64 %A64_49
+.reg A64 %A64_52
+.reg A64 %A64_55
+.reg A64 %A64_58
+.reg A64 %A64_61
+.reg A64 %A64_66
+.reg A64 %A64_67
+.reg A64 %A64_68
+.reg A64 %A64_69
+.reg A64 %A64_70
+.reg A64 %A64_71
+.reg A64 %A64_72
+.reg A64 blk
 .bbl %start
     poparg blk
     lea %A64_43 blk 16
@@ -902,9 +1168,155 @@
     ret
 
 .fun njColIDCT NORMAL [] = [A64 A64 S32]
-.reg S32 [%S32_141 %S32_142 %S32_144 %S32_145 %S32_146 %S32_147 %S32_149 %S32_150 %S32_151 %S32_152 %S32_154 %S32_155 %S32_156 %S32_157 %S32_159 %S32_160 %S32_161 %S32_162 %S32_164 %S32_165 %S32_166 %S32_167 %S32_169 %S32_170 %S32_171 %S32_172 %S32_174 %S32_175 %S32_176 %S32_177 %S32_178 %S32_179 %S32_181 %S32_184 %S32_185 %S32_186 %S32_187 %S32_188 %S32_189 %S32_190 %S32_191 %S32_192 %S32_193 %S32_194 %S32_195 %S32_196 %S32_197 %S32_198 %S32_199 %S32_200 %S32_201 %S32_202 %S32_203 %S32_204 %S32_205 %S32_206 %S32_207 %S32_208 %S32_209 %S32_210 %S32_211 %S32_212 %S32_213 %S32_214 %S32_215 %S32_216 %S32_217 %S32_218 %S32_219 %S32_220 %S32_221 %S32_222 %S32_223 %S32_224 %S32_225 %S32_226 %S32_227 %S32_228 %S32_229 %S32_230 %S32_231 %S32_232 %S32_233 %S32_234 %S32_235 %S32_236 %S32_237 %S32_238 %S32_239 %S32_240 %S32_241 %S32_244 %S32_245 %S32_246 %S32_249 %S32_250 %S32_251 %S32_254 %S32_255 %S32_256 %S32_259 %S32_260 %S32_261 %S32_264 %S32_265 %S32_266 %S32_269 %S32_270 %S32_271 %S32_274 %S32_275 %S32_276 stride x0 x1 x2 x3 x4 x5 x6 x7 x8]
-.reg U8 [%U8_180 %U8_182 %U8_242 %U8_247 %U8_252 %U8_257 %U8_262 %U8_267 %U8_272 %U8_277]
-.reg A64 [%A64_143 %A64_148 %A64_153 %A64_158 %A64_163 %A64_168 %A64_173 %A64_183 %A64_243 %A64_248 %A64_253 %A64_258 %A64_263 %A64_268 %A64_273 blk out]
+.reg S32 %S32_141
+.reg S32 %S32_142
+.reg S32 %S32_144
+.reg S32 %S32_145
+.reg S32 %S32_146
+.reg S32 %S32_147
+.reg S32 %S32_149
+.reg S32 %S32_150
+.reg S32 %S32_151
+.reg S32 %S32_152
+.reg S32 %S32_154
+.reg S32 %S32_155
+.reg S32 %S32_156
+.reg S32 %S32_157
+.reg S32 %S32_159
+.reg S32 %S32_160
+.reg S32 %S32_161
+.reg S32 %S32_162
+.reg S32 %S32_164
+.reg S32 %S32_165
+.reg S32 %S32_166
+.reg S32 %S32_167
+.reg S32 %S32_169
+.reg S32 %S32_170
+.reg S32 %S32_171
+.reg S32 %S32_172
+.reg S32 %S32_174
+.reg S32 %S32_175
+.reg S32 %S32_176
+.reg S32 %S32_177
+.reg S32 %S32_178
+.reg S32 %S32_179
+.reg S32 %S32_181
+.reg S32 %S32_184
+.reg S32 %S32_185
+.reg S32 %S32_186
+.reg S32 %S32_187
+.reg S32 %S32_188
+.reg S32 %S32_189
+.reg S32 %S32_190
+.reg S32 %S32_191
+.reg S32 %S32_192
+.reg S32 %S32_193
+.reg S32 %S32_194
+.reg S32 %S32_195
+.reg S32 %S32_196
+.reg S32 %S32_197
+.reg S32 %S32_198
+.reg S32 %S32_199
+.reg S32 %S32_200
+.reg S32 %S32_201
+.reg S32 %S32_202
+.reg S32 %S32_203
+.reg S32 %S32_204
+.reg S32 %S32_205
+.reg S32 %S32_206
+.reg S32 %S32_207
+.reg S32 %S32_208
+.reg S32 %S32_209
+.reg S32 %S32_210
+.reg S32 %S32_211
+.reg S32 %S32_212
+.reg S32 %S32_213
+.reg S32 %S32_214
+.reg S32 %S32_215
+.reg S32 %S32_216
+.reg S32 %S32_217
+.reg S32 %S32_218
+.reg S32 %S32_219
+.reg S32 %S32_220
+.reg S32 %S32_221
+.reg S32 %S32_222
+.reg S32 %S32_223
+.reg S32 %S32_224
+.reg S32 %S32_225
+.reg S32 %S32_226
+.reg S32 %S32_227
+.reg S32 %S32_228
+.reg S32 %S32_229
+.reg S32 %S32_230
+.reg S32 %S32_231
+.reg S32 %S32_232
+.reg S32 %S32_233
+.reg S32 %S32_234
+.reg S32 %S32_235
+.reg S32 %S32_236
+.reg S32 %S32_237
+.reg S32 %S32_238
+.reg S32 %S32_239
+.reg S32 %S32_240
+.reg S32 %S32_241
+.reg S32 %S32_244
+.reg S32 %S32_245
+.reg S32 %S32_246
+.reg S32 %S32_249
+.reg S32 %S32_250
+.reg S32 %S32_251
+.reg S32 %S32_254
+.reg S32 %S32_255
+.reg S32 %S32_256
+.reg S32 %S32_259
+.reg S32 %S32_260
+.reg S32 %S32_261
+.reg S32 %S32_264
+.reg S32 %S32_265
+.reg S32 %S32_266
+.reg S32 %S32_269
+.reg S32 %S32_270
+.reg S32 %S32_271
+.reg S32 %S32_274
+.reg S32 %S32_275
+.reg S32 %S32_276
+.reg S32 stride
+.reg S32 x0
+.reg S32 x1
+.reg S32 x2
+.reg S32 x3
+.reg S32 x4
+.reg S32 x5
+.reg S32 x6
+.reg S32 x7
+.reg S32 x8
+.reg U8 %U8_180
+.reg U8 %U8_182
+.reg U8 %U8_242
+.reg U8 %U8_247
+.reg U8 %U8_252
+.reg U8 %U8_257
+.reg U8 %U8_262
+.reg U8 %U8_267
+.reg U8 %U8_272
+.reg U8 %U8_277
+.reg A64 %A64_143
+.reg A64 %A64_148
+.reg A64 %A64_153
+.reg A64 %A64_158
+.reg A64 %A64_163
+.reg A64 %A64_168
+.reg A64 %A64_173
+.reg A64 %A64_183
+.reg A64 %A64_243
+.reg A64 %A64_248
+.reg A64 %A64_253
+.reg A64 %A64_258
+.reg A64 %A64_263
+.reg A64 %A64_268
+.reg A64 %A64_273
+.reg A64 blk
+.reg A64 out
 .bbl %start
     poparg blk
     poparg out
@@ -1128,9 +1540,113 @@
     ret
 
 .fun __static_1_njShowBits NORMAL [S32] = [S32]
-.reg S32 [%S32_280 %S32_283 %S32_284 %S32_285 %S32_290 %S32_291 %S32_306 %S32_307 %S32_312 %S32_313 %S32_318 %S32_319 %S32_320 %S32_321 %S32_324 %S32_327 %S32_340 %S32_341 %S32_347 %S32_348 %S32_349 %S32_351 %S32_354 %S32_355 %S32_356 %S32_357 %S32_362 %S32_363 %S32_367 %S32_370 %S32_373 %S32_376 %S32_377 %S32_378 %S32_379 %S32_380 %S32_381 %out bits]
-.reg U8 [%U8_297 %U8_331 marker newbyte]
-.reg A64 [%A64_278 %A64_279 %A64_281 %A64_282 %A64_286 %A64_287 %A64_288 %A64_289 %A64_292 %A64_293 %A64_294 %A64_295 %A64_296 %A64_298 %A64_299 %A64_300 %A64_301 %A64_302 %A64_303 %A64_304 %A64_305 %A64_308 %A64_309 %A64_310 %A64_311 %A64_314 %A64_315 %A64_316 %A64_317 %A64_322 %A64_323 %A64_325 %A64_326 %A64_328 %A64_329 %A64_330 %A64_332 %A64_333 %A64_334 %A64_335 %A64_336 %A64_337 %A64_338 %A64_339 %A64_342 %A64_343 %A64_345 %A64_346 %A64_350 %A64_352 %A64_353 %A64_358 %A64_359 %A64_360 %A64_361 %A64_364 %A64_365 %A64_366 %A64_368 %A64_369 %A64_371 %A64_372 %A64_374 %A64_375]
+.reg S32 %S32_280
+.reg S32 %S32_283
+.reg S32 %S32_284
+.reg S32 %S32_285
+.reg S32 %S32_290
+.reg S32 %S32_291
+.reg S32 %S32_306
+.reg S32 %S32_307
+.reg S32 %S32_312
+.reg S32 %S32_313
+.reg S32 %S32_318
+.reg S32 %S32_319
+.reg S32 %S32_320
+.reg S32 %S32_321
+.reg S32 %S32_324
+.reg S32 %S32_327
+.reg S32 %S32_340
+.reg S32 %S32_341
+.reg S32 %S32_347
+.reg S32 %S32_348
+.reg S32 %S32_349
+.reg S32 %S32_351
+.reg S32 %S32_354
+.reg S32 %S32_355
+.reg S32 %S32_356
+.reg S32 %S32_357
+.reg S32 %S32_362
+.reg S32 %S32_363
+.reg S32 %S32_367
+.reg S32 %S32_370
+.reg S32 %S32_373
+.reg S32 %S32_376
+.reg S32 %S32_377
+.reg S32 %S32_378
+.reg S32 %S32_379
+.reg S32 %S32_380
+.reg S32 %S32_381
+.reg S32 %out
+.reg S32 bits
+.reg U8 %U8_297
+.reg U8 %U8_331
+.reg U8 marker
+.reg U8 newbyte
+.reg A64 %A64_278
+.reg A64 %A64_279
+.reg A64 %A64_281
+.reg A64 %A64_282
+.reg A64 %A64_286
+.reg A64 %A64_287
+.reg A64 %A64_288
+.reg A64 %A64_289
+.reg A64 %A64_292
+.reg A64 %A64_293
+.reg A64 %A64_294
+.reg A64 %A64_295
+.reg A64 %A64_296
+.reg A64 %A64_298
+.reg A64 %A64_299
+.reg A64 %A64_300
+.reg A64 %A64_301
+.reg A64 %A64_302
+.reg A64 %A64_303
+.reg A64 %A64_304
+.reg A64 %A64_305
+.reg A64 %A64_308
+.reg A64 %A64_309
+.reg A64 %A64_310
+.reg A64 %A64_311
+.reg A64 %A64_314
+.reg A64 %A64_315
+.reg A64 %A64_316
+.reg A64 %A64_317
+.reg A64 %A64_322
+.reg A64 %A64_323
+.reg A64 %A64_325
+.reg A64 %A64_326
+.reg A64 %A64_328
+.reg A64 %A64_329
+.reg A64 %A64_330
+.reg A64 %A64_332
+.reg A64 %A64_333
+.reg A64 %A64_334
+.reg A64 %A64_335
+.reg A64 %A64_336
+.reg A64 %A64_337
+.reg A64 %A64_338
+.reg A64 %A64_339
+.reg A64 %A64_342
+.reg A64 %A64_343
+.reg A64 %A64_345
+.reg A64 %A64_346
+.reg A64 %A64_350
+.reg A64 %A64_352
+.reg A64 %A64_353
+.reg A64 %A64_358
+.reg A64 %A64_359
+.reg A64 %A64_360
+.reg A64 %A64_361
+.reg A64 %A64_364
+.reg A64 %A64_365
+.reg A64 %A64_366
+.reg A64 %A64_368
+.reg A64 %A64_369
+.reg A64 %A64_371
+.reg A64 %A64_372
+.reg A64 %A64_374
+.reg A64 %A64_375
 .jtb switch_344_tab 256 switch_344_default [0 switch_344_0 217 switch_344_217 255 switch_344_255]
 .bbl %start
     poparg bits
@@ -1298,8 +1814,17 @@
     ret
 
 .fun njSkipBits NORMAL [] = [S32]
-.reg S32 [%S32_384 %S32_385 %S32_388 %S32_389 bits]
-.reg A64 [%A64_382 %A64_383 %A64_386 %A64_387 %A64_390 %A64_391]
+.reg S32 %S32_384
+.reg S32 %S32_385
+.reg S32 %S32_388
+.reg S32 %S32_389
+.reg S32 bits
+.reg A64 %A64_382
+.reg A64 %A64_383
+.reg A64 %A64_386
+.reg A64 %A64_387
+.reg A64 %A64_390
+.reg A64 %A64_391
 .bbl %start
     poparg bits
     lea.mem %A64_382 nj 0
@@ -1322,7 +1847,10 @@
     ret
 
 .fun njGetBits NORMAL [S32] = [S32]
-.reg S32 [%S32_392 %out bits res]
+.reg S32 %S32_392
+.reg S32 %out
+.reg S32 bits
+.reg S32 res
 .bbl %start
     poparg bits
     pusharg bits
@@ -1336,8 +1864,12 @@
     ret
 
 .fun njByteAlign NORMAL [] = []
-.reg S32 [%S32_395 %S32_396]
-.reg A64 [%A64_393 %A64_394 %A64_397 %A64_398]
+.reg S32 %S32_395
+.reg S32 %S32_396
+.reg A64 %A64_393
+.reg A64 %A64_394
+.reg A64 %A64_397
+.reg A64 %A64_398
 .bbl %start
     lea.mem %A64_393 nj 0
     lea %A64_394 %A64_393 524756
@@ -1349,8 +1881,30 @@
     ret
 
 .fun __static_2_njSkip NORMAL [] = [S32]
-.reg S32 [%S32_407 %S32_408 %S32_413 %S32_414 %S32_419 %S32_421 count]
-.reg A64 [%A64_399 %A64_400 %A64_401 %A64_402 %A64_403 %A64_404 %A64_405 %A64_406 %A64_409 %A64_410 %A64_411 %A64_412 %A64_415 %A64_416 %A64_417 %A64_418 %A64_420]
+.reg S32 %S32_407
+.reg S32 %S32_408
+.reg S32 %S32_413
+.reg S32 %S32_414
+.reg S32 %S32_419
+.reg S32 %S32_421
+.reg S32 count
+.reg A64 %A64_399
+.reg A64 %A64_400
+.reg A64 %A64_401
+.reg A64 %A64_402
+.reg A64 %A64_403
+.reg A64 %A64_404
+.reg A64 %A64_405
+.reg A64 %A64_406
+.reg A64 %A64_409
+.reg A64 %A64_410
+.reg A64 %A64_411
+.reg A64 %A64_412
+.reg A64 %A64_415
+.reg A64 %A64_416
+.reg A64 %A64_417
+.reg A64 %A64_418
+.reg A64 %A64_420
 .bbl %start
     poparg count
     lea.mem %A64_399 nj 0
@@ -1387,10 +1941,16 @@
     ret
 
 .fun njDecode16 NORMAL [U16] = [A64]
-.reg S32 [%S32_423 %S32_424 %S32_427 %S32_428]
-.reg U8 [%U8_422 %U8_426]
-.reg U16 [%U16_429 %out]
-.reg A64 [%A64_425 pos]
+.reg S32 %S32_423
+.reg S32 %S32_424
+.reg S32 %S32_427
+.reg S32 %S32_428
+.reg U8 %U8_422
+.reg U8 %U8_426
+.reg U16 %U16_429
+.reg U16 %out
+.reg A64 %A64_425
+.reg A64 pos
 .bbl %start
     poparg pos
     ld %U8_422 pos 0
@@ -1406,9 +1966,27 @@
     ret
 
 .fun __static_3_njDecodeLength NORMAL [] = []
-.reg S32 [%S32_432 %S32_434 %S32_439 %S32_444 %S32_447 %S32_449 %S32_450]
-.reg U16 [%U16_438]
-.reg A64 [%A64_430 %A64_431 %A64_433 %A64_435 %A64_436 %A64_437 %A64_440 %A64_441 %A64_442 %A64_443 %A64_445 %A64_446 %A64_448]
+.reg S32 %S32_432
+.reg S32 %S32_434
+.reg S32 %S32_439
+.reg S32 %S32_444
+.reg S32 %S32_447
+.reg S32 %S32_449
+.reg S32 %S32_450
+.reg U16 %U16_438
+.reg A64 %A64_430
+.reg A64 %A64_431
+.reg A64 %A64_433
+.reg A64 %A64_435
+.reg A64 %A64_436
+.reg A64 %A64_437
+.reg A64 %A64_440
+.reg A64 %A64_441
+.reg A64 %A64_442
+.reg A64 %A64_443
+.reg A64 %A64_445
+.reg A64 %A64_446
+.reg A64 %A64_448
 .bbl %start
     lea.mem %A64_430 nj 0
     lea %A64_431 %A64_430 16
@@ -1457,8 +2035,9 @@
     ret
 
 .fun njSkipMarker NORMAL [] = []
-.reg S32 [%S32_453]
-.reg A64 [%A64_451 %A64_452]
+.reg S32 %S32_453
+.reg A64 %A64_451
+.reg A64 %A64_452
 .bbl %start
     bsr __static_3_njDecodeLength
     lea.mem %A64_451 nj 0
@@ -1469,12 +2048,280 @@
     ret
 
 .fun njDecodeSOF NORMAL [] = []
-.reg S32 [%S32_456 %S32_459 %S32_461 %S32_466 %S32_468 %S32_474 %S32_482 %S32_487 %S32_490 %S32_492 %S32_501 %S32_507 %S32_510 %S32_517 %S32_524 %S32_530 %S32_531 %S32_534 %S32_536 %S32_538 %S32_539 %S32_540 %S32_542 %S32_548 %S32_549 %S32_552 %S32_554 %S32_556 %S32_557 %S32_558 %S32_560 %S32_566 %S32_568 %S32_570 %S32_571 %S32_574 %S32_576 %S32_577 %S32_578 %S32_582 %S32_584 %S32_586 %S32_588 %S32_589 %S32_601 %S32_603 %S32_606 %S32_611 %S32_614 %S32_615 %S32_616 %S32_619 %S32_620 %S32_625 %S32_628 %S32_629 %S32_630 %S32_633 %S32_634 %S32_641 %S32_643 %S32_644 %S32_645 %S32_646 %S32_647 %S32_651 %S32_653 %S32_654 %S32_655 %S32_656 %S32_657 %S32_661 %S32_663 %S32_664 %S32_665 %S32_668 %S32_670 %S32_672 %S32_674 %S32_676 %S32_678 %S32_681 %S32_682 %S32_684 %S32_685 %S32_686 %S32_691 %S32_692 %S32_703 %S32_706 %S32_707 %S32_721 %S32_724 i ssxmax ssymax]
-.reg U8 [%U8_465 %U8_497 %U8_523 %U8_529 %U8_547 %U8_565]
-.reg U16 [%U16_473 %U16_481]
-.reg U32 [%U32_498 %U32_504 %U32_511 %U32_514 %U32_515 %U32_591 %U32_594 %U32_597 %U32_694 %U32_697 %U32_700 %U32_708 %U32_711 %U32_712]
-.reg U64 [%U64_687 %U64_713]
-.reg A64 [%A64_454 %A64_455 %A64_457 %A64_458 %A64_460 %A64_462 %A64_463 %A64_464 %A64_467 %A64_469 %A64_470 %A64_471 %A64_472 %A64_475 %A64_476 %A64_477 %A64_478 %A64_479 %A64_480 %A64_483 %A64_484 %A64_485 %A64_486 %A64_488 %A64_489 %A64_491 %A64_493 %A64_494 %A64_495 %A64_496 %A64_499 %A64_500 %A64_502 %A64_503 %A64_506 %A64_508 %A64_509 %A64_512 %A64_513 %A64_516 %A64_518 %A64_519 %A64_520 %A64_521 %A64_522 %A64_525 %A64_526 %A64_527 %A64_528 %A64_532 %A64_533 %A64_535 %A64_537 %A64_541 %A64_543 %A64_544 %A64_545 %A64_546 %A64_550 %A64_551 %A64_553 %A64_555 %A64_559 %A64_561 %A64_562 %A64_563 %A64_564 %A64_567 %A64_569 %A64_572 %A64_573 %A64_575 %A64_579 %A64_580 %A64_581 %A64_583 %A64_585 %A64_587 %A64_590 %A64_592 %A64_593 %A64_595 %A64_596 %A64_598 %A64_599 %A64_600 %A64_602 %A64_604 %A64_605 %A64_607 %A64_608 %A64_609 %A64_610 %A64_612 %A64_613 %A64_617 %A64_618 %A64_621 %A64_622 %A64_623 %A64_624 %A64_626 %A64_627 %A64_631 %A64_632 %A64_635 %A64_636 %A64_637 %A64_638 %A64_639 %A64_640 %A64_642 %A64_648 %A64_649 %A64_650 %A64_652 %A64_658 %A64_659 %A64_660 %A64_662 %A64_666 %A64_667 %A64_669 %A64_671 %A64_673 %A64_675 %A64_677 %A64_679 %A64_680 %A64_683 %A64_688 %A64_689 %A64_690 %A64_693 %A64_695 %A64_696 %A64_698 %A64_699 %A64_701 %A64_702 %A64_704 %A64_705 %A64_709 %A64_710 %A64_714 %A64_715 %A64_716 %A64_717 %A64_718 %A64_719 %A64_720 %A64_722 %A64_723 c]
+.reg S32 %S32_456
+.reg S32 %S32_459
+.reg S32 %S32_461
+.reg S32 %S32_466
+.reg S32 %S32_468
+.reg S32 %S32_474
+.reg S32 %S32_482
+.reg S32 %S32_487
+.reg S32 %S32_490
+.reg S32 %S32_492
+.reg S32 %S32_501
+.reg S32 %S32_507
+.reg S32 %S32_510
+.reg S32 %S32_517
+.reg S32 %S32_524
+.reg S32 %S32_530
+.reg S32 %S32_531
+.reg S32 %S32_534
+.reg S32 %S32_536
+.reg S32 %S32_538
+.reg S32 %S32_539
+.reg S32 %S32_540
+.reg S32 %S32_542
+.reg S32 %S32_548
+.reg S32 %S32_549
+.reg S32 %S32_552
+.reg S32 %S32_554
+.reg S32 %S32_556
+.reg S32 %S32_557
+.reg S32 %S32_558
+.reg S32 %S32_560
+.reg S32 %S32_566
+.reg S32 %S32_568
+.reg S32 %S32_570
+.reg S32 %S32_571
+.reg S32 %S32_574
+.reg S32 %S32_576
+.reg S32 %S32_577
+.reg S32 %S32_578
+.reg S32 %S32_582
+.reg S32 %S32_584
+.reg S32 %S32_586
+.reg S32 %S32_588
+.reg S32 %S32_589
+.reg S32 %S32_601
+.reg S32 %S32_603
+.reg S32 %S32_606
+.reg S32 %S32_611
+.reg S32 %S32_614
+.reg S32 %S32_615
+.reg S32 %S32_616
+.reg S32 %S32_619
+.reg S32 %S32_620
+.reg S32 %S32_625
+.reg S32 %S32_628
+.reg S32 %S32_629
+.reg S32 %S32_630
+.reg S32 %S32_633
+.reg S32 %S32_634
+.reg S32 %S32_641
+.reg S32 %S32_643
+.reg S32 %S32_644
+.reg S32 %S32_645
+.reg S32 %S32_646
+.reg S32 %S32_647
+.reg S32 %S32_651
+.reg S32 %S32_653
+.reg S32 %S32_654
+.reg S32 %S32_655
+.reg S32 %S32_656
+.reg S32 %S32_657
+.reg S32 %S32_661
+.reg S32 %S32_663
+.reg S32 %S32_664
+.reg S32 %S32_665
+.reg S32 %S32_668
+.reg S32 %S32_670
+.reg S32 %S32_672
+.reg S32 %S32_674
+.reg S32 %S32_676
+.reg S32 %S32_678
+.reg S32 %S32_681
+.reg S32 %S32_682
+.reg S32 %S32_684
+.reg S32 %S32_685
+.reg S32 %S32_686
+.reg S32 %S32_691
+.reg S32 %S32_692
+.reg S32 %S32_703
+.reg S32 %S32_706
+.reg S32 %S32_707
+.reg S32 %S32_721
+.reg S32 %S32_724
+.reg S32 i
+.reg S32 ssxmax
+.reg S32 ssymax
+.reg U8 %U8_465
+.reg U8 %U8_497
+.reg U8 %U8_523
+.reg U8 %U8_529
+.reg U8 %U8_547
+.reg U8 %U8_565
+.reg U16 %U16_473
+.reg U16 %U16_481
+.reg U32 %U32_498
+.reg U32 %U32_504
+.reg U32 %U32_511
+.reg U32 %U32_514
+.reg U32 %U32_515
+.reg U32 %U32_591
+.reg U32 %U32_594
+.reg U32 %U32_597
+.reg U32 %U32_694
+.reg U32 %U32_697
+.reg U32 %U32_700
+.reg U32 %U32_708
+.reg U32 %U32_711
+.reg U32 %U32_712
+.reg U64 %U64_687
+.reg U64 %U64_713
+.reg A64 %A64_454
+.reg A64 %A64_455
+.reg A64 %A64_457
+.reg A64 %A64_458
+.reg A64 %A64_460
+.reg A64 %A64_462
+.reg A64 %A64_463
+.reg A64 %A64_464
+.reg A64 %A64_467
+.reg A64 %A64_469
+.reg A64 %A64_470
+.reg A64 %A64_471
+.reg A64 %A64_472
+.reg A64 %A64_475
+.reg A64 %A64_476
+.reg A64 %A64_477
+.reg A64 %A64_478
+.reg A64 %A64_479
+.reg A64 %A64_480
+.reg A64 %A64_483
+.reg A64 %A64_484
+.reg A64 %A64_485
+.reg A64 %A64_486
+.reg A64 %A64_488
+.reg A64 %A64_489
+.reg A64 %A64_491
+.reg A64 %A64_493
+.reg A64 %A64_494
+.reg A64 %A64_495
+.reg A64 %A64_496
+.reg A64 %A64_499
+.reg A64 %A64_500
+.reg A64 %A64_502
+.reg A64 %A64_503
+.reg A64 %A64_506
+.reg A64 %A64_508
+.reg A64 %A64_509
+.reg A64 %A64_512
+.reg A64 %A64_513
+.reg A64 %A64_516
+.reg A64 %A64_518
+.reg A64 %A64_519
+.reg A64 %A64_520
+.reg A64 %A64_521
+.reg A64 %A64_522
+.reg A64 %A64_525
+.reg A64 %A64_526
+.reg A64 %A64_527
+.reg A64 %A64_528
+.reg A64 %A64_532
+.reg A64 %A64_533
+.reg A64 %A64_535
+.reg A64 %A64_537
+.reg A64 %A64_541
+.reg A64 %A64_543
+.reg A64 %A64_544
+.reg A64 %A64_545
+.reg A64 %A64_546
+.reg A64 %A64_550
+.reg A64 %A64_551
+.reg A64 %A64_553
+.reg A64 %A64_555
+.reg A64 %A64_559
+.reg A64 %A64_561
+.reg A64 %A64_562
+.reg A64 %A64_563
+.reg A64 %A64_564
+.reg A64 %A64_567
+.reg A64 %A64_569
+.reg A64 %A64_572
+.reg A64 %A64_573
+.reg A64 %A64_575
+.reg A64 %A64_579
+.reg A64 %A64_580
+.reg A64 %A64_581
+.reg A64 %A64_583
+.reg A64 %A64_585
+.reg A64 %A64_587
+.reg A64 %A64_590
+.reg A64 %A64_592
+.reg A64 %A64_593
+.reg A64 %A64_595
+.reg A64 %A64_596
+.reg A64 %A64_598
+.reg A64 %A64_599
+.reg A64 %A64_600
+.reg A64 %A64_602
+.reg A64 %A64_604
+.reg A64 %A64_605
+.reg A64 %A64_607
+.reg A64 %A64_608
+.reg A64 %A64_609
+.reg A64 %A64_610
+.reg A64 %A64_612
+.reg A64 %A64_613
+.reg A64 %A64_617
+.reg A64 %A64_618
+.reg A64 %A64_621
+.reg A64 %A64_622
+.reg A64 %A64_623
+.reg A64 %A64_624
+.reg A64 %A64_626
+.reg A64 %A64_627
+.reg A64 %A64_631
+.reg A64 %A64_632
+.reg A64 %A64_635
+.reg A64 %A64_636
+.reg A64 %A64_637
+.reg A64 %A64_638
+.reg A64 %A64_639
+.reg A64 %A64_640
+.reg A64 %A64_642
+.reg A64 %A64_648
+.reg A64 %A64_649
+.reg A64 %A64_650
+.reg A64 %A64_652
+.reg A64 %A64_658
+.reg A64 %A64_659
+.reg A64 %A64_660
+.reg A64 %A64_662
+.reg A64 %A64_666
+.reg A64 %A64_667
+.reg A64 %A64_669
+.reg A64 %A64_671
+.reg A64 %A64_673
+.reg A64 %A64_675
+.reg A64 %A64_677
+.reg A64 %A64_679
+.reg A64 %A64_680
+.reg A64 %A64_683
+.reg A64 %A64_688
+.reg A64 %A64_689
+.reg A64 %A64_690
+.reg A64 %A64_693
+.reg A64 %A64_695
+.reg A64 %A64_696
+.reg A64 %A64_698
+.reg A64 %A64_699
+.reg A64 %A64_701
+.reg A64 %A64_702
+.reg A64 %A64_704
+.reg A64 %A64_705
+.reg A64 %A64_709
+.reg A64 %A64_710
+.reg A64 %A64_714
+.reg A64 %A64_715
+.reg A64 %A64_716
+.reg A64 %A64_717
+.reg A64 %A64_718
+.reg A64 %A64_719
+.reg A64 %A64_720
+.reg A64 %A64_722
+.reg A64 %A64_723
+.reg A64 c
 .jtb switch_505_tab 4 switch_505_default [1 switch_505_1 3 switch_505_3]
 .bbl %start
     mov ssxmax 0
@@ -1969,9 +2816,84 @@
     ret
 
 .fun njDecodeDHT NORMAL [] = []
-.reg S32 [%S32_727 %S32_732 %S32_733 %S32_735 %S32_736 %S32_738 %S32_739 %S32_740 %S32_741 %S32_748 %S32_750 %S32_751 %S32_754 %S32_755 %S32_757 %S32_759 %S32_762 %S32_765 %S32_767 %S32_768 %S32_769 %S32_770 %S32_772 %S32_781 %S32_782 %S32_783 %S32_784 %S32_789 %S32_792 %S32_794 codelen currcnt i j remain spread]
-.reg U8 [%U8_731 %U8_746 %U8_761 %U8_777 %U8_778 %U8_785 code]
-.reg A64 [%A64_725 %A64_726 %A64_728 %A64_729 %A64_730 %A64_734 %A64_737 %A64_742 %A64_743 %A64_744 %A64_745 %A64_747 %A64_749 %A64_752 %A64_753 %A64_756 %A64_758 %A64_760 %A64_763 %A64_764 %A64_766 %A64_771 %A64_773 %A64_774 %A64_775 %A64_776 %A64_779 %A64_780 %A64_786 %A64_787 %A64_788 %A64_790 %A64_791 %A64_793 vlc]
+.reg S32 %S32_727
+.reg S32 %S32_732
+.reg S32 %S32_733
+.reg S32 %S32_735
+.reg S32 %S32_736
+.reg S32 %S32_738
+.reg S32 %S32_739
+.reg S32 %S32_740
+.reg S32 %S32_741
+.reg S32 %S32_748
+.reg S32 %S32_750
+.reg S32 %S32_751
+.reg S32 %S32_754
+.reg S32 %S32_755
+.reg S32 %S32_757
+.reg S32 %S32_759
+.reg S32 %S32_762
+.reg S32 %S32_765
+.reg S32 %S32_767
+.reg S32 %S32_768
+.reg S32 %S32_769
+.reg S32 %S32_770
+.reg S32 %S32_772
+.reg S32 %S32_781
+.reg S32 %S32_782
+.reg S32 %S32_783
+.reg S32 %S32_784
+.reg S32 %S32_789
+.reg S32 %S32_792
+.reg S32 %S32_794
+.reg S32 codelen
+.reg S32 currcnt
+.reg S32 i
+.reg S32 j
+.reg S32 remain
+.reg S32 spread
+.reg U8 %U8_731
+.reg U8 %U8_746
+.reg U8 %U8_761
+.reg U8 %U8_777
+.reg U8 %U8_778
+.reg U8 %U8_785
+.reg U8 code
+.reg A64 %A64_725
+.reg A64 %A64_726
+.reg A64 %A64_728
+.reg A64 %A64_729
+.reg A64 %A64_730
+.reg A64 %A64_734
+.reg A64 %A64_737
+.reg A64 %A64_742
+.reg A64 %A64_743
+.reg A64 %A64_744
+.reg A64 %A64_745
+.reg A64 %A64_747
+.reg A64 %A64_749
+.reg A64 %A64_752
+.reg A64 %A64_753
+.reg A64 %A64_756
+.reg A64 %A64_758
+.reg A64 %A64_760
+.reg A64 %A64_763
+.reg A64 %A64_764
+.reg A64 %A64_766
+.reg A64 %A64_771
+.reg A64 %A64_773
+.reg A64 %A64_774
+.reg A64 %A64_775
+.reg A64 %A64_776
+.reg A64 %A64_779
+.reg A64 %A64_780
+.reg A64 %A64_786
+.reg A64 %A64_787
+.reg A64 %A64_788
+.reg A64 %A64_790
+.reg A64 %A64_791
+.reg A64 %A64_793
+.reg A64 vlc
 .bbl %start
     bsr __static_3_njDecodeLength
 .bbl while_1
@@ -2170,9 +3092,47 @@
     ret
 
 .fun njDecodeDQT NORMAL [] = []
-.reg S32 [%S32_797 %S32_802 %S32_803 %S32_805 %S32_808 %S32_809 %S32_810 %S32_815 %S32_820 %S32_824 %S32_825 %S32_828 %S32_831 %S32_833 i]
-.reg U8 [%U8_801 %U8_822]
-.reg A64 [%A64_795 %A64_796 %A64_798 %A64_799 %A64_800 %A64_804 %A64_806 %A64_807 %A64_811 %A64_812 %A64_813 %A64_814 %A64_816 %A64_817 %A64_818 %A64_819 %A64_821 %A64_823 %A64_826 %A64_827 %A64_829 %A64_830 %A64_832 t]
+.reg S32 %S32_797
+.reg S32 %S32_802
+.reg S32 %S32_803
+.reg S32 %S32_805
+.reg S32 %S32_808
+.reg S32 %S32_809
+.reg S32 %S32_810
+.reg S32 %S32_815
+.reg S32 %S32_820
+.reg S32 %S32_824
+.reg S32 %S32_825
+.reg S32 %S32_828
+.reg S32 %S32_831
+.reg S32 %S32_833
+.reg S32 i
+.reg U8 %U8_801
+.reg U8 %U8_822
+.reg A64 %A64_795
+.reg A64 %A64_796
+.reg A64 %A64_798
+.reg A64 %A64_799
+.reg A64 %A64_800
+.reg A64 %A64_804
+.reg A64 %A64_806
+.reg A64 %A64_807
+.reg A64 %A64_811
+.reg A64 %A64_812
+.reg A64 %A64_813
+.reg A64 %A64_814
+.reg A64 %A64_816
+.reg A64 %A64_817
+.reg A64 %A64_818
+.reg A64 %A64_819
+.reg A64 %A64_821
+.reg A64 %A64_823
+.reg A64 %A64_826
+.reg A64 %A64_827
+.reg A64 %A64_829
+.reg A64 %A64_830
+.reg A64 %A64_832
+.reg A64 t
 .bbl %start
     bsr __static_3_njDecodeLength
 .bbl while_1
@@ -2265,9 +3225,24 @@
     ret
 
 .fun njDecodeDRI NORMAL [] = []
-.reg S32 [%S32_836 %S32_839 %S32_841 %S32_846 %S32_851]
-.reg U16 [%U16_845]
-.reg A64 [%A64_834 %A64_835 %A64_837 %A64_838 %A64_840 %A64_842 %A64_843 %A64_844 %A64_847 %A64_848 %A64_849 %A64_850]
+.reg S32 %S32_836
+.reg S32 %S32_839
+.reg S32 %S32_841
+.reg S32 %S32_846
+.reg S32 %S32_851
+.reg U16 %U16_845
+.reg A64 %A64_834
+.reg A64 %A64_835
+.reg A64 %A64_837
+.reg A64 %A64_838
+.reg A64 %A64_840
+.reg A64 %A64_842
+.reg A64 %A64_843
+.reg A64 %A64_844
+.reg A64 %A64_847
+.reg A64 %A64_848
+.reg A64 %A64_849
+.reg A64 %A64_850
 .bbl %start
     bsr __static_3_njDecodeLength
 .bbl while_1
@@ -2314,9 +3289,33 @@
     ret
 
 .fun njGetVLC NORMAL [S32] = [A64 A64]
-.reg S32 [%S32_852 %S32_853 %S32_854 %S32_858 %S32_860 %S32_861 %S32_865 %S32_867 %S32_868 %S32_869 %S32_870 %S32_871 %S32_872 %S32_873 %out bits value]
-.reg U8 [%U8_857 %U8_864 %U8_866]
-.reg A64 [%A64_855 %A64_856 %A64_859 %A64_862 %A64_863 code vlc]
+.reg S32 %S32_852
+.reg S32 %S32_853
+.reg S32 %S32_854
+.reg S32 %S32_858
+.reg S32 %S32_860
+.reg S32 %S32_861
+.reg S32 %S32_865
+.reg S32 %S32_867
+.reg S32 %S32_868
+.reg S32 %S32_869
+.reg S32 %S32_870
+.reg S32 %S32_871
+.reg S32 %S32_872
+.reg S32 %S32_873
+.reg S32 %out
+.reg S32 bits
+.reg S32 value
+.reg U8 %U8_857
+.reg U8 %U8_864
+.reg U8 %U8_866
+.reg A64 %A64_855
+.reg A64 %A64_856
+.reg A64 %A64_859
+.reg A64 %A64_862
+.reg A64 %A64_863
+.reg A64 code
+.reg A64 vlc
 .bbl %start
     poparg vlc
     poparg code
@@ -2383,11 +3382,104 @@
     ret
 
 .fun njDecodeBlock NORMAL [] = [A64 A64]
-.reg S8 [%S8_951]
-.reg S32 [%S32_880 %S32_883 %S32_887 %S32_888 %S32_889 %S32_891 %S32_893 %S32_896 %S32_900 %S32_901 %S32_904 %S32_905 %S32_911 %S32_912 %S32_913 %S32_916 %S32_919 %S32_922 %S32_923 %S32_926 %S32_928 %S32_931 %S32_932 %S32_933 %S32_934 %S32_936 %S32_940 %S32_941 %S32_942 %S32_945 %S32_946 %S32_952 %S32_953 %S32_957 %S32_959 %S32_962 %S32_966 %S32_967 coef value]
-.reg U8 [%U8_875 %U8_903 %U8_918 %U8_921 %U8_925 %U8_930 %U8_944]
-.reg U64 [%U64_881]
-.reg A64 [%A64_874 %A64_876 %A64_877 %A64_878 %A64_879 %A64_882 %A64_884 %A64_885 %A64_886 %A64_890 %A64_892 %A64_894 %A64_895 %A64_897 %A64_898 %A64_899 %A64_902 %A64_906 %A64_907 %A64_908 %A64_909 %A64_910 %A64_914 %A64_915 %A64_917 %A64_920 %A64_924 %A64_927 %A64_929 %A64_935 %A64_937 %A64_938 %A64_939 %A64_943 %A64_947 %A64_948 %A64_949 %A64_950 %A64_954 %A64_955 %A64_956 %A64_958 %A64_960 %A64_961 %A64_963 %A64_964 %A64_965 c out]
+.reg S8 %S8_951
+.reg S32 %S32_880
+.reg S32 %S32_883
+.reg S32 %S32_887
+.reg S32 %S32_888
+.reg S32 %S32_889
+.reg S32 %S32_891
+.reg S32 %S32_893
+.reg S32 %S32_896
+.reg S32 %S32_900
+.reg S32 %S32_901
+.reg S32 %S32_904
+.reg S32 %S32_905
+.reg S32 %S32_911
+.reg S32 %S32_912
+.reg S32 %S32_913
+.reg S32 %S32_916
+.reg S32 %S32_919
+.reg S32 %S32_922
+.reg S32 %S32_923
+.reg S32 %S32_926
+.reg S32 %S32_928
+.reg S32 %S32_931
+.reg S32 %S32_932
+.reg S32 %S32_933
+.reg S32 %S32_934
+.reg S32 %S32_936
+.reg S32 %S32_940
+.reg S32 %S32_941
+.reg S32 %S32_942
+.reg S32 %S32_945
+.reg S32 %S32_946
+.reg S32 %S32_952
+.reg S32 %S32_953
+.reg S32 %S32_957
+.reg S32 %S32_959
+.reg S32 %S32_962
+.reg S32 %S32_966
+.reg S32 %S32_967
+.reg S32 coef
+.reg S32 value
+.reg U8 %U8_875
+.reg U8 %U8_903
+.reg U8 %U8_918
+.reg U8 %U8_921
+.reg U8 %U8_925
+.reg U8 %U8_930
+.reg U8 %U8_944
+.reg U64 %U64_881
+.reg A64 %A64_874
+.reg A64 %A64_876
+.reg A64 %A64_877
+.reg A64 %A64_878
+.reg A64 %A64_879
+.reg A64 %A64_882
+.reg A64 %A64_884
+.reg A64 %A64_885
+.reg A64 %A64_886
+.reg A64 %A64_890
+.reg A64 %A64_892
+.reg A64 %A64_894
+.reg A64 %A64_895
+.reg A64 %A64_897
+.reg A64 %A64_898
+.reg A64 %A64_899
+.reg A64 %A64_902
+.reg A64 %A64_906
+.reg A64 %A64_907
+.reg A64 %A64_908
+.reg A64 %A64_909
+.reg A64 %A64_910
+.reg A64 %A64_914
+.reg A64 %A64_915
+.reg A64 %A64_917
+.reg A64 %A64_920
+.reg A64 %A64_924
+.reg A64 %A64_927
+.reg A64 %A64_929
+.reg A64 %A64_935
+.reg A64 %A64_937
+.reg A64 %A64_938
+.reg A64 %A64_939
+.reg A64 %A64_943
+.reg A64 %A64_947
+.reg A64 %A64_948
+.reg A64 %A64_949
+.reg A64 %A64_950
+.reg A64 %A64_954
+.reg A64 %A64_955
+.reg A64 %A64_956
+.reg A64 %A64_958
+.reg A64 %A64_960
+.reg A64 %A64_961
+.reg A64 %A64_963
+.reg A64 %A64_964
+.reg A64 %A64_965
+.reg A64 c
+.reg A64 out
 .stk code 1 1
 .bbl %start
     poparg c
@@ -2559,10 +3651,173 @@
     ret
 
 .fun njDecodeScan NORMAL [] = []
-.reg S32 [%S32_1002 %S32_1004 %S32_1006 %S32_1012 %S32_1013 %S32_1015 %S32_1021 %S32_1022 %S32_1029 %S32_1030 %S32_1031 %S32_1033 %S32_1034 %S32_1044 %S32_1050 %S32_1056 %S32_1058 %S32_1061 %S32_1067 %S32_1068 %S32_1069 %S32_1071 %S32_1072 %S32_1074 %S32_1075 %S32_1076 %S32_1077 %S32_1078 %S32_1082 %S32_1083 %S32_1085 %S32_1086 %S32_1088 %S32_1089 %S32_1095 %S32_1098 %S32_1099 %S32_1102 %S32_1105 %S32_1106 %S32_1107 %S32_1108 %S32_1109 %S32_1110 %S32_1112 %S32_1113 %S32_1114 %S32_1117 %S32_1120 %S32_1123 %S32_1124 %S32_1126 %S32_970 %S32_973 %S32_976 %S32_984 %S32_994 %S32_995 i mbx mby nextrst rstcount sbx sby]
-.reg U8 [%U8_1001 %U8_1011 %U8_1020 %U8_1028 %U8_1043 %U8_1049 %U8_1055 %U8_988]
-.reg U32 [%U32_1036 %U32_1039 %U32_1091 %U32_1094 %U32_977 %U32_980 %U32_981 %U32_982 %U32_989 %U32_992]
-.reg A64 [%A64_1000 %A64_1003 %A64_1005 %A64_1007 %A64_1008 %A64_1009 %A64_1010 %A64_1014 %A64_1016 %A64_1017 %A64_1018 %A64_1019 %A64_1023 %A64_1024 %A64_1025 %A64_1026 %A64_1027 %A64_1032 %A64_1035 %A64_1037 %A64_1038 %A64_1040 %A64_1041 %A64_1042 %A64_1045 %A64_1046 %A64_1047 %A64_1048 %A64_1051 %A64_1052 %A64_1053 %A64_1054 %A64_1057 %A64_1059 %A64_1060 %A64_1062 %A64_1063 %A64_1064 %A64_1065 %A64_1066 %A64_1070 %A64_1073 %A64_1079 %A64_1080 %A64_1081 %A64_1084 %A64_1087 %A64_1090 %A64_1092 %A64_1093 %A64_1096 %A64_1097 %A64_1100 %A64_1101 %A64_1103 %A64_1104 %A64_1111 %A64_1115 %A64_1116 %A64_1118 %A64_1119 %A64_1121 %A64_1122 %A64_1125 %A64_968 %A64_969 %A64_971 %A64_972 %A64_974 %A64_975 %A64_978 %A64_979 %A64_983 %A64_985 %A64_986 %A64_987 %A64_990 %A64_991 %A64_993 %A64_996 %A64_997 %A64_998 %A64_999 c]
+.reg S32 %S32_1002
+.reg S32 %S32_1004
+.reg S32 %S32_1006
+.reg S32 %S32_1012
+.reg S32 %S32_1013
+.reg S32 %S32_1015
+.reg S32 %S32_1021
+.reg S32 %S32_1022
+.reg S32 %S32_1029
+.reg S32 %S32_1030
+.reg S32 %S32_1031
+.reg S32 %S32_1033
+.reg S32 %S32_1034
+.reg S32 %S32_1044
+.reg S32 %S32_1050
+.reg S32 %S32_1056
+.reg S32 %S32_1058
+.reg S32 %S32_1061
+.reg S32 %S32_1067
+.reg S32 %S32_1068
+.reg S32 %S32_1069
+.reg S32 %S32_1071
+.reg S32 %S32_1072
+.reg S32 %S32_1074
+.reg S32 %S32_1075
+.reg S32 %S32_1076
+.reg S32 %S32_1077
+.reg S32 %S32_1078
+.reg S32 %S32_1082
+.reg S32 %S32_1083
+.reg S32 %S32_1085
+.reg S32 %S32_1086
+.reg S32 %S32_1088
+.reg S32 %S32_1089
+.reg S32 %S32_1095
+.reg S32 %S32_1098
+.reg S32 %S32_1099
+.reg S32 %S32_1102
+.reg S32 %S32_1105
+.reg S32 %S32_1106
+.reg S32 %S32_1107
+.reg S32 %S32_1108
+.reg S32 %S32_1109
+.reg S32 %S32_1110
+.reg S32 %S32_1112
+.reg S32 %S32_1113
+.reg S32 %S32_1114
+.reg S32 %S32_1117
+.reg S32 %S32_1120
+.reg S32 %S32_1123
+.reg S32 %S32_1124
+.reg S32 %S32_1126
+.reg S32 %S32_970
+.reg S32 %S32_973
+.reg S32 %S32_976
+.reg S32 %S32_984
+.reg S32 %S32_994
+.reg S32 %S32_995
+.reg S32 i
+.reg S32 mbx
+.reg S32 mby
+.reg S32 nextrst
+.reg S32 rstcount
+.reg S32 sbx
+.reg S32 sby
+.reg U8 %U8_1001
+.reg U8 %U8_1011
+.reg U8 %U8_1020
+.reg U8 %U8_1028
+.reg U8 %U8_1043
+.reg U8 %U8_1049
+.reg U8 %U8_1055
+.reg U8 %U8_988
+.reg U32 %U32_1036
+.reg U32 %U32_1039
+.reg U32 %U32_1091
+.reg U32 %U32_1094
+.reg U32 %U32_977
+.reg U32 %U32_980
+.reg U32 %U32_981
+.reg U32 %U32_982
+.reg U32 %U32_989
+.reg U32 %U32_992
+.reg A64 %A64_1000
+.reg A64 %A64_1003
+.reg A64 %A64_1005
+.reg A64 %A64_1007
+.reg A64 %A64_1008
+.reg A64 %A64_1009
+.reg A64 %A64_1010
+.reg A64 %A64_1014
+.reg A64 %A64_1016
+.reg A64 %A64_1017
+.reg A64 %A64_1018
+.reg A64 %A64_1019
+.reg A64 %A64_1023
+.reg A64 %A64_1024
+.reg A64 %A64_1025
+.reg A64 %A64_1026
+.reg A64 %A64_1027
+.reg A64 %A64_1032
+.reg A64 %A64_1035
+.reg A64 %A64_1037
+.reg A64 %A64_1038
+.reg A64 %A64_1040
+.reg A64 %A64_1041
+.reg A64 %A64_1042
+.reg A64 %A64_1045
+.reg A64 %A64_1046
+.reg A64 %A64_1047
+.reg A64 %A64_1048
+.reg A64 %A64_1051
+.reg A64 %A64_1052
+.reg A64 %A64_1053
+.reg A64 %A64_1054
+.reg A64 %A64_1057
+.reg A64 %A64_1059
+.reg A64 %A64_1060
+.reg A64 %A64_1062
+.reg A64 %A64_1063
+.reg A64 %A64_1064
+.reg A64 %A64_1065
+.reg A64 %A64_1066
+.reg A64 %A64_1070
+.reg A64 %A64_1073
+.reg A64 %A64_1079
+.reg A64 %A64_1080
+.reg A64 %A64_1081
+.reg A64 %A64_1084
+.reg A64 %A64_1087
+.reg A64 %A64_1090
+.reg A64 %A64_1092
+.reg A64 %A64_1093
+.reg A64 %A64_1096
+.reg A64 %A64_1097
+.reg A64 %A64_1100
+.reg A64 %A64_1101
+.reg A64 %A64_1103
+.reg A64 %A64_1104
+.reg A64 %A64_1111
+.reg A64 %A64_1115
+.reg A64 %A64_1116
+.reg A64 %A64_1118
+.reg A64 %A64_1119
+.reg A64 %A64_1121
+.reg A64 %A64_1122
+.reg A64 %A64_1125
+.reg A64 %A64_968
+.reg A64 %A64_969
+.reg A64 %A64_971
+.reg A64 %A64_972
+.reg A64 %A64_974
+.reg A64 %A64_975
+.reg A64 %A64_978
+.reg A64 %A64_979
+.reg A64 %A64_983
+.reg A64 %A64_985
+.reg A64 %A64_986
+.reg A64 %A64_987
+.reg A64 %A64_990
+.reg A64 %A64_991
+.reg A64 %A64_993
+.reg A64 %A64_996
+.reg A64 %A64_997
+.reg A64 %A64_998
+.reg A64 %A64_999
+.reg A64 c
 .bbl %start
     lea.mem %A64_968 nj 0
     lea %A64_969 %A64_968 525016
@@ -2897,10 +4152,199 @@
     ret
 
 .fun njUpsampleH NORMAL [] = [A64]
-.reg S32 [%S32_1128 %S32_1129 %S32_1131 %S32_1133 %S32_1134 %S32_1135 %S32_1139 %S32_1143 %S32_1145 %S32_1146 %S32_1149 %S32_1150 %S32_1151 %S32_1152 %S32_1153 %S32_1156 %S32_1157 %S32_1160 %S32_1161 %S32_1162 %S32_1165 %S32_1166 %S32_1167 %S32_1168 %S32_1169 %S32_1173 %S32_1174 %S32_1177 %S32_1178 %S32_1179 %S32_1182 %S32_1183 %S32_1184 %S32_1185 %S32_1186 %S32_1191 %S32_1192 %S32_1193 %S32_1196 %S32_1197 %S32_1198 %S32_1199 %S32_1202 %S32_1203 %S32_1204 %S32_1205 %S32_1208 %S32_1209 %S32_1210 %S32_1211 %S32_1212 %S32_1214 %S32_1215 %S32_1219 %S32_1220 %S32_1221 %S32_1224 %S32_1225 %S32_1226 %S32_1227 %S32_1230 %S32_1231 %S32_1232 %S32_1233 %S32_1236 %S32_1237 %S32_1238 %S32_1239 %S32_1240 %S32_1242 %S32_1243 %S32_1245 %S32_1247 %S32_1250 %S32_1251 %S32_1255 %S32_1256 %S32_1259 %S32_1260 %S32_1261 %S32_1264 %S32_1265 %S32_1266 %S32_1267 %S32_1268 %S32_1273 %S32_1274 %S32_1277 %S32_1278 %S32_1279 %S32_1282 %S32_1283 %S32_1284 %S32_1285 %S32_1286 %S32_1291 %S32_1292 %S32_1295 %S32_1296 %S32_1297 %S32_1298 %S32_1299 %S32_1302 %S32_1304 %S32_1305 %S32_1308 x xmax y]
-.reg U8 [%U8_1144 %U8_1148 %U8_1154 %U8_1155 %U8_1159 %U8_1164 %U8_1170 %U8_1172 %U8_1176 %U8_1181 %U8_1187 %U8_1190 %U8_1195 %U8_1201 %U8_1207 %U8_1213 %U8_1218 %U8_1223 %U8_1229 %U8_1235 %U8_1241 %U8_1254 %U8_1258 %U8_1263 %U8_1269 %U8_1272 %U8_1276 %U8_1281 %U8_1287 %U8_1290 %U8_1294 %U8_1300]
-.reg U64 [%U64_1136]
-.reg A64 [%A64_1127 %A64_1130 %A64_1132 %A64_1137 %A64_1138 %A64_1140 %A64_1141 %A64_1142 %A64_1147 %A64_1158 %A64_1163 %A64_1171 %A64_1175 %A64_1180 %A64_1188 %A64_1189 %A64_1194 %A64_1200 %A64_1206 %A64_1216 %A64_1217 %A64_1222 %A64_1228 %A64_1234 %A64_1244 %A64_1246 %A64_1248 %A64_1249 %A64_1252 %A64_1253 %A64_1257 %A64_1262 %A64_1270 %A64_1271 %A64_1275 %A64_1280 %A64_1288 %A64_1289 %A64_1293 %A64_1301 %A64_1303 %A64_1306 %A64_1307 %A64_1309 %A64_1310 %A64_1311 %A64_1312 c lin lout out]
+.reg S32 %S32_1128
+.reg S32 %S32_1129
+.reg S32 %S32_1131
+.reg S32 %S32_1133
+.reg S32 %S32_1134
+.reg S32 %S32_1135
+.reg S32 %S32_1139
+.reg S32 %S32_1143
+.reg S32 %S32_1145
+.reg S32 %S32_1146
+.reg S32 %S32_1149
+.reg S32 %S32_1150
+.reg S32 %S32_1151
+.reg S32 %S32_1152
+.reg S32 %S32_1153
+.reg S32 %S32_1156
+.reg S32 %S32_1157
+.reg S32 %S32_1160
+.reg S32 %S32_1161
+.reg S32 %S32_1162
+.reg S32 %S32_1165
+.reg S32 %S32_1166
+.reg S32 %S32_1167
+.reg S32 %S32_1168
+.reg S32 %S32_1169
+.reg S32 %S32_1173
+.reg S32 %S32_1174
+.reg S32 %S32_1177
+.reg S32 %S32_1178
+.reg S32 %S32_1179
+.reg S32 %S32_1182
+.reg S32 %S32_1183
+.reg S32 %S32_1184
+.reg S32 %S32_1185
+.reg S32 %S32_1186
+.reg S32 %S32_1191
+.reg S32 %S32_1192
+.reg S32 %S32_1193
+.reg S32 %S32_1196
+.reg S32 %S32_1197
+.reg S32 %S32_1198
+.reg S32 %S32_1199
+.reg S32 %S32_1202
+.reg S32 %S32_1203
+.reg S32 %S32_1204
+.reg S32 %S32_1205
+.reg S32 %S32_1208
+.reg S32 %S32_1209
+.reg S32 %S32_1210
+.reg S32 %S32_1211
+.reg S32 %S32_1212
+.reg S32 %S32_1214
+.reg S32 %S32_1215
+.reg S32 %S32_1219
+.reg S32 %S32_1220
+.reg S32 %S32_1221
+.reg S32 %S32_1224
+.reg S32 %S32_1225
+.reg S32 %S32_1226
+.reg S32 %S32_1227
+.reg S32 %S32_1230
+.reg S32 %S32_1231
+.reg S32 %S32_1232
+.reg S32 %S32_1233
+.reg S32 %S32_1236
+.reg S32 %S32_1237
+.reg S32 %S32_1238
+.reg S32 %S32_1239
+.reg S32 %S32_1240
+.reg S32 %S32_1242
+.reg S32 %S32_1243
+.reg S32 %S32_1245
+.reg S32 %S32_1247
+.reg S32 %S32_1250
+.reg S32 %S32_1251
+.reg S32 %S32_1255
+.reg S32 %S32_1256
+.reg S32 %S32_1259
+.reg S32 %S32_1260
+.reg S32 %S32_1261
+.reg S32 %S32_1264
+.reg S32 %S32_1265
+.reg S32 %S32_1266
+.reg S32 %S32_1267
+.reg S32 %S32_1268
+.reg S32 %S32_1273
+.reg S32 %S32_1274
+.reg S32 %S32_1277
+.reg S32 %S32_1278
+.reg S32 %S32_1279
+.reg S32 %S32_1282
+.reg S32 %S32_1283
+.reg S32 %S32_1284
+.reg S32 %S32_1285
+.reg S32 %S32_1286
+.reg S32 %S32_1291
+.reg S32 %S32_1292
+.reg S32 %S32_1295
+.reg S32 %S32_1296
+.reg S32 %S32_1297
+.reg S32 %S32_1298
+.reg S32 %S32_1299
+.reg S32 %S32_1302
+.reg S32 %S32_1304
+.reg S32 %S32_1305
+.reg S32 %S32_1308
+.reg S32 x
+.reg S32 xmax
+.reg S32 y
+.reg U8 %U8_1144
+.reg U8 %U8_1148
+.reg U8 %U8_1154
+.reg U8 %U8_1155
+.reg U8 %U8_1159
+.reg U8 %U8_1164
+.reg U8 %U8_1170
+.reg U8 %U8_1172
+.reg U8 %U8_1176
+.reg U8 %U8_1181
+.reg U8 %U8_1187
+.reg U8 %U8_1190
+.reg U8 %U8_1195
+.reg U8 %U8_1201
+.reg U8 %U8_1207
+.reg U8 %U8_1213
+.reg U8 %U8_1218
+.reg U8 %U8_1223
+.reg U8 %U8_1229
+.reg U8 %U8_1235
+.reg U8 %U8_1241
+.reg U8 %U8_1254
+.reg U8 %U8_1258
+.reg U8 %U8_1263
+.reg U8 %U8_1269
+.reg U8 %U8_1272
+.reg U8 %U8_1276
+.reg U8 %U8_1281
+.reg U8 %U8_1287
+.reg U8 %U8_1290
+.reg U8 %U8_1294
+.reg U8 %U8_1300
+.reg U64 %U64_1136
+.reg A64 %A64_1127
+.reg A64 %A64_1130
+.reg A64 %A64_1132
+.reg A64 %A64_1137
+.reg A64 %A64_1138
+.reg A64 %A64_1140
+.reg A64 %A64_1141
+.reg A64 %A64_1142
+.reg A64 %A64_1147
+.reg A64 %A64_1158
+.reg A64 %A64_1163
+.reg A64 %A64_1171
+.reg A64 %A64_1175
+.reg A64 %A64_1180
+.reg A64 %A64_1188
+.reg A64 %A64_1189
+.reg A64 %A64_1194
+.reg A64 %A64_1200
+.reg A64 %A64_1206
+.reg A64 %A64_1216
+.reg A64 %A64_1217
+.reg A64 %A64_1222
+.reg A64 %A64_1228
+.reg A64 %A64_1234
+.reg A64 %A64_1244
+.reg A64 %A64_1246
+.reg A64 %A64_1248
+.reg A64 %A64_1249
+.reg A64 %A64_1252
+.reg A64 %A64_1253
+.reg A64 %A64_1257
+.reg A64 %A64_1262
+.reg A64 %A64_1270
+.reg A64 %A64_1271
+.reg A64 %A64_1275
+.reg A64 %A64_1280
+.reg A64 %A64_1288
+.reg A64 %A64_1289
+.reg A64 %A64_1293
+.reg A64 %A64_1301
+.reg A64 %A64_1303
+.reg A64 %A64_1306
+.reg A64 %A64_1307
+.reg A64 %A64_1309
+.reg A64 %A64_1310
+.reg A64 %A64_1311
+.reg A64 %A64_1312
+.reg A64 c
+.reg A64 lin
+.reg A64 lout
+.reg A64 out
 .bbl %start
     poparg c
     lea %A64_1127 c 12
@@ -3156,10 +4600,194 @@
     ret
 
 .fun njUpsampleV NORMAL [] = [A64]
-.reg S32 [%S32_1314 %S32_1316 %S32_1317 %S32_1319 %S32_1321 %S32_1322 %S32_1323 %S32_1327 %S32_1333 %S32_1334 %S32_1337 %S32_1338 %S32_1339 %S32_1340 %S32_1341 %S32_1345 %S32_1346 %S32_1349 %S32_1350 %S32_1351 %S32_1354 %S32_1355 %S32_1356 %S32_1357 %S32_1358 %S32_1362 %S32_1363 %S32_1366 %S32_1367 %S32_1368 %S32_1371 %S32_1372 %S32_1373 %S32_1374 %S32_1375 %S32_1380 %S32_1381 %S32_1382 %S32_1385 %S32_1386 %S32_1388 %S32_1389 %S32_1390 %S32_1393 %S32_1394 %S32_1395 %S32_1398 %S32_1399 %S32_1400 %S32_1401 %S32_1402 %S32_1405 %S32_1408 %S32_1409 %S32_1411 %S32_1412 %S32_1413 %S32_1416 %S32_1417 %S32_1418 %S32_1421 %S32_1422 %S32_1423 %S32_1424 %S32_1425 %S32_1429 %S32_1432 %S32_1433 %S32_1434 %S32_1437 %S32_1438 %S32_1439 %S32_1440 %S32_1443 %S32_1444 %S32_1445 %S32_1446 %S32_1447 %S32_1451 %S32_1452 %S32_1453 %S32_1456 %S32_1457 %S32_1458 %S32_1459 %S32_1462 %S32_1463 %S32_1464 %S32_1465 %S32_1466 %S32_1470 %S32_1471 %S32_1472 %S32_1475 %S32_1476 %S32_1477 %S32_1478 %S32_1479 %S32_1481 %S32_1483 %S32_1484 %S32_1487 s1 s2 w x y]
-.reg U8 [%U8_1332 %U8_1336 %U8_1342 %U8_1344 %U8_1348 %U8_1353 %U8_1359 %U8_1361 %U8_1365 %U8_1370 %U8_1376 %U8_1384 %U8_1387 %U8_1392 %U8_1397 %U8_1403 %U8_1407 %U8_1410 %U8_1415 %U8_1420 %U8_1426 %U8_1431 %U8_1436 %U8_1442 %U8_1448 %U8_1450 %U8_1455 %U8_1461 %U8_1467 %U8_1469 %U8_1474 %U8_1480]
-.reg U64 [%U64_1324]
-.reg A64 [%A64_1313 %A64_1315 %A64_1318 %A64_1320 %A64_1325 %A64_1326 %A64_1328 %A64_1329 %A64_1330 %A64_1331 %A64_1335 %A64_1343 %A64_1347 %A64_1352 %A64_1360 %A64_1364 %A64_1369 %A64_1377 %A64_1378 %A64_1379 %A64_1383 %A64_1391 %A64_1396 %A64_1404 %A64_1406 %A64_1414 %A64_1419 %A64_1427 %A64_1428 %A64_1430 %A64_1435 %A64_1441 %A64_1449 %A64_1454 %A64_1460 %A64_1468 %A64_1473 %A64_1482 %A64_1485 %A64_1486 %A64_1488 %A64_1489 %A64_1490 %A64_1491 c cin cout out]
+.reg S32 %S32_1314
+.reg S32 %S32_1316
+.reg S32 %S32_1317
+.reg S32 %S32_1319
+.reg S32 %S32_1321
+.reg S32 %S32_1322
+.reg S32 %S32_1323
+.reg S32 %S32_1327
+.reg S32 %S32_1333
+.reg S32 %S32_1334
+.reg S32 %S32_1337
+.reg S32 %S32_1338
+.reg S32 %S32_1339
+.reg S32 %S32_1340
+.reg S32 %S32_1341
+.reg S32 %S32_1345
+.reg S32 %S32_1346
+.reg S32 %S32_1349
+.reg S32 %S32_1350
+.reg S32 %S32_1351
+.reg S32 %S32_1354
+.reg S32 %S32_1355
+.reg S32 %S32_1356
+.reg S32 %S32_1357
+.reg S32 %S32_1358
+.reg S32 %S32_1362
+.reg S32 %S32_1363
+.reg S32 %S32_1366
+.reg S32 %S32_1367
+.reg S32 %S32_1368
+.reg S32 %S32_1371
+.reg S32 %S32_1372
+.reg S32 %S32_1373
+.reg S32 %S32_1374
+.reg S32 %S32_1375
+.reg S32 %S32_1380
+.reg S32 %S32_1381
+.reg S32 %S32_1382
+.reg S32 %S32_1385
+.reg S32 %S32_1386
+.reg S32 %S32_1388
+.reg S32 %S32_1389
+.reg S32 %S32_1390
+.reg S32 %S32_1393
+.reg S32 %S32_1394
+.reg S32 %S32_1395
+.reg S32 %S32_1398
+.reg S32 %S32_1399
+.reg S32 %S32_1400
+.reg S32 %S32_1401
+.reg S32 %S32_1402
+.reg S32 %S32_1405
+.reg S32 %S32_1408
+.reg S32 %S32_1409
+.reg S32 %S32_1411
+.reg S32 %S32_1412
+.reg S32 %S32_1413
+.reg S32 %S32_1416
+.reg S32 %S32_1417
+.reg S32 %S32_1418
+.reg S32 %S32_1421
+.reg S32 %S32_1422
+.reg S32 %S32_1423
+.reg S32 %S32_1424
+.reg S32 %S32_1425
+.reg S32 %S32_1429
+.reg S32 %S32_1432
+.reg S32 %S32_1433
+.reg S32 %S32_1434
+.reg S32 %S32_1437
+.reg S32 %S32_1438
+.reg S32 %S32_1439
+.reg S32 %S32_1440
+.reg S32 %S32_1443
+.reg S32 %S32_1444
+.reg S32 %S32_1445
+.reg S32 %S32_1446
+.reg S32 %S32_1447
+.reg S32 %S32_1451
+.reg S32 %S32_1452
+.reg S32 %S32_1453
+.reg S32 %S32_1456
+.reg S32 %S32_1457
+.reg S32 %S32_1458
+.reg S32 %S32_1459
+.reg S32 %S32_1462
+.reg S32 %S32_1463
+.reg S32 %S32_1464
+.reg S32 %S32_1465
+.reg S32 %S32_1466
+.reg S32 %S32_1470
+.reg S32 %S32_1471
+.reg S32 %S32_1472
+.reg S32 %S32_1475
+.reg S32 %S32_1476
+.reg S32 %S32_1477
+.reg S32 %S32_1478
+.reg S32 %S32_1479
+.reg S32 %S32_1481
+.reg S32 %S32_1483
+.reg S32 %S32_1484
+.reg S32 %S32_1487
+.reg S32 s1
+.reg S32 s2
+.reg S32 w
+.reg S32 x
+.reg S32 y
+.reg U8 %U8_1332
+.reg U8 %U8_1336
+.reg U8 %U8_1342
+.reg U8 %U8_1344
+.reg U8 %U8_1348
+.reg U8 %U8_1353
+.reg U8 %U8_1359
+.reg U8 %U8_1361
+.reg U8 %U8_1365
+.reg U8 %U8_1370
+.reg U8 %U8_1376
+.reg U8 %U8_1384
+.reg U8 %U8_1387
+.reg U8 %U8_1392
+.reg U8 %U8_1397
+.reg U8 %U8_1403
+.reg U8 %U8_1407
+.reg U8 %U8_1410
+.reg U8 %U8_1415
+.reg U8 %U8_1420
+.reg U8 %U8_1426
+.reg U8 %U8_1431
+.reg U8 %U8_1436
+.reg U8 %U8_1442
+.reg U8 %U8_1448
+.reg U8 %U8_1450
+.reg U8 %U8_1455
+.reg U8 %U8_1461
+.reg U8 %U8_1467
+.reg U8 %U8_1469
+.reg U8 %U8_1474
+.reg U8 %U8_1480
+.reg U64 %U64_1324
+.reg A64 %A64_1313
+.reg A64 %A64_1315
+.reg A64 %A64_1318
+.reg A64 %A64_1320
+.reg A64 %A64_1325
+.reg A64 %A64_1326
+.reg A64 %A64_1328
+.reg A64 %A64_1329
+.reg A64 %A64_1330
+.reg A64 %A64_1331
+.reg A64 %A64_1335
+.reg A64 %A64_1343
+.reg A64 %A64_1347
+.reg A64 %A64_1352
+.reg A64 %A64_1360
+.reg A64 %A64_1364
+.reg A64 %A64_1369
+.reg A64 %A64_1377
+.reg A64 %A64_1378
+.reg A64 %A64_1379
+.reg A64 %A64_1383
+.reg A64 %A64_1391
+.reg A64 %A64_1396
+.reg A64 %A64_1404
+.reg A64 %A64_1406
+.reg A64 %A64_1414
+.reg A64 %A64_1419
+.reg A64 %A64_1427
+.reg A64 %A64_1428
+.reg A64 %A64_1430
+.reg A64 %A64_1435
+.reg A64 %A64_1441
+.reg A64 %A64_1449
+.reg A64 %A64_1454
+.reg A64 %A64_1460
+.reg A64 %A64_1468
+.reg A64 %A64_1473
+.reg A64 %A64_1482
+.reg A64 %A64_1485
+.reg A64 %A64_1486
+.reg A64 %A64_1488
+.reg A64 %A64_1489
+.reg A64 %A64_1490
+.reg A64 %A64_1491
+.reg A64 c
+.reg A64 cin
+.reg A64 cout
+.reg A64 out
 .bbl %start
     poparg c
     lea %A64_1313 c 12
@@ -3418,11 +5046,197 @@
     ret
 
 .fun njConvert NORMAL [] = []
-.reg S32 [%S32_1495 %S32_1498 %S32_1501 %S32_1503 %S32_1506 %S32_1509 %S32_1511 %S32_1514 %S32_1516 %S32_1519 %S32_1521 %S32_1524 %S32_1526 %S32_1529 %S32_1531 %S32_1532 %S32_1560 %S32_1563 %S32_1564 %S32_1567 %S32_1568 %S32_1571 %S32_1572 %S32_1573 %S32_1574 %S32_1575 %S32_1576 %S32_1578 %S32_1579 %S32_1580 %S32_1581 %S32_1582 %S32_1583 %S32_1586 %S32_1587 %S32_1588 %S32_1589 %S32_1593 %S32_1596 %S32_1600 %S32_1606 %S32_1612 %S32_1614 %S32_1618 %S32_1622 %S32_1630 %S32_1639 %S32_1644 %S32_1645 %S32_1649 %S32_1654 %S32_1659 %S32_1661 %S32_1665 __local_26_y cb cr i x y yy]
-.reg U8 [%U8_1562 %U8_1566 %U8_1570 %U8_1577 %U8_1584 %U8_1590]
-.reg U32 [%U32_1534 %U32_1537 %U32_1540]
-.reg U64 [%U64_1650]
-.reg A64 [%A64_1492 %A64_1493 %A64_1494 %A64_1496 %A64_1497 %A64_1499 %A64_1500 %A64_1502 %A64_1504 %A64_1505 %A64_1507 %A64_1508 %A64_1510 %A64_1512 %A64_1513 %A64_1515 %A64_1517 %A64_1518 %A64_1520 %A64_1522 %A64_1523 %A64_1525 %A64_1527 %A64_1528 %A64_1530 %A64_1533 %A64_1535 %A64_1536 %A64_1538 %A64_1539 %A64_1541 %A64_1542 %A64_1543 %A64_1544 %A64_1545 %A64_1546 %A64_1547 %A64_1548 %A64_1549 %A64_1550 %A64_1551 %A64_1552 %A64_1553 %A64_1554 %A64_1555 %A64_1556 %A64_1557 %A64_1558 %A64_1559 %A64_1561 %A64_1565 %A64_1569 %A64_1585 %A64_1591 %A64_1592 %A64_1594 %A64_1595 %A64_1597 %A64_1598 %A64_1599 %A64_1601 %A64_1602 %A64_1603 %A64_1604 %A64_1605 %A64_1607 %A64_1608 %A64_1609 %A64_1610 %A64_1611 %A64_1613 %A64_1615 %A64_1616 %A64_1617 %A64_1619 %A64_1620 %A64_1621 %A64_1623 %A64_1624 %A64_1625 %A64_1626 %A64_1627 %A64_1628 %A64_1629 %A64_1631 %A64_1632 %A64_1633 %A64_1634 %A64_1635 %A64_1636 %A64_1637 %A64_1638 %A64_1640 %A64_1641 %A64_1642 %A64_1643 %A64_1646 %A64_1647 %A64_1648 %A64_1651 %A64_1652 %A64_1653 %A64_1655 %A64_1656 %A64_1657 %A64_1658 %A64_1660 %A64_1662 %A64_1663 %A64_1664 %A64_1666 %A64_1667 %A64_1668 c pcb pcr pin pout prgb py]
+.reg S32 %S32_1495
+.reg S32 %S32_1498
+.reg S32 %S32_1501
+.reg S32 %S32_1503
+.reg S32 %S32_1506
+.reg S32 %S32_1509
+.reg S32 %S32_1511
+.reg S32 %S32_1514
+.reg S32 %S32_1516
+.reg S32 %S32_1519
+.reg S32 %S32_1521
+.reg S32 %S32_1524
+.reg S32 %S32_1526
+.reg S32 %S32_1529
+.reg S32 %S32_1531
+.reg S32 %S32_1532
+.reg S32 %S32_1560
+.reg S32 %S32_1563
+.reg S32 %S32_1564
+.reg S32 %S32_1567
+.reg S32 %S32_1568
+.reg S32 %S32_1571
+.reg S32 %S32_1572
+.reg S32 %S32_1573
+.reg S32 %S32_1574
+.reg S32 %S32_1575
+.reg S32 %S32_1576
+.reg S32 %S32_1578
+.reg S32 %S32_1579
+.reg S32 %S32_1580
+.reg S32 %S32_1581
+.reg S32 %S32_1582
+.reg S32 %S32_1583
+.reg S32 %S32_1586
+.reg S32 %S32_1587
+.reg S32 %S32_1588
+.reg S32 %S32_1589
+.reg S32 %S32_1593
+.reg S32 %S32_1596
+.reg S32 %S32_1600
+.reg S32 %S32_1606
+.reg S32 %S32_1612
+.reg S32 %S32_1614
+.reg S32 %S32_1618
+.reg S32 %S32_1622
+.reg S32 %S32_1630
+.reg S32 %S32_1639
+.reg S32 %S32_1644
+.reg S32 %S32_1645
+.reg S32 %S32_1649
+.reg S32 %S32_1654
+.reg S32 %S32_1659
+.reg S32 %S32_1661
+.reg S32 %S32_1665
+.reg S32 __local_26_y
+.reg S32 cb
+.reg S32 cr
+.reg S32 i
+.reg S32 x
+.reg S32 y
+.reg S32 yy
+.reg U8 %U8_1562
+.reg U8 %U8_1566
+.reg U8 %U8_1570
+.reg U8 %U8_1577
+.reg U8 %U8_1584
+.reg U8 %U8_1590
+.reg U32 %U32_1534
+.reg U32 %U32_1537
+.reg U32 %U32_1540
+.reg U64 %U64_1650
+.reg A64 %A64_1492
+.reg A64 %A64_1493
+.reg A64 %A64_1494
+.reg A64 %A64_1496
+.reg A64 %A64_1497
+.reg A64 %A64_1499
+.reg A64 %A64_1500
+.reg A64 %A64_1502
+.reg A64 %A64_1504
+.reg A64 %A64_1505
+.reg A64 %A64_1507
+.reg A64 %A64_1508
+.reg A64 %A64_1510
+.reg A64 %A64_1512
+.reg A64 %A64_1513
+.reg A64 %A64_1515
+.reg A64 %A64_1517
+.reg A64 %A64_1518
+.reg A64 %A64_1520
+.reg A64 %A64_1522
+.reg A64 %A64_1523
+.reg A64 %A64_1525
+.reg A64 %A64_1527
+.reg A64 %A64_1528
+.reg A64 %A64_1530
+.reg A64 %A64_1533
+.reg A64 %A64_1535
+.reg A64 %A64_1536
+.reg A64 %A64_1538
+.reg A64 %A64_1539
+.reg A64 %A64_1541
+.reg A64 %A64_1542
+.reg A64 %A64_1543
+.reg A64 %A64_1544
+.reg A64 %A64_1545
+.reg A64 %A64_1546
+.reg A64 %A64_1547
+.reg A64 %A64_1548
+.reg A64 %A64_1549
+.reg A64 %A64_1550
+.reg A64 %A64_1551
+.reg A64 %A64_1552
+.reg A64 %A64_1553
+.reg A64 %A64_1554
+.reg A64 %A64_1555
+.reg A64 %A64_1556
+.reg A64 %A64_1557
+.reg A64 %A64_1558
+.reg A64 %A64_1559
+.reg A64 %A64_1561
+.reg A64 %A64_1565
+.reg A64 %A64_1569
+.reg A64 %A64_1585
+.reg A64 %A64_1591
+.reg A64 %A64_1592
+.reg A64 %A64_1594
+.reg A64 %A64_1595
+.reg A64 %A64_1597
+.reg A64 %A64_1598
+.reg A64 %A64_1599
+.reg A64 %A64_1601
+.reg A64 %A64_1602
+.reg A64 %A64_1603
+.reg A64 %A64_1604
+.reg A64 %A64_1605
+.reg A64 %A64_1607
+.reg A64 %A64_1608
+.reg A64 %A64_1609
+.reg A64 %A64_1610
+.reg A64 %A64_1611
+.reg A64 %A64_1613
+.reg A64 %A64_1615
+.reg A64 %A64_1616
+.reg A64 %A64_1617
+.reg A64 %A64_1619
+.reg A64 %A64_1620
+.reg A64 %A64_1621
+.reg A64 %A64_1623
+.reg A64 %A64_1624
+.reg A64 %A64_1625
+.reg A64 %A64_1626
+.reg A64 %A64_1627
+.reg A64 %A64_1628
+.reg A64 %A64_1629
+.reg A64 %A64_1631
+.reg A64 %A64_1632
+.reg A64 %A64_1633
+.reg A64 %A64_1634
+.reg A64 %A64_1635
+.reg A64 %A64_1636
+.reg A64 %A64_1637
+.reg A64 %A64_1638
+.reg A64 %A64_1640
+.reg A64 %A64_1641
+.reg A64 %A64_1642
+.reg A64 %A64_1643
+.reg A64 %A64_1646
+.reg A64 %A64_1647
+.reg A64 %A64_1648
+.reg A64 %A64_1651
+.reg A64 %A64_1652
+.reg A64 %A64_1653
+.reg A64 %A64_1655
+.reg A64 %A64_1656
+.reg A64 %A64_1657
+.reg A64 %A64_1658
+.reg A64 %A64_1660
+.reg A64 %A64_1662
+.reg A64 %A64_1663
+.reg A64 %A64_1664
+.reg A64 %A64_1666
+.reg A64 %A64_1667
+.reg A64 %A64_1668
+.reg A64 c
+.reg A64 pcb
+.reg A64 pcr
+.reg A64 pin
+.reg A64 pout
+.reg A64 prgb
+.reg A64 py
 .bbl %start
     mov i 0
     lea.mem %A64_1492 nj 0
@@ -3727,9 +5541,9 @@
     ret
 
 .fun njInit NORMAL [] = []
-.reg S32 [%S32_1670]
-.reg U64 [%U64_1671]
-.reg A64 [%A64_1669]
+.reg S32 %S32_1670
+.reg U64 %U64_1671
+.reg A64 %A64_1669
 .bbl %start
     lea.mem %A64_1669 nj 0
     mov %S32_1670 0
@@ -3741,8 +5555,26 @@
     ret
 
 .fun njDone NORMAL [] = []
-.reg S32 [%S32_1674 %S32_1680 %S32_1684 i]
-.reg A64 [%A64_1672 %A64_1673 %A64_1675 %A64_1676 %A64_1677 %A64_1678 %A64_1679 %A64_1681 %A64_1682 %A64_1683 %A64_1685 %A64_1686 %A64_1687 %A64_1688 %A64_1689 %A64_1690]
+.reg S32 %S32_1674
+.reg S32 %S32_1680
+.reg S32 %S32_1684
+.reg S32 i
+.reg A64 %A64_1672
+.reg A64 %A64_1673
+.reg A64 %A64_1675
+.reg A64 %A64_1676
+.reg A64 %A64_1677
+.reg A64 %A64_1678
+.reg A64 %A64_1679
+.reg A64 %A64_1681
+.reg A64 %A64_1682
+.reg A64 %A64_1683
+.reg A64 %A64_1685
+.reg A64 %A64_1686
+.reg A64 %A64_1687
+.reg A64 %A64_1688
+.reg A64 %A64_1689
+.reg A64 %A64_1690
 .bbl %start
     mov i 0
     bra for_1_cond
@@ -3787,9 +5619,67 @@
     ret
 
 .fun njDecode NORMAL [S32] = [A64 S32]
-.reg S32 [%S32_1693 %S32_1698 %S32_1703 %S32_1704 %S32_1710 %S32_1711 %S32_1712 %S32_1713 %S32_1716 %S32_1721 %S32_1722 %S32_1734 %S32_1735 %S32_1738 %S32_1741 %S32_1744 %S32_1746 %S32_1749 %out size]
-.reg U8 [%U8_1702 %U8_1709 %U8_1720 %U8_1727 %U8_1733]
-.reg A64 [%A64_1691 %A64_1692 %A64_1694 %A64_1695 %A64_1696 %A64_1697 %A64_1699 %A64_1700 %A64_1701 %A64_1705 %A64_1706 %A64_1707 %A64_1708 %A64_1714 %A64_1715 %A64_1717 %A64_1718 %A64_1719 %A64_1723 %A64_1724 %A64_1725 %A64_1726 %A64_1729 %A64_1730 %A64_1731 %A64_1732 %A64_1736 %A64_1737 %A64_1739 %A64_1740 %A64_1742 %A64_1743 %A64_1745 %A64_1747 %A64_1748 jpeg]
+.reg S32 %S32_1693
+.reg S32 %S32_1698
+.reg S32 %S32_1703
+.reg S32 %S32_1704
+.reg S32 %S32_1710
+.reg S32 %S32_1711
+.reg S32 %S32_1712
+.reg S32 %S32_1713
+.reg S32 %S32_1716
+.reg S32 %S32_1721
+.reg S32 %S32_1722
+.reg S32 %S32_1734
+.reg S32 %S32_1735
+.reg S32 %S32_1738
+.reg S32 %S32_1741
+.reg S32 %S32_1744
+.reg S32 %S32_1746
+.reg S32 %S32_1749
+.reg S32 %out
+.reg S32 size
+.reg U8 %U8_1702
+.reg U8 %U8_1709
+.reg U8 %U8_1720
+.reg U8 %U8_1727
+.reg U8 %U8_1733
+.reg A64 %A64_1691
+.reg A64 %A64_1692
+.reg A64 %A64_1694
+.reg A64 %A64_1695
+.reg A64 %A64_1696
+.reg A64 %A64_1697
+.reg A64 %A64_1699
+.reg A64 %A64_1700
+.reg A64 %A64_1701
+.reg A64 %A64_1705
+.reg A64 %A64_1706
+.reg A64 %A64_1707
+.reg A64 %A64_1708
+.reg A64 %A64_1714
+.reg A64 %A64_1715
+.reg A64 %A64_1717
+.reg A64 %A64_1718
+.reg A64 %A64_1719
+.reg A64 %A64_1723
+.reg A64 %A64_1724
+.reg A64 %A64_1725
+.reg A64 %A64_1726
+.reg A64 %A64_1729
+.reg A64 %A64_1730
+.reg A64 %A64_1731
+.reg A64 %A64_1732
+.reg A64 %A64_1736
+.reg A64 %A64_1737
+.reg A64 %A64_1739
+.reg A64 %A64_1740
+.reg A64 %A64_1742
+.reg A64 %A64_1743
+.reg A64 %A64_1745
+.reg A64 %A64_1747
+.reg A64 %A64_1748
+.reg A64 jpeg
 .jtb switch_1728_tab 255 switch_1728_default [192 switch_1728_192 196 switch_1728_196 218 switch_1728_218 219 switch_1728_219 221 switch_1728_221 254 switch_1728_254]
 .bbl %start
     poparg jpeg
@@ -3934,11 +5824,14 @@
     ret
 
 .fun write_str NORMAL [] = [A64 S32]
-.reg S8 [%S8_1752]
-.reg S32 [%S32_1753 fd]
-.reg S64 [%S64_1754]
-.reg U64 [%U64_1750 size]
-.reg A64 [%A64_1751 s]
+.reg S8 %S8_1752
+.reg S32 %S32_1753
+.reg S32 fd
+.reg S64 %S64_1754
+.reg U64 %U64_1750
+.reg U64 size
+.reg A64 %A64_1751
+.reg A64 s
 .bbl %start
     poparg s
     poparg fd
@@ -3962,9 +5855,23 @@
     ret
 
 .fun write_dec NORMAL [] = [S32 S32]
-.reg S8 [%S8_1757 %S8_1761]
-.reg S32 [%S32_1758 %S32_1759 %S32_1760 %S32_1764 %S32_1765 %S32_1767 a fd i]
-.reg A64 [%A64_1755 %A64_1756 %A64_1762 %A64_1763 %A64_1766 %A64_1768]
+.reg S8 %S8_1757
+.reg S8 %S8_1761
+.reg S32 %S32_1758
+.reg S32 %S32_1759
+.reg S32 %S32_1760
+.reg S32 %S32_1764
+.reg S32 %S32_1765
+.reg S32 %S32_1767
+.reg S32 a
+.reg S32 fd
+.reg S32 i
+.reg A64 %A64_1755
+.reg A64 %A64_1756
+.reg A64 %A64_1762
+.reg A64 %A64_1763
+.reg A64 %A64_1766
+.reg A64 %A64_1768
 .stk buf 1 64
 .bbl %start
     poparg fd
@@ -4000,10 +5907,55 @@
     ret
 
 .fun main NORMAL [S32] = [S32 A64]
-.reg S32 [%S32_1772 %S32_1773 %S32_1774 %S32_1778 %S32_1779 %S32_1784 %S32_1787 %S32_1788 %S32_1789 %S32_1793 %S32_1794 %S32_1795 %S32_1796 %S32_1797 %S32_1799 %S32_1802 %S32_1804 %S32_1808 %S32_1811 %out argc fd size]
-.reg S64 [%S64_1776 %S64_1777 %S64_1782 %S64_1783 %S64_1786 %S64_1810]
-.reg U64 [%U64_1780 %U64_1785 %U64_1809]
-.reg A64 [%A64_1769 %A64_1770 %A64_1771 %A64_1775 %A64_1781 %A64_1790 %A64_1791 %A64_1792 %A64_1798 %A64_1800 %A64_1801 %A64_1803 %A64_1805 %A64_1806 %A64_1807 argv buf]
+.reg S32 %S32_1772
+.reg S32 %S32_1773
+.reg S32 %S32_1774
+.reg S32 %S32_1778
+.reg S32 %S32_1779
+.reg S32 %S32_1784
+.reg S32 %S32_1787
+.reg S32 %S32_1788
+.reg S32 %S32_1789
+.reg S32 %S32_1793
+.reg S32 %S32_1794
+.reg S32 %S32_1795
+.reg S32 %S32_1796
+.reg S32 %S32_1797
+.reg S32 %S32_1799
+.reg S32 %S32_1802
+.reg S32 %S32_1804
+.reg S32 %S32_1808
+.reg S32 %S32_1811
+.reg S32 %out
+.reg S32 argc
+.reg S32 fd
+.reg S32 size
+.reg S64 %S64_1776
+.reg S64 %S64_1777
+.reg S64 %S64_1782
+.reg S64 %S64_1783
+.reg S64 %S64_1786
+.reg S64 %S64_1810
+.reg U64 %U64_1780
+.reg U64 %U64_1785
+.reg U64 %U64_1809
+.reg A64 %A64_1769
+.reg A64 %A64_1770
+.reg A64 %A64_1771
+.reg A64 %A64_1775
+.reg A64 %A64_1781
+.reg A64 %A64_1790
+.reg A64 %A64_1791
+.reg A64 %A64_1792
+.reg A64 %A64_1798
+.reg A64 %A64_1800
+.reg A64 %A64_1801
+.reg A64 %A64_1803
+.reg A64 %A64_1805
+.reg A64 %A64_1806
+.reg A64 %A64_1807
+.reg A64 argv
+.reg A64 buf
 .bbl %start
     poparg argc
     poparg argv

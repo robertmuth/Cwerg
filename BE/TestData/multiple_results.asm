@@ -3,15 +3,14 @@
 # ========================================
 # function with 5 return values
 .fun multi NORMAL [U32 U32 U32 U32 U32] = [U32 U32]
-.reg U32 [a b add  sub mul div mod] 
 .bbl start
-    poparg a
-    poparg b
-    add add = a b
-    sub sub = a b
-    mul mul = a b
-    div div = a b
-    rem mod = a b
+    poparg a:U32
+    poparg b:U32
+    add add:U32 = a b
+    sub sub:U32 = a b
+    mul mul:U32 = a b
+    div div:U32 = a b
+    rem mod:U32 = a b
     pusharg mod
     pusharg div
     pusharg mul
@@ -32,16 +31,15 @@
     ret
 # ========================================
 .fun main NORMAL [S32] = []
-.reg U32 [a s m d M x y]
 .bbl start
     pusharg 6:U32
     pusharg 70:U32
     bsr multi
-    poparg a
-    poparg s
-    poparg m
-    poparg d
-    poparg M
+    poparg a:U32
+    poparg s:U32
+    poparg m:U32
+    poparg d:U32
+    poparg M:U32
 
     pusharg a
     bsr print_u_ln
@@ -92,7 +90,3 @@
 
     pusharg 0:S32
     ret
-
-
-
-

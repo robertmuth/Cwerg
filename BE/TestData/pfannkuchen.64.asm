@@ -22,15 +22,15 @@
 
 
 .fun flip NORMAL [S32] = [A64 A64]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg s:A64
   poparg t:A64
-  .reg S32 [i]
-  .reg A64 [x]
-  .reg A64 [y]
-  .reg S32 [c]
+  .reg S32 i
+  .reg A64 x
+  .reg A64 y
+  .reg S32 c
   mov x = t
   mov y = s
   lea %A64_1:A64 = max_n
@@ -103,8 +103,8 @@
 .bbl %start
   poparg n:S32
   poparg s:A64
-  .reg S32 [c]
-  .reg S32 [i]
+  .reg S32 c
+  .reg S32 i
   ld %S32_1:S32 = s 0
   mov c = %S32_1
   mov i = 1
@@ -140,11 +140,11 @@
   poparg n:S32
   poparg s:A64
   poparg t:A64
-  .reg S32 [i]
+  .reg S32 i
   mov i = 0
-  .reg S32 [f]
+  .reg S32 f
 .stk c 4 64
-  .reg S32 [x]
+  .reg S32 x
   mov x = 0
   bra for_2_cond
 
@@ -266,10 +266,10 @@
 
 
 .fun main NORMAL [S32] = []
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
-  .reg S32 [i]
+  .reg S32 i
   lea %A64_1:A64 = max_n
   mov %S32_2:S32 = 11
   st %A64_1 0 = %S32_2

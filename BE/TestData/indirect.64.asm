@@ -29,7 +29,7 @@
 .addr.fun 8  fun3
 
 .fun main NORMAL [S32] = []
-.reg C64 [fp] 
+.reg C64 fp 
 .bbl start
 
     bsr fun1

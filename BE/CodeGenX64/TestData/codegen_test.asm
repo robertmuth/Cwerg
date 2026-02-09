@@ -7,13 +7,26 @@
 .fun TestMoveImmediates NORMAL [] = [A64]
   .jtb switch_tab 5 int [1 bbb 2 bbb 4 flt]
   .stk array 4 4000
-  .reg U32 [$r0 $r1 $r2 $r3 bitu]
-  .reg S32 [$r0_S32 bits]
-  .reg S64 [$r10 $r11 $12]
-  .reg R32 [$f0 $f1 $f2]
-  .reg R64 [$f10 $f11 $f12]
-  .reg U8 [$r0_U8 %U8_857]
-  .reg A64 [addr1 addr2]
+  .reg U32 $r0
+  .reg U32 $r1
+  .reg U32 $r2
+  .reg U32 $r3
+  .reg U32 bitu
+  .reg S32 $r0_S32
+  .reg S32 bits
+  .reg S64 $r10
+  .reg S64 $r11
+  .reg S64 $r12
+  .reg R32 $f0
+  .reg R32 $f1
+  .reg R32 $f2
+  .reg R64 $f10
+  .reg R64 $f11
+  .reg R64 $f12
+  .reg U8 $r0_U8
+  .reg U8 %U8_857
+  .reg A64 addr1
+  .reg A64 addr2
 .bbl int
     add $r10@rax $r10@rax 0x12345678:S64
     and $r1@rdx $r1@rdx 42

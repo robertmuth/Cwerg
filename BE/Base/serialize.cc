@@ -190,18 +190,13 @@ bool RegHandler(const std::vector<std::string_view>& token, Unit unit) {
   const Fun fun = UnitFunList::Tail(unit);
   // cout << "Reg " << token[1] << " " << Name(fun) << "\n";
   const DK rk = DKFromString(token[1]);
-  ASSERT(token[2][0] == '[', "expected [");
-  ASSERT(token.back()[0] == ']', "expected ]");
-  for (size_t i = 3; i < token.size() - 1; ++i) {
-    const Str name = StrNew(token[i]);
-    const Reg reg = RegNew(rk, name);
-    if (!FunRegFind(fun, name).isnull()) {
-      std::cerr << "Duplicate reg " << token[i] << "\n";
-      return false;
-    }
-    FunRegAdd(fun, reg);
+  const Str name = StrNew(token[2]);
+  const Reg reg = RegNew(rk, name);
+  if (!FunRegFind(fun, name).isnull()) {
+    std::cerr << "Duplicate reg " << token[2] << "\n";
+    return false;
   }
-
+  FunRegAdd(fun, reg);
   return true;
 }
 
@@ -699,19 +694,16 @@ void FunRenderToAsm(Fun fun, std::ostream* output, bool number) {
     std::sort(val.begin(), val.end(), [](const Reg& a, const Reg& b) {
       return StrCmpLt(Name(a), Name(b));
     });
-    *output << ".reg " << EnumToString(key) << " [";
-    const char* sep = "";
     for (const Reg reg : val) {
-      *output << sep << Name(reg);
+      *output << ".reg " << EnumToString(key) << " " << Name(reg);
       Handle cpu_reg = RegCpuReg(reg);
       if (Kind(cpu_reg) == RefKind::CPU_REG) {
         *output << "@" << Name(CpuReg(cpu_reg));
       } else if (Kind(cpu_reg) == RefKind::STACK_SLOT) {
         *output << "@STK";
       }
-      sep = " ";
+      *output << "\n";
     }
-    *output << "]\n";
   }
 
   // Stks

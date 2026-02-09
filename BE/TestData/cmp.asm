@@ -87,8 +87,8 @@
 
 # ========================================
 .fun main NORMAL [S32] = []
-    .reg U32 [u]
-    .reg S32 [s]
+    .reg U32 u
+    .reg S32 s
 
 .bbl start
     ## cmplt_u32_u32

@@ -11,69 +11,50 @@
 .mem COUNTER 4 RW
 .data 4 [0]
 
-	
+
 .fun exit NORMAL [] = [U32]
-# live_out: ['r0']
-.reg U32 [$r0_U32 out]
-.reg A32 [$sp_A32]
 .bbl start
     syscall arm_syscall_exit 1:U32
     ret
 
 .fun brk NORMAL [A32] = [U32]
-# live_out: ['r0']
-# live_clobber: ['r0']
-.reg U32 [$r0_U32 len]
-.reg A32 [$r0_A32 $sp_A32 res]
 .bbl start  #  live_out[r0]
     syscall arm_syscall_brk 45:U32
     ret
 
 .fun open NORMAL [S32] = [A32 U32 U32]
-# live_out: ['r0', 'r1', 'r2']
-# live_clobber: ['r0']
-.reg S32 [$r0_S32 res]
-.reg U32 [$r1_U32 $r2_U32 flags mode]
-.reg A32 [$r0_A32 $sp_A32 path]
 .bbl start  #  live_out[r0]
     syscall arm_syscall_open 5:U32
     ret
 
 .fun close NORMAL [S32] = [S32]
-# live_out: ['r0']
-# live_clobber: ['r0']
-.reg S32 [$r0_S32 fh res]
-.reg A32 [$sp_A32]
 .bbl start  #  live_out[r0]
     syscall arm_syscall_close 6:U32
     ret
 
 .fun write NORMAL [S32] = [S32 A32 U32]
-# live_out: ['r0', 'r1', 'r2']
-# live_clobber: ['r0']
-.reg S32 [$r0_S32 fh res]
-.reg U32 [$r2_U32 len]
-.reg A32 [$r1_A32 $sp_A32 buf]
 .bbl start  #  live_out[r0]
     syscall arm_syscall_write 4:U32
     ret
 
 .fun read NORMAL [S32] = [S32 A32 U32]
-# live_out: ['r0', 'r1', 'r2']
-# live_clobber: ['r0']
-.reg S32 [$r0_S32 fh res]
-.reg U32 [$r2_U32 len]
-.reg A32 [$r1_A32 $sp_A32 buf]
 .bbl start  #  live_out[r0]
     syscall arm_syscall_read 3:U32
     ret
 
 .fun putchar NORMAL [] = [U32]
 # live_out: ['r0']
-.reg S32 [$r0_S32]
-.reg U8 [$r1_U8 %ScRaTcH_widening_U8]
-.reg U32 [$r0_U32 $r1_U32 $r2_U32 c char]
-.reg A32 [$r0_A32 $r1_A32 $sp_A32 buf]
+.reg S32 $r0_S32
+.reg U8 $r1_U8
+.reg U32 $r0_U32
+.reg U32 $r1_U32
+.reg U32 $r2_U32
+.reg U32 c
+.reg U32 char
+.reg A32 $r0_A32
+.reg A32 $r1_A32
+.reg A32 $sp_A32
+.reg A32 buf
 .stk buffer 1 1
 .bbl start
     conv $r1_U32@r1 $r0_U32@r0
@@ -88,9 +69,15 @@
 
 .fun writeln NORMAL [] = [A32 U32]
 # live_out: ['r0', 'r1']
-.reg S32 [$r0_S32]
-.reg U32 [$r0_U32 $r1_U32 $r2_U32 len]
-.reg A32 [$r0_A32 $r1_A32 $sp_A32 buf]
+.reg S32 $r0_S32
+.reg U32 $r0_U32
+.reg U32 $r1_U32
+.reg U32 $r2_U32
+.reg U32 len
+.reg A32 $r0_A32
+.reg A32 $r1_A32
+.reg A32 $sp_A32
+.reg A32 buf
 .bbl start
     mov $r2_U32@r2 $r1_U32@r1
     mov $r1_A32@r1 $r0_A32@r0
@@ -102,8 +89,12 @@
 
 .fun print_num NORMAL [] = [U32]
 # live_out: ['r0']
-.reg U32 [$r0_U32 $r1_U32 %ScRaTcH_elim_imm_U32 div rem x]
-.reg A32 [$sp_A32]
+.reg U32 $r0_U32
+.reg U32 $r1_U32
+.reg U32 div
+.reg U32 rem
+.reg U32 x
+.reg A32 $sp_A32
 .bbl start  #  edge_out[ddd  skip]  live_out[lr  r6]
     mov $r1_U32@r1 $r0_U32@r0
     mov $r0_U32@r0 10
@@ -125,8 +116,9 @@
 
 .fun print_num_ln NORMAL [] = [U32]
 # live_out: ['r0']
-.reg U32 [$r0_U32 x]
-.reg A32 [$sp_A32]
+.reg U32 $r0_U32
+.reg U32 x
+.reg A32 $sp_A32
 .bbl start
     bsr print_num
     mov $r0_U32@r0 10
@@ -134,8 +126,14 @@
     ret
 
 .fun dump NORMAL [] = []
-.reg U32 [$r0_U32 $r1_U32 count i]
-.reg A32 [$r0_A32 $sp_A32 %ScRaTcH_base_A32 board line]
+.reg U32 $r0_U32
+.reg U32 $r1_U32
+.reg U32 count
+.reg U32 i
+.reg A32 $r0_A32
+.reg A32 $sp_A32
+.reg A32 board
+.reg A32 line
 .bbl start  #  edge_out[loop]  live_out[r6  r7]
     lea.mem $r0_A32@r0 COUNTER 0
     ld $r0_U32@r0 $r0_A32@r0 0
@@ -161,9 +159,16 @@
 .fun conflict NORMAL [U32] = [U32]
 # live_out: ['r0']
 # live_clobber: ['r0']
-.reg U8 [$r6_U8 %ScRaTcH_widening_U8]
-.reg U32 [$r0_U32 d1 d2 i lastx x y]
-.reg A32 [$r6_A32 $sp_A32 %ScRaTcH_base_A32]
+.reg U8 $r6_U8
+.reg U32 $r0_U32
+.reg U32 d1
+.reg U32 d2
+.reg U32 i
+.reg U32 lastx
+.reg U32 x
+.reg U32 y
+.reg A32 $r6_A32
+.reg A32 $sp_A32
 .bbl start  #  edge_out[start_1  success]  live_out[r12]
     mov y@r12 $r0_U32@r0
     beq y@r12 0 success
@@ -197,9 +202,16 @@
 
 .fun solve NORMAL [] = [U32]
 # live_out: ['r0']
-.reg U8 [$r0_U8 $r1_U8 %ScRaTcH_elim_imm_U8 %ScRaTcH_widening_U8]
-.reg U32 [$r0_U32 i pos res y]
-.reg A32 [$r0_A32 $r1_A32 $sp_A32 %ScRaTcH_base_A32]
+.reg U8 $r0_U8
+.reg U8 $r1_U8
+.reg U32 $r0_U32
+.reg U32 i
+.reg U32 pos
+.reg U32 res
+.reg U32 y
+.reg A32 $r0_A32
+.reg A32 $r1_A32
+.reg A32 $sp_A32
 .bbl start  #  edge_out[cont  start_1]  live_out[r8]
     mov y@r8 $r0_U32@r0
     blt y@r8 8 cont
@@ -235,8 +247,10 @@
     ret
 
 .fun _start NORMAL [] = []
-.reg U32 [$r0_U32 count]
-.reg A32 [$r0_A32 $sp_A32 %ScRaTcH_base_A32]
+.reg U32 $r0_U32
+.reg U32 count
+.reg A32 $r0_A32
+.reg A32 $sp_A32
 .bbl start
     mov $r0_U32@r0 0
     bsr solve
@@ -250,7 +264,7 @@
     ret
 
 .fun TestMoveImmediates NORMAL [] = []
-.reg S32 [x]
+.reg S32 x
 .bbl start
     mov x@r0 66
     mov x@r0 -66
@@ -263,13 +277,13 @@
     ret
 
 .fun TestLdStImmediates NORMAL [] = []
-.reg S32 [x]
-.reg U32 [y]
-.reg A32 [base]
-.reg U8 [ua]
-.reg U16 [ub]
-.reg S8 [sa]
-.reg S16 [sb]
+.reg S32 x
+.reg U32 y
+.reg A32 base
+.reg U8 ua
+.reg U16 ub
+.reg S8 sa
+.reg S16 sb
 
 .bbl start
     ld ua@r6 base@r6 66:S32
@@ -316,8 +330,8 @@
     ret
 
 .fun TestLea NORMAL [] = []
-.reg S32 [x]
-.reg A32 [base]
+.reg S32 x
+.reg A32 base
 
 .bbl start
     lea base@r6 base@r6 66:S32
@@ -326,8 +340,8 @@
 
 # TODO: add flt ld/st tests
 .fun TestStk_gpr_scratch NORMAL [] = []
-.reg S32 [x]
-.reg S16 [y]
+.reg S32 x
+.reg S16 y
 .stk buffer 4 1000004
 
 .bbl start

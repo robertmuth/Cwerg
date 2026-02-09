@@ -480,7 +480,9 @@ class Fun:
         return self.stk_syms.get(name)
 
     def GetReg(self, name: str) -> Reg:
-        return self.reg_syms[name]
+        out = self.reg_syms.get(name)
+        assert out is not None, f"unknown register {name}"
+        return out
 
     def MaybeGetReg(self, name: str) -> Reg:
         return self.reg_syms.get(name)

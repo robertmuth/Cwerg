@@ -200,7 +200,6 @@ enum class OP_KIND : uint8_t {
     FUN_KIND = 24,
     FIELD = 25,
     NAME = 26,
-    NAME_LIST = 27,
     INT = 28,
     BBL_TAB = 29,
     BYTES = 30,

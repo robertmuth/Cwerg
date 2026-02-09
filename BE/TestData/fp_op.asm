@@ -2,18 +2,16 @@
 
 
 .fun mul_f32 NORMAL [] = [S32 R32 R32 R32]
-  .reg U32 [tmp]
-  .reg R32 [dst expected src1 src2]
   .bbl prolog
     poparg testno:S32
-    poparg expected
-    poparg src1
-    poparg src2
-    mul dst src1 src2
+    poparg expected:R32
+    poparg src1:R32
+    poparg src2:R32
+    mul dst:R32 src1 src2
     beq dst expected ok
     pusharg testno
     bsr print_d_ln
-    bitcast tmp expected
+    bitcast tmp:U32 expected
     pusharg tmp
     bsr print_x_ln
     bitcast tmp dst
@@ -23,18 +21,16 @@
     ret
 
 .fun copysign_f32 NORMAL [] = [S32 R32 R32 R32]
-  .reg U32 [tmp]
-  .reg R32 [dst expected src1 src2]
   .bbl prolog
     poparg testno:S32
-    poparg expected
-    poparg src1
-    poparg src2
-    copysign dst src1 src2
+    poparg expected:R32
+    poparg src1:R32
+    poparg src2:R32
+    copysign dst:R32 src1 src2
     beq dst expected ok
     pusharg testno
     bsr print_d_ln
-    bitcast tmp expected
+    bitcast tmp:U32 expected
     pusharg tmp
     bsr print_x_ln
     bitcast tmp dst
@@ -45,17 +41,15 @@
     ret
 
 .fun abs_f32 NORMAL [] = [S32 R32 R32]
-  .reg U32 [tmp]
-  .reg R32 [dst expected src]
   .bbl prolog
     poparg testno:S32
-    poparg expected
-    poparg src
-    copysign dst src 0.0
+    poparg expected:R32
+    poparg src:R32
+    copysign dst:R32 src 0.0
     beq dst expected ok
     pusharg testno
     bsr print_d_ln
-    bitcast tmp expected
+    bitcast tmp:U32 expected
     pusharg tmp
     bsr print_x_ln
     bitcast tmp dst

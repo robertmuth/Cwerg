@@ -54,23 +54,21 @@ class TestRanges(unittest.TestCase):
 .data 1 "%d\n\0"
 
 .fun main NORMAL [S32] = []
-.reg U32 [a s m d M x y out]
-.reg A64 [f]
 
 .bbl start
-    mov x = 70
-    mov y = 6
+    mov x:U32 = 70
+    mov y:U32 = 6
 
     pusharg y
     pusharg x
     bsr multi
-    poparg a
-    poparg s
-    poparg m
-    poparg d
-    poparg M
+    poparg a:U32
+    poparg s:U32
+    poparg m:U32
+    poparg d:U32
+    poparg M:U32
 
-    lea.mem f = fmt 0
+    lea.mem f:A64 = fmt 0
     pusharg a
     pusharg f
     bsr printf_u
@@ -91,7 +89,7 @@ class TestRanges(unittest.TestCase):
     pusharg f
     bsr printf_u
 
-    mov out = 0
+    mov out:U32 = 0
     pusharg out
     ret
         """)
@@ -186,9 +184,15 @@ class TestRanges(unittest.TestCase):
 
 .fun writeln NORMAL [] = [A32 U32]
 # live_out: ['r0', 'r1']
-.reg S32 [$r0_S32 dummy]
-.reg U32 [$r0_U32 $r1_U32 $r2_U32 len]
-.reg A32 [$r0_A32 $r1_A32 buf]
+.reg S32 $r0_S32
+.reg S32 dummy
+.reg U32 $r0_U32
+.reg U32 $r1_U32
+.reg U32 $r2_U32
+.reg U32 len
+.reg A32 $r0_A32
+.reg A32 $r1_A32
+.reg A32 buf
 .bbl start
     mov buf $r0_A32@r0                     # 0
     mov len $r1_U32@r1                     # 1
@@ -256,14 +260,18 @@ class TestRanges(unittest.TestCase):
 
 
 .fun test NORMAL [R32 R32 R32 R32] = [R32 R32]
-.reg R32 [a b add sub mul div  $s0_R32  $s1_R32  $s2_R32  $s3_R32]
+.reg R32 $s0_R32
+.reg R32 $s1_R32
+.reg R32 $s2_R32
+.reg R32 $s3_R32
+
 .bbl start
-    mov a $s0_R32@s0
-    mov b $s1_R32@s1
-    add add a b
-    sub sub a b
-    mul mul a b
-    div div a b
+    mov a:R32 $s0_R32@s0
+    mov b:R32 $s1_R32@s1
+    add add:R32 a b
+    sub sub:R32 a b
+    mul mul:R32 a b
+    div div:R32 a b
     mov $s3_R32@s3 div
     mov $s2_R32@s2 mul
     mov $s1_R32@s1 sub
