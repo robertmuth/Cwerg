@@ -46,6 +46,7 @@ Explicit line number targets are in place to prevent feature creep:
   ([current counts](FE/CLOC.md))
 * backend 10kLOC (target independent code) + 5kLOC(per target
   ([current counts](BE/CLOC.md))
+(We cheat a little bit and do not include various tables in these numbers.)
 
 The translation speed target is 1000k LOC per sec using at most 4 cores
 on a 2020 era midrange desktop or high end laptop.

@@ -25,7 +25,7 @@ ComputeStats() {
     echo
     echo "### Table Code (Python)"
     echo
-    RunCloc --by-file  '--match-f=(cwast|_tab).*[.](py)$$'  --match-d="$2"  $1
+    RunCloc --by-file  '--match-f=(cwast|_tab).*[.](py)|[.]js$$'  --match-d="$2"  $1
 
     echo "### Regular Code (C++)"
     echo
