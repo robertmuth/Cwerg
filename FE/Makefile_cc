@@ -71,7 +71,7 @@ tests_meta: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
 
 $(DIR)/%.cw.meta: %.cw
 	@echo "[typify $@]"
-	$(EMIT_IR) -dump_stats $<
+	$(EMIT_IR) -dump_stats $< >$@
 
 
 ############################################################
@@ -86,15 +86,15 @@ assimilation_after_opt_tests: $(ALL_SOURCES_NO_GENERIC_NO_BUILTIN:%.cw=$(DIR)/%.
 # PHASE =  -dump_ast after_eliminate_span_and_union
 # PHASE =  -dump_ast after_large_arg_conversion
 # PHASE =  -dump_ast after_legalize
-PHASE =  -dump_ast after_name_cleanup
+# PHASE =  -dump_ast after_name_cleanup
 
 # PHASE =  -dump_types after_optimization
 
 $(DIR)/%.cw.assim: %.cw
 	@echo "[assim $@]"
-	$(EMIT_IR) $(PHASE) $< > $@.cc
-	./compiler.py  $(PHASE) $< > $@.py
-	diff $@.py $@.cc
+	$(EMIT_IR) $(PHASE) $< > $@.cc_ast
+	./compiler.py  $(PHASE) $< > $@.py_ast
+	diff $@.py_ast $@.cc_ast
 
 ############################################################
 # Profile
