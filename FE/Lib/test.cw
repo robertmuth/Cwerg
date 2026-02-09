@@ -74,18 +74,23 @@ pub macro AssertSliceEq# STMT_LIST ($e_expr EXPR, $a_expr EXPR)
   [$e_val, $a_val, $i]:
     let $e_val = $e_expr
     let $a_val = $a_expr
-    AssertEq#(len($e_val), len($a_val))
+    if len($e_val) !=  len($a_val):
+        AssertCommon#("AssertSliceEqLen", $e_expr, $a_expr)
     for $i = 0, len($a_val), 1:
-        AssertEq#(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^)
+        if ptr_inc(front($e_val), $i)^ !=  ptr_inc(front($a_val), $i)^:
+            AssertCommon#("AssertSliceEqElement", $e_expr, $a_expr)
+
 
 pub macro AssertGenericSliceEq# STMT_LIST ($e_expr EXPR, $a_expr EXPR)
   [$e_val, $a_val, $i]:
     let $e_val = $e_expr
     let $a_val = $a_expr
-    AssertEq#(len($e_val), len($a_val))
+    if len($e_val) !=  len($a_val):
+        AssertCommon#("AssertGenericSliceEq", $e_expr, $a_expr)
     for $i = 0, len($a_val), 1:
-        AssertGenericEq#(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)
-                         ^)
+        if !cmp::eq(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^):
+            AssertCommon#("AssertGenericSliceEqElement", $e_expr, $a_expr)
+
 
 pub macro AssertEqR64# STMT_LIST ($e_expr EXPR, $a_expr EXPR) [$e_val, $a_val]:
     let $e_val r64 = $e_expr
