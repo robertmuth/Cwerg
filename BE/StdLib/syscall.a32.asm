@@ -8,7 +8,8 @@
 .fun a32_syscall_clock_gettime SIGNATURE [S32] = [S32 A32]
 .fun a32_syscall_close SIGNATURE [S32] = [S32]
 .fun a32_syscall_exit SIGNATURE [] = [S32]
-.fun a32_syscall_fcntl SIGNATURE [S32] = [S32 U32 A32]
+.fun a32_syscall_fcntl SIGNATURE [S32] = [S32 U32 U32]
+.fun a32_syscall_ioctl SIGNATURE [S32] = [S32 U32 U32]
 .fun a32_syscall_fstat SIGNATURE [S32] = [S32 A32]
 .fun a32_syscall_getcwd SIGNATURE [S32] = [A32 U32]
 .fun a32_syscall_getpid SIGNATURE [S32] = []
@@ -66,15 +67,28 @@
     syscall a32_syscall_exit 1:U32
     trap
 
-.fun fcntl NORMAL [S32] = [S32 U32 A32]
+.fun fcntl NORMAL [S32] = [S32 U32 U32]
 .bbl start
     poparg fd:S32
     poparg cmd:U32
-    poparg arg:A32
+    poparg arg:U32
     pusharg arg
     pusharg cmd
     pusharg fd
     syscall a32_syscall_fcntl 55:U32
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun ioctl NORMAL [S32] = [S32 U32 U32]
+.bbl start
+    poparg fd:S32
+    poparg cmd:U32
+    poparg arg:U32
+    pusharg arg
+    pusharg cmd
+    pusharg fd
+    syscall a32_syscall_fcntl 54:U32
     poparg res:S32
     pusharg res
     ret
@@ -225,14 +239,14 @@
     pusharg res
     ret
 
-.fun spawn NORMAL [S32] = [C32 A32 A32 U32 U32]   
+.fun spawn NORMAL [S32] = [C32 A32 A32 U32 U32]
 .bbl entry
     poparg proc:C32
     poparg new_stack:A32
     poparg new_tls:A32
     poparg user_arg:U32
     poparg flags:U32
-    # align stack 
+    # align stack
     bitcast stk:U32 new_stack
     sub stk stk 16  # make space for two parameters
     and stk stk 0xfffffff8  # 8 byte aligned
@@ -257,7 +271,7 @@
     # Why do we have to save the user_arg temporarily onto the new stack?
     # If user_arg ends up in register we might get lucky because the register
     # are presumably preserved when we reach here.
-    # But if user_arg is spilled onto the old stack it is not clear if we can see it 
+    # But if user_arg is spilled onto the old stack it is not clear if we can see it
     # at this point.
     # NOTE: the syscall pops two regs of the stack. We have to compensate for this
     getsp sp:A32
@@ -268,6 +282,6 @@
     jsr proc a32_thread_function
     pusharg 0:S32
     syscall a32_syscall_exit 1:U8
-    trap # unreachable 
+    trap # unreachable
     pusharg 0:S32
     ret

@@ -8,7 +8,8 @@
 .fun x64_syscall_clock_gettime SIGNATURE [S32] = [S32 A64]
 .fun x64_syscall_close SIGNATURE [S32] = [S32]
 .fun x64_syscall_exit SIGNATURE [] = [S32]
-.fun x64_syscall_fcntl SIGNATURE [S32] = [S32 U32 A64]
+.fun x64_syscall_fcntl SIGNATURE [S64] = [S32 U32 U64]
+.fun x64_syscall_ioctl SIGNATURE [S64] = [S32 U32 U64]
 .fun x64_syscall_fstat SIGNATURE [S32] = [S32 A64]
 .fun x64_syscall_getcwd SIGNATURE [S32] = [A64 U64]
 .fun x64_syscall_getpid SIGNATURE [S32] = []
@@ -66,16 +67,29 @@
     syscall x64_syscall_exit 60:U8
     trap
 
-.fun fcntl NORMAL [S32] = [S32 U32 A64]
+.fun fcntl NORMAL [S64] = [S32 U32 U64]
 .bbl start
     poparg fd:S32
     poparg cmd:U32
-    poparg arg:A64
+    poparg arg:U64
     pusharg arg
     pusharg cmd
     pusharg fd
     syscall x64_syscall_fcntl 72:U8
-    poparg res:S32
+    poparg res:S64
+    pusharg res
+    ret
+
+.fun ioctl NORMAL [S64] = [S32 U32 U64]
+.bbl start
+    poparg fd:S32
+    poparg cmd:U32
+    poparg arg:U64
+    pusharg arg
+    pusharg cmd
+    pusharg fd
+    syscall x64_syscall_ioctl 16:U8
+    poparg res:S64
     pusharg res
     ret
 
@@ -209,14 +223,14 @@
     pusharg res
     ret
 
-.fun spawn NORMAL [S32] = [C64 A64 A64 U64 U64]   
+.fun spawn NORMAL [S32] = [C64 A64 A64 U64 U64]
 .bbl entry
     poparg proc:C64
     poparg new_stack:A64
     poparg new_tls:A64
     poparg user_arg:U64
     poparg flags:U64
-    # align stack 
+    # align stack
     bitcast stk:U64 new_stack
     sub stk stk 16  # make space for two parameters
     and stk stk 0xfffffffffffffff0  # 16 byte aligned
@@ -241,7 +255,7 @@
     # Why do we have to save the user_arg temporarily onto the new stack?
     # If user_arg ends up in register we might get lucky because the register
     # are presumably preserved when we reach here.
-    # But if user_arg is spilled onto the old stack it is not clear if we can see it 
+    # But if user_arg is spilled onto the old stack it is not clear if we can see it
     # at this point.
     getsp sp:A64
     lea sp sp -16 # compensate for the syscall poping 16 bytes off the stack
@@ -252,8 +266,6 @@
     jsr proc x64_thread_function
     pusharg 0:S32
     syscall x64_syscall_exit 60:U8
-    trap # unreachable 
+    trap # unreachable
     pusharg 0:S32
     ret
-
-
