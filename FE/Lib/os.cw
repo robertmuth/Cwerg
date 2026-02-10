@@ -224,24 +224,24 @@ pub enum FcntlOp u32:
 
 
 ; NOT FCNTL
- pub global O_CREAT     =  0x0040_u32
- pub global O_EXCL      =  0x0080_u32
- pub global O_NOCTTY    =  0x0100_u32
- pub global O_TRUNC     =  0x0200_u32
- pub global O_APPEND    =  0x0400_u32
+pub global O_CREAT     =  0x0040_u32
+pub global O_EXCL      =  0x0080_u32
+pub global O_NOCTTY    =  0x0100_u32
+pub global O_TRUNC     =  0x0200_u32
+pub global O_APPEND    =  0x0400_u32
 
- pub global O_ACCMODE   =  0x00003_u32
- pub global O_RDONLY    =  0x00000_u32
- pub global O_WRONLY    =  0x00001_u32
- pub global O_RDWR      =  0x00002_u32
- pub global O_NONBLOCK  =  0x00800_u32
- pub global O_DSYNC     =  0x01000_u32
- pub global O_DIRECT    =  0x04000_u32
- pub global O_LARGEFILE =  0x08000_u32
- pub global O_DIRECTORY =  0x10000_u32
- pub global O_NOFOLLOW  =  0x20000_u32
- pub global O_NOATIME   =  0x40000_u32
- pub global O_CLOEXEC   =  0x80000_u32
+pub global O_ACCMODE   =  0x00003_u32
+pub global O_RDONLY    =  0x00000_u32
+pub global O_WRONLY    =  0x00001_u32
+pub global O_RDWR      =  0x00002_u32
+pub global O_NONBLOCK  =  0x00800_u32
+pub global O_DSYNC     =  0x01000_u32
+pub global O_DIRECT    =  0x04000_u32
+pub global O_LARGEFILE =  0x08000_u32
+pub global O_DIRECTORY =  0x10000_u32
+pub global O_NOFOLLOW  =  0x20000_u32
+pub global O_NOATIME   =  0x40000_u32
+pub global O_CLOEXEC   =  0x80000_u32
 
 
 

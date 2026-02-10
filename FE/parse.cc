@@ -981,6 +981,7 @@ Node ParseStmtList(Lexer* lexer, uint32_t column) {
 }
 
 Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
+  // TODO: use NodeChain instead of recursion
   const TK tk = lexer->Peek();
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= outer_column) {
     return kNodeInvalid;
@@ -1097,6 +1098,7 @@ Node ParseTopLevel(Lexer* lexer) {
       Node out = NodeNew(NT::DefRec);
       TK name = lexer->MatchIdOrDie();
       lexer->MatchOrDie(TK_KIND::COLON);
+      // TODO: use NodeChain instead of recursion
       Node fields = ParseRecFieldList(lexer, outer_column);
       NodeInitDefRec(out, NameNew(name.text), fields, BitsFromAnnotation(tk),
                      tk.comments, tk.srcloc, kCanonTypeInvalid);
@@ -1127,6 +1129,7 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::BASE_TYPE);
       BASE_TYPE_KIND bt = BASE_TYPE_KIND_LOWER_FromString(base_type.text);
       lexer->MatchOrDie(TK_KIND::COLON);
+      // TODO: use NodeChain instead of recursion
       Node items = ParseEnumFieldList(lexer, outer_column);
       NodeInitDefEnum(out, NameNew(name.text), bt, items, bits, tk.comments,
                       tk.srcloc, kCanonTypeInvalid);

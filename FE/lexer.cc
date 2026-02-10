@@ -226,21 +226,22 @@ TK_RAW LexerRaw::HandleMultiStr() {
 }
 
 TK_RAW LexerRaw::Next() {
-  uint8_t c;
-  while (IsWhitespace(c = input_[pos_])) {
-    pos_++;
-    if (pos_ >= input_.size()) {
-      // fix issue with "return [eof]"
-      line_no_++;
-      srcloc_.col = col_no_;
-      srcloc_.line = line_no_ + 1;
-      return TK_RAW{TK_KIND::SPECIAL_EOF};
-    }
+  for (; pos_ < input_.size(); ++pos_) {
+    uint8_t c = input_[pos_];
+    if (!IsWhitespace(c)) break;
+    if (pos_ >= input_.size()) break;
     col_no_++;
     if (c == '\n') {
       col_no_ = 0;
       line_no_++;
     }
+  }
+  if (pos_ >= input_.size()) {
+    // fix issue with "return [eof]"
+    line_no_++;
+    srcloc_.col = col_no_;
+    srcloc_.line = line_no_ + 1;
+    return TK_RAW{TK_KIND::SPECIAL_EOF};
   }
   // freeze SrcLoc
   srcloc_.col = col_no_;
