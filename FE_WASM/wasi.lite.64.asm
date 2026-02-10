@@ -6,12 +6,12 @@
 ######################################################################
 
   .fun write_s NORMAL [S64] = [S32 A64]
-  .reg S64 [%out]
+  .reg S64 %out
 
   .bbl %start
     poparg fd:S32
     poparg s:A64
-    .reg U64 [len]
+    .reg U64 len
     mov len = 0
     bra while_1_cond
 
@@ -37,13 +37,13 @@
     ret
 
 .fun write_lu NORMAL [S64] = [S32 U64]
-.reg S64 [%out]
+.reg S64 %out
 
 .bbl %start
   poparg fd:S32
   poparg val:U64
 .stk buffer 1 16
-  .reg U64 [pos]
+  .reg U64 pos
   lea %A64_1:A64 = buffer
   mov pos = 16
 
@@ -79,7 +79,7 @@
 
 
 .fun write_ld NORMAL [S64] = [S32 S64]
-.reg S64 [%out]
+.reg S64 %out
 
 .bbl %start
   poparg fd:S32
@@ -98,11 +98,11 @@
   ret
 
 .bbl if_2_end
-  .reg U64 [val]
+  .reg U64 val
   sub %S32_3:S64 = 0  sval
   conv val = %S32_3
 .stk buffer 1 32
-  .reg U64 [pos]
+  .reg U64 pos
   lea %A64_5:A64 = buffer
   mov pos = 32
 
@@ -137,7 +137,7 @@
 
 
 .fun write_c NORMAL [S64] = [S32 U8]
-.reg S64 [%out]
+.reg S64 %out
 
 .bbl %start
   poparg fd:S32

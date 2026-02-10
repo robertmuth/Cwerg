@@ -6,13 +6,13 @@
 # HELPER CLONED FROM StdLib
 ######################################################################
 .fun write_u NORMAL [S32] = [S32 U32]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg fd:S32
   poparg val:U32
 .stk buffer 1 16
-  .reg U32 [pos]
+  .reg U32 pos
   lea %A32_1:A32 = buffer
   mov pos = 16
 
@@ -47,7 +47,7 @@
   ret
 
 .fun write_c NORMAL [S32] = [S32 U8]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg fd:S32
@@ -68,7 +68,7 @@
   ret
 
 .fun write_d NORMAL [S32] = [S32 S32]
-.reg S32 [%out]
+.reg S32 %out
 
 .bbl %start
   poparg fd:S32
@@ -87,12 +87,12 @@
   ret
 
 .bbl if_2_end
-  .reg U32 [val]
+  .reg U32 val
   sub %S32_3:S32 = 0  sval
   conv %U32_4:U32 = %S32_3
   mov val = %U32_4
 .stk buffer 1 16
-  .reg U32 [pos]
+  .reg U32 pos
   lea %A32_5:A32 = buffer
   mov pos = 16
 

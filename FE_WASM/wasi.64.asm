@@ -6,12 +6,12 @@
 ######################################################################
 
   .fun write_s NORMAL [S64] = [S32 A64]
-  .reg S64 [%out]
+  .reg S64 %out
 
   .bbl %start
     poparg fd:S32
     poparg s:A64
-    .reg U64 [len]
+    .reg U64 len
     mov len = 0
     bra while_1_cond
 
@@ -37,13 +37,13 @@
     ret
 
 .fun write_lu NORMAL [S64] = [S32 U64]
-.reg S64 [%out]
+.reg S64 %out
 
 .bbl %start
   poparg fd:S32
   poparg val:U64
 .stk buffer 1 16
-  .reg U64 [pos]
+  .reg U64 pos
   lea %A64_1:A64 = buffer
   mov pos = 16
 
@@ -79,7 +79,7 @@
 
 
 .fun write_ld NORMAL [S64] = [S32 S64]
-.reg S64 [%out]
+.reg S64 %out
 
 .bbl %start
   poparg fd:S32
@@ -98,11 +98,11 @@
   ret
 
 .bbl if_2_end
-  .reg U64 [val]
+  .reg U64 val
   sub %S32_3:S64 = 0  sval
   conv val = %S32_3
 .stk buffer 1 32
-  .reg U64 [pos]
+  .reg U64 pos
   lea %A64_5:A64 = buffer
   mov pos = 32
 
@@ -137,7 +137,7 @@
 
 
 .fun write_c NORMAL [S64] = [S32 U8]
-.reg S64 [%out]
+.reg S64 %out
 
 .bbl %start
   poparg fd:S32
@@ -356,7 +356,7 @@
    mov mode:S32 420 # 0644
    mov flag:S32 0
 
-   .reg S32 [f]
+   .reg S32 f
    and f oflags 1 # creat 0100 = 128
    shl f f 6
    or flag flag f
@@ -373,7 +373,7 @@
    shl f f 9
    or flag flag f
 
-   .reg S64 [g]
+   .reg S64 g
    and g fs_rights_base 64 #  FD_WRITE
    cmpeq w:S32 0 1 g 0
    and g fs_rights_base 2 #  FD_READ
