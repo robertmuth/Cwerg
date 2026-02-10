@@ -208,7 +208,9 @@ def _ResolveGlobalAndImportedSymbols(node, symtab: SymTab, builtin_symtab: SymTa
                     return
 
         if isinstance(node, cwast.Id) and node.enum_name is not None:
-            assert isinstance(def_node, cwast.DefEnum)
+            if not isinstance(def_node, cwast.DefEnum):
+                cwast.CompilerError(
+                    node.x_srcloc, f"expected enum symbol for {node} got {def_node}")
             def_node = _resolve_enum_item(
                 def_node, node.enum_name, node.x_srcloc)
         AnnotateNodeSymbol(node, def_node)

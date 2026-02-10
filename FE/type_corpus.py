@@ -565,7 +565,7 @@ class TypeCorpus:
         ct.children = [ct_wrapped]
 
     def insert_union_complement(self, all: cwast.CanonType, part: cwast.CanonType) -> cwast.CanonType:
-        assert all.node is cwast.TypeUnion, f"expect sum type: {all.name}"
+        assert all.node is cwast.TypeUnion, f"expect sum type, got: {all.name}"
         # we could use a set here but the number of union elements will be small
         if part.node is cwast.TypeUnion:
             part_children = part.children

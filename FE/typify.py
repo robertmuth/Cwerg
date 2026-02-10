@@ -306,6 +306,9 @@ def _TypifyType(node, tc: type_corpus.TypeCorpus,
         return _NodeSetType(node, tc.InsertUnionType(node.untagged, pieces))
     elif isinstance(node, cwast.TypeUnionDelta):
         minuend = _TypifyExprOrType(node.type, tc, cwast.NO_TYPE, pm)
+        if not minuend.is_union():
+            cwast.CompilerError(
+                node.x_srcloc, f"expected union got {minuend}")
         subtrahend = _TypifyExprOrType(node.subtrahend, tc, cwast.NO_TYPE, pm)
         return _NodeSetType(node, tc.insert_union_complement(minuend, subtrahend))
     elif isinstance(node, cwast.TypeOf):
@@ -451,6 +454,8 @@ def _TypifyVal(node, tc: type_corpus.TypeCorpus,
         # note, ct_target may be a union
         target_kind = cwast.BASE_TYPE_KIND.INVALID if target_type == cwast.NO_TYPE else target_type.base_type_kind
         actual_kind = _NumCleanupAndTypeExtraction(node.number, target_kind)[1]
+        if actual_kind == cwast.BASE_TYPE_KIND.INVALID:
+            cwast.CompilerError(node.x_srcloc, f"cannot determine type of Num: {node.number}")
         ct = tc.get_base_canon_type(actual_kind)
         return _NodeSetType(node, ct)
     elif isinstance(node, cwast.ValAuto):
