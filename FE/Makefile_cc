@@ -3,6 +3,11 @@
 
 DIR=build_cc
 BUILD_DIR=../build
+
+QEMU_A64=qemu-aarch64-static
+QEMU_A32=qemu-arm-static
+QEMU_X64=qemu-x86_64-static
+
 LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
 PP=$(BUILD_DIR)/pp.exe
 EMIT_IR=$(BUILD_DIR)/compiler.exe
@@ -24,6 +29,7 @@ ALL_SOURCES_NO_GENERIC_NO_BUILTIN :=  $(filter-out $(wildcard */builtin.cw), $(A
 
 tests: $(EMIT_IR) tests_meta assimilation_after_opt_tests
 	@echo "PASSED $@"
+
 ############################################################
 # Code Gen
 ############################################################

@@ -1,5 +1,6 @@
 .SUFFIXES:  # no built-in rules
 DIR=build
+QEMU_X64=qemu-x86_64-static
 
 $(info $(shell mkdir -p $(DIR)))
 

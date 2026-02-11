@@ -1,6 +1,8 @@
 
 DIR := build_py
-QEMU :=
+QEMU_A64 := qemu-aarch64-static
+QEMU_A32 := qemu-arm-static
+QEMU_X64 := qemu-x86_64-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -116,19 +118,19 @@ $(DIR)/%.x64.exe: %.cw
 	@echo "[lang $@]"
 	$(PYPY) ./compiler.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(PYPY) ../BE/CodeGenX64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
+	${QEMU_X64} $@
 
 $(DIR)/%.a64.exe: %.cw
 	@echo "[lang $@]"
 	$(PYPY) ./compiler.py $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A64) $@.asm | $(PYPY) ../BE/CodeGenA64/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
+	${QEMU_A64} $@
 
 $(DIR)/%.a32.exe: %.cw
 	@echo "[lang $@]"
 	$(PYPY) ./compiler.py -shake_tree -arch a32 $< > $@.asm
 	cat $(STD_LIB_WITH_ARGV_A32) $@.asm | $(PYPY) ../BE/CodeGenA32/codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@
+	${QEMU_A32} $@
 ## Compile only Tests
 
 $(DIR)/%.compile.x64.exe: %.cw
@@ -151,26 +153,26 @@ $(DIR)/%.concrete: %.cws
 # Misc Tests
 
 $(DIR)/wordcount.x64.test: $(DIR)/TestData/wordcount_exe.compile.x64.exe
-	echo "hello world\na b c d " | ${QEMU} $<
+	echo "hello world\na b c d " | ${QEMU_X64} $<
 
 $(DIR)/wordcount.a64.test: $(DIR)/TestData/wordcount_exe.compile.a64.exe
-	echo "hello world\na b c d " | ${QEMU} $<
+	echo "hello world\na b c d " | ${QEMU_A64} $<
 
 
 $(DIR)/print_argv.x64.test: $(DIR)/TestData/print_argv_exe.compile.x64.exe
-	${QEMU} $< arg1 arg2 argc3
+	${QEMU_X64} $< arg1 arg2 argc3
 
 $(DIR)/print_argv.a64.test: $(DIR)/TestData/print_argv_exe.compile.a64.exe
-	${QEMU} $< arg1 arg2 argc3
+	${QEMU_A64} $< arg1 arg2 argc3
 
 
 $(DIR)/assert.x64.test: $(DIR)/FailTest/assert.compile.x64.exe
-	-${QEMU} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
+	-${QEMU_X64} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
 	sed -i "s| at.*||" $@
 	diff $@ FailTest/assert.golden
 
 $(DIR)/assert.a64.test: $(DIR)/FailTest/assert.compile.a64.exe
-	${QEMU} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
+	${QEMU_A64} $<   | sed -e 's|[^ ]*/FailTest/||' >$@
 	sed -i "s| at.*||" $@
 	diff $@ FailTest/assert.golden
 
@@ -179,11 +181,13 @@ $(DIR)/assert.a64.test: $(DIR)/FailTest/assert.compile.a64.exe
 manual: $(DIR)/asciiquarium.x64.exe $(DIR)/asciiquarium_exe.a64.exe
 
 $(DIR)/asciiquarium.x64.exe: $(DIR)/TestData/asciiquarium_exe.compile.x64.exe
-	${QEMU} $< 128 48
+	${QEMU_X64} $< 128 48
 
 $(DIR)/asciiquarium.a64.exe: $(DIR)/TestData/asciiquarium_exe.compile.a64.exe
-	${QEMU} $< 128 48
+	${QEMU_A64} $< 128 48
 
+$(DIR)/cmatrix.x64.exe: $(DIR)/TestData/cmatrix_exe.compile.x64.exe
+	${QEMU_X64} $<
 
 clean:
 	@echo cleaning and setting up build dirs
@@ -226,30 +230,3 @@ reformat:
 	for f in */*.cw ; do \
 		echo $$f ; ./pp.py < $$f  >$$f.pp; mv $$f.pp $$f ; \
 	done
-
-
-############################################################
-# Code Gen
-############################################################
-
-cwast_gen.cc: cwast.py
-	@echo "[$@]"
-	$(PYPY) ./cwast.py gen_cc <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-cwast_gen.h: cwast.py
-	@echo "[$@]"
-	$(PYPY) ./cwast.py gen_h <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-lexer_gen.cc: lexer_tab.py
-	@echo "[$@]"
-	$(PYPY) ./lexer_tab.py gen_cc <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-lexer_gen.h: lexer_tab.py
-	@echo "[$@]"
-	$(PYPY) ./lexer_tab.py gen_h <$@ > $(DIR)/$@.tmp
-	@mv $(DIR)/$@.tmp $@
-
-GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc lexer_gen.h

@@ -4,24 +4,24 @@ MAKEFLAGS = --warn-undefined-variables
 # e.g.: make COLOR=OFF ...
 #
 # Other optional configs:
-# PYPY: arbitrary interpreter, e.g. python3.7 or pypy
 # CC: c-compiler (e.g. clang)
-# QEMU_A32: (e.g. qemu-arm-static)
-# QEMU_A64: (e.g. qemu-aarch64-static)
-# QEMU_X64: (e.g. qemu-x86_64-static)
+# PYPY: prefix used for invoking python programs (e.g. python3.7 or pypy)
+# QEMU_A32: prefix used for invoking programs compiled for a32 (e.g. qemu-arm-static)
+# QEMU_A64: prefix used for invoking programs compiled for a64 (e.g. qemu-aarch64-static)
+# QEMU_X64: prefix used for invoking programs compiled for x64 (e.g. qemu-x86_64-static)
 
-export PYTHONPATH =  $(shell pwd)
-export COLOR = ON
-export VERBOSE = FALSE
+export PYTHONPATH := $(shell pwd)
+export COLOR := ON
+export VERBOSE := FALSE
 export PATH := $(PATH):$(HOME)/.local/bin
 # make sort behave sanely
-export LC_ALL=C
+export LC_ALL := C
 
 .SUFFIXES:
 .PHONY: CLOC.txt
 
-CWERG_LIBS = -lunwind -llzma
-CWERG_FLAGS = -DCWERG_ENABLE_UNWIND
+CWERG_LIBS := -lunwind -llzma
+CWERG_FLAGS := -DCWERG_ENABLE_UNWIND
 
 tests:
 	cd BE && $(MAKE) -f Makefile_py tests

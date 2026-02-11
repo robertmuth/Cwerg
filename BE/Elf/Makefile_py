@@ -1,11 +1,11 @@
 .SUFFIXES:  # no built-in rules
-DIR=build
+DIR := build
 
 $(info $(shell mkdir -p $(DIR)))
 
-QEMU_A64=qemu-aarch64-static
-QEMU_A32=qemu-arm-static
-QEMU_X64=qemu-x86_64-static
+QEMU_A64 := qemu-aarch64-static
+QEMU_A32 := qemu-arm-static
+QEMU_X64 := qemu-x86_64-static
 
 
 
