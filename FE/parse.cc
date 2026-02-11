@@ -930,13 +930,15 @@ Node ParseStmt(Lexer* lexer) {
   }
 }
 Node ParseExprList(Lexer* lexer, uint32_t outer_column) {
-  const TK tk = lexer->Peek();
-  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= outer_column) {
-    return kNodeInvalid;
+  NodeChain out;
+  while (true) {
+    const TK tk = lexer->Peek();
+    if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= outer_column) {
+      break;
+    }
+    out.Append(PrattParseExpr(lexer));
   }
-  Node out = PrattParseExpr(lexer);
-  Node_next(out) = ParseExprList(lexer, true);
-  return out;
+  return out.First();
 }
 
 Node ParseMacroInvocation(Lexer* lexer, TK name) {
@@ -949,39 +951,41 @@ Node ParseMacroInvocation(Lexer* lexer, TK name) {
   }
 
   Node out = NodeNew(NT::MacroInvoke);
-  NodeInitMacroInvoke(out, NameNew(name.text), args, name.comments,
-                      name.srcloc, kNodeInvalid);
+  NodeInitMacroInvoke(out, NameNew(name.text), args, name.comments, name.srcloc,
+                      kNodeInvalid);
   return out;
 }
 
 Node ParseStmtList(Lexer* lexer, uint32_t column) {
-  const TK tk = lexer->Peek();
-  if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col < column) {
-    return kNodeInvalid;
-  }
-  Node out = kNodeInvalid;
-  if (tk.kind == TK_KIND::ID) {
-    lexer->Skip();
-    if (tk.text.ends_with("#")) {
-      out = ParseMacroInvocation(lexer, tk);
-
-    } else {
-      // This happens when the macro body contains macro parameter
-      ASSERT(tk.text.starts_with("$"), tk);
-      out = MakeNodeMacroId(tk);
+  uint32_t indent = column;
+  NodeChain out;
+  while (true) {
+    const TK tk = lexer->Peek();
+    if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col < indent) break;
+    if (out.First().kind() == NT::invalid) {
+      indent = tk.srcloc.col;
     }
-  } else {
-    ASSERT(tk.kind == TK_KIND::KW, tk);
-    // if (tk.comments != StrInvalid)
-    //   std::cout << "@@ " << tk.text << " >>>>" << StrData(tk.comments);
-    out = ParseStmt(lexer);
+    if (tk.kind == TK_KIND::ID) {
+      lexer->Skip();
+      if (tk.text.ends_with("#")) {
+        out.Append(ParseMacroInvocation(lexer, tk));
+      } else {
+        // This happens when the macro body contains macro parameter
+        ASSERT(tk.text.starts_with("$"), tk);
+        out.Append(MakeNodeMacroId(tk));
+      }
+    } else {
+      ASSERT(tk.kind == TK_KIND::KW, tk);
+      // if (tk.comments != StrInvalid)
+      //   std::cout << "@@ " << tk.text << " >>>>" << StrData(tk.comments);
+      out.Append(ParseStmt(lexer));
+    }
   }
-  Node_next(out) = ParseStmtList(lexer, column);
-  return out;
+  return out.First();
 }
 
 Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
-  // TODO: use NodeChain instead of recursion
+  // TODO: can we just call ParseStmtList directly
   const TK tk = lexer->Peek();
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= outer_column) {
     return kNodeInvalid;
@@ -991,62 +995,80 @@ Node ParseStmtBodyList(Lexer* lexer, uint32_t outer_column) {
 }
 
 Node ParseRecFieldList(Lexer* lexer, uint32_t column) {
-  TK name = lexer->Peek();
-
-  if (name.kind == TK_KIND::SPECIAL_EOF || name.srcloc.col <= column) {
-    return kNodeInvalid;
+  uint32_t indent = column;
+  NodeChain out;
+  while (true) {
+    TK name = lexer->Peek();
+    if (name.kind == TK_KIND::SPECIAL_EOF || name.srcloc.col <= indent) {
+      break;
+    }
+    // TODO: adjust indent after first field sets the new indent
+    name = lexer->MatchIdOrDie();
+    Node type = ParseTypeExpr(lexer);
+    Node node = NodeNew(NT::RecField);
+    NodeInitRecField(node, NameNew(name.text), type, name.comments, name.srcloc,
+                     kCanonTypeInvalid);
+    out.Append(node);
   }
-  name = lexer->MatchIdOrDie();
-  Node type = ParseTypeExpr(lexer);
-  Node out = NodeNew(NT::RecField);
-  NodeInitRecField(out, NameNew(name.text), type, name.comments, name.srcloc, kCanonTypeInvalid);
-  Node_next(out) = ParseRecFieldList(lexer, column);
-  return out;
+  return out.First();
 }
 
 Node ParseEnumFieldList(Lexer* lexer, uint32_t column) {
-  TK name = lexer->Peek();
+  uint32_t indent = column;
+  NodeChain out;
+  while (true) {
+    TK name = lexer->Peek();
 
-  if (name.kind == TK_KIND::SPECIAL_EOF || name.srcloc.col <= column) {
-    return kNodeInvalid;
+    if (name.kind == TK_KIND::SPECIAL_EOF || name.srcloc.col <= indent) {
+      break;
+    }
+    // TODO: adjust indent after first field sets the new indent
+    name = lexer->MatchIdOrDie();
+    Node val = PrattParseExpr(lexer);
+    Node node = NodeNew(NT::EnumVal);
+    NodeInitEnumVal(node, NameNew(name.text), val, name.comments, name.srcloc,
+                    kCanonTypeInvalid);
+    out.Append(node);
   }
-  name = lexer->MatchIdOrDie();
-  Node val = PrattParseExpr(lexer);
-  Node out = NodeNew(NT::EnumVal);
-  NodeInitEnumVal(out, NameNew(name.text), val, name.comments, name.srcloc, kCanonTypeInvalid);
-  Node_next(out) = ParseEnumFieldList(lexer, column);
-  return out;
+  return out.First();
 }
 
 Node ParseMacroParamList(Lexer* lexer, bool want_comma) {
-  if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
-    return kNodeInvalid;
+  NodeChain out;
+  while (true) {
+    if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
+      break;
+    }
+    if (want_comma) {
+      lexer->Match(TK_KIND::COMMA);
+    }
+    want_comma = true;
+    TK name = lexer->MatchIdOrDie();
+    TK kind = lexer->MatchIdOrDie();
+    Node node = NodeNew(NT::MacroParam);
+    NodeInitMacroParam(node, NameNew(name.text),
+                       MACRO_PARAM_KIND_FromString(kind.text), name.comments,
+                       name.srcloc);
+    out.Append(node);
   }
-  if (want_comma) {
-    lexer->Match(TK_KIND::COMMA);
-  }
-  TK name = lexer->MatchIdOrDie();
-  TK kind = lexer->MatchIdOrDie();
-  Node out = NodeNew(NT::MacroParam);
-  NodeInitMacroParam(out, NameNew(name.text),
-                     MACRO_PARAM_KIND_FromString(kind.text), name.comments,
-                     name.srcloc);
-  Node next = ParseMacroParamList(lexer, true);
-  Node_next(out) = next;
-  return out;
+  return out.First();
 }
 
 Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
-  if (lexer->Match(TK_KIND::SQUARE_CLOSED)) {
-    return kNodeInvalid;
+  NodeChain out;
+  while (true) {
+    if (lexer->Match(TK_KIND::SQUARE_CLOSED)) {
+      break;
+    }
+    if (want_comma) {
+      lexer->Match(TK_KIND::COMMA);
+    }
+    want_comma = true;
+
+    TK name = lexer->MatchIdOrDie();
+    out.Append(MakeNodeMacroId(name));
   }
-  if (want_comma) {
-    lexer->Match(TK_KIND::COMMA);
-  }
-  TK name = lexer->MatchIdOrDie();
-  Node out = MakeNodeMacroId(name);
-  Node_next(out) = ParseMacroGenIdList(lexer, true);
-  return out;
+  return out.First();
 }
 
 Node ParseTopLevel(Lexer* lexer) {
@@ -1068,7 +1090,8 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::COLON);
       Node body = ParseStmtBodyList(lexer, outer_column);
       NodeInitDefFun(out, NameNew(name.text), params, result, body,
-                     BitsFromAnnotation(tk), tk.comments, tk.srcloc, kCanonTypeInvalid);
+                     BitsFromAnnotation(tk), tk.comments, tk.srcloc,
+                     kCanonTypeInvalid);
       return out;
     }
     case NT::DefGlobal: {
@@ -1098,7 +1121,6 @@ Node ParseTopLevel(Lexer* lexer) {
       Node out = NodeNew(NT::DefRec);
       TK name = lexer->MatchIdOrDie();
       lexer->MatchOrDie(TK_KIND::COLON);
-      // TODO: use NodeChain instead of recursion
       Node fields = ParseRecFieldList(lexer, outer_column);
       NodeInitDefRec(out, NameNew(name.text), fields, BitsFromAnnotation(tk),
                      tk.comments, tk.srcloc, kCanonTypeInvalid);
@@ -1129,7 +1151,6 @@ Node ParseTopLevel(Lexer* lexer) {
       lexer->MatchOrDie(TK_KIND::BASE_TYPE);
       BASE_TYPE_KIND bt = BASE_TYPE_KIND_LOWER_FromString(base_type.text);
       lexer->MatchOrDie(TK_KIND::COLON);
-      // TODO: use NodeChain instead of recursion
       Node items = ParseEnumFieldList(lexer, outer_column);
       NodeInitDefEnum(out, NameNew(name.text), bt, items, bits, tk.comments,
                       tk.srcloc, kCanonTypeInvalid);
