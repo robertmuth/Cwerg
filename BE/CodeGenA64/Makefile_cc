@@ -4,7 +4,7 @@
 
 DIR=build
 
-QEMU = qemu-aarch64-static
+QEMU_A64 = qemu-aarch64-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -64,7 +64,7 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
 	@chmod a+rx $@
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # same as above but from local TestData dir
@@ -72,14 +72,14 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
 	@chmod a+rx $@
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/syscall.a64.asm.c.exe: TestData/syscall.a64.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
 	$(CODEGEN_TOOL) -mode binary $< $@ >$@.out
 	@chmod a+rx $@
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 
@@ -93,7 +93,7 @@ $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	@echo "[$@]"
 	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm | $(CODEGEN_TOOL) -mode binary - $@.exe >$@.out
 	@chmod a+rx $@.exe
-	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
+	${QEMU_A64} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm | sed -e "s|$@.ppm|nanojpeg.ppm|" > $@.actual
 	diff $@.actual ../TestData/nano_jpeg.golden
 

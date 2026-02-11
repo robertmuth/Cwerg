@@ -2,7 +2,7 @@
 .SUFFIXES:
 
 DIR=build
-QEMU=
+QEMU_X64=qemu-x86_64-static
 
 $(info $(shell mkdir -p $(DIR)))
 TESTS = fib.asm \
@@ -42,7 +42,7 @@ tests: $(DIR)/isel_test \
 $(DIR)/%.asm.exe: ../TestData/%.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ >$@.out
-	${QEMU} $@ > $@.actual.out
+	${QEMU_X64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 
@@ -54,21 +54,21 @@ $(DIR)/isel_test:
 $(DIR)/syscall.x64.asm.exe: TestData/syscall.x64.asm
 	@echo "[integration $@]"
 	$(PYPY) ./codegen.py -mode binary $<  $@
-	${QEMU} $@ > $@.actual.out
+	${QEMU_X64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 
 $(DIR)/cli.x64.asm.exe: TestData/cli.x64.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB_WITH_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
+	${QEMU_X64} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # Flaky see https://github.com/robertmuth/Cwerg/issues/17
 # $(DIR)/threads.x64.asm.exe: ../TestData/threads.64.asm
 # 	@echo "[integration $@]"
 # 	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
-# 	${QEMU} $@ > $@.actual.out
+# 	${QEMU_X64} $@ > $@.actual.out
 # 	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg:

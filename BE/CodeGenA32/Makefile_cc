@@ -1,7 +1,7 @@
 .SUFFIXES:  # no built-in rules
 DIR=build
 
-QEMU = qemu-arm-static
+QEMU_A32 = qemu-arm-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -61,7 +61,7 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
 	@chmod a+rx $@
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # same as above but from local TestData dir
@@ -69,7 +69,7 @@ $(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
 	@chmod a+rx $@
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
@@ -82,7 +82,7 @@ $(DIR)/nanojpeg_c: $(CODEGEN_TOOL)
 	@echo "[$@]"
 	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.32.asm | $(CODEGEN_TOOL) -mode binary - $@.exe >$@.out
 	@chmod a+rx $@.exe
-	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
+	${QEMU_A32} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm | sed -e "s|$@.ppm|nanojpeg.ppm|" > $@.actual
 	diff $@.actual ../TestData/nano_jpeg.golden
 

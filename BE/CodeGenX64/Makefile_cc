@@ -2,7 +2,7 @@
 .SUFFIXES:
 
 DIR=build
-QEMU=
+QEMU_X64=qemu-x86_64-static
 
 $(info $(shell mkdir -p $(DIR)))
 TESTS = fib.asm \
@@ -71,7 +71,7 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
 	@chmod a+rx $@
-	${QEMU} $@ > $@.actual.out
+	${QEMU_X64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 

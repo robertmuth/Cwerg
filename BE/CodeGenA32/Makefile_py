@@ -1,7 +1,7 @@
 .SUFFIXES:  # no built-in rules
 DIR=build
 
-QEMU = qemu-arm-static
+QEMU_A32 = qemu-arm-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -46,20 +46,20 @@ STD_LIB_WITH_ARGV = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLi
 $(DIR)/%.asm.exe: ../TestData/%.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ >$@.out
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 # sames as above but local TestData dir
 $(DIR)/%.asm.exe: TestData/%.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ >$@.out
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/syscall.a32.asm.exe: TestData/syscall.a32.asm
 	@echo "[integration $@]"
 	$(PYPY) ./codegen.py -mode binary $<  $@
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 
@@ -67,13 +67,13 @@ $(DIR)/queens.32.asm.s.exe: ../TestData/queens.32.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode normal - $@.s
 	$(PYPY)	../CpuA32/assembler_tool.py assemble $@.s $@ > $@.out
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/cli.a32.asm.exe: TestData/cli.a32.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB_WITH_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ 1 2 3 aa bbb ccc > $@.actual.out
+	${QEMU_A32} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/isel_test:
@@ -84,13 +84,13 @@ $(DIR)/isel_test:
 $(DIR)/threads.a32.asm.exe: ../TestData/threads.32.asm
 	@echo "[integration $@]"
 	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
-	${QEMU} $@ > $@.actual.out
+	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
 	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.32.asm  | $(PYPY) ./codegen.py -mode binary - $@.exe >$@.out
-	${QEMU} $@.exe ../TestData/ash_tree.jpg $@.ppm
+	${QEMU_A32} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden
 
