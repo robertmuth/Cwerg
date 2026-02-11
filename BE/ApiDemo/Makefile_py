@@ -9,9 +9,9 @@ tests: $(DIR)/jit_cpu_a32_test $(DIR)/jit_cpu_x64_test builder
 	@echo "[OK PY ApiDemo]"
 
 # setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
-QEMUX64 =
-QEMUA64 = qemu-aarch64-static
-QEMUA32 = qemu-arm-static
+QEMU_X64=qemu-x86_64-static
+QEMU_A64=qemu-aarch64-static
+QEMU_A32=qemu-arm-static
 
 builder:
 	./builder_example.py

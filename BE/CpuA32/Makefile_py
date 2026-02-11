@@ -1,5 +1,5 @@
 
-QEMU_A32 = qemu-arm-static
+QEMU_A32=qemu-arm-static
 DIR=build
 
 $(info $(shell mkdir -p $(DIR)))

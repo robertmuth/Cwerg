@@ -1,7 +1,7 @@
 
 .SUFFIXES:
 DIR=build
-QEMU = qemu-aarch64-static
+QEMU_A64=qemu-aarch64-static
 
 $(info $(shell mkdir -p $(DIR)))
 

@@ -1,5 +1,6 @@
 .SUFFIXES:  # no built-in rules
 DIR=build
+QEMU_X64=qemu-x86_64-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -45,7 +46,7 @@ $(DIR)/disassembler_test:
 $(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
 	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	$@.exe > $@.actual.out
+	${QEMU_X64} $@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
 

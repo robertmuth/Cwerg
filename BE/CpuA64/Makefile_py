@@ -1,7 +1,7 @@
 
 .SUFFIXES:
 DIR=build
-QEMU = qemu-aarch64-static
+QEMU_A64=qemu-aarch64-static
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -28,13 +28,13 @@ objdump_compat_test:
 $(DIR)/%.test : TestData/%.asm
 	echo "[integration $@]"
 	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	${QEMU} $@.exe > $@.actual.out
+	${QEMU_A64} $@.exe > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/argv_test: TestData/argv.asm
 	echo "[integration $@]"
 	$(PYPY)	./assembler_tool.py assemble $< $@.exe > $@.out
-	${QEMU} $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
+	${QEMU_A64} $@.exe argv1 argv2 arvg3 argv4 ... argn > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/disassembler_test:
