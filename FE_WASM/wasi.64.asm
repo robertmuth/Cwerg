@@ -544,12 +544,13 @@
     poparg fd:S32
     poparg result_offset:S32
     #
-    pusharg 0:A64
+    pusharg 0:U64
     pusharg 3:U32 # F_GETFL
     pusharg fd
     bsr fcntl
-    poparg res:S32
-    ble 0:S32 res ok_fcntl
+    poparg res64:S64
+    ble 0:S64 res64 ok_fcntl
+    conv res:S32 res64
     pusharg res
     ret
   .bbl ok_fcntl
