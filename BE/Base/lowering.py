@@ -144,30 +144,28 @@ class RegConstCache:
         if len(self._cache) > self._size:
             self._cache.pop(-1)
 
-    def Materialize(self, fun: ir.Fun, const: ir.Const, from_mem: bool) -> tuple[ir.Reg, list[ir.Ins]]:
+    def Materialize(self, fun: ir.Fun, const: ir.Const, from_mem: bool, inss) -> ir.Reg:
         for n, (c, r) in enumerate(self._cache):
             if c == const:
                 if n != 0:
                     del self._cache[n]
                     self._insert(const, r)
-                return r, []
-        # not found
+                return r
+        # not in cache
         if from_mem:
             mem = self._unit.FindOrAddConstMem(const)
-            tmp_addr = fun.GetScratchReg(
+            addr = fun.GetScratchReg(
                 self._addr_kind, "mem_const_addr", True)
-            lea_ins = ir.Ins(
-                o.LEA_MEM, [tmp_addr, mem, ir.Const(self._offset_kind, 0)])
-            tmp = fun.GetScratchReg(const.kind, "mem_const", True)
-            ld_ins = ir.Ins(
-                o.LD, [tmp, tmp_addr, ir.Const(self._offset_kind, 0)])
-            self._insert(const, tmp)
-            return tmp, [lea_ins, ld_ins]
+            inss.append(ir.Ins(
+                o.LEA_MEM, [addr, mem, ir.Const(self._offset_kind, 0)]))
+            out = fun.GetScratchReg(const.kind, "mem_const", True)
+            inss.append(
+                ir.Ins(o.LD, [out, addr, ir.Const(self._offset_kind, 0)]))
         else:
-            reg = fun.GetScratchReg(const.kind, "imm", True)
-            ins = ir.Ins(o.MOV, [reg, const])
-            self._insert(const, reg)
-            return reg, [ins]
+            out = fun.GetScratchReg(const.kind, "imm", True)
+            inss.append(ir.Ins(o.MOV, [out, const]))
+        self._insert(const, out)
+        return out
 
 
 def _InsEliminateRem(

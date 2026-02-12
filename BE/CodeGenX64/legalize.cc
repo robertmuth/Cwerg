@@ -89,6 +89,7 @@ bool MaybeRewrite(OPC_KIND kind) {
 
 void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
                                      std::vector<Ins>* inss) {
+  RegConstCache cache(unit, DK::A64, DK::U32, 0);
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
@@ -96,16 +97,15 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
       if (MaybeRewrite(InsOpcode(ins).kind)) {
         const unsigned n = InsOpcode(ins).num_operands;
         for (unsigned pos = 0; pos < n; ++pos) {
-          if (!IsOutOfBoundImmediate(InsOPC(ins), InsOperand(ins, pos), pos))
-            continue;
-          const DK kind = ConstKind(Const(InsOperand(ins, pos)));
-          if (kind == DK::R64 || kind == DK::R32) {
-            InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A64, DK::U32,
-                                        inss);
-          } else {
-            InsEliminateImmediateViaMov(ins, pos, fun, inss);
-          }
-          dirty = true;
+          Const c = Const(InsOperand(ins, pos));
+          if (!IsOutOfBoundImmediate(InsOPC(ins), c, pos)) continue;
+          bool from_mem =
+              ConstKind(c) == DK::R64 || ConstKind(c) == DK::R32;
+          size_t before = inss->size();
+          Reg reg = cache.Materialize(fun, c, from_mem, inss);
+          // Work around a compiler warning bug
+          InsOperand(ins, pos) = reg;
+          if (before != inss->size()) dirty = true;
         }
       }
       inss->push_back(ins);

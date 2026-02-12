@@ -451,8 +451,7 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
         Handle lea_offset = ConstNewU(offset_kind, 0);
         // TODO: small st_offset/ld_offset should probably stay with the
         // `st`
-        if (Kind(st_offset) == RefKind::CONST)
-          std::swap(st_offset, lea_offset);
+        if (Kind(st_offset) == RefKind::CONST) std::swap(st_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 0), lea_offset);
         inss->push_back(
             InsInit(ins, OPC::ST, tmp, st_offset, InsOperand(ins, 2)));
@@ -460,8 +459,7 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
       } else if (opc == OPC::LD_MEM) {
         Handle ld_offset = InsOperand(ins, 2);
         Handle lea_offset = ConstNewU(offset_kind, 0);
-        if (Kind(ld_offset) == RefKind::CONST)
-          std::swap(ld_offset, lea_offset);
+        if (Kind(ld_offset) == RefKind::CONST) std::swap(ld_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 1), lea_offset);
         inss->push_back(
             InsInit(ins, OPC::LD, InsOperand(ins, 0), tmp, ld_offset));
@@ -641,27 +639,31 @@ void FunEliminateCopySign(Fun fun, std::vector<Ins>* inss) {
   }
 }
 
-void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun,
-                                 std::vector<Ins>* inss) {
-  Const num = Const(InsOperand(ins, pos));
-  ASSERT(Kind(num) == RefKind::CONST, "");
-  Reg tmp = FunGetScratchReg(fun, ConstKind(num), "imm", true);
-  InsOperand(ins, pos) = tmp;
-  inss->push_back(InsNew(OPC::MOV, tmp, num));
-}
-
-void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun, Unit unit,
-                                 DK addr_kind, DK offset_kind,
-                                 std::vector<Ins>* inss) {
-  Const num = Const(InsOperand(ins, pos));
-  ASSERT(Kind(num) == RefKind::CONST, "");
-  Mem mem = UnitFindOrAddConstMem(unit, num);
-  Reg tmp_addr = FunGetScratchReg(fun, addr_kind, "mem_const_addr", true);
-  inss->push_back(
-      InsNew(OPC::LEA_MEM, tmp_addr, mem, ConstNewU(offset_kind, 0)));
-  Reg tmp = FunGetScratchReg(fun, ConstKind(num), "mem_const", true);
-  inss->push_back(InsNew(OPC::LD, tmp, tmp_addr, ConstNewU(offset_kind, 0)));
-  InsOperand(ins, pos) = tmp;
+Reg RegConstCache::Materialize(Fun fun, Const num, bool from_mem,
+                               std::vector<Ins>* inss) {
+  for (uint32_t i = 0; i < size_; ++i) {
+    if (cache_[i].c == num) {
+      Reg out = cache_[i].r;
+      cache_.erase(cache_.begin() + i);
+      insert(num, out);
+      return out;
+    }
+  }
+  // not in cache
+  Reg out;
+  if (from_mem) {
+    Mem mem = UnitFindOrAddConstMem(unit_, num);
+    Reg tmp_addr = FunGetScratchReg(fun, addr_kind_, "mem_const_addr", true);
+    inss->push_back(
+        InsNew(OPC::LEA_MEM, tmp_addr, mem, ConstNewU(offset_kind_, 0)));
+    out = FunGetScratchReg(fun, ConstKind(num), "mem_const", true);
+    inss->push_back(InsNew(OPC::LD, out, tmp_addr, ConstNewU(offset_kind_, 0)));
+  } else {
+    out = FunGetScratchReg(fun, ConstKind(num), "imm", true);
+    inss->push_back(InsNew(OPC::MOV, out, num));
+  }
+  insert(num, out);
+  return out;
 }
 
 bool InsLimtiShiftAmounts(Ins ins, Fun fun, int width, std::vector<Ins>* inss) {

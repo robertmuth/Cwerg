@@ -28,8 +28,8 @@ constexpr auto operator+(T e) noexcept
 bool InsRequiresSpecialHandling(Ins ins) {
   const OPC opc = InsOPC(ins);
   return opc == OPC::LINE ||  // line number
-         opc == OPC::RET ||  // handled via special epilog code
-         opc == OPC::NOP1;   // pseudo instruction
+         opc == OPC::RET ||   // handled via special epilog code
+         opc == OPC::NOP1;    // pseudo instruction
 }
 
 void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
@@ -91,9 +91,11 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
 
 void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
                                      std::vector<Ins>* inss) {
+  RegConstCache cache(unit, DK::A32, DK::U32, 0);
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
+    cache.Reset();
     for (Ins ins : BblInsIter(bbl)) {
       if (!InsRequiresSpecialHandling(ins)) {
         const uint8_t mismatches =
@@ -101,16 +103,16 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
         if (mismatches != 0) {
           ASSERT(mismatches != code_gen_a32::MATCH_IMPOSSIBLE,
                  "cannot match: " << ins);
-          for (unsigned pos = 0; pos < a32::MAX_OPERANDS; ++pos) {
+          for (uint32_t pos = 0; pos < MAX_OPERANDS; ++pos) {
             if (mismatches & (1U << pos)) {
-              const DK kind = ConstKind(Const(InsOperand(ins, pos)));
-              if (kind == DK::R64 || kind == DK::R32) {
-                InsEliminateImmediateViaMem(ins, pos, fun, unit, DK::A32,
-                                            DK::U32, inss);
-              } else {
-                InsEliminateImmediateViaMov(ins, pos, fun, inss);
-              }
-              dirty = true;
+              Const c = Const(InsOperand(ins, pos));
+              bool from_mem =
+                  ConstKind(c) == DK::R64 || ConstKind(c) == DK::R32;
+              size_t before = inss->size();
+              Reg reg = cache.Materialize(fun, c, from_mem, inss);
+              // Work around a compiler warning bug
+              InsOperand(ins, pos) = reg;
+              if (before != inss->size()) dirty = true;
             }
           }
         }
@@ -177,14 +179,14 @@ uint32_t FindMaskCoveringTheLowOrderSetBits(uint32_t bits, unsigned count) {
   return mask - 1;
 }
 
-struct PoolMasks{
+struct PoolMasks {
   uint32_t mask_lac;
   uint32_t mask_not_lac;
 };
 
-PoolMasks GetRegPoolsForGlobals(
-    const FunRegStats& needed, uint32_t regs_lac, uint32_t regs_not_lac,
-    uint32_t regs_preallocated) {
+PoolMasks GetRegPoolsForGlobals(const FunRegStats& needed, uint32_t regs_lac,
+                                uint32_t regs_not_lac,
+                                uint32_t regs_preallocated) {
   unsigned num_regs_lac = __builtin_popcount(regs_lac);
   unsigned num_regs_not_lac = __builtin_popcount(regs_not_lac);
   bool spilling_needed = SpillingNeeded(needed, num_regs_lac, num_regs_not_lac);

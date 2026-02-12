@@ -27,16 +27,37 @@ extern void FunEliminateCmp(Fun fun, std::vector<Ins>* inss);
 
 extern void FunEliminateCntPop(Fun fun, std::vector<Ins>* inss);
 
-// add new instructions to inss to replace the immediate at pos with
-// a reg, also rewrites ins
-// The caller usually will followup with a inss->push_back(ins)
-extern void InsEliminateImmediateViaMov(Ins ins, unsigned pos, Fun fun,
-                                        std::vector<Ins>* inss);
+class RegConstCache {
+ public:
+  RegConstCache(Unit unit, DK addr_kind, DK offset_kind, uint32_t size)
+      : unit_(unit),
+        addr_kind_(addr_kind),
+        offset_kind_(offset_kind),
+        size_(size) {}
 
-// Same as above but the new instructions will load the immediate from memory
-extern void InsEliminateImmediateViaMem(Ins ins, unsigned pos, Fun fun,
-                                        Unit unit, DK addr_kind, DK offset_kind,
-                                        std::vector<Ins>* inss);
+  void Reset() { cache_.clear(); }
+
+  Reg Materialize(Fun fun, Const c, bool from_mem, std::vector<Ins>* inss);
+
+ private:
+  struct Entry {
+    Const c;
+    Reg r;
+  };
+
+  void insert(Const c, Reg r) {
+    if (cache_.size() == 0) return;
+    cache_.insert(cache_.begin(), {c, r});
+    if (cache_.size() > size_) cache_.pop_back();
+  }
+  const Unit unit_;
+  const DK addr_kind_;
+  const DK offset_kind_;
+  const uint32_t size_;
+
+  std::vector<Entry> cache_;
+};
+
 extern void FunLimtiShiftAmounts(Fun fun, int width, std::vector<Ins>* inss);
 
 struct PushPopInterface {

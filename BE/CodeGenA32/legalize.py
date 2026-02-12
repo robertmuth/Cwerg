@@ -34,8 +34,7 @@ def _InsRewriteOutOfBoundsImmediates(
             # support of PUSHARG would require additional work because they need to stay consecutive
             assert ins.opcode is not o.PUSHARG
             from_mem = ins.operands[pos].kind in (o.DK.R32, o.DK.R64)
-            reg, extra = cache.Materialize(fun, ins.operands[pos], from_mem)
-            inss += extra
+            reg = cache.Materialize(fun, ins.operands[pos], from_mem, inss)
             ins.operands[pos] = reg
     if not inss:
         return None
