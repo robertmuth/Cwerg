@@ -20,7 +20,7 @@ _ZERO_OFFSET = ir.Const(o.DK.U32, 0)
 
 
 def _InsRewriteOutOfBoundsImmediates(
-        ins: ir.Ins, fun: ir.Fun, unit: ir.Unit) -> Optional[List[ir.Ins]]:
+        ins: ir.Ins, fun: ir.Fun, cache: lowering.RegConstCache) -> Optional[List[ir.Ins]]:
     if ins.opcode in isel_tab.OPCODES_REQUIRING_SPECIAL_HANDLING:
         return None
     inss = []
@@ -31,13 +31,12 @@ def _InsRewriteOutOfBoundsImmediates(
         return None
     for pos in range(o.MAX_OPERANDS):
         if mismatches & (1 << pos) != 0:
-            const_kind = ins.operands[pos].kind
-            if const_kind is o.DK.R32 or const_kind is o.DK.R64:
-                inss += lowering.InsEliminateImmediateViaMem(
-                    ins, pos, fun, unit, o.DK.A64, o.DK.U32)
-            else:
-                inss.append(
-                    lowering.InsEliminateImmediateViaMov(ins, pos, fun))
+            # support of PUSHARG would require additional work because they need to stay consecutive
+            assert ins.opcode is not o.PUSHARG
+            from_mem = ins.operands[pos].kind in (o.DK.R32, o.DK.R64)
+            reg, extra = cache.Materialize(fun, ins.operands[pos], from_mem)
+            inss += extra
+            ins.operands[pos] = reg
     if not inss:
         return None
     # assert len(inss) == 1, f"unexpected rewrites for {ins.opcode} {ins.operands} {len(inss)}"
@@ -46,7 +45,27 @@ def _InsRewriteOutOfBoundsImmediates(
 
 
 def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
-    return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsImmediates, unit=unit)
+    """Rewrite instruction with an immediate as mov of the immediate
+
+    mul z = a 666
+    becomes
+    mov scratch = 666
+    mul z = a scratch
+
+    This is useful if the target architecture does not support immediate
+    for that instruction, or the immediate is too large.
+
+    This optimization is run rather late and may already see machine registers.
+    Ideally, the generated mov instruction hould be iselectable by the target architecture or
+    else another pass may be necessary.
+    """
+    count = 0
+    cache = lowering.RegConstCache(unit, o.DK.A64, o.DK.U32, 0)
+    for bbl in fun.bbls:
+        cache.Reset()
+        count += ir.BblGenericRewrite(bbl, fun,
+                                      _InsRewriteOutOfBoundsImmediates, cache=cache)
+    return count
 
 
 def _InsMoveEliminationCpu(ins: ir.Ins, _fun: ir.Fun) -> Optional[List[ir.Ins]]:

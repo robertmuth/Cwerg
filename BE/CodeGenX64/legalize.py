@@ -50,30 +50,53 @@ def IsOutOfBoundImmediate(opcode, op, pos) -> bool:
 
 
 def _InsRewriteOutOfBoundsImmediates(
-        ins: ir.Ins, fun: ir.Fun, unit: ir.Unit) -> Optional[List[ir.Ins]]:
+        ins: ir.Ins, fun: ir.Fun, cache: lowering.RegConstCache) -> Optional[List[ir.Ins]]:
     inss = []
     if ins.opcode.kind in {o.OPC_KIND.ALU, o.OPC_KIND.COND_BRA, o.OPC_KIND.ALU1, o.OPC_KIND.ST,
                            o.OPC_KIND.CONV, o.OPC_KIND.MOV}:
         for pos, op in enumerate(ins.operands):
             if IsOutOfBoundImmediate(ins.opcode, op, pos):
-                if op.kind in {o.DK.R32, o.DK.R64}:
-                    inss += lowering.InsEliminateImmediateViaMem(ins, pos, fun, unit,
-                                                                 o.DK.A64, o.DK.U32)
-                else:
-                    inss.append(lowering.InsEliminateImmediateViaMov(ins, pos, fun))
-
+                # support of PUSHARG would require additional work because they need to stay consecutive
+                assert ins.opcode is not o.PUSHARG
+                from_mem = op.kind in (o.DK.R32, o.DK.R64)
+                reg, extra = cache.Materialize(fun, op, from_mem)
+                inss += extra
+                ins.operands[pos] = reg
+    if not inss:
+        return None
     inss.append(ins)
     return inss
 
 
 def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
-    return ir.FunGenericRewrite(fun, _InsRewriteOutOfBoundsImmediates, unit=unit)
+    """Rewrite instruction with an immediate as mov of the immediate
 
+    mul z = a 666
+    becomes
+    mov scratch = 666
+    mul z = a scratch
+
+    This is useful if the target architecture does not support immediate
+    for that instruction, or the immediate is too large.
+
+    This optimization is run rather late and may already see machine registers.
+    Ideally, the generated mov instruction hould be iselectable by the target architecture or
+    else another pass may be necessary.
+    """
+    count = 0
+    cache = lowering.RegConstCache(unit, o.DK.A64, o.DK.U32, 0)
+    for bbl in fun.bbls:
+        cache.Reset()
+        count += ir.BblGenericRewrite(bbl, fun,
+                                      _InsRewriteOutOfBoundsImmediates, cache=cache)
+    return count
 
 # These require implicit regs
 # Note, that rax is a scratch register. Using it here is a little iffy but
 # we are only using it with simple mov instructions which do not require
 # the scratch register
+
+
 def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     ops = ins.operands
@@ -86,7 +109,8 @@ def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
         return [ir.Ins(o.MOV, [rax, ops[1]]),
                 ir.Ins(o.MOV, [rcx, ops[2]]),
-                ir.Ins(o.DIV, [rdx, rax, rcx]),  # note the notion of src/dst regs is murky here
+                # note the notion of src/dst regs is murky here
+                ir.Ins(o.DIV, [rdx, rax, rcx]),
                 ir.Ins(o.MOV, [ops[0], rax])]
     elif opc is o.REM and ops[0].kind.flavor() != o.DK_FLAVOR_R:
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
@@ -94,7 +118,8 @@ def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
         return [ir.Ins(o.MOV, [rax, ops[1]]),
                 ir.Ins(o.MOV, [rcx, ops[2]]),
-                ir.Ins(o.DIV, [rdx, rax, rcx]),  # note the notion of src/dst regs is murky here
+                # note the notion of src/dst regs is murky here
+                ir.Ins(o.DIV, [rdx, rax, rcx]),
                 ir.Ins(o.MOV, [ops[0], rdx])]
     elif opc in (o.SHR, o.SHL):
         dk: o.DK = ops[0].kind
@@ -198,8 +223,10 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
         print(f"# Legalize {fun.name}", file=fout)
         print("#" * 60, file=fout)
 
-    fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(fun.input_types)
-    fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(fun.output_types)
+    fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(
+        fun.input_types)
+    fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(
+        fun.output_types)
     if fun.kind is not o.FUN_KIND.NORMAL:
         return
 
@@ -223,7 +250,8 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     canonicalize.FunCanonicalize(fun)
     # TODO: add a cfg linearization pass to improve control flow
-    optimize.FunCfgExit(fun, unit)  # not this may affect immediates as it flips branches
+    # not this may affect immediates as it flips branches
+    optimize.FunCfgExit(fun, unit)
 
     # Handle most overflowing immediates.
     # This excludes immediates related to stack offsets which have not been determined yet
@@ -348,7 +376,8 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
     local_lac = 0
     # excess lac globals can be used for lac locals
     if num_regs_lac > needed.global_lac:
-        mask = _FindMaskCoveringTheLowOrderSetBits(global_lac, needed.global_lac)
+        mask = _FindMaskCoveringTheLowOrderSetBits(
+            global_lac, needed.global_lac)
         local_lac = global_lac & ~mask
         global_lac = global_lac & mask
     # we can use local_not_lac as global_not lac but only if they are not pre-allocated
@@ -382,14 +411,17 @@ def GlobalRegAllocOneKind(fun: ir.Fun, kind: regs.CpuRegKind, needed: RegsNeeded
         print(f"@@ {kind.name} POOL {global_lac:x} {global_not_lac:x}", file=debug)
 
     if True:
-        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(kind, True)], global_lac, 0)
+        regs.AssignCpuRegOrMarkForSpilling(
+            global_reg_stats[(kind, True)], global_lac, 0)
         regs.AssignCpuRegOrMarkForSpilling(
             global_reg_stats[(kind, False)],
             global_not_lac & ~regs_lac_mask,
             global_not_lac & regs_lac_mask)
     else:
-        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(kind, True)], 0, 0)
-        regs.AssignCpuRegOrMarkForSpilling(global_reg_stats[(kind, False)], 0, 0)
+        regs.AssignCpuRegOrMarkForSpilling(
+            global_reg_stats[(kind, True)], 0, 0)
+        regs.AssignCpuRegOrMarkForSpilling(
+            global_reg_stats[(kind, False)], 0, 0)
 
 
 def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
@@ -426,14 +458,17 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     local_reg_stats = reg_stats.FunComputeBblRegUsageStats(fun,
                                                            regs.REG_KIND_TO_CPU_REG_FAMILY)
     # we  have introduced some cpu regs in previous phases - do not treat them as globals
-    global_reg_stats = reg_stats.FunGlobalRegStats(fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
+    global_reg_stats = reg_stats.FunGlobalRegStats(
+        fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
     if fout:
         DumpRegStats(fun, local_reg_stats, fout)
 
     # Handle GPR regs
     needed_gpr = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.GPR, True)]),
-                            len(global_reg_stats[(regs.CpuRegKind.GPR, False)]),
-                            local_reg_stats.get((regs.CpuRegKind.GPR, True), 0),
+                            len(global_reg_stats[(
+                                regs.CpuRegKind.GPR, False)]),
+                            local_reg_stats.get(
+                                (regs.CpuRegKind.GPR, True), 0),
                             local_reg_stats.get((regs.CpuRegKind.GPR, False), 0))
     GlobalRegAllocOneKind(fun, regs.CpuRegKind.GPR, needed_gpr,
                           regs.GPR_REGS_MASK & regs.GPR_LAC_REGS_MASK & ~regs.GPR_REG_IMPLICIT_MASK,
@@ -441,8 +476,10 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
                           regs.GPR_LAC_REGS_MASK, global_reg_stats, debug)
 
     needed_flt = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.FLT, True)]),
-                            len(global_reg_stats[(regs.CpuRegKind.FLT, False)]),
-                            local_reg_stats.get((regs.CpuRegKind.FLT, True), 0),
+                            len(global_reg_stats[(
+                                regs.CpuRegKind.FLT, False)]),
+                            local_reg_stats.get(
+                                (regs.CpuRegKind.FLT, True), 0),
                             local_reg_stats.get((regs.CpuRegKind.FLT, False), 0))
     GlobalRegAllocOneKind(fun, regs.CpuRegKind.FLT, needed_flt,
                           regs.FLT_REGS_MASK & regs.FLT_LAC_REGS_MASK,

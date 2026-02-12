@@ -124,50 +124,50 @@ def FunMoveElimination(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsMoveElimination)
 
 
-def InsEliminateImmediateViaMov(ins: ir.Ins, pos: int, fun: ir.Fun) -> ir.Ins:
-    """Rewrite instruction with an immediate as mov of the immediate
+class RegConstCache:
 
-    mul z = a 666
-    becomes
-    mov scratch = 666
-    mul z = a scratch
+    def __init__(self, unit: ir.Unit, addr_kind, offset_kind, size):
+        self._unit = unit
+        self._size = size
+        self._addr_kind = addr_kind
+        self._offset_kind = offset_kind
+        self._cache = []
 
-    This is useful if the target architecture does not support immediate
-    for that instruction, or the immediate is too large.
+    # must be called at the beginning of each BBL
+    def Reset(self):
+        self._cache = []
 
-    This optimization is run rather late and may already see machine registers.
-    Ideally, the generated mov instruction hould be iselectable by the target architecture or
-    else another pass may be necessary.
-    """
-    # support of PUSHARG would require additional work because they need to stay consecutive
-    assert ins.opcode is not o.PUSHARG
-    const = ins.operands[pos]
-    assert isinstance(const, ir.Const)
-    reg = fun.GetScratchReg(const.kind, "imm", True)
-    ins.operands[pos] = reg
-    return ir.Ins(o.MOV, [reg, const])
+    def _insert(self, const, reg):
+        if self._size == 0:
+            return
+        self._cache.insert(0, (const, reg))
+        if len(self._cache) > self._size:
+            self._cache.pop(-1)
 
-
-def InsEliminateImmediateViaMem(ins: ir.Ins, pos: int, fun: ir.Fun, unit: ir.Unit, addr_kind: o.DK,
-                                offset_kind: o.DK) -> List[ir.Ins]:
-    """Rewrite instruction with an immediate as load of the immediate
-
-
-    This is useful if the target architecture does not support immediate
-    for that instruction, or the immediate is too large.
-
-    This optimization is run rather late and may already see machine registers.
-    """
-    # support of PUSHARG would require additional work because they need to stay consecutive
-    assert ins.opcode is not o.PUSHARG
-    const = ins.operands[pos]
-    mem = unit.FindOrAddConstMem(const)
-    tmp_addr = fun.GetScratchReg(addr_kind, "mem_const_addr", True)
-    lea_ins = ir.Ins(o.LEA_MEM, [tmp_addr, mem, ir.Const(offset_kind, 0)])
-    tmp = fun.GetScratchReg(const.kind, "mem_const", True)
-    ld_ins = ir.Ins(o.LD, [tmp, tmp_addr, ir.Const(offset_kind, 0)])
-    ins.operands[pos] = tmp
-    return [lea_ins, ld_ins]
+    def Materialize(self, fun: ir.Fun, const: ir.Const, from_mem: bool) -> tuple[ir.Reg, list[ir.Ins]]:
+        for n, (c, r) in enumerate(self._cache):
+            if c == const:
+                if n != 0:
+                    del self._cache[n]
+                    self._insert(const, r)
+                return r, []
+        # not found
+        if from_mem:
+            mem = self._unit.FindOrAddConstMem(const)
+            tmp_addr = fun.GetScratchReg(
+                self._addr_kind, "mem_const_addr", True)
+            lea_ins = ir.Ins(
+                o.LEA_MEM, [tmp_addr, mem, ir.Const(self._offset_kind, 0)])
+            tmp = fun.GetScratchReg(const.kind, "mem_const", True)
+            ld_ins = ir.Ins(
+                o.LD, [tmp, tmp_addr, ir.Const(self._offset_kind, 0)])
+            self._insert(const, tmp)
+            return tmp, [lea_ins, ld_ins]
+        else:
+            reg = fun.GetScratchReg(const.kind, "imm", True)
+            ins = ir.Ins(o.MOV, [reg, const])
+            self._insert(const, reg)
+            return reg, [ins]
 
 
 def _InsEliminateRem(
@@ -528,7 +528,8 @@ def FunRegWidthWidening(fun: ir.Fun, narrow_kind: o.DK, wide_kind: o.DK):
                 # deal with the shift amount which is subject to an implicit modulo "bitwidth -1"
                 # by changing the width of the reg - we lose this information
                 tmp_reg = fun.GetScratchReg(wide_kind, "tricky", False)
-                inss.append(ir.Ins(o.AND, [tmp_reg, ops[2], ir.Const(wide_kind, narrow_bw - 1)]))
+                inss.append(
+                    ir.Ins(o.AND, [tmp_reg, ops[2], ir.Const(wide_kind, narrow_bw - 1)]))
                 ops[2] = tmp_reg
                 if ins.opcode is o.SHR:
                     # for SHR we also need to make sure the new high order bits are correct
