@@ -11,7 +11,7 @@ macro unsigned_to_str# EXPR ($val EXPR, $base EXPR, $max_width EXPR,
     expr:
         ; unsigned to str with given base
         let! $v = $val
-        let! $tmp = {[1024]u8:}
+        let! $tmp = {[1024]u8: undef}
         let! $pos uint = $max_width
         let $out_eval = $out
         block:
