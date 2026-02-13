@@ -126,22 +126,22 @@ def FunMoveElimination(fun: ir.Fun) -> int:
 
 class RegConstCache:
 
-    def __init__(self, unit: ir.Unit, addr_kind, offset_kind, size):
+    def __init__(self, unit: ir.Unit, addr_kind, offset_kind, max_size):
         self._unit = unit
-        self._size = size
+        self._max_size = max_size
         self._addr_kind = addr_kind
         self._offset_kind = offset_kind
         self._cache = []
 
     # must be called at the beginning of each BBL
     def Reset(self):
-        self._cache = []
+        self._cache.clear()
 
     def _insert(self, const, reg):
-        if self._size == 0:
+        if self._max_size == 0:
             return
         self._cache.insert(0, (const, reg))
-        if len(self._cache) > self._size:
+        if len(self._cache) > self._max_size:
             self._cache.pop(-1)
 
     def Materialize(self, fun: ir.Fun, const: ir.Const, from_mem: bool, inss) -> ir.Reg:

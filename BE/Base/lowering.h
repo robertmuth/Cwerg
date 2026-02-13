@@ -29,11 +29,11 @@ extern void FunEliminateCntPop(Fun fun, std::vector<Ins>* inss);
 
 class RegConstCache {
  public:
-  RegConstCache(Unit unit, DK addr_kind, DK offset_kind, uint32_t size)
+  RegConstCache(Unit unit, DK addr_kind, DK offset_kind, uint32_t max_size)
       : unit_(unit),
         addr_kind_(addr_kind),
         offset_kind_(offset_kind),
-        size_(size) {}
+        max_size_(max_size) {}
 
   void Reset() { cache_.clear(); }
 
@@ -46,14 +46,14 @@ class RegConstCache {
   };
 
   void insert(Const c, Reg r) {
-    if (cache_.size() == 0) return;
+    if (max_size_ == 0) return;
     cache_.insert(cache_.begin(), {c, r});
-    if (cache_.size() > size_) cache_.pop_back();
+    if (cache_.size() > max_size_) cache_.pop_back();
   }
   const Unit unit_;
   const DK addr_kind_;
   const DK offset_kind_;
-  const uint32_t size_;
+  const uint32_t max_size_;
 
   std::vector<Entry> cache_;
 };
