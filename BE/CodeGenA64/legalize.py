@@ -59,7 +59,7 @@ def _FunRewriteOutOfBoundsImmediates(fun: ir.Fun, unit: ir.Unit) -> int:
     else another pass may be necessary.
     """
     count = 0
-    cache = lowering.RegConstCache(unit, o.DK.A64, o.DK.U32, 0)
+    cache = lowering.RegConstCache(unit, o.DK.A64, o.DK.U32, 4)
     for bbl in fun.bbls:
         cache.Reset()
         count += ir.BblGenericRewrite(bbl, fun,
