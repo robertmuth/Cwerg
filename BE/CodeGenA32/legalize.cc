@@ -91,7 +91,7 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
 
 void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
                                      std::vector<Ins>* inss) {
-  RegConstCache cache(unit, DK::A32, DK::U32, 0);
+  RegConstCache cache(unit, DK::A32, DK::U32, 2);
   for (Bbl bbl : FunBblIter(fun)) {
     inss->clear();
     bool dirty = false;
