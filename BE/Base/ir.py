@@ -95,6 +95,8 @@ class Const:
     def __repr__(self):
         return f"{self.value}:{self.kind.name}"
 
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Const) and self.value == other.value and self.kind == other.kind
 
 def ParseConst(value_str: str, kind: o.DK) -> Const:
     flavor = kind.flavor()

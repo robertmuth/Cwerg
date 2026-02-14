@@ -137,6 +137,7 @@ class RegConstCache:
     def Reset(self):
         self._cache.clear()
 
+
     def _insert(self, const, reg):
         if self._max_size == 0:
             return
