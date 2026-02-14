@@ -96,6 +96,7 @@ benchmark: $(CODEGEN_TOOL)
 # Parity
 ############################################################
 TEST_MODE = normal
+# TEST_MODE = legalize
 #TEST_MODE = reg_alloc_local
 #TEST_MODE = reg_alloc_global
 
