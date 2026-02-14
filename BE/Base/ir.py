@@ -96,7 +96,15 @@ class Const:
         return f"{self.value}:{self.kind.name}"
 
     def __eq__(self, other) -> bool:
-        return isinstance(other, Const) and self.value == other.value and self.kind == other.kind
+        if not isinstance(other, Const):
+            return False
+        if self.kind != other.kind:
+            return False
+        if self.kind in (o.DK.R32, o.DK.R64):
+            # Note: 0.0 == -0.0
+            return float(self.value).hex() == float(other.value).hex()
+
+        return self.value == other.value
 
 def ParseConst(value_str: str, kind: o.DK) -> Const:
     flavor = kind.flavor()
