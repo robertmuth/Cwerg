@@ -11,7 +11,6 @@ Mem: (Heap) Memory Region
 Mod: Module
 """
 
-import collections
 import dataclasses
 import enum
 import struct
@@ -102,7 +101,7 @@ class Const:
             return False
         if self.kind in (o.DK.R32, o.DK.R64):
             # Note: 0.0 == -0.0
-            return float(self.value).hex() == float(other.value).hex()
+            return self.ToBytes() == other.ToBytes()
 
         return self.value == other.value
 
