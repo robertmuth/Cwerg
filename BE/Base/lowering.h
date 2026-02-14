@@ -41,8 +41,8 @@ class RegConstCache {
 
  private:
   struct Entry {
-    Const c;
-    Reg r;
+    Const num;
+    Reg reg;
   };
 
   void insert(Const c, Reg r) {

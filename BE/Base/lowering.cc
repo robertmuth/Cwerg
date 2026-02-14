@@ -641,11 +641,13 @@ void FunEliminateCopySign(Fun fun, std::vector<Ins>* inss) {
 
 Reg RegConstCache::Materialize(Fun fun, Const num, bool from_mem,
                                std::vector<Ins>* inss) {
-  for (uint32_t i = 0; i < size_; ++i) {
-    if (cache_[i].c == num) {
-      Reg out = cache_[i].r;
-      cache_.erase(cache_.begin() + i);
-      insert(num, out);
+  for (uint32_t i = 0; i < cache_.size(); ++i) {
+    if (cache_[i].num == num) {
+      Reg out = cache_[i].reg;
+      if (i != 0) {
+        cache_.erase(cache_.begin() + i);
+        insert(num, out);
+      }
       return out;
     }
   }
