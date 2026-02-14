@@ -221,8 +221,6 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit) {
 }
 
 void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
-  std::cout << "@@@ LEG ALL " << "\n";
-
   std::vector<Fun> seeds;
   Fun fun = UnitFunFind(unit, StrNew("main"));
   if (!fun.isnull()) seeds.push_back(fun);
