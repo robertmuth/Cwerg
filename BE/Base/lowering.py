@@ -141,16 +141,19 @@ class RegConstCache:
     def _insert(self, const, reg):
         if self._max_size == 0:
             return
+        # print(f"@insert {const} -> {reg}")
         self._cache.insert(0, (const, reg))
         if len(self._cache) > self._max_size:
             self._cache.pop(-1)
 
     def Materialize(self, fun: ir.Fun, const: ir.Const, from_mem: bool, inss) -> ir.Reg:
+        # print(f"@@@Materialize {const} cache={self._cache}")
         for n, (c, r) in enumerate(self._cache):
             if c == const:
                 if n != 0:
                     del self._cache[n]
                     self._insert(const, r)
+                # print(f"@found as {r}")
                 return r
         # not in cache
         if from_mem:
