@@ -241,6 +241,8 @@ DK ConstKind(Const num) {
 
 Const ConstNewF(DK kind, double v) {
   ConstCore num;
+  // we are hashing the whole memory region - make sure it is deterministic
+  memset(&num, 0, sizeof(num));
   num.kind = kind;
   if (kind == DK::R32) {
     num.val_f32 = v;
@@ -252,22 +254,27 @@ Const ConstNewF(DK kind, double v) {
 }
 
 Const ConstNewU(DK kind, uint64_t v) {
-  if (v < (1U << 15U)) {
+  if (v < 32768) {
     return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind),
                         uint8_t(RefKind::CONST)));
   }
   ConstCore num;
+  // we are hashing the whole memory region - make sure it is deterministic
+  memset(&num, 0, sizeof(num));
   num.kind = kind;
   num.val_u64 = v;
   return Const(ConstantPool.Intern({(char*)&num, sizeof(num)}));
 }
 
 Const ConstNewACS(DK kind, int64_t v) {
-  if (-(1U << 14U) <= v && v < (1U << 14U)) {
+
+  if (-16384 <= v && v < 16384) {
     return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind),
                         uint8_t(RefKind::CONST)));
   }
   ConstCore num;
+  // we are hashing the whole memory region - make sure it is deterministic
+  memset(&num, 0, sizeof(num));
   num.kind = kind;
   num.val_acs64 = v;
   return Const(ConstantPool.Intern({(char*)&num, sizeof(num)}));
