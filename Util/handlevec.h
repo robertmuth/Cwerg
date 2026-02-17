@@ -1,8 +1,9 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
-#include "Util/handle.h"
 #include <cstdint>
+
+#include "Util/handle.h"
 
 namespace cwerg {
 
@@ -14,7 +15,10 @@ namespace cwerg {
 //   (this is less desirable because sometimes we would like
 //    to if a register is visible in another Bbl even currently
 //    that register is local to its Bbl)
-constexpr const unsigned HANDLEVEC_MAX_ENTRIES = 8 * 255;
+constexpr const unsigned HANDLEVEC_CHUNCK_BYTE_SIZE = 32;
+constexpr const unsigned HANDLEVEC_NUM_CHUNK_BITS = 8;
+constexpr const unsigned HANDLEVEC_HANDLES_PER_CHUNK =
+    HANDLEVEC_CHUNCK_BYTE_SIZE / sizeof(Handle);
 
 // Represents an array of Handles.
 // Max size is HANDLEVEC_MAX_ENTRIES
@@ -24,9 +28,16 @@ struct HandleVec {
 
   static void Del(HandleVec hv);
 
-  unsigned raw_width() const { return index & 0xff; }
-  unsigned byte_width() const { return 32 * raw_width(); }
-  unsigned entry_width() const { return 8 * raw_width(); }
+  unsigned chunk_offset() const { return index >> HANDLEVEC_NUM_CHUNK_BITS; }
+  unsigned num_chunks() const {
+    return index & ((1 << HANDLEVEC_NUM_CHUNK_BITS) - 1);
+  }
+  unsigned num_bytes() const {
+    return HANDLEVEC_CHUNCK_BYTE_SIZE * num_chunks();
+  }
+  unsigned num_handles() const {
+    return HANDLEVEC_HANDLES_PER_CHUNK * num_chunks();
+  }
 
   Handle* BackingStorage() const;
 
