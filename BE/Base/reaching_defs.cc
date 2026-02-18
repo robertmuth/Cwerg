@@ -39,7 +39,7 @@ void BblInitReachingDefs(Bbl bbl, unsigned num_regs) {
 // Simple lattice with top, bot, and all other elements in-between.
 bool HandleVecCombineWith(HandleVec self, HandleVec other, unsigned num_regs,
                           Handle top) {
-  ASSERT(self.raw_width() == other.raw_width(), "");
+  ASSERT(self.num_chunks() == other.num_chunks(), "");
   Handle* data1 = self.BackingStorage();
   Handle* data2 = other.BackingStorage();
   bool change = false;
@@ -63,7 +63,7 @@ bool HandleVecCombineWith(HandleVec self, HandleVec other, unsigned num_regs,
 bool HandleVecUpdateWith(HandleVec out, HandleVec in, HandleVec def,
                          unsigned num_regs) {
   ASSERT(
-      out.raw_width() == in.raw_width() && out.raw_width() == def.raw_width(),
+      out.num_chunks() == in.num_chunks() && out.num_chunks() == def.num_chunks(),
       "");
   bool change = false;
   Handle* data_out = out.BackingStorage();
