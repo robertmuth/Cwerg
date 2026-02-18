@@ -267,7 +267,6 @@ Const ConstNewU(DK kind, uint64_t v) {
 }
 
 Const ConstNewACS(DK kind, int64_t v) {
-
   if (-16384 <= v && v < 16384) {
     return Const(Handle(1U << 23U | (v << 8U) | uint32_t(kind),
                         uint8_t(RefKind::CONST)));
@@ -345,12 +344,8 @@ std::ostream& operator<<(std::ostream& os, Const num) {
       os << ConstValueU(num);
       return os;
     case DK_FLAVOR_F: {
-      double v = ConstValueF(num);
-      if (round(v) == v) {
-        // mimic python floating point redndering
-        os << std::fixed << std::setprecision(1);
-      }
-      os << ConstValueF(num);
+      char buffer[64];
+      os << RenderRealStd(ConstValueF(num), buffer);
       return os;
     }
     case DK_FLAVOR_A:
