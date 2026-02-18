@@ -103,7 +103,7 @@ class Const:
         return struct.pack("<" + _NUM_CONVERSION_STR[self.kind], self.value)
 
     def __repr__(self):
-        self.render_with_kind()
+        return self.render_with_kind()
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Const):

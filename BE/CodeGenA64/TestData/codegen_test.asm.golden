@@ -96,17 +96,17 @@ PAT: reg:[A64 A64 U32]  imm:[INVALID INVALID ZERO]
 INS: ret  []
     SPECIAL
 
-INS: cmplt d3@d0 0.0 d1@d1 d2@d2 0.0  [R64 R64 R64 R64 R64]
+INS: cmplt d3@d0 0x0.0p+0 d1@d1 d2@d2 0x0.0p+0  [R64 R64 R64 R64 R64]
     mismatches: 12
 
 INS: ret  []
     SPECIAL
 
-INS: copysign flt@d1 flt@d1 0.0  [R32 R32 R32]
+INS: copysign flt@d1 flt@d1 0x0.0p+0  [R32 R32 R32]
 PAT: reg:[R32 R32 R32]  imm:[INVALID INVALID ZERO]
     fabs_s s1 s1
 
-INS: copysign dbl@d2 dbl@d2 0.0  [R64 R64 R64]
+INS: copysign dbl@d2 dbl@d2 0x0.0p+0  [R64 R64 R64]
 PAT: reg:[R64 R64 R64]  imm:[INVALID INVALID ZERO]
     fabs_d d2 d2
 
@@ -118,7 +118,7 @@ INS: ld.stk flt@d1 buffer 0  [R32 _ U32]
 PAT: reg:[R32 INVALID U32]  imm:[INVALID INVALID pos_stk_combo_10_21_times_4]
     fldr_s_imm s1 sp 0
 
-INS: beq dbl@d2 0.0 skip  [R64 R64 _]
+INS: beq dbl@d2 0x0.0p+0 skip  [R64 R64 _]
 PAT: reg:[R64 R64 INVALID]  imm:[INVALID ZERO INVALID]
     fcmpe_d_zero d2 0
     b_eq expr:condbr19:skip
