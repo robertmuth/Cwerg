@@ -27,7 +27,7 @@ int FunCanonicalize(Fun fun) {
           break;
         case OPC_KIND::COND_BRA:
           if (Kind(InsOperand(ins, 0)) == RefKind::CONST &&
-              Kind(InsOperand(ins, 2)) == RefKind::REG) {
+              Kind(InsOperand(ins, 1)) == RefKind::REG) {
             if (InsOPC(ins) == OPC::BEQ || InsOPC(ins) == OPC::BNE) {
               InsSwapOps(ins, 0, 1);
               ++count;
