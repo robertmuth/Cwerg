@@ -87,12 +87,23 @@ class Const:
     # def IntBitWidth(self) -> int:
     #    assert not o.RegIsFloat(self.kind)
     #    return BitWidth(self.value)
+    def render(self) -> str:
+        if self.kind in (o.DK.R32, o.DK.R64):
+            return parse.RenderRealStd(self.value)
+        else:
+            return str(self.value)
+
+    def render_with_kind(self) -> str:
+        if self.kind in (o.DK.R32, o.DK.R64):
+            return f"{parse.RenderRealStd(self.value)}:{self.kind.name}"
+        else:
+            return f"{self.value}:{self.kind.name}"
 
     def ToBytes(self) -> bytes:
         return struct.pack("<" + _NUM_CONVERSION_STR[self.kind], self.value)
 
     def __repr__(self):
-        return f"{self.value}:{self.kind.name}"
+        self.render_with_kind()
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Const):
@@ -104,6 +115,7 @@ class Const:
             return self.ToBytes() == other.ToBytes()
 
         return self.value == other.value
+
 
 def ParseConst(value_str: str, kind: o.DK) -> Const:
     flavor = kind.flavor()

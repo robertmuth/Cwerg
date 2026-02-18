@@ -35,12 +35,9 @@ def RenderOperand(v: Any, tc: o.TC):
         return v.name
     elif isinstance(v, ir.Const):
         if tc in {o.TC.OFFSET, o.TC.SAME_AS_PREV}:
-            s = str(v.value)
+            return v.render()
         else:
-            s = str(v)
-        if s.startswith("inf") or s.startswith("nan"):
-            s = "+" + s
-        return s
+            return v.render_with_kind()
     elif isinstance(v, ir.Jtb):
         return v.name
     elif isinstance(v, bytes):
