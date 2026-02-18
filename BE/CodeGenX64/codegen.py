@@ -10,7 +10,6 @@ import stat
 import collections
 from typing import List, Dict
 
-from BE.Base import cfg
 from BE.Base import ir
 from IR import opcode_tab as o
 from BE.Base import sanity
@@ -26,21 +25,6 @@ from BE.CodeGenX64 import legalize
 
 from BE.Elf import enum_tab
 from BE.Elf import elf_unit
-
-
-def LegalizeAll(unit, opt_stats, fout, verbose=False):
-    seeds = [f for f in [unit.fun_syms.get("_start"),
-                         unit.fun_syms.get("main")] if f]
-    if seeds:
-        cfg.UnitRemoveUnreachableCode(unit, seeds)
-    for fun in unit.funs:
-        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True)
-
-        if fun.kind is o.FUN_KIND.NORMAL:
-            legalize.PhaseOptimize(fun, unit, opt_stats, fout)
-
-    for fun in unit.funs:
-        legalize.PhaseLegalization(fun, unit, opt_stats, fout)
 
 
 def RegAllocGlobal(unit, opt_stats, fout, verbose=False):
@@ -285,7 +269,7 @@ if __name__ == "__main__":
         if args.mode == "binary":
             # we need to legalize all functions first as this may change the signature
             # and fills in cpu reg usage which is used by subsequent interprocedural opts.
-            LegalizeAll(unit, opt_stats, None)
+            legalize.LegalizeAll(unit, opt_stats, None)
             RegAllocGlobal(unit, opt_stats, None)
             RegAllocLocal(unit, opt_stats, None)
             x64unit = EmitUnitAsBinary(unit)
@@ -298,7 +282,7 @@ if __name__ == "__main__":
 
         # we need to legalize all functions first as this may change the signature
         # and fills in cpu reg usage which is used by subsequent interprocedural opts.
-        LegalizeAll(unit, opt_stats, log)
+        legalize.LegalizeAll(unit, opt_stats, log)
         if args.mode == "legalize":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return

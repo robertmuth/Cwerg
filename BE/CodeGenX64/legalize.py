@@ -3,6 +3,7 @@ from typing import List, Dict, Optional, Tuple
 
 from BE.Base import canonicalize
 from BE.Base import ir
+from BE.Base import cfg
 from BE.Base import liveness
 from BE.Base import lowering
 from IR import opcode_tab as o
@@ -203,11 +204,6 @@ def _FunMoveEliminationCpu(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsMoveEliminationCpu)
 
 
-def PhaseOptimize(fun: ir.Fun, unit: ir.Unit, opt_stats: Dict[str, int], fout):
-    optimize.FunCfgInit(fun, unit)
-    optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=True)
-
-
 def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fout):
     """
     Does a lot of the heavily lifting so that the instruction selector can remain
@@ -274,6 +270,22 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     sanity.FunCheck(fun, None)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
+
+
+def LegalizeAll(unit, opt_stats, fout, verbose=False):
+    seeds = [f for f in [unit.fun_syms.get("_start"),
+                         unit.fun_syms.get("main")] if f]
+    if seeds:
+        cfg.UnitRemoveUnreachableCode(unit, seeds)
+    for fun in unit.funs:
+        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True)
+
+        if fun.kind is o.FUN_KIND.NORMAL:
+            optimize.FunCfgInit(fun, unit)
+            optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=True)
+
+    for fun in unit.funs:
+        PhaseLegalization(fun, unit, opt_stats, fout)
 
 
 def DumpRegStats(fun: ir.Fun, stats: Dict[reg_stats.REG_KIND_LAC, int], fout):
