@@ -535,28 +535,31 @@ struct InsCore {
   // top means multiple Ins define the value, bot means no Ins defines the
   // value.
   Ins defs[MAX_OPERANDS];
+  bool is_only_def;
 };
 
 extern struct Stripe<InsCore, Ins> gInsCore;
 extern struct StripeGroup gStripeGroupIns;
 
-inline Ins InsInit(Ins ins, OPC opcode, Handle h0 = HandleInvalid,
-                   Handle h1 = HandleInvalid, Handle h2 = HandleInvalid,
-                   Handle h3 = HandleInvalid, Handle h4 = HandleInvalid) {
+inline Ins InsInit(Ins ins, OPC opcode, bool is_only_def,
+                   Handle h0 = HandleInvalid, Handle h1 = HandleInvalid,
+                   Handle h2 = HandleInvalid, Handle h3 = HandleInvalid,
+                   Handle h4 = HandleInvalid) {
   gInsCore[ins].opcode = opcode;
   gInsCore[ins].operands[0] = h0;
   gInsCore[ins].operands[1] = h1;
   gInsCore[ins].operands[2] = h2;
   gInsCore[ins].operands[3] = h3;
   gInsCore[ins].operands[4] = h4;
+  gInsCore[ins].is_only_def = is_only_def;
   return ins;
 }
 
-inline Ins InsNew(OPC opcode, Handle h0 = HandleInvalid,
+inline Ins InsNew(OPC opcode, bool is_only_def, Handle h0 = HandleInvalid,
                   Handle h1 = HandleInvalid, Handle h2 = HandleInvalid,
                   Handle h3 = HandleInvalid, Handle h4 = HandleInvalid) {
-  return InsInit(Ins(gStripeGroupIns.New().index()), opcode, h0, h1, h2, h3,
-                 h4);
+  return InsInit(Ins(gStripeGroupIns.New().index()), opcode, is_only_def, h0,
+                 h1, h2, h3, h4);
 }
 
 inline void InsDel(Ins ins) { gStripeGroupIns.Del(ins); }
@@ -576,6 +579,8 @@ inline Handle& InsOperand(Ins ins, unsigned pos) {
 }
 
 inline Handle& InsDef(Ins ins, unsigned pos) { return gInsCore[ins].defs[pos]; }
+
+inline bool& InsIsOnlyDef(Ins ins) { return gInsCore[ins].is_only_def; }
 
 inline void InsSwapOps(Ins ins, unsigned pos1, unsigned pos2) {
   Handle tmp_op = InsOperand(ins, pos1);

@@ -43,7 +43,7 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
       switch (InsOPC(ins)) {
         case OPC::CNTPOP:
           tmp = FunGetScratchReg(fun, DK::R64, "popcnt", false);
-          inss->push_back(InsNew(OPC::NOP1, tmp));
+          inss->push_back(InsNew(OPC::NOP1, false, tmp));
           inss->push_back(ins);
           dirty = true;
           break;

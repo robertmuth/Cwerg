@@ -115,7 +115,7 @@ OPC GetCondBraInv(OPC opc) {
   }
 }
 
-Ins InsNewBra(Bbl target) { return InsNew(OPC::BRA, target); }
+Ins InsNewBra(Bbl target) { return InsNew(OPC::BRA, false, target); }
 
 }  // namespace
 

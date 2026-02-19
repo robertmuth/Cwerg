@@ -41,19 +41,19 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
       switch (InsOPC(ins)) {
         case OPC::SWITCH:
           tmp = FunGetScratchReg(fun, DK::C32, "switch", false);
-          inss->push_back(InsNew(OPC::NOP1, tmp));
+          inss->push_back(InsNew(OPC::NOP1, false, tmp));
           inss->push_back(ins);
           dirty = true;
           break;
         case OPC::CAS:
           tmp = FunGetScratchReg(fun, DK::U32, "cas", false);
-          inss->push_back(InsNew(OPC::NOP1, tmp));
+          inss->push_back(InsNew(OPC::NOP1, false, tmp));
           inss->push_back(ins);
           dirty = true;
           break;
         case OPC::ST_STK:
           tmp = FunGetScratchReg(fun, DK::A32, "st_stk", false);
-          inss->push_back(InsNew(OPC::NOP1, tmp));
+          inss->push_back(InsNew(OPC::NOP1, false, tmp));
           inss->push_back(ins);
           dirty = true;
           break;
@@ -66,14 +66,14 @@ void FunAddNop1ForCodeSel(Fun fun, std::vector<Ins>* inss) {
             if (src_fl == DK_FLAVOR_F &&
                 (dst_fl == DK_FLAVOR_S || dst_fl == DK_FLAVOR_U)) {
               tmp = FunGetScratchReg(fun, DK::R32, "ftoi", false);
-              inss->push_back(InsNew(OPC::NOP1, tmp));
+              inss->push_back(InsNew(OPC::NOP1, false, tmp));
               inss->push_back(ins);
               dirty = true;
               break;
             } else if ((src_fl == DK_FLAVOR_S || src_fl == DK_FLAVOR_U) &&
                        dst_kind == DK::R64) {
               tmp = FunGetScratchReg(fun, DK::R32, "itof", false);
-              inss->push_back(InsNew(OPC::NOP1, tmp));
+              inss->push_back(InsNew(OPC::NOP1, false, tmp));
               inss->push_back(ins);
               dirty = true;
               break;

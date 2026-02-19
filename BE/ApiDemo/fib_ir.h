@@ -46,24 +46,24 @@ base::Unit MakeFibonacci() {
     Const one = ConstNewU(DK::U32, 1);
     Const two = ConstNewU(DK::U32, 2);
     // populate Bbl start
-    BblInsAdd(bbl_start, InsNew(OPC::POPARG, reg_in));
-    BblInsAdd(bbl_start, InsNew(OPC::BLT, one, reg_in, bbl_difficult));
-    BblInsAdd(bbl_start, InsNew(OPC::PUSHARG, reg_in));
-    BblInsAdd(bbl_start, InsNew(OPC::RET));
+    BblInsAdd(bbl_start, InsNew(OPC::POPARG, false, reg_in));
+    BblInsAdd(bbl_start, InsNew(OPC::BLT, false, one, reg_in, bbl_difficult));
+    BblInsAdd(bbl_start, InsNew(OPC::PUSHARG, false, reg_in));
+    BblInsAdd(bbl_start, InsNew(OPC::RET, false));
     // populate Bbl difficult
-    BblInsAdd(bbl_difficult, InsNew(OPC::MOV, reg_out, zero));
-    BblInsAdd(bbl_difficult, InsNew(OPC::SUB, reg_x, reg_in, one));
-    BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, reg_x));
-    BblInsAdd(bbl_difficult, InsNew(OPC::BSR, fun));
-    BblInsAdd(bbl_difficult, InsNew(OPC::POPARG, reg_x));
-    BblInsAdd(bbl_difficult, InsNew(OPC::ADD, reg_out, reg_out, reg_x));
-    BblInsAdd(bbl_difficult, InsNew(OPC::SUB, reg_x, reg_in, two));
-    BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, reg_x));
-    BblInsAdd(bbl_difficult, InsNew(OPC::BSR, fun));
-    BblInsAdd(bbl_difficult, InsNew(OPC::POPARG, reg_x));
-    BblInsAdd(bbl_difficult, InsNew(OPC::ADD, reg_out, reg_out, reg_x));
-    BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, reg_out));
-    BblInsAdd(bbl_difficult, InsNew(OPC::RET));
+    BblInsAdd(bbl_difficult, InsNew(OPC::MOV, false, reg_out, zero));
+    BblInsAdd(bbl_difficult, InsNew(OPC::SUB, false, reg_x, reg_in, one));
+    BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, false, reg_x));
+    BblInsAdd(bbl_difficult, InsNew(OPC::BSR, false, fun));
+    BblInsAdd(bbl_difficult, InsNew(OPC::POPARG, false, reg_x));
+    BblInsAdd(bbl_difficult, InsNew(OPC::ADD, false, reg_out, reg_out, reg_x));
+    BblInsAdd(bbl_difficult, InsNew(OPC::SUB, false, reg_x, reg_in, two));
+    BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, false, reg_x));
+    BblInsAdd(bbl_difficult, InsNew(OPC::BSR, false, fun));
+    BblInsAdd(bbl_difficult, InsNew(OPC::POPARG, false, reg_x));
+    BblInsAdd(bbl_difficult, InsNew(OPC::ADD, false, reg_out, reg_out, reg_x));
+    BblInsAdd(bbl_difficult, InsNew(OPC::PUSHARG, false, reg_out));
+    BblInsAdd(bbl_difficult, InsNew(OPC::RET, false));
 
     return unit;
 }

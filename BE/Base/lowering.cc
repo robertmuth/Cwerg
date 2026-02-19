@@ -244,9 +244,9 @@ Handle NarrowOperand(Handle op, Fun fun, DK narrow_kind,
     Reg reg(op);
     Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
     RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
-    inss->push_back(InsNew(OPC::CONV, tmp_reg, reg));
+    inss->push_back(InsNew(OPC::CONV, true, tmp_reg, reg));
     Reg tmp_reg2 = FunGetScratchReg(fun, RegKind(reg), "rewidened", false);
-    inss->push_back(InsNew(OPC::CONV, tmp_reg2, tmp_reg));
+    inss->push_back(InsNew(OPC::CONV, true, tmp_reg2, tmp_reg));
     return tmp_reg2;
   }
 }
@@ -316,7 +316,7 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
           ASSERT(DKFlavor(wide_kind) == DK_FLAVOR_S, "");
           mask = ConstNewACS(wide_kind, DKBitWidth(narrow_kind) - 1);
         }
-        Ins and_ins = InsNew(OPC::AND, tmp_reg, InsOperand(ins, 2), mask);
+        Ins and_ins = InsNew(OPC::AND, true, tmp_reg, InsOperand(ins, 2), mask);
         inss->push_back(and_ins);
         InsOperand(ins, 2) = tmp_reg;
         if (InsOPC(ins) == OPC::SHR) {
@@ -327,15 +327,17 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
         dirty = true;
       } else if (InsOPC(ins) == OPC::CNTLZ) {
         inss->push_back(ins);
+        InsIsOnlyDef(ins) = false;
         Const excess = ConstNewACS(
             wide_kind, DKBitWidth(wide_kind) - DKBitWidth(narrow_kind));
-        inss->push_back(
-            InsNew(OPC::SUB, InsOperand(ins, 0), InsOperand(ins, 0), excess));
+        inss->push_back(InsNew(OPC::SUB, false, InsOperand(ins, 0),
+                               InsOperand(ins, 0), excess));
         dirty = true;
       } else if (InsOPC(ins) == OPC::CNTTZ) {
         inss->push_back(ins);
+        InsIsOnlyDef(ins) = false;
         Const max = ConstNewACS(wide_kind, DKBitWidth(narrow_kind));
-        inss->push_back(InsNew(OPC::CMPLT, InsOperand(ins, 0),
+        inss->push_back(InsNew(OPC::CMPLT, false, InsOperand(ins, 0),
                                InsOperand(ins, 0), max, InsOperand(ins, 0),
                                max));
         dirty = true;
@@ -345,7 +347,7 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
         if (RegKind(reg) == narrow_kind) {
           Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
           RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
-          Ins conv = InsNew(OPC::CONV, reg, tmp_reg);
+          Ins conv = InsNew(OPC::CONV, true, reg, tmp_reg);
           InsOperand(ins, 0) = tmp_reg;
           inss->push_back(conv);
           dirty = true;
@@ -355,7 +357,7 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
         if (Kind(reg) == RefKind::REG && RegKind(reg) == narrow_kind) {
           Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
           RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
-          Ins conv = InsNew(OPC::CONV, tmp_reg, reg);
+          Ins conv = InsNew(OPC::CONV, true, tmp_reg, reg);
           inss->push_back(conv);
           dirty = true;
           InsOperand(ins, 2) = tmp_reg;
@@ -364,8 +366,9 @@ void FunRegWidthWidening(Fun fun, DK narrow_kind, DK wide_kind,
       } else if (InsOPC(ins) == OPC::CONV) {
         Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
         RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
-        inss->push_back(InsNew(OPC::CONV, tmp_reg, InsOperand(ins, 1)));
-        inss->push_back(InsNew(OPC::CONV, InsOperand(ins, 0), tmp_reg));
+        inss->push_back(InsNew(OPC::CONV, true, tmp_reg, InsOperand(ins, 1)));
+        inss->push_back(
+            InsNew(OPC::CONV, InsIsOnlyDef(ins), InsOperand(ins, 0), tmp_reg));
         dirty = true;
       } else if (InsOpcodeKind(ins) == OPC_KIND::COND_BRA) {
         InsOperand(ins, 0) =
@@ -400,7 +403,8 @@ void FunEliminateStkLoadStoreWithRegOffset(Fun fun, DK base_kind,
                                            std::vector<Ins>* inss) {
   auto add_lea_stk = [&](Handle stk) -> Reg {
     Reg tmp = FunGetScratchReg(fun, base_kind, "base", false);
-    inss->push_back(InsNew(OPC::LEA_STK, tmp, stk, ConstNewU(offset_kind, 0)));
+    inss->push_back(
+        InsNew(OPC::LEA_STK, true, tmp, stk, ConstNewU(offset_kind, 0)));
     return tmp;
   };
 
@@ -412,20 +416,20 @@ void FunEliminateStkLoadStoreWithRegOffset(Fun fun, DK base_kind,
       if (opc == OPC::ST_STK && Kind(InsOperand(ins, 1)) == RefKind::REG) {
         dirty = true;
         Reg tmp = add_lea_stk(InsOperand(ins, 0));
-        inss->push_back(
-            InsInit(ins, OPC::ST, tmp, InsOperand(ins, 1), InsOperand(ins, 2)));
+        inss->push_back(InsInit(ins, OPC::ST, false, tmp, InsOperand(ins, 1),
+                                InsOperand(ins, 2)));
       } else if (opc == OPC::LD_STK &&
                  Kind(InsOperand(ins, 2)) == RefKind::REG) {
         dirty = true;
         Reg tmp = add_lea_stk(InsOperand(ins, 1));
-        inss->push_back(
-            InsInit(ins, OPC::LD, InsOperand(ins, 0), tmp, InsOperand(ins, 2)));
+        inss->push_back(InsInit(ins, OPC::LD, InsIsOnlyDef(ins),
+                                InsOperand(ins, 0), tmp, InsOperand(ins, 2)));
       } else if (opc == OPC::LEA_STK &&
                  Kind(InsOperand(ins, 2)) == RefKind::REG) {
         dirty = true;
         Reg tmp = add_lea_stk(InsOperand(ins, 1));
-        inss->push_back(InsInit(ins, OPC::LEA, InsOperand(ins, 0), tmp,
-                                InsOperand(ins, 2)));
+        inss->push_back(InsInit(ins, OPC::LEA, InsIsOnlyDef(ins),
+                                InsOperand(ins, 0), tmp, InsOperand(ins, 2)));
       } else {
         inss->push_back(ins);
       }
@@ -438,7 +442,7 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
                               std::vector<Ins>* inss) {
   auto add_lea_mem = [&](Handle mem, Handle offset) -> Reg {
     Reg tmp = FunGetScratchReg(fun, base_kind, "base", false);
-    inss->push_back(InsNew(OPC::LEA_MEM, tmp, mem, offset));
+    inss->push_back(InsNew(OPC::LEA_MEM, true, tmp, mem, offset));
     return tmp;
   };
 
@@ -455,15 +459,15 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
         if (Kind(st_offset) == RefKind::CONST) std::swap(st_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 0), lea_offset);
         inss->push_back(
-            InsInit(ins, OPC::ST, tmp, st_offset, InsOperand(ins, 2)));
+            InsInit(ins, OPC::ST, false, tmp, st_offset, InsOperand(ins, 2)));
         dirty = true;
       } else if (opc == OPC::LD_MEM) {
         Handle ld_offset = InsOperand(ins, 2);
         Handle lea_offset = ConstNewU(offset_kind, 0);
         if (Kind(ld_offset) == RefKind::CONST) std::swap(ld_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 1), lea_offset);
-        inss->push_back(
-            InsInit(ins, OPC::LD, InsOperand(ins, 0), tmp, ld_offset));
+        inss->push_back(InsInit(ins, OPC::LD, InsIsOnlyDef(ins),
+                                InsOperand(ins, 0), tmp, ld_offset));
         dirty = true;
       } else if (opc == OPC::CAS_MEM) {
         Handle cas_offset = InsOperand(ins, 4);
@@ -471,16 +475,16 @@ void FunEliminateMemLoadStore(Fun fun, DK base_kind, DK offset_kind,
         if (Kind(cas_offset) == RefKind::CONST)
           std::swap(cas_offset, lea_offset);
         Reg tmp = add_lea_mem(InsOperand(ins, 3), lea_offset);
-        inss->push_back(InsInit(ins, OPC::CAS, InsOperand(ins, 0),
-                                InsOperand(ins, 1), InsOperand(ins, 2), tmp,
-                                cas_offset));
+        inss->push_back(InsInit(ins, OPC::CAS, InsIsOnlyDef(ins),
+                                InsOperand(ins, 0), InsOperand(ins, 1),
+                                InsOperand(ins, 2), tmp, cas_offset));
         dirty = true;
       } else if (opc == OPC::LEA_MEM &&
                  Kind(InsOperand(ins, 2)) == RefKind::REG) {
         dirty = true;
         Reg tmp = add_lea_mem(InsOperand(ins, 1), ConstNewU(offset_kind, 0));
-        inss->push_back(InsInit(ins, OPC::LEA, InsOperand(ins, 0), tmp,
-                                InsOperand(ins, 2)));
+        inss->push_back(InsInit(ins, OPC::LEA, InsIsOnlyDef(ins),
+                                InsOperand(ins, 0), tmp, InsOperand(ins, 2)));
       } else {
         inss->push_back(ins);
       }
@@ -498,8 +502,8 @@ void FunEliminateRem(Fun fun, std::vector<Ins>* inss) {
         DK kind = RegKind(Reg(InsOperand(ins, 0)));
         Reg tmp1 = FunGetScratchReg(fun, kind, "elim_rem1", true);
 
-        inss->push_back(
-            InsNew(OPC::DIV, tmp1, InsOperand(ins, 1), InsOperand(ins, 2)));
+        inss->push_back(InsNew(OPC::DIV, true, tmp1, InsOperand(ins, 1),
+                               InsOperand(ins, 2)));
         if (DKFlavor(kind) == DK_FLAVOR_F) {
           ASSERT(false, "");
           //          Reg tmp3 = FunGetScratchReg(fun, kind, "elim_rem3",
@@ -507,9 +511,9 @@ void FunEliminateRem(Fun fun, std::vector<Ins>* inss) {
           //          tmp1 = tmp3
         }
         Reg tmp2 = FunGetScratchReg(fun, kind, "elim_rem2", true);
-        inss->push_back(InsNew(OPC::MUL, tmp2, tmp1, InsOperand(ins, 2)));
-        inss->push_back(
-            InsNew(OPC::SUB, InsOperand(ins, 0), InsOperand(ins, 1), tmp2));
+        inss->push_back(InsNew(OPC::MUL, true, tmp2, tmp1, InsOperand(ins, 2)));
+        inss->push_back(InsNew(OPC::SUB, InsIsOnlyDef(ins), InsOperand(ins, 0),
+                               InsOperand(ins, 1), tmp2));
         dirty = true;
 
       } else {
@@ -535,30 +539,33 @@ void FunEliminateCntPop(Fun fun, std::vector<Ins>* inss) {
         Reg t1 = FunGetScratchReg(fun, kind, "popcnt_t1", false);
         Reg t2 = FunGetScratchReg(fun, kind, "popcnt_t2", false);
 
-        inss->push_back(InsNew(OPC::CONV, x, InsOperand(ins, 1)));
-        inss->push_back(InsNew(OPC::MOV, m1, ConstNewU(kind, 0x55555555)));
-        inss->push_back(InsNew(OPC::MOV, m2, ConstNewU(kind, 0x03030303)));
-        inss->push_back(InsNew(OPC::SHR, t1, x, ConstNewU(kind, 1)));
-        inss->push_back(InsNew(OPC::AND, t1, t1, m1));
-        inss->push_back(InsNew(OPC::SUB, x, x, t1));
+        inss->push_back(InsNew(OPC::CONV, false, x, InsOperand(ins, 1)));
+        inss->push_back(
+            InsNew(OPC::MOV, true, m1, ConstNewU(kind, 0x55555555)));
+        inss->push_back(
+            InsNew(OPC::MOV, true, m2, ConstNewU(kind, 0x03030303)));
+        inss->push_back(InsNew(OPC::SHR, false, t1, x, ConstNewU(kind, 1)));
+        inss->push_back(InsNew(OPC::AND, false, t1, t1, m1));
+        inss->push_back(InsNew(OPC::SUB, false, x, x, t1));
         //
-        inss->push_back(InsNew(OPC::AND, t2, x, m2));
-        inss->push_back(InsNew(OPC::SHR, t1, x, ConstNewU(kind, 2)));
-        inss->push_back(InsNew(OPC::AND, t1, t1, m2));
-        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
-        inss->push_back(InsNew(OPC::SHR, t1, x, ConstNewU(kind, 4)));
-        inss->push_back(InsNew(OPC::AND, t1, t1, m2));
-        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
-        inss->push_back(InsNew(OPC::SHR, t1, x, ConstNewU(kind, 6)));
-        inss->push_back(InsNew(OPC::AND, t1, t1, m2));
-        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
+        inss->push_back(InsNew(OPC::AND, false, t2, x, m2));
+        inss->push_back(InsNew(OPC::SHR, false, t1, x, ConstNewU(kind, 2)));
+        inss->push_back(InsNew(OPC::AND, false, t1, t1, m2));
+        inss->push_back(InsNew(OPC::ADD, false, t2, t2, t1));
+        inss->push_back(InsNew(OPC::SHR, false, t1, x, ConstNewU(kind, 4)));
+        inss->push_back(InsNew(OPC::AND, false, t1, t1, m2));
+        inss->push_back(InsNew(OPC::ADD, false, t2, t2, t1));
+        inss->push_back(InsNew(OPC::SHR, false, t1, x, ConstNewU(kind, 6)));
+        inss->push_back(InsNew(OPC::AND, false, t1, t1, m2));
+        inss->push_back(InsNew(OPC::ADD, false, t2, t2, t1));
         //
-        inss->push_back(InsNew(OPC::SHR, t1, t2, ConstNewU(kind, 8)));
-        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
-        inss->push_back(InsNew(OPC::SHR, t1, t2, ConstNewU(kind, 16)));
-        inss->push_back(InsNew(OPC::ADD, t2, t2, t1));
-        inss->push_back(InsNew(OPC::AND, t2, t2, ConstNewU(kind, 0x3f)));
-        inss->push_back(InsNew(OPC::CONV, InsOperand(ins, 0), t2));
+        inss->push_back(InsNew(OPC::SHR, false, t1, t2, ConstNewU(kind, 8)));
+        inss->push_back(InsNew(OPC::ADD, false, t2, t2, t1));
+        inss->push_back(InsNew(OPC::SHR, false, t1, t2, ConstNewU(kind, 16)));
+        inss->push_back(InsNew(OPC::ADD, false, t2, t2, t1));
+        inss->push_back(InsNew(OPC::AND, false, t2, t2, ConstNewU(kind, 0x3f)));
+        inss->push_back(
+            InsNew(OPC::CONV, InsIsOnlyDef(ins), InsOperand(ins, 0), t2));
         //
         dirty = true;
       } else {
@@ -583,14 +590,18 @@ void InsEliminateCmp(Ins cmp_ins, Bbl bbl, Fun fun) {
   const DK dk = RegKind(Reg(InsOperand(cmp_ins, 0)));
   const Reg reg = FunGetScratchReg(fun, dk, "cmp", false);
   BblInsUnlink(cmp_ins);
-  BblInsAppendList(bbl_prev, InsNew(OPC::MOV, reg, InsOperand(cmp_ins, 1)));
   BblInsAppendList(bbl_prev,
-                   InsNew(InsOPC(cmp_ins) == OPC::CMPEQ ? OPC::BEQ : OPC::BLT,
-                          InsOperand(cmp_ins, 3), InsOperand(cmp_ins, 4), bbl));
+                   InsNew(OPC::MOV, false, reg, InsOperand(cmp_ins, 1)));
+  BblInsAppendList(
+      bbl_prev,
+      InsNew(InsOPC(cmp_ins) == OPC::CMPEQ ? OPC::BEQ : OPC::BLT, false,
+             InsOperand(cmp_ins, 3), InsOperand(cmp_ins, 4), bbl));
 
-  BblInsAppendList(bbl_skip, InsNew(OPC::MOV, reg, InsOperand(cmp_ins, 2)));
+  BblInsAppendList(bbl_skip,
+                   InsNew(OPC::MOV, false, reg, InsOperand(cmp_ins, 2)));
 
-  BblInsPrepend(bbl, InsNew(OPC::MOV, InsOperand(cmp_ins, 0), reg));
+  BblInsPrepend(bbl, InsNew(OPC::MOV, InsIsOnlyDef(cmp_ins),
+                            InsOperand(cmp_ins, 0), reg));
   EdgLink(EdgNew(bbl_prev, bbl));
 
   InsDel(cmp_ins);  // must delay deletion as we are still reading operands
@@ -626,12 +637,13 @@ void FunEliminateCopySign(Fun fun, std::vector<Ins>* inss) {
             FunGetScratchReg(fun, int_dk, "elim_copysign1", false);
         const Reg tmp_src2 =
             FunGetScratchReg(fun, int_dk, "elim_copysign2", false);
-        inss->push_back(InsNew(OPC::BITCAST, tmp_src1, InsOperand(ins, 1)));
-        inss->push_back(InsNew(OPC::AND, tmp_src1, tmp_src1, rest_mask));
-        inss->push_back(InsNew(OPC::BITCAST, tmp_src2, InsOperand(ins, 2)));
-        inss->push_back(InsNew(OPC::AND, tmp_src2, tmp_src2, sign_mask));
-        inss->push_back(InsNew(OPC::OR, tmp_src1, tmp_src1, tmp_src2));
-        InsInit(ins, OPC::BITCAST, InsOperand(ins, 0), tmp_src1);
+        inss->push_back(InsNew(OPC::BITCAST, false, tmp_src1, InsOperand(ins, 1)));
+        inss->push_back(InsNew(OPC::AND, false, tmp_src1, tmp_src1, rest_mask));
+        inss->push_back(InsNew(OPC::BITCAST, false, tmp_src2, InsOperand(ins, 2)));
+        inss->push_back(InsNew(OPC::AND, false, tmp_src2, tmp_src2, sign_mask));
+        inss->push_back(InsNew(OPC::OR, false, tmp_src1, tmp_src1, tmp_src2));
+        InsInit(ins, OPC::BITCAST, InsIsOnlyDef(ins), InsOperand(ins, 0),
+                tmp_src1);
         dirty = true;
       }
       inss->push_back(ins);
@@ -658,12 +670,12 @@ Reg RegConstCache::Materialize(Fun fun, Const num, bool from_mem,
     Mem mem = UnitFindOrAddConstMem(unit_, num);
     Reg tmp_addr = FunGetScratchReg(fun, addr_kind_, "mem_const_addr", true);
     inss->push_back(
-        InsNew(OPC::LEA_MEM, tmp_addr, mem, ConstNewU(offset_kind_, 0)));
+        InsNew(OPC::LEA_MEM, true, tmp_addr, mem, ConstNewU(offset_kind_, 0)));
     out = FunGetScratchReg(fun, ConstKind(num), "mem_const", true);
-    inss->push_back(InsNew(OPC::LD, out, tmp_addr, ConstNewU(offset_kind_, 0)));
+    inss->push_back(InsNew(OPC::LD, true, out, tmp_addr, ConstNewU(offset_kind_, 0)));
   } else {
     out = FunGetScratchReg(fun, ConstKind(num), "imm", true);
-    inss->push_back(InsNew(OPC::MOV, out, num));
+    inss->push_back(InsNew(OPC::MOV, true, out, num));
   }
   insert(num, out);
   return out;
@@ -691,8 +703,8 @@ bool InsLimtiShiftAmounts(Ins ins, Fun fun, int width, std::vector<Ins>* inss) {
     Const mask = DKFlavor(dk) == DK_FLAVOR_U ? ConstNewU(dk, width - 1)
                                              : ConstNewACS(dk, width - 1);
     Reg tmp = FunGetScratchReg(fun, dk, "shift", false);
-    inss->push_back(InsNew(OPC::AND, tmp, amount, mask));
-    InsInit(ins, InsOPC(ins), InsOperand(ins, 0), InsOperand(ins, 1), tmp);
+    inss->push_back(InsNew(OPC::AND, true, tmp, amount, mask));
+    InsInit(ins, InsOPC(ins), InsIsOnlyDef(ins), InsOperand(ins, 0), InsOperand(ins, 1), tmp);
     inss->push_back(ins);
     return true;
   }
@@ -731,7 +743,7 @@ void FunPushargConversion(Fun fun, const PushPopInterface& ppif) {
         CpuReg cpu_reg = parameter.back();
         parameter.pop_back();
         Reg reg = FunFindOrAddCpuReg(fun, cpu_reg, RegOrConstKind(src));
-        InsInit(ins, OPC::MOV, reg, src);
+        InsInit(ins, OPC::MOV, false, reg, src);
         continue;
       }
 
@@ -762,7 +774,7 @@ void FunPopargConversion(Fun fun, const PushPopInterface& ppif) {
         CpuReg cpu_reg = parameter.back();
         parameter.pop_back();
         Reg reg = FunFindOrAddCpuReg(fun, cpu_reg, RegKind(dst));
-        InsInit(ins, OPC::MOV, dst, reg);
+        InsInit(ins, OPC::MOV, false, dst, reg);
         continue;
       }
 

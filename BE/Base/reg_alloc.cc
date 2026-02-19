@@ -218,7 +218,7 @@ void BblSpillRegs(Bbl bbl, Fun fun, DK offset, std::vector<Ins>* inss) {
       if (i >= num_defs) {
         ++num_ld;
         Reg tmp = FunGetScratchReg(fun, RegKind(reg), "ldspill", false);
-        inss->push_back(InsNew(OPC::LD_STK, tmp, stk, ConstNewU(offset, 0)));
+        inss->push_back(InsNew(OPC::LD_STK, true, tmp, stk, ConstNewU(offset, 0)));
         InsOperand(ins, i) = tmp;
       } else {
         if (num_st == 0) {
@@ -226,7 +226,7 @@ void BblSpillRegs(Bbl bbl, Fun fun, DK offset, std::vector<Ins>* inss) {
         }
         ++num_st;
         Reg tmp = FunGetScratchReg(fun, RegKind(reg), "stspill", false);
-        inss->push_back(InsNew(OPC::ST_STK, stk, ConstNewU(offset, 0), tmp));
+        inss->push_back(InsNew(OPC::ST_STK, false, stk, ConstNewU(offset, 0), tmp));
         InsOperand(ins, i) = tmp;
       }
     }

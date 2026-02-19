@@ -843,7 +843,7 @@ bool UnitAppendFromAsm(Unit unit, std::string_view input,
         return false;
       }
       ASSERT(MAX_OPERANDS == 5, "Fix the call below if this fires");
-      const Ins ins = InsNew(opc, operands[0], operands[1], operands[2],
+      const Ins ins = InsNew(opc, false, operands[0], operands[1], operands[2],
                              operands[3], operands[4]);
 
       BblInsAdd(bbl, ins);

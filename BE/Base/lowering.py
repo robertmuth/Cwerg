@@ -618,6 +618,7 @@ def _InsLimitShiftAmounts(
     else:
         tmp = fun.GetScratchReg(amount.kind, "shift", False)
         mask = ir.Ins(o.AND, [tmp, amount, ir.Const(amount.kind, width - 1)], True)
+        # TODO: just patch the instruction
         ins.Init(opc, [ops[0], ops[1], tmp], ins.is_only_def)
         return [mask, ins]
 

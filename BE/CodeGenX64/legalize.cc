@@ -100,8 +100,7 @@ void FunRewriteOutOfBoundsImmediates(Fun fun, Unit unit,
         for (unsigned pos = 0; pos < n; ++pos) {
           Const c = Const(InsOperand(ins, pos));
           if (!IsOutOfBoundImmediate(InsOPC(ins), c, pos)) continue;
-          bool from_mem =
-              ConstKind(c) == DK::R64 || ConstKind(c) == DK::R32;
+          bool from_mem = ConstKind(c) == DK::R64 || ConstKind(c) == DK::R32;
           size_t before = inss->size();
           Reg reg = cache.Materialize(fun, c, from_mem, inss);
           // Work around a compiler warning bug
@@ -129,11 +128,12 @@ void FunRewriteDivRemShiftsCAS(Fun fun, Unit unit, std::vector<Ins>* inss) {
               Reg rax = FunFindOrAddCpuReg(fun, GPR_REGS[0], dk);
               Reg rcx = FunFindOrAddCpuReg(fun, GPR_REGS[1], dk);
               Reg rdx = FunFindOrAddCpuReg(fun, GPR_REGS[2], dk);
-              inss->push_back(InsNew(OPC::MOV, rax, InsOperand(ins, 1)));
-              inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
+              inss->push_back(InsNew(OPC::MOV, false, rax, InsOperand(ins, 1)));
+              inss->push_back(InsNew(OPC::MOV, false, rcx, InsOperand(ins, 2)));
               inss->push_back(ins);
-              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rax));
-              InsInit(ins, OPC::DIV, rdx, rax, rcx);
+              inss->push_back(InsNew(OPC::MOV, false, InsOperand(ins, 0), rax));
+              InsInit(ins, OPC::DIV, false, rdx, rax, rcx);
+
               dirty = true;
               continue;
             }
@@ -141,14 +141,14 @@ void FunRewriteDivRemShiftsCAS(Fun fun, Unit unit, std::vector<Ins>* inss) {
               Reg rax = FunFindOrAddCpuReg(fun, GPR_REGS[0], dk);
               Reg rcx = FunFindOrAddCpuReg(fun, GPR_REGS[1], dk);
               Reg rdx = FunFindOrAddCpuReg(fun, GPR_REGS[2], dk);
-              inss->push_back(InsNew(OPC::MOV, rax, InsOperand(ins, 1)));
-              inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
+              inss->push_back(InsNew(OPC::MOV, false, rax, InsOperand(ins, 1)));
+              inss->push_back(InsNew(OPC::MOV, false, rcx, InsOperand(ins, 2)));
               inss->push_back(ins);
-              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rdx));
+              inss->push_back(InsNew(OPC::MOV, false, InsOperand(ins, 0), rdx));
               // Note, this relies on tight coupling with the isel which will
               // pick the x86 div instruction the computes both the dividend and
               // remainder
-              InsInit(ins, OPC::DIV, rdx, rax, rcx);
+              InsInit(ins, OPC::DIV, false, rdx, rax, rcx);
               dirty = true;
               continue;
             }
@@ -156,9 +156,9 @@ void FunRewriteDivRemShiftsCAS(Fun fun, Unit unit, std::vector<Ins>* inss) {
             case OPC::CAS_MEM:
             case OPC::CAS_STK: {
               Reg rax = FunFindOrAddCpuReg(fun, GPR_REGS[0], dk);
-              inss->push_back(InsNew(OPC::MOV, rax, InsOperand(ins, 1)));
+              inss->push_back(InsNew(OPC::MOV, false, rax, InsOperand(ins, 1)));
               inss->push_back(ins);
-              inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), rax));
+              inss->push_back(InsNew(OPC::MOV, false, InsOperand(ins, 0), rax));
               InsOperand(ins, 0) = rax;
               InsOperand(ins, 1) = rax;
               dirty = true;
@@ -174,9 +174,10 @@ void FunRewriteDivRemShiftsCAS(Fun fun, Unit unit, std::vector<Ins>* inss) {
                                        ? ConstNewU(dk, mask)
                                        : ConstNewACS(dk, mask);
                 Reg rcx = FunFindOrAddCpuReg(fun, GPR_REGS[1], dk);
-                inss->push_back(InsNew(OPC::MOV, rcx, InsOperand(ins, 2)));
+                inss->push_back(
+                    InsNew(OPC::MOV, false, rcx, InsOperand(ins, 2)));
 
-                inss->push_back(InsNew(OPC::AND, rcx, rcx, const_mask));
+                inss->push_back(InsNew(OPC::AND, false, rcx, rcx, const_mask));
                 inss->push_back(ins);
                 InsOperand(ins, 2) = rcx;
               } else {
@@ -262,10 +263,10 @@ void FunRewriteIntoAABForm(Fun fun, std::vector<Ins>* inss) {
           dirty = true;
           const Reg reg = FunGetScratchReg(fun, RegKind(first), "aab", false);
           RegFlags(reg) |= +REG_FLAG::TWO_ADDRESS;
-          inss->push_back(InsNew(OPC::MOV, reg, InsOperand(ins, 1)));
+          inss->push_back(InsNew(OPC::MOV, false, reg, InsOperand(ins, 1)));
           inss->push_back(ins);
-          inss->push_back(InsNew(OPC::MOV, InsOperand(ins, 0), reg));
-          InsInit(ins, InsOPC(ins), reg, reg, InsOperand(ins, 2));
+          inss->push_back(InsNew(OPC::MOV, false, InsOperand(ins, 0), reg));
+          InsInit(ins, InsOPC(ins), false, reg, reg, InsOperand(ins, 2));
           continue;
         }
       }
