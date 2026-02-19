@@ -92,17 +92,18 @@ def _InsStrengthReduction(
     elif _InsIsZero(ins):
         ins.Init(o.MOV, [ops[0], ir.Const(ops[0].kind, 0)])
         return [ins]
-    elif (opc is o.MUL and ops[0].IsIntReg() and isinstance(ops[2], ir.Const) and
-          ops[2].IsIntPowerOfTwo()):
-        shift = ops[2].IntBinaryLog()
-        ins.Init(o.SHL, [ops[0], ops[1], ir.Const(ops[0].kind, shift)])
-        return [ins]
     elif (opc is o.MUL and ops[0].IsIntReg() and isinstance(ops[1], ir.Const) and
           ops[1].IsIntPowerOfTwo()):
         shift = ops[1].IntBinaryLog()
         # TODO: orig_operand update
         ins.Init(o.SHL, [ops[0], ops[2], ir.Const(ops[0].kind, shift)])
         return [ins]
+    elif (opc is o.MUL and ops[0].IsIntReg() and isinstance(ops[2], ir.Const) and
+          ops[2].IsIntPowerOfTwo()):
+        shift = ops[2].IntBinaryLog()
+        ins.Init(o.SHL, [ops[0], ops[1], ir.Const(ops[0].kind, shift)])
+        return [ins]
+
     # TODO: DIV for unsigned int
 
     return None
