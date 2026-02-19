@@ -290,6 +290,8 @@ class Ins:
         assert False, "do not compare Ins directly. Use 'is' if appropriate"
 
     def __repr__(self):
+        if self is INS_INVALID:
+            return "[INS INVALID]"
         return f"[INS {self.opcode.name}]"
 
 
