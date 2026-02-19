@@ -9,6 +9,8 @@
 
 namespace cwerg::base {
 
+// Assigns each reg in a fun a number and creates a map
+// from those numbers back to the registers
 // Pre-requisite for liveness + reaching defs
 void FunNumberReg(Fun fun);
 
