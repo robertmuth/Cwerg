@@ -260,11 +260,11 @@ def InsSpillRegs(ins: ir.Ins, fun: ir.Fun, zero_const, reg_to_stk) -> Optional[L
         if n < num_defs:
             scratch = fun.GetScratchReg(reg.kind, "stspill", False)
             ins.operands[n] = scratch
-            after.append(ir.Ins(o.ST_STK, [stk, zero_const, scratch]))
+            after.append(ir.Ins(o.ST_STK, [stk, zero_const, scratch], False))
         else:
             scratch = fun.GetScratchReg(reg.kind, "ldspill", False)
             ins.operands[n] = scratch
-            before.append(ir.Ins(o.LD_STK, [scratch, stk, zero_const]))
+            before.append(ir.Ins(o.LD_STK, [scratch, stk, zero_const], True))
     if before or after:
         return before + [ins] + after
     else:
@@ -291,4 +291,3 @@ def FunSpillRegs(fun: ir.Fun, offset_kind: o.DK, regs: List[ir.Reg], prefix) -> 
         fun.AddStk(stk)
     return ir.FunGenericRewrite(fun, InsSpillRegs, zero_const=ir.Const(offset_kind, 0),
                                 reg_to_stk=reg_to_stk)
-

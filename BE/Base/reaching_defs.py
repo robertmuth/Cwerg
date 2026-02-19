@@ -34,7 +34,8 @@ def _BblComputeDefs(bbl: ir.Bbl) -> Tuple[ir.REG_DEF_MAP, Set[ir.Reg]]:
         num_defs = ins.opcode.def_ops_count()
         # we need reversed because we want to process the uses before the definitions
         for n, reg in reversed(list(enumerate(ins.operands))):
-            if not isinstance(reg, ir.Reg): continue
+            if not isinstance(reg, ir.Reg):
+                continue
             if n < num_defs:
                 defs[reg] = ins
             else:
@@ -70,9 +71,10 @@ def _MergeReachingDefs(defs: ir.REG_DEF_MAP, other: ir.REG_DEF_MAP,
     change = False
 
     for k, v in other.items():
+        assert isinstance(v, (ir.Ins, ir.Bbl))
         if k not in defs:
             change = True
-            defs[k] = (v if v is not ir.INS_INVALID else top)
+            defs[k] = v if isinstance(v, ir.Ins) else top
         else:
             v2 = defs[k]
             if v is not v2:
@@ -106,7 +108,9 @@ def _BblPropagateDefs(bbl: ir.Bbl, defs_in: ir.REG_DEF_MAP):
                 defs_in[reg] = ins
                 ins.operand_defs[n] = ir.INS_INVALID
             else:
-                ins.operand_defs[n] = defs_in[reg]
+                d = defs_in[reg]
+                assert isinstance(d, (ir.Ins, ir.Bbl))
+                ins.operand_defs[n] = d
 
 
 def FunComputeReachingDefs(fun: ir.Fun):
@@ -213,22 +217,23 @@ def _InsConstantFold(
     elif kind is o.OPC_KIND.CMP:
         if not isinstance(ops[3], ir.Const) or not isinstance(ops[4], ir.Const):
             return None
-        cmp_true = eval.EvaluatateCondBra(o.BEQ if ins.opcode is o.CMPEQ else o.BLT, ops[3], ops[4])
+        cmp_true = eval.EvaluatateCondBra(
+            o.BEQ if ins.opcode is o.CMPEQ else o.BLT, ops[3], ops[4])
         if cmp_true:
-            ins.Init(o.MOV, [ops[0], ops[1]])
+            ins.Init(o.MOV, [ops[0], ops[1]], ins.is_only_def)
         else:
-            ins.Init(o.MOV, [ops[0], ops[2]])
+            ins.Init(o.MOV, [ops[0], ops[2]], ins.is_only_def)
     elif kind is o.OPC_KIND.ALU1:
         if not isinstance(ops[1], ir.Const):
             return None
         new_op = eval.EvaluatateALU1(ins.opcode, ops[1])
-        ins.Init(o.MOV, [ops[0], new_op])
+        ins.Init(o.MOV, [ops[0], new_op], ins.is_only_def)
         return [ins]
     elif kind is o.OPC_KIND.ALU:
         if not isinstance(ops[1], ir.Const) or not isinstance(ops[2], ir.Const):
             return None
         new_op = eval.EvaluatateALU(ins.opcode, ops[1], ops[2])
-        ins.Init(o.MOV, [ops[0], new_op])
+        ins.Init(o.MOV, [ops[0], new_op], ins.is_only_def)
         return [ins]
     elif ins.opcode is o.CONV:
         # TODO: this needs some  more thought generally but in
@@ -244,7 +249,7 @@ def _InsConstantFold(
         if not o.RegIsAddrInt(src.kind) or not o.RegIsAddrInt(dst.kind):
             return None
         new_val = eval.ConvertIntValue(dst.kind, src)
-        ins.Init(o.MOV, [dst, new_val])
+        ins.Init(o.MOV, [dst, new_val], ins.is_only_def)
         return [ins]
     else:
         return None
@@ -277,7 +282,7 @@ def _CombinedOffset(ins: ir.Ins, base_ins: ir.Ins) -> Tuple[Any, Any]:
     if isinstance(offset2, ir.Const) and offset2.IsZero():
         return offset1, ins.operand_defs[off_pos]
     if isinstance(offset1, ir.Const) and isinstance(offset2, ir.Const):
-        return  eval.AddOffsets(offset1, offset2), None
+        return eval.AddOffsets(offset1, offset2), None
     return None, None
 
 
@@ -316,15 +321,13 @@ def _InsTryLoadStoreSimplify(ins: ir.Ins, defs: ir.REG_DEF_MAP) -> int:
     base_pos = 0 if ins.opcode is o.ST else 1
     ins_base = ins.operand_defs[base_pos]
 
+
     if ins_base is ir.INS_INVALID or not isinstance(ins_base, ir.Ins):
         return 0
 
     new_opc = _LOAD_STORE_BASE_REWRITE.get((ins_base.opcode, ins.opcode))
     if new_opc is None:
         return 0
-    # print ("")
-    # print("#", serialize.InsRenderToAsm(ins))
-    # print("#", serialize.InsRenderToAsm(ins_base))
 
     # is the original base still available at the ld/st
     base = ins_base.operands[1]
@@ -339,14 +342,14 @@ def _InsTryLoadStoreSimplify(ins: ir.Ins, defs: ir.REG_DEF_MAP) -> int:
         return 0
 
     if base_pos == 0:  # store
-        defs = [base_def, offset_def, ins.operand_defs[2]]
-        ins.Init(new_opc, [base, offset, ins.operands[2]])
-        ins.operand_defs = defs
+        new_defs = [base_def, offset_def, ins.operand_defs[2]]
+        ins.Init(new_opc, [base, offset, ins.operands[2]], False)
+        ins.operand_defs = new_defs
     else:
-        defs = [ins.operand_defs[0], base_def, offset_def]
+        new_defs = [ins.operand_defs[0], base_def, offset_def]
         assert base_pos == 1
-        ins.Init(new_opc, [ins.operands[0], base, offset])
-        ins.operand_defs = defs
+        ins.Init(new_opc, [ins.operands[0], base, offset], ins.is_only_def)
+        ins.operand_defs = new_defs
     # print("#>>>> ", serialize.InsRenderToAsm(ins))
 
     return 1
@@ -357,6 +360,8 @@ def _BblLoadStoreSimplify(bbl: ir.Bbl, _fun: ir.Fun) -> int:
 
     Requires reaching definitions both per bbl and per ins
     """
+    # we need to clone defs_in becasse we update the map as we iterate
+    # through the bbl
     defs: ir.REG_DEF_MAP = bbl.defs_in.copy()
     count = 0
     for ins in bbl.inss:
@@ -400,11 +405,15 @@ def _BblPropagateRegOperands(bbl: ir.Bbl, _fun: ir.Fun) -> int:
             src_reg = mov.operands[1]
             src_def = mov.operand_defs[1]
             # constant propagation is done by another pass
-            if not isinstance(src_reg, ir.Reg): continue
+            if not isinstance(src_reg, ir.Reg):
+                continue
             # we do not want to extend live ranges for allocated regs
-            if src_reg.cpu_reg: continue
-            # register content for src_def is no longer available
-            if defs[src_reg] is not src_def: continue
+            if src_reg.cpu_reg:
+                continue
+            # register content for src_def maybe have been overwritten and
+            # hence is no longer available
+            if defs[src_reg] is not src_def:
+                continue
             ins.operands[n] = src_reg
             ins.operand_defs[n] = src_def
             count += 1
@@ -512,21 +521,28 @@ def FunMoveElimination(fun: ir.Fun) -> int:
             if ins.opcode is o.MOV and isinstance(ins.operands[1], ir.Reg):
                 dst: ir.Reg = ins.operands[0]
                 src: ir.Reg = ins.operands[1]
-                if src.flags & ir.REG_FLAG.MULTI_DEF: continue
-                if src.flags & ir.REG_FLAG.MULTI_READ: continue
-                if src.flags & ir.REG_FLAG.LAC: continue
+                if src.flags & ir.REG_FLAG.MULTI_DEF:
+                    continue
+                if src.flags & ir.REG_FLAG.MULTI_READ:
+                    continue
+                if src.flags & ir.REG_FLAG.LAC:
+                    continue
 
                 src_def = ins.operand_defs[1]
-                if src_def == ir.INS_INVALID: continue
-                if not isinstance(src_def, ir.Ins): continue
+                if src_def == ir.INS_INVALID:
+                    continue
+                if not isinstance(src_def, ir.Ins):
+                    continue
                 # print (f"@@BEFORE {ins} {ins.operands}")
                 # print ("\n".join(serialize.BblRenderToAsm(bbl)))
-                ins.operands[1] = dst  # This will be taken care of by nop removal
+                # This will be taken care of by nop removal
+                ins.operands[1] = dst
                 # TODO: assumes at most one def per ins
                 assert src_def.operands[0] == src
                 src_def.operands[0] = dst
                 # print ("@@AFTER")
                 # print ("\n".join(serialize.BblRenderToAsm(bbl)))
                 count += 1
-                if count == 2: return count
+                if count == 2:
+                    return count
     return count

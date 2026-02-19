@@ -109,36 +109,36 @@ def _InsRewriteDivRemShiftsCAS(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
         rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
-        return [ir.Ins(o.MOV, [rax, ops[1]]),
-                ir.Ins(o.MOV, [rcx, ops[2]]),
+        return [ir.Ins(o.MOV, [rax, ops[1]], False),
+                ir.Ins(o.MOV, [rcx, ops[2]], False),
                 # note the notion of src/dst regs is murky here
-                ir.Ins(o.DIV, [rdx, rax, rcx]),
-                ir.Ins(o.MOV, [ops[0], rax])]
+                ir.Ins(o.DIV, [rdx, rax, rcx], False),
+                ir.Ins(o.MOV, [ops[0], rax], False)]
     elif opc is o.REM and ops[0].kind.flavor() != o.DK_FLAVOR_R:
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
         rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)
         rdx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rdx"], ops[0].kind)
-        return [ir.Ins(o.MOV, [rax, ops[1]]),
-                ir.Ins(o.MOV, [rcx, ops[2]]),
+        return [ir.Ins(o.MOV, [rax, ops[1]], False),
+                ir.Ins(o.MOV, [rcx, ops[2]], False),
                 # note the notion of src/dst regs is murky here
-                ir.Ins(o.DIV, [rdx, rax, rcx]),
-                ir.Ins(o.MOV, [ops[0], rdx])]
+                ir.Ins(o.DIV, [rdx, rax, rcx],  False),
+                ir.Ins(o.MOV, [ops[0], rdx], False)]
     elif opc in (o.SHR, o.SHL):
         dk: o.DK = ops[0].kind
         mask = dk.bitwidth() - 1
 
         if isinstance(ops[2], ir.Reg):
             rcx = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rcx"], ops[0].kind)
-            mov = ir.Ins(o.MOV, [rcx, ops[2]])
+            mov = ir.Ins(o.MOV, [rcx, ops[2]], False)
             ops[2] = rcx
-            return [mov, ir.Ins(o.AND, [rcx, rcx, ir.Const(dk, mask)]), ins]
+            return [mov, ir.Ins(o.AND, [rcx, rcx, ir.Const(dk, mask)], False), ins]
         else:
             assert isinstance(ops[2], ir.Const)
             ops[2].value = ops[2].value & mask
     elif opc in {o.CAS, o.CAS_MEM, o.CAS_STK}:
         rax = fun.FindOrAddCpuReg(regs.CPU_REGS_MAP["rax"], ops[0].kind)
-        mov_src = ir.Ins(o.MOV, [rax, ops[1]])
-        mov_dst = ir.Ins(o.MOV, [ops[0], rax])
+        mov_src = ir.Ins(o.MOV, [rax, ops[1]], False)
+        mov_dst = ir.Ins(o.MOV, [ops[0], rax], False)
         ops[1] = rax
         ops[0] = rax
         return [mov_src, ins, mov_dst]
@@ -177,9 +177,9 @@ def _InsRewriteIntoAABForm(
     else:
         reg = fun.GetScratchReg(ins.operands[0].kind, "aab", False)
         reg.flags |= ir.REG_FLAG.TWO_ADDRESS
-        return [ir.Ins(o.MOV, [reg, ops[1]]),
-                ir.Ins(ins.opcode, [reg, reg, ops[2]]),
-                ir.Ins(o.MOV, [ops[0], reg])]
+        return [ir.Ins(o.MOV, [reg, ops[1]], False),
+                ir.Ins(ins.opcode, [reg, reg, ops[2]], False),
+                ir.Ins(o.MOV, [ops[0], reg], False)]
 
 
 def _FunRewriteIntoAABForm(fun: ir.Fun, unit: ir.Unit) -> int:
@@ -285,6 +285,7 @@ def LegalizeAll(unit, opt_stats, fout, verbose=False):
             optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=True)
 
     for fun in unit.funs:
+        # pass
         PhaseLegalization(fun, unit, opt_stats, fout)
 
 

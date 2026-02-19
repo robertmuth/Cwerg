@@ -273,16 +273,18 @@ class Ins:
     opcode: o.Opcode
     operands: List[Any]
     operand_defs: List[Any]  # ir.INVALID, ir.Ins or ir.Bbl
+    is_only_def: bool
 
-    def __init__(self, opcode: o.Opcode, operands: List[Any]):
-        self.Init(opcode, operands)
+    def __init__(self, opcode: o.Opcode, operands: List[Any], is_only_def):
+        self.Init(opcode, operands, is_only_def)
 
-    def Init(self, opcode: o.Opcode, operands: List[Any]):
+    def Init(self, opcode: o.Opcode, operands: List[Any], is_only_def):
         assert len(operands) == len(
             opcode.operand_kinds), f"operand num mismatch for {opcode} {operands}"
         self.opcode = opcode
         self.operands = operands
         self.operand_defs = [INS_INVALID] * len(operands)
+        self.is_only_def = is_only_def
         return self
 
     # for reaching defs etc, this has cause subtle bugs
@@ -295,7 +297,7 @@ class Ins:
         return f"[INS {self.opcode.name}]"
 
 
-INS_INVALID = Ins(o.NOP, [])
+INS_INVALID = Ins(o.NOP, [], False)
 
 # see documentation in reaching_defs
 REG_DEF_MAP = Dict[Reg, Any]  # value is ir.INVALID, ir.Ins or ir.Bbl

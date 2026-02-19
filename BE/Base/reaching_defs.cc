@@ -6,8 +6,8 @@
 
 #include "BE/Base/cfg.h"
 #include "BE/Base/eval.h"
-#include "IR/opcode_gen.h"
 #include "BE/Base/serialize.h"
+#include "IR/opcode_gen.h"
 #include "Util/handlevec.h"
 
 namespace cwerg::base {
@@ -50,7 +50,7 @@ bool HandleVecCombineWith(HandleVec self, HandleVec other, unsigned num_regs,
     if (h2 == HandleBottom || h1 == h2) continue;
     if (h1 == HandleBottom) {
       change = true;
-      data1[i] = h2;
+      data1[i] = h2.raw_kind() == int(RefKind::BBL) ? top : h2;
       continue;
     }
     change = true;
@@ -62,9 +62,9 @@ bool HandleVecCombineWith(HandleVec self, HandleVec other, unsigned num_regs,
 // Propagation to `out` from `in` applying `def`
 bool HandleVecUpdateWith(HandleVec out, HandleVec in, HandleVec def,
                          unsigned num_regs) {
-  ASSERT(
-      out.num_chunks() == in.num_chunks() && out.num_chunks() == def.num_chunks(),
-      "");
+  ASSERT(out.num_chunks() == in.num_chunks() &&
+             out.num_chunks() == def.num_chunks(),
+         "");
   bool change = false;
   Handle* data_out = out.BackingStorage();
   Handle* data_in = in.BackingStorage();

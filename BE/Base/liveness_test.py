@@ -27,8 +27,8 @@ class TestRanges(unittest.TestCase):
         target = ir.Bbl("target")
         bbl = ir.Bbl("bbl")
         bbl.live_out.add(x)
-        bbl.AddIns(ir.Ins(O("poparg"), [x]))
-        bbl.AddIns(ir.Ins(O("blt"), [target, ir.OffsetConst(1), x]))
+        bbl.AddIns(ir.Ins(O("poparg"), [x], False))
+        bbl.AddIns(ir.Ins(O("blt"), [target, ir.OffsetConst(1), x], False))
 
         DumpBbl(bbl)
 

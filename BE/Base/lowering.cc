@@ -245,8 +245,9 @@ Handle NarrowOperand(Handle op, Fun fun, DK narrow_kind,
     Reg tmp_reg = FunGetScratchReg(fun, narrow_kind, "narrowed", true);
     RegFlags(tmp_reg) |= uint8_t(REG_FLAG::MARKED);  // do not widen
     inss->push_back(InsNew(OPC::CONV, tmp_reg, reg));
-    inss->push_back(InsNew(OPC::CONV, reg, tmp_reg));
-    return op;
+    Reg tmp_reg2 = FunGetScratchReg(fun, RegKind(reg), "rewidened", false);
+    inss->push_back(InsNew(OPC::CONV, tmp_reg2, tmp_reg));
+    return tmp_reg2;
   }
 }
 

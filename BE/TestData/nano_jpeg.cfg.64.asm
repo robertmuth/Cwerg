@@ -61,15 +61,15 @@
     poparg fd
     poparg s
     mov len 0
-.bbl while_1  #  edge_out[while_1_cond]
+.bbl while_1  #  #edge_in=1  edge_out[while_1_cond]
     add %U64_1 len 1
     mov len %U64_1
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=2  edge_out[while_1  while_1_exit]
     lea %A64_2 s len
     ld %S8_3 %A64_2 0
     conv %S32_4 %S8_3
     bne %S32_4 0 while_1
-.bbl while_1_exit
+.bbl while_1_exit  #  #edge_in=1
     pusharg len
     pusharg s
     pusharg fd
@@ -110,19 +110,19 @@
     poparg val
     lea.stk %A64_1 buffer 0
     mov pos 16
-.bbl while_1  #  edge_out[if_2_false  if_2_true]
+.bbl while_1  #  #edge_in=2  edge_out[if_2_false  if_2_true]
     sub %U64_2 pos 1
     mov pos %U64_2
     rem %U32_3 val 16
     mov digit %U32_3
     ble digit 9 if_2_true
-.bbl if_2_true  #  edge_out[if_2_end]
+.bbl if_2_true  #  #edge_in=1  edge_out[if_2_end]
     add %U32_4 48 digit
     conv %S8_5 %U32_4
     lea.stk %A64_6 buffer 0
     lea %A64_7 %A64_6 pos
     st %A64_7 0 %S8_5
-.bbl if_2_false  #  edge_out[if_2_end]
+.bbl if_2_false  #  #edge_in=1  edge_out[if_2_end]
     sub %S32_8 97 10
     conv %U32_9 %S32_8
     add %U32_10 %U32_9 digit
@@ -130,12 +130,12 @@
     lea.stk %A64_12 buffer 0
     lea %A64_13 %A64_12 pos
     st %A64_13 0 %S8_11
-.bbl if_2_end  #  edge_out[while_1_cond]
+.bbl if_2_end  #  #edge_in=2  edge_out[while_1_cond]
     div %U32_14 val 16
     mov val %U32_14
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_1_exit]
     bne val 0 while_1
-.bbl while_1_exit
+.bbl while_1_exit  #  #edge_in=1
     lea.stk %A64_15 buffer 0
     lea %A64_16 %A64_15 pos
     lea.stk %A64_17 buffer 0
@@ -173,7 +173,7 @@
     poparg val
     lea.stk %A64_1 buffer 0
     mov pos 16
-.bbl while_1  #  edge_out[while_1_cond]
+.bbl while_1  #  #edge_in=2  edge_out[while_1_cond]
     sub %U64_2 pos 1
     mov pos %U64_2
     rem %U32_3 val 10
@@ -184,9 +184,9 @@
     st %A64_7 0 %S8_5
     div %U32_8 val 10
     mov val %U32_8
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_1_exit]
     bne val 0 while_1
-.bbl while_1_exit
+.bbl while_1_exit  #  #edge_in=1
     lea.stk %A64_9 buffer 0
     lea %A64_10 %A64_9 pos
     lea.stk %A64_11 buffer 0
@@ -232,7 +232,7 @@
     poparg fd
     poparg sval
     ble 0:S32 sval if_2_true
-.bbl if_2_true
+.bbl if_2_true  #  #edge_in=1
     conv %U32_1 sval
     pusharg %U32_1
     pusharg fd
@@ -241,13 +241,13 @@
     mov %out %S64_2
     pusharg %out
     ret
-.bbl if_2_end  #  edge_out[while_1]
+.bbl if_2_end  #  #edge_in=1  edge_out[while_1]
     sub %S32_3 0 sval
     conv %U32_4 %S32_3
     mov val %U32_4
     lea.stk %A64_5 buffer 0
     mov pos 16
-.bbl while_1  #  edge_out[while_1_cond]
+.bbl while_1  #  #edge_in=2  edge_out[while_1_cond]
     sub %U64_6 pos 1
     mov pos %U64_6
     rem %U32_7 val 10
@@ -258,9 +258,9 @@
     st %A64_11 0 %S8_9
     div %U32_12 val 10
     mov val %U32_12
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_1_exit]
     bne val 0 while_1
-.bbl while_1_exit
+.bbl while_1_exit  #  #edge_in=1
     sub %U64_13 pos 1
     mov pos %U64_13
     lea.stk %A64_14 buffer 0
@@ -516,16 +516,16 @@
     poparg value
     poparg n
     mov i 0
-.bbl for_1  #  edge_out[for_1_next]
+.bbl for_1  #  #edge_in=1  edge_out[for_1_next]
     conv %S8_1 value
     lea %A64_2 ptr i
     st %A64_2 0 %S8_1
-.bbl for_1_next  #  edge_out[for_1_cond]
+.bbl for_1_next  #  #edge_in=1  edge_out[for_1_cond]
     add %U64_3 i 1
     mov i %U64_3
-.bbl for_1_cond  #  edge_out[for_1  for_1_exit]
+.bbl for_1_cond  #  #edge_in=2  edge_out[for_1  for_1_exit]
     blt i n for_1
-.bbl for_1_exit
+.bbl for_1_exit  #  #edge_in=1
     mov %out ptr
     pusharg %out
     ret
@@ -545,17 +545,17 @@
     poparg src
     poparg n
     mov i 0
-.bbl for_1  #  edge_out[for_1_next]
+.bbl for_1  #  #edge_in=1  edge_out[for_1_next]
     lea %A64_1 src i
     ld %S8_2 %A64_1 0
     lea %A64_3 dst i
     st %A64_3 0 %S8_2
-.bbl for_1_next  #  edge_out[for_1_cond]
+.bbl for_1_next  #  #edge_in=1  edge_out[for_1_cond]
     add %U64_4 i 1
     mov i %U64_4
-.bbl for_1_cond  #  edge_out[for_1  for_1_exit]
+.bbl for_1_cond  #  #edge_in=2  edge_out[for_1  for_1_exit]
     blt i n for_1
-.bbl for_1_exit
+.bbl for_1_exit  #  #edge_in=1
     mov %out dst
     pusharg %out
     ret
@@ -627,7 +627,7 @@
     lea.mem %A64_2 __static_1__malloc_start 0
     ld %A64_3 %A64_2 0
     beq %A64_3 0 if_1_true
-.bbl if_1_true  #  edge_out[if_1_end]
+.bbl if_1_true  #  #edge_in=1  edge_out[if_1_end]
     lea %A64_5 0 0
     pusharg %A64_5
     bsr xbrk
@@ -638,7 +638,7 @@
     ld %A64_8 %A64_7 0
     lea.mem %A64_9 __static_2__malloc_end 0
     st %A64_9 0 %A64_8
-.bbl if_1_end  #  edge_out[if_3_end  if_3_true]
+.bbl if_1_end  #  #edge_in=2  edge_out[if_3_end  if_3_true]
     add %U64_10 size 15
     div %U64_11 %U64_10 16
     mul %U64_12 %U64_11 16
@@ -649,7 +649,7 @@
     lea.mem %A64_16 __static_2__malloc_end 0
     ld %A64_17 %A64_16 0
     blt %A64_17 %A64_15 if_3_true
-.bbl if_3_true  #  edge_out[if_2_true  if_3_end]
+.bbl if_3_true  #  #edge_in=1  edge_out[if_2_true  if_3_end]
     add %U64_18 rounded_size page_size
     sub %U64_19 %U64_18 1
     div %U64_20 %U64_19 page_size
@@ -667,9 +667,9 @@
     lea.mem %A64_27 __static_2__malloc_end 0
     ld %A64_28 %A64_27 0
     bne %A64_28 new_end if_2_true
-.bbl if_2_true  #  edge_out[if_3_end]
+.bbl if_2_true  #  #edge_in=1  edge_out[if_3_end]
     bsr abort
-.bbl if_3_end
+.bbl if_3_end  #  #edge_in=3
     lea.mem %A64_29 __static_1__malloc_start 0
     ld %A64_30 %A64_29 0
     mov result %A64_30
@@ -702,17 +702,17 @@
     poparg value
     poparg num
     mov i 0
-.bbl for_1  #  edge_out[for_1_next]
+.bbl for_1  #  #edge_in=1  edge_out[for_1_next]
     conv %S8_1 value
     lea %A64_2 ptr i
     st %A64_2 0 %S8_1
-.bbl for_1_next  #  edge_out[for_1_cond]
+.bbl for_1_next  #  #edge_in=1  edge_out[for_1_cond]
     add %S32_3 i 1
     mov i %S32_3
-.bbl for_1_cond  #  edge_out[for_1  for_1_exit]
+.bbl for_1_cond  #  #edge_in=2  edge_out[for_1  for_1_exit]
     conv %U64_4 i
     blt %U64_4 num for_1
-.bbl for_1_exit
+.bbl for_1_exit  #  #edge_in=1
     ret
 
 .fun mymemcpy NORMAL [] = [A64 A64 U64]
@@ -730,18 +730,18 @@
     poparg source
     poparg num
     mov i 0
-.bbl for_1  #  edge_out[for_1_next]
+.bbl for_1  #  #edge_in=1  edge_out[for_1_next]
     lea %A64_5 source i
     ld %S8_6 %A64_5 0
     lea %A64_7 destination i
     st %A64_7 0 %S8_6
-.bbl for_1_next  #  edge_out[for_1_cond]
+.bbl for_1_next  #  #edge_in=1  edge_out[for_1_cond]
     add %S32_8 i 1
     mov i %S32_8
-.bbl for_1_cond  #  edge_out[for_1  for_1_exit]
+.bbl for_1_cond  #  #edge_in=2  edge_out[for_1  for_1_exit]
     conv %U64_9 i
     blt %U64_9 num for_1
-.bbl for_1_exit
+.bbl for_1_exit  #  #edge_in=1
     ret
 
 .fun njGetWidth NORMAL [S32] = []
@@ -780,11 +780,11 @@
     lea %A64_17 %A64_16 48
     ld %U32_18 %A64_17 0
     bne %U32_18 1 if_1_true
-.bbl if_1_true
+.bbl if_1_true  #  #edge_in=1
     mov %out 1
     pusharg %out
     ret
-.bbl if_1_false
+.bbl if_1_false  #  #edge_in=1
     mov %out 0
     pusharg %out
     ret
@@ -806,7 +806,7 @@
     lea %A64_20 %A64_19 48
     ld %U32_21 %A64_20 0
     beq %U32_21 1 if_1_true
-.bbl if_1_true
+.bbl if_1_true  #  #edge_in=1
     lea.mem %A64_22 nj 0
     lea %A64_23 %A64_22 52
     lea %A64_24 %A64_23 40
@@ -814,7 +814,7 @@
     mov %out %A64_25
     pusharg %out
     ret
-.bbl if_1_false
+.bbl if_1_false  #  #edge_in=1
     lea.mem %A64_26 nj 0
     lea %A64_27 %A64_26 525020
     ld %A64_28 %A64_27 0
@@ -862,17 +862,17 @@
 .bbl %start  #  edge_out[if_2_false  if_2_true]
     poparg x
     blt x 0 if_2_true
-.bbl if_2_true
+.bbl if_2_true  #  #edge_in=1
     mov %out 0
     pusharg %out
     ret
-.bbl if_2_false  #  edge_out[if_1_true  if_2_end]
+.bbl if_2_false  #  #edge_in=1  edge_out[if_1_true  if_2_end]
     blt 255:S32 x if_1_true
-.bbl if_1_true
+.bbl if_1_true  #  #edge_in=1
     mov %out 255
     pusharg %out
     ret
-.bbl if_2_end
+.bbl if_2_end  #  #edge_in=1
     conv %U8_42 x
     mov %out %U8_42
     pusharg %out
@@ -1018,7 +1018,7 @@
     mov x7 %S32_62
     or %S32_63 %S32_60 %S32_62
     bne %S32_63 0 if_1_end
-.bbl if_1_true
+.bbl if_1_true  #  #edge_in=1
     ld %S32_64 blk 0
     shl %S32_65 %S32_64 3
     lea %A64_66 blk 28
@@ -1037,7 +1037,7 @@
     st %A64_72 0 %S32_65
     st blk 0 %S32_65
     ret
-.bbl if_1_end
+.bbl if_1_end  #  #edge_in=1
     ld %S32_73 blk 0
     shl %S32_74 %S32_73 11
     add %S32_75 %S32_74 128
@@ -1335,7 +1335,7 @@
     mov x7 %S32_174
     or %S32_175 %S32_170 %S32_174
     bne %S32_175 0 if_3_end
-.bbl if_3_true  #  edge_out[for_1_cond]
+.bbl if_3_true  #  #edge_in=1  edge_out[for_1_cond]
     ld %S32_176 blk 0
     add %S32_177 %S32_176 32
     shr %S32_178 %S32_177 6
@@ -1346,19 +1346,19 @@
     conv %S32_181 %U8_180
     mov x1 %S32_181
     mov x0 8
-.bbl for_1  #  edge_out[for_1_next]
+.bbl for_1  #  #edge_in=1  edge_out[for_1_next]
     conv %U8_182 x1
     st out 0 %U8_182
     lea %A64_183 out stride
     mov out %A64_183
-.bbl for_1_next  #  edge_out[for_1_cond]
+.bbl for_1_next  #  #edge_in=1  edge_out[for_1_cond]
     sub %S32_184 x0 1
     mov x0 %S32_184
-.bbl for_1_cond  #  edge_out[for_1  for_1_exit]
+.bbl for_1_cond  #  #edge_in=2  edge_out[for_1  for_1_exit]
     bne x0 0 for_1
-.bbl for_1_exit
+.bbl for_1_exit  #  #edge_in=1
     ret
-.bbl if_3_end
+.bbl if_3_end  #  #edge_in=1
     ld %S32_185 blk 0
     shl %S32_186 %S32_185 8
     add %S32_187 %S32_186 8192
@@ -1619,16 +1619,16 @@
 .bbl %start  #  edge_out[if_2_true  while_1_cond]
     poparg bits
     bne bits 0 while_1_cond
-.bbl if_2_true
+.bbl if_2_true  #  #edge_in=1
     mov %out 0
     pusharg %out
     ret
-.bbl while_1  #  edge_out[if_3_end  if_3_true]
+.bbl while_1  #  #edge_in=1  edge_out[if_3_end  if_3_true]
     lea.mem %A64_278 nj 0
     lea %A64_279 %A64_278 16
     ld %S32_280 %A64_279 0
     ble %S32_280 0 if_3_true
-.bbl if_3_true  #  edge_out[while_1_cond]
+.bbl if_3_true  #  #edge_in=1  edge_out[while_1_cond]
     lea.mem %A64_281 nj 0
     lea %A64_282 %A64_281 524752
     ld %S32_283 %A64_282 0
@@ -1644,7 +1644,7 @@
     lea.mem %A64_292 nj 0
     lea %A64_293 %A64_292 524756
     st %A64_293 0 %S32_291
-.bbl if_3_end  #  edge_out[if_6_true  while_1_cond]
+.bbl if_3_end  #  #edge_in=1  edge_out[if_6_true  while_1_cond]
     lea.mem %A64_294 nj 0
     lea %A64_295 %A64_294 4
     ld %A64_296 %A64_295 0
@@ -1682,12 +1682,12 @@
     st %A64_323 0 %S32_321
     conv %S32_324 newbyte
     beq %S32_324 255 if_6_true
-.bbl if_6_true  #  edge_out[if_5_false  if_5_true]
+.bbl if_6_true  #  #edge_in=1  edge_out[if_5_false  if_5_true]
     lea.mem %A64_325 nj 0
     lea %A64_326 %A64_325 16
     ld %S32_327 %A64_326 0
     bne %S32_327 0 if_5_true
-.bbl if_5_true  #  edge_out[if_5_true_1  switch_344_default]
+.bbl if_5_true  #  #edge_in=1  edge_out[if_5_true_1  switch_344_default]
     lea.mem %A64_328 nj 0
     lea %A64_329 %A64_328 4
     ld %A64_330 %A64_329 0
@@ -1708,22 +1708,22 @@
     lea %A64_343 %A64_342 16
     st %A64_343 0 %S32_341
     blt 255:U8 marker switch_344_default
-.bbl if_5_true_1  #  edge_out[switch_344_217  switch_344_default  while_1_cond  while_1_cond]
+.bbl if_5_true_1  #  #edge_in=1  edge_out[switch_344_217  switch_344_default  while_1_cond  while_1_cond]
     switch marker switch_344_tab
-.bbl switch_344_217  #  edge_out[while_1_cond]
+.bbl switch_344_217  #  #edge_in=1  edge_out[while_1_cond]
     lea.mem %A64_345 nj 0
     lea %A64_346 %A64_345 16
     mov %S32_347 0
     st %A64_346 0 %S32_347
-.bbl switch_344_default  #  edge_out[if_4_false  if_4_true]
+.bbl switch_344_default  #  #edge_in=2  edge_out[if_4_false  if_4_true]
     conv %S32_348 marker
     and %S32_349 %S32_348 248
     bne %S32_349 208 if_4_true
-.bbl if_4_true  #  edge_out[while_1_cond]
+.bbl if_4_true  #  #edge_in=1  edge_out[while_1_cond]
     lea.mem %A64_350 nj 0
     mov %S32_351 5
     st %A64_350 0 %S32_351
-.bbl if_4_false  #  edge_out[while_1_cond]
+.bbl if_4_false  #  #edge_in=1  edge_out[while_1_cond]
     lea.mem %A64_352 nj 0
     lea %A64_353 %A64_352 524752
     ld %S32_354 %A64_353 0
@@ -1740,16 +1740,16 @@
     lea.mem %A64_364 nj 0
     lea %A64_365 %A64_364 524756
     st %A64_365 0 %S32_363
-.bbl if_5_false  #  edge_out[while_1_cond]
+.bbl if_5_false  #  #edge_in=1  edge_out[while_1_cond]
     lea.mem %A64_366 nj 0
     mov %S32_367 5
     st %A64_366 0 %S32_367
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=9  edge_out[while_1  while_1_exit]
     lea.mem %A64_368 nj 0
     lea %A64_369 %A64_368 524756
     ld %S32_370 %A64_369 0
     blt %S32_370 bits while_1
-.bbl while_1_exit
+.bbl while_1_exit  #  #edge_in=1
     lea.mem %A64_371 nj 0
     lea %A64_372 %A64_371 524752
     ld %S32_373 %A64_372 0
@@ -1783,11 +1783,11 @@
     lea %A64_383 %A64_382 524756
     ld %S32_384 %A64_383 0
     blt %S32_384 bits if_1_true
-.bbl if_1_true  #  edge_out[if_1_end]
+.bbl if_1_true  #  #edge_in=1  edge_out[if_1_end]
     pusharg bits
     bsr __static_1_njShowBits
     poparg %S32_385
-.bbl if_1_end
+.bbl if_1_end  #  #edge_in=2
     lea.mem %A64_386 nj 0
     lea %A64_387 %A64_386 524756
     ld %S32_388 %A64_387 0
@@ -1883,11 +1883,11 @@
     lea %A64_418 %A64_417 16
     ld %S32_419 %A64_418 0
     blt %S32_419 0 if_1_true
-.bbl if_1_true  #  edge_out[if_1_end]
+.bbl if_1_true  #  #edge_in=1  edge_out[if_1_end]
     lea.mem %A64_420 nj 0
     mov %S32_421 5
     st %A64_420 0 %S32_421
-.bbl if_1_end
+.bbl if_1_end  #  #edge_in=2
     ret
 
 .fun njDecode16 NORMAL [U16] = [A64]
@@ -1942,14 +1942,14 @@
     lea %A64_431 %A64_430 16
     ld %S32_432 %A64_431 0
     blt %S32_432 2 while_1
-.bbl while_1
+.bbl while_1  #  #edge_in=2
     lea.mem %A64_433 nj 0
     mov %S32_434 5
     st %A64_433 0 %S32_434
     ret
 .bbl while_1_cond  #  edge_out[if_4_end  while_1]
     bne 0:S32 0 while_1
-.bbl if_4_end  #  edge_out[if_6_end  while_2]
+.bbl if_4_end  #  #edge_in=2  edge_out[if_6_end  while_2]
     lea.mem %A64_435 nj 0
     lea %A64_436 %A64_435 4
     ld %A64_437 %A64_436 0
@@ -1967,14 +1967,14 @@
     lea %A64_446 %A64_445 16
     ld %S32_447 %A64_446 0
     blt %S32_447 %S32_444 while_2
-.bbl while_2
+.bbl while_2  #  #edge_in=2
     lea.mem %A64_448 nj 0
     mov %S32_449 5
     st %A64_448 0 %S32_449
     ret
 .bbl while_2_cond  #  edge_out[if_6_end  while_2]
     bne 0:S32 0 while_2
-.bbl if_6_end
+.bbl if_6_end  #  #edge_in=2
     mov %S32_450 2
     pusharg %S32_450
     bsr __static_2_njSkip
@@ -2273,42 +2273,42 @@
     mov ssxmax 0
     mov ssymax 0
     bsr __static_3_njDecodeLength
-.bbl while_1  #  edge_out[if_17_true  while_1_cond]
+.bbl while_1  #  #edge_in=2  edge_out[if_17_true  while_1_cond]
     lea.mem %A64_454 nj 0
     lea %A64_455 %A64_454 0
     ld %S32_456 %A64_455 0
     bne %S32_456 0 if_17_true
-.bbl if_17_true
+.bbl if_17_true  #  #edge_in=1
     ret
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_1_exit]
     bne 0:S32 0 while_1
-.bbl while_1_exit  #  edge_out[if_20_end  while_2]
+.bbl while_1_exit  #  #edge_in=1  edge_out[if_20_end  while_2]
     lea.mem %A64_457 nj 0
     lea %A64_458 %A64_457 20
     ld %S32_459 %A64_458 0
     blt %S32_459 9 while_2
-.bbl while_2
+.bbl while_2  #  #edge_in=2
     lea.mem %A64_460 nj 0
     mov %S32_461 5
     st %A64_460 0 %S32_461
     ret
 .bbl while_2_cond  #  edge_out[if_20_end  while_2]
     bne 0:S32 0 while_2
-.bbl if_20_end  #  edge_out[if_22_end  while_3]
+.bbl if_20_end  #  #edge_in=2  edge_out[if_22_end  while_3]
     lea.mem %A64_462 nj 0
     lea %A64_463 %A64_462 4
     ld %A64_464 %A64_463 0
     ld %U8_465 %A64_464 0
     conv %S32_466 %U8_465
     bne %S32_466 8 while_3
-.bbl while_3
+.bbl while_3  #  #edge_in=2
     lea.mem %A64_467 nj 0
     mov %S32_468 2
     st %A64_467 0 %S32_468
     ret
 .bbl while_3_cond  #  edge_out[if_22_end  while_3]
     bne 0:S32 0 while_3
-.bbl if_22_end  #  edge_out[branch_50  while_4]
+.bbl if_22_end  #  #edge_in=2  edge_out[branch_50  while_4]
     lea.mem %A64_469 nj 0
     lea %A64_470 %A64_469 4
     ld %A64_471 %A64_470 0
@@ -2335,19 +2335,19 @@
     lea %A64_486 %A64_485 24
     ld %S32_487 %A64_486 0
     bne %S32_487 0 branch_50
-.bbl branch_50  #  edge_out[if_24_end  while_4]
+.bbl branch_50  #  #edge_in=1  edge_out[if_24_end  while_4]
     lea.mem %A64_488 nj 0
     lea %A64_489 %A64_488 28
     ld %S32_490 %A64_489 0
     bne %S32_490 0 if_24_end
-.bbl while_4
+.bbl while_4  #  #edge_in=3
     lea.mem %A64_491 nj 0
     mov %S32_492 5
     st %A64_491 0 %S32_492
     ret
 .bbl while_4_cond  #  edge_out[if_24_end  while_4]
     bne 0:S32 0 while_4
-.bbl if_24_end  #  edge_out[if_24_end_1  while_5]
+.bbl if_24_end  #  #edge_in=2  edge_out[if_24_end_1  while_5]
     lea.mem %A64_493 nj 0
     lea %A64_494 %A64_493 4
     ld %A64_495 %A64_494 0
@@ -2364,16 +2364,16 @@
     lea %A64_503 %A64_502 48
     ld %U32_504 %A64_503 0
     blt 3:U32 %U32_504 while_5
-.bbl if_24_end_1  #  edge_out[switch_505_end  switch_505_end  while_5]
+.bbl if_24_end_1  #  #edge_in=1  edge_out[switch_505_end  switch_505_end  while_5]
     switch %U32_504 switch_505_tab
-.bbl while_5
+.bbl while_5  #  #edge_in=3
     lea.mem %A64_506 nj 0
     mov %S32_507 2
     st %A64_506 0 %S32_507
     ret
 .bbl while_5_cond  #  edge_out[switch_505_end  while_5]
     bne 0:S32 0 while_5
-.bbl switch_505_end  #  edge_out[if_27_end  while_6]
+.bbl switch_505_end  #  #edge_in=3  edge_out[if_27_end  while_6]
     lea.mem %A64_508 nj 0
     lea %A64_509 %A64_508 20
     ld %S32_510 %A64_509 0
@@ -2383,19 +2383,19 @@
     ld %U32_514 %A64_513 0
     mul %U32_515 %U32_514 3
     blt %U32_511 %U32_515 while_6
-.bbl while_6
+.bbl while_6  #  #edge_in=2
     lea.mem %A64_516 nj 0
     mov %S32_517 5
     st %A64_516 0 %S32_517
     ret
 .bbl while_6_cond  #  edge_out[if_27_end  while_6]
     bne 0:S32 0 while_6
-.bbl if_27_end  #  edge_out[for_15_cond]
+.bbl if_27_end  #  #edge_in=2  edge_out[for_15_cond]
     mov i 0
     lea.mem %A64_518 nj 0
     lea %A64_519 %A64_518 52
     mov c %A64_519
-.bbl for_15  #  edge_out[if_29_end  while_7]
+.bbl for_15  #  #edge_in=1  edge_out[if_29_end  while_7]
     lea.mem %A64_520 nj 0
     lea %A64_521 %A64_520 4
     ld %A64_522 %A64_521 0
@@ -2412,14 +2412,14 @@
     lea %A64_532 c 4
     st %A64_532 0 %S32_531
     bne %S32_531 0 if_29_end
-.bbl while_7
+.bbl while_7  #  #edge_in=2
     lea.mem %A64_533 nj 0
     mov %S32_534 5
     st %A64_533 0 %S32_534
     ret
 .bbl while_7_cond  #  edge_out[if_29_end  while_7]
     bne 0:S32 0 while_7
-.bbl if_29_end  #  edge_out[if_31_end  while_8]
+.bbl if_29_end  #  #edge_in=2  edge_out[if_31_end  while_8]
     lea %A64_535 c 4
     ld %S32_536 %A64_535 0
     lea %A64_537 c 4
@@ -2427,14 +2427,14 @@
     sub %S32_539 %S32_538 1
     and %S32_540 %S32_536 %S32_539
     bne %S32_540 0 while_8
-.bbl while_8
+.bbl while_8  #  #edge_in=2
     lea.mem %A64_541 nj 0
     mov %S32_542 2
     st %A64_541 0 %S32_542
     ret
 .bbl while_8_cond  #  edge_out[if_31_end  while_8]
     bne 0:S32 0 while_8
-.bbl if_31_end  #  edge_out[if_33_end  while_9]
+.bbl if_31_end  #  #edge_in=2  edge_out[if_33_end  while_9]
     lea.mem %A64_543 nj 0
     lea %A64_544 %A64_543 4
     ld %A64_545 %A64_544 0
@@ -2445,14 +2445,14 @@
     lea %A64_550 c 8
     st %A64_550 0 %S32_549
     bne %S32_549 0 if_33_end
-.bbl while_9
+.bbl while_9  #  #edge_in=2
     lea.mem %A64_551 nj 0
     mov %S32_552 5
     st %A64_551 0 %S32_552
     ret
 .bbl while_9_cond  #  edge_out[if_33_end  while_9]
     bne 0:S32 0 while_9
-.bbl if_33_end  #  edge_out[if_35_end  while_10]
+.bbl if_33_end  #  #edge_in=2  edge_out[if_35_end  while_10]
     lea %A64_553 c 8
     ld %S32_554 %A64_553 0
     lea %A64_555 c 8
@@ -2460,14 +2460,14 @@
     sub %S32_557 %S32_556 1
     and %S32_558 %S32_554 %S32_557
     bne %S32_558 0 while_10
-.bbl while_10
+.bbl while_10  #  #edge_in=2
     lea.mem %A64_559 nj 0
     mov %S32_560 2
     st %A64_559 0 %S32_560
     ret
 .bbl while_10_cond  #  edge_out[if_35_end  while_10]
     bne 0:S32 0 while_10
-.bbl if_35_end  #  edge_out[if_37_end  while_11]
+.bbl if_35_end  #  #edge_in=2  edge_out[if_37_end  while_11]
     lea.mem %A64_561 nj 0
     lea %A64_562 %A64_561 4
     ld %A64_563 %A64_562 0
@@ -2478,14 +2478,14 @@
     st %A64_567 0 %S32_566
     and %S32_568 %S32_566 252
     bne %S32_568 0 while_11
-.bbl while_11
+.bbl while_11  #  #edge_in=2
     lea.mem %A64_569 nj 0
     mov %S32_570 5
     st %A64_569 0 %S32_570
     ret
 .bbl while_11_cond  #  edge_out[if_37_end  while_11]
     bne 0:S32 0 while_11
-.bbl if_37_end  #  edge_out[if_38_end  if_38_true]
+.bbl if_37_end  #  #edge_in=2  edge_out[if_38_end  if_38_true]
     mov %S32_571 3
     pusharg %S32_571
     bsr __static_2_njSkip
@@ -2502,35 +2502,35 @@
     lea %A64_581 c 4
     ld %S32_582 %A64_581 0
     blt ssxmax %S32_582 if_38_true
-.bbl if_38_true  #  edge_out[if_38_end]
+.bbl if_38_true  #  #edge_in=1  edge_out[if_38_end]
     lea %A64_583 c 4
     ld %S32_584 %A64_583 0
     mov ssxmax %S32_584
-.bbl if_38_end  #  edge_out[for_15_next  if_39_true]
+.bbl if_38_end  #  #edge_in=2  edge_out[for_15_next  if_39_true]
     lea %A64_585 c 8
     ld %S32_586 %A64_585 0
     blt ssymax %S32_586 if_39_true
-.bbl if_39_true  #  edge_out[for_15_next]
+.bbl if_39_true  #  #edge_in=1  edge_out[for_15_next]
     lea %A64_587 c 8
     ld %S32_588 %A64_587 0
     mov ssymax %S32_588
-.bbl for_15_next  #  edge_out[for_15_cond]
+.bbl for_15_next  #  #edge_in=2  edge_out[for_15_cond]
     add %S32_589 i 1
     mov i %S32_589
     lea %A64_590 c 48
     mov c %A64_590
-.bbl for_15_cond  #  edge_out[for_15  for_15_exit]
+.bbl for_15_cond  #  #edge_in=2  edge_out[for_15  for_15_exit]
     conv %U32_591 i
     lea.mem %A64_592 nj 0
     lea %A64_593 %A64_592 48
     ld %U32_594 %A64_593 0
     blt %U32_591 %U32_594 for_15
-.bbl for_15_exit  #  edge_out[if_41_end  if_41_true]
+.bbl for_15_exit  #  #edge_in=1  edge_out[if_41_end  if_41_true]
     lea.mem %A64_595 nj 0
     lea %A64_596 %A64_595 48
     ld %U32_597 %A64_596 0
     beq %U32_597 1 if_41_true
-.bbl if_41_true  #  edge_out[if_41_end]
+.bbl if_41_true  #  #edge_in=1  edge_out[if_41_end]
     lea.mem %A64_598 nj 0
     lea %A64_599 %A64_598 52
     mov c %A64_599
@@ -2541,7 +2541,7 @@
     st %A64_600 0 %S32_601
     lea %A64_602 c 4
     st %A64_602 0 %S32_601
-.bbl if_41_end  #  edge_out[for_16_cond]
+.bbl if_41_end  #  #edge_in=2  edge_out[for_16_cond]
     shl %S32_603 ssxmax 3
     lea.mem %A64_604 nj 0
     lea %A64_605 %A64_604 40
@@ -2584,7 +2584,7 @@
     lea.mem %A64_637 nj 0
     lea %A64_638 %A64_637 52
     mov c %A64_638
-.bbl for_16  #  edge_out[branch_51  branch_52]
+.bbl for_16  #  #edge_in=1  edge_out[branch_51  branch_52]
     lea.mem %A64_639 nj 0
     lea %A64_640 %A64_639 24
     ld %S32_641 %A64_640 0
@@ -2619,26 +2619,26 @@
     lea %A64_667 c 12
     ld %S32_668 %A64_667 0
     blt %S32_668 3 branch_52
-.bbl branch_52  #  edge_out[branch_51  while_12]
+.bbl branch_52  #  #edge_in=1  edge_out[branch_51  while_12]
     lea %A64_669 c 4
     ld %S32_670 %A64_669 0
     bne %S32_670 ssxmax while_12
-.bbl branch_51  #  edge_out[branch_53  if_43_end]
+.bbl branch_51  #  #edge_in=2  edge_out[branch_53  if_43_end]
     lea %A64_671 c 16
     ld %S32_672 %A64_671 0
     blt %S32_672 3 branch_53
-.bbl branch_53  #  edge_out[if_43_end  while_12]
+.bbl branch_53  #  #edge_in=1  edge_out[if_43_end  while_12]
     lea %A64_673 c 8
     ld %S32_674 %A64_673 0
     bne %S32_674 ssymax while_12
-.bbl while_12
+.bbl while_12  #  #edge_in=3
     lea.mem %A64_675 nj 0
     mov %S32_676 2
     st %A64_675 0 %S32_676
     ret
 .bbl while_12_cond  #  edge_out[if_43_end  while_12]
     bne 0:S32 0 while_12
-.bbl if_43_end  #  edge_out[for_16_next  while_13]
+.bbl if_43_end  #  #edge_in=3  edge_out[for_16_next  while_13]
     lea %A64_677 c 20
     ld %S32_678 %A64_677 0
     lea.mem %A64_679 nj 0
@@ -2656,30 +2656,30 @@
     lea %A64_689 c 40
     st %A64_689 0 %A64_688
     bne %A64_688 0 for_16_next
-.bbl while_13
+.bbl while_13  #  #edge_in=2
     lea.mem %A64_690 nj 0
     mov %S32_691 3
     st %A64_690 0 %S32_691
     ret
 .bbl while_13_cond  #  edge_out[for_16_next  while_13]
     bne 0:S32 0 while_13
-.bbl for_16_next  #  edge_out[for_16_cond]
+.bbl for_16_next  #  #edge_in=2  edge_out[for_16_cond]
     add %S32_692 i 1
     mov i %S32_692
     lea %A64_693 c 48
     mov c %A64_693
-.bbl for_16_cond  #  edge_out[for_16  for_16_exit]
+.bbl for_16_cond  #  #edge_in=2  edge_out[for_16  for_16_exit]
     conv %U32_694 i
     lea.mem %A64_695 nj 0
     lea %A64_696 %A64_695 48
     ld %U32_697 %A64_696 0
     blt %U32_694 %U32_697 for_16
-.bbl for_16_exit  #  edge_out[if_49_end  if_49_true]
+.bbl for_16_exit  #  #edge_in=1  edge_out[if_49_end  if_49_true]
     lea.mem %A64_698 nj 0
     lea %A64_699 %A64_698 48
     ld %U32_700 %A64_699 0
     beq %U32_700 3 if_49_true
-.bbl if_49_true  #  edge_out[if_49_end  while_14]
+.bbl if_49_true  #  #edge_in=1  edge_out[if_49_end  while_14]
     lea.mem %A64_701 nj 0
     lea %A64_702 %A64_701 24
     ld %S32_703 %A64_702 0
@@ -2703,14 +2703,14 @@
     lea %A64_718 %A64_717 525020
     ld %A64_719 %A64_718 0
     bne %A64_719 0 if_49_end
-.bbl while_14
+.bbl while_14  #  #edge_in=2
     lea.mem %A64_720 nj 0
     mov %S32_721 3
     st %A64_720 0 %S32_721
     ret
 .bbl while_14_cond  #  edge_out[if_49_end  while_14]
     bne 0:S32 0 while_14
-.bbl if_49_end
+.bbl if_49_end  #  #edge_in=3
     lea.mem %A64_722 nj 0
     lea %A64_723 %A64_722 20
     ld %S32_724 %A64_723 0
@@ -2799,16 +2799,16 @@
 .reg A64 vlc
 .bbl %start  #  edge_out[while_1]
     bsr __static_3_njDecodeLength
-.bbl while_1  #  edge_out[if_13_true  while_1_cond]
+.bbl while_1  #  #edge_in=2  edge_out[if_13_true  while_1_cond]
     lea.mem %A64_725 nj 0
     lea %A64_726 %A64_725 0
     ld %S32_727 %A64_726 0
     bne %S32_727 0 if_13_true
-.bbl if_13_true
+.bbl if_13_true  #  #edge_in=1
     ret
-.bbl while_1_cond  #  edge_out[while_1  while_7_cond]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_7_cond]
     bne 0:S32 0 while_1
-.bbl while_7  #  edge_out[if_16_end  while_2]
+.bbl while_7  #  #edge_in=1  edge_out[if_16_end  while_2]
     lea.mem %A64_728 nj 0
     lea %A64_729 %A64_728 4
     ld %A64_730 %A64_729 0
@@ -2817,30 +2817,30 @@
     mov i %S32_732
     and %S32_733 i 236
     bne %S32_733 0 while_2
-.bbl while_2
+.bbl while_2  #  #edge_in=2
     lea.mem %A64_734 nj 0
     mov %S32_735 5
     st %A64_734 0 %S32_735
     ret
 .bbl while_2_cond  #  edge_out[if_16_end  while_2]
     bne 0:S32 0 while_2
-.bbl if_16_end  #  edge_out[if_18_end  while_3]
+.bbl if_16_end  #  #edge_in=2  edge_out[if_18_end  while_3]
     and %S32_736 i 2
     bne %S32_736 0 while_3
-.bbl while_3
+.bbl while_3  #  #edge_in=2
     lea.mem %A64_737 nj 0
     mov %S32_738 2
     st %A64_737 0 %S32_738
     ret
 .bbl while_3_cond  #  edge_out[if_18_end  while_3]
     bne 0:S32 0 while_3
-.bbl if_18_end  #  edge_out[for_9_cond]
+.bbl if_18_end  #  #edge_in=2  edge_out[for_9_cond]
     shr %S32_739 i 3
     or %S32_740 i %S32_739
     and %S32_741 %S32_740 3
     mov i %S32_741
     mov codelen 1
-.bbl for_9  #  edge_out[for_9_next]
+.bbl for_9  #  #edge_in=1  edge_out[for_9_next]
     lea.mem %A64_742 nj 0
     lea %A64_743 %A64_742 4
     ld %A64_744 %A64_743 0
@@ -2850,12 +2850,12 @@
     sub %S32_748 codelen 1
     lea %A64_749 %A64_747 %S32_748
     st %A64_749 0 %U8_746
-.bbl for_9_next  #  edge_out[for_9_cond]
+.bbl for_9_next  #  #edge_in=1  edge_out[for_9_cond]
     add %S32_750 codelen 1
     mov codelen %S32_750
-.bbl for_9_cond  #  edge_out[for_9  for_9_exit]
+.bbl for_9_cond  #  #edge_in=2  edge_out[for_9  for_9_exit]
     ble codelen 16 for_9
-.bbl for_9_exit  #  edge_out[for_12_cond]
+.bbl for_9_exit  #  #edge_in=1  edge_out[for_12_cond]
     mov %S32_751 17
     pusharg %S32_751
     bsr __static_2_njSkip
@@ -2868,7 +2868,7 @@
     mov spread 65536
     mov remain 65536
     mov codelen 1
-.bbl for_12  #  edge_out[for_12_next  if_20_end]
+.bbl for_12  #  #edge_in=1  edge_out[for_12_next  if_20_end]
     shr %S32_757 spread 1
     mov spread %S32_757
     lea.mem %A64_758 __static_4_counts 0
@@ -2878,34 +2878,34 @@
     conv %S32_762 %U8_761
     mov currcnt %S32_762
     bne currcnt 0 if_20_end
-.bbl if_20_end  #  edge_out[if_22_end  while_4]
+.bbl if_20_end  #  #edge_in=1  edge_out[if_22_end  while_4]
     lea.mem %A64_763 nj 0
     lea %A64_764 %A64_763 20
     ld %S32_765 %A64_764 0
     blt %S32_765 currcnt while_4
-.bbl while_4
+.bbl while_4  #  #edge_in=2
     lea.mem %A64_766 nj 0
     mov %S32_767 5
     st %A64_766 0 %S32_767
     ret
 .bbl while_4_cond  #  edge_out[if_22_end  while_4]
     bne 0:S32 0 while_4
-.bbl if_22_end  #  edge_out[if_24_end  while_5]
+.bbl if_22_end  #  #edge_in=2  edge_out[if_24_end  while_5]
     sub %S32_768 16 codelen
     shl %S32_769 currcnt %S32_768
     sub %S32_770 remain %S32_769
     mov remain %S32_770
     blt remain 0 while_5
-.bbl while_5
+.bbl while_5  #  #edge_in=2
     lea.mem %A64_771 nj 0
     mov %S32_772 5
     st %A64_771 0 %S32_772
     ret
 .bbl while_5_cond  #  edge_out[if_24_end  while_5]
     bne 0:S32 0 while_5
-.bbl if_24_end  #  edge_out[for_11_cond]
+.bbl if_24_end  #  #edge_in=2  edge_out[for_11_cond]
     mov i 0
-.bbl for_11  #  edge_out[for_10_cond]
+.bbl for_11  #  #edge_in=1  edge_out[for_10_cond]
     lea.mem %A64_773 nj 0
     lea %A64_774 %A64_773 4
     ld %A64_775 %A64_774 0
@@ -2913,58 +2913,58 @@
     ld %U8_777 %A64_776 0
     mov code %U8_777
     mov j spread
-.bbl for_10  #  edge_out[for_10_next]
+.bbl for_10  #  #edge_in=1  edge_out[for_10_next]
     conv %U8_778 codelen
     st vlc 0 %U8_778
     lea %A64_779 vlc 1
     st %A64_779 0 code
     lea %A64_780 vlc 2
     mov vlc %A64_780
-.bbl for_10_next  #  edge_out[for_10_cond]
+.bbl for_10_next  #  #edge_in=1  edge_out[for_10_cond]
     sub %S32_781 j 1
     mov j %S32_781
-.bbl for_10_cond  #  edge_out[for_10  for_11_next]
+.bbl for_10_cond  #  #edge_in=2  edge_out[for_10  for_11_next]
     bne j 0 for_10
-.bbl for_11_next  #  edge_out[for_11_cond]
+.bbl for_11_next  #  #edge_in=1  edge_out[for_11_cond]
     add %S32_782 i 1
     mov i %S32_782
-.bbl for_11_cond  #  edge_out[for_11  for_11_exit]
+.bbl for_11_cond  #  #edge_in=2  edge_out[for_11  for_11_exit]
     blt i currcnt for_11
-.bbl for_11_exit  #  edge_out[for_12_next]
+.bbl for_11_exit  #  #edge_in=1  edge_out[for_12_next]
     pusharg currcnt
     bsr __static_2_njSkip
-.bbl for_12_next  #  edge_out[for_12_cond]
+.bbl for_12_next  #  #edge_in=2  edge_out[for_12_cond]
     add %S32_783 codelen 1
     mov codelen %S32_783
-.bbl for_12_cond  #  edge_out[for_12  while_6_cond]
+.bbl for_12_cond  #  #edge_in=2  edge_out[for_12  while_6_cond]
     ble codelen 16 for_12
-.bbl while_6  #  edge_out[while_6_cond]
+.bbl while_6  #  #edge_in=1  edge_out[while_6_cond]
     sub %S32_784 remain 1
     mov remain %S32_784
     mov %U8_785 0
     st vlc 0 %U8_785
     lea %A64_786 vlc 2
     mov vlc %A64_786
-.bbl while_6_cond  #  edge_out[while_6  while_7_cond]
+.bbl while_6_cond  #  #edge_in=2  edge_out[while_6  while_7_cond]
     bne remain 0 while_6
-.bbl while_7_cond  #  edge_out[while_7  while_7_exit]
+.bbl while_7_cond  #  #edge_in=2  edge_out[while_7  while_7_exit]
     lea.mem %A64_787 nj 0
     lea %A64_788 %A64_787 20
     ld %S32_789 %A64_788 0
     ble 17:S32 %S32_789 while_7
-.bbl while_7_exit  #  edge_out[if_31_end  while_8]
+.bbl while_7_exit  #  #edge_in=1  edge_out[if_31_end  while_8]
     lea.mem %A64_790 nj 0
     lea %A64_791 %A64_790 20
     ld %S32_792 %A64_791 0
     bne %S32_792 0 while_8
-.bbl while_8
+.bbl while_8  #  #edge_in=2
     lea.mem %A64_793 nj 0
     mov %S32_794 5
     st %A64_793 0 %S32_794
     ret
 .bbl while_8_cond  #  edge_out[if_31_end  while_8]
     bne 0:S32 0 while_8
-.bbl if_31_end
+.bbl if_31_end  #  #edge_in=2
     ret
 
 .fun njDecodeDQT NORMAL [] = []
@@ -3011,16 +3011,16 @@
 .reg A64 t
 .bbl %start  #  edge_out[while_1]
     bsr __static_3_njDecodeLength
-.bbl while_1  #  edge_out[if_6_true  while_1_cond]
+.bbl while_1  #  #edge_in=2  edge_out[if_6_true  while_1_cond]
     lea.mem %A64_795 nj 0
     lea %A64_796 %A64_795 0
     ld %S32_797 %A64_796 0
     bne %S32_797 0 if_6_true
-.bbl if_6_true
+.bbl if_6_true  #  #edge_in=1
     ret
-.bbl while_1_cond  #  edge_out[while_1  while_3_cond]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_3_cond]
     bne 0:S32 0 while_1
-.bbl while_3  #  edge_out[if_9_end  while_2]
+.bbl while_3  #  #edge_in=1  edge_out[if_9_end  while_2]
     lea.mem %A64_798 nj 0
     lea %A64_799 %A64_798 4
     ld %A64_800 %A64_799 0
@@ -3029,14 +3029,14 @@
     mov i %S32_802
     and %S32_803 i 252
     bne %S32_803 0 while_2
-.bbl while_2
+.bbl while_2  #  #edge_in=2
     lea.mem %A64_804 nj 0
     mov %S32_805 5
     st %A64_804 0 %S32_805
     ret
 .bbl while_2_cond  #  edge_out[if_9_end  while_2]
     bne 0:S32 0 while_2
-.bbl if_9_end  #  edge_out[for_5_cond]
+.bbl if_9_end  #  #edge_in=2  edge_out[for_5_cond]
     lea.mem %A64_806 nj 0
     lea %A64_807 %A64_806 204
     ld %S32_808 %A64_807 0
@@ -3051,7 +3051,7 @@
     lea %A64_816 %A64_814 %S32_815
     mov t %A64_816
     mov i 0
-.bbl for_5  #  edge_out[for_5_next]
+.bbl for_5  #  #edge_in=1  edge_out[for_5_next]
     lea.mem %A64_817 nj 0
     lea %A64_818 %A64_817 4
     ld %A64_819 %A64_818 0
@@ -3060,33 +3060,33 @@
     ld %U8_822 %A64_821 0
     lea %A64_823 t i
     st %A64_823 0 %U8_822
-.bbl for_5_next  #  edge_out[for_5_cond]
+.bbl for_5_next  #  #edge_in=1  edge_out[for_5_cond]
     add %S32_824 i 1
     mov i %S32_824
-.bbl for_5_cond  #  edge_out[for_5  for_5_exit]
+.bbl for_5_cond  #  #edge_in=2  edge_out[for_5  for_5_exit]
     blt i 64 for_5
-.bbl for_5_exit  #  edge_out[while_3_cond]
+.bbl for_5_exit  #  #edge_in=1  edge_out[while_3_cond]
     mov %S32_825 65
     pusharg %S32_825
     bsr __static_2_njSkip
-.bbl while_3_cond  #  edge_out[while_3  while_3_exit]
+.bbl while_3_cond  #  #edge_in=2  edge_out[while_3  while_3_exit]
     lea.mem %A64_826 nj 0
     lea %A64_827 %A64_826 20
     ld %S32_828 %A64_827 0
     ble 65:S32 %S32_828 while_3
-.bbl while_3_exit  #  edge_out[if_13_end  while_4]
+.bbl while_3_exit  #  #edge_in=1  edge_out[if_13_end  while_4]
     lea.mem %A64_829 nj 0
     lea %A64_830 %A64_829 20
     ld %S32_831 %A64_830 0
     bne %S32_831 0 while_4
-.bbl while_4
+.bbl while_4  #  #edge_in=2
     lea.mem %A64_832 nj 0
     mov %S32_833 5
     st %A64_832 0 %S32_833
     ret
 .bbl while_4_cond  #  edge_out[if_13_end  while_4]
     bne 0:S32 0 while_4
-.bbl if_13_end
+.bbl if_13_end  #  #edge_in=2
     ret
 
 .fun njDecodeDRI NORMAL [] = []
@@ -3110,28 +3110,28 @@
 .reg A64 %A64_850
 .bbl %start  #  edge_out[while_1]
     bsr __static_3_njDecodeLength
-.bbl while_1  #  edge_out[if_3_true  while_1_cond]
+.bbl while_1  #  #edge_in=2  edge_out[if_3_true  while_1_cond]
     lea.mem %A64_834 nj 0
     lea %A64_835 %A64_834 0
     ld %S32_836 %A64_835 0
     bne %S32_836 0 if_3_true
-.bbl if_3_true
+.bbl if_3_true  #  #edge_in=1
     ret
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_1_exit]
     bne 0:S32 0 while_1
-.bbl while_1_exit  #  edge_out[if_6_end  while_2]
+.bbl while_1_exit  #  #edge_in=1  edge_out[if_6_end  while_2]
     lea.mem %A64_837 nj 0
     lea %A64_838 %A64_837 20
     ld %S32_839 %A64_838 0
     blt %S32_839 2 while_2
-.bbl while_2
+.bbl while_2  #  #edge_in=2
     lea.mem %A64_840 nj 0
     mov %S32_841 5
     st %A64_840 0 %S32_841
     ret
 .bbl while_2_cond  #  edge_out[if_6_end  while_2]
     bne 0:S32 0 while_2
-.bbl if_6_end
+.bbl if_6_end  #  #edge_in=2
     lea.mem %A64_842 nj 0
     lea %A64_843 %A64_842 4
     ld %A64_844 %A64_843 0
@@ -3192,14 +3192,14 @@
     conv %S32_858 %U8_857
     mov bits %S32_858
     bne bits 0 if_1_end
-.bbl if_1_true
+.bbl if_1_true  #  #edge_in=1
     lea.mem %A64_859 nj 0
     mov %S32_860 5
     st %A64_859 0 %S32_860
     mov %out 0
     pusharg %out
     ret
-.bbl if_1_end  #  edge_out[if_2_end  if_2_true]
+.bbl if_1_end  #  #edge_in=1  edge_out[if_2_end  if_2_true]
     pusharg bits
     bsr njSkipBits
     mul %S32_861 value 2
@@ -3209,18 +3209,18 @@
     conv %S32_865 %U8_864
     mov value %S32_865
     bne code 0 if_2_true
-.bbl if_2_true  #  edge_out[if_2_end]
+.bbl if_2_true  #  #edge_in=1  edge_out[if_2_end]
     conv %U8_866 value
     st code 0 %U8_866
-.bbl if_2_end  #  edge_out[if_3_end  if_3_true]
+.bbl if_2_end  #  #edge_in=2  edge_out[if_3_end  if_3_true]
     and %S32_867 value 15
     mov bits %S32_867
     bne bits 0 if_3_end
-.bbl if_3_true
+.bbl if_3_true  #  #edge_in=1
     mov %out 0
     pusharg %out
     ret
-.bbl if_3_end  #  edge_out[if_4_end  if_4_true]
+.bbl if_3_end  #  #edge_in=1  edge_out[if_4_end  if_4_true]
     pusharg bits
     bsr njGetBits
     poparg %S32_868
@@ -3228,12 +3228,12 @@
     sub %S32_869 bits 1
     shl %S32_870 1 %S32_869
     blt value %S32_870 if_4_true
-.bbl if_4_true  #  edge_out[if_4_end]
+.bbl if_4_true  #  #edge_in=1  edge_out[if_4_end]
     shl %S32_871 -1 bits
     add %S32_872 %S32_871 1
     add %S32_873 value %S32_872
     mov value %S32_873
-.bbl if_4_end
+.bbl if_4_end  #  #edge_in=2
     mov %out value
     pusharg %out
     ret
@@ -3386,7 +3386,7 @@
     lea.mem %A64_906 nj 0
     lea %A64_907 %A64_906 524760
     st %A64_907 0 %S32_905
-.bbl while_3  #  edge_out[if_6_end  while_3_exit]
+.bbl while_3  #  #edge_in=2  edge_out[if_6_end  while_3_exit]
     lea.mem %A64_908 nj 0
     lea %A64_909 %A64_908 464
     lea %A64_910 c 28
@@ -3404,25 +3404,25 @@
     ld %U8_918 %A64_917 0
     conv %S32_919 %U8_918
     bne %S32_919 0 if_6_end
-.bbl if_6_end  #  edge_out[branch_14  if_8_end]
+.bbl if_6_end  #  #edge_in=1  edge_out[branch_14  if_8_end]
     lea.stk %A64_920 code 0
     ld %U8_921 %A64_920 0
     conv %S32_922 %U8_921
     and %S32_923 %S32_922 15
     bne %S32_923 0 if_8_end
-.bbl branch_14  #  edge_out[if_8_end  while_1]
+.bbl branch_14  #  #edge_in=1  edge_out[if_8_end  while_1]
     lea.stk %A64_924 code 0
     ld %U8_925 %A64_924 0
     conv %S32_926 %U8_925
     bne %S32_926 240 while_1
-.bbl while_1
+.bbl while_1  #  #edge_in=2
     lea.mem %A64_927 nj 0
     mov %S32_928 5
     st %A64_927 0 %S32_928
     ret
 .bbl while_1_cond  #  edge_out[if_8_end  while_1]
     bne 0:S32 0 while_1
-.bbl if_8_end  #  edge_out[if_10_end  while_2]
+.bbl if_8_end  #  #edge_in=3  edge_out[if_10_end  while_2]
     lea.stk %A64_929 code 0
     ld %U8_930 %A64_929 0
     conv %S32_931 %U8_930
@@ -3431,14 +3431,14 @@
     add %S32_934 coef %S32_933
     mov coef %S32_934
     blt 63:S32 coef while_2
-.bbl while_2
+.bbl while_2  #  #edge_in=2
     lea.mem %A64_935 nj 0
     mov %S32_936 5
     st %A64_935 0 %S32_936
     ret
 .bbl while_2_cond  #  edge_out[if_10_end  while_2]
     bne 0:S32 0 while_2
-.bbl if_10_end  #  edge_out[while_3_cond]
+.bbl if_10_end  #  #edge_in=2  edge_out[while_3_cond]
     lea.mem %A64_937 nj 0
     lea %A64_938 %A64_937 208
     lea %A64_939 c 24
@@ -3458,25 +3458,25 @@
     mul %S32_953 %S32_952 4
     lea %A64_954 %A64_948 %S32_953
     st %A64_954 0 %S32_946
-.bbl while_3_cond  #  edge_out[while_3  while_3_exit]
+.bbl while_3_cond  #  #edge_in=1  edge_out[while_3  while_3_exit]
     blt coef 63 while_3
-.bbl while_3_exit  #  edge_out[for_4_cond]
+.bbl while_3_exit  #  #edge_in=2  edge_out[for_4_cond]
     mov coef 0
-.bbl for_4  #  edge_out[for_4_next]
+.bbl for_4  #  #edge_in=1  edge_out[for_4_next]
     lea.mem %A64_955 nj 0
     lea %A64_956 %A64_955 524760
     mul %S32_957 coef 4
     lea %A64_958 %A64_956 %S32_957
     pusharg %A64_958
     bsr njRowIDCT
-.bbl for_4_next  #  edge_out[for_4_cond]
+.bbl for_4_next  #  #edge_in=1  edge_out[for_4_cond]
     add %S32_959 coef 8
     mov coef %S32_959
-.bbl for_4_cond  #  edge_out[for_4  for_4_exit]
+.bbl for_4_cond  #  #edge_in=2  edge_out[for_4  for_4_exit]
     blt coef 64 for_4
-.bbl for_4_exit  #  edge_out[for_5_cond]
+.bbl for_4_exit  #  #edge_in=1  edge_out[for_5_cond]
     mov coef 0
-.bbl for_5  #  edge_out[for_5_next]
+.bbl for_5  #  #edge_in=1  edge_out[for_5_next]
     lea.mem %A64_960 nj 0
     lea %A64_961 %A64_960 524760
     mul %S32_962 coef 4
@@ -3488,12 +3488,12 @@
     pusharg %A64_964
     pusharg %A64_963
     bsr njColIDCT
-.bbl for_5_next  #  edge_out[for_5_cond]
+.bbl for_5_next  #  #edge_in=1  edge_out[for_5_cond]
     add %S32_967 coef 1
     mov coef %S32_967
-.bbl for_5_cond  #  edge_out[for_5  for_5_exit]
+.bbl for_5_cond  #  #edge_in=2  edge_out[for_5  for_5_exit]
     blt coef 8 for_5
-.bbl for_5_exit
+.bbl for_5_exit  #  #edge_in=1
     ret
 
 .fun njDecodeScan NORMAL [] = []
@@ -3671,16 +3671,16 @@
     mov rstcount %S32_970
     mov nextrst 0
     bsr __static_3_njDecodeLength
-.bbl while_1  #  edge_out[if_15_true  while_1_cond]
+.bbl while_1  #  #edge_in=2  edge_out[if_15_true  while_1_cond]
     lea.mem %A64_971 nj 0
     lea %A64_972 %A64_971 0
     ld %S32_973 %A64_972 0
     bne %S32_973 0 if_15_true
-.bbl if_15_true
+.bbl if_15_true  #  #edge_in=1
     ret
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_1_exit]
     bne 0:S32 0 while_1
-.bbl while_1_exit  #  edge_out[if_18_end  while_2]
+.bbl while_1_exit  #  #edge_in=1  edge_out[if_18_end  while_2]
     lea.mem %A64_974 nj 0
     lea %A64_975 %A64_974 20
     ld %S32_976 %A64_975 0
@@ -3691,14 +3691,14 @@
     mul %U32_981 2 %U32_980
     add %U32_982 4 %U32_981
     blt %U32_977 %U32_982 while_2
-.bbl while_2
+.bbl while_2  #  #edge_in=2
     lea.mem %A64_983 nj 0
     mov %S32_984 5
     st %A64_983 0 %S32_984
     ret
 .bbl while_2_cond  #  edge_out[if_18_end  while_2]
     bne 0:S32 0 while_2
-.bbl if_18_end  #  edge_out[if_20_end  while_3]
+.bbl if_18_end  #  #edge_in=2  edge_out[if_20_end  while_3]
     lea.mem %A64_985 nj 0
     lea %A64_986 %A64_985 4
     ld %A64_987 %A64_986 0
@@ -3708,14 +3708,14 @@
     lea %A64_991 %A64_990 48
     ld %U32_992 %A64_991 0
     bne %U32_989 %U32_992 while_3
-.bbl while_3
+.bbl while_3  #  #edge_in=2
     lea.mem %A64_993 nj 0
     mov %S32_994 2
     st %A64_993 0 %S32_994
     ret
 .bbl while_3_cond  #  edge_out[if_20_end  while_3]
     bne 0:S32 0 while_3
-.bbl if_20_end  #  edge_out[for_9_cond]
+.bbl if_20_end  #  #edge_in=2  edge_out[for_9_cond]
     mov %S32_995 1
     pusharg %S32_995
     bsr __static_2_njSkip
@@ -3723,7 +3723,7 @@
     lea.mem %A64_996 nj 0
     lea %A64_997 %A64_996 52
     mov c %A64_997
-.bbl for_9  #  edge_out[if_22_end  while_4]
+.bbl for_9  #  #edge_in=1  edge_out[if_22_end  while_4]
     lea.mem %A64_998 nj 0
     lea %A64_999 %A64_998 4
     ld %A64_1000 %A64_999 0
@@ -3732,14 +3732,14 @@
     lea %A64_1003 c 0
     ld %S32_1004 %A64_1003 0
     bne %S32_1002 %S32_1004 while_4
-.bbl while_4
+.bbl while_4  #  #edge_in=2
     lea.mem %A64_1005 nj 0
     mov %S32_1006 5
     st %A64_1005 0 %S32_1006
     ret
 .bbl while_4_cond  #  edge_out[if_22_end  while_4]
     bne 0:S32 0 while_4
-.bbl if_22_end  #  edge_out[if_24_end  while_5]
+.bbl if_22_end  #  #edge_in=2  edge_out[if_24_end  while_5]
     lea.mem %A64_1007 nj 0
     lea %A64_1008 %A64_1007 4
     ld %A64_1009 %A64_1008 0
@@ -3748,14 +3748,14 @@
     conv %S32_1012 %U8_1011
     and %S32_1013 %S32_1012 238
     bne %S32_1013 0 while_5
-.bbl while_5
+.bbl while_5  #  #edge_in=2
     lea.mem %A64_1014 nj 0
     mov %S32_1015 5
     st %A64_1014 0 %S32_1015
     ret
 .bbl while_5_cond  #  edge_out[if_24_end  while_5]
     bne 0:S32 0 while_5
-.bbl if_24_end  #  edge_out[for_9_next]
+.bbl if_24_end  #  #edge_in=2  edge_out[for_9_next]
     lea.mem %A64_1016 nj 0
     lea %A64_1017 %A64_1016 4
     ld %A64_1018 %A64_1017 0
@@ -3778,25 +3778,25 @@
     mov %S32_1033 2
     pusharg %S32_1033
     bsr __static_2_njSkip
-.bbl for_9_next  #  edge_out[for_9_cond]
+.bbl for_9_next  #  #edge_in=1  edge_out[for_9_cond]
     add %S32_1034 i 1
     mov i %S32_1034
     lea %A64_1035 c 48
     mov c %A64_1035
-.bbl for_9_cond  #  edge_out[for_9  for_9_exit]
+.bbl for_9_cond  #  #edge_in=2  edge_out[for_9  for_9_exit]
     conv %U32_1036 i
     lea.mem %A64_1037 nj 0
     lea %A64_1038 %A64_1037 48
     ld %U32_1039 %A64_1038 0
     blt %U32_1036 %U32_1039 for_9
-.bbl for_9_exit  #  edge_out[branch_40  while_6]
+.bbl for_9_exit  #  #edge_in=1  edge_out[branch_40  while_6]
     lea.mem %A64_1040 nj 0
     lea %A64_1041 %A64_1040 4
     ld %A64_1042 %A64_1041 0
     ld %U8_1043 %A64_1042 0
     conv %S32_1044 %U8_1043
     bne %S32_1044 0 while_6
-.bbl branch_40  #  edge_out[branch_39  while_6]
+.bbl branch_40  #  #edge_in=1  edge_out[branch_39  while_6]
     lea.mem %A64_1045 nj 0
     lea %A64_1046 %A64_1045 4
     ld %A64_1047 %A64_1046 0
@@ -3804,7 +3804,7 @@
     ld %U8_1049 %A64_1048 0
     conv %S32_1050 %U8_1049
     bne %S32_1050 63 while_6
-.bbl branch_39  #  edge_out[if_27_end  while_6]
+.bbl branch_39  #  #edge_in=1  edge_out[if_27_end  while_6]
     lea.mem %A64_1051 nj 0
     lea %A64_1052 %A64_1051 4
     ld %A64_1053 %A64_1052 0
@@ -3812,14 +3812,14 @@
     ld %U8_1055 %A64_1054 0
     conv %S32_1056 %U8_1055
     bne %S32_1056 0 while_6
-.bbl while_6
+.bbl while_6  #  #edge_in=4
     lea.mem %A64_1057 nj 0
     mov %S32_1058 2
     st %A64_1057 0 %S32_1058
     ret
 .bbl while_6_cond  #  edge_out[if_27_end  while_6]
     bne 0:S32 0 while_6
-.bbl if_27_end  #  edge_out[for_14]
+.bbl if_27_end  #  #edge_in=2  edge_out[for_14]
     lea.mem %A64_1059 nj 0
     lea %A64_1060 %A64_1059 20
     ld %S32_1061 %A64_1060 0
@@ -3827,16 +3827,16 @@
     bsr __static_2_njSkip
     mov mby 0
     mov mbx 0
-.bbl for_14  #  edge_out[for_12_cond]
+.bbl for_14  #  #edge_in=4  edge_out[for_12_cond]
     mov i 0
     lea.mem %A64_1062 nj 0
     lea %A64_1063 %A64_1062 52
     mov c %A64_1063
-.bbl for_12  #  edge_out[for_11_cond]
+.bbl for_12  #  #edge_in=1  edge_out[for_11_cond]
     mov sby 0
-.bbl for_11  #  edge_out[for_10_cond]
+.bbl for_11  #  #edge_in=1  edge_out[for_10_cond]
     mov sbx 0
-.bbl for_10  #  edge_out[while_7]
+.bbl for_10  #  #edge_in=1  edge_out[while_7]
     lea %A64_1064 c 40
     ld %A64_1065 %A64_1064 0
     lea %A64_1066 c 8
@@ -3856,48 +3856,48 @@
     pusharg %A64_1079
     pusharg c
     bsr njDecodeBlock
-.bbl while_7  #  edge_out[if_28_true  while_7_cond]
+.bbl while_7  #  #edge_in=2  edge_out[if_28_true  while_7_cond]
     lea.mem %A64_1080 nj 0
     lea %A64_1081 %A64_1080 0
     ld %S32_1082 %A64_1081 0
     bne %S32_1082 0 if_28_true
-.bbl if_28_true
+.bbl if_28_true  #  #edge_in=1
     ret
-.bbl while_7_cond  #  edge_out[for_10_next  while_7]
+.bbl while_7_cond  #  #edge_in=1  edge_out[for_10_next  while_7]
     bne 0:S32 0 while_7
-.bbl for_10_next  #  edge_out[for_10_cond]
+.bbl for_10_next  #  #edge_in=1  edge_out[for_10_cond]
     add %S32_1083 sbx 1
     mov sbx %S32_1083
-.bbl for_10_cond  #  edge_out[for_10  for_11_next]
+.bbl for_10_cond  #  #edge_in=2  edge_out[for_10  for_11_next]
     lea %A64_1084 c 4
     ld %S32_1085 %A64_1084 0
     blt sbx %S32_1085 for_10
-.bbl for_11_next  #  edge_out[for_11_cond]
+.bbl for_11_next  #  #edge_in=1  edge_out[for_11_cond]
     add %S32_1086 sby 1
     mov sby %S32_1086
-.bbl for_11_cond  #  edge_out[for_11  for_12_next]
+.bbl for_11_cond  #  #edge_in=2  edge_out[for_11  for_12_next]
     lea %A64_1087 c 8
     ld %S32_1088 %A64_1087 0
     blt sby %S32_1088 for_11
-.bbl for_12_next  #  edge_out[for_12_cond]
+.bbl for_12_next  #  #edge_in=1  edge_out[for_12_cond]
     add %S32_1089 i 1
     mov i %S32_1089
     lea %A64_1090 c 48
     mov c %A64_1090
-.bbl for_12_cond  #  edge_out[for_12  for_12_exit]
+.bbl for_12_cond  #  #edge_in=2  edge_out[for_12  for_12_exit]
     conv %U32_1091 i
     lea.mem %A64_1092 nj 0
     lea %A64_1093 %A64_1092 48
     ld %U32_1094 %A64_1093 0
     blt %U32_1091 %U32_1094 for_12
-.bbl for_12_exit  #  edge_out[if_34_end  if_34_true]
+.bbl for_12_exit  #  #edge_in=1  edge_out[if_34_end  if_34_true]
     add %S32_1095 mbx 1
     mov mbx %S32_1095
     lea.mem %A64_1096 nj 0
     lea %A64_1097 %A64_1096 32
     ld %S32_1098 %A64_1097 0
     ble %S32_1098 %S32_1095 if_34_true
-.bbl if_34_true  #  edge_out[for_14_exit  if_34_end]
+.bbl if_34_true  #  #edge_in=1  edge_out[for_14_exit  if_34_end]
     mov mbx 0
     add %S32_1099 mby 1
     mov mby %S32_1099
@@ -3905,16 +3905,16 @@
     lea %A64_1101 %A64_1100 36
     ld %S32_1102 %A64_1101 0
     ble %S32_1102 %S32_1099 for_14_exit
-.bbl if_34_end  #  edge_out[branch_41  for_14]
+.bbl if_34_end  #  #edge_in=2  edge_out[branch_41  for_14]
     lea.mem %A64_1103 nj 0
     lea %A64_1104 %A64_1103 525016
     ld %S32_1105 %A64_1104 0
     bne %S32_1105 0 branch_41
-.bbl branch_41  #  edge_out[for_14  if_38_true]
+.bbl branch_41  #  #edge_in=1  edge_out[for_14  if_38_true]
     sub %S32_1106 rstcount 1
     mov rstcount %S32_1106
     bne %S32_1106 0 for_14
-.bbl if_38_true  #  edge_out[branch_42  while_8]
+.bbl if_38_true  #  #edge_in=1  edge_out[branch_42  while_8]
     bsr njByteAlign
     mov %S32_1108 16
     pusharg %S32_1108
@@ -3923,17 +3923,17 @@
     mov i %S32_1107
     and %S32_1109 i 65528
     bne %S32_1109 65488 while_8
-.bbl branch_42  #  edge_out[if_36_end  while_8]
+.bbl branch_42  #  #edge_in=1  edge_out[if_36_end  while_8]
     and %S32_1110 i 7
     bne %S32_1110 nextrst while_8
-.bbl while_8
+.bbl while_8  #  #edge_in=3
     lea.mem %A64_1111 nj 0
     mov %S32_1112 5
     st %A64_1111 0 %S32_1112
     ret
 .bbl while_8_cond  #  edge_out[if_36_end  while_8]
     bne 0:S32 0 while_8
-.bbl if_36_end  #  edge_out[for_13_cond]
+.bbl if_36_end  #  #edge_in=2  edge_out[for_13_cond]
     add %S32_1113 nextrst 1
     and %S32_1114 %S32_1113 7
     mov nextrst %S32_1114
@@ -3942,7 +3942,7 @@
     ld %S32_1117 %A64_1116 0
     mov rstcount %S32_1117
     mov i 0
-.bbl for_13  #  edge_out[for_13_next]
+.bbl for_13  #  #edge_in=1  edge_out[for_13_next]
     lea.mem %A64_1118 nj 0
     lea %A64_1119 %A64_1118 52
     mul %S32_1120 i 48
@@ -3950,12 +3950,12 @@
     lea %A64_1122 %A64_1121 36
     mov %S32_1123 0
     st %A64_1122 0 %S32_1123
-.bbl for_13_next  #  edge_out[for_13_cond]
+.bbl for_13_next  #  #edge_in=1  edge_out[for_13_cond]
     add %S32_1124 i 1
     mov i %S32_1124
-.bbl for_13_cond  #  edge_out[for_13  for_14]
+.bbl for_13_cond  #  #edge_in=2  edge_out[for_13  for_14]
     blt i 3 for_13
-.bbl for_14_exit
+.bbl for_14_exit  #  #edge_in=1
     lea.mem %A64_1125 nj 0
     mov %S32_1126 6
     st %A64_1125 0 %S32_1126
@@ -4173,14 +4173,14 @@
     poparg %A64_1137
     mov out %A64_1137
     bne out 0 if_5_end
-.bbl while_1
+.bbl while_1  #  #edge_in=2
     lea.mem %A64_1138 nj 0
     mov %S32_1139 3
     st %A64_1138 0 %S32_1139
     ret
 .bbl while_1_cond  #  edge_out[if_5_end  while_1]
     bne 0:S32 0 while_1
-.bbl if_5_end  #  edge_out[for_3_cond]
+.bbl if_5_end  #  #edge_in=2  edge_out[for_3_cond]
     lea %A64_1140 c 40
     ld %A64_1141 %A64_1140 0
     mov lin %A64_1141
@@ -4188,7 +4188,7 @@
     lea %A64_1142 c 16
     ld %S32_1143 %A64_1142 0
     mov y %S32_1143
-.bbl for_3  #  edge_out[for_2_cond]
+.bbl for_3  #  #edge_in=1  edge_out[for_2_cond]
     ld %U8_1144 lin 0
     conv %S32_1145 %U8_1144
     mul %S32_1146 139 %S32_1145
@@ -4244,7 +4244,7 @@
     lea %A64_1188 lout 2
     st %A64_1188 0 %U8_1187
     mov x 0
-.bbl for_2  #  edge_out[for_2_next]
+.bbl for_2  #  #edge_in=1  edge_out[for_2_next]
     lea %A64_1189 lin x
     ld %U8_1190 %A64_1189 0
     conv %S32_1191 %U8_1190
@@ -4307,12 +4307,12 @@
     add %S32_1243 %S32_1242 4
     lea %A64_1244 lout %S32_1243
     st %A64_1244 0 %U8_1241
-.bbl for_2_next  #  edge_out[for_2_cond]
+.bbl for_2_next  #  #edge_in=1  edge_out[for_2_cond]
     add %S32_1245 x 1
     mov x %S32_1245
-.bbl for_2_cond  #  edge_out[for_2  for_2_exit]
+.bbl for_2_cond  #  #edge_in=2  edge_out[for_2  for_2_exit]
     blt x xmax for_2
-.bbl for_2_exit  #  edge_out[for_3_next]
+.bbl for_2_exit  #  #edge_in=1  edge_out[for_3_next]
     lea %A64_1246 c 20
     ld %S32_1247 %A64_1246 0
     lea %A64_1248 lin %S32_1247
@@ -4380,12 +4380,12 @@
     poparg %U8_1300
     lea %A64_1301 lout -1
     st %A64_1301 0 %U8_1300
-.bbl for_3_next  #  edge_out[for_3_cond]
+.bbl for_3_next  #  #edge_in=1  edge_out[for_3_cond]
     sub %S32_1302 y 1
     mov y %S32_1302
-.bbl for_3_cond  #  edge_out[for_3  for_3_exit]
+.bbl for_3_cond  #  #edge_in=2  edge_out[for_3  for_3_exit]
     bne y 0 for_3
-.bbl for_3_exit
+.bbl for_3_exit  #  #edge_in=1
     lea %A64_1303 c 12
     ld %S32_1304 %A64_1303 0
     shl %S32_1305 %S32_1304 1
@@ -4614,16 +4614,16 @@
     poparg %A64_1325
     mov out %A64_1325
     bne out 0 if_5_end
-.bbl while_1
+.bbl while_1  #  #edge_in=2
     lea.mem %A64_1326 nj 0
     mov %S32_1327 3
     st %A64_1326 0 %S32_1327
     ret
 .bbl while_1_cond  #  edge_out[if_5_end  while_1]
     bne 0:S32 0 while_1
-.bbl if_5_end  #  edge_out[for_3_cond]
+.bbl if_5_end  #  #edge_in=2  edge_out[for_3_cond]
     mov x 0
-.bbl for_3  #  edge_out[for_2_cond]
+.bbl for_3  #  #edge_in=1  edge_out[for_2_cond]
     lea %A64_1328 c 40
     ld %A64_1329 %A64_1328 0
     lea %A64_1330 %A64_1329 x
@@ -4694,7 +4694,7 @@
     ld %S32_1380 %A64_1379 0
     sub %S32_1381 %S32_1380 3
     mov y %S32_1381
-.bbl for_2  #  edge_out[for_2_next]
+.bbl for_2  #  #edge_in=1  edge_out[for_2_next]
     sub %S32_1382 0 s1
     lea %A64_1383 cin %S32_1382
     ld %U8_1384 %A64_1383 0
@@ -4751,12 +4751,12 @@
     mov cout %A64_1427
     lea %A64_1428 cin s1
     mov cin %A64_1428
-.bbl for_2_next  #  edge_out[for_2_cond]
+.bbl for_2_next  #  #edge_in=1  edge_out[for_2_cond]
     sub %S32_1429 y 1
     mov y %S32_1429
-.bbl for_2_cond  #  edge_out[for_2  for_2_exit]
+.bbl for_2_cond  #  #edge_in=2  edge_out[for_2  for_2_exit]
     bne y 0 for_2
-.bbl for_2_exit  #  edge_out[for_3_next]
+.bbl for_2_exit  #  #edge_in=1  edge_out[for_3_next]
     lea %A64_1430 cin s1
     mov cin %A64_1430
     ld %U8_1431 cin 0
@@ -4820,12 +4820,12 @@
     bsr njClip
     poparg %U8_1480
     st cout 0 %U8_1480
-.bbl for_3_next  #  edge_out[for_3_cond]
+.bbl for_3_next  #  #edge_in=1  edge_out[for_3_cond]
     add %S32_1481 x 1
     mov x %S32_1481
-.bbl for_3_cond  #  edge_out[for_3  for_3_exit]
+.bbl for_3_cond  #  #edge_in=2  edge_out[for_3  for_3_exit]
     blt x w for_3
-.bbl for_3_exit
+.bbl for_3_exit  #  #edge_in=1
     lea %A64_1482 c 16
     ld %S32_1483 %A64_1482 0
     shl %S32_1484 %S32_1483 1
@@ -5040,96 +5040,96 @@
     lea.mem %A64_1492 nj 0
     lea %A64_1493 %A64_1492 52
     mov c %A64_1493
-.bbl while_3  #  edge_out[if_9_true  while_1]
+.bbl while_3  #  #edge_in=2  edge_out[if_9_true  while_1]
     lea %A64_1494 c 12
     ld %S32_1495 %A64_1494 0
     lea.mem %A64_1496 nj 0
     lea %A64_1497 %A64_1496 24
     ld %S32_1498 %A64_1497 0
     blt %S32_1495 %S32_1498 if_9_true
-.bbl if_9_true  #  edge_out[while_1]
+.bbl if_9_true  #  #edge_in=1  edge_out[while_1]
     pusharg c
     bsr njUpsampleH
-.bbl while_1  #  edge_out[if_10_true  while_1_cond]
+.bbl while_1  #  #edge_in=3  edge_out[if_10_true  while_1_cond]
     lea.mem %A64_1499 nj 0
     lea %A64_1500 %A64_1499 0
     ld %S32_1501 %A64_1500 0
     bne %S32_1501 0 if_10_true
-.bbl if_10_true
+.bbl if_10_true  #  #edge_in=1
     ret
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_1_exit]
     bne 0:S32 0 while_1
-.bbl while_1_exit  #  edge_out[if_12_true  while_2]
+.bbl while_1_exit  #  #edge_in=1  edge_out[if_12_true  while_2]
     lea %A64_1502 c 16
     ld %S32_1503 %A64_1502 0
     lea.mem %A64_1504 nj 0
     lea %A64_1505 %A64_1504 28
     ld %S32_1506 %A64_1505 0
     blt %S32_1503 %S32_1506 if_12_true
-.bbl if_12_true  #  edge_out[while_2]
+.bbl if_12_true  #  #edge_in=1  edge_out[while_2]
     pusharg c
     bsr njUpsampleV
-.bbl while_2  #  edge_out[if_13_true  while_2_cond]
+.bbl while_2  #  #edge_in=3  edge_out[if_13_true  while_2_cond]
     lea.mem %A64_1507 nj 0
     lea %A64_1508 %A64_1507 0
     ld %S32_1509 %A64_1508 0
     bne %S32_1509 0 if_13_true
-.bbl if_13_true
+.bbl if_13_true  #  #edge_in=1
     ret
-.bbl while_2_cond  #  edge_out[while_2  while_3_cond]
+.bbl while_2_cond  #  #edge_in=1  edge_out[while_2  while_3_cond]
     bne 0:S32 0 while_2
-.bbl while_3_cond  #  edge_out[branch_24  while_3]
+.bbl while_3_cond  #  #edge_in=2  edge_out[branch_24  while_3]
     lea %A64_1510 c 12
     ld %S32_1511 %A64_1510 0
     lea.mem %A64_1512 nj 0
     lea %A64_1513 %A64_1512 24
     ld %S32_1514 %A64_1513 0
     blt %S32_1511 %S32_1514 while_3
-.bbl branch_24  #  edge_out[while_3  while_3_exit]
+.bbl branch_24  #  #edge_in=1  edge_out[while_3  while_3_exit]
     lea %A64_1515 c 16
     ld %S32_1516 %A64_1515 0
     lea.mem %A64_1517 nj 0
     lea %A64_1518 %A64_1517 28
     ld %S32_1519 %A64_1518 0
     blt %S32_1516 %S32_1519 while_3
-.bbl while_3_exit  #  edge_out[branch_25  while_4]
+.bbl while_3_exit  #  #edge_in=1  edge_out[branch_25  while_4]
     lea %A64_1520 c 12
     ld %S32_1521 %A64_1520 0
     lea.mem %A64_1522 nj 0
     lea %A64_1523 %A64_1522 24
     ld %S32_1524 %A64_1523 0
     blt %S32_1521 %S32_1524 while_4
-.bbl branch_25  #  edge_out[for_5_next  while_4]
+.bbl branch_25  #  #edge_in=1  edge_out[for_5_next  while_4]
     lea %A64_1525 c 16
     ld %S32_1526 %A64_1525 0
     lea.mem %A64_1527 nj 0
     lea %A64_1528 %A64_1527 28
     ld %S32_1529 %A64_1528 0
     blt %S32_1526 %S32_1529 while_4
-.bbl while_4
+.bbl while_4  #  #edge_in=3
     lea.mem %A64_1530 nj 0
     mov %S32_1531 4
     st %A64_1530 0 %S32_1531
     ret
 .bbl while_4_cond  #  edge_out[for_5_next  while_4]
     bne 0:S32 0 while_4
-.bbl for_5_next  #  edge_out[for_5_cond]
+.bbl for_5_next  #  #edge_in=2  edge_out[for_5_cond]
     add %S32_1532 i 1
     mov i %S32_1532
     lea %A64_1533 c 48
     mov c %A64_1533
-.bbl for_5_cond  #  edge_out[for_5_exit  while_3_cond]
+.bbl for_5_cond  #  #edge_in=2  edge_out[for_5_exit  while_3_cond]
     conv %U32_1534 i
     lea.mem %A64_1535 nj 0
     lea %A64_1536 %A64_1535 48
     ld %U32_1537 %A64_1536 0
     blt %U32_1534 %U32_1537 while_3_cond
-.bbl for_5_exit  #  edge_out[if_23_false  if_23_true]
+.bbl for_5_exit  #  #edge_in=1  edge_out[if_23_false  if_23_true]
     lea.mem %A64_1538 nj 0
     lea %A64_1539 %A64_1538 48
     ld %U32_1540 %A64_1539 0
     beq %U32_1540 3 if_23_true
-.bbl if_23_true  #  edge_out[for_7_cond]
+.bbl if_23_true  #  #edge_in=1  edge_out[for_7_cond]
     lea.mem %A64_1541 nj 0
     lea %A64_1542 %A64_1541 525020
     ld %A64_1543 %A64_1542 0
@@ -5155,9 +5155,9 @@
     lea %A64_1559 %A64_1558 28
     ld %S32_1560 %A64_1559 0
     mov yy %S32_1560
-.bbl for_7  #  edge_out[for_6_cond]
+.bbl for_7  #  #edge_in=1  edge_out[for_6_cond]
     mov x 0
-.bbl for_6  #  edge_out[for_6_next]
+.bbl for_6  #  #edge_in=1  edge_out[for_6_next]
     lea %A64_1561 py x
     ld %U8_1562 %A64_1561 0
     conv %S32_1563 %U8_1562
@@ -5203,15 +5203,15 @@
     st %A64_1591 0 %U8_1590
     lea %A64_1592 prgb 3
     mov prgb %A64_1592
-.bbl for_6_next  #  edge_out[for_6_cond]
+.bbl for_6_next  #  #edge_in=1  edge_out[for_6_cond]
     add %S32_1593 x 1
     mov x %S32_1593
-.bbl for_6_cond  #  edge_out[for_6  for_6_exit]
+.bbl for_6_cond  #  #edge_in=2  edge_out[for_6  for_6_exit]
     lea.mem %A64_1594 nj 0
     lea %A64_1595 %A64_1594 24
     ld %S32_1596 %A64_1595 0
     blt x %S32_1596 for_6
-.bbl for_6_exit  #  edge_out[for_7_next]
+.bbl for_6_exit  #  #edge_in=1  edge_out[for_7_next]
     lea.mem %A64_1597 nj 0
     lea %A64_1598 %A64_1597 52
     lea %A64_1599 %A64_1598 20
@@ -5232,12 +5232,12 @@
     ld %S32_1612 %A64_1611 0
     lea %A64_1613 pcr %S32_1612
     mov pcr %A64_1613
-.bbl for_7_next  #  edge_out[for_7_cond]
+.bbl for_7_next  #  #edge_in=1  edge_out[for_7_cond]
     sub %S32_1614 yy 1
     mov yy %S32_1614
-.bbl for_7_cond  #  edge_out[for_7  if_23_end]
+.bbl for_7_cond  #  #edge_in=2  edge_out[for_7  if_23_end]
     bne yy 0 for_7
-.bbl if_23_false  #  edge_out[if_22_true  if_23_end]
+.bbl if_23_false  #  #edge_in=1  edge_out[if_22_true  if_23_end]
     lea.mem %A64_1615 nj 0
     lea %A64_1616 %A64_1615 52
     lea %A64_1617 %A64_1616 12
@@ -5247,7 +5247,7 @@
     lea %A64_1621 %A64_1620 20
     ld %S32_1622 %A64_1621 0
     bne %S32_1618 %S32_1622 if_22_true
-.bbl if_22_true  #  edge_out[for_8_cond]
+.bbl if_22_true  #  #edge_in=1  edge_out[for_8_cond]
     lea.mem %A64_1623 nj 0
     lea %A64_1624 %A64_1623 52
     lea %A64_1625 %A64_1624 40
@@ -5274,7 +5274,7 @@
     ld %S32_1644 %A64_1643 0
     sub %S32_1645 %S32_1644 1
     mov __local_26_y %S32_1645
-.bbl for_8  #  edge_out[for_8_next]
+.bbl for_8  #  #edge_in=1  edge_out[for_8_next]
     lea.mem %A64_1646 nj 0
     lea %A64_1647 %A64_1646 52
     lea %A64_1648 %A64_1647 12
@@ -5296,12 +5296,12 @@
     ld %S32_1659 %A64_1658 0
     lea %A64_1660 pout %S32_1659
     mov pout %A64_1660
-.bbl for_8_next  #  edge_out[for_8_cond]
+.bbl for_8_next  #  #edge_in=1  edge_out[for_8_cond]
     sub %S32_1661 __local_26_y 1
     mov __local_26_y %S32_1661
-.bbl for_8_cond  #  edge_out[for_8  for_8_exit]
+.bbl for_8_cond  #  #edge_in=2  edge_out[for_8  for_8_exit]
     bne __local_26_y 0 for_8
-.bbl for_8_exit  #  edge_out[if_23_end]
+.bbl for_8_exit  #  #edge_in=1  edge_out[if_23_end]
     lea.mem %A64_1662 nj 0
     lea %A64_1663 %A64_1662 52
     lea %A64_1664 %A64_1663 12
@@ -5310,7 +5310,7 @@
     lea %A64_1667 %A64_1666 52
     lea %A64_1668 %A64_1667 20
     st %A64_1668 0 %S32_1665
-.bbl if_23_end
+.bbl if_23_end  #  #edge_in=3
     ret
 
 .fun njInit NORMAL [] = []
@@ -5350,7 +5350,7 @@
 .reg A64 %A64_1690
 .bbl %start  #  edge_out[for_1_cond]
     mov i 0
-.bbl for_1  #  edge_out[for_1_next  if_2_true]
+.bbl for_1  #  #edge_in=1  edge_out[for_1_next  if_2_true]
     lea.mem %A64_1672 nj 0
     lea %A64_1673 %A64_1672 52
     mul %S32_1674 i 48
@@ -5358,7 +5358,7 @@
     lea %A64_1676 %A64_1675 40
     ld %A64_1677 %A64_1676 0
     bne %A64_1677 0 if_2_true
-.bbl if_2_true  #  edge_out[for_1_next]
+.bbl if_2_true  #  #edge_in=1  edge_out[for_1_next]
     lea.mem %A64_1678 nj 0
     lea %A64_1679 %A64_1678 52
     mul %S32_1680 i 48
@@ -5367,23 +5367,23 @@
     ld %A64_1683 %A64_1682 0
     pusharg %A64_1683
     bsr free
-.bbl for_1_next  #  edge_out[for_1_cond]
+.bbl for_1_next  #  #edge_in=2  edge_out[for_1_cond]
     add %S32_1684 i 1
     mov i %S32_1684
-.bbl for_1_cond  #  edge_out[for_1  for_1_exit]
+.bbl for_1_cond  #  #edge_in=2  edge_out[for_1  for_1_exit]
     blt i 3 for_1
-.bbl for_1_exit  #  edge_out[if_4_end  if_4_true]
+.bbl for_1_exit  #  #edge_in=1  edge_out[if_4_end  if_4_true]
     lea.mem %A64_1685 nj 0
     lea %A64_1686 %A64_1685 525020
     ld %A64_1687 %A64_1686 0
     bne %A64_1687 0 if_4_true
-.bbl if_4_true  #  edge_out[if_4_end]
+.bbl if_4_true  #  #edge_in=1  edge_out[if_4_end]
     lea.mem %A64_1688 nj 0
     lea %A64_1689 %A64_1688 525020
     ld %A64_1690 %A64_1689 0
     pusharg %A64_1690
     bsr free
-.bbl if_4_end
+.bbl if_4_end  #  #edge_in=2
     bsr njInit
     ret
 
@@ -5465,11 +5465,11 @@
     lea %A64_1697 %A64_1696 16
     ld %S32_1698 %A64_1697 0
     blt %S32_1698 2 if_2_true
-.bbl if_2_true
+.bbl if_2_true  #  #edge_in=1
     mov %out 1
     pusharg %out
     ret
-.bbl if_2_end  #  edge_out[if_3_end  if_3_true]
+.bbl if_2_end  #  #edge_in=1  edge_out[if_3_end  if_3_true]
     lea.mem %A64_1699 nj 0
     lea %A64_1700 %A64_1699 4
     ld %A64_1701 %A64_1700 0
@@ -5485,31 +5485,31 @@
     xor %S32_1711 %S32_1710 216
     or %S32_1712 %S32_1704 %S32_1711
     bne %S32_1712 0 if_3_true
-.bbl if_3_true
+.bbl if_3_true  #  #edge_in=1
     mov %out 1
     pusharg %out
     ret
-.bbl if_3_end  #  edge_out[while_1_cond]
+.bbl if_3_end  #  #edge_in=1  edge_out[while_1_cond]
     mov %S32_1713 2
     pusharg %S32_1713
     bsr __static_2_njSkip
-.bbl while_1  #  edge_out[branch_8  if_4_true]
+.bbl while_1  #  #edge_in=1  edge_out[branch_8  if_4_true]
     lea.mem %A64_1714 nj 0
     lea %A64_1715 %A64_1714 16
     ld %S32_1716 %A64_1715 0
     blt %S32_1716 2 if_4_true
-.bbl branch_8  #  edge_out[if_4_end  if_4_true]
+.bbl branch_8  #  #edge_in=1  edge_out[if_4_end  if_4_true]
     lea.mem %A64_1717 nj 0
     lea %A64_1718 %A64_1717 4
     ld %A64_1719 %A64_1718 0
     ld %U8_1720 %A64_1719 0
     conv %S32_1721 %U8_1720
     bne %S32_1721 255 if_4_true
-.bbl if_4_true
+.bbl if_4_true  #  #edge_in=2
     mov %out 5
     pusharg %out
     ret
-.bbl if_4_end  #  edge_out[if_4_end_1  switch_1728_default]
+.bbl if_4_end  #  #edge_in=1  edge_out[if_4_end_1  switch_1728_default]
     mov %S32_1722 2
     pusharg %S32_1722
     bsr __static_2_njSkip
@@ -5519,21 +5519,21 @@
     lea %A64_1726 %A64_1725 -1
     ld %U8_1727 %A64_1726 0
     blt 254:U8 %U8_1727 switch_1728_default
-.bbl if_4_end_1  #  edge_out[switch_1728_192  switch_1728_196  switch_1728_218  switch_1728_219  switch_1728_221  switch_1728_254  switch_1728_default]
+.bbl if_4_end_1  #  #edge_in=1  edge_out[switch_1728_192  switch_1728_196  switch_1728_218  switch_1728_219  switch_1728_221  switch_1728_254  switch_1728_default]
     switch %U8_1727 switch_1728_tab
-.bbl switch_1728_192  #  edge_out[while_1_cond]
+.bbl switch_1728_192  #  #edge_in=1  edge_out[while_1_cond]
     bsr njDecodeSOF
-.bbl switch_1728_196  #  edge_out[while_1_cond]
+.bbl switch_1728_196  #  #edge_in=1  edge_out[while_1_cond]
     bsr njDecodeDHT
-.bbl switch_1728_219  #  edge_out[while_1_cond]
+.bbl switch_1728_219  #  #edge_in=1  edge_out[while_1_cond]
     bsr njDecodeDQT
-.bbl switch_1728_221  #  edge_out[while_1_cond]
+.bbl switch_1728_221  #  #edge_in=1  edge_out[while_1_cond]
     bsr njDecodeDRI
-.bbl switch_1728_218  #  edge_out[while_1_cond]
+.bbl switch_1728_218  #  #edge_in=1  edge_out[while_1_cond]
     bsr njDecodeScan
-.bbl switch_1728_254  #  edge_out[while_1_cond]
+.bbl switch_1728_254  #  #edge_in=1  edge_out[while_1_cond]
     bsr njSkipMarker
-.bbl switch_1728_default  #  edge_out[if_5_false  if_5_true]
+.bbl switch_1728_default  #  #edge_in=2  edge_out[if_5_false  if_5_true]
     lea.mem %A64_1729 nj 0
     lea %A64_1730 %A64_1729 4
     ld %A64_1731 %A64_1730 0
@@ -5542,30 +5542,30 @@
     conv %S32_1734 %U8_1733
     and %S32_1735 %S32_1734 240
     beq %S32_1735 224 if_5_true
-.bbl if_5_true  #  edge_out[while_1_cond]
+.bbl if_5_true  #  #edge_in=1  edge_out[while_1_cond]
     bsr njSkipMarker
-.bbl if_5_false
+.bbl if_5_false  #  #edge_in=1
     mov %out 2
     pusharg %out
     ret
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=8  edge_out[while_1  while_1_exit]
     lea.mem %A64_1736 nj 0
     lea %A64_1737 %A64_1736 0
     ld %S32_1738 %A64_1737 0
     bne %S32_1738 0 while_1_exit
-.bbl while_1_exit  #  edge_out[if_7_end  if_7_true]
+.bbl while_1_exit  #  #edge_in=1  edge_out[if_7_end  if_7_true]
     lea.mem %A64_1739 nj 0
     lea %A64_1740 %A64_1739 0
     ld %S32_1741 %A64_1740 0
     bne %S32_1741 6 if_7_true
-.bbl if_7_true
+.bbl if_7_true  #  #edge_in=1
     lea.mem %A64_1742 nj 0
     lea %A64_1743 %A64_1742 0
     ld %S32_1744 %A64_1743 0
     mov %out %S32_1744
     pusharg %out
     ret
-.bbl if_7_end
+.bbl if_7_end  #  #edge_in=1
     lea.mem %A64_1745 nj 0
     mov %S32_1746 0
     st %A64_1745 0 %S32_1746
@@ -5590,15 +5590,15 @@
     poparg s
     poparg fd
     mov size 0
-.bbl for_1_next  #  edge_out[for_1_cond]
+.bbl for_1_next  #  #edge_in=1  edge_out[for_1_cond]
     add %U64_1750 size 1
     mov size %U64_1750
-.bbl for_1_cond  #  edge_out[for_1_exit  for_1_next]
+.bbl for_1_cond  #  #edge_in=2  edge_out[for_1_exit  for_1_next]
     lea %A64_1751 s size
     ld %S8_1752 %A64_1751 0
     conv %S32_1753 %S8_1752
     bne %S32_1753 0 for_1_next
-.bbl for_1_exit
+.bbl for_1_exit  #  #edge_in=1
     pusharg size
     pusharg s
     pusharg fd
@@ -5635,7 +5635,7 @@
     st %A64_1756 0 %S8_1757
     sub %S32_1758 i 1
     mov i %S32_1758
-.bbl while_1  #  edge_out[while_1_cond]
+.bbl while_1  #  #edge_in=2  edge_out[while_1_cond]
     rem %S32_1759 a 10
     add %S32_1760 48 %S32_1759
     conv %S8_1761 %S32_1760
@@ -5646,9 +5646,9 @@
     mov i %S32_1764
     div %S32_1765 a 10
     mov a %S32_1765
-.bbl while_1_cond  #  edge_out[while_1  while_1_exit]
+.bbl while_1_cond  #  #edge_in=1  edge_out[while_1  while_1_exit]
     bne a 0 while_1
-.bbl while_1_exit
+.bbl while_1_exit  #  #edge_in=1
     lea.stk %A64_1766 buf 0
     add %S32_1767 i 1
     lea %A64_1768 %A64_1766 %S32_1767
@@ -5711,14 +5711,14 @@
     poparg argc
     poparg argv
     blt argc 3 if_1_true
-.bbl if_1_true
+.bbl if_1_true  #  #edge_in=1
     lea.mem %A64_1769 string_const_1 0
     pusharg %A64_1769
     bsr print_s_ln
     mov %out 2
     pusharg %out
     ret
-.bbl if_1_end  #  edge_out[if_2_end  if_2_true]
+.bbl if_1_end  #  #edge_in=1  edge_out[if_2_end  if_2_true]
     lea %A64_1770 argv 8
     ld %A64_1771 %A64_1770 0
     mov %S32_1773 0
@@ -5730,14 +5730,14 @@
     poparg %S32_1772
     mov fd %S32_1772
     blt fd 0 if_2_true
-.bbl if_2_true
+.bbl if_2_true  #  #edge_in=1
     lea.mem %A64_1775 string_const_2 0
     pusharg %A64_1775
     bsr print_s_ln
     mov %out 1
     pusharg %out
     ret
-.bbl if_2_end  #  edge_out[if_3_end  if_3_true]
+.bbl if_2_end  #  #edge_in=1  edge_out[if_3_end  if_3_true]
     mov %S64_1777 0
     mov %S32_1778 2
     pusharg %S32_1778
@@ -5776,7 +5776,7 @@
     bsr njDecode
     poparg %S32_1789
     bne %S32_1789 0 if_3_true
-.bbl if_3_true
+.bbl if_3_true  #  #edge_in=1
     pusharg buf
     bsr free
     lea.mem %A64_1790 string_const_3 0
@@ -5785,7 +5785,7 @@
     mov %out 1
     pusharg %out
     ret
-.bbl if_3_end  #  edge_out[if_4_end  if_4_true]
+.bbl if_3_end  #  #edge_in=1  edge_out[if_4_end  if_4_true]
     pusharg buf
     bsr free
     lea %A64_1791 argv 16
@@ -5801,28 +5801,28 @@
     poparg %S32_1797
     mov fd %S32_1797
     blt fd 0 if_4_true
-.bbl if_4_true
+.bbl if_4_true  #  #edge_in=1
     lea.mem %A64_1798 string_const_4 0
     pusharg %A64_1798
     bsr print_s_ln
     mov %out 1
     pusharg %out
     ret
-.bbl if_4_end  #  edge_out[if_5_false  if_5_true]
+.bbl if_4_end  #  #edge_in=1  edge_out[if_5_false  if_5_true]
     bsr njIsColor
     poparg %S32_1799
     bne %S32_1799 0 if_5_true
-.bbl if_5_true  #  edge_out[if_5_end]
+.bbl if_5_true  #  #edge_in=1  edge_out[if_5_end]
     lea.mem %A64_1800 string_const_5 0
     pusharg fd
     pusharg %A64_1800
     bsr write_str
-.bbl if_5_false  #  edge_out[if_5_end]
+.bbl if_5_false  #  #edge_in=1  edge_out[if_5_end]
     lea.mem %A64_1801 string_const_6 0
     pusharg fd
     pusharg %A64_1801
     bsr write_str
-.bbl if_5_end
+.bbl if_5_end  #  #edge_in=2
     bsr njGetWidth
     poparg %S32_1802
     pusharg %S32_1802

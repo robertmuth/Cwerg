@@ -14,29 +14,29 @@ from BE.Base import optimize
   data structures equivalent to the code below:
 
   .fun fibonacci NORMAL [U32] = [U32]
-      .reg U32 [x in out] 
-  
+      .reg U32 [x in out]
+
   .bbl start
       poparg in
       blt 1:U32 in difficult
       pusharg in
       ret
-  
+
   .bbl difficult
       mov out = 0
       sub x = in 1
-  
+
       pusharg x
       bsr fibonacci
       poparg x
-  
+
       add out = out x
       sub x = in 2
-  
+
       pusharg x
       bsr fibonacci
       poparg x
-  
+
       add out = out x
       pusharg out
       ret
@@ -53,27 +53,27 @@ def BuildExample() -> ir.Unit:
     reg_x = fun_fib.AddReg(ir.Reg("x", o.DK.U32))
     reg_out = fun_fib.AddReg(ir.Reg("out", o.DK.U32))
 
-    bbl_start.AddIns(ir.Ins(o.POPARG, [reg_in]))
-    bbl_start.AddIns(ir.Ins(o.BLT, [ir.Const(o.DK.U32, 1), reg_in, bbl_difficult]))
-    bbl_start.AddIns(ir.Ins(o.PUSHARG, [reg_in]))
-    bbl_start.AddIns(ir.Ins(o.RET, []))
+    bbl_start.AddIns(ir.Ins(o.POPARG, [reg_in], False))
+    bbl_start.AddIns(ir.Ins(o.BLT, [ir.Const(o.DK.U32, 1), reg_in, bbl_difficult], False))
+    bbl_start.AddIns(ir.Ins(o.PUSHARG, [reg_in], False))
+    bbl_start.AddIns(ir.Ins(o.RET, [], False))
 
-    bbl_difficult.AddIns(ir.Ins(o.MOV, [reg_out, ir.Const(o.DK.U32, 0)]))
-    bbl_difficult.AddIns(ir.Ins(o.SUB, [reg_x, reg_in, ir.Const(o.DK.U32, 1)]))
+    bbl_difficult.AddIns(ir.Ins(o.MOV, [reg_out, ir.Const(o.DK.U32, 0)], False))
+    bbl_difficult.AddIns(ir.Ins(o.SUB, [reg_x, reg_in, ir.Const(o.DK.U32, 1)], False))
 
-    bbl_difficult.AddIns(ir.Ins(o.PUSHARG, [reg_x]))
-    bbl_difficult.AddIns(ir.Ins(o.BSR, [fun_fib]))
-    bbl_difficult.AddIns(ir.Ins(o.POPARG, [reg_x]))
-    bbl_difficult.AddIns(ir.Ins(o.ADD, [reg_out, reg_out, reg_x]))
+    bbl_difficult.AddIns(ir.Ins(o.PUSHARG, [reg_x], False))
+    bbl_difficult.AddIns(ir.Ins(o.BSR, [fun_fib], False))
+    bbl_difficult.AddIns(ir.Ins(o.POPARG, [reg_x], False))
+    bbl_difficult.AddIns(ir.Ins(o.ADD, [reg_out, reg_out, reg_x], False))
 
-    bbl_difficult.AddIns(ir.Ins(o.SUB, [reg_x, reg_in, ir.Const(o.DK.U32, 2)]))
-    bbl_difficult.AddIns(ir.Ins(o.PUSHARG, [reg_x]))
-    bbl_difficult.AddIns(ir.Ins(o.BSR, [fun_fib]))
-    bbl_difficult.AddIns(ir.Ins(o.POPARG, [reg_x]))
-    bbl_difficult.AddIns(ir.Ins(o.ADD, [reg_out, reg_out, reg_x]))
+    bbl_difficult.AddIns(ir.Ins(o.SUB, [reg_x, reg_in, ir.Const(o.DK.U32, 2)], False))
+    bbl_difficult.AddIns(ir.Ins(o.PUSHARG, [reg_x], False))
+    bbl_difficult.AddIns(ir.Ins(o.BSR, [fun_fib], False))
+    bbl_difficult.AddIns(ir.Ins(o.POPARG, [reg_x], False))
+    bbl_difficult.AddIns(ir.Ins(o.ADD, [reg_out, reg_out, reg_x], False))
 
-    bbl_difficult.AddIns(ir.Ins(o.PUSHARG, [reg_out]))
-    bbl_difficult.AddIns(ir.Ins(o.RET, []))
+    bbl_difficult.AddIns(ir.Ins(o.PUSHARG, [reg_out], False))
+    bbl_difficult.AddIns(ir.Ins(o.RET, [], False))
     return unit
 
 

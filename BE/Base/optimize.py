@@ -125,24 +125,20 @@ def FunOptBasic(fun: ir.Fun, opt_stats: Dict[str, int],
 
     opt_stats["canonicalized"] += canonicalize.FunCanonicalize(fun)
     opt_stats["strength_red"] += lowering.FunStrengthReduction(fun)
-
     opt_stats["empty_bbls"] = cfg.FunRemoveEmptyBbls(fun)
     opt_stats["unreachable_bbls"] = cfg.FunRemoveUnreachableBbls(fun)
+
     reaching_defs.FunComputeReachingDefs(fun)
     reaching_defs.FunCheckReachingDefs(fun)
     opt_stats["reg_prop"] = reaching_defs.FunPropagateRegs(fun)
     opt_stats["const_prop"] += reaching_defs.FunPropagateConsts(fun)
-
     opt_stats["const_fold"] += reaching_defs.FunConstantFold(
         fun, allow_conv_conversion)
 
     opt_stats["canonicalized"] += canonicalize.FunCanonicalize(fun)
     opt_stats["strength_red"] += lowering.FunStrengthReduction(fun)
-
     opt_stats["ls_st_simplify"] += reaching_defs.FunLoadStoreSimplify(fun)
-
     opt_stats["move_elim"] += lowering.FunMoveElimination(fun)
-
     liveness.FunComputeLivenessInfo(fun)
 
     opt_stats["useless"] = liveness.FunRemoveUselessInstructions(fun)

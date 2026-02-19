@@ -5,11 +5,11 @@
 #include "BE/Base/cfg.h"
 #include "BE/Base/liveness.h"
 #include "BE/Base/lowering.h"
-#include "IR/opcode_gen.h"
 #include "BE/Base/reaching_defs.h"
 #include "BE/Base/reg_stats.h"
 #include "BE/Base/sanity.h"
 #include "BE/Base/serialize.h"
+#include "IR/opcode_gen.h"
 
 namespace cwerg::base {
 
@@ -28,9 +28,9 @@ void FunOptBasic(Fun fun, bool allow_conv_conversions) {
   FunMergeMoveWithSrcDef(fun, &inss);
   FunCanonicalize(fun);
   FunStrengthReduction(fun);  // generates more MOVs which help
-
   FunRemoveEmptyBbls(fun);
   FunRemoveUnreachableBbls(fun);  // remove unreachable code before reaching-def
+
   FunNumberReg(fun);
   FunComputeReachingDefs(fun);
   FunPropagateRegs(fun);
@@ -39,7 +39,6 @@ void FunOptBasic(Fun fun, bool allow_conv_conversions) {
 
   FunCanonicalize(fun);
   FunStrengthReduction(fun);  // generates more MOVs which help
-
   FunLoadStoreSimplify(fun);
   FunMoveElimination(fun, &inss);
 

@@ -447,7 +447,7 @@ def ProcessLine(token: List, unit: ir.Unit, fun: Optional[ir.Fun], cpu_regs: Dic
         operands = RetrieveActualOperands(unit, fun, opc, token, cpu_regs)
         assert fun.bbls, f"no bbl specified to contain instruction"
         bbl = fun.bbls[-1]
-        ins = ir.Ins(opc, operands)
+        ins = ir.Ins(opc, operands, False)
         bbl.AddIns(ins)
         sanity.InsCheckConstraints(ins)
 

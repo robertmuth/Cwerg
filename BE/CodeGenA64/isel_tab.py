@@ -88,7 +88,7 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     opc = ins.opcode
     if opc is o.CNTPOP:
         scratch = fun.GetScratchReg(o.DK.R64, "popcnt", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
+        return [ir.Ins(o.NOP1, [scratch], False), ins]
     return [ins]
 
 

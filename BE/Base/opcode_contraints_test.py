@@ -31,59 +31,59 @@ class TestRegState(unittest.TestCase):
 
     def testMov(self):
         mov = o.Opcode.Lookup("mov")
-        ins = ir.Ins(mov, [reg_u32, reg_u32])
+        ins = ir.Ins(mov, [reg_u32, reg_u32], False)
         sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(mov, [reg_s32, reg_u32])
+            ins = ir.Ins(mov, [reg_s32, reg_u32], False)
             sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(mov, [reg_s32, reg_s8])
+            ins = ir.Ins(mov, [reg_s32, reg_s8], False)
             sanity.InsCheckConstraints(ins)
 
     def testAdd(self):
         add = o.Opcode.Lookup("add")
-        ins = ir.Ins(add, [reg_u32, reg_u32, reg_u32])
+        ins = ir.Ins(add, [reg_u32, reg_u32, reg_u32], False)
         sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(add, [reg_u32, reg_s32, reg_u32])
+            ins = ir.Ins(add, [reg_u32, reg_s32, reg_u32], False)
             sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(add, [reg_a32, reg_a32, reg_s32])
+            ins = ir.Ins(add, [reg_a32, reg_a32, reg_s32], False)
             sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(add, [reg_u32, reg_u32, reg_a32])
+            ins = ir.Ins(add, [reg_u32, reg_u32, reg_a32], False)
             sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(add, [reg_u32, reg_u32, reg_s32])
+            ins = ir.Ins(add, [reg_u32, reg_u32, reg_s32], False)
             sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(add, [reg_u32, reg_u32, reg_u16])
+            ins = ir.Ins(add, [reg_u32, reg_u32, reg_u16], False)
             sanity.InsCheckConstraints(ins)
 
     def testAdd2(self):
         ld = o.Opcode.Lookup("ld")
-        ins = ir.Ins(ld, [reg_u32, reg_a32, reg_u32])
+        ins = ir.Ins(ld, [reg_u32, reg_a32, reg_u32], False)
         sanity.InsCheckConstraints(ins)
 
-        ins = ir.Ins(ld, [reg_u32, reg_a32, reg_u16])
+        ins = ir.Ins(ld, [reg_u32, reg_a32, reg_u16], False)
         sanity.InsCheckConstraints(ins)
 
-        ins = ir.Ins(ld, [reg_u32, reg_a32, reg_s32])
+        ins = ir.Ins(ld, [reg_u32, reg_a32, reg_s32], False)
         sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(ld, [reg_u32, reg_u32, reg_u32])
+            ins = ir.Ins(ld, [reg_u32, reg_u32, reg_u32], False)
             sanity.InsCheckConstraints(ins)
 
         with self.assertRaises(sanity.ParseError):
-            ins = ir.Ins(ld, [reg_u32, reg_a32, reg_a32])
+            ins = ir.Ins(ld, [reg_u32, reg_a32, reg_a32], False)
             sanity.InsCheckConstraints(ins)
 
 

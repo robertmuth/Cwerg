@@ -267,7 +267,7 @@ def FunAddUnconditionalBranches(fun: ir.Fun):
             assert len(fun.bbls) > n
             succ = bbl.edge_out[0]
             if n + 1 == len(fun.bbls) or fun.bbls[n + 1] != succ:
-                bbl.inss.append(ir.Ins(o.BRA, [succ]))
+                bbl.inss.append(ir.Ins(o.BRA, [succ], False))
             continue
 
         assert len(bbl.edge_out) == 2
@@ -285,7 +285,7 @@ def FunAddUnconditionalBranches(fun: ir.Fun):
             continue
         else:
             bbl_bra = ir.Bbl(NewDerivedBblName(bbl.name, "bra", fun))
-            bbl_bra.inss.append(ir.Ins(o.BRA, [other]))
+            bbl_bra.inss.append(ir.Ins(o.BRA, [other], False))
             fun.bbl_syms[bbl_bra.name] = bbl_bra
             # forward fallthrough to new bbl
             if bbl.inss:

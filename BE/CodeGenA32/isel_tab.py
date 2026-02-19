@@ -84,27 +84,27 @@ def _InsAddNop1ForCodeSel(ins: ir.Ins, fun: ir.Fun) -> Optional[List[ir.Ins]]:
     if opc is o.SWITCH:
         # needs scratch to compute the jmp address into
         scratch = fun.GetScratchReg(o.DK.C32, "switch", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
+        return [ir.Ins(o.NOP1, [scratch], False), ins]
     elif opc is o.ST_STK:
         # may need scratch to compute the jmp address into
         scratch = fun.GetScratchReg(o.DK.A32, "st_stk", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
+        return [ir.Ins(o.NOP1, [scratch], False), ins]
     elif opc is o.CAS:
         # needs scratch to compute the jmp address into
         scratch = fun.GetScratchReg(o.DK.U32, "cas", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
+        return [ir.Ins(o.NOP1, [scratch], False), ins]
     elif (opc is o.CONV and o.RegIsInt(ins.operands[0].kind) and
           ins.operands[1].kind.flavor() == o.DK_FLAVOR_R):
         # need scratch for intermediate ftl result
         # we know the result cannot be wider than 32bit for this CPU
         scratch = fun.GetScratchReg(o.DK.R32, "ftoi", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
+        return [ir.Ins(o.NOP1, [scratch], False), ins]
     elif (opc is o.CONV and o.RegIsInt(ins.operands[1].kind) and
           ins.operands[0].kind is o.DK.R64):
         # need scratch for intermediate ftl result
         # we know the result cannot be wider than 32bit for this CPU
         scratch = fun.GetScratchReg(o.DK.R32, "itof", False)
-        return [ir.Ins(o.NOP1, [scratch]), ins]
+        return [ir.Ins(o.NOP1, [scratch], False), ins]
     return [ins]
 
 
