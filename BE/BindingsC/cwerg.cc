@@ -47,30 +47,30 @@ extern "C" CW_Const ConstNewF(CW_DK kind, double value) {
   return ConstNewF(DK(kind), value).value;
 }
 
-extern "C" CW_Ins CW_InsNew0(CW_OPC opc) { return InsNew(OPC(opc)).value; }
+extern "C" CW_Ins CW_InsNew0(CW_OPC opc) { return InsNew(OPC(opc), false).value; }
 
 extern "C" CW_Ins CW_InsNew1(CW_OPC opc, CW_Handle op1) {
-  return InsNew(OPC(opc), Handle(op1)).value;
+  return InsNew(OPC(opc), false, Handle(op1)).value;
 }
 
 extern "C" CW_Ins CW_InsNew2(CW_OPC opc, CW_Handle op1, CW_Handle op2) {
-  return InsNew(OPC(opc), Handle(op1), Handle(op2)).value;
+  return InsNew(OPC(opc), false, Handle(op1), Handle(op2)).value;
 }
 
 extern "C" CW_Ins CW_InsNew3(CW_OPC opc, CW_Handle op1, CW_Handle op2,
                              CW_Handle op3) {
-  return InsNew(OPC(opc), Handle(op1), Handle(op2), Handle(op3)).value;
+  return InsNew(OPC(opc), false, Handle(op1), Handle(op2), Handle(op3)).value;
 }
 
 extern "C" CW_Ins CW_InsNew4(CW_OPC opc, CW_Handle op1, CW_Handle op2,
                              CW_Handle op3, CW_Handle op4) {
-  return InsNew(OPC(opc), Handle(op1), Handle(op2), Handle(op3), Handle(op4))
+  return InsNew(OPC(opc), false, Handle(op1), Handle(op2), Handle(op3), Handle(op4))
       .value;
 }
 
 extern "C" CW_Ins CW_InsNew5(CW_OPC opc, CW_Handle op1, CW_Handle op2,
                              CW_Handle op3, CW_Handle op4, CW_Handle op5) {
-  return InsNew(OPC(opc), Handle(op1), Handle(op2), Handle(op3), Handle(op4),
+  return InsNew(OPC(opc), false, Handle(op1), Handle(op2), Handle(op3), Handle(op4),
                 Handle(op4))
       .value;
 }
