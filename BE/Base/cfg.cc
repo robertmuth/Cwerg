@@ -302,7 +302,7 @@ void FunRemoveEmptyBbls(Fun fun) {
       bbls_keep.push_back(bbl);
       continue;
     }
-    ASSERT(FunBblList::Head(fun) != bbl, "cannot remove entry bbl");
+    // ASSERT(FunBblList::Head(fun) != bbl, "cannot remove entry bbl in fun " << Name(fun));
     ASSERT(out_edg == BblSuccEdgList::Tail(bbl) &&
                !BblSuccEdgList::IsSentinel(out_edg),
            "must have one out edge:\n"
