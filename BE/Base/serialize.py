@@ -79,12 +79,15 @@ def BblRenderToAsm(bbl: ir.Bbl) -> List[str]:
     edge_out = sorted([bbl.name for bbl in bbl.edge_out])
     live_out = sorted([r.name for r in bbl.live_out])
     annotations = ""
-    if edge_out or live_out:
+    if edge_out or live_out or bbl.edge_in:
         annotations = "  #"
+        if bbl.edge_in:
+            annotations += f"  #edge_in={len(bbl.edge_in)}"
         if edge_out:
             annotations += f"  edge_out[{'  '.join(edge_out)}]"
         if live_out:
             annotations += f"  live_out[{'  '.join(live_out)}]"
+
     out = [f".bbl {bbl.name}{annotations}"]
     for ins in bbl.inss:
         out.append(InsRenderToAsm(ins))

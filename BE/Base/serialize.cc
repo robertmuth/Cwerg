@@ -583,10 +583,23 @@ void BblRenderToAsm(Bbl bbl, Fun fun, std::ostream* output, bool number) {
   const char* group_sep = "  #  ";
 
 #if 1
+  if (!BblPredEdgList::IsEmpty(bbl)) {
+    int n = 0;
+    for (Edg edg : BblPredEdgIter(bbl)) {
+      // TODO: should this be an assert
+      if (edg.isnull()) {
+        break;
+      }
+      ++n;
+    }
+    *output << group_sep << "#edge_in=" << n;
+    group_sep = "  ";
+  }
   if (!BblSuccEdgList::IsEmpty(bbl)) {
     std::vector<std::string> succs;
     for (Edg edg : BblSuccEdgIter(bbl)) {
       if (edg.isnull()) {
+        // TODO: should this be an assert
         succs.emplace_back("INVALID_EDG");
         break;
       }
@@ -602,6 +615,7 @@ void BblRenderToAsm(Bbl bbl, Fun fun, std::ostream* output, bool number) {
     }
     *output << "]";
   }
+
 #endif
 #if 0
   if (!BblPredEdgList::IsEmpty(bbl)) {
