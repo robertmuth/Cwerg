@@ -129,9 +129,8 @@ def FunOptBasic(fun: ir.Fun, opt_stats: Dict[str, int],
     opt_stats["unreachable_bbls"] = cfg.FunRemoveUnreachableBbls(fun)
 
     reaching_defs.FunComputeReachingDefs(fun)
-    reaching_defs.FunCheckReachingDefs(fun)
-    opt_stats["reg_prop"] = reaching_defs.FunPropagateRegs(fun)
-    opt_stats["const_prop"] += reaching_defs.FunPropagateConsts(fun)
+    #     reaching_defs.FunCheckReachingDefs(fun)
+    opt_stats["reg_prop"] = reaching_defs.FunPropagateRegsAndConsts(fun)
     opt_stats["const_fold"] += reaching_defs.FunConstantFold(
         fun, allow_conv_conversion)
 
