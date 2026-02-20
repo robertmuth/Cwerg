@@ -44,14 +44,14 @@ void FunComputeReachingDefs(Fun fun) {
 
       for (unsigned i = num_defs; i < num_operands; ++i) {
         Reg reg = Reg(InsOperand(ins, i));
-
         if (Kind(reg) != RefKind::REG) {
           InsDef(ins, i) = HandleTop;
           continue;
         }
         int no = RegNo(reg);
         Handle def = reg_map.Get(no);
-        ASSERT(def != HandleBottom, "use of never defined reg " << Name(reg) << " in " << Name(fun));
+        ASSERT(def != HandleBottom,
+               "use of never defined reg " << Name(reg) << " in " << Name(fun));
         if (def == HandleTop) {
           def = bbl_defs.Get(no);
           if (def == HandleBottom) {
@@ -64,8 +64,7 @@ void FunComputeReachingDefs(Fun fun) {
       if (num_defs == 0) {
         InsIsOnlyDef(ins) = true;
       } else {
-        Reg reg = Reg(InsOperand(ins, 0));
-        int no = RegNo(reg);
+        int no = RegNo(Reg(InsOperand(ins, 0)));
         InsIsOnlyDef(ins) = reg_map.Get(no) != HandleTop;
         bbl_defs.Set(no, ins);
       }
@@ -214,7 +213,7 @@ bool DefAvailable(const OpInfo& op_info, Bbl bbl, HandleVec* hv) {
   }
   // reg was defined outside and has not been clobbered
 
-  if (Kind(op_info.def) == RefKind::BBL && hv->Get(reg_no) == HandleBottom) {
+  if (op_info.def == bbl && hv->Get(reg_no) == HandleBottom) {
     return true;
   }
 
@@ -269,7 +268,7 @@ OPC NewOPC(OPC ins_opc, OPC base_opc) {
   return OPC::INVALID;
 }
 
-void InsTryLoadStoreSimplify(Ins ins,Bbl bbl, HandleVec* hv) {
+void InsTryLoadStoreSimplify(Ins ins, Bbl bbl, HandleVec* hv) {
   const OPC opc = InsOPC(ins);
   if (opc != OPC::LD && opc != OPC::ST && opc != OPC::LEA) return;
   unsigned base_pos = opc == OPC::ST ? 0 : 1;
@@ -315,24 +314,6 @@ void FunLoadStoreSimplify(Fun fun) {
   HandleVec::Del(hv);
 }
 
-void InsTryPropagateRegs(Ins ins, Handle* data) {
-  unsigned num_ops = InsOpcode(ins).num_operands;
-  for (unsigned i = 0; i < num_ops; ++i) {
-    Ins mov = Ins(InsDef(ins, i));
-    if (mov.isnull() || Kind(mov) != RefKind::INS || InsOPC(mov) != OPC::MOV) {
-      continue;
-    }
-    Reg src_reg = Reg(InsOperand(mov, 1));
-    if (Kind(src_reg) != RefKind::REG || !RegCpuReg(src_reg).isnull()) {
-      continue;
-    }
-    Ins src_def = Ins(InsDef(mov, 1));
-    if (data[RegNo(src_reg)] != src_def) continue;
-    InsOperand(ins, i) = src_reg;
-    InsDef(ins, i) = src_def;
-  }
-}
-
 void FunPropagateRegsAndConsts(Fun fun) {
   const unsigned num_regs = FunNumRegs(fun);
   HandleVec hv = HandleVec::New(num_regs);
@@ -347,7 +328,8 @@ void FunPropagateRegsAndConsts(Fun fun) {
           continue;
         }
         Reg src_reg = Reg(InsOperand(mov, 1));
-        Reg src_def = Reg(InsDef(mov, 1));
+        Handle src_def = InsDef(mov, 1);
+
         if (Kind(src_reg) == RefKind::REG && !RegCpuReg(src_reg).isnull()) {
           continue;
         }

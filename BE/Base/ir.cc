@@ -19,7 +19,6 @@ namespace {
 
 constexpr const char* kRefKindNames[] = {
     "INVALID",  //
-    "FREE",     //
     "INS",      //
     "EDG",      //
     "BBL",      //
@@ -57,10 +56,9 @@ struct Stripe<BblCore, Bbl> gBblCore("BblCore");
 struct Stripe<BblBst, Bbl> gBblBst("BblBst");
 struct Stripe<BblEdg, Bbl> gBblEdg("BblEdg");
 struct Stripe<BblLiveness, Bbl> gBblLiveness("BblLiveness");
-struct Stripe<BblReachingDefs, Bbl> gBblReachingDefs("BblDefs");
 
 StripeBase* const gAllStripesBbl[] = {
-    &gBblCore, &gBblBst, &gBblEdg, &gBblLiveness, &gBblReachingDefs, nullptr};
+    &gBblCore, &gBblBst, &gBblEdg, &gBblLiveness, nullptr};
 struct StripeGroup gStripeGroupBbl("BBL", gAllStripesBbl, 32 * 1024);
 
 struct Stripe<FunCore, Fun> gFunCore("FunCore");

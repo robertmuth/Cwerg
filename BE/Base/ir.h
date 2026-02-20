@@ -157,6 +157,10 @@ struct Str : public Handle {
 constexpr const Handle UnlinkedRef(0, uint8_t(RefKind::INVALID));
 constexpr const Handle HandleInvalid(0, uint8_t(RefKind::INVALID));
 
+inline std::ostream& operator<<(std::ostream& os, Handle handle) {
+  os << EnumToString(Kind(handle)) << "[" << handle.index() << "]";
+  return os;
+}
 // =======================================
 // Data (chunk of pre-allocated (neither heap nor stack) data)
 // =======================================
@@ -646,17 +650,10 @@ struct BblLiveness {
   BitVec use;
 };
 
-struct BblReachingDefs {
-  HandleVec in;
-  HandleVec out;
-  HandleVec def;
-};
-
 extern struct Stripe<BblCore, Bbl> gBblCore;
 extern struct Stripe<BblBst, Bbl> gBblBst;
 extern struct Stripe<BblEdg, Bbl> gBblEdg;
 extern struct Stripe<BblLiveness, Bbl> gBblLiveness;
-extern struct Stripe<BblReachingDefs, Bbl> gBblReachingDefs;
 extern struct StripeGroup gStripeGroupBbl;
 
 inline Str& Name(Bbl bbl) { return gBblBst[bbl].name; }
@@ -665,16 +662,6 @@ inline BitVec& BblLiveIn(Bbl bbl) { return gBblLiveness[bbl].in; }
 inline BitVec& BblLiveUse(Bbl bbl) { return gBblLiveness[bbl].use; }
 inline BitVec& BblLiveDef(Bbl bbl) { return gBblLiveness[bbl].def; }
 
-inline HandleVec& BblReachingDefsOut(Bbl bbl) {
-  return gBblReachingDefs[bbl].out;
-}
-inline HandleVec& BblReachingDefsIn(Bbl bbl) {
-  return gBblReachingDefs[bbl].in;
-}
-inline HandleVec& BblReachingDefsDef(Bbl bbl) {
-  return gBblReachingDefs[bbl].def;
-}
-
 inline Bbl BblNew(Str name) {
   Bbl out = Bbl(gStripeGroupBbl.New().index());
   gBblCore[out] = {Bbl(0), Bbl(0), Ins(out), Ins(out)};
@@ -682,9 +669,6 @@ inline Bbl BblNew(Str name) {
   gBblEdg[out] = {Edg(out), Edg(out), Edg(out), Edg(out)};
   gBblLiveness[out] = {BitVecInvalid, BitVecInvalid, BitVecInvalid,
                        BitVecInvalid};
-  gBblReachingDefs[out] = {HandleVecInvalid, HandleVecInvalid,
-                           HandleVecInvalid};
-
   return out;
 }
 
