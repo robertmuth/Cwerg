@@ -41,6 +41,8 @@ class IMM_CURB(enum.IntEnum):
     pos_stk_combo_10_21_times_8 = 14
     IMM_POS_32 = 15
 
+_MAX_UINT64 = 0xffffffffffffffff
+
 
 _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
     # return False on non-match
@@ -48,7 +50,7 @@ _NUM_MATCHERS: Dict[IMM_CURB, Any] = {
     IMM_CURB.ANY: lambda x: True,
     IMM_CURB.pos_stk_combo_16_bits: lambda x: 0 <= x < (1 << 16),
     IMM_CURB.pos_stk_combo_32_bits: lambda x: 0 <= x < (1 << 32),
-    IMM_CURB.IMM_SHIFTED_5_20_21_22_NOT: lambda x: a64.EncodeShifted_5_20_21_22(~x) is not None,
+    IMM_CURB.IMM_SHIFTED_5_20_21_22_NOT: lambda x: a64.EncodeShifted_5_20_21_22(((~x) & _MAX_UINT64)) is not None,
     # The curbs below map directly to an a64.OK. return None on non-match
     IMM_CURB.IMM_SHIFTED_5_20_21_22: a64.OK.IMM_SHIFTED_5_20_21_22,
     IMM_CURB.IMM_SHIFTED_10_21_22: a64.OK.IMM_SHIFTED_10_21_22,
@@ -465,12 +467,13 @@ def EmitFunEpilog(ctx: regs.EmitContext) -> List[InsTmpl]:
 
     stk_size = ctx.stk_size
     assert (stk_size >> 24) == 0
-    if stk_size & 0xfff000 != 0:
-        out.append(
-            InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff000]))
     if stk_size & 0xfff != 0:
         out.append(
             InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff]))
+    if stk_size & 0xfff000 != 0:
+        out.append(
+            InsTmpl("add_x_imm", [FIXARG.SP, FIXARG.SP, stk_size & 0xfff000]))
+
     # Note: we need to reverse these
     out.reverse()
     return out
