@@ -5,7 +5,8 @@ DIR=build
 QEMU_X64=qemu-x86_64-static
 
 $(info $(shell mkdir -p $(DIR)))
-TESTS = fib.asm \
+TESTS = parse_real_test.64.asm \
+    	fib.asm \
         fib_debug.asm \
         cmp.asm \
         reg_torture.asm \
