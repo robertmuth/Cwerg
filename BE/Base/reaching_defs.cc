@@ -11,196 +11,68 @@
 #include "Util/handlevec.h"
 
 namespace cwerg::base {
-namespace {
 
 const Handle HandleBottom(0, uint8_t(RefKind::BBL));
 const Handle HandleTop(0, uint8_t(RefKind::INS));
 
-void BblInitReachingDefs(Bbl bbl, unsigned num_regs) {
-  for (unsigned i = 1; i < num_regs; ++i) {
-    BblReachingDefsIn(bbl).Set(i, HandleBottom);
-    BblReachingDefsOut(bbl).Set(i, HandleBottom);
-    BblReachingDefsDef(bbl).Set(i, HandleBottom);
-  }
-
-  for (Ins ins : BblInsIter(bbl)) {
-    for (unsigned i = 1; i < num_regs; ++i) {
-      unsigned num_defs = InsOpcode(ins).num_defs;
-      for (unsigned pos = 0; pos < num_defs; ++pos) {
-        const Reg reg = Reg(InsOperand(ins, pos));
-        ASSERT(Kind(reg) == RefKind::REG, "");
-        BblReachingDefsDef(bbl).Set(RegNo(reg), ins);
-      }
-    }
-  }
-}
-
-// Propagation to `self` from an incoming `other`
-// Simple lattice with top, bot, and all other elements in-between.
-bool HandleVecCombineWith(HandleVec self, HandleVec other, unsigned num_regs,
-                          Handle top) {
-  ASSERT(self.num_chunks() == other.num_chunks(), "");
-  Handle* data1 = self.BackingStorage();
-  Handle* data2 = other.BackingStorage();
-  bool change = false;
-  for (unsigned i = 1; i < num_regs; ++i) {
-    Handle h1 = data1[i];
-    if (h1 == top) continue;
-    Handle h2 = data2[i];
-    if (h2 == HandleBottom || h1 == h2) continue;
-    if (h1 == HandleBottom) {
-      change = true;
-      data1[i] = h2.raw_kind() == int(RefKind::BBL) ? top : h2;
-      continue;
-    }
-    change = true;
-    data1[i] = top;
-  }
-  return change;
-}
-
-// Propagation to `out` from `in` applying `def`
-bool HandleVecUpdateWith(HandleVec out, HandleVec in, HandleVec def,
-                         unsigned num_regs) {
-  ASSERT(out.num_chunks() == in.num_chunks() &&
-             out.num_chunks() == def.num_chunks(),
-         "");
-  bool change = false;
-  Handle* data_out = out.BackingStorage();
-  Handle* data_in = in.BackingStorage();
-  Handle* data_def = def.BackingStorage();
-
-  for (unsigned i = 1; i < num_regs; ++i) {
-    Handle h = data_def[i];
-    if (h == HandleBottom) {
-      h = data_in[i];
-    }
-    if (h != data_out[i]) {
-      data_out[i] = h;
-      change = true;
-    }
-  }
-  return change;
-}
-
-}  // namespace
-
 void FunComputeReachingDefs(Fun fun) {
   const unsigned num_regs = FunNumRegs(fun);
+  HandleVec reg_map = HandleVec::New(num_regs);
+  reg_map.ClearWith(HandleBottom);
 
-  // Step 1: Initialization
-  // By setting the reaching_defs_in of first Bbl to bottom (=undefined),
-  // and undefined value combined with some other value x will become x.
-  // The other option is to initialize all reaching_defs_in of first Bbl
-  // to that bbl.
-
-  for (Bbl bbl : FunBblIter(fun)) HandleVec::Del(BblReachingDefsIn(bbl));
+  // Phase 1
   for (Bbl bbl : FunBblIter(fun)) {
-    HandleVec::Del(BblReachingDefsOut(bbl));
-    HandleVec::Del(BblReachingDefsDef(bbl));
-  }
-
-  // We want all the BblLiveOuts to be adjacent
-  for (Bbl bbl : FunBblIter(fun)) {
-    BblReachingDefsIn(bbl) = HandleVec::New(num_regs);
-  }
-
-  for (Bbl bbl : FunBblIter(fun)) {
-    BblReachingDefsOut(bbl) = HandleVec::New(num_regs);
-    BblReachingDefsDef(bbl) = HandleVec::New(num_regs);
-  }
-
-  for (Bbl bbl : FunBblIter(fun)) {
-    BblInitReachingDefs(bbl, num_regs);
-  }
-
-  // Step 2: Fixpoint computation
-  // Note, we look at the first bbl first
-  int count = 0;
-  std::set<Bbl> active_set;
-  std::vector<Bbl> active_stk;
-  for (Bbl bbl : FunBblIterReverse(fun)) {  // stack inverts order
-    active_stk.push_back(bbl);
-    active_set.insert(bbl);
-  }
-
-  while (!active_stk.empty()) {
-    ++count;
-    const Bbl bbl = active_stk.back();
-    active_stk.pop_back();
-    active_set.erase(bbl);
-    HandleVec out = BblReachingDefsOut(bbl);
-    if (!HandleVecUpdateWith(out, BblReachingDefsIn(bbl),
-                             BblReachingDefsDef(bbl), num_regs)) {
-      continue;
-    }
-
-    for (Edg edg : BblSuccEdgIter(bbl)) {
-      Bbl succ = EdgSuccBbl(edg);
-      if (HandleVecCombineWith(BblReachingDefsIn(succ), out, num_regs, succ)) {
-        // NOTE: would it be better to go DFS and move the succ up the stack?
-        if (active_set.find(succ) == active_set.end())
-          active_stk.push_back(succ);
+    for (Ins ins : BblInsIter(bbl)) {
+      if (InsOpcode(ins).num_defs == 0) continue;
+      Reg def_reg = Reg(InsOperand(ins, 0));
+      int no = RegNo(def_reg);
+      if (reg_map.Get(no) == HandleBottom) {
+        reg_map.Set(no, ins);
+      } else {
+        reg_map.Set(no, HandleTop);
       }
     }
   }
 
-  // Step 3: Make analysis results accessible
-  // All entries should be be Ins or Bbl, except for cases of undefined
+  // Phase 2
+  HandleVec bbl_defs = HandleVec::New(num_regs);
   for (Bbl bbl : FunBblIter(fun)) {
-    Handle* data =
-        static_cast<Handle*>(BblReachingDefsIn(bbl).BackingStorage());
-    for (unsigned i = 1; i < num_regs; ++i) {
-      if (data[i] == HandleBottom) data[i] = bbl;
-    }
-  }
-  HandleVec hv = HandleVec::New(num_regs);
-  Handle* data = static_cast<Handle*>(hv.BackingStorage());
-  for (Bbl bbl : FunBblIter(fun)) {
-    hv.CopyFrom(BblReachingDefsIn(bbl));
+    bbl_defs.ClearWith(HandleBottom);
     for (Ins ins : BblInsIter(bbl)) {
-      // TODO: when have machine regs we also need to account for
-      // clobbered regs after calls
-      const unsigned num_defs = InsOpcode(ins).num_defs;
-      const unsigned num_ops = InsOpcode(ins).num_operands;
-      for (unsigned i = 0; i < num_ops; ++i) {
+      unsigned num_defs = InsOpcode(ins).num_defs;
+      unsigned num_operands = InsOpcode(ins).num_operands;
+
+      for (unsigned i = num_defs; i < num_operands; ++i) {
         Reg reg = Reg(InsOperand(ins, i));
-        if (i < num_defs || Kind(reg) != RefKind::REG) {
+
+        if (Kind(reg) != RefKind::REG) {
           InsDef(ins, i) = HandleTop;
-        } else {
-          InsDef(ins, i) = data[RegNo(reg)];
+          continue;
         }
+        int no = RegNo(reg);
+        Handle def = reg_map.Get(no);
+        ASSERT(def != HandleBottom, "use of never defined reg " << Name(reg) << " in " << Name(fun));
+        if (def == HandleTop) {
+          def = bbl_defs.Get(no);
+          if (def == HandleBottom) {
+            def = bbl;
+          }
+        }
+        InsDef(ins, i) = def;
       }
-      for (unsigned i = 0; i < num_defs; ++i) {
-        Reg reg = Reg(InsOperand(ins, i));
-        ASSERT(Kind(reg) == RefKind::REG, "unexpect non reg in " << ins);
-        data[RegNo(reg)] = ins;
+
+      if (num_defs == 0) {
+        InsIsOnlyDef(ins) = true;
+      } else {
+        Reg reg = Reg(InsOperand(ins, 0));
+        int no = RegNo(reg);
+        InsIsOnlyDef(ins) = reg_map.Get(no) != HandleTop;
+        bbl_defs.Set(no, ins);
       }
     }
   }
-  HandleVec::Del(hv);
-}
-
-static void InsPropagateConsts(Ins ins) {
-  const unsigned num_ops = InsOpcode(ins).num_operands;
-  for (unsigned i = 0; i < num_ops; ++i) {
-    Ins d = Ins(InsDef(ins, i));
-    if (d.isnull() || Kind(d) != RefKind::INS || InsOPC(d) != OPC::MOV)
-      continue;
-    Const v = Const(InsOperand(d, 1));
-    if (Kind(v) != RefKind::CONST) continue;
-    InsOperand(ins, i) = v;
-    InsDef(ins, i) = HandleTop;
-    // std::cout << "@@@in propagate " << Name() << " " << ins << "\n";
-  }
-}
-
-void FunPropagateConsts(Fun fun) {
-  for (Bbl bbl : FunBblIter(fun)) {
-    for (Ins ins : BblInsIter(bbl)) {
-      InsPropagateConsts(ins);
-    }
-  }
+  HandleVec::Del(bbl_defs);
+  HandleVec::Del(reg_map);
 }
 
 static void InsConstantFold(Ins ins, Bbl bbl, bool allow_conv_conversion,
@@ -290,7 +162,6 @@ namespace {
 struct OpInfo {
   Handle op;
   Handle def;
-  DK dk;
 };
 
 // TODO: Hackish
@@ -308,33 +179,46 @@ OpInfo CombinedOffset(Ins ins, Ins base_ins) {
   const unsigned off_pos = of == OPC_KIND::ST ? 1 : 2;
   const Const offset1 = Const(InsOperand(ins, off_pos));
   if (InsOPC(base_ins) == OPC::MOV) {
-    return OpInfo{offset1, InsDef(ins, off_pos), DK::INVALID};
+    return OpInfo{offset1, InsDef(ins, off_pos)};
   }
   if (InsOpcodeKind(base_ins) != OPC_KIND::LEA) {
-    return OpInfo{HandleInvalid, HandleInvalid, DK::INVALID};
+    return OpInfo{HandleInvalid, HandleInvalid};
   }
   const Const offset2 = Const(InsOperand(base_ins, 2));
   if (Kind(offset2) == RefKind::CONST && ConstIsZero(offset2)) {
-    return OpInfo{offset1, InsDef(ins, off_pos), DK::INVALID};
+    return OpInfo{offset1, InsDef(ins, off_pos)};
   }
   if (Kind(offset1) == RefKind::CONST && ConstIsZero(offset1)) {
-    return OpInfo{offset2, InsDef(base_ins, 2), DK::INVALID};
+    return OpInfo{offset2, InsDef(base_ins, 2)};
   }
   if (Kind(offset1) == RefKind::CONST && Kind(offset2) == RefKind::CONST) {
-    return OpInfo{ConstSumOffsets(offset1, offset2), HandleInvalid,
-                  DK::INVALID};
+    return OpInfo{ConstSumOffsets(offset1, offset2), HandleInvalid};
   }
-  return OpInfo{HandleInvalid, HandleInvalid, DK::INVALID};
+  return OpInfo{HandleInvalid, HandleInvalid};
 }
 
-bool DefAvailable(const OpInfo& op_info, Handle* data) {
+bool DefAvailable(const OpInfo& op_info, Bbl bbl, HandleVec* hv) {
   const RefKind kind = Kind(op_info.op);
   if (kind == RefKind::CONST || kind == RefKind::MEM || kind == RefKind::STK) {
     return true;
   }
+  if (Kind(op_info.def) == RefKind::INS && InsIsOnlyDef(Ins(op_info.def))) {
+    return true;
+  }
   ASSERT(kind == RefKind::REG, "unexpected Refkind " << int(kind));
-  if (op_info.def == HandleTop) return false;
-  return op_info.def == data[RegNo(Reg(op_info.op))];
+  int reg_no = RegNo(Reg(op_info.op));
+
+  // reg was defined in this bbl and has not been clobbered
+  if (hv->Get(reg_no) == op_info.def) {
+    return true;
+  }
+  // reg was defined outside and has not been clobbered
+
+  if (Kind(op_info.def) == RefKind::BBL && hv->Get(reg_no) == HandleBottom) {
+    return true;
+  }
+
+  return false;
 }
 
 #if 0
@@ -385,7 +269,7 @@ OPC NewOPC(OPC ins_opc, OPC base_opc) {
   return OPC::INVALID;
 }
 
-void InsTryLoadStoreSimplify(Ins ins, Handle* data) {
+void InsTryLoadStoreSimplify(Ins ins,Bbl bbl, HandleVec* hv) {
   const OPC opc = InsOPC(ins);
   if (opc != OPC::LD && opc != OPC::ST && opc != OPC::LEA) return;
   unsigned base_pos = opc == OPC::ST ? 0 : 1;
@@ -393,13 +277,11 @@ void InsTryLoadStoreSimplify(Ins ins, Handle* data) {
   if (Kind(ins_base) != RefKind::INS) return;
   const OPC new_opc = NewOPC(opc, InsOPC(ins_base));
   if (new_opc == OPC::INVALID) return;
-  const OpInfo base_info{InsOperand(ins_base, 1),  //
-                         InsDef(ins_base, 1),      //
-                         DK::INVALID};
-  if (!DefAvailable(base_info, data)) return;
+  const OpInfo base_info{InsOperand(ins_base, 1), InsDef(ins_base, 1)};
+  if (!DefAvailable(base_info, bbl, hv)) return;
   OpInfo offset_info = CombinedOffset(ins, ins_base);
   if (offset_info.op.isnull()) return;
-  if (!DefAvailable(offset_info, data)) return;
+  if (!DefAvailable(offset_info, bbl, hv)) return;
   InsOPC(ins) = new_opc;
   if (opc == OPC::ST) {
     InsOperand(ins, 0) = base_info.op;
@@ -419,16 +301,14 @@ void InsTryLoadStoreSimplify(Ins ins, Handle* data) {
 void FunLoadStoreSimplify(Fun fun) {
   const unsigned num_regs = FunNumRegs(fun);
   HandleVec hv = HandleVec::New(num_regs);
-  Handle* data = static_cast<Handle*>(hv.BackingStorage());
   for (Bbl bbl : FunBblIter(fun)) {
-    hv.CopyFrom(BblReachingDefsIn(bbl));
+    hv.ClearWith(HandleBottom);
     for (Ins ins : BblInsIter(bbl)) {
-      InsTryLoadStoreSimplify(ins, data);
-      unsigned num_defs = InsOpcode(ins).num_defs;
-      for (unsigned i = 0; i < num_defs; ++i) {
-        Reg reg = Reg(InsOperand(ins, i));
+      InsTryLoadStoreSimplify(ins, bbl, &hv);
+      if (InsOpcode(ins).num_defs > 0) {
+        Reg reg = Reg(InsOperand(ins, 0));
         ASSERT(Kind(reg) == RefKind::REG, "");
-        data[RegNo(reg)] = ins;
+        hv.Set(RegNo(reg), ins);
       }
     }
   }
@@ -453,19 +333,33 @@ void InsTryPropagateRegs(Ins ins, Handle* data) {
   }
 }
 
-void FunPropagateRegs(Fun fun) {
+void FunPropagateRegsAndConsts(Fun fun) {
   const unsigned num_regs = FunNumRegs(fun);
   HandleVec hv = HandleVec::New(num_regs);
-  Handle* data = static_cast<Handle*>(hv.BackingStorage());
   for (Bbl bbl : FunBblIter(fun)) {
-    hv.CopyFrom(BblReachingDefsIn(bbl));
+    hv.ClearWith(HandleBottom);
     for (Ins ins : BblInsIter(bbl)) {
-      InsTryPropagateRegs(ins, data);
       unsigned num_defs = InsOpcode(ins).num_defs;
-      for (unsigned i = 0; i < num_defs; ++i) {
-        Reg reg = Reg(InsOperand(ins, i));
+      unsigned num_ops = InsOpcode(ins).num_operands;
+      for (unsigned i = num_defs; i < num_ops; ++i) {
+        Ins mov = Ins(InsDef(ins, i));
+        if (Kind(mov) != RefKind::INS || InsOPC(mov) != OPC::MOV) {
+          continue;
+        }
+        Reg src_reg = Reg(InsOperand(mov, 1));
+        Reg src_def = Reg(InsDef(mov, 1));
+        if (Kind(src_reg) == RefKind::REG && !RegCpuReg(src_reg).isnull()) {
+          continue;
+        }
+        if (DefAvailable({src_reg, src_def}, bbl, &hv)) {
+          InsOperand(ins, i) = src_reg;
+          InsDef(ins, i) = src_def;
+        }
+      }
+      if (num_defs > 0) {
+        Reg reg = Reg(InsOperand(ins, 0));
         ASSERT(Kind(reg) == RefKind::REG, "");
-        data[RegNo(reg)] = ins;
+        hv.Set(RegNo(reg), ins);
       }
     }
   }

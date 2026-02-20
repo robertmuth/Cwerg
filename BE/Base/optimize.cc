@@ -33,8 +33,7 @@ void FunOptBasic(Fun fun, bool allow_conv_conversions) {
 
   FunNumberReg(fun);
   FunComputeReachingDefs(fun);
-  FunPropagateRegs(fun);
-  FunPropagateConsts(fun);
+  FunPropagateRegsAndConsts(fun);
   FunConstantFold(fun, allow_conv_conversions, &inss);
 
   FunCanonicalize(fun);

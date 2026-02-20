@@ -147,6 +147,7 @@ def _DefAvailable(op: Any, op_def: Any, bbl, def_map: ir.REG_DEF_MAP) -> bool:
         return True
 
     assert isinstance(op, ir.Reg), f"unexpected operand {op}"
+
     if def_map.get(op) is op_def:
         return True
     # we defined outside bbl and has not beem clobbered inside BBL
@@ -302,8 +303,7 @@ def FunComputeReachingDefs(fun: ir.Fun):
     defs: ir.REG_DEF_MAP = {}
     for bbl in fun.bbls:
         for ins in bbl.inss:
-            num_defs = ins.opcode.def_ops_count()
-            if num_defs == 0:
+            if ins.opcode.def_ops_count() == 0:
                 continue
             def_reg = ins.operands[0]
             assert isinstance(def_reg, ir.Reg)
@@ -328,12 +328,11 @@ def FunComputeReachingDefs(fun: ir.Fun):
                 def_ins = defs.get(op)
                 assert def_ins is not None, f"No defound for {ins} {op} in {bbl}"
                 if def_ins is ir.INS_INVALID:
-                    ins.operand_defs[n] = bbl_defs.get(op, bbl)
-                else:
-                    ins.operand_defs[n] = def_ins
+                    def_ins = bbl_defs.get(op, bbl)
+                ins.operand_defs[n] = def_ins
 
             if num_defs == 0:
-                ins.is_only_def = True
+                ins.is_only_def = False  # does not really matter
             else:
                 def_reg = ins.operands[0]
                 ins.is_only_def = defs[def_reg] is not ir.INS_INVALID
@@ -349,9 +348,11 @@ def _BblPropagateRegAndConstOperands(bbl: ir.Bbl, _fun: ir.Fun) -> int:
     count = 0
     def_map: ir.REG_DEF_MAP = {}
     for ins in bbl.inss:
+        num_defs = ins.opcode.def_ops_count()
         for n, mov in enumerate(ins.operand_defs):
-            if (mov is ir.INS_INVALID or not isinstance(mov, ir.Ins)
-                    or mov.opcode is not o.MOV):
+            if n < num_defs:
+                continue
+            if not isinstance(mov, ir.Ins) or mov.opcode is not o.MOV:
                 continue
             src_op = mov.operands[1]
             src_def = mov.operand_defs[1]
@@ -366,7 +367,7 @@ def _BblPropagateRegAndConstOperands(bbl: ir.Bbl, _fun: ir.Fun) -> int:
                 ins.operand_defs[n] = src_def
                 count += 1
 
-        if ins.opcode.def_ops_count() > 0:
+        if num_defs > 0:
             def_reg = ins.operands[0]
             def_map[def_reg] = ins
 
