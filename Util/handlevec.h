@@ -16,7 +16,7 @@ namespace cwerg {
 //    to if a register is visible in another Bbl even currently
 //    that register is local to its Bbl)
 constexpr const unsigned HANDLEVEC_CHUNCK_BYTE_SIZE = 32;
-constexpr const unsigned HANDLEVEC_NUM_CHUNK_BITS = 8;
+constexpr const unsigned HANDLEVEC_NUM_CHUNK_BITS = 10;
 constexpr const unsigned HANDLEVEC_HANDLES_PER_CHUNK =
     HANDLEVEC_CHUNCK_BYTE_SIZE / sizeof(Handle);
 
