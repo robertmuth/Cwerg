@@ -15,8 +15,9 @@ Since small is subjective we have set a complexity budget of about 10kLOC
 for a compiler frontend with basic optimizations
 (there is a comparable complexity budget for the backend).
 
- Cwerg is also meant to be a fast language focussing on whole program compilation. We target a compilation speed
- of at least a million LOC per second and programs of up to 10 million LOC.
+ Cwerg is also meant to be a fast language eliminating the need for separate compilation and 
+ instead focussing on whole program compilation. 
+ We target a compilation speed of at least a million LOC per second and programs of up to 10 million LOC.
 
 ## Highlights
 
