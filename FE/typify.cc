@@ -411,9 +411,9 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       BASE_TYPE_KIND actual =
           NumCleanupAndTypeExtraction(StrData(Node_number(node)), target).kind;
       // if (actual == BASE_TYPE_KIND::INVALID)
-      ASSERT(
-          actual != BASE_TYPE_KIND::INVALID,
-          "cannot parse " << Node_number(node) << " at " << Node_srcloc(node));
+      ASSERT(actual != BASE_TYPE_KIND::INVALID,
+             "insufficient type information for number litereal "
+                 << Node_number(node) << " at " << Node_srcloc(node));
       return NodeSetType(node, tc->get_base_canon_type(actual));
     }
     case NT::ValCompound:
@@ -807,14 +807,55 @@ void CheckTypeCompatibleWithOptionalStrict(Node src_node, CanonType dst_ct,
 }
 
 void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
-  // std::cout << "@@ TYPECHECK: " << Node_name(mod) << "\n";
-
   auto type_checker = [&tc, &strict](Node node, Node parent) -> void {
     const CanonType ct = Node_x_type(node);
 
     if (!NodeHasField(node, NFD_X_FIELD::type)) {
-      ASSERT(ct.isnull(), "");
-      return;
+      ASSERT(ct.isnull(), "untyped node has type info");
+      switch (Node_kind(node)) {
+        case NT::StmtIf:
+        case NT::Case:
+        case NT::StmtStaticAssert:
+          return CheckTypeIs(Node_cond(node), tc->get_bool_canon_type());
+        case NT::StmtCompoundAssignment:
+          if (!IsProperLhs(Node_expr_lhs(node))) {
+            CompilerError(Node_srcloc(node))
+                << "cannot assign to readonly data";
+          }
+          CHECK(IsArithmetic(Node_binary_expr_kind(node)), "");
+          return CheckExpr2TypesArithmetic(Node_x_type(Node_expr_lhs(node)),
+                                           Node_expr_lhs(node),
+                                           Node_expr_rhs(node));
+        case NT::StmtAssignment:
+          if (!IsProperLhs(Node_lhs(node))) {
+            CompilerError(Node_srcloc(node))
+                << "cannot assign to readonly data";
+          }
+          return CheckTypeCompatibleWithOptionalStrict(
+              Node_expr_rhs(node), Node_x_type(Node_lhs(node)), strict);
+
+        case NT::StmtReturn: {
+          Node target = Node_x_target(node);
+          CanonType ct_target = Node_kind(target) == NT::DefFun
+                                    ? Node_x_type(Node_result(target))
+                                    : Node_x_type(target);
+          return CheckTypeCompatibleWithOptionalStrict(Node_expr_ret(node),
+                                                       ct_target, strict);
+        }
+        case NT::ValUndef:
+        case NT::DefMod:
+        case NT::StmtExpr:
+        case NT::StmtTrap:
+        case NT::StmtBreak:
+        case NT::StmtContinue:
+        case NT::StmtDefer:
+        case NT::StmtBlock:
+        case NT::StmtCond:
+          return;
+        default:
+          UNREACHABLE("unexpected statement " << node);
+          return;
+      }
     }
     ASSERT(!ct.isnull(), "");
     ASSERT(!CanonType_desugared(ct), "");
@@ -826,10 +867,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::ExprSizeof:
       case NT::ExprLen:
         return CheckTypeIs(node, tc->get_uint_canon_type());
-      case NT::StmtIf:
-      case NT::Case:
-      case NT::StmtStaticAssert:
-        return CheckTypeIs(Node_cond(node), tc->get_bool_canon_type());
+
       case NT::ValVoid:
         return CheckTypeIs(node, tc->get_void_canon_type());
       case NT::ExprTypeId:
@@ -937,14 +975,6 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         }
         return CheckTypeIs(Node_type(node), Node_x_type(node));
 
-      case NT::StmtCompoundAssignment:
-        if (!IsProperLhs(Node_expr_lhs(node))) {
-          CompilerError(Node_srcloc(node)) << "cannot assign to readonly data";
-        }
-        CHECK(IsArithmetic(Node_binary_expr_kind(node)), "");
-        return CheckExpr2TypesArithmetic(Node_x_type(Node_expr_lhs(node)),
-                                         Node_expr_lhs(node),
-                                         Node_expr_rhs(node));
       case NT::ExprIndex: {
         NT kind = CanonType_kind(Node_x_type(Node_container(node)));
         CHECK(kind == NT::TypeVec || kind == NT::TypeSpan, "");
@@ -1102,21 +1132,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         }
         return;
       }
-      case NT::StmtAssignment:
-        if (!IsProperLhs(Node_lhs(node))) {
-          CompilerError(Node_srcloc(node)) << "cannot assign to readonly data";
-        }
-        return CheckTypeCompatibleWithOptionalStrict(
-            Node_expr_rhs(node), Node_x_type(Node_lhs(node)), strict);
 
-      case NT::StmtReturn: {
-        Node target = Node_x_target(node);
-        CanonType ct_target = Node_kind(target) == NT::DefFun
-                                  ? Node_x_type(Node_result(target))
-                                  : Node_x_type(target);
-        return CheckTypeCompatibleWithOptionalStrict(Node_expr_ret(node),
-                                                     ct_target, strict);
-      }
       case NT::DefGlobal:
       case NT::DefVar: {
         Node initial = Node_initial_or_undef_or_auto(node);
@@ -1137,20 +1153,6 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::TypeAuto:
       case NT::ValAuto:
       case NT::TypeUnionDelta:
-        return;
-        //  ========= No type annotation
-      case NT::ValUndef:
-      case NT::DefMod:
-      case NT::StmtExpr:
-      case NT::StmtTrap:
-      case NT::StmtBreak:
-      case NT::StmtContinue:
-      case NT::StmtDefer:
-      case NT::StmtBlock:
-      case NT::StmtCond:
-        CHECK(ct.isnull(),
-              "no type info expected for " << EnumToString(Node_kind(node)));
-        // no type checking
         return;
       default:
         CHECK(false, "NYI " << EnumToString(Node_kind(node)));

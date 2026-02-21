@@ -969,10 +969,12 @@ Node ParseStmtList(Lexer* lexer, uint32_t column) {
       lexer->Skip();
       if (tk.text.ends_with("#")) {
         out.Append(ParseMacroInvocation(lexer, tk));
-      } else {
+      } else if (tk.text.starts_with("$")) {
         // This happens when the macro body contains macro parameter
-        ASSERT(tk.text.starts_with("$"), tk);
         out.Append(MakeNodeMacroId(tk));
+      } else {
+        CompilerError(tk.srcloc) << "Expected beginning of a statement - did "
+                                    "you forget the `set` keyword";
       }
     } else {
       ASSERT(tk.kind == TK_KIND::KW, tk);

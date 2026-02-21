@@ -346,8 +346,8 @@ def _TypifyStmt(node, tc: type_corpus.TypeCorpus,
                            cwast.StmtTrap)):
         pass
     elif isinstance(node, (cwast.StmtAssignment, cwast.StmtCompoundAssignment)):
-        ct = _TypifyExprOrType(node.lhs, tc, cwast.NO_TYPE, pm)
-        _TypifyExprOrType(node.expr_rhs, tc, ct, pm)
+        ct_left = _TypifyExprOrType(node.lhs, tc, cwast.NO_TYPE, pm)
+        _TypifyExprOrType(node.expr_rhs, tc, ct_left, pm)
     elif isinstance(node, cwast.DefVar):
         _TypifyDefGlobalOrDefVar(node, tc, pm)
     elif isinstance(node, cwast.StmtExpr):
