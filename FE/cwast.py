@@ -1559,7 +1559,7 @@ class ValNum:
 @NodeCommon
 @dataclasses.dataclass()
 class ValUndef:
-    """Special constant to indiciate *no default value*
+    """Special constant to indicate *no default value*
     """
     ALIAS: ClassVar = "undef"
     GROUP: ClassVar = GROUP.Value
