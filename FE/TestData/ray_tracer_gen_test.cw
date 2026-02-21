@@ -174,11 +174,11 @@ global! irand [1024]u32
 fun init_vrand_urand() void:
     ref let! state = random::Pcg32StateDefault
     for i = 0, len(urand), 1:
-        set urand[i][0] = random::Pcg32GetRandomR64(@!state) - 0.5
+        set urand[i][0] = random::NextR64(@!state) - 0.5
     for i = 0, len(urand), 1:
-        set urand[i][1] = random::Pcg32GetRandomR64(@!state) - 0.5
+        set urand[i][1] = random::NextR64(@!state) - 0.5
     for i = 0, len(urand), 1:
-        set irand[i] = random::Pcg32GetRandomU32(@!state) % as(len(urand), u32)
+        set irand[i] = random::NextU32(@!state) % as(len(urand), u32)
 
 fun get_jitter(x u32, y u32, s u32) v64::vec2:
     let a = irand[(x + s) % as(len(irand), u32)]
