@@ -28,8 +28,8 @@ for a compiler frontend with basic optimizations
 * generics via generic modules
 * simple hygienic macro system
 * limited polymorphism
-* printf like functionality with custom formatters (enabled my polymorphism and generics)
-* vecs (arrays) do not decay to pointers
+* printf like functionality with custom formatters (enabled by polymorphism and generics)
+* vecs (arrays) do not decay to pointers when passes as arguments
 * vec indexing is checked by default
 * spans (views on vecs)
 * named blocks + multi-level break/continue
@@ -41,14 +41,18 @@ for a compiler frontend with basic optimizations
 * no goto, no va-args, no bitfields
 * no cyclic dependencies between modules
 * limited type inference
-* order of function definitions does not matter
+* order of function definitions and globals does not matter
 * all comments are on separate lines (no end of line comments)
+* blocks are the elementary loop construct
+* break and continue have optional label argument. 
+* for loops are only for iterating over numeric ranges. Use macros
+  to create custom for loops for specific data structures
 
 ## Syntax
 
 Cwerg uses a Python inspired syntax where the indentation level
 is significant. Operators are C style except for pointers, address taking and dereferncing
-which are Pascal style.
+which are Pascal style.mostly 
 
 We give some examples below to convey a general feeling for the language.
 The details should become clear after reading the rest of the tutorial.
@@ -66,15 +70,16 @@ module:
 
 import fmt
 
+; the program entry point
 fun main(argc s32, argv ^^u8) s32:
     fmt::print#("hello world\n")
     return 0
 
 ```
 
-Every file starts with a module stanza.
+Every file starts with a module stanza which only becomes interesting for generic modules.
 
-The type information in the function declaration follows the Go model
+The type information in the function declaration follows the Pacal model
 of identifier followed by type.
 Functions can only return one value.
 
@@ -84,18 +89,18 @@ Functions can only return one value.
 ### Sieve of Eratosthenes (excerpt)
 
 ```
--- a global constant
+; a global constant
 global N uint = 1000 * 1000 * 1000
 
--- a mutable global vec of bools initialized to `true`
--- index i represents number 3 + 2 * i
+; a mutable global vec of bools initialized to `true`
+; index i represents number 3 + 2 * i
 global! is_prime = [N]bool{true}
 
--- Count the number of primes below n
+; Count the number of primes below n
 fun sieve() uint:
-    -- mutable local varible
+    ; mutable local varible
     let! count uint = 1
-    -- the type of loop variable `i`  is determined by `N`
+    ; the type of loop variable `i`  is determined by `N`
     for i = 0, N, 1:
         if is_prime[i]:
             set count += 1
@@ -112,9 +117,9 @@ or potentially unsafe behavior.
 
 ```
 module(
-        -- the payload type
+        ; the payload type
         $type TYPE,
-        -- the less-than function ($type x $type) -> bool
+        ; the less-than function ($type x $type) -> bool
         $lt CONST_EXPR):
 
 pub global Leaf = void_val
@@ -124,20 +129,22 @@ pub rec Node:
     right union(void, ^!Node)
     payload $type
 
--- same as above for left and right
+; shorthand for optional Node pointer
+; currently, we cannot use inside the Node definiton
+; because of type cycles. 
 pub type MaybeNode = union(void, ^!Node)
 
 type Visitor = funtype(node ^$type) void
 
 pub fun InorderTraversal(root MaybeNode, visitor Visitor) void:
-    -- return if the union root is a Leaf
+    ; return if the union root is a Leaf
     trylet node ^!Node = root, _:
         return
     do InorderTraversal(node^.left, visitor)
     do visitor(@node^.payload)
     do InorderTraversal(node^.right, visitor)
 
--- returns the new root
+; returns the new root
 pub fun Insert(root MaybeNode, node ^!Node) ^!Node:
     set node^.left = Leaf
     set node^.right = Leaf
@@ -163,27 +170,27 @@ import fmt
 fun is_white_space(c u8) bool:
     return c == ' ' || c == '\n' || c == '\t' || c == '\r'
 
--- word, line and character count statistics
+; word, line and character count statistics
 rec TextStats:
     num_lines uint
     num_words uint
     num_chars uint
 
--- Returns either a TextStat or an Error
+; Returns either a TextStat or an Error
 fun WordCount(fd os::FD) union(TextStats, os::Error):
-    -- note limited type inference in next two stmts
+    ; note limited type inference in next two stmts
     let! stats = TextStats{}
     let! in_word = false
-    -- do not initialize buf with zeros
+    ; do not initialize buf with zeros
     let! buf [1024]u8 = undef
     while true:
-        -- if FileRead returns an uint, assign it to n else return it
+        ; if FileRead returns an uint, assign it to n else return it
         trylet n uint = os::FileRead(fd, buf), err:
             return err
         if n == 0:
             break
         set stats.num_chars += n
-        -- index variable has the same type as n.
+        ; index variable has the same type as n.
         for i = 0, n, 1:
             let c = buf[i]
             cond:
@@ -201,8 +208,8 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
 fun main(argc s32, argv ^^u8) s32:
     trylet stats TextStats = WordCount(os::Stdin), err:
         return 1
-    -- print# is a stmt macro for printing arbitrary values.
-    -- (It is possible to define formatters for custom types.)
+    ; print# is a stmt macro for printing arbitrary values.
+    ; (It is possible to define formatters for custom types.)
     fmt::print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars, "\n")
     return 0
 ```
@@ -213,7 +220,7 @@ Cwerg's type system is similar to C's with the following differences
 * there are almost no implicit conversions
 * pointers cannot be null
 * there is a stronger emphasis on "const/mutability correctness"
-* vecs (arrays) do not decay to to pointers
+* vecs (arrays) do not decay to to pointers, you have explicitly take the address
 * vecs of different sizes are different types
 * spans can be used where vec-like objects with variable length
   are required
@@ -226,7 +233,7 @@ Cwerg's type system is similar to C's with the following differences
 * `uint`  unsigned int big enough to hold a pointer
 * `s8`, `s16`, `s32`, `s64`  signed int in various widths
 * `sint`  signed int big enough to hold a pointer
-* `r32`, `r64`  floating points  in various widths
+* `r32`, `r64`  floating points in various widths
 * `typeid` unsigned int big enough to hold a type tag
 * `bool`
 * `void`
@@ -237,14 +244,14 @@ The pointer type notation is similar to Pascal.
 The caret goes in front of type.
 
 ```
--- pointer to a u32
+; pointer to a u32
 let p_normal ^u32 = ...
 
--- pointer to a mutable u32
+; pointer to a mutable u32
 let p_mutable ^!u32 = ...
 
 
--- address of operator
+; address of operator
 let p = @...
 
 ```
@@ -255,9 +262,22 @@ let p = @...
 Vec dimension go in front of the element type:
 
 ```
-    -- 10 element vec of element type u32
-    [10]u32
+    ; 10 element vec of element type u32, initialized with 1
+    global! one_dim_vec [10]u32 = {: 1}
+    ; while types have the square brackets on the left,
+    ; indexing puts the on the right
+    let element5 = one_dim_vec[1]
 
+    static_assert type_of(front!(one_dim_vec)) == typeid_of(^!u32)
+    static_assert type_of(@!one_dim_vec[0]) == typeid_of(^!u32)
+    static_assert type_of(front(one_dim_vec)) == typeid_of(^u32)
+    static_assert type_of(@one_dim_vec[0]) == typeid_of(^!u32)
+
+    ; 2 element vec of 10 element vec of element type u32
+    global! two_dim_vec [2][10]u32 = {: {: 2 }}
+
+    static_assert type_of(two_dim_vec[1]) == typeid_of(one_dim_vec)
+     
 ```
 
 Vecs of different length are not compatible and
@@ -275,11 +295,11 @@ Accessing the length of a vec:
 Accessing the address of the first element of a vec:
 
 ```
-    -- returns a readonly pointer to the first element of the vec
+    ; returns a readonly pointer to the first element of the vec
 
     ... = front(readonly_or_mutable_vec)
 
-    -- returns a mutable pointer to the first element of the mutable vec
+    ; returns a mutable pointer to the first element of the mutable vec
 
     ... = front!(mutable_vec)
 ```
@@ -300,25 +320,25 @@ of a vec and a length.
 
 Type declations:
 ```
-    -- regular span with elements of type `u32`
+    ; regular span with elements of type `u32`
     let s_normal span(u32) = ...
 
-    -- mutable span with elements of type `u32`
+    ; mutable span with elements of type `u32`
     let s_mutable span!(u32) = ...
 ```
 
 The length and address of the first element of a span can be accessed
 with the same syntax as for vec:
 ```
-    -- returns a readonly pointer to the first element of the span
+    ; returns a readonly pointer to the first element of the span
 
     ... = front(readomly_or_mutable_span)
 
-    -- returns a mutable pointer to the first element of the mutable span
+    ; returns a mutable pointer to the first element of the mutable span
 
     ... = front!(mutable_span)
 
-    -- returns a `uint` with the length of the span.
+    ; returns a `uint` with the length of the span.
 
     ... = len(a_span)
 
@@ -326,13 +346,13 @@ with the same syntax as for vec:
 
 Creation:
 ```
-    -- create a span from a pointer and length.
-    -- the mutability of the span is determined by the pointer.
+    ; create a span from a pointer and length.
+    ; the mutability of the span is determined by the pointer.
     let a = {[1024]u8: 0, 1, 2, 3}
     let s_mutable = make_span(front!(a), len(a))
 
-    -- conversion from vecs to non-mutable span is one of the few
-    -- implicit conversions supported by Cwerg:
+    ; conversion from vecs to non-mutable span is one of the few
+    ; implicit conversions supported by Cwerg:
     let s_normal span(u8) = a
 ```
 
@@ -354,12 +374,20 @@ Rec types can be declared like so:
 rec Date:
     year u16
     month u8
-    day   u8
+    day u8
     hour u8
     minute u8
     second u8
 ```
 
+Some usage examples:
+```
+; rec literals use a similar syntax to array literals
+let! mydate = {Date: 2011, 11, 11, 11, 11, 11}
+
+; field access 
+... =  mydate.year
+```
 
 There are plans to have per field private/public access control but for now if the `rec` is annotated with `pub` all fields are externally visible.
 
@@ -378,10 +406,11 @@ enum Color u8:
 This declares an enum `Color` with 3 members (`red`, `green`, `blue`)
 with an underlying type of `u8`.
 `auto` is using the previously assigned value incremented by 1 or zero if it is the first member.  So in the above example we get:
+
 ```
-Color:blue has value 0
-Color:green has value 10
-Color:red has value 11
+static_assert unwrap(Color:blue) == 0_u8
+static_assert unwrap(Color:green) == 10_u8
+static_assert unwrap(Color:red) == 11_u8
 ```
 
 Enums are C-like in that they are essentially named integer constants.
@@ -393,14 +422,16 @@ Abbreviations for lengthy types can be declared like so:
 
 ```
 type t1 = funtype(x u8, y u8) u1
+assert_static typeid_of(t1) == typeid_of(funtype(x u8, y u8) u1) 
 ```
 
 
 This is strictly an abbreviation, the lhs and the rhs can be used interchangeably in the code.
 
-To force by name type equivalence use the `wrapped` modifier like so
+To force by name type equivalence use an exclamation mark like so
 ```
-wrapped type t1 = funtype(x u8, y u8) u1
+type! t1 = funtype(x u8, y u8) u1
+assert_static typeid_of(t1) != typeid_of(funtype(x u8, y u8) u1) 
 ```
 The type `t1` is said to be a wrapped type.
 
