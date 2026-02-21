@@ -14,7 +14,7 @@ pub fun get_random(n r64) r64:
     return n * as(LAST, r64) / as(IM, r64)
 
 ; see https://www.pcg-random.org/download.html
-rec Pcg32State:
+pub rec Pcg32State:
     state u64
     inc u64
 
