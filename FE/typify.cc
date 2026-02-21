@@ -404,12 +404,19 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       }
       return NodeSetType(node, ct_target);
     case NT::ValNum: {
-      BASE_TYPE_KIND target =
+      if (!ct_target.isnull()) {
+        if (CanonType_get_unwrapped_base_type_kind(ct_target) ==
+            BASE_TYPE_KIND::INVALID && !CanonType_is_union(ct_target)) {
+          CompilerError(Node_srcloc(node))
+              << "Do not know how to convert num literal to type " << ct_target;
+        }
+      }
+      BASE_TYPE_KIND bt =
           ct_target.isnull()
               ? BASE_TYPE_KIND::INVALID
               : CanonType_get_unwrapped_base_type_kind(ct_target);
       BASE_TYPE_KIND actual =
-          NumCleanupAndTypeExtraction(StrData(Node_number(node)), target).kind;
+          NumCleanupAndTypeExtraction(StrData(Node_number(node)), bt).kind;
       // if (actual == BASE_TYPE_KIND::INVALID)
       ASSERT(actual != BASE_TYPE_KIND::INVALID,
              "insufficient type information for number litereal "

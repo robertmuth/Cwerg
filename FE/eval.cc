@@ -20,15 +20,12 @@ ImmutablePoolWithSizeInfo ConstPoolForString(alignof(uint64_t));
 
 Const ParseNum(Node node) {
   ASSERT(Node_kind(node) == NT::ValNum, "");
-  CanonType ct = Node_x_type(node);
-  ASSERT(CanonType_kind(ct) == NT::TypeBase, "");
+  BASE_TYPE_KIND bt = CanonType_get_unwrapped_base_type_kind(Node_x_type(node));
+  ASSERT(bt != BASE_TYPE_KIND::INVALID, "");
 
   std::string_view num = StrData(Node_number(node));
   if (num == "false") return ConstNewBool(false);
   if (num == "true") return ConstNewBool(true);
-
-  BASE_TYPE_KIND target_kind = CanonType_get_unwrapped_base_type_kind(ct);
-  ASSERT(target_kind != BASE_TYPE_KIND::UINT, "");
 
   for (int i = 2; i <= 4 && i <= num.size(); i++) {
     // std::cout << "@@@ Trying " << num.substr(num.size() - i, i) << "\n"
@@ -44,31 +41,32 @@ Const ParseNum(Node node) {
   if (num[0] == '\'') {
     auto val = ParseChar(num);
     if (!val) return kConstInvalid;
-    return ConstNewUnsigned(val.value(), target_kind);
+    return IsUint(bt) ? ConstNewUnsigned(val.value(), bt)
+                      : ConstNewSigned(val.value(), bt);
   }
 
-  if (IsSint(target_kind)) {
+  if (IsSint(bt)) {
     auto val = ParseInt<int64_t>(num);
     if (!val) return kConstInvalid;
     int64_t v = val.value();
-    if (target_kind == BASE_TYPE_KIND::S8) {
+    if (bt == BASE_TYPE_KIND::S8) {
       v = (v << 56) >> 56;
-    } else if (target_kind == BASE_TYPE_KIND::S16) {
+    } else if (bt == BASE_TYPE_KIND::S16) {
       v = (v << 48) >> 48;
-    } else if (target_kind == BASE_TYPE_KIND::S32) {
+    } else if (bt == BASE_TYPE_KIND::S32) {
       v = (v << 32) >> 32;
     }
 
-    return ConstNewSigned(v, target_kind);
-  } else if (IsUint(target_kind)) {
+    return ConstNewSigned(v, bt);
+  } else if (IsUint(bt)) {
     auto val = ParseInt<uint64_t>(num);
     if (!val) return kConstInvalid;
-    return ConstNewUnsigned(val.value(), target_kind);
+    return ConstNewUnsigned(val.value(), bt);
   }
-  ASSERT(IsReal(target_kind), "");
+  ASSERT(IsReal(bt), "");
   auto val = ParseReal(num);
   if (!val) return kConstInvalid;
-  return ConstNewReal(val.value(), target_kind);
+  return ConstNewReal(val.value(), bt);
 }
 
 std::string ConstBaseTypeSerialize(Const val) {

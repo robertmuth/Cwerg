@@ -1208,7 +1208,7 @@ Node ParseTopLevel(Lexer* lexer) {
       return out;
     }
     default:
-      ASSERT(false, tk.text);
+      CompilerError(tk.srcloc) << "unexpected top level token " << tk.text;
       return kNodeInvalid;
   }
 }
