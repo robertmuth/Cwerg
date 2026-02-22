@@ -1,5 +1,6 @@
 ############################################################
-# std_lib.c
+# Generated from std_lib.c
+# Mini Stdlib for use by directly programming in Cwerg IR
 ############################################################
 
 .mem __static_2__malloc_end 8 RW
