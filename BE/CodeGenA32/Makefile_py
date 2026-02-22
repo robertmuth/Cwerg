@@ -52,7 +52,7 @@ $(DIR)/%.asm.exe: ../TestData/%.asm
 # sames as above but local TestData dir
 $(DIR)/%.asm.exe: TestData/%.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ >$@.out
+	$(PYPY) ./codegen.py -mode binary $(STD_LIB_NO_ARGV) $< $@ >$@.out
 	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -65,14 +65,14 @@ $(DIR)/syscall.a32.asm.exe: TestData/syscall.a32.asm
 
 $(DIR)/queens.32.asm.s.exe: ../TestData/queens.32.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode normal - $@.s
+	$(PYPY) ./codegen.py -mode normal $(STD_LIB_NO_ARGV) $< $@.s
 	$(PYPY)	../CpuA32/assembler_tool.py assemble $@.s $@ > $@.out
 	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/cli.a32.asm.exe: TestData/cli.a32.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB_WITH_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	$(PYPY) ./codegen.py -mode binary $(STD_LIB_WITH_ARGV) $< $@ > $@.out
 	${QEMU_A32} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -83,13 +83,13 @@ $(DIR)/isel_test:
 
 $(DIR)/threads.a32.asm.exe: ../TestData/threads.32.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	$(PYPY) ./codegen.py -mode binary $(STD_LIB_NO_ARGV) $< $@ > $@.out
 	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
-	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.32.asm  | $(PYPY) ./codegen.py -mode binary - $@.exe >$@.out
+	$(PYPY) ./codegen.py -mode binary $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.32.asm $@.exe >$@.out
 	${QEMU_A32} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden

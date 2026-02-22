@@ -43,7 +43,7 @@ tests: $(TEST_EXES) \
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ >$@.out
+	$(PYPY) ./codegen.py -mode binary $(STD_LIB_NO_ARGV) $< $@ >$@.out
 	${QEMU_A64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
@@ -55,19 +55,19 @@ $(DIR)/syscall.a64.asm.exe: TestData/syscall.a64.asm
 
 $(DIR)/cli.a64.asm.exe: TestData/cli.a64.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB_WITH_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	$(PYPY) ./codegen.py -mode binary  $(STD_LIB_WITH_ARGV) $< $@ > $@.out
 	${QEMU_A64} $@ 1 2 3 aa bbb ccc > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/threads.a64.asm.exe: ../TestData/threads.64.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ > $@.out
+	$(PYPY) ./codegen.py -mode binary $(STD_LIB_NO_ARGV) $<  $@ > $@.out
 	${QEMU_A64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
 $(DIR)/nanojpeg:
 	@echo "[$@]"
-	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm  | $(PYPY) ./codegen.py -mode binary - $@.exe >$@.out
+	$(PYPY) ./codegen.py -mode binary $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm $@.exe >$@.out
 	${QEMU_A64} $@.exe ../TestData/ash_tree.jpg $@.ppm
 	md5sum  $@.ppm > $@.actual
 	diff $@.actual TestData/nano_jpeg.golden
