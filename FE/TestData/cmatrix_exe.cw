@@ -39,7 +39,7 @@ fun ColumnInit(col ^!Column, lines u32, rng ^!Rng) void:
     set col^.content[1].val = ' '
 
 
-fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng) void:
+fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng) bool:
     if col^.content[0].val == -1 &&  col^.content[1].val == ' ':
         if col^.spaces > 0:
             set col^.spaces -= 1
@@ -50,16 +50,43 @@ fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng) void:
             set col^.content[0].val = as(random::NextU32(rng) %
                 (chars^.end - chars^.start) + chars^.start, s32)
 
-    let! leading_spaces = 0_u32
-    for y = 0, lines + 1, 1:
-        if col^.content[y].val == -1 || col^.content[y].val == ' ':
-            set leading_spaces += 1
+    let! first_done = false
+    let! i = 0_u32
+    while i <= lines:
+        let! begin_trace = 0_u32
+        for y = i, lines + 1, 1:
+            if col^.content[y].val != -1 && col^.content[y].val != ' ':
+                set begin_trace = y
+                break
+        if begin_trace >= lines:
+            break
+
+        let! end_trace = 0_u32
+        for y = begin_trace, lines + 1, 1:
+            if col^.content[y].val == -1 || col^.content[y].val == ' ':
+                set end_trace = y
+                break
+            set col^.content[y].is_head = false
+
+        set i = end_trace
+        if end_trace > lines:
+            set col^.content[begin_trace].val = ' '
+            break
+        set col^.content[i].is_head = true
+        set col^.content[i].val = as(random::NextU32(rng) %
+                (chars^.end - chars^.start) + chars^.start, s32)
+        if end_trace - begin_trace > col^.length || first_done:
+            set col^.content[0].val = -1
+            set col^.content[begin_trace].val = ' '
+        set first_done = true
+        set i += 1
+
 
 
 
 rec State:
-    columns u32
-    lines u32
+    num_columns u32
+    num_lines u32
     chars CharRange
     rng random::Pcg32State
     columns [MAX_COLUMNS]Column

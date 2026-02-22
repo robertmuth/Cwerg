@@ -1,6 +1,8 @@
 
 #include "FE/symbolize.h"
 
+#include <unordered_set>
+
 #include "Util/assert.h"
 
 namespace cwerg::fe {
@@ -268,6 +270,42 @@ void SetTargetFields(const std::vector<Node>& mods) {
   }
 }
 
-void VerifySymbols(Node node) {}
+void VerifySymbols(Node node) {
+  std::unordered_set<Name> seen;
+
+  auto visitor = [&seen](Node node, Node parent) -> void {
+    switch (Node_kind(node)) {
+      case NT::StmtBreak:
+      case NT::StmtContinue: {
+        NT target_kind = Node_x_target(node).kind();
+        ASSERT(target_kind == NT::StmtBlock, "");
+        break;
+      }
+      case NT::StmtReturn: {
+        NT target_kind = Node_x_target(node).kind();
+        ASSERT(target_kind == NT::ExprStmt || target_kind == NT::DefFun, "");
+        break;
+      }
+      case NT::DefRec: {
+        seen.clear();
+        for (Node child = Node_fields(node); !child.isnull();
+             child = Node_next(child)) {
+          ASSERT(child.kind() == NT::RecField, "");
+          if (seen.contains(Node_name(child))) {
+            CompilerError(Node_srcloc(child))
+                << "duplicate field name " << Node_name(child);
+          }
+          seen.insert(Node_name(child));
+        }
+        break;
+      }
+
+      default:
+        // TODO: py version performs many more checks
+        break;
+    }
+  };
+  VisitAstRecursivelyPost(node, visitor, kNodeInvalid);
+}
 
 }  // namespace cwerg::fe

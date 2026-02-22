@@ -51,7 +51,7 @@ class TimerStats {
 
   void Dump() {
     std::cout << "Phase Duration in ms\n";
-    for (const auto& s: measurements_) {
+    for (const auto& s : measurements_) {
       std::cout << std::setw(40) << s.name << ": " << s.value << "\n";
     }
   }
@@ -114,6 +114,12 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
 
   ValidateAST(mods, stage);
   ts->RecordDuration(std::string(phase) + "-check");
+
+  if (int(stage) >= int(COMPILE_STAGE::AFTER_SYMBOLIZE)) {
+    for (Node mod : mods) {
+      VerifySymbols(mod);
+    }
+  }
 }
 
 void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,

@@ -607,7 +607,10 @@ Node PrattParseExpr(Lexer* lexer, uint32_t precedence) {
   // std::cout << "@@PRATT START " << tk << "\n";
   const PrattHandlerPrefix& prefix_handler =
       PREFIX_EXPR_PARSERS[uint8_t(tk.kind)];
-  ASSERT(prefix_handler.handler != nullptr, "No handler for " << tk);
+  if (prefix_handler.handler == nullptr) {
+    CompilerError(tk.srcloc) << "Cannot parse expression " << tk.text;
+    return kNodeInvalid;
+  }
   Node lhs = prefix_handler.handler(lexer, tk, prefix_handler.precedence);
   while (true) {
     TK tk = lexer->Peek();
