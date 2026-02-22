@@ -385,7 +385,9 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     //
     case NT::ValAuto:
     case NT::TypeAuto:
-      ASSERT(!ct_target.isnull(), "" << Node_srcloc(node));
+      if (ct_target.isnull()) {
+        CompilerError(Node_srcloc(node)) << "unable to infer type for " << node;
+      }
       return NodeSetType(node, ct_target);
     case NT::ValVoid:
       return NodeSetType(node, tc->get_void_canon_type());
@@ -406,7 +408,8 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
     case NT::ValNum: {
       if (!ct_target.isnull()) {
         if (CanonType_get_unwrapped_base_type_kind(ct_target) ==
-            BASE_TYPE_KIND::INVALID && !CanonType_is_union(ct_target)) {
+                BASE_TYPE_KIND::INVALID &&
+            !CanonType_is_union(ct_target)) {
           CompilerError(Node_srcloc(node))
               << "Do not know how to convert num literal to type " << ct_target;
         }

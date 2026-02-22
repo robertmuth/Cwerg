@@ -174,7 +174,8 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
       return out;
       //
     default:
-      ASSERT(false, tk);
+      CompilerError(tk.srcloc) << "Unexpected token " << tk.text
+                               << " while parsing functional expression";
       return kNodeInvalid;
   }
 }
@@ -1103,7 +1104,7 @@ Node ParseTopLevel(Lexer* lexer) {
       Node init = kNodeInvalid;
       if (lexer->Match(TK_KIND::ASSIGN)) {
         type = NodeNew(NT::TypeAuto);
-        NodeInitTypeAuto(type, kStrInvalid, kSrcLocInvalid, kCanonTypeInvalid);
+        NodeInitTypeAuto(type, kStrInvalid, name.srcloc, kCanonTypeInvalid);
         init = PrattParseExpr(lexer);
       } else {
         type = ParseTypeExpr(lexer);
@@ -1111,7 +1112,8 @@ Node ParseTopLevel(Lexer* lexer) {
           init = PrattParseExpr(lexer);
         } else {
           init = NodeNew(NT::ValAuto);
-          NodeInitValAuto(init, kStrInvalid, kSrcLocInvalid, kCanonTypeInvalid);
+          NodeInitValAuto(init, kStrInvalid, Node_srcloc(type),
+                          kCanonTypeInvalid);
         }
       }
       bits |= tk.text.ends_with("!") ? Mask(BF::MUT) : 0;
@@ -1214,15 +1216,13 @@ Node ParseTopLevel(Lexer* lexer) {
 }
 
 Node ParseModBodyList(Lexer* lexer, uint32_t column) {
-  if (lexer->Peek().kind == TK_KIND::SPECIAL_EOF) {
-    return kNodeInvalid;
+  NodeChain body;
+  while (lexer->Peek().kind != TK_KIND::SPECIAL_EOF) {
+    body.Append(ParseTopLevel(lexer));
   }
-
-  Node top = ParseTopLevel(lexer);
-  Node next = ParseModBodyList(lexer, column);
-  Node_next(top) = next;
-  return top;
+  return body.First();
 }
+
 }  // namespace
 
 // Could probably done with C++20 designated array initializers
