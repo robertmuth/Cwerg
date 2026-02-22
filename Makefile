@@ -1,15 +1,20 @@
 MAKEFLAGS = --warn-undefined-variables
 
-# Note exports can easily be overwritten via command line
-# e.g.: make COLOR=OFF ...
-#
-# Other optional configs:
-# CC: c-compiler (e.g. clang)
-# PYPY: prefix used for invoking python programs (e.g. python3.7 or pypy)
-# QEMU_A32: prefix used for invoking programs compiled for a32 (e.g. qemu-arm-static)
-# QEMU_A64: prefix used for invoking programs compiled for a64 (e.g. qemu-aarch64-static)
-# QEMU_X64: prefix used for invoking programs compiled for x64 (e.g. qemu-x86_64-static)
+# Run `make help` for help
 
+#@ Note exports can easily be overwritten via command line
+#@ e.g.: make COLOR=OFF PYPY= ...
+#@
+#@ Other optional configs:
+#@
+#@ CC: c-compiler (e.g. clang)
+#@ PYPY: prefix used for invoking python programs (e.g. python3.7 or pypy)
+#@ QEMU_A32: prefix used for invoking programs compiled for a32 (e.g. qemu-arm-static)
+#@ QEMU_A64: prefix used for invoking programs compiled for a64 (e.g. qemu-aarch64-static)
+#@ QEMU_X64: prefix used for invoking programs compiled for x64 (e.g. qemu-x86_64-static)
+#@
+#@ Make targets:
+#@
 export PYTHONPATH := $(shell pwd)
 export COLOR := ON
 export VERBOSE := FALSE
@@ -23,26 +28,40 @@ export LC_ALL := C
 CWERG_LIBS := -lunwind -llzma
 CWERG_FLAGS := -DCWERG_ENABLE_UNWIND
 
-tests:
+#@ tests (default) - run BE and FE tests
+#@
+tests: cmake_setup
+	@echo Python Tests
 	cd BE && $(MAKE) -f Makefile_py tests
-	@echo Build Native Exes
-	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(CWERG_FLAGS)" -DCWERG_LIBS="$(CWERG_LIBS)" .. && $(MAKE) -s
+	cd FE && $(MAKE) -f Makefile_py -s tests && $(MAKE) -f Makefile_py -s clean
+	@echo C++ Tests
 	cd BE && $(MAKE) -f Makefile_cc tests
 	cd Util && $(MAKE) -s tests && $(MAKE) -s clean
 	cd FE &&  $(MAKE) -f Makefile_cc clean && $(MAKE) -f Makefile_cc tests
-	cd FE && $(MAKE) -f Makefile_py -s tests && $(MAKE) -f Makefile_py -s clean
 
+#@ cmake_setup - process the CMake config file and set up directories for building C++ frontend/backends
+#@
 cmake_setup:
 	mkdir -p build && cd build && cmake -DCWERG_FLAGS="$(CWERG_FLAGS)" -DCWERG_LIBS="$(CWERG_LIBS)" ..
 
+#@ build_compiler - build c++ versions of frontend and backends
+#@
+build_compiler: cmake_setup
+	cd build && $(MAKE) -s compiler.exe x64_codegen_tool.exe a64_codegen_tool.exe a32_codegen_tool.exe
+
+#@ show_versions - show version of development tools Cwerg depends on
+#@
 show_versions:
 	@echo Tool Versions
-	python3 -V
-	gcc -v
-	g++ -v
-	clang -v
-	clang++ -v
-
+	-python3 -V
+	-gcc -v
+	-g++ -v
+	-clang -v
+	-clang++ -v
+	-qemu-aarch64-static -version
+	-qemu-arm-static -version
+	-qemu-x86_64-static -version
+	-cloc -version
 
 test_setup:
 	@which cmake
@@ -54,8 +73,10 @@ test_setup:
 benchmark:
 	cd BE/CodeGenA32 && $(MAKE) -f Makefile_cc -s benchmark && $(MAKE)  -f Makefile_cc -s clean
 
-#@ presubmit - tests that should pass before any commit
-#@
+## Work in progress
+##@ presubmit - tests that should pass before any commit
+##@
+## Work in progress
 presubmit: lint tests format
 
 
@@ -64,7 +85,8 @@ presubmit: lint tests format
 lint:
 	mypy .
 
-
+#@ cloc - update line number statistics
+#@
 cloc:
 	./cloc.sh FE > FE/CLOC.md
 	./cloc.sh BE > BE/CLOC.md
