@@ -71,9 +71,9 @@ tests_concrete_py:  $(ALL_SOURCES:%.cw=$(DIR)/%.concrete)
 
 tests_all_py: tests_parse_py tests_macro_py tests_meta_py tests_eval_py tests_pp_py
 
-STD_LIB_WITH_ARGV_X64 = ../BE/StdLib/startup.x64.asm ../BE/StdLib/syscall.x64.asm ../BE/StdLib/std_lib.64.asm
-STD_LIB_WITH_ARGV_A64 = ../BE/StdLib/startup.a64.asm ../BE/StdLib/syscall.a64.asm ../BE/StdLib/std_lib.64.asm
-STD_LIB_WITH_ARGV_A32 = ../BE/StdLib/startup.a32.asm ../BE/StdLib/syscall.a32.asm ../BE/StdLib/std_lib.32.asm
+STD_LIB_WITH_ARGV_X64 = ../BE/StdLib/startup.x64.asm ../BE/StdLib/syscall.x64.asm
+STD_LIB_WITH_ARGV_A64 = ../BE/StdLib/startup.a64.asm ../BE/StdLib/syscall.a64.asm
+STD_LIB_WITH_ARGV_A32 = ../BE/StdLib/startup.a32.asm ../BE/StdLib/syscall.a32.asm
 
 # test language
 tests_x64: $(ALL_TESTS:%.cw=$(DIR)/%.x64.exe)

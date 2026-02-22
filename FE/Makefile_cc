@@ -11,6 +11,12 @@ QEMU_X64=qemu-x86_64-static
 LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
 PP=$(BUILD_DIR)/pp.exe
 EMIT_IR=$(BUILD_DIR)/compiler.exe
+# CODEGEN_X64 = $(BUILD_DIR)/x64_codegen_tool.exe
+# CODEGEN_A64 = $(BUILD_DIR)/a64_codegen_tool.exe
+# CODEGEN_A32 = $(BUILD_DIR)/a32_codegen_tool.exe
+CODEGEN_X64 = ../BE/CodeGenX64/codegen.py
+CODEGEN_A64 = ../BE/CodeGenA64/codegen.py
+CODEGEN_A32 = ../BE/CodeGenA32/codegen.py
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -49,7 +55,12 @@ lexer_gen.cc: lexer_tab.py
 	$(PYPY) ./lexer_tab.py gen_cc <$@ > $(DIR)/$@.tmp
 	@mv $(DIR)/$@.tmp $@
 
-GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc
+lexer_gen.h: lexer_tab.py
+	@echo "[$@]"
+	$(PYPY) ./lexer_tab.py gen_h <$@ > $(DIR)/$@.tmp
+	@mv $(DIR)/$@.tmp $@
+
+GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc  lexer_gen.h
 
 
 ############################################################
@@ -87,6 +98,7 @@ $(DIR)/%.cw.meta: %.cw
 assimilation_after_opt_tests: $(ALL_SOURCES_NO_GENERIC_NO_BUILTIN:%.cw=$(DIR)/%.cw.assim)
 	@echo "PASSED $@"
 
+PHASE =
 # PHASE =  -dump_ast after_partial_eval
 # PHASE =  -dump_ast after_optimization
 # PHASE =  -dump_ast after_eliminate_span_and_union
@@ -129,6 +141,20 @@ profile_compiler: $(EMIT_IR)
 
 benchmark_emit_ir: $(EMIT_IR)
 	/bin/time -p $(EMIT_IR) $(filter-out $(wildcard */*gen.cw), $(LIB_SOURCES))
+
+
+STD_LIB_WITH_ARGV_X64 = ../BE/StdLib/startup.x64.asm ../BE/StdLib/syscall.x64.asm
+STD_LIB_WITH_ARGV_A64 = ../BE/StdLib/startup.a64.asm ../BE/StdLib/syscall.a64.asm
+STD_LIB_WITH_ARGV_A32 = ../BE/StdLib/startup.a32.asm ../BE/StdLib/syscall.a32.asm
+
+
+$(DIR)/cmatrix.x64.exe: TestData/cmatrix_exe.cw
+	$(EMIT_IR) $< > $@.asm
+	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(CODEGEN_X64) -mode binary - $@
+	chmod u+rx $@
+	${QEMU_X64} $@
+
+
 
 
 all:: $(LEXER_BENCH) $(PP) $(EMIT_IR)

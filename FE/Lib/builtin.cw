@@ -101,13 +101,18 @@ pub macro span_append_or_die# EXPR ($slice EXPR, $out EXPR) [$e_slice, $e_out]:
             set $e_out[i] = $e_slice[i]
         return len($e_slice)
 
-{{extern}} {{cdecl}} pub fun print_ln(s ^u8, size uint) void:
+; from os
+{{extern}} {{cdecl}} pub fun write(fd s32, s ^u8, size uint) sint:
+
+fun abort(s1 span(u8), s2 span(u8)) void:
+    do write(2, front("ABORT: "), 7)
+    do write(2, front(s1), len(s1))
+    do write(2, front(" "), 1);
+    do write(2, front(s2), len(s2))
+    do write(2, front("\n"), 1);
+    trap
 
 ; simple assert for those libs that cannot import fmt
 pub macro assert# STMT ($cond EXPR, $text EXPR) [$e_cond, $e_text]:
     if !$cond:
-        let $e_cond span(u8) = stringify($cond)
-        let $e_text span(u8) = $text
-        do print_ln(front($e_cond), len($e_cond))
-        do print_ln(front($e_text), len($e_text))
-        trap
+        do abort(stringify($cond), $text)
