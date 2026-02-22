@@ -452,10 +452,10 @@ def ProcessLine(token: List, unit: ir.Unit, fun: Optional[ir.Fun], cpu_regs: Dic
         sanity.InsCheckConstraints(ins)
 
 
-def UnitParseFromAsm(fin, verbose=False, cpu_regs: Dict[str, ir.CpuReg] = {}) -> ir.Unit:
-    out = ir.Unit("module")
+def UnitAddParseFromAsm(unit: ir.Unit, fin, verbose=False, cpu_regs: dict[str, ir.CpuReg] = {}):
+
     for line_num, line in enumerate(fin):
-        fun = None if len(out.funs) == 0 else out.funs[-1]
+        fun = None if len(unit.funs) == 0 else unit.funs[-1]
 
         # print ("@@@", line[:-1])
         token_raw = parse.ParseLine(line)
@@ -478,16 +478,24 @@ def UnitParseFromAsm(fin, verbose=False, cpu_regs: Dict[str, ir.CpuReg] = {}) ->
         if verbose:
             print(token)
         try:
-            ProcessLine(token, out, fun, cpu_regs)
+            ProcessLine(token, unit, fun, cpu_regs)
         except Exception as err:
             raise ParseError(
                 f"UnitParseFromAsm error in line {line_num}:\n{line}\n{token}\n{err}")
 
-    for fun in out.funs:
+
+def UnitSanityCheckAfterParse(unit: ir.Unit):
+    for fun in unit.funs:
         assert fun.kind != o.FUN_KIND.INVALID
         for bbl in fun.bbls:
             assert not bbl.forward_declared
-    return out
+
+
+def UnitParseFromAsm(fin, verbose=False, cpu_regs: dict[str, ir.CpuReg] = {}) -> ir.Unit:
+    unit = ir.Unit("module")
+    UnitAddParseFromAsm(unit, fin, verbose, cpu_regs)
+    UnitSanityCheckAfterParse(unit)
+    return unit
 
 
 def SynthesizeBenchmark(unit: ir.Unit, repeats: int):

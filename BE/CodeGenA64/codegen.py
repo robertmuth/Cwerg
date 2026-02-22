@@ -7,7 +7,6 @@ See `README.md` for more details.
 import os
 import stat
 import collections
-from typing import List, Dict
 
 from BE.Base import cfg
 from BE.Base import ir
@@ -92,7 +91,7 @@ def _JtbCodeGen(jtb: ir.Jtb):
     for i in range(jtb.size):
         bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
         yield f"    .addr.bbl 8 {bbl.name}"
-    yield".endmem"
+    yield ".endmem"
 
 
 def _RenderIns(ins: a64.Ins) -> str:
@@ -274,17 +273,21 @@ if __name__ == "__main__":
                       "reg_alloc_local"}
 
     def main():
-        parser = argparse.ArgumentParser(description='CodeGenA64')
-        parser.add_argument('-mode', type=str, help='mode')
-        parser.add_argument('input', type=str, help='input file')
+        parser = argparse.ArgumentParser(description='CodeGenA64',
+                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('-mode', type=str, help='mode', default="binary",
+                            choices=_ALLOWED_MODES)
+        parser.add_argument('input', type=str,  nargs='+', help='input file')
         parser.add_argument('output', type=str, help='output file')
         args = parser.parse_args()
 
-        assert args.mode in _ALLOWED_MODES
-        fin = sys.stdin if args.input == "-" else open(args.input)
+        unit = ir.Unit("module")
+        for input in args.input:
+            fin = sys.stdin if input == "-" else open(input)
+            serialize.UnitAddParseFromAsm(unit, fin)
+        serialize.UnitSanityCheckAfterParse(unit)
 
-        unit = serialize.UnitParseFromAsm(fin)
-        opt_stats: Dict[str, int] = collections.defaultdict(int)
+        opt_stats: dict[str, int] = collections.defaultdict(int)
 
         if args.mode == "binary":
             # we need to legalize all functions first as this may change the signature

@@ -231,12 +231,12 @@ def _GetRegPoolsForGlobals(needed: RegsNeeded, regs_lac: int,
     return global_lac, global_not_lac
 
 
-def PhaseOptimize(fun: ir.Fun, unit: ir.Unit, opt_stats: Dict[str, int], fout):
+def PhaseOptimize(fun: ir.Fun, unit: ir.Unit, opt_stats: Dict[str, int]):
     optimize.FunCfgInit(fun, unit)
     optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=True)
 
 
-def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fout):
+def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int]):
     """
     Does a lot of the heavily lifting so that the instruction selector can remain
     simple and table driven.
@@ -322,7 +322,7 @@ def GlobalRegAllocOneKind(fun: ir.Fun, kinds: Set[regs.CpuRegKind], needed: Regs
                 global_not_lac_pool & cpu_regs_lac_mask))
 
 
-def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
+def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int]):
     """
     These phase introduces CpuReg for globals and situations where we have no choice
     which register to use, e.g. function parameters and results ("pre-allocated" regs).
@@ -341,11 +341,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     each register is defined exactly once and hence does not work for globals.
     """
 
-    if fout:
-        print("#" * 60, file=fout)
-        print(f"# GlobalRegAlloc {fun.name}", file=fout)
-        print("#" * 60, file=fout)
-
     # replaces pusharg and poparg instructions and replace them with moves
     # The moves will use pre-allocated regs (the once use for argument/result paassing)
     # regs.FunPushargConversion(fun)
@@ -361,7 +356,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
         fun, REG_KIND_TO_CPU_KIND)
     #
     global_reg_stats = reg_stats.FunGlobalRegStats(fun, REG_KIND_TO_CPU_KIND)
-    DumpRegStats(fun, local_reg_stats, fout)
+    # DumpRegStats(fun, local_reg_stats)
 
     debug = None
     # compute the number of regs needed if had indeed unlimited regs
@@ -407,7 +402,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
-                                       _opt_stats: Dict[str, int], fout):
+                                       _opt_stats: Dict[str, int]):
     """Finalizing the stack implies performing all transformations that
     could increase register usage.
 

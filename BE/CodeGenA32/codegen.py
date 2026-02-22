@@ -8,7 +8,6 @@ See `README.md` for more details.
 import os
 import stat
 import collections
-from typing import List, Dict
 
 from BE.Base import cfg
 from BE.Base import ir
@@ -28,7 +27,7 @@ from BE.Elf import enum_tab
 from BE.Elf import elf_unit
 
 
-def LegalizeAll(unit: ir.Unit, opt_stats, fout, verbose=False):
+def LegalizeAll(unit: ir.Unit, opt_stats, verbose=False):
     seeds = [f for f in [unit.fun_syms.get("_start"),
                          unit.fun_syms.get("main")] if f]
     if seeds:
@@ -37,23 +36,23 @@ def LegalizeAll(unit: ir.Unit, opt_stats, fout, verbose=False):
         sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True)
 
         if fun.kind is o.FUN_KIND.NORMAL:
-            legalize.PhaseOptimize(fun, unit, opt_stats, fout)
+            legalize.PhaseOptimize(fun, unit, opt_stats)
 
     for fun in unit.funs:
-        legalize.PhaseLegalization(fun, unit, opt_stats, fout)
+        legalize.PhaseLegalization(fun, unit, opt_stats)
 
 
-def RegAllocGlobal(unit: ir.Unit, opt_stats, fout, verbose=False):
+def RegAllocGlobal(unit: ir.Unit, opt_stats, verbose=False):
     for fun in unit.funs:
         sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=False)
-        legalize.PhaseGlobalRegAlloc(fun, opt_stats, fout)
+        legalize.PhaseGlobalRegAlloc(fun, opt_stats)
         if verbose:
             legalize.DumpFun("after global_reg_alloc", fun)
 
 
-def RegAllocLocal(unit: ir.Unit, opt_stats, fout, verbose=False):
+def RegAllocLocal(unit: ir.Unit, opt_stats, verbose=False):
     for fun in unit.funs:
-        legalize.PhaseFinalizeStackAndLocalRegAlloc(fun, opt_stats, fout)
+        legalize.PhaseFinalizeStackAndLocalRegAlloc(fun, opt_stats)
         if verbose:
             legalize.DumpFun("after stack finalization", fun)
 
@@ -69,7 +68,7 @@ _MEMKIND_TO_SECTION = {
 }
 
 
-def _MemCodeGenText(mem: ir.Mem, _mod: ir.Unit) -> List[str]:
+def _MemCodeGenText(mem: ir.Mem, _mod: ir.Unit) -> list[str]:
     out = [f"# size {mem.Size()}",
            f".mem {mem.name} {mem.alignment} {_MEMKIND_TO_SECTION[mem.kind]}"]
     for d in mem.datas:
@@ -100,12 +99,12 @@ def _RenderIns(ins: a32.Ins):
     return f"    {name} {' '.join(ops)}"
 
 
-def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> List[str]:
+def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> list[str]:
     assert fun.kind is not o.FUN_KIND.EXTERN
     assert ir.FUN_FLAG.STACK_FINALIZED in fun.flags
     assert fun.stk_size >= 0, f"did you call FinalizeStk?"
     # DumpFun("codegen", fun)
-    out: List[str] = [
+    out: list[str] = [
         f"# sig: {fun.render_signature()}  stk_size:{fun.stk_size}",
         f".fun {fun.name} 16",
     ]
@@ -253,17 +252,20 @@ if __name__ == "__main__":
                       "reg_alloc_local"}
 
     def main():
-        parser = argparse.ArgumentParser(description='CodeGenA32')
-        parser.add_argument('-mode', type=str, help='mode')
-        parser.add_argument('input', type=str, help='input file')
+        parser = argparse.ArgumentParser(description='CodeGenA32',
+                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('-mode', type=str, help='mode', default="binary",
+                            choices=_ALLOWED_MODES)
+        parser.add_argument('input', type=str,  nargs='+', help='input file')
         parser.add_argument('output', type=str, help='output file')
         args = parser.parse_args()
 
-        assert args.mode in _ALLOWED_MODES
-        fin = sys.stdin if args.input == "-" else open(args.input)
-
-        unit = serialize.UnitParseFromAsm(fin)
-        opt_stats: Dict[str, int] = collections.defaultdict(int)
+        unit = ir.Unit("module")
+        for input in args.input:
+            fin = sys.stdin if input == "-" else open(input)
+            serialize.UnitAddParseFromAsm(unit, fin)
+        serialize.UnitSanityCheckAfterParse(unit)
+        opt_stats: dict[str, int] = collections.defaultdict(int)
 
         if args.mode == "binary":
             # we need to legalize all functions first as this may change the signature
@@ -281,17 +283,17 @@ if __name__ == "__main__":
 
         # we need to legalize all functions first as this may change the signature
         # and fills in cpu reg usage which is used by subsequent interprocedural opts.
-        LegalizeAll(unit, opt_stats, fout)
+        LegalizeAll(unit, opt_stats)
         if args.mode == "legalize":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return
 
-        RegAllocGlobal(unit, opt_stats, fout)
+        RegAllocGlobal(unit, opt_stats)
         if args.mode == "reg_alloc_global":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return
 
-        RegAllocLocal(unit, opt_stats, fout)
+        RegAllocLocal(unit, opt_stats)
         if args.mode == "reg_alloc_local":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return

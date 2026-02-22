@@ -204,7 +204,7 @@ def _FunMoveEliminationCpu(fun: ir.Fun) -> int:
     return ir.FunGenericRewrite(fun, _InsMoveEliminationCpu)
 
 
-def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fout):
+def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int]):
     """
     Does a lot of the heavily lifting so that the instruction selector can remain
     simple and table driven.
@@ -215,11 +215,6 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
 
     TODO: missing is a function to change calling signature so that
     """
-    if fout:
-        print("#" * 60, file=fout)
-        print(f"# Legalize {fun.name}", file=fout)
-        print("#" * 60, file=fout)
-
     fun.cpu_live_in = regs.PushPopInterface.GetCpuRegsForInSignature(
         fun.input_types)
     fun.cpu_live_out = regs.PushPopInterface.GetCpuRegsForOutSignature(
@@ -272,7 +267,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int], fo
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 
-def LegalizeAll(unit, opt_stats, fout, verbose=False):
+def LegalizeAll(unit, opt_stats):
     seeds = [f for f in [unit.fun_syms.get("_start"),
                          unit.fun_syms.get("main")] if f]
     if seeds:
@@ -286,7 +281,7 @@ def LegalizeAll(unit, opt_stats, fout, verbose=False):
 
     for fun in unit.funs:
         # pass
-        PhaseLegalization(fun, unit, opt_stats, fout)
+        PhaseLegalization(fun, unit, opt_stats)
 
 
 def DumpRegStats(fun: ir.Fun, stats: Dict[reg_stats.REG_KIND_LAC, int], fout):
@@ -438,7 +433,7 @@ def GlobalRegAllocOneKind(fun: ir.Fun, kind: regs.CpuRegKind, needed: RegsNeeded
             global_reg_stats[(kind, False)], 0, 0)
 
 
-def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
+def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int]):
     """
     These phase introduces CpuReg for globals and situations where we have no choice
     which register to use, e.g. function parameters and results ("pre-allocated" regs).
@@ -457,10 +452,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     each register is defined exactly once and hence does not work for globals.
     """
     debug = None
-    if fout:
-        print("#" * 60, file=fout)
-        print(f"# GlobalRegAlloc {fun.name}", file=fout)
-        print("#" * 60, file=fout)
 
     # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))
 
@@ -474,8 +465,6 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     # we  have introduced some cpu regs in previous phases - do not treat them as globals
     global_reg_stats = reg_stats.FunGlobalRegStats(
         fun, regs.REG_KIND_TO_CPU_REG_FAMILY)
-    if fout:
-        DumpRegStats(fun, local_reg_stats, fout)
 
     # Handle GPR regs
     needed_gpr = RegsNeeded(len(global_reg_stats[(regs.CpuRegKind.GPR, True)]),
@@ -502,7 +491,7 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
 
 
 def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
-                                       _opt_stats: Dict[str, int], fout):
+                                       _opt_stats: Dict[str, int]):
     """Finalizing the stack implies performing all transformations that
     could increase register usage.
 
