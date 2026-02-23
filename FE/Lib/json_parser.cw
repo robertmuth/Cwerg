@@ -82,13 +82,13 @@ rec Atom:
     kind AtomKind
 
 pub fun AtomGetKind(file ^File, index Index) AtomKind:
-    if IndexGetKind(index) != ObjKind:Atom:
+    if IndexGetKind(index) != ObjKind.Atom:
         trap
     let ptr = bitwise_as(@file^.objects[IndexGetValue(index)], ^Atom)
     return ptr^.kind
 
 pub fun AtomGetData(file ^File, index Index) span(u8):
-    if IndexGetKind(index) != ObjKind:Atom:
+    if IndexGetKind(index) != ObjKind.Atom:
         trap
     let ptr = bitwise_as(@file^.objects[IndexGetValue(index)], ^Atom)
     return make_span(@file^.data[ptr^.offset], as(ptr^.length, uint))
@@ -102,19 +102,19 @@ rec Item:
     val Index
 
 pub fun ItemGetNext(file ^File, item Index) Index:
-    if IndexGetKind(item) != ObjKind:Item:
+    if IndexGetKind(item) != ObjKind.Item:
         trap
     let ptr = bitwise_as(@file^.objects[IndexGetValue(item)], ^Item)
     return ptr^.next
 
 pub fun ItemGeKey(file ^File, item Index) Index:
-    if IndexGetKind(item) != ObjKind:Item:
+    if IndexGetKind(item) != ObjKind.Item:
         trap
     let ptr = bitwise_as(@file^.objects[IndexGetValue(item)], ^Item)
     return ptr^.key
 
 pub fun ItemGetVal(file ^File, item Index) Index:
-    if IndexGetKind(item) != ObjKind:Item:
+    if IndexGetKind(item) != ObjKind.Item:
         trap
     let ptr = bitwise_as(@file^.objects[IndexGetValue(item)], ^Item)
     return ptr^.val
@@ -130,13 +130,13 @@ rec Cont:
     kind ContKind
 
 pub fun ContGetKind(file ^File, index Index) ContKind:
-    if IndexGetKind(index) != ObjKind:Cont:
+    if IndexGetKind(index) != ObjKind.Cont:
         trap
     let ptr = bitwise_as(@file^.objects[IndexGetValue(index)], ^Cont)
     return ptr^.kind
 
 pub fun ContGetFirst(file ^File, cont Index) Index:
-    if IndexGetKind(cont) != ObjKind:Cont:
+    if IndexGetKind(cont) != ObjKind.Cont:
         trap
     let ptr = bitwise_as(@file^.objects[IndexGetValue(cont)], ^Cont)
     return ptr^.first
@@ -160,7 +160,7 @@ fun spaneq(a span(u8), b span(u8)) bool:
     return true
 
 pub fun ContGetItemForKey(file ^File, cont Index, key span(u8)) Index:
-    if IndexGetKind(cont) != ObjKind:Cont:
+    if IndexGetKind(cont) != ObjKind.Cont:
         trap
     let! item = ContGetFirst(file, cont)
     while item != NullIndex:
@@ -173,7 +173,7 @@ pub fun ContGetItemForKey(file ^File, cont Index, key span(u8)) Index:
     return NullIndex
 
 pub fun ContGetItemForIndex(file ^File, cont Index, index u32) Index:
-    if IndexGetKind(cont) != ObjKind:Cont:
+    if IndexGetKind(cont) != ObjKind.Cont:
         trap
     let! n = 0_u32
     let! item = ContGetFirst(file, cont)
@@ -242,10 +242,10 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
             if d == '"':
                 set file^.objects[index] =
                   {Atom: start, end - start,
-                   seen_esc ? AtomKind:EscStr : AtomKind:Str}
+                   seen_esc ? AtomKind.EscStr : AtomKind.Str}
                 set file^.next_byte = end + 1
                 ; fmt::print#("ParseAtom End: [", make_span(@file^.data[start], as(end - start, uint)), "]\n")
-                return MakeIndex(index, ObjKind:Atom)
+                return MakeIndex(index, ObjKind.Atom)
             if d == '\\':
                 set seen_esc = true
                 set end += 2
@@ -259,10 +259,10 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
         if IsEndOfNum(file^.data[end]):
             break
         set end += 1
-    set file^.objects[index] = {Atom: start, end - start, AtomKind:Num}
+    set file^.objects[index] = {Atom: start, end - start, AtomKind.Num}
     ; fmt::print#("ParseAtom End: [", make_span(@file^.data[start], as(end - start, uint)), "]\n")
     set file^.next_byte = end
-    return MakeIndex(index, ObjKind:Atom)
+    return MakeIndex(index, ObjKind.Atom)
 
 fun ParseVec(file ^!File) union(Index, AllocError, DataError):
     ; fmt::print#("ParseVec ", file^.next_byte, "\n")
@@ -282,7 +282,7 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
             else:
                 set file^.objects[last_entry] =
                   {Item: NullIndex, NullIndex, last_val}
-                return MakeIndex(first_entry, ObjKind:Item)
+                return MakeIndex(first_entry, ObjKind.Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
                 ; fmt::print#("comma corruption\n")
@@ -296,7 +296,7 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
         else:
             ; now that we know the next pointer, finalize the previous entry
             set file^.objects[last_entry] =
-              {Item: MakeIndex(entry, ObjKind:Item), NullIndex, last_val}
+              {Item: MakeIndex(entry, ObjKind.Item), NullIndex, last_val}
         set last_entry = entry
         set last_val = val
         set n += 1
@@ -321,7 +321,7 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
             else:
                 set file^.objects[last_entry] =
                   {Item: NullIndex, last_key, last_val}
-                return MakeIndex(first_entry, ObjKind:Item)
+                return MakeIndex(first_entry, ObjKind.Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
                 ; fmt::print#("comma corruption\n")
@@ -340,7 +340,7 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
         else:
             ; now that we know the next pointer, finalize the previous entry
             set file^.objects[last_entry] =
-              {Item: MakeIndex(entry, ObjKind:Item), last_key, last_val}
+              {Item: MakeIndex(entry, ObjKind.Item), last_key, last_val}
         set last_entry = entry
         set last_key = key
         set last_val = val
@@ -356,15 +356,15 @@ fun ParseNext(file ^!File) union(Index, AllocError, DataError):
             return err
         trylet first Index = ParseDict(file), err:
             return err
-        set file^.objects[container] = {Cont: first, ContKind:Dict}
-        return MakeIndex(container, ObjKind:Cont)
+        set file^.objects[container] = {Cont: first, ContKind.Dict}
+        return MakeIndex(container, ObjKind.Cont)
     if MaybeConsume(file, '['):
         trylet container u32 = AllocObj(file), err:
             return err
         trylet first Index = ParseVec(file), err:
             return err
-        set file^.objects[container] = {Cont: first, ContKind:Vec}
-        return MakeIndex(container, ObjKind:Cont)
+        set file^.objects[container] = {Cont: first, ContKind.Vec}
+        return MakeIndex(container, ObjKind.Cont)
     return ParseAtom(file)
 
 pub fun Parse(file ^!File) union(Success, AllocError, DataError):
@@ -388,26 +388,26 @@ enum State u8:
     in_number auto_val
 
 pub fun NumJsonObjectsNeeded(raw span(u8)) u32:
-    let! state = State:between_tokens
+    let! state = State.between_tokens
     let! n = 0_u32
     for i = 0, len(raw), 1:
         let c = raw[i]
         ; fmt::print#(i, " ", wrap_as(c, fmt::rune), " ", n,"\n")
         cond:
-            case state == State:in_string:
+            case state == State.in_string:
                 if c == '"':
-                    set state = State:between_tokens
+                    set state = State.between_tokens
                 if c == '\\':
-                    set state = State:in_string_esc
-            case state == State:in_string_esc:
-                set state = State:in_string
-            case state == State:in_number:
+                    set state = State.in_string_esc
+            case state == State.in_string_esc:
+                set state = State.in_string
+            case state == State.in_number:
                 if c == ':':
                     ; probably impossible as numbers are not allowed as keys
                     set n -= 1
-                    set state = State:between_tokens
+                    set state = State.between_tokens
                 if c == ' ' || c == ']' || c == '}' || c == ',' || c == '\n':
-                    set state = State:between_tokens
+                    set state = State.between_tokens
             ; from here on we can assume that state == State:between_tokens
             case IsEndOfNum(c):
                 if c == ':':
@@ -417,9 +417,9 @@ pub fun NumJsonObjectsNeeded(raw span(u8)) u32:
                 set n += n == 0 ? 1 : 2
             case c == '"':
                 set n += n == 0 ? 1 : 2
-                set state = State:in_string
+                set state = State.in_string
             case true:
                 set n += n == 0 ? 1 : 2
-                set state = State:in_number
+                set state = State.in_number
     ; fmt::print#("RESULT ",  n, "\n")
     return n

@@ -211,7 +211,8 @@ void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
   // Node_name(id)
   //           << "\n";
   ASSERT(Node_kind(id) == NT::Id, "");
-  ASSERT(Node_kind(field) == NT::RecField, "");
+  ASSERT(Node_kind(field) == NT::RecField || Node_kind(field) == NT::EnumVal,
+         "");
   NodeSetType(id, Node_x_type(field));
   Node_x_symbol(id) = field;
 }
@@ -367,6 +368,21 @@ CanonType GetExprStmtType(Node root) {
   return result;
 }
 
+Node ResolveEnumOrDie(Node enum_id, Node enum_type) {
+  CHECK(Node_kind(enum_type) == NT::DefEnum, "");
+  CHECK(Node_kind(enum_id) == NT::Id, "");
+  Name enum_name = Node_name(enum_id);
+  for (Node child = Node_items(enum_type); !child.isnull();
+       child = Node_next(Node(child))) {
+    CHECK(Node_kind(child) == NT::EnumVal, "");
+    if (Node_name(child) == enum_name) {
+      return child;
+    }
+  }
+  CompilerError(Node_srcloc(enum_id)) << "enum value not found " << enum_name;
+  return kNodeInvalid;
+}
+
 CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                            PolyMap* pm) {
 #if 0
@@ -511,18 +527,25 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
                          tc->InsertPtrType(Node_has_flag(node, BF::MUT), ct));
     case NT::ExprField: {
       ct = TypifyExprOrType(Node_container(node), tc, ct_target, pm);
-      if (CanonType_kind(ct) != NT::DefRec) {
+      Node field_name = Node_field(node);
+
+      if (CanonType_kind(ct) == NT::DefEnum) {
+        Node n = ResolveEnumOrDie(field_name, CanonType_ast_node(ct));
+        AnnotateFieldWithTypeAndSymbol(field_name, n);
+        return NodeSetType(node, ct);
+      } else if (CanonType_kind(ct) == NT::DefRec) {
+        Node n = CanonType_lookup_rec_field(ct, Node_name(field_name));
+        if (n.isnull()) {
+          CompilerError(Node_srcloc(node))
+              << "unknown field name " << Node_name(field_name);
+        }
+        AnnotateFieldWithTypeAndSymbol(field_name, n);
+        return NodeSetType(node, Node_x_type(n));
+      } else {
         CompilerError(Node_srcloc(node)) << "Container is not of type rec "
                                          << EnumToString(CanonType_kind(ct));
+        return kCanonTypeInvalid;
       }
-      Node field_name = Node_field(node);
-      Node field_node = CanonType_lookup_rec_field(ct, Node_name(field_name));
-      if (field_node.isnull()) {
-        CompilerError(Node_srcloc(node))
-            << "unknown field name " << Node_name(field_name);
-      }
-      AnnotateFieldWithTypeAndSymbol(field_name, field_node);
-      return NodeSetType(node, Node_x_type(field_node));
     }
     case NT::ExprIndex:
       TypifyExprOrType(Node_expr_index(node), tc, tc->get_uint_canon_type(),
@@ -954,9 +977,16 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
       case NT::Expr2:
         return CheckExpr2Types(node, Node_expr1(node), Node_expr2(node),
                                Node_binary_expr_kind(node), tc);
-      case NT::ExprField:
-        CheckTypeKind(Node_container(node), NT::DefRec);
-        return CheckTypeIs(node, Node_x_type(Node_x_symbol(Node_field(node))));
+      case NT::ExprField: {
+        Node cont= Node_container(node);
+        if (CanonType_is_enum(Node_x_type(cont))) {
+           return CheckTypeIs(node, Node_x_type(cont));
+        } else {
+          CheckTypeKind(cont, NT::DefRec);
+          return CheckTypeIs(node,
+                             Node_x_type(Node_x_symbol(Node_field(node))));
+        }
+      }
       case NT::ExprPointer:
         CheckValUndefOrTypeIsUint(Node_expr_bound_or_undef(node));
         CheckTypeKind(node, NT::TypePtr);

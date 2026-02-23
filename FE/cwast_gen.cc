@@ -58,7 +58,6 @@ const NodeFieldDesc GlobalNodeFieldDescs[] = {
     {  0, NFD_KIND::LIST },  // cases
     {  1, NFD_KIND::NODE },  // cond
     {  0, NFD_KIND::NODE },  // container
-    {  1, NFD_KIND::NAME },  // enum_name
     {  0, NFD_KIND::NODE },  // expr
     {  0, NFD_KIND::NODE },  // expr1
     {  1, NFD_KIND::NODE },  // expr2
@@ -141,7 +140,7 @@ const NodeDesc GlobalNodeDescs[] = {
     { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprWiden
     { { NFD_SLOT::expr,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval) }, // ExprWrap
     { { NFD_SLOT::name,NFD_SLOT::type,NFD_SLOT::invalid,NFD_SLOT::invalid }, BIT_B(ARG_REF)| BIT_B(RES_REF), BIT_X(type) }, // FunParam
-    { { NFD_SLOT::name,NFD_SLOT::enum_name,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval)| BIT_X(symbol) }, // Id
+    { { NFD_SLOT::name,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, BIT_X(type)| BIT_X(eval)| BIT_X(symbol) }, // Id
     { { NFD_SLOT::name,NFD_SLOT::path,NFD_SLOT::args_mod,NFD_SLOT::invalid }, 0, 0 }, // Import
     { { NFD_SLOT::name,NFD_SLOT::name_list,NFD_SLOT::body_for,NFD_SLOT::invalid }, 0, 0 }, // MacroFor
     { { NFD_SLOT::name,NFD_SLOT::invalid,NFD_SLOT::invalid,NFD_SLOT::invalid }, 0, 0 }, // MacroId
@@ -811,46 +810,45 @@ const char* const NFD_SLOT_ToStringMap[] = {
     "cases", // 10
     "cond", // 11
     "container", // 12
-    "enum_name", // 13
-    "expr", // 14
-    "expr1", // 15
-    "expr2", // 16
-    "expr_bound_or_undef", // 17
-    "expr_f", // 18
-    "expr_index", // 19
-    "expr_lhs", // 20
-    "expr_ret", // 21
-    "expr_rhs", // 22
-    "expr_size", // 23
-    "expr_t", // 24
-    "field", // 25
-    "fields", // 26
-    "gen_ids", // 27
-    "initial_or_undef_or_auto", // 28
-    "inits", // 29
-    "items", // 30
-    "label", // 31
-    "lhs", // 32
-    "message", // 33
-    "name", // 34
-    "name_list", // 35
-    "number", // 36
-    "params", // 37
-    "params_macro", // 38
-    "params_mod", // 39
-    "path", // 40
-    "point_or_undef", // 41
-    "pointer", // 42
-    "result", // 43
-    "size", // 44
-    "string", // 45
-    "subtrahend", // 46
-    "target", // 47
-    "type", // 48
-    "type_or_auto", // 49
-    "types", // 50
-    "value_or_auto", // 51
-    "value_or_undef", // 52
+    "expr", // 13
+    "expr1", // 14
+    "expr2", // 15
+    "expr_bound_or_undef", // 16
+    "expr_f", // 17
+    "expr_index", // 18
+    "expr_lhs", // 19
+    "expr_ret", // 20
+    "expr_rhs", // 21
+    "expr_size", // 22
+    "expr_t", // 23
+    "field", // 24
+    "fields", // 25
+    "gen_ids", // 26
+    "initial_or_undef_or_auto", // 27
+    "inits", // 28
+    "items", // 29
+    "label", // 30
+    "lhs", // 31
+    "message", // 32
+    "name", // 33
+    "name_list", // 34
+    "number", // 35
+    "params", // 36
+    "params_macro", // 37
+    "params_mod", // 38
+    "path", // 39
+    "point_or_undef", // 40
+    "pointer", // 41
+    "result", // 42
+    "size", // 43
+    "string", // 44
+    "subtrahend", // 45
+    "target", // 46
+    "type", // 47
+    "type_or_auto", // 48
+    "types", // 49
+    "value_or_auto", // 50
+    "value_or_undef", // 51
 };
 const char* EnumToString(NFD_SLOT x) { return NFD_SLOT_ToStringMap[unsigned(x)]; }
 
@@ -1147,8 +1145,7 @@ Node NodeCloneRecursively(Node node, NodeToNodeMap* symbol_map,
   return clone;
 }
 
-void UpdateSymbolAndTargetLinks(Node node,
-                                const NodeToNodeMap* symbol_map,
+void UpdateSymbolAndTargetLinks(Node node, const NodeToNodeMap* symbol_map,
                                 const NodeToNodeMap* target_map) {
   auto visitor = [symbol_map, target_map](Node node, Node parent) -> bool {
     switch (node.kind()) {
@@ -1252,7 +1249,7 @@ Node MakeTypeAuto(CanonType ct, const SrcLoc& sl) {
 
 Node IdNodeFromDef(Node def_var, const SrcLoc& sl) {
   Node out = NodeNew(NT::Id);
-  NodeInitId(out, Node_name(def_var), kNameInvalid, kStrInvalid, sl, def_var,
+  NodeInitId(out, Node_name(def_var), kStrInvalid, sl, def_var,
              Node_x_type(Node_type_or_auto(def_var)));
   Node_x_eval(out) = Node_x_eval(Node_initial_or_undef_or_auto(def_var));
   return out;

@@ -9,7 +9,7 @@ namespace cwerg::fe {
 
 Node CloneId(Node id) {
   Node out = NodeNew(NT::Id);
-  NodeInitId(out, Node_name(id), kNameInvalid, kStrInvalid, Node_srcloc(id),
+  NodeInitId(out, Node_name(id), kStrInvalid, Node_srcloc(id),
              Node_x_symbol(id), Node_x_type(id));
   // TODO: set Node_eval ?
   return out;
@@ -19,8 +19,8 @@ Node MakeExprField(Node container, Node rec_field, const SrcLoc& sl) {
   ASSERT(rec_field.kind() == NT::RecField, "expected rec_field " << rec_field);
   ASSERT(Node_x_type(rec_field) != kCanonTypeInvalid, "");
   Node field = NodeNew(NT::Id);
-  NodeInitId(field, Node_name(rec_field), kNameInvalid, kStrInvalid, sl,
-             rec_field, Node_x_type(rec_field));
+  NodeInitId(field, Node_name(rec_field), kStrInvalid, sl, rec_field,
+             Node_x_type(rec_field));
   Node out = NodeNew(NT::ExprField);
   NodeInitExprField(out, container, field, kStrInvalid, sl,
                     Node_x_type(rec_field));

@@ -16,12 +16,12 @@ from FE import typify
 
 def IdNodeFromDef(def_node: cwast.DefVar, sl):
     assert def_node.type_or_auto.x_type is not None
-    return cwast.Id(def_node.name, None, x_srcloc=sl, x_type=def_node.type_or_auto.x_type,
+    return cwast.Id(def_node.name, x_srcloc=sl, x_type=def_node.type_or_auto.x_type,
                     x_eval=def_node.initial_or_undef_or_auto.x_eval, x_symbol=def_node)
 
 
 def MakeExprField(container, rec_field: cwast.RecField, sl) -> cwast.ExprField:
-    field_name = cwast.Id(rec_field.name, None, x_srcloc=sl, x_type=rec_field.x_type,
+    field_name = cwast.Id(rec_field.name, x_srcloc=sl, x_type=rec_field.x_type,
                           x_symbol=rec_field)
     return cwast.ExprField(container, field_name, sl, x_type=rec_field.x_type)
 
@@ -609,7 +609,7 @@ def FunMakeImplicitConversionsExplicit(fun: cwast.DefFun, tc: type_corpus.TypeCo
 
 def _CloneId(node: cwast.Id) -> cwast.Id:
     assert isinstance(node, cwast.Id)
-    return cwast.Id(node.name, None, x_symbol=node.x_symbol, x_type=node.x_type,
+    return cwast.Id(node.name, x_symbol=node.x_symbol, x_type=node.x_type,
                     x_srcloc=node.x_srcloc)
 
 

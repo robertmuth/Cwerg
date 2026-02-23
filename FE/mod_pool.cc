@@ -6,8 +6,8 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
-#include <set>
 #include <map>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -396,8 +396,8 @@ void SpecializeGenericModule(Node mod, const std::vector<Node>& args) {
       case NT::DefType:
       case NT::DefEnum: {
         Node id = NodeNew(NT::Id);
-        NodeInitId(id, Node_name(a), kNameInvalid, kStrInvalid, Node_srcloc(p),
-                   a, kCanonTypeInvalid);
+        NodeInitId(id, Node_name(a), kStrInvalid, Node_srcloc(p), a,
+                   kCanonTypeInvalid);
         arg_map[Node_name(p)] = id;
         break;
       }

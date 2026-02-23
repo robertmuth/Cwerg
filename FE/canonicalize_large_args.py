@@ -103,7 +103,7 @@ def FunRewriteLargeArgsParameter(fun: cwast.DefFun, new_fun_ct: cwast.CanonType,
             assert result_ct.is_ptr()
             sl = node.x_srcloc
             lhs = cwast.ExprDeref(
-                cwast.Id(result_param.name, None, x_srcloc=sl,
+                cwast.Id(result_param.name, x_srcloc=sl,
                          x_type=result_ct, x_symbol=result_param),
                 x_srcloc=sl, x_type=result_ct.underlying_type())
             assign = cwast.StmtAssignment(

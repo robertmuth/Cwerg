@@ -306,7 +306,7 @@ def _ValueConstKind(node) -> CONSTANT_KIND:
 
 def _IdNodeFromDef(def_node: Union[cwast.DefVar, cwast.DefGlobal], x_srcloc) -> cwast.Id:
     assert def_node.type_or_auto.x_type is not None
-    return cwast.Id(def_node.name, None, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
+    return cwast.Id(def_node.name, x_srcloc=x_srcloc, x_type=def_node.type_or_auto.x_type,
                     x_eval=def_node.initial_or_undef_or_auto.x_eval, x_symbol=def_node)
 
 
@@ -672,6 +672,10 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
 
         return _GetValForVecAtPos(container_val, index_val.val, node.x_type)
     elif isinstance(node, cwast.ExprField):
+        if node.container.x_type.is_enum():
+            assert node.field.x_eval is not None
+            return node.field.x_eval
+        assert node.container.x_type.is_rec()
         container_val = node.container.x_eval
         if container_val is None:
             return None

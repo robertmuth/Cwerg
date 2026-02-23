@@ -39,20 +39,6 @@ Node SymTabResolveWithFallback(const SymTab* symtab, Node node,
   return def;
 }
 
-Node ResolveEnum(Node enum_id, Node enum_type) {
-  CHECK(Node_kind(enum_type) == NT::DefEnum, "");
-  CHECK(Node_kind(enum_id) == NT::Id, "");
-  Name enum_name = Node_enum_name(enum_id);
-  for (Node child = Node_items(enum_type); !child.isnull();
-       child = Node_next(Node(child))) {
-    CHECK(Node_kind(child) == NT::EnumVal, "");
-    if (Node_name(child) == enum_name) {
-      return child;
-    }
-  }
-  CompilerError(Node_srcloc(enum_id)) << "enum value not found " << enum_name;
-  return kNodeInvalid;
-}
 void UpdateNodeSymbolForPolyCall(Node id, Node new_def) {
   CHECK(!new_def.isnull(), "");
   Node old_def = Node_x_symbol(id);
@@ -112,9 +98,6 @@ void ResolveGlobalAndImportedSymbols(Node node, const SymTab* symtab,
       }
     }
 
-    if (kind == NT::Id && !Node_enum_name(node).isnull()) {
-      def_node = ResolveEnum(node, def_node);
-    }
     // std::cout << "SymTabResolved: " << Node_name(node) << "\n";
     AnnotateNodeSymbol(node, def_node);
     return false;

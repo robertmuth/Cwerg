@@ -504,7 +504,6 @@ def _EnumValues(enum_class):
 
 ALL_FIELDS = [
     NfdName("name", "name of the object"),
-    NfdName("enum_name", "optional enum element name"),
     NfdName("name_list", "name of the object list"),
     NfdName("label", "block  name (if not empty)"),
     NfdName("target",
@@ -633,7 +632,7 @@ NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 
 TYPE_FIELDS = set(["type", "types", "result", "type_or_auto", "subtrahend"])
 
-
+# only used for symbol
 FIELD_NAME_FIELDS = set(["point_or_undef", "field"])
 
 ALL_FIELDS_MAP: dict[str, NFD] = {nfd.name: nfd for nfd in ALL_FIELDS}
@@ -1257,7 +1256,6 @@ class Id:
     FLAGS: ClassVar = NF_EXPR | NF.SYMBOL_ANNOTATED | NF.MAY_BE_LHS | NF.IMPORT_ANNOTATED
     #
     name: NAME
-    enum_name: Optional[NAME]
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC
     x_type: CanonType = NO_TYPE
@@ -1273,24 +1271,11 @@ class Id:
         return self.name.IsMacroCall() or self.name.name in BUILT_IN_EXPR_MACROS
 
     def FullName(self):
-        name = str(self.name)
-        if self.enum_name:
-            name += f":{self.enum_name}"
-        return name
-
-    def GetBaseNameStrict(self):
-        assert self.enum_name is None
-        return self.name
+        return str(self.name)
 
     @staticmethod
     def Make(name: str, **kwargs):
-        assert not name.startswith(MACRO_VAR_PREFIX)
-        enum_name = None
-        pos = name.rfind(":")
-        if pos > 0 and name[pos - 1] != ":":
-            enum_name = NAME.Make(name[pos + 1:])
-            name = name[:pos]
-        return Id(NAME.Make(name), enum_name, **kwargs)
+        return Id(NAME.Make(name), **kwargs)
 
     def __repr__(self):
         return f"{NODE_NAME(self)} {self.FullName()}"
@@ -1791,7 +1776,10 @@ class ExprParen:
 @NodeCommon
 @dataclasses.dataclass()
 class ExprField:
-    """Access field in expression representing a record.
+    """Access field in expression representing a record or the specific EnumVal within a DefEnum
+
+    The second kind of use involving enums is eliminated early on during partial evaluation.
+    So it will never be encountered by optimizations.
     """
     ALIAS: ClassVar = "."
     GROUP: ClassVar = GROUP.Expression
@@ -3633,7 +3621,7 @@ def EnumStringConversions(fout: Any):
 
 def NodeAliasStringConversion(fout: Any):
     print(
-        "\nconst std::map<std::string_view, NT> KeywordToNodeTypeMap = {", file=fout)
+        "\nconst std::unordered_map<std::string_view, NT> KeywordToNodeTypeMap = {", file=fout)
     for node in sorted(ALL_NODES, key=lambda x: x.__name__):
         alias = node.ALIAS
         if alias and _NAMED_OP_RE.fullmatch(alias):

@@ -33,14 +33,6 @@ def UpdateNodeSymbolForPolyCall(id_node: cwast.Id, new_def_node: cwast.DefFun):
     id_node.x_symbol = new_def_node
 
 
-def _resolve_enum_item(node: cwast.DefEnum, entry_name, srcloc) -> cwast.EnumVal:
-    for item in node.items:
-        if isinstance(item, cwast.EnumVal) and item.name == entry_name:
-            return item
-    cwast.CompilerError(srcloc,
-                        f"unknown enum [{entry_name}] for [{node.name}]")
-
-
 class SymTab:
     """Symbol Table For Global and Local Symbols in one Mod"""
 
@@ -207,12 +199,6 @@ def _ResolveGlobalAndImportedSymbols(node, symtab: SymTab, builtin_symtab: SymTa
                             node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
                     return
 
-        if isinstance(node, cwast.Id) and node.enum_name is not None:
-            if not isinstance(def_node, cwast.DefEnum):
-                cwast.CompilerError(
-                    node.x_srcloc, f"expected enum symbol for {node} got {def_node}")
-            def_node = _resolve_enum_item(
-                def_node, node.enum_name, node.x_srcloc)
         AnnotateNodeSymbol(node, def_node)
 
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
@@ -291,6 +277,9 @@ def VerifySymbols(node):
                     node} {node.x_srcloc}"
         if isinstance(node, cwast.Id):
             def_node = node.x_symbol
+            if isinstance(def_node, cwast.DefEnum) and nfd.name == "container":
+                # ExprIndex is also used for Enum
+                return
             is_type_node = nfd.name in cwast.TYPE_FIELDS
             if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeUnion, cwast.DefEnum)):
                 cwast.CompilerError(
@@ -301,6 +290,7 @@ def VerifySymbols(node):
         elif isinstance(node, cwast.StmtReturn):
             assert isinstance(node.x_target, (cwast.DefFun, cwast.ExprStmt))
         elif isinstance(node, cwast.DefRec):
+            # TODO: check this only once
             seen = set()
             for f in node.fields:
                 if isinstance(f, cwast.RecField):
@@ -369,7 +359,7 @@ def IterateValRec(points: list[cwast.ValPoint], def_rec: cwast.CanonType):
                 continue
 
             assert isinstance(p.point_or_undef, cwast.Id)
-            if p.point_or_undef.GetBaseNameStrict() == f.name:
+            if p.point_or_undef.name == f.name:
                 yield f, p
                 next_point += 1
                 continue

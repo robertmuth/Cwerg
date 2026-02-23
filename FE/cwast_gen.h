@@ -377,46 +377,45 @@ enum class NFD_SLOT : uint8_t {
     cases = 10,  // slot: 0 LIST
     cond = 11,  // slot: 1 NODE
     container = 12,  // slot: 0 NODE
-    enum_name = 13,  // slot: 1 NAME
-    expr = 14,  // slot: 0 NODE
-    expr1 = 15,  // slot: 0 NODE
-    expr2 = 16,  // slot: 1 NODE
-    expr_bound_or_undef = 17,  // slot: 2 NODE
-    expr_f = 18,  // slot: 3 NODE
-    expr_index = 19,  // slot: 1 NODE
-    expr_lhs = 20,  // slot: 0 NODE
-    expr_ret = 21,  // slot: 0 NODE
-    expr_rhs = 22,  // slot: 1 NODE
-    expr_size = 23,  // slot: 1 NODE
-    expr_t = 24,  // slot: 2 NODE
-    field = 25,  // slot: 2 NODE
-    fields = 26,  // slot: 1 LIST
-    gen_ids = 27,  // slot: 2 LIST
-    initial_or_undef_or_auto = 28,  // slot: 2 NODE
-    inits = 29,  // slot: 2 LIST
-    items = 30,  // slot: 1 LIST
-    label = 31,  // slot: 0 NAME
-    lhs = 32,  // slot: 0 NODE
-    message = 33,  // slot: 2 STR
-    name = 34,  // slot: 0 NAME
-    name_list = 35,  // slot: 1 NAME
-    number = 36,  // slot: 0 STR
-    params = 37,  // slot: 1 LIST
-    params_macro = 38,  // slot: 1 LIST
-    params_mod = 39,  // slot: 1 LIST
-    path = 40,  // slot: 1 STR
-    point_or_undef = 41,  // slot: 1 NODE
-    pointer = 42,  // slot: 0 NODE
-    result = 43,  // slot: 2 NODE
-    size = 44,  // slot: 0 NODE
-    string = 45,  // slot: 0 STR
-    subtrahend = 46,  // slot: 2 NODE
-    target = 47,  // slot: 0 NAME
-    type = 48,  // slot: 1 NODE
-    type_or_auto = 49,  // slot: 1 NODE
-    types = 50,  // slot: 0 LIST
-    value_or_auto = 51,  // slot: 1 NODE
-    value_or_undef = 52,  // slot: 0 NODE
+    expr = 13,  // slot: 0 NODE
+    expr1 = 14,  // slot: 0 NODE
+    expr2 = 15,  // slot: 1 NODE
+    expr_bound_or_undef = 16,  // slot: 2 NODE
+    expr_f = 17,  // slot: 3 NODE
+    expr_index = 18,  // slot: 1 NODE
+    expr_lhs = 19,  // slot: 0 NODE
+    expr_ret = 20,  // slot: 0 NODE
+    expr_rhs = 21,  // slot: 1 NODE
+    expr_size = 22,  // slot: 1 NODE
+    expr_t = 23,  // slot: 2 NODE
+    field = 24,  // slot: 2 NODE
+    fields = 25,  // slot: 1 LIST
+    gen_ids = 26,  // slot: 2 LIST
+    initial_or_undef_or_auto = 27,  // slot: 2 NODE
+    inits = 28,  // slot: 2 LIST
+    items = 29,  // slot: 1 LIST
+    label = 30,  // slot: 0 NAME
+    lhs = 31,  // slot: 0 NODE
+    message = 32,  // slot: 2 STR
+    name = 33,  // slot: 0 NAME
+    name_list = 34,  // slot: 1 NAME
+    number = 35,  // slot: 0 STR
+    params = 36,  // slot: 1 LIST
+    params_macro = 37,  // slot: 1 LIST
+    params_mod = 38,  // slot: 1 LIST
+    path = 39,  // slot: 1 STR
+    point_or_undef = 40,  // slot: 1 NODE
+    pointer = 41,  // slot: 0 NODE
+    result = 42,  // slot: 2 NODE
+    size = 43,  // slot: 0 NODE
+    string = 44,  // slot: 0 STR
+    subtrahend = 45,  // slot: 2 NODE
+    target = 46,  // slot: 0 NAME
+    type = 47,  // slot: 1 NODE
+    type_or_auto = 48,  // slot: 1 NODE
+    types = 49,  // slot: 0 LIST
+    value_or_auto = 50,  // slot: 1 NODE
+    value_or_undef = 51,  // slot: 0 NODE
 };
 
 enum class BF : uint8_t {
@@ -619,7 +618,6 @@ constexpr int SLOT_BODY_T = 2;
 
 // NFK.NAME
 inline Name& Node_name(Node n) { return gNodeCore[n].children_name[0]; }
-inline Name& Node_enum_name(Node n) { return gNodeCore[n].children_name[1]; }
 inline Name& Node_name_list(Node n) { return gNodeCore[n].children_name[1]; }
 inline Name& Node_label(Node n) { return gNodeCore[n].children_name[0]; }
 inline Name& Node_target(Node n) { return gNodeCore[n].children_name[0]; }
@@ -905,8 +903,8 @@ inline Node NodeInitFunParam(Node node, Name name, Node type, uint16_t bits, Str
     return node;
 }
 
-inline Node NodeInitId(Node node, Name name, Name enum_name, Str doc, const SrcLoc& srcloc, Node x_symbol, CanonType x_type) {
-    NodeInit(node, NT::Id, name, enum_name, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
+inline Node NodeInitId(Node node, Name name, Str doc, const SrcLoc& srcloc, Node x_symbol, CanonType x_type) {
+    NodeInit(node, NT::Id, name, kHandleInvalid, kHandleInvalid, kHandleInvalid, 0, 0, doc, srcloc);
     Node_x_symbol(node) = x_symbol;
     Node_x_type(node) = x_type;
     return node;

@@ -96,7 +96,7 @@ pub enum type_enum s32:
     e3 19
     e4 auto_val
 
-global c20 = type_enum:e3
+global c20 = type_enum.e3
 
 static_assert unwrap(c20) == 19
 

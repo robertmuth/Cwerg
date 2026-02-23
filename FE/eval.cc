@@ -555,10 +555,18 @@ Const EvalNode(Node node) {
       return kConstInvalid;
 
     case NT::ExprField: {
-      Const container_val = Node_x_eval(Node_container(node));
+      Node cont = Node_container(node);
+      Node field = Node_field(node);
+
+      if (CanonType_is_enum(Node_x_type(cont))) {
+        Const field_val = Node_x_eval(field);
+        ASSERT(!field_val.isnull(),
+               "Unexpected unevaluated enum val " << Node_name(field));
+        return field_val;
+      }
+      Const container_val = Node_x_eval(cont);
       if (container_val.isnull()) return kConstInvalid;
-      return GetValForRecAtField(container_val,
-                                 Node_x_symbol(Node_field(node)));
+      return GetValForRecAtField(container_val, Node_x_symbol(field));
     }
 
       return kConstInvalid;

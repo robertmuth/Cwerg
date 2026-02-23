@@ -69,7 +69,7 @@ class MacroContext {
   void GenerateNewSymbol(Name name, const SrcLoc& srcloc) {
     Name new_name = id_gen_->NameNewNext(NameNew(NameData(name) + 1));
     Node id = NodeNew(NT::Id);
-    NodeInitId(id, new_name, kNameInvalid, kStrInvalid, srcloc, kNodeInvalid,
+    NodeInitId(id, new_name, kStrInvalid, srcloc, kNodeInvalid,
                kCanonTypeInvalid);
 
     RegisterSymbolWithOwnership(name, id);

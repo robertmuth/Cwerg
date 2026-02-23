@@ -30,8 +30,7 @@ to the generic module and use type info from it.
 
 import logging
 
-from typing import Tuple, Any, Optional
-
+from typing import Tuple, Any, Optional, Union
 
 from FE import cwast
 from FE import symbolize
@@ -220,7 +219,7 @@ def MakeDefRec(name: str, fields_desc, tc: type_corpus.TypeCorpus, srcloc) -> cw
     return rec
 
 
-def AnnotateFieldWithTypeAndSymbol(node, field_node: cwast.RecField):
+def AnnotateFieldWithTypeAndSymbol(node, field_node: Union[cwast.RecField, cwast.EnumVal]):
     assert isinstance(node, cwast.Id), f"{node}"
     _NodeSetType(node, field_node.x_type)
     assert node.x_symbol is cwast.INVALID_SYMBOL, f"Id already field annotate: {
@@ -455,7 +454,8 @@ def _TypifyVal(node, tc: type_corpus.TypeCorpus,
         target_kind = cwast.BASE_TYPE_KIND.INVALID if target_type == cwast.NO_TYPE else target_type.base_type_kind
         actual_kind = _NumCleanupAndTypeExtraction(node.number, target_kind)[1]
         if actual_kind == cwast.BASE_TYPE_KIND.INVALID:
-            cwast.CompilerError(node.x_srcloc, f"cannot determine type of Num: {node.number}")
+            cwast.CompilerError(
+                node.x_srcloc, f"cannot determine type of Num: {node.number}")
         ct = tc.get_base_canon_type(actual_kind)
         return _NodeSetType(node, ct)
     elif isinstance(node, cwast.ValAuto):
@@ -484,6 +484,14 @@ def _TypifyVal(node, tc: type_corpus.TypeCorpus,
         return _NodeSetType(node, target_type)
     else:
         assert False, f"unexpected node {node}"
+
+
+def _resolve_enum_item(node: cwast.DefEnum, entry_name: str, srcloc) -> cwast.EnumVal:
+    for item in node.items:
+        if isinstance(item, cwast.EnumVal) and item.name == entry_name:
+            return item
+    cwast.CompilerError(srcloc,
+                        f"unknown enum [{entry_name}] for [{node.name}]")
 
 
 def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
@@ -520,16 +528,27 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         return _NodeSetType(node, ct.contained_type())
     elif isinstance(node, cwast.ExprField):
         ct = _TypifyExprOrType(node.container, tc, target_type, pm)
-        if not ct.is_rec():
+        field_name = node.field
+        assert isinstance(field_name, cwast.Id)
+        if ct.is_enum():
+            field_node = _resolve_enum_item(
+                ct.ast_node, field_name.name, node.x_srcloc)
+            if not field_node:
+                cwast.CompilerError(
+                    node.x_srcloc, f"unknown enum field {field_name}")
+            AnnotateFieldWithTypeAndSymbol(field_name, field_node)
+            return _NodeSetType(node, ct)
+        elif ct.is_rec():
+            field_node = ct.lookup_rec_field(field_name.name)
+            if not field_node:
+                cwast.CompilerError(
+                    node.x_srcloc, f"unknown record field {field_name}")
+            AnnotateFieldWithTypeAndSymbol(field_name, field_node)
+            return _NodeSetType(node, field_node.x_type)
+        else:
             cwast.CompilerError(
                 node.x_srcloc, f"container type is not record {node.container}")
-        field_name = node.field
-        field_node = ct.lookup_rec_field(field_name.GetBaseNameStrict())
-        if not field_node:
-            cwast.CompilerError(
-                node.x_srcloc, f"unknown record field {field_name}")
-        AnnotateFieldWithTypeAndSymbol(field_name, field_node)
-        return _NodeSetType(node, field_node.x_type)
+
     elif isinstance(node, cwast.ExprDeref):
         ct = _TypifyExprOrType(node.expr, tc, cwast.NO_TYPE, pm)
         if not ct.is_ptr():
@@ -621,7 +640,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         return _NodeSetType(node, tc.InsertPtrType(node.mut, cstr_expr))
     elif isinstance(node, cwast.ExprOffsetof):
         ct = _TypifyExprOrType(node.type, tc, cwast.NO_TYPE, pm)
-        field_node = ct.lookup_rec_field(node.field.GetBaseNameStrict())
+        field_node = ct.lookup_rec_field(node.field.name)
         if not field_node:
             cwast.CompilerError(
                 node.x_srcloc, f"unknown record field {node.field}")
@@ -741,8 +760,11 @@ def _CheckExprPointer(node: cwast.ExprPointer, _):
 
 
 def _CheckExprField(node: cwast.ExprField, _):
-    _CheckTypeKind(node.container, cwast.DefRec)
-    _CheckTypeIs(node, node.field.GetRecFieldRef().x_type)
+    if node.container.x_type.is_enum():
+        _CheckTypeIs(node, node.container.x_type)
+    else:
+        _CheckTypeKind(node.container, cwast.DefRec)
+        _CheckTypeIs(node, node.field.GetRecFieldRef().x_type)
 
 
 def _CheckExprFront(node: cwast.ExprFront, _):
@@ -834,7 +856,6 @@ def _CheckExprUnwrap(node: cwast.ExprUnwrap,  _):
             ct_node, ct_node.original_type), f"{ct_node} vs {ct_expr}"
     else:
         assert False, f"{ct_expr} -> {ct_node}"
-
 
 
 def _CheckDefFunTypeFun(node, _):

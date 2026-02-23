@@ -98,10 +98,8 @@ uint32_t LexerRaw::HandleMacroId() {
 // a#
 // a::b
 // a:b
-// a::b:c
+// a::b
 uint32_t LexerRaw::HandleId() {
-  bool seen_single_colon = false;
-
   uint32_t i = pos_;
   uint8_t c;
   HANDLE_ID_COMPONENT
@@ -109,24 +107,14 @@ uint32_t LexerRaw::HandleId() {
   if (c != ':') return i - pos_;
   // no out-of- bound access assuming zero or newline padding
   c = input_[i + 1];
-  if (c == ':') {
-    i += 2;
-  } else if (IsNameStart(c)) {
-    seen_single_colon = true;
-    i += 1;
-  } else {
+  if (c != ':') {
     return i - pos_;
   }
 
-  // middle component
+  i += 2;
+  // previous component was module name
   HANDLE_ID_COMPONENT
-
   if (c == '#') return i + 1 - pos_;
-  if (c != ':') return i - pos_;
-  if (seen_single_colon) return i - pos_;
-  i++;
-  if (!IsNameStart(input_[i])) return i - 1 - pos_;
-  HANDLE_ID_COMPONENT
   return i - pos_;
 }
 

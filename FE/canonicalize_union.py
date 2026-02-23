@@ -84,7 +84,7 @@ def _MakeValRecForTaggedUnion(sum_rec: cwast.CanonType, tag_value, union_value, 
 
 def _CloneId(node: cwast.Id) -> cwast.Id:
     assert isinstance(node, cwast.Id)
-    return cwast.Id(node.name, None, x_symbol=node.x_symbol, x_type=node.x_type,
+    return cwast.Id(node.name, x_symbol=node.x_symbol, x_type=node.x_type,
                     x_srcloc=node.x_srcloc)
 
 

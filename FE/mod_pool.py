@@ -100,7 +100,7 @@ def _SpecializeGenericModule(mod: cwast.DefMod, args: list[Any]):
     for p, a in zip(mod.params_mod, args):
         if isinstance(a, (cwast.DefFun, cwast.DefRec, cwast.DefType, cwast.DefEnum)):
             arg_map[p.name] = cwast.Id(
-                a.name, None, x_symbol=a, x_srcloc=p.x_srcloc)
+                a.name, x_symbol=a, x_srcloc=p.x_srcloc)
         elif isinstance(a, (cwast.ValNum, cwast.ValVoid)):
             arg_map[p.name] = a
         else:

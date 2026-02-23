@@ -41,7 +41,7 @@ class _MacroContext:
         # print (f"@@@@@@@@@@@@@@@ {name}")
         new_name = self._id_gen.NewName(name.name[1:])
         self.RegisterSymbol(name, cwast.Id(
-            new_name, None, x_srcloc=srcloc))
+            new_name, x_srcloc=srcloc))
 
 
 def _ExpandMacroBodyNodeRecursively(node, ctx: _MacroContext) -> Any:
@@ -52,7 +52,7 @@ def _ExpandMacroBodyNodeRecursively(node, ctx: _MacroContext) -> Any:
         type_or_auto = _ExpandMacroBodyNodeRecursively(node.type_or_auto, ctx)
         initial = _ExpandMacroBodyNodeRecursively(
             node.initial_or_undef_or_auto, ctx)
-        return cwast.DefVar(new_name.GetBaseNameStrict(), type_or_auto, initial,
+        return cwast.DefVar(new_name.name, type_or_auto, initial,
                             x_srcloc=ctx.srcloc, mut=node.mut, ref=node.ref)
     elif isinstance(node, cwast.MacroId):
         arg = ctx.GetSymbol(node.name)

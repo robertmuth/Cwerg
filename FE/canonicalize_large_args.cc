@@ -108,7 +108,7 @@ void FunRewriteLargeArgsParameter(Node fun, CanonType old_sig,
       CanonType result_ct = Node_x_type(result_param);
       const SrcLoc& sl = Node_srcloc(node);
       Node id = NodeNew(NT::Id);
-      NodeInitId(id, Node_name(result_param), kNameInvalid, kStrInvalid, sl,
+      NodeInitId(id, Node_name(result_param), kStrInvalid, sl,
                  result_param, result_ct);
       Node lhs = NodeNew(NT::ExprDeref);
       NodeInitExprDeref(lhs, id, kStrInvalid, sl,

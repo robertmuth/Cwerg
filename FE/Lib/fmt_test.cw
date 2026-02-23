@@ -38,7 +38,7 @@ fun test_custom() void:
     set n = fmt::SysRender({ic32: 111, 222}, s, @!opt)
     test::AssertSliceEq#(make_span(front(s), n), "111+222i")
     ; enum
-    set n = fmt::SysRender(color:blue, s, @!opt)
+    set n = fmt::SysRender(color.blue, s, @!opt)
     test::AssertSliceEq#(make_span(front(s), n), "2")
 
 fun test_int() void:

@@ -297,16 +297,9 @@ Node MakeNodeId(const TK& tk) {
   auto s = tk.text;
   ASSERT(s[0] != '$', s);
   Node out = NodeNew(NT::Id);
-  std::string_view enum_name = std::string_view();
 
-  size_t pos = s.rfind(":");
-  if (pos != std::string_view::npos && s[pos - 1] != ':') {
-    enum_name = s.substr(pos + 1);
-    s = s.substr(0, pos);
-  }
-  NodeInitId(out, NameNew(s),
-             enum_name.empty() ? kNameInvalid : NameNew(enum_name), tk.comments,
-             tk.srcloc, kNodeInvalid, kCanonTypeInvalid);
+  NodeInitId(out, NameNew(s), tk.comments, tk.srcloc, kNodeInvalid,
+             kCanonTypeInvalid);
   return out;
 }
 
@@ -458,9 +451,6 @@ Node ParseFunArgsList(Lexer* lexer, bool want_comma) {
 std::string FullName(Node node) {
   ASSERT(node.kind() == NT::Id, "");
   std::string out = NameData(Node_name(node));
-  if (!NameIsEmpty(Node_enum_name(node))) {
-    out += ":";
-  }
   return out;
 }
 
