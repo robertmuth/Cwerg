@@ -190,7 +190,6 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
             canonicalize.FunCanonicalizeCompoundAssignments(fun)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, tc)
-        canonicalize.ModRemoveVoid(mod)
 
 
 def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArchConfig):
@@ -219,7 +218,7 @@ def main() -> int:
     parser.add_argument(
         '-stdlib', help='path to stdlib directory', default="./Lib")
     parser.add_argument(
-        '-arch', help='architecture to generated IR for', default="x64")
+        '-arch', help='architecture to generated IR for', default="")
     parser.add_argument(
         '-dump_ast_html', help='stop at the given stage and dump ast in html format')
     parser.add_argument(
