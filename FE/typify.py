@@ -764,7 +764,7 @@ def _CheckExprField(node: cwast.ExprField, _):
         _CheckTypeIs(node, node.container.x_type)
     else:
         _CheckTypeKind(node.container, cwast.DefRec)
-        _CheckTypeIs(node, node.field.GetRecFieldRef().x_type)
+        _CheckTypeIs(node, node.field.x_symbol.x_type)
 
 
 def _CheckExprFront(node: cwast.ExprFront, _):

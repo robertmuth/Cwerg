@@ -151,7 +151,7 @@ def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig,
         return BaseOffset(_EmitExpr(node.expr, ta, id_gen))
     elif isinstance(node, cwast.ExprField):
         bo = _GetLValueAddress(node.container, ta, id_gen)
-        return bo.AddOffset(node.field.GetRecFieldRef().x_offset)
+        return bo.AddOffset(node.field.x_symbol.x_offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
         base = id_gen.NewName("lhsaddr")
@@ -507,7 +507,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         assert node.container.x_type.is_vec(), f"unexpected {node}"
         return _GetLValueAddress(node.container, ta, id_gen).MaterializeBase(ta, id_gen)
     elif isinstance(node, cwast.ExprField):
-        recfield: cwast.RecField = node.field.GetRecFieldRef()
+        recfield: cwast.RecField = node.field.x_symbol
         res = id_gen.NewName(recfield.name.name)
         addr = _GetLValueAddress(
             node.container, ta, id_gen).MaterializeBase(ta, id_gen)

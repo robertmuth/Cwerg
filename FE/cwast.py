@@ -1263,9 +1263,7 @@ class Id:
     x_symbol: Optional[NODES_SYMBOLS_T] = INVALID_SYMBOL
     x_import: Optional[Import] = None  # which import the id is qualified with
 
-    def GetRecFieldRef(self) -> RecField:
-        assert isinstance(self.x_symbol, RecField)
-        return self.x_symbol
+
 
     def IsMacroCall(self):
         return self.name.IsMacroCall() or self.name.name in BUILT_IN_EXPR_MACROS
