@@ -5,21 +5,21 @@
 File                                    blank        comment           code
 --------------------------------------------------------------------------------------
 BE/Elf/elfhelper.py                       154             44            923
-BE/Base/ir.py                             162             41            548
-BE/Base/lowering.py                       115             25            546
-BE/Base/serialize.py                       78             17            427
-BE/Base/reaching_defs.py                   81             62            389
+BE/Base/ir.py                             165             42            571
+BE/Base/lowering.py                       112             33            558
+BE/Base/serialize.py                       83             17            427
 BE/Base/liveness.py                        70             48            331
+BE/Base/reaching_defs.py                   68             29            320
 BE/Base/cfg.py                             43             16            265
 BE/Base/reg_stats.py                       46             17            223
-BE/Base/reg_alloc.py                       49             32            213
+BE/Base/reg_alloc.py                       48             32            213
 BE/Base/sanity.py                          28              5            194
-BE/Base/optimize.py                        48             13            190
+BE/Base/optimize.py                        44             14            188
 BE/Elf/elf_unit.py                         21              4            110
 BE/Base/eval.py                            26              3             88
 BE/Base/canonicalize.py                     5              1             29
 --------------------------------------------------------------------------------------
-SUM:                                      926            328           4476
+SUM:                                      913            305           4440
 --------------------------------------------------------------------------------------
 ```
 
@@ -36,14 +36,14 @@ BE/Elf/enum_tab.py                   94             21           1059
 ```
 File                                    blank        comment           code
 --------------------------------------------------------------------------------------
-BE/Base/ir.h                              182            109            822
-BE/Base/serialize.cc                       72             20            758
-BE/Base/lowering.cc                        56             18            713
+BE/Base/ir.h                              180            109            813
+BE/Base/serialize.cc                       72             22            762
+BE/Base/lowering.cc                        55             19            730
 BE/Elf/elfhelper.cc                        66             45            536
-BE/Base/ir.cc                              75             39            490
-BE/Base/reaching_defs.cc                   46             23            482
+BE/Base/ir.cc                              75             41            488
 BE/Elf/elfhelper.h                         82             33            419
-BE/Base/cfg.cc                             44             23            411
+BE/Base/cfg.cc                             44             24            410
+BE/Base/reaching_defs.cc                   36             10            381
 BE/Base/liveness.cc                        35             44            358
 BE/Base/reg_stats.cc                       35              6            297
 BE/Base/reg_alloc.cc                       26              2            236
@@ -52,21 +52,21 @@ BE/Elf/elf_unit.h                          28              5            196
 BE/Base/eval.cc                            16              3            140
 BE/Base/sanity.cc                          21              1            113
 BE/Elf/elf_tool.cc                          8              3             71
-BE/Base/optimize.cc                        13              1             52
-BE/Base/liveness.h                         19             17             48
+BE/Base/lowering.h                         22              1             54
+BE/Base/optimize.cc                        12              1             51
+BE/Base/liveness.h                         19             19             48
 BE/Base/serialize.h                        14              1             41
 BE/Base/canonicalize.cc                     3              1             40
 BE/Base/reg_alloc.h                        15              8             38
-BE/Base/lowering.h                         17              5             34
 BE/Base/reg_stats.h                        17              4             27
 BE/Base/cfg.h                              16              1             17
-BE/Base/reaching_defs.h                     9              1             11
+BE/Base/reaching_defs.h                     9              2             10
 BE/Base/eval.h                              4              1              9
 BE/Base/optimize.h                          7              1              9
 BE/Base/sanity.h                            6              1              7
 BE/Base/canonicalize.h                      4              1              5
 --------------------------------------------------------------------------------------
-SUM:                                      973            424           6585
+SUM:                                      964            416           6511
 --------------------------------------------------------------------------------------
 ```
 
@@ -88,15 +88,15 @@ SUM:                                 63              8           2611
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
 BE/CodeGenA32/regs.py                            83             43            401
-BE/CodeGenA32/legalize.py                        73             41            300
-BE/CodeGenA32/codegen.py                         59             15            232
+BE/CodeGenA32/legalize.py                        74             44            315
+BE/CodeGenA32/codegen.py                         58             15            235
 BE/CpuA32/assembler.py                           42              9            183
 BE/CpuA32/symbolic.py                            25             11            119
 BE/CodeGenA32/isel_tester.py                     14              0             57
 BE/CpuA32/assembler_tool.py                      14              9             42
 BE/CpuA32/disassembler_tool.py                    9              0             41
 ---------------------------------------------------------------------------------
-SUM:                                            319            128           1375
+SUM:                                            319            131           1393
 ---------------------------------------------------------------------------------
 ```
 
@@ -117,11 +117,11 @@ SUM:                                       383            162           2230
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
 BE/CodeGenA32/regs.cc                            57             10            507
-BE/CodeGenA32/legalize.cc                        45             14            344
+BE/CodeGenA32/legalize.cc                        45             15            345
 BE/CpuA32/assembler.cc                           32              6            261
 BE/CodeGenA32/codegen.cc                         24              3            228
 BE/CpuA32/symbolic.cc                            21              3            221
-BE/CodeGenA32/codegen_tool.cc                    36              5            144
+BE/CodeGenA32/codegen_tool.cc                    36              5            156
 BE/CpuA32/disassembler_tool.cc                    6              5            101
 BE/CodeGenA32/isel_tester.cc                     12              2             95
 BE/CodeGenA32/regs.h                             22              7             52
@@ -131,7 +131,7 @@ BE/CpuA32/assembler.h                            10              2             1
 BE/CpuA32/symbolic.h                              6              1             13
 BE/CodeGenA32/codegen.h                           8              1             12
 ---------------------------------------------------------------------------------
-SUM:                                            296             61           2057
+SUM:                                            296             62           2070
 ---------------------------------------------------------------------------------
 ```
 
@@ -155,15 +155,15 @@ SUM:                                       130            318           9409
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
 BE/CodeGenA64/regs.py                            71             56            333
-BE/CodeGenA64/legalize.py                        78             36            274
-BE/CodeGenA64/codegen.py                         61             22            244
+BE/CodeGenA64/legalize.py                        81             37            288
+BE/CodeGenA64/codegen.py                         61             22            247
 BE/CpuA64/assembler.py                           45             14            192
 BE/CpuA64/symbolic.py                            20             12            109
 BE/CodeGenA64/isel_tester.py                     13              0             55
 BE/CpuA64/assembler_tool.py                      17              9             45
 BE/CpuA64/disassembler_tool.py                    9              1             41
 ---------------------------------------------------------------------------------
-SUM:                                            314            150           1293
+SUM:                                            317            151           1310
 ---------------------------------------------------------------------------------
 ```
 
@@ -173,9 +173,9 @@ SUM:                                            314            150           129
 File                                     blank        comment           code
 ---------------------------------------------------------------------------------------
 BE/CpuA64/opcode_tab.py                    260            133           1397
-BE/CodeGenA64/isel_tab.py                  165             66           1244
+BE/CodeGenA64/isel_tab.py                  167             66           1245
 ---------------------------------------------------------------------------------------
-SUM:                                       425            199           2641
+SUM:                                       427            199           2642
 ---------------------------------------------------------------------------------------
 ```
 ### Regular Code (C++)
@@ -184,11 +184,11 @@ SUM:                                       425            199           2641
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
 BE/CodeGenA64/regs.cc                            47             25            413
-BE/CodeGenA64/legalize.cc                        44             13            340
+BE/CodeGenA64/legalize.cc                        44             14            341
 BE/CpuA64/assembler.cc                           35              6            256
 BE/CpuA64/symbolic.cc                            20              3            201
 BE/CodeGenA64/codegen.cc                         20              3            196
-BE/CodeGenA64/codegen_tool.cc                    38              5            147
+BE/CodeGenA64/codegen_tool.cc                    35              5            156
 BE/CpuA64/disassembler_tool.cc                    6              5             97
 BE/CodeGenA64/isel_tester.cc                     12              2             95
 BE/CodeGenA64/regs.h                             20             10             59
@@ -198,7 +198,7 @@ BE/CpuA64/assembler.h                            10              2             1
 BE/CpuA64/symbolic.h                              7              2             11
 BE/CodeGenA64/codegen.h                           5              1              9
 ---------------------------------------------------------------------------------
-SUM:                                            284             79           1904
+SUM:                                            281             80           1914
 ---------------------------------------------------------------------------------
 ```
 
@@ -221,9 +221,9 @@ SUM:                                       387            334          12907
 ```
 File                                                 blank        comment           code
 ----------------------------------------------------------------------------------------
-BE/CodeGenX64/legalize.py                               89             47            362
+BE/CodeGenX64/legalize.py                               93             54            391
 BE/CodeGenX64/regs.py                                   69             41            340
-BE/CodeGenX64/codegen.py                                60             19            244
+BE/CodeGenX64/codegen.py                                57             19            235
 BE/CpuX64/assembler.py                                  43              9            201
 BE/CpuX64/symbolic.py                                   26              4            131
 BE/CpuX64/disassembler_tool.py                          13              0             53
@@ -231,7 +231,7 @@ BE/CpuX64/assembler_tool.py                             16              9       
 BE/CodeGenX64/isel_tester.py                            13              0             42
 BE/CpuX64/TestData/objdump_extract.py                    6              1             23
 ----------------------------------------------------------------------------------------
-SUM:                                                   335            130           1441
+SUM:                                                   336            137           1461
 ----------------------------------------------------------------------------------------
 ```
 
@@ -252,12 +252,12 @@ SUM:                                       475            234           7079
 ```
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
-BE/CodeGenX64/legalize.cc                        52             18            495
+BE/CodeGenX64/legalize.cc                        53             19            495
 BE/CodeGenX64/regs.cc                            47             18            415
 BE/CpuX64/symbolic.cc                            24              1            349
 BE/CpuX64/assembler.cc                           38             11            305
 BE/CodeGenX64/codegen.cc                         24              3            226
-BE/CodeGenX64/codegen_tool.cc                    39              5            149
+BE/CodeGenX64/codegen_tool.cc                    36              5            158
 BE/CpuX64/disassembler_tool.cc                   11              7            129
 BE/CodeGenX64/isel_tester.cc                     12              2             79
 BE/CodeGenX64/regs.h                             24             18             72
@@ -267,7 +267,7 @@ BE/CpuX64/assembler.h                            12              2             1
 BE/CpuX64/symbolic.h                              7              2             12
 BE/CodeGenX64/codegen.h                           5              1              9
 ---------------------------------------------------------------------------------
-SUM:                                            316             90           2323
+SUM:                                            314             91           2332
 ---------------------------------------------------------------------------------
 ```
 
@@ -282,10 +282,10 @@ BE/CpuX64/opcode_gen_encodings.h                     1              2          1
 BE/CpuX64/opcode_gen_names.h                         2              3           5455
 BE/CpuX64/opcode_gen_enum.h                          1              1           3404
 BE/CpuX64/opcode_gen.cc                             29              8            470
-BE/CodeGenX64/isel_gen.cc                           35             18            439
+BE/CodeGenX64/isel_gen.cc                           34             18            439
 BE/CpuX64/opcode_gen.h                              25             15            121
 BE/CodeGenX64/isel_gen.h                            18              8             93
 ------------------------------------------------------------------------------------
-SUM:                                               117             56          68522
+SUM:                                               116             56          68522
 ------------------------------------------------------------------------------------
 ```

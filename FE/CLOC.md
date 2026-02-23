@@ -3,7 +3,7 @@
 ```
 File                                          blank        comment           code
 ---------------------------------------------------------------------------------
-FE/typify.py                                    189             60           1009
+FE/typify.py                                    189             60           1014
 FE/emit_ir.py                                   124             48            830
 FE/eval.py                                      148             60            770
 FE/parse.py                                     138             33            689
@@ -13,7 +13,7 @@ FE/type_corpus.py                               103             36            48
 FE/mod_pool.py                                   99             34            359
 FE/parse_sexpr.py                                69             36            334
 FE/compiler.py                                   64             36            299
-FE/symbolize.py                                  78              8            292
+FE/symbolize.py                                  78              9            294
 FE/canonicalize_union.py                         57             32            215
 FE/pp_ast.py                                     51              4            200
 FE/pp_sexpr.py                                   51             13            197
@@ -32,7 +32,7 @@ FE/cws2cw.py                                      9              0             1
 FE/cw2cws.py                                      9              1             13
 FE/string_re.py                                   4              3             11
 ---------------------------------------------------------------------------------
-SUM:                                           1702            619           8001
+SUM:                                           1702            620           8008
 ---------------------------------------------------------------------------------
 ```
 
@@ -53,20 +53,20 @@ SUM:                               784            397           3279
 File                                         blank        comment           code
 --------------------------------------------------------------------------------
 FE/emit_ir.cc                                   97              8           1267
-FE/typify.cc                                    99             29           1244
-FE/parse.cc                                     77             27           1151
-FE/eval.cc                                      69              8           1114
+FE/typify.cc                                   100             26           1258
+FE/parse.cc                                     76             30           1178
+FE/eval.cc                                      68              8           1113
 FE/pp.cc                                        41             10            873
 FE/type_corpus.cc                              121             19            829
 FE/canonicalize.cc                              85             15            806
 FE/mod_pool.cc                                  54             14            499
 FE/pp_ast.cc                                    45              6            376
-FE/compiler.cc                                  53              6            321
+FE/compiler.cc                                  54              6            326
 FE/macro.cc                                     41              8            283
-FE/lexer.cc                                     32             18            266
+FE/symbolize.cc                                 26             10            275
+FE/lexer.cc                                     32             18            267
 FE/canonicalize_union.cc                        31              8            251
 FE/optimize.cc                                  22              4            241
-FE/symbolize.cc                                 23              9            241
 FE/eval.h                                       55              8            219
 FE/checker.cc                                   18              3            202
 FE/canonicalize_large_args.cc                   22              5            191
@@ -91,7 +91,7 @@ FE/optimize.h                                    3              0              5
 FE/pp.h                                          3              1              5
 FE/pp_ast.h                                      4              1              5
 --------------------------------------------------------------------------------
-SUM:                                          1233            253          11213
+SUM:                                          1236            254          11293
 --------------------------------------------------------------------------------
 ```
 
@@ -102,9 +102,9 @@ File                             blank        comment           code
 -------------------------------------------------------------------------------
 FE/lexer_gen.cc                    225              5           1850
 FE/cwast_gen.h                     233             61           1260
-FE/cwast_gen.cc                     93             19           1149
+FE/cwast_gen.cc                     93             19           1148
 FE/lexer_gen.h                      11              3             48
 -------------------------------------------------------------------------------
-SUM:                               562             88           4307
+SUM:                               562             88           4306
 -------------------------------------------------------------------------------
 ```
