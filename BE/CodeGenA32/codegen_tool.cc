@@ -87,8 +87,9 @@ BreakPoint bp_before_exit("before_exit");
 }  //  namespace
 
 int main(int argc, const char* argv[]) {
-  if (argc - 2 != cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr)) {
-    std::cerr << "need exactly two positional arguments\n";
+  int start_positional = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
+  if (start_positional < 2) {
+    std::cerr << "need at least two positional arguments\n";
     return 1;
   }
 
@@ -100,13 +101,6 @@ int main(int argc, const char* argv[]) {
   InitStripes(sw_multiplier.Value());
   InitCodeGenA32();
 
-  std::ifstream finFile;
-  std::istream* fin = &std::cin;
-  if (argv[argc - 2] != std::string_view("-")) {
-    finFile.open(argv[argc - 2]);
-    fin = &finFile;
-  }
-
   std::ofstream foutFile;
   std::ostream* fout = &std::cout;
   if (argv[argc - 1] != std::string_view("-")) {
@@ -114,8 +108,26 @@ int main(int argc, const char* argv[]) {
     fout = &foutFile;
   }
 
-  std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
-  Unit unit = UnitParseFromAsm("unit", {data->data(), data->size()}, {});
+  base::Unit unit = UnitNew(StrNew("unit"));
+
+  for (int i = start_positional; i < argc - 1; i++) {
+    std::ifstream finFile;
+    std::istream* fin = &std::cin;
+    if (argv[i] != std::string_view("-")) {
+      finFile.open(argv[i]);
+      fin = &finFile;
+    }
+    if (!fin->good()) {
+      std::cerr << "Error opening " << argv[i] << "\n";
+      return 1;
+    }
+    std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
+    if (!UnitAppendFromAsm(
+            unit, {data->data(), data->size()}, {})) {
+      std::cerr << "Error parsing " << argv[1] << "\n";
+      return 1;
+    }
+  }
 
   std::unique_ptr<cwerg::WebServer> webserver;
   std::unique_ptr<std::thread> webserver_thread;

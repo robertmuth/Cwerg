@@ -59,7 +59,7 @@ $(CODEGEN_TOOL):
 
 $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	$(CODEGEN_TOOL) -mode binary $(STD_LIB_NO_ARGV) $< $@ >$@.out
 	@chmod a+rx $@
 	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
@@ -67,7 +67,7 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 # same as above but from local TestData dir
 $(DIR)/%.asm.c.exe: TestData/%.asm  $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	$(CODEGEN_TOOL) -mode binary $(STD_LIB_NO_ARGV) $<  $@ >$@.out
 	@chmod a+rx $@
 	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden

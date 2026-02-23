@@ -322,7 +322,7 @@ def GlobalRegAllocOneKind(fun: ir.Fun, kinds: Set[regs.CpuRegKind], needed: Regs
                 global_not_lac_pool & cpu_regs_lac_mask))
 
 
-def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int]):
+def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int], fout):
     """
     These phase introduces CpuReg for globals and situations where we have no choice
     which register to use, e.g. function parameters and results ("pre-allocated" regs).
@@ -340,6 +340,10 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int]):
     forward linear scan allocator for the locals. This allocator assumes that
     each register is defined exactly once and hence does not work for globals.
     """
+    if fout:
+        print("#" * 60, file=fout)
+        print(f"# GlobalRegAlloc {fun.name}", file=fout)
+        print("#" * 60, file=fout)
 
     # replaces pusharg and poparg instructions and replace them with moves
     # The moves will use pre-allocated regs (the once use for argument/result paassing)
@@ -356,7 +360,8 @@ def PhaseGlobalRegAlloc(fun: ir.Fun, _opt_stats: Dict[str, int]):
         fun, REG_KIND_TO_CPU_KIND)
     #
     global_reg_stats = reg_stats.FunGlobalRegStats(fun, REG_KIND_TO_CPU_KIND)
-    # DumpRegStats(fun, local_reg_stats)
+    if fout:
+        DumpRegStats(fun, local_reg_stats, fout)
 
     debug = None
     # compute the number of regs needed if had indeed unlimited regs

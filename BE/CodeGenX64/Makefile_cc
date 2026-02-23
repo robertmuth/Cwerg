@@ -28,9 +28,6 @@ STD_LIB_NO_ARGV = ../StdLib/startup_no_argv.x64.asm ../StdLib/syscall.x64.asm ..
 STD_LIB_WITH_ARGV = ../StdLib/startup.x64.asm ../StdLib/syscall.x64.asm ../StdLib/std_lib.64.asm
 
 
-
-
-
 # flaky
 # $(DIR)/threads.x64.asm.exe
 
@@ -69,7 +66,7 @@ $(CODEGEN_TOOL)::
 
 $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(CODEGEN_TOOL) -mode binary - $@ >$@.out
+	$(CODEGEN_TOOL) -mode binary $(STD_LIB_NO_ARGV) $< $@ >$@.out
 	@chmod a+rx $@
 	${QEMU_X64} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
@@ -95,60 +92,60 @@ TEST_MODE = normal
 # python and c++ implementations
 $(DIR)/codegen_parity: isel_gen.h isel_gen.cc $(CODEGEN_TOOL)
 	@echo "[$@]"
-	cat $(STD_LIB_NO_ARGV) ../TestData/parse_real_test.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/parse_real_test.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/parse_real_test.64.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/parse_real_test.64.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/fib.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/fib.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/fib.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/fib.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/threads.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/threads.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/threads.64.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/threads.64.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/int_op.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/int_op.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/int_op.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/int_op.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/cmp.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/cmp.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/cmp.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/cmp.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/queens.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/queens.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/queens.64.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/queens.64.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/reg_torture.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) -  $@.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/reg_torture.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/reg_torture.asm  $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/reg_torture.asm $@_c.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/multiple_results_f64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/multiple_results_f64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/multiple_results_f64.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/multiple_results_f64.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/multiple_results_f32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/multiple_results_f32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/multiple_results_f32.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/multiple_results_f32.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/stack.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/stack.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/stack.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/stack.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/switch.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/switch.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/switch.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/switch.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/memaddr.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/memaddr.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/memaddr.64.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/memaddr.64.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_NO_ARGV) ../TestData/reg_torture_f32.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_NO_ARGV) ../TestData/reg_torture_f32.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/reg_torture_f32.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_NO_ARGV) ../TestData/reg_torture_f32.asm $@.out
 	diff $@_c.out $@.out
 	@echo
-	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm | $(CODEGEN_TOOL) -mode $(TEST_MODE) - $@_c.out
-	cat $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm | $(PYPY) ./codegen.py -mode $(TEST_MODE) - $@.out
+	$(CODEGEN_TOOL) -mode $(TEST_MODE) $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm $@_c.out
+	$(PYPY) ./codegen.py -mode $(TEST_MODE) $(STD_LIB_WITH_ARGV) ../TestData/nano_jpeg.64.asm $@.out
 	diff $@_c.out $@.out
 
 clean:

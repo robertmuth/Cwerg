@@ -797,10 +797,10 @@ bool UnitAppendFromAsm(Unit unit, std::string_view input,
     std::string_view line = new_line_pos == input.npos
                                 ? input
                                 : std::string_view(input.data(), new_line_pos);
-    input.remove_prefix(line.size() + 1);
+    input.remove_prefix(line.size() + (new_line_pos != input.npos));
     vec.clear();
     if (!ParseLineWithStrings(line, false, &vec)) {
-      std::cerr << "Error while parsing line " << line_num << "\n" << line;
+      std::cerr << "Error while parsing line " << line_num << "\n" << line << "\n";
       return false;
     }
 

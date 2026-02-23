@@ -1,3 +1,8 @@
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <thread>
+
 #include "BE/Base/ir.h"
 #include "BE/Base/serialize.h"
 #include "BE/CodeGenX64/codegen.h"
@@ -9,18 +14,11 @@
 #include "Util/switch.h"
 #include "Util/webserver.h"
 
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <thread>
-
 namespace {
 
 using namespace cwerg;
 using namespace cwerg::base;
 using namespace cwerg::code_gen_x64;
-
-
 
 WebResponse DefaultHandler(const WebRequest& request) {
   WebResponse out;
@@ -67,8 +65,7 @@ WebResponse CodeHandler(base::Unit unit, const WebRequest& request) {
   return out;
 }
 
-SwitchInt32 sw_multiplier("multiplier",
-                          "adjust multiplies for item pool sizes",
+SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
                           4);
 
 SwitchString sw_mode("mode", "mode indicating what to do", "optimize");
@@ -78,8 +75,7 @@ SwitchBool sw_show_stats("show_stats", "emit stats to cout");
 SwitchBool sw_break_after_load("break_after_load", "break after load IR");
 
 SwitchInt32 sw_webserver_port("webserver_port",
-                              "launch webserver at given port",
-                              -1);
+                              "launch webserver at given port", -1);
 
 void SleepForever() {
   std::cerr << "execution asserted webserver still active\n";
@@ -92,8 +88,9 @@ BreakPoint bp_before_exit("before_exit");
 }  //  namespace
 
 int main(int argc, const char* argv[]) {
-  if (argc - 2 != cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr)) {
-    std::cerr << "need exactly two positional arguments\n";
+  int start_positional = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
+  if (start_positional < 2) {
+    std::cerr << "need at least two positional arguments\n";
     return 1;
   }
 
@@ -108,13 +105,6 @@ int main(int argc, const char* argv[]) {
   InitStripes(sw_multiplier.Value());
   InitCodeGenX64();
 
-  std::ifstream finFile;
-  std::istream* fin = &std::cin;
-  if (argv[argc - 2] != std::string_view("-")) {
-    finFile.open(argv[argc - 2]);
-    fin = &finFile;
-  }
-
   std::ofstream foutFile;
   std::ostream* fout = &std::cout;
   if (argv[argc - 1] != std::string_view("-")) {
@@ -122,9 +112,25 @@ int main(int argc, const char* argv[]) {
     fout = &foutFile;
   }
 
-  std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
-  Unit unit = UnitParseFromAsm("unit", {data->data(), data->size()}, {});
+  base::Unit unit = UnitNew(StrNew("unit"));
 
+  for (int i = start_positional; i < argc - 1; i++) {
+    std::ifstream finFile;
+    std::istream* fin = &std::cin;
+    if (argv[i] != std::string_view("-")) {
+      finFile.open(argv[i]);
+      fin = &finFile;
+    }
+    if (!fin->good()) {
+      std::cerr << "Error opening " << argv[i] << "\n";
+      return 1;
+    }
+    std::unique_ptr<const std::vector<char>> data(SlurpDataFromStream(fin));
+    if (!UnitAppendFromAsm(unit, {data->data(), data->size()}, {})) {
+      std::cerr << "Error parsing " << argv[1] << "\n";
+      return 1;
+    }
+  }
   std::unique_ptr<cwerg::WebServer> webserver;
   std::unique_ptr<std::thread> webserver_thread;
   const bool launch_webserver = sw_webserver_port.Value() >= 0;

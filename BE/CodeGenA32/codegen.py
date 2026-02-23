@@ -42,10 +42,10 @@ def LegalizeAll(unit: ir.Unit, opt_stats, verbose=False):
         legalize.PhaseLegalization(fun, unit, opt_stats)
 
 
-def RegAllocGlobal(unit: ir.Unit, opt_stats, verbose=False):
+def RegAllocGlobal(unit: ir.Unit, opt_stats, fout, verbose=False):
     for fun in unit.funs:
         sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=False)
-        legalize.PhaseGlobalRegAlloc(fun, opt_stats)
+        legalize.PhaseGlobalRegAlloc(fun, opt_stats, fout)
         if verbose:
             legalize.DumpFun("after global_reg_alloc", fun)
 
@@ -288,7 +288,7 @@ if __name__ == "__main__":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return
 
-        RegAllocGlobal(unit, opt_stats)
+        RegAllocGlobal(unit, opt_stats, fout)
         if args.mode == "reg_alloc_global":
             print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
             return
