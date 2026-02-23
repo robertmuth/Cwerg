@@ -1270,15 +1270,12 @@ class Id:
     def IsMacroCall(self):
         return self.name.IsMacroCall() or self.name.name in BUILT_IN_EXPR_MACROS
 
-    def FullName(self):
-        return str(self.name)
-
     @staticmethod
     def Make(name: str, **kwargs):
         return Id(NAME.Make(name), **kwargs)
 
     def __repr__(self):
-        return f"{NODE_NAME(self)} {self.FullName()}"
+        return f"{NODE_NAME(self)} {self.name}"
 
 
 @NodeCommon

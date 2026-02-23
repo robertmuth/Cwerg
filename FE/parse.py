@@ -297,7 +297,7 @@ def _ParseMacroCallArgs(inp: lexer.Lexer) -> list[Any]:
 def _ParseExprMacro(name: cwast.Id, inp: lexer.Lexer):
     args = _ParseMacroCallArgs(inp)
     assert name.IsMacroCall()
-    return cwast.MacroInvoke(cwast.NAME.Make(name.FullName()), args, x_srcloc=name.x_srcloc)
+    return cwast.MacroInvoke(name.name, args, x_srcloc=name.x_srcloc)
 
 
 def _PParseCall(inp: lexer.Lexer, callee, tk: lexer.TK, precedence) -> Any:

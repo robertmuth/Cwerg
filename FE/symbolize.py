@@ -196,7 +196,7 @@ def _ResolveGlobalAndImportedSymbols(node, symtab: SymTab, builtin_symtab: SymTa
                 else:
                     if runs_outside_fun and not _IsPointNode(node, parent):
                         cwast.CompilerError(
-                            node.x_srcloc, f"cannot resolve symbol {node.FullName()}")
+                            node.x_srcloc, f"cannot resolve symbol {node.name}")
                     return
 
         AnnotateNodeSymbol(node, def_node)
@@ -283,7 +283,7 @@ def VerifySymbols(node):
             is_type_node = nfd.name in cwast.TYPE_FIELDS
             if is_type_node != isinstance(def_node, (cwast.DefType, cwast.DefRec, cwast.TypeUnion, cwast.DefEnum)):
                 cwast.CompilerError(
-                    node.x_srcloc, f"unexpected id {node.FullName()}: {type(def_node)}")
+                    node.x_srcloc, f"unexpected id {node.name}: {type(def_node)}")
         elif isinstance(node, (cwast.StmtBreak, cwast.StmtContinue)):
             assert isinstance(
                 node.x_target, cwast.StmtBlock), f"break/continue with bad target {node.x_target}"

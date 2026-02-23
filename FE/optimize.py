@@ -126,7 +126,7 @@ def FunCopyPropagation(fun: cwast.DefFun):
                 node.x_symbol = new_sym
                 # TODO: explain why this is needed
                 node.x_type = new_sym.x_type
-                # print(f">>>>>>>> {node.FullName()} {node.x_type}  <- {r.name} {r.x_srcloc}")
+                # print(f">>>>>>>> {node.name} {node.x_type}  <- {r.name} {r.x_srcloc}")
     cwast.VisitAstRecursivelyPost(fun, update)
 
 

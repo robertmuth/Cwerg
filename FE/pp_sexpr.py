@@ -27,7 +27,7 @@ def _MaybeSimplifyLeafNode(node) -> Optional[str]:
     elif isinstance(node, cwast.TypeAuto):
         return "auto"
     elif isinstance(node, cwast.Id):
-        return node.FullName()
+        return str(node.name)
     elif isinstance(node, cwast.MacroId):
         return str(node.name)
     elif isinstance(node, cwast.ValNum):

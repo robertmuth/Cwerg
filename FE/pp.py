@@ -379,7 +379,7 @@ def _EmitValCompound(out, node: cwast.ValCompound):
 
 
 _EMITTER_TAB: dict[Any, Callable[[Any, Any], None]] = {
-    cwast.Id: lambda out, n:  out.extend([PP.Str(n.FullName())]),
+    cwast.Id: lambda out, n:  out.extend([PP.Str(str(n.name))]),
     cwast.MacroId: lambda out, n: out.extend([PP.Str(str(n.name))]),
     #
     cwast.ValUndef: lambda out, n: out.append(PP.Str(KW(n))),
