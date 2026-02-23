@@ -62,6 +62,8 @@ SwitchInt32 sw_multiplier("multiplier", "adjust multiplies for item pool sizes",
 
 SwitchString sw_stdlib("stdlib", "path to stdlib directory", "./Lib");
 
+SwitchString sw_arch("arch", "which arch to bias the IR for", "");
+
 SwitchString sw_dump_ast("dump_ast", "dump AST after stage and stop", "");
 
 SwitchString sw_dump_types("dump_types", "dump types after stage and stop", "");
@@ -257,9 +259,31 @@ void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
   }
 }
 
+const TargetArchConfig* GetTargetArchConfig(std::string_view arch) {
+  if (arch == "x64") {
+    return &STD_TARGET_X64;
+  } else if (arch == "a64") {
+    return &STD_TARGET_A64;
+  } else if (arch == "a32") {
+    return &STD_TARGET_A32;
+  } else {
+    return nullptr;
+  }
+}
+
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
   std::ios_base::sync_with_stdio(true);
+  if (sw_arch.Value().empty()) {
+    std::cout << "No arch specified. Use -arch <arch>\n";
+    return 1;
+  }
+  const TargetArchConfig* ta = GetTargetArchConfig(sw_arch.Value());
+  if (ta == nullptr) {
+    std::cout << "Unsupppoerted arch " << sw_arch.Value() << "\n";
+    return 1;
+  }
+
   TimerStats ts;
 
   InitStripes(sw_multiplier.Value());
@@ -295,8 +319,8 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_symbolizing", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_SYMBOLIZE, nullptr, &ts);
 
-  const TargetArchConfig& ta = STD_TARGET_X64;
-  TypeCorpus tc(ta);
+
+  TypeCorpus tc(*ta);
   AddTypesToAst(mp.mods_in_topo_order, &tc);
   SanityCheckMods("after_typing", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_TYPIFY, &tc, &ts);
@@ -372,7 +396,7 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_name_cleanup", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
 
-  PhaseEmitCode(mp.mods_in_topo_order, ta);
+  PhaseEmitCode(mp.mods_in_topo_order, *ta);
   ts.RecordDuration("after_emitting_code");
 
   if (sw_dump_stats.Value()) {
@@ -380,7 +404,6 @@ int main(int argc, const char* argv[]) {
               << " lines=" << LexerRaw::stats.num_lines
               << " nodes=" << gStripeGroupNode.NextAvailable() << "\n";
     ts.Dump();
-    exit(0);
   }
   return 0;
 }

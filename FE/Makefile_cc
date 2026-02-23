@@ -88,7 +88,7 @@ tests_meta: $(ALL_SOURCES_NO_GENERIC:%.cw=$(DIR)/%.cw.meta)
 
 $(DIR)/%.cw.meta: %.cw
 	@echo "[typify $@]"
-	$(EMIT_IR) -dump_stats $< >$@
+	$(EMIT_IR) -arch x64 -dump_stats $< >$@
 
 
 ############################################################
@@ -110,8 +110,8 @@ PHASE =
 
 $(DIR)/%.cw.assim: %.cw
 	@echo "[assim $@]"
-	$(EMIT_IR) $(PHASE) $< > $@.cc_ast
-	./compiler.py  $(PHASE) $< > $@.py_ast
+	$(EMIT_IR) -arch x64 $(PHASE) $< > $@.cc_ast
+	./compiler.py -arch x64 $(PHASE) $< > $@.py_ast
 	diff $@.py_ast $@.cc_ast
 
 ############################################################

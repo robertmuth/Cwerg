@@ -190,6 +190,7 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
             canonicalize.FunCanonicalizeCompoundAssignments(fun)
             canonicalize.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, tc)
+        canonicalize.ModRemoveVoid(mod)
 
 
 def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArchConfig):
@@ -212,7 +213,7 @@ def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArch
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description='pretty_printer')
+    parser = argparse.ArgumentParser(description='cwerg frontend')
     parser.add_argument("-shake_tree",
                         action="store_true", help='remove unreachable functions')
     parser.add_argument(
