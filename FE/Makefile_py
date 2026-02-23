@@ -116,14 +116,12 @@ $(DIR)/%.cws.pp: %.cws
 
 $(DIR)/%.x64.exe: %.cw
 	@echo "[lang $@]"
-	$(PYPY) ./compiler.py -arch x64 $< > $@.asm
-	$(PYPY) ../BE/CodeGenX64/codegen.py -mode binary $(STD_LIB_WITH_ARGV_X64) $@.asm $@ > $@.out
+	$(PYPY) ../cwerg.py -v -arch x64 -fe py -be py $< $@
 	${QEMU_X64} $@
 
 $(DIR)/%.a64.exe: %.cw
 	@echo "[lang $@]"
-	$(PYPY) ./compiler.py -arch a64 $< > $@.asm
-	$(PYPY) ../BE/CodeGenA64/codegen.py -mode binary $(STD_LIB_WITH_ARGV_A64) $@.asm $@ > $@.out
+	$(PYPY) ../cwerg.py -v -arch a64 -fe py -be py $< $@
 	${QEMU_A64} $@
 
 $(DIR)/%.a32.exe: %.cw
@@ -135,13 +133,12 @@ $(DIR)/%.a32.exe: %.cw
 
 $(DIR)/%.compile.x64.exe: %.cw
 	@echo "[run $@]"
-	$(PYPY) ./compiler.py -arch x64 $< > $@.asm
-	$(PYPY) ../BE/CodeGenX64/codegen.py -mode binary $(STD_LIB_WITH_ARGV_X64) $@.asm $@ > $@.out
+	$(PYPY) ../cwerg.py -v -arch x64 -fe py -be py $< $@
+
 
 $(DIR)/%.compile.a64.exe: %.cw
 	@echo "[run $@]"
-	$(PYPY) ./compiler.py -arch a64 $< > $@.asm
-	$(PYPY) ../BE/CodeGenA64/codegen.py -mode binary $(STD_LIB_WITH_ARGV_A64) $@.asm $@ > $@.out
+	$(PYPY) ../cwerg.py -v -arch a64 -fe py -be py $< $@
 
 # concrete
 $(DIR)/%.concrete: %.cws

@@ -17,12 +17,9 @@ def get_cwerg_root_directory():
 
 ROOT_DIR = get_cwerg_root_directory()
 
+STD_LIB_DIR = ROOT_DIR + "/FE/Lib"
 
 LINES = "=" * 80
-
-
-def is_exe(path):
-    return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
 # maps deom platform.machine() to Cwerg name
@@ -34,14 +31,21 @@ ARCH_MAP: dict[str, str] = {
 
 SUPPORTED_ARCHS: set[str] = set(ARCH_MAP.values())
 
+DEFAULT_ARCH = ARCH_MAP.get(
+    platform.machine(), f"UNSUPPORTED:{platform.machine()}")
+
+
+def is_exe(path):
+    return os.path.isfile(path) and os.access(path, os.X_OK)
+
 
 FE_MAP: dict[str, str] = {
     "py": ROOT_DIR + "/FE/compiler.py",
-    "cxx": ROOT_DIR + "/build/compiler.exe",
+    "c++": ROOT_DIR + "/build/compiler.exe",
 }
 
 
-def GetFeCommand(fe_tag: str, input: str, output: str) -> str:
+def GetFeCommand(fe_tag: str, arch: str, input: str, output: str) -> str:
     fe = FE_MAP.get(fe_tag)
     if fe is None:
         print(f"Unknown frontend {fe_tag}")
@@ -57,26 +61,16 @@ make build_compiler
 """)
 
         exit(1)
-    return f"{fe} {input} > {output}"
+    return f"{fe} -arch {arch} -stdlib {STD_LIB_DIR} {input} > {output}"
 
 
-def get_backend(prefix: str) -> str:
-    arch: str = ARCH_MAP.get(platform.machine(), platform.machine())
-    if arch is None:
-        print(f"Cannot find backend for arch {platform.machine()}")
-        exit(1)
-    return BE_MAP.get(prefix + arch)
-
-
-BE_MAP: dict[str, Any] = {
-    "py_x64": ("x64", ROOT_DIR + "/BE/CodeGenX64/codegen.py"),
-    "py_a64": ("a64", ROOT_DIR + "/BE/CodeGenA64/codegen.py"),
-    "py_a32": ("a32", ROOT_DIR + "/BE/CodeGenA32/codegen.py"),
-    "py_auto": lambda: get_backend("py_"),
-    "cxx_x64": ("x64", ROOT_DIR + "/build/x64_codegen_tool.exe"),
-    "cxx_a64": ("a64", ROOT_DIR + "/build/a64_codegen_tool.exe"),
-    "cxx_a32": ("a32", ROOT_DIR + "/build/a32_codegen_tool.exe"),
-    "cxx_auto": lambda: get_backend("cxx_"),
+BE_MAP: dict[tuple[str, str], Any] = {
+    ("x64", "py"): ROOT_DIR + "/BE/CodeGenX64/codegen.py",
+    ("a64", "py"):  ROOT_DIR + "/BE/CodeGenA64/codegen.py",
+    ("a32", "py"):  ROOT_DIR + "/BE/CodeGenA32/codegen.py",
+    ("x64", "c++"): ROOT_DIR + "/build/x64_codegen_tool.exe",
+    ("a64", "c++"):  ROOT_DIR + "/build/a64_codegen_tool.exe",
+    ("a32", "c++"):  ROOT_DIR + "/build/a32_codegen_tool.exe",
 }
 
 
@@ -87,14 +81,12 @@ SYSLIB_MAP: dict[str, str] = {
 }
 
 
-def GetBeCommand(be_tag: str, input: str, output: str) -> str:
-    be = BE_MAP.get(be_tag)
+def GetBeCommand(be_tag: str, arch: str, input: str, output: str) -> str:
+    be = BE_MAP.get((arch, be_tag))
     if be is None:
-        print(f"Unknown backend {be_tag}")
+        print(f"Unknown backend {(arch, be_tag)}")
         exit(1)
-    if callable(be):
-        be = be()
-    if not is_exe(be[1]):
+    if not is_exe(be):
         print(f"Backend executable not found: {be}")
         if be_tag.startswith("cxx_"):
             print(f"""
@@ -104,8 +96,8 @@ cd ${ROOT_DIR}
 make build_compiler
 """)
         exit(1)
-    syslibs = SYSLIB_MAP[be[0]]
-    return f"{be[1]} -mode binary {' '.join(syslibs)} {input} {output}"
+    syslibs = SYSLIB_MAP[arch]
+    return f"{be} -mode binary {' '.join(syslibs)} {input} {output}"
 
 
 def Diagnostics():
@@ -114,29 +106,26 @@ def Diagnostics():
     print(LINES)
 
     print(f"Cwerg root directory: {ROOT_DIR}")
-    print(f"StdLib: {ROOT_DIR}/FE/Lib")
+    print(f"StdLib: {STD_LIB_DIR}")
+    print(f"Default Arch: {DEFAULT_ARCH}")
 
     print()
     print(LINES)
     print("Frontends (py = Python implementation, cxx = C++ implementation):")
     print(LINES)
-    for name, path in sorted(FE_MAP.items()):
-        if callable(path):
-            path = path()
-        print(f"{name:10} {path} {'✓' if is_exe(path) else '✗'}")
+    for kind, path in sorted(FE_MAP.items()):
+        print(f"{kind:10} {path} {'✓' if is_exe(path) else '✗'}")
 
     print()
     print(LINES)
     print("Backends (py_ = Python implementation, cxx_ = C++ implementation):")
     print(LINES)
-    for name, (arch, path) in sorted(BE_MAP.items()):
-        if callable(path):
-            path = path()
-        print(f"{name:10} {arch:4} {path} {'✓' if is_exe(path) else '✗'}")
+    for (arch, kind), path in sorted(BE_MAP.items()):
+        print(f"{kind:10} {arch:4} {path} {'✓' if is_exe(path) else '✗'}")
 
     print()
     print(
-        f"To rebuild the C++ components run: cd {ROOT_DIR} ; make build_compiler")
+        f"To rebuild missing C++ components run: cd {ROOT_DIR} ; make build_compiler")
     print()
 
 
@@ -165,9 +154,11 @@ def main():
                         action='store_true')
     #
     parser.add_argument('-fe', help=f"frontend to use",
-                        default="cxx", choices=FE_MAP.keys())
+                        default="c++", choices=["py", "c++"])
     parser.add_argument('-be', help=f"backend to use",
-                        default="cxx_auto",  choices=BE_MAP.keys())
+                        default="c++",  choices=["py", "c++"])
+    parser.add_argument('-arch', help=f"artitecture to produce executables for",
+                        default="auto",  choices=SUPPORTED_ARCHS | set(["auto"]))
     parser.add_argument('-v', help='switch verbose mode on',
                         action='store_true')
     parser.add_argument('-dry_run', help='show but do not execute commands',
@@ -182,14 +173,16 @@ def main():
 
     intermeditate_file = args.output + ".ir"
 
-    fe_cmd = GetFeCommand(args.fe, args.input, intermeditate_file)
+    arch = DEFAULT_ARCH if args.arch == "auto" else args.arch
+
+    fe_cmd = GetFeCommand(args.fe, arch, args.input, intermeditate_file)
     if args.v or args.dry_run:
         print(fe_cmd)
     if not args.dry_run:
         if 0 != os.system(fe_cmd):
             return 1
 
-    be_cmd = GetBeCommand(args.be, intermeditate_file, args.output)
+    be_cmd = GetBeCommand(args.be, arch, intermeditate_file, args.output)
     if args.v or args.dry_run:
         print(be_cmd)
     if not args.dry_run:
