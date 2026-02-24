@@ -10,13 +10,10 @@ QEMU_X64=qemu-x86_64-static
 
 LEXER_BENCH=$(BUILD_DIR)/lexer_bench.exe
 PP=$(BUILD_DIR)/pp.exe
+
 EMIT_IR=$(BUILD_DIR)/compiler.exe
-# CODEGEN_X64 = $(BUILD_DIR)/x64_codegen_tool.exe
-# CODEGEN_A64 = $(BUILD_DIR)/a64_codegen_tool.exe
-# CODEGEN_A32 = $(BUILD_DIR)/a32_codegen_tool.exe
-CODEGEN_X64 = ../BE/CodeGenX64/codegen.py
-CODEGEN_A64 = ../BE/CodeGenA64/codegen.py
-CODEGEN_A32 = ../BE/CodeGenA32/codegen.py
+BACKENDS=$(BUILD_DIR)/x64_codegen_tool.exe $(BUILD_DIR)/a64_codegen_tool.exe $(BUILD_DIR)/a32_codegen_tool.exe
+
 
 $(info $(shell mkdir -p $(DIR)))
 
@@ -75,6 +72,11 @@ $(PP)::
 
 $(EMIT_IR)::
 	@cd $(BUILD_DIR); $(MAKE) -s compiler.exe
+
+COMPILER::
+	@cd $(BUILD_DIR); $(MAKE) -s x64_codegen_tool.exe  a64_codegen_tool.exe  a32_codegen_tool.exe compiler.exe
+
+
 
 run_lexer_bench: $(LEXER_BENCH)
 	/bin/time -p $(LEXER_BENCH)  Lib/*cw TestData/*cw  LangTest/*cw  > /dev/null
@@ -143,18 +145,24 @@ benchmark_emit_ir: $(EMIT_IR)
 	/bin/time -p $(EMIT_IR) $(filter-out $(wildcard */*gen.cw), $(LIB_SOURCES))
 
 
-STD_LIB_WITH_ARGV_X64 = ../BE/StdLib/startup.x64.asm ../BE/StdLib/syscall.x64.asm
-STD_LIB_WITH_ARGV_A64 = ../BE/StdLib/startup.a64.asm ../BE/StdLib/syscall.a64.asm
-STD_LIB_WITH_ARGV_A32 = ../BE/StdLib/startup.a32.asm ../BE/StdLib/syscall.a32.asm
 
-
-$(DIR)/cmatrix.x64.exe: TestData/cmatrix_exe.cw
-	$(EMIT_IR) $< > $@.asm
-	cat $(STD_LIB_WITH_ARGV_X64) $@.asm | $(CODEGEN_X64) -mode binary - $@
-	chmod u+rx $@
+$(DIR)/%.x64.exe: %.cw
+	@echo "[lang $@]"
+	$(PYPY) ../cwerg.py -v -arch x64 -fe c++ -be c++ $< $@
 	${QEMU_X64} $@
 
+$(DIR)/%.a64.exe: %.cw
+	@echo "[lang $@]"
+	$(PYPY) ../cwerg.py -v -arch a64 -fe c++ -be c++ $< $@
+	${QEMU_A64} $@
 
+$(DIR)/%.a32.exe: %.cw
+	@echo "[lang $@]"
+	$(PYPY) ../cwerg.py -v -arch a32 -fe c++ -be c++ $< $@
+	${QEMU_A32} $@
+
+
+special: COMPILER $(DIR)/TestData/cmatrix_exe.x64.exe  $(DIR)/TestData/cmatrix_exe.a64.exe $(DIR)/TestData/cmatrix_exe.a32.exe
 
 
 all:: $(LEXER_BENCH) $(PP) $(EMIT_IR)

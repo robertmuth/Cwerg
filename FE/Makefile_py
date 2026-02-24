@@ -71,10 +71,6 @@ tests_concrete_py:  $(ALL_SOURCES:%.cw=$(DIR)/%.concrete)
 
 tests_all_py: tests_parse_py tests_macro_py tests_meta_py tests_eval_py tests_pp_py
 
-STD_LIB_WITH_ARGV_X64 = ../BE/StdLib/startup.x64.asm ../BE/StdLib/syscall.x64.asm
-STD_LIB_WITH_ARGV_A64 = ../BE/StdLib/startup.a64.asm ../BE/StdLib/syscall.a64.asm
-STD_LIB_WITH_ARGV_A32 = ../BE/StdLib/startup.a32.asm ../BE/StdLib/syscall.a32.asm
-
 # test language
 tests_x64: $(ALL_TESTS:%.cw=$(DIR)/%.x64.exe)
 tests_a64: $(ALL_TESTS:%.cw=$(DIR)/%.a64.exe)
@@ -126,8 +122,7 @@ $(DIR)/%.a64.exe: %.cw
 
 $(DIR)/%.a32.exe: %.cw
 	@echo "[lang $@]"
-	$(PYPY) ./compiler.py -shake_tree -arch a32 $< > $@.asm
-	$(PYPY) ../BE/CodeGenA32/codegen.py -mode binary $(STD_LIB_WITH_ARGV_A32) $@.asm  $@ > $@.out
+	$(PYPY) ../cwerg.py -v -arch a32 -fe py -be py $< $@
 	${QEMU_A32} $@
 ## Compile only Tests
 

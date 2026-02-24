@@ -2096,6 +2096,8 @@ class ExprBitCast:
     s64,u64, f64 <-> s64,u64, f64
     sint, uint <-> ptr(x)
     ptr(a) <-> ptr(b)
+    ptr(a) <-> ptr!(a)
+    span(a) <-> span!(a)
     (Probably not true anymore: It is also ok to bitcast complex objects like recs
     """
     ALIAS: ClassVar = "bitwise_as"
@@ -3754,11 +3756,14 @@ def BinaryOpsForConcreteSyntax():
 
 
 ##########################################################################################
+MODES = ["doc", "gen_h", "gen_cc", "kw", "op"]
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.INFO)
     if len(sys.argv) <= 1:
-        print("no mode given")
+        print(f"no mode given - select on from {MODES}")
         exit(1)
     mode = sys.argv[1]
     if mode == "doc":
@@ -3781,5 +3786,5 @@ if __name__ == "__main__":
         for kw in sorted(ASSIGNMENT_SHORTCUT.keys()):
             print(kw)
     else:
-        print(f"unknown mode: {mode}")
+        print(f"unknown mode: {mode} - select on from {MODES}")
         exit(1)
