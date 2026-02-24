@@ -1,10 +1,7 @@
-TestData/* linguist-vendored
-*/TestData/* linguist-vendored
-FrontEndWASM/TestData/* linguist-vendored
+BE/TestData/* linguist-vendored
+BE/*/TestData/* linguist-vendored
 
-*/opcode_gen*.h linguist-language=C++
-*/isel_gen*.h linguist-language=C++
+BE/*/isel_gen* linguist-generated	
+BE/*/opcode_gen* linguist-generated	
 
-
-*/isel_gen* linguist-generated	
-*/opcode_gen* linguist-generated	
+**/*.h linguist-language=C++
