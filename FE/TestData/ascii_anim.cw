@@ -62,27 +62,27 @@ fun tolower(c u8) u8:
     return c | 0x20
 
 fun get_style(attr u8) span(u8):
-    return attr < 'a' ? ansi::SET_MODE_BOLD : ansi::RESET_MODE_BOLD_OR_DIM
+    return attr < 'a' ? ansi\SET_MODE_BOLD : ansi\RESET_MODE_BOLD_OR_DIM
 
 fun get_fg_color(attr u8) span(u8):
     let col u8 = tolower(attr)
     cond:
         case col == 'k':
-            return ansi::FG_COLOR_BLACK
+            return ansi\FG_COLOR_BLACK
         case col == 'r':
-            return ansi::FG_COLOR_RED
+            return ansi\FG_COLOR_RED
         case col == 'g':
-            return ansi::FG_COLOR_GREEN
+            return ansi\FG_COLOR_GREEN
         case col == 'y':
-            return ansi::FG_COLOR_YELLOW
+            return ansi\FG_COLOR_YELLOW
         case col == 'b':
-            return ansi::FG_COLOR_BLUE
+            return ansi\FG_COLOR_BLUE
         case col == 'm':
-            return ansi::FG_COLOR_MAGENTA
+            return ansi\FG_COLOR_MAGENTA
         case col == 'c':
-            return ansi::FG_COLOR_CYAN
+            return ansi\FG_COLOR_CYAN
         case col == 'w':
-            return ansi::FG_COLOR_WHITE
+            return ansi\FG_COLOR_WHITE
         case true:
             return ""
 
@@ -90,21 +90,21 @@ fun get_bg_color(attr u8) span(u8):
     let col u8 = tolower(attr)
     cond:
         case col == 'k':
-            return ansi::BG_COLOR_BLACK
+            return ansi\BG_COLOR_BLACK
         case col == 'r':
-            return ansi::BG_COLOR_RED
+            return ansi\BG_COLOR_RED
         case col == 'g':
-            return ansi::BG_COLOR_GREEN
+            return ansi\BG_COLOR_GREEN
         case col == 'y':
-            return ansi::BG_COLOR_YELLOW
+            return ansi\BG_COLOR_YELLOW
         case col == 'b':
-            return ansi::BG_COLOR_BLUE
+            return ansi\BG_COLOR_BLUE
         case col == 'm':
-            return ansi::BG_COLOR_MAGENTA
+            return ansi\BG_COLOR_MAGENTA
         case col == 'c':
-            return ansi::BG_COLOR_CYAN
+            return ansi\BG_COLOR_CYAN
         case col == 'w':
-            return ansi::BG_COLOR_WHITE
+            return ansi\BG_COLOR_WHITE
         case true:
             return ""
 
@@ -143,7 +143,7 @@ pub fun draw(window ^!Window, s ^!ObjectState) void:
             set x = as(s^.x_pos, s32)
             set left_side = true
             ; the end of the color row should have been reached already
-            fmt::assert#(!have_color, "color failure\n")
+            fmt\assert#(!have_color, "color failure\n")
             if cpos < len(color_map):
                 set have_color = true
             continue
@@ -159,7 +159,7 @@ pub fun draw(window ^!Window, s ^!ObjectState) void:
         set x += 1
 
 pub fun window_draw(obj ^Window, bg_col u8) void:
-    fmt::print#(get_bg_color(bg_col), ansi::CLEAR_ALL)
+    fmt\print#(get_bg_color(bg_col), ansi\CLEAR_ALL)
     let w = obj^.width
     let h = obj^.height
     ; @ is an invalid attrib
@@ -173,12 +173,12 @@ pub fun window_draw(obj ^Window, bg_col u8) void:
             if c == ' ':
                 continue
             if x != last_x + 1:
-                fmt::print#(ansi::POS#(y + 1, x + 1))
+                fmt\print#(ansi\POS#(y + 1, x + 1))
             set last_x = x
             if last_attr != a:
-                fmt::print#(get_fg_color(a), get_style(a))
+                fmt\print#(get_fg_color(a), get_style(a))
             set last_attr = a
-            fmt::print#(wrap_as(c, fmt::rune))
+            fmt\print#(wrap_as(c, fmt\rune))
 
 pub fun window_fill(obj ^!Window, c u8, a u8) void:
     let size = obj^.width * obj^.height

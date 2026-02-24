@@ -104,14 +104,9 @@ uint32_t LexerRaw::HandleId() {
   uint8_t c;
   HANDLE_ID_COMPONENT
   if (c == '#') return i + 1 - pos_;
-  if (c != ':') return i - pos_;
+  if (c != '\\') return i - pos_;
   // no out-of- bound access assuming zero or newline padding
-  c = input_[i + 1];
-  if (c != ':') {
-    return i - pos_;
-  }
-
-  i += 2;
+  i += 1;
   // previous component was module name
   HANDLE_ID_COMPONENT
   if (c == '#') return i + 1 - pos_;

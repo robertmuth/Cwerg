@@ -79,11 +79,11 @@ macro UPDATE# STMT_LIST ($a EXPR, $b EXPR, $x EXPR, $i EXPR, $bitpos EXPR) []:
     set $a = $b
 
 fun dumpA(tag span(u8), x ^[25]u64) void:
-    fmt::print#(tag, "\n")
+    fmt\print#(tag, "\n")
     for i = 0, 5_uint, 1:
         for j = 0, 5_uint, 1:
-            fmt::print#(" ", wrap_as(x^[i + j * 5], fmt::u64_hex))
-        fmt::print#("\n")
+            fmt\print#(" ", wrap_as(x^[i + j * 5], fmt\u64_hex))
+        fmt\print#("\n")
 
 fun KeccakF(x ^![25]u64) void:
     ; (do (dumpA ["KeccakF:" x]))
@@ -159,7 +159,7 @@ fun KeccakF(x ^![25]u64) void:
         set x^[0] ~= rconst[round]
 
 pub fun KeccakAdd(state ^!StateKeccak, tail span!(u64), data span(u8)) void:
-    ; (fmt::print# "KeccakAdd: " (^. state msglen) " "  data "\n")
+    ; (fmt\print# "KeccakAdd: " (^. state msglen) " "  data "\n")
     let tail_u8 = bitwise_as(front!(tail), ^!u8)
     let block_size uint = len(tail) * 8
     let tail_use uint = state^.msglen % block_size

@@ -137,21 +137,21 @@ std::string_view ReadFile(const char* filename) {
   return std::string_view(reinterpret_cast<char*>(data_bytes), sb.st_size);
 }
 
-Name GetQualifierIfPresent(Name name) {
+Name NAME_MaybeGet(Name name) {
   const char* str = NameData(name);
   for (size_t pos = 0; str[pos] != 0; ++pos) {
-    if (str[pos] == ':' && str[pos + 1] == ':') {
+    if (str[pos] == '\\') {
       return NameNew({str, pos});
     }
   }
   return kNameInvalid;
 }
 
-Name StripQualifier(Name name) {
+Name NAME_GetNameWithoutQualifier(Name name) {
   const char* str = NameData(name);
   for (size_t pos = 0; str[pos] != 0; ++pos) {
-    if (str[pos] == ':' && str[pos + 1] == ':') {
-      return NameNew(str + pos + 2);
+    if (str[pos] == '\\') {
+      return NameNew(str + pos + 1);
     }
   }
   return kNameInvalid;
@@ -173,7 +173,7 @@ void ResolveImportsForQualifers(Node mod) {
       case NT::MacroInvoke:
       case NT::Id: {
         Name name = Node_name(node);
-        Name q = GetQualifierIfPresent(name);
+        Name q = NAME_MaybeGet(name);
         if (!q.isnull()) {
           auto it = imports.find(q);
           if (it == imports.end()) {
@@ -181,7 +181,7 @@ void ResolveImportsForQualifers(Node mod) {
                 << "cannot resolve qualifier [" << q << "] " << name.index();
           }
           Node_x_import(node) = it->second;
-          auto s = StripQualifier(name);
+          auto s = NAME_GetNameWithoutQualifier(name);
           Node_name(node) = s;
           // std::cout << "ResolveImportsForQualifers " << name << " -> " << s
           //          << "\n";

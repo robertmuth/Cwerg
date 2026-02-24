@@ -33,16 +33,16 @@ ref global! NodePool = {[N]LinkedListNode:}
 static_assert size_of(type_of(NodePool)) == N * 3 * size_of(^!LinkedListNode)
 
 fun DumpNode(i u32) void:
-    fmt::print#(i, " ", NodePool[i].payload, " ", union_tag(NodePool[i].next))
+    fmt\print#(i, " ", NodePool[i].payload, " ", union_tag(NodePool[i].next))
     if is(NodePool[i].next, NoneType):
-        fmt::print#(" next: NULL\n")
+        fmt\print#(" next: NULL\n")
     else:
-        fmt::print#(" next: ",
+        fmt\print#(" next: ",
                     bitwise_as(narrow_as(NodePool[i].next, ^!LinkedListNode),
                       ^void), "\n")
 
 fun main(argc s32, argv ^^u8) s32:
-    fmt::print#("start: ", bitwise_as(front(NodePool), ^void), "\n")
+    fmt\print#("start: ", bitwise_as(front(NodePool), ^void), "\n")
     for i = 0, N, 1:
         set NodePool[i].payload = as(i, u32)
         if i == N - 1:
@@ -53,6 +53,6 @@ fun main(argc s32, argv ^^u8) s32:
     ;     (for i 0 N 1 :
     ;        (do (DumpNode [i])))
     ;
-    test::AssertEq#(SumPayload(front!(NodePool)), 4950_u32)
-    test::Success#()
+    test\AssertEq#(SumPayload(front!(NodePool)), 4950_u32)
+    test\Success#()
     return 0

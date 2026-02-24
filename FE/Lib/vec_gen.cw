@@ -289,16 +289,16 @@ pub rec HitInfo:
     ; normal at hit
     normal vec3
 
-poly fun fmt::SysRender(v HitInfo, out span!(u8), opt ^!fmt::SysFormatOptions)
+poly fun fmt\SysRender(v HitInfo, out span!(u8), opt ^!fmt\SysFormatOptions)
   uint:
     let! t = out
-    set t = span_inc(t, fmt::SysRender("{", t, opt))
-    set t = span_inc(t, fmt::SysRender(v.distance, t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v.position, t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v.normal, t, opt))
-    set t = span_inc(t, fmt::SysRender("}", t, opt))
+    set t = span_inc(t, fmt\SysRender("{", t, opt))
+    set t = span_inc(t, fmt\SysRender(v.distance, t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v.position, t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v.normal, t, opt))
+    set t = span_inc(t, fmt\SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
 ; returns true if the ray hits the sphere, also fills in out if we have hit
@@ -321,7 +321,7 @@ pub fun CheckRayHitsSphere(ray_origin vec3, ray_direction vec3,
     let t1 = (-b + sqrt_d) / 2.0 / a
     let t2 = (-b - sqrt_d) / 2.0 / a
     if t1 < epsilon && t2 < epsilon || t1 > 1.0 && t2 > 1.0:
-        ; fmt::print#("EPS ", t1, " ", t2, "\n")
+        ; fmt\print#("EPS ", t1, " ", t2, "\n")
         return false
     let dist $T = expr:
         cond:
@@ -348,74 +348,74 @@ pub fun CheckHitRayPlane(ray_origin vec3, ray_direction vec3, plane_point vec3,
     return true
 
 ;
-poly fun fmt::SysRender(v vec2, out span!(u8), opt ^!fmt::SysFormatOptions)
+poly fun fmt\SysRender(v vec2, out span!(u8), opt ^!fmt\SysFormatOptions)
   uint:
     let! t = out
-    set t = span_inc(t, fmt::SysRender("{", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[0], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[1], t, opt))
-    set t = span_inc(t, fmt::SysRender("}", t, opt))
+    set t = span_inc(t, fmt\SysRender("{", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[0], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[1], t, opt))
+    set t = span_inc(t, fmt\SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v vec3, out span!(u8), opt ^!fmt::SysFormatOptions)
+poly fun fmt\SysRender(v vec3, out span!(u8), opt ^!fmt\SysFormatOptions)
   uint:
     let! t = out
-    set t = span_inc(t, fmt::SysRender("{", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[0], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[1], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[2], t, opt))
-    set t = span_inc(t, fmt::SysRender("}", t, opt))
+    set t = span_inc(t, fmt\SysRender("{", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[0], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[1], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[2], t, opt))
+    set t = span_inc(t, fmt\SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v vec4, out span!(u8), opt ^!fmt::SysFormatOptions)
+poly fun fmt\SysRender(v vec4, out span!(u8), opt ^!fmt\SysFormatOptions)
   uint:
     let! t = out
-    set t = span_inc(t, fmt::SysRender("{", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[0], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[1], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[2], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[3], t, opt))
-    set t = span_inc(t, fmt::SysRender("}", t, opt))
+    set t = span_inc(t, fmt\SysRender("{", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[0], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[1], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[2], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[3], t, opt))
+    set t = span_inc(t, fmt\SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v mat2, out span!(u8), opt ^!fmt::SysFormatOptions)
+poly fun fmt\SysRender(v mat2, out span!(u8), opt ^!fmt\SysFormatOptions)
   uint:
     let! t = out
-    set t = span_inc(t, fmt::SysRender("{", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[0], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[1], t, opt))
-    set t = span_inc(t, fmt::SysRender("}", t, opt))
+    set t = span_inc(t, fmt\SysRender("{", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[0], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[1], t, opt))
+    set t = span_inc(t, fmt\SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v mat3, out span!(u8), opt ^!fmt::SysFormatOptions)
+poly fun fmt\SysRender(v mat3, out span!(u8), opt ^!fmt\SysFormatOptions)
   uint:
     let! t = out
-    set t = span_inc(t, fmt::SysRender("{", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[0], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[1], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[2], t, opt))
-    set t = span_inc(t, fmt::SysRender("}", t, opt))
+    set t = span_inc(t, fmt\SysRender("{", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[0], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[1], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[2], t, opt))
+    set t = span_inc(t, fmt\SysRender("}", t, opt))
     return as(span_diff(t, out), uint)
 
-poly fun fmt::SysRender(v mat4, out span!(u8), opt ^!fmt::SysFormatOptions)
+poly fun fmt\SysRender(v mat4, out span!(u8), opt ^!fmt\SysFormatOptions)
   uint:
     let! t = out
-    set t = span_inc(t, fmt::SysRender("{", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[0], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[1], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[2], t, opt))
-    set t = span_inc(t, fmt::SysRender(",", t, opt))
-    set t = span_inc(t, fmt::SysRender(v[3], t, opt))
-    set t = span_inc(t, fmt::SysRender("}", t, opt))
+    set t = span_inc(t, fmt\SysRender("{", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[0], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[1], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[2], t, opt))
+    set t = span_inc(t, fmt\SysRender(",", t, opt))
+    set t = span_inc(t, fmt\SysRender(v[3], t, opt))
+    set t = span_inc(t, fmt\SysRender("}", t, opt))
     return as(span_diff(t, out), uint)

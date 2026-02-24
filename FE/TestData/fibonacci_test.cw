@@ -14,6 +14,6 @@ global expected = {[20]uint:
 
 fun main(argc s32, argv ^^u8) s32:
     for i = 0, 20_uint, 1:
-        test::AssertEq#(expected[i], fib(i))
-    test::Success#()
+        test\AssertEq#(expected[i], fib(i))
+    test\Success#()
     return 0

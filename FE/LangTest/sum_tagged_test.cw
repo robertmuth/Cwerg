@@ -80,19 +80,19 @@ fun test_tagged_union_basic() void:
     let! y Union3 = undef
     let! z s32 = 777
     set y = x
-    test::AssertTrue#(is(x, bool))
-    test::AssertFalse#(is(x, s32))
-    test::AssertTrue#(is(y, bool))
-    test::AssertFalse#(is(y, s32))
+    test\AssertTrue#(is(x, bool))
+    test\AssertFalse#(is(x, s32))
+    test\AssertTrue#(is(y, bool))
+    test\AssertFalse#(is(y, s32))
     set x = 777_s32
     set x = z
     set y = x
-    test::AssertFalse#(is(x, bool))
-    test::AssertTrue#(is(x, s32))
-    test::AssertFalse#(is(y, bool))
-    test::AssertTrue#(is(y, s32))
-    test::AssertTrue#(y == 777_s32)
-    test::AssertTrue#(777_s32 == y)
+    test\AssertFalse#(is(x, bool))
+    test\AssertTrue#(is(x, s32))
+    test\AssertFalse#(is(y, bool))
+    test\AssertTrue#(is(y, s32))
+    test\AssertTrue#(y == 777_s32)
+    test\AssertTrue#(777_s32 == y)
 
 pub type UnionVoid = union(void, void_t2, void_t3)
 
@@ -100,21 +100,21 @@ fun test_tagged_union_void() void:
     let! x012 union(void, void_t1, void_t2) = void_val
     let! x123 union(void_t1, void_t2, void_t3) = void_t3_val
     let! x12 union(void_t1, void_t2) = void_t1_val
-    test::AssertTrue#(x012 == void_val)
-    test::AssertTrue#(x123 == void_t3_val)
-    test::AssertTrue#(x12 == void_t1_val)
+    test\AssertTrue#(x012 == void_val)
+    test\AssertTrue#(x123 == void_t3_val)
+    test\AssertTrue#(x12 == void_t1_val)
     set x012 = x12
-    test::AssertTrue#(x012 == void_t1_val)
+    test\AssertTrue#(x012 == void_t1_val)
     let! x12_bool union(void_t1, void_t2, bool) = x12
-    test::AssertTrue#(x12_bool == void_t1_val)
+    test\AssertTrue#(x12_bool == void_t1_val)
     set x12_bool  = true
-    test::AssertTrue#(x12_bool == true)
+    test\AssertTrue#(x12_bool == true)
 
 fun fun_param(a bool, b bool, c s32, x Union3) void:
     if a:
-        test::AssertTrue#(is(x, bool))
+        test\AssertTrue#(is(x, bool))
     else:
-        test::AssertTrue#(is(x, s32))
+        test\AssertTrue#(is(x, s32))
 
 fun test_tagged_union_parameter() void:
     let! x Union3 = true
@@ -132,25 +132,25 @@ fun fun_result(a bool, b bool, c s32) Union3:
 
 fun test_tagged_union_result() void:
     let! x = fun_result(true, false, 2)
-    test::AssertTrue#(is(x, bool))
-    test::AssertFalse#(is(x, s32))
+    test\AssertTrue#(is(x, bool))
+    test\AssertFalse#(is(x, s32))
     set x = fun_result(false, false, 2)
-    test::AssertFalse#(is(x, bool))
-    test::AssertTrue#(is(x, s32))
+    test\AssertFalse#(is(x, bool))
+    test\AssertTrue#(is(x, s32))
 
 fun test_tagged_union_narrowto() void:
     let! x Union3 = true
     let! y = narrow_as(x, bool)
-    test::AssertTrue#(y)
-    test::AssertTrue#(narrow_as(x, bool))
+    test\AssertTrue#(y)
+    test\AssertTrue#(narrow_as(x, bool))
     let! z = narrow_as(x, union(u8, bool))
 
 fun test_tagged_union_vec() void:
     let array = {[2]union(bool, u32, r32): true, 0_u32}
-    test::AssertTrue#(is(array[0], bool))
-    test::AssertTrue#(!is(array[0], u32))
-    test::AssertTrue#(!is(array[1], bool))
-    test::AssertTrue#(is(array[1], u32))
+    test\AssertTrue#(is(array[0], bool))
+    test\AssertTrue#(!is(array[0], u32))
+    test\AssertTrue#(!is(array[1], bool))
+    test\AssertTrue#(is(array[1], u32))
 
 fun main(argc s32, argv ^^u8) s32:
     do test_tagged_union_basic()
@@ -160,5 +160,5 @@ fun main(argc s32, argv ^^u8) s32:
     do test_tagged_union_narrowto()
     do test_tagged_union_narrowto()
     ; test end
-    test::Success#()
+    test\Success#()
     return 0

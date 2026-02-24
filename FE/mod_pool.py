@@ -20,14 +20,6 @@ ModId = tuple[Path, ...]
 logger = logging.getLogger(__name__)
 
 
-def _GetQualifierIfPresent(name: str) -> Optional[cwast.NAME]:
-    tokens = name.split(cwast.ID_PATH_SEPARATOR)
-    if len(tokens) == 2:
-        return cwast.NAME.Make(tokens[0])
-    assert 1 == len(tokens)
-    return None
-
-
 def _ResolveImportsForQualifers(mod: cwast.DefMod):
     """Set the x_import field.
 
@@ -46,13 +38,13 @@ def _ResolveImportsForQualifers(mod: cwast.DefMod):
                 cwast.CompilerError(node.x_srcloc, f"duplicate import {name}")
             imports[name] = node
         elif isinstance(node, (cwast.DefFun, cwast.Id, cwast.MacroInvoke)):
-            q = _GetQualifierIfPresent(node.name.name)
+            q = node.name.MaybeGetQualifier()
             if q:
                 if q not in imports:
                     cwast.CompilerError(
                         node.x_srcloc, f"unkown module {repr(q)}")
                 node.x_import = imports[q]
-                node.name = node.name.GetSymbolNameWithoutQualifier()
+                node.name = node.name.GetNameWithoutQualifier()
 
     cwast.VisitAstRecursivelyPost(mod, visitor)
 

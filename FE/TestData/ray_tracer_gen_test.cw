@@ -13,29 +13,29 @@ import random
 import v64 = vec_gen (r64)
 
 rec Material:
-    col v64::vec3
+    col v64\vec3
     ; specular power
     spow r64
     ; reflection intensity
     refl r64
 
 rec Sphere:
-    pos v64::vec3
+    pos v64\vec3
     rad r64
     mat Material
 
 rec Plane:
-    pos v64::vec3
+    pos v64\vec3
     mat Material
-    norm v64::vec3
+    norm v64\vec3
 
 rec Light:
-    pos v64::vec3
+    pos v64\vec3
 
 rec Camera:
-    pos v64::vec3
+    pos v64\vec3
     fov r64
-    target v64::vec3
+    target v64\vec3
 
 rec Scene:
     camera Camera
@@ -47,8 +47,8 @@ rec Scene:
     num_planes uint
 
 rec Ray:
-    orig v64::vec3
-    dir v64::vec3
+    orig v64\vec3
+    dir v64\vec3
 
 global KIND_S u8 = 's'
 
@@ -60,12 +60,12 @@ global KIND_C u8 = 'c'
 
 rec LineObj:
     kind u8
-    v1 v64::vec3
+    v1 v64\vec3
     s1 r64
-    v2 v64::vec3
+    v2 v64\vec3
     s2 r64
     s3 r64
-    v3 v64::vec3
+    v3 v64\vec3
 
 fun is_white_space(c u8) bool:
     return c == ' ' || c == '\n' || c == '\t' || c == '\r'
@@ -85,7 +85,7 @@ fun skip_non_white_space(line span(u8)) uint:
 ; captures s, out
 macro read_r64# STMT_LIST ($dst EXPR) [$t]:
     set s = span_inc(s, skip_white_space(s))
-    let $t = parse_real::parse_r64(s)
+    let $t = parse_real\parse_r64(s)
     set s = span_inc(s, $t.length)
     if $t.length == 0:
         return out
@@ -94,13 +94,13 @@ macro read_r64# STMT_LIST ($dst EXPR) [$t]:
 ; captures s, out
 macro read_vec3# STMT_LIST ($dst EXPR) [$tx, $ty, $tz]:
     set s = span_inc(s, skip_white_space(s))
-    let $tx = parse_real::parse_r64(s)
+    let $tx = parse_real\parse_r64(s)
     set s = span_inc(s, $tx.length)
     set s = span_inc(s, skip_white_space(s))
-    let $ty = parse_real::parse_r64(s)
+    let $ty = parse_real\parse_r64(s)
     set s = span_inc(s, $ty.length)
     set s = span_inc(s, skip_white_space(s))
-    let $tz = parse_real::parse_r64(s)
+    let $tz = parse_real\parse_r64(s)
     set s = span_inc(s, $tz.length)
     if $tx.length == 0 || $ty.length == 0 || $tz.length == 0:
         return out
@@ -126,68 +126,68 @@ fun ParseScene(scene_str span(u8)) Scene:
     let! s = scene_str
     let! out Scene
     while len(s) > 0:
-        let! eol = string::find(s, "\n")
-        if eol == string::NOT_FOUND:
+        let! eol = string\find(s, "\n")
+        if eol == string\NOT_FOUND:
             set eol = len(s) - 1
         let! line = make_span(front(s), eol + 1)
         set s = span_inc(s, eol + 1)
         set line = span_inc(line, skip_white_space(line))
         if len(line) == 0 || line[0] == '#':
             continue
-        fmt::print#(line)
+        fmt\print#(line)
         let! num_cameras = 0_uint
         let obj = ParseLine(line)
         cond:
             case obj.kind == 's':
                 if out.num_spheres >= len(out.spheres):
-                    fmt::print#("too many spheres\n")
+                    fmt\print#("too many spheres\n")
                     trap
                 set out.spheres[out.num_spheres] =
                   {: obj.v1, obj.s1, {: obj.v2, obj.s2, obj.s3}}
                 set out.num_spheres += 1
             case obj.kind == 'p':
                 if out.num_planes >= len(out.planes):
-                    fmt::print#("too many planes\n")
+                    fmt\print#("too many planes\n")
                     trap
                 set out.planes[out.num_planes] =
-                  {: obj.v1, {: obj.v2, obj.s2, obj.s3}, v64::normalized(obj.v3)
+                  {: obj.v1, {: obj.v2, obj.s2, obj.s3}, v64\normalized(obj.v3)
                    }
                 set out.num_planes += 1
             case obj.kind == 'l':
                 if out.num_lights >= len(out.lights):
-                    fmt::print#("too many lights\n")
+                    fmt\print#("too many lights\n")
                     trap
                 set out.lights[out.num_lights] = {: obj.v1}
                 set out.num_lights += 1
             case obj.kind == 'c':
                 if num_cameras != 0:
-                    fmt::print#("more than one camera\n")
+                    fmt\print#("more than one camera\n")
                     trap
                 set out.camera = {: obj.v1, obj.s1, obj.v2}
                 set num_cameras += 1
     return out
 
-global! urand [1024]v64::vec2
+global! urand [1024]v64\vec2
 
 global! irand [1024]u32
 
 fun init_vrand_urand() void:
-    ref let! state = random::Pcg32StateDefault
+    ref let! state = random\Pcg32StateDefault
     for i = 0, len(urand), 1:
-        set urand[i][0] = random::NextR64(@!state) - 0.5
+        set urand[i][0] = random\NextR64(@!state) - 0.5
     for i = 0, len(urand), 1:
-        set urand[i][1] = random::NextR64(@!state) - 0.5
+        set urand[i][1] = random\NextR64(@!state) - 0.5
     for i = 0, len(urand), 1:
-        set irand[i] = random::NextU32(@!state) % as(len(urand), u32)
+        set irand[i] = random\NextU32(@!state) % as(len(urand), u32)
 
-fun get_jitter(x u32, y u32, s u32) v64::vec2:
+fun get_jitter(x u32, y u32, s u32) v64\vec2:
     let a = irand[(x + s) % as(len(irand), u32)]
     let aa = (x + (y << 2) + a) % as(len(urand), u32)
     let b = irand[(y + s) % as(len(irand), u32)]
     let bb = (y + (x << 2) + b) % as(len(urand), u32)
     return {: urand[aa][0], urand[bb][1]}
 
-fun get_sample_pos(w u32, h u32, x u32, y u32, s u32) v64::vec2:
+fun get_sample_pos(w u32, h u32, x u32, y u32, s u32) v64\vec2:
     let wr = as(w, r64)
     let hr = as(h, r64)
     let xr = as(x, r64)
@@ -201,30 +201,30 @@ fun get_sample_pos(w u32, h u32, x u32, y u32, s u32) v64::vec2:
         set py += jitter[1] * sf
     return {: px, py}
 
-fun get_primry_ray(cam ^Camera, pos v64::vec2) Ray:
+fun get_primry_ray(cam ^Camera, pos v64\vec2) Ray:
     let orig = cam^.pos
-    let! dir = {v64::vec3:}
-    let k = v64::sub(cam^.target, cam^.pos)
-    let i = v64::cross({v64::vec3: 0, 1, 0}, k)
-    let j = v64::cross(k, i)
-    let m = {v64::mat3: i, j, k}
-    set dir = v64::add(dir, orig)
+    let! dir = {v64\vec3:}
+    let k = v64\sub(cam^.target, cam^.pos)
+    let i = v64\cross({v64\vec3: 0, 1, 0}, k)
+    let j = v64\cross(k, i)
+    let m = {v64\mat3: i, j, k}
+    set dir = v64\add(dir, orig)
     return {: orig, dir}
 
 fun Render(w u32, h u32, rays_per_pixel u32, fb span!(u32), scene ^Scene) void:
     let color_scaler = 255.0_r64 / as(rays_per_pixel, r64)
-    let lo = {v64::vec3: 0.0, 0.0, 0.0}
-    let hi = {v64::vec3: 255.0, 255.0, 255.0}
+    let lo = {v64\vec3: 0.0, 0.0, 0.0}
+    let hi = {v64\vec3: 255.0, 255.0, 255.0}
     for y = 0, h, 1:
         for x = 0, w, 1:
-            let! rgb v64::vec3
+            let! rgb v64\vec3
             for r = 0, rays_per_pixel, 1:
                 let pos = get_sample_pos(w, h, x, y, r)
                 let ray = get_primry_ray(@scene^.camera, pos)
                 ; let ray = get_primary_ray()
-                set rgb = v64::add(rgb, rgb)
-            set rgb = v64::scaled(rgb, color_scaler)
-            set rgb = v64::pmin(hi, v64::pmax(lo, rgb))
+                set rgb = v64\add(rgb, rgb)
+            set rgb = v64\scaled(rgb, color_scaler)
+            set rgb = v64\pmin(hi, v64\pmax(lo, rgb))
             let color = as(rgb[0], s32) << 16 + as(rgb[1], s32) << 8 +
               as(rgb[2], s32)
             set fb[y * w + x] = as(color, u32)
@@ -265,12 +265,12 @@ ref global! gPixels [640 * 480]u32
 
 fun main(argc s32, argv ^^u8) s32:
     ; if argc < 3:
-    ;     fmt::print#("Not enough arguments, need width and height\n")
+    ;     fmt\print#("Not enough arguments, need width and height\n")
     ;     return 0
-    ; let arg_w span(u8) = fmt::strz_to_slice(ptr_inc(argv, 1)^)
-    ; let arg_h span(u8) = fmt::strz_to_slice(ptr_inc(argv, 2)^)
-    ; let width u32 = fmt::str_to_u32(arg_w)
-    ; let height u32 = fmt::str_to_u32(arg_h)
+    ; let arg_w span(u8) = fmt\strz_to_slice(ptr_inc(argv, 1)^)
+    ; let arg_h span(u8) = fmt\strz_to_slice(ptr_inc(argv, 2)^)
+    ; let width u32 = fmt\str_to_u32(arg_w)
+    ; let height u32 = fmt\str_to_u32(arg_h)
     let w u32 = 640_u32
     let h u32 = 480_u32
     let rays_per_pixel = 1_u32

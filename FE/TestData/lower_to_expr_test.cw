@@ -19,8 +19,8 @@ fun setter(file ^!File, index uint, key uint, val uint) void:
     set file^.objects[index].val = val
     
 fun checker(file ^!File, index uint, key uint, val uint) void:
-     ; test::AssertEq#(key, file^.objects[index].key)
-     test::AssertEq#(val, file^.objects[index].val)
+     ; test\AssertEq#(key, file^.objects[index].key)
+     test\AssertEq#(val, file^.objects[index].val)
 
 fun test_simple() void:
     let! objects = {[200]Item:}
@@ -35,5 +35,5 @@ fun test_simple() void:
 
 fun main(argc s32, argv ^^u8) s32:
     do test_simple()
-    test::Success#()
+    test\Success#()
     return 0

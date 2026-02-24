@@ -14,12 +14,12 @@
 ;
 ; Instantiate a File rec with the object pool like so:
 ;
-; let! objects = [200]jp::Object{}
-; ref let! file = jp::File{" [ 100, 500, 300, 200, 400 ] ", objects}
+; let! objects = [200]jp\Object{}
+; ref let! file = jp\File{" [ 100, 500, 300, 200, 400 ] ", objects}
 ;
 ; Next parse the json inside the File:
 ;
-; let result = jp::Parse(@!file)
+; let result = jp\Parse(@!file)
 ;
 ; Finally walk the json starting with the root in file.root
 ; Thw following helpers are avaiable:
@@ -227,7 +227,7 @@ fun AllocObj(file ^!File) union(u32, AllocError):
     return index
 
 fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
-    ; fmt::print#("ParseAtom ", file^.next_byte, "\n")
+    ; fmt\print#("ParseAtom ", file^.next_byte, "\n")
     trylet index u32 = AllocObj(file), err:
         return err
     let! start = file^.next_byte
@@ -244,7 +244,7 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
                   {Atom: start, end - start,
                    seen_esc ? AtomKind.EscStr : AtomKind.Str}
                 set file^.next_byte = end + 1
-                ; fmt::print#("ParseAtom End: [", make_span(@file^.data[start], as(end - start, uint)), "]\n")
+                ; fmt\print#("ParseAtom End: [", make_span(@file^.data[start], as(end - start, uint)), "]\n")
                 return MakeIndex(index, ObjKind.Atom)
             if d == '\\':
                 set seen_esc = true
@@ -260,23 +260,23 @@ fun ParseAtom(file ^!File) union(Index, AllocError, DataError):
             break
         set end += 1
     set file^.objects[index] = {Atom: start, end - start, AtomKind.Num}
-    ; fmt::print#("ParseAtom End: [", make_span(@file^.data[start], as(end - start, uint)), "]\n")
+    ; fmt\print#("ParseAtom End: [", make_span(@file^.data[start], as(end - start, uint)), "]\n")
     set file^.next_byte = end
     return MakeIndex(index, ObjKind.Atom)
 
 fun ParseVec(file ^!File) union(Index, AllocError, DataError):
-    ; fmt::print#("ParseVec ", file^.next_byte, "\n")
+    ; fmt\print#("ParseVec ", file^.next_byte, "\n")
     let! first_entry = 0_u32
     let! last_entry = 0_u32
     let! last_val = NullIndex
     let! n = 0_u32
     while true:
-        ; fmt::print#("ParseVec Loop ", file^.next_byte, " round=", n, "\n")
+        ; fmt\print#("ParseVec Loop ", file^.next_byte, " round=", n, "\n")
         if !SkipWS(file):
             ; corrupted
             return DataErrorVal
         if MaybeConsume(file, ']'):
-            ; fmt::print#("ParseVec End ", file^.next_byte, "\n")
+            ; fmt\print#("ParseVec End ", file^.next_byte, "\n")
             if n == 0:
                 return NullIndex
             else:
@@ -285,7 +285,7 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
                 return MakeIndex(first_entry, ObjKind.Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
-                ; fmt::print#("comma corruption\n")
+                ; fmt\print#("comma corruption\n")
                 return DataErrorVal
         trylet entry u32 = AllocObj(file), err:
             return err
@@ -304,18 +304,18 @@ fun ParseVec(file ^!File) union(Index, AllocError, DataError):
     trap
 
 fun ParseDict(file ^!File) union(Index, AllocError, DataError):
-    ; fmt::print#("ParseDict ", file^.next_byte, "\n")
+    ; fmt\print#("ParseDict ", file^.next_byte, "\n")
     let! first_entry = 0_u32
     let! last_entry = 0_u32
     let! last_val = NullIndex
     let! last_key = NullIndex
     let! n = 0_u32
     while true:
-        ; fmt::print#("ParseDict Loop ", file^.next_byte, " round=", n, "\n")
+        ; fmt\print#("ParseDict Loop ", file^.next_byte, " round=", n, "\n")
         if !SkipWS(file):
             return DataErrorVal
         if MaybeConsume(file, '}'):
-            ; fmt::print#("ParseDict End ", file^.next_byte, "\n")
+            ; fmt\print#("ParseDict End ", file^.next_byte, "\n")
             if n == 0:
                 return NullIndex
             else:
@@ -324,14 +324,14 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
                 return MakeIndex(first_entry, ObjKind.Item)
         if n != 0:
             if !MaybeConsume(file, ',') || !SkipWS(file):
-                ; fmt::print#("comma corruption\n")
+                ; fmt\print#("comma corruption\n")
                 return DataErrorVal
         trylet entry u32 = AllocObj(file), err:
             return err
         trylet key Index = ParseNext(file), err:
             return err
         if !SkipWS(file) || !MaybeConsume(file, ':') || !SkipWS(file):
-            ; fmt::print#("colon corruption\n")
+            ; fmt\print#("colon corruption\n")
             return DataErrorVal
         trylet val Index = ParseNext(file), err:
             return err
@@ -350,7 +350,7 @@ fun ParseDict(file ^!File) union(Index, AllocError, DataError):
 
 ; assumes the next char is valid and not a WS
 fun ParseNext(file ^!File) union(Index, AllocError, DataError):
-    ; fmt::print#("ParseNext ", file^.next_byte, "\n")
+    ; fmt\print#("ParseNext ", file^.next_byte, "\n")
     if MaybeConsume(file, '{'):
         trylet container u32 = AllocObj(file), err:
             return err
@@ -368,13 +368,13 @@ fun ParseNext(file ^!File) union(Index, AllocError, DataError):
     return ParseAtom(file)
 
 pub fun Parse(file ^!File) union(Success, AllocError, DataError):
-    ; fmt::print#("Parse ",  file^.next_byte,"\n")
+    ; fmt\print#("Parse ",  file^.next_byte,"\n")
     if !SkipWS(file):
         ; empty json is an error for now
         return DataErrorVal
     tryset file^.root = ParseNext(file), err:
         return err
-    ; fmt::print#("Parse End ",  file^.next_byte, "\n")
+    ; fmt\print#("Parse End ",  file^.next_byte, "\n")
     if SkipWS(file):
         ; garbage at end of file
         return DataErrorVal
@@ -392,7 +392,7 @@ pub fun NumJsonObjectsNeeded(raw span(u8)) u32:
     let! n = 0_u32
     for i = 0, len(raw), 1:
         let c = raw[i]
-        ; fmt::print#(i, " ", wrap_as(c, fmt::rune), " ", n,"\n")
+        ; fmt\print#(i, " ", wrap_as(c, fmt\rune), " ", n,"\n")
         cond:
             case state == State.in_string:
                 if c == '"':
@@ -421,5 +421,5 @@ pub fun NumJsonObjectsNeeded(raw span(u8)) u32:
             case true:
                 set n += n == 0 ? 1 : 2
                 set state = State.in_number
-    ; fmt::print#("RESULT ",  n, "\n")
+    ; fmt\print#("RESULT ",  n, "\n")
     return n

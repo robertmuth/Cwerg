@@ -47,6 +47,6 @@ fun CreateTower(n s32) s32:
 fun main(argc s32, argv ^^u8) s32:
     set piles[0] = CreateTower(NUM_DISKS)
     let count = MoveDisks(NUM_DISKS, 0, 1)
-    test::AssertEq#(count, 8191_u32)
-    test::Success#()
+    test\AssertEq#(count, 8191_u32)
+    test\Success#()
     return 0

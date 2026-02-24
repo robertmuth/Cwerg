@@ -15,7 +15,7 @@ rec TextStats:
     num_chars uint
 
 ; Returns either a TextStat or an Error
-fun WordCount(fd os::FD) union(TextStats, os::Error):
+fun WordCount(fd os\FD) union(TextStats, os\Error):
     ; note limited type inference in next two stmts
     let! stats = {TextStats:}
     let! in_word = false
@@ -23,7 +23,7 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
     let! buf [1024]u8 = undef
     while true:
         ; if FileRead returns an uint, assign it to n else return it
-        trylet n uint = os::FileRead(fd, buf), err:
+        trylet n uint = os\FileRead(fd, buf), err:
             return err
         if n == 0:
             break
@@ -44,10 +44,10 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
     return stats
 
 fun main(argc s32, argv ^^u8) s32:
-    trylet stats TextStats = WordCount(os::Stdin), err:
+    trylet stats TextStats = WordCount(os\Stdin), err:
         return 1
     ; print# is a stmt macro for printing arbitrary values.
     ; (It is possible to define formatters for custom types.)
-    fmt::print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars,
+    fmt\print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars,
                 "\n")
     return 0

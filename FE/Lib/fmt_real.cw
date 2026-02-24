@@ -22,16 +22,16 @@ pub fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
 
 fun div_by_power_of_10(val r64, pow10 s32) r64:
     if pow10 >= 0:
-        return val / num_real::powers_of_ten[pow10]
+        return val / num_real\powers_of_ten[pow10]
     else:
-        return val * num_real::powers_of_ten[-pow10]
+        return val * num_real\powers_of_ten[-pow10]
 
 ; find power of 10 to divide val by so that ideally the result
 ; is an integer between target_range_lo and target_range_hi
 ; val must be positive
 fun find_t(val r64) s32:
-    let biased_exp = as(num_real::r64_raw_exponent(val), s32) -
-      num_real::r64_exponent_bias
+    let biased_exp = as(num_real\r64_raw_exponent(val), s32) -
+      num_real\r64_exponent_bias
     let! t s32 = -as(log10_2_to_52 - as(biased_exp, r64) / log2_10, s32)
     while true:
         let x = div_by_power_of_10(val, t)
@@ -47,13 +47,13 @@ fun find_t(val r64) s32:
 ; * raw_exp is nan
 ; * len(out) >= 5
 fun FmtNan(val r64, out span!(u8)) uint:
-    let! mantissa = num_real::r64_raw_mantissa(val)
-    let is_negative = num_real::r64_is_negative(val)
+    let! mantissa = num_real\r64_raw_mantissa(val)
+    let is_negative = num_real\r64_is_negative(val)
     set out[0] = is_negative ? '-' : '+'
     cond:
-        case mantissa == num_real::r64_mantissa_infinity:
+        case mantissa == num_real\r64_mantissa_infinity:
             return 1 + span_append_or_die#("inf", span_inc(out, 1))
-        case mantissa == num_real::r64_mantissa_nan:
+        case mantissa == num_real\r64_mantissa_nan:
             return 1 + span_append_or_die#("nan", span_inc(out, 1))
     return 0
 
@@ -80,13 +80,13 @@ pub fun FmtExponentE(exp s32, out span!(u8)) uint:
         if exp >= -9:
             set out[2] = '0'
             set i += 1
-        return i + fmt_int::FmtDec(-exp, span_inc(out, i))
+        return i + fmt_int\FmtDec(-exp, span_inc(out, i))
     else:
         set out[1] = '+'
         if exp <= 9:
             set out[2] = '0'
             set i += 1
-        return i + fmt_int::FmtDec(exp, span_inc(out, i))
+        return i + fmt_int\FmtDec(exp, span_inc(out, i))
 
 fun FmtSign(is_negative bool, force_sign bool, out span!(u8)) uint:
     cond:
@@ -127,14 +127,14 @@ fun RoundDigitsUp(digits span!(u8)) s32:
 
 poly pub fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
     ; worst case -x.[precision]e-xxx
-    let is_negative = num_real::r64_is_negative(val)
+    let is_negative = num_real\r64_is_negative(val)
     let! buffer [32]u8 = undef
     if len(out) < precision + 8:
         return 0
     if precision + 1 > len(buffer):
         return 0
-    if num_real::r64_raw_exponent(val) == num_real::r64_raw_exponent_subnormal:
-        if num_real::r64_raw_mantissa(val) == 0:
+    if num_real\r64_raw_exponent(val) == num_real\r64_raw_exponent_subnormal:
+        if num_real\r64_raw_mantissa(val) == 0:
             set buffer[0] = '0'
             let! i = 0_uint
             set i += FmtSign(is_negative, force_sign, out)
@@ -144,22 +144,22 @@ poly pub fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
             set i += FmtExponentE(0, span_inc(out, i))
             return i
         return 0
-    if num_real::r64_raw_exponent(val) == num_real::r64_raw_exponent_nan:
+    if num_real\r64_raw_exponent(val) == num_real\r64_raw_exponent_nan:
         return FmtNan(val, out)
     ; find power of 10 to divide val by so that ideally the result
     ; is an integer between target_range_lo and target_range_hi
     let! t s32 = find_t(abs(val))
-    ; fmt::print#("@@@ ", t, "\n")
+    ; fmt\print#("@@@ ", t, "\n")
     let x = div_by_power_of_10(val, t)
-    let! mantissa = num_real::r64_raw_mantissa(x) + 1 << 52
-    let exponent = as(num_real::r64_raw_exponent(x), s32) -
-      num_real::r64_exponent_bias
+    let! mantissa = num_real\r64_raw_mantissa(x) + 1 << 52
+    let exponent = as(num_real\r64_raw_exponent(x), s32) -
+      num_real\r64_exponent_bias
     assert#(exponent >= 49 && exponent <= 52, "out of bounds\n")
     if exponent != 52:
         set t -= 1
         set mantissa *= 10
         set mantissa >>= as(52_s32 - exponent, u64)
-    let num_digits uint = fmt_int::FmtDec(mantissa,
+    let num_digits uint = fmt_int\FmtDec(mantissa,
                             make_span(front!(buffer), len(buffer)))
     ; decimal rounding if we drop digits
     if num_digits > precision + 1 && buffer[precision + 2] >= '5':
@@ -171,7 +171,7 @@ poly pub fun FmtE(val r64, precision uint, force_sign bool, out span!(u8)) uint:
       FmtMantissaE(make_span(front(buffer), num_digits), precision,
         span_inc(out, i))
     set i += FmtExponentE(t, span_inc(out, i))
-    ; fmt::print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")
+    ; fmt\print#("@@@ ", t, " ",  exponent, " ",  buffer, " out:", out, "\n")
     return i
 
 fun to_hex_digit(digit u8) u8:
@@ -194,27 +194,27 @@ fun FmtMantissaHex(frac_bits u64, is_denorm bool, out span!(u8)) uint:
 fun FmtExponentHex(raw_exponent u64, is_potential_zero bool, out span!(u8))
   uint:
     let! exp = as(raw_exponent, s32)
-    if raw_exponent == num_real::r64_raw_exponent_subnormal:
+    if raw_exponent == num_real\r64_raw_exponent_subnormal:
         set exp = is_potential_zero ? 0 : -1022
     else:
-        set exp -= num_real::r64_exponent_bias
+        set exp -= num_real\r64_exponent_bias
     set out[0] = 'p'
     if exp < 0:
         set out[1] = '-'
         set exp = -exp
     else:
         set out[1] = '+'
-    return 2 + fmt_int::FmtDec(as(exp, u32), span_inc(out, 2))
+    return 2 + fmt_int\FmtDec(as(exp, u32), span_inc(out, 2))
 
 ; r64 format (IEEE 754):  sign (1 bit) exponent (11 bits) fraction (52 bits)
 ;         exponentiation bias is 1023
 ;         https://en.wikipedia.org/wiki/Double-precision_floating-point_format
 ;         https://observablehq.com/@jrus/hexfloat
 poly pub fun FmtHex(val r64, out span!(u8)) uint:
-    let! frac_bits = num_real::r64_raw_mantissa(val)
-    let is_negative = num_real::r64_is_negative(val)
-    let raw_exponent = num_real::r64_raw_exponent(val)
-    if raw_exponent == num_real::r64_raw_exponent_nan:
+    let! frac_bits = num_real\r64_raw_mantissa(val)
+    let is_negative = num_real\r64_is_negative(val)
+    let raw_exponent = num_real\r64_raw_exponent(val)
+    if raw_exponent == num_real\r64_raw_exponent_nan:
         return FmtNan(val, out)
     let! i uint = 0
     if is_negative:
@@ -222,6 +222,6 @@ poly pub fun FmtHex(val r64, out span!(u8)) uint:
         set i += 1
     set i +=
       FmtMantissaHex(frac_bits,
-        raw_exponent == num_real::r64_raw_exponent_subnormal, span_inc(out, i))
+        raw_exponent == num_real\r64_raw_exponent_subnormal, span_inc(out, i))
     set i += FmtExponentHex(raw_exponent, frac_bits == 0, span_inc(out, i))
     return i

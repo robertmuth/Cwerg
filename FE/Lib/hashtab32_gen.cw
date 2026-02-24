@@ -52,7 +52,7 @@ pub fun Lookup(ht ^HashTab32, key ^$ktype) union(void, ^!$vtype):
     while true:
         let m = ptr_inc(meta, i)^
         if m == FreeEntry:
-            fmt::print#("Not Found\n")
+            fmt\print#("Not Found\n")
             return
         if m == filter && $keq(key, ptr_inc(keys, i)):
             return ptr_inc(vals, i)
@@ -113,13 +113,13 @@ pub fun DebugDump(ht ^HashTab32) void:
     let keys = ht^.keys
     let vals = ht^.vals
     for i = 0, ht^.size, 1:
-        fmt::print#(i, " ")
+        fmt\print#(i, " ")
         let m = ptr_inc(meta, i)^
         cond:
             case m == DeletedEntry:
-                fmt::print#("DELETED")
+                fmt\print#("DELETED")
             case m == FreeEntry:
-                fmt::print#("FREE")
+                fmt\print#("FREE")
             case true:
-                fmt::print#(m, " ", ptr_inc(keys, i)^, " ", ptr_inc(vals, i)^)
-        fmt::print#("\n")
+                fmt\print#(m, " ", ptr_inc(keys, i)^, " ", ptr_inc(vals, i)^)
+        fmt\print#("\n")

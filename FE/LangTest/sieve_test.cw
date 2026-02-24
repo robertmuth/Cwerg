@@ -28,6 +28,6 @@ fun sieve() uint:
     return count
 
 fun main(argc s32, argv ^^u8) s32:
-    test::AssertEq#(sieve(), EXPECTED)
-    test::Success#()
+    test\AssertEq#(sieve(), EXPECTED)
+    test\Success#()
     return 0

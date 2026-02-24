@@ -33,7 +33,7 @@ fun BallInit(b ^!Ball) void:
     set b^.y = RngNext() % Y_LIMIT
     set b^.xVel = RngNext() % 300 - 150
     set b^.yVel = RngNext() % 300 - 150
-    ; fmt::print#(b^.x, " ",b^.y, "  ", b^.xVel, " ",  b^.yVel,  "\n")
+    ; fmt\print#(b^.x, " ",b^.y, "  ", b^.xVel, " ",  b^.yVel,  "\n")
     let dummy = 0_u32
 
 fun BallBounce(b ^!Ball) bool:
@@ -68,6 +68,6 @@ fun main(argc s32, argv ^^u8) s32:
         for i = 0, NUM_BALLS, 1:
             if BallBounce(@!balls[i]):
                 set num_bounces += 1
-    test::AssertEq#(num_bounces, 1331_u32)
-    test::Success#()
+    test\AssertEq#(num_bounces, 1331_u32)
+    test\Success#()
     return 0

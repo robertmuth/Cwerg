@@ -121,20 +121,20 @@ fun main(argc s32, argv ^^u8) s32:
     do UpdateOffsetMomentum(@!bodies)
     ; do permute(@!v, DIM)
     ; DIM! = 5040
-    ; test::AssertEq#(COUNT, 5040_u32)
+    ; test\AssertEq#(COUNT, 5040_u32)
     if true:
         ; sanity test with one iteration
         do Advance(@!bodies, DT)
         let e = Energy(@bodies)
-        ; fmt::print#(wrap_as(e, fmt::r64_hex), " ", e, "\n")
-        test::AssertGenericEq#({cmp::r64r: -0.16907495402506745, REL_ERR},
-                               {cmp::r64r: e})
+        ; fmt\print#(wrap_as(e, fmt\r64_hex), " ", e, "\n")
+        test\AssertGenericEq#({cmp\r64r: -0.16907495402506745, REL_ERR},
+                               {cmp\r64r: e})
     else:
         for i = 0, NUM_ITER, 1:
             do Advance(@!bodies, DT)
         let e = Energy(@bodies)
-        ; fmt::print#(wrap_as(e, fmt::r64_hex), " ", e,  "\n")
-        test::AssertGenericEq#({cmp::r64r: -0.1690859889909308, REL_ERR},
-                               {cmp::r64r: e})
-    test::Success#()
+        ; fmt\print#(wrap_as(e, fmt\r64_hex), " ", e,  "\n")
+        test\AssertGenericEq#({cmp\r64r: -0.1690859889909308, REL_ERR},
+                               {cmp\r64r: e})
+    test\Success#()
     return 0

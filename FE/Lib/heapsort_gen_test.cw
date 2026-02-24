@@ -24,25 +24,25 @@ fun dump_array(size uint, data ^r64) void:
     ref let! buf [32]u8 = undef
     for i = 0, size, 1:
         let v = ptr_inc(data, i)^
-        fmt::print#(wrap_as(v, fmt::r64_hex), NEWLINE)
+        fmt\print#(wrap_as(v, fmt\r64_hex), NEWLINE)
     return
 
-global! Rng = random::SimpleLCGStateDefault
+global! Rng = random\SimpleLCGStateDefault
 
 
 fun main(argc s32, argv ^^u8) s32:
     for i = 0, SIZE, 1:
-        let v = random::NextR64(@!Rng) * 1000.0
+        let v = random\NextR64(@!Rng) * 1000.0
         set Data[i + 1] = v
     do dump_array(SIZE, @Data[1])
-    fmt::print#(NEWLINE)
-    fmt::print#(SIZE, NEWLINE)
-    do rhs::sort(Data)
-    fmt::print#(NEWLINE)
+    fmt\print#(NEWLINE)
+    fmt\print#(SIZE, NEWLINE)
+    do rhs\sort(Data)
+    fmt\print#(NEWLINE)
     do dump_array(SIZE, @Data[1])
-    fmt::print#(NEWLINE)
+    fmt\print#(NEWLINE)
     for i = 1, SIZE, 1:
         if Data[i] > Data[i + 1]:
-            fmt::print#(ERROR)
+            fmt\print#(ERROR)
             trap
     return 0

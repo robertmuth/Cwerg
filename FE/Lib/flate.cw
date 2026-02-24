@@ -8,14 +8,14 @@ import fmt
 import huffman
 
 macro xdebug# STMT_LIST ($parts EXPR_LIST_REST) []:
-    fmt::print#($parts)
+    fmt\print#($parts)
 
 macro debug# STMT_LIST ($parts EXPR_LIST_REST) []:
 
 macro xdump_slice# STMT_LIST ($prefix EXPR, $slice EXPR) [$s_eval, $i]:
     let $s_eval = $slice
     for $i = 0, len($s_eval), 1:
-        fmt::print#($prefix, $i, " -> ", $s_eval[$i], "\n")
+        fmt\print#($prefix, $i, " -> ", $s_eval[$i], "\n")
 
 macro dump_slice# STMT_LIST ($prefix EXPR, $slice EXPR) [$s, $i]:
 
@@ -51,15 +51,15 @@ global CodeLenCodeIndex = {[19]u8:
                            2, 14, 1, 15}
 
 ; read length for the combined literal and distance huffman costs
-fun read_lit_dist_lengths(bs ^!bitstream::Stream32, cl_counts span(u16),
+fun read_lit_dist_lengths(bs ^!bitstream\Stream32, cl_counts span(u16),
                           cl_symbols span(u16), lengths span!(u16))
   union(Success, CorruptionError, TruncationError):
     let! i uint = 0
     while i < len(lengths):
-        let sym = huffman::NextSymbol(bs, cl_counts, cl_symbols)
-        if sym == huffman::BAD_SYMBOL:
+        let sym = huffman\NextSymbol(bs, cl_counts, cl_symbols)
+        if sym == huffman\BAD_SYMBOL:
             return CorruptionErrorVal
-        if bitstream::Stream32Eos(bs):
+        if bitstream\Stream32Eos(bs):
             return TruncationErrorVal
         cond:
             case sym < 16:
@@ -70,14 +70,14 @@ fun read_lit_dist_lengths(bs ^!bitstream::Stream32, cl_counts span(u16),
                 if i == 0:
                     return CorruptionErrorVal
                 let prev = lengths[i - 1]
-                let! n = bitstream::Stream32GetBits(bs, 2) + 3
+                let! n = bitstream\Stream32GetBits(bs, 2) + 3
                 debug#("tree decoding num=", i, " sym=", sym, " len=", n, "\n")
                 while n > 0:
                     set n -= 1
                     set lengths[i] = prev
                     set i += 1
             case sym == 17:
-                let! n = bitstream::Stream32GetBits(bs, 3) + 3
+                let! n = bitstream\Stream32GetBits(bs, 3) + 3
                 if i + as(n, uint) > len(lengths):
                     return CorruptionErrorVal
                 debug#("tree decoding num=", i, " sym=", sym, " len=", n, "\n")
@@ -88,7 +88,7 @@ fun read_lit_dist_lengths(bs ^!bitstream::Stream32, cl_counts span(u16),
                     if n != 0:
                         continue
             case sym == 18:
-                let! n = bitstream::Stream32GetBits(bs, 7) + 11
+                let! n = bitstream\Stream32GetBits(bs, 7) + 11
                 if i + as(n, uint) > len(lengths):
                     return CorruptionErrorVal
                 debug#("tree decoding num=", i, " sym=0", " len=", n, "\n")
@@ -125,19 +125,19 @@ global dist_bits_lookup = {[30]u8:
                            8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13}
 
 ; common part for handing both dynamic and fixed hufman
-fun handle_huffman_common(bs ^!bitstream::Stream32, lit_counts span(u16),
+fun handle_huffman_common(bs ^!bitstream\Stream32, lit_counts span(u16),
                           lit_symbols span(u16), dist_counts span(u16),
                           dist_symbols span(u16), pos uint, dst span!(u8))
   union(uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("handle_huffman_common ", pos, "\n")
     let! i uint = pos
     while true:
-        let sym = huffman::NextSymbol(bs, lit_counts, lit_symbols)
+        let sym = huffman\NextSymbol(bs, lit_counts, lit_symbols)
         debug#("[", i, "]  symbol ", sym, "\n")
-        if bitstream::Stream32Eos(bs):
+        if bitstream\Stream32Eos(bs):
             debug#("  eos\n")
             return TruncationErrorVal
-        if sym == huffman::BAD_TREE_ENCODING:
+        if sym == huffman\BAD_TREE_ENCODING:
             return CorruptionErrorVal
         cond:
             ; end of huffman code
@@ -157,17 +157,17 @@ fun handle_huffman_common(bs ^!bitstream::Stream32, lit_counts span(u16),
             case sym < as(len(width_bits_lookup), u16) + 257:
                 let sym_width = sym - 257
                 let width u32 = as(width_base_lookup[sym_width], u32) +
-                  bitstream::Stream32GetBits(bs, width_bits_lookup[sym_width])
-                let sym_dist = huffman::NextSymbol(bs, dist_counts,
+                  bitstream\Stream32GetBits(bs, width_bits_lookup[sym_width])
+                let sym_dist = huffman\NextSymbol(bs, dist_counts,
                                  dist_symbols)
-                if bitstream::Stream32Eos(bs):
+                if bitstream\Stream32Eos(bs):
                     return TruncationErrorVal
                 if sym_dist > as(len(dist_bits_lookup), u16):
                     return CorruptionErrorVal
-                let distance u32 = bitstream::Stream32GetBits(bs,
+                let distance u32 = bitstream\Stream32GetBits(bs,
                                      dist_bits_lookup[sym_dist]) +
                   as(dist_base_lookup[sym_dist], u32)
-                if bitstream::Stream32Eos(bs):
+                if bitstream\Stream32Eos(bs):
                     return TruncationErrorVal
                 if as(distance, uint) > i:
                     return CorruptionErrorVal
@@ -183,11 +183,11 @@ fun handle_huffman_common(bs ^!bitstream::Stream32, lit_counts span(u16),
     return i
 
 ; handle 0b10 section
-fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
+fun handle_dynamic_huffman(bs ^!bitstream\Stream32, pos uint, dst span!(u8))
   union(uint, CorruptionError, NoSpaceError, TruncationError):
-    let lit_num_syms uint = as(bitstream::Stream32GetBits(bs, 5) + 257, uint)
-    let dist_num_syms uint = as(bitstream::Stream32GetBits(bs, 5) + 1, uint)
-    let cl_num_syms uint = as(bitstream::Stream32GetBits(bs, 4) + 4, uint)
+    let lit_num_syms uint = as(bitstream\Stream32GetBits(bs, 5) + 257, uint)
+    let dist_num_syms uint = as(bitstream\Stream32GetBits(bs, 5) + 1, uint)
+    let cl_num_syms uint = as(bitstream\Stream32GetBits(bs, 4) + 4, uint)
     debug#("handle_dynamic_huffman lit_num_syms=", lit_num_syms,
            " dist_num_syms=", dist_num_syms, " cl_num_syms=", cl_num_syms, "\n")
     ;
@@ -201,12 +201,12 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
             set cl_lengths[i] = 0
         for i = 0, cl_num_syms, 1:
             set cl_lengths[CodeLenCodeIndex[i]] =
-              as(bitstream::Stream32GetBits(bs, 3), u16)
+              as(bitstream\Stream32GetBits(bs, 3), u16)
             debug#("sym length ", i, ": ", cl_lengths[CodeLenCodeIndex[i]], "\n"
                    )
-        let cl_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
+        let cl_last_symbol u16 = huffman\ComputeCountsAndSymbolsFromLengths(
                                    cl_lengths, cl_counts, cl_symbols)
-        if cl_last_symbol == huffman::BAD_TREE_ENCODING:
+        if cl_last_symbol == huffman\BAD_TREE_ENCODING:
             return CorruptionErrorVal
         debug#("decode combined lengths for lit + dist\n")
         if lit_num_syms > 286:
@@ -225,9 +225,9 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
     let! lit_counts [MAX_HUFFMAN_BITS + 1]u16
     block:
         let lit_lengths = make_span(front!(lit_dist_lengths), lit_num_syms)
-        let lit_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
+        let lit_last_symbol u16 = huffman\ComputeCountsAndSymbolsFromLengths(
                                     lit_lengths, lit_counts, lit_symbols)
-        if lit_last_symbol == huffman::BAD_TREE_ENCODING:
+        if lit_last_symbol == huffman\BAD_TREE_ENCODING:
             return CorruptionErrorVal
         debug#("computed literal tree. last=", lit_last_symbol, "\n")
     let! dist_symbols [MAX_DIST_SYMS]u16
@@ -235,9 +235,9 @@ fun handle_dynamic_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
     block:
         let dist_lengths = make_span(ptr_inc(front!(lit_dist_lengths),
                                        lit_num_syms), dist_num_syms)
-        let dist_last_symbol u16 = huffman::ComputeCountsAndSymbolsFromLengths(
+        let dist_last_symbol u16 = huffman\ComputeCountsAndSymbolsFromLengths(
                                      dist_lengths, dist_counts, dist_symbols)
-        if dist_last_symbol == huffman::BAD_TREE_ENCODING:
+        if dist_last_symbol == huffman\BAD_TREE_ENCODING:
             debug#("BAD ENCODING\n")
             return CorruptionErrorVal
         debug#("computed distance tree. last=", dist_last_symbol, "\n")
@@ -299,26 +299,26 @@ global fixed_dist_symbols = {[32]u16:
                              28, 29, 30, 31}
 
 ; handle 0b01 section
-fun handle_fixed_huffman(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
+fun handle_fixed_huffman(bs ^!bitstream\Stream32, pos uint, dst span!(u8))
   union(uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("handle_fixed_huffman\n")
     return handle_huffman_common(bs, fixed_lit_counts, fixed_lit_symbols,
              fixed_dist_counts, fixed_dist_symbols, pos, dst)
 
 ; handle 0b00 section
-fun handle_uncompressed(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
+fun handle_uncompressed(bs ^!bitstream\Stream32, pos uint, dst span!(u8))
   union(uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("handle_uncompressed\n")
-    do bitstream::Stream32SkipToNextByte(bs)
-    let length u32 = bitstream::Stream32GetBits(bs, 16)
-    let inv_length u32 = bitstream::Stream32GetBits(bs, 16)
-    if bitstream::Stream32Eos(bs):
+    do bitstream\Stream32SkipToNextByte(bs)
+    let length u32 = bitstream\Stream32GetBits(bs, 16)
+    let inv_length u32 = bitstream\Stream32GetBits(bs, 16)
+    if bitstream\Stream32Eos(bs):
         return TruncationErrorVal
     if length != !inv_length & 0xffff:
         return CorruptionErrorVal
     debug#("uncompressed ", length, "\n")
-    let src = bitstream::Stream32GetByteSlice(bs, as(length, uint))
-    if bitstream::Stream32Eos(bs):
+    let src = bitstream\Stream32GetByteSlice(bs, as(length, uint))
+    if bitstream\Stream32Eos(bs):
         return CorruptionErrorVal
     if len(dst) < as(length, uint):
         return NoSpaceErrorVal
@@ -326,16 +326,16 @@ fun handle_uncompressed(bs ^!bitstream::Stream32, pos uint, dst span!(u8))
         set dst[pos + i] = src[i]
     return pos + len(src)
 
-pub fun uncompress(bs ^!bitstream::Stream32, dst span!(u8))
+pub fun uncompress(bs ^!bitstream\Stream32, dst span!(u8))
   union(uint, CorruptionError, NoSpaceError, TruncationError):
     debug#("FlateUncompress\n")
     ; next position within dst to write
     let! pos uint = 0
     let! seen_last bool = false
     while !seen_last:
-        set seen_last = bitstream::Stream32GetBool(bs)
-        let kind u32 = bitstream::Stream32GetBits(bs, 2)
-        if bitstream::Stream32Eos(bs):
+        set seen_last = bitstream\Stream32GetBool(bs)
+        let kind u32 = bitstream\Stream32GetBits(bs, 2)
+        if bitstream\Stream32Eos(bs):
             return TruncationErrorVal
         debug#("new round last=", seen_last, "\n")
         cond:

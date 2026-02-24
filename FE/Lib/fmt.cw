@@ -45,22 +45,22 @@ pub fun str_to_u32(s span(u8)) u32:
     return x
 
 poly fun SysRender(v u8, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec(v, out)
+    return fmt_int\FmtDec(v, out)
 
 poly fun SysRender(v u16, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec(v, out)
+    return fmt_int\FmtDec(v, out)
 
 poly fun SysRender(v u32, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec(v, out)
+    return fmt_int\FmtDec(v, out)
 
 poly fun SysRender(v u64, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec(v, out)
+    return fmt_int\FmtDec(v, out)
 
 poly fun SysRender(v s16, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec(v, out)
+    return fmt_int\FmtDec(v, out)
 
 poly fun SysRender(v s32, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtDec(v, out)
+    return fmt_int\FmtDec(v, out)
 
 poly fun SysRender(v span(u8), buffer span!(u8), options ^!SysFormatOptions)
   uint:
@@ -83,19 +83,19 @@ pub wrapped type u16_hex = u16
 pub wrapped type u8_hex = u8
 
 poly fun SysRender(v uint_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex(unwrap(v), out)
+    return fmt_int\FmtHex(unwrap(v), out)
 
 poly fun SysRender(v u64_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex(unwrap(v), out)
+    return fmt_int\FmtHex(unwrap(v), out)
 
 poly fun SysRender(v u32_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex(unwrap(v), out)
+    return fmt_int\FmtHex(unwrap(v), out)
 
 poly fun SysRender(v u16_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex(unwrap(v), out)
+    return fmt_int\FmtHex(unwrap(v), out)
 
 poly fun SysRender(v u8_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_int::FmtHex(unwrap(v), out)
+    return fmt_int\FmtHex(unwrap(v), out)
 
 pub wrapped type rune = u8
 
@@ -109,10 +109,10 @@ poly fun SysRender(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
 pub wrapped type r64_hex = r64
 
 poly fun SysRender(v r64_hex, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_real::FmtHex(unwrap(v), out)
+    return fmt_real\FmtHex(unwrap(v), out)
 
 poly fun SysRender(v r64, out span!(u8), options ^!SysFormatOptions) uint:
-    return fmt_real::FmtE(v, 6, false, out)
+    return fmt_real\FmtE(v, 6, false, out)
 
 pub wrapped type str_hex = span(u8)
 
@@ -147,7 +147,7 @@ pub macro print# STMT_LIST (
     ref let! $options = {SysFormatOptions:}
     mfor $i $parts:
         set $curr = span_inc($curr, SysRender($i, $curr, @!$options))
-    do os::write(unwrap(os::Stdout), front($buffer), len($buffer) - len($curr))
+    do os\write(unwrap(os\Stdout), front($buffer), len($buffer) - len($curr))
 
 pub fun strz_to_slice(s ^u8) span(u8):
     let! i uint = 0

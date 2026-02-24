@@ -12,7 +12,7 @@ import cmp
 
 macro SysPrint# STMT_LIST ($msg EXPR) [$msg_eval]:
     let $msg_eval span(u8) = $msg
-    do os::write(unwrap(os::Stdout), front($msg_eval), len($msg_eval))
+    do os\write(unwrap(os\Stdout), front($msg_eval), len($msg_eval))
 
 pub macro Success# STMT () []:
     SysPrint#("OK\n")
@@ -38,7 +38,7 @@ pub macro AssertGenericEq# STMT_LIST ($e_expr EXPR, $a_expr EXPR)
   [$e_val, $a_val]:
     let $e_val = $e_expr
     let $a_val = $a_expr
-    if !cmp::eq($e_val, $a_val):
+    if !cmp\eq($e_val, $a_val):
         AssertCommon#("AssertEq", $e_expr, $a_expr)
 
 pub macro AssertEq# STMT_LIST ($e_expr EXPR, $a_expr EXPR) [$e_val, $a_val]:
@@ -54,7 +54,7 @@ pub macro AssertGenericNe# STMT_LIST ($e_expr EXPR, $a_expr EXPR)
   [$e_val, $a_val]:
     let $e_val = $e_expr
     let $a_val = $a_expr
-    if cmp::eq($e_val, $a_val):
+    if cmp\eq($e_val, $a_val):
         AssertCommon#("AssertNe", $e_expr, $a_expr)
 
 pub macro AssertNe# STMT_LIST ($e_expr EXPR, $a_expr EXPR) [$e_val, $a_val]:
@@ -88,7 +88,7 @@ pub macro AssertGenericSliceEq# STMT_LIST ($e_expr EXPR, $a_expr EXPR)
     if len($e_val) !=  len($a_val):
         AssertCommon#("AssertGenericSliceEq", $e_expr, $a_expr)
     for $i = 0, len($a_val), 1:
-        if !cmp::eq(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^):
+        if !cmp\eq(ptr_inc(front($e_val), $i)^, ptr_inc(front($a_val), $i)^):
             AssertCommon#("AssertGenericSliceEqElement", $e_expr, $a_expr)
 
 

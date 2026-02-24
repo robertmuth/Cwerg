@@ -12,8 +12,8 @@ rec TestCase:
     description span(u8)
     input span(u8)
     expected_result
-      union(uint, flate::CorruptionError, flate::NoSpaceError,
-        flate::TruncationError)
+      union(uint, flate\CorruptionError, flate\NoSpaceError,
+        flate\TruncationError)
     expected_output span(u8)
     output span!(u8)
 
@@ -32,20 +32,20 @@ ref global AllTestCases = {[27]TestCase:
                        {TestCase:
                         "generic: missing next block after final uncompressed block"
                         , {[5]u8: 0x00, 0x00, 0x00, 0xff, 0xff},
-                        flate::TruncationErrorVal, "", large_output_buffer},
+                        flate\TruncationErrorVal, "", large_output_buffer},
                        {TestCase: "generic: invalid block 11", {[1]u8: 0x07},
-                        flate::CorruptionErrorVal, "", large_output_buffer},
+                        flate\CorruptionErrorVal, "", large_output_buffer},
                        {TestCase: "uncompressed: truncation", {[1]u8: 0x01},
-                        flate::TruncationErrorVal, "", large_output_buffer},
+                        flate\TruncationErrorVal, "", large_output_buffer},
                        {TestCase: "uncompressed: truncation checksum",
                         {[4]u8: 0x01, 0x00, 0x00, 0xff},
-                        flate::TruncationErrorVal, "", large_output_buffer},
+                        flate\TruncationErrorVal, "", large_output_buffer},
                        {TestCase: "uncompressed: bad checksum",
                         {[5]u8: 0x01, 0x00, 0x00, 0xee, 0xee},
-                        flate::CorruptionErrorVal, "", large_output_buffer},
+                        flate\CorruptionErrorVal, "", large_output_buffer},
                        {TestCase: "uncompressed: writing past end",
                         {[7]u8: 0x01, 0x02, 0x00, 0xfd, 0xff, 0x00, 0x00},
-                        flate::NoSpaceErrorVal, "", one_byte_output_buffer},
+                        flate\NoSpaceErrorVal, "", one_byte_output_buffer},
                        {TestCase: "uncompressed: 0 bytes",
                         {[5]u8: 0x01, 0x00, 0x00, 0xff, 0xff}, 0_uint, "",
                         large_output_buffer},
@@ -54,14 +54,14 @@ ref global AllTestCases = {[27]TestCase:
                         "\x00", large_output_buffer},
                        ; fixed huffman: ERROR =======================================
                        {TestCase: "fixed huffman: huffman terminator corrupted",
-                        {[2]u8: 0x63, 0x00}, flate::TruncationErrorVal, "",
+                        {[2]u8: 0x63, 0x00}, flate\TruncationErrorVal, "",
                         large_output_buffer},
                        {TestCase: "fixed huffman: out of bounds copy",
                         {[4]u8: 0x63, 0x00, 0x42, 0x00},
-                        flate::CorruptionErrorVal, "", large_output_buffer},
+                        flate\CorruptionErrorVal, "", large_output_buffer},
                        {TestCase: "fixed huffman: out of bounds copy",
                         {[4]u8: 0x63, 0x18, 0x03, 0x00},
-                        flate::CorruptionErrorVal, "", large_output_buffer},
+                        flate\CorruptionErrorVal, "", large_output_buffer},
                        ; fixed huffman: SUCCESS =======================================
                        {TestCase: "fixed huffman:   empty", {[3]u8: 0x03, 0x00},
                         0_uint, "", large_output_buffer},
@@ -170,17 +170,17 @@ ref global AllTestCases = {[27]TestCase:
 fun test_all() void:
     for i = 0, len(AllTestCases), 1:
         let tc ^TestCase = @AllTestCases[i]
-        fmt::print#("TEST - ", tc^.description, "\n")
-        ref let! bs = {bitstream::Stream32: tc^.input}
-        let res = flate::uncompress(@!bs, tc^.output)
-        test::AssertEq#(union_tag(res), union_tag(tc^.expected_result))
+        fmt\print#("TEST - ", tc^.description, "\n")
+        ref let! bs = {bitstream\Stream32: tc^.input}
+        let res = flate\uncompress(@!bs, tc^.output)
+        test\AssertEq#(union_tag(res), union_tag(tc^.expected_result))
         if is(res, uint):
-            test::AssertSliceEq#(tc^.expected_output,
+            test\AssertSliceEq#(tc^.expected_output,
                                  make_span(front(tc^.output),
                                    narrow_as!(res, uint)))
 
 fun main(argc s32, argv ^^u8) s32:
     do test_all()
     ; test end
-    test::Success#()
+    test\Success#()
     return 0

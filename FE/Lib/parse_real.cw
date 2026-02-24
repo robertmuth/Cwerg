@@ -128,7 +128,7 @@ fun parse_r64_hex_helper(s span(u8), negative bool, offset uint) ResultR64:
     let! exp_adjustments = 0_s32
     let! exp = 0_s32
     ; allow an extra 2 digits beyond the 52 / 4 = 13 mantissa hex digits
-    read_hex_mantissa#(c, num_real::r64_mantissa_bits / 4 + 2, mant,
+    read_hex_mantissa#(c, num_real\r64_mantissa_bits / 4 + 2, mant,
                        exp_adjustments)
     if c == 'p':
         next_char# c:
@@ -139,30 +139,30 @@ fun parse_r64_hex_helper(s span(u8), negative bool, offset uint) ResultR64:
     if mant == 0:
         return negative ? {: -0_r64, i} : {: +0_r64, i}
     set exp += exp_adjustments * 4
-    set exp += as(num_real::r64_mantissa_bits, s32)
-    ; fmt::print# ("BEFORE mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
-    ; we want the highest set bit to be at position num_real::r64_mantissa_bits + 1
+    set exp += as(num_real\r64_mantissa_bits, s32)
+    ; fmt\print# ("BEFORE mant: ", wrap_as(mant, fmt\u64_hex), " exp: ", exp, "\n")
+    ; we want the highest set bit to be at position num_real\r64_mantissa_bits + 1
     ; replace both while loops utilizing "count leading zeros"
-    while mant >> as(num_real::r64_mantissa_bits, u64) == 0:
-        ; fmt::print# ("@@ shift ", mant, "\n")
+    while mant >> as(num_real\r64_mantissa_bits, u64) == 0:
+        ; fmt\print# ("@@ shift ", mant, "\n")
         set mant <<= 8
         set exp -= 8
-    while mant >> as(num_real::r64_mantissa_bits, u64) != 1:
+    while mant >> as(num_real\r64_mantissa_bits, u64) != 1:
         set mant >>= 1
         set exp += 1
-    if exp > num_real::r64_exponent_max:
+    if exp > num_real\r64_exponent_max:
         ; maybe return inf
         return ParseError
-    if exp < num_real::r64_exponent_min:
+    if exp < num_real\r64_exponent_min:
         ; we do not support denormalization
         ; maybe return 0.0
         return ParseError
-    set exp += num_real::r64_exponent_bias
-    ; fmt::print# ("AFTER mant: ", wrap_as(mant, fmt::u64_hex), " exp: ", exp, "\n")
+    set exp += num_real\r64_exponent_bias
+    ; fmt\print# ("AFTER mant: ", wrap_as(mant, fmt\u64_hex), " exp: ", exp, "\n")
     ; final touches
-    let exp_u64 = as(exp, u64) & num_real::r64_exponent_mask
-    set mant &= num_real::r64_mantissa_mask
-    return {ResultR64: num_real::make_r64(negative, exp_u64, mant), i}
+    let exp_u64 = as(exp, u64) & num_real\r64_exponent_mask
+    set mant &= num_real\r64_mantissa_mask
+    return {ResultR64: num_real\make_r64(negative, exp_u64, mant), i}
 
 pub fun parse_r64_hex(s span(u8)) ResultR64:
     if len(s) < 5:
@@ -182,21 +182,21 @@ pub fun parse_r64_hex(s span(u8)) ResultR64:
 fun r64_dec_fast_helper(mant_orig u64, exp_orig s32, negative bool) r64:
     let! exp = exp_orig
     let! mant = mant_orig
-    while mant >= 1 << as(num_real::r64_mantissa_bits + 1, u64):
+    while mant >= 1 << as(num_real\r64_mantissa_bits + 1, u64):
         set mant /= 10
         set exp += 1
     if exp >= 309:
-        return negative ? num_real::inf_neg_r64 : num_real::inf_pos_r64
+        return negative ? num_real\inf_neg_r64 : num_real\inf_pos_r64
     if exp <= -309:
-        return negative ? num_real::zero_neg_r64 : num_real::zero_pos_r64
+        return negative ? num_real\zero_neg_r64 : num_real\zero_pos_r64
     ; on x86-64 there is not conversion instruction from u64->r64
     let! out = as(as(mant, s64), r64)
     if negative:
         set out = -out
     if exp >= 0:
-        return out * num_real::powers_of_ten[exp]
+        return out * num_real\powers_of_ten[exp]
     else:
-        return out / num_real::powers_of_ten[-exp]
+        return out / num_real\powers_of_ten[-exp]
 
 pub fun parse_r64(s span(u8)) ResultR64:
     ; index of next char to read
@@ -214,11 +214,11 @@ pub fun parse_r64(s span(u8)) ResultR64:
     if c == 'i':
         if i + 2 > n || s[i] != 'n' || s[i + 1] != 'f':
             return ParseError
-        return negative ? {: num_real::inf_neg_r64, i + 2} : {: num_real::inf_pos_r64, i + 2}
+        return negative ? {: num_real\inf_neg_r64, i + 2} : {: num_real\inf_pos_r64, i + 2}
     if c == 'n':
         if i + 2 > n || s[i] != 'a' || s[i + 1] != 'n':
             return ParseError
-        return negative ? {: num_real::nan_neg_r64, i + 2} : {: num_real::nan_pos_r64, i + 2}
+        return negative ? {: num_real\nan_neg_r64, i + 2} : {: num_real\nan_pos_r64, i + 2}
     if c == '0' && i <= n && s[i] == 'x':
         set i += 1
         return parse_r64_hex_helper(s, negative, i)
@@ -236,14 +236,14 @@ pub fun parse_r64(s span(u8)) ResultR64:
     ; TODO: check that we have consumed all chars
     ; early out for simple corner case
     if mant == 0:
-        return negative ? {: num_real::zero_neg_r64, i} : {: num_real::zero_pos_r64, i}
+        return negative ? {: num_real\zero_neg_r64, i} : {: num_real\zero_pos_r64, i}
     set exp += exp_adjustments
     ; try making mantissa smaller, this is a common case, e.g.
     ; 555.0000 and helps preserve accuracy
     while mant % 10 == 0:
         set mant /= 10
         set exp += 1
-    ; fmt::print# (s, " mant: ", mant, " exp: ", exp, "\n")
+    ; fmt\print# (s, " mant: ", mant, " exp: ", exp, "\n")
     ; quick and dirty. may be not be super precise
     ; for possible improvements see:
     ; https://github.com/ziglang/zig/blob/master/lib/std/fmt/parse_float.zig

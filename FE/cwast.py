@@ -12,7 +12,6 @@ import re
 from IR import opcode_tab as o
 
 from Util import cgen
-from Util.parse import EscapedStringToBytes, HexStringToBytes
 
 from typing import Optional, Union, Any, TypeAlias, NoReturn, Final, ClassVar
 
@@ -23,7 +22,7 @@ MACRO_CALL_SUFFIX = "#"
 MUTABILITY_SUFFIX = "!"
 MACRO_VAR_PREFIX = "$"
 ANNOTATION_PREFIX = "@"
-ID_PATH_SEPARATOR = "::"
+_ID_PATH_SEPARATOR = "\\"
 
 BUILT_IN_STMT_MACROS = set([
     "while",
@@ -55,11 +54,19 @@ class NAME:
     def IsMacroVar(self):
         return self.name.startswith(MACRO_VAR_PREFIX)
 
-    def GetSymbolNameWithoutQualifier(self) -> NAME:
-        pos = self.name.find(ID_PATH_SEPARATOR)
+    def GetNameWithoutQualifier(self) -> NAME:
+        pos = self.name.find(_ID_PATH_SEPARATOR)
         if pos < 0:
             return self
-        return NAME(self.name[pos + len(ID_PATH_SEPARATOR):])
+        return NAME(self.name[pos + len(_ID_PATH_SEPARATOR):])
+
+    def MaybeGetQualifier(self) -> Optional[NAME]:
+        tokens = self.name.split(_ID_PATH_SEPARATOR)
+        if len(tokens) == 2:
+            return NAME.Make(tokens[0])
+        assert 1 == len(tokens)
+        return None
+
 
     def __str__(self):
         return f"{self.name}"
@@ -1262,8 +1269,6 @@ class Id:
     x_eval: Optional[Any] = None
     x_symbol: Optional[NODES_SYMBOLS_T] = INVALID_SYMBOL
     x_import: Optional[Import] = None  # which import the id is qualified with
-
-
 
     def IsMacroCall(self):
         return self.name.IsMacroCall() or self.name.name in BUILT_IN_EXPR_MACROS

@@ -4,9 +4,10 @@ module:
 import fmt
 
 fun main(argc s32, argv ^^u8) s32:
-    fmt\print#("""hello world
+    fmt::print#("""hello world
 
     line 1
     line 2
 """)
+    assert (false, "YO THIS")
     return 0

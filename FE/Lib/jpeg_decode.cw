@@ -17,7 +17,7 @@ import fmt
 ; To enable debug logging make sure the next macro is called `debug#`
 ; To enable debug logging make sure the second macro is called `debug#`
 macro xdebug# STMT_LIST ($parts EXPR_LIST_REST) []:
-    fmt::print#($parts)
+    fmt\print#($parts)
 
 macro debug# STMT_LIST ($parts EXPR_LIST_REST) []:
 
@@ -174,7 +174,7 @@ pub fun GetNextBit(bs ^!BitStream) u16:
             set bs^.eos = true
             return 0
         set bits_cache = bs^.buf[bs^.offset]
-        ; debug#("new cache: ", wrap_as(bits_cache, fmt::u8_hex), "\n")
+        ; debug#("new cache: ", wrap_as(bits_cache, fmt\u8_hex), "\n")
         set bs^.offset += 1
         set bits_count = 8
         if bits_cache == 0xff:
@@ -280,9 +280,9 @@ fun div_roundup(a u32, b u32) u32:
     return (a + b - 1) / b
 
 fun DecodeHufmanTable(chunk span(u8), huffman_trees ^![2][2]HuffmanTree)
-  union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(Success, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     ref let! data = chunk
-    let kind = BS::FrontU8Unchecked(@!data)
+    let kind = BS\FrontU8Unchecked(@!data)
     if kind & 0xec != 0:
         return CorruptionErrorVal
     let pos = kind & 3
@@ -291,19 +291,19 @@ fun DecodeHufmanTable(chunk span(u8), huffman_trees ^![2][2]HuffmanTree)
     ; 0 means dc
     let is_ac = (kind & 0x10) >> 4
     let ht ^!HuffmanTree = @!huffman_trees^[is_ac][pos]
-    let counts = BS::FrontSliceUnchecked(@!data, 16)
+    let counts = BS\FrontSliceUnchecked(@!data, 16)
     let! total = 0_uint
     for i = 0, 16_s32, 1:
         set total += as(counts[i], uint)
         set ht^.counts[i] = counts[i]
     if len(data) < total:
-        return BS::OutOfBoundsErrorVal
+        return BS\OutOfBoundsErrorVal
     for i = 0, total, 1:
         set ht^.symbols[i] = data[i]
     if total > 255:
         return CorruptionErrorVal
     set ht^.num_symbols = as(total, u8)
-    do BS::SkipUnchecked(@!data, total)
+    do BS\SkipUnchecked(@!data, total)
     debug#("Hufman total codes[", is_ac, ",", pos, "]: ", total, "\n")
     let! acc u16 = 0
     let! code u16 = 0
@@ -323,7 +323,7 @@ fun DecodeHufmanTable(chunk span(u8), huffman_trees ^![2][2]HuffmanTree)
     return SuccessVal
 
 fun DecodeQuantizationTable(chunk span(u8), qt_tabs ^![4][64]s16)
-  union(u8, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(u8, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     ref let! data = chunk
     let! qt_avail u8 = 0
     while len(data) >= 65:
@@ -336,55 +336,55 @@ fun DecodeQuantizationTable(chunk span(u8), qt_tabs ^![4][64]s16)
         for i = 0, 64_u32, 1:
             set qt_tab^[i] = as(data[i + 1], s16)
         do ApplyWindogradMulipliers(qt_tab)
-        do BS::SkipUnchecked(@!data, 65)
+        do BS\SkipUnchecked(@!data, 65)
     if len(data) != 0:
         return CorruptionErrorVal
     return qt_avail
 
 fun DecodeRestartInterval(chunk span(u8))
-  union(u16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(u16, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     ref let! data = chunk
-    trylet interval u16 = BS::FrontBeU16(@!data), err:
+    trylet interval u16 = BS\FrontBeU16(@!data), err:
         return err
     debug#("restart interval: ", interval, "\n")
     return interval
 
 fun DecodeAppInfo(chunk span(u8), app_info ^!AppInfo)
-  union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(Success, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     ref let! data = chunk
     if len(data) < 14:
         return CorruptionErrorVal
     if data[0] != 'J' || data[1] != 'F' || data[2] != 'I' || data[3] != 'F' ||
       data[4] != 0:
         return CorruptionErrorVal
-    do BS::SkipUnchecked(@!data, 5)
-    set app_info^.version_major = BS::FrontU8Unchecked(@!data)
-    set app_info^.version_minor = BS::FrontU8Unchecked(@!data)
-    set app_info^.units = BS::FrontU8Unchecked(@!data)
-    set app_info^.density_x = BS::FrontBeU16Unchecked(@!data)
-    set app_info^.density_y = BS::FrontBeU16Unchecked(@!data)
-    set app_info^.thumbnail_w = BS::FrontU8Unchecked(@!data)
-    set app_info^.thumbnail_h = BS::FrontU8Unchecked(@!data)
+    do BS\SkipUnchecked(@!data, 5)
+    set app_info^.version_major = BS\FrontU8Unchecked(@!data)
+    set app_info^.version_minor = BS\FrontU8Unchecked(@!data)
+    set app_info^.units = BS\FrontU8Unchecked(@!data)
+    set app_info^.density_x = BS\FrontBeU16Unchecked(@!data)
+    set app_info^.density_y = BS\FrontBeU16Unchecked(@!data)
+    set app_info^.thumbnail_w = BS\FrontU8Unchecked(@!data)
+    set app_info^.thumbnail_h = BS\FrontU8Unchecked(@!data)
     debug#("AppInfo: ", app_info^.version_major, ".", app_info^.version_minor,
            "\n")
     return SuccessVal
 
 fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo)
-  union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(Success, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     ref let! data = chunk
-    trylet format u8 = BS::FrontU8(@!data), err:
+    trylet format u8 = BS\FrontU8(@!data), err:
         return err
     if format != 8:
         debug#("unsupported format: ", format, "\n")
         return UnsupportedErrorVal
     set out^.format = format
-    trylet height u16 = BS::FrontBeU16(@!data), err:
+    trylet height u16 = BS\FrontBeU16(@!data), err:
         return err
     set out^.height = as(height, u32)
-    trylet width u16 = BS::FrontBeU16(@!data), err:
+    trylet width u16 = BS\FrontBeU16(@!data), err:
         return err
     set out^.width = as(width, u32)
-    trylet ncomp u8 = BS::FrontU8(@!data), err:
+    trylet ncomp u8 = BS\FrontU8(@!data), err:
         return err
     set out^.ncomp = ncomp
     if ncomp != 1 && ncomp != 3:
@@ -395,9 +395,9 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo)
     let! ssymax u32 = 0
     for i = 0, ncomp, 1:
         let comp ^!Component = @!(out^.comp[i])
-        tryset comp^.cid = BS::FrontU8(@!data), err:
+        tryset comp^.cid = BS\FrontU8(@!data), err:
             return err
-        trylet ss u8 = BS::FrontU8(@!data), err:
+        trylet ss u8 = BS\FrontU8(@!data), err:
             return err
         let ssx = as(ss >> 4, u32)
         let ssy = as(ss & 0xf, u32)
@@ -413,7 +413,7 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo)
         set comp^.ssy = ssy
         set ssxmax max= ssx
         set ssymax max= ssy
-        trylet! qt_tab u8 = BS::FrontU8(@!data), err:
+        trylet! qt_tab u8 = BS\FrontU8(@!data), err:
             return err
         if qt_tab & 0xfc != 0:
             debug#("bad qt_tab: ", qt_tab, "\n")
@@ -446,15 +446,15 @@ fun DecodeStartOfFrame(chunk span(u8), out ^!FrameInfo)
     return SuccessVal
 
 fun DecodeScan(chunk span(u8), frame_info ^!FrameInfo)
-  union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(Success, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     ref let! data = chunk
-    trylet ncomp u8 = BS::FrontU8(@!data), err:
+    trylet ncomp u8 = BS\FrontU8(@!data), err:
         return err
     if ncomp != frame_info^.ncomp:
         return UnsupportedErrorVal
     for i = 0, ncomp, 1:
         if len(data) < 2:
-            return BS::OutOfBoundsErrorVal
+            return BS\OutOfBoundsErrorVal
         let comp ^!Component = @!(frame_info^.comp[i])
         if data[0] != comp^.cid:
             return CorruptionErrorVal
@@ -465,12 +465,12 @@ fun DecodeScan(chunk span(u8), frame_info ^!FrameInfo)
         set comp^.ac_tab = tabsel & 1
         debug#("tabsel[", comp^.cid, "]: ", comp^.dc_tab, ".", comp^.ac_tab,
                "\n")
-        do BS::SkipUnchecked(@!data, 2)
+        do BS\SkipUnchecked(@!data, 2)
         if len(data) < 3:
-            return BS::OutOfBoundsErrorVal
+            return BS\OutOfBoundsErrorVal
     if data[0] != 0 || data[1] != 63 || data[2] != 0:
         return UnsupportedErrorVal
-    do BS::SkipUnchecked(@!data, 3)
+    do BS\SkipUnchecked(@!data, 3)
     debug#(">>>>>>> ", data[0], "\n")
     return SuccessVal
 
@@ -484,7 +484,7 @@ global ZigZagIndex = {[8 * 8]u8:
 ; returns new dc value on success
 fun DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree,
                 qt_tab ^[64]s16, out ^![8 * 8]s16, last_dc s16)
-  union(s16, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(s16, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     for i = 0, len(out^), 1:
         set out^[i] = 0
     let dc_code = NextSymbol(bs, dc_tab)
@@ -511,7 +511,7 @@ fun DecodeBlock(bs ^!BitStream, dc_tab ^HuffmanTree, ac_tab ^HuffmanTree,
 fun DecodeMacroBlocksHuffman(chunk span(u8), fi ^FrameInfo,
                              huffman_trees ^[2][2]HuffmanTree,
                              quantization_tab ^[4][64]s16, out span!(u8))
-  union(uint, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(uint, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     debug#("Decode blocks\n")
     ref let! bs = {BitStream: chunk}
     let! dc_last = {[3]s16: 0, 0, 0}
@@ -543,20 +543,20 @@ fun DecodeMacroBlocksHuffman(chunk span(u8), fi ^FrameInfo,
     return GetBytesConsumed(@bs)
 
 pub fun DecodeFrameInfo(a_data span(u8))
-  union(FrameInfo, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(FrameInfo, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     ref let! fi FrameInfo = undef
     ref let! data = a_data
-    trylet magic u16 = BS::FrontBeU16(@!data), err:
+    trylet magic u16 = BS\FrontBeU16(@!data), err:
         return err
     if magic != 0xffd8:
         return CorruptionErrorVal
     while true:
-        trylet chunk_kind u16 = BS::FrontBeU16(@!data), err:
+        trylet chunk_kind u16 = BS\FrontBeU16(@!data), err:
             return err
-        trylet chunk_length u16 = BS::FrontBeU16(@!data), err:
+        trylet chunk_length u16 = BS\FrontBeU16(@!data), err:
             return err
         trylet chunk_slice span(u8) =
-          BS::FrontSlice(@!data, as(chunk_length - 2, uint)), err:
+          BS\FrontSlice(@!data, as(chunk_length - 2, uint)), err:
             return err
         if chunk_kind == 0xffc0:
             trylet dummy Success = DecodeStartOfFrame(chunk_slice, @!fi), err:
@@ -594,7 +594,7 @@ pub fun ConvertYH1V1ToRGB(out span!(u8)) void:
         set out[i + 2] = as(clamp8b(Y + cbB), u8)
 
 pub fun DecodeImage(a_data span(u8), out span!(u8))
-  union(Success, CorruptionError, UnsupportedError, BS::OutOfBoundsError):
+  union(Success, CorruptionError, UnsupportedError, BS\OutOfBoundsError):
     debug#("DecodeImage: ", len(a_data), "\n")
     ref let! app_info AppInfo = undef
     ref let! frame_info FrameInfo = undef
@@ -603,22 +603,22 @@ pub fun DecodeImage(a_data span(u8), out span!(u8))
     let! qt_avail_bits u8 = 0
     let! restart_interval u16 = 0
     ref let! data = a_data
-    trylet magic u16 = BS::FrontBeU16(@!data), err:
+    trylet magic u16 = BS\FrontBeU16(@!data), err:
         return err
     if magic != 0xffd8:
-        debug#("bad magic: ", wrap_as(magic, fmt::u16_hex), "\n")
+        debug#("bad magic: ", wrap_as(magic, fmt\u16_hex), "\n")
         return CorruptionErrorVal
     while true:
-        trylet chunk_kind u16 = BS::FrontBeU16(@!data), err:
+        trylet chunk_kind u16 = BS\FrontBeU16(@!data), err:
             return err
         if chunk_kind == 0xffd9:
             break
-        trylet chunk_length u16 = BS::FrontBeU16(@!data), err:
+        trylet chunk_length u16 = BS\FrontBeU16(@!data), err:
             return err
-        debug#("CHUNK: ", wrap_as(chunk_kind, fmt::u16_hex), " ", chunk_length,
+        debug#("CHUNK: ", wrap_as(chunk_kind, fmt\u16_hex), " ", chunk_length,
                "\n")
         trylet chunk_slice span(u8) =
-          BS::FrontSlice(@!data, as(chunk_length - 2, uint)), err:
+          BS\FrontSlice(@!data, as(chunk_length - 2, uint)), err:
             return err
         cond:
             case chunk_kind == 0xffe0:
@@ -650,7 +650,7 @@ pub fun DecodeImage(a_data span(u8), out span!(u8))
                   DecodeMacroBlocksHuffman(data, @frame_info, @huffman_trees,
                     @quantization_tab, out), err:
                     return err
-                do BS::SkipUnchecked(@!data, bytes_consumed)
+                do BS\SkipUnchecked(@!data, bytes_consumed)
             case chunk_kind == 0xfffe:
                 debug#("chunk ignored\n")
             case chunk_kind & 0xfff0 == 0xffe0:

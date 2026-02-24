@@ -358,7 +358,7 @@ class TK:
 GENERIC_ANNOTATION_RE = re.compile(r"^\{\{[_a-zA-Z]+\}\}")
 
 ID_RE = re.compile(
-    "^" + r"[_a-zA-Z](?:[_a-zA-Z0-9])*(?:::[_a-zA-Z0-9]+)?[#]?")
+    "^" + r"[_a-zA-Z](?:[_a-zA-Z0-9])*(?:\\[_a-zA-Z0-9]+)?[#]?")
 
 MACRO_ID_RE = re.compile(
     "^" + r"[$][_a-zA-Z][_a-zA-Z0-9]*")

@@ -62,65 +62,65 @@ fun test_untagged_union() void:
     let! u3 UntaggedUnion = 2.0_r32
     let! u4 UntaggedUnion = 777_u32
     let s1 u32 = narrow_as(u3, u32)
-    test::AssertEq#(s1, 0x40000000_u32)
-    test::AssertEq#(narrow_as(u3, [32]u8)[0], 0_u8)
-    test::AssertEq#(narrow_as(u3, [32]u8)[1], 0_u8)
-    test::AssertEq#(narrow_as(u3, [32]u8)[2], 0_u8)
-    test::AssertEq#(narrow_as(u3, [32]u8)[3], 0x40_u8)
+    test\AssertEq#(s1, 0x40000000_u32)
+    test\AssertEq#(narrow_as(u3, [32]u8)[0], 0_u8)
+    test\AssertEq#(narrow_as(u3, [32]u8)[1], 0_u8)
+    test\AssertEq#(narrow_as(u3, [32]u8)[2], 0_u8)
+    test\AssertEq#(narrow_as(u3, [32]u8)[3], 0x40_u8)
     set narrow_as(u3, [32]u8)[2] = 0x28_u8
     set narrow_as(u3, [32]u8)[3] = 0x42_u8
-    test::AssertEq#(narrow_as(u3, u32), 0x42280000_u32)
-    test::AssertEq#(narrow_as(u3, r32), 42_r32)
+    test\AssertEq#(narrow_as(u3, u32), 0x42280000_u32)
+    test\AssertEq#(narrow_as(u3, r32), 42_r32)
     set u3 = 2.0_r64
-    test::AssertEq#(narrow_as(u3, u64), 0x4000000000000000_u64)
-    test::AssertEq#(narrow_as(u3, [32]u8)[3], 0_u8)
-    test::AssertEq#(narrow_as(u3, [32]u8)[7], 0x40_u8)
+    test\AssertEq#(narrow_as(u3, u64), 0x4000000000000000_u64)
+    test\AssertEq#(narrow_as(u3, [32]u8)[3], 0_u8)
+    test\AssertEq#(narrow_as(u3, [32]u8)[7], 0x40_u8)
     ; union embedded in record
     let! rec1 RecordWithUntaggedUnion = undef
     set rec1.t3 = 2.0_r32
-    test::AssertEq#(narrow_as(rec1.t3, u32), 0x40000000_u32)
-    test::AssertEq#(narrow_as(rec1.t3, [32]u8)[0], 0_u8)
-    test::AssertEq#(narrow_as(rec1.t3, [32]u8)[1], 0_u8)
-    test::AssertEq#(narrow_as(rec1.t3, [32]u8)[2], 0_u8)
-    test::AssertEq#(narrow_as(rec1.t3, [32]u8)[3], 0x40_u8)
+    test\AssertEq#(narrow_as(rec1.t3, u32), 0x40000000_u32)
+    test\AssertEq#(narrow_as(rec1.t3, [32]u8)[0], 0_u8)
+    test\AssertEq#(narrow_as(rec1.t3, [32]u8)[1], 0_u8)
+    test\AssertEq#(narrow_as(rec1.t3, [32]u8)[2], 0_u8)
+    test\AssertEq#(narrow_as(rec1.t3, [32]u8)[3], 0x40_u8)
     ; union embedded in record 2
     let! rec2 = {RecordWithUntaggedUnion: false, 0x12344321, 2.0_r32, true}
-    test::AssertEq#(rec2.t1, false)
-    test::AssertEq#(rec2.t2, 0x12344321_u32)
-    test::AssertEq#(narrow_as(rec2.t3, u32), 0x40000000_u32)
-    test::AssertEq#(rec2.t4, true)
+    test\AssertEq#(rec2.t1, false)
+    test\AssertEq#(rec2.t2, 0x12344321_u32)
+    test\AssertEq#(narrow_as(rec2.t3, u32), 0x40000000_u32)
+    test\AssertEq#(rec2.t4, true)
     ;
     set narrow_as(rec1.t3, [32]u8)[2] = 0x28_u8
     set narrow_as(rec1.t3, [32]u8)[3] = 0x42_u8
-    test::AssertEq#(narrow_as(rec1.t3, u32), 0x42280000_u32)
-    test::AssertEq#(narrow_as(rec1.t3, r32), 42_r32)
+    test\AssertEq#(narrow_as(rec1.t3, u32), 0x42280000_u32)
+    test\AssertEq#(narrow_as(rec1.t3, r32), 42_r32)
     set rec1.t3 = 2.0_r64
-    test::AssertEq#(narrow_as(rec1.t3, u64), 0x4000000000000000_u64)
-    test::AssertEq#(narrow_as(rec1.t3, [32]u8)[3], 0_u8)
-    test::AssertEq#(narrow_as(rec1.t3, [32]u8)[7], 0x40_u8)
+    test\AssertEq#(narrow_as(rec1.t3, u64), 0x4000000000000000_u64)
+    test\AssertEq#(narrow_as(rec1.t3, [32]u8)[3], 0_u8)
+    test\AssertEq#(narrow_as(rec1.t3, [32]u8)[7], 0x40_u8)
     ; array of union
     let! array1 [16]UntaggedUnion = undef
     set array1[13] = 2.0_r32
-    test::AssertEq#(narrow_as(array1[13], u32), 0x40000000_u32)
-    test::AssertEq#(narrow_as(array1[13], [32]u8)[0], 0_u8)
-    test::AssertEq#(narrow_as(array1[13], [32]u8)[1], 0_u8)
-    test::AssertEq#(narrow_as(array1[13], [32]u8)[2], 0_u8)
-    test::AssertEq#(narrow_as(array1[13], [32]u8)[3], 0x40_u8)
+    test\AssertEq#(narrow_as(array1[13], u32), 0x40000000_u32)
+    test\AssertEq#(narrow_as(array1[13], [32]u8)[0], 0_u8)
+    test\AssertEq#(narrow_as(array1[13], [32]u8)[1], 0_u8)
+    test\AssertEq#(narrow_as(array1[13], [32]u8)[2], 0_u8)
+    test\AssertEq#(narrow_as(array1[13], [32]u8)[3], 0x40_u8)
     set narrow_as(array1[13], [32]u8)[2] = 0x28_u8
     set narrow_as(array1[13], [32]u8)[3] = 0x42_u8
-    test::AssertEq#(narrow_as(array1[13], u32), 0x42280000_u32)
-    test::AssertEq#(narrow_as(array1[13], r32), 42_r32)
+    test\AssertEq#(narrow_as(array1[13], u32), 0x42280000_u32)
+    test\AssertEq#(narrow_as(array1[13], r32), 42_r32)
     set u1 = with_union_result(true, 10, 2.0)
-    test::AssertEq#(narrow_as(u1, u32), 10_u32)
+    test\AssertEq#(narrow_as(u1, u32), 10_u32)
     set u1 = with_union_result(false, 10, 2.0)
-    test::AssertEq#(narrow_as(u1, u32), 0x40000000_u32)
+    test\AssertEq#(narrow_as(u1, u32), 0x40000000_u32)
     set array1[13] = 2.0_r64
-    test::AssertEq#(narrow_as(array1[13], u64), 0x4000000000000000_u64)
-    test::AssertEq#(narrow_as(array1[13], [32]u8)[3], 0_u8)
-    test::AssertEq#(narrow_as(array1[13], [32]u8)[7], 0x40_u8)
+    test\AssertEq#(narrow_as(array1[13], u64), 0x4000000000000000_u64)
+    test\AssertEq#(narrow_as(array1[13], [32]u8)[3], 0_u8)
+    test\AssertEq#(narrow_as(array1[13], [32]u8)[7], 0x40_u8)
 
 fun main(argc s32, argv ^^u8) s32:
     do test_untagged_union()
     ; test end
-    test::Success#()
+    test\Success#()
     return 0

@@ -50,28 +50,28 @@ fun edit_distance(a span(u8), b span(u8), tmp span!(uint)) uint:
         let! ddist = bindex
         for aindex = 0, alen, 1:
             let tdist = tmp[aindex]
-            ; fmt::print#(bindex, ":", aindex, " - ", ddist, " ", tdist, " ", ldist)
+            ; fmt\print#(bindex, ":", aindex, " - ", ddist, " ", tdist, " ", ldist)
             if bchar == a[aindex]:
                 ; use the edit distance for both substrings being 1 char shorter
                 set ldist = ddist
             else:
                 set ldist = 1 + min(ldist, min(tdist, ddist))
-            ; fmt::print#(" -> ", ldist, "\n")
+            ; fmt\print#(" -> ", ldist, "\n")
             set tmp[aindex] = ldist
             set ddist = tdist
     return ldist
 
 fun main(argc s32, argv ^^u8) s32:
     ref let! v = {[MAX_LEN]uint:}
-    test::AssertEq#(edit_distance("", "", v), 0_uint)
-    test::AssertEq#(edit_distance(TEST_STRING, TEST_STRING, v), 0_uint)
-    test::AssertEq#(edit_distance("", "abc", v), 3_uint)
-    test::AssertEq#(edit_distance("abc", "", v), 3_uint)
-    test::AssertEq#(edit_distance("ab", "a", v), 1_uint)
-    test::AssertEq#(edit_distance("abc", "ab", v), 1_uint)
-    test::AssertEq#(edit_distance("ab", "abc", v), 1_uint)
-    test::AssertEq#(edit_distance("a", "b", v), 1_uint)
-    test::AssertEq#(edit_distance("abcde", "abxde", v), 1_uint)
-    test::AssertEq#(edit_distance("abcde", "xabcd", v), 2_uint)
-    test::Success#()
+    test\AssertEq#(edit_distance("", "", v), 0_uint)
+    test\AssertEq#(edit_distance(TEST_STRING, TEST_STRING, v), 0_uint)
+    test\AssertEq#(edit_distance("", "abc", v), 3_uint)
+    test\AssertEq#(edit_distance("abc", "", v), 3_uint)
+    test\AssertEq#(edit_distance("ab", "a", v), 1_uint)
+    test\AssertEq#(edit_distance("abc", "ab", v), 1_uint)
+    test\AssertEq#(edit_distance("ab", "abc", v), 1_uint)
+    test\AssertEq#(edit_distance("a", "b", v), 1_uint)
+    test\AssertEq#(edit_distance("abcde", "abxde", v), 1_uint)
+    test\AssertEq#(edit_distance("abcde", "xabcd", v), 2_uint)
+    test\Success#()
     return 0

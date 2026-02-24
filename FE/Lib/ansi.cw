@@ -44,12 +44,15 @@ pub global CURSOR_HIDE span(u8) = "\x1b[?25l"
 
 pub global CURSOR_SHOW span(u8) = "\x1b[?25h"
 
+; same escape sequence with "f"
 pub macro POS# EXPR_LIST ($x EXPR, $y EXPR) []:
     "\x1b["
     $x
     ";"
     $y
-    "f"
+    "H"
+
+pub global QUERY_POS span(u8) = "\x1b[6n"
 
 ; Foreground Color
 pub global FG_COLOR_BLACK span(u8) = "\x1b[38;2;0;0;0m"

@@ -12,9 +12,9 @@ type Board = [DIM][DIM]bool
 fun DumpBoard(board ^Board) void:
     for i = 0, DIM, 1:
         for j = 0, DIM, 1:
-            fmt::print#(wrap_as(board^[i][j] ? 'Q' : '.', fmt::rune))
-        fmt::print#("\n")
-    fmt::print#("\n")
+            fmt\print#(wrap_as(board^[i][j] ? 'Q' : '.', fmt\rune))
+        fmt\print#("\n")
+    fmt\print#("\n")
 
 fun HasConflict(board ^Board, row s32, col s32) bool:
     for i = 0, row, 1:
@@ -43,7 +43,7 @@ fun main(argc s32, argv ^^u8) s32:
     ; initialized to false
     ref let! board = {[DIM][DIM]bool:}
     let n = Solve(@!board, 0)
-    fmt::print#(n, "\n")
-    test::AssertEq#(n, 724_uint)
-    test::Success#()
+    fmt\print#(n, "\n")
+    test\AssertEq#(n, 724_uint)
+    test\Success#()
     return 0

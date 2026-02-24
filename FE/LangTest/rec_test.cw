@@ -84,35 +84,35 @@ global f3 rec_funptr = {: addsub}
 
 fun test_rec_global() void:
     ; GLOBAL ALT
-    test::AssertEq#(g3_alt.u2, 0x1234_u16)
-    test::AssertEq#(g3_alt.u3, 0x4321_u64)
-    test::AssertEq#(g3_alt.u4.t1, true)
-    test::AssertEq#(g3_alt.u4.t2, 0x12345678_u32)
-    test::AssertEq#(g3_alt.u5[0], 0x11_u16)
-    test::AssertEq#(g3_alt.u5[2], 0x12_u16)
+    test\AssertEq#(g3_alt.u2, 0x1234_u16)
+    test\AssertEq#(g3_alt.u3, 0x4321_u64)
+    test\AssertEq#(g3_alt.u4.t1, true)
+    test\AssertEq#(g3_alt.u4.t2, 0x12345678_u32)
+    test\AssertEq#(g3_alt.u5[0], 0x11_u16)
+    test\AssertEq#(g3_alt.u5[2], 0x12_u16)
     ; GLOBAL
-    test::AssertEq#(g3.u2, 0x1234_u16)
-    test::AssertEq#(g3.u3, 0x4321_u64)
-    test::AssertEq#(g3.u4.t1, true)
-    test::AssertEq#(g3.u4.t2, 0x12345678_u32)
-    test::AssertEq#(g3.u5[0], 0x11_u16)
-    test::AssertEq#(g3.u5[2], 0x12_u16)
+    test\AssertEq#(g3.u2, 0x1234_u16)
+    test\AssertEq#(g3.u3, 0x4321_u64)
+    test\AssertEq#(g3.u4.t1, true)
+    test\AssertEq#(g3.u4.t2, 0x12345678_u32)
+    test\AssertEq#(g3.u5[0], 0x11_u16)
+    test\AssertEq#(g3.u5[2], 0x12_u16)
     set g3.u2 = 102
     set g3.u3 = 103
     set g3.u6 = 106
-    test::AssertEq#(g3.u2, 102_u16)
-    test::AssertEq#(g3.u3, 103_u64)
-    test::AssertEq#(g3.u6, 106_u64)
+    test\AssertEq#(g3.u2, 102_u16)
+    test\AssertEq#(g3.u3, 103_u64)
+    test\AssertEq#(g3.u6, 106_u64)
     set g3.u4.t1 = false
     set g3.u4.t2 = 402
-    test::AssertEq#(g3.u4.t2, 402_u32)
-    test::AssertEq#(g3.u4.t1, false)
+    test\AssertEq#(g3.u4.t2, 402_u32)
+    test\AssertEq#(g3.u4.t1, false)
     set g3.u5[2] = 502
     set g3.u5[3] = 503
     set g3.u5[10] = 510
-    test::AssertEq#(g3.u5[2], 502_u16)
-    test::AssertEq#(g3.u5[3], 503_u16)
-    test::AssertEq#(g3.u5[10], 510_u16)
+    test\AssertEq#(g3.u5[2], 502_u16)
+    test\AssertEq#(g3.u5[3], 503_u16)
+    test\AssertEq#(g3.u5[10], 510_u16)
 
 fun test_rec_local() void:
     ; LOCAL
@@ -120,24 +120,24 @@ fun test_rec_local() void:
     set v1.u2 = 102
     set v1.u3 = 103
     set v1.u6 = 106
-    test::AssertEq#(v1.u2, 102_u16)
-    test::AssertEq#(v1.u3, 103_u64)
-    test::AssertEq#(v1.u6, 106_u64)
+    test\AssertEq#(v1.u2, 102_u16)
+    test\AssertEq#(v1.u3, 103_u64)
+    test\AssertEq#(v1.u6, 106_u64)
     set v1.u4.t1 = false
     set v1.u4.t2 = 402
-    test::AssertEq#(v1.u4.t2, 402_u32)
-    test::AssertEq#(v1.u4.t1, false)
+    test\AssertEq#(v1.u4.t2, 402_u32)
+    test\AssertEq#(v1.u4.t1, false)
     set v1.u5[2] = 502
     set v1.u5[3] = 503
     set v1.u5[10] = 510
-    test::AssertEq#(v1.u5[2], 502_u16)
-    test::AssertEq#(v1.u5[3], 503_u16)
-    test::AssertEq#(v1.u5[10], 510_u16)
+    test\AssertEq#(v1.u5[2], 502_u16)
+    test\AssertEq#(v1.u5[3], 503_u16)
+    test\AssertEq#(v1.u5[10], 510_u16)
 
 fun test_rec_basic() void:
     let! g8 = {rec_type8: 66}
     set g8.t1 = 123
-    test::AssertEq#(g8.t1, 123_u32)
+    test\AssertEq#(g8.t1, 123_u32)
 
 
 fun main(argc s32, argv ^^u8) s32:
@@ -146,6 +146,6 @@ fun main(argc s32, argv ^^u8) s32:
     do test_rec_local()
 
     ; test end
-    test::Success#()
+    test\Success#()
     ; return
     return 0
