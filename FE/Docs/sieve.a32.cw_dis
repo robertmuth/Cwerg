@@ -1,0 +1,915 @@
+############################################################
+# GlobalRegAlloc _start
+############################################################
+# REGSTATS _start                 all:  0  0  glo:  0  0  loc:  0  2
+############################################################
+# GlobalRegAlloc a32_syscall_exit
+############################################################
+# REGSTATS a32_syscall_exit       all:  0  0  glo:  0  0  loc:  0  0
+############################################################
+# GlobalRegAlloc a32_syscall_write
+############################################################
+# REGSTATS a32_syscall_write      all:  0  0  glo:  0  0  loc:  0  0
+############################################################
+# GlobalRegAlloc exit
+############################################################
+# REGSTATS exit                   all:  0  1  glo:  0  0  loc:  0  1
+############################################################
+# GlobalRegAlloc write
+############################################################
+# REGSTATS write                  all:  1  2  glo:  0  0  loc:  0  3
+############################################################
+# GlobalRegAlloc sieve_test/sieve
+############################################################
+# REGSTATS sieve_test/sieve       all:  0  0  glo:  0  5  loc:  0  3
+############################################################
+# GlobalRegAlloc main
+############################################################
+# REGSTATS main                   all:  2  1  glo:  0  0  loc:  1  2
+# size 8
+.mem $gen/global_val_1 1 rodata
+    .data 1 "AssertEq"
+.endmem
+# size 11
+.mem $gen/global_val_2 1 rodata
+    .data 1 " failed in "
+.endmem
+# size 54
+.mem $gen/global_val_3 1 rodata
+    .data 1 "/home/muth/Projects/Cwerg/FE/LangTest/sieve_test.cw:31"
+.endmem
+# size 2
+.mem $gen/global_val_4 1 rodata
+    .data 1 ": "
+.endmem
+# size 8
+.mem $gen/global_val_5 1 rodata
+    .data 1 "ExprCall"
+.endmem
+# size 4
+.mem $gen/global_val_6 1 rodata
+    .data 1 " VS "
+.endmem
+# size 2
+.mem $gen/global_val_7 1 rodata
+    .data 1 "Id"
+.endmem
+# size 4
+.mem $gen/global_val_8 1 rodata
+    .data 1 " at "
+.endmem
+# size 1
+.mem $gen/global_val_9 1 rodata
+    .data 1 "\n"
+.endmem
+# size 3
+.mem $gen/global_val_10 1 rodata
+    .data 1 "OK\n"
+.endmem
+# size 4
+.mem os/EPERM 4 rodata
+    .data 4 "\xff"
+.endmem
+# size 4
+.mem os/ENOENT 4 rodata
+    .data 1 "\xfe\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ESRCH 4 rodata
+    .data 1 "\xfd\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EINTR 4 rodata
+    .data 1 "\xfc\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EIO 4 rodata
+    .data 1 "\xfb\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENXIO 4 rodata
+    .data 1 "\xfa\xff\xff\xff"
+.endmem
+# size 4
+.mem os/E2BIG 4 rodata
+    .data 1 "\xf9\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOEXEC 4 rodata
+    .data 1 "\xf8\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBADF 4 rodata
+    .data 1 "\xf7\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ECHILD 4 rodata
+    .data 1 "\xf6\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EAGAIN 4 rodata
+    .data 1 "\xf5\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOMEM 4 rodata
+    .data 1 "\xf4\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EACCES 4 rodata
+    .data 1 "\xf3\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EFAULT 4 rodata
+    .data 1 "\xf2\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTBLK 4 rodata
+    .data 1 "\xf1\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBUSY 4 rodata
+    .data 1 "\xf0\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EEXIST 4 rodata
+    .data 1 "\xef\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EXDEV 4 rodata
+    .data 1 "\xee\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENODEV 4 rodata
+    .data 1 "\xed\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTDIR 4 rodata
+    .data 1 "\xec\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EISDIR 4 rodata
+    .data 1 "\xeb\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EINVAL 4 rodata
+    .data 1 "\xea\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENFILE 4 rodata
+    .data 1 "\xe9\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EMFILE 4 rodata
+    .data 1 "\xe8\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTTY 4 rodata
+    .data 1 "\xe7\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ETXTBSY 4 rodata
+    .data 1 "\xe6\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EFBIG 4 rodata
+    .data 1 "\xe5\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOSPC 4 rodata
+    .data 1 "\xe4\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ESPIPE 4 rodata
+    .data 1 "\xe3\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EROFS 4 rodata
+    .data 1 "\xe2\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EMLINK 4 rodata
+    .data 1 "\xe1\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EPIPE 4 rodata
+    .data 1 "\xe0\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EDOM 4 rodata
+    .data 1 "\xdf\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ERANGE 4 rodata
+    .data 1 "\xde\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EDEADLK 4 rodata
+    .data 1 "\xdd\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENAMETOOLONG 4 rodata
+    .data 1 "\xdc\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOLCK 4 rodata
+    .data 1 "\xdb\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOSYS 4 rodata
+    .data 1 "\xda\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTEMPTY 4 rodata
+    .data 1 "\xd9\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ELOOP 4 rodata
+    .data 1 "\xd8\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOMSG 4 rodata
+    .data 1 "\xd6\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EIDRM 4 rodata
+    .data 1 "\xd5\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ECHRNG 4 rodata
+    .data 1 "\xd4\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EL2NSYNC 4 rodata
+    .data 1 "\xd3\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EL3HLT 4 rodata
+    .data 1 "\xd2\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EL3RST 4 rodata
+    .data 1 "\xd1\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ELNRNG 4 rodata
+    .data 1 "\xd0\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EUNATCH 4 rodata
+    .data 1 "\xcf\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOCSI 4 rodata
+    .data 1 "\xce\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EL2HLT 4 rodata
+    .data 1 "\xcd\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBADE 4 rodata
+    .data 1 "\xcc\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBADR 4 rodata
+    .data 1 "\xcb\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EXFULL 4 rodata
+    .data 1 "\xca\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOANO 4 rodata
+    .data 1 "\xc9\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBADRQC 4 rodata
+    .data 1 "\xc8\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBADSLT 4 rodata
+    .data 1 "\xc7\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBFONT 4 rodata
+    .data 1 "\xc5\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOSTR 4 rodata
+    .data 1 "\xc4\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENODATA 4 rodata
+    .data 1 "\xc3\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ETIME 4 rodata
+    .data 1 "\xc2\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOSR 4 rodata
+    .data 1 "\xc1\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENONET 4 rodata
+    .data 1 "\xc0\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOPKG 4 rodata
+    .data 1 "\xbf\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EREMOTE 4 rodata
+    .data 1 "\xbe\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOLINK 4 rodata
+    .data 1 "\xbd\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EADV 4 rodata
+    .data 1 "\xbc\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ESRMNT 4 rodata
+    .data 1 "\xbb\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ECOMM 4 rodata
+    .data 1 "\xba\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EPROTO 4 rodata
+    .data 1 "\xb9\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EMULTIHOP 4 rodata
+    .data 1 "\xb8\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EDOTDOT 4 rodata
+    .data 1 "\xb7\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBADMSG 4 rodata
+    .data 1 "\xb6\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EOVERFLOW 4 rodata
+    .data 1 "\xb5\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTUNIQ 4 rodata
+    .data 1 "\xb4\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EBADFD 4 rodata
+    .data 1 "\xb3\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EREMCHG 4 rodata
+    .data 1 "\xb2\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ELIBACC 4 rodata
+    .data 1 "\xb1\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ELIBBAD 4 rodata
+    .data 1 "\xb0\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ELIBSCN 4 rodata
+    .data 1 "\xaf\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ELIBMAX 4 rodata
+    .data 1 "\xae\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ELIBEXEC 4 rodata
+    .data 1 "\xad\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EILSEQ 4 rodata
+    .data 1 "\xac\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ERESTART 4 rodata
+    .data 1 "\xab\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ESTRPIPE 4 rodata
+    .data 1 "\xaa\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EUSERS 4 rodata
+    .data 1 "\xa9\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTSOCK 4 rodata
+    .data 1 "\xa8\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EDESTADDRREQ 4 rodata
+    .data 1 "\xa7\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EMSGSIZE 4 rodata
+    .data 1 "\xa6\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EPROTOTYPE 4 rodata
+    .data 1 "\xa5\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOPROTOOPT 4 rodata
+    .data 1 "\xa4\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EPROTONOSUPPORT 4 rodata
+    .data 1 "\xa3\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ESOCKTNOSUPPORT 4 rodata
+    .data 1 "\xa2\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EOPNOTSUPP 4 rodata
+    .data 1 "\xa1\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EPFNOSUPPORT 4 rodata
+    .data 1 "\xa0\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EAFNOSUPPORT 4 rodata
+    .data 1 "\x9f\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EADDRINUSE 4 rodata
+    .data 1 "\x9e\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EADDRNOTAVAIL 4 rodata
+    .data 1 "\x9d\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENETDOWN 4 rodata
+    .data 1 "\x9c\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENETUNREACH 4 rodata
+    .data 1 "\x9b\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENETRESET 4 rodata
+    .data 1 "\x9a\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ECONNABORTED 4 rodata
+    .data 1 "\x99\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ECONNRESET 4 rodata
+    .data 1 "\x98\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOBUFS 4 rodata
+    .data 1 "\x97\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EISCONN 4 rodata
+    .data 1 "\x96\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTCONN 4 rodata
+    .data 1 "\x95\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ESHUTDOWN 4 rodata
+    .data 1 "\x94\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ETOOMANYREFS 4 rodata
+    .data 1 "\x93\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ETIMEDOUT 4 rodata
+    .data 1 "\x92\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ECONNREFUSED 4 rodata
+    .data 1 "\x91\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EHOSTDOWN 4 rodata
+    .data 1 "\x90\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EHOSTUNREACH 4 rodata
+    .data 1 "\x8f\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EALREADY 4 rodata
+    .data 1 "\x8e\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EINPROGRESS 4 rodata
+    .data 1 "\x8d\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ESTALE 4 rodata
+    .data 1 "\x8c\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EUCLEAN 4 rodata
+    .data 1 "\x8b\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTNAM 4 rodata
+    .data 1 "\x8a\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENAVAIL 4 rodata
+    .data 1 "\x89\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EISNAM 4 rodata
+    .data 1 "\x88\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EREMOTEIO 4 rodata
+    .data 1 "\x87\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EDQUOT 4 rodata
+    .data 1 "\x86\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOMEDIUM 4 rodata
+    .data 1 "\x85\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EMEDIUMTYPE 4 rodata
+    .data 1 "\x84\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ECANCELED 4 rodata
+    .data 1 "\x83\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOKEY 4 rodata
+    .data 1 "\x82\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EKEYEXPIRED 4 rodata
+    .data 1 "\x81\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EKEYREVOKED 4 rodata
+    .data 1 "\x80\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EKEYREJECTED 4 rodata
+    .data 1 "\x7f\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EOWNERDEAD 4 rodata
+    .data 1 "~\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ENOTRECOVERABLE 4 rodata
+    .data 1 "}\xff\xff\xff"
+.endmem
+# size 4
+.mem os/ERFKILL 4 rodata
+    .data 1 "|\xff\xff\xff"
+.endmem
+# size 4
+.mem os/EHWPOISON 4 rodata
+    .data 1 "{\xff\xff\xff"
+.endmem
+# size 4
+.mem os/Stdin 4 rodata
+    .data 4 "\x00"
+.endmem
+# size 4
+.mem os/Stdout 4 rodata
+    .data 1 "\x01\x00\x00\x00"
+.endmem
+# size 4
+.mem os/Stderr 4 rodata
+    .data 1 "\x02\x00\x00\x00"
+.endmem
+# size 4
+.mem os/O_CREAT 4 rodata
+    .data 1 "@\x00\x00\x00"
+.endmem
+# size 4
+.mem os/O_EXCL 4 rodata
+    .data 1 "\x80\x00\x00\x00"
+.endmem
+# size 4
+.mem os/O_NOCTTY 4 rodata
+    .data 1 "\x00\x01\x00\x00"
+.endmem
+# size 4
+.mem os/O_TRUNC 4 rodata
+    .data 1 "\x00\x02\x00\x00"
+.endmem
+# size 4
+.mem os/O_APPEND 4 rodata
+    .data 1 "\x00\x04\x00\x00"
+.endmem
+# size 4
+.mem os/O_ACCMODE 4 rodata
+    .data 1 "\x03\x00\x00\x00"
+.endmem
+# size 4
+.mem os/O_RDONLY 4 rodata
+    .data 4 "\x00"
+.endmem
+# size 4
+.mem os/O_WRONLY 4 rodata
+    .data 1 "\x01\x00\x00\x00"
+.endmem
+# size 4
+.mem os/O_RDWR 4 rodata
+    .data 1 "\x02\x00\x00\x00"
+.endmem
+# size 4
+.mem os/O_NONBLOCK 4 rodata
+    .data 1 "\x00\x08\x00\x00"
+.endmem
+# size 4
+.mem os/O_DSYNC 4 rodata
+    .data 1 "\x00\x10\x00\x00"
+.endmem
+# size 4
+.mem os/O_DIRECT 4 rodata
+    .data 1 "\x00@\x00\x00"
+.endmem
+# size 4
+.mem os/O_LARGEFILE 4 rodata
+    .data 1 "\x00\x80\x00\x00"
+.endmem
+# size 4
+.mem os/O_DIRECTORY 4 rodata
+    .data 1 "\x00\x00\x01\x00"
+.endmem
+# size 4
+.mem os/O_NOFOLLOW 4 rodata
+    .data 1 "\x00\x00\x02\x00"
+.endmem
+# size 4
+.mem os/O_NOATIME 4 rodata
+    .data 1 "\x00\x00\x04\x00"
+.endmem
+# size 4
+.mem os/O_CLOEXEC 4 rodata
+    .data 1 "\x00\x00\x08\x00"
+.endmem
+# size 4
+.mem sieve_test/SIZE 4 rodata
+    .data 1 "@B\x0f\x00"
+.endmem
+# size 4
+.mem sieve_test/EXPECTED 4 rodata
+    .data 1 "\xc4E\x02\x00"
+.endmem
+# size 1000000
+.mem sieve_test/is_prime 1 data
+    .data 1000000 "\x01"
+.endmem
+# sig: IN: [] -> OUT: []  stk_size:0
+.fun _start 16
+    stmdb_update al sp reglist:0x4000
+    sub_imm al sp sp 12
+.bbl entry 4
+    movw al r0 16
+    add_regimm al r0 sp r0 lsl 0
+    ldr_imm_add al r2 r0 0
+    add_imm al r0 r0 4
+    mov_regimm al r1 r0 lsl 0
+    mov_regimm al r0 r2 lsl 0
+    bl al expr:call:main
+    bl al expr:call:exit
+    add_imm al sp sp 12
+    ldmia_update al reglist:0x8000 sp
+.endfun
+# sig: IN: [S32] -> OUT: []  stk_size:0
+.fun exit 16
+.bbl start 4
+    str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
+    movw al r7 1
+    svc al 0
+    ldr_imm_add_post al r7 sp 4
+    ldr_imm_add_post al r7 sp 4
+    ud2 al
+.endfun
+# sig: IN: [S32 A32 U32] -> OUT: [S32]  stk_size:0
+.fun write 16
+.bbl start 4
+    str_imm_sub_pre al sp 4 r7
+    str_imm_sub_pre al sp 4 r7
+    movw al r7 4
+    svc al 0
+    ldr_imm_add_post al r7 sp 4
+    ldr_imm_add_post al r7 sp 4
+    bx al lr
+.endfun
+# sig: IN: [] -> OUT: [U32]  stk_size:0
+.fun sieve_test/sieve 16
+    stmdb_update al sp reglist:0x4000
+    sub_imm al sp sp 12
+.bbl entry 4
+    mov_imm al r3 0
+    mov_imm al ip 0
+.bbl _ 4
+    movw al r0 16960
+    movt al r0 15
+    cmp_regimm al r0 ip lsl 0
+    b ls expr:jump24:_.end
+.bbl br_join 4
+    mov_regimm al r4 ip lsl 0
+    add_imm al ip ip 1
+    movw al r0 expr:movw_abs_nc:sieve_test/is_prime
+    movt al r0 expr:movt_abs:sieve_test/is_prime
+    ldrb_reg_add al r0 r0 r4 lsl 0
+    uxtb al r0 r0 0
+    mov_regimm al r0 r0 lsl 0
+    uxtb al r0 r0 0
+    cmp_imm al r0 0
+    b eq expr:jump24:_
+.bbl br_join_1 4
+    add_imm al r3 r3 1
+    add_regimm al r0 r4 r4 lsl 0
+    add_imm al lr r0 3
+    add_regimm al r5 r4 lr lsl 0
+.bbl _.1 4
+    cmp_imm al lr 0
+    b cc expr:jump24:br_f
+.bbl _.1_1 4
+    movw al r0 16960
+    movt al r0 15
+    cmp_regimm al r5 r0 lsl 0
+    b cc expr:jump24:br_join.3
+.bbl _.1_1bra1 4
+    b al expr:jump24:_
+.bbl br_f 4
+    movw al r0 16960
+    movt al r0 15
+    cmp_regimm al r5 r0 lsl 0
+    b ls expr:jump24:_
+.bbl br_join.3 4
+    mov_regimm al r0 r5 lsl 0
+    add_regimm al r5 r5 lr lsl 0
+    movw al r1 expr:movw_abs_nc:sieve_test/is_prime
+    movt al r1 expr:movt_abs:sieve_test/is_prime
+    mov_imm al r2 0
+    strb_reg_add al r1 r0 lsl 0 r2
+    b al expr:jump24:_.1
+.bbl _.end 4
+    mov_regimm al r0 r3 lsl 0
+    add_imm al sp sp 12
+    ldmia_update al reglist:0x8000 sp
+.endfun
+# sig: IN: [S32 A32] -> OUT: [S32]  stk_size:88
+.fun main 16
+    stmdb_update al sp reglist:0x4040
+    sub_imm al sp sp 88
+.bbl entry 4
+    mov_regimm al r2 r0 lsl 0
+    bl al expr:call:sieve_test/sieve
+    movw al r1 17860
+    movt al r1 2
+    cmp_regimm al r0 r1 lsl 0
+    b eq expr:jump24:br_join
+.bbl entry_1 4
+    movw al r0 expr:movw_abs_nc:$gen/global_val_1
+    movt al r0 expr:movt_abs:$gen/global_val_1
+    str_imm_add al sp 0 r0
+    mov_imm al r0 8
+    str_imm_add al sp 4 r0
+    ldr_imm_add al r0 sp 0
+    mov_imm al r2 8
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_2
+    movt al r0 expr:movt_abs:$gen/global_val_2
+    str_imm_add al sp 24 r0
+    mov_imm al r0 11
+    str_imm_add al sp 28 r0
+    ldr_imm_add al r0 sp 24
+    mov_imm al r2 11
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_3
+    movt al r0 expr:movt_abs:$gen/global_val_3
+    str_imm_add al sp 32 r0
+    mov_imm al r0 54
+    str_imm_add al sp 36 r0
+    ldr_imm_add al r0 sp 32
+    mov_imm al r2 54
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_4
+    movt al r0 expr:movt_abs:$gen/global_val_4
+    str_imm_add al sp 40 r0
+    mov_imm al r0 2
+    str_imm_add al sp 44 r0
+    ldr_imm_add al r0 sp 40
+    mov_imm al r2 2
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_5
+    movt al r0 expr:movt_abs:$gen/global_val_5
+    str_imm_add al sp 48 r0
+    mov_imm al r0 8
+    str_imm_add al sp 52 r0
+    ldr_imm_add al r0 sp 48
+    mov_imm al r2 8
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_6
+    movt al r0 expr:movt_abs:$gen/global_val_6
+    str_imm_add al sp 56 r0
+    mov_imm al r6 4
+    str_imm_add al sp 60 r6
+    ldr_imm_add al r0 sp 56
+    mov_imm al r2 4
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_7
+    movt al r0 expr:movt_abs:$gen/global_val_7
+    str_imm_add al sp 64 r0
+    mov_imm al r0 2
+    str_imm_add al sp 68 r0
+    ldr_imm_add al r0 sp 64
+    mov_imm al r2 2
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_8
+    movt al r0 expr:movt_abs:$gen/global_val_8
+    str_imm_add al sp 72 r0
+    str_imm_add al sp 76 r6
+    ldr_imm_add al r0 sp 72
+    mov_imm al r2 4
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_3
+    movt al r0 expr:movt_abs:$gen/global_val_3
+    str_imm_add al sp 80 r0
+    mov_imm al r0 54
+    str_imm_add al sp 84 r0
+    ldr_imm_add al r0 sp 80
+    mov_imm al r2 54
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r3 r0 lsl 0
+    movw al r0 expr:movw_abs_nc:$gen/global_val_9
+    movt al r0 expr:movt_abs:$gen/global_val_9
+    str_imm_add al sp 8 r0
+    mov_imm al r0 1
+    str_imm_add al sp 12 r0
+    ldr_imm_add al r0 sp 8
+    mov_imm al r2 1
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    ud2 al
+.bbl br_join 4
+    movw al r0 expr:movw_abs_nc:$gen/global_val_10
+    movt al r0 expr:movt_abs:$gen/global_val_10
+    str_imm_add al sp 16 r0
+    mov_imm al r0 3
+    str_imm_add al sp 20 r0
+    ldr_imm_add al r0 sp 16
+    mov_imm al r2 3
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 1
+    bl al expr:call:write
+    mov_regimm al r1 r0 lsl 0
+    mov_imm al r0 0
+    add_imm al sp sp 88
+    ldmia_update al reglist:0x8040 sp
+.endfun

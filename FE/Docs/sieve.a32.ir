@@ -1,0 +1,696 @@
+
+
+.fun $sig/S32_S32_A32_U32 SIGNATURE [S32] = [S32 A32 U32]
+
+
+.fun $sig/U32_void SIGNATURE [U32] = []
+
+
+.fun $sig/S32_S32_A32 SIGNATURE [S32] = [S32 A32]
+
+.mem $gen/global_val_1 1 RO
+.data 1 "AssertEq" # 0 8 vec<8,u8>
+
+.mem $gen/global_val_2 1 RO
+.data 1 " failed in " # 0 11 vec<11,u8>
+
+.mem $gen/global_val_3 1 RO
+.data 1 "/home/muth/Projects/Cwerg/FE/LangTest/sieve_test.cw:31" # 0 54 vec<54,u8>
+
+.mem $gen/global_val_4 1 RO
+.data 1 ": " # 0 2 vec<2,u8>
+
+.mem $gen/global_val_5 1 RO
+.data 1 "ExprCall" # 0 8 vec<8,u8>
+
+.mem $gen/global_val_6 1 RO
+.data 1 " VS " # 0 4 vec<4,u8>
+
+.mem $gen/global_val_7 1 RO
+.data 1 "Id" # 0 2 vec<2,u8>
+
+.mem $gen/global_val_8 1 RO
+.data 1 " at " # 0 4 vec<4,u8>
+
+.mem $gen/global_val_9 1 RO
+.data 1 [10] # 0 1 vec<1,u8>
+
+.mem $gen/global_val_10 1 RO
+.data 1 "OK\n" # 0 3 vec<3,u8>
+
+.mem os/EPERM 4 RO
+.data 4 [255] # 0 4 wrapped<os/Error>
+
+.mem os/ENOENT 4 RO
+.data 1 "\xfe\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ESRCH 4 RO
+.data 1 "\xfd\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EINTR 4 RO
+.data 1 "\xfc\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EIO 4 RO
+.data 1 "\xfb\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENXIO 4 RO
+.data 1 "\xfa\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/E2BIG 4 RO
+.data 1 "\xf9\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOEXEC 4 RO
+.data 1 "\xf8\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBADF 4 RO
+.data 1 "\xf7\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ECHILD 4 RO
+.data 1 "\xf6\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EAGAIN 4 RO
+.data 1 "\xf5\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOMEM 4 RO
+.data 1 "\xf4\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EACCES 4 RO
+.data 1 "\xf3\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EFAULT 4 RO
+.data 1 "\xf2\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTBLK 4 RO
+.data 1 "\xf1\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBUSY 4 RO
+.data 1 "\xf0\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EEXIST 4 RO
+.data 1 "\xef\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EXDEV 4 RO
+.data 1 "\xee\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENODEV 4 RO
+.data 1 "\xed\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTDIR 4 RO
+.data 1 "\xec\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EISDIR 4 RO
+.data 1 "\xeb\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EINVAL 4 RO
+.data 1 "\xea\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENFILE 4 RO
+.data 1 "\xe9\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EMFILE 4 RO
+.data 1 "\xe8\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTTY 4 RO
+.data 1 "\xe7\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ETXTBSY 4 RO
+.data 1 "\xe6\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EFBIG 4 RO
+.data 1 "\xe5\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOSPC 4 RO
+.data 1 "\xe4\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ESPIPE 4 RO
+.data 1 "\xe3\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EROFS 4 RO
+.data 1 "\xe2\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EMLINK 4 RO
+.data 1 "\xe1\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EPIPE 4 RO
+.data 1 "\xe0\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EDOM 4 RO
+.data 1 "\xdf\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ERANGE 4 RO
+.data 1 "\xde\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EDEADLK 4 RO
+.data 1 "\xdd\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENAMETOOLONG 4 RO
+.data 1 "\xdc\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOLCK 4 RO
+.data 1 "\xdb\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOSYS 4 RO
+.data 1 "\xda\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTEMPTY 4 RO
+.data 1 "\xd9\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ELOOP 4 RO
+.data 1 "\xd8\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOMSG 4 RO
+.data 1 "\xd6\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EIDRM 4 RO
+.data 1 "\xd5\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ECHRNG 4 RO
+.data 1 "\xd4\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EL2NSYNC 4 RO
+.data 1 "\xd3\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EL3HLT 4 RO
+.data 1 "\xd2\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EL3RST 4 RO
+.data 1 "\xd1\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ELNRNG 4 RO
+.data 1 "\xd0\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EUNATCH 4 RO
+.data 1 "\xcf\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOCSI 4 RO
+.data 1 "\xce\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EL2HLT 4 RO
+.data 1 "\xcd\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBADE 4 RO
+.data 1 "\xcc\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBADR 4 RO
+.data 1 "\xcb\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EXFULL 4 RO
+.data 1 "\xca\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOANO 4 RO
+.data 1 "\xc9\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBADRQC 4 RO
+.data 1 "\xc8\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBADSLT 4 RO
+.data 1 "\xc7\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBFONT 4 RO
+.data 1 "\xc5\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOSTR 4 RO
+.data 1 "\xc4\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENODATA 4 RO
+.data 1 "\xc3\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ETIME 4 RO
+.data 1 "\xc2\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOSR 4 RO
+.data 1 "\xc1\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENONET 4 RO
+.data 1 "\xc0\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOPKG 4 RO
+.data 1 "\xbf\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EREMOTE 4 RO
+.data 1 "\xbe\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOLINK 4 RO
+.data 1 "\xbd\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EADV 4 RO
+.data 1 "\xbc\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ESRMNT 4 RO
+.data 1 "\xbb\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ECOMM 4 RO
+.data 1 "\xba\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EPROTO 4 RO
+.data 1 "\xb9\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EMULTIHOP 4 RO
+.data 1 "\xb8\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EDOTDOT 4 RO
+.data 1 "\xb7\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBADMSG 4 RO
+.data 1 "\xb6\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EOVERFLOW 4 RO
+.data 1 "\xb5\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTUNIQ 4 RO
+.data 1 "\xb4\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EBADFD 4 RO
+.data 1 "\xb3\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EREMCHG 4 RO
+.data 1 "\xb2\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ELIBACC 4 RO
+.data 1 "\xb1\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ELIBBAD 4 RO
+.data 1 "\xb0\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ELIBSCN 4 RO
+.data 1 "\xaf\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ELIBMAX 4 RO
+.data 1 "\xae\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ELIBEXEC 4 RO
+.data 1 "\xad\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EILSEQ 4 RO
+.data 1 "\xac\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ERESTART 4 RO
+.data 1 "\xab\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ESTRPIPE 4 RO
+.data 1 "\xaa\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EUSERS 4 RO
+.data 1 "\xa9\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTSOCK 4 RO
+.data 1 "\xa8\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EDESTADDRREQ 4 RO
+.data 1 "\xa7\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EMSGSIZE 4 RO
+.data 1 "\xa6\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EPROTOTYPE 4 RO
+.data 1 "\xa5\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOPROTOOPT 4 RO
+.data 1 "\xa4\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EPROTONOSUPPORT 4 RO
+.data 1 "\xa3\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ESOCKTNOSUPPORT 4 RO
+.data 1 "\xa2\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EOPNOTSUPP 4 RO
+.data 1 "\xa1\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EPFNOSUPPORT 4 RO
+.data 1 "\xa0\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EAFNOSUPPORT 4 RO
+.data 1 "\x9f\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EADDRINUSE 4 RO
+.data 1 "\x9e\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EADDRNOTAVAIL 4 RO
+.data 1 "\x9d\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENETDOWN 4 RO
+.data 1 "\x9c\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENETUNREACH 4 RO
+.data 1 "\x9b\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENETRESET 4 RO
+.data 1 "\x9a\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ECONNABORTED 4 RO
+.data 1 "\x99\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ECONNRESET 4 RO
+.data 1 "\x98\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOBUFS 4 RO
+.data 1 "\x97\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EISCONN 4 RO
+.data 1 "\x96\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTCONN 4 RO
+.data 1 "\x95\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ESHUTDOWN 4 RO
+.data 1 "\x94\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ETOOMANYREFS 4 RO
+.data 1 "\x93\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ETIMEDOUT 4 RO
+.data 1 "\x92\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ECONNREFUSED 4 RO
+.data 1 "\x91\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EHOSTDOWN 4 RO
+.data 1 "\x90\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EHOSTUNREACH 4 RO
+.data 1 "\x8f\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EALREADY 4 RO
+.data 1 "\x8e\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EINPROGRESS 4 RO
+.data 1 "\x8d\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ESTALE 4 RO
+.data 1 "\x8c\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EUCLEAN 4 RO
+.data 1 "\x8b\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTNAM 4 RO
+.data 1 "\x8a\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENAVAIL 4 RO
+.data 1 "\x89\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EISNAM 4 RO
+.data 1 "\x88\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EREMOTEIO 4 RO
+.data 1 "\x87\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EDQUOT 4 RO
+.data 1 "\x86\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOMEDIUM 4 RO
+.data 1 "\x85\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EMEDIUMTYPE 4 RO
+.data 1 "\x84\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ECANCELED 4 RO
+.data 1 "\x83\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOKEY 4 RO
+.data 1 "\x82\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EKEYEXPIRED 4 RO
+.data 1 "\x81\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EKEYREVOKED 4 RO
+.data 1 "\x80\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EKEYREJECTED 4 RO
+.data 1 "\x7f\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EOWNERDEAD 4 RO
+.data 1 "~\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ENOTRECOVERABLE 4 RO
+.data 1 "}\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/ERFKILL 4 RO
+.data 1 "|\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/EHWPOISON 4 RO
+.data 1 "{\xff\xff\xff" # 0 4 wrapped<os/Error>
+
+.mem os/Stdin 4 RO
+.data 4 [0] # 0 4 wrapped<os/FD>
+
+.mem os/Stdout 4 RO
+.data 1 "\x01\x00\x00\x00" # 0 4 wrapped<os/FD>
+
+.mem os/Stderr 4 RO
+.data 1 "\x02\x00\x00\x00" # 0 4 wrapped<os/FD>
+
+.mem os/O_CREAT 4 RO
+.data 1 "@\x00\x00\x00" # 0 4 u32
+
+.mem os/O_EXCL 4 RO
+.data 1 "\x80\x00\x00\x00" # 0 4 u32
+
+.mem os/O_NOCTTY 4 RO
+.data 1 "\x00\x01\x00\x00" # 0 4 u32
+
+.mem os/O_TRUNC 4 RO
+.data 1 "\x00\x02\x00\x00" # 0 4 u32
+
+.mem os/O_APPEND 4 RO
+.data 1 "\x00\x04\x00\x00" # 0 4 u32
+
+.mem os/O_ACCMODE 4 RO
+.data 1 "\x03\x00\x00\x00" # 0 4 u32
+
+.mem os/O_RDONLY 4 RO
+.data 4 [0] # 0 4 u32
+
+.mem os/O_WRONLY 4 RO
+.data 1 "\x01\x00\x00\x00" # 0 4 u32
+
+.mem os/O_RDWR 4 RO
+.data 1 "\x02\x00\x00\x00" # 0 4 u32
+
+.mem os/O_NONBLOCK 4 RO
+.data 1 "\x00\x08\x00\x00" # 0 4 u32
+
+.mem os/O_DSYNC 4 RO
+.data 1 "\x00\x10\x00\x00" # 0 4 u32
+
+.mem os/O_DIRECT 4 RO
+.data 1 "\x00@\x00\x00" # 0 4 u32
+
+.mem os/O_LARGEFILE 4 RO
+.data 1 "\x00\x80\x00\x00" # 0 4 u32
+
+.mem os/O_DIRECTORY 4 RO
+.data 1 "\x00\x00\x01\x00" # 0 4 u32
+
+.mem os/O_NOFOLLOW 4 RO
+.data 1 "\x00\x00\x02\x00" # 0 4 u32
+
+.mem os/O_NOATIME 4 RO
+.data 1 "\x00\x00\x04\x00" # 0 4 u32
+
+.mem os/O_CLOEXEC 4 RO
+.data 1 "\x00\x00\x08\x00" # 0 4 u32
+
+.mem sieve_test/SIZE 4 RO
+.data 1 "@B\x0f\x00" # 0 4 u32
+
+.mem sieve_test/EXPECTED 4 RO
+.data 1 "\xc4E\x02\x00" # 0 4 u32
+
+.mem sieve_test/is_prime 1 RW
+.data 1000000 [1] # 0 1000000 vec<1000000,bool>
+
+
+.fun sieve_test/sieve NORMAL [U32] = []
+.bbl entry
+  mov count:U32 = 0:U32
+  mov it%2:U32 = 0:U32
+.bbl _
+  blt it%2 1000000:U32 br_join.1
+  bra _.end  # break
+.bbl br_join.1
+.bbl br_join
+  mov i:U32 = it%2
+  add expr2:U32 = it%2 1:U32
+  mov it%2 = expr2
+  lea.mem lhsaddr:A32 = sieve_test/is_prime 0
+  lea new_base:A32 = lhsaddr i
+  ld deref:U8 = new_base 0
+  beq deref 0 br_join.2
+  add expr2.1:U32 = count 1:U32
+  mov count = expr2.1
+  add expr2.2:U32 = i i
+  add expr2.3:U32 = expr2.2 3:U32
+  mov p:U32 = expr2.3
+  add expr2.4:U32 = i p
+  mov it%1:U32 = expr2.4
+.bbl _.1
+  blt p 0:U32 br_f
+  blt it%1 1000000:U32 br_join.4
+  bra _.1.end  # break
+.bbl br_join.4
+  bra br_join.3
+.bbl br_f
+  blt 1000000:U32 it%1 br_join.5
+  bra _.1.end  # break
+.bbl br_join.5
+.bbl br_join.3
+  mov k:U32 = it%1
+  add expr2.5:U32 = it%1 p
+  mov it%1 = expr2.5
+  lea.mem lhsaddr.1:A32 = sieve_test/is_prime 0
+  lea new_base.1:A32 = lhsaddr.1 k
+  st new_base.1 0 = 0:U8
+  bra _.1  # continue
+.bbl _.1.end
+.bbl br_join.2
+  bra _  # continue
+.bbl _.end
+  pusharg count
+  ret
+
+
+.fun main NORMAL [S32] = [S32 A32]
+.bbl entry
+  poparg argc:S32
+  poparg argv:A32
+  bsr sieve_test/sieve
+  poparg call:U32
+  mov e_val%1:U32 = call
+  beq e_val%1 148932:U32 br_join
+  .stk msg_eval%1 4 8
+  lea.stk var_stk_base:A32 msg_eval%1 0
+  lea.mem lhsaddr:A32 = $gen/global_val_1 0
+  st var_stk_base 0 = lhsaddr
+  st var_stk_base 4 = 8:U32
+  lea.stk lhsaddr.1:A32 = msg_eval%1 0
+  ld pointer:A32 = lhsaddr.1 0
+  pusharg 8:U32
+  pusharg pointer
+  pusharg 1:S32
+  bsr write
+  poparg call.1:S32
+  .stk msg_eval%2 4 8
+  lea.stk var_stk_base.1:A32 msg_eval%2 0
+  lea.mem lhsaddr.2:A32 = $gen/global_val_2 0
+  st var_stk_base.1 0 = lhsaddr.2
+  st var_stk_base.1 4 = 11:U32
+  lea.stk lhsaddr.3:A32 = msg_eval%2 0
+  ld pointer.1:A32 = lhsaddr.3 0
+  pusharg 11:U32
+  pusharg pointer.1
+  pusharg 1:S32
+  bsr write
+  poparg call.2:S32
+  .stk msg_eval%3 4 8
+  lea.stk var_stk_base.2:A32 msg_eval%3 0
+  lea.mem lhsaddr.4:A32 = $gen/global_val_3 0
+  st var_stk_base.2 0 = lhsaddr.4
+  st var_stk_base.2 4 = 54:U32
+  lea.stk lhsaddr.5:A32 = msg_eval%3 0
+  ld pointer.2:A32 = lhsaddr.5 0
+  pusharg 54:U32
+  pusharg pointer.2
+  pusharg 1:S32
+  bsr write
+  poparg call.3:S32
+  .stk msg_eval%4 4 8
+  lea.stk var_stk_base.3:A32 msg_eval%4 0
+  lea.mem lhsaddr.6:A32 = $gen/global_val_4 0
+  st var_stk_base.3 0 = lhsaddr.6
+  st var_stk_base.3 4 = 2:U32
+  lea.stk lhsaddr.7:A32 = msg_eval%4 0
+  ld pointer.3:A32 = lhsaddr.7 0
+  pusharg 2:U32
+  pusharg pointer.3
+  pusharg 1:S32
+  bsr write
+  poparg call.4:S32
+  .stk msg_eval%5 4 8
+  lea.stk var_stk_base.4:A32 msg_eval%5 0
+  lea.mem lhsaddr.8:A32 = $gen/global_val_5 0
+  st var_stk_base.4 0 = lhsaddr.8
+  st var_stk_base.4 4 = 8:U32
+  lea.stk lhsaddr.9:A32 = msg_eval%5 0
+  ld pointer.4:A32 = lhsaddr.9 0
+  pusharg 8:U32
+  pusharg pointer.4
+  pusharg 1:S32
+  bsr write
+  poparg call.5:S32
+  .stk msg_eval%6 4 8
+  lea.stk var_stk_base.5:A32 msg_eval%6 0
+  lea.mem lhsaddr.10:A32 = $gen/global_val_6 0
+  st var_stk_base.5 0 = lhsaddr.10
+  st var_stk_base.5 4 = 4:U32
+  lea.stk lhsaddr.11:A32 = msg_eval%6 0
+  ld pointer.5:A32 = lhsaddr.11 0
+  pusharg 4:U32
+  pusharg pointer.5
+  pusharg 1:S32
+  bsr write
+  poparg call.6:S32
+  .stk msg_eval%7 4 8
+  lea.stk var_stk_base.6:A32 msg_eval%7 0
+  lea.mem lhsaddr.12:A32 = $gen/global_val_7 0
+  st var_stk_base.6 0 = lhsaddr.12
+  st var_stk_base.6 4 = 2:U32
+  lea.stk lhsaddr.13:A32 = msg_eval%7 0
+  ld pointer.6:A32 = lhsaddr.13 0
+  pusharg 2:U32
+  pusharg pointer.6
+  pusharg 1:S32
+  bsr write
+  poparg call.7:S32
+  .stk msg_eval%8 4 8
+  lea.stk var_stk_base.7:A32 msg_eval%8 0
+  lea.mem lhsaddr.14:A32 = $gen/global_val_8 0
+  st var_stk_base.7 0 = lhsaddr.14
+  st var_stk_base.7 4 = 4:U32
+  lea.stk lhsaddr.15:A32 = msg_eval%8 0
+  ld pointer.7:A32 = lhsaddr.15 0
+  pusharg 4:U32
+  pusharg pointer.7
+  pusharg 1:S32
+  bsr write
+  poparg call.8:S32
+  .stk msg_eval%9 4 8
+  lea.stk var_stk_base.8:A32 msg_eval%9 0
+  lea.mem lhsaddr.16:A32 = $gen/global_val_3 0
+  st var_stk_base.8 0 = lhsaddr.16
+  st var_stk_base.8 4 = 54:U32
+  lea.stk lhsaddr.17:A32 = msg_eval%9 0
+  ld pointer.8:A32 = lhsaddr.17 0
+  pusharg 54:U32
+  pusharg pointer.8
+  pusharg 1:S32
+  bsr write
+  poparg call.9:S32
+  .stk msg_eval%10 4 8
+  lea.stk var_stk_base.9:A32 msg_eval%10 0
+  lea.mem lhsaddr.18:A32 = $gen/global_val_9 0
+  st var_stk_base.9 0 = lhsaddr.18
+  st var_stk_base.9 4 = 1:U32
+  lea.stk lhsaddr.19:A32 = msg_eval%10 0
+  ld pointer.9:A32 = lhsaddr.19 0
+  pusharg 1:U32
+  pusharg pointer.9
+  pusharg 1:S32
+  bsr write
+  poparg call.10:S32
+  trap
+.bbl br_join
+  .stk msg_eval%11 4 8
+  lea.stk var_stk_base.10:A32 msg_eval%11 0
+  lea.mem lhsaddr.20:A32 = $gen/global_val_10 0
+  st var_stk_base.10 0 = lhsaddr.20
+  st var_stk_base.10 4 = 3:U32
+  lea.stk lhsaddr.21:A32 = msg_eval%11 0
+  ld pointer.10:A32 = lhsaddr.21 0
+  pusharg 3:U32
+  pusharg pointer.10
+  pusharg 1:S32
+  bsr write
+  poparg call.11:S32
+  pusharg 0:S32
+  ret

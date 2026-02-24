@@ -115,9 +115,8 @@ Con: Adds implementation complexity
 
 Pro: Very common and useful.
 
-Con: Does not add a lot of expressiveness.
+Con: Does not add a lot of expressiveness and "uses up" the `?` operator.
 
-(maybe implement as a macro)
 
 #### Symbol visbility control: YES
 
@@ -221,9 +220,9 @@ Pro: makes name resolution of member functions easier
 Pro: Suppports primitive implementation inheritance
 
 
-#### Classes/Interfaces: NO
+#### Classes/Interfaces: SORT-OF
 
-TBD
+adhoc polymorphism goes a little into this direction
 
 #### Tuples: NO
 
@@ -253,10 +252,11 @@ Use explicit casts
 
 Pro: `i := 666_u32` or `i: u32 := 666` reduces clutter
 
-#### Iterators PROBABLY NO
-
+#### Iterators NO
 
 Use macros to define custom for loop syntaxes as needed.
+
+(Lib/builtin.cw provides s simple for loop for numeric ranges.)
 
 #### Runtime lookup of typeid: YES
 
@@ -268,7 +268,7 @@ Likely only supported for a fixed feature set, e.g. iterators and stringificatio
 ### Control Flow
 
 
-#### Goto: PROBABLY NO
+#### Goto: NO
 
 The label blocks and defer seem to be adequate.
 
@@ -303,18 +303,18 @@ Con: Can make code hard to understand. Tricky to implement unless limited to be
      used inside functions. Must disable some semantic checking in the non-included code portions or run very early.
      Competes with simpler approaches of selecting from a set of API compatible modules at link-time.
 
-##### Support for printing/stringification of custom data structure
+#### Support for printing/stringification of custom data structure: YES
 
-TBD
+See SysRender mechanism in Lib/fmt.cw
 
-#### Support for minimal overhead logging
+#### Support for minimal overhead logging: YES
 
-TBD
+Can be implemented with macros
 
 
 ## Pointers, Arrays, Slices, Strings
 
-Pointers, Arrays, Slices are not mutable by default but come in mutable
+Pointers, Arrays, Slices are immutable by default but come in mutable
 flavors. Casting preserves mutabiity. Mutable entity can be passed
 as non-mutable function arguments.
 
