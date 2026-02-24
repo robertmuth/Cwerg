@@ -1,7 +1,11 @@
+# ignore the mostly .asm files. Some of which are generated and hence quite large
 BE/TestData/* linguist-vendored
 BE/*/TestData/* linguist-vendored
 
+# these are also generated and often large
 BE/*/isel_gen* linguist-generated	
 BE/*/opcode_gen* linguist-generated	
 
+# fix misattribution
+**/*.cw linguist-language=Cwerg
 **/*.h linguist-language=C++
