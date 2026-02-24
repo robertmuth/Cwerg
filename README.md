@@ -1,6 +1,6 @@
 # Cwerg
 
-To try it out please follow [quick_start_user.md](quick_start_user.md).
+**To try out Cwerg, please follow [quick_start_user.md](quick_start_user.md)**
 
 ## The best C-like language that can be implemented in 10kLOC
 
