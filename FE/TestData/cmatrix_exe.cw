@@ -93,6 +93,26 @@ rec State:
 
 global! gState State
 
+fun is_border_char(x u16, y u16, w u16, h u16) bool:
+    return x == 0 || x == w - 1 || y == 0 || y == h - 1
+
+
+fun get_border_char(x u16, y u16, w u16, h u16, char ^[11]u32) fmt\rune_utf8:
+    return wrap_as('+', fmt\rune_utf8)
+
+
+
+
+fun draw_frame(t u32, w u16, h u16) void:
+    ; fmt\print#(ansi\CLEAR_ALL)
+    fmt\print#(ansi\POS#(1_u16, 1_u16))
+    for y = 0, h, 1:
+        for x = 0, w, 1:
+            if is_border_char(x, y, w, h):
+                fmt\print#(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_LIGHT))
+            else:
+                fmt\print#(wrap_as(' ', fmt\rune))
+
 
 fun main(argc s32, argv ^^u8) s32:
     ref let! win_size os\WinSize = undef
@@ -102,7 +122,13 @@ fun main(argc s32, argv ^^u8) s32:
     fmt\print#("Res ", win_size.ws_row, "x", win_size.ws_col, "\n")
     ; do StateInit(@!gState, as(win_size.ws_col, u32), as(win_size.ws_row, u32))
 
+    ; 0.1 sec per frame
+    ref let req = {os\TimeSpec: 0, 100_000_000}
+    ref let! rem os\TimeSpec = undef
     fmt\print#(ansi\CURSOR_HIDE)
+    for t = 0, 50_u32, 1:
+        do draw_frame(t, win_size.ws_col, win_size.ws_row)
+        do os\nanosleep(@req, @!rem)
     fmt\print#(ansi\CURSOR_SHOW)
 
     return 0

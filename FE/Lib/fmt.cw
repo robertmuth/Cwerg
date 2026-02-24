@@ -6,8 +6,6 @@ import fmt_int
 
 import fmt_real
 
-{{extern}} pub fun memcpy(dst ^!u8, src ^u8, size uint) ^!u8:
-
 pub global FORMATED_STRING_MAX_LEN uint = 4096
 
 pub fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
@@ -19,15 +17,53 @@ pub fun mymemcpy(dst ^!u8, src ^u8, size uint) uint:
 pub rec SysFormatOptions:
     ; min width
     witdh u8
-    precission u8
+    precision u8
     padding u8
-    style u8
     show_sign bool
-    left_justify bool
+    right_justify bool
+
+
+; Fake formatters for manipulating the SysFormatOptions
+pub wrapped type SetWidth = u8
+poly pub fun SysRender(v SetWidth, buffer span!(u8), options ^!SysFormatOptions) uint:
+    set options^.witdh = unwrap(v)
+    return 0
+
+pub wrapped type SetPrecision = u8
+poly pub fun SysRender(v SetPrecision, buffer span!(u8), options ^!SysFormatOptions) uint:
+    set options^.precision = unwrap(v)
+    return 0
+
+pub wrapped type SetPadding = u8
+poly pub fun SysRender(v SetPadding, buffer span!(u8), options ^!SysFormatOptions) uint:
+    set options^.padding = unwrap(v)
+    return 0
+
+pub wrapped type ShowSign = bool
+poly pub fun SysRender(v ShowSign, buffer span!(u8), options ^!SysFormatOptions) uint:
+    set options^.show_sign = unwrap(v)
+    return 0
+
+pub wrapped type RightJustify = bool
+poly pub fun SysRender(v RightJustify, buffer span!(u8), options ^!SysFormatOptions) uint:
+    set options^.right_justify = unwrap(v)
+    return 0
+
+pub wrapped type SaveOptions = ^!SysFormatOptions
+poly pub fun SysRender(v SaveOptions, buffer span!(u8), options ^!SysFormatOptions) uint:
+    set unwrap(v)^ = options^
+    return 0
+
+pub wrapped type RestoreOptions = ^!SysFormatOptions
+poly pub fun SysRender(v RestoreOptions, buffer span!(u8), options ^!SysFormatOptions) uint:
+    set options^ = unwrap(v)^
+    return 0
+
 
 global TRUE_STR span(u8) = "true"
 
 global FALSE_STR span(u8) = "false"
+
 
 ; only need to mark the first poly as pub
 poly pub fun SysRender(v bool, buffer span!(u8), options ^!SysFormatOptions)
@@ -99,12 +135,62 @@ poly fun SysRender(v u8_hex, out span!(u8), options ^!SysFormatOptions) uint:
 
 pub wrapped type rune = u8
 
+pub wrapped type uft8 = u32
+
 poly fun SysRender(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
     if len(buffer) == 0:
         return 0
     else:
         set front!(buffer)^ = unwrap(v)
         return 1
+
+
+; �
+pub global REPLACEMMENT_CHAR_UNICODE u32 = 0xfffd;
+pub global REPLACEMMENT_CHAR_ASCII u8 = '?';
+
+
+pub fun UnicodeToUtf8(unicode u32, out span!(u8)) uint:
+    let n = len(out)
+    cond:
+        ; 7 bits
+        case unicode <= 0x7f:
+            if n < 1:
+                return 0
+            set out[0] = as(unicode, u8)
+            return 1
+        ; 11 bits
+        case unicode <= 0x7ff:
+            if n < 2:
+                return 0
+            set out[0] = as((unicode >> 6) | 0xc0, u8)
+            set out[1] = as((unicode  & 0x3f) | 0x80, u8)
+            return 2
+        ; 16 bits
+        case unicode <= 0xffff :
+            if n < 3:
+                return 0
+            set out[0] = as((unicode >> 12) | 0xe0, u8)
+            set out[1] = as(((unicode >> 6) & 0x3f) | 0x80, u8)
+            set out[2] = as((unicode  & 0x3f) | 0x80, u8)
+            return 3
+        ; 21 bits
+        case unicode <= 0x10ffff:
+            if n < 4:
+                return 0
+            set out[0] = as((unicode >> 18) | 0xf0, u8)
+            set out[1] = as(((unicode >> 12) & 0x3f) | 0x80, u8)
+            set out[2] = as(((unicode >> 6) & 0x3f) | 0x80, u8)
+            set out[3] = as((unicode  & 0x3f) | 0x80, u8)
+            return 4
+        case true:
+            return 0
+
+
+pub wrapped type rune_utf8 = u32
+
+poly fun SysRender(v rune_utf8, buffer span!(u8), options ^!SysFormatOptions) uint:
+    return UnicodeToUtf8(unwrap(v), buffer)
 
 pub wrapped type r64_hex = r64
 
