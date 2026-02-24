@@ -968,7 +968,7 @@ Node ParseStmtList(Lexer* lexer, uint32_t column) {
         out.Append(MakeNodeMacroId(tk));
       } else {
         CompilerError(tk.srcloc) << "Expected beginning of a statement - did "
-                                    "you forget the `set` keyword";
+                                    "you forget a `set` or `do` keyword";
       }
     } else {
       ASSERT(tk.kind == TK_KIND::KW, tk);
@@ -1069,7 +1069,10 @@ Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
 
 Node ParseTopLevel(Lexer* lexer) {
   const TK tk = lexer->Next();
-  ASSERT(tk.kind == TK_KIND::KW, "expected top level kw");
+  if(tk.kind != TK_KIND::KW) {
+    CompilerError(tk.srcloc) << "Expected top level keyword " << tk.text;
+    return kNodeInvalid;
+  }
   NT nt = KeywordToNT(tk.text);
   uint32_t outer_column = tk.srcloc.col;
   uint16_t bits = BitsFromAnnotation(tk);

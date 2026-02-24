@@ -107,8 +107,8 @@ class Lexer {
       peek_valid_ = false;
       return;
     }
-    UNREACHABLE("expected: " << EnumToString(kind) << " " << " got "
-                             << peek_cached_);
+    CompilerError(peek_cached_.srcloc) << "expected: " << EnumToString(kind)
+                                       << " " << " got " << peek_cached_.text;
     abort();
   }
 
@@ -118,7 +118,9 @@ class Lexer {
       peek_valid_ = false;
       return peek_cached_;
     }
-    UNREACHABLE("expected ID: " << " got " << peek_cached_);
+    CompilerError(peek_cached_.srcloc)
+        << "expected an id but got " << peek_cached_.text;
+
     abort();
     return peek_cached_;
   }
