@@ -74,7 +74,7 @@ $(EMIT_IR)::
 	@cd $(BUILD_DIR); $(MAKE) -s compiler.exe
 
 COMPILER::
-	@cd $(BUILD_DIR); $(MAKE) -s x64_codegen_tool.exe  a64_codegen_tool.exe  a32_codegen_tool.exe compiler.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j x64_codegen_tool.exe  a64_codegen_tool.exe  a32_codegen_tool.exe compiler.exe
 
 
 

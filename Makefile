@@ -47,7 +47,7 @@ cmake_setup:
 #@ build_compiler - build c++ versions of frontend and backends
 #@
 build_compiler: cmake_setup
-	cd build && $(MAKE) -s compiler.exe x64_codegen_tool.exe a64_codegen_tool.exe a32_codegen_tool.exe
+	cd build && $(MAKE) -s -j compiler.exe x64_codegen_tool.exe a64_codegen_tool.exe a32_codegen_tool.exe
 
 #@ show_versions - show version of development tools Cwerg depends on
 #@
