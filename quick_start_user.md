@@ -43,5 +43,5 @@ Bug reports on github are appreciated.
 ## Next Steps
 
 * Read the [Tutorial](FE/Docs/tutorial.md)
-* Look the example and fledgling standard library in `FE/TestData`, `FE/LangTest`, `FE/Lib`
-* if you want start hacking on the compiler itself have a look at [quick_start_developer.md]
+* For inspiration look the examples and the fledgling standard library in `FE/TestData`, `FE/LangTest`, `FE/Lib`
+* If you want start hacking on the compiler itself have a look at [quick_start_developer.md](quick_start_developer.md)
