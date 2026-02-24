@@ -164,6 +164,7 @@ $(DIR)/%.a32.exe: %.cw
 
 special: COMPILER $(DIR)/TestData/cmatrix_exe.x64.exe  $(DIR)/TestData/cmatrix_exe.a64.exe $(DIR)/TestData/cmatrix_exe.a32.exe
 
+manual: $(DIR)/TestData/asciiquarium_exe.x64.exe
 
 all:: $(LEXER_BENCH) $(PP) $(EMIT_IR)
 

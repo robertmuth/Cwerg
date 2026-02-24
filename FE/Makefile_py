@@ -124,8 +124,8 @@ $(DIR)/%.a32.exe: %.cw
 	@echo "[lang $@]"
 	$(PYPY) ../cwerg.py -v -arch a32 -fe py -be py $< $@
 	${QEMU_A32} $@
-## Compile only Tests
 
+## Compile only Tests
 $(DIR)/%.compile.x64.exe: %.cw
 	@echo "[run $@]"
 	$(PYPY) ../cwerg.py -v -arch x64 -fe py -be py $< $@
@@ -172,11 +172,11 @@ $(DIR)/assert.a64.test: $(DIR)/FailTest/assert.compile.a64.exe
 
 manual: $(DIR)/asciiquarium.x64.exe $(DIR)/asciiquarium_exe.a64.exe
 
-$(DIR)/asciiquarium.x64.exe: $(DIR)/TestData/asciiquarium_exe.compile.x64.exe
-	${QEMU_X64} $< 128 48
+$(DIR)/asciiquarium.x64.exe: $(DIR)/TestData/asciiquarium_exe.x64.exe
+	${QEMU_X64} $<
 
-$(DIR)/asciiquarium.a64.exe: $(DIR)/TestData/asciiquarium_exe.compile.a64.exe
-	${QEMU_A64} $< 128 48
+$(DIR)/asciiquarium.a64.exe: $(DIR)/TestData/asciiquarium_exe.a64.exe
+	${QEMU_A64} $<
 
 $(DIR)/cmatrix.x64.exe: $(DIR)/TestData/cmatrix_exe.compile.x64.exe
 	${QEMU_X64} $<

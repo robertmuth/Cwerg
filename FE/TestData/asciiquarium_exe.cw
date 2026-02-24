@@ -14,13 +14,13 @@ import fmt
 global! all_objects = {[100]aanim\ObjectState:}
 
 fun main(argc s32, argv ^^u8) s32:
-    if argc < 3:
-        fmt\print#("Not enough arguments, need width and height\n")
-        return 0
-    let arg_w span(u8) = fmt\strz_to_slice(ptr_inc(argv, 1)^)
-    let arg_h span(u8) = fmt\strz_to_slice(ptr_inc(argv, 2)^)
-    let width s32 = as(fmt\str_to_u32(arg_w), s32)
-    let height s32 = as(fmt\str_to_u32(arg_h), s32)
+    ref let! win_size os\WinSize = undef
+    trylet res uint = os\Ioctl(os\Stdout, os\IoctlOp.TIOCGWINSZ, bitwise_as(@!win_size, ^!void)), err:
+        fmt\print#("cannot determine terminal resolution\n")
+        return 1
+
+    let width s32 = as(win_size.ws_col - 10 , s32)
+    let height s32 = as(win_size.ws_row - 10,  s32)
     ; 100ms per frame
     ref let req = {os\TimeSpec: 0, 100000000}
     ref let! rem os\TimeSpec = undef
@@ -32,7 +32,7 @@ fun main(argc s32, argv ^^u8) s32:
     set curr = ptr_inc(curr, 1)
     ; add obj
     do aanim\InitObjectState(curr, @artwork\Castle)
-    do aanim\SetBasics(curr, 0.0, as(width, r32) - 32, as(height, r32) - 13)
+    do aanim\SetBasics(curr, 0.0, as(width, r32) - 32, as(height, r32) - 14)
     set curr = ptr_inc(curr, 1)
     ; add obj
     do aanim\InitObjectState(curr, @artwork\BigFishR)
