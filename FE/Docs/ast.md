@@ -11,7 +11,6 @@ Core nodes are the ones that are known to the code generator.
 [DefGlobal&nbsp;(global)](#defglobal-global) &ensp;
 [DefMod&nbsp;(module)](#defmod-module) &ensp;
 [DefRec&nbsp;(rec)](#defrec-rec) &ensp;
-[DefType&nbsp;(type)](#deftype-type) &ensp;
 [DefVar&nbsp;(let)](#defvar-let) &ensp;
 [EnumVal](#enumval) &ensp;
 [Expr1](#expr1) &ensp;
@@ -41,11 +40,6 @@ Core nodes are the ones that are known to the code generator.
 [StmtReturn&nbsp;(return)](#stmtreturn-return) &ensp;
 [StmtTrap&nbsp;(trap)](#stmttrap-trap) &ensp;
 [TypeAuto&nbsp;(auto)](#typeauto-auto) &ensp;
-[TypeBase](#typebase) &ensp;
-[TypeFun&nbsp;(funtype)](#typefun-funtype) &ensp;
-[TypePtr](#typeptr) &ensp;
-[TypeUnion&nbsp;(union)](#typeunion-union) &ensp;
-[TypeVec&nbsp;(vec)](#typevec-vec) &ensp;
 [ValAuto&nbsp;(auto_val)](#valauto-auto_val) &ensp;
 [ValCompound](#valcompound) &ensp;
 [ValNum](#valnum) &ensp;
@@ -53,7 +47,7 @@ Core nodes are the ones that are known to the code generator.
 [ValString](#valstring) &ensp;
 [ValUndef&nbsp;(undef)](#valundef-undef) &ensp;
 [ValVoid&nbsp;(void_val)](#valvoid-void_val) &ensp;
-(47 nodes)
+(41 nodes)
 
 ## Node Overview (Non-Core)
 
@@ -62,6 +56,7 @@ code generation.
 
 [Case&nbsp;(case)](#case-case) &ensp;
 [DefMacro&nbsp;(macro)](#defmacro-macro) &ensp;
+[DefType&nbsp;(type)](#deftype-type) &ensp;
 [EphemeralList](#ephemerallist) &ensp;
 [Expr3&nbsp;(?)](#expr3-) &ensp;
 [ExprIndex&nbsp;(at)](#exprindex-at) &ensp;
@@ -85,11 +80,16 @@ code generation.
 [StmtCond&nbsp;(cond)](#stmtcond-cond) &ensp;
 [StmtDefer&nbsp;(defer)](#stmtdefer-defer) &ensp;
 [StmtStaticAssert&nbsp;(static_assert)](#stmtstaticassert-static_assert) &ensp;
+[TypeBase](#typebase) &ensp;
+[TypeFun&nbsp;(funtype)](#typefun-funtype) &ensp;
 [TypeOf&nbsp;(type_of)](#typeof-type_of) &ensp;
+[TypePtr](#typeptr) &ensp;
 [TypeSpan&nbsp;(span)](#typespan-span) &ensp;
+[TypeUnion&nbsp;(union)](#typeunion-union) &ensp;
 [TypeUnionDelta&nbsp;(union_delta)](#typeuniondelta-union_delta) &ensp;
+[TypeVec&nbsp;(vec)](#typevec-vec) &ensp;
 [ValSpan&nbsp;(make_span)](#valspan-make_span) &ensp;
-(29 nodes)
+(35 nodes)
 
 ## Enum Overview
 
@@ -114,7 +114,6 @@ Refers to a type, variable, constant, function, module by name.
 
 Fields:
 * name [NAME]: name of the object
-* enum_name [NAME]: optional enum element name
 
 
 ## Type Node Details
@@ -378,6 +377,8 @@ Type definition
 
     A `wrapped` gives the underlying type a new name that is not type compatible.
     To convert between the two use an `as` cast expression.
+
+    Note, unions cannot be wrapped.
     
 
 Allowed at top level only
@@ -705,7 +706,7 @@ Fields:
 
 
 ### ValUndef (undef)
-Special constant to indiciate *no default value*
+Special constant to indicate *no default value*
     
 
 Fields:
@@ -810,7 +811,10 @@ Fields:
 
 
 ### ExprField (.)
-Access field in expression representing a record.
+Access field in expression representing a record or the specific EnumVal within a DefEnum
+
+    The second kind of use involving enums is eliminated early on during partial evaluation.
+    So it will never be encountered by optimizations.
     
 
 Fields:
@@ -850,7 +854,7 @@ Flags:
 Test actual expression (run-time) type
 
     Typically used when `expr` is a tagged union type.
-    Otherwise, the node can be constant folded.
+    Otherwise, the node can be evaluated at compile-time/ constant folded.
 
     `type` can be a tagged union itself.
     

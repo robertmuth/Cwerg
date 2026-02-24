@@ -8,13 +8,12 @@ The plan was to also use this as the on-disc format and to just concert
 back and forth to a concrete syntax on the fly - say in the IDE.
 
 However, currently we used the newer concrete syntax as the on-disc
-format. though all tools can read both representations.
+format. though all tools can/should read both representations.
 
 Comments are explicit in the AST and cannot occur in arbitrary places.
 Similarly, parenthesis used to group expression will be modelled in the AST.
 
 * [List of S-Expression Nodes](ast.md)
-
 
 
 ## Features Relative to C
@@ -45,7 +44,7 @@ Similarly, parenthesis used to group expression will be modelled in the AST.
 * separate compilation
 * pre-processor
 * varargs
-* implcit type conversions
+* implcit type conversions between numeric types
 * ++/--
 * comma operator
 * implicitly nullable pointers
@@ -71,7 +70,7 @@ Example:
 ```
 We only want to evaluate complicated_expression if the logging at the info level is enabled.
 
-TODO
+The macro syste,is also used to provide several built-in control structures see - Lib/builtin.cw
 
 ## Discussion of Features
 

@@ -70,8 +70,8 @@ a pointer to the first element of the span.
 
 spans are essentially records of the form
 
-`(^t, uint)`
-`(^!t), uint)`
+`(^t, uint)`    (for span(t))
+`(^!t), uint)`  (for span!(t))
 
 
 and will be lowered as such.
@@ -96,3 +96,8 @@ and will be lowered as such.
 
 
 ### Adhoc Polymorphism
+
+
+TODO
+
+see Lib/cmp.cw and Lib/fmt.cw for examples

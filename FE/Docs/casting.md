@@ -6,7 +6,7 @@
 | --------------------- | -------------------------------------------------------------------- |
 | wrap_as(E, T) -> E    | convert value to enum or wrapped type                                |
 | unwrap(E) -> E        | convert  enum or wrapped type to underlying type                     |
-| narrow_as(E, T) -> E  | convert union value to actual type                                   |
+| narrow_as(E, T) -> E  | convert union value to actual type (may involve a check)             |
 | widen_as(E, T) -> E   | convert value to union                                               |
 | as(E, T) -> E         | converts between  numerical types                                    |
 | bitwise_as(E, T) -> E | convert expression to a type of same width, including int to pointer |
@@ -22,19 +22,19 @@ enum color u8:
     green 2
     blue 3
 
-static_assert unwrap(color:green) == 2_u8
+static_assert unwrap(color.green) == 2_u8
 
 ```
 
 `wrap_as` is the inverse operation:
 
 ```
-static_assert wrap(2, color) == color:green
+static_assert wrap(2, color) == color.green
 ```
 
-Another example using wrapped type
+Another example using wrapped type (`type!` indicates a wrapped type)
 ```
-@wrapped type temperature_celsius = u16
+type! temperature_celsius = u16
 
 global freezing_point auto = wrap_as(100, temperature_celsius)
 ```
@@ -64,12 +64,6 @@ to preserve the value as much as possible
 * s32/u32 <-> r32
 * s64/u64 <-> r64
 * sint/uint <-> ptr T
-
-## Unsafe cast (`unsafe_as`)
-
-* ptr A -> ptr B
-* ptr T -> mut ptr T
-* slice T -> mut slice T
 
 
 
