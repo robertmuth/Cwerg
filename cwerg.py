@@ -16,6 +16,7 @@ def get_cwerg_root_directory():
 
 
 ROOT_DIR = get_cwerg_root_directory()
+os.environ["PYTHONPATH"] = ROOT_DIR
 
 STD_LIB_DIR = ROOT_DIR + "/FE/Lib"
 

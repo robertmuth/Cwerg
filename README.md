@@ -1,5 +1,7 @@
 # Cwerg
 
+To try it out please follow [quick_start_user.md](quick_start_user.md).
+
 ## The best C-like language that can be implemented in 10kLOC
 
 ![Status](../../workflows/cwerg-tests/badge.svg)
@@ -26,7 +28,7 @@ It has no dependencies and consists of the following components:
 
 
 
-To get started hacking on Cwerg please read [getting_started.md](getting_started.md).
+To get started hacking on Cwerg please read [quick_start_developer.md](quick_start_developer.md).
 
 ## Philosophy
 
