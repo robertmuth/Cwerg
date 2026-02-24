@@ -16,8 +16,8 @@ Bug reports on github are appreciated.
 
   Note: you may need to install the `git` package first
 
-* The compiler driver will then be available at `Cwerg/cwereg.py`
-  Run this to build hello work:
+* The compiler driver will then be available at `Cwerg/cwerg.py`.
+  Run this to build hello world:
 
   `Cwerg/cwerg.py -be py -fe py Cwerg/FE/TestData/hello_world_test.cw hello.exe`
 
@@ -28,14 +28,14 @@ Bug reports on github are appreciated.
   Note: you may need to install the `python3` package first
 
 * The compilation in the previous step was kind of slow because it uses
-  the interpreted Python version of the front- and backend. To use the faster native C++ versions
+  the interpreted Python version of the front- and backend. To use the faster native C++ versions,
   we must build them first by running:
 
   `cd Cwerg/ ; make build_compiler`
 
   Note: you may need to install the `make cmake g++ libunwind-dev` packages first
 
-* Now you can run the much fast native compiler like so:
+* Now you can run the much faster native compiler like so:
 
   `Cwerg/cwerg.py Cwerg/FE/TestData/hello_world_test.cw hello.exe`
 
@@ -43,5 +43,5 @@ Bug reports on github are appreciated.
 ## Next Steps
 
 * Read the [Tutorial](FE/Docs/tutorial.md)
-* For inspiration look the examples and the fledgling standard library in `FE/TestData`, `FE/LangTest`, `FE/Lib`
+* For inspiration, look at the examples and the fledgling standard library in `FE/TestData`, `FE/LangTest`, and `FE/Lib`
 * If you want start hacking on the compiler itself have a look at [quick_start_developer.md](quick_start_developer.md)
