@@ -6,8 +6,14 @@ import os
 import random
 import fmt
 
-global MAX_COLUMNS = 1000_u32
+; every other column is blank so these limits
+; scale up to screen size of a 1000x1000 chars
+global MAX_COLUMNS = 500_u32
 global MAX_LINES = 1000_u32
+
+; very conservative estimate of byte count per char on the screen
+global MAX_BYTES_PER_CHAR = 1000_u32
+
 
 
 type Rng = random\Pcg32State
@@ -20,6 +26,12 @@ rec CharRange:
     start u32
     end u32
 
+; [@, Z]
+global gCharsAscii = {CharRange: 33_u32, 123_u32}
+; [À:ʯ]
+global gCharsDiacritics = {CharRange: 0xc0_u32, 0x2b0_u32}
+global gCharsHalfWidthKana = {CharRange: 0xff66_u32, 0xff9d_u32}
+global gCharsMath = {CharRange: 0xff66_u32, 0xff9d_u32}
 
 rec Column:
     length u32
@@ -39,7 +51,7 @@ fun ColumnInit(col ^!Column, lines u32, rng ^!Rng) void:
     set col^.content[1].val = ' '
 
 
-fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng) bool:
+fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng) void:
     if col^.content[0].val == -1 &&  col^.content[1].val == ' ':
         if col^.spaces > 0:
             set col^.spaces -= 1
@@ -82,16 +94,7 @@ fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng) bool:
         set i += 1
 
 
-
-
-rec State:
-    num_columns u32
-    num_lines u32
-    chars CharRange
-    rng random\Pcg32State
-    columns [MAX_COLUMNS]Column
-
-global! gState State
+global! gColumns[MAX_COLUMNS]Column = undef
 
 fun is_border_char(x u16, y u16, w u16, h u16) bool:
     return x == 0 || x == w - 1 || y == 0 || y == h - 1
@@ -117,8 +120,6 @@ fun get_border_char(x u16, y u16, w u16, h u16, char ^[11]u32) fmt\rune_utf8:
     return wrap_as(char^[9], fmt\rune_utf8)
 
 
-
-
 fun draw_frame(t u32, w u16, h u16) void:
     ; fmt\print#(ansi\CLEAR_ALL)
     fmt\print#(ansi\POS#(1_u16, 1_u16))
@@ -126,23 +127,48 @@ fun draw_frame(t u32, w u16, h u16) void:
         for x = 0, w, 1:
             if is_border_char(x, y, w, h):
                 fmt\print#(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE))
-            else:
+                continue
+            if x % 2 == 0:
                 fmt\print#(wrap_as(' ', fmt\rune))
+                continue
+            ; fmt\print#(wrap_as('x', fmt\rune))
+            ;   continue
+            let c = gColumns[x / 2].content[y].val
+            if c == -1:
+                fmt\print#(wrap_as(' ', fmt\rune))
+                continue
+            fmt\print#(wrap_as(as(c, u32), fmt\rune_utf8))
+
+
 
 
 fun main(argc s32, argv ^^u8) s32:
+    let! num_frames = 70_u32
+    if argc > 1:
+        let frame_arg span(u8) = fmt\strz_to_slice(ptr_inc(argv, 1)^)
+        set num_frames = fmt\str_to_u32(frame_arg)
+
     ref let! win_size os\WinSize = undef
     trylet res uint = os\Ioctl(os\Stdout, os\IoctlOp.TIOCGWINSZ, bitwise_as(@!win_size, ^!void)), err:
         fmt\print#("cannot determine terminal resolution\n")
         return 1
-    fmt\print#("Res ", win_size.ws_row, "x", win_size.ws_col, "\n")
-    ; do StateInit(@!gState, as(win_size.ws_col, u32), as(win_size.ws_row, u32))
+    set win_size.ws_row -= 6
+    let num_cols = as((win_size.ws_col - 2) / 2, u32)
+    let num_lines = as(win_size.ws_row - 2, u32)
+
+    let! rng Rng = random\Pcg32StateDefault
+
+    for i = 0, num_cols, 1:
+        do ColumnInit(@!gColumns[i], num_lines, @!rng)
+
 
     ; 0.1 sec per frame
     ref let req = {os\TimeSpec: 0, 100_000_000}
     ref let! rem os\TimeSpec = undef
     fmt\print#(ansi\CURSOR_HIDE)
-    for t = 0, 50_u32, 1:
+    for t = 0, num_frames, 1:
+        for i = 0, num_cols, 1:
+            do ColumnUpdate(@!gColumns[i], num_lines, @gCharsHalfWidthKana, @!rng)
         do draw_frame(t, win_size.ws_col, win_size.ws_row)
         do os\nanosleep(@req, @!rem)
     fmt\print#(ansi\CURSOR_SHOW)
