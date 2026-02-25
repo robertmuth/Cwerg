@@ -140,6 +140,9 @@ bool MayHaveSideEffects(Node n) {
     case NT::ValVoid:
     case NT::ValNum:
       return false;
+      case NT::ValSpan:
+      return MayHaveSideEffects(Node_pointer(n)) ||
+             MayHaveSideEffects(Node_expr_size(n));
     case NT::ExprAddrOf:
       return MayHaveSideEffects(Node_expr_lhs(n));
     case NT::ExprPointer:
@@ -176,7 +179,7 @@ bool MayHaveSideEffects(Node n) {
       return false;
     }
     default:
-      CHECK(false, "unexpected " << EnumToString(n.kind()));
+      CHECK(false, "MayHaveSideEffects: unexpected " << EnumToString(n.kind()));
       return false;
   }
 }

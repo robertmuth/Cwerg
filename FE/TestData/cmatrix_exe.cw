@@ -95,6 +95,7 @@ fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng) void:
 
 
 global! gColumns[MAX_COLUMNS]Column = undef
+global! gFrameBuffer [1024 * 1024]u8 = undef
 
 fun is_border_char(x u16, y u16, w u16, h u16) bool:
     return x == 0 || x == w - 1 || y == 0 || y == h - 1
@@ -123,6 +124,8 @@ fun get_border_char(x u16, y u16, w u16, h u16, char ^[11]u32) fmt\rune_utf8:
 fun draw_frame(t u32, w u16, h u16) void:
     ; fmt\print#(ansi\CLEAR_ALL)
     fmt\print#(ansi\POS#(1_u16, 1_u16))
+
+    let! buf span!(u8) = gFrameBuffer
     for y = 0, h, 1:
         for x = 0, w, 1:
             if is_border_char(x, y, w, h):

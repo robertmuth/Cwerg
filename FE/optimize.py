@@ -40,8 +40,10 @@ def MayHaveSideEffects(n: Any):
             if MayHaveSideEffects(item.point_or_undef) or MayHaveSideEffects(item.value_or_undef):
                 return True
         return False
+    elif isinstance(n, (cwast.ValSpan)):
+        return MayHaveSideEffects(n.pointer) or MayHaveSideEffects(n.expr_size)
     else:
-        assert False, f"unexpected {n} in {n.x_srcloc}"
+        assert False, f"MayHaveSideEffects: unexpected {n} in {n.x_srcloc}"
 
 
 def FunRemoveUnusedDefVar(fun: cwast.DefFun):
