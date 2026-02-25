@@ -156,7 +156,7 @@ fun main(argc s32, argv ^^u8) s32:
     let num_cols = as((win_size.ws_col - 2) / 2, u32)
     let num_lines = as(win_size.ws_row - 2, u32)
 
-    let! rng Rng = random\Pcg32StateDefault
+    ref let! rng Rng = random\Pcg32StateDefault
 
     for i = 0, num_cols, 1:
         do ColumnInit(@!gColumns[i], num_lines, @!rng)
