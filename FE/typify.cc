@@ -1076,7 +1076,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         }
         if (!TypeListsAreTheSame(CanonType_children(ct_expr),
                                  CanonType_children(ct))) {
-          CompilerError(Node_srcloc(node)) << "unions are not compatible";
+          CompilerError(Node_srcloc(node)) << "untagged: unions are not compatible";
         }
         return;
       }
@@ -1098,7 +1098,7 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         if (CanonType_kind(ct_dst) == NT::DefType &&
             IsDropMutConversion(ct_src, ct_target))
           return;
-        CompilerError(Node_srcloc(node)) << "unions are not compatible";
+        CompilerError(Node_srcloc(node)) << "wrap is not compatible " << ct_src << " -> " << ct_dst;
       }
 
       case NT::EnumVal:

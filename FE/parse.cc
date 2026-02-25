@@ -44,7 +44,10 @@ void ParseFunLikeArgs(Lexer* lexer, std::string_view args_desc,
     uint8_t kind = args_desc[i];
     if (lexer->Match(TK_KIND::PAREN_CLOSED)) {
       // e is optional
-      ASSERT(kind == 'e', "");
+      if (kind != 'e') {
+        CompilerError(start.srcloc)
+            << "Expected more arguments in functional expression";
+      }
       Node undef = NodeNew(NT::ValUndef);
       NodeInitValUndef(undef, start.comments, start.srcloc);
       (*args)[i] = undef;
@@ -719,7 +722,7 @@ Node ParseCaseList(Lexer* lexer, int cond_column) {
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= cond_column) {
     return kNodeInvalid;
   }
-  if(tk.text != "case") {
+  if (tk.text != "case") {
     CompilerError(tk.srcloc) << "Expected 'case' in 'cond' statement";
     return kNodeInvalid;
   }
@@ -1072,7 +1075,7 @@ Node ParseMacroGenIdList(Lexer* lexer, bool want_comma) {
 
 Node ParseTopLevel(Lexer* lexer) {
   const TK tk = lexer->Next();
-  if(tk.kind != TK_KIND::KW) {
+  if (tk.kind != TK_KIND::KW) {
     CompilerError(tk.srcloc) << "Expected top level keyword " << tk.text;
     return kNodeInvalid;
   }
