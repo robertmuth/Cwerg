@@ -719,7 +719,10 @@ Node ParseCaseList(Lexer* lexer, int cond_column) {
   if (tk.kind == TK_KIND::SPECIAL_EOF || tk.srcloc.col <= cond_column) {
     return kNodeInvalid;
   }
-  ASSERT(tk.text == "case", "");
+  if(tk.text != "case") {
+    CompilerError(tk.srcloc) << "Expected 'case' in 'cond' statement";
+    return kNodeInvalid;
+  }
   lexer->Skip();
   uint32_t case_column = tk.srcloc.col;
   Node out = NodeNew(NT::Case);
