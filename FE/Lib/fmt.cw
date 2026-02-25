@@ -148,7 +148,7 @@ poly fun SysRender(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
 ; �
 pub global REPLACEMMENT_CHAR_UNICODE u32 = 0xfffd;
 pub global REPLACEMMENT_CHAR_ASCII u8 = '?';
-
+global TRUNCATED_MSG = "@TrUnCaTeD@"
 
 pub fun UnicodeToUtf8(unicode u32, out span!(u8)) uint:
     let n = len(out)
@@ -234,6 +234,10 @@ pub macro print# STMT_LIST (
     mfor $i $parts:
         set $curr = span_inc($curr, SysRender($i, $curr, @!$options))
     do os\write(unwrap(os\Stdout), front($buffer), len($buffer) - len($curr))
+    if len($curr) < 32:
+        do os\write(unwrap(os\Stdout), front(TRUNCATED_MSG), len(TRUNCATED_MSG))
+
+
 
 pub fun strz_to_slice(s ^u8) span(u8):
     let! i uint = 0

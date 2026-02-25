@@ -10,9 +10,8 @@ import fmt
 ; scale up to screen size of a 1000x1000 chars
 global MAX_COLUMNS = 500_u32
 global MAX_LINES = 1000_u32
-
 ; very conservative estimate of byte count per char on the screen
-global MAX_BYTES_PER_CHAR = 1000_u32
+global MAX_BYTES_PER_CHAR = 1000_uint
 
 
 
@@ -100,6 +99,7 @@ global! gFrameBuffer [1024 * 1024]u8 = undef
 fun is_border_char(x u16, y u16, w u16, h u16) bool:
     return x == 0 || x == w - 1 || y == 0 || y == h - 1
 
+
 fun get_border_char(x u16, y u16, w u16, h u16, chars ^[11]u32) u32:
     if x == 0:
         cond:
@@ -120,24 +120,38 @@ fun get_border_char(x u16, y u16, w u16, h u16, chars ^[11]u32) u32:
     return chars^[9]
 
 
+
+fun print(s span(u8)) void:
+    do os\write(unwrap(os\Stdout), front(s), len(s))
+
+
 fun draw_frame(t u32, w u16, h u16) void:
-    ; fmt\print#(ansi\CLEAR_ALL)
+
     fmt\print#(ansi\POS#(1_u16, 1_u16))
 
     let! buf span!(u8) = gFrameBuffer
     for y = 0, h, 1:
         for x = 0, w, 1:
-            if is_border_char(x, y, w, h):
-                fmt\print#(wrap_as(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE), fmt\rune_utf8))
+            if len(buf) < MAX_BYTES_PER_CHAR:
+                ; flush buf
+                do print(make_span(front(gFrameBuffer), len(gFrameBuffer) - len(buf)))
+                set buf = gFrameBuffer
                 continue
+            if is_border_char(x, y, w, h):
+                set buf = span_inc(buf, fmt\UnicodeToUtf8(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE), buf))
+                continue
+            ; every other column is blank
             if x % 2 == 0:
-                fmt\print#(wrap_as(32, fmt\rune_utf8))
+                set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
                 continue
             let c = gColumns[x / 2].content[y].val
             if c == -1:
-                fmt\print#(wrap_as(32, fmt\rune_utf8))
+                set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
                 continue
-            fmt\print#(wrap_as(as(c, u32), fmt\rune_utf8))
+            set buf = span_inc(buf, fmt\UnicodeToUtf8(as(c, u32), buf))
+
+    ; flush buf
+    do print(make_span(front(gFrameBuffer), len(gFrameBuffer) - len(buf)))
 
 
 
@@ -166,6 +180,8 @@ fun main(argc s32, argv ^^u8) s32:
     ref let req = {os\TimeSpec: 0, 100_000_000}
     ref let! rem os\TimeSpec = undef
     fmt\print#(ansi\CURSOR_HIDE)
+    fmt\print#(ansi\CLEAR_ALL)
+
     for t = 0, num_frames, 1:
         for i = 0, num_cols, 1:
             do ColumnUpdate(@!gColumns[i], num_lines, @gCharsHalfWidthKana, @!rng)
