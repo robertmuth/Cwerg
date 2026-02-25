@@ -98,7 +98,23 @@ fun is_border_char(x u16, y u16, w u16, h u16) bool:
 
 
 fun get_border_char(x u16, y u16, w u16, h u16, char ^[11]u32) fmt\rune_utf8:
-    return wrap_as('+', fmt\rune_utf8)
+    if x == 0:
+        cond:
+            case y == 0:
+                return wrap_as(char^[0], fmt\rune_utf8)
+            case y == h - 1:
+                return wrap_as(char^[6], fmt\rune_utf8)
+            case true:
+                return wrap_as(char^[10], fmt\rune_utf8)
+    if x ==  w - 1:
+        cond:
+            case y == 0:
+                return wrap_as(char^[2], fmt\rune_utf8)
+            case y == h - 1:
+                return wrap_as(char^[8], fmt\rune_utf8)
+            case true:
+                return wrap_as(char^[10], fmt\rune_utf8)
+    return wrap_as(char^[9], fmt\rune_utf8)
 
 
 
@@ -109,7 +125,7 @@ fun draw_frame(t u32, w u16, h u16) void:
     for y = 0, h, 1:
         for x = 0, w, 1:
             if is_border_char(x, y, w, h):
-                fmt\print#(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_LIGHT))
+                fmt\print#(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE))
             else:
                 fmt\print#(wrap_as(' ', fmt\rune))
 
