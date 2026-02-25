@@ -64,7 +64,9 @@ to preserve the value as much as possible
 * s32/u32 <-> r32
 * s64/u64 <-> r64
 * sint/uint <-> ptr T
-
+* ptr a <-> ptr b
+* ptr a <-> mut ptr a
+* span a <-> mut span a
 
 
 ## No cast required (implicit conversion)
@@ -81,7 +83,7 @@ sum A|B|C -> sum A|B|C|D|E
 A -> sum A|B|C|D|E
 
 This can be made explcit with the `widen_as` operation
-but is rare needed.
+but is rarely needed.
 
 ### array to slice conversion
 

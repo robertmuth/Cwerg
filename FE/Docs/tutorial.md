@@ -15,8 +15,8 @@ Since small is subjective we have set a complexity budget of about 10kLOC
 for a compiler frontend with basic optimizations
 (there is a comparable complexity budget for the backend).
 
- Cwerg is also meant to be a fast language eliminating the need for separate compilation and 
- instead focussing on whole program compilation. 
+ Cwerg is also meant to be a fast language eliminating the need for separate compilation and
+ instead focussing on whole program compilation.
  We target a compilation speed of at least a million LOC per second and programs of up to 10 million LOC.
 
 ## Highlights
@@ -45,7 +45,7 @@ for a compiler frontend with basic optimizations
 * order of function definitions and globals does not matter
 * all comments are on separate lines (no end of line comments)
 * blocks are the elementary loop construct
-* break and continue have optional label argument. 
+* break and continue have optional label argument.
 * for loops are only for iterating over numeric ranges. Use macros
   to create custom for loops for specific data structures
 
@@ -53,7 +53,7 @@ for a compiler frontend with basic optimizations
 
 Cwerg uses a Python inspired syntax where the indentation level
 is significant. Operators are C style except for pointers, address taking and dereferncing
-which are Pascal style.mostly 
+which are Pascal style.mostly
 
 We give some examples below to convey a general feeling for the language.
 The details should become clear after reading the rest of the tutorial.
@@ -73,7 +73,7 @@ import fmt
 
 ; the program entry point
 fun main(argc s32, argv ^^u8) s32:
-    fmt::print#("hello world\n")
+    fmt\print#("hello world\n")
     return 0
 
 ```
@@ -84,7 +84,7 @@ The type information in the function declaration follows the Pacal model
 of identifier followed by type.
 Functions can only return one value.
 
-`fmt::print#` is a macro invocation. All macros names must end in "#".
+`fmt\print#` is a macro invocation. All macros names must end in "#".
 
 
 ### Sieve of Eratosthenes (excerpt)
@@ -132,7 +132,7 @@ pub rec Node:
 
 ; shorthand for optional Node pointer
 ; currently, we cannot use inside the Node definiton
-; because of type cycles. 
+; because of type cycles.
 pub type MaybeNode = union(void, ^!Node)
 
 type Visitor = funtype(node ^$type) void
@@ -178,7 +178,7 @@ rec TextStats:
     num_chars uint
 
 ; Returns either a TextStat or an Error
-fun WordCount(fd os::FD) union(TextStats, os::Error):
+fun WordCount(fd os\FD) union(TextStats, os\Error):
     ; note limited type inference in next two stmts
     let! stats = TextStats{}
     let! in_word = false
@@ -186,7 +186,7 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
     let! buf [1024]u8 = undef
     while true:
         ; if FileRead returns an uint, assign it to n else return it
-        trylet n uint = os::FileRead(fd, buf), err:
+        trylet n uint = os\FileRead(fd, buf), err:
             return err
         if n == 0:
             break
@@ -207,11 +207,11 @@ fun WordCount(fd os::FD) union(TextStats, os::Error):
     return stats
 
 fun main(argc s32, argv ^^u8) s32:
-    trylet stats TextStats = WordCount(os::Stdin), err:
+    trylet stats TextStats = WordCount(os\Stdin), err:
         return 1
     ; print# is a stmt macro for printing arbitrary values.
     ; (It is possible to define formatters for custom types.)
-    fmt::print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars, "\n")
+    fmt\print#(stats.num_lines, " ", stats.num_words, " ", stats.num_chars, "\n")
     return 0
 ```
 ## Type System
@@ -278,7 +278,7 @@ Vec dimension go in front of the element type:
     global! two_dim_vec [2][10]u32 = {: {: 2 }}
 
     static_assert type_of(two_dim_vec[1]) == typeid_of(one_dim_vec)
-     
+
 ```
 
 Vecs of different length are not compatible and
@@ -386,7 +386,7 @@ Some usage examples:
 ; rec literals use a similar syntax to array literals
 let! mydate = {Date: 2011, 11, 11, 11, 11, 11}
 
-; field access 
+; field access
 ... =  mydate.year
 ```
 
@@ -423,7 +423,7 @@ Abbreviations for lengthy types can be declared like so:
 
 ```
 type t1 = funtype(x u8, y u8) u1
-assert_static typeid_of(t1) == typeid_of(funtype(x u8, y u8) u1) 
+assert_static typeid_of(t1) == typeid_of(funtype(x u8, y u8) u1)
 ```
 
 
@@ -432,7 +432,7 @@ This is strictly an abbreviation, the lhs and the rhs can be used interchangeabl
 To force by name type equivalence use an exclamation mark like so
 ```
 type! t1 = funtype(x u8, y u8) u1
-assert_static typeid_of(t1) != typeid_of(funtype(x u8, y u8) u1) 
+assert_static typeid_of(t1) != typeid_of(funtype(x u8, y u8) u1)
 ```
 The type `t1` is said to be a wrapped type.
 
@@ -712,11 +712,11 @@ A trylet statement is most useful for processing unions that represent two state
 
 Example error processing:
 ```
-    trylet n uint = os::FileRead(fd, buf), err:
+    trylet n uint = os\FileRead(fd, buf), err:
         return err
 ```
 
-The call to `os::FileRead` returns either a `uint` or one of several error types.
+The call to `os\FileRead` returns either a `uint` or one of several error types.
 If the call returns `uint`, it will be assigned to `n`. Otherwise the error type will
 be assigned `err` and then subsequently returned.
 
@@ -728,7 +728,7 @@ Example:
 ```
     let! u uint = ...
     ...
-    tryset n = os::FileRead(fd, buf), err:
+    tryset n = os\FileRead(fd, buf), err:
         return err
 ```
 
