@@ -100,25 +100,24 @@ global! gFrameBuffer [1024 * 1024]u8 = undef
 fun is_border_char(x u16, y u16, w u16, h u16) bool:
     return x == 0 || x == w - 1 || y == 0 || y == h - 1
 
-
-fun get_border_char(x u16, y u16, w u16, h u16, char ^[11]u32) fmt\rune_utf8:
+fun get_border_char(x u16, y u16, w u16, h u16, chars ^[11]u32) u32:
     if x == 0:
         cond:
             case y == 0:
-                return wrap_as(char^[0], fmt\rune_utf8)
+                return chars^[0]
             case y == h - 1:
-                return wrap_as(char^[6], fmt\rune_utf8)
+                return chars^[6]
             case true:
-                return wrap_as(char^[10], fmt\rune_utf8)
+                return chars^[10]
     if x ==  w - 1:
         cond:
             case y == 0:
-                return wrap_as(char^[2], fmt\rune_utf8)
+                return chars^[2]
             case y == h - 1:
-                return wrap_as(char^[8], fmt\rune_utf8)
+                return chars^[8]
             case true:
-                return wrap_as(char^[10], fmt\rune_utf8)
-    return wrap_as(char^[9], fmt\rune_utf8)
+                return chars^[10]
+    return chars^[9]
 
 
 fun draw_frame(t u32, w u16, h u16) void:
@@ -129,16 +128,14 @@ fun draw_frame(t u32, w u16, h u16) void:
     for y = 0, h, 1:
         for x = 0, w, 1:
             if is_border_char(x, y, w, h):
-                fmt\print#(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE))
+                fmt\print#(wrap_as(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE), fmt\rune_utf8))
                 continue
             if x % 2 == 0:
-                fmt\print#(wrap_as(' ', fmt\rune))
+                fmt\print#(wrap_as(32, fmt\rune_utf8))
                 continue
-            ; fmt\print#(wrap_as('x', fmt\rune))
-            ;   continue
             let c = gColumns[x / 2].content[y].val
             if c == -1:
-                fmt\print#(wrap_as(' ', fmt\rune))
+                fmt\print#(wrap_as(32, fmt\rune_utf8))
                 continue
             fmt\print#(wrap_as(as(c, u32), fmt\rune_utf8))
 
