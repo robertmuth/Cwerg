@@ -1,6 +1,5 @@
 # Quickstart For Using Cwerg
 
-
 Currently, Cwerg works on recent Linux systems only.
 It has been primarily tested on Ubuntu 24.04.
 
@@ -10,35 +9,57 @@ Bug reports on github are appreciated.
 
 ## Installation
 
-
 * Install the repository from github by running:
+
   `git clone https://github.com/robertmuth/Cwerg`
 
-  Note: you may need to install the `git` package first
+  Note: You may need to install the `git` package first.
 
-* The compiler driver will then be available at `Cwerg/cwerg.py`.
+## Development and Runtime Environment
+
+You can either build and run the compiler directly on your host system or on the
+provided docker container.
+* **Host system**: You will have to install the required packages yourself. To
+  run the compiler driver and the Python version of the compiler, you need to
+  install the `python3` package version >= 3.10. To build the native C++ version
+  of the compiler you need to install the following packages:
+  `make cmake g++ libunwind-dev`.
+* **Docker container**: You need to have the `docker` package installed on your
+  host. Then build the docker container that encapsulates a ready configured
+  development environment:
+
+  `docker build -t cwerg-dev-env docker`
+
+  Start a shell in the container:
+
+  `docker run -it --rm -v Cwerg:/Cwerg cwerg-dev-env`
+
+  Then run the command lines indicated below inside this shell.
+
+  Note: Your host's Cwerg repository is mapped to path `/Cwerg` in the
+  container.
+
+## Running
+
+* The compiler driver is available at `Cwerg/cwerg.py`.
+
   Run this to build hello world:
 
   `Cwerg/cwerg.py -be py -fe py Cwerg/FE/TestData/hello_world_test.cw hello.exe`
 
-  Followed by
+  Followed by:
 
   `./hello.exe`
 
-  Note: you may need to install the `python3` package first
-
-* The compilation in the previous step was kind of slow because it uses
-  the interpreted Python version of the front- and backend. To use the faster native C++ versions,
-  we must build them first by running:
+* The compilation in the previous step was kind of slow because it uses the
+  interpreted Python version of the front- and backend. To use the faster native
+  C++ versions, we must build them first by running:
 
   `cd Cwerg/ ; make build_compiler`
-
-  Note: you may need to install the `make cmake g++ libunwind-dev` packages first
 
 * Now you can run the much faster native compiler like so:
 
   `Cwerg/cwerg.py Cwerg/FE/TestData/hello_world_test.cw hello.exe`
-
 
 ## Next Steps
 
