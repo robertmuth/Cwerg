@@ -28,7 +28,7 @@ provided docker container.
   host. Then build the docker container that encapsulates a ready configured
   development environment:
 
-  `docker build -t cwerg-dev-env docker`
+  `docker build -t cwerg-dev-env Cwerg/docker`
 
   Start a shell in the container:
 
@@ -59,7 +59,7 @@ provided docker container.
 
 * Now you can run the much faster native compiler like so:
 
-  `Cwerg/cwerg.py Cwerg/FE/TestData/hello_world_test.cw hello.exe`
+  `./cwerg.py FE/TestData/hello_world_test.cw hello.exe`
 
 ## Next Steps
 

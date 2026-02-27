@@ -1,7 +1,7 @@
 # This Dockerfile creates a container for a development environment for Cwerg.
 #
 # To build the docker image, run the following from the Cwerg directory:
-#   docker build -t cwerg-dev-env -f docker/Dockerfile.dev-env docker
+#   docker build -t cwerg-dev-env docker
 #
 # To base it on a different distro, override BASEIMGAE, e.g., add:
 #   --build-arg BASEIMAGE=alpine:3.23
