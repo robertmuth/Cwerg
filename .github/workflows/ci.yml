@@ -21,9 +21,9 @@ jobs:
 
     steps:
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Python Deps
@@ -61,10 +61,10 @@ jobs:
         echo
         lsb_release -a
         echo
-        PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make show_versions
+        PYPY=python3 CC=gcc CXX=g++ MAKESILENT='' make show_versions
     - name: Run Tests
       run: |
-        PYPY=python3 CC=gcc CXX=g++ MAKESILENT= make tests
+        PYPY=python3 CC=gcc CXX=g++ MAKESILENT='' make tests
     - name: Benchmark
       run: |
-        PYPY=python3 CC=clang CXX=clang++ MAKESILENT= make benchmark
+        PYPY=python3 CC=clang CXX=clang++ MAKESILENT='' make benchmark
