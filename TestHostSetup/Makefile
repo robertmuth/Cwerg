@@ -21,11 +21,22 @@ show_versions:
 ############################################################
 # Python
 ############################################################
-python_versiion_check:
+python_version_check:
 	@echo "Python Version Check"
 	@python3 -V
 	@python3 -c "import sys; assert sys.version_info >= (3, 10), 'Python 3.10 or higher is required'"
 	@echo "Python version is sufficient"
+
+############################################################
+# Host C++
+############################################################
+host_cxx_version_check:
+	@echo "Host C++ Compiler Version Check"
+	@$(CXX) --version | head -n 1
+	@$(CXX) hello.cc -std=c++20 -o $(DIR)/hello.cc.host.exe
+	@$(DIR)/hello.cc.host.exe > $(DIR)/hello.cc.host.out
+	@echo "hello world (cc)!" | diff - $(DIR)/hello.cc.host.out
+	@echo "Host C++ compiler is sufficient"
 
 ############################################################
 # A32
