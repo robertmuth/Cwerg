@@ -5,6 +5,28 @@ $(info $(shell mkdir -p $(DIR)))
 
 tests_cross: test_qemu_env_a32 test_qemu_env_a64
 
+
+show_versions:
+	@echo Tool Versions
+	-python3 -V
+	-gcc -v
+	-g++ -v
+	-clang -v
+	-clang++ -v
+	-qemu-aarch64-static -version
+	-qemu-arm-static -version
+	-qemu-x86_64-static -version
+	-cloc -version
+
+############################################################
+# Python
+############################################################
+python_versiion_check:
+	@echo "Python Version Check"
+	@python3 -V
+	@python3 -c "import sys; assert sys.version_info >= (3, 10), 'Python 3.10 or higher is required'"
+	@echo "Python version is sufficient"
+
 ############################################################
 # A32
 ############################################################
@@ -65,5 +87,3 @@ test_qemu_env_a64:
 
 clean:
 	rm -f *.o *.exe
-
-

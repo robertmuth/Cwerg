@@ -52,22 +52,13 @@ build_compiler: cmake_setup
 #@ show_versions - show version of development tools Cwerg depends on
 #@
 show_versions:
-	@echo Tool Versions
-	-python3 -V
-	-gcc -v
-	-g++ -v
-	-clang -v
-	-clang++ -v
-	-qemu-aarch64-static -version
-	-qemu-arm-static -version
-	-qemu-x86_64-static -version
-	-cloc -version
+	cd TestHostSetup && $(MAKE) -s show_versions
 
 test_setup:
 	@which cmake
 	@which c++
 	@which python3
-	cd TestQemu && $(MAKE) -s tests_cross && $(MAKE)  -s clean
+	cd TestHostSetup && $(MAKE) -s tests_cross && $(MAKE)  -s clean
 
 
 benchmark:
