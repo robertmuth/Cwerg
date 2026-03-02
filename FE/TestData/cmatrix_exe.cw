@@ -13,8 +13,9 @@ global MAX_LINES = 1000_u32
 ; very conservative estimate of byte count per char on the screen
 global MAX_BYTES_PER_CHAR = 1000_uint
 
+; per 1000
+global CHAR_FLIP_PROBABILITY = 70_u32
 
-;
 global SPEED_RANGE = 2_u32
 
 type Rng = random\Pcg32State
@@ -33,12 +34,24 @@ rec CharRange:
     start u32
     end u32
 
+fun width(c CharRange) u32:
+    return c.end - c.start
+
+
 ; [@, Z]
-global gCharsAscii = {CharRange: 33_u32, 123_u32}
+global gCharsAsciiDigits = {CharRange: 48, 58}
+global gCharsAsciiLower = {CharRange: 97, 123}
+global gCharsAsciiUpper = {CharRange: 65, 91}
 ; [À:ʯ]
 global gCharsDiacritics = {CharRange: 0xc0_u32, 0x2b0_u32}
 global gCharsHalfWidthKana = {CharRange: 0xff66_u32, 0xff9d_u32}
-global gCharsMath = {CharRange: 0xff66_u32, 0xff9d_u32}
+global gCharsMath = {CharRange: 0x2200_u32, 0x2300_u32}
+
+global gChars = {[4]CharRange: gCharsAsciiDigits, gCharsAsciiLower, gCharsAsciiUpper,
+                               gCharsHalfWidthKana}
+
+
+
 
 enum Mode u8:
     Spaces 0
@@ -59,9 +72,18 @@ fun RandomLength(lines u32, rng ^!Rng) u32:
 fun RandomSpaces(lines u32, rng ^!Rng) u32:
     return random\NextU32(rng) % (lines - 3) + 3
 
-fun RandomChar(chars ^CharRange, rng ^!Rng) u32:
-    return as(random\NextU32(rng) %
-                (chars^.end - chars^.start) + chars^.start, u32)
+fun RandomChar(chars span(CharRange), rng ^!Rng) u32:
+    let! w = 0_u32
+    for i = 0, len(chars), 1:
+        set w += width(chars[i])
+    let! r = random\NextU32(rng) % w
+    for i = 0, len(chars), 1:
+        if r < width(chars[i]):
+            return chars[i].start + r
+        set r -= width(chars[i])
+    trap
+
+
 
 fun ColumnInit(col ^!Column, lines u32, rng ^!Rng) void:
     set col^.speed = random\NextU32(rng) % SPEED_RANGE
@@ -74,7 +96,7 @@ fun ColumnInit(col ^!Column, lines u32, rng ^!Rng) void:
 
 
 
-fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng, frame u32) void:
+fun ColumnUpdate(col ^!Column, lines u32, chars span(CharRange), rng ^!Rng, frame u32) void:
     if frame % (SPEED_RANGE + 1) <= col^.speed:
         return
 
@@ -91,6 +113,9 @@ fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng, frame u32
                 set col^.content[index].kind = CellKind.Normal
                 set col^.content[index].val = ' '
                 set col^.content[index + 1].kind = CellKind.Tail
+            case col^.content[index].val != ' ':
+                if random\NextU32(rng) % 1000 < CHAR_FLIP_PROBABILITY:
+                    set col^.content[index].val = RandomChar(chars, rng)
 
     set col^.counter -= 1
     if col^.counter == 0:
@@ -221,7 +246,7 @@ fun main(argc s32, argv ^^u8) s32:
 
     for t = 0, num_frames, 1:
         for i = 0, num_cols, 1:
-            do ColumnUpdate(@!gColumns[i], num_lines, @gCharsHalfWidthKana, @!rng, t)
+            do ColumnUpdate(@!gColumns[i], num_lines, gChars, @!rng, t)
         do draw_frame(t, win_size.ws_col, win_size.ws_row)
         do os\nanosleep(@req, @!rem)
     fmt\print#(ansi\CURSOR_SHOW)
