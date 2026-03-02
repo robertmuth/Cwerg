@@ -148,7 +148,13 @@ fun draw_frame(t u32, w u16, h u16) void:
                 set buf = gFrameBuffer
                 continue
             if is_border_char(x, y, w, h):
+                set buf = span_inc(buf, span_fill(buf, ansi\SGR_START))
+                set buf = span_inc(buf, span_fill(buf, ansi\SGR_FG_GREEN))
+                set buf = span_inc(buf, span_fill(buf, ";"))
+                set buf = span_inc(buf, span_fill(buf, ansi\SGR_RESET_BOLD_AND_DIM))
+                set buf = span_inc(buf, span_fill(buf, ansi\SGR_END))
                 set buf = span_inc(buf, fmt\UnicodeToUtf8(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE), buf))
+
                 continue
             ; every other column is blank
             if x % 2 == 0:
@@ -161,10 +167,15 @@ fun draw_frame(t u32, w u16, h u16) void:
             set buf = span_inc(buf, span_fill(buf, ansi\SGR_START))
             if gColumns[x / 2].content[y].is_head:
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_FG_WHITE))
+                set buf = span_inc(buf, span_fill(buf, ";"))
+                set buf = span_inc(buf, span_fill(buf, ansi\SGR_BOLD))
             else:
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_FG_GREEN))
+                set buf = span_inc(buf, span_fill(buf, ";"))
+                set buf = span_inc(buf, span_fill(buf, ansi\SGR_RESET_BOLD_AND_DIM))
             set buf = span_inc(buf, span_fill(buf, ansi\SGR_END))
 
+            ;
             set buf = span_inc(buf, fmt\UnicodeToUtf8(as(c, u32), buf))
 
     ; flush buf
