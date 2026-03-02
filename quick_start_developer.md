@@ -61,7 +61,7 @@ The source code is organized into the following directories:
 * [FE/](FE/) - the frontend Code
 * [IR/](IR/) - the IR which represents that inteface between FE and BE
 * [Util/](Util/) - code shared by frontend and backend
-* [TestQemu/](TestQemu/) - cross compilation and emulation tests
+* [TestHostSetup/](TestHostSetup/) - tests to check the dev environment
 
 Almost all compoents are implemented both in Python and C++.
 The Python implementation contains the authoritative comments.
