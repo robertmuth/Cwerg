@@ -1,3 +1,5 @@
+# This makefile contains targets for validating the current dev environment
+
 .SUFFIXES:  # no built-in rules
 DIR=build
 
