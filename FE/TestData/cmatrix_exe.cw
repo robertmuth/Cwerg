@@ -196,9 +196,6 @@ fun draw_frame(t u32, w u16, h u16) void:
                 set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
                 continue
             let c = gColumns[x / 2].content[y - 1].val
-            if c == -1:
-                set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
-                continue
             set buf = span_inc(buf, span_fill(buf, ansi\SGR_START))
             if gColumns[x / 2].content[y - 1].kind == CellKind.Tip:
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_FG_WHITE))
