@@ -64,7 +64,7 @@ pub macro swap# STMT_LIST ($a EXPR, $b EXPR) [$t]:
     set $a = $b
     set $b = $t
 
-; works with arrays and slices. For arrays we make sure we do not copy them.
+; get the subspan starting at $size, trap is span is shorter than $size
 {{builtin}} pub macro span_inc EXPR ($slice EXPR, $size EXPR)
   [$orig_size, $orig_len, $orig_slice]:
     expr:
@@ -79,7 +79,7 @@ pub macro swap# STMT_LIST ($a EXPR, $b EXPR) [$t]:
 {{builtin}} pub macro span_diff EXPR ($a EXPR, $b EXPR) []:
     ptr_diff(front($a), front($b))
 
-; works with arrays and slices. For arrays we make sure we do not copy them.
+; get the subspan ending at $size, trap is span is shorter than $size
 pub macro span_truncate_or_die# EXPR ($slice EXPR, $size EXPR)
   [$orig_size, $orig_len, $orig_slice]:
     expr:
@@ -91,9 +91,9 @@ pub macro span_truncate_or_die# EXPR ($slice EXPR, $size EXPR)
         return make_span(front!($orig_slice), $orig_size)
 
 ; works with arrays and slices. For arrays we make sure we do not copy them.
-pub macro span_append_or_die# EXPR ($slice EXPR, $out EXPR) [$e_slice, $e_out]:
+pub macro span_append_or_die# EXPR ($slice_or_array EXPR, $out EXPR) [$e_slice, $e_out]:
     expr:
-        let $e_slice span(type_of(front($slice)^)) = $slice
+        let $e_slice span(type_of(front($slice)^)) = $slice_or_array
         let! $e_out span!(type_of(front($out)^)) = $out
         if len($e_slice) > len($e_out):
             trap
