@@ -14,6 +14,8 @@ global MAX_LINES = 1000_u32
 global MAX_BYTES_PER_CHAR = 1000_uint
 
 
+;
+global SPEED_RANGE = 3_u32
 
 type Rng = random\Pcg32State
 
@@ -37,21 +39,21 @@ rec Column:
     ; how many spaces to skip
     spaces u32
     ; speed
-    updates u32
+    speed u32
     content [MAX_LINES]Cell
 
 
 fun ColumnInit(col ^!Column, lines u32, rng ^!Rng) void:
     set col^.spaces = random\NextU32(rng) % lines + 1
     set col^.length = random\NextU32(rng) % (lines - 3) + 3
-    set col^.updates = random\NextU32(rng) % 2
+    set col^.speed = random\NextU32(rng) % SPEED_RANGE
     for i = 0, lines + 1, 1:
         set col^.content[i].val = -1
     set col^.content[1].val = ' '
 
 
 fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng, frame u32) void:
-    if frame % 3 <= col^.updates:
+    if frame % (SPEED_RANGE + 1) <= col^.speed:
         return
     if col^.content[0].val == -1 &&  col^.content[1].val == ' ':
         if col^.spaces > 0:
@@ -63,6 +65,9 @@ fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng, frame u32
             set col^.content[0].val = as(random\NextU32(rng) %
                 (chars^.end - chars^.start) + chars^.start, s32)
 
+    ; we are iterating from the tail of the last trace to the beginning of the first
+    ; trace. The last trace might not be fully visible yet and the first trace might
+    ; have partially disappeared.
     let! first_done = false
     let! i = 0_u32
     while i <= lines:
@@ -160,12 +165,12 @@ fun draw_frame(t u32, w u16, h u16) void:
             if x % 2 == 0:
                 set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
                 continue
-            let c = gColumns[x / 2].content[y].val
+            let c = gColumns[x / 2].content[y - 1].val
             if c == -1:
                 set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
                 continue
             set buf = span_inc(buf, span_fill(buf, ansi\SGR_START))
-            if gColumns[x / 2].content[y].is_head:
+            if gColumns[x / 2].content[y - 1].is_head:
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_FG_WHITE))
                 set buf = span_inc(buf, span_fill(buf, ";"))
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_BOLD))
