@@ -15,13 +15,19 @@ global MAX_BYTES_PER_CHAR = 1000_uint
 
 
 ;
-global SPEED_RANGE = 3_u32
+global SPEED_RANGE = 2_u32
 
 type Rng = random\Pcg32State
 
+enum CellKind u8:
+    Normal 0
+    Tip 1
+    Tail 2
+
 rec Cell:
-    val s32
-    is_head bool
+    val u32
+    kind CellKind
+
 
 rec CharRange:
     start u32
@@ -34,70 +40,69 @@ global gCharsDiacritics = {CharRange: 0xc0_u32, 0x2b0_u32}
 global gCharsHalfWidthKana = {CharRange: 0xff66_u32, 0xff9d_u32}
 global gCharsMath = {CharRange: 0xff66_u32, 0xff9d_u32}
 
+enum Mode u8:
+    Spaces 0
+    Birthing 1
+
 rec Column:
-    length u32
-    ; how many spaces to skip
-    spaces u32
-    ; speed
+    counter u32
     speed u32
+    mode Mode
     content [MAX_LINES]Cell
 
 
+; needs to be at least 2 so we can distinguish tip and tail
+fun RandomLength(lines u32, rng ^!Rng) u32:
+    return random\NextU32(rng) % lines + 2
+
+
+fun RandomSpaces(lines u32, rng ^!Rng) u32:
+    return random\NextU32(rng) % (lines - 3) + 3
+
+fun RandomChar(chars ^CharRange, rng ^!Rng) u32:
+    return as(random\NextU32(rng) %
+                (chars^.end - chars^.start) + chars^.start, u32)
+
 fun ColumnInit(col ^!Column, lines u32, rng ^!Rng) void:
-    set col^.spaces = random\NextU32(rng) % lines + 1
-    set col^.length = random\NextU32(rng) % (lines - 3) + 3
     set col^.speed = random\NextU32(rng) % SPEED_RANGE
-    for i = 0, lines + 1, 1:
-        set col^.content[i].val = -1
-    set col^.content[1].val = ' '
+    ; start with spaces
+    set col^.counter = RandomSpaces(lines, rng)
+    set col^.mode = Mode.Spaces
+    for i = 0, lines, 1:
+        set col^.content[i].val = ' '
+        set col^.content[i].kind = CellKind.Normal
+
 
 
 fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng, frame u32) void:
     if frame % (SPEED_RANGE + 1) <= col^.speed:
         return
-    if col^.content[0].val == -1 &&  col^.content[1].val == ' ':
-        if col^.spaces > 0:
-            set col^.spaces -= 1
+
+    for  i = 0, lines, 1:
+        ; really going bottom to top
+        let index = lines - 1 - i
+        cond:
+            case col^.content[index].kind == CellKind.Tip:
+                set col^.content[index].kind = CellKind.Normal
+                ; we may write out of bounds but that is ok since the actual length is MAX_LINES
+                set col^.content[index + 1].kind = CellKind.Tip
+                set col^.content[index + 1].val = RandomChar(chars, rng)
+            case col^.content[index].kind == CellKind.Tail:
+                set col^.content[index].kind = CellKind.Normal
+                set col^.content[index].val = ' '
+                set col^.content[index + 1].kind = CellKind.Tail
+
+    set col^.counter -= 1
+    if col^.counter == 0:
+        if col^.mode == Mode.Spaces:
+                set col^.mode = Mode.Birthing
+                set col^.counter = RandomLength(lines, rng)
+                set col^.content[0].kind = CellKind.Tip
+                set col^.content[0].val = RandomChar(chars, rng)
         else:
-            set col^.length = random\NextU32(rng) % (lines - 3) + 3
-            set col^.spaces = random\NextU32(rng) % lines + 1
-
-            set col^.content[0].val = as(random\NextU32(rng) %
-                (chars^.end - chars^.start) + chars^.start, s32)
-
-    ; we are iterating from the tail of the last trace to the beginning of the first
-    ; trace. The last trace might not be fully visible yet and the first trace might
-    ; have partially disappeared.
-    let! first_done = false
-    let! i = 0_u32
-    while i <= lines:
-        let! begin_trace = 0_u32
-        for y = i, lines + 1, 1:
-            if col^.content[y].val != -1 && col^.content[y].val != ' ':
-                set begin_trace = y
-                break
-        if begin_trace >= lines:
-            break
-
-        let! end_trace = 0_u32
-        for y = begin_trace, lines + 1, 1:
-            if col^.content[y].val == -1 || col^.content[y].val == ' ':
-                set end_trace = y
-                break
-            set col^.content[y].is_head = false
-
-        set i = end_trace
-        if end_trace > lines:
-            set col^.content[begin_trace].val = ' '
-            break
-        set col^.content[i].is_head = true
-        set col^.content[i].val = as(random\NextU32(rng) %
-                (chars^.end - chars^.start) + chars^.start, s32)
-        if end_trace - begin_trace > col^.length || first_done:
-            set col^.content[0].val = -1
-            set col^.content[begin_trace].val = ' '
-        set first_done = true
-        set i += 1
+                set col^.mode = Mode.Spaces
+                set col^.counter = RandomSpaces(lines, rng)
+                set col^.content[0].kind = CellKind.Tail
 
 
 global! gColumns[MAX_COLUMNS]Column = undef
@@ -170,7 +175,7 @@ fun draw_frame(t u32, w u16, h u16) void:
                 set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
                 continue
             set buf = span_inc(buf, span_fill(buf, ansi\SGR_START))
-            if gColumns[x / 2].content[y - 1].is_head:
+            if gColumns[x / 2].content[y - 1].kind == CellKind.Tip:
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_FG_WHITE))
                 set buf = span_inc(buf, span_fill(buf, ";"))
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_BOLD))
@@ -199,7 +204,6 @@ fun main(argc s32, argv ^^u8) s32:
     trylet res uint = os\Ioctl(os\Stdout, os\IoctlOp.TIOCGWINSZ, bitwise_as(@!win_size, ^!void)), err:
         fmt\print#("cannot determine terminal resolution\n")
         return 1
-    set win_size.ws_row -= 6
     let num_cols = as((win_size.ws_col - 2) / 2, u32)
     let num_lines = as(win_size.ws_row - 2, u32)
 
