@@ -44,13 +44,15 @@ rec Column:
 fun ColumnInit(col ^!Column, lines u32, rng ^!Rng) void:
     set col^.spaces = random\NextU32(rng) % lines + 1
     set col^.length = random\NextU32(rng) % (lines - 3) + 3
-    set col^.updates = random\NextU32(rng) % 3 + 1
+    set col^.updates = random\NextU32(rng) % 2
     for i = 0, lines + 1, 1:
         set col^.content[i].val = -1
     set col^.content[1].val = ' '
 
 
-fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng) void:
+fun ColumnUpdate(col ^!Column, lines u32, chars ^CharRange, rng ^!Rng, frame u32) void:
+    if frame % 3 <= col^.updates:
+        return
     if col^.content[0].val == -1 &&  col^.content[1].val == ' ':
         if col^.spaces > 0:
             set col^.spaces -= 1
@@ -125,6 +127,14 @@ fun print(s span(u8)) void:
     do os\write(unwrap(os\Stdout), front(s), len(s))
 
 
+fun span_fill(buf span!(u8), s span(u8)) uint:
+    let out = min(len(buf), len(s))
+    for i = 0, out, 1:
+        set buf[i] = s[i]
+    return out
+
+
+
 fun draw_frame(t u32, w u16, h u16) void:
 
     fmt\print#(ansi\POS#(1_u16, 1_u16))
@@ -148,6 +158,13 @@ fun draw_frame(t u32, w u16, h u16) void:
             if c == -1:
                 set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
                 continue
+            set buf = span_inc(buf, span_fill(buf, ansi\SGR_START))
+            if gColumns[x / 2].content[y].is_head:
+                set buf = span_inc(buf, span_fill(buf, ansi\SGR_FG_WHITE))
+            else:
+                set buf = span_inc(buf, span_fill(buf, ansi\SGR_FG_GREEN))
+            set buf = span_inc(buf, span_fill(buf, ansi\SGR_END))
+
             set buf = span_inc(buf, fmt\UnicodeToUtf8(as(c, u32), buf))
 
     ; flush buf
@@ -176,15 +193,15 @@ fun main(argc s32, argv ^^u8) s32:
         do ColumnInit(@!gColumns[i], num_lines, @!rng)
 
 
-    ; 0.1 sec per frame
-    ref let req = {os\TimeSpec: 0, 100_000_000}
+    ; 0.05 sec per frame
+    ref let req = {os\TimeSpec: 0, 50_000_000}
     ref let! rem os\TimeSpec = undef
     fmt\print#(ansi\CURSOR_HIDE)
     fmt\print#(ansi\CLEAR_ALL)
 
     for t = 0, num_frames, 1:
         for i = 0, num_cols, 1:
-            do ColumnUpdate(@!gColumns[i], num_lines, @gCharsHalfWidthKana, @!rng)
+            do ColumnUpdate(@!gColumns[i], num_lines, @gCharsHalfWidthKana, @!rng, t)
         do draw_frame(t, win_size.ws_col, win_size.ws_row)
         do os\nanosleep(@req, @!rem)
     fmt\print#(ansi\CURSOR_SHOW)
