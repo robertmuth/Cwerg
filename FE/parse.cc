@@ -178,7 +178,7 @@ Node ParseFunLike(Lexer* lexer, NT nt, const TK& tk) {
       //
     default:
       CompilerError(tk.srcloc) << "Unexpected token " << tk.text
-                               << " while parsing functional expression";
+                               << " while expecting functional expression";
       return kNodeInvalid;
   }
 }
@@ -785,7 +785,7 @@ Node ParseStmtSpecial(Lexer* lexer, const TK& tk) {
                         kNodeInvalid);
     return out;
   } else {
-    ASSERT(false, tk);
+    CompilerError(tk.srcloc) << "Expected statement start, got " << tk.text;
     return kNodeInvalid;
   }
 }
