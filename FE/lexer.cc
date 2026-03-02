@@ -156,7 +156,7 @@ uint32_t LexerRaw::HandleSimpleStr() {
           return i + 1 - pos_;
           break;
         }
-        ASSERT(c != '\n', "");
+        if(c == '\n') CompilerError(srcloc_) << "Newline in string literal";
       }
     }
   }
