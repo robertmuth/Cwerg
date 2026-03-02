@@ -1,5 +1,9 @@
 {{builtin}} module:
 
+; This module is always implicity imported. It contains a bunch of key helpers and macros.
+; Some macros do not have the trailing "#" character. The frontend knows about
+; them and handles them somewhat special.
+
 ; macro for while-loop
 {{builtin}} pub macro while STMT ($cond EXPR, $body STMT_LIST) []:
     block:
@@ -93,7 +97,7 @@ pub macro span_truncate_or_die# EXPR ($slice EXPR, $size EXPR)
 ; works with arrays and slices. For arrays we make sure we do not copy them.
 pub macro span_append_or_die# EXPR ($slice_or_array EXPR, $out EXPR) [$e_slice, $e_out]:
     expr:
-        let $e_slice span(type_of(front($slice)^)) = $slice_or_array
+        let $e_slice span(type_of(front($slice_or_array)^)) = $slice_or_array
         let! $e_out span!(type_of(front($out)^)) = $out
         if len($e_slice) > len($e_out):
             trap
