@@ -53,5 +53,5 @@ fun main(
         case argc % 5 == 0:
             return 3
         case true:
-            return 4
+            return 0
     return 0

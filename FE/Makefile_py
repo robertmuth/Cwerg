@@ -18,20 +18,23 @@ ALL_TESTS_A32 := \
     LangTest/defer_test.cw \
     LangTest/enum_test.cw \
     LangTest/expr_test.cw \
+    LangTest/fun_test.cw \
     LangTest/linked_list_gen_test.cw \
+	LangTest/sizeof_test.cw \
 	LangTest/types_test.cw \
+	TestData/binary_tree_gen_test.cw \
 	TestData/edit_distance_test.cw \
-    TestData/sieve_test.cw \
-    TestData/fibonacci_test.cw \
-    TestData/fizzbuzz_test.cw \
-    TestData/nqueens_test.cw \
-    TestData/hello_world_test.cw \
-    TestData/tower_test.cw \
-    Lib/bitstream_test.cw \
-    Lib/bytestream_test.cw \
-    Lib/checksum_test.cw \
-    Lib/huffman_test.cw \
-    Lib/string_test.cw
+	TestData/fibonacci_test.cw \
+	TestData/fizzbuzz_test.cw \
+	TestData/hello_world_test.cw \
+	TestData/nqueens_test.cw \
+	TestData/sieve_test.cw \
+	TestData/tower_test.cw \
+	Lib/bitstream_test.cw \
+	Lib/bytestream_test.cw \
+	Lib/checksum_test.cw \
+	Lib/huffman_test.cw \
+	Lib/string_test.cw
 
 ALL_SOURCES := $(LANG_SOURCES) $(DATA_SOURCES) $(LIB_SOURCES)
 ALL_SOURCES_NO_GENERIC := $(filter-out Lib/builtin.cw $(wildcard */*gen*.cw), $(ALL_SOURCES))

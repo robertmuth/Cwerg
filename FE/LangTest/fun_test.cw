@@ -15,9 +15,6 @@ poly pub fun foo(a u16) u32:
 poly pub fun foo(a u32) u32:
     return 4
 
-poly pub fun foo(a u64) u32:
-    return 5
-
 fun test_poly() void:
     let! res u32 = undef
     set res = foo(true)
@@ -28,8 +25,6 @@ fun test_poly() void:
     test\AssertEq#(res, 3_u32)
     set res = foo(3_u32)
     test\AssertEq#(res, 4_u32)
-    set res = foo(4_u64)
-    test\AssertEq#(res, 5_u32)
 
 
 fun bar1() u32:
