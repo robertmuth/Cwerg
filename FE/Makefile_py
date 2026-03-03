@@ -16,16 +16,17 @@ ALL_TESTS_A32 := \
 	LangTest/array_test.cw \
     LangTest/cast_test.cw \
     LangTest/defer_test.cw \
-    LangTest/edit_distance_test.cw \
     LangTest/enum_test.cw \
     LangTest/expr_test.cw \
     LangTest/linked_list_gen_test.cw \
-    LangTest/sieve_test.cw \
-    LangTest/types_test.cw \
+	LangTest/types_test.cw \
+	TestData/edit_distance_test.cw \
+    TestData/sieve_test.cw \
     TestData/fibonacci_test.cw \
     TestData/fizzbuzz_test.cw \
     TestData/nqueens_test.cw \
     TestData/hello_world_test.cw \
+    TestData/tower_test.cw \
     Lib/bitstream_test.cw \
     Lib/bytestream_test.cw \
     Lib/checksum_test.cw \
