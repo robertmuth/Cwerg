@@ -2,9 +2,43 @@ module:
 
 import test
 
+
+; ==================================================
+
 type type_array = [3]bool
 
 type type_slice = span(s32)
+
+global array_dim = 5_uint
+
+global expr_sized_array = {[5 + 5 + 5]s32: 1, 2, 3}
+
+global expr_sized_array2 = {[array_dim + 5 + 5]s32: 1, 2, 3}
+
+static_assert len(expr_sized_array) == 15
+
+static_assert len(expr_sized_array2) == 15
+
+; ==================================================
+
+static_assert typeid_of(type_of("aaa")) == typeid_of([3]u8)
+
+global immutable_array = {[555]s32: 1, 2, 3}
+
+static_assert typeid_of(type_of(front(immutable_array))) == typeid_of(^s32)
+
+
+global! mutable_array = {[555]s32: 1, 2, 3}
+
+static_assert typeid_of(type_of(front(mutable_array))) == typeid_of(^s32)
+static_assert typeid_of(type_of(front!(mutable_array))) == typeid_of(^!s32)
+
+global immutable_span span(s32) = immutable_array
+static_assert typeid_of(type_of(front(immutable_span))) == typeid_of(^s32)
+static_assert typeid_of(type_of({{preserve_mut}} front(immutable_span))) == typeid_of(^s32)
+
+; ==================================================
+
 
 pub ref global c1 = {[10]s32: 1, 2, 3}
 
