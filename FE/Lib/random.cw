@@ -23,6 +23,23 @@ poly pub fun NextU32(s ^!SimpleLCGState) u32:
     set s^.last = (s^.last * LCG_IA + LCG_IC) % LCG_IM
     return s^.last
 
+; https://stackoverflow.com/questions/17035441/looking-for-decent-quality-prng-with-only-32-bits-of-state
+pub rec SplitMix32State:
+    last u32
+
+pub global SplitMix32StateDefault = {SplitMix32State: 42}
+
+poly pub fun NextU32(s ^!SplitMix32State) u32:
+    set s^.last += 0x9e3779b9
+    let! z = s^.last
+    set z ~= z >> 16
+    set z *= 0x21f0aaad
+    set z ~= z >> 15
+    set z *= 0x735a2d97
+    set z ~= z >> 15
+    return z
+
+
 ; see https://www.pcg-random.org/download.html
 pub rec Pcg32State:
     state u64

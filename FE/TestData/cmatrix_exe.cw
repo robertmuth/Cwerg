@@ -18,7 +18,7 @@ global CHAR_FLIP_PROBABILITY = 70_u32
 
 global SPEED_RANGE = 2_u32
 
-type Rng = random\Pcg32State
+type Rng = random\SplitMix32State
 
 enum CellKind u8:
     Normal 0
@@ -226,10 +226,10 @@ fun main(argc s32, argv ^^u8) s32:
     trylet res uint = os\Ioctl(os\Stdout, os\IoctlOp.TIOCGWINSZ, bitwise_as(@!win_size, ^!void)), err:
         fmt\print#("cannot determine terminal resolution\n")
         return 1
-    let num_cols = as((win_size.ws_col - 2) / 2, u32)
-    let num_lines = as(win_size.ws_row - 2, u32)
+    let num_cols = as((win_size.ws_col - 1) / 2, u32)
+    let num_lines = as(win_size.ws_row - 1, u32)
 
-    ref let! rng Rng = random\Pcg32StateDefault
+    ref let! rng Rng = random\SplitMix32StateDefault
 
     for i = 0, num_cols, 1:
         do ColumnInit(@!gColumns[i], num_lines, @!rng)
