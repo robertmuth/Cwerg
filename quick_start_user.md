@@ -25,14 +25,22 @@ provided docker container.
   of the compiler you need to install the following packages:
   `make cmake g++ libunwind-dev`.
 * **Docker container**: You need to have the `docker` package installed on your
-  host. Then build the docker container that encapsulates a ready configured
-  development environment:
-
-  `docker build -t cwerg-dev-env Cwerg/docker`
+  host. The docker container encapsulates a ready configured development
+  environment.
+  * Use the pre-built docker container (for amd64 and arm64):
+    ```
+    IMAGE='ghcr.io/robertmuth/cwerg/dev-env:latest'
+    docker pull $IMAGE
+    ```
+  * Build your own docker container:
+    ```
+    IMAGE='cwerg-dev-env'
+    docker build -t $IMAGE Cwerg/docker
+    ```
 
   Start a shell in the container:
 
-  `docker run -it --rm -v Cwerg:/Cwerg cwerg-dev-env`
+  `docker run -it --rm -v Cwerg:/Cwerg $IMAGE`
 
   Then run the command lines indicated below inside this shell.
 
