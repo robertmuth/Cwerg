@@ -37,6 +37,22 @@ global immutable_span span(s32) = immutable_array
 static_assert typeid_of(type_of(front(immutable_span))) == typeid_of(^s32)
 static_assert typeid_of(type_of({{preserve_mut}} front(immutable_span))) == typeid_of(^s32)
 
+global mutable_span span!(s32) = mutable_array
+static_assert typeid_of(type_of(front(mutable_span))) == typeid_of(^s32)
+static_assert typeid_of(type_of(front!(mutable_span))) == typeid_of(^!s32)
+static_assert typeid_of(type_of({{preserve_mut}} front(mutable_span))) == typeid_of(^!s32)
+
+; ==================================================
+
+global auto_size_array = {[]s32: 1, 2, 3}
+global auto_size_array2 = {[3]s32: 1, 2, 3}
+global auto_size_array3 = {[]s32: 1, 2, 3, 80=4}
+global auto_size_array4 = {[]s32: 1, 2, 3, 80=4, 81, 82, 83}
+
+static_assert len(auto_size_array) == 3
+static_assert len(auto_size_array3) == 81
+static_assert len(auto_size_array4) == 84
+
 ; ==================================================
 
 

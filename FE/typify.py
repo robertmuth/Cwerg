@@ -161,8 +161,10 @@ class _PolyMap:
         cwast.CompilerError(
             callee.x_srcloc, f"cannot resolve polymorphic {fun_name} {type_name}")
 
-
-def _ComputeArrayLength(node) -> int:
+# Usually evaluation happens after typification, but in some circumstances we need to do some adhoc evaluation during typification,
+# for example to determine the dimension of a vec type.
+# This is not a full evaluation and should be used with care.
+def _AdhocComputeOfIntConstant(node) -> int:
     # TODO: this should be more strict WRT to the exact type/bitwidth of integer
     if isinstance(node, cwast.ValNum):
         num, target_kind = _NumCleanupAndTypeExtraction(
@@ -170,13 +172,13 @@ def _ComputeArrayLength(node) -> int:
         assert target_kind.IsInt()
         return int(num.replace("_", ""), 0)
     elif isinstance(node, cwast.Id):
-        return _ComputeArrayLength(node.x_symbol)
+        return _AdhocComputeOfIntConstant(node.x_symbol)
     elif isinstance(node, (cwast.DefVar, cwast.DefGlobal)):
         assert not node.mut
-        return _ComputeArrayLength(node.initial_or_undef_or_auto)
+        return _AdhocComputeOfIntConstant(node.initial_or_undef_or_auto)
     elif isinstance(node, cwast.Expr2):
-        op1 = _ComputeArrayLength(node.expr1)
-        op2 = _ComputeArrayLength(node.expr2)
+        op1 = _AdhocComputeOfIntConstant(node.expr1)
+        op2 = _AdhocComputeOfIntConstant(node.expr2)
         if node.binary_expr_kind is cwast.BINARY_EXPR_KIND.ADD:
             return op1 + op2
         elif node.binary_expr_kind is cwast.BINARY_EXPR_KIND.SUB:
@@ -295,7 +297,7 @@ def _TypifyType(node, tc: type_corpus.TypeCorpus,
         # note this is the only place where we need a comptime eval for types
         t = _TypifyExprOrType(node.type, tc, cwast.NO_TYPE, pm)
         _TypifyExprOrType(node.size, tc, tc.get_uint_canon_type(), pm)
-        dim = _ComputeArrayLength(node.size)
+        dim = _AdhocComputeOfIntConstant(node.size)
         return _NodeSetType(node, tc.InsertVecType(dim, t))
     elif isinstance(node, cwast.TypeUnion):
         # this is tricky code to ensure that children of TypeUnion
@@ -357,10 +359,31 @@ def _TypifyStmt(node, tc: type_corpus.TypeCorpus,
         assert False, f"unexpected node: {node}"
 
 
+def _DetermineVecLengthInValCompound(inits) -> int:
+    n = 0
+    for point in inits:
+        assert isinstance(point, cwast.ValPoint)
+        index = point.point_or_undef
+        if not isinstance(index, cwast.ValUndef):
+            n = _AdhocComputeOfIntConstant(index)
+        n += 1
+
+    return n
+
+
 def _TypifyValCompound(node: cwast.ValCompound, tc: type_corpus.TypeCorpus,
                        target_type: cwast.CanonType,
                        pm: _PolyMap) -> cwast.CanonType:
-    ct = _TypifyExprOrType(node.type_or_auto, tc, target_type, pm)
+    if isinstance(node.type_or_auto, cwast.TypeVec) and isinstance(node.type_or_auto.size, cwast.ValAuto):
+        # special case for vec with auto size - we can determine the size from the number of initializers
+        dim = _DetermineVecLengthInValCompound(node.inits)
+        ct_element = _TypifyExprOrType(
+            node.type_or_auto.type, tc, cwast.NO_TYPE, pm)
+        ct = tc.InsertVecType(dim, ct_element)
+        _NodeSetType(node.type_or_auto, ct)
+        _NodeSetType(node.type_or_auto.size, tc.get_uint_canon_type())
+    else:
+        ct = _TypifyExprOrType(node.type_or_auto, tc, target_type, pm)
     if ct.is_vec():
         element_type = ct.underlying_type()
         for point in node.inits:
@@ -1101,17 +1124,10 @@ def VerifyTypesRecursively(node, tc: type_corpus.TypeCorpus, verifier_table):
         if cwast.NF.TYPE_ANNOTATED in node.FLAGS:
             ct: cwast.CanonType = node.x_type
             assert not ct.desugared, f"desugared node {node}"
-            if ct is cwast.NO_TYPE:
-                assert isinstance(
-                    node, (cwast.Id, cwast.ValAuto)), f"untype node {node}"
-                assert isinstance(parent, cwast.ValPoint)
-                assert parent.point == node, f"missing type for {
-                    node} in {node.x_srcloc}"
-            else:
-                assert ct.name in tc.corpus, f"bad type annotation for {
-                    node}: {node.x_type}"
+            assert ct.name in tc.corpus, f"bad type annotation for {
+                node}: {node.x_type}"
 
-                verifier_table[type(node)](node, tc)
+            verifier_table[type(node)](node, tc)
 
         else:
             handler = verifier_table.get(type(node))

@@ -607,7 +607,7 @@ ALL_FIELDS = [
     NfdNode("subtrahend", "type expression", NODES_TYPES_T),
     NfdNode("type_or_auto", "type expression", NODES_TYPES_OR_AUTO_T),
     NfdNode("result", "return type", NODES_TYPES_T),
-    NfdNode("size", "compile-time constant size", NODES_EXPR_T),
+    NfdNode("size", "compile-time constant size", NODES_EXPR_OR_AUTO_T),
     NfdNode("expr_size", "expression determining the size or auto",
             NODES_EXPR_OR_AUTO_T),
     NfdNode("expr_index",
@@ -1400,7 +1400,7 @@ class TypeVec:
     GROUP: ClassVar = GROUP.Type
     FLAGS: ClassVar = NF.TYPE_ANNOTATED | NF.TYPE_CORPUS | NF.NON_CORE
     #
-    size: "NODES_EXPR_T"      # must be const and unsigned
+    size: NODES_EXPR_OR_AUTO_T      # must be const and unsigned
     type: NODES_TYPES_T
     #
     x_srcloc: SrcLoc = INVALID_SRCLOC

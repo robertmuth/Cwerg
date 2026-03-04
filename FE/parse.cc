@@ -528,8 +528,16 @@ Node ParseTypeExpr(Lexer* lexer) {
     return out;
   } else if (tk.kind == TK_KIND::SQUARE_OPEN) {
     Node out = NodeNew(NT::TypeVec);
-    Node dim = PrattParseExpr(lexer);
-    lexer->MatchOrDie(TK_KIND::SQUARE_CLOSED);
+    TK tk = lexer->Peek();
+    Node dim;
+    if (tk.kind == TK_KIND::SQUARE_CLOSED) {
+      dim = NodeNew(NT::ValAuto);
+      NodeInitValAuto(dim, kStrInvalid, tk.srcloc, kCanonTypeInvalid);
+      lexer->Skip();
+    } else {
+      dim = PrattParseExpr(lexer);
+      lexer->MatchOrDie(TK_KIND::SQUARE_CLOSED);
+    }
     Node type = ParseTypeExpr(lexer);
     NodeInitTypeVec(out, dim, type, tk.comments, tk.srcloc, kCanonTypeInvalid);
     return out;

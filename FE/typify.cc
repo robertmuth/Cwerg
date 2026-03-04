@@ -217,9 +217,75 @@ void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
   Node_x_symbol(id) = field;
 }
 
+uint32_t AdhocComputeOfIntConstant(Node node) {
+  switch (Node_kind(node)) {
+    case NT::ValNum: {
+      ValAndKind val = NumCleanupAndTypeExtraction(StrData(Node_number(node)),
+                                                   BASE_TYPE_KIND::UINT);
+      ASSERT(IsInt(val.kind), "");
+      // Needs more work
+      auto num = ParseInt<uint32_t>(val.cleaned);
+      ASSERT(num.has_value(), "");
+      return num.value();
+    }
+    case NT::Id:
+      return AdhocComputeOfIntConstant(Node_x_symbol(node));
+    case NT::DefGlobal:
+    case NT::DefVar:
+      ASSERT(!Node_has_flag(node, BF::MUT), "");
+      return AdhocComputeOfIntConstant(Node_initial_or_undef_or_auto(node));
+    case NT::Expr2: {
+      uint32_t op1 = AdhocComputeOfIntConstant(Node_expr1(node));
+      uint32_t op2 = AdhocComputeOfIntConstant(Node_expr2(node));
+      switch (Node_binary_expr_kind(node)) {
+        case BINARY_EXPR_KIND::ADD:
+          return op1 + op2;
+        case BINARY_EXPR_KIND::SUB:
+          return op1 - op2;
+        case BINARY_EXPR_KIND::MUL:
+          return op1 * op2;
+        case BINARY_EXPR_KIND::DIV:
+          return op1 / op2;
+        default:
+          ASSERT(false, "");
+          return 0;
+      }
+    }
+    default:
+      CompilerError(Node_srcloc(node))
+          << "Vec dim must be a compile time constant, got " << node;
+      return 0;
+  }
+}
+
+int DetermineVecLengthInValCompound(Node inits) {
+  int n = 0;
+  for (Node init = inits; !init.isnull(); init = Node_next(init)) {
+    ASSERT(Node_kind(init) == NT::ValPoint, "");
+    Node index = Node_point_or_undef(init);
+    if (index.kind() != NT::ValUndef) {
+      n = AdhocComputeOfIntConstant(index);
+    }
+    ++n;
+  }
+  return n;
+}
+
 CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
                             PolyMap* pm) {
-  CanonType ct = TypifyExprOrType(Node_type_or_auto(node), tc, ct_target, pm);
+  Node type_node = Node_type_or_auto(node);
+  CanonType ct;
+  if (type_node.kind() == NT::TypeVec &&
+      Node_kind(Node_size(type_node)) == NT::ValAuto) {
+    int dim = DetermineVecLengthInValCompound(Node_inits(node));
+    CanonType ct_element =
+        TypifyExprOrType(Node_type(type_node), tc, kCanonTypeInvalid, pm);
+    ct = tc->InsertVecType(dim, ct_element);
+    NodeSetType(type_node, ct);
+    NodeSetType(Node_size(type_node), tc->get_uint_canon_type());
+  } else {
+    ct = TypifyExprOrType(type_node, tc, ct_target, pm);
+  }
   if (CanonType_kind(ct) == NT::TypeVec) {
     CanonType element_type = CanonType_underlying_type(ct);
 
@@ -265,47 +331,6 @@ CanonType TypifyValCompound(Node node, TypeCorpus* tc, CanonType ct_target,
     }
   }
   return NodeSetType(node, ct);
-}
-
-uint32_t ComputeArrayLength(Node node) {
-  switch (Node_kind(node)) {
-    case NT::ValNum: {
-      ValAndKind val = NumCleanupAndTypeExtraction(StrData(Node_number(node)),
-                                                   BASE_TYPE_KIND::UINT);
-      ASSERT(IsInt(val.kind), "");
-      // Needs more work
-      auto num = ParseInt<uint32_t>(val.cleaned);
-      ASSERT(num.has_value(), "");
-      return num.value();
-    }
-    case NT::Id:
-      return ComputeArrayLength(Node_x_symbol(node));
-    case NT::DefGlobal:
-    case NT::DefVar:
-      ASSERT(!Node_has_flag(node, BF::MUT), "");
-      return ComputeArrayLength(Node_initial_or_undef_or_auto(node));
-    case NT::Expr2: {
-      uint32_t op1 = ComputeArrayLength(Node_expr1(node));
-      uint32_t op2 = ComputeArrayLength(Node_expr2(node));
-      switch (Node_binary_expr_kind(node)) {
-        case BINARY_EXPR_KIND::ADD:
-          return op1 + op2;
-        case BINARY_EXPR_KIND::SUB:
-          return op1 - op2;
-        case BINARY_EXPR_KIND::MUL:
-          return op1 * op2;
-        case BINARY_EXPR_KIND::DIV:
-          return op1 / op2;
-        default:
-          ASSERT(false, "");
-          return 0;
-      }
-    }
-    default:
-      CompilerError(Node_srcloc(node))
-          << "Vec dim must be a compile time constant";
-      return 0;
-  }
 }
 
 bool IsPolymorphicCallee(Node callee) {
@@ -458,7 +483,8 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
       TypifyExprOrType(Node_size(node), tc, tc->get_uint_canon_type(), pm);
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       return NodeSetType(
-          node, tc->InsertVecType(ComputeArrayLength(Node_size(node)), ct));
+          node,
+          tc->InsertVecType(AdhocComputeOfIntConstant(Node_size(node)), ct));
     case NT::TypePtr:
       ct = TypifyExprOrType(Node_type(node), tc, kCanonTypeInvalid, pm);
       return NodeSetType(node,
@@ -890,6 +916,11 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
           return;
       }
     }
+    // We expect the node to have a valid type annotations except:
+    if (ct.isnull()) {
+      if (parent.kind() == NT::ValPoint) {
+      }
+    }
     ASSERT(!ct.isnull(), "");
     ASSERT(!CanonType_desugared(ct), "");
 
@@ -978,9 +1009,9 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         return CheckExpr2Types(node, Node_expr1(node), Node_expr2(node),
                                Node_binary_expr_kind(node), tc);
       case NT::ExprField: {
-        Node cont= Node_container(node);
+        Node cont = Node_container(node);
         if (CanonType_is_enum(Node_x_type(cont))) {
-           return CheckTypeIs(node, Node_x_type(cont));
+          return CheckTypeIs(node, Node_x_type(cont));
         } else {
           CheckTypeKind(cont, NT::DefRec);
           return CheckTypeIs(node,
@@ -1076,7 +1107,8 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         }
         if (!TypeListsAreTheSame(CanonType_children(ct_expr),
                                  CanonType_children(ct))) {
-          CompilerError(Node_srcloc(node)) << "untagged: unions are not compatible";
+          CompilerError(Node_srcloc(node))
+              << "untagged: unions are not compatible";
         }
         return;
       }
@@ -1098,7 +1130,8 @@ void TypeCheckRecursively(Node mod, TypeCorpus* tc, bool strict) {
         if (CanonType_kind(ct_dst) == NT::DefType &&
             IsDropMutConversion(ct_src, ct_target))
           return;
-        CompilerError(Node_srcloc(node)) << "wrap is not compatible " << ct_src << " -> " << ct_dst;
+        CompilerError(Node_srcloc(node))
+            << "wrap is not compatible " << ct_src << " -> " << ct_dst;
       }
 
       case NT::EnumVal:

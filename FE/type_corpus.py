@@ -490,6 +490,7 @@ class TypeCorpus:
         return self._insert(ct)
 
     def InsertVecType(self, dim: int, ct: cwast.CanonType) -> cwast.CanonType:
+        assert isinstance(dim, int)
         name = f"vec<{dim},{ct.name}>"
         if name in self.corpus:
             return self.corpus[name]

@@ -145,6 +145,6 @@ def CheckAST(node_mod: cwast.DefMod, disallowed_nodes, allow_type_auto=False, pr
                                     node_mod,
                                     allow_type_auto):
                 cwast.CompilerError(
-                    node.x_srcloc, f"unexpected node for field={nfd.name} node={node.__class__.__name__} parent={parent}")
+                    node.x_srcloc, f"unexpected node for field={nfd.name} node={node.__class__.__name__} parent={parent} permitted={nfd.node_type}")
 
     _VisitAstRecursivelyWithParentAndField(node_mod, visitor, None)

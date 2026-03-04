@@ -542,7 +542,7 @@ def _GetValForVecAtPos(container_val: EvalBase, index: int, ct: cwast.CanonType)
     if init_node is None:
         return GetDefaultForType(ct)
 
-    width =  init_node.x_type.vec_dim()
+    width = init_node.x_type.vec_dim()
     assert index < width
 
     assert isinstance(init_node, cwast.ValCompound), f"{init_node}"
@@ -905,9 +905,6 @@ def VerifyASTEvalsRecursively(node):
                         #    node.x_srcloc, f"expected const node: {node} "
                         #    f"of type {node.x_type} inside {parent}")
 
-        # Note: this info is currently filled in by the Type Decorator
-        if isinstance(node, cwast.TypeVec):
-            assert node.size.x_eval is not None, f"uneval'ed type dim: {node}"
 
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
@@ -915,11 +912,13 @@ def VerifyASTEvalsRecursively(node):
         if cwast.NF.EVAL_ANNOTATED not in node.FLAGS:
             return
         val = node.x_eval
-        if isinstance(node, (cwast.ValNum, cwast.EnumVal, cwast.ValAuto, cwast.ValUndef)):
-            assert val is not None, f"NODE={node} {node.x_srcloc}  PARENT={parent}  {parent.x_srcloc}"
-        if val is None:
+        if val is not None:
+            assert isinstance(val, EvalBase), f"{node} <- {parent}"
             return
-        assert isinstance(val, EvalBase), f"{node} <- {parent}"
+        assert not isinstance(node, (cwast.ValNum, cwast.EnumVal, cwast.ValUndef)
+                              ), f"NODE={node} {node.x_srcloc}  PARENT={parent}  {parent.x_srcloc}"
+        if isinstance(node, cwast.ValAuto):
+            assert isinstance(parent, cwast.TypeVec), f"Unexpected parent for ValAuto: {parent}"
 
     cwast.VisitAstRecursivelyWithParent(node, visitor2, None)
 

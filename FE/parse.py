@@ -408,8 +408,13 @@ def _ParseTypeExpr(inp: lexer.Lexer) -> Any:
         else:
             assert False, "Not Reachable"
     elif tk.kind is lexer.TK_KIND.SQUARE_OPEN:
-        dim = _ParseExpr(inp)
-        inp.match_or_die(lexer.TK_KIND.SQUARE_CLOSED)
+        tk = inp.peek()
+        if tk.kind is lexer.TK_KIND.SQUARE_CLOSED:
+            dim = cwast.ValAuto(x_srcloc=tk.srcloc)
+            inp.next()
+        else:
+            dim = _ParseExpr(inp)
+            inp.match_or_die(lexer.TK_KIND.SQUARE_CLOSED)
         type = _ParseTypeExpr(inp)
         return cwast.TypeVec(dim, type, **extra)
     elif tk.kind is lexer.TK_KIND.DEREF_OR_POINTER_OP:
