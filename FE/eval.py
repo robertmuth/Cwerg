@@ -178,6 +178,9 @@ class EvalNum(EvalBase):
         self.kind = kind
         self.val = val
 
+    def __eq__(self, other) -> bool:
+        return isinstance(other, EvalNum) and self.kind == other.kind and self.val == other.val
+
     def __str__(self):
         val = self.val
         if self.kind.IsReal():
@@ -420,6 +423,7 @@ def _EvalExpr1(node: cwast.Expr1) -> Optional[EvalBase]:
         assert False
     return EvalNum(v, bt)
 
+
 # TODO(issues/57): naive implementation -> needs a lot more scrutiny
 _EVAL_EQ_NE = {
     cwast.BINARY_EXPR_KIND.EQ: lambda x, y: x == y,
@@ -478,7 +482,8 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
         return EvalNum(_EVAL_EQ_NE[op](e1, e2), bt)
     # Note, we can compare pointers but there seem to few useful case
     # where we want to compare them at compile time.
-    assert isinstance(e1, EvalNum) and isinstance(e2, EvalNum), f"unexpected operands {e1} {e2} of type {ct_operand} for {node}"
+    assert isinstance(e1, EvalNum) and isinstance(
+        e2, EvalNum), f"unexpected operands {e1} {e2} of type {ct_operand} for {node}"
     e1 = e1.val
     e2 = e2.val
     bt_operand = ct_operand.base_type_kind
@@ -900,7 +905,6 @@ def VerifyASTEvalsRecursively(node):
                         #    node.x_srcloc, f"expected const node: {node} "
                         #    f"of type {node.x_type} inside {parent}")
 
-
     cwast.VisitAstRecursivelyWithParent(node, visitor, None)
 
     def visitor2(node: Any, parent: Any):
@@ -913,7 +917,8 @@ def VerifyASTEvalsRecursively(node):
         assert not isinstance(node, (cwast.ValNum, cwast.EnumVal, cwast.ValUndef)
                               ), f"NODE={node} {node.x_srcloc}  PARENT={parent}  {parent.x_srcloc}"
         if isinstance(node, cwast.ValAuto):
-            assert isinstance(parent, cwast.TypeVec), f"Unexpected parent for ValAuto: {parent}"
+            assert isinstance(
+                parent, cwast.TypeVec), f"Unexpected parent for ValAuto: {parent}"
 
     cwast.VisitAstRecursivelyWithParent(node, visitor2, None)
 
@@ -957,11 +962,12 @@ def main(argv: list[str]):
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
     typify.AddTypesToAst(mp.mods_in_topo_order, tc)
     for mod in mp.mods_in_topo_order:
-        typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_BEFORE_INITIAL_TRANSFORMS)
+        typify.VerifyTypesRecursively(
+            mod, tc, typify.VERIFIERS_BEFORE_INITIAL_TRANSFORMS)
 
-    DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
+    eval.DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
     for mod in mp.mods_in_topo_order:
-        VerifyASTEvalsRecursively(mod)
+        eval.VerifyASTEvalsRecursively(mod)
 
 
 if __name__ == "__main__":
@@ -970,6 +976,7 @@ if __name__ == "__main__":
     import pathlib
     from FE import mod_pool
     from FE import macro
+    from FE import eval
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.WARN)
