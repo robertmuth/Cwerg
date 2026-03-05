@@ -473,6 +473,8 @@ add_executable(compiler.exe
         FE/eval.cc
         FE/optimize.h
         FE/optimize.cc
+        FE/controlflow.h
+        FE/controlflow.cc
         FE/emit_ir.cc
         FE/emit_ir.h
         FE/compiler.cc
