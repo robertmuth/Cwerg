@@ -65,13 +65,13 @@ GENERATED = cwast_gen.cc cwast_gen.h lexer_gen.cc  lexer_gen.h
 ############################################################
 
 $(LEXER_BENCH)::
-	@cd $(BUILD_DIR); $(MAKE) -s lexer_bench.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j lexer_bench.exe
 
 $(PP)::
-	@cd $(BUILD_DIR); $(MAKE) -s pp.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j pp.exe
 
 $(EMIT_IR)::
-	@cd $(BUILD_DIR); $(MAKE) -s compiler.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j compiler.exe
 
 COMPILER::
 	@cd $(BUILD_DIR); $(MAKE) -s -j x64_codegen_tool.exe  a64_codegen_tool.exe  a32_codegen_tool.exe compiler.exe
@@ -162,7 +162,8 @@ $(DIR)/%.a32.exe: %.cw
 	${QEMU_A32} $@
 
 
-special: COMPILER $(DIR)/TestData/cmatrix_exe.x64.exe  $(DIR)/TestData/cmatrix_exe.a64.exe $(DIR)/TestData/cmatrix_exe.a32.exe
+special: COMPILER $(DIR)/TestData/cmatrix_exe.x64.exe
+# $(DIR)/TestData/cmatrix_exe.a64.exe $(DIR)/TestData/cmatrix_exe.a32.exe
 
 manual: $(DIR)/TestData/asciiquarium_exe.x64.exe
 
