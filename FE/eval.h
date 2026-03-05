@@ -18,7 +18,7 @@ namespace cwerg::fe {
 constexpr const Const kConstUndef(0, BASE_TYPE_KIND::UNDEF);
 constexpr const Const kConstVoid(0, BASE_TYPE_KIND::VOID);
 constexpr const Const kConstFalse(1U << 23U | 0, BASE_TYPE_KIND::BOOL);
-constexpr const Const kConsTrue(1U << 23U | 1, BASE_TYPE_KIND::BOOL);
+constexpr const Const kConstTrue(1U << 23U | 1, BASE_TYPE_KIND::BOOL);
 
 extern ImmutablePool ConstPool;
 extern ImmutablePoolWithSizeInfo ConstPoolForString;

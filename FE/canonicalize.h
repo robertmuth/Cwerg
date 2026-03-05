@@ -32,13 +32,10 @@ extern void FunDesugarExprIs(Node fun, const TypeCorpus* tc);
 
 extern void FunRemoveUselessCast(Node fun);
 
-extern void FunEliminateDefer(Node fun);
-
 extern void FunCanonicalizeBoolExpressionsNotUsedForConditionals(Node fun);
 
 extern void FunDesugarExpr3(Node fun);
 
-extern void FunAddMissingReturnStmts(Node fun);
 
 extern void FunOptimizeKnownConditionals(Node fun);
 
@@ -57,7 +54,6 @@ extern Node MakeValCompound(CanonType ct, std::span<FieldTypeAndValue> fields,
                             const SrcLoc& sl);
 
 extern void FunCanonicalizeCompoundAssignments(Node fun);
-extern void FunCanonicalizeRemoveStmtCond(Node fun);
 extern void FunRewriteComplexAssignments(Node fun, TypeCorpus* tc);
 
 }  // namespace cwerg::fe

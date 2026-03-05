@@ -27,6 +27,7 @@ from FE import optimize
 from FE import stats
 from FE import checker
 from FE import emit_ir
+from FE import controlflow
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +127,7 @@ def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.Typ
             # note: ReplaceTaggedExprNarrow introduces new ExprIs nodes
             canonicalize_union.FunSimplifyTaggedExprNarrow(fun, tc)
             canonicalize.FunDesugarExprIs(fun, typeid_ct)
-            canonicalize.FunEliminateDefer(fun)
+            controlflow.FunEliminateDefer(fun)
             canonicalize.FunRemoveUselessCast(fun)
             # this creates TernaryOps
             canonicalize.FunCanonicalizeBoolExpressionsNotUsedForConditionals(
@@ -134,7 +135,7 @@ def PhaseInitialLowering(mod_topo_order: list[cwast.DefMod], tc: type_corpus.Typ
             canonicalize.FunDesugarExpr3(fun)
             canonicalize.FunOptimizeKnownConditionals(fun)
             if not fun.extern:
-                canonicalize.FunAddMissingReturnStmts(fun)
+                controlflow.FunAddMissingReturnStmts(fun)
 
 
 def PhaseOptimize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus):
@@ -188,7 +189,7 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
             if not isinstance(fun, cwast.DefFun):
                 continue
             canonicalize.FunCanonicalizeCompoundAssignments(fun)
-            canonicalize.FunCanonicalizeRemoveStmtCond(fun)
+            controlflow.FunCanonicalizeRemoveStmtCond(fun)
             canonicalize.FunRewriteComplexAssignments(fun, tc)
 
 

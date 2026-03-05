@@ -13,6 +13,7 @@
 #include "FE/canonicalize_span.h"
 #include "FE/canonicalize_union.h"
 #include "FE/checker.h"
+#include "FE/controlflow.h"
 #include "FE/cwast_gen.h"
 #include "FE/emit_ir.h"
 #include "FE/eval.h"
