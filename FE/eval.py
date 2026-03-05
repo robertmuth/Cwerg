@@ -131,9 +131,7 @@ class EvalBytes(EvalBase):
 class EvalCompound(EvalBase):
     def __init__(self, init_node):
         # if compound is None, the default initialization is used
-        if init_node is not None:
-            # TODO
-            assert isinstance(init_node, cwast.ValCompound)
+        assert init_node is None or isinstance(init_node, cwast.ValCompound)
         self.init_node = init_node
 
     @override
@@ -267,7 +265,6 @@ def _ValueConstKind(node) -> CONSTANT_KIND:
 
     """
     assert cwast.NF.EVAL_ANNOTATED in node.FLAGS
-    # TODO: handle Id of DefFun
     if isinstance(node, (cwast.ValString, cwast.ValVoid, cwast.ValUndef, cwast.ValNum)):
         return CONSTANT_KIND.PURE
     if isinstance(node, cwast.ExprAddrOf):
@@ -423,8 +420,7 @@ def _EvalExpr1(node: cwast.Expr1) -> Optional[EvalBase]:
         assert False
     return EvalNum(v, bt)
 
-
-# TODO: naive implementation -> needs a lot more scrutiny
+# TODO(issues/57): naive implementation -> needs a lot more scrutiny
 _EVAL_EQ_NE = {
     cwast.BINARY_EXPR_KIND.EQ: lambda x, y: x == y,
     cwast.BINARY_EXPR_KIND.NE: lambda x, y: x != y,
@@ -482,7 +478,7 @@ def _EvalExpr2(node: cwast.Expr2) -> Optional[EvalBase]:
         return EvalNum(_EVAL_EQ_NE[op](e1, e2), bt)
     # Note, we can compare pointers but there seem to few useful case
     # where we want to compare them at compile time.
-    assert isinstance(e1, EvalNum) and isinstance(e2, EvalNum)
+    assert isinstance(e1, EvalNum) and isinstance(e2, EvalNum), f"unexpected operands {e1} {e2} of type {ct_operand} for {node}"
     e1 = e1.val
     e2 = e2.val
     bt_operand = ct_operand.base_type_kind
@@ -696,7 +692,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         assert typeid >= 0
         return EvalNum(typeid, node.x_type.base_type_kind)
     elif isinstance(node, cwast.ExprAs):
-        # TODO: some transforms may need to be applied, make sure it matches c++ version
+        # TODO(issues/57): some transforms may need to be applied, make sure it matches c++ version
         ct = node.x_type
         val = node.expr.x_eval
         if isinstance(val, EvalNum):
@@ -777,7 +773,7 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
             _AssignValue(c, val)
         return None
     elif isinstance(node, cwast.ExprCall):
-        # TODO
+        # we do plan on evaluating call. But we do/should permit inlining.
         return None
     elif isinstance(node, cwast.ExprStmt):
         return None
@@ -788,10 +784,9 @@ def _EvalNode(node: cwast.NODES_EXPR_T) -> Optional[EvalBase]:
         val = node.expr.x_eval
         if val is None:
             return None
-        # TODO: add EvalFunAddr?
-        if isinstance(val, (EvalVarAddr, EvalGlobalAddr)):
-            return val
-        assert isinstance(val, EvalNum)
+        if not isinstance(val, EvalNum):
+            assert isinstance(val, (EvalVarAddr, EvalGlobalAddr, EvalFunAddr))
+            return None
         assert node.expr.x_type.is_base_type(), f"{node.expr.x_type}"
         assert node.x_type.is_base_type(), f"{node.x_type}"
         data = SerializeBaseType(val)

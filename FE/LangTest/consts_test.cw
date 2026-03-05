@@ -182,12 +182,34 @@ static_assert is(p1, ^!r32) == false
 
 static_assert is(p1, ^r32) == true
 
+
+; global symbols
+
+
+global gs = 7_u32
+
+global gs_ptr = @gs
+global gs_ptr2 = @gs
+
+static_assert gs_ptr == gs_ptr2
+
+
+
+; fun symbols
+
 fun foo(x u16) u16:
     return x
 
 static_assert foo == foo
 
 static_assert @Real == @Real
+
+
+global foo_const = foo
+global foo_const2 = foo
+
+static_assert foo_const == foo_const2
+
 
 ; just a compilation test
 fun main(argc s32, argv ^^u8) s32:
