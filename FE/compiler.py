@@ -91,10 +91,10 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
             symbolize.VerifySymbols(mod)
 
         if stage in (checker.COMPILE_STAGE.AFTER_TYPIFY, checker.COMPILE_STAGE.AFTER_EVAL):
-            typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
+            typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_BEFORE_INITIAL_TRANSFORMS)
         elif stage.value >= checker.COMPILE_STAGE.AFTER_DESUGAR.value:
             # desugaring eliminate implicit conversions, so we can be stricter
-            typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_STRICT)
+            typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_AFTER_INITIAL_TRANSFORMS)
 
         if stage.value >= checker.COMPILE_STAGE.AFTER_EVAL.value:
             eval.VerifyASTEvalsRecursively(mod)

@@ -234,7 +234,7 @@ def main(argv: list[str]):
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
     typify.AddTypesToAst(mp.mods_in_topo_order, tc)
     for mod in mp.mods_in_topo_order:
-        typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_WEAK)
+        typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_BEFORE_INITIAL_TRANSFORMS)
 
     eval.DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
     for mod in mp.mods_in_topo_order:

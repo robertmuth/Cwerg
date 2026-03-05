@@ -1091,11 +1091,10 @@ def _CheckDefVarDefGlobal(node, strict: bool):
     _CheckTypeIs(node, ct)
 
 
-VERIFIERS_WEAK = VERIFIERS_COMMON | {
+# Allow implicit conversions
+VERIFIERS_BEFORE_INITIAL_TRANSFORMS = VERIFIERS_COMMON | {
     cwast.ExprNarrow: _CheckExprNarrow,
-    # These reflect all the node where implicit conversion beyond the
-    # drop of "mut" may occur. This includes:
-    # *
+
     cwast.ExprCall: lambda n, tc: _CheckExprCall(n, False),
     cwast.StmtAssignment: lambda n, tc:  _CheckStmtAssignment(n, False),
     cwast.StmtReturn: lambda n, tc: _CheckStmtReturn(n, False),
@@ -1104,7 +1103,10 @@ VERIFIERS_WEAK = VERIFIERS_COMMON | {
     cwast.ValPoint: lambda n, tc: _CheckValPoint(n, False),
 }
 
-VERIFIERS_STRICT = VERIFIERS_COMMON | {
+# Do NOT allow implicit conversions, except for dropping "mut"
+# Also do not allow CHECKED narrow for tagged unions because
+# those should have been eliminated (TODO: confirm this is true)
+VERIFIERS_AFTER_INITIAL_TRANSFORMS = VERIFIERS_COMMON | {
     cwast.ExprNarrow: _CheckExprNarrowUnchecked,
     cwast.ExprCall: lambda n, tc: _CheckExprCall(n, True),
     cwast.StmtAssignment: lambda n, tc:  _CheckStmtAssignment(n, True),
@@ -1282,7 +1284,7 @@ def main(argv: list[str]):
     tc = type_corpus.TypeCorpus(type_corpus.STD_TARGET_X64)
     AddTypesToAst(mp.mods_in_topo_order, tc)
     for mod in mp.mods_in_topo_order:
-        VerifyTypesRecursively(mod, tc, VERIFIERS_WEAK)
+        VerifyTypesRecursively(mod, tc, VERIFIERS_BEFORE_INITIAL_TRANSFORMS)
 
     for t, n in tc.corpus.items():
         logger.info("%s %s %d %d", t, n.ir_regs, n.size, n.alignment)

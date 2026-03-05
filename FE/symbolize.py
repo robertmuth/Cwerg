@@ -46,7 +46,7 @@ class SymTab:
         prev = self._syms.get(name)
         if prev is not None:
             cwast.CompilerError(node.x_srcloc,
-                                f"Duplicate symbol name [{name}] for\n {node}\npreviously defined by\n {prev}")
+                                f"Duplicate symbol name [{name}] for\n {node}\npreviously defined by\n {prev} at {prev.x_srcloc}")
         self._syms[name] = node
 
     def has_sym(self, name):
