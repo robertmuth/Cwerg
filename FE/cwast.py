@@ -3042,9 +3042,9 @@ def MaybeReplaceAstRecursivelyWithParentPost(node, replacer):
                 if new_child is None:
                     new_children.append(child)
                 elif isinstance(new_child, list):
-                    for x in new_child.args:
+                    for x in new_child:
                         assert not isinstance(x, list)
-                    new_children += new_child.args
+                    new_children += new_child
                 else:
                     new_children.append(new_child)
             setattr(node, f, new_children)
