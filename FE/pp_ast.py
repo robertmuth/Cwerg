@@ -6,7 +6,7 @@ https://www.w3.org/TR/xml-entity-names/025.html
 
 import logging
 
-from typing import Any
+from typing import Any, Optional
 
 from FE import cwast
 from FE import symbolize
@@ -66,7 +66,7 @@ def _RenderFlags(node) -> str:
     return ""
 
 
-def _DumpNode(node: Any, indent: int,  labels: dict[Any, str],  fout, active_columns, is_last):
+def _DumpNode(node: Any, indent: int,  labels: Optional[dict[Any, str]],  fout, active_columns, is_last):
     cls = type(node)
     line = [cls.__name__]
     flags = _RenderFlags(node)
@@ -203,7 +203,7 @@ def DumpMods(mods: list[cwast.DefMod], fout):
         print("", file=fout)
         _DumpNode(mod, -1, labels, fout, [], True)
 
-
+# For debugging
 def DumpNode(node, fout):
     _DumpNode(node, 0, None, fout, [], True)
 ############################################################
