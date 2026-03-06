@@ -15,7 +15,7 @@ pub fun SkipUnchecked(buffer ^!span(u8), n uint) void:
 pub fun Skip(buffer ^!span(u8), n uint) union(void, OutOfBoundsError):
     if len(buffer^) <= n:
         return OutOfBoundsErrorVal
-    do SkipUnchecked(buffer, n)
+    return SkipUnchecked(buffer, n)
 
 ;
 pub fun FrontSliceOrDie(buffer ^!span(u8), n uint) span(u8):

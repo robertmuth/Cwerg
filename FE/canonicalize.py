@@ -1,13 +1,12 @@
 """Canonicalize Misc
 
 """
-from typing import Any, Optional
+from typing import Any
 
 
 from FE import cwast
 from FE import type_corpus
 from FE import eval
-from FE import typify
 
 ############################################################
 #
@@ -109,11 +108,11 @@ def _RewriteExprIs(node: cwast.ExprIs, typeid_ct: cwast.CanonType):
     return out
 
 
-def FunDesugarExprIs(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
+def FunDesugarExprIs(fun: cwast.DefFun, typeid_ct: cwast.CanonType):
     """Transform ExprIs comparisons for typeids"""
     def replacer(node, _parent):
         if isinstance(node, cwast.ExprIs):
-            return _RewriteExprIs(node, tc)
+            return _RewriteExprIs(node, typeid_ct)
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(fun, replacer)
 
@@ -592,7 +591,7 @@ def FunReplaceSpanCastWithSpanVal(node, tc: type_corpus.TypeCorpus):
                 node.x_type.is_span() and
                 node.expr.x_type.is_vec()):
             return _MakeValSpanFromArray(
-                node.expr, node.x_type, tc, uint_type)
+                node.expr, node.x_type, uint_type, tc)
         return None
 
     cwast.MaybeReplaceAstRecursivelyWithParentPost(node, replacer)
