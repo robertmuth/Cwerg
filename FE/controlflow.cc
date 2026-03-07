@@ -4,18 +4,113 @@
 
 namespace cwerg::fe {
 
-bool CondIsAlwaysTrue(Node cond) {
-  if (cond.kind() == NT::ValNum) {
-    return Node_x_eval(cond) == kConstTrue;
+bool CondIsAlwaysTrue(Node cond) { return Node_x_eval(cond) == kConstTrue; }
+
+bool CondIsAlwaysFalse(Node cond) { return Node_x_eval(cond) == kConstFalse; }
+
+bool ContainsBreakRecurtsively(Node node_list, Node block_target) {
+  for (Node n = node_list; !n.isnull(); n = Node_next(n)) {
+    switch (n.kind()) {
+      case NT::StmtBreak:
+        return Node_x_target(n) == block_target;
+      case NT::StmtReturn:
+      case NT::StmtTrap:
+      case NT::StmtContinue:
+        return false;
+      case NT::StmtIf:
+        if (!CondIsAlwaysTrue(Node_cond(n))) {
+          if (ContainsBreakRecurtsively(Node_body_f(n), block_target))
+            return true;
+        }
+        if (!CondIsAlwaysFalse(Node_cond(n))) {
+          if (ContainsBreakRecurtsively(Node_body_t(n), block_target))
+            return true;
+        }
+        break;
+      case NT::StmtDefer:
+        return ContainsBreakRecurtsively(Node_body(n), block_target);
+      case NT::StmtCond: {
+        for (Node c = Node_cases(n); !c.isnull(); c = Node_next(c)) {
+          if (ContainsBreakRecurtsively(Node_body(c), block_target)) {
+            return true;
+          }
+        }
+      }
+      default:
+        break;
+    }
   }
   return false;
 }
 
-bool CondIsAlwaysFalse(Node cond) {
-  if (cond.kind() == NT::ValNum) {
-    return Node_x_eval(cond) == kConstFalse;
+bool LastStmtIsBreak(Node body, Node block_target) {
+  if (body.isnull()) return false;
+  Node last = NodeLastSibling(body);
+  if (last.kind() == NT::StmtBreak) {
+    return Node_x_target(last) == block_target;
   }
   return false;
+}
+
+// forward declaration needed because of mutual recursion
+bool BodyFallsThru(Node body);
+
+bool LastStmtFallsThrough(Node last) {
+  switch (last.kind()) {
+    case NT::StmtReturn:
+    case NT::StmtTrap:
+    case NT::StmtContinue:
+      return false;
+    case NT::StmtBreak:
+      return true;
+    case NT::StmtIf: {
+      if (!CondIsAlwaysTrue(Node_cond(last))) {
+        if (BodyFallsThru(Node_body_f(last))) return true;
+      }
+      if (!CondIsAlwaysFalse(Node_cond(last))) {
+        if (BodyFallsThru(Node_body_t(last))) return true;
+      }
+      return false;
+    }
+    case NT::StmtCond: {
+      bool seen_always_true = false;
+
+      for (Node c = Node_cases(last); !c.isnull(); c = Node_next(c)) {
+        if (CondIsAlwaysTrue(Node_cond(c))) seen_always_true = true;
+        if (BodyFallsThru(Node_body(c))) {
+          return true;
+        }
+      }
+      return !seen_always_true;
+    }
+    case NT::StmtBlock: {
+      Node body = Node_body(last);
+      if (body.isnull()) return true;
+      if (ContainsBreakRecurtsively(body, last)) return true;
+      return LastStmtFallsThrough(NodeLastSibling(body));
+    }
+    default:
+      return true;
+  }
+}
+
+bool BodyFallsThru(Node body) {
+  if (body.isnull()) return true;
+  return LastStmtFallsThrough(NodeLastSibling(body));
+}
+
+void ModVerifyFunFallthrus(Node mod) {
+  ASSERT(mod.kind() == NT::DefMod, "");
+  for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+    if (fun.kind() != NT::DefFun || Node_has_flag(fun, BF::EXTERN) ||
+        CanonType_is_void(CanonType_result_type(Node_x_type(fun)))) {
+      continue;
+    }
+    if (BodyFallsThru(Node_body(fun))) {
+      CompilerError(Node_srcloc(fun))
+          << "function may fall thru without returning";
+    }
+  }
 }
 
 struct Scope {

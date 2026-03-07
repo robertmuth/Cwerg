@@ -2,7 +2,36 @@ module:
 
 import test
 
+; Test missing terminal return check
+; TODO: add negative tests
 
+; ok since it never returns
+fun return_check1(a uint) uint:
+    while true:
+        continue
+
+fun return_check2(a uint) uint:
+    block b1:
+        if a > 0:
+            return a
+        else:
+            block b2:
+                continue b1
+
+fun return_check3(a uint) uint:
+    block b1:
+        if a > 0:
+            return a
+        else:
+            block b2:
+                if false:
+                    break
+                else:
+                    continue
+
+
+
+;
 poly pub fun foo(a bool) u32:
     return 1
 

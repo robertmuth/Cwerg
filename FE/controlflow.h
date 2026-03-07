@@ -10,4 +10,6 @@ void FunAddMissingReturnStmts(Node fun);
 
 void FunCanonicalizeRemoveStmtCond(Node fun);
 
+void ModVerifyFunFallthrus(Node mod);
+
 }  // namespace cwerg::fe

@@ -79,9 +79,6 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
         tc.Dump()
         exit(0)
 
-    if args.stop == phase_name:
-        exit(0)
-
     no_symbols = stage.value < checker.COMPILE_STAGE.AFTER_TYPIFY.value
     allow_type_auto = stage.value >= checker.COMPILE_STAGE.AFTER_DESUGAR.value
     for mod in mods:
@@ -92,14 +89,19 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
             symbolize.VerifySymbols(mod)
 
         if stage in (checker.COMPILE_STAGE.AFTER_TYPIFY, checker.COMPILE_STAGE.AFTER_EVAL):
-            typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_BEFORE_INITIAL_TRANSFORMS)
+            typify.VerifyTypesRecursively(
+                mod, tc, typify.VERIFIERS_BEFORE_INITIAL_TRANSFORMS)
         elif stage.value >= checker.COMPILE_STAGE.AFTER_DESUGAR.value:
             # desugaring eliminate implicit conversions, so we can be stricter
-            typify.VerifyTypesRecursively(mod, tc, typify.VERIFIERS_AFTER_INITIAL_TRANSFORMS)
+            typify.VerifyTypesRecursively(
+                mod, tc, typify.VERIFIERS_AFTER_INITIAL_TRANSFORMS)
+            controlflow.ModVerifyFunFallthrus(mod)
 
         if stage.value >= checker.COMPILE_STAGE.AFTER_EVAL.value:
             eval.VerifyASTEvalsRecursively(mod)
 
+    if args.stop == phase_name:
+        exit(0)
 
 _ARCH_MAP = {
     "x64": type_corpus.STD_TARGET_X64,

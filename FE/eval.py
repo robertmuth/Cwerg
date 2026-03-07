@@ -968,6 +968,7 @@ def main(argv: list[str]):
     eval.DecorateASTWithPartialEvaluation(mp.mods_in_topo_order)
     for mod in mp.mods_in_topo_order:
         eval.VerifyASTEvalsRecursively(mod)
+        controlflow.ModVerifyFunFallthrus(mod)
 
 
 if __name__ == "__main__":
@@ -977,6 +978,7 @@ if __name__ == "__main__":
     from FE import mod_pool
     from FE import macro
     from FE import eval
+    from FE import controlflow
 
     logging.basicConfig(level=logging.WARN)
     logger.setLevel(logging.WARN)

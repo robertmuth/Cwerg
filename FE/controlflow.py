@@ -5,15 +5,87 @@ from FE import eval
 
 
 def CondIsAlwaysTrue(cond: Any) -> bool:
-    if isinstance(cond, cwast.ValNum):
-        return cond.x_eval == eval.VAL_TRUE
-    return False
+    return cond.x_eval == eval.VAL_TRUE
 
 
 def CondIsAlwaysFalse(cond: Any) -> bool:
-    if isinstance(cond, cwast.ValNum):
-        return cond.x_eval == eval.VAL_FALSE
+    return cond.x_eval == eval.VAL_FALSE
+
+
+def _ContainsBreakRecurtsively(node_list: list[Any], block_target: cwast.StmtBlock) -> bool:
+    for node in node_list:
+        if isinstance(node, cwast.StmtBreak):
+            # no reason to continue - reamaining stmts are unreachable
+            return node.x_target is block_target
+        elif isinstance(node, (cwast.StmtReturn, cwast.StmtTrap, cwast.StmtContinue)):
+            return False
+        elif isinstance(node, cwast.StmtBlock):
+            return _ContainsBreakRecurtsively(node.body, block_target)
+        elif isinstance(node, cwast.StmtIf):
+            if not CondIsAlwaysTrue(node.cond):
+                if _ContainsBreakRecurtsively(node.body_f, block_target):
+                    return True
+            if not CondIsAlwaysFalse(node.cond):
+                if _ContainsBreakRecurtsively(node.body_t, block_target):
+                    return True
+        elif isinstance(node, cwast.StmtDefer):
+            return _ContainsBreakRecurtsively(node.body, block_target)
+        elif isinstance(node, cwast.StmtCond):
+            for c in node.cases:
+                if _ContainsBreakRecurtsively(c.body, block_target):
+                    return True
     return False
+
+
+def _LastStmtFallsThrough(last) -> bool:
+    if isinstance(last, (cwast.StmtContinue, cwast.StmtReturn, cwast.StmtTrap)):
+        return False
+    elif isinstance(last, cwast.StmtBreak):
+        return True
+    elif isinstance(last, cwast.StmtIf):
+        if not CondIsAlwaysTrue(last.cond):
+            if _BodyFallsThru(last.body_f):
+                return True
+        if not CondIsAlwaysFalse(last.cond):
+            if _BodyFallsThru(last.body_t):
+                return True
+        return False
+    elif isinstance(last, cwast.StmtCond):
+        seen_always_true = False
+        for x in last.cases:
+            if CondIsAlwaysTrue(x.cond):
+                seen_always_true = True
+            # This is incomplete as it does not ensure full coverge of all connditions
+            if _BodyFallsThru(x.body):
+                return True
+        return not seen_always_true
+    elif isinstance(last, cwast.StmtBlock):
+        if len(last.body) == 0:
+            return True
+        elif len(last.body) >= 2:
+            if _ContainsBreakRecurtsively(last.body, last):
+                return True
+        return _LastStmtFallsThrough(last.body[-1])
+    else:
+        return True
+
+
+def _BodyFallsThru(body) -> bool:
+    if len(body) == 0:
+        return True
+    return _LastStmtFallsThrough(body[-1])
+
+
+def ModVerifyFunFallthrus(mod: cwast.DefMod):
+    for fun in mod.body_mod:
+        if not isinstance(fun, cwast.DefFun) or fun.extern or fun.x_type.result_type().is_void():
+            continue
+        if _BodyFallsThru(fun.body):
+            # from FE import pp_ast
+            # import sys
+            # pp_ast.DumpNode(fun, fout=sys.stdout)
+            cwast.CompilerError(
+                fun.x_srcloc, f"{fun.name} has non-void return type but does not end with a return statement")
 
 
 # TODO: try converting this to VisitAstRecursivelyPreAndPost

@@ -123,6 +123,13 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
       VerifySymbols(mod);
     }
   }
+  // TODO: add type verification checks
+   if (int(stage) >= int(COMPILE_STAGE::AFTER_DESUGAR)) {
+    for (Node mod : mods) {
+      ModVerifyFunFallthrus(mod);
+    }
+  }
+
 }
 
 void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
