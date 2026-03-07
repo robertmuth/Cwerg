@@ -64,5 +64,5 @@ provided docker container.
 ## Next Steps
 
 * Read the [Tutorial](FE/Docs/tutorial.md)
-* For inspiration, look at the examples and the fledgling standard library in `FE/TestData`, `FE/LangTest`, and `FE/Lib`
+* For inspiration, look at the examples and the fledgling standard library in [FE/TestData](FE/TestData), [FE/Lib](FE/Lib) and [FE/LangTest](FE/LangTest) 
 * If you want start hacking on the compiler itself have a look at [quick_start_developer.md](quick_start_developer.md)
