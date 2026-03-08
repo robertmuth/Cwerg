@@ -1,0 +1,36 @@
+name: Cleanup GHCR
+
+on:
+  schedule:
+    - cron: '56 4 * * 0' # Every Sunday at 4:56 am
+  workflow_dispatch:
+
+concurrency:
+  # Cancel unfinished cleanup runs if a new run starts.
+  group: clean-ghcr
+  cancel-in-progress: true
+
+jobs:
+  cleanup:
+    name: Clean GitHub Container Registry
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Get image name
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          # Container registry names must be lowercase.
+          echo "IMAGE_NAME=${REPO_NAME,,}/dev-env" >> "$GITHUB_ENV"
+
+      - name: Cleanup container images
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          packages: ${{ env.IMAGE_NAME }}
+          older-than: 7 days
+          # Overwriting tag `:latest` will untag the previous `:latest` image.
+          delete-untagged: true
+          delete-ghost-images: true
+          delete-partial-images: true
+          delete-orphaned-images: true
+          dry-run: false

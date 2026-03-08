@@ -1,0 +1,244 @@
+name: DevEnv Docker Image
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - devenv-v*
+  workflow_dispatch:
+
+concurrency:
+  # Cancel unfinished CI/CD runs if a new run starts on the same branch.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  PLATFORMS: linux/amd64,linux/arm64
+  TEMP_IMAGE_NAME: localhost:5000/${{ github.repository }}/dev-env:ci
+  GHCR_IMAGE_NAME: ghcr.io/${{ github.repository }}/dev-env
+
+jobs:
+  check_build:
+    name: Check if we should build a new docker image.
+    runs-on: ubuntu-24.04
+    outputs:
+      do_build: ${{ steps.check.outputs.do_build }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Only metadata of 2 most recent commits is necessary below.
+          fetch-depth: 2
+          sparse-checkout: nix-da
+
+      - name: Check if the situation warrants a build`
+        id: check
+        run: |
+          if [[ $GITHUB_REF == refs/tags/devenv-v* ]]; then
+            echo "Got tag ${GITHUB_REF#refs/tags/} - will build"
+            echo "do_build=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "Manual start - will build"
+            echo "do_build=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only HEAD~1 | grep -q '^docker/'; then
+            echo "Committed docker/* files - will build"
+            echo "do_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No relevant changes - won't build"
+            echo "do_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build and test docker image
+    needs: [check_build]
+    if: needs.check_build.outputs.do_build == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read       # Required for the 'actions/checkout' step
+      packages: write      # Allows pushing/writing to GHCR
+
+    services:
+      registry:
+        # Ephemeral docker registry for storing images between build and test.
+        image: registry:2
+        ports:
+          - 5000:5000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Bats and bats libs
+        id: setup-bats
+        uses: bats-core/bats-action@3.0.1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ env.PLATFORMS }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      - name: Login to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          # Persistent docker registry for publishing the image.
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup image names
+        run: |
+          # Container registry names must be lowercase.
+          {
+            echo "TEMP_IMAGE_NAME=${TEMP_IMAGE_NAME,,}"
+            echo "GHCR_IMAGE_NAME=${GHCR_IMAGE_NAME,,}"
+          } >> "$GITHUB_ENV"
+
+      - name: Prepare image metadata
+        id: meta
+        run: |
+          PUSH_TO_GHCR=false
+          # Determine the Docker container tags.
+          TAGS=""
+
+          if [[ $GITHUB_REF == refs/tags/devenv-v* ]]; then
+            PUSH_TO_GHCR=true
+            # Git tags are used as docker image tags with 'devenv-' stripped.
+            VERSION=${GITHUB_REF#refs/tags/devenv-}
+            TAGS="${{ env.GHCR_IMAGE_NAME }}:${VERSION}"
+
+            if [[ $VERSION =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+               # Apply semantic version (semver) expansion, i.e., latest X.Y.Z
+               # also becomes X.Y and X
+               V=${VERSION:1}
+               MAJOR_MINOR=${V%.*}
+               MAJOR=${MAJOR_MINOR%.*}
+               TAGS="$TAGS,${{ env.GHCR_IMAGE_NAME }}:v${MAJOR_MINOR}"
+               TAGS="$TAGS,${{ env.GHCR_IMAGE_NAME }}:v${MAJOR}"
+            fi
+
+          elif [[ $GITHUB_REF == 'refs/heads/master' ]]; then
+            PUSH_TO_GHCR=true
+            # Git main branch commits are tagged with docker's default 'latest'
+            # tag.
+            VERSION=latest
+            TAGS="${{ env.GHCR_IMAGE_NAME }}:${VERSION}"
+          fi
+
+          # Version number in image metadata is either the tag version (with v
+          # prefix stripped), or the git sha for "latest" images.
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            IMAGE_VERSION=${VERSION#v}
+          else
+            IMAGE_VERSION="git-${GITHUB_SHA:0:7}"
+          fi
+
+          echo "::group::Image metadata"
+          echo "PUSH_TO_GHCR=${PUSH_TO_GHCR}"
+          echo "VERSION=${VERSION}"
+          echo "TAGS=${TAGS}"
+          echo "IMAGE_VERSION=${IMAGE_VERSION}"
+          echo "::endgroup::"
+
+          {
+            echo "push_to_ghcr=${PUSH_TO_GHCR}"
+            echo "image_version=${IMAGE_VERSION}"
+            echo "tags=${TAGS}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build development environment image
+        uses: docker/build-push-action@v5
+        with:
+          context: docker
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          tags: ${{ env.TEMP_IMAGE_NAME }}
+          build-args: |
+            IMAGE_VERSION=${{ steps.meta.outputs.image_version }}
+
+      - name: Inspect image manifest
+        id: inspect
+        run: |
+          # Get the metadata of all platform images from the multi-platform
+          # manifest of the above build.
+          docker buildx imagetools inspect ${{ env.TEMP_IMAGE_NAME }}
+          echo "raw=$(docker buildx imagetools inspect --raw \
+            ${{ env.TEMP_IMAGE_NAME }} \
+            | tr -d '\n')" >> "$GITHUB_OUTPUT"
+
+      - name: Test image
+        env:
+          BATS_LIB_PATH: ${{ steps.setup-bats.outputs.lib-path }}
+        run: |
+          # Do a test build on all architectures.
+          # Get digest and architecture of each manifest in multi-platform
+          # image.
+          digests=(${{ join(
+            fromJSON(steps.inspect.outputs.raw).manifests.*.digest,
+            ' '
+          ) }})
+          architectures=(${{ join(
+            fromJSON(steps.inspect.outputs.raw).manifests.*.platform.
+                architecture,
+            ' '
+          ) }})
+          oss=(${{ join(
+            fromJSON(steps.inspect.outputs.raw).manifests.*.platform.os,
+            ' '
+          ) }})
+          if [[ "${#digests[@]}" -ne "${#architectures[@]}" || \
+                "${#architectures[@]}" -ne "${#oss[@]}" ]]; then
+            echo "::error::Digest, arch, and os array lengths do not match:" \
+                 "[${oss[*]}] [${architectures[*]}] [${digests[*]}]"
+            exit 1
+          fi
+          for ((i=0; i<${#digests[@]}; i++)); do
+            digest="${digests[i]}"
+            arch="${architectures[i]}"
+            os="${oss[i]}"
+            echo "Digest: ${digest}"
+            echo "Architecture: ${arch}"
+            # The multi-platform docker image contains a bunch of manifests, but
+            # only the ones that have an valid architecture are manifests of
+            # platform sub-images we can actually run.
+            if [[ "${arch}" == 'unknown' ]]; then
+              echo '... skipping metadata image'
+              continue
+            fi
+            # Run the test suite on one architecture.
+            export DOCKER_IMAGE="${{ env.TEMP_IMAGE_NAME }}@${digest}"
+            echo "Running tests on image ${DOCKER_IMAGE}..."
+            docker pull "${DOCKER_IMAGE}"
+            export PLATFORM="${os}/${arch}"
+            docker run --platform "${PLATFORM}" --rm -v .:/Cwerg \
+                "${DOCKER_IMAGE}" \
+                sh -c 'echo Testing image on $(uname -m)...'
+            if [[ "${arch}" != 'amd64' ]]; then
+              # Don't run slow tests under emulation.
+              args='--filter-tags !slow'
+            fi
+            # Don't parallelize - test order within .bats file is required.
+            # shellcheck disable=SC2086 # Double quote to prevent word splitting
+            bats -j 1 ${args} --trace docker/tests
+          done
+
+      - name: Push to GHCR
+        if: steps.meta.outputs.push_to_ghcr == 'true'
+        run: |
+          # Split the comma-separated tags and format them as arguments
+          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.meta.outputs.tags }}"
+          TAG_ARGS=""
+          for tag in "${TAG_ARRAY[@]}"; do
+            TAG_ARGS="$TAG_ARGS -t $tag"
+          done
+
+          # Use imagetools create to copy the multi-platform image from the
+          # local registry to GHCR.
+          # This avoids rebuilding the image and ensures the exact image tested
+          # is pushed.
+          # shellcheck disable=SC2086
+          docker buildx imagetools create $TAG_ARGS ${{ env.TEMP_IMAGE_NAME }}
