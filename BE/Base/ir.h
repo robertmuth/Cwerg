@@ -1094,6 +1094,10 @@ inline Mem UnitMemAdd(Unit unit, Mem mem) {
 
 extern Mem UnitFindOrAddConstMem(Unit unit, Const num);
 
+extern Fun UnitFunFindOrForwardDeclare(Unit unit, Str fun_name);
+extern Mem UnitMemFindOrForwardDeclare(Unit unit, Str mem_name);
+
+
 extern bool ConstIsZero(Const num);
 extern bool ConstIsOne(Const num);
 

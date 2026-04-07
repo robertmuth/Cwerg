@@ -349,6 +349,17 @@ class Bbl:
                 return n
         assert False
 
+    def IsForwardDeclared(self):
+        return self.forward_declared
+
+    @staticmethod
+    def ForwardDeclared(name: str):
+        return Bbl(name, True)
+
+    def InitForwardDeclared(self):
+        assert self.forward_declared
+        self.forward_declared = False
+
     def __repr__(self):
         forward = " FORWARD" if self.forward_declared else ""
 
@@ -381,44 +392,51 @@ class FUN_FLAG(enum.Flag):
     REACHACHABLE = 1 << 4
 
 
+# use id for hashing as with a regular object
+@dataclasses.dataclass(eq=False)
 class Fun:
     """Function"""
 
-    def __init__(self, name: str, kind=o.FUN_KIND.INVALID,
-                 output_types=None, input_types=None):
-        self.name = name
-        self.kind: o.FUN_KIND = o.FUN_KIND.INVALID
-        self.flags = FUN_FLAG(0)
-        self.input_types: List[o.DK] = []
-        self.output_types: List[o.DK] = []
-        self.reg_syms: Dict[str, Reg] = {}
-        # All regs mentioned in reg_syms are partioned in one of these:
-        self.regs: List[Reg] = []
-        #
-        # basic block
-        self.bbl_syms: Dict[str, Bbl] = {}
-        self.bbls: List[Bbl] = []
-        # jtb
-        self.jtb_syms: Dict[str, Jtb] = {}
-        self.jtbs: List[Jtb] = []
-        # stack
-        self.stk_syms: Dict[str, Stk] = {}
-        self.stk_size = -1
-        self.scratch_reg_id = 0
-        # Liveness info: this is relevant after machine register allocation
-        # (use) "used by function = parameters"
-        self.cpu_live_in: List[CpuReg] = []
-        # (def) "defined by function = results"
-        self.cpu_live_out: List[CpuReg] = []
-        # (def2) "potentially changed but no visible to caller = scratch"
-        #        we usually use an approximation, i.e. caller-save regs
-        self.cpu_live_clobber: List[CpuReg] = []
+    name: str
+    kind: o.FUN_KIND
+    output_types: List[o.DK]
+    input_types: List[o.DK]
+    flags: FUN_FLAG = dataclasses.field(
+        default_factory=lambda: FUN_FLAG(0))
 
-        if kind != o.FUN_KIND.INVALID:  # not  forward_declared
-            self.Init(kind, output_types, input_types)
+    reg_syms: Dict[str, Reg] = dataclasses.field(default_factory=dict)
+    # All regs mentioned in reg_syms are partioned in one of these:
+    regs: List[Reg] = dataclasses.field(default_factory=list)
+    #
+    # basic block
+    bbl_syms: Dict[str, Bbl] = dataclasses.field(default_factory=dict)
+    bbls: List[Bbl] = dataclasses.field(default_factory=list)
+    # jtb
+    jtb_syms: Dict[str, Jtb] = dataclasses.field(default_factory=dict)
+    jtbs: List[Jtb] = dataclasses.field(default_factory=list)
+    # stack
+    stk_syms: Dict[str, Stk] = dataclasses.field(default_factory=dict)
+    stk_size: int = -1
+    scratch_reg_id: int = 0
+    # Liveness info: this is relevant after machine register allocation
+    # (use) "used by function = parameters"
+    cpu_live_in: List[CpuReg] = dataclasses.field(default_factory=list)
+    # (def) "defined by function = results"
+    cpu_live_out: List[CpuReg] = dataclasses.field(default_factory=list)
+    # (def2) "potentially changed but no visible to caller = scratch"
+    #        we usually use an approximation, i.e. caller-save regs
+    cpu_live_clobber: List[CpuReg] = dataclasses.field(
+        default_factory=list)
 
-    def Init(self, kind: o.FUN_KIND, output_types, input_types):
-        assert self.kind is o.FUN_KIND.INVALID
+    @staticmethod
+    def ForwardDeclared(name: str):
+        return Fun(name, o.FUN_KIND.INVALID, [], [])
+
+    def IsForwardDeclared(self):
+        return self.kind == o.FUN_KIND.INVALID
+
+    def InitForwardDeclared(self, kind: o.FUN_KIND, output_types, input_types):
+        assert self.IsForwardDeclared(), f"{self.name} is already defined"
         assert kind is not o.FUN_KIND.INVALID
         self.kind = kind
         self.input_types = input_types
@@ -520,8 +538,7 @@ class Fun:
         return bbl
 
     def InitForwardDeclaredBbl(self, bbl):
-        assert bbl.forward_declared
-        bbl.forward_declared = False
+        bbl.InitForwardDeclared()
         self.bbls.append(bbl)
 
     def GetBbl(self, name) -> Optional[Bbl]:
@@ -530,7 +547,7 @@ class Fun:
     def GetBblOrAddForwardDeclaration(self, name: str):
         bbl = self.bbl_syms.get(name)
         if bbl is None:
-            bbl = Bbl(name, forward_declared=True)
+            bbl = Bbl.ForwardDeclared(name)
             self.bbl_syms[name] = bbl
             # note we do not add it to self.bbls
         return bbl
@@ -563,6 +580,19 @@ class Mem:
 
     def Size(self):
         return sum(d.size for d in self.datas)
+
+    @staticmethod
+    def ForwardDeclared(name: str):
+        return Mem(name, 0, o.MEM_KIND.INVALID)
+
+    def IsForwardDeclared(self):
+        return self.kind == o.MEM_KIND.INVALID
+
+    def InitForwardDeclared(self, alignment: int, kind: o.MEM_KIND):
+        assert self.IsForwardDeclared()
+        assert kind is not o.MEM_KIND.INVALID
+        self.alignment = alignment
+        self.kind = kind
 
     def __repr__(self):
         return f"[MEM {self.name} {self.alignment} {self.kind} {self.Size()}]"
@@ -612,6 +642,7 @@ class Unit:
         self._temp_name_count += 1
         return f"$temp_{self._temp_name_count}"
 
+    #
     def AddMem(self, mem: Mem):
         if mem.name in self.mem_syms:
             raise ParseError(f"duplicate Mem {mem.name}")
@@ -619,8 +650,21 @@ class Unit:
         self.mems.append(mem)
         return mem
 
+    def InitForwardDeclaredMem(self, mem, alignment, kind):
+        mem.InitForwardDeclared(alignment, kind)
+        self.mems.append(mem)
+
     def GetMem(self, name) -> Mem:
         return self.mem_syms.get(name)
+
+    def GetMemOrAddForwardDeclaration(self, name):
+        mem = self.mem_syms.get(name)
+        if mem is None:
+            mem = Mem.ForwardDeclared(name)
+            self.mem_syms[name] = mem
+            # note we do not add it to self.mems
+        return mem
+    #
 
     def AddFun(self, fun: Fun):
         if fun.name in self.fun_syms:
@@ -630,8 +674,7 @@ class Unit:
         return fun
 
     def InitForwardDeclaredFun(self, fun, kind, outputs, inputs):
-        assert fun.kind == o.FUN_KIND.INVALID
-        fun.Init(kind, outputs, inputs)
+        fun.InitForwardDeclared(kind, outputs, inputs)
         self.funs.append(fun)
 
     def GetFun(self, name) -> Optional[Fun]:
@@ -640,11 +683,12 @@ class Unit:
     def GetFunOrAddForwardDeclaration(self, name):
         fun = self.fun_syms.get(name)
         if fun is None:
-            fun = Fun(name)  # forward declared
+            fun = Fun.ForwardDeclared(name)
             self.fun_syms[name] = fun
-            # note we do not add it to self.funs
+            # note we do not add it to self.funs yet
         return fun
 
+    #
     def FindOrAddConstMem(self, num: Const):
         def MakeName(data: bytes, kind: o.DK) -> str:
             data_str = "_".join(f"{b:02x}" for b in data)

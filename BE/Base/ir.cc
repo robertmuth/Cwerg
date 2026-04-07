@@ -57,8 +57,8 @@ struct Stripe<BblBst, Bbl> gBblBst("BblBst");
 struct Stripe<BblEdg, Bbl> gBblEdg("BblEdg");
 struct Stripe<BblLiveness, Bbl> gBblLiveness("BblLiveness");
 
-StripeBase* const gAllStripesBbl[] = {
-    &gBblCore, &gBblBst, &gBblEdg, &gBblLiveness, nullptr};
+StripeBase* const gAllStripesBbl[] = {&gBblCore, &gBblBst, &gBblEdg,
+                                      &gBblLiveness, nullptr};
 struct StripeGroup gStripeGroupBbl("BBL", gAllStripesBbl, 32 * 1024);
 
 struct Stripe<FunCore, Fun> gFunCore("FunCore");
@@ -583,6 +583,24 @@ Mem UnitFindOrAddConstMem(Unit unit, Const num) {
     mem = MemNew(name, MEM_KIND::RO, data.size());
     MemDataAdd(mem, DataNew(StrNew(data), data.size(), 1));
     UnitMemAdd(unit, mem);
+  }
+  return mem;
+}
+
+Fun UnitFunFindOrForwardDeclare(Unit unit, Str fun_name) {
+  Fun fun = UnitFunFind(unit, fun_name);
+  if (fun.isnull()) {
+    fun = FunNew(fun_name, FUN_KIND::INVALID);
+    UnitFunAddBst(unit, fun);
+  }
+  return fun;
+}
+
+Mem UnitMemFindOrForwardDeclare(Unit unit, Str mem_name) {
+  Mem mem = UnitMemFind(unit, mem_name);
+  if (mem.isnull()) {
+    mem = MemNew(mem_name, MEM_KIND::INVALID, 0);
+    UnitMemAddBst(unit, mem);
   }
   return mem;
 }

@@ -156,7 +156,7 @@ def DirFun(unit: ir.Unit, operands: List):
     if fun is None:
         fun = ir.Fun(name, kind, output_types, input_types)
         unit.AddFun(fun)
-    elif fun.kind is o.FUN_KIND.INVALID:    # forward_declared
+    elif fun.IsForwardDeclared():
         unit.InitForwardDeclaredFun(fun, kind, output_types, input_types)
     elif fun.kind is o.FUN_KIND.EXTERN or kind is o.FUN_KIND.EXTERN:
         assert output_types == fun.output_types
@@ -180,7 +180,7 @@ def DirBbl(unit: ir.Unit, operands: List):
     if bbl is None:
         bbl = ir.Bbl(name)
         fun.AddBbl(bbl)
-    elif bbl.forward_declared:
+    elif bbl.IsForwardDeclared():
         fun.InitForwardDeclaredBbl(bbl)
     else:
         raise ParseError(f"duplicate Bbl {name}")
@@ -205,11 +205,14 @@ def DirMem(unit: ir.Unit, operands: List):
     mem = unit.GetMem(name)
     if mem is None:
         unit.AddMem(ir.Mem(name, alignment, kind))
+    elif mem.IsForwardDeclared():
+        unit.InitForwardDeclaredMem(mem, alignment, kind)
     elif kind is o.MEM_KIND.EXTERN:
         return
     elif mem.kind is o.MEM_KIND.EXTERN:
         mem.kind = kind
         mem.alignment = alignment
+        # TODO: explain this
         # move fun to make it current
         unit.mems.remove(mem)
         unit.mems.append(mem)
@@ -373,7 +376,7 @@ def _GetOperand(unit: ir.Unit, fun: ir.Fun, ok: o.OP_KIND, v: Any) -> Any:
     elif ok is o.OP_KIND.BBL_TAB:
         return ExtractBblTable(fun, v)
     elif ok is o.OP_KIND.MEM:
-        return unit.GetMem(v)
+        return unit.GetMemOrAddForwardDeclaration(v)
     elif ok is o.OP_KIND.STK:
         return fun.GetStk(v)
     elif ok is o.OP_KIND.FUN_KIND:

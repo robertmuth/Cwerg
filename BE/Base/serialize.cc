@@ -45,6 +45,7 @@ bool FunHandler(const std::vector<std::string_view>& token, Unit unit) {
     fun = FunNew(name, kind);
     UnitFunAddBst(unit, fun);
   } else if (FunKind(fun) == FUN_KIND::INVALID) {
+    // forward declared
     ASSERT(UnitFunList::Prev(fun).isnull(), "must be unlinked");
     FunKind(fun) = kind;
   } else if (FunKind(fun) == FUN_KIND::EXTERN || kind == FUN_KIND::EXTERN) {
@@ -85,13 +86,14 @@ bool MemHandler(const std::vector<std::string_view>& token, Unit unit) {
   }
   const MEM_KIND kind = MKFromString(token[3]);
   Mem mem = UnitMemFind(unit, name);
-  if (!mem.isnull()) {
-    std::cerr << "mem already defined: " << token[1] << "\n";
-    return false;
+  if (mem.isnull()) {
+    mem = MemNew(name, kind, num.value());
+    UnitMemAddBst(unit, mem);
+  } else {
+    ASSERT(UnitMemList::Prev(mem).isnull(), "must be unlinked");
+    MemAlignment(mem) = num.value();
+    MemKind(mem) = kind;
   }
-  mem = MemNew(name, kind, num.value());
-
-  UnitMemAddBst(unit, mem);
   UnitMemAppendList(unit, mem);
   return true;
 }
@@ -251,7 +253,7 @@ bool AddrMemHandler(const std::vector<std::string_view>& token, Unit unit) {
   }
   const auto size = ParseInt<uint64_t>(token[1]);
   const Str name = StrNew(token[2]);
-  const Mem target = UnitMemFind(unit, name);
+  const Mem target = UnitMemFindOrForwardDeclare(unit, name);
   const auto extra = ParseInt<int64_t>(token[3]);
   if (!size || target.isnull() || !extra) return false;
   Data data = DataNew(target, size.value(), extra.value());
@@ -268,7 +270,7 @@ bool AddrFunHandler(const std::vector<std::string_view>& token, Unit unit) {
 
   const auto size = ParseInt<uint64_t>(token[1]);
   const Str name = StrNew(token[2]);
-  const Fun target = UnitFunFind(unit, name);
+  const Fun target = UnitFunFindOrForwardDeclare(unit, name);
   if (!size || target.isnull()) return false;
   Data data = DataNew(target, size.value(), 0);
   MemDataAdd(mem, data);
@@ -395,11 +397,7 @@ Handle GetOtherInsOperand(OP_KIND ok, std::string_view s, Unit mod, Fun fun) {
 
     case OP_KIND::MEM: {
       const Str name = StrNew(s);
-      const Mem mem = UnitMemFind(mod, name);
-      if (mem.isnull()) {
-        std::cerr << "undefined mem: " << s << "\n";
-      }
-      return mem;
+      return UnitMemFindOrForwardDeclare(mod, name);
     }
     case OP_KIND::STK: {
       const Str name = StrNew(s);
@@ -412,12 +410,7 @@ Handle GetOtherInsOperand(OP_KIND ok, std::string_view s, Unit mod, Fun fun) {
 
     case OP_KIND::FUN: {
       const Str name = StrNew(s);
-      Fun fun_op = UnitFunFind(mod, name);
-      if (fun_op.isnull()) {
-        fun_op = FunNew(name, FUN_KIND::INVALID);
-        UnitFunAddBst(mod, fun_op);
-      }
-      return fun_op;
+      return UnitFunFindOrForwardDeclare(mod, name);
     }
 
     case OP_KIND::JTB: {
@@ -800,7 +793,8 @@ bool UnitAppendFromAsm(Unit unit, std::string_view input,
     input.remove_prefix(line.size() + (new_line_pos != input.npos));
     vec.clear();
     if (!ParseLineWithStrings(line, false, &vec)) {
-      std::cerr << "Error while parsing line " << line_num << "\n" << line << "\n";
+      std::cerr << "Error while parsing line " << line_num << "\n"
+                << line << "\n";
       return false;
     }
 
@@ -830,7 +824,8 @@ bool UnitAppendFromAsm(Unit unit, std::string_view input,
       auto handler = Handlers[uint8_t(opc)];
       ASSERT(handler != nullptr, "unsupported directive: " << opcode.name);
       if (!handler(token, unit)) {
-        std::cerr << "Error processing line::\n" << line;
+        std::cerr << "Error processing line " << line_num << "\n"
+                  << line << "\n";
         return false;
       }
     } else {
@@ -839,7 +834,8 @@ bool UnitAppendFromAsm(Unit unit, std::string_view input,
       const Bbl bbl = FunBblList::Tail(fun);
       ASSERT(!bbl.isnull(), "");
       if (!GetAllInsOperands(opcode, token, unit, fun, cpu_reg_map, operands)) {
-        std::cerr << "Error parsing operands:\n" << line;
+        std::cerr << "Error parsing operands in line " << line_num << "\n"
+                  << line << "\n";
         return false;
       }
       ASSERT(MAX_OPERANDS == 5, "Fix the call below if this fires");
