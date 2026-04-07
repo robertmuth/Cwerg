@@ -1,6 +1,13 @@
 # exercises address stored as data
 # requires std_lib.asm
 
+
+# exercise forward decls
+.mem string_pointers 8 RO
+.addr.mem 4  LINE 0
+.addr.mem 4  HASH 0
+.addr.mem 4  SEMI 0
+
 .mem LINE 4 RO
 .data 10 "="
 
@@ -9,11 +16,6 @@
 
 .mem SEMI 4 RO
 .data 10 ";"
-
-.mem string_pointers 8 RO
-.addr.mem 4  LINE 0
-.addr.mem 4  HASH 0
-.addr.mem 4  SEMI 0
 
 
 .fun main NORMAL [S32] = []
