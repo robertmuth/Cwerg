@@ -1,7 +1,9 @@
 from typing import Any, Optional
 
 from FE import cwast
+from FE import type_corpus
 from FE import eval
+from FE import canonicalize
 
 
 def CondIsAlwaysTrue(cond: Any) -> bool:
@@ -177,6 +179,7 @@ def FunCanonicalizeRemoveStmtCond(fun: cwast.DefFun):
 
 
 def FunAddMissingReturnStmts(fun: cwast.DefFun):
+
     result_ct = fun.x_type.result_type()
     if not result_ct.get_unwrapped().is_void():
         return
@@ -190,3 +193,56 @@ def FunAddMissingReturnStmts(fun: cwast.DefFun):
     void_expr = cwast.ValVoid(x_srcloc=sl, x_type=result_ct)
 
     fun.body.append(cwast.StmtReturn(void_expr, x_srcloc=sl, x_target=fun))
+
+
+def _IdNodeFromDefFun(fun: cwast.DefFun) -> cwast.Id:
+    return cwast.Id(fun.name, x_srcloc=fun.x_srcloc, x_symbol=fun, x_type=fun.x_type, x_eval=eval.EvalFunAddr(fun))
+
+
+def _MakeInitFiniFun(name: str, callees: list[cwast.DefFun], fun_ct, void_ct) -> cwast.DefFun:
+    sl = cwast.SRCLOC_GENERATED
+    at = cwast.TypeAuto(x_srcloc=sl, x_type=void_ct)
+    out = cwast.DefFun(cwast.NAME(name), [], at, [],
+                       cdecl=True, x_type=fun_ct, x_srcloc=sl)
+    void_expr = cwast.ValVoid(x_srcloc=sl, x_type=void_ct)
+    for c in callees:
+        if c.x_type != fun_ct:
+            cwast.CompilerError(
+                c.x_srcloc, f"init function {c.name} must have type 'void ()'")
+        call = cwast.ExprCall(_IdNodeFromDefFun(
+            c), [], x_srcloc=cwast.SRCLOC_GENERATED, x_type=void_ct)
+        out.body.append(cwast.StmtExpr(call, x_srcloc=cwast.SRCLOC_GENERATED))
+    out.body.append(cwast.StmtReturn(void_expr, x_srcloc=sl, x_target=out))
+    return out
+
+
+def MakeInitFun(name: str, mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus) -> cwast.DefFun:
+    fun_ct = tc.InsertFunType([], tc.get_void_canon_type())
+    void_ct = tc.get_void_canon_type()
+    lst: list[cwast.DefFun] = []
+    for mod in mod_topo_order:
+        seen_one = False
+        for fun in mod.body_mod:
+            if isinstance(fun, cwast.DefFun) and fun.init:
+                lst.append(fun)
+                if seen_one:
+                    cwast.CompilerError(
+                        fun.x_srcloc, f"multiple init functions in module {mod.name}")
+                seen_one = True
+    return _MakeInitFiniFun(name, lst, fun_ct, void_ct)
+
+
+def MakeFiniFun(name: str, mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus) -> cwast.DefFun:
+    fun_ct = tc.InsertFunType([], tc.get_void_canon_type())
+    void_ct = tc.get_void_canon_type()
+    lst: list[cwast.DefFun] = []
+    for mod in mod_topo_order:
+        seen_one = False
+        for fun in reversed(mod.body_mod):
+            if isinstance(fun, cwast.DefFun) and fun.fini:
+                lst.append(fun)
+                if seen_one:
+                    cwast.CompilerError(
+                        fun.x_srcloc, f"multiple fini functions in module {mod.name}")
+                seen_one = True
+    return _MakeInitFiniFun(name, lst, fun_ct, void_ct)

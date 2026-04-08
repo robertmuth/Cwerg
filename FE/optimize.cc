@@ -54,6 +54,7 @@ void FunInlineSmallFuns(Node fun) {
     Node callee = Node_callee(node);
     if (callee.kind() != NT::Id) return node;
     Node fun_def = Node_x_symbol(callee);
+    if (Node_has_flag(fun_def, BF::INIT) || Node_has_flag(fun_def, BF::FINI)) return node;
     if (fun_def.kind() != NT::DefFun) return node;
     if (fun_def == fun) return node;
     if (Node_has_flag(fun_def, BF::EXTERN)) return node;
@@ -140,7 +141,7 @@ bool MayHaveSideEffects(Node n) {
     case NT::ValVoid:
     case NT::ValNum:
       return false;
-      case NT::ValSpan:
+    case NT::ValSpan:
       return MayHaveSideEffects(Node_pointer(n)) ||
              MayHaveSideEffects(Node_expr_size(n));
     case NT::ExprAddrOf:

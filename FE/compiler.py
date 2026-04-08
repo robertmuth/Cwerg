@@ -339,20 +339,11 @@ def main() -> int:
 
     #
     mod_gen = MakeModWithComplexConstants(mod_topo_order)
-    fun_ct = tc.InsertFunType([], tc.get_void_canon_type())
-    void_ct = tc.get_void_canon_type()
 
-    def MakeInitFiniFun(name: str) -> cwast.DefFun:
-        sl = cwast.SRCLOC_GENERATED
-        at = cwast.TypeAuto(x_srcloc=sl, x_type=void_ct)
-        out = cwast.DefFun(cwast.NAME(name), [], at, [],
-                           cdecl=True, x_type=fun_ct, x_srcloc=sl)
-        void_expr = cwast.ValVoid(x_srcloc=sl, x_type=void_ct)
-        out.body.append(cwast.StmtReturn(void_expr, x_srcloc=sl, x_target=out))
-        return out
-
-    mod_gen.body_mod.append(MakeInitFiniFun("_init"))
-    mod_gen.body_mod.append(MakeInitFiniFun("_fini"))
+    mod_gen.body_mod.append(
+        controlflow.MakeInitFun("_init", mod_topo_order, tc))
+    mod_gen.body_mod.append(
+        controlflow.MakeFiniFun("_fini", mod_topo_order, tc))
     #
     logger.info("phase: eliminate span and union")
     PhaseEliminateSpanAndUnion(mod_gen, mod_topo_order, tc)

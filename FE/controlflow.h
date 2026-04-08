@@ -12,4 +12,9 @@ void FunCanonicalizeRemoveStmtCond(Node fun);
 
 void ModVerifyFunFallthrus(Node mod);
 
+Node MakeFiniFun(std::string_view name,
+                 const std::vector<Node>& mod_in_topo_order, TypeCorpus* tc);
+
+Node MakeInitFun(std::string_view name,
+                 const std::vector<Node>& mod_in_topo_order, TypeCorpus* tc);
 }  // namespace cwerg::fe

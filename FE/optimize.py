@@ -174,6 +174,8 @@ def FunInlineSmallFuns(fun: cwast.DefFun):
         if not isinstance(call.callee, cwast.Id):
             return None
         fun_def: cwast.DefFun = call.callee.x_symbol
+        if fun_def.init or fun_def.fini:
+            return None
 
         if not isinstance(fun_def, cwast.DefFun):
             return None

@@ -244,4 +244,87 @@ void FunCanonicalizeRemoveStmtCond(Node fun) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
+Node IdNodeFromDefFun(Node fun) {
+  Node out = NodeNew(NT::Id);
+  NodeInitId(out, Node_name(fun), kStrInvalid, Node_srcloc(fun), fun,
+             Node_x_type(fun));
+  return out;
+}
+
+Node MakeInitFiniFun(std::string_view name, const std::vector<Node>& callees,
+                     CanonType fun_ct, CanonType void_ct) {
+  Node fun = NodeNew(NT::DefFun);
+
+  Node result_type = MakeTypeAuto(void_ct, kSrcLocInvalid);
+  NodeInitDefFun(fun, NameNew(name), kNodeInvalid, result_type, kNodeInvalid,
+                 Mask(BF::CDECL), kStrInvalid, kSrcLocInvalid, fun_ct);
+  NodeChain body;
+  for (Node c : callees) {
+    if (Node_x_type(c) != fun_ct) {
+      CompilerError(Node_srcloc(c))
+          << "init function " << Node_name(c)
+          << " must have type 'void ()', but has type " << Node_x_type(c);
+    }
+    Node id = IdNodeFromDefFun(c);
+    Node call = NodeNew(NT::ExprCall);
+    NodeInitExprCall(call, id, kNodeInvalid, kStrInvalid, kSrcLocInvalid,
+                     void_ct);
+    Node stmt = NodeNew(NT::StmtExpr);
+    NodeInitStmtExpr(stmt, call, kStrInvalid, kSrcLocInvalid);
+    body.Append(stmt);
+  }
+
+  Node val_void = NodeNew(NT::ValVoid);
+  NodeInitValVoid(val_void, kStrInvalid, kSrcLocInvalid, void_ct);
+  Node stmt_ret = NodeNew(NT::StmtReturn);
+  NodeInitStmtReturn(stmt_ret, val_void, kStrInvalid, kSrcLocInvalid, fun);
+  body.Append(stmt_ret);
+
+  Node_body(fun) = body.First();
+  return fun;
+}
+
+Node MakeInitFun(std::string_view name,
+                 const std::vector<Node>& mod_in_topo_order, TypeCorpus* tc) {
+  CanonType void_ct = tc->get_void_canon_type();
+  CanonType fun_ct = tc->InsertFunType({void_ct});
+  std::vector<Node> callees;
+  for (Node mod : mod_in_topo_order) {
+    bool seen_one = false;
+    for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
+      if (fun.kind() != NT::DefFun) continue;
+      if (!Node_has_flag(fun, BF::INIT)) continue;
+      if (seen_one) {
+        CompilerError(Node_srcloc(fun))
+            << "multiple init functions in module " << Node_name(mod);
+      }
+      seen_one = true;
+      callees.push_back(fun);
+    }
+  }
+  return MakeInitFiniFun(name, callees, fun_ct, void_ct);
+}
+
+Node MakeFiniFun(std::string_view name,
+                 const std::vector<Node>& mod_in_topo_order, TypeCorpus* tc) {
+  CanonType void_ct = tc->get_void_canon_type();
+  CanonType fun_ct = tc->InsertFunType({void_ct});
+  std::vector<Node> callees;
+  for (auto it = mod_in_topo_order.rbegin(); it != mod_in_topo_order.rend();
+       ++it) {
+    bool seen_one = false;
+    for (Node fun = Node_body_mod(*it); !fun.isnull(); fun = Node_next(fun)) {
+      if (fun.kind() != NT::DefFun) continue;
+      if (!Node_has_flag(fun, BF::FINI)) continue;
+      if (seen_one) {
+        CompilerError(Node_srcloc(fun))
+            << "multiple init functions in module " << Node_name(*it);
+      }
+      seen_one = true;
+      callees.push_back(fun);
+    }
+  }
+  return MakeInitFiniFun(name, callees, fun_ct, void_ct);
+}
+
 }  // namespace cwerg::fe
