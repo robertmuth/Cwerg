@@ -28,7 +28,7 @@ TESTS = fp_op.asm \
 TEST_EXES = $(TESTS:%.asm=$(DIR)/%.asm.exe)
 
 STD_LIB_NO_ARGV = ../StdLib/startup_no_argv.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
-STD_LIB_WITH_ARGV = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
+STD_LIB_WITH_ARGV = ../StdLib/startup.a64.asm ../StdLib/dummy_init_fini.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
 
 
 tests: $(TEST_EXES) \

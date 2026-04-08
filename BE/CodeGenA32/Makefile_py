@@ -36,7 +36,7 @@ tests: $(TEST_EXES) \
 	@echo "[OK PY CODEGENA32]"
 
 STD_LIB_NO_ARGV = ../StdLib/startup_no_argv.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
-STD_LIB_WITH_ARGV = ../StdLib/startup.a32.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
+STD_LIB_WITH_ARGV = ../StdLib/startup.a32.asm ../StdLib/dummy_init_fini.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 
 ############################################################
 # Python

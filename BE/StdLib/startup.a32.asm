@@ -22,10 +22,12 @@
   # shr envp_offset:U32 argc 2
   # add envp_offset 8
   # lea envp:A32 fp envp_offset
+  bsr _init
   pusharg argv
   pusharg argc
   bsr main
   poparg res:S32
+  bsr _fini
   pusharg res
   bsr exit
   ret

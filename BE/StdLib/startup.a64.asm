@@ -24,10 +24,12 @@
   # add envp_offset 16
   # lea envp:A64 fp envp_offset
   conv argc_short:S32 argc
+  bsr _init
   pusharg argv
   pusharg argc_short
   bsr main
   poparg res:S32
+  bsr _fini
   pusharg res
   bsr exit
   ret

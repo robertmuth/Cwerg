@@ -124,12 +124,11 @@ void SanityCheckMods(std::string_view phase, const std::vector<Node>& mods,
     }
   }
   // TODO: add type verification checks
-   if (int(stage) >= int(COMPILE_STAGE::AFTER_DESUGAR)) {
+  if (int(stage) >= int(COMPILE_STAGE::AFTER_DESUGAR)) {
     for (Node mod : mods) {
       ModVerifyFunFallthrus(mod);
     }
   }
-
 }
 
 void PhaseInitialLowering(const std::vector<Node>& mods_in_topo_order,
@@ -279,6 +278,22 @@ const TargetArchConfig* GetTargetArchConfig(std::string_view arch) {
   }
 }
 
+Node MakeInitFiniFun(std::string_view name, TypeCorpus* tc) {
+  Node fun = NodeNew(NT::DefFun);
+  CanonType void_ct = tc->get_void_canon_type();
+  CanonType fun_ct = tc->InsertFunType({void_ct});
+  Node result_type = MakeTypeAuto(void_ct, kSrcLocInvalid);
+  NodeInitDefFun(fun, NameNew(name), kNodeInvalid, result_type, kNodeInvalid, Mask(BF::CDECL),
+                 kStrInvalid, kSrcLocInvalid, fun_ct);
+  Node val_void = NodeNew(NT::ValVoid);
+  NodeInitValVoid(val_void, kStrInvalid, kSrcLocInvalid, void_ct);
+  Node stmt_ret = NodeNew(NT::StmtReturn);
+  NodeInitStmtReturn(stmt_ret, val_void, kStrInvalid, kSrcLocInvalid, fun);
+  Node_body(fun) = stmt_ret;
+
+  return fun;
+}
+
 int main(int argc, const char* argv[]) {
   const int arg_start = cwerg::SwitchBase::ParseArgv(argc, argv, &std::cerr);
   std::ios_base::sync_with_stdio(true);
@@ -327,7 +342,6 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_symbolizing", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_SYMBOLIZE, nullptr, &ts);
 
-
   TypeCorpus tc(*ta);
   AddTypesToAst(mp.mods_in_topo_order, &tc);
   SanityCheckMods("after_typing", mp.mods_in_topo_order, eliminated_nodes,
@@ -369,6 +383,8 @@ int main(int argc, const char* argv[]) {
   Node mod_gen = MakeModGen();
 
   NodeChain chain = MakeModWithComplexConstants(mp.mods_in_topo_order);
+  chain.Append(MakeInitFiniFun("_init", &tc));
+  chain.Append(MakeInitFiniFun("_fini", &tc));
   Node_body_mod(mod_gen) = chain.First();
 
   PhaseEliminateSpanAndUnion(mod_gen, mp.mods_in_topo_order, &tc, &chain);

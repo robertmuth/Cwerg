@@ -28,7 +28,7 @@ TESTS = fp_op.asm \
 TEST_C_EXES = $(TESTS:%.asm=$(DIR)/%.asm.c.exe)
 
 STD_LIB_NO_ARGV = ../StdLib/startup_no_argv.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
-STD_LIB_WITH_ARGV = ../StdLib/startup.a64.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
+STD_LIB_WITH_ARGV = ../StdLib/startup.a64.asm ../StdLib/dummy_init_fini.asm ../StdLib/syscall.a64.asm ../StdLib/std_lib.64.asm
 
 
 
@@ -58,7 +58,7 @@ BUILD_DIR=../../build
 CODEGEN_TOOL=$(BUILD_DIR)/a64_codegen_tool.exe
 
 $(CODEGEN_TOOL)::
-	@cd $(BUILD_DIR); $(MAKE) -s a64_codegen_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j a64_codegen_tool.exe
 
 $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 	@echo "[integration $@]"

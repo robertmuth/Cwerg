@@ -103,6 +103,7 @@ def SanityCheckMods(phase_name: str, stage: checker.COMPILE_STAGE, args: Any,
     if args.stop == phase_name:
         exit(0)
 
+
 _ARCH_MAP = {
     "x64": type_corpus.STD_TARGET_X64,
     "a64": type_corpus.STD_TARGET_A64,
@@ -199,6 +200,7 @@ def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArch
     sig_names: set[str] = set()
     for mod in mod_topo_order:
         for fun in mod.body_mod:
+            # This is really only needed for signature used by JSRs
             if isinstance(fun, cwast.DefFun):
                 sn = emit_ir.MakeFunSigName(fun.x_type)
                 if sn not in sig_names:
@@ -337,7 +339,20 @@ def main() -> int:
 
     #
     mod_gen = MakeModWithComplexConstants(mod_topo_order)
+    fun_ct = tc.InsertFunType([], tc.get_void_canon_type())
+    void_ct = tc.get_void_canon_type()
 
+    def MakeInitFiniFun(name: str) -> cwast.DefFun:
+        sl = cwast.SRCLOC_GENERATED
+        at = cwast.TypeAuto(x_srcloc=sl, x_type=void_ct)
+        out = cwast.DefFun(cwast.NAME(name), [], at, [],
+                           cdecl=True, x_type=fun_ct, x_srcloc=sl)
+        void_expr = cwast.ValVoid(x_srcloc=sl, x_type=void_ct)
+        out.body.append(cwast.StmtReturn(void_expr, x_srcloc=sl, x_target=out))
+        return out
+
+    mod_gen.body_mod.append(MakeInitFiniFun("_init"))
+    mod_gen.body_mod.append(MakeInitFiniFun("_fini"))
     #
     logger.info("phase: eliminate span and union")
     PhaseEliminateSpanAndUnion(mod_gen, mod_topo_order, tc)
