@@ -202,10 +202,8 @@ fun dump() void:
 
 ref global! gByteBuffer [1024 * 1024]u8 = undef
 
-ref global! Crc32Tab checksum\CrcTab = undef
 
 fun main(argc s32, argv ^^u8) s32:
-    do checksum\InitCrcTab(checksum\PolyCrc32LE, @!Crc32Tab)
     ; (do (dump []))
     fmt\print#("image byte size: ", len(test_image), "\n")
     trylet fi JD\FrameInfo = JD\DecodeFrameInfo(test_image), err:
@@ -220,11 +218,11 @@ fun main(argc s32, argv ^^u8) s32:
     do JD\DecodeImage(test_image, gByteBuffer)
     test\AssertEq#(394850026_u32,
                     checksum\CalcCrc(make_span(front(gByteBuffer), 151776), 0,
-                      @Crc32Tab))
+                      @checksum\TabCrc32cLE))
     do JD\ConvertYH1V1ToRGB(gByteBuffer)
     test\AssertEq#(1970744859_u32,
                     checksum\CalcCrc(make_span(front(gByteBuffer), 151776), 0,
-                      @Crc32Tab))
+                      @checksum\TabCrc32cLE))
     ; test end
     test\Success#()
     return 0

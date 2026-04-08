@@ -6,9 +6,6 @@ import fmt
 
 import checksum
 
-ref global! Crc32Tab checksum\CrcTab = undef
-
-ref global! Crc32cTab checksum\CrcTab = undef
 
 global Data00k = {[1024]u8: 0x00}
 
@@ -34,26 +31,22 @@ global DataInc = {[64]u8:
                   }
 
 fun main(argc s32, argv ^^u8) s32:
-    ; init
-    do checksum\InitCrcTab(checksum\PolyCrc32LE, @!Crc32Tab)
-    fmt\print#("\n\n")
-    do checksum\InitCrcTab(checksum\PolyCrc32cLE, @!Crc32cTab)
     ; crc32
     ;     python3 -c "import zlib&& print(zlib.crc32(bytes([0xaa] * 1024)))"
     ;
-    test\AssertEq#(checksum\CalcCrc(Data00k, 0, @Crc32Tab), 0xefb5af2e_u32)
-    test\AssertEq#(checksum\CalcCrc(Data55k, 0, @Crc32Tab), 0x6be062a7_u32)
-    test\AssertEq#(checksum\CalcCrc(DataAAk, 0, @Crc32Tab), 0x3c6f327d_u32)
-    test\AssertEq#(checksum\CalcCrc(DataFFk, 0, @Crc32Tab), 0xb83afff4_u32)
-    test\AssertEq#(checksum\CalcCrc(DataInc, 0, @Crc32Tab), 0x100ece8c_u32)
+    test\AssertEq#(checksum\CalcCrc(Data00k, 0, @checksum\TabCrc32LE), 0xefb5af2e_u32)
+    test\AssertEq#(checksum\CalcCrc(Data55k, 0, @checksum\TabCrc32LE), 0x6be062a7_u32)
+    test\AssertEq#(checksum\CalcCrc(DataAAk, 0, @checksum\TabCrc32LE), 0x3c6f327d_u32)
+    test\AssertEq#(checksum\CalcCrc(DataFFk, 0, @checksum\TabCrc32LE), 0xb83afff4_u32)
+    test\AssertEq#(checksum\CalcCrc(DataInc, 0, @checksum\TabCrc32LE), 0x100ece8c_u32)
     ; crc32c
     ;     python3 -c "import crc32c&& print(crc32c.crc32c(bytes([0xff] * 1024)))"
     ;
-    test\AssertEq#(checksum\CalcCrc(Data00k, 0, @Crc32cTab), 4004437628_u32)
-    test\AssertEq#(checksum\CalcCrc(Data55k, 0, @Crc32cTab), 2308428020_u32)
-    test\AssertEq#(checksum\CalcCrc(DataAAk, 0, @Crc32cTab), 551338860_u32)
-    test\AssertEq#(checksum\CalcCrc(DataFFk, 0, @Crc32cTab), 1206242788_u32)
-    test\AssertEq#(checksum\CalcCrc(DataInc, 0, @Crc32cTab), 0xfb6d36eb_u32)
+    test\AssertEq#(checksum\CalcCrc(Data00k, 0, @checksum\TabCrc32cLE), 4004437628_u32)
+    test\AssertEq#(checksum\CalcCrc(Data55k, 0, @checksum\TabCrc32cLE), 2308428020_u32)
+    test\AssertEq#(checksum\CalcCrc(DataAAk, 0, @checksum\TabCrc32cLE), 551338860_u32)
+    test\AssertEq#(checksum\CalcCrc(DataFFk, 0, @checksum\TabCrc32cLE), 1206242788_u32)
+    test\AssertEq#(checksum\CalcCrc(DataInc, 0, @checksum\TabCrc32cLE), 0xfb6d36eb_u32)
     ; adler32
     ;     python3 -c "import zlib&& print(zlib.adler32(bytes([0xff] * 1024)))"
     ;

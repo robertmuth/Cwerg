@@ -9,6 +9,14 @@ pub global PolyCrc32LE u32 = 0xedb88320
 ; 0x82f63b78 is reversed 0x1EDC6F41
 pub global PolyCrc32cLE u32 = 0x82f63b78
 
+pub global! TabCrc32cLE [256]u32
+pub global! TabCrc32LE [256]u32
+
+{{init}} pub fun ModuleInit() void:
+    do InitCrcTab(PolyCrc32cLE, @!TabCrc32cLE)
+    do InitCrcTab(PolyCrc32LE, @!TabCrc32LE)
+
+
 pub fun InitCrcTab(polynomial u32, tab ^!CrcTab) void:
     for i = 0, 256_u32, 1:
         let! crc u32 = i
