@@ -211,18 +211,21 @@ fun main(argc s32, argv ^^u8) s32:
     fmt\print#("image format:", fi.format, " pixels:", fi.width, "x", fi.
                 height, " ncomp:", fi.ncomp, " mbsize:", fi.mbsizex, "x", fi.
                 mbsizey, " mbdim:", fi.mbwidth, "x", fi.mbheight, "\n")
+    let out_size = as(fi.mbheight * 8 * fi.mbwidth * 8 * as(fi.ncomp, u32), uint)
+    test\AssertEq#(154752_uint, out_size)
     for i = 0, fi.ncomp, 1:
         let comp = fi.comp[i]
         fmt\print#("comp: ", comp.cid, " ", comp.ssx, "x", comp.ssy, " ", comp.
                     width, "x", comp.height, " stride:", comp.stride, "\n")
     do JD\DecodeImage(test_image, gByteBuffer)
-    test\AssertEq#(394850026_u32,
-                    checksum\CalcCrc(make_span(front(gByteBuffer), 151776), 0,
-                      @checksum\TabCrc32cLE))
-    do JD\ConvertYH1V1ToRGB(gByteBuffer)
-    test\AssertEq#(1970744859_u32,
-                    checksum\CalcCrc(make_span(front(gByteBuffer), 151776), 0,
-                      @checksum\TabCrc32cLE))
+
+    test\AssertEq#(1506017843_u32,
+                    checksum\CalcCrc(make_span(front(gByteBuffer), out_size), 0,
+                    @checksum\TabCrc32LE))
+    do JD\ConvertYH1V1ToRGB(make_span(front!(gByteBuffer), out_size))
+    test\AssertEq#(2429025140_u32,
+                    checksum\CalcCrc(make_span(front(gByteBuffer), out_size), 0,
+                      @checksum\TabCrc32LE))
     ; test end
     test\Success#()
     return 0
