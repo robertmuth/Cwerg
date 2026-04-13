@@ -218,9 +218,9 @@
     pusharg res
     ret
 
-.fun x64_syscall_exit SIGNATURE [] = [S32]
-.fun x64_syscall_clone SIGNATURE [S32] = [U64 A64 A64 A64 A64]
-.fun x64_thread_function SIGNATURE [] = [U64]
+.fun a64_syscall_exit SIGNATURE [] = [S32]
+.fun a64_syscall_clone SIGNATURE [S32] = [U64 A64 A64 A64 A64]
+.fun a64_thread_function SIGNATURE [] = [U64]
 
 .fun spawn NORMAL [S32] = [C64 A64 A64 U64 U64]
 .bbl entry
