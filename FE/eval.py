@@ -385,6 +385,8 @@ def GetDefaultForBaseType(bt: cwast.BASE_TYPE_KIND) -> Any:
         return EvalNum(0, bt)
     elif bt is cwast.BASE_TYPE_KIND.BOOL:
         return VAL_FALSE
+    elif bt is cwast.BASE_TYPE_KIND.VOID:
+        return VAL_VOID
     else:
         assert False
 

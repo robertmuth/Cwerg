@@ -119,6 +119,8 @@ Const GetDefaultForBaseType(BASE_TYPE_KIND bt) {
     return ConstNewReal(0.0, bt);
   else if (bt == BASE_TYPE_KIND::BOOL)
     return ConstNewBool(false);
+  else if (bt == BASE_TYPE_KIND::VOID)
+    return kConstVoid;
   else {
     ASSERT(false, "");
     return kConstInvalid;
