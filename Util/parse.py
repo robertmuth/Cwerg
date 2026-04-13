@@ -41,6 +41,19 @@ def write_leb128(x: int, signed: bool = False) -> List[int]:
             out.append(0x80 | b)
 
 
+_MAP_ESCAPE_TO_BYTE = {
+    "n": ord("\n"),
+    "r": ord("\r"),
+    "t": ord("\t"),
+    "b": ord("\b"),
+    "f": ord("\f"),
+    "\\": ord("\\"),
+    "\"": ord("\""),
+}
+
+_BYTE_TO_ESC = {b: "\\" + e for e, b in _MAP_ESCAPE_TO_BYTE.items()}
+
+
 def EscapedStringToBytes(s) -> bytes:
     out = bytearray()
     escape = None
@@ -54,8 +67,9 @@ def EscapedStringToBytes(s) -> bytes:
             continue
         char = s[n]
         n += 1
-        if char == "n":
-            out.append(ord("\n"))
+        esc = _MAP_ESCAPE_TO_BYTE.get(char)
+        if esc is not None:
+            out.append(esc)
         elif char == "x":
             start = n
             end = n + 2
@@ -72,24 +86,10 @@ def EscapedStringToBytes(s) -> bytes:
             out.append(int(s[start:end], 8))
             n = end
         else:
+            assert False, f"unsupported escape {char}"
             out.append(ord(char))
 
     return bytes(out)
-
-
-def _MapEscape(char) -> int:
-    if char == "n":
-        return ord("\n")
-    elif char == "r":
-        return ord("\r")
-    elif char == "t":
-        return ord("\t")
-    elif char == "b":
-        return ord("\b")
-    elif char == "f":
-        return ord("\f")
-    else:
-        return ord(char)
 
 
 def ParseChar(s) -> Optional[int]:
@@ -108,7 +108,10 @@ def ParseChar(s) -> Optional[int]:
         return int(s[3:5], 16)
     if len(s) != 4:
         return None
-    return _MapEscape(char)
+    p = _MAP_ESCAPE_TO_BYTE.get(char)
+    if p is not None:
+        return p
+    return None
 
 
 def HexStringToBytes(s) -> bytes:
@@ -153,17 +156,6 @@ def StringLiteralToBytes(s: str) -> bytes:
     else:
         assert k == 'r'
         return s.encode('utf8')
-
-
-_BYTE_TO_ESC = {
-    # ord("\r"): "\\r",
-    ord("\n"): "\\n",
-    # ord("\t"): "\\t",
-    # ord("\f"): "\\f",
-    # ord("\b"): "\\b",
-    ord('"'): '\\"',
-    ord("\\"): "\\\\",
-}
 
 
 def BytesToEscapedString(data: bytes) -> str:

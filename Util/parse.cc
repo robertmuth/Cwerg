@@ -29,8 +29,13 @@ char MapEscape(char c) {
       return '\r';
     case 't':
       return '\t';
+    case '\\':
+      return '\\';
+    case '"':
+      return '"';
     default:
-      return c;
+      ASSERT(false, "bad escape char \\" << c);
+      return 0;
   }
 }
 
@@ -296,23 +301,42 @@ size_t BytesToEscapedString(std::string_view s, char* out) {
   size_t n = 0;
   for (size_t i = 0; i < s.size(); ++i) {
     char c = s[i];
-    if (c == '"') {
-      out[n++] = '\\';
-      out[n++] = '\"';
-    } else if (c == '\\') {
-      out[n++] = '\\';
-      out[n++] = '\\';
-    } else if (c == '\n') {
-      out[n++] = '\\';
-      out[n++] = 'n';
-    } else if (' ' <= c && c <= 126) {
-      out[n++] = c;
-    } else {
-      out[n++] = '\\';
-      out[n++] = 'x';
-      char d = c >> 4;
-      out[n++] = HexChars[d & 0xf];
-      out[n++] = HexChars[c & 0xf];
+    switch (c) {
+      case '"':
+      case '\\':
+        out[n++] = '\\';
+        out[n++] = c;
+        break;
+      case '\n':
+        out[n++] = '\\';
+        out[n++] = 'n';
+        break;
+      case '\r':
+        out[n++] = '\\';
+        out[n++] = 'r';
+        break;
+      case '\t':
+        out[n++] = '\\';
+        out[n++] = 't';
+        break;
+      case '\b':
+        out[n++] = '\\';
+        out[n++] = 'b';
+        break;
+      case '\f':
+        out[n++] = '\\';
+        out[n++] = 'f';
+        break;
+      default:
+        if (' ' <= c && c <= 126) {
+          out[n++] = c;
+        } else {
+          out[n++] = '\\';
+          out[n++] = 'x';
+          char d = c >> 4;
+          out[n++] = HexChars[d & 0xf];
+          out[n++] = HexChars[c & 0xf];
+        }
     }
   }
   return n;
