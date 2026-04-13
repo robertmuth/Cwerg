@@ -263,13 +263,14 @@ def FunAddUnconditionalBranches(fun: ir.Fun):
         bbls.append(bbl)
         if bbl.inss and not bbl.inss[-1].opcode.has_fallthrough():
             continue
+        # easy case - only one successor, we just need to add a branch if it's not already the fallthrough
         if len(bbl.edge_out) == 1:
             assert len(fun.bbls) > n
             succ = bbl.edge_out[0]
             if n + 1 == len(fun.bbls) or fun.bbls[n + 1] != succ:
                 bbl.inss.append(ir.Ins(o.BRA, [succ], False))
             continue
-
+        # more complex case - we have two successors, we need to check if one of them is the fallthrough and if not we need to add a branch to the fallthrough
         assert len(bbl.edge_out) == 2
         cond_bra = bbl.inss[-1]
         assert cond_bra.opcode.kind is o.OPC_KIND.COND_BRA, (

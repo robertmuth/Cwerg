@@ -4,9 +4,9 @@
 
 #include <set>
 
-#include "IR/opcode_gen.h"
 #include "BE/Base/sanity.h"
 #include "BE/Base/serialize.h"
+#include "IR/opcode_gen.h"
 #include "Util/parse.h"
 
 namespace cwerg::base {
@@ -302,7 +302,8 @@ void FunRemoveEmptyBbls(Fun fun) {
       bbls_keep.push_back(bbl);
       continue;
     }
-    // ASSERT(FunBblList::Head(fun) != bbl, "cannot remove entry bbl in fun " << Name(fun));
+    // ASSERT(FunBblList::Head(fun) != bbl, "cannot remove entry bbl in fun " <<
+    // Name(fun));
     ASSERT(out_edg == BblSuccEdgList::Tail(bbl) &&
                !BblSuccEdgList::IsSentinel(out_edg),
            "must have one out edge:\n"
@@ -382,14 +383,15 @@ void FunAddUnconditionalBranches(Fun fun) {
     // If it has a fall-through there is at least one succ edge
     ASSERT(!BblSuccEdgList::IsSentinel(edg1), "");
     ASSERT(!BblSuccEdgList::IsSentinel(edg2), "");
+    // Note, next might be a sentinel
     const Bbl next = FunBblList::Next(bbl);
-    ASSERT(!FunBblList::IsSentinel(next), "");
-    // Single Edge case:
     if (edg1 == edg2) {
+      // Single Edge case:
       if (next != EdgSuccBbl(edg1)) {
         BblInsAdd(bbl, InsNewBra(EdgSuccBbl(edg1)));
       }
     } else {
+      // Two Edges case: if one edge goes to next, we can just flip the condition and target of the cond bra
       ASSERT(InsOpcode(last).kind == OPC_KIND::COND_BRA, "");
       ASSERT(BblSuccEdgList::Next(edg1) == edg2, "");
       const Bbl target = Bbl(InsOperand(last, 2));
