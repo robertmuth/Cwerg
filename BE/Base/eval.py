@@ -17,6 +17,7 @@ _EVALUATORS_ALU = {
     o.OR: lambda x, y: x | y,
     o.AND: lambda x, y: x & y,
     o.XOR: lambda x, y: x ^ y,
+    o.SHR: lambda x, y: x >> y,
 }
 
 _EVALUATORS_COND_BRA = {
