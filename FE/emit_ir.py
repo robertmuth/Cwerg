@@ -24,7 +24,7 @@ TAB = "  "
 ZEROS = [b"\0" * i for i in range(128)]
 
 
-_DUMMY_VOID_REG = "@DUMMY_FOR_VOID_RESULTS@"
+_OP_DO_NOT_USE = "@DO_NOT_USE@"
 
 
 @enum.unique
@@ -402,7 +402,6 @@ def _EmitCast(src, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
     return res
 
 
-_OP_DO_NOT_USE = "@DO_NOT_USE@"
 
 
 def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
@@ -493,7 +492,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         return res
     elif isinstance(node, cwast.ExprStmt):
         if node.x_type.size == 0:
-            result = _DUMMY_VOID_REG
+            result = _OP_DO_NOT_USE
         else:
             result = id_gen.NewName("expr")
             print(
@@ -689,7 +688,7 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
         ct: cwast.CanonType = node.x_type
         init = node.initial_or_undef_or_auto
         if ct.size == 0:
-            if not isinstance(init, cwast.ValUndef):
+            if not isinstance(init, (cwast.ValUndef, cwast.ValAuto)):
                 # still need to evaluate the expression for the side effect
                 _EmitExpr(init, ta, id_gen)
         elif _IsDefVarOnStack(node):
@@ -776,8 +775,11 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
         print(f".bbl {label_join}")
     elif isinstance(node, cwast.StmtAssignment):
         lhs = node.lhs
-        assert lhs.x_type.size > 0 and node.expr_rhs.x_type.size > 0, f"{node.expr_rhs} {node.x_srcloc} {node.expr_rhs.x_type}"
-        if isinstance(lhs, cwast.Id) and _StorageKindForId(lhs) is STORAGE_KIND.REGISTER:
+        if lhs.x_type.size == 0:
+            assert node.expr_rhs.x_type.size == 0
+            out = _EmitExpr(node.expr_rhs, ta, id_gen)
+            assert out == _OP_DO_NOT_USE, f"mishandled empty type {node.expr_rhs}"
+        elif isinstance(lhs, cwast.Id) and _StorageKindForId(lhs) is STORAGE_KIND.REGISTER:
             out = _EmitExpr(node.expr_rhs, ta, id_gen)
             print(f"{TAB}mov {lhs.x_symbol.name} = {out}")
         else:

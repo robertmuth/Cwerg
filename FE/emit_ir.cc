@@ -961,7 +961,7 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
       CanonType ct = Node_x_type(node);
       Node init = Node_initial_or_undef_or_auto(node);
       if (CanonType_size(ct) == 0) {
-        if (init.kind() != NT::ValUndef) {
+        if (init.kind() != NT::ValUndef && init.kind() != NT::ValAuto) {
           EmitExpr(init, ta, id_gen);
         }
       } else if (IsDefOnStack(node)) {
@@ -1075,7 +1075,11 @@ void EmitStmt(Node node, const ReturnResultLocation& rrl,
     }
     case NT::StmtAssignment: {
       Node lhs = Node_lhs(node);
-      if (lhs.kind() == NT::Id &&
+      if (CanonType_size(Node_x_type(lhs)) == 0) {
+        ASSERT(CanonType_size(Node_x_type(Node_expr_rhs(node))) == 0, "");
+        std::string op = EmitExpr(Node_expr_rhs(node), ta, id_gen);
+        ASSERT(op == DO_NOT_USE, "expression should be void");
+      } else if (lhs.kind() == NT::Id &&
           StorageKindForId(lhs) == STORAGE_KIND::REGISTER) {
         std::string op = EmitExpr(Node_expr_rhs(node), ta, id_gen);
         std::cout << kTAB << "mov " << NameData(Node_name(Node_x_symbol(lhs)))
