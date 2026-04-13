@@ -145,11 +145,14 @@ pub global ENOTRECOVERABLE = wrap_as(-131, Error)
 pub global ERFKILL = wrap_as(-132, Error)
 pub global EHWPOISON = wrap_as(-133, Error)
 
+pub global Ok = wrap_as(0, Error)
+
 
 pub wrapped type FD = s32
 pub global Stdin = wrap_as(0, FD)
 pub global Stdout = wrap_as(1, FD)
 pub global Stderr = wrap_as(2, FD)
+
 
 
 
@@ -247,6 +250,8 @@ pub global O_CLOEXEC   =  0x80000_u32
 
 {{extern}} {{cdecl}} pub fun nanosleep(req ^TimeSpec, rem ^!TimeSpec) s32:
 
+{{extern}} {{cdecl}} pub fun close(fd s32) s32:
+
 {{extern}} {{cdecl}} pub fun write(fd s32, s ^u8, size uint) sint:
 
 {{extern}} {{cdecl}} pub fun read(fd s32, s ^!u8, size uint) sint:
@@ -254,6 +259,23 @@ pub global O_CLOEXEC   =  0x80000_u32
 {{extern}} {{cdecl}} pub fun fcntl(fd s32, op u32, arg uint) sint:
 
 {{extern}} {{cdecl}} pub fun ioctl(fd s32, op u32, arg uint) sint:
+
+{{extern}} {{cdecl}} pub fun socket(domain u32, kind u32, protocol u32) s32:
+
+{{extern}} {{cdecl}} pub fun bind(fd s32, addr ^u8, addrlen u32) s32:
+
+{{extern}} {{cdecl}} pub fun listen(fd s32, backlog u32) s32:
+
+{{extern}} {{cdecl}} pub fun accept4(fd s32,  addr uint, addrlen uint, flags u32) s32:
+
+{{extern}} {{cdecl}} pub fun sendto(fd s32, buf ^u8, buflen uint, flags u32,
+                                     dest_addr uint, dest_addrlen u32) sint:
+
+{{extern}} {{cdecl}} pub fun setsockopt(fd s32, level u32, optname u32,
+                                            optval ^u8, optlen u32) s32:
+
+{{extern}} {{cdecl}} pub fun recvfrom(fd s32, buf ^!u8, buflen uint, flags u32,
+                                     src_addr uint, src_addrlen uint) sint:
 
 
 pub fun FileWrite(fd FD, buffer span(u8)) union(uint, Error):
@@ -269,6 +291,13 @@ pub fun FileRead(fd FD, buffer span!(u8)) union(uint, Error):
         return wrap_as(as(res, s32), Error)
     else:
         return as(res, uint)
+
+pub fun Close(fd FD) union(void, Error):
+    let res = close(unwrap(fd))
+    if res < 0:
+        return wrap_as(as(res, s32), Error)
+    return void_val
+
 
 pub fun TimeNanoSleep(req ^TimeSpec, rem ^!TimeSpec) Error:
     let res = nanosleep(req, rem)
@@ -287,3 +316,255 @@ pub fun Ioctl(fd FD, op IoctlOp, arg ^!void) union(uint, Error):
         return wrap_as(as(res, s32), Error)
     else:
         return as(res, uint)
+
+pub enum AddressFamily u16:
+    INVALID      0xffff
+    LOCAL        1
+    INET         2
+    AX25         3
+    IPX          4
+    APPLETALK    5
+    NETROM       6
+    BRIDGE       7
+    ATMPVC       8
+    X25          9
+    INET6        10
+    ROSE         11
+    DECnet       12
+    NETBEUI      13
+    SECURITY     14
+    KEY          15
+    NETLINK      16
+    PACKET       17
+    ASH          18
+    ECONET       19
+    ATMSVC       20
+    RDS          21
+    SNA          22
+    IRDA         23
+    PPPOX        24
+    WANPIPE      25
+    LLC          26
+    IB           27
+    MPLS         28
+    CAN          29
+    TIPC         30
+    BLUETOOTH    31
+    IUCV         32
+    RXRPC        33
+    ISDN         34
+    PHONET       35
+    IEEE802154   36
+    CAIF         37
+    ALG          38
+    NFC          39
+    VSOCK        40
+    KCM          41
+    QIPCRTR      42
+    SMC          43
+    XDP          44
+    MCTP         45
+
+
+pub enum SocketType u32:
+    STREAM 1
+    DGRAM 2
+    RAW 3
+    RDM 4
+    SEQPACKET 5
+    DCCP 6
+    PACKET 10
+
+pub global SOCK_CLOEXEC   = 0x100000_u32
+pub global SOCK_NONBLOCK   = 0x800_u32
+
+
+pub fun Socket(af AddressFamily, st SocketType, flags u32) union(FD, Error):
+    let res = socket(as(unwrap(af), u32), unwrap(st) | flags, 0)
+    if res < 0:
+        return wrap_as(res, Error)
+    else:
+        return wrap_as(res, FD)
+
+pub rec SockAddrIn:
+    family AddressFamily
+    port u16
+    address [4]u8
+    paddding [8]u8
+
+
+
+pub rec SockAddrIn6:
+    address_family AddressFamily
+    address [16]u8
+
+
+pub fun Bind(fd FD, addr span(u8)) union(void, Error):
+    let res = bind(unwrap(fd), front(addr), as(len(addr), u32))
+    if res < 0:
+        return wrap_as(res, Error)
+    return void_val
+
+
+pub fun Listen(fd FD, backlog u32) union(void, Error):
+    let res = listen(unwrap(fd), backlog)
+    if res < 0:
+        return wrap_as(res, Error)
+    return void_val
+
+pub fun AcceptWithAddr(fd FD,addr span!(u8), flags u32) union(FD, Error):
+    ref let! addr_len = as(len(addr), u32)
+    let res = accept4(unwrap(fd), bitwise_as(front(addr), uint), bitwise_as(@!addr_len, uint), flags)
+    if addr_len >  as(len(addr), u32):
+        set bitwise_as(front!(addr), ^!AddressFamily)^ = AddressFamily.INVALID
+    if res < 0:
+        return wrap_as(res, Error)
+    else:
+        return wrap_as(res, FD)
+
+pub fun Accept(fd FD, flags u32) union(FD, Error):
+    let res = accept4(unwrap(fd), 0_uint, 0_uint, flags)
+    if res < 0:
+        return wrap_as(res, Error)
+    else:
+        return wrap_as(res, FD)
+
+pub global MSG_OOB  = 0x01_u32
+pub global MSG_PEEK = 0x02_u32
+pub global MSG_DONTROUTE = 0x04_u32
+pub global MSG_CTRUNC = 0x08_u32
+pub global MSG_PROXY = 0x10_u32
+pub global MSG_TRUNC = 0x20_u32
+pub global MSG_DONTWAIT = 0x40_u32
+pub global MSG_EOR             = 0x80_u32
+pub global MSG_WAITALL         = 0x100_u32
+pub global MSG_FIN             = 0x200_u32
+pub global MSG_SYN             = 0x400_u32
+pub global MSG_CONFIRM         = 0x800_u32
+pub global MSG_RST             = 0x1000_u32
+pub global MSG_ERRQUEUE        = 0x2000_u32
+pub global MSG_NOSIGNAL        = 0x4000_u32
+pub global MSG_MORE            = 0x8000_u32
+pub global MSG_WAITFORONE      = 0x10000_u32
+pub global MSG_BATCH           = 0x40000_u32
+pub global MSG_ZEROCOPY        = 0x4000000_u32
+pub global MSG_FASTOPEN        = 0x20000000_u32
+pub global MSG_CMSG_CLOEXEC    = 0x40000000_u32
+
+
+pub fun SendToWithAddr(fd FD, buf span(u8), flags u32, addr span(u8)) union(uint, Error):
+    let res = sendto(unwrap(fd), front(buf), len(buf), flags,
+                     bitwise_as(front(addr), uint), as(len(addr), u32))
+    if res < 0:
+        return wrap_as(as(res, s32), Error)
+    else:
+        return as(res, uint)
+
+
+pub fun SendTo(fd FD, buf span(u8), flags u32) union(uint, Error):
+    let res = sendto(unwrap(fd), front(buf), len(buf), flags, 0_uint, 0_u32)
+    if res < 0:
+        return wrap_as(as(res, s32), Error)
+    else:
+        return as(res, uint)
+
+
+pub fun ReceiveFromWithAddr(fd FD, buf span!(u8), flags u32, addr span!(u8)) union(uint, Error):
+    ref let! addr_len = as(len(addr), u32)
+    let res = recvfrom(unwrap(fd), front!(buf), len(buf), flags,
+                     bitwise_as(front!(addr), uint), bitwise_as(@!addr_len, uint))
+    if addr_len >  as(len(addr), u32):
+        set bitwise_as(front!(addr), ^!AddressFamily)^ = AddressFamily.INVALID
+    if res < 0:
+        return wrap_as(as(res, s32), Error)
+    else:
+        return as(res, uint)
+
+
+pub enum SocketOption u32:
+    SO_DEBUG        1
+    SO_REUSEADDR    2
+    SO_TYPE         3
+    SO_ERROR        4
+    SO_DONTROUTE    5
+    SO_BROADCAST    6
+    SO_SNDBUF       7
+    SO_RCVBUF       8
+    SO_SNDBUFFORCE  32
+    SO_RCVBUFFORCE  33
+    SO_KEEPALIVE    9
+    SO_OOBINLINE    10
+    SO_NO_CHECK     11
+    SO_PRIORITY     12
+    SO_LINGER       13
+    SO_BSDCOMPAT    14
+    SO_REUSEPORT    15
+    SO_PASSCRED     16
+    SO_PEERCRED     17
+    SO_RCVLOWAT     18
+    SO_SNDLOWAT     19
+    SO_RCVTIMEO_OLD 20
+    SO_SNDTIMEO_OLD 21
+    SO_SECURITY_AUTHENTICATION              22
+    SO_SECURITY_ENCRYPTION_TRANSPORT        23
+    SO_SECURITY_ENCRYPTION_NETWORK          24
+    SO_BINDTODEVICE 25
+    SO_ATTACH_FILTER        26
+    SO_DETACH_FILTER        27
+    SO_PEERNAME             28
+    SO_TIMESTAMP_OLD        29
+    SO_ACCEPTCONN           30
+    SO_PEERSEC              31
+    SO_PASSSEC              34
+    SO_TIMESTAMPNS_OLD      35
+    SO_MARK                 36
+    SO_TIMESTAMPING_OLD     37
+    SO_PROTOCOL             38
+    SO_DOMAIN               39
+    SO_RXQ_OVFL             40
+    SO_WIFI_STATUS          41
+    SO_PEEK_OFF             42
+    SO_NOFCS                43
+    SO_LOCK_FILTER          44
+    SO_SELECT_ERR_QUEUE     45
+    SO_BUSY_POLL            46
+    SO_MAX_PACING_RATE      47
+    SO_BPF_EXTENSIONS       48
+    SO_INCOMING_CPU         49
+    SO_ATTACH_BPF           50
+    SO_ATTACH_REUSEPORT_CBPF        51
+    SO_ATTACH_REUSEPORT_EBPF        52
+    SO_CNX_ADVICE           53
+    SCM_TIMESTAMPING_OPT_STATS      54
+    SO_MEMINFO              55
+    SO_INCOMING_NAPI_ID     56
+    SO_COOKIE               57
+    SCM_TIMESTAMPING_PKTINFO        58
+    SO_PEERGROUPS           59
+    SO_ZEROCOPY             60
+    SO_TXTIME               61
+    SO_BINDTOIFINDEX        62
+    SO_TIMESTAMP_NEW        63
+    SO_TIMESTAMPNS_NEW      64
+    SO_TIMESTAMPING_NEW     65
+    SO_RCVTIMEO_NEW         66
+    SO_SNDTIMEO_NEW         67
+    SO_DETACH_REUSEPORT_BPF 68
+    SO_PREFER_BUSY_POLL     69
+    SO_BUSY_POLL_BUDGET     70
+    SO_NETNS_COOKIE         71
+    SO_BUF_LOCK             72
+    SO_RESERVE_MEM          73
+    SO_TXREHASH             74
+    SO_RCVMARK              75
+    SO_PASSPIDFD            76
+    SO_PEERPIDFD            77
+
+pub enum SocketLevel u32:
+    SOCKET 1
+
+pub fun SetSocketOptions(fd FD, level SocketLevel, option SocketOption, val span(u8)) union(void, Error):
+    let res = setsockopt(unwrap(fd), unwrap(level), unwrap(option), front(val), as(len(val), u32))
+    if res < 0:
+        return wrap_as(res, Error)
+    return void_val

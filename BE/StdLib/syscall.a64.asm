@@ -5,26 +5,6 @@
 # This linkerdef may go away since we can query it with the xbrk syscall
 .mem $$rw_data_end 8 BUILTIN
 
-.fun a64_syscall_clock_gettime SIGNATURE [S32] = [S32 A64]
-.fun a64_syscall_close SIGNATURE [S32] = [S32]
-.fun a64_syscall_exit SIGNATURE [] = [S32]
-.fun a64_syscall_fcntl SIGNATURE [S64] = [S32 U32 U64]
-.fun a64_syscall_ioctl SIGNATURE [S64] = [S32 U32 U64]
-.fun a64_syscall_fstat SIGNATURE [S32] = [S32 A64]
-.fun a64_syscall_getcwd SIGNATURE [S32] = [A64 U64]
-.fun a64_syscall_getpid SIGNATURE [S32] = []
-.fun a64_syscall_kill SIGNATURE [S32] = [S32 S32]
-.fun a64_syscall_clone SIGNATURE [S32] = [U64 A64 A64 A64 A64]
-.fun a64_syscall_lseek SIGNATURE [S64] = [S32 S64 S32]
-.fun a64_syscall_open_at SIGNATURE [S32] = [S32 A64 S32 S32]
-.fun a64_syscall_read SIGNATURE [S64] = [S32 A64 U64]
-.fun a64_syscall_write SIGNATURE [S64] = [S32 A64 U64]
-.fun a64_syscall_xbrk SIGNATURE [A64] = [A64]
-.fun a64_syscall_nanosleep SIGNATURE [S32] = [A64 A64]
-.fun a64_syscall_waitid SIGNATURE [S32] = [S32 S32 A64 S32 A64]
-.fun a64_syscall_yield SIGNATURE [S32] = []
-
-.fun a64_thread_function SIGNATURE [] = [U64]
 
 ############################################################
 # Syscall wrappers
@@ -35,7 +15,7 @@
     poparg timespec:A64
     pusharg timespec
     pusharg clk_id
-    syscall a64_syscall_clock_gettime 0x71:U32
+    syscall a64_clock_gettime 0x71:U32
     poparg res:S32
     pusharg res
     ret
@@ -46,7 +26,7 @@
     poparg spec2:A64
     pusharg spec2
     pusharg spec1
-    syscall a64_syscall_nanosleep 101:U8
+    syscall nanosleep 101:U8
     poparg res:S32
     pusharg res
     ret
@@ -55,7 +35,7 @@
 .bbl start
     poparg fh:S32
     pusharg fh
-    syscall a64_syscall_close 57:U32
+    syscall close 57:U32
     poparg res:S32
     pusharg res
     ret
@@ -64,7 +44,7 @@
 .bbl start
     poparg out:S32
     pusharg out
-    syscall a64_syscall_exit 93:U32
+    syscall exit 93:U32
     trap
 
 .fun fcntl NORMAL [S64] = [S32 U32 U64]
@@ -75,7 +55,7 @@
     pusharg arg
     pusharg cmd
     pusharg fd
-    syscall a64_syscall_fcntl 25:U32
+    syscall fcntl 25:U32
     poparg res:S64
     pusharg res
     ret
@@ -88,7 +68,7 @@
     pusharg arg
     pusharg cmd
     pusharg fd
-    syscall a64_syscall_ioctl 29:U32
+    syscall ioctl 29:U32
     poparg res:S64
     pusharg res
     ret
@@ -99,7 +79,7 @@
     poparg stat:A64
     pusharg stat
     pusharg fd
-    syscall a64_syscall_fstat 80:U32
+    syscall fstat 80:U32
     poparg res:S32
     pusharg res
     ret
@@ -110,14 +90,14 @@
     poparg size:U64
     pusharg size
     pusharg buffer
-    syscall a64_syscall_getcwd 17:U32
+    syscall getcwd 17:U32
     poparg res:S32
     pusharg res
     ret
 
 .fun getpid NORMAL [S32] = []
 .bbl start
-    syscall a64_syscall_getpid 172:U32
+    syscall getpid 172:U32
     poparg res:S32
     pusharg res
     ret
@@ -128,24 +108,7 @@
     poparg sig:S32
     pusharg sig
     pusharg pid
-    syscall a64_syscall_kill 129:U32
-    poparg res:S32
-    pusharg res
-    ret
-
-.fun clone NORMAL [S32] = [U64 A64 A64 A64 A64]
-.bbl start
-    poparg flags:U64
-    poparg stack:A64
-    poparg ptid:A64
-    poparg ctid:A64
-    poparg regs:A64
-    pusharg regs
-    pusharg ctid
-    pusharg ptid
-    pusharg stack
-    pusharg flags
-    syscall a64_syscall_clone 220:U32
+    syscall kill 129:U32
     poparg res:S32
     pusharg res
     ret
@@ -158,8 +121,23 @@
     pusharg mode
     pusharg offset
     pusharg fd
-    syscall a64_syscall_lseek 62:U32
+    syscall lseek 62:U32
     poparg res:S64
+    pusharg res
+    ret
+
+.fun openat NORMAL [S32] = [S32 A64 S32 S32]
+.bbl start
+    poparg dirfd:S32
+    poparg path:A64
+    poparg flags:S32
+    poparg mode:S32
+    pusharg mode
+    pusharg flags
+    pusharg path
+    pusharg dirfd
+    syscall openat 56:U8
+    poparg res:S32
     pusharg res
     ret
 
@@ -172,7 +150,7 @@
     pusharg flags
     pusharg path
     pusharg -100:S32
-    syscall a64_syscall_open_at 56:U32
+    bsr openat
     poparg res:S32
     pusharg res
     ret
@@ -185,7 +163,7 @@
     pusharg len
     pusharg buf
     pusharg fh
-    syscall a64_syscall_read 63:U32
+    syscall read 63:U32
     poparg res:S64
     pusharg res
     ret
@@ -198,7 +176,7 @@
     pusharg len
     pusharg buf
     pusharg fh
-    syscall a64_syscall_write 64:U32
+    syscall write 64:U32
     poparg res:S64
     pusharg res
     ret
@@ -211,7 +189,7 @@
 .bbl start
     poparg addr:A64
     pusharg addr
-    syscall a64_syscall_xbrk 214:U32
+    syscall xbrk 214:U32
     poparg res:A64
     pusharg res
     ret
@@ -228,17 +206,21 @@
     pusharg infop
     pusharg pid
     pusharg which
-    syscall a64_syscall_waitid 95:U8
+    syscall waitid 95:U8
     poparg res:S32
     pusharg res
     ret
 
 .fun yield NORMAL [S32] = []
 .bbl start
-    syscall a64_syscall_yield 124:U8
+    syscall yield 124:U8
     poparg res:S32
     pusharg res
     ret
+
+.fun x64_syscall_exit SIGNATURE [] = [S32]
+.fun x64_syscall_clone SIGNATURE [S32] = [U64 A64 A64 A64 A64]
+.fun x64_thread_function SIGNATURE [] = [U64]
 
 .fun spawn NORMAL [S32] = [C64 A64 A64 U64 U64]
 .bbl entry
@@ -283,4 +265,114 @@
     syscall a64_syscall_exit 93:U8
     trap # unreachable
     pusharg 0:S32
+    ret
+
+
+.fun socket NORMAL [S32] = [U32 U32 U32]
+.bbl entry
+    poparg domain:U32
+    poparg type:U32
+    poparg protocol:U32
+    pusharg protocol
+    pusharg type
+    pusharg domain
+    syscall socket 198:U8
+    poparg res:S32
+    pusharg res
+    ret
+
+# addr and addrlen are in/out parameters and nullable
+.fun bind NORMAL [S32] = [S32 A64 U32]
+.bbl entry
+    poparg sockfd:S32
+    poparg addr:A64
+    poparg addrlen:U32
+    pusharg addrlen
+    pusharg addr
+    pusharg sockfd
+    syscall bind 200:U8
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun listen NORMAL [S32] = [S32 U32]
+.bbl entry
+    poparg sockfd:S32
+    poparg backlog:U32
+    pusharg backlog
+    pusharg sockfd
+    syscall listen 201:U8
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun accept4 NORMAL [S32] = [S32 U64 U64 U32]
+.bbl entry
+    poparg sockfd:S32
+    poparg addr:U64
+    poparg addrlen:U64
+    poparg flags:U32
+    pusharg flags
+    pusharg addrlen
+    pusharg addr
+    pusharg sockfd
+    syscall accept4 242:U16
+    poparg res:S32
+    pusharg res
+    ret
+
+.fun sendto NORMAL [S64] = [S32 A64 U64 U32 U64 U32]
+.bbl entry
+    poparg sockfd:S32
+    poparg buf:A64
+    poparg len:U64
+    poparg flags:U32
+    poparg dest_addr:U64
+    poparg dest_addrlen:U32
+    pusharg dest_addrlen
+    pusharg dest_addr
+    pusharg flags
+    pusharg len
+    pusharg buf
+    pusharg sockfd
+    syscall sendto 206:U16
+    poparg res:S64
+    pusharg res
+    ret
+
+.fun setsockopt NORMAL [S32] = [S32 U32 U32 A64 U32]
+.bbl entry
+    poparg sockfd:S32
+    poparg level:U32
+    poparg optname:U32
+    poparg optval:A64
+    poparg optlen:U32
+    pusharg optlen
+    pusharg optval
+    pusharg optname
+    pusharg level
+    pusharg sockfd
+    syscall setsockopt 208:U8
+    poparg res:S32
+    pusharg res
+    ret
+
+
+.fun recvfrom NORMAL [S64] = [S32 A64 U64 A64 U32 U64 U64]
+.bbl entry
+    poparg sockfd:S32
+    poparg buf:A64
+    poparg len:U64
+    poparg flags:A64
+    poparg sock_addr:U64
+    poparg sock_addrlen:U64
+    pusharg sock_addrlen
+    pusharg sock_addr
+    pusharg flags
+    pusharg len
+    pusharg buf
+    pusharg sockfd
+    syscall recvfrom 207:U8
+    poparg res:S64
+    pusharg res
     ret
