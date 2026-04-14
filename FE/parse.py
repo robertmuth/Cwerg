@@ -858,8 +858,8 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.WARNING)
         logger.setLevel(logging.WARNING)
         inp = lexer.Lexer(lexer.LexerRaw("stdin", sys.stdin))
-        mod = _ParseDefMod(inp)
+        mod = _ParseDefMod(inp, "dummy")
         RemoveRedundantParens(mod)
-        pp_sexpr.PrettyPrint(mod)
+        pp_sexpr.PrettyPrint(mod, sys.stdout)
 
     main()

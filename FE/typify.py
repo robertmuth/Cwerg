@@ -649,6 +649,7 @@ def _TypifyExprOrType(node, tc: type_corpus.TypeCorpus,
         elif ct.is_enum():
             return _NodeSetType(node, ct.underlying_type())
         else:
+            cwast.CompilerError(node.x_srcloc, f"expected enum or wrapped type in unwrap expression but got {ct}")
             assert False
     elif isinstance(node, cwast.ExprIs):
         _TypifyExprOrType(node.type, tc, cwast.NO_TYPE, pm)

@@ -28,7 +28,10 @@ NODE_NULL = 0
 NODE = list[int]
 TRIE = list[list[int]]
 
-
+# The integer in a trie nodes are encoded as follows:
+# 0..len(trie) - 1: index of the next node in the
+# TK_KIND_OFFSET - TK_KIND_OFFSET_FOR_LOOK_AHEAD: the token kind is not longer part of the kw
+# TK_KIND_OFFSET_FOR_LOOK_AHEAD -: the token kind if the current node is a terminal
 TK_KIND_OFFSET = 1000
 TK_KIND_OFFSET_FOR_LOOK_AHEAD = 2000
 
@@ -121,19 +124,21 @@ def OptimizeTrie(trie: TRIE) -> TRIE:
     return out
 
 
-def FindInTrie(trie: TRIE, s: str) -> tuple[int, int]:
+def FindInTrie(trie: TRIE, s: str) -> tuple[int, TK_KIND]:
+    """ Returns (size, TK_KIND) if s[:size] is a token in the trie and 0, 0 otherwise"""
     node = trie[0]
     for n, cc in enumerate(s):
         x = node[ord(cc)]
         if x == NODE_NULL:
-            return 0, 0
+            return 0, TK_KIND.INVALID
         if x >= len(trie):
             if x >= TK_KIND_OFFSET_FOR_LOOK_AHEAD:
+                # we found a char that is not part of the kw
                 return n, TK_KIND(x - TK_KIND_OFFSET_FOR_LOOK_AHEAD)
             else:
                 return n + 1, TK_KIND(x - TK_KIND_OFFSET)
         node = trie[x]
-    return 0, 0
+    return 0, TK_KIND.INVALID
 
 
 def VerifyTrie(trie: TRIE, KWs):
@@ -259,7 +264,7 @@ def MakeInitialTrie(KWs):
     def add_kw(kw, tag, non_succ):
         # keyword is only valid if not followed by char in non_succ
         # E.g.
-        # if is a keyword but ifoo is not
+        # `if`` is a keyword but `ifoo`` is not
         # simarly
         # >> is an operator(-keyword) for most subsequent chars
         # except >>> and >>=
@@ -307,6 +312,8 @@ def MakeInitialTrie(KWs):
 
 def MakeTrieNoisy():
     KWs = GetAllKWAndOps()
+    for k, v in sorted(KWs):
+        print(k, v)
     trie = MakeInitialTrie(KWs)
     #
     print("Stats")
@@ -650,6 +657,13 @@ def MakePerfectHashForBinOp():
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
+        inp = Lexer(LexerRaw("stdin", sys.stdin))
+        while True:
+            tk = inp.next()
+            if tk.kind == TK_KIND.SPECIAL_EOF:
+                break
+            print(tk)
+    elif sys.argv[1] == "trie_stats":
         MakeTrieNoisy()
     elif sys.argv[1] == "gen_cc":
         cgen.ReplaceContent(GenerateCodeCC, sys.stdin, sys.stdout)
