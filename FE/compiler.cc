@@ -236,7 +236,7 @@ void PhaseLegalize(std::vector<Node>& mods_in_topo_order, TypeCorpus* tc) {
 }
 
 void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
-                   const TargetArchConfig& ta) {
+                   const TargetArchConfig& ta, std::ostream* fout) {
   std::unordered_set<std::string> sig_names;
   for (Node mod : mods_in_topo_order) {
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
@@ -245,7 +245,7 @@ void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
         if (sig_names.contains(sig_name)) {
           continue;
         }
-        EmitFunctionHeader(sig_name, "SIGNATURE", Node_x_type(fun));
+        EmitFunctionHeader(sig_name, "SIGNATURE", Node_x_type(fun), fout);
         sig_names.insert(sig_name);
       }
     }
@@ -254,13 +254,13 @@ void PhaseEmitCode(const std::vector<Node>& mods_in_topo_order,
   for (Node mod : mods_in_topo_order) {
     for (Node def = Node_body_mod(mod); !def.isnull(); def = Node_next(def)) {
       if (def.kind() == NT::DefGlobal) {
-        EmitDefGlobal(def, ta);
+        EmitDefGlobal(def, ta, fout);
       }
     }
     for (Node fun = Node_body_mod(mod); !fun.isnull(); fun = Node_next(fun)) {
       if (fun.kind() == NT::DefFun) {
         IdGenIR id_gen;
-        EmitDefFun(fun, ta, &id_gen);
+        EmitDefFun(fun, ta, &id_gen, fout);
       }
     }
   }
@@ -297,10 +297,19 @@ int main(int argc, const char* argv[]) {
   InitParser();
   ts.RecordDuration("after_initialization");
 
-  std::vector<Path> seed_modules;
-  for (int i = arg_start; i < argc; ++i) {
-    seed_modules.push_back(std::filesystem::absolute((argv[i])));
+  if (arg_start + 2 != argc) {
+    std::cout << "Expected exactly one input and one output file\n";
+    return 1;
   }
+  std::ofstream foutFile;
+  std::ostream* fout = &std::cout;
+  if (argv[argc - 1] != std::string_view("-")) {
+    foutFile.open(argv[argc - 1]);
+    fout = &foutFile;
+  }
+
+  std::vector<Path> seed_modules;
+  seed_modules.push_back(std::filesystem::absolute((argv[arg_start])));
 
   ModPool mp = ReadModulesRecursively(sw_stdlib.Value(), seed_modules, true);
   std::set<NT> eliminated_nodes = {NT::Import, NT::ModParam};
@@ -404,7 +413,7 @@ int main(int argc, const char* argv[]) {
   SanityCheckMods("after_name_cleanup", mp.mods_in_topo_order, eliminated_nodes,
                   COMPILE_STAGE::AFTER_DESUGAR, &tc, &ts);
 
-  PhaseEmitCode(mp.mods_in_topo_order, *ta);
+  PhaseEmitCode(mp.mods_in_topo_order, *ta, fout);
   ts.RecordDuration("after_emitting_code");
 
   if (sw_dump_stats.Value()) {

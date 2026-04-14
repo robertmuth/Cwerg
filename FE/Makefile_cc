@@ -112,8 +112,8 @@ PHASE =
 
 $(DIR)/%.cw.assim: %.cw
 	@echo "[assim $@]"
-	$(EMIT_IR) -arch x64 $(PHASE) $< > $@.cc_ast
-	./compiler.py -arch x64 $(PHASE) $< > $@.py_ast
+	$(EMIT_IR) -arch x64 $(PHASE) $<  $@.cc_ast
+	./compiler.py -arch x64 $(PHASE) $< $@.py_ast
 	diff $@.py_ast $@.cc_ast
 
 ############################################################

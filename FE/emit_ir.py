@@ -80,14 +80,14 @@ def MakeFunSigName(ct: cwast.CanonType) -> str:
 
 
 def _EmitFunctionProlog(fun: cwast.DefFun,
-                        id_gen: identifier.IdGenIR):
-    print(f".bbl {id_gen.NewName('entry')}")
+                        id_gen: identifier.IdGenIR, fp):
+    print(f".bbl {id_gen.NewName('entry')}", file=fp)
     for p in fun.params:
         # TODO: NewName returns a str but p.name is really a NAME
         # this uniquifies names
         # Name translation!
         p.name = id_gen.NewName(str(p.name))
-        print(f"{TAB}poparg {p.name}:{p.x_type.get_single_register_type()}")
+        print(f"{TAB}poparg {p.name}:{p.x_type.get_single_register_type()}", file=fp)
 
 
 ZERO_INDEX = "0"
@@ -99,32 +99,32 @@ class BaseOffset:
     base: str
     offset_num: int = 0
 
-    def AddScaledOffsetExpr(self, offset_expr, scale: int, ta: type_corpus.TargetArchConfig, id_gen) -> "BaseOffset":
+    def AddScaledOffsetExpr(self, offset_expr, scale: int, ta: type_corpus.TargetArchConfig, id_gen, fp) -> "BaseOffset":
         if isinstance(offset_expr, cwast.ValNum):
             return BaseOffset(self.base, self.offset_num + offset_expr.x_eval.val * scale)
-        offset = _EmitExpr(offset_expr, ta, id_gen)
+        offset = _EmitExpr(offset_expr, ta, id_gen, fp)
         if scale != 1:
             scaled = id_gen.NewName("scaled")
             print(
-                f"{TAB}conv {scaled}:{ta.get_sint_reg_type()} = {offset}")
+                f"{TAB}conv {scaled}:{ta.get_sint_reg_type()} = {offset}", file=fp)
             print(
-                f"{TAB}mul {scaled} = {scaled} {scale}")
+                f"{TAB}mul {scaled} = {scaled} {scale}", file=fp)
             offset = scaled
         new_base = id_gen.NewName("new_base")
         print(
-            f"{TAB}lea {new_base}:{ta.get_data_address_reg_type()} = {self.base} {offset}")
+            f"{TAB}lea {new_base}:{ta.get_data_address_reg_type()} = {self.base} {offset}", file=fp)
         return BaseOffset(new_base, self.offset_num)
 
     def AddOffset(self, offset) -> "BaseOffset":
         return BaseOffset(self.base, self.offset_num + offset)
 
-    def MaterializeBase(self, ta, id_gen) -> str:
+    def MaterializeBase(self, ta, id_gen, fp) -> str:
         if self.offset_num == 0:
             return self.base
 
         res = id_gen.NewName("at")
         print(
-            f"{TAB}lea {res}:{ta.get_data_address_reg_type()} = {self.base} {self.offset_num}")
+            f"{TAB}lea {res}:{ta.get_data_address_reg_type()} = {self.base} {self.offset_num}", file=fp)
         return res
 
 
@@ -146,11 +146,11 @@ _STORAGE_TO_MEM_SUFFIX = {
 
 
 def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig,
-                      id_gen: identifier.IdGenIR) -> BaseOffset:
+                      id_gen: identifier.IdGenIR, fp) -> BaseOffset:
     if isinstance(node, cwast.ExprDeref):
-        return BaseOffset(_EmitExpr(node.expr, ta, id_gen))
+        return BaseOffset(_EmitExpr(node.expr, ta, id_gen, fp))
     elif isinstance(node, cwast.ExprField):
-        bo = _GetLValueAddress(node.container, ta, id_gen)
+        bo = _GetLValueAddress(node.container, ta, id_gen, fp)
         return bo.AddOffset(node.field.x_symbol.x_offset)
     elif isinstance(node, cwast.Id):
         name = node.x_symbol.name
@@ -158,12 +158,12 @@ def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig,
         kind = ta.get_data_address_reg_type()
         storage = _StorageKindForId(node)
         print(
-            f"{TAB}lea.{_STORAGE_TO_MEM_SUFFIX[storage]} {base}:{kind} = {name} 0")
+            f"{TAB}lea.{_STORAGE_TO_MEM_SUFFIX[storage]} {base}:{kind} = {name} 0", file=fp)
         return BaseOffset(base)
     elif isinstance(node, cwast.ExprNarrow):
         #
         assert node.expr.x_type.is_untagged_union()
-        return _GetLValueAddress(node.expr, ta, id_gen)
+        return _GetLValueAddress(node.expr, ta, id_gen, fp)
     elif isinstance(node, cwast.ExprStmt):
         # Only a few expressions can generate l-values or objects whose
         # address can be taken, basically ExprCall and ExprStmt
@@ -171,8 +171,8 @@ def _GetLValueAddress(node, ta: type_corpus.TargetArchConfig,
         # We rewrite function signatures with complex result types
         # so that space for the result is allocated at the call site.
         # So here we only have to deal with StmtExpr
-        base = _EmitStackVarForExprStmt(node.x_type, ta, id_gen)
-        EmitExprToMemory(node,  BaseOffset(base), ta, id_gen)
+        base = _EmitStackVarForExprStmt(node.x_type, ta, id_gen, fp)
+        EmitExprToMemory(node,  BaseOffset(base), ta, id_gen, fp)
         return BaseOffset(base)
     else:
         assert False, f"unsupported node for lvalue {node} at {node.x_srcloc}"
@@ -214,7 +214,7 @@ def _ChangesControlFlow(node):
     return isinstance(node, (cwast.StmtBreak, cwast.StmtContinue, cwast.StmtReturn))
 
 
-def _EmitId(node, id_gen: identifier.IdGenIR) -> str:
+def _EmitId(node, id_gen: identifier.IdGenIR, fp) -> str:
     if node.x_type.size == 0:
         # TODO: This is a bit hackish
         return "@@@@@ BAD, DO NOT USE @@@@@@ "
@@ -222,20 +222,20 @@ def _EmitId(node, id_gen: identifier.IdGenIR) -> str:
     if isinstance(def_node, cwast.DefGlobal):
         res = id_gen.NewName("globread")
         print(
-            f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {def_node.name} 0")
+            f"{TAB}ld.mem {res}:{node.x_type.get_single_register_type()} = {def_node.name} 0", file=fp)
         return res
     elif isinstance(def_node, cwast.FunParam):
         return str(def_node.name)
     elif isinstance(def_node, cwast.DefFun):
         res = id_gen.NewName("funaddr")
         print(
-            f"{TAB}lea.fun {res}:{node.x_type.get_single_register_type()} = {def_node.name}")
+            f"{TAB}lea.fun {res}:{node.x_type.get_single_register_type()} = {def_node.name}", file=fp)
         return res
     elif isinstance(def_node, cwast.DefVar):
         if _IsDefVarOnStack(def_node):
             res = id_gen.NewName("stkread")
             print(
-                f"{TAB}ld.stk {res}:{node.x_type.get_single_register_type()} = {def_node.name} 0")
+                f"{TAB}ld.stk {res}:{node.x_type.get_single_register_type()} = {def_node.name} 0", file=fp)
             return res
         else:
             return str(def_node.name)
@@ -244,65 +244,65 @@ def _EmitId(node, id_gen: identifier.IdGenIR) -> str:
 
 
 def _EmitConditionalExpr2(cond, invert: bool, label_f: str, ta: type_corpus.TargetArchConfig,
-                          id_gen: identifier.IdGenIR):
+                          id_gen: identifier.IdGenIR, fp):
     kind: cwast.BINARY_EXPR_KIND = cond.binary_expr_kind
     if kind is cwast.BINARY_EXPR_KIND.ANDSC:
         if invert:
-            _EmitConditional(cond.expr1, True, label_f, ta, id_gen)
-            _EmitConditional(cond.expr2, True, label_f, ta, id_gen)
+            _EmitConditional(cond.expr1, True, label_f, ta, id_gen, fp)
+            _EmitConditional(cond.expr2, True, label_f, ta, id_gen, fp)
         else:
             failed = id_gen.NewName("br_failed_and")
-            _EmitConditional(cond.expr1, True, failed, ta, id_gen)
-            _EmitConditional(cond.expr2, False, label_f, ta, id_gen)
-            print(f".bbl {failed}")
+            _EmitConditional(cond.expr1, True, failed, ta, id_gen, fp)
+            _EmitConditional(cond.expr2, False, label_f, ta, id_gen, fp)
+            print(f".bbl {failed}", file=fp)
     elif kind is cwast.BINARY_EXPR_KIND.ORSC:
         if invert:
             failed = id_gen.NewName("br_failed_or")
-            _EmitConditional(cond.expr1, False, failed, ta, id_gen)
-            _EmitConditional(cond.expr2, True, label_f, ta, id_gen)
-            print(f".bbl {failed}")
+            _EmitConditional(cond.expr1, False, failed, ta, id_gen, fp)
+            _EmitConditional(cond.expr2, True, label_f, ta, id_gen, fp)
+            print(f".bbl {failed}", file=fp)
         else:
-            _EmitConditional(cond.expr1, False, label_f, ta, id_gen)
-            _EmitConditional(cond.expr2, False, label_f, ta, id_gen)
+            _EmitConditional(cond.expr1, False, label_f, ta, id_gen, fp)
+            _EmitConditional(cond.expr2, False, label_f, ta, id_gen, fp)
     elif kind in (cwast.BINARY_EXPR_KIND.AND, cwast.BINARY_EXPR_KIND.OR,
                   cwast.BINARY_EXPR_KIND.XOR):
-        op = _EmitExpr(cond, ta, id_gen)
+        op = _EmitExpr(cond, ta, id_gen, fp)
         branch = "beq" if invert else "bne"
-        print(f"{TAB}{branch} {op} 0 {label_f}")
+        print(f"{TAB}{branch} {op} 0 {label_f}", file=fp)
     else:
         assert cond.expr1.x_type.ir_regs not in (
             o.DK.MEM, o.DK.NONE), f"NYI Expr2 for {cond} {cond.expr1.x_type}"
-        op1 = _EmitExpr(cond.expr1, ta, id_gen)
-        op2 = _EmitExpr(cond.expr2, ta, id_gen)
+        op1 = _EmitExpr(cond.expr1, ta, id_gen, fp)
+        op2 = _EmitExpr(cond.expr2, ta, id_gen, fp)
         branch, swap = _GetBranchOpcode(kind, invert)
         if swap:
             op1, op2 = op2, op1
         print(
-            f"{TAB}{branch} {op1} {op2} {label_f}")
+            f"{TAB}{branch} {op1} {op2} {label_f}", file=fp)
 
 
 def _EmitConditional(cond, invert: bool, label_false: str, ta: type_corpus.TargetArchConfig,
-                     id_gen: identifier.IdGenIR):
+                     id_gen: identifier.IdGenIR, fp):
     """The emitted code assumes that the not taken label immediately succceeds the code generated here"""
     assert cond.x_type.is_bool()
     if cond.x_eval is not None:
         # TODO: we probably should check for side effects, though it seems hard to imagine how
         #       we can partially eval in the presence of side-effects
         if cond.x_eval.val != invert:
-            print(f"{TAB}bra {label_false}")
+            print(f"{TAB}bra {label_false}", file=fp)
     elif isinstance(cond, cwast.Expr1):
         assert cond.unary_expr_kind is cwast.UNARY_EXPR_KIND.NOT
-        _EmitConditional(cond.expr, not invert, label_false, ta, id_gen)
+        _EmitConditional(cond.expr, not invert, label_false, ta, id_gen, fp)
     elif isinstance(cond, cwast.Expr2):
-        _EmitConditionalExpr2(cond, invert, label_false, ta, id_gen)
+        _EmitConditionalExpr2(cond, invert, label_false, ta, id_gen, fp)
     elif isinstance(cond, (cwast.ExprCall, cwast.ExprStmt, cwast.ExprField, cwast.ExprDeref)):
-        op = _EmitExpr(cond, ta, id_gen)
+        op = _EmitExpr(cond, ta, id_gen, fp)
         branch = "beq" if invert else "bne"
-        print(f"{TAB}{branch} {op} 0 {label_false}")
+        print(f"{TAB}{branch} {op} 0 {label_false}", file=fp)
     elif isinstance(cond, cwast.Id):
-        op = _EmitId(cond, id_gen)
+        op = _EmitId(cond, id_gen, fp)
         branch = "beq" if invert else "bne"
-        print(f"{TAB}{branch} {op} 0 {label_false}")
+        print(f"{TAB}{branch} {op} 0 {label_false}", file=fp)
     else:
         assert False, f"unexpected expression {cond}"
 
@@ -321,53 +321,53 @@ _BIN_OP_MAP = {
 }
 
 
-def _EmitExpr2(node: cwast.Expr2, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
-    op1 = _EmitExpr(node.expr1, ta, id_gen)
-    op2 = _EmitExpr(node.expr2, ta, id_gen)
+def _EmitExpr2(node: cwast.Expr2, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR, fp):
+    op1 = _EmitExpr(node.expr1, ta, id_gen, fp)
+    op2 = _EmitExpr(node.expr2, ta, id_gen, fp)
     res = id_gen.NewName("expr2")
     kind = node.binary_expr_kind
     res_type = node.x_type.get_single_register_type()
     op = _BIN_OP_MAP.get(kind)
     if op is not None:
-        print(f"{TAB}{op} {res}:{res_type} = {op1} {op2}")
+        print(f"{TAB}{op} {res}:{res_type} = {op1} {op2}", file=fp)
     elif kind is cwast.BINARY_EXPR_KIND.PDELTA:
         conv_op1 = id_gen.NewName("pdelta1")
         conv_op2 = id_gen.NewName("pdelta2")
-        print(f"{TAB}bitcast {conv_op1}:{res_type} = {op1}")
-        print(f"{TAB}bitcast {conv_op2}:{res_type} = {op2}")
+        print(f"{TAB}bitcast {conv_op1}:{res_type} = {op1}", file=fp)
+        print(f"{TAB}bitcast {conv_op2}:{res_type} = {op2}", file=fp)
 
-        print(f"{TAB}sub {res}:{res_type} = {conv_op1} {conv_op2}")
+        print(f"{TAB}sub {res}:{res_type} = {conv_op1} {conv_op2}", file=fp)
         print(f"{TAB}div {res} = {res} {
-              node.expr1.x_type.underlying_type().aligned_size()}")
+              node.expr1.x_type.underlying_type().aligned_size()}", file=fp)
     elif kind is cwast.BINARY_EXPR_KIND.MAX:
         print(
-            f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op2} {op1}")
+            f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op2} {op1}", file=fp)
     elif kind is cwast.BINARY_EXPR_KIND.MIN:
         print(
-            f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op1} {op2}")
+            f"{TAB}cmplt {res}:{res_type} = {op1} {op2} {op1} {op2}", file=fp)
     else:
         assert False, f"unsupported expression {kind}"
     return res
 
 
-def _EmitExpr1(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
+def _EmitExpr1(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR, fp):
     ct = node.x_type
     kind = node.unary_expr_kind
-    op = _EmitExpr(node.expr, ta, id_gen)
+    op = _EmitExpr(node.expr, ta, id_gen, fp)
     res = id_gen.NewName("expr1")
     res_type = ct.get_single_register_type()
     if kind is cwast.UNARY_EXPR_KIND.NEG:
-        print(f"{TAB}sub {res}:{res_type} = 0 {op}")
+        print(f"{TAB}sub {res}:{res_type} = 0 {op}", file=fp)
     elif kind is cwast.UNARY_EXPR_KIND.NOT:
         ff: int = (1 << (8 * node.x_type.base_type_kind.ByteSize())) - 1
-        print(f"{TAB}xor {res}:{res_type} = 0x{ff:x} {op}")
+        print(f"{TAB}xor {res}:{res_type} = 0x{ff:x} {op}", file=fp)
     elif kind is cwast.UNARY_EXPR_KIND.ABS:
         # TODO: special case unsigned
-        print(f"{TAB}sub {res}:{res_type} = 0 {op}")
-        print(f"{TAB}cmplt {res} = {res} {op} {op} {0}")
+        print(f"{TAB}sub {res}:{res_type} = 0 {op}", file=fp)
+        print(f"{TAB}cmplt {res} = {res} {op} {op} {0}", file=fp)
     elif kind is cwast.UNARY_EXPR_KIND.SQRT:
         # TODO: check float type
-        print(f"{TAB}sqrt {res}:{res_type} = {op}")
+        print(f"{TAB}sqrt {res}:{res_type} = {op}", file=fp)
     else:
         assert False, f"unsupported expression {kind}"
     return res
@@ -391,104 +391,102 @@ def _FormatNumber(val: cwast.ValNum) -> str:
         assert False, f"unsupported scalar: {bt} {val}"
 
 
-def _EmitCast(src, src_ct, dst_ct, id_gen: identifier.IdGenIR) -> str:
+def _EmitCast(src, src_ct, dst_ct, id_gen: identifier.IdGenIR, fp) -> str:
     assert dst_ct.size > 0
     src_reg_type = src_ct.get_single_register_type()
     dst_reg_type = dst_ct.get_single_register_type()
     if src_reg_type == dst_reg_type:
         return src
     res = id_gen.NewName("bitcast")
-    print(f"{TAB}bitcast {res}:{dst_reg_type} = {src}")
+    print(f"{TAB}bitcast {res}:{dst_reg_type} = {src}", file=fp)
     return res
 
 
-
-
-def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
+def _EmitExprCall(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR, fp) -> Any:
     callee = node.callee
     fun_ct: cwast.CanonType = callee.x_type
     assert fun_ct.is_fun()
-    arg_ops = [_EmitExpr(a, ta, id_gen) for a in node.args]
+    arg_ops = [_EmitExpr(a, ta, id_gen, fp) for a in node.args]
     for a in reversed(arg_ops):
-        print(f"{TAB}pusharg {a}")
+        print(f"{TAB}pusharg {a}", file=fp)
     if isinstance(callee, cwast.Id) and isinstance(callee.x_symbol, cwast.DefFun):
-        print(f"{TAB}bsr {callee.x_symbol.name}")
+        print(f"{TAB}bsr {callee.x_symbol.name}", file=fp)
     else:
-        op = _EmitExpr(callee, ta, id_gen)
-        print(f"{TAB}jsr {op} {MakeFunSigName(fun_ct)}")
+        op = _EmitExpr(callee, ta, id_gen, fp)
+        print(f"{TAB}jsr {op} {MakeFunSigName(fun_ct)}", file=fp)
 
     res_ct = fun_ct.result_type()
     if res_ct.size == 0:
         return _OP_DO_NOT_USE
 
     res = id_gen.NewName("call")
-    print(f"{TAB}poparg {res}:{res_ct.get_single_register_type()}")
+    print(f"{TAB}poparg {res}:{res_ct.get_single_register_type()}", file=fp)
     return res
 
 
-def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR) -> Any:
+def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR, fp) -> Any:
     """Returns None if the type is void"""
     ct_dst: cwast.CanonType = node.x_type
     ir_reg = ct_dst.ir_regs
     assert ir_reg != o.DK.MEM, f"{node} ct={ct_dst}"
     if isinstance(node, cwast.ExprCall):
-        return _EmitExprCall(node, ta, id_gen)
+        return _EmitExprCall(node, ta, id_gen, fp)
     elif isinstance(node, cwast.ValNum):
         return _FormatNumber(node)
     elif isinstance(node, cwast.Id):
-        return _EmitId(node, id_gen)
+        return _EmitId(node, id_gen, fp)
     elif isinstance(node, cwast.ExprAddrOf):
-        return _GetLValueAddress(node.expr_lhs, ta, id_gen).MaterializeBase(ta, id_gen)
+        return _GetLValueAddress(node.expr_lhs, ta, id_gen, fp).MaterializeBase(ta, id_gen, fp)
     elif isinstance(node, cwast.Expr1):
-        return _EmitExpr1(node, ta, id_gen)
+        return _EmitExpr1(node, ta, id_gen, fp)
     elif isinstance(node, cwast.Expr2):
-        return _EmitExpr2(node, ta, id_gen)
+        return _EmitExpr2(node, ta, id_gen, fp)
     elif isinstance(node, cwast.ExprPointer):
-        base = BaseOffset(_EmitExpr(node.expr1, ta, id_gen))
+        base = BaseOffset(_EmitExpr(node.expr1, ta, id_gen, fp))
         # TODO: add range check
         # assert isinstance(node.expr_bound_or_undef, cwast.ValUndef)
         width = node.expr1.x_type.underlying_type().aligned_size()
         assert node.pointer_expr_kind is cwast.POINTER_EXPR_KIND.INCP, f"NYI"
-        base = base.AddScaledOffsetExpr(node.expr2, width, ta, id_gen)
-        return base.MaterializeBase(ta, id_gen)
+        base = base.AddScaledOffsetExpr(node.expr2, width, ta, id_gen, fp)
+        return base.MaterializeBase(ta, id_gen, fp)
     elif isinstance(node, cwast.ExprBitCast):
-        src = _EmitExpr(node.expr, ta, id_gen)
-        return _EmitCast(src, node.expr.x_type, node.x_type, id_gen)
+        src = _EmitExpr(node.expr, ta, id_gen, fp)
+        return _EmitCast(src, node.expr.x_type, node.x_type, id_gen, fp)
     elif isinstance(node, cwast.ExprNarrow):
         # Note, that GetLValueAddress will materialize objects when called on
         # a ExprStmt
         addr = _GetLValueAddress(
-            node.expr, ta, id_gen).MaterializeBase(ta, id_gen)
+            node.expr, ta, id_gen, fp).MaterializeBase(ta, id_gen, fp)
         if ct_dst.size == 0:
             return _OP_DO_NOT_USE
         ct_src: cwast.CanonType = node.expr.x_type
         assert ct_src.is_union() or ct_src.original_type.is_union()
         res = id_gen.NewName("union_narrow")
         print(
-            f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0")
+            f"{TAB}ld {res}:{ct_dst.get_single_register_type()} = {addr} 0", file=fp)
         return res
     elif isinstance(node, cwast.ExprAs):
         ct_src: cwast.CanonType = node.expr.x_type.get_unwrapped()
         ct_dst = node.x_type.get_unwrapped()
         if ct_src.is_base_type() and ct_dst.is_base_type():
             # more compatibility checking needed
-            src = _EmitExpr(node.expr, ta, id_gen)
+            src = _EmitExpr(node.expr, ta, id_gen, fp)
             res = id_gen.NewName("as")
             print(
-                f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {src}")
+                f"{TAB}conv {res}:{ct_dst.get_single_register_type()} = {src}", file=fp)
             return res
         elif ct_src.is_ptr() and ct_dst.is_ptr():
-            return _EmitExpr(node.expr, ta, id_gen)
+            return _EmitExpr(node.expr, ta, id_gen, fp)
         else:
             assert False, f"unsupported cast {
                 node.expr} ({ct_src.name}) -> {ct_dst.name}"
     elif isinstance(node, (cwast.ExprWrap, cwast.ExprUnwrap)):
-        return _EmitExpr(node.expr, ta, id_gen)
+        return _EmitExpr(node.expr, ta, id_gen, fp)
     elif isinstance(node, cwast.ExprDeref):
-        addr = _EmitExpr(node.expr, ta, id_gen)
+        addr = _EmitExpr(node.expr, ta, id_gen, fp)
         res = id_gen.NewName("deref")
         print(
-            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} 0")
+            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} 0", file=fp)
         return res
     elif isinstance(node, cwast.ExprStmt):
         if node.x_type.size == 0:
@@ -496,30 +494,31 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         else:
             result = id_gen.NewName("expr")
             print(
-                f"{TAB}.reg {node.x_type.get_single_register_type()} {result}")
+                f"{TAB}.reg {node.x_type.get_single_register_type()} {result}", file=fp)
         end_label = id_gen.NewName("end_expr")
         for c in node.body:
-            _EmitStmt(c, ReturnResultLocation(result, end_label), ta, id_gen)
-        print(f".bbl {end_label}")
+            _EmitStmt(c, ReturnResultLocation(
+                result, end_label), ta, id_gen, fp)
+        print(f".bbl {end_label}", file=fp)
         return result
     elif isinstance(node, cwast.ExprFront):
         assert node.container.x_type.is_vec(), f"unexpected {node}"
-        return _GetLValueAddress(node.container, ta, id_gen).MaterializeBase(ta, id_gen)
+        return _GetLValueAddress(node.container, ta, id_gen, fp).MaterializeBase(ta, id_gen, fp)
     elif isinstance(node, cwast.ExprField):
         recfield: cwast.RecField = node.field.x_symbol
         res = id_gen.NewName(recfield.name.name)
         addr = _GetLValueAddress(
-            node.container, ta, id_gen).MaterializeBase(ta, id_gen)
+            node.container, ta, id_gen, fp).MaterializeBase(ta, id_gen, fp)
         if node.x_type.size == 0:
             return _OP_DO_NOT_USE
         print(
-            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {recfield.x_offset}")
+            f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {recfield.x_offset}", file=fp)
         return res
     elif isinstance(node, cwast.ExprWiden):
         # this should only happen for widening empty untagged unions
         # assert node.x_type.size == 0, f"{node} {node.x_type}"
         # make sure we evaluate the rest for side-effects
-        src = _EmitExpr(node.expr, ta, id_gen)
+        src = _EmitExpr(node.expr, ta, id_gen, fp)
         dst_ct = node.type.x_type
         if dst_ct.size == 0:
             return _OP_DO_NOT_USE
@@ -530,7 +529,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
             return "0"
         # TODO: explain why Bitcasting will work
         assert src_ct.size == dst_ct.size
-        return _EmitCast(src, src_ct, dst_ct, id_gen)
+        return _EmitCast(src, src_ct, dst_ct, id_gen, fp)
     elif isinstance(node, cwast.ValVoid):
         return _OP_DO_NOT_USE
     # elif isinstance(node, cwast.ValCompound):
@@ -541,38 +540,39 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
 
 
 def _EmitZero(dst: BaseOffset, length, alignment,
-              _id_gen: identifier.IdGenIR):
+              _id_gen: identifier.IdGenIR, fp):
     width = alignment  # TODO: may be capped at 4 for 32bit platforms
     curr = 0
     while curr < length:
         while width > (length - curr):
             width //= 2
-        print(f"{TAB}st {dst.base} {dst.offset_num + curr} = 0:U{width * 8}")
+        print(f"{TAB}st {dst.base} {dst.offset_num + curr} = 0:U{width * 8}", file=fp)
         curr += width
 
 
 def _EmitValCompoundRecToMemory(val: cwast.ValCompound, dst: BaseOffset,
                                 ta: type_corpus.TargetArchConfig,
-                                id_gen: identifier.IdGenIR):
+                                id_gen: identifier.IdGenIR, fp):
     if not val.inits:
-        _EmitZero(dst, val.x_type.size, val.x_type.alignment, id_gen)
+        _EmitZero(dst, val.x_type.size, val.x_type.alignment, id_gen, fp)
         return
     for field, point in symbolize.IterateValRec(val.inits, val.x_type):
         if field.x_type.size == 0:
             if point is not None and not isinstance(point.value_or_undef, cwast.ValUndef):
                 # NOTE: result is not used
-                _EmitExpr(point.value_or_undef, ta, id_gen)
+                _EmitExpr(point.value_or_undef, ta, id_gen, fp)
             continue
         bo = dst.AddOffset(field.x_offset)
         if point is None:
-            _EmitZero(bo, field.x_type.size, field.x_type.alignment, id_gen)
+            _EmitZero(bo, field.x_type.size,
+                      field.x_type.alignment, id_gen, fp)
         elif not isinstance(point.value_or_undef, cwast.ValUndef):
-            EmitExprToMemory(point.value_or_undef, bo, ta, id_gen)
+            EmitExprToMemory(point.value_or_undef, bo, ta, id_gen, fp)
 
 
 def _EmitValCompoundVecToMemory(val: cwast.ValCompound, dst: BaseOffset,
                                 ta: type_corpus.TargetArchConfig,
-                                id_gen: identifier.IdGenIR):
+                                id_gen: identifier.IdGenIR, fp):
     dim = val.x_type.vec_dim()
     element_size: int = val.x_type.size // dim
     alignment: int = val.x_type.alignment  # alignment of vec is same as elements
@@ -582,15 +582,15 @@ def _EmitValCompoundVecToMemory(val: cwast.ValCompound, dst: BaseOffset,
         if c is not None:
             last_point_val = c.value_or_undef
         if last_point_val is None:
-            _EmitZero(dst, element_size, alignment, id_gen)
+            _EmitZero(dst, element_size, alignment, id_gen, fp)
         elif not isinstance(last_point_val, cwast.ValUndef):
-            EmitExprToMemory(last_point_val, dst, ta, id_gen)
+            EmitExprToMemory(last_point_val, dst, ta, id_gen, fp)
         dst = dst.AddOffset(element_size)
 
 
 def EmitExprToMemory(node, dst: BaseOffset,
                      ta: type_corpus.TargetArchConfig,
-                     id_gen: identifier.IdGenIR):
+                     id_gen: identifier.IdGenIR, fp):
     """This will instantiate objects on the stack or heap.
 
     Note, that this can occur in two ways:
@@ -602,39 +602,39 @@ def EmitExprToMemory(node, dst: BaseOffset,
     if isinstance(node, (cwast.ExprCall, cwast.ValNum, cwast.ExprAddrOf,
                          cwast.Expr1, cwast.Expr2, cwast.ExprAs, cwast.ExprPointer, cwast.ExprFront,
                          cwast.ExprBitCast)):
-        reg = _EmitExpr(node, ta, id_gen)
-        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
+        reg = _EmitExpr(node, ta, id_gen, fp)
+        print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}", file=fp)
     elif isinstance(node, (cwast.ExprWrap, cwast.ExprUnwrap)):
         # these do NOT imply scalars
-        EmitExprToMemory(node.expr, dst, ta, id_gen)
+        EmitExprToMemory(node.expr, dst, ta, id_gen, fp)
     elif isinstance(node, cwast.ExprNarrow):
         # if we are narrowing the dst determines the size
         ct: cwast.CanonType = node.x_type
         if ct.size != 0:
             src_base = _GetLValueAddress(
-                node.expr, ta, id_gen)
-            _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
+                node.expr, ta, id_gen, fp)
+            _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen, fp)
     elif isinstance(node, cwast.ExprWiden):
         assert node.x_type.is_untagged_union()
         if node.expr.x_type.size != 0:
-            EmitExprToMemory(node.expr, dst, ta, id_gen)
+            EmitExprToMemory(node.expr, dst, ta, id_gen, fp)
     elif isinstance(node, cwast.Id):
         if _StorageKindForId(node) is STORAGE_KIND.REGISTER:
-            reg = _EmitId(node, id_gen)
-            print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}")
+            reg = _EmitId(node, id_gen, fp)
+            print(f"{TAB}st {dst.base} {dst.offset_num} = {reg}", file=fp)
         else:
-            src_base = _GetLValueAddress(node, ta, id_gen)
+            src_base = _GetLValueAddress(node, ta, id_gen, fp)
             ct = node.x_type
-            _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
+            _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen, fp)
     elif isinstance(node, (cwast.ExprDeref, cwast.ExprField)):
-        src_base = _GetLValueAddress(node, ta, id_gen)
+        src_base = _GetLValueAddress(node, ta, id_gen, fp)
         ct = node.x_type
-        _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen)
+        _EmitCopy(dst, src_base, ct.size, ct.alignment, id_gen, fp)
     elif isinstance(node, cwast.ExprStmt):
         end_label = id_gen.NewName("end_expr")
         for c in node.body:
-            _EmitStmt(c, ReturnResultLocation(dst, end_label), ta, id_gen)
-        print(f".bbl {end_label}")
+            _EmitStmt(c, ReturnResultLocation(dst, end_label), ta, id_gen, fp)
+        print(f".bbl {end_label}", file=fp)
     elif isinstance(node, cwast.ValString):
         # probably not happening because all ValStrings have ben move
         # to initializers in the generated module.
@@ -642,45 +642,45 @@ def EmitExprToMemory(node, dst: BaseOffset,
     elif isinstance(node, cwast.ValAuto):
         # TODO: check if auto is legit (maybe add a check for this in another phase)
         _EmitZero(dst, node.x_type.size,
-                  node.x_type.alignment, id_gen)
+                  node.x_type.alignment, id_gen, fp)
     elif isinstance(node, cwast.ValCompound):
         if node.x_type.is_rec():
-            _EmitValCompoundRecToMemory(node, dst, ta, id_gen)
+            _EmitValCompoundRecToMemory(node, dst, ta, id_gen, fp)
         else:
             assert node.x_type.is_vec()
-            _EmitValCompoundVecToMemory(node, dst, ta, id_gen)
+            _EmitValCompoundVecToMemory(node, dst, ta, id_gen, fp)
 
     else:
         assert False, f"NYI: {node}"
 
 
 def _EmitCopy(dst: BaseOffset, src: BaseOffset, length, alignment,
-              id_gen: identifier.IdGenIR):
+              id_gen: identifier.IdGenIR, fp):
     width = alignment  # TODO: may be capped at 4 for 32bit platforms
     curr = 0
     while curr < length:
         while width > (length - curr):
             width //= 2
         tmp = id_gen.NewName("copy")
-        print(f"{TAB}.reg U{width*8} {tmp}")
+        print(f"{TAB}.reg U{width*8} {tmp}", file=fp)
         while curr + width <= length:
-            print(f"{TAB}ld {tmp} = {src.base} {src.offset_num + curr}")
-            print(f"{TAB}st {dst.base} {dst.offset_num + curr} = {tmp}")
+            print(f"{TAB}ld {tmp} = {src.base} {src.offset_num + curr}", file=fp)
+            print(f"{TAB}st {dst.base} {dst.offset_num + curr} = {tmp}", file=fp)
             curr += width
 
 
 def _EmitStackVarForExprStmt(ct: cwast.CanonType, ta: type_corpus.TargetArchConfig,
-                             id_gen: identifier.IdGenIR):
+                             id_gen: identifier.IdGenIR, fp):
     name = id_gen.NewName("expr_stk_var")
-    print(f"{TAB}.stk {name} {ct.alignment} {ct.size}")
+    print(f"{TAB}.stk {name} {ct.alignment} {ct.size}", file=fp)
     base = id_gen.NewName("expr_stk_addr")
     kind = ta.get_data_address_reg_type()
-    print(f"{TAB}lea.stk {base}:{kind} = {name} 0")
+    print(f"{TAB}lea.stk {base}:{kind} = {name} 0", file=fp)
     return base
 
 
 def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.TargetArchConfig,
-              id_gen: identifier.IdGenIR):
+              id_gen: identifier.IdGenIR, fp):
     if isinstance(node, cwast.DefVar):
         # name translation!
         node.name = id_gen.NewName(str(node.name))
@@ -690,22 +690,22 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
         if ct.size == 0:
             if not isinstance(init, (cwast.ValUndef, cwast.ValAuto)):
                 # still need to evaluate the expression for the side effect
-                _EmitExpr(init, ta, id_gen)
+                _EmitExpr(init, ta, id_gen, fp)
         elif _IsDefVarOnStack(node):
             assert ct.size > 0
-            print(f"{TAB}.stk {node.name} {ct.alignment} {ct.size}")
+            print(f"{TAB}.stk {node.name} {ct.alignment} {ct.size}", file=fp)
             if not isinstance(init, cwast.ValUndef):
                 base = id_gen.NewName("var_stk_base")
                 print(
-                    f"{TAB}lea.stk {base}:{ta.get_data_address_reg_type()} {node.name} 0")
-                EmitExprToMemory(init, BaseOffset(base), ta, id_gen)
+                    f"{TAB}lea.stk {base}:{ta.get_data_address_reg_type()} {node.name} 0", file=fp)
+                EmitExprToMemory(init, BaseOffset(base), ta, id_gen, fp)
         elif isinstance(init, cwast.ValUndef):
             print(
-                f"{TAB}.reg {ct.get_single_register_type()} {node.name}")
+                f"{TAB}.reg {ct.get_single_register_type()} {node.name}", file=fp)
         else:
-            out = _EmitExpr(init, ta, id_gen)
+            out = _EmitExpr(init, ta, id_gen, fp)
             print(
-                f"{TAB}mov {node.name}:{ct.get_single_register_type()} = {out}")
+                f"{TAB}mov {node.name}:{ct.get_single_register_type()} = {out}", file=fp)
     elif isinstance(node, cwast.StmtBlock):
         label = str(node.label)
         if not label:
@@ -713,10 +713,10 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
 
         node.label = id_gen.NewName(label)
 
-        print(f".bbl {node.label}")
+        print(f".bbl {node.label}", file=fp)
         for c in node.body:
-            _EmitStmt(c, result, ta, id_gen)
-        print(f".bbl {node.label}.end")
+            _EmitStmt(c, result, ta, id_gen, fp)
+        print(f".bbl {node.label}.end", file=fp)
     elif isinstance(node, cwast.StmtReturn):
         ret = node.expr_ret
         if isinstance(node.x_target, cwast.ExprStmt):
@@ -725,68 +725,68 @@ def _EmitStmt(node, result: Optional[ReturnResultLocation], ta: type_corpus.Targ
             # and the branch to the end of the ExprStmt
             if ret.x_type.size != 0:
                 if isinstance(result.dst, str):
-                    out = _EmitExpr(ret, ta, id_gen)
-                    print(f"{TAB}mov {result.dst} = {out}")
+                    out = _EmitExpr(ret, ta, id_gen, fp)
+                    print(f"{TAB}mov {result.dst} = {out}", file=fp)
                 else:
-                    EmitExprToMemory(ret, result.dst, ta, id_gen)
+                    EmitExprToMemory(ret, result.dst, ta, id_gen, fp)
             else:
                 # nothing to save here
-                _EmitExpr(ret, ta, id_gen)
-            print(f"{TAB}bra {result.end_label}")
+                _EmitExpr(ret, ta, id_gen, fp)
+            print(f"{TAB}bra {result.end_label}", file=fp)
         else:
-            out = _EmitExpr(node.expr_ret, ta, id_gen)
+            out = _EmitExpr(node.expr_ret, ta, id_gen, fp)
             if node.expr_ret.x_type.size != 0:
-                print(f"{TAB}pusharg {out}")
-            print(f"{TAB}ret")
+                print(f"{TAB}pusharg {out}", file=fp)
+            print(f"{TAB}ret", file=fp)
     elif isinstance(node, cwast.StmtBreak):
         block = node.x_target.label + ".end"
-        print(f"{TAB}bra {block}  # break")
+        print(f"{TAB}bra {block}  # break", file=fp)
     elif isinstance(node, cwast.StmtContinue):
         block = node.x_target.label
-        print(f"{TAB}bra {block}  # continue")
+        print(f"{TAB}bra {block}  # continue", file=fp)
     elif isinstance(node, cwast.StmtExpr):
         ct: cwast.CanonType = node.expr.x_type
         if ct.ir_regs != o.DK.MEM:
-            _EmitExpr(node.expr, ta, id_gen)
+            _EmitExpr(node.expr, ta, id_gen, fp)
         else:
             assert ct.size > 0
-            base = _EmitStackVarForExprStmt(ct, ta, id_gen)
-            EmitExprToMemory(node.expr,  BaseOffset(base), ta, id_gen)
+            base = _EmitStackVarForExprStmt(ct, ta, id_gen, fp)
+            EmitExprToMemory(node.expr,  BaseOffset(base), ta, id_gen, fp)
     elif isinstance(node, cwast.StmtIf):
         label_join = id_gen.NewName("br_join")
         if node.body_t and node.body_f:
             label_f = id_gen.NewName("br_f")
-            _EmitConditional(node.cond, True, label_f, ta, id_gen)
+            _EmitConditional(node.cond, True, label_f, ta, id_gen, fp)
             for c in node.body_t:
-                _EmitStmt(c, result, ta, id_gen)
+                _EmitStmt(c, result, ta, id_gen, fp)
             if not _ChangesControlFlow(node.body_t[-1]):
-                print(f"{TAB}bra {label_join}")
-            print(f".bbl {label_f}")
+                print(f"{TAB}bra {label_join}", file=fp)
+            print(f".bbl {label_f}", file=fp)
             for c in node.body_f:
-                _EmitStmt(c, result, ta, id_gen)
+                _EmitStmt(c, result, ta, id_gen, fp)
         elif node.body_t:
-            _EmitConditional(node.cond, True, label_join, ta, id_gen)
+            _EmitConditional(node.cond, True, label_join, ta, id_gen, fp)
             for c in node.body_t:
-                _EmitStmt(c, result, ta, id_gen)
+                _EmitStmt(c, result, ta, id_gen, fp)
         else:  # also works for the case where body_f is empty
-            _EmitConditional(node.cond, False, label_join, ta, id_gen)
+            _EmitConditional(node.cond, False, label_join, ta, id_gen, fp)
             for c in node.body_f:
-                _EmitStmt(c, result, ta, id_gen)
-        print(f".bbl {label_join}")
+                _EmitStmt(c, result, ta, id_gen, fp)
+        print(f".bbl {label_join}", file=fp)
     elif isinstance(node, cwast.StmtAssignment):
         lhs = node.lhs
         if lhs.x_type.size == 0:
             assert node.expr_rhs.x_type.size == 0
-            out = _EmitExpr(node.expr_rhs, ta, id_gen)
+            out = _EmitExpr(node.expr_rhs, ta, id_gen, fp)
             assert out == _OP_DO_NOT_USE, f"mishandled empty type {node.expr_rhs}"
         elif isinstance(lhs, cwast.Id) and _StorageKindForId(lhs) is STORAGE_KIND.REGISTER:
-            out = _EmitExpr(node.expr_rhs, ta, id_gen)
-            print(f"{TAB}mov {lhs.x_symbol.name} = {out}")
+            out = _EmitExpr(node.expr_rhs, ta, id_gen, fp)
+            print(f"{TAB}mov {lhs.x_symbol.name} = {out}", file=fp)
         else:
-            lhs = _GetLValueAddress(lhs, ta, id_gen)
-            EmitExprToMemory(node.expr_rhs, lhs, ta, id_gen)
+            lhs = _GetLValueAddress(lhs, ta, id_gen, fp)
+            EmitExprToMemory(node.expr_rhs, lhs, ta, id_gen, fp)
     elif isinstance(node, cwast.StmtTrap):
-        print(f"{TAB}trap")
+        print(f"{TAB}trap", file=fp)
     else:
         assert False, f"cannot generate code for {node}"
 
@@ -813,23 +813,25 @@ def _is_repeated_single_char(data: bytes):
     return True
 
 
-def _EmitMemRepeatedByte(b, count: int, offset: int, purpose: str, purpose2="") -> int:
-    print(f".data {count} [{b[0]}] # {offset} {count} {purpose}{purpose2}")
+def _EmitMemRepeatedByte(b, count: int, offset: int, purpose: str, purpose2, fp) -> int:
+    print(
+        f".data {count} [{b[0]}] # {offset} {count} {purpose}{purpose2}", file=fp)
     return count
 
 
-def _EmitMem(data, offset: int, purpose: str) -> int:
+def _EmitMem(data, offset: int, purpose: str, fp) -> int:
     if len(data) == 0:
-        print(f'.data 0 []  # {offset} 0 {purpose}')
+        print(f'.data 0 []  # {offset} 0 {purpose}', file=fp)
     elif _is_repeated_single_char(data):
-        return _EmitMemRepeatedByte(data[0:1], len(data), offset, purpose)
+        return _EmitMemRepeatedByte(data[0:1], len(data), offset, purpose, "",  fp)
     elif isinstance(data, (bytes, bytearray)):
         if len(data) < 100:
             print(
-                f'.data 1 "{BytesToEscapedString(data)}" # {offset} {len(data)} {purpose}')
+                f'.data 1 "{BytesToEscapedString(data)}" # {offset} {len(data)} {purpose}', file=fp)
         else:
             for count, value in RLE(data):
-                print(f".data {count} [{value}] # {offset} {count} {purpose}")
+                print(
+                    f".data {count} [{value}] # {offset} {count} {purpose}", file=fp)
                 offset += count
     else:
         assert False
@@ -847,10 +849,10 @@ _BYTE_UNDEF = b"\0"
 _BYTE_PADDING = b"\x6f"   # intentionally not zero?
 
 
-def _EmitInitializerRec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
-    print(f"# rec: {ct.name}")
+def _EmitInitializerRec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig, fp) -> int:
+    print(f"# rec: {ct.name}", file=fp)
     if isinstance(node, cwast.ValAuto):
-        return _EmitMemRepeatedByte(_BYTE_ZERO, ct.size, offset, "auto")
+        return _EmitMemRepeatedByte(_BYTE_ZERO, ct.size, offset, "auto", "", fp)
     assert isinstance(
         node, cwast.ValCompound), f"unexpected value {node}"
     rel_off = 0
@@ -858,20 +860,20 @@ def _EmitInitializerRec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
     for f, i in symbolize.IterateValRec(node.inits, node.x_type):
         if f.x_offset > rel_off:
             rel_off += _EmitMemRepeatedByte(_BYTE_PADDING,
-                                            f.x_offset - rel_off, offset+rel_off, "padding")
+                                            f.x_offset - rel_off, offset+rel_off, "padding", "", fp)
         if i is None or isinstance(i.value_or_undef, cwast.ValUndef):
             rel_off += _EmitMemRepeatedByte(_BYTE_UNDEF, f.type.x_type.size, offset+rel_off,
-                                            f.type.x_type.name)
+                                            f.type.x_type.name, "", fp)
         else:
             rel_off += _EmitInitializerRecursively(i.value_or_undef,
-                                                   f.type.x_type, offset + rel_off, ta)
+                                                   f.type.x_type, offset + rel_off, ta, fp)
     return rel_off
 
 
-def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
+def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig, fp) -> int:
     """When does  node.x_type != ct not hold?"""
     if isinstance(node, cwast.ValAuto):
-        return _EmitMemRepeatedByte(_BYTE_ZERO, ct.size, offset, "auto ", ct.name)
+        return _EmitMemRepeatedByte(_BYTE_ZERO, ct.size, offset, "auto ", ct.name, fp)
     assert isinstance(
         node, (cwast.ValCompound, cwast.ValString)), f"{node}"
     width = ct.vec_dim()
@@ -880,7 +882,7 @@ def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
         value = node.x_eval.data
         assert len(
             value) == width, f"length mismatch {len(value)} vs {width} [{value}]"
-        return _EmitMem(value, offset, ct.name)
+        return _EmitMem(value, offset, ct.name, fp)
 
     et = ct.underlying_type().get_unwrapped()
     assert isinstance(node, cwast.ValCompound), f"{node}"
@@ -896,9 +898,9 @@ def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
                 else:
                     last = _InitDataForBaseType(et, point.x_eval)
             out += last
-        return _EmitMem(out, offset, ct.name)
+        return _EmitMem(out, offset, ct.name, fp)
     else:
-        print(f"# vec: {ct.name}")
+        print(f"# vec: {ct.name}", file=fp)
         # TODO: should this be zero
         last = cwast.ValUndef()
         stride = ct.size // width
@@ -907,28 +909,28 @@ def _EmitInitializerVec(node, ct: cwast.CanonType, offset: int, ta: type_corpus.
             if point is not None:
                 last = point.value_or_undef
             count = _EmitInitializerRecursively(
-                last, et, offset + i * stride, ta)
+                last, et, offset + i * stride, ta, fp)
             if count != stride:
                 _EmitMemRepeatedByte(_BYTE_PADDING, stride - count,
-                                     offset + stride - count, "padding")
+                                     offset + stride - count, "padding", "", fp)
         return ct.size
 
 
-def _EmitDataAddress(node, ct, offset, ta) -> int:
+def _EmitDataAddress(node, ct, offset, ta, fp) -> int:
     assert isinstance(node, cwast.Id), f"{node} is not a symbol"
     assert isinstance(node.x_symbol, cwast.DefGlobal), f"{node.x_symbol}"
     name = node.x_symbol.name
-    print(f".addr.mem {ta.get_data_address_size()} {name} 0")
+    print(f".addr.mem {ta.get_data_address_size()} {name} 0", file=fp)
     return ta.get_data_address_size()
 
 
-def _EmitCodeAddress(node, ct, offset, ta) -> int:
+def _EmitCodeAddress(node, ct, offset, ta, fp) -> int:
     assert isinstance(node, cwast.DefFun), f"{node}"
-    print(f".addr.fun {ta.get_code_address_size()} {node.name}")
+    print(f".addr.fun {ta.get_code_address_size()} {node.name}", file=fp)
     return ta.get_code_address_size()
 
 
-def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig) -> int:
+def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type_corpus.TargetArchConfig, fp) -> int:
     """When does  node.x_type != ct not hold?"""
     if ct.size == 0:
         # global data initialization may not have side-effects
@@ -936,44 +938,44 @@ def _EmitInitializerRecursively(node, ct: cwast.CanonType, offset: int, ta: type
     assert offset == type_corpus.align(offset, ct.alignment)
     # TODO: support references to DefFun
     if isinstance(node, cwast.ValUndef):
-        return _EmitMemRepeatedByte(_BYTE_UNDEF, ct.size, offset,  "undef ", ct.name)
+        return _EmitMemRepeatedByte(_BYTE_UNDEF, ct.size, offset,  "undef ", ct.name, fp)
     elif isinstance(node, cwast.Id):
         node_def = node.x_symbol
         if isinstance(node_def, cwast.DefFun):
-            return _EmitCodeAddress(node_def, ct, offset, ta)
+            return _EmitCodeAddress(node_def, ct, offset, ta, fp)
         assert isinstance(node_def, cwast.DefGlobal), f"{node_def}"
-        return _EmitInitializerRecursively(node_def.initial_or_undef_or_auto, ct, offset, ta)
+        return _EmitInitializerRecursively(node_def.initial_or_undef_or_auto, ct, offset, ta, fp)
     elif isinstance(node, cwast.ExprFront):
-        return _EmitDataAddress(node.container, ct, offset, ta)
+        return _EmitDataAddress(node.container, ct, offset, ta, fp)
     elif isinstance(node, cwast.ExprAddrOf):
-        return _EmitDataAddress(node.expr_lhs, ct, offset, ta)
+        return _EmitDataAddress(node.expr_lhs, ct, offset, ta, fp)
     elif isinstance(node, cwast.ExprWiden):
         count = _EmitInitializerRecursively(
-            node.expr, node.expr.x_type, offset, ta)
+            node.expr, node.expr.x_type, offset, ta, fp)
         target = node.x_type.size
         if target != count:
             _EmitMemRepeatedByte(_BYTE_PADDING, target - count,
-                                 offset + count, "widen_padding")
+                                 offset + count, "widen_padding", "", fp)
         return target
     elif isinstance(node, cwast.ValNum):
         assert ct.get_unwrapped().is_base_type()
         assert node.x_eval
-        return _EmitMem(_InitDataForBaseType(ct, node.x_eval), offset, ct.name)
+        return _EmitMem(_InitDataForBaseType(ct, node.x_eval), offset, ct.name, fp)
 
     #
     if ct.is_wrapped():
         assert isinstance(node, cwast.ExprWrap)
-        return _EmitInitializerRecursively(node.expr, node.expr.x_type, offset, ta)
+        return _EmitInitializerRecursively(node.expr, node.expr.x_type, offset, ta, fp)
     elif ct.is_vec():
-        return _EmitInitializerVec(node, ct, offset, ta)
+        return _EmitInitializerVec(node, ct, offset, ta, fp)
     elif ct.is_rec():
-        return _EmitInitializerRec(node, ct, offset, ta)
+        return _EmitInitializerRec(node, ct, offset, ta, fp)
 
     else:
         assert False, f"unhandled node: {node} {ct.name}"
 
 
-def EmitDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> int:
+def EmitDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig, fp) -> int:
     """Note there is some similarity to  EmitIRExprToMemory
 
     returns the amount of bytes emitted
@@ -984,21 +986,21 @@ def EmitDefGlobal(node: cwast.DefGlobal, ta: type_corpus.TargetArchConfig) -> in
         # we have globals like [0]U8 for empty strings
         return 0
     print(
-        f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}")
+        f"\n.mem {node.name} {def_type.alignment} {'RW' if node.mut else 'RO'}", file=fp)
 
     return _EmitInitializerRecursively(node.initial_or_undef_or_auto,
-                                       node.type_or_auto.x_type, 0, ta)
+                                       node.type_or_auto.x_type, 0, ta, fp)
 
 
-def EmitFunctionHeader(sig_name, kind, ct: cwast.CanonType):
+def EmitFunctionHeader(sig_name, kind, ct: cwast.CanonType, fp):
     res_types, arg_types = _FunMachineTypes(ct)
     print(
-        f"\n\n.fun {sig_name} {kind} [{r' '.join(res_types)}] = [{' '.join(arg_types)}]")
+        f"\n\n.fun {sig_name} {kind} [{r' '.join(res_types)}] = [{' '.join(arg_types)}]", file=fp)
 
 
-def EmitDefFun(node: cwast.DefFun, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR):
+def EmitDefFun(node: cwast.DefFun, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR, fp):
     if not node.extern:
-        EmitFunctionHeader(node.name, "NORMAL", node.x_type)
-        _EmitFunctionProlog(node, id_gen)
+        EmitFunctionHeader(node.name, "NORMAL", node.x_type, fp)
+        _EmitFunctionProlog(node, id_gen, fp)
         for c in node.body:
-            _EmitStmt(c, None, ta, id_gen)
+            _EmitStmt(c, None, ta, id_gen, fp)

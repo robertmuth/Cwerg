@@ -13,10 +13,10 @@ namespace cwerg::fe {
 extern std::string MakeFunSigName(CanonType ct);
 
 extern void EmitFunctionHeader(std::string_view sig_name, std::string_view kind,
-                               CanonType ct);
+                               CanonType ct, std::ostream* fout);
 
-extern uint32_t EmitDefGlobal(Node node, const TargetArchConfig& ta);
+extern uint32_t EmitDefGlobal(Node node, const TargetArchConfig& ta, std::ostream* fout);
 
 extern void EmitDefFun(Node node, const TargetArchConfig& ta,
-                         IdGenIR* id_gen);
+                       IdGenIR* id_gen, std::ostream* fout);
 }  // namespace cwerg::fe

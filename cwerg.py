@@ -62,7 +62,7 @@ make build_compiler
 """)
 
         exit(1)
-    return f"{fe} -arch {arch} -stdlib {STD_LIB_DIR} {input} > {output}"
+    return f"{fe} -arch {arch} -stdlib {STD_LIB_DIR} {input} {output}"
 
 
 BE_MAP: dict[tuple[str, str], Any] = {

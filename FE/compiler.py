@@ -6,6 +6,7 @@ import logging
 import argparse
 import pathlib
 import os
+import sys
 
 from typing import Any, Optional
 
@@ -196,7 +197,7 @@ def PhaseLegalize(mod_topo_order: list[cwast.DefMod], tc: type_corpus.TypeCorpus
             canonicalize.FunRewriteComplexAssignments(fun, tc)
 
 
-def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArchConfig):
+def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArchConfig, fp):
     sig_names: set[str] = set()
     for mod in mod_topo_order:
         for fun in mod.body_mod:
@@ -204,16 +205,16 @@ def PhaseEmitCode(mod_topo_order: list[cwast.DefMod], ta: type_corpus.TargetArch
             if isinstance(fun, cwast.DefFun):
                 sn = emit_ir.MakeFunSigName(fun.x_type)
                 if sn not in sig_names:
-                    emit_ir.EmitFunctionHeader(sn, "SIGNATURE", fun.x_type)
+                    emit_ir.EmitFunctionHeader(sn, "SIGNATURE", fun.x_type, fp)
                     sig_names.add(sn)
 
     for mod in mod_topo_order:
         for node in mod.body_mod:
             if isinstance(node, cwast.DefGlobal):
-                emit_ir.EmitDefGlobal(node, ta)
+                emit_ir.EmitDefGlobal(node, ta, fp)
         for node in mod.body_mod:
             if isinstance(node, cwast.DefFun):
-                emit_ir.EmitDefFun(node, ta, identifier.IdGenIR())
+                emit_ir.EmitDefFun(node, ta, identifier.IdGenIR(), fp)
 
 
 def main() -> int:
@@ -241,7 +242,8 @@ def main() -> int:
     logging.basicConfig(level=logging.WARN)
     # typify.logger.setLevel(logging.INFO)
     logger.info("Start Parsing")
-    assert len(args.files) == 1
+    assert len(args.files) == 2
+    fout = sys.stdout if args.files[1] == "-" else open(args.files[1], "w")
     fn = args.files[0]
     fn, ext = os.path.splitext(fn)
     assert ext in (".cw", ".cws")
@@ -386,8 +388,7 @@ def main() -> int:
     SanityCheckMods("after_name_cleanup", checker.COMPILE_STAGE.AFTER_DESUGAR,
                     args,
                     mod_topo_order, tc, eliminated_nodes)
-
-    PhaseEmitCode(mod_topo_order, ta)
+    PhaseEmitCode(mod_topo_order, ta, fout)
 
     return 0
 
