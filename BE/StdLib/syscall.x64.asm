@@ -379,3 +379,14 @@
     poparg res:S64
     pusharg res
     ret
+
+.fun shutdown NORMAL [S32] = [S32 U32]
+.bbl entry
+    poparg sockfd:S32
+    poparg how:U32
+    pusharg how
+    pusharg sockfd
+    syscall shutdown 48:U8
+    poparg res:S32
+    pusharg res
+    ret

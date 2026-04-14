@@ -277,6 +277,8 @@ pub global O_CLOEXEC   =  0x80000_u32
 {{extern}} {{cdecl}} pub fun recvfrom(fd s32, buf ^!u8, buflen uint, flags u32,
                                      src_addr uint, src_addrlen uint) sint:
 
+{{extern}} {{cdecl}} pub fun shutdown(fd s32, op u32) s32:
+
 
 pub fun FileWrite(fd FD, buffer span(u8)) union(uint, Error):
     let res = write(unwrap(fd), front(buffer), len(buffer))
@@ -565,6 +567,21 @@ pub enum SocketLevel u32:
 
 pub fun SetSocketOptions(fd FD, level SocketLevel, option SocketOption, val span(u8)) union(void, Error):
     let res = setsockopt(unwrap(fd), unwrap(level), unwrap(option), front(val), as(len(val), u32))
+    if res < 0:
+        return wrap_as(res, Error)
+    return void_val
+
+
+
+
+pub enum SHUT u32:
+    WR 0
+    RD 1
+    RDWR 2
+
+
+pub fun Shutdown(fd FD, how SHUT) union(void, Error):
+    let res = shutdown(unwrap(fd), unwrap(how))
     if res < 0:
         return wrap_as(res, Error)
     return void_val
