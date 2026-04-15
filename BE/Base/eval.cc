@@ -25,6 +25,12 @@ bool GenericEvaluateCondBra(OPC opc, VAL a, VAL b) {
   }
 }
 
+template <typename VAL> VAL GetMask(unsigned bitwidth) {
+  if (bitwidth == 64) return ~0ULL;
+  return (1ULL << bitwidth) - 1;
+}
+
+
 template <typename VAL>
 VAL GenericEvaluateALU(OPC opc, DK dk, VAL va, VAL vb) {
   switch (opc) {
@@ -44,7 +50,7 @@ VAL GenericEvaluateALU(OPC opc, DK dk, VAL va, VAL vb) {
       return va ^ vb;
       // TODO: REM
     case OPC::SHL:
-      return va << (vb % DKBitWidth(dk));
+      return (va << (vb % DKBitWidth(dk))) & GetMask<VAL>(DKBitWidth(dk));
     case OPC::SHR:
       return va >> (vb % DKBitWidth(dk));
     default:
