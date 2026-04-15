@@ -168,6 +168,12 @@ int main(int argc, const char* argv[]) {
     return 0;
   }
 
+  OptimizeAll(unit, false, log);
+  if (sw_mode.Value() == "optimize") {
+    UnitRenderToAsm(unit, fout);
+    return 0;
+  }
+
   LegalizeAll(unit, false, log);
   if (sw_mode.Value() == "legalize") {
     UnitRenderToAsm(unit, fout);

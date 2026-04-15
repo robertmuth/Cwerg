@@ -267,7 +267,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int]):
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 
-def LegalizeAll(unit, opt_stats):
+def OptimizeAll(unit, opt_stats):
     seeds = [f for f in [unit.fun_syms.get("_start"),
                          unit.fun_syms.get("main")] if f]
     if seeds:
@@ -279,8 +279,9 @@ def LegalizeAll(unit, opt_stats):
             optimize.FunCfgInit(fun, unit)
             optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=True)
 
+
+def LegalizeAll(unit, opt_stats):
     for fun in unit.funs:
-        # pass
         PhaseLegalization(fun, unit, opt_stats)
 
 

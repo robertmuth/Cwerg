@@ -247,7 +247,7 @@ if __name__ == "__main__":
     import sys
     import argparse
 
-    _ALLOWED_MODES = {"normal", "binary", "legalize", "reg_alloc_global",
+    _ALLOWED_MODES = {"normal", "binary", "optimize", "legalize", "reg_alloc_global",
                       "reg_alloc_local"}
 
     def main():
@@ -283,6 +283,11 @@ if __name__ == "__main__":
             return
 
         fout = sys.stdout if args.output == "-" else open(args.output, "w")
+
+        legalize.OptimizeAll(unit, opt_stats)
+        if args.mode == "optimize":
+            print("\n".join(serialize.UnitRenderToASM(unit)), file=fout)
+            return
 
         # we need to legalize all functions first as this may change the signature
         # and fills in cpu reg usage which is used by subsequent interprocedural opts.
