@@ -273,6 +273,7 @@ if __name__ == "__main__":
         if args.mode == "binary":
             # we need to legalize all functions first as this may change the signature
             # and fills in cpu reg usage which is used by subsequent interprocedural opts.
+            legalize.OptimizeAll(unit, opt_stats)
             legalize.LegalizeAll(unit, opt_stats)
             RegAllocGlobal(unit, opt_stats)
             RegAllocLocal(unit, opt_stats)

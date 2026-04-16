@@ -156,6 +156,7 @@ int main(int argc, const char* argv[]) {
   }
 
   if (sw_mode.Value() == "binary") {
+    OptimizeAll(unit, false, log);
     LegalizeAll(unit, false, nullptr);
     RegAllocGlobal(unit, false, nullptr);
     RegAllocLocal(unit, false, nullptr);
