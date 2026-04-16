@@ -45,10 +45,7 @@ class LexerRaw {
   static LexerStats stats;
 
   // input is assumed to have a trailing zero byte
-  LexerRaw(std::string_view input, Name file_id)
-      : input_(input), end_(input.size()) {
-    srcloc_.file = file_id;
-  }
+  LexerRaw(std::string_view input, Name file_id);
 
   ~LexerRaw() {
     stats.num_files++;

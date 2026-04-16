@@ -64,6 +64,20 @@ typedef std::array<uint8_t, 129> TrieNode;
 
 LexerStats LexerRaw::stats;
 
+LexerRaw::LexerRaw(std::string_view input, Name file_id)
+    : input_(input), end_(input.size()) {
+  srcloc_.file = file_id;
+  if (input.starts_with("#!")) {
+    // shebang line, skip it
+    for (pos_ = 2; pos_ < input_.size(); ++pos_) {
+      if (input_[pos_] == '\n') {
+        ++line_no_;
+        break;
+      }
+    }
+  }
+}
+
 // Below is bunch of adhoc lexer helpers
 // These are quite horrible and the only excuse for them
 // is that they let us do without a depenency on a lexer library,
@@ -156,7 +170,7 @@ uint32_t LexerRaw::HandleSimpleStr() {
           return i + 1 - pos_;
           break;
         }
-        if(c == '\n') CompilerError(srcloc_) << "Newline in string literal";
+        if (c == '\n') CompilerError(srcloc_) << "Newline in string literal";
       }
     }
   }

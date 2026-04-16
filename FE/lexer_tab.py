@@ -406,6 +406,10 @@ class LexerRaw:
         self._col_no = 0
         self._current_line = ""
         self._trie: TRIE = MakeTrie(False)
+        self._current_line = self._fill_line()
+        if self._current_line.startswith("#!"):
+            # ignore shebang mode
+            self._current_line = self._fill_line()
 
     def _GetSrcLoc(self) -> cwast.SrcLoc:
         return cwast.SrcLoc(self._fileamame, self._line_no)

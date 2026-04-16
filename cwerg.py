@@ -7,6 +7,7 @@ import argparse
 import os
 import platform
 import sys
+import subprocess
 from typing import Any
 
 
@@ -130,6 +131,27 @@ def Diagnostics():
     print()
 
 
+def ShebangMode(script_path: str, extra_args: list[str]) -> int:
+    import uuid
+    import tempfile
+    arch = DEFAULT_ARCH
+    prefix = tempfile.gettempdir() + f"/cwerg_shebang_{uuid.uuid4().hex}"
+    ir_file = f"{prefix}.ir"
+    fe_cmd = GetFeCommand("c++", arch, script_path, ir_file)
+    if 0 != os.system(fe_cmd):
+        return 1
+    exe_file = f"{prefix}.exe"
+    be_cmd = GetBeCommand("c++", arch, ir_file, exe_file)
+    if 0 != os.system(be_cmd):
+        return 1
+    rm_cmd = f"chmod a+x {exe_file} ; rm -f {ir_file}"
+    if 0 != os.system(rm_cmd):
+        return 1
+    res = subprocess.run([exe_file] + extra_args).returncode
+    os.remove(exe_file)
+    return res
+
+
 def main():
     if sys.version_info[0] != 3 or sys.version_info[1] < 12:
         print("Cwerg requires Python 3.12 or higher")
@@ -137,6 +159,9 @@ def main():
     if not platform.platform().startswith("Linux"):
         print("Cwerg currently requires Linux")
         return 1
+
+    if sys.argv[1] == "@script@":
+        exit(ShebangMode(sys.argv[2], sys.argv[3:]))
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-diag', help='show diagnostics and exit',
