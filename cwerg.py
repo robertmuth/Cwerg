@@ -130,7 +130,7 @@ def Diagnostics():
         f"To rebuild missing C++ components run: cd {ROOT_DIR} ; make build_compiler")
     print()
 
-
+# https://www.in-ulm.de/~mascheck/various/shebang/
 def ShebangMode(script_path: str, extra_args: list[str]) -> int:
     import uuid
     import tempfile
