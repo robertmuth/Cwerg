@@ -769,7 +769,7 @@ void FunPopargConversion(Fun fun, const PushPopInterface& ppif) {
   for (Bbl bbl : FunBblIter(fun)) {
     for (Ins ins : BblInsIter(bbl)) {
       if (InsOPC(ins) == OPC::POPARG) {
-        ASSERT(!parameter.empty(), "");
+        ASSERT(!parameter.empty(), "pop-/push mismatch in " << Name(fun));
         Reg dst = Reg(InsOperand(ins, 0));
         CpuReg cpu_reg = parameter.back();
         parameter.pop_back();
