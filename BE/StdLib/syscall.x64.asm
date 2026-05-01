@@ -271,6 +271,53 @@
     pusharg 0:S32
     ret
 
+.fun x64_syscall_clone3 SIGNATURE [S32] = [A64 U64]
+
+.fun clone3_wrapper NORMAL [S32] = [C64 U64 A64 U64]
+.bbl entry
+    poparg proc:C64
+    poparg user_arg:U64
+    poparg param:A64
+    poparg param_size:U64
+    # make space on stack
+    ld stk:U64 param 40
+    ld stk_size:U64 param  48
+    sub stk_size stk_size 16  # make space for two parameters (preserves 16 byte alignment)
+    add stk stk stk_size
+    # We need to save this to the new stack as there is not guarantee
+    # that these values will end up in (preserved) registers. (see below)
+    bitcast sp:A64 stk
+    st sp 8 proc
+    st sp 0 user_arg
+    st param 48 stk_size
+    #
+    pusharg param_size
+    pusharg param
+    syscall x64_syscall_clone3 435:U16
+    poparg res:S32
+    beq res 0 child
+    pusharg res
+    ret
+
+.bbl child
+    # Why do we have to save the user_arg temporarily onto the new stack?
+    # If user_arg ends up in register we might get lucky because the register
+    # are presumably preserved when we reach here.
+    # But if user_arg is spilled onto the old stack it is not clear if we can see it
+    # at this point.
+    getsp sp
+    lea sp sp -16 # compensate for the syscall poping 16 bytes off the stack
+               # needs to be adjusted when the syscall expansion changes
+    ld user_arg sp 0
+    ld proc sp 8
+    pusharg user_arg
+    jsr proc x64_thread_function
+    pusharg 0:S32
+    syscall x64_syscall_exit 60:U8
+    trap # unreachable
+    pusharg 0:S32
+    ret
+
 .fun socket NORMAL [S32] = [U32 U32 U32]
 .bbl entry
     poparg domain:U32

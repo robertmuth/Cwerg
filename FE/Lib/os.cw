@@ -280,6 +280,7 @@ pub global O_CLOEXEC   =  0x80000_u32
 {{extern}} {{cdecl}} pub fun shutdown(fd s32, op u32) s32:
 
 
+
 pub fun FileWrite(fd FD, buffer span(u8)) union(uint, Error):
     let res = write(unwrap(fd), front(buffer), len(buffer))
     if res < 0:
@@ -585,3 +586,54 @@ pub fun Shutdown(fd FD, how SHUT) union(void, Error):
     if res < 0:
         return wrap_as(res, Error)
     return void_val
+
+pub type ThreadFun = funtype(param uint) void
+
+pub rec CloneArgs:
+    flags uint
+    pidfd uint
+    child_tid uint
+    parent_tid uint
+    exit_signal uint
+    stack ^!u8
+    stack_size uint
+    tls uint
+    set_tid uint
+    set_tid_size uint
+    cgroup uint
+
+
+pub global CLONE_VM = 0x00000100_uint
+pub global CLONE_FS = 0x00000200_uint
+pub global CLONE_FILES = 0x00000400_uint
+pub global CLONE_SIGHAND = 0x00000800_uint
+pub global CLONE_PIDFD = 0x00001000_uint
+pub global CLONE_PTRACE = 0x00002000_uint
+pub global CLONE_VFORK = 0x00004000_uint
+pub global CLONE_PARENT = 0x00008000_uint
+pub global CLONE_THREAD = 0x00010000_uint
+pub global CLONE_NEWNS = 0x00020000_uint
+pub global CLONE_SYSVSEM = 0x00040000_uint
+pub global CLONE_SETTLS = 0x00080000_uint
+pub global CLONE_PARENT_SETTID = 0x00100000_uint
+pub global CLONE_CHILD_CLEARTID = 0x00200000_uint
+pub global CLONE_DETACHED = 0x00400000_uint
+pub global CLONE_UNTRACED = 0x00800000_uint
+pub global CLONE_CHILD_SETTID = 0x01000000_uint
+pub global CLONE_NEWCGROUP = 0x02000000_uint
+pub global CLONE_NEWUTS = 0x04000000_uint
+pub global CLONE_NEWIPC = 0x08000000_uint
+pub global CLONE_NEWUSER = 0x10000000_uint
+pub global CLONE_NEWPID = 0x20000000_uint
+pub global CLONE_NEWNET = 0x40000000_uint
+pub global CLONE_IO = 0x80000000_uint
+
+
+{{extern}} {{cdecl}} pub fun clone3_wrapper(proc ThreadFun, arg uint, param ^CloneArgs, param_size uint) s32:
+
+; The param must be mutable because clone3_wrapper may modify it
+pub fun Clone3Wrapper(proc ThreadFun, arg uint, param ^!CloneArgs) union(u32, Error):
+    let res = clone3_wrapper(proc, arg, param, size_of(CloneArgs))
+    if res < 0:
+        return wrap_as(res, Error)
+    return as(res, u32)
