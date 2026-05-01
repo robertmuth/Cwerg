@@ -44,7 +44,7 @@
     cas.mem prev_val:U32 old_val new_val gSUM 0
     #bsr yield
     #poparg res:S32
-    bne prev_val old_val cas_loop 
+    bne prev_val old_val cas_loop
 
     bne i 0 loop
     ret
@@ -67,7 +67,7 @@
     pusharg 0:A32  # tls
     pusharg stk
     pusharg proc
-    bsr spawn
+    bsr clone_wrapper
     poparg x:S32
 
     bne i 0 loop
@@ -76,7 +76,7 @@
     bsr print_s_ln
 
     # bsr short_sleep
-     
+
      mov i = 100
 .bbl loop2
     sub i i 1
@@ -87,10 +87,10 @@
     pusharg siginfo
     pusharg 0:S32
     pusharg 0:S32  # P_ALL
-    bsr waitid 
+    bsr waitid
     poparg x
     bne i 0 loop2
- 
+
     ld.mem sum:U32 gSUM 0
     conv iarg:U32 sum
     pusharg iarg
@@ -98,7 +98,3 @@
 
     pusharg 0:S32
     ret
-
-
-
-

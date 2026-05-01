@@ -1067,8 +1067,8 @@ def InitMiscBra():
 
     Pattern(o.TRAP, [], [InsTmpl("ud2", [])])
 
-    # not any change in the stack behavior of the code below needs to be reflected
-    # in the spawn() code in StdLib/syscall.a32.asm
+    # note: any change in the stack behavior of the code below needs to be reflected
+    # in the clone_wrapper() code in StdLib/syscall.a32.asm
     Pattern(o.SYSCALL, [o.DK.INVALID, o.DK.U32],
             [  # push r7 on stack twice for 8 byte alignment
         InsTmpl("str_imm_sub_pre", [arm.REG.sp, 4, arm.REG.r7]),

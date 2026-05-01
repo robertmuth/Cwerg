@@ -224,7 +224,7 @@
 .fun x64_thread_function SIGNATURE [] = [U64]
 
 
-.fun spawn NORMAL [S32] = [C64 A64 A64 U64 U64]
+.fun clone_wrapper NORMAL [S32] = [C64 A64 A64 U64 U64]
 .bbl entry
     poparg proc:C64
     poparg new_stack:A64
