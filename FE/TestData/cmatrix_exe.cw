@@ -5,6 +5,7 @@ import ansi
 import os
 import random
 import fmt
+import termio
 
 ; every other column is blank so these limits
 ; scale up to screen size of a 1000x1000 chars
@@ -222,8 +223,8 @@ fun main(argc s32, argv ^^u8) s32:
         let frame_arg span(u8) = fmt\strz_to_slice(ptr_inc(argv, 1)^)
         set num_frames = fmt\str_to_u32(frame_arg)
 
-    ref let! win_size os\WinSize = undef
-    trylet res uint = os\Ioctl(os\Stdout, os\IoctlOp.TIOCGWINSZ, bitwise_as(@!win_size, ^!void)), err:
+    ref let! win_size termio\WinSize = undef
+    trylet res void = termio\GetWinSize(os\Stdout, @!win_size), err:
         fmt\print#("cannot determine terminal resolution\n")
         return 1
     let num_cols = as((win_size.ws_col - 1) / 2, u32)

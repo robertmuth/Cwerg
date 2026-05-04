@@ -6,12 +6,6 @@ pub rec TimeSpec:
     sec uint
     nano_sec uint
 
-pub rec WinSize:
-    ws_row u16
-    ws_col u16
-    ws_xpixel u16
-    ws_ypixel u16
-
 pub wrapped type Error = s32
 pub global EPERM = wrap_as(-1, Error)
 pub global ENOENT = wrap_as(-2, Error)
@@ -154,63 +148,6 @@ pub global Stdout = wrap_as(1, FD)
 pub global Stderr = wrap_as(2, FD)
 
 
-
-
-pub enum IoctlOp u32:
-    ; termios
-    TCGETS 0x00005401
-    TCSETS 0x00005402
-    TCSETSW 0x00005403
-    TCSETSF 0x00005404
-    TCGETA 0x00005405
-    TCSETA 0x00005406
-    TCSETAW 0x00005407
-    TCSETAF 0x00005408
-    TCSBRK 0x00005409
-    TCXONC 0x0000540a
-    TCFLSH 0x0000540b
-    TIOCEXCL 0x0000540c
-    TIOCNXCL 0x0000540d
-    TIOCSCTTY 0x0000540e
-    TIOCGPGRP 0x0000540f
-    TIOCSPGRP 0x00005410
-    TIOCOUTQ 0x00005411
-    TIOCSTI 0x00005412
-    TIOCGWINSZ 0x00005413
-    TIOCSWINSZ 0x00005414
-    TIOCMGET 0x00005415
-    TIOCMBIS 0x00005416
-    TIOCMBIC 0x00005417
-    TIOCMSET 0x00005418
-    TIOCGSOFTCAR 0x00005419
-    TIOCSSOFTCAR 0x0000541a
-    TIOCINQ 0x0000541b
-    TIOCLINUX 0x0000541c
-    TIOCCONS 0x0000541d
-    TIOCGSERIAL 0x0000541e
-    TIOCSSERIAL 0x0000541f
-    TIOCPKT 0x00005420
-    FIONBIO 0x00005421
-    TIOCNOTTY 0x00005422
-    TIOCSETD 0x00005423
-    TIOCGETD 0x00005424
-    TCSBRKP 0x00005425
-    TIOCTTYGSTRUCT 0x00005426
-    FIONCLEX 0x00005450
-    FIOCLEX 0x00005451
-    FIOASYNC 0x00005452
-    TIOCSERCONFIG 0x00005453
-    TIOCSERGWILD 0x00005454
-    TIOCSERSWILD 0x00005455
-    TIOCGLCKTRMIOS 0x00005456
-    TIOCSLCKTRMIOS 0x00005457
-    TIOCSERGSTRUCT 0x00005458
-    TIOCSERGETLSR 0x00005459
-    TIOCSERGETMULTI 0x0000545a
-    TIOCSERSETMULTI 0x0000545b
-    ; TODO
-
-
 pub enum FcntlOp u32:
     F_DUPFD         0
     F_GETFD         1
@@ -301,6 +238,13 @@ pub fun Close(fd FD) union(void, Error):
         return wrap_as(as(res, s32), Error)
     return void_val
 
+; ioctl variant
+pub fun Ioctl(fd FD, op u32, arg ^!void) union(uint, Error):
+    let res = ioctl(unwrap(fd), op, bitwise_as(arg, uint))
+    if res < 0:
+        return wrap_as(as(res, s32), Error)
+    else:
+        return as(res, uint)
 
 pub fun TimeNanoSleep(req ^TimeSpec, rem ^!TimeSpec) Error:
     let res = nanosleep(req, rem)
@@ -308,13 +252,6 @@ pub fun TimeNanoSleep(req ^TimeSpec, rem ^!TimeSpec) Error:
 
 pub fun FcntlInt(fd FD, op FcntlOp, arg u32) union(uint, Error):
     let res = fcntl(unwrap(fd), unwrap(op), as(arg, uint))
-    if res < 0:
-        return wrap_as(as(res, s32), Error)
-    else:
-        return as(res, uint)
-
-pub fun Ioctl(fd FD, op IoctlOp, arg ^!void) union(uint, Error):
-    let res = ioctl(unwrap(fd), unwrap(op), bitwise_as(arg, uint))
     if res < 0:
         return wrap_as(as(res, s32), Error)
     else:

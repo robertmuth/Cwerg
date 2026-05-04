@@ -32,7 +32,7 @@ fun run() uint:
         set params.stack = front!(gStacks[i + 1])
         ; Note: here the stack parameter is the top of the stack
         trylet pid u32 = os\CloneWrapper(thread_runner, params.stack, 0, i, params.flags), err:
-             fmt\print#("clone failed at ", i, " with ", unwrap(err), "\n")
+            fmt\print#("clone failed at ", i, " with ", unwrap(err), "\n")
             continue
         ; Note: here the stack parameter is the bottom of the stack
         ; trylet pid u32 = os\Clone3Wrapper(thread_runner, i, @!params), err:

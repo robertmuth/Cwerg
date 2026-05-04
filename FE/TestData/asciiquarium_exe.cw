@@ -6,16 +6,15 @@ import artwork = "./ascii_artwork"
 import aanim = "./ascii_anim"
 
 import ansi
-
 import os
-
 import fmt
+import termio
 
 global! all_objects = {[100]aanim\ObjectState:}
 
 fun main(argc s32, argv ^^u8) s32:
-    ref let! win_size os\WinSize = undef
-    trylet res uint = os\Ioctl(os\Stdout, os\IoctlOp.TIOCGWINSZ, bitwise_as(@!win_size, ^!void)), err:
+    ref let! win_size termio\WinSize = undef
+    trylet res void = termio\GetWinSize(os\Stdout, @!win_size), err:
         fmt\print#("cannot determine terminal resolution\n")
         return 1
 
