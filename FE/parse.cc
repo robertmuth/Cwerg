@@ -1273,7 +1273,7 @@ void InitParser() {
 
 Node ParseDefMod(Lexer* lexer, Name name) {
   const TK tk = lexer->Peek();
-  ASSERT(tk.text == "module", "");
+  ASSERT(tk.text == "module", "Expected 'module' keyword, got " << tk.text << " at " << tk.srcloc);
   lexer->Skip();
   //
   Node def_mod = NodeNew(NT::DefMod);

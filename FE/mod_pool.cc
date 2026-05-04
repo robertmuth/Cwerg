@@ -119,8 +119,7 @@ struct ModInfo {
 std::string_view ReadFile(const char* filename) {
   int fd = open(filename, O_RDONLY, 0);
   if (fd < 0) {
-    std::cerr << "Cannot open input file [" << filename << "] err=" << fd
-              << "\n";
+    CompilerError(SrcLoc(0, 0, NameNew(filename))) << "Cannot open input file";
     return std::string_view();
   }
   struct stat sb;
