@@ -160,7 +160,7 @@ def main():
         print("Cwerg currently requires Linux")
         return 1
 
-    if sys.argv[1] == "@script@":
+    if len(sys.argv) > 1 and sys.argv[1] == "@script@":
         exit(ShebangMode(sys.argv[2], sys.argv[3:]))
 
     parser = argparse.ArgumentParser(add_help=False)
