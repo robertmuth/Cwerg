@@ -628,6 +628,16 @@ pub global CLONE_NEWPID = 0x20000000_uint
 pub global CLONE_NEWNET = 0x40000000_uint
 pub global CLONE_IO = 0x80000000_uint
 
+{{extern}} {{cdecl}} pub fun clone_wrapper(proc ThreadFun, sp ^!u8, tls uint,
+                                          user_arg uint, flags uint) s32:
+
+; The param must be mutable because clone3_wrapper may modify it
+pub fun CloneWrapper(proc ThreadFun, sp ^!u8, tls uint,
+                    user_arg uint, flags uint) union(u32, Error):
+    let res = clone_wrapper(proc, sp, tls, user_arg, flags)
+    if res < 0:
+        return wrap_as(res, Error)
+    return as(res, u32)
 
 {{extern}} {{cdecl}} pub fun clone3_wrapper(proc ThreadFun, arg uint, param ^CloneArgs, param_size uint) s32:
 

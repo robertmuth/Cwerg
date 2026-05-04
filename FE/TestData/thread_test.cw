@@ -22,15 +22,22 @@ fun run() uint:
     ref let! params os\CloneArgs
     set params.flags = os\CLONE_VM | os\CLONE_FS | os\CLONE_FILES | os\CLONE_SIGHAND |
                        os\CLONE_THREAD | os\CLONE_SYSVSEM
+    set params.stack_size = gStackSize
+    fmt\print#("stack ", wrap_as(bitwise_as(params.stack, uint), fmt\uint_hex), "\n")
+
+
     for i = 0, gThreads, 1:
         fmt\print#("spawning ", i, "\n")
         ; do os\nanosleep(@req, @!rem)
         set params.stack = front!(gStacks[i + 1])
-        set params.stack_size = gStackSize
-        fmt\print#("stack ", wrap_as(bitwise_as(params.stack, uint), fmt\uint_hex), "\n")
-        trylet pid u32 = os\Clone3Wrapper(thread_runner, i, @!params), err:
-            fmt\print#("clone failed at ", i, " with ", unwrap(err), "\n")
+        ; Note: here the stack parameter is the top of the stack
+        trylet pid u32 = os\CloneWrapper(thread_runner, params.stack, 0, i, params.flags), err:
+             fmt\print#("clone failed at ", i, " with ", unwrap(err), "\n")
             continue
+        ; Note: here the stack parameter is the bottom of the stack
+        ; trylet pid u32 = os\Clone3Wrapper(thread_runner, i, @!params), err:
+        ;     fmt\print#("clone failed at ", i, " with ", unwrap(err), "\n")
+        ;    continue
 
     do os\nanosleep(@req, @!rem)
     return  gIterations * gThreads
