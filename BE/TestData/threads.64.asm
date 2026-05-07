@@ -64,7 +64,7 @@
     # CLONE_VM|CLONE_FS|CLONE_FILES|CLONE_SIGHAND|CLONE_THREAD|CLONE_SYSVSEM
     pusharg 0x50f00:U64
     pusharg user_arg
-    pusharg 0:A64  # tls
+    pusharg 0:U64  # tls
     pusharg stk
     pusharg proc
     bsr clone_wrapper
