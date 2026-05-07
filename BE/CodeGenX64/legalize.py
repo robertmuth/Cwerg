@@ -263,7 +263,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int]):
     reg_stats.FunSeparateLocalRegUsage(fun)
     # DumpRegStats(fun, local_reg_stats)
 
-    sanity.FunCheck(fun, None)
+    sanity.FunCheck(fun, None, check_cfg=True, check_push_pop=False, check_fallthroughs=False)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 
@@ -273,7 +273,7 @@ def OptimizeAll(unit, opt_stats):
     if seeds:
         cfg.UnitRemoveUnreachableCode(unit, seeds)
     for fun in unit.funs:
-        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True)
+        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True, check_fallthroughs=False)
 
         if fun.kind is o.FUN_KIND.NORMAL:
             optimize.FunCfgInit(fun, unit)

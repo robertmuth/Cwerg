@@ -28,7 +28,7 @@ from BE.Elf import elf_unit
 
 def RegAllocGlobal(unit, opt_stats,  verbose=False):
     for fun in unit.funs:
-        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=False)
+        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=False, check_fallthroughs=False)
         legalize.PhaseGlobalRegAlloc(fun, opt_stats)
         if verbose:
             legalize.DumpFun("after global_reg_alloc", fun)

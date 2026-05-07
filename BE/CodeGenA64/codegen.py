@@ -32,7 +32,8 @@ def LegalizeAll(unit, opt_stats, fout, verbose=False):
     if seeds:
         cfg.UnitRemoveUnreachableCode(unit, seeds)
     for fun in unit.funs:
-        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True)
+        sanity.FunCheck(fun, unit, check_cfg=False,
+                        check_push_pop=True, check_fallthroughs=False)
 
         if fun.kind is o.FUN_KIND.NORMAL:
             legalize.PhaseOptimize(fun, unit, opt_stats, fout)
@@ -46,7 +47,8 @@ def LegalizeAll(unit, opt_stats, fout, verbose=False):
 
 def RegAllocGlobal(unit, opt_stats, fout, verbose=False):
     for fun in unit.funs:
-        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=False)
+        sanity.FunCheck(fun, unit, check_cfg=False,
+                        check_push_pop=False, check_fallthroughs=False)
         legalize.PhaseGlobalRegAlloc(fun, opt_stats, fout)
         if verbose:
             legalize.DumpFun("after global_reg_alloc", fun)

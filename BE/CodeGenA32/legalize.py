@@ -292,7 +292,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int]):
 
     # Handle most overflowing immediates.
     _FunRewriteOutOfBoundsImmediates(fun, unit)
-    sanity.FunCheck(fun, None)
+    sanity.FunCheck(fun, None, check_cfg=True, check_push_pop=False, check_fallthroughs=False)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 

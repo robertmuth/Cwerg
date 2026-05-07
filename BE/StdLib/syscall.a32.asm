@@ -242,7 +242,7 @@
     # TODO: what is the meaning of the args
     pusharg 0:A32
     pusharg 0:A32
-    pusharg tls
+    pusharg new_tls
     pusharg new_stack
     pusharg flags
     syscall a32_syscall_clone 120:U32

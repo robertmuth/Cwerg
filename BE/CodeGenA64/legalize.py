@@ -275,7 +275,7 @@ def PhaseLegalizationStep2(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int
     # This excludes immediates related to stack offsets which have not been determined yet
     _FunRewriteOutOfBoundsImmediates(fun, unit)
 
-    sanity.FunCheck(fun, None)
+    sanity.FunCheck(fun, None, check_cfg=True, check_push_pop=False, check_fallthroughs=False)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 

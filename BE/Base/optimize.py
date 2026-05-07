@@ -110,7 +110,8 @@ def UnitCfgInit(unit: ir.Unit):
 
 def FunCfgExit(fun: ir.Fun, unit: ir.Unit):
     cfg.FunAddUnconditionalBranches(fun)
-    sanity.FunCheck(fun, unit, check_fallthroughs=True)
+    sanity.FunCheck(fun, unit, check_cfg=True, check_push_pop=False,
+                    check_fallthroughs=True)
 
 
 def UnitCfgExit(unit: ir.Unit):
