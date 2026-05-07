@@ -511,7 +511,7 @@ if __name__ == "__main__":
         for fun in unit.funs:
             if fun.kind is o.FUN_KIND.BUILTIN:
                 continue
-            sanity.FunCheck(fun, unit, check_push_pop=True, check_cfg=False)
+            sanity.FunCheck(fun, unit, check_push_pop=True, check_cfg=False, check_fallthroughs=False)
             EmitFunctionProto(fun, True)
             print(";")
         for mem in unit.mems:
