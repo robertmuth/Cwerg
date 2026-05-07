@@ -219,14 +219,14 @@
     ret
 
 .fun a32_syscall_exit SIGNATURE [] = [S32]
-.fun a32_syscall_clone SIGNATURE [S32] = [U32 A32 A32 A32 A32]
+.fun a32_syscall_clone SIGNATURE [S32] = [U32 A32 U32 A32 A32]
 .fun a32_thread_function SIGNATURE [] = [U32]
 
-.fun clone_wrapper NORMAL [S32] = [C32 A32 A32 U32 U32]
+.fun clone_wrapper NORMAL [S32] = [C32 A32 U32 U32 U32]
 .bbl entry
     poparg proc:C32
     poparg new_stack:A32
-    poparg new_tls:A32
+    poparg new_tls:U32
     poparg user_arg:U32
     poparg flags:U32
     # align stack
@@ -239,9 +239,10 @@
     st new_stack 4 proc
     st new_stack 0 user_arg
     #
+    # TODO: what is the meaning of the args
     pusharg 0:A32
     pusharg 0:A32
-    pusharg 0:A32
+    pusharg tls
     pusharg new_stack
     pusharg flags
     syscall a32_syscall_clone 120:U32
