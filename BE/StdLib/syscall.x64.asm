@@ -220,15 +220,16 @@
     ret
 
 .fun x64_syscall_exit SIGNATURE [] = [S32]
-.fun x64_syscall_clone SIGNATURE [S32] = [U64 A64 A64 A64 A64]
+.fun x64_syscall_clone SIGNATURE [S32] = [U64 A64 U64 A64 A64]
 .fun x64_thread_function SIGNATURE [] = [U64]
 
 
-.fun clone_wrapper NORMAL [S32] = [C64 A64 A64 U64 U64]
+.fun clone_wrapper NORMAL [S32] = [C64 A64 U64 U64 U64]
 .bbl entry
+    # TODO: what is the meaning of the args
     poparg proc:C64
     poparg new_stack:A64
-    poparg new_tls:A64
+    poparg new_tls:U64
     poparg user_arg:U64
     poparg flags:U64
     # align stack
@@ -243,7 +244,7 @@
     #
     pusharg 0:A64
     pusharg 0:A64
-    pusharg 0:A64
+    pusharg new_tls
     pusharg new_stack
     pusharg flags
     syscall x64_syscall_clone 56:U32
