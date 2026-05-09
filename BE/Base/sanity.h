@@ -5,10 +5,6 @@
 
 namespace cwerg::base {
 
-extern void BblCheck(Bbl bbl, Fun fun);
-
-extern void FunCheck(Fun fun);
-
-extern void UnitCheck(Unit unit);
+extern void FunCheck(Fun fun, bool check_cfg, bool check_push_pop, bool check_fallthroughs);
 
 }  // namespace cwerg::base

@@ -282,6 +282,7 @@ def OptimizeAll(unit, opt_stats):
 
 def LegalizeAll(unit, opt_stats):
     for fun in unit.funs:
+        sanity.FunCheck(fun, unit, check_cfg=False, check_push_pop=True, check_fallthroughs=False)
         PhaseLegalization(fun, unit, opt_stats)
 
 

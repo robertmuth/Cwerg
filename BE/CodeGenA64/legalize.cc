@@ -363,21 +363,25 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun, Unit unit,
   FunMoveEliminationCpu(fun, &inss);
 }
 
-void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+std::vector<Fun> GetSeeds(Unit unit) {
   std::vector<Fun> seeds;
   Fun fun = UnitFunFind(unit, StrNew("main"));
   if (!fun.isnull()) seeds.push_back(fun);
   fun = UnitFunFind(unit, StrNew("_start"));
   if (!fun.isnull()) seeds.push_back(fun);
+  return seeds;
+}
+
+void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+  std::vector<Fun> seeds = GetSeeds(unit);
   if (!seeds.empty()) UnitRemoveUnreachableCode(unit, seeds);
   for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
+    FunCheck(fun, false, true, false);
     if (FunKind(fun) == FUN_KIND::NORMAL) {
       FunCfgInit(fun);
       FunOptBasic(fun, true);
     }
 
-    FunCheck(fun);
     PhaseLegalizationStep1(fun, unit, fout);
     PhaseLegalizationStep2(fun, unit, fout);
   }
@@ -385,7 +389,7 @@ void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
 
 void RegAllocGlobal(Unit unit, bool verbose, std::ostream* fout) {
   for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
+    FunCheck(fun, false, false, false);
     PhaseGlobalRegAlloc(fun, unit, fout);
   }
 }

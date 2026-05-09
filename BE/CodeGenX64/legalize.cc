@@ -532,15 +532,21 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun, Unit unit,
   FunMoveEliminationCpu(fun, &inss);
 }
 
-void OptimizeAll(Unit unit, bool verbose, std::ostream* fout) {
+std::vector<Fun> GetSeeds(Unit unit) {
   std::vector<Fun> seeds;
   Fun fun = UnitFunFind(unit, StrNew("main"));
   if (!fun.isnull()) seeds.push_back(fun);
   fun = UnitFunFind(unit, StrNew("_start"));
   if (!fun.isnull()) seeds.push_back(fun);
+  return seeds;
+}
+
+
+void OptimizeAll(Unit unit, bool verbose, std::ostream* fout) {
+  std::vector<Fun> seeds = GetSeeds(unit);
   if (!seeds.empty()) UnitRemoveUnreachableCode(unit, seeds);
   for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
+    FunCheck(fun, false, true, false);
     if (FunKind(fun) == FUN_KIND::NORMAL) {
       FunCfgInit(fun);
       FunOptBasic(fun, true);
@@ -550,14 +556,14 @@ void OptimizeAll(Unit unit, bool verbose, std::ostream* fout) {
 
 void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
   for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
+    FunCheck(fun, false, true, false);
     PhaseLegalization(fun, unit, fout);
   }
 }
 
 void RegAllocGlobal(Unit unit, bool verbose, std::ostream* fout) {
   for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
+    // we cannot run FunCheck once push-/poparg conversion has happened
     PhaseGlobalRegAlloc(fun, unit, fout);
   }
 }

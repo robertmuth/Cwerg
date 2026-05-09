@@ -220,28 +220,33 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit) {
   return out;
 }
 
-void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+std::vector<Fun> GetSeeds(Unit unit) {
   std::vector<Fun> seeds;
   Fun fun = UnitFunFind(unit, StrNew("main"));
   if (!fun.isnull()) seeds.push_back(fun);
   fun = UnitFunFind(unit, StrNew("_start"));
   if (!fun.isnull()) seeds.push_back(fun);
+  return seeds;
+}
+
+void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+  std::vector<Fun> seeds = GetSeeds(unit);
   if (!seeds.empty()) UnitRemoveUnreachableCode(unit, seeds);
+  //
   for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
+    FunCheck(fun, false, true, false);
     if (FunKind(fun) == FUN_KIND::NORMAL) {
       FunCfgInit(fun);
       FunOptBasic(fun, true);
     }
 
-    FunCheck(fun);
     PhaseLegalization(fun, unit, fout);
   }
 }
 
 void RegAllocGlobal(Unit unit, bool verbose, std::ostream* fout) {
   for (Fun fun : UnitFunIter(unit)) {
-    FunCheck(fun);
+    FunCheck(fun, false, false, false);
     PhaseGlobalRegAlloc(fun, unit, fout);
   }
 }
