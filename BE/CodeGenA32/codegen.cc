@@ -239,7 +239,8 @@ void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
       FunCfgInit(fun);
       FunOptBasic(fun, true);
     }
-
+  }
+  for (Fun fun : UnitFunIter(unit)) {
     PhaseLegalization(fun, unit, fout);
   }
 }

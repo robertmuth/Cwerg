@@ -45,7 +45,7 @@ STD_LIB_WITH_ARGV = ../StdLib/startup.a32.asm ../StdLib/dummy_init_fini.asm ../S
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm
 	@echo "[integration $@]"
-	cat $(STD_LIB_NO_ARGV) $< | $(PYPY) ./codegen.py -mode binary - $@ >$@.out
+	$(PYPY) ./codegen.py -mode binary $(STD_LIB_NO_ARGV) $<  $@ >$@.out
 	${QEMU_A32} $@ > $@.actual.out
 	diff $@.actual.out $<.golden
 
