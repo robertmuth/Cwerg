@@ -1,6 +1,7 @@
 #pragma once
 // (c) Robert Muth - see LICENSE for more info
 
+#include <vector>
 #include "BE/Base/ir.h"
 
 namespace cwerg::base {
@@ -30,5 +31,7 @@ extern void BblSplitBeforeFixEdges(Bbl bbl, Ins new_bbl_last_ins, Bbl new_bbl);
 extern Str NewDerivedBblName(Str orig_name, const char* suffix, Fun fun);
 
 extern void UnitRemoveUnreachableCode(Unit unit, const std::vector<Fun>& seeds);
+
+extern std::vector<Fun> UnitGetEntryPoints(Unit unit);
 
 }  // namespace cwerg

@@ -2,6 +2,7 @@ import collections
 import dataclasses
 from typing import List, Dict, Optional, Tuple
 
+from BE.Base import cfg
 from BE.Base import canonicalize
 from BE.Base import reg_alloc
 from BE.Base import ir
@@ -275,7 +276,8 @@ def PhaseLegalizationStep2(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int
     # This excludes immediates related to stack offsets which have not been determined yet
     _FunRewriteOutOfBoundsImmediates(fun, unit)
 
-    sanity.FunCheck(fun, None, check_cfg=True, check_push_pop=False, check_fallthroughs=False)
+    sanity.FunCheck(fun, None, check_cfg=True,
+                    check_push_pop=False, check_fallthroughs=False)
     # optimize.FunOptBasic(fun, opt_stats, allow_conv_conversion=False)
 
 
@@ -404,3 +406,37 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     # cleanup
     _FunMoveEliminationCpu(fun)
     # print ("@@@@@@\n", "\n".join(serialize.FunRenderToAsm(fun)))
+
+
+def LegalizeAll(unit, opt_stats, fout, verbose=False):
+    seeds = cfg.UnitGetEntryPoints(unit)
+    if seeds:
+        cfg.UnitRemoveUnreachableCode(unit, seeds)
+    for fun in unit.funs:
+        sanity.FunCheck(fun, unit, check_cfg=False,
+                        check_push_pop=True, check_fallthroughs=False)
+
+        if fun.kind is o.FUN_KIND.NORMAL:
+            PhaseOptimize(fun, unit, opt_stats, fout)
+
+    for fun in unit.funs:
+        PhaseLegalizationStep1(fun, unit, opt_stats, fout)
+
+    for fun in unit.funs:
+        PhaseLegalizationStep2(fun, unit, opt_stats, fout)
+
+
+def RegAllocGlobal(unit, opt_stats, fout, verbose=False):
+    for fun in unit.funs:
+        sanity.FunCheck(fun, unit, check_cfg=False,
+                        check_push_pop=False, check_fallthroughs=False)
+        PhaseGlobalRegAlloc(fun, opt_stats, fout)
+        if verbose:
+            DumpFun("after global_reg_alloc", fun)
+
+
+def RegAllocLocal(unit, opt_stats, fout, verbose=False):
+    for fun in unit.funs:
+        PhaseFinalizeStackAndLocalRegAlloc(fun, opt_stats, fout)
+        if verbose:
+            DumpFun("after stack finalization", fun)

@@ -477,4 +477,13 @@ void UnitRemoveUnreachableCode(Unit unit, const std::vector<Fun>& seeds) {
   }
 }
 
+std::vector<Fun> UnitGetEntryPoints(Unit unit) {
+  std::vector<Fun> seeds;
+  Fun fun = UnitFunFind(unit, StrNew("main"));
+  if (!fun.isnull()) seeds.push_back(fun);
+  fun = UnitFunFind(unit, StrNew("_start"));
+  if (!fun.isnull()) seeds.push_back(fun);
+  return seeds;
+}
+
 }  // namespace cwerg::base

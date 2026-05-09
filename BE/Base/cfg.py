@@ -324,3 +324,8 @@ def UnitRemoveUnreachableCode(unit: ir.Unit, seeds: List[ir.Fun]):
                                 ir.FUN_FLAG.REACHACHABLE not in op.flags):
                             reachable.add(op)
     unit.funs = [f for f in unit.funs if ir.FUN_FLAG.REACHACHABLE in f.flags]
+
+
+def UnitGetEntryPoints(unit: ir.Unit) -> list[ir.Fun]:
+    return [f for f in [unit.fun_syms.get("_start"),
+                        unit.fun_syms.get("main")] if f]
