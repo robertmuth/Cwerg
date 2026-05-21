@@ -33,13 +33,13 @@ BUILD_DIR=../../build
 ELF_TOOL = $(BUILD_DIR)/elf_tool.exe
 
 $(ELF_TOOL):
-	@cd $(BUILD_DIR); $(MAKE) -s elf_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j elf_tool.exe
 
 
 GEN_ELF_TEST=$(BUILD_DIR)/gen_elf_test.exe
 
 $(GEN_ELF_TEST):: enum_gen.cc enum_gen.h gen_elf_test.cc
-	@cd $(BUILD_DIR); $(MAKE) -s gen_elf_test.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j gen_elf_test.exe
 
 
 
