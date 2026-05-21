@@ -3,11 +3,13 @@
 #include <algorithm>
 #include <iomanip>
 
+#include "BE/Base/cfg.h"
 #include "BE/Base/canonicalize.h"
 #include "BE/Base/liveness.h"
 #include "BE/Base/lowering.h"
 #include "BE/Base/optimize.h"
 #include "BE/Base/reg_alloc.h"
+#include "BE/Base/sanity.h"
 #include "BE/Base/serialize.h"
 #include "BE/CodeGenA32/isel_gen.h"
 #include "BE/CodeGenA32/regs.h"
@@ -400,6 +402,35 @@ void PhaseFinalizeStackAndLocalRegAlloc(Fun fun, Unit unit,
   FunLocalRegAlloc(fun, &inss);
   FunFinalizeStackSlots(fun);
   FunMoveEliminationCpu(fun, &inss);
+}
+
+void LegalizeAll(Unit unit, bool verbose, std::ostream* fout) {
+  std::vector<Fun> seeds = UnitGetEntryPoints(unit);
+  if (!seeds.empty()) UnitRemoveUnreachableCode(unit, seeds);
+  //
+  for (Fun fun : UnitFunIter(unit)) {
+    FunCheck(fun, false, true, false);
+    if (FunKind(fun) == FUN_KIND::NORMAL) {
+      FunCfgInit(fun);
+      FunOptBasic(fun, true);
+    }
+  }
+  for (Fun fun : UnitFunIter(unit)) {
+    PhaseLegalization(fun, unit, fout);
+  }
+}
+
+void RegAllocGlobal(Unit unit, bool verbose, std::ostream* fout) {
+  for (Fun fun : UnitFunIter(unit)) {
+    FunCheck(fun, false, false, false);
+    PhaseGlobalRegAlloc(fun, unit, fout);
+  }
+}
+
+void RegAllocLocal(Unit unit, bool verbose, std::ostream* fout) {
+  for (Fun fun : UnitFunIter(unit)) {
+    PhaseFinalizeStackAndLocalRegAlloc(fun, unit, fout);
+  }
 }
 
 }  // namespace  cwerg::code_gen_a32

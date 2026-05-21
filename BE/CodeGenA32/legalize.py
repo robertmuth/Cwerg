@@ -2,6 +2,7 @@ import collections
 import dataclasses
 from typing import List, Dict, Optional, Tuple, Set
 
+from BE.Base import cfg
 from BE.Base import canonicalize
 from BE.Base import reg_alloc
 from BE.Base import ir
@@ -431,3 +432,33 @@ def PhaseFinalizeStackAndLocalRegAlloc(fun: ir.Fun,
     fun.FinalizeStackSlots()
     # cleanup
     FunMoveEliminationCpu(fun)
+
+def LegalizeAll(unit: ir.Unit, opt_stats, verbose=False):
+    seeds = cfg.UnitGetEntryPoints(unit)
+    if seeds:
+        cfg.UnitRemoveUnreachableCode(unit, seeds)
+    for fun in unit.funs:
+        sanity.FunCheck(fun, unit, check_cfg=False,
+                        check_push_pop=True, check_fallthroughs=False)
+
+        if fun.kind is o.FUN_KIND.NORMAL:
+            PhaseOptimize(fun, unit, opt_stats)
+
+    for fun in unit.funs:
+        PhaseLegalization(fun, unit, opt_stats)
+
+
+def RegAllocGlobal(unit: ir.Unit, opt_stats, fout, verbose=False):
+    for fun in unit.funs:
+        sanity.FunCheck(fun, unit, check_cfg=False,
+                        check_push_pop=False, check_fallthroughs=False)
+        PhaseGlobalRegAlloc(fun, opt_stats, fout)
+        if verbose:
+            DumpFun("after global_reg_alloc", fun)
+
+
+def RegAllocLocal(unit: ir.Unit, opt_stats, verbose=False):
+    for fun in unit.funs:
+        PhaseFinalizeStackAndLocalRegAlloc(fun, opt_stats)
+        if verbose:
+            DumpFun("after stack finalization", fun)

@@ -268,8 +268,7 @@ def PhaseLegalization(fun: ir.Fun, unit: ir.Unit, _opt_stats: Dict[str, int]):
 
 
 def OptimizeAll(unit, opt_stats):
-    seeds = [f for f in [unit.fun_syms.get("_start"),
-                         unit.fun_syms.get("main")] if f]
+    seeds = cfg.UnitGetEntryPoints(unit)
     if seeds:
         cfg.UnitRemoveUnreachableCode(unit, seeds)
     for fun in unit.funs:
