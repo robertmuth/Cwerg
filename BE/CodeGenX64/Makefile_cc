@@ -74,7 +74,7 @@ $(DIR)/%.asm.c.exe: ../TestData/%.asm $(CODEGEN_TOOL)
 
 $(DIR)/isel_test_c: isel_gen.h isel_gen.cc
 	@echo "[integration $@]"
-	@cd $(BUILD_DIR); $(MAKE) -s x64_isel_tester.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j x64_isel_tester.exe
 	$(BUILD_DIR)/x64_isel_tester.exe < TestData/codegen_test.asm  > $@.actual.out
 	diff $@.actual.out TestData/codegen_test.asm.golden
 
