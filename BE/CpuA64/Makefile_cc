@@ -37,20 +37,20 @@ ASSEMBLER_TOOL=$(BUILD_DIR)/a64_assembler_tool.exe
 DISASSEMBLER_TOOL=$(BUILD_DIR)/a64_disassembler_tool.exe
 
 $(ASSEMBLER_TOOL):
-	@cd $(BUILD_DIR); $(MAKE) -s a64_assembler_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j a64_assembler_tool.exe
 
 $(DISASSEMBLER_TOOL):
-	@cd $(BUILD_DIR); $(MAKE) -s a64_disassembler_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j a64_disassembler_tool.exe
 
 opcode_test_c: opcode_gen.h opcode_gen.cc
 	@echo "[$@]"
-	@cd $(BUILD_DIR); $(MAKE) -s a64_opcode_test.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j a64_opcode_test.exe
 	$(BUILD_DIR)/a64_opcode_test.exe
 
 
 $(DIR)/symbolize_parity:
 	@echo "[$@]"
-	@cd $(BUILD_DIR); $(MAKE) -s a64_disassembler_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j a64_disassembler_tool.exe
 
 	$(DISASSEMBLER_TOOL) $(TEST_INSTRUCTIONS) > $@.actual_c.out
 	$(PYPY) ./disassembler_tool.py $(TEST_INSTRUCTIONS) > $@.actual.out
@@ -62,7 +62,7 @@ $(DIR)/symbolize_parity:
 
 $(DIR)/codegen_parity:
 	@echo "[$@]"
-	@cd $(BUILD_DIR); $(MAKE) -s a64_assembler_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j a64_assembler_tool.exe
 	@echo
 	$(ASSEMBLER_TOOL) assemble TestData/exit.asm $@_c.exe > $@_c.exe.out
 	$(PYPY)	./assembler_tool.py assemble TestData/exit.asm $@.exe > $@.exe.out

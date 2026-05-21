@@ -37,10 +37,10 @@ ASSEMBLER_TOOL=$(BUILD_DIR)/a32_assembler_tool.exe
 DISASSEMBLER_TOOL=$(BUILD_DIR)/a32_disassembler_tool.exe
 
 $(DISASSEMBLER_TOOL):
-	@cd $(BUILD_DIR); $(MAKE) -s a32_disassembler_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j a32_disassembler_tool.exe
 
 $(ASSEMBLER_TOOL):
-	@cd $(BUILD_DIR); $(MAKE) -s a32_assembler_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j a32_assembler_tool.exe
 
 $(DIR)/%.test_c : TestData/%.asm $(ASSEMBLER_TOOL)
 	echo "[integration $@]"
