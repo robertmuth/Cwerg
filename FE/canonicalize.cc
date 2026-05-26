@@ -736,8 +736,6 @@ void FunCanonicalizeCompoundAssignments(Node fun) {
   MaybeReplaceAstRecursivelyPost(fun, replacer, kNodeInvalid);
 }
 
-
-
 bool IsSimpleInitializer(Node node) {
   switch (node.kind()) {
     case NT::ValUndef:
@@ -763,13 +761,20 @@ void FunRewriteComplexAssignments(Node fun, TypeCorpus* tc) {
     if (rhs.kind() != NT::ValCompound) return node;
     NodeChain extra;
     for (Node i = Node_inits(rhs); !i.isnull(); i = Node_next(i)) {
-      if (IsSimpleInitializer(Node_value_or_undef(i))) continue;
+      Node val = Node_value_or_undef(i);
       const SrcLoc& sl = Node_srcloc(i);
-      Node at = MakeTypeAuto(Node_x_type(i), sl);
-      Node def_var = NodeNew(NT::DefVar);
-      NodeInitDefVar(def_var, NameNew("complex_init_tmp"), at,
-                     Node_value_or_undef(i), 0, kStrInvalid, sl,
-                     Node_x_type(i));
+      if (IsSimpleInitializer(val)) continue;
+      if (val.kind() == NT::ExprWiden) {
+        Node expr = Node_expr(val);
+        if (!IsSimpleInitializer(expr)) {
+          Node def_var = MakeDefVar(NameNew("complex_init_tmp"), expr);
+          extra.Append(def_var);
+          Node_expr(val) = IdNodeFromDef(def_var, sl);
+        }
+        continue;
+      }
+
+      Node def_var = MakeDefVar(NameNew("complex_init_tmp"), val);
       extra.Append(def_var);
       Node_value_or_undef(i) = IdNodeFromDef(def_var, sl);
     }

@@ -391,12 +391,13 @@ def _FormatNumber(val: cwast.ValNum) -> str:
         assert False, f"unsupported scalar: {bt} {val}"
 
 
-def _EmitCast(src, src_ct, dst_ct, id_gen: identifier.IdGenIR, fp) -> str:
+def _EmitBitCast(src, src_ct, dst_ct, id_gen: identifier.IdGenIR, fp) -> str:
     assert dst_ct.size > 0
     src_reg_type = src_ct.get_single_register_type()
     dst_reg_type = dst_ct.get_single_register_type()
     if src_reg_type == dst_reg_type:
         return src
+    assert src_ct.size == dst_ct.size, f"NYI: only same size widening supported for now {src_ct} -> {dst_ct}"
     res = id_gen.NewName("bitcast")
     print(f"{TAB}bitcast {res}:{dst_reg_type} = {src}", file=fp)
     return res
@@ -451,7 +452,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
         return base.MaterializeBase(ta, id_gen, fp)
     elif isinstance(node, cwast.ExprBitCast):
         src = _EmitExpr(node.expr, ta, id_gen, fp)
-        return _EmitCast(src, node.expr.x_type, node.x_type, id_gen, fp)
+        return _EmitBitCast(src, node.expr.x_type, node.x_type, id_gen, fp)
     elif isinstance(node, cwast.ExprNarrow):
         # Note, that GetLValueAddress will materialize objects when called on
         # a ExprStmt
@@ -515,9 +516,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
             f"{TAB}ld {res}:{node.x_type.get_single_register_type()} = {addr} {recfield.x_offset}", file=fp)
         return res
     elif isinstance(node, cwast.ExprWiden):
-        # this should only happen for widening empty untagged unions
-        # assert node.x_type.size == 0, f"{node} {node.x_type}"
-        # make sure we evaluate the rest for side-effects
+        # this should only happen for widening untagged unions
         src = _EmitExpr(node.expr, ta, id_gen, fp)
         dst_ct = node.type.x_type
         if dst_ct.size == 0:
@@ -528,8 +527,7 @@ def _EmitExpr(node, ta: type_corpus.TargetArchConfig, id_gen: identifier.IdGenIR
             # TODO: does this work for all types?
             return "0"
         # TODO: explain why Bitcasting will work
-        assert src_ct.size == dst_ct.size
-        return _EmitCast(src, src_ct, dst_ct, id_gen, fp)
+        return _EmitBitCast(src, src_ct, dst_ct, id_gen, fp)
     elif isinstance(node, cwast.ValVoid):
         return _OP_DO_NOT_USE
     # elif isinstance(node, cwast.ValCompound):

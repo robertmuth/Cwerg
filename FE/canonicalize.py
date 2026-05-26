@@ -334,7 +334,8 @@ def FunReplaceConstExpr(node: cwast.DefFun, tc: type_corpus.TypeCorpus):
             ct = node.x_type
         else:
             val_ct = tc.get_base_canon_type(val.kind)
-            assert ct.is_union() and ct.union_contains(val_ct), f"{ct}"
+            assert ct.is_union() and ct.union_contains(
+                val_ct), f"{ct} {node.x_srcloc} {val_ct}"
             # assert False, f"@@@@@@@@@@@ {node.x_srcloc}"
             ct = val_ct
         return cwast.ValNum(eval.EVAL_STR, x_srcloc=node.x_srcloc, x_type=ct, x_eval=val)
@@ -632,14 +633,21 @@ def FunRewriteComplexAssignments(fun: cwast.DefFun, tc: type_corpus.TypeCorpus):
             return None
         extra = []
         for i in rhs.inits:
+            sl = i.x_srcloc
             if _IsSimpleInitializer(i.value_or_undef):
                 continue
+            if isinstance(i.value_or_undef, cwast.ExprWiden):
+                if not _IsSimpleInitializer(i.value_or_undef.expr):
+                    # patch up the Widen expr
+                    def_tmp = MakeDefVar(cwast.NAME.Make(
+                        "complex_init_tmp"), i.value_or_undef.expr)
+                    extra.append(def_tmp)
+                    i.value_or_undef.expr = IdNodeFromDef(def_tmp, sl)
+                continue
+
             # patch up the complex initializer
-            sl = i.x_srcloc
-            at = cwast.TypeAuto(x_srcloc=sl, x_type=i.x_type)
-            def_tmp = cwast.DefVar(cwast.NAME.Make("complex_init_tmp"),
-                                   at, i.value_or_undef,
-                                   x_srcloc=sl, x_type=at.x_type)
+            def_tmp = MakeDefVar(cwast.NAME.Make(
+                "complex_init_tmp"), i.value_or_undef)
             extra.append(def_tmp)
             i.value_or_undef = IdNodeFromDef(def_tmp, sl)
             # assert False, f"{i.value_or_undef} {i.x_type}"

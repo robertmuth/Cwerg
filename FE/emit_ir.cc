@@ -676,11 +676,13 @@ std::string EmitExprCall(Node node, const TargetArchConfig& ta, IdGenIR* id_gen,
   return out;
 }
 
-std::string EmitCast(const std::string& src, CanonType src_ct, CanonType dst_ct,
-                     IdGenIR* id_gen, std::ostream* fout) {
+std::string EmitBitCast(const std::string& src, CanonType src_ct,
+                        CanonType dst_ct, IdGenIR* id_gen, std::ostream* fout) {
   if (CanonType_ir_regs(src_ct) == CanonType_ir_regs(dst_ct)) {
     return src;
   }
+  ASSERT(CanonType_size(src_ct) == CanonType_size(dst_ct),
+         "NYI bitcast from " << src_ct << " to " << dst_ct);
   std::string res = id_gen->NameNewNext(NameNew("bitcast"));
   *fout << kTAB << "bitcast " << res << ":" << CanonType_ir_regs(dst_ct)
         << " = " << src << "\n";
@@ -714,8 +716,8 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen,
     }
     case NT::ExprBitCast: {
       std::string src = EmitExpr(Node_expr(node), ta, id_gen, fout);
-      return EmitCast(src, Node_x_type(Node_expr(node)), Node_x_type(node),
-                      id_gen, fout);
+      return EmitBitCast(src, Node_x_type(Node_expr(node)), Node_x_type(node),
+                         id_gen, fout);
     }
     case NT::ExprNarrow: {
       std::string addr = GetLValueAddress(Node_expr(node), ta, id_gen, fout)
@@ -811,7 +813,7 @@ std::string EmitExpr(Node node, const TargetArchConfig& ta, IdGenIR* id_gen,
       if (CanonType_size(src_ct) == 0) {
         return "0";
       }
-      return EmitCast(src, src_ct, dst_ct, id_gen, fout);
+      return EmitBitCast(src, src_ct, dst_ct, id_gen, fout);
     }
     case NT::ValVoid:
       return std::string(DO_NOT_USE);
