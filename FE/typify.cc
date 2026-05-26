@@ -112,8 +112,9 @@ struct ValAndKind {
   BASE_TYPE_KIND kind;
 };
 
-ValAndKind NumCleanupAndTypeExtraction(std::string_view num,
+ValAndKind NumCleanupAndTypeExtraction(Node val_num,
                                        BASE_TYPE_KIND target_kind) {
+  std::string_view num = StrData(Node_number(val_num));
   if (num == "false") return {num, BASE_TYPE_KIND::BOOL};
   if (num == "true") return {num, BASE_TYPE_KIND::BOOL};
 
@@ -130,7 +131,10 @@ ValAndKind NumCleanupAndTypeExtraction(std::string_view num,
     }
   }
   if (num[0] == '\'') {
-    ASSERT(target_kind != BASE_TYPE_KIND::INVALID, "");
+    if (target_kind == BASE_TYPE_KIND::INVALID) {
+      CompilerError(Node_srcloc(val_num))
+          << "Cannot infer type of character literal " << num;
+    }
   }
   return out;
 }
@@ -220,8 +224,7 @@ void AnnotateFieldWithTypeAndSymbol(Node id, Node field) {
 uint32_t AdhocComputeOfIntConstant(Node node) {
   switch (Node_kind(node)) {
     case NT::ValNum: {
-      ValAndKind val = NumCleanupAndTypeExtraction(StrData(Node_number(node)),
-                                                   BASE_TYPE_KIND::UINT);
+      ValAndKind val = NumCleanupAndTypeExtraction(node, BASE_TYPE_KIND::UINT);
       ASSERT(IsInt(val.kind), "");
       // Needs more work
       auto num = ParseInt<uint32_t>(val.cleaned);
@@ -460,7 +463,7 @@ CanonType TypifyExprOrType(Node node, TypeCorpus* tc, CanonType ct_target,
               ? BASE_TYPE_KIND::INVALID
               : CanonType_get_unwrapped_base_type_kind(ct_target);
       BASE_TYPE_KIND actual =
-          NumCleanupAndTypeExtraction(StrData(Node_number(node)), bt).kind;
+          NumCleanupAndTypeExtraction(node, bt).kind;
       // if (actual == BASE_TYPE_KIND::INVALID)
       ASSERT(actual != BASE_TYPE_KIND::INVALID,
              "insufficient type information for number litereal "
