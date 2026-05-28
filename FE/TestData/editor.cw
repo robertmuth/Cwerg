@@ -7,45 +7,48 @@ import random
 import fmt
 import termio
 
-global KEY_NONE= 0_u16
-global KEY_UNDEF = 255_u16
+global MOD_CONTROL = 0x1000000_u32
+global MOD_SHIFT = 0x2000000_u32
+global MOD_ALT = 0x4000000_u32
 
-global KEY_ESC = 27_u16
-global KEY_BACKSPACE = 127_u16
+global SPECIAL_START = 0xff0000_u32
 
-global KEY_ARROW_UP = 201_u16
-global KEY_ARROW_DOWN = 202_u16
-global KEY_ARROW_RIGHT = 203_u16
-global KEY_ARROW_LEFT = 204_u16
+global KEY_NONE = SPECIAL_START + 0
+global KEY_UNDEF = SPECIAL_START + 255
 
+global KEY_ESC = 27_u32
 
-global KEY_HOME = 210_u16
-global KEY_END = 211_u16
-global KEY_DEL = 212_u16
-global KEY_PAGE_UP = 213_u16
-global KEY_PAGE_DOWN = 214_u16
-global KEY_ENTER = 215_u16
-global KEY_TAB = 216_u16
-
-global KEY_F1 = 221_u16
-global KEY_F2 = 222_u16
-global KEY_F3 = 223_u16
-global KEY_F4 = 224_u16
-global KEY_F5 = 225_u16
-global KEY_F6 = 226_u16
-global KEY_F7 = 227_u16
-global KEY_F8 = 228_u16
-global KEY_F9 = 229_u16
-global KEY_F10 = 230_u16
-global KEY_F11 = 231_u16
-global KEY_F12 = 232_u16
-
-global MOD_CONTROL = 0x100_u16
-global MOD_SHIFT = 0x200_u16
-global MOD_ALT = 0x400_u16
+global KEY_ARROW_UP = SPECIAL_START + 201
+global KEY_ARROW_DOWN = SPECIAL_START + 202
+global KEY_ARROW_RIGHT = SPECIAL_START + 203
+global KEY_ARROW_LEFT = SPECIAL_START + 204
 
 
-fun DumpKey(key u16) void:
+global KEY_HOME = SPECIAL_START + 210
+global KEY_END = SPECIAL_START + 211
+global KEY_DEL = SPECIAL_START + 212
+global KEY_PAGE_UP = SPECIAL_START + 213
+global KEY_PAGE_DOWN = SPECIAL_START + 214
+global KEY_ENTER = SPECIAL_START + 215
+global KEY_TAB = SPECIAL_START + 216
+global KEY_BACKSPACE = SPECIAL_START + 217
+
+global KEY_F1 = SPECIAL_START + 221
+global KEY_F2 = SPECIAL_START + 222
+global KEY_F3 = SPECIAL_START + 223
+global KEY_F4 = SPECIAL_START + 224
+global KEY_F5 = SPECIAL_START + 225
+global KEY_F6 = SPECIAL_START + 226
+global KEY_F7 = SPECIAL_START + 227
+global KEY_F8 = SPECIAL_START + 228
+global KEY_F9 = SPECIAL_START + 229
+global KEY_F10 = SPECIAL_START + 230
+global KEY_F11 = SPECIAL_START + 231
+global KEY_F12 = SPECIAL_START + 232
+
+type Key = u32
+
+fun DumpKey(key Key) void:
     if key & MOD_SHIFT == MOD_SHIFT:
         fmt\print#("SHIFT+")
     if key & MOD_ALT == MOD_ALT:
@@ -53,7 +56,7 @@ fun DumpKey(key u16) void:
     if key & MOD_CONTROL == MOD_CONTROL:
         fmt\print#("CTRL+")
 
-    let k = key & 0xff
+    let k = key & 0xffffff
     cond:
         case k == KEY_NONE:
             fmt\print#("NONE")
@@ -93,23 +96,21 @@ fun DumpKey(key u16) void:
             fmt\print#(wrap_as(as(k, u8), fmt\rune))
 
 
-fun ReadKeyHandleSimple(c u8) u16:
+fun ReadKeyHandleSimple(c u8) Key:
     cond:
+        case c == 127:
+            return KEY_BACKSPACE
         case c >= 1 && c <= 26:
             if c == 13:
                 return KEY_ENTER
             if c == 9:
                 return KEY_TAB
-            return as(c - 1 + 'A', u16) + MOD_CONTROL
-        case c >= 'A' && c <= 'Z':
-            return as(c, u16) + MOD_SHIFT
-        case  c >= 'a' && c <= 'z':
-            return as(c - 'a' + 'A', u16)
+            return as(c - 1 + 'A', Key) + MOD_CONTROL
         case true:
-            return as(c, u16)
+            return as(c, KEY_ARROW_RIGHT)
 
 
-fun ReadKeyHandleEscSimple(c u8) union(u16, os\Error):
+fun ReadKeyHandleEscSimple(c u8) union(Key, os\Error):
     cond:
         case c == 'O':
             ref let! c2 u8 = undef
@@ -118,20 +119,20 @@ fun ReadKeyHandleEscSimple(c u8) union(u16, os\Error):
             if n == 0:
                 return KEY_UNDEF
             if c2 >= 'P' && c2 <= 'S':
-                return KEY_F1 + as(c2 - 'P', u16)
+                return KEY_F1 + as(c2 - 'P', Key)
             return KEY_UNDEF
         case c >= 1 && c <= 26:
-            return as(c - 1 + 'A', u16) + MOD_ALT + MOD_CONTROL
+            return as(c - 1 + 'A', Key) + MOD_ALT + MOD_CONTROL
         case c >= 'a' && c <= 'z':
-            return as(c - 'a' + 'A', u16) + MOD_ALT
+            return as(c - 'a' + 'A', Key) + MOD_ALT
         case c >= 'A' && c <= 'Z':
-            return as(c, u16) + MOD_ALT + MOD_SHIFT
+            return as(c, Key) + MOD_ALT + MOD_SHIFT
         case c == ' ':
             return MOD_ALT + ' '
     return KEY_UNDEF
 
 
-global ESC_XTERM_MAP = {[256]u16:
+global ESC_XTERM_MAP = {[256]Key:
     KEY_UNDEF,
     3 = KEY_DEL,
     5 = KEY_PAGE_UP,
@@ -159,7 +160,7 @@ global ESC_XTERM_MAP = {[256]u16:
 }
 
 
-global MODIFIER_MAP = {[8]u16:
+global MODIFIER_MAP = {[8]Key:
     0,
     MOD_SHIFT,
     0,
@@ -171,16 +172,16 @@ global MODIFIER_MAP = {[8]u16:
 }
 
 
- fun ReadKeyHandleEscSquareOpenSimple(c u8) union(u16, os\Error):
+ fun ReadKeyHandleEscSquareOpenSimple(c u8) union(Key, os\Error):
     ref let! t u8 = c
-    let! key u16 = 0
-    let! modifier u16 = 0
+    let! key Key = 0
+    let! modifier Key = 0
     if t < '0' || t > '9':
         set key = 1
     else:
         while t >= '0' && t <= '9':
             set key *= 10
-            set key += as(t - '0', u16)
+            set key += as(t - '0', Key)
             trylet n uint = os\FileRead(os\Stdin, make_span(@!t, 1)), err:
                 return err
             if n == 0:
@@ -204,7 +205,7 @@ global MODIFIER_MAP = {[8]u16:
 
 
 
-fun ReadKey() union(u16, os\Error):
+fun ReadKey() union(Key, os\Error):
     ref let! c u8 = undef
 
     trylet! n uint = os\FileRead(os\Stdin, make_span(@!c, 1)), err:
@@ -235,7 +236,7 @@ fun ReadKey() union(u16, os\Error):
 
 fun EventLoop() void:
     for i = 0, 100_u32, 1:
-        trylet key u16 = ReadKey(), err:
+        trylet key Key = ReadKey(), err:
             fmt\print#("cannot read keyboard\n")
             return
         if key == KEY_NONE:
