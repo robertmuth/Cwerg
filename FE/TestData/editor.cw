@@ -23,6 +23,8 @@ global KEY_END = 211_u16
 global KEY_DEL = 212_u16
 global KEY_PAGE_UP = 213_u16
 global KEY_PAGE_DOWN = 214_u16
+global KEY_ENTER = 215_u16
+global KEY_TAB = 216_u16
 
 global KEY_F1 = 221_u16
 global KEY_F2 = 222_u16
@@ -46,43 +48,16 @@ global MOD_ALT = 0x400_u16
 global KEY_UNDEF = 255_u16
 
 
-global ESC_MAP = {[256]u16:
-    KEY_UNDEF,
-    '0' = KEY_UNDEF,
-    '1' = KEY_UNDEF,
-    '2' = KEY_UNDEF,
-    '3' = KEY_DEL,
-    '4' = KEY_UNDEF,
-    '5' = KEY_PAGE_UP,
-    '6' = KEY_PAGE_DOWN,
-    '7' = KEY_UNDEF,
-    '8' = KEY_UNDEF,
-    '9' = KEY_UNDEF,
 
-    'A' = KEY_ARROW_UP,
-    'B' = KEY_ARROW_DOWN,
-    'C' = KEY_ARROW_RIGHT,
-    'D' = KEY_ARROW_LEFT,
-    'E' = KEY_UNDEF,
-    'F' = KEY_END,
-    'G' = KEY_UNDEF,
-    'H' = KEY_HOME,
-    'I' = KEY_UNDEF,
-    'P' = KEY_F1,
-    'Q' = KEY_F2,
-    'R' = KEY_F3,
-    'S' = KEY_F4,
-    'T' = KEY_UNDEF
-}
+
 
 fun DumpKey(key u16) void:
-    cond:
-        case key & MOD_SHIFT == MOD_SHIFT:
-            fmt\print#("SHIFT+")
-        case key & MOD_ALT == MOD_ALT:
-            fmt\print#("ALT+")
-        case key & MOD_CONTROL == MOD_CONTROL:
-            fmt\print#("CTRL+")
+    if key & MOD_SHIFT == MOD_SHIFT:
+        fmt\print#("SHIFT+")
+    if key & MOD_ALT == MOD_ALT:
+        fmt\print#("ALT+")
+    if key & MOD_CONTROL == MOD_CONTROL:
+        fmt\print#("CTRL+")
 
     let k = key & 0xff
     cond:
@@ -104,6 +79,10 @@ fun DumpKey(key u16) void:
             fmt\print#("PAGE_UP")
         case k == KEY_PAGE_DOWN:
             fmt\print#("PAGE_DOWN")
+        case k == KEY_ENTER:
+            fmt\print#("ENTER")
+        case k == KEY_TAB:
+            fmt\print#("TAB")
         case k == KEY_ARROW_UP:
             fmt\print#("ARROW_UP")
         case k == KEY_ARROW_DOWN:
@@ -120,70 +99,144 @@ fun DumpKey(key u16) void:
             fmt\print#(wrap_as(as(k, u8), fmt\rune))
 
 
-fun ReadKey() union(u16, os\Error):
-    ref let! c u8 = undef
-    ref let! c1 u8 = undef
-    ref let! c2 u8 = undef
-    ref let! c3 u8 = undef
 
-    trylet! n uint = os\FileRead(os\Stdin, make_span(@!c, 1)), err:
-            return err
-    if n == 0:
-        return KEY_NONE
+fun ReadKeyHandleSimple(c u8) u16:
     cond:
         case c >= 1 && c <= 26:
+            if c == 13:
+                return KEY_ENTER
+            if c == 9:
+                return KEY_TAB
             return as(c - 1 + 'A', u16) + MOD_CONTROL
         case c >= 'A' && c <= 'Z':
             return as(c, u16) + MOD_SHIFT
         case  c >= 'a' && c <= 'z':
             return as(c - 'a' + 'A', u16)
-        case c != 27:
+        case true:
             return as(c, u16)
 
-    ; possible escape sequence with two more chars
-    tryset n = os\FileRead(os\Stdin, make_span(@!c1, 1)), err:
+fun ReadKeyHandleEscSimple(c u8) union(u16, os\Error):
+    cond:
+        case c == 'O':
+            ref let! c2 u8 = undef
+            trylet n uint = os\FileRead(os\Stdin, make_span(@!c2, 1)), err:
+                return err
+            if n == 0:
+                return KEY_UNDEF
+            if c2 >= 'P' && c2 <= 'S':
+                return KEY_F1 + as(c2 - 'P', u16)
+            return KEY_UNDEF
+        case c >= 1 && c <= 26:
+            return as(c - 1 + 'A', u16) + MOD_ALT + MOD_CONTROL
+        case c >= 'a' && c <= 'z':
+            return as(c - 'a' + 'A', u16) + MOD_ALT
+        case c >= 'A' && c <= 'Z':
+            return as(c, u16) + MOD_ALT + MOD_SHIFT
+    return KEY_UNDEF
+
+global ESC_XTERM_MAP = {[256]u16:
+    KEY_UNDEF,
+    3 = KEY_DEL,
+    5 = KEY_PAGE_UP,
+    6 = KEY_PAGE_DOWN,
+    15 = KEY_F5,
+    17 = KEY_F6,
+    18 = KEY_F7,
+    19 = KEY_F8,
+    20 = KEY_F9,
+    21 = KEY_F10,
+    23 = KEY_F11,
+    24 = KEY_F12,
+    '0' = KEY_UNDEF,
+    'A' = KEY_ARROW_UP,
+    'B' = KEY_ARROW_DOWN,
+    'C' = KEY_ARROW_RIGHT,
+    'D' = KEY_ARROW_LEFT,
+    'E' = KEY_UNDEF,
+    'F' = KEY_END,
+    'G' = KEY_UNDEF,
+    'H' = KEY_HOME,
+    'I' = KEY_UNDEF,
+    'Z' = KEY_TAB + MOD_SHIFT,
+    '[' = KEY_UNDEF
+}
+
+
+global MODIFIER_MAP = {[8]u16:
+    0,
+    MOD_SHIFT,
+    0,
+    MOD_ALT,
+    MOD_ALT + MOD_SHIFT,
+    MOD_CONTROL,
+    MOD_CONTROL + MOD_SHIFT,
+    MOD_ALT + MOD_CONTROL
+}
+
+ fun ReadKeyHandleEscSquareOpenSimple(c u8) union(u16, os\Error):
+    ref let! t u8 = c
+    let! key u16 = 0
+    let! modifier u16 = 0
+    if t < '0' || t > '9':
+        set key = 1
+    else:
+        while t >= '0' && t <= '9':
+            set key *= 10
+            set key += as(t - '0', u16)
+            trylet n uint = os\FileRead(os\Stdin, make_span(@!t, 1)), err:
+                return err
+            if n == 0:
+                return KEY_NONE
+    if t == ';':
+        trylet! n uint = os\FileRead(os\Stdin, make_span(@!t, 1)), err:
+            return err
+        if n == 0:
+            return KEY_NONE
+        set modifier = MODIFIER_MAP[t - '0']
+
+        tryset n = os\FileRead(os\Stdin, make_span(@!t, 1)), err:
+            return err
+        if n == 0:
+            return KEY_NONE
+    if t == '~':
+        return ESC_XTERM_MAP[key] + modifier
+    if key != 1:
+        return KEY_UNDEF
+    return ESC_XTERM_MAP[t] + modifier
+
+
+
+fun ReadKey() union(u16, os\Error):
+    ref let! c u8 = undef
+
+    trylet! n uint = os\FileRead(os\Stdin, make_span(@!c, 1)), err:
             return err
     if n == 0:
+        return KEY_NONE
+
+    if c != 27:
+        return ReadKeyHandleSimple(c)
+
+    ; sequence so far EXC "["
+    tryset n = os\FileRead(os\Stdin, make_span(@!c, 1)), err:
+        return err
+    if n == 0:
         return KEY_ESC
-    if c1 == '0':
-        tryset n = os\FileRead(os\Stdin, make_span(@!c2, 1)), err:
-                return err
-        if n == 0:
-            return KEY_UNDEF
-        return ESC_MAP[c2]
-    if c1 == 'O':
-        tryset n = os\FileRead(os\Stdin, make_span(@!c2, 1)), err:
-                return err
-        if n == 0:
-            return KEY_UNDEF
-        if c2 >= 'P' && c2 <= 'S':
-            return ESC_MAP[c2]
-        fmt\print#("Unexpected ]O sequence ", wrap_as(c2, fmt\u8_hex), "\n")
-        return KEY_UNDEF
-    if c1 >= 1 && c1 <= 26:
-        return as(c1 - 1 + 'A', u16) + MOD_ALT + MOD_CONTROL
-    if c1 >= 'a' && c1 <= 'z':
-        return as(c1 - 'a' + 'A', u16) + MOD_ALT
-    if c1 >= 'A' && c1 <= 'Z':
-        return as(c1, u16) + MOD_ALT + MOD_SHIFT
-    if c1 != '[':
-        fmt\print#("Expected ] got ", as(c1, u32), "\n")
-        return KEY_UNDEF
-    tryset n = os\FileRead(os\Stdin, make_span(@!c2, 1)), err:
+
+
+    if c != '[':
+        return ReadKeyHandleEscSimple(c)
+
+    tryset n = os\FileRead(os\Stdin, make_span(@!c, 1)), err:
         return err
     if n == 0:
         return KEY_UNDEF
-    if c2 >= '0' && c2 <= '9':
-        tryset n = os\FileRead(os\Stdin, make_span(@!c3, 1)), err:
-                return err
-        if n == 0:
-            return KEY_UNDEF
-        cond:
 
-            case c3 != '~':
-                fmt\print#("Expected ]] ", wrap_as(c2, fmt\u8_hex)," got ", wrap_as(c3, fmt\u8_hex), "\n")
-                return KEY_UNDEF
-    return ESC_MAP[c2]
+    if c != '[':
+        return ReadKeyHandleEscSquareOpenSimple(c)
+
+    fmt\print#(">>>>>>>>>>>>> [[", c, "\r\n")
+    return KEY_UNDEF
 
 
 
