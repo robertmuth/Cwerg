@@ -8,6 +8,7 @@ import fmt
 import termio
 
 global KEY_NONE= 0_u16
+global KEY_UNDEF = 255_u16
 
 global KEY_ESC = 27_u16
 global KEY_BACKSPACE = 127_u16
@@ -42,13 +43,6 @@ global KEY_F12 = 232_u16
 global MOD_CONTROL = 0x100_u16
 global MOD_SHIFT = 0x200_u16
 global MOD_ALT = 0x400_u16
-
-
-
-global KEY_UNDEF = 255_u16
-
-
-
 
 
 fun DumpKey(key u16) void:
@@ -99,7 +93,6 @@ fun DumpKey(key u16) void:
             fmt\print#(wrap_as(as(k, u8), fmt\rune))
 
 
-
 fun ReadKeyHandleSimple(c u8) u16:
     cond:
         case c >= 1 && c <= 26:
@@ -114,6 +107,7 @@ fun ReadKeyHandleSimple(c u8) u16:
             return as(c - 'a' + 'A', u16)
         case true:
             return as(c, u16)
+
 
 fun ReadKeyHandleEscSimple(c u8) union(u16, os\Error):
     cond:
@@ -132,7 +126,10 @@ fun ReadKeyHandleEscSimple(c u8) union(u16, os\Error):
             return as(c - 'a' + 'A', u16) + MOD_ALT
         case c >= 'A' && c <= 'Z':
             return as(c, u16) + MOD_ALT + MOD_SHIFT
+        case c == ' ':
+            return MOD_ALT + ' '
     return KEY_UNDEF
+
 
 global ESC_XTERM_MAP = {[256]u16:
     KEY_UNDEF,
@@ -172,6 +169,7 @@ global MODIFIER_MAP = {[8]u16:
     MOD_CONTROL + MOD_SHIFT,
     MOD_ALT + MOD_CONTROL
 }
+
 
  fun ReadKeyHandleEscSquareOpenSimple(c u8) union(u16, os\Error):
     ref let! t u8 = c
@@ -232,14 +230,7 @@ fun ReadKey() union(u16, os\Error):
     if n == 0:
         return KEY_UNDEF
 
-    if c != '[':
-        return ReadKeyHandleEscSquareOpenSimple(c)
-
-    fmt\print#(">>>>>>>>>>>>> [[", c, "\r\n")
-    return KEY_UNDEF
-
-
-
+    return ReadKeyHandleEscSquareOpenSimple(c)
 
 
 fun EventLoop() void:
@@ -253,8 +244,6 @@ fun EventLoop() void:
         fmt\print#("\r\n")
 
 
-
-
 fun SetRawTermAttr(term_attr ^!termio\Termios) void:
     set term_attr^.iflag &= !(termio\BRKINT | termio\ICRNL | termio\INPCK |
                           termio\IXON)
@@ -264,6 +253,7 @@ fun SetRawTermAttr(term_attr ^!termio\Termios) void:
                           termio\ISIG)
     set term_attr^.cc[termio\VMIN] = 0
     set term_attr^.cc[termio\VTIME] = 1
+
 
 fun main(argc s32, argv ^^u8) s32:
     ref let! win_size termio\WinSize = undef
