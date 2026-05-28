@@ -48,7 +48,32 @@ global KEY_F12 = SPECIAL_START + 232
 
 type Key = u32
 
+fun unicode2utf8(unicode u32) u32:
+    cond:
+        case unicode <= 0x7f:
+            return unicode
+        case unicode <= 0x7ff:
+            let c1 = unicode & 0x3f | 0x80
+            let c0 = unicode >> 6 | 0xc0
+            return (c1 << 8) + c0
+        case unicode <= 0xffff:
+            let c2 = unicode & 0x3f | 0x80
+            let c1 = (unicode >> 6) & 0x3f | 0x80
+            let c0 = (unicode >> 12) | 0xe0
+            return (c2 << 8) | (c1 << 8) |  c0
+        case unicode <= 0x1fffff:
+            let c3 = unicode & 0x3f | 0x80
+            let c2 = (unicode >> 6) & 0x3f | 0x80
+            let c1 = (unicode >> 12) & 0x3f | 0x80
+            let c0 = (unicode >> 18) | 0xf0
+            return (c3 << 8) | (c2 << 8) | (c1 << 8) | c0
+        case true:
+            return 0xffffffff
+
+
 fun DumpKey(key Key) void:
+    fmt\print#("0x", wrap_as(key, fmt\u32_hex), ": ")
+
     if key & MOD_SHIFT == MOD_SHIFT:
         fmt\print#("SHIFT+")
     if key & MOD_ALT == MOD_ALT:
@@ -93,21 +118,49 @@ fun DumpKey(key Key) void:
         case k >= KEY_F1 && k <= KEY_F12:
             fmt\print#("F", k - KEY_F1 + 1)
         case true:
-            fmt\print#(wrap_as(as(k, u8), fmt\rune))
+            let! utf8 u32 = unicode2utf8(k)
+            while utf8 != 0:
+                fmt\print#(wrap_as(as(utf8, u8), fmt\rune))
+                set utf8 >>= 8
 
-
-fun ReadKeyHandleSimple(c u8) Key:
+fun ReadKeyHandleSimple(c u8) union(Key, os\Error):
+    if c <= 127:
+        cond:
+            case c >= 1 && c <= 26:
+                if c == 13:
+                    return KEY_ENTER
+                if c == 9:
+                    return KEY_TAB
+                return as(c - 1 + 'A', Key) + MOD_CONTROL
+            case c == 127:
+                return KEY_BACKSPACE
+            case true:
+                return as(c, KEY_ARROW_RIGHT)
+    let! k Key = 0
+    let! n = 0_u32
     cond:
-        case c == 127:
-            return KEY_BACKSPACE
-        case c >= 1 && c <= 26:
-            if c == 13:
-                return KEY_ENTER
-            if c == 9:
-                return KEY_TAB
-            return as(c - 1 + 'A', Key) + MOD_CONTROL
+        case c & 0xe0 == 0xc0:
+            set k = as(c & 0x1f, Key)
+            set n = 1
+        case c & 0xf0 == 0xe0:
+            set k = as(c & 0xf, Key)
+            set n = 2
+        case c & 0xf8 == 0xf0:
+            set k = as(c & 0x7, Key)
+            set n = 3
         case true:
-            return as(c, KEY_ARROW_RIGHT)
+            return KEY_UNDEF
+    ref let! c2 u8 = undef
+    for i = 0, n, 1:
+        trylet n uint = os\FileRead(os\Stdin, make_span(@!c2, 1)), err:
+            return err
+        if n == 0:
+            return KEY_UNDEF
+        set k <<= 6
+        set k += as(c2 & 0x3f, Key)
+    return k
+
+
 
 
 fun ReadKeyHandleEscSimple(c u8) union(Key, os\Error):
