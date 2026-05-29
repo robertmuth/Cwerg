@@ -135,7 +135,7 @@ fun ReadKeyHandleSimple(c u8) union(Key, os\Error):
             case c == 127:
                 return KEY_BACKSPACE
             case true:
-                return as(c, KEY_ARROW_RIGHT)
+                return as(c, Key)
     let! k Key = 0
     let! n = 0_u32
     cond:
