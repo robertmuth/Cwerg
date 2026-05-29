@@ -637,6 +637,7 @@ ALL_FIELDS = [
 
 NEW_SCOPE_FIELDS = set(["body", "body_f", "body_t", "body_macro"])
 
+# excludes ExprField.container for EnumType.EnumValue case
 TYPE_FIELDS = set(["type", "types", "result", "type_or_auto", "subtrahend"])
 
 # only used for symbol

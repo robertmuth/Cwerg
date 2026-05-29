@@ -1310,6 +1310,27 @@ inline void VisitAstRecursivelyPost(Node node,
   visitor(node, parent);
 }
 
+inline void VisitAstRecursivelyWithSlotPost(Node node,
+                                    std::function<void(Node, Node, NFD_SLOT slot)> visitor,
+                                    Node parent, NFD_SLOT slot) {
+  const auto& core = gNodeCore[node];
+
+  for (int i = 0; i < MAX_NODE_CHILDREN; ++i) {
+    NFD_SLOT child_slot = GlobalNodeDescs[int(node.kind())].node_fields[i];
+    Node child = core.children_node[i];
+    if (!NodeIsNode(child)) continue;
+
+    do {
+      // allow the visitor to update the next field
+      // (used by NodeFreeRecursively)
+      Node next = Node_next(child);
+      VisitAstRecursivelyWithSlotPost(child, visitor, node, child_slot);
+      child = next;
+    } while (!child.isnull());
+  }
+  visitor(node, parent, slot);
+}
+
 inline void VisitAstRecursivelyPreAndPost(
     Node node, std::function<void(Node, Node)> pre_visitor,
     std::function<void(Node, Node)> post_visitor, Node parent) {

@@ -253,21 +253,28 @@ void SetTargetFields(const std::vector<Node>& mods) {
   }
 }
 
+// excludes field access and enum value access
+bool IsTypeSlot(NFD_SLOT slot) {
+  return slot == NFD_SLOT::type || slot == NFD_SLOT::types ||
+         slot == NFD_SLOT::type_or_auto || slot == NFD_SLOT::subtrahend ||
+         slot == NFD_SLOT::result;
+}
+
 void VerifySymbols(Node node) {
   std::unordered_set<Name> seen;
 
-  auto visitor = [&seen](Node node, Node parent) -> void {
-    switch (Node_kind(node)) {
+  auto visitor = [&seen](Node node, Node parent, NFD_SLOT slot) -> void {
+    switch (node.kind()) {
       case NT::StmtBreak:
       case NT::StmtContinue: {
         NT target_kind = Node_x_target(node).kind();
         ASSERT(target_kind == NT::StmtBlock, "");
-        break;
+        return;
       }
       case NT::StmtReturn: {
         NT target_kind = Node_x_target(node).kind();
         ASSERT(target_kind == NT::ExprStmt || target_kind == NT::DefFun, "");
-        break;
+        return;
       }
       case NT::DefRec: {
         seen.clear();
@@ -280,15 +287,40 @@ void VerifySymbols(Node node) {
           }
           seen.insert(Node_name(child));
         }
-        break;
+        return;
       }
-
+      case NT::Id: {
+        Node def = Node_x_symbol(node);
+        bool is_type_slot = IsTypeSlot(slot);
+        switch (def.kind()) {
+          case NT::DefEnum:
+            if (parent.kind() == NT::ExprField && slot == NFD_SLOT::container) {
+              return;
+            }
+          // fall thru
+          case NT::DefType:
+          case NT::DefRec:
+          case NT::TypeUnion:
+            if (!is_type_slot) {
+              CompilerError(Node_srcloc(node))
+                  << "did not expect type symbol " << Node_name(def);
+            }
+            return;
+          default:
+            if (is_type_slot) {
+              CompilerError(Node_srcloc(node))
+                  << "did not expected non-type symbol " << Node_name(def);
+            }
+            return;
+        }
+      }
       default:
         // TODO: py version performs many more checks
-        break;
+        return;
     }
   };
-  VisitAstRecursivelyPost(node, visitor, kNodeInvalid);
+  VisitAstRecursivelyWithSlotPost(node, visitor, kNodeInvalid,
+                                  NFD_SLOT::invalid);
 }
 
 }  // namespace cwerg::fe
