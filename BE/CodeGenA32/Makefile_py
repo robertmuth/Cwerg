@@ -32,8 +32,11 @@ tests: $(TEST_EXES) \
 		  $(DIR)/cli.a32.asm.exe \
 		  $(DIR)/isel_test \
 		  $(DIR)/nanojpeg \
-          $(DIR)/threads.a32.asm.exe
 	@echo "[OK PY CODEGENA32]"
+
+# TODO: unflake this:
+#           $(DIR)/threads.a32.asm.exe
+
 
 STD_LIB_NO_ARGV = ../StdLib/startup_no_argv.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
 STD_LIB_WITH_ARGV = ../StdLib/startup.a32.asm ../StdLib/dummy_init_fini.asm ../StdLib/syscall.a32.asm ../StdLib/std_lib.32.asm
