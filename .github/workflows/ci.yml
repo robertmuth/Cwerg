@@ -39,10 +39,10 @@ jobs:
         apt-cache madison  libc6-dev-i386
         apt-cache madison  libc6-x32
         echo
-        apt -y install make cmake python3
-        apt -y install qemu-user-binfmt
+        apt -y install make cmake python3 gcc g++ cloc qemu-user-binfmt
         echo
         apt -y install libunwind-dev gcc-multilib
+        echo
         apt -y install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
         apt -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
     - name: Toolchain Version Summary

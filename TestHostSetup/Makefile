@@ -15,9 +15,9 @@ show_versions:
 	-g++ -v
 	-clang -v
 	-clang++ -v
-	-qemu-aarch64-static -version
-	-qemu-arm-static -version
-	-qemu-x86_64-static -version
+	-qemu-aarch64 -version
+	-qemu-armhf -version
+	-qemu-x86_64 -version
 	-cloc -version
 
 ############################################################
