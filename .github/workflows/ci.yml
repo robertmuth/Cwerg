@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     # Ubuntu 26.04 is not available
     #runs-on: ${{ matrix.os }}
-    #strategy:
+    # strategy:
     #  matrix:
     #    python-version: [3.12.4]
     #    os: [ubuntu-24.04]
@@ -22,16 +22,7 @@ jobs:
     container:
       image: ubuntu:26.04
     steps:
-
     - uses: actions/checkout@v6
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install Python Deps
-      run: |
-        python -m pip install --upgrade pip
-        # pip install ...
     - name: Install Ubuntu Deps
       run: |
         sudo apt-get update
