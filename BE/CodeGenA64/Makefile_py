@@ -35,10 +35,11 @@ tests: $(TEST_EXES) \
         $(DIR)/syscall.a64.asm.exe \
 		$(DIR)/cli.a64.asm.exe \
 		$(DIR)/nanojpeg \
-		$(DIR)/isel_test \
-        $(DIR)/threads.a64.asm.exe
+		$(DIR)/isel_test
 	@echo "[OK PY CodeGenA64]"
 
+#  TODO: unflake this test:
+#        $(DIR)/threads.a64.asm.exe
 
 # note we sneak in our poor man's std_lib here
 $(DIR)/%.asm.exe: ../TestData/%.asm

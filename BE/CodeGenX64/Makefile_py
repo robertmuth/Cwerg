@@ -35,7 +35,7 @@ tests: $(DIR)/isel_test \
 		$(TEST_EXES) $(DIR)/nanojpeg
 	@echo "[OK PY CodeGenX64]"
 
-# flaky
+# TODO: unflake this test
 # $(DIR)/threads.x64.asm.exe
 
 
