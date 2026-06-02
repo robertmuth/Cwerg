@@ -23,6 +23,11 @@ jobs:
       image: ubuntu:26.04
     steps:
     - uses: actions/checkout@v6
+    - name: OS Version Summary
+      run: |
+        uname -a
+        echo
+        lsb_release -a
     - name: Install Ubuntu Deps
       run: |
         apt-get update
@@ -36,14 +41,8 @@ jobs:
         apt-get -y install libunwind-dev gcc-multilib
         apt-get -y install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
         apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-    - name: Show Version Summary
+    - name: Toolchain Version Summary
       run: |
-        uname -a
-        echo
-        cat /proc/cpuinfo
-        echo
-        lsb_release -a
-        echo
         PYPY=python3 CC=gcc CXX=g++ MAKESILENT='' make show_versions
     - name: Run Tests
       run: |
