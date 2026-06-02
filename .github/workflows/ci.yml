@@ -25,17 +25,17 @@ jobs:
     - uses: actions/checkout@v6
     - name: Install Ubuntu Deps
       run: |
-        sudo apt-get update
+        apt-get update
         echo "delayed packages for these cause a lot of headaches:"
         apt-cache policy qemu-user-binfmt
         apt-cache madison  libc6-dev-i386
         apt-cache madison  libc6-x32
         echo
-        sudo apt-get install qemu-user-binfmt
+        apt-get -y install qemu-user-binfmt
         echo
-        sudo apt-get install libunwind-dev gcc-multilib
-        sudo apt-get install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
-        sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        apt-get -y install libunwind-dev gcc-multilib
+        apt-get -y install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
+        apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
     - name: Show Version Summary
       run: |
         uname -a
