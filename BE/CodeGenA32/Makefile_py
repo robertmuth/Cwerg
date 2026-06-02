@@ -31,7 +31,7 @@ tests: $(TEST_EXES) \
 		  $(DIR)/syscall.a32.asm.exe \
 		  $(DIR)/cli.a32.asm.exe \
 		  $(DIR)/isel_test \
-		  $(DIR)/nanojpeg \
+		  $(DIR)/nanojpeg
 	@echo "[OK PY CODEGENA32]"
 
 # TODO: unflake this:
