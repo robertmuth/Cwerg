@@ -1,11 +1,11 @@
 # This makefile contains targets for validating the current dev environment
 
 .SUFFIXES:  # no built-in rules
-DIR=build
+DIR:=build
 
 $(info $(shell mkdir -p $(DIR)))
 
-tests_cross: test_qemu_env_a32 test_qemu_env_a64
+tests_cross: cross_toolchain_a32_check cross_toolchain_a64_check
 
 
 show_versions:
@@ -52,7 +52,8 @@ CXX_A32 = arm-linux-gnueabihf-g++
 CC_A32 = arm-linux-gnueabihf-gcc
 AS_A32 = arm-linux-gnueabihf-as
 LD_A32 = arm-linux-gnueabihf-ld
-QEMU_A32 = qemu-arm-static
+
+QEMU_A32:=qemu-armhf
 
 # check if cross-compiler and cross-running works for a32 (see README.md)
 cross_toolchain_a32_check:
@@ -82,7 +83,8 @@ CXX_A64 = aarch64-linux-gnu-g++
 CC_A64 = aarch64-linux-gnu-gcc
 AS_A64 = aarch64-linux-gnu-as
 LD_A64 = aarch64-linux-gnu-ld
-QEMU_A64 = qemu-aarch64-static
+
+QEMU_A64:=qemu-aarch64
 
 
 cross_toolchain_a64_check:
@@ -108,4 +110,4 @@ cross_toolchain_a64_check:
 # TODO
 
 clean:
-	rm -f $(DIR)
+	rm -fr $(DIR)

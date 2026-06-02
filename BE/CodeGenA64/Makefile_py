@@ -2,9 +2,9 @@
 # no built-in rules please
 .SUFFIXES:
 
-DIR=build
+DIR:=build
 
-QEMU_A64 = qemu-aarch64-static
+QEMU_A64:=qemu-aarch64
 
 $(info $(shell mkdir -p $(DIR)))
 

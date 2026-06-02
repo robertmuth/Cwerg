@@ -1,8 +1,8 @@
 
-DIR := build_py
-QEMU_A64 := qemu-aarch64-static
-QEMU_A32 := qemu-arm-static
-QEMU_X64 := qemu-x86_64-static
+DIR:=build_py
+QEMU_A64:=qemu-aarch64
+QEMU_A32:=qemu-armhf
+QEMU_X64:=qemu-x86_64
 
 $(info $(shell mkdir -p $(DIR)))
 

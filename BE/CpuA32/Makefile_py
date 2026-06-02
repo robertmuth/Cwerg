@@ -1,8 +1,8 @@
-
-QEMU_A32=qemu-arm-static
-DIR=build
+DIR:=build
 
 $(info $(shell mkdir -p $(DIR)))
+
+QEMU_A32:=qemu-armhf
 
 TESTS = memaddr.asm exit.asm hello.asm fib.asm switch.asm
 

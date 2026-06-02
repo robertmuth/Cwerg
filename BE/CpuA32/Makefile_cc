@@ -1,6 +1,6 @@
 .SUFFIXES:  # no built-in rules
-DIR=build
-QEMU_A32=qemu-arm-static
+DIR:=build
+QEMU_A32:=qemu-armhf
 
 $(info $(shell mkdir -p $(DIR)))
 

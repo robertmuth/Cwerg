@@ -10,15 +10,17 @@ on:
 
 jobs:
   build:
-
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        python-version: [3.12.4]
-        os: [ubuntu-24.04]
-        #python-version: [3.7, 3.8, 3.9]
-        #os: [ubuntu-latest, macos-latest, windows-latest]
-
+    runs-on: ubuntu-latest
+    # Ubuntu 26.04 is not available
+    #runs-on: ${{ matrix.os }}
+    #strategy:
+    #  matrix:
+    #    python-version: [3.12.4]
+    #    os: [ubuntu-24.04]
+    #    #python-version: [3.7, 3.8, 3.9]
+    #    #os: [ubuntu-latest, macos-latest, windows-latest]
+    container:
+      image: ubuntu:26.04
     steps:
 
     - uses: actions/checkout@v6
@@ -29,26 +31,16 @@ jobs:
     - name: Install Python Deps
       run: |
         python -m pip install --upgrade pip
-        # TODO: 2.21 may causes breakage
-        # pip install pycparser==2.20
+        # pip install ...
     - name: Install Ubuntu Deps
       run: |
         sudo apt-get update
         echo "delayed packages for these cause a lot of headaches:"
-        apt-cache policy qemu-user-static
+        apt-cache policy qemu-user-binfmt
         apt-cache madison  libc6-dev-i386
         apt-cache madison  libc6-x32
         echo
-        # NOTE: the qemu-user-static causes a lot of pain because it occasionally is
-        #       unavailable in CI repos
-        #       So we alternate between using the stock version and a pinned version
-        # PINNED VERSION
-        # sudo apt-get install qemu-user-static=1:4.2-3ubuntu6.20
-        # wget http://launchpadlibrarian.net/548257507/qemu-user-static_4.2-3ubuntu6.17_amd64.deb
-        # chmod a+r qemu-user-static_4.2-3ubuntu6.17_amd64.deb
-        #sudo dpkg -i qemu-user-static_4.2-3ubuntu6.17_amd64.deb
-        # STOCK VERSION
-        sudo apt-get install qemu-user-static
+        sudo apt-get install qemu-user-binfmt
         echo
         sudo apt-get install libunwind-dev gcc-multilib
         sudo apt-get install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf

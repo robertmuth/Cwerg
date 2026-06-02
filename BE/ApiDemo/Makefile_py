@@ -1,6 +1,6 @@
 .SUFFIXES:  # no built-in rules
 
-DIR=build
+DIR:=build
 $(info $(shell mkdir -p $(DIR)))
 
 
@@ -9,9 +9,9 @@ tests: $(DIR)/jit_cpu_a32_test $(DIR)/jit_cpu_x64_test builder
 	@echo "[OK PY ApiDemo]"
 
 # setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
-QEMU_X64=qemu-x86_64-static
-QEMU_A64=qemu-aarch64-static
-QEMU_A32=qemu-arm-static
+QEMU_X64:=qemu-x86_64
+QEMU_A64:=qemu-aarch64
+QEMU_A32:=qemu-armhf
 
 builder:
 	./builder_example.py

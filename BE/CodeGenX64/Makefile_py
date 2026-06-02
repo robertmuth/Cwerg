@@ -1,8 +1,8 @@
 # no built-in rules please
 .SUFFIXES:
 
-DIR=build
-QEMU_X64=qemu-x86_64-static
+DIR:=build
+QEMU_X64:=qemu-x86_64
 
 $(info $(shell mkdir -p $(DIR)))
 TESTS = parse_real_test.64.asm \

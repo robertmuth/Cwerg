@@ -1,6 +1,6 @@
 .SUFFIXES:  # no built-in rules
 
-DIR=../../build
+DIR:=../../build
 
 tests: jit_cpu_a32.test jit_cpu_a64.test jit_cpu_x64.test \
          jit_ir_a32.test jit_ir_a64.test jit_ir_x64.test builder
@@ -8,9 +8,9 @@ tests: jit_cpu_a32.test jit_cpu_a64.test jit_cpu_x64.test \
 
 
 # setting these is not strictly necessary because Linux will auto-detect the proper qemu to use
-QEMU_X64=qemu-x86_64-static
-QEMU_A64=qemu-aarch64-static
-QEMU_A32=qemu-arm-static
+QEMU_X64:=qemu-x86_64
+QEMU_A64:=qemu-aarch64
+QEMU_A32:=qemu-armhf
 
 
 builder:
