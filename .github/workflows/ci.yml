@@ -25,22 +25,23 @@ jobs:
     - uses: actions/checkout@v6
     - name: OS Version Summary
       run: |
+        apt update
+        apt -y install lsb-release
         uname -a
         echo
         lsb_release -a
     - name: Install Ubuntu Deps
       run: |
-        apt-get update
         echo "delayed packages for these cause a lot of headaches:"
         apt-cache policy qemu-user-binfmt
         apt-cache madison  libc6-dev-i386
         apt-cache madison  libc6-x32
         echo
-        apt-get -y install qemu-user-binfmt
+        apt -y install qemu-user-binfmt
         echo
-        apt-get -y install libunwind-dev gcc-multilib
-        apt-get -y install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
-        apt-get -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        apt -y install libunwind-dev gcc-multilib
+        apt -y install gcc-arm-linux-gnueabihf  g++-arm-linux-gnueabihf
+        apt -y install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
     - name: Toolchain Version Summary
       run: |
         PYPY=python3 CC=gcc CXX=g++ MAKESILENT='' make show_versions
