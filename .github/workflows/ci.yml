@@ -23,20 +23,23 @@ jobs:
       image: ubuntu:26.04
     steps:
     - uses: actions/checkout@v6
-    - name: OS Version Summary
+    - name: Install OS Deps
       run: |
         apt update
         apt -y install lsb-release
+    - name: OS Version Summary
+      run: |
         uname -a
         echo
         lsb_release -a
-    - name: Install Ubuntu Deps
+    - name: Install Toolchain Deps
       run: |
         echo "delayed packages for these cause a lot of headaches:"
         apt-cache policy qemu-user-binfmt
         apt-cache madison  libc6-dev-i386
         apt-cache madison  libc6-x32
         echo
+        apt -y install make cmake python3
         apt -y install qemu-user-binfmt
         echo
         apt -y install libunwind-dev gcc-multilib
