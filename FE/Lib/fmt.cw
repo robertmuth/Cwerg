@@ -133,24 +133,23 @@ poly fun SysRender(v u16_hex, out span!(u8), options ^!SysFormatOptions) uint:
 poly fun SysRender(v u8_hex, out span!(u8), options ^!SysFormatOptions) uint:
     return fmt_int\FmtHex(unwrap(v), out)
 
-pub wrapped type rune = u8
-
-pub wrapped type uft8 = u32
-
-poly fun SysRender(v rune, buffer span!(u8), options ^!SysFormatOptions) uint:
-    if len(buffer) == 0:
-        return 0
-    else:
-        set front!(buffer)^ = unwrap(v)
-        return 1
+; Latin1
+pub wrapped type rune8 = u8
 
 
-; �
-pub global REPLACEMMENT_CHAR_UNICODE u32 = 0xfffd;
-pub global REPLACEMMENT_CHAR_ASCII u8 = '?';
-global TRUNCATED_MSG = "@TrUnCaTeD@"
+; Unicode
+pub wrapped type rune32 = u32
 
-pub fun UnicodeToUtf8(unicode u32, out span!(u8)) uint:
+
+; latin1 is first unicode page
+pub fun Latin1ToUnicode(c rune8) rune32:
+    return wrap_as(as(unwrap(c), u32), rune32)
+
+pub global BadUtf8 u32 = 0xffffffff
+
+
+pub fun UnicodeToUtf8(r rune32, out span!(u8)) uint:
+    let  unicode = unwrap(r)
     let n = len(out)
     cond:
         ; 7 bits
@@ -187,10 +186,23 @@ pub fun UnicodeToUtf8(unicode u32, out span!(u8)) uint:
             return 0
 
 
-pub wrapped type rune_utf8 = u32
+poly fun SysRender(v rune32, buffer span!(u8), options ^!SysFormatOptions) uint:
+    return UnicodeToUtf8(v, buffer)
 
-poly fun SysRender(v rune_utf8, buffer span!(u8), options ^!SysFormatOptions) uint:
-    return UnicodeToUtf8(unwrap(v), buffer)
+poly fun SysRender(v rune8, buffer span!(u8), options ^!SysFormatOptions) uint:
+    return SysRender(Latin1ToUnicode(v), buffer, options)
+
+
+
+
+; �
+pub global REPLACEMMENT_CHAR_UNICODE u32 = 0xfffd;
+pub global REPLACEMMENT_CHAR_ASCII u8 = '?';
+global TRUNCATED_MSG = "@TrUnCaTeD@"
+
+
+
+
 
 pub wrapped type r64_hex = r64
 

@@ -130,6 +130,12 @@ macro BG_COLOR# EXPR_LIST ($r EXPR, $g EXPR, $b EXPR) []:
     $b
     "m"
 
+
+pub global SWITCH_TO_ALTERNATE_SCREEN = "\x1b[?1049h"
+pub global SWITCH_TO_NORMAL_SCREEN = "\x1b[?1049l"
+pub global SCROLL_UP = "\x1b[1S"
+pub global SCROLL_DOWN = "\x1b[1T"
+
 ; Light
 ; ┌┬┐
 ; ├┼┤

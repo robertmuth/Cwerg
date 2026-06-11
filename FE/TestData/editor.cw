@@ -48,27 +48,7 @@ global KEY_F12 = SPECIAL_START + 232
 
 type Key = u32
 
-fun unicode2utf8(unicode u32) u32:
-    cond:
-        case unicode <= 0x7f:
-            return unicode
-        case unicode <= 0x7ff:
-            let c1 = unicode & 0x3f | 0x80
-            let c0 = unicode >> 6 | 0xc0
-            return (c1 << 8) + c0
-        case unicode <= 0xffff:
-            let c2 = unicode & 0x3f | 0x80
-            let c1 = (unicode >> 6) & 0x3f | 0x80
-            let c0 = (unicode >> 12) | 0xe0
-            return (c2 << 8) | (c1 << 8) |  c0
-        case unicode <= 0x1fffff:
-            let c3 = unicode & 0x3f | 0x80
-            let c2 = (unicode >> 6) & 0x3f | 0x80
-            let c1 = (unicode >> 12) & 0x3f | 0x80
-            let c0 = (unicode >> 18) | 0xf0
-            return (c3 << 8) | (c2 << 8) | (c1 << 8) | c0
-        case true:
-            return 0xffffffff
+
 
 
 fun DumpKey(key Key) void:
@@ -81,7 +61,7 @@ fun DumpKey(key Key) void:
     if key & MOD_CONTROL == MOD_CONTROL:
         fmt\print#("CTRL+")
 
-    let k = key & 0xffffff
+    let k u32 = key & 0xffffff
     cond:
         case k == KEY_NONE:
             fmt\print#("NONE")
@@ -118,10 +98,7 @@ fun DumpKey(key Key) void:
         case k >= KEY_F1 && k <= KEY_F12:
             fmt\print#("F", k - KEY_F1 + 1)
         case true:
-            let! utf8 u32 = unicode2utf8(k)
-            while utf8 != 0:
-                fmt\print#(wrap_as(as(utf8, u8), fmt\rune))
-                set utf8 >>= 8
+            fmt\print#(wrap_as(k, fmt\rune32))
 
 fun ReadKeyHandleSimple(c u8) union(Key, os\Error):
     if c <= 127:
@@ -308,7 +285,40 @@ fun SetRawTermAttr(term_attr ^!termio\Termios) void:
     set term_attr^.cc[termio\VMIN] = 0
     set term_attr^.cc[termio\VTIME] = 1
 
+rec TerminalManager:
+    w u16
+    h u16
+    curr_screen span!(u32)
+    next_screen span!(u32)
 
+; fun RenderNextVeticalScrollOpt(tm ^!TerminalManager, slice!(u8)) u32:
+;    let! mismatch = 0_u32
+;    let w = tm^.w
+;    let h = tm^.h
+;    let n = w * h
+;    for i = 0, n, 1:
+;        if tm^.curr_screen[i] != tm^.next_screen[i]:
+;            set mismatch += 1
+;
+;
+;    let! mismatch_opt u32
+;    # explore if scrolling up is gelpful in reducing mismatches
+;    # assume scrolling in blank last line does not match
+;    set mismatch_opt = w
+;    for y = 0, h - 1, 1:
+;        let offset = y * w
+;        for x = 0, w, 1:
+;            if  tm^.curr_screen[offset + w + x] != tm^.next_screen[offset + x]:
+;                set mismatch_opt += 1
+;    if mismatch_opt < mismatch / 2:
+;
+;        return
+;
+;
+; fun RenderNext(tm ^!TerminalManager, slice!(u8)) u32:
+;
+;
+;
 fun main(argc s32, argv ^^u8) s32:
     ref let! win_size termio\WinSize = undef
     trylet res void = termio\GetWinSize(os\Stdout, @!win_size), err:

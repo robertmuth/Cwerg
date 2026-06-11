@@ -71,7 +71,7 @@ fun test_misc() void:
     let! n uint = 0
     set n = fmt\SysRender(true, s, @!opt)
     test\AssertSliceEq#(make_span(front(s), n), "true")
-    set n = fmt\SysRender(wrap_as(120, fmt\rune), s, @!opt)
+    set n = fmt\SysRender(wrap_as(120, fmt\rune8), s, @!opt)
     test\AssertSliceEq#(make_span(front(s), n), "x")
     set n = fmt\SysRender(wrap_as(test_string, fmt\str_hex), s, @!opt)
     test\AssertSliceEq#(make_span(front(s), n), "7177657274795f31323334")

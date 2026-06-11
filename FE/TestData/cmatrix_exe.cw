@@ -189,12 +189,13 @@ fun draw_frame(t u32, w u16, h u16) void:
                 set buf = span_inc(buf, span_fill(buf, ";"))
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_RESET_BOLD_AND_DIM))
                 set buf = span_inc(buf, span_fill(buf, ansi\SGR_END))
-                set buf = span_inc(buf, fmt\UnicodeToUtf8(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE), buf))
+                let u = wrap_as(get_border_char(x, y, w, h, @ansi\BOX_COMPONENTS_DOUBLE), fmt\rune32)
+                set buf = span_inc(buf, fmt\UnicodeToUtf8(u, buf))
 
                 continue
             ; every other column is blank
             if x % 2 == 0:
-                set buf = span_inc(buf, fmt\UnicodeToUtf8(32, buf))
+                set buf = span_inc(buf, fmt\UnicodeToUtf8(wrap_as(32, fmt\rune32), buf))
                 continue
             let c = gColumns[x / 2].content[y - 1].val
             set buf = span_inc(buf, span_fill(buf, ansi\SGR_START))
@@ -209,7 +210,7 @@ fun draw_frame(t u32, w u16, h u16) void:
             set buf = span_inc(buf, span_fill(buf, ansi\SGR_END))
 
             ;
-            set buf = span_inc(buf, fmt\UnicodeToUtf8(as(c, u32), buf))
+            set buf = span_inc(buf, fmt\UnicodeToUtf8(wrap_as(c, fmt\rune32), buf))
 
     ; flush buf
     do print(make_span(front(gFrameBuffer), len(gFrameBuffer) - len(buf)))
@@ -239,6 +240,7 @@ fun main(argc s32, argv ^^u8) s32:
     ; 0.05 sec per frame
     ref let req = {os\TimeSpec: 0, 50_000_000}
     ref let! rem os\TimeSpec = undef
+    fmt\print#(ansi\SWITCH_TO_ALTERNATE_SCREEN)
     fmt\print#(ansi\CURSOR_HIDE)
     fmt\print#(ansi\CLEAR_ALL)
 
@@ -248,5 +250,6 @@ fun main(argc s32, argv ^^u8) s32:
         do draw_frame(t, win_size.ws_col, win_size.ws_row)
         do os\nanosleep(@req, @!rem)
     fmt\print#(ansi\CURSOR_SHOW)
+    fmt\print#(ansi\SWITCH_TO_NORMAL_SCREEN)
 
     return 0

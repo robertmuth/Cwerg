@@ -12,7 +12,7 @@ type Board = [DIM][DIM]bool
 fun DumpBoard(board ^Board) void:
     for i = 0, DIM, 1:
         for j = 0, DIM, 1:
-            fmt\print#(wrap_as(board^[i][j] ? 'Q' : '.', fmt\rune))
+            fmt\print#(wrap_as(board^[i][j] ? 'Q' : '.', fmt\rune8))
         fmt\print#("\n")
     fmt\print#("\n")
 
