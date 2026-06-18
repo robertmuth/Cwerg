@@ -155,32 +155,14 @@ def EmitUnitAsBinary(unit: ir.Unit) -> elf_unit.Unit:
         assert mem.kind != o.MEM_KIND.EXTERN, f"undefined symbol: {mem}"
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
-        elfunit.MemStart(mem.name, mem.alignment,
-                         cpu_neutral.MEMKIND_TO_SECTION[mem.kind], False)
-        for d in mem.datas:
-            if isinstance(d, ir.DataBytes):
-                elfunit.AddData(d.count, d.data)
-            elif isinstance(d, ir.DataAddrFun):
-                elfunit.AddFunAddr(
-                    enum_tab.RELOC_TYPE_X86_64.X_64, d.size, d.fun.name)
-            elif isinstance(d, ir.DataAddrMem):
-                elfunit.AddMemAddr(
-                    enum_tab.RELOC_TYPE_X86_64.X_64, d.size, d.mem.name, d.offset)
-            else:
-                assert False
-        elfunit.MemEnd()
+        cpu_neutral.MemCodeGenBinary(elfunit, mem, enum_tab.RELOC_TYPE_X86_64.X_64)
 
     sec_text = elfunit.sec_text
     for fun in unit.funs:
         # print (f"Processing {fun.name}")
         elfunit.FunStart(fun.name, 16, assembler.TextPadder)
         for jtb in fun.jtbs:
-            elfunit.MemStart(jtb.name, 8, "rodata", True)
-            for i in range(jtb.size):
-                bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-                elfunit.AddBblAddr(
-                    enum_tab.RELOC_TYPE_X86_64.X_64, 8, bbl.name)
-            elfunit.MemEnd()
+            cpu_neutral.JtbCodeGenSimpleBinary(elfunit, jtb, 8, enum_tab.RELOC_TYPE_X86_64.X_64)
         ctx = regs.FunComputeEmitContext(fun)
 
         for tmpl in isel_tab.EmitFunProlog(ctx):
