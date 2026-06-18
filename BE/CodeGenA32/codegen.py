@@ -20,49 +20,15 @@ from BE.CpuA32 import assembler
 from BE.CodeGenA32 import isel_tab
 from BE.CodeGenA32 import regs
 from BE.CodeGenA32 import legalize
+from BE.CodeGenCommon import cpu_neutral
 
 from BE.Elf import enum_tab
 from BE.Elf import elf_unit
 
 
-
-
-
 ############################################################
 # textual emitter
 ############################################################
-
-_MEMKIND_TO_SECTION = {
-    o.MEM_KIND.RO: "rodata",
-    o.MEM_KIND.RW: "data",
-    # bss missing
-}
-
-
-def _MemCodeGenText(mem: ir.Mem, _mod: ir.Unit) -> list[str]:
-    out = [f"# size {mem.Size()}",
-           f".mem {mem.name} {mem.alignment} {_MEMKIND_TO_SECTION[mem.kind]}"]
-    for d in mem.datas:
-        if isinstance(d, ir.DataBytes):
-            out += [f"    .data {d.count} {serialize.EscapeCStyle(d.data)}"]
-        elif isinstance(d, ir.DataAddrFun):
-            out += [f"    .addr.fun {d.size} {d.fun.name}"]
-        elif isinstance(d, ir.DataAddrMem):
-            out += [f"    .addr.mem {d.size} {d.mem.name} 0x{d.offset:x}"]
-        else:
-            assert False
-
-    out += [f".endmem"]
-    return out
-
-
-def _JtbCodeGen(jtb: ir.Jtb):
-    out = [f".localmem {jtb.name} 4 rodata"]
-    for i in range(jtb.size):
-        bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-        out.append(f"    .addr.bbl 4 {bbl.name}")
-    out.append(".endmem")
-    return out
 
 
 def _RenderIns(ins: a32.Ins):
@@ -73,7 +39,7 @@ def _RenderIns(ins: a32.Ins):
 def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> list[str]:
     assert fun.kind is not o.FUN_KIND.EXTERN
     assert ir.FUN_FLAG.STACK_FINALIZED in fun.flags
-    assert fun.stk_size >= 0, f"did you call FinalizeStk?"
+    assert fun.stk_size >= 0, "did you call FinalizeStk?"
     # DumpFun("codegen", fun)
     out: list[str] = [
         f"# sig: {fun.render_signature()}  stk_size:{fun.stk_size}",
@@ -81,7 +47,7 @@ def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> list[str]:
     ]
 
     for jtb in fun.jtbs:
-        out += _JtbCodeGen(jtb)
+        out += cpu_neutral.JtbCodeGenSimpleText(jtb, 4)
 
     ctx = regs.FunComputeEmitContext(fun)
 
@@ -103,7 +69,7 @@ def _FunCodeGenArm32(fun: ir.Fun, _mod: ir.Unit) -> list[str]:
 
                 out += [_RenderIns(tmpl.MakeInsFromTmpl(ins, ctx))
                         for tmpl in pattern.emit]
-    out.append(f".endfun")
+    out.append(".endfun")
     return out
 
 
@@ -114,7 +80,7 @@ def EmitUnitAsText(unit: ir.Unit, fout):
         assert mem.kind is not o.MEM_KIND.EXTERN
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
-        for s in _MemCodeGenText(mem, unit):
+        for s in cpu_neutral.MemCodeGenText(mem, unit):
             print(s, file=fout)
     for fun in unit.funs:
         if fun.kind in {o.FUN_KIND.SIGNATURE}:
@@ -139,7 +105,7 @@ def codegen(unit: ir.Unit) -> Unit:
         assert mem.kind != o.MEM_KIND.EXTERN
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
-        arm_mem = _MemCodeGenText(mem, unit)
+        arm_mem = cpu_neutral.MemCodeGenText(mem, unit)
         out.mems.append((mem.name, arm_mem))
         out.mem_syms[mem.name] = arm_mem
     for fun in unit.funs:
@@ -162,7 +128,7 @@ def EmitUnitAsBinary(unit: ir.Unit) -> elf_unit.Unit:
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         elfunit.MemStart(mem.name, mem.alignment,
-                         _MEMKIND_TO_SECTION[mem.kind], False)
+                         cpu_neutral.MEMKIND_TO_SECTION[mem.kind], False)
         for d in mem.datas:
             if isinstance(d, ir.DataBytes):
                 elfunit.AddData(d.count, d.data)
@@ -272,7 +238,7 @@ if __name__ == "__main__":
         assert args.mode == "normal"
         EmitUnitAsText(unit, fout)
         if False:
-            print(f"# STATS:")
+            print("# STATS:")
             for key, val in sorted(opt_stats.items()):
                 print(f"#  {key}: {val}", file=fout)
 

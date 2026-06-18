@@ -21,6 +21,7 @@ from BE.CpuX64 import assembler
 from BE.CodeGenX64 import isel_tab
 from BE.CodeGenX64 import regs
 from BE.CodeGenX64 import legalize
+from BE.CodeGenCommon import cpu_neutral
 
 from BE.Elf import enum_tab
 from BE.Elf import elf_unit
@@ -45,35 +46,6 @@ def RegAllocLocal(unit, opt_stats, verbose=False):
 # textual emitter
 ############################################################
 
-_MEMKIND_TO_SECTION = {
-    o.MEM_KIND.RO: "rodata",
-    o.MEM_KIND.RW: "data",
-    # bss missing
-}
-
-
-def _MemCodeGenText(mem: ir.Mem, _mod: ir.Unit):
-    yield f"# size {mem.Size()}"
-    yield f".mem {mem.name} {mem.alignment} {_MEMKIND_TO_SECTION[mem.kind]}"
-    for d in mem.datas:
-        if isinstance(d, ir.DataBytes):
-            yield f"    .data {d.count} {serialize.EscapeCStyle(d.data)}"
-        elif isinstance(d, ir.DataAddrFun):
-            yield f"    .addr.fun {d.size} {d.fun.name}"
-        elif isinstance(d, ir.DataAddrMem):
-            yield f"    .addr.mem {d.size} {d.mem.name} 0x{d.offset:x}"
-        else:
-            assert False
-    yield ".endmem"
-
-
-def _JtbCodeGen(jtb: ir.Jtb):
-    yield f".localmem {jtb.name} 8 rodata"
-    for i in range(jtb.size):
-        bbl = jtb.bbl_tab.get(i, jtb.def_bbl)
-        yield f"    .addr.bbl 8 {bbl.name}"
-    yield ".endmem"
-
 
 def _RenderIns(ins: x64.Ins) -> str:
     name, ops = symbolic.InsSymbolize(ins, True)
@@ -95,14 +67,14 @@ def _SimplifyCpuIns(cpu_ins: x64.Ins) -> bool:
 
 def _FunCodeGenText(fun: ir.Fun, _mod: ir.Unit):
     assert ir.FUN_FLAG.STACK_FINALIZED in fun.flags
-    assert fun.stk_size >= 0, f"did you call FinalizeStk?"
+    assert fun.stk_size >= 0, "did you call FinalizeStk?"
     # DumpFun("codegen", fun)
 
     yield f"# sig: {fun.render_signature()}  stk_size:{fun.stk_size}"
     yield f".fun {fun.name} 16"
 
     for jtb in fun.jtbs:
-        yield from _JtbCodeGen(jtb)
+        yield from cpu_neutral.JtbCodeGenSimpleText(jtb, 8)
 
     ctx = regs.FunComputeEmitContext(fun)
     for tmpl in isel_tab.EmitFunProlog(ctx):
@@ -136,7 +108,7 @@ def EmitUnitAsText(unit: ir.Unit, fout):
         assert mem.kind != o.MEM_KIND.EXTERN, f"bad MEM {mem}"
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
-        for s in _MemCodeGenText(mem, unit):
+        for s in cpu_neutral.MemCodeGenText(mem, unit):
             print(s, file=fout)
     for fun in unit.funs:
         if fun.kind in {o.FUN_KIND.SIGNATURE}:
@@ -161,7 +133,7 @@ def codegen(unit: ir.Unit) -> Unit:
         assert mem.kind != o.MEM_KIND.EXTERN, f"bad MEM {mem}"
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
-        cpu_mem = _MemCodeGenText(mem, unit)
+        cpu_mem = cpu_neutral.MemCodeGenText(mem, unit)
         out.mems.append((mem.name, [x for x in cpu_mem]))
         out.mem_syms[mem.name] = cpu_mem
     for fun in unit.funs:
@@ -184,7 +156,7 @@ def EmitUnitAsBinary(unit: ir.Unit) -> elf_unit.Unit:
         if mem.kind == o.MEM_KIND.BUILTIN:
             continue
         elfunit.MemStart(mem.name, mem.alignment,
-                         _MEMKIND_TO_SECTION[mem.kind], False)
+                         cpu_neutral.MEMKIND_TO_SECTION[mem.kind], False)
         for d in mem.datas:
             if isinstance(d, ir.DataBytes):
                 elfunit.AddData(d.count, d.data)
