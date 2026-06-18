@@ -2,7 +2,7 @@ DIR=../../build
 
 
 tests:
-	cd $(DIR); VERBOSE=1 $(MAKE) -s example_fib_c
+	cd $(DIR); VERBOSE=1 $(MAKE) -s -j example_fib_c
 
 cwerg.h: ../Base/opcode_tab.py
 	@echo "[$@]"

@@ -17,7 +17,7 @@ BUILD_DIR=../../build
 OPTIMIZE_TOOL=$(BUILD_DIR)/optimize_tool.exe
 
 $(OPTIMIZE_TOOL)::
-	@cd $(BUILD_DIR); $(MAKE) -s optimize_tool.exe
+	@cd $(BUILD_DIR); $(MAKE) -s -j optimize_tool.exe
 
 
 
