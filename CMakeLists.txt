@@ -243,6 +243,7 @@ add_executable(a32_isel_tester.exe
         $<TARGET_OBJECTS:CPUA32_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENA32_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/CodeGenA32/isel_tester.cc
@@ -253,6 +254,7 @@ add_executable(a32_codegen_tool.exe
         $<TARGET_OBJECTS:CPUA32_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENA32_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/CodeGenA32/codegen_tool.cc
@@ -270,11 +272,17 @@ add_library(CODEGENA64_LIB OBJECT
         BE/CodeGenA64/regs.h
 )
 
+add_library(CODEGENCOMMON_LIB OBJECT
+        BE/CodeGenCommon/cpu_neutral.h
+        BE/CodeGenCommon/cpu_neutral.cc
+)
+
 add_executable(a64_isel_tester.exe
         $<TARGET_OBJECTS:UTIL_LIB>
         $<TARGET_OBJECTS:CPUA64_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENA64_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/CodeGenA64/isel_tester.cc
@@ -285,6 +293,7 @@ add_executable(a64_codegen_tool.exe
         $<TARGET_OBJECTS:CPUA64_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENA64_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/CodeGenA64/codegen_tool.cc
@@ -307,6 +316,7 @@ add_executable(x64_isel_tester.exe
         $<TARGET_OBJECTS:CPUX64_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/CodeGenX64/isel_tester.cc
@@ -317,6 +327,7 @@ add_executable(x64_codegen_tool.exe
         $<TARGET_OBJECTS:CPUX64_LIB>
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/CodeGenX64/codegen_tool.cc
@@ -344,6 +355,7 @@ add_executable(jit_ir_a32.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUA32_LIB>
         $<TARGET_OBJECTS:CODEGENA32_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/ApiDemo/fib_ir.h
@@ -364,6 +376,7 @@ add_executable(jit_ir_a64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUA64_LIB>
         $<TARGET_OBJECTS:CODEGENA64_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/ApiDemo/fib_ir.h
@@ -384,6 +397,7 @@ add_executable(jit_ir_x64.exe EXCLUDE_FROM_ALL
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUX64_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/ApiDemo/fib_ir.h
@@ -395,6 +409,7 @@ add_executable(example_fib_c
         $<TARGET_OBJECTS:ELF_LIB>
         $<TARGET_OBJECTS:CPUX64_LIB>
         $<TARGET_OBJECTS:CODEGENX64_LIB>
+        $<TARGET_OBJECTS:CODEGENCOMMON_LIB>
         $<TARGET_OBJECTS:IR_LIB>
         $<TARGET_OBJECTS:BASE_LIB>
         BE/BindingsC/cwerg.h

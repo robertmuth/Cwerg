@@ -8,6 +8,7 @@
 #include "BE/CodeGenA32/isel_gen.h"
 #include "BE/CodeGenA32/legalize.h"
 #include "BE/CodeGenA32/regs.h"
+#include "BE/CodeGenCommon/cpu_neutral.h"
 #include "BE/CpuA32/opcode_gen.h"
 #include "BE/CpuA32/symbolic.h"
 #include "Util/parse.h"
@@ -16,6 +17,7 @@ namespace cwerg::code_gen_a32 {
 
 using namespace cwerg;
 using namespace cwerg::base;
+using namespace cwerg::code_gen_common;
 
 namespace {
 
@@ -26,20 +28,7 @@ constexpr auto operator+(T e) noexcept
   return static_cast<std::underlying_type_t<T>>(e);
 }
 
-std::string_view padding_zero("\0", 1);
 std::string_view padding_nop("\x00\xf0\x20\xe3", 4);
-
-void JtbCodeGen(Jtb jtb, std::ostream* output) {
-  std::vector<Bbl> table(JtbSize(jtb), JtbDefBbl(jtb));
-  for (Jen jen : JtbJenIter(jtb)) {
-    table[JenPos(jen)] = JenBbl(jen);
-  }
-  *output << ".localmem " << Name(jtb) << " 4 rodata\n";
-  for (Bbl bbl : table) {
-    *output << "    .addr.bbl 4 " << Name(bbl) << "\n";
-  }
-  *output << ".endmem\n";
-}
 
 void FunCodeGenArm32(Fun fun, std::ostream* output) {
   ASSERT(FunKind(fun) != FUN_KIND::EXTERN, "");
@@ -50,7 +39,7 @@ void FunCodeGenArm32(Fun fun, std::ostream* output) {
   *output << "  stk_size:" << FunStackSize(fun) << "\n";
   *output << ".fun " << Name(fun) << " 16\n";
   for (Jtb jtb : FunJtbIter(fun)) {
-    JtbCodeGen(jtb, output);
+    JtbCodeGenSimpleText(jtb, output, 4);
   }
 
   std::vector<a32::Ins> inss;
@@ -89,53 +78,13 @@ void FunCodeGenArm32(Fun fun, std::ostream* output) {
   *output << ".endfun\n";
 }
 
-std::string_view MemKindToSectionName(MEM_KIND kind) {
-  switch (kind) {
-    case MEM_KIND::RO:
-      return "rodata";
-    case MEM_KIND::RW:
-      return "data";
-    default:
-      ASSERT(false, "unsupported mem kind " << base::EnumToString(kind));
-      return "";
-  }
-}
-
-void MemCodeGenArm32(Mem mem, std::ostream* output) {
-  *output << "# size " << MemSize(mem) << "\n"
-          << ".mem " << Name(mem) << " " << MemAlignment(mem) << " "
-          << MemKindToSectionName(MemKind(mem)) << "\n";
-  for (Data data : MemDataIter(mem)) {
-    uint32_t size = DataSize(data);
-    Handle target = DataTarget(data);
-    int32_t extra = DataExtra(data);
-    if (Kind(target) == RefKind::STR) {
-      size_t len = size;
-      char buffer[4096];
-      if (len > 0) {
-        len = BytesToEscapedString({StrData(Str(target)), len}, buffer);
-      }
-      buffer[len] = 0;
-      *output << "    .data " << extra << " \"" << buffer << "\"\n";
-    } else if (Kind(target) == RefKind::FUN) {
-      *output << "    .addr.fun " << size << " " << Name(Fun(target)) << "\n";
-    } else {
-      ASSERT(Kind(target) == RefKind::MEM, "");
-      *output << "    .addr.mem " << size << " " << Name(Mem(target))
-              << std::hex << " 0x" << extra << std::dec << "\n";
-    }
-  }
-
-  *output << ".endmem\n";
-}
-
 }  // namespace
 
 void EmitUnitAsText(Unit unit, std::ostream* output) {
   for (Mem mem : UnitMemIter(unit)) {
     ASSERT(MemKind(mem) != MEM_KIND::EXTERN, "");
     if (MemKind(mem) == MEM_KIND::BUILTIN) continue;
-    MemCodeGenArm32(mem, output);
+    MemCodeGenText(mem, output);
   }
   for (Fun fun : UnitFunIter(unit)) {
     if (FunKind(fun) == FUN_KIND::SIGNATURE) continue;
@@ -148,24 +97,7 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit) {
   for (Mem mem : UnitMemIter(unit)) {
     ASSERT(MemKind(mem) != MEM_KIND::EXTERN, "");
     if (MemKind(mem) == MEM_KIND::BUILTIN) continue;
-    out.MemStart(StrData(Name(mem)), MemAlignment(mem),
-                 MemKindToSectionName(MemKind(mem)), padding_zero, false);
-    for (Data data : MemDataIter(mem)) {
-      uint32_t size = DataSize(data);
-      Handle target = DataTarget(data);
-      int32_t extra = DataExtra(data);
-      if (Kind(target) == RefKind::STR) {
-        out.AddData(extra, StrData(Str(target)), size);
-      } else if (Kind(target) == RefKind::FUN) {
-        out.AddFunAddr(size, +elf::RELOC_TYPE_ARM::ABS32,
-                       StrData(Name(Fun(target))));
-      } else {
-        ASSERT(Kind(target) == RefKind::MEM, "");
-        out.AddMemAddr(size, +elf::RELOC_TYPE_ARM::ABS32,
-                       StrData(Name(Mem(target))), extra);
-      }
-    }
-    out.MemEnd();
+    MemCodeGenBinary(mem, +elf::RELOC_TYPE_ARM::ABS32, &out);
   }
 
   std::vector<a32::Ins> inss;
@@ -180,15 +112,7 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit) {
     ASSERT(FunKind(fun) != FUN_KIND::EXTERN, "");
     out.FunStart(StrData(Name(fun)), 16, padding_nop);
     for (Jtb jtb : FunJtbIter(fun)) {
-      std::vector<Bbl> table(JtbSize(jtb), JtbDefBbl(jtb));
-      for (Jen jen : JtbJenIter(jtb)) {
-        table[JenPos(jen)] = JenBbl(jen);
-      }
-      out.MemStart(StrData(Name(jtb)), 4, "rodata", padding_zero, true);
-      for (Bbl bbl : table) {
-        out.AddBblAddr(4, +elf::RELOC_TYPE_ARM::ABS32, StrData(Name(bbl)));
-      }
-      out.MemEnd();
+      JtbCodeGenSimpleBinary(jtb, 4, +elf::RELOC_TYPE_ARM::ABS32, &out);
     }
     EmitContext ctx = FunComputeEmitContext(fun);
     EmitFunProlog(ctx, &inss);
@@ -217,9 +141,5 @@ a32::A32Unit EmitUnitAsBinary(base::Unit unit) {
   out.AddLinkerDefs();
   return out;
 }
-
-
-
-
 
 }  // namespace  cwerg::code_gen_a32

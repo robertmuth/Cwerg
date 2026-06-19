@@ -42,6 +42,7 @@ def MemCodeGenBinary(unit: elf_unit.Unit, mem: ir.Mem, addr_reloc_kind):
     unit.MemEnd()
 
 
+# Jumptable is just a sequence of addresses
 def JtbCodeGenSimpleText(jtb: ir.Jtb, addr_size: int):
     yield f".localmem {jtb.name} {addr_size} rodata"
     for i in range(jtb.size):
