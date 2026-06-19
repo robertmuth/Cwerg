@@ -8,12 +8,33 @@ namespace cwerg::code_gen_common {
 using namespace cwerg;
 using namespace cwerg::base;
 
-std::string_view MemKindToSectionName(MEM_KIND kind) {
-  switch (kind) {
+std::string_view SectionNameForMem(Mem mem) {
+  switch (MemKind(mem)) {
     case MEM_KIND::RO:
       return "rodata";
     case MEM_KIND::RW:
-      return "data";
+      for (Data data : MemDataIter(mem)) {
+        Handle target = DataTarget(data);
+        switch (Kind(target)) {
+          case RefKind::FUN:
+          case RefKind::MEM:
+            return "data";
+          case RefKind::STR: {
+            size_t len = DataSize(data);
+            const char* str = StrData(Str(target));
+            for (size_t i = 0; i < len; i++) {
+              if (str[i] != 0) {
+                return "data";
+              }
+            }
+            break;
+          }
+
+          default:
+            ASSERT(false, "");
+        }
+      }
+      return "bss";
     default:
       ASSERT(false, "");
       return "";
@@ -35,7 +56,7 @@ void JtbCodeGenSimpleText(Jtb jtb, std::ostream* output, int addr_size) {
 void MemCodeGenText(Mem mem, std::ostream* output) {
   *output << "# size " << MemSize(mem) << "\n"
           << ".mem " << Name(mem) << " " << MemAlignment(mem) << " "
-          << MemKindToSectionName(MemKind(mem)) << "\n";
+          << SectionNameForMem(mem) << "\n";
   for (Data data : MemDataIter(mem)) {
     uint32_t size = DataSize(data);
     Handle target = DataTarget(data);
@@ -59,7 +80,5 @@ void MemCodeGenText(Mem mem, std::ostream* output) {
 
   *output << ".endmem\n";
 }
-
-
 
 }  // namespace cwerg::code_gen_common

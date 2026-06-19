@@ -8,7 +8,7 @@ namespace cwerg::code_gen_common {
 using namespace cwerg;
 using namespace cwerg::base;
 
-std::string_view MemKindToSectionName(base::MEM_KIND kind);
+std::string_view SectionNameForMem(Mem mem);
 
 void JtbCodeGenSimpleText(Jtb jtb, std::ostream* output, int addr_size);
 
@@ -19,7 +19,7 @@ void MemCodeGenBinary(Mem mem, int reloc_kind, UNIT* out) {
   std::string_view padding_zero("\0", 1);
 
   out->MemStart(StrData(Name(mem)), MemAlignment(mem),
-                MemKindToSectionName(MemKind(mem)), padding_zero, false);
+                SectionNameForMem(mem), padding_zero, false);
   for (Data data : MemDataIter(mem)) {
     uint32_t size = DataSize(data);
     Handle target = DataTarget(data);

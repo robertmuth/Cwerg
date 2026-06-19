@@ -5,16 +5,24 @@ from BE.Base import ir
 from BE.Elf import elf_unit
 
 
-MEMKIND_TO_SECTION = {
-    o.MEM_KIND.RO: "rodata",
-    o.MEM_KIND.RW: "data",
-    # bss missing
-}
+def SectionNameForMem(mem: ir.Mem) -> str:
+    if mem.kind == o.MEM_KIND.RO:
+        return "rodata"
+    elif mem.kind == o.MEM_KIND.RW:
+        for d in mem.datas:
+            if isinstance(d, (ir.DataAddrFun, ir.DataAddrMem)):
+                return "data"
+            assert isinstance(d, ir.DataBytes)
+            if any(b != 0 for b in d.data):
+                return "data"
+        return "bss"
+    else:
+        assert False
 
 
 def MemCodeGenText(mem: ir.Mem, _mod: ir.Unit):
     yield f"# size {mem.Size()}"
-    yield f".mem {mem.name} {mem.alignment} {MEMKIND_TO_SECTION[mem.kind]}"
+    yield f".mem {mem.name} {mem.alignment} {SectionNameForMem(mem)}"
     for d in mem.datas:
         if isinstance(d, ir.DataBytes):
             yield f"    .data {d.count} {serialize.EscapeCStyle(d.data)}"
@@ -29,7 +37,7 @@ def MemCodeGenText(mem: ir.Mem, _mod: ir.Unit):
 
 
 def MemCodeGenBinary(unit: elf_unit.Unit, mem: ir.Mem, addr_reloc_kind):
-    unit.MemStart(mem.name, mem.alignment, MEMKIND_TO_SECTION[mem.kind], False)
+    unit.MemStart(mem.name, mem.alignment, SectionNameForMem(mem), False)
     for d in mem.datas:
         if isinstance(d, ir.DataBytes):
             unit.AddData(d.count, d.data)
