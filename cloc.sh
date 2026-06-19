@@ -42,7 +42,7 @@ ComputeStats() {
 BE() {
 
     echo "## ISA Neutral Code"
-    ComputeStats BE "Base|Elf"
+    ComputeStats BE "Base|Elf|CodeGenCommon"
 
     echo "## A32 Code"
     ComputeStats BE "CpuA32|CodeGenA32"
